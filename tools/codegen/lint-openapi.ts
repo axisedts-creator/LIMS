@@ -277,12 +277,12 @@ export function lintOpenapi(files: { name: string; text: string }[], ctx: LintCo
 }
 
 // CM §3 module → owning chunk (api modules) and 02-TRD §6.3 PORT_OWNERS (port → module).
-const MODULE_OWNERS: Record<string, string> = {
+export const MODULE_OWNERS: Record<string, string> = {
   core: "C0", identity: "C2", catalog: "C3", frontdesk: "C4", billing: "C4", lab: "C5", reporting: "C6", instruments: "C7",
   analytics: "C8", quality: "C9", micro: "C10", anatomic: "C11", inventory: "C12", partners: "C13", smartreport: "C14",
   payments: "C15", engagement: "C16", homecollection: "C17",
 };
-const PORT_MODULES: Record<string, string> = {
+export const PORT_MODULES: Record<string, string> = {
   CatalogPort: "catalog", FrontdeskPort: "frontdesk", BillingPort: "billing", LabPort: "lab", ReportingPort: "reporting",
   NotificationPort: "reporting", IdentityPort: "identity", PaymentProviderPort: "payments", SmartReportPort: "smartreport",
   QualityPort: "quality", BillingCommandPort: "billing", RenderPort: "reporting", EngagementPort: "engagement",

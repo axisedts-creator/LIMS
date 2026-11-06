@@ -33,7 +33,7 @@ SELECT results_eq($$SELECT rolname::text FROM pg_roles WHERE rolname LIKE 'lims\
 CREATE TEMP TABLE m AS
 SELECT g.rolname::text AS grp, u.rolname::text AS member, a.inherit_option AS inh, a.set_option AS setopt
   FROM pg_auth_members a JOIN pg_roles g ON g.oid = a.roleid JOIN pg_roles u ON u.oid = a.member
- WHERE u.rolname LIKE 'lims\_%';
+ WHERE u.rolname LIKE 'lims\_%' AND g.rolname LIKE 'lims\_%';
 SELECT results_eq($$SELECT grp, member, inh, setopt FROM m ORDER BY 1,2$$,
   $$VALUES ('lims_app','lims_api',true,false),('lims_app','lims_worker',true,false),
            ('lims_owner','lims_migrator',false,true),('lims_queue','lims_migrator',false,true),
@@ -67,8 +67,8 @@ SELECT is(has_database_privilege(r, current_database(), 'CREATE'), false, r || '
 SELECT is(has_schema_privilege(r, 'app', 'CREATE'), false, r || ' has no CREATE on schema app (D-201)')
   FROM unnest(ARRAY['lims_worker','lims_api','lims_queue','lims_reporting_lookup']) r;
 SELECT is(has_schema_privilege('public', 'public', 'CREATE'), false, 'PUBLIC has no CREATE on schema public');
-SELECT is_empty($$SELECT (aclexplode(datacl)).privilege_type FROM pg_database
-   WHERE datname = current_database() AND (aclexplode(datacl)).grantee = 0$$, 'ALL on database revoked from PUBLIC');
+SELECT is_empty($$SELECT a.privilege_type FROM pg_database d, aclexplode(d.datacl) a
+   WHERE d.datname = current_database() AND a.grantee = 0$$, 'ALL on database revoked from PUBLIC');
 
 -- CONNECT grants
 SELECT is(has_database_privilege(r, current_database(), 'CONNECT'), true, r || ' can CONNECT')

@@ -1,0 +1,20 @@
+[
+  { "fg": "color.neutral.900", "bg": "color.neutral.0", "kind": "text" },
+  { "fg": "color.neutral.900", "bg": "color.neutral.50", "kind": "text" },
+  { "fg": "color.neutral.600", "bg": "color.neutral.0", "kind": "text" },
+  { "fg": "color.neutral.600", "bg": "color.neutral.50", "kind": "text" },
+  { "fg": "color.neutral.700", "bg": "color.neutral.100", "kind": "text" },
+  { "fg": "color.neutral.900", "bg": "color.accent.subtle", "kind": "text" },
+  { "fg": "color.accent.fg", "bg": "color.accent.default", "kind": "text" },
+  { "fg": "color.accent.default", "bg": "color.neutral.0", "kind": "text" },
+  { "fg": "color.accent.default", "bg": "color.accent.subtle", "kind": "text" },
+  { "fg": "color.focus.ring", "bg": "color.neutral.0", "kind": "ui" },
+  { "fg": "color.focus.ring", "bg": "color.neutral.50", "kind": "ui" },
+  { "fg": "color.neutral.300", "bg": "color.neutral.0", "kind": "ui" },
+  { "fg": "color.tone.neutral.fg", "bg": "color.tone.neutral.bg", "kind": "text" },
+  { "fg": "color.tone.info.fg", "bg": "color.tone.info.bg", "kind": "text" },
+  { "fg": "color.tone.success.fg", "bg": "color.tone.success.bg", "kind": "text" },
+  { "fg": "color.tone.warning.fg", "bg": "color.tone.warning.bg", "kind": "text" },
+  { "fg": "color.tone.danger.fg", "bg": "color.tone.danger.bg", "kind": "text" },
+  { "fg": "color.tone.critical.fg", "bg": "color.tone.critical.bg", "kind": "text" }
+]

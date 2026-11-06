@@ -11,7 +11,7 @@ export interface MoneyTextProps {
 export function MoneyText({ value, grouping = 'lakh', ...rest }: MoneyTextProps) {
   return (
     <span className="lims-money" {...rest}>
-      Rs. {formatPaisa(value.amount_paisa, grouping)}
+      Rs. {formatPaisa(value.amountPaisa, grouping)}
     </span>
   );
 }

@@ -35,6 +35,10 @@
 .lims-icon-btn { padding: var(--lims-space-1); }
 .lims-kbd { font-family: var(--lims-font-family-mono); font-size: var(--lims-font-size-xs-size); opacity: 0.8; }
 .lims-popover { background: var(--lims-neutral-0); border: 1px solid var(--lims-neutral-200); border-radius: var(--lims-radius-lg); box-shadow: var(--lims-elevation-2); z-index: var(--lims-z-dropdown); }
+.lims-popover-body { padding: var(--lims-space-3); outline: none; max-width: 360px; }
+.lims-popover-title { margin: 0 0 var(--lims-space-2); font-size: var(--lims-font-size-md-size); font-weight: var(--lims-font-weight-semibold); }
+.lims-tooltip { max-width: 280px; padding: var(--lims-space-1) var(--lims-space-2); border-radius: var(--lims-radius-sm); background: var(--lims-neutral-900); color: var(--lims-neutral-0); font-size: var(--lims-font-size-sm-size); z-index: var(--lims-z-dropdown); }
+.lims-spinner { display: inline-flex; align-items: center; }
 .lims-menu, .lims-listbox { padding: var(--lims-space-1); outline: none; min-width: 160px; }
 .lims-menuitem, .lims-option { display: flex; align-items: center; gap: var(--lims-space-2); min-height: 32px; padding: var(--lims-space-1) var(--lims-space-2); border-radius: var(--lims-radius-sm); cursor: default; }
 .lims-menuitem[data-focused], .lims-option[data-focused] { background: var(--lims-accent-subtle); }

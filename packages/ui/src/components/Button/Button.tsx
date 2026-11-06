@@ -1,7 +1,7 @@
 import { forwardRef, type ReactNode } from 'react';
 import { Button as RacButton } from 'react-aria-components';
 import { Icon, type IconName } from '../Icon/Icon';
-import { VisuallyHidden } from '../VisuallyHidden/VisuallyHidden';
+import { Spinner } from '../Spinner/Spinner';
 import { msg } from '../_shared/messages';
 
 export interface ButtonProps {
@@ -34,10 +34,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button
       {...(isLoading ? { 'aria-busy': true } : {})}
     >
       {isLoading ? (
-        <>
-          <Icon name="spinner" className="lims-spin" />
-          <VisuallyHidden>{msg.working}</VisuallyHidden>
-        </>
+        <Spinner label={msg.working} asStatus={false} />
       ) : iconStart ? (
         <Icon name={iconStart} />
       ) : null}

@@ -3,5 +3,5 @@
 - Runs `oasdiff breaking <base> <head> --fail-on ERR` (02-TRD gate 6 row); exit 1 bypassed only when `PR_LABELS` has exact token `cr-approved-breaking`.
 - [CONV] Fail closed: bad args / unreadable file -> 2, missing oasdiff -> 127, oasdiff exit >1 never bypassed.
 - [CONV] Label delivery via env `PR_LABELS` (spec silent; tester assumption kept).
-- Job definition for 0A: in script header comment (loop over changed `contracts/openapi/*.yaml`, base from `origin/main`, new files skipped, `PR_LABELS` from PR labels).
+- Job definition for 0A: in script header comment (loop over changed `contracts/openapi/*.yaml`, base from `origin/main`, new files skipped). Review fixes: `PR_LABELS` via step `env:` (no `${{ }}` in `run:`, prevents script injection); trigger types include `labeled`/`unlabeled` so the label bypass re-runs the gate.
 - Open: 0A must pin oasdiff 1.35.x in CI and run the real-fixture block; breaking fixture not verified against real oasdiff here.

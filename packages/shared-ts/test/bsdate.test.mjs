@@ -165,14 +165,14 @@ describe('AC-0A-3.3 fiscalYearBs (FY starts Shrawan 1, 04 L16)', () => {
     assert.deepEqual({ ...f }, { short: '082/83', long: '2082/83', startsOn: '2025-07-17', endsOn: isoOf(dayNum(m(2083, 4).ad_first_day) - 1) });
     assert.equal(fiscalYearBs('2025-07-16').long, '2081/82');
   });
-  it('whole FY is constant: Baisakh 1, Chaitra end of year Y+1 share the FY started Shrawan 1 of Y', async () => {
+  it('whole FY is constant: Baisakh 1 and Ashadh end of year Y+1 share the FY started Shrawan 1 of Y', async () => {
     const { fiscalYearBs } = await load();
     const ms = golden().months;
     for (const Y of [2000, 2050, 2082, 2098]) {
       const start = ms.find((r) => r.bs_year === Y && r.bs_month === 4);
       const nextBaisakh = ms.find((r) => r.bs_year === Y + 1 && r.bs_month === 1);
-      const nextChaitra = ms.find((r) => r.bs_year === Y + 1 && r.bs_month === 12);
-      const lastDay = isoOf(dayNum(nextChaitra.ad_first_day) + nextChaitra.days - 1);
+      const nextAshadh = ms.find((r) => r.bs_year === Y + 1 && r.bs_month === 3);
+      const lastDay = isoOf(dayNum(nextAshadh.ad_first_day) + nextAshadh.days - 1);
       for (const ad of [nextBaisakh.ad_first_day, lastDay]) assert.equal(fiscalYearBs(ad).long, fy(Y), ad);
       assert.equal(fiscalYearBs(lastDay).endsOn, lastDay);
     }

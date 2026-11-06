@@ -4,3 +4,5 @@
 - Needed: human resolves review.json -> writer applies overrides in TS+Dart -> run generate.mjs, commit golden, run `dart test`.
 - Round 2 recheck: state unchanged (golden still absent, review.json still unresolved, only generate.mjs + review.json in test-fixtures/bsdate). Still no impl bug; no code edited. Blocked on human.
 - Round 3 recheck: unchanged. golden absent, review.json 107 unresolved / 0 resolved, tree clean. No impl bug; no code edited. Still blocked on human resolving review.json.
+- Round 4 recheck: verify.log failures are all `validation.test.mjs` (T0A-08): `Cannot find package '@lims/contracts'` — T0C-02/T0C-05 not present, see `.orchestra/cr/T0A-08.md`. Not T0A-06 impl; no code edited.
+- bsdate state unchanged: golden absent (11 ENOENT), `review.json` 107 unresolved. FY test ruling (TESTS_WRONG) is for tester to apply. Still blocked on human resolving review.json.

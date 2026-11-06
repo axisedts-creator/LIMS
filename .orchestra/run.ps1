@@ -30,6 +30,7 @@ $Cfg = @{
   writer   = @{ model = "opus";   turns = 80 }
   debugger = @{ model = "sonnet"; turns = 40 }
   reviewer = @{ model = "opus";   turns = 25 }
+  arbiter  = @{ model = "opus";   turns = 25 }
 }
 $Allowed = "Read,Edit,Write,Bash(pnpm *),Bash(npm *),Bash(npx *),Bash(node *),Bash(git status*),Bash(git diff*),Bash(git log*),Bash(go *),Bash(docker *),Bash(supabase *),Bash(psql *),Bash(ls*),Bash(cat *),Bash(grep *),Bash(find *),Bash(mkdir *)"
 $TestPat = '(__tests__/|\.test\.|\.spec\.|_test\.go$|^db/tests/|^tests/)'
@@ -183,8 +184,28 @@ try {
       if (-not (Invoke-Agent "writer" $t.id $brief)) { Set-Status $t.id "blocked"; continue }
       Enforce "writer"; Commit "[writer] $($t.id) impl"; $st = "implemented"; Set-Status $t.id $st
     }
-    if ((Test-Path (Join-Path $O "cr\$($t.id).md")) -or (Test-Path (Join-Path $O "notes\$($t.id)-dispute.md"))) {
-      Log "$($t.id) needs a human (CR or test dispute)"; Set-Status $t.id "blocked"; continue
+    if (Test-Path (Join-Path $O "cr\$($t.id).md")) { Log "$($t.id) needs a change request - human"; Set-Status $t.id "blocked"; continue }
+    $disp = Join-Path $O "notes\$($t.id)-dispute.md"
+    if (Test-Path $disp) {
+      # reviewer arbitrates against the spec; a wrong test is fixed by the tester, never by the writer
+      Log "$($t.id) test dispute - reviewer arbitrates"
+      if (-not (Invoke-Agent "arbiter" $t.id $brief)) { Set-Status $t.id "blocked"; continue }
+      Enforce "reviewer"
+      $rf = Join-Path $O "notes\$($t.id)-ruling.md"
+      $ruling = if (Test-Path $rf) { (Get-Content $rf -TotalCount 1).Trim() } else { "" }
+      Move-Item -Force $disp (Join-Path $O "notes\$($t.id)-dispute-$(Get-Date -Format yyyyMMddHHmm).md")
+      Commit "[arbiter] $($t.id) $ruling"
+      if ($ruling -eq "TESTS_WRONG") {
+        if (-not (Invoke-Agent "tester" $t.id ($brief + "`nRevise your tests per .orchestra/notes/$($t.id)-ruling.md. Change only what the ruling says."))) { Set-Status $t.id "blocked"; continue }
+        Enforce "tester"; Commit "[tester] $($t.id) tests revised per ruling"
+        if (-not (Invoke-Agent "writer" $t.id $brief)) { Set-Status $t.id "blocked"; continue }
+        Enforce "writer"; Commit "[writer] $($t.id) impl after ruling"
+      } elseif ($ruling -eq "IMPLEMENTATION_WRONG") {
+        if (-not (Invoke-Agent "writer" $t.id ($brief + "`nThe tests stand: read .orchestra/notes/$($t.id)-ruling.md and make them pass."))) { Set-Status $t.id "blocked"; continue }
+        Enforce "writer"; Commit "[writer] $($t.id) impl per ruling"
+      } else { Log "$($t.id) ruling '$ruling' - needs a human (see notes\$($t.id)-ruling.md)"; Set-Status $t.id "blocked"; continue }
+      if (Test-Path $disp) { Log "$($t.id) disputed again after ruling - human"; Set-Status $t.id "blocked"; continue }
+      $st = "implemented"; Set-Status $t.id $st
     }
     $round = 0
     while ($st -in @("implemented","changes")) {

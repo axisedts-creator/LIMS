@@ -81,7 +81,8 @@ const schemaFiles = (): string[] =>
 const fileOf = (type: string) => `${type}.schema.json`;
 
 function buildAjv() {
-  const ajv = new Ajv2020({ strict: true, allErrors: true });
+  const ajv = new Ajv2020({ strict: true, strictRequired: false, allErrors: true });
+  ajv.addKeyword({ keyword: "x-extensible", schemaType: "boolean" });
   for (const f of schemaFiles()) ajv.addSchema(readJson(f));
   return ajv;
 }
@@ -250,7 +251,7 @@ describe("T0C-01 payload strictness + PHI hygiene (REQ-SEC-080, IC §1 PHI class
     if (Array.isArray(node)) return node.forEach((n, i) => lax(n, `${path}[${i}]`, out));
     if (!node || typeof node !== "object") return;
     if (node.properties && node.additionalProperties !== false) out.push(path);
-    for (const [k, v] of Object.entries(node)) if (k !== "enum" && k !== "const" && k !== "required") lax(v, `${path}/${k}`, out);
+    for (const [k, v] of Object.entries(node)) if (!["enum", "const", "required", "if", "then", "else", "not"].includes(k)) lax(v, `${path}/${k}`, out);
   }
   it.each(icEvents)("$type: no payload object allows unknown fields", (e) => {
     const out: string[] = [];

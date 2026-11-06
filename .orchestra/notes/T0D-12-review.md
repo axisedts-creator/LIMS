@@ -1,11 +1,21 @@
-CHANGES
+APPROVE
 
-Checked: diff 1712b2f..HEAD (107 files). `npx vitest run` in packages/ui: 11 files, 321/321 pass. `tsc -p tsconfig.json --noEmit`: clean. Status map matches 04 §1.3 (+CR-C6-005 `discarded`); fonts bundled, no external URL; PageHeader href filter, no PHI logging, no secrets. Paths are inside C0-0D's `packages/ui/` (01-CHUNK-MAP §3). The one exception is the lockfile (item 3).
+Round 2 review. I checked the full diff 1712b2f..HEAD and the fixes in f0b661d..HEAD.
 
-1. Layout primitives incomplete. 04-UI-UX.md:233 lists the layout primitives as `Stack, Inline, Grid, Card, Divider, VisuallyHidden; Tooltip, Popover, Spinner, Badge, KeyboardShortcutsDialog`. Plan row T0D-12 (06-IMPLEMENTATION-PLAN.md:110) covers "layout primitives", and its done_when includes "chips/badges". Only KeyboardShortcutsDialog moves to T0D-13 (plan:112). `Tooltip`, `Popover`, `Spinner` and `Badge` are missing: there is no `packages/ui/src/components/{Tooltip,Popover,Spinner,Badge}/`. Fix: add these four as `<Name>/{<Name>.tsx,<Name>.stories.tsx}`, built on react-aria-components (`TooltipTrigger`/`Tooltip`, `DialogTrigger`/`Popover`). Spinner needs an accessible label using `msg.loading`/`msg.working`, and Button.tsx:38 should reuse it. Add them to `REQUIRED` in `__tests__/stories-axe.test.tsx:11` and add keyboard tests: Tooltip opens on focus and closes on Esc; Popover traps focus and Esc returns focus.
+Checks I ran in packages/ui:
+- `npx vitest run`: 12 files, 343/343 pass.
+- `tsc -p tsconfig.json --noEmit`: clean.
 
-2. `Money` shape does not match 03. 03-INTERFACE-CATALOG.md:1103 defines `export interface Money { readonly amountPaisa: number; readonly currency: 'NPR' }`, and 04-UI-UX.md:101 says the kit takes `Money` from `@lims/shared-ts/types`. `packages/ui/src/components/MoneyField/MoneyField.tsx:7-10` declares `amount_paisa` (the JSON wire name) and leaves out `readonly`. A caller passing the canonical `Money` gets a type error, or `formatPaisa(undefined)`, which renders "undefined". Fix: rename the field to `readonly amountPaisa` / `readonly currency: 'NPR'` in MoneyField.tsx:7-10, :21, :22, :37, :42-43 and in MoneyText.tsx:14, then update the stories and tests. Mark it `// ponytail: local copy until @lims/shared-ts/types exports Money (0A)`, or import it from there if 0A has landed it.
+Prior items:
+1. Fixed. Tooltip, Popover, Spinner and Badge now exist, each with a story, and all four are in the axe `REQUIRED` list (stories-axe.test.tsx:16).
+   - Tooltip opens on focus and closes on Esc without moving focus.
+   - Popover traps Tab, Esc closes it, and focus returns to the trigger.
+   - Spinner has role=status and its label comes from msg.loading.
+   - Button.tsx now reuses Spinner.
+   - Tests are in tooltip-popover-spinner-badge.test.tsx.
+2. Fixed. Money is now `{ readonly amountPaisa; readonly currency: 'NPR' }` per 03:1103 and carries the ponytail marker. The stories and tests are updated, and no `amount_paisa` usage remains (fields.test.tsx:193 asserts it is absent).
+3. Fixed in commits. The lockfile is not in the diff. `.orchestra/cr/T0D-12.md` (CR-C0-0D-001 to C0-0A) lists pins that match packages/ui/package.json exactly.
 
-3. Lockfile not updated. `packages/ui/package.json` adds deps (react-aria-components, vitest, jsdom, @fontsource/*, ...), but the commit does not touch `pnpm-lock.yaml` (impl note: "installed with npm --no-package-lock"). `pnpm install --frozen-lockfile` in CI will fail. `pnpm-lock.yaml` belongs to C0-0A (01-CHUNK-MAP.md:100), and this lane has an uncommitted local edit to it that must not be committed from the 0D lane. Fix: write `.orchestra/cr/T0D-12.md` (template in spec/program/04-CHANGE-REQUESTS.md) asking 0A to regenerate `pnpm-lock.yaml` for `@lims/ui` with these exact pins, and to record them in 02-TRD §2.3 (T0-03). Then revert the local `pnpm-lock.yaml` change in this lane.
+Note for orchestrator (not a defect in the diff): this worktree still has an uncommitted `M pnpm-lock.yaml` (+1202 lines). It must not be committed from lane C0-0D. Discard it (`git checkout -- pnpm-lock.yaml`) before merging.
 
-Not verified: real-browser keyboard walk-through, Devanagari glyph rendering, colour-contrast (off in jsdom; T0D-11 covers it), lint (root eslint ignores .tsx).
+Not verified: real-browser keyboard walk-through, Devanagari rendering, colour contrast (off in jsdom; T0D-11 covers it), lint (root eslint ignores .tsx).

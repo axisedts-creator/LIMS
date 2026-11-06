@@ -5,7 +5,7 @@
 //   DiffTable          { rows: {label,before,after,changed}[]; beforeLabel?; afterLabel?; maxValueLength? (default 200; longer values collapsed behind a toggle button) }
 //   DataUriImage       { src: string; alt: string }   only data:image/png;base64,… or data:image/svg+xml;base64,…; anything else renders no <img>
 //   StatusStepper      { steps: {id,label}[]; currentId: string; outcome?: {kind:'failed'|'cancelled'; label:string} }   <ol>, aria-current="step"
-//   CodeBlock          { value: string; label: string; renderControlChars?: boolean; allowCopy?: boolean (default true); caption?: string }
+//   CodeBlock          { value: string; label: string; renderControlChars?: boolean; allowCopy?: boolean (default false); caption?: string }
 //   SecretRevealOnce   { label: string; value: string; requireAcknowledgement?: boolean (default true); onDone: () => void }
 //   ImageThumbnailGrid { label: string; images: {id, src, alt, caption?, state:'ready'|'processing'|'quarantined'}[]; onSelect?(id) }
 //   PdfFileCard        { fileName; sizeBytes; pageCount?; state: 'pending_scan'|'scanning'|'sanitizing'|'ready'|'quarantined'|'rejected'|'confirmed';
@@ -167,12 +167,14 @@ describe('CodeBlock (C7)', () => {
     region.dispatchEvent(ev);
     expect(ev.defaultPrevented).toBe(true);
   });
-  it('default shows a Copy button that writes the exact value to the clipboard', async () => {
-    const writeText = vi.fn().mockResolvedValue(undefined);
-    Object.defineProperty(navigator, 'clipboard', { value: { writeText }, configurable: true });
-    render(<CodeBlock label="Agent log" value="line1\nline2" />);
+  it('default (allowCopy omitted) shows no Copy button — default false for PHI (C7 02-TRD:1093)', () => {
+    render(<CodeBlock label="Raw message" value="x" />);
+    expect(screen.queryByRole('button', { name: /copy/i })).toBeNull();
+  });
+  it('allowCopy shows a Copy button that writes the exact value to the clipboard', async () => {
+    render(<CodeBlock label="Agent log" value={'line1\nline2'} allowCopy />);
     await user().click(screen.getByRole('button', { name: /copy/i }));
-    expect(writeText).toHaveBeenCalledWith('line1\nline2');
+    expect(await navigator.clipboard.readText()).toBe('line1\nline2');
   });
   it('REQ-SEC-088: markup in the value is text', () => {
     (window as any).__xss = 0;
@@ -197,11 +199,9 @@ describe('SecretRevealOnce (C2 + C7)', () => {
     for (const t of screen.queryAllByRole('textbox') as HTMLInputElement[]) expect(t.readOnly).toBe(true);
   });
   it('Copy writes the exact secret to the clipboard', async () => {
-    const writeText = vi.fn().mockResolvedValue(undefined);
-    Object.defineProperty(navigator, 'clipboard', { value: { writeText }, configurable: true });
     render(<SecretRevealOnce label="Enrolment code" value={SECRET} onDone={() => {}} />);
     await user().click(screen.getByRole('button', { name: /copy/i }));
-    expect(writeText).toHaveBeenCalledWith(SECRET);
+    expect(await navigator.clipboard.readText()).toBe(SECRET);
   });
   it('requireAcknowledgement defaults to true: Done is disabled until the acknowledgement checkbox is ticked', async () => {
     const onDone = vi.fn();

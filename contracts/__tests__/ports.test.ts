@@ -146,7 +146,8 @@ describe("tsc --noEmit", () => {
     expect(existsSync(portsDir), "contracts/ports/ missing").toBe(true);
     let tscJs: string;
     try {
-      tscJs = createRequire(join(contractsDir, "package.json")).resolve("typescript/lib/tsc.js");
+      tscJs = join(dirname(createRequire(join(contractsDir, "package.json")).resolve("typescript/package.json")), "lib", "tsc.js");
+      if (!existsSync(tscJs)) throw new Error("tsc.js missing");
     } catch {
       throw new Error("`typescript` not resolvable from contracts/ — add it to contracts/package.json devDependencies");
     }

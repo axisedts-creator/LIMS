@@ -1,0 +1,83 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:lims:event:frontdesk.order.items_changed.v1",
+  "allOf": [
+    {
+      "$ref": "urn:lims:event:_envelope.v1"
+    },
+    {
+      "type": "object",
+      "properties": {
+        "event_type": {
+          "const": "frontdesk.order.items_changed.v1"
+        },
+        "producer": {
+          "const": "frontdesk"
+        },
+        "aggregate": {
+          "type": "object",
+          "properties": {
+            "type": {
+              "const": "order"
+            }
+          }
+        },
+        "payload": {
+          "$ref": "#/$defs/Payload"
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "Payload": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "order_id",
+        "items_version",
+        "added",
+        "removed",
+        "changed_at"
+      ],
+      "properties": {
+        "order_id": {
+          "$ref": "urn:lims:event:_defs.v1#/$defs/Uuidv7"
+        },
+        "items_version": {
+          "type": "integer",
+          "minimum": 2
+        },
+        "added": {
+          "type": "array",
+          "maxItems": 200,
+          "items": {
+            "$ref": "urn:lims:event:frontdesk.order.created.v1#/$defs/Item"
+          }
+        },
+        "removed": {
+          "type": "array",
+          "maxItems": 200,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "order_item_id",
+              "reason_code"
+            ],
+            "properties": {
+              "order_item_id": {
+                "$ref": "urn:lims:event:_defs.v1#/$defs/Uuidv7"
+              },
+              "reason_code": {
+                "$ref": "urn:lims:event:_defs.v1#/$defs/Code"
+              }
+            }
+          }
+        },
+        "changed_at": {
+          "$ref": "urn:lims:event:_defs.v1#/$defs/IsoUtc"
+        }
+      }
+    }
+  }
+}

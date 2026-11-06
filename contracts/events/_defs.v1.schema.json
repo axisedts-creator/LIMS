@@ -1,0 +1,114 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:lims:event:_defs.v1",
+  "$defs": {
+    "Uuid": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+    },
+    "Uuidv7": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+    },
+    "IsoUtc": {
+      "type": "string",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}\\.[0-9]{3}Z$"
+    },
+    "Code": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 64,
+      "pattern": "^[A-Za-z0-9_.:^+\\-]+$"
+    },
+    "Paisa": {
+      "type": "integer",
+      "minimum": -9007199254740991,
+      "maximum": 9007199254740991
+    },
+    "Money": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "amount_paisa",
+        "currency"
+      ],
+      "properties": {
+        "amount_paisa": {
+          "$ref": "#/$defs/Paisa"
+        },
+        "currency": {
+          "const": "NPR"
+        }
+      }
+    },
+    "ActorType": {
+      "enum": [
+        "user",
+        "system",
+        "device",
+        "portal",
+        "patient",
+        "partner"
+      ]
+    },
+    "Actor": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "id"
+      ],
+      "properties": {
+        "type": {
+          "$ref": "#/$defs/ActorType"
+        },
+        "id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "membership_id": {
+          "$ref": "#/$defs/Uuidv7"
+        },
+        "support_session_id": {
+          "$ref": "#/$defs/Uuidv7"
+        }
+      }
+    },
+    "Priority": {
+      "enum": [
+        "routine",
+        "urgent"
+      ]
+    },
+    "DecimalString": {
+      "type": "string",
+      "pattern": "^-?[0-9]{1,12}(\\.[0-9]{1,6})?$"
+    },
+    "SpecimenStatus": {
+      "enum": [
+        "ordered",
+        "collected",
+        "in_transit",
+        "received",
+        "aliquoted",
+        "in_process",
+        "resulted",
+        "verified",
+        "approved",
+        "reported",
+        "rejected",
+        "recollection_ordered",
+        "stored",
+        "discarded"
+      ]
+    },
+    "ResultStatus": {
+      "enum": [
+        "pending",
+        "resulted",
+        "verified",
+        "approved",
+        "cancelled"
+      ]
+    }
+  }
+}

@@ -1,0 +1,90 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:lims:event:instruments.agent.health_changed.v1",
+  "allOf": [
+    {
+      "$ref": "urn:lims:event:_envelope.v1"
+    },
+    {
+      "type": "object",
+      "properties": {
+        "event_type": {
+          "const": "instruments.agent.health_changed.v1"
+        },
+        "producer": {
+          "const": "instruments"
+        },
+        "aggregate": {
+          "type": "object",
+          "properties": {
+            "type": {
+              "const": "agent"
+            }
+          }
+        },
+        "payload": {
+          "$ref": "#/$defs/Payload"
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "Payload": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "agent_id",
+        "centre_id",
+        "to_state",
+        "last_heartbeat_at",
+        "agent_version",
+        "queue_depth"
+      ],
+      "properties": {
+        "agent_id": {
+          "$ref": "urn:lims:event:_defs.v1#/$defs/Uuidv7"
+        },
+        "centre_id": {
+          "$ref": "urn:lims:event:_defs.v1#/$defs/Uuidv7"
+        },
+        "from_state": {
+          "enum": [
+            "online",
+            "offline",
+            "backlog",
+            "degraded"
+          ]
+        },
+        "to_state": {
+          "enum": [
+            "online",
+            "offline",
+            "backlog",
+            "degraded"
+          ]
+        },
+        "last_heartbeat_at": {
+          "$ref": "urn:lims:event:_defs.v1#/$defs/IsoUtc"
+        },
+        "agent_version": {
+          "type": "string",
+          "maxLength": 32
+        },
+        "queue_depth": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "clock_offset_seconds": {
+          "type": "integer"
+        },
+        "silent_instrument_ids": {
+          "type": "array",
+          "maxItems": 50,
+          "items": {
+            "$ref": "urn:lims:event:_defs.v1#/$defs/Uuidv7"
+          }
+        }
+      }
+    }
+  }
+}

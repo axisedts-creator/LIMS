@@ -5,3 +5,4 @@
 - Fails now because `contracts/errors.yaml`, `routes.yaml`, `permissions.yaml` do not exist (assert "must exist"). IC-side guard test passes once deps are installed.
 - NOT run: repo has no package.json/node_modules yet (T0A-01 pending); python probe of IC blocks was blocked, so counts (>100 errors, >60 routes, >150 perms) and the platform.* rule are unverified against IC.
 - Implementer: copy IC YAML blocks verbatim (comments optional); equality is on parsed data, key order inside maps ignored, list order enforced.
+- Ruling applied: "route ids unique" test now checks per-route `fallback` is member of `fallbacks:` list (unique), not a route id. Not re-run (no deps in repo).

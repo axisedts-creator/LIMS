@@ -119,9 +119,9 @@ describe("AC-0C-1.3 routes.yaml == IC §7", () => {
     const ids: string[] = f.routes.map((r: Entry) => r.id);
     expect(dupes(ids)).toEqual([]);
     for (const r of f.routes) expect(Object.keys(f.origins)).toContain(r.origin);
-    for (const fb of [...f.fallbacks, ...f.routes.flatMap((r: Entry) => (r.fallback ? [r.fallback] : []))]) {
-      expect(ids).toContain(fb);
-    }
+    // IC §7: `fallbacks:` is its own top-level list (not route ids); per-route `fallback:` must be a member of it.
+    expect(dupes(f.fallbacks)).toEqual([]);
+    for (const r of f.routes as Entry[]) if (r.fallback) expect(f.fallbacks).toContain(r.fallback);
   });
 
   it("every route permission exists in permissions.yaml (IC §11 CI rule)", () => {

@@ -106,7 +106,8 @@ SELECT is(count(DISTINCT u)::int, 1000, 'uuidv7: 1000 values are distinct') FROM
 SELECT ok(abs(extract(epoch FROM clock_timestamp()) * 1000
               - ('x' || substr(replace(app.uuidv7()::text, '-', ''), 1, 12))::bit(48)::bigint) <= 5,
   'uuidv7 48-bit ms prefix within +-5 ms of clock_timestamp()');
-SELECT ok((SELECT array_agg(u) = array_agg(u ORDER BY substr(u::text, 1, 13)) FROM (SELECT app.uuidv7() u FROM generate_series(1, 200)) t),
+SELECT ok((SELECT bool_and(t >= p) FROM (SELECT t, lag(t) OVER (ORDER BY n) p
+             FROM (SELECT n, substr(app.uuidv7()::text, 1, 13) t FROM generate_series(1, 200) n) s) w WHERE p IS NOT NULL),
   'uuidv7 timestamp prefix is non-decreasing across successive calls');
 SELECT is(substr(app.uuidv7()::text, 15, 1), '7', 'version nibble = 7');
 SELECT ok(substr(app.uuidv7()::text, 20, 1) IN ('8','9','a','b'), 'variant bits = 10');

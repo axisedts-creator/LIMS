@@ -1,0 +1,153 @@
+# contracts/routes.yaml (C0) — version 1
+version: 1
+origins:
+  staff_web:   { env: LIMS_ORIGIN_STAFF_WEB,  owner: C0 }   # apps/web (BFF)
+  portal:      { env: LIMS_ORIGIN_PORTAL,     owner: C6 }   # apps/portal (separate origin — 01 §3)
+  partner:     { env: LIMS_ORIGIN_PARTNER,    owner: C13 }  # apps/partner
+  patient_app: { scheme: app_link, base_origin: portal, path_prefix: /app, owner: C16 }  # verified app links on the portal origin [CONV]
+  phlebo_app:  { scheme: app_link, base_origin: portal, path_prefix: /phlebo, owner: C17 }
+  api:         { env: LIMS_ORIGIN_API,        owner: C1 }   # added by 08 (CR-C1-004)
+fallbacks:     [portal.report_link_required, portal.app_fallback]   # portal.app_fallback added by 08 (served by C6, CR-C16-010)
+routes:
+  # ---- staff web (owner = chunk owning the route segment) ----
+  - { id: staff.frontdesk.registration_new, origin: staff_web, path: /frontdesk/registrations/new,              owner: C4,  permission: frontdesk.registration.create }
+  - { id: staff.frontdesk.order,            origin: staff_web, path: "/frontdesk/orders/{order_id}",              owner: C4,  permission: frontdesk.order.read }
+  - { id: staff.frontdesk.patient,          origin: staff_web, path: "/frontdesk/patients/{patient_id}",          owner: C4,  permission: frontdesk.patient.read }
+  - { id: staff.billing.invoice,            origin: staff_web, path: "/billing/invoices/{invoice_id}",            owner: C4,  permission: billing.invoice.read }
+  - { id: staff.billing.credit_party,       origin: staff_web, path: "/billing/credit-parties/{credit_party_id}", owner: C4,  permission: billing.credit_party.read }
+  - { id: staff.billing.daily_cash,         origin: staff_web, path: /billing/daily-cash,                       owner: C4,  permission: billing.cash_report.read }
+  - { id: staff.lab.status_board,           origin: staff_web, path: /lab/status-board,                         owner: C5,  permission: lab.status_board.read }
+  - { id: staff.lab.specimen,               origin: staff_web, path: "/lab/specimens/{specimen_id}",              owner: C5,  permission: lab.specimen.read }
+  - { id: staff.lab.order_results,          origin: staff_web, path: "/lab/orders/{order_id}/results",            owner: C5,  permission: lab.result.read }
+  - { id: staff.lab.critical_value,         origin: staff_web, path: "/lab/critical-values/{critical_event_id}",  owner: C5,  permission: lab.critical_value.read }
+  - { id: staff.lab.worklist,               origin: staff_web, path: "/lab/worklists/{department_id}",            owner: C5,  permission: lab.worklist.read }
+  - { id: staff.reporting.report,           origin: staff_web, path: "/reporting/reports/{report_id}",            owner: C6,  permission: reporting.report.read }
+  - { id: staff.reporting.delivery,         origin: staff_web, path: "/reporting/deliveries/{delivery_id}",       owner: C6,  permission: reporting.delivery.read }
+  - { id: staff.catalog.test,               origin: staff_web, path: "/catalog/tests/{test_id}",                  owner: C3,  permission: catalog.test.read }
+  - { id: staff.catalog.price_list,         origin: staff_web, path: "/catalog/price-lists/{price_list_id}",      owner: C3,  permission: catalog.price_list.read }
+  - { id: staff.instruments.agent,          origin: staff_web, path: "/instruments/agents/{agent_id}",            owner: C7,  permission: instruments.agent.read }
+  - { id: staff.instruments.message,        origin: staff_web, path: "/instruments/messages/{instrument_message_id}", owner: C7, permission: instruments.message.read }
+  - { id: staff.analytics.dashboard,        origin: staff_web, path: /analytics,                                owner: C8,  permission: analytics.dashboard.read }
+  - { id: staff.admin.user,                 origin: staff_web, path: "/admin/users/{membership_id}",              owner: C2,  permission: identity.user.read }
+  - { id: staff.admin.audit_entry,          origin: staff_web, path: "/admin/audit/{audit_id}",                   owner: C2,  permission: audit.log.read }
+  - { id: staff.platform.tenant,            origin: staff_web, path: "/platform/tenants/{tenant_id}",             owner: C2,  permission: platform.tenant.read }
+  - { id: staff.platform.dead_letter,       origin: staff_web, path: "/platform/dead-letters/{dead_letter_id}",   owner: C2,  permission: platform.dead_letter.manage }
+  - { id: staff.quality.qc_run,             origin: staff_web, path: "/quality/qc-runs/{qc_run_id}",              owner: C9,  permission: quality.qc_run.read }
+  - { id: staff.micro.culture,              origin: staff_web, path: "/micro/cultures/{culture_id}",              owner: C10, permission: micro.culture.read }
+  - { id: staff.anatomic.case,              origin: staff_web, path: "/anatomic/cases/{case_id}",                 owner: C11, permission: anatomic.case.read }
+  - { id: staff.inventory.item,             origin: staff_web, path: "/inventory/items/{item_id}",                owner: C12, permission: inventory.item.read }
+  - { id: staff.smartreport.summary,        origin: staff_web, path: "/smartreport/summaries/{summary_id}",       owner: C14, permission: smartreport.summary.read }
+  - { id: staff.engagement.booking,         origin: staff_web, path: "/engagement/bookings/{booking_id}",         owner: C16, permission: engagement.booking.read }
+  - { id: staff.homecollection.visit,       origin: staff_web, path: "/homecollection/visits/{visit_id}",         owner: C17, permission: homecollection.visit.read }
+  # ---- portal (public + OTP-gated) ----
+  - { id: portal.report_link, origin: portal, path: "/r/{link_token}", owner: C6, auth: link_token+otp, rate_limit_tier: report_download }   # 04 A9/A10
+  - { id: portal.qr_verify,   origin: portal, path: "/v/{qr_token}",   owner: C6, auth: public,         rate_limit_tier: qr_verify }        # 04 A11, R3
+  - { id: portal.dues_link, origin: portal, path: "/r/{link_token}/dues", owner: C6, auth: link_token+otp }   # 08 A21.1 dues link under hold-till-paid; path from the C6 second-pass hand-off (accepted); id [CONV]
+  - { id: portal.payment_done, origin: portal, path: "/r/payments/{portal_payment_request_id}/done", owner: C6, auth: link_token+otp }   # 08 A11.1 (CR-C15-010 ACCEPT-MODIFIED): gateway return/cancel URL of the portal dues payment; path fixed by A11.1 [CONV]; id and auth [CONV]; ships with C15
+  # ---- partner portal ----
+  - { id: partner.order,    origin: partner, path: "/orders/{order_id}",       owner: C13, auth: partner_user }
+  - { id: partner.report,   origin: partner, path: "/reports/{report_id}",     owner: C13, auth: partner_user }
+  - { id: partner.manifest, origin: partner, path: "/manifests/{manifest_id}", owner: C13, auth: partner_user }
+  - { id: partner.statement,origin: partner, path: "/statements/{period_month}", owner: C13, auth: partner_user, params: { period_month: "YYYY-MM" } }
+  # ---- patient app (app links; fallback = same path rendered by portal) ----
+  - { id: patient_app.report,  origin: patient_app, path: "/reports/{report_id}",   owner: C16, auth: patient, fallback: portal.report_link_required }
+  - { id: patient_app.booking, origin: patient_app, path: "/bookings/{booking_id}", owner: C16, auth: patient }
+  - { id: patient_app.order,   origin: patient_app, path: "/orders/{order_id}",     owner: C16, auth: patient }
+  # ---- phlebotomy app ----
+  - { id: phlebo_app.visit,    origin: phlebo_app,  path: "/visits/{visit_id}",     owner: C17, auth: phlebotomist }
+  - { id: phlebo_app.route,    origin: phlebo_app,  path: "/routes/{route_date}",   owner: C17, auth: phlebotomist, params: { route_date: "YYYY-MM-DD" } }
+  # ---- added by 08 §4.3 (CR register 2026-11-06), grouped by raising chunk ----
+  # --- CR-C5-007
+  - { id: staff.lab.order_labels, origin: staff_web, path: "/lab/orders/{order_id}/labels", owner: C5, permission: lab.specimen.label_print }
+  - { id: staff.lab.ingest_exception, origin: staff_web, path: "/lab/ingest-exceptions/{exception_id}", owner: C5, permission: lab.result.read }
+  # --- CR-C7-014 (08 A16.2)
+  - { id: staff.lab.ingest_exceptions, origin: staff_web, path: /lab/ingest-exceptions, owner: C5, permission: lab.result.read }
+  # --- CR-C6-011
+  - { id: staff.reporting.worklist, origin: staff_web, path: /reporting, owner: C6, permission: reporting.report.read }
+  - { id: staff.reporting.narrative, origin: staff_web, path: "/reporting/narratives/{narrative_id}", owner: C6, permission: reporting.narrative.write }
+  - { id: staff.reporting.outsourced, origin: staff_web, path: /reporting/outsourced, owner: C6, permission: reporting.outsourced.attach }
+  - { id: staff.reporting.template, origin: staff_web, path: "/reporting/templates/{template_id}", owner: C6, permission: reporting.template.manage }
+  - { id: staff.reporting.settings, origin: staff_web, path: /reporting/settings, owner: C6, permission: reporting.settings.manage }
+  - { id: staff.reporting.messages, origin: staff_web, path: /reporting/messages, owner: C6, permission: reporting.message_template.manage }
+  # --- CR-C7-003
+  - { id: staff.instruments.agents, origin: staff_web, path: /instruments/agents, owner: C7, permission: instruments.agent.read }
+  - { id: staff.instruments.instruments, origin: staff_web, path: /instruments/instruments, owner: C7, permission: instruments.instrument.read }
+  - { id: staff.instruments.instrument, origin: staff_web, path: "/instruments/instruments/{instrument_id}", owner: C7, permission: instruments.instrument.read }
+  - { id: staff.instruments.instrument_mappings, origin: staff_web, path: "/instruments/instruments/{instrument_id}/mappings", owner: C7, permission: instruments.instrument.read }
+  - { id: staff.instruments.messages, origin: staff_web, path: /instruments/messages, owner: C7, permission: instruments.message.read }
+  - { id: staff.instruments.settings, origin: staff_web, path: /instruments/settings, owner: C7, permission: instruments.instrument.read }
+  # --- CR-C8-008
+  - { id: staff.analytics.reports, origin: staff_web, path: /analytics/reports, permission: analytics.dashboard.read, owner: C8 }
+  - { id: staff.analytics.referral_incentive, origin: staff_web, path: /analytics/referral-incentive, permission: analytics.referral_report.read, owner: C8 }
+  - { id: staff.analytics.exports, origin: staff_web, path: /analytics/exports, permission: analytics.data.export, owner: C8 }
+  - { id: staff.analytics.schedules, origin: staff_web, path: /analytics/schedules, permission: analytics.schedule.manage, owner: C8 }
+  - { id: staff.analytics.report_run, origin: staff_web, path: "/analytics/report-runs/{report_run_id}", permission: analytics.dashboard.read, owner: C8 }
+  # --- 08 A17 D-46
+  - { id: staff.analytics.collections, origin: staff_web, path: /analytics/collections, permission: analytics.collections.read, owner: C8 }
+  # --- CR-C10-006
+  - { id: staff.micro.worklist, origin: staff_web, path: /micro/worklist, owner: C10, permission: micro.culture.read }
+  - { id: staff.micro.instrument_records, origin: staff_web, path: /micro/instrument-records, owner: C10, permission: micro.culture.read }
+  - { id: staff.micro.settings, origin: staff_web, path: /micro/settings, owner: C10, permission: micro.config.manage }
+  - { id: staff.micro.breakpoint_sets, origin: staff_web, path: /micro/breakpoint-sets, owner: C10, permission: micro.breakpoint.manage }
+  - { id: staff.micro.breakpoint_set, origin: staff_web, path: "/micro/breakpoint-sets/{breakpoint_set_id}", owner: C10, permission: micro.breakpoint.manage }
+  # --- CR-C11-006
+  - { id: staff.anatomic.worklist, origin: staff_web, path: /anatomic, owner: C11, permission: anatomic.case.read }
+  - { id: staff.anatomic.labels, origin: staff_web, path: "/anatomic/cases/{case_id}/labels", owner: C11, permission: anatomic.case.work }
+  - { id: staff.anatomic.tracking, origin: staff_web, path: /anatomic/tracking, owner: C11, permission: anatomic.case.read }
+  - { id: staff.anatomic.batches, origin: staff_web, path: /anatomic/batches, owner: C11, permission: anatomic.case.read }
+  - { id: staff.anatomic.batch, origin: staff_web, path: "/anatomic/batches/{batch_id}", owner: C11, permission: anatomic.case.read }
+  - { id: staff.anatomic.config, origin: staff_web, path: /anatomic/config, owner: C11, permission: anatomic.config.manage }
+  - { id: staff.anatomic.template, origin: staff_web, path: "/anatomic/config/templates/{template_id}", owner: C11, permission: anatomic.config.manage }
+  # --- CR-C12-002
+  - { id: staff.inventory.home, origin: staff_web, path: /inventory, owner: C12, permission: inventory.item.read }
+  - { id: staff.inventory.items, origin: staff_web, path: /inventory/items, owner: C12, permission: inventory.item.read }
+  - { id: staff.inventory.stock, origin: staff_web, path: /inventory/stock, owner: C12, permission: inventory.item.read }
+  - { id: staff.inventory.purchase_orders, origin: staff_web, path: /inventory/purchase-orders, owner: C12, permission: inventory.item.read }
+  - { id: staff.inventory.purchase_order, origin: staff_web, path: "/inventory/purchase-orders/{po_id}", owner: C12, permission: inventory.item.read }
+  - { id: staff.inventory.receipts, origin: staff_web, path: /inventory/receipts, owner: C12, permission: inventory.item.read }
+  - { id: staff.inventory.receipt, origin: staff_web, path: "/inventory/receipts/{grn_id}", owner: C12, permission: inventory.item.read }
+  - { id: staff.inventory.transfers, origin: staff_web, path: /inventory/transfers, owner: C12, permission: inventory.item.read }
+  - { id: staff.inventory.transfer, origin: staff_web, path: "/inventory/transfers/{transfer_id}", owner: C12, permission: inventory.item.read }
+  - { id: staff.inventory.counts, origin: staff_web, path: /inventory/counts, owner: C12, permission: inventory.item.read }
+  - { id: staff.inventory.count, origin: staff_web, path: "/inventory/counts/{count_id}", owner: C12, permission: inventory.item.read }
+  - { id: staff.inventory.bench, origin: staff_web, path: /inventory/bench, owner: C12, permission: inventory.bench.record }
+  - { id: staff.inventory.rules, origin: staff_web, path: /inventory/rules, owner: C12, permission: inventory.item.read }
+  - { id: staff.inventory.unresolved, origin: staff_web, path: /inventory/unresolved, owner: C12, permission: inventory.item.read }
+  - { id: staff.inventory.alerts, origin: staff_web, path: /inventory/alerts, owner: C12, permission: inventory.item.read }
+  - { id: staff.inventory.reports, origin: staff_web, path: /inventory/reports, owner: C12, permission: inventory.item.read }
+  - { id: staff.inventory.suppliers, origin: staff_web, path: /inventory/suppliers, owner: C12, permission: inventory.item.read }
+  - { id: staff.inventory.stores, origin: staff_web, path: /inventory/stores, owner: C12, permission: inventory.item.read }
+  - { id: staff.inventory.settings, origin: staff_web, path: /inventory/settings, owner: C12, permission: inventory.master.manage }
+  # --- CR-C13-008
+  - { id: staff.partners.list, origin: staff_web, path: /partners, owner: C13, permission: partners.partner.read }
+  - { id: staff.partners.partner, origin: staff_web, path: "/partners/{partner_id}", owner: C13, permission: partners.partner.read }
+  - { id: staff.partners.inbox, origin: staff_web, path: /partners/manifests, owner: C13, permission: partners.manifest.receive }
+  - { id: staff.partners.manifest, origin: staff_web, path: "/partners/manifests/{manifest_id}", owner: C13, permission: partners.manifest.receive }
+  - { id: staff.partners.pickups, origin: staff_web, path: /partners/pickups, owner: C13, permission: partners.pickup.manage }
+  - { id: staff.partners.referrers, origin: staff_web, path: /partners/referrers, owner: C13, permission: partners.referrer.map }
+  - { id: staff.partners.settings, origin: staff_web, path: /partners/settings, owner: C13, permission: partners.partner.manage }
+  # --- CR-C15-007
+  - { id: staff.payments.review, origin: staff_web, path: /payments/review, owner: C15, permission: payments.reconciliation.read }
+  - { id: staff.payments.intent, origin: staff_web, path: "/payments/intents/{intent_id}", owner: C15, permission: payments.reconciliation.read }
+  - { id: staff.payments.refunds, origin: staff_web, path: /payments/refunds, owner: C15, permission: payments.reconciliation.read }
+  - { id: staff.payments.reconciliation, origin: staff_web, path: /payments/reconciliation, owner: C15, permission: payments.reconciliation.read }
+  - { id: staff.payments.static_qr, origin: staff_web, path: /payments/static-qr, owner: C15, permission: payments.reconciliation.read }
+  - { id: staff.payments.settings, origin: staff_web, path: /payments/settings, owner: C15, permission: payments.merchant_config.read }
+  # --- CR-C16-011
+  - { id: staff.engagement.bookings, origin: staff_web, path: /engagement/bookings, owner: C16, permission: engagement.booking.read }
+  - { id: staff.engagement.slots, origin: staff_web, path: /engagement/slots, owner: C16, permission: engagement.slot.manage }
+  - { id: staff.engagement.bookable, origin: staff_web, path: /engagement/bookable-items, owner: C16, permission: engagement.bookable_item.manage }
+  - { id: staff.engagement.queue, origin: staff_web, path: /engagement/queue, owner: C16, permission: engagement.queue.operate }
+  - { id: staff.engagement.queue_setup, origin: staff_web, path: /engagement/queue/setup, owner: C16, permission: engagement.queue.manage }
+  - { id: staff.engagement.app_access, origin: staff_web, path: "/engagement/app-access/{patient_id}", owner: C16, permission: engagement.link.read }
+  - { id: staff.engagement.reminders, origin: staff_web, path: /engagement/reminders, owner: C16, permission: engagement.reminder.read }
+  - { id: staff.engagement.memberships, origin: staff_web, path: /engagement/memberships, owner: C16, permission: engagement.membership.read }
+  - { id: staff.engagement.enquiries, origin: staff_web, path: /engagement/enquiries, owner: C16, permission: engagement.enquiry.read }
+  - { id: staff.engagement.settings, origin: staff_web, path: /engagement/settings, owner: C16, permission: engagement.settings.manage }
+  - { id: staff.engagement.queue_display, origin: staff_web, path: /queue-display, owner: C16, auth: display_token, nav: false }
+  - { id: patient_app.payment_done, origin: patient_app, path: "/payments/{payment_request_id}/done", owner: C16, auth: patient, fallback: portal.app_fallback }
+  # --- CR-C17-009
+  - { id: staff.homecollection.dispatch, origin: staff_web, path: /homecollection/dispatch, owner: C17, permission: homecollection.visit.read }
+  - { id: staff.homecollection.handovers, origin: staff_web, path: /homecollection/handovers, owner: C17, permission: homecollection.handover.receive }
+  - { id: staff.homecollection.devices, origin: staff_web, path: /homecollection/devices, owner: C17, permission: homecollection.device.manage }
+  - { id: staff.homecollection.settings, origin: staff_web, path: /homecollection/settings, owner: C17, permission: homecollection.settings.manage }

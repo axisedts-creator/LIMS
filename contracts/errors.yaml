@@ -1,0 +1,323 @@
+# contracts/errors.yaml (C0) — version 1
+- { code: common.validation_failed,        http: 400, owner: C0, title: "Request validation failed", meaning: "Body/params/query violate the spec; details in errors[]" }
+- { code: common.field_required,           http: 400, owner: C0, title: "Field required", meaning: "Sub-code used inside errors[] only" }
+- { code: common.field_invalid,            http: 400, owner: C0, title: "Field invalid", meaning: "Sub-code used inside errors[] only" }
+- { code: common.unknown_field,            http: 400, owner: C0, title: "Unknown field", meaning: "Sub-code: field not declared in the spec (REQ-SEC-080)" }
+- { code: common.invalid_cursor,           http: 400, owner: C0, title: "Invalid cursor", meaning: "Malformed or foreign pagination cursor" }
+- { code: common.id_mismatch,              http: 400, owner: C0, title: "Identifier mismatch", meaning: "Id in body differs from id in path (REQ-SEC-044)" }
+- { code: common.idempotency_key_required, http: 400, owner: C0, title: "Idempotency-Key required", meaning: "Operation marked x-idempotency: required" }
+- { code: common.idempotency_key_reused,   http: 422, owner: C0, title: "Idempotency-Key reused", meaning: "Same key sent with a different request body" }
+- { code: common.idempotency_in_progress,  http: 409, owner: C0, title: "Request in progress", meaning: "First request with this key still running; retry" }
+- { code: common.not_found,                http: 404, owner: C0, title: "Not found", meaning: "Missing or not visible to this tenant/centre/actor (indistinguishable)" }
+- { code: common.method_not_allowed,       http: 405, owner: C0, title: "Method not allowed", meaning: "" }
+- { code: common.version_conflict,         http: 409, owner: C0, title: "Version conflict", meaning: "If-Match does not equal current version" }
+- { code: common.precondition_required,    http: 428, owner: C0, title: "If-Match required", meaning: "Update/action requires If-Match" }
+- { code: common.immutable_record,         http: 409, owner: C0, title: "Record is immutable", meaning: "Attempt to change a frozen column (02-CV §5.7)" }
+- { code: common.payload_too_large,        http: 413, owner: C0, title: "Payload too large", meaning: "Body or upload above limit (uploads 15 MB)" }
+- { code: common.unsupported_media_type,   http: 415, owner: C0, title: "Unsupported media type", meaning: "Content-Type/magic bytes not allowed (REQ-SEC-083)" }
+- { code: common.upload_quarantined,       http: 422, owner: C0, title: "Upload rejected", meaning: "Malware scan hit or sanitisation failure (REQ-SEC-084)" }
+- { code: common.date_out_of_range,        http: 422, owner: C0, title: "Date out of supported range", meaning: "B.S. conversion outside 1975–2099 B.S. (04 D13)" }
+- { code: common.feature_disabled,         http: 403, owner: C0, title: "Feature disabled", meaning: "Tenant feature flag off" }
+- { code: common.rate_limited,             http: 429, owner: C0, title: "Too many requests", meaning: "Rate-limit tier exceeded (04 §4); Retry-After set" }
+- { code: common.internal,                 http: 500, owner: C0, title: "Internal error", meaning: "Unexpected failure; see request_id" }
+- { code: common.dependency_unavailable,   http: 503, owner: C0, title: "Dependency unavailable", meaning: "Internal dependency (DB, storage, renderer) unavailable" }
+- { code: common.service_unavailable,      http: 503, owner: C0, title: "Service unavailable", meaning: "Maintenance or overload" }
+# auth (C0 core verifies tokens; C2 owns identity flows)
+- { code: auth.unauthenticated,            http: 401, owner: C0, title: "Authentication required", meaning: "No/invalid credentials" }
+- { code: auth.token_invalid,              http: 401, owner: C0, title: "Invalid token", meaning: "Signature/alg/aud/iss check failed (04 A7)" }
+- { code: auth.token_expired,              http: 401, owner: C0, title: "Token expired", meaning: "exp passed; no grace (04 A7)" }
+- { code: auth.session_expired,            http: 401, owner: C2, title: "Session expired", meaning: "BFF idle/absolute timeout (04 A8)" }
+- { code: auth.forbidden,                  http: 403, owner: C2, title: "Forbidden", meaning: "Permission or centre scope missing" }
+- { code: auth.mfa_required,               http: 403, owner: C2, title: "MFA required", meaning: "Privileged permission needs aal2 (04 A4)" }
+- { code: auth.account_locked,             http: 403, owner: C2, title: "Account locked", meaning: "User locked by admin or lockout policy" }
+- { code: auth.login_failed,               http: 401, owner: C2, title: "Login failed", meaning: "Generic; no account-existence oracle" }
+- { code: auth.step_up_required,           http: 401, owner: C2, title: "Additional verification required", meaning: "≥5 failures → backoff + step-up (04 §4)" }
+- { code: auth.password_policy_violation,  http: 422, owner: C2, title: "Password does not meet policy", meaning: "<12 chars etc. (04 A3)" }
+- { code: auth.password_breached,          http: 422, owner: C2, title: "Password found in breach list", meaning: "Local breached-password list (04 A3)" }
+- { code: auth.reset_token_invalid,        http: 400, owner: C2, title: "Reset link invalid", meaning: "Unknown/used/expired; identical response (04 A12)" }
+- { code: auth.invite_invalid,             http: 400, owner: C2, title: "Invitation invalid", meaning: "Expired or used invite (REQ-SEC-076)" }
+- { code: auth.mfa_invalid,                http: 401, owner: C2, title: "Invalid MFA code", meaning: "" }
+- { code: auth.otp_invalid,                http: 401, owner: C6, title: "Invalid or expired code", meaning: "Wrong/expired OTP (04 A9)" }
+- { code: auth.otp_attempts_exhausted,     http: 401, owner: C6, title: "Code no longer valid", meaning: "5 attempts used; OTP invalidated (04 A9)" }
+- { code: auth.device_token_invalid,       http: 401, owner: C7, title: "Device not authorised", meaning: "Unknown/revoked device token (04 A13)" }
+- { code: auth.csrf_failed,                http: 403, owner: C0, title: "Request origin rejected", meaning: "Origin/Sec-Fetch-Site check failed (REQ-SEC-091)" }
+# identity / admin (C2)
+- { code: identity.user_exists,            http: 409, owner: C2, title: "User already exists", meaning: "" }
+- { code: identity.membership_inactive,    http: 403, owner: C2, title: "Membership inactive", meaning: "" }
+- { code: identity.role_unknown,           http: 422, owner: C2, title: "Unknown role", meaning: "" }
+- { code: identity.last_admin_protected,   http: 409, owner: C2, title: "Cannot remove last tenant admin", meaning: "" }
+- { code: identity.mfa_enrolment_required, http: 403, owner: C2, title: "MFA enrolment required", meaning: "Privileged role before first PHI access (REQ-SEC-076)" }
+- { code: identity.tenant_suspended,       http: 403, owner: C2, title: "Tenant suspended", meaning: "" }
+- { code: identity.centre_inactive,        http: 409, owner: C2, title: "Centre inactive", meaning: "" }
+- { code: identity.setting_out_of_range,   http: 422, owner: C2, title: "Setting out of allowed range", meaning: "e.g. idle 15–30 min (04 A8), link TTL 30–90 d (04 A10)" }
+- { code: identity.support_session_required, http: 403, owner: C2, title: "Support session required", meaning: "Platform staff acting in a tenant (REQ-SEC-063)" }
+# added by 08 §4.2
+- { code: identity.code_duplicate, http: 409, owner: C2, title: "Code already used", meaning: "Tenant/branch/centre/role code not unique in scope" }   # CR-C2-007
+- { code: identity.self_action_forbidden, http: 409, owner: C2, title: "Not allowed on your own account", meaning: "Lock/deactivate/revoke-current/MFA-reset of self" }   # CR-C2-007
+- { code: identity.tenant_not_ready, http: 409, owner: C2, title: "Tenant not ready", meaning: "Activation needs an accepted admin, a branch and a centre" }   # CR-C2-007
+- { code: identity.annex_invalid_transition, http: 409, owner: C2, title: "IRD annex status change not allowed", meaning: "03-APP-FLOW §2.5" }   # CR-C2-007
+- { code: identity.export_too_large, http: 422, owner: C2, title: "Export range too large", meaning: "Range > 31 days or > 500,000 rows" }   # CR-C2-007
+- { code: identity.platform_ip_denied, http: 403, owner: C2, title: "Access not allowed from this network", meaning: "Platform staff IP allowlist (REQ-SEC-063)" }   # CR-C2-007
+# catalog (C3)
+- { code: catalog.test_inactive,           http: 409, owner: C3, title: "Test inactive", meaning: "" }
+- { code: catalog.panel_cycle,             http: 422, owner: C3, title: "Panel contains itself", meaning: "" }
+- { code: catalog.no_price,                http: 422, owner: C3, title: "No price configured", meaning: "No applicable price list entry" }
+- { code: catalog.no_reference_range,      http: 422, owner: C3, title: "No reference range", meaning: "No range for analyte/sex/age" }
+- { code: catalog.formula_invalid,         http: 422, owner: C3, title: "Formula invalid", meaning: "" }
+- { code: catalog.code_duplicate,          http: 409, owner: C3, title: "Code already used", meaning: "" }
+- { code: catalog.import_invalid,          http: 422, owner: C3, title: "Import file invalid", meaning: "Excel price-list import errors (00 E4); details in errors[]", retired: true }   # C3 never returns it (C3 hand-off, 2026-11-06)
+- { code: catalog.instrument_code_unmapped,http: 422, owner: C3, title: "Instrument code not mapped", meaning: "" }
+- { code: catalog.version_in_use,          http: 409, owner: C3, title: "Version in use", meaning: "Referenced by results; create a new version instead" }
+# added by 08 §4.2
+- { code: catalog.tax_config_missing, http: 422, owner: C3, title: "Tax configuration missing", meaning: "No tenant-default tax rule (04 L15/L25, B7)" }   # CR-C3-003
+- { code: catalog.import_not_committable, http: 409, owner: C3, title: "Import cannot be committed", meaning: "Not in validated state, expired, or already committed" }   # CR-C3-003
+- { code: catalog.import_stale_base, http: 409, owner: C3, title: "Price list changed since export", meaning: "Base version superseded; resend with accept_stale_base" }   # CR-C3-003
+# frontdesk (C4)
+- { code: frontdesk.patient_duplicate_suspected, http: 409, owner: C4, title: "Possible duplicate patient", meaning: "Dedupe match; confirm or merge (01 §1.1)" }
+- { code: frontdesk.consent_required,      http: 422, owner: C4, title: "Consent required", meaning: "REQ-SEC-005" }
+- { code: frontdesk.order_not_editable,    http: 409, owner: C4, title: "Order can no longer be edited", meaning: "Items in processing" }
+- { code: frontdesk.order_cancel_not_allowed, http: 409, owner: C4, title: "Order cannot be cancelled", meaning: "Results already approved" }
+- { code: frontdesk.order_already_cancelled,  http: 409, owner: C4, title: "Order already cancelled", meaning: "" }
+- { code: frontdesk.discount_approval_required, http: 403, owner: C4, title: "Discount needs approval", meaning: "Reason + approver required (00 A8)" }
+- { code: frontdesk.discount_exceeds_limit, http: 422, owner: C4, title: "Discount exceeds limit", meaning: "" }
+- { code: frontdesk.booking_already_converted, http: 409, owner: C4, title: "Booking already converted", meaning: "" }
+- { code: frontdesk.referrer_required,     http: 422, owner: C4, title: "Referrer required", meaning: "Tenant rule" }
+# added by 08 §4.2
+- { code: frontdesk.discount_self_approval_forbidden, http: 403, owner: C4, title: "Requester cannot approve own discount", meaning: "Segregation of duties (00 A8)" }   # CR-C4-007
+- { code: frontdesk.retention_not_elapsed, http: 409, owner: C4, title: "Retention period not elapsed", meaning: "Anonymisation before tenant retentionYears (B15)" }   # CR-C4-007
+# billing (C4)
+- { code: billing.invoice_immutable,       http: 409, owner: C4, title: "Invoice cannot be changed", meaning: "No edit/delete (04 L5, L26)" }
+- { code: billing.invoice_already_cancelled, http: 409, owner: C4, title: "Invoice already cancelled", meaning: "" }
+- { code: billing.cancel_reason_required,  http: 422, owner: C4, title: "Cancellation reason required", meaning: "04 L26 ज" }
+- { code: billing.fiscal_year_closed,      http: 409, owner: C4, title: "Fiscal year closed", meaning: "" }
+- { code: billing.counter_busy,            http: 503, owner: C4, title: "Invoice numbering busy", meaning: "Counter row lock timeout or FY rollover during allocation; retry (REQ-ARCH-032; FY rollover carries detail \"fiscal_year_rollover\" — 08 A13 D-25)" }
+- { code: billing.payment_exceeds_due,     http: 422, owner: C4, title: "Payment exceeds amount due", meaning: "" }
+- { code: billing.ledger_reversal_invalid, http: 409, owner: C4, title: "Reversal not allowed", meaning: "Already reversed / wrong amount" }
+- { code: billing.credit_limit_exceeded,   http: 409, owner: C4, title: "Credit limit exceeded", meaning: "" }
+- { code: billing.credit_party_locked,     http: 409, owner: C4, title: "Credit party locked", meaning: "Credit days exceeded (01 §1.5)" }
+- { code: billing.amount_mismatch,         http: 409, owner: C4, title: "Amount mismatch", meaning: "Gateway amount ≠ expected (REQ-SEC-048)" }
+- { code: billing.order_not_invoiced,      http: 409, owner: C4, title: "Order not invoiced", meaning: "" }
+- { code: billing.export_too_large,        http: 422, owner: C4, title: "Export range too large", meaning: "Narrow the date range" }
+# added by 08 §4.2
+- { code: billing.credit_period_already_billed, http: 409, owner: C4, title: "Credit period already billed", meaning: "No uninvoiced charges for the credit party and month" }   # CR-C4-007
+- { code: billing.numbering_pattern_invalid, http: 409, owner: C4, title: "Invoice pattern lacks {branch} for branch series", meaning: "invoice_series_scope = branch but invoiceNoPattern has no {branch} at allocation; no invoice issued; alert" }   # 08 A13 D-23
+- { code: billing.refund_self_approval_forbidden, http: 403, owner: C4, title: "Refund approver must differ from requester", meaning: "Approver of a refund request is its requester (08 R15)" }   # 08 A13 D-24; title [CONV]
+# lab (C5)
+- { code: lab.specimen_not_found,          http: 404, owner: C5, title: "Specimen not found", meaning: "Barcode unknown in tenant (host query)" }
+- { code: lab.specimen_invalid_transition, http: 409, owner: C5, title: "Specimen cannot move to the requested state", meaning: "§10.1" }
+- { code: lab.specimen_not_receivable,     http: 409, owner: C5, title: "Specimen not receivable", meaning: "Rejected/discarded/wrong state" }
+- { code: lab.rejection_reason_required,   http: 422, owner: C5, title: "Rejection reason required", meaning: "Coded reason mandatory (01 §2.1)" }
+- { code: lab.barcode_duplicate,           http: 409, owner: C5, title: "Barcode already used", meaning: "Barcodes never reused (01 §2.1)" }
+- { code: lab.result_invalid_transition,   http: 409, owner: C5, title: "Result cannot move to the requested state", meaning: "§10.2" }
+- { code: lab.result_locked,               http: 409, owner: C5, title: "Result is approved and locked", meaning: "Amend instead (04 R1)" }
+- { code: lab.result_value_invalid,        http: 422, owner: C5, title: "Result value invalid", meaning: "Type/range/decimals" }
+- { code: lab.result_on_hold,              http: 409, owner: C5, title: "Result on QC hold", meaning: "01 §2.5" }
+- { code: lab.formula_inputs_missing,      http: 422, owner: C5, title: "Formula inputs missing", meaning: "" }
+- { code: lab.self_approval_forbidden,     http: 403, owner: C5, title: "Approver must differ from verifier", meaning: "Two-step approval (00 C5) — rule confirmed in C5 PRD" }
+- { code: lab.amend_requires_pathologist,  http: 403, owner: C5, title: "Only a pathologist can amend", meaning: "00 C6" }
+- { code: lab.amendment_reason_required,   http: 422, owner: C5, title: "Amendment reason required", meaning: "" }
+- { code: lab.module_result_invalid,       http: 422, owner: C5, title: "Module result not accepted", meaning: "submitModuleResult on a test whose workflow is not micro/anatomic/molecular, or malformed payloadRef (A1)" }
+- { code: lab.module_result_stale,         http: 409, owner: C5, title: "Older module result version", meaning: "payloadRef.versionNo lower than last applied (A1)" }
+- { code: lab.critical_ack_required,       http: 409, owner: C5, title: "Critical notification not recorded", meaning: "C5 PRD decides if approval is blocked" }
+# added by 08 §4.2
+- { code: lab.barcode_pattern_invalid, http: 500, owner: C5, title: "Barcode numbering configuration invalid", meaning: "Rendered barcode violates [A-Z0-9]{1,20} or counter overflow" }   # CR-C5-005
+- { code: lab.specimen_inactive, http: 409, owner: C5, title: "Specimen inactive", meaning: "Order cancelled or test removed; specimen not usable" }   # CR-C5-005
+- { code: lab.flag_ack_required, http: 409, owner: C5, title: "Flag acknowledgement required", meaning: "Delta/critical/unit/instrument flag must be acknowledged before verification" }   # CR-C5-005
+# reporting + notifications + portal (C6)
+- { code: reporting.release_blocked_due,   http: 409, owner: C6, title: "Report held until payment", meaning: "Hold-till-paid (00 D1)" }
+- { code: reporting.release_not_ready,     http: 409, owner: C6, title: "Report not ready", meaning: "Approved set incomplete" }
+- { code: reporting.override_reason_required, http: 422, owner: C6, title: "Override reason required", meaning: "" }
+- { code: reporting.report_not_released,   http: 409, owner: C6, title: "Report not released", meaning: "" }
+- { code: reporting.report_superseded,     http: 409, owner: C6, title: "Report version superseded", meaning: "" }
+- { code: reporting.render_unavailable,    http: 503, owner: C6, title: "Rendering unavailable", meaning: "Renderer pool busy/failed; async retry" }
+- { code: reporting.outsourced_pdf_rejected, http: 422, owner: C6, title: "Outsourced PDF rejected", meaning: "Scan/sanitise failure (04 R7)" }
+- { code: reporting.bulk_release_too_large, http: 422, owner: C6, title: "Too many reports in one bulk release", meaning: "" }
+- { code: reporting.link_invalid,          http: 404, owner: C6, title: "Link not valid", meaning: "Unknown/expired/revoked — identical response (REQ-SEC-094)" }
+- { code: reporting.verify_not_found,      http: 404, owner: C6, title: "Report could not be verified", meaning: "Unknown or revoked QR token — identical response (04 R3)" }
+- { code: reporting.otp_required,          http: 401, owner: C6, title: "Verification code required", meaning: "" }
+- { code: reporting.notification_template_unknown, http: 422, owner: C6, title: "Unknown message template", meaning: "" }
+- { code: reporting.notification_params_invalid,   http: 422, owner: C6, title: "Message parameters not allowed", meaning: "Undeclared/PHI-like params (04 R4/R6)" }
+- { code: reporting.template_invalid,      http: 422, owner: C6, title: "Report template invalid", meaning: "" }
+# added by 08 §4.2
+- { code: reporting.version_not_latest, http: 409, owner: C6, title: "A newer report version exists", meaning: "Only the latest non-discarded version can be released/printed as current" }   # CR-C6-004
+- { code: reporting.report_cancelled, http: 409, owner: C6, title: "Report cancelled", meaning: "Order cancelled; no new versions or releases" }   # CR-C6-004
+- { code: reporting.narrative_locked, http: 409, owner: C6, title: "Narrative report is signed", meaning: "Start an amendment instead" }   # CR-C6-004
+- { code: reporting.narrative_incomplete, http: 422, owner: C6, title: "Required sections are empty", meaning: "Fill required sections before signing" }   # CR-C6-004
+- { code: reporting.input_file_not_ready, http: 409, owner: C6, title: "File not ready", meaning: "Scan/sanitise still running or file rejected" }   # CR-C6-004
+- { code: reporting.print_not_ready, http: 409, owner: C6, title: "Print file not ready", meaning: "Plain/bulk print still rendering" }   # CR-C6-004
+- { code: reporting.channel_not_configured, http: 422, owner: C6, title: "Channel not configured", meaning: "No active channel account for this channel" }   # CR-C6-004
+- { code: reporting.callback_rejected, http: 400, owner: C6, title: "Callback rejected", meaning: "Unknown callback token or bad signature; identical response" }   # CR-C6-004
+# instruments (C7)
+- { code: instruments.batch_too_large,     http: 413, owner: C7, title: "Batch too large", meaning: ">100 messages/request (04 §4)" }
+- { code: instruments.message_malformed,   http: 422, owner: C7, title: "Message malformed", meaning: "Quarantined, not dropped (REQ-SEC-121)" }
+- { code: instruments.device_mismatch,     http: 403, owner: C7, title: "Device not bound to instrument", meaning: "REQ-SEC-121" }
+- { code: instruments.instrument_unknown,  http: 404, owner: C7, title: "Instrument unknown", meaning: "" }
+- { code: instruments.driver_not_available,http: 422, owner: C7, title: "No driver for instrument model", meaning: "Manual pending (B2)" }
+- { code: instruments.config_signature_invalid, http: 422, owner: C7, title: "Configuration signature invalid", meaning: "04 N11" }
+# added by 08 §4.2
+- { code: instruments.agent_not_active, http: 409, owner: C7, title: "Agent not active", meaning: "Agent retired (or revoked where the action needs an active agent)" }   # CR-C7-002
+- { code: instruments.agent_has_active_instruments, http: 409, owner: C7, title: "Agent still has instruments", meaning: "Retire or move instruments first" }   # CR-C7-002
+- { code: instruments.invalid_transition, http: 409, owner: C7, title: "State change not allowed", meaning: "Agent/instrument/command state machine (03-APP-FLOW §2)" }   # CR-C7-002
+- { code: instruments.go_live_checklist_incomplete, http: 422, owner: C7, title: "Go-live checklist incomplete", meaning: "All checklist items and an evidence note are required" }   # CR-C7-002
+- { code: instruments.capability_not_supported, http: 422, owner: C7, title: "Capability not supported", meaning: "Driver/instrument does not support host query, worklist or file drop" }   # CR-C7-002
+- { code: instruments.message_too_large, http: 413, owner: C7, title: "Message too large", meaning: "Single message above the per-message limit" }   # CR-C7-002
+- { code: instruments.reprocess_not_allowed, http: 409, owner: C7, title: "Message cannot be reprocessed", meaning: "Host query, retired instrument, or record not eligible" }   # CR-C7-002
+- { code: instruments.code_duplicate, http: 409, owner: C7, title: "Code already used", meaning: "agent_code or instrument_code exists in the tenant" }   # CR-C7-002
+# analytics (C8)
+- { code: analytics.range_too_large,       http: 422, owner: C8, title: "Date range too large", meaning: "" }
+- { code: analytics.report_unknown,        http: 404, owner: C8, title: "Report unknown", meaning: "" }
+# added by 08 §4.2
+- { code: analytics.export_not_ready, http: 409, owner: C8, title: "Export not ready", meaning: "Queued or building" }   # CR-C8-002
+- { code: analytics.export_unavailable, http: 410, owner: C8, title: "Export no longer available", meaning: "Expired, failed or download limit reached" }   # CR-C8-002
+- { code: analytics.export_too_large, http: 422, owner: C8, title: "Export too large", meaning: "Row or size cap exceeded; narrow the period" }   # CR-C8-002
+- { code: analytics.recipient_ineligible, http: 422, owner: C8, title: "Recipient not eligible", meaning: "Membership inactive or lacks the report permission" }   # CR-C8-002
+# quality (C9)
+- { code: quality.qc_target_missing,       http: 422, owner: C9, title: "QC target not set", meaning: "Mean/SD missing for material/lot/analyte" }
+- { code: quality.qc_run_already_evaluated, http: 409, owner: C9, title: "QC run already evaluated", meaning: "" }
+- { code: quality.corrective_action_required, http: 409, owner: C9, title: "Corrective action required", meaning: "01 §2.5" }
+- { code: quality.lot_expired,             http: 422, owner: C9, title: "Control lot expired", meaning: "" }
+# added by 08 §4.2
+- { code: quality.code_duplicate, http: 409, owner: C9, title: "Already exists", meaning: "Material/level/lot code, control-ID map or QC plan for the pair already exists" }   # CR-C9-002
+- { code: quality.rerun_required, http: 409, owner: C9, title: "Accepted QC rerun required", meaning: "Rejected run can be closed only after a later accepted run (01 §2.5)" }   # CR-C9-002
+- { code: quality.rule_set_invalid, http: 422, owner: C9, title: "Auto-verification rules invalid", meaning: "DSL validation errors in errors[]" }   # CR-C9-002
+- { code: quality.rule_set_invalid_transition, http: 409, owner: C9, title: "Rule set version cannot change state", meaning: "03-APP-FLOW §2.3" }   # CR-C9-002
+- { code: quality.simulation_incomplete, http: 409, owner: C9, title: "Simulation not long enough", meaning: "sim_min_days / sim_min_decisions not met" }   # CR-C9-002
+- { code: quality.self_activation_forbidden, http: 403, owner: C9, title: "Another person must activate", meaning: "Four-eyes activation of auto-verification rules" }   # CR-C9-002
+- { code: quality.insufficient_qc_data, http: 422, owner: C9, title: "Not enough QC data", meaning: "Fewer observations than target_min_points" }   # CR-C9-002
+# micro (C10)
+- { code: micro.organism_code_unknown,     http: 422, owner: C10, title: "Organism code unknown", meaning: "" }
+- { code: micro.ast_standard_required,     http: 422, owner: C10, title: "Breakpoint standard required", meaning: "Category + standard + version (04 D14)" }
+- { code: micro.antibiotic_not_in_panel,   http: 422, owner: C10, title: "Antibiotic not in panel", meaning: "" }
+- { code: micro.report_final_locked,       http: 409, owner: C10, title: "Final micro report locked", meaning: "Amend instead" }
+# added by 08 §4.2
+- { code: micro.culture_invalid_transition, http: 409, owner: C10, title: "Culture cannot move to the requested state", meaning: "03-APP-FLOW §2.1" }   # CR-C10-005
+- { code: micro.isolate_invalid_transition, http: 409, owner: C10, title: "Isolate cannot move to the requested state", meaning: "03-APP-FLOW §2.2" }   # CR-C10-005
+- { code: micro.ast_value_invalid, http: 422, owner: C10, title: "AST value invalid", meaning: "MIC/zone syntax or range" }   # CR-C10-005
+- { code: micro.ast_category_not_allowed, http: 422, owner: C10, title: "Interpretive category not allowed", meaning: "Not a code of the standard, or restricted for this antibiotic (04 D14)" }   # CR-C10-005
+- { code: micro.report_incomplete, http: 422, owner: C10, title: "Report is incomplete", meaning: "Preliminary/final completeness guards" }   # CR-C10-005
+- { code: micro.amendment_reason_required, http: 422, owner: C10, title: "Amendment reason required", meaning: "Reopen/amend needs a coded reason" }   # CR-C10-005
+- { code: micro.instrument_record_conflict, http: 409, owner: C10, title: "Instrument record conflicts with existing data", meaning: "Choose use_instrument or keep_existing" }   # CR-C10-005
+- { code: micro.breakpoint_import_invalid, http: 422, owner: C10, title: "Breakpoint file rejected", meaning: "Not UTF-8 text, NUL bytes, or duplicate file" }   # CR-C10-005
+- { code: micro.breakpoint_set_invalid_transition, http: 409, owner: C10, title: "Breakpoint set cannot change state", meaning: "03-APP-FLOW §2.5" }   # CR-C10-005
+- { code: micro.breakpoint_four_eyes_required, http: 403, owner: C10, title: "Another user must activate this set", meaning: "Importer cannot activate own import" }   # CR-C10-005
+- { code: micro.code_duplicate, http: 409, owner: C10, title: "Code already used", meaning: "Protocol/panel code or active vocabulary map key exists" }   # CR-C10-005
+# anatomic (C11)
+- { code: anatomic.accession_duplicate,    http: 409, owner: C11, title: "Accession number already used", meaning: "" }
+- { code: anatomic.signout_locked,         http: 409, owner: C11, title: "Case signed out", meaning: "Addendum/amend instead" }
+- { code: anatomic.ihc_requires_block,     http: 422, owner: C11, title: "IHC must be ordered on a block", meaning: "01 research §2.4" }
+# added by 08 §4.2
+- { code: anatomic.case_invalid_transition, http: 409, owner: C11, title: "Case cannot move to the requested state", meaning: "C11 TRD §7" }   # CR-C11-003
+- { code: anatomic.accession_pattern_invalid, http: 500, owner: C11, title: "Accession numbering configuration invalid", meaning: "Pattern tokens/charset invalid or counter overflow" }   # CR-C11-003
+- { code: anatomic.report_incomplete, http: 422, owner: C11, title: "Report incomplete", meaning: "Required report content missing at sign-out; details in errors[]" }   # CR-C11-003
+- { code: anatomic.template_invalid, http: 422, owner: C11, title: "Template definition invalid", meaning: "Synoptic definition violates schema; details in errors[]" }   # CR-C11-003
+- { code: anatomic.template_not_published, http: 409, owner: C11, title: "Template not published", meaning: "Draft or retired template used/retired" }   # CR-C11-003
+- { code: anatomic.block_not_available, http: 409, owner: C11, title: "Block not available", meaning: "Block sent out or discarded" }   # CR-C11-003
+- { code: anatomic.image_limit_reached, http: 422, owner: C11, title: "Image limit reached", meaning: "Per-case or per-report image limit" }   # CR-C11-003
+- { code: anatomic.image_not_ready, http: 409, owner: C11, title: "Image not ready", meaning: "Still processing or quarantined", retired: true }   # CR-C11-003
+- { code: anatomic.order_item_inactive, http: 409, owner: C11, title: "Order item no longer active", meaning: "Item removed/cancelled at front desk" }   # CR-C11-003
+- { code: anatomic.batch_closed, http: 409, owner: C11, title: "Batch closed", meaning: "" }   # CR-C11-003
+- { code: anatomic.batch_position_taken, http: 409, owner: C11, title: "Batch position already used", meaning: "" }   # CR-C11-003
+# inventory (C12)
+- { code: inventory.insufficient_stock,    http: 409, owner: C12, title: "Insufficient stock", meaning: "" }
+- { code: inventory.lot_expired,           http: 409, owner: C12, title: "Lot expired", meaning: "FEFO issue rule" }
+- { code: inventory.po_invalid_transition, http: 409, owner: C12, title: "Purchase order state change not allowed", meaning: "" }
+- { code: inventory.uom_mismatch,          http: 422, owner: C12, title: "Unit of measure mismatch", meaning: "" }
+# added by 08 §4.2
+- { code: inventory.code_duplicate, http: 409, owner: C12, title: "Code already used", meaning: "item/pack/store/supplier/barcode code exists in the tenant" }   # CR-C12-003
+- { code: inventory.item_inactive, http: 409, owner: C12, title: "Item inactive", meaning: "" }   # CR-C12-003
+- { code: inventory.item_in_use, http: 409, owner: C12, title: "Item in use", meaning: "Deactivation blocked: stock or open PO lines" }   # CR-C12-003
+- { code: inventory.store_not_empty, http: 409, owner: C12, title: "Store not empty", meaning: "Deactivation blocked: non-zero balance" }   # CR-C12-003
+- { code: inventory.po_self_approval_forbidden,http: 403, owner: C12, title: "Approver must differ from creator", meaning: "Tenant setting" }   # CR-C12-003
+- { code: inventory.over_receipt, http: 422, owner: C12, title: "Received quantity exceeds order", meaning: "Beyond tolerance" }   # CR-C12-003
+- { code: inventory.document_invalid_transition,http: 409, owner: C12, title: "Document state change not allowed", meaning: "GRN/transfer/count/container/fact/alert" }   # CR-C12-003
+- { code: inventory.lot_unavailable, http: 409, owner: C12, title: "Lot not available", meaning: "Quarantined or blocked" }   # CR-C12-003
+- { code: inventory.reason_required, http: 422, owner: C12, title: "Reason required", meaning: "" }   # CR-C12-003
+- { code: inventory.fact_not_reversible, http: 409, owner: C12, title: "Consumption cannot be reversed", meaning: "Only manual facts are reversible" }   # CR-C12-003
+- { code: inventory.store_locked_for_count, http: 409, owner: C12, title: "Store is being counted", meaning: "Tenant setting count_locks_store" }   # CR-C12-003
+- { code: inventory.count_already_open, http: 409, owner: C12, title: "A count is already open for this store", meaning: "" }   # CR-C12-003
+- { code: inventory.rule_conflict, http: 409, owner: C12, title: "A current rule exists", meaning: "Supersede the existing rule instead" }   # CR-C12-003
+- { code: inventory.export_too_large, http: 422, owner: C12, title: "Export too large", meaning: "Row cap exceeded; narrow the range" }   # CR-C12-003
+- { code: inventory.range_too_large, http: 422, owner: C12, title: "Date range too large", meaning: "" }   # CR-C12-003
+# partners (C13)
+- { code: partners.manifest_invalid,       http: 422, owner: C13, title: "Manifest invalid", meaning: "" }
+- { code: partners.partner_inactive,       http: 403, owner: C13, title: "Partner account inactive", meaning: "" }
+# added by 08 §4.2
+- { code: partners.manifest_not_editable, http: 409, owner: C13, title: "Manifest can no longer be edited", meaning: "Lines are read-only after submit" }   # CR-C13-009
+- { code: partners.manifest_invalid_transition, http: 409, owner: C13, title: "Manifest cannot move to the requested state", meaning: "03-APP-FLOW §2.1" }   # CR-C13-009
+- { code: partners.manifest_line_invalid_transition, http: 409, owner: C13, title: "Manifest line cannot move to the requested state", meaning: "03-APP-FLOW §2.2" }   # CR-C13-009
+- { code: partners.orderable_not_offered, http: 422, owner: C13, title: "Test not offered to this partner", meaning: "Not in the partner price-list projection" }   # CR-C13-009
+- { code: partners.pickup_invalid, http: 422, owner: C13, title: "Pickup request invalid", meaning: "Window or manifest rules" }   # CR-C13-009
+- { code: partners.pickup_invalid_transition, http: 409, owner: C13, title: "Pickup cannot move to the requested state", meaning: "03-APP-FLOW §2.3" }   # CR-C13-009
+- { code: partners.partner_invalid_transition, http: 409, owner: C13, title: "Partner cannot move to the requested state", meaning: "" }   # CR-C13-009
+- { code: partners.partner_user_invalid_transition, http: 409, owner: C13, title: "Partner user cannot move to the requested state", meaning: "" }   # CR-C13-009
+- { code: partners.last_partner_admin, http: 409, owner: C13, title: "Cannot remove the last partner admin", meaning: "" }   # CR-C13-009
+- { code: partners.self_action_forbidden, http: 409, owner: C13, title: "You cannot change your own access", meaning: "" }   # CR-C13-009
+- { code: partners.code_duplicate, http: 409, owner: C13, title: "Partner code already used", meaning: "" }   # CR-C13-009
+- { code: partners.credit_party_in_use, http: 409, owner: C13, title: "Credit party already linked to a partner", meaning: "" }   # CR-C13-009
+- { code: partners.credit_party_inactive, http: 422, owner: C13, title: "Credit party inactive", meaning: "" }   # CR-C13-009
+- { code: partners.referrer_duplicate, http: 409, owner: C13, title: "Referrer already exists", meaning: "" }   # CR-C13-009
+- { code: partners.referrer_not_mapped, http: 422, owner: C13, title: "Referrer not yet linked by the lab", meaning: "require_mapped_referrer" }   # CR-C13-009
+- { code: partners.referrer_doctor_inactive, http: 422, owner: C13, title: "Doctor record inactive", meaning: "" }   # CR-C13-009
+- { code: partners.referrer_invalid_transition, http: 409, owner: C13, title: "Referrer mapping cannot change", meaning: "" }   # CR-C13-009
+- { code: partners.setting_out_of_range, http: 422, owner: C13, title: "Setting out of allowed range", meaning: "02-TRD §10.2" }   # CR-C13-009
+# smartreport (C14)
+- { code: smartreport.no_eligible_results, http: 422, owner: C14, title: "No approved results for summary", meaning: "" }
+- { code: smartreport.template_not_approved, http: 409, owner: C14, title: "Template library not approved", meaning: "Pathologist approval pending (B14)" }
+- { code: smartreport.validator_failed,    http: 422, owner: C14, title: "Generated text failed validation", meaning: "Optional LLM layer (01 §5.3)" }
+- { code: smartreport.feature_disabled,    http: 403, owner: C14, title: "Smart report disabled", meaning: "" }
+# added by 08 §4.2
+- { code: smartreport.library_invalid, http: 422, owner: C14, title: "Template library invalid", meaning: "Validation rules V1–V14 failed; details in errors[]" }   # CR-C14-004
+- { code: smartreport.library_invalid_transition, http: 409, owner: C14, title: "Template library cannot change state", meaning: "Edit outside draft, second open draft, or illegal transition" }   # CR-C14-004
+- { code: smartreport.summary_invalid_transition, http: 409, owner: C14, title: "Summary cannot change state", meaning: "Approve/reject outside draft" }   # CR-C14-004
+- { code: smartreport.summary_superseded, http: 409, owner: C14, title: "Summary built on superseded results", meaning: "Approved results changed after the summary was built" }   # CR-C14-004
+- { code: smartreport.summary_not_ready, http: 409, owner: C14, title: "Smart summary not available yet", meaning: "Staff callers: summary requested before it is approved" }   # CR-C14-004; meaning narrowed by 08 A4.6
+# payments (C15)
+- { code: payments.gateway_not_available,  http: 503, owner: C15, title: "Payment method unavailable", meaning: "Gateway down or not configured (Fonepay BLOCKED B8)" }
+- { code: payments.intent_open_exists,     http: 409, owner: C15, title: "Payment already in progress", meaning: "One open intent per order (04 P6)" }
+- { code: payments.nothing_due,            http: 409, owner: C15, title: "Nothing to pay", meaning: "" }
+- { code: payments.signature_invalid,      http: 400, owner: C15, title: "Callback signature invalid", meaning: "REQ-SEC-049/052" }
+- { code: payments.callback_stale,         http: 400, owner: C15, title: "Callback too old", meaning: "REQ-SEC-052" }
+- { code: payments.refund_exceeds_captured,http: 422, owner: C15, title: "Refund exceeds captured amount", meaning: "REQ-SEC-055" }
+- { code: payments.refund_requires_approval, http: 403, owner: C15, title: "Refund requires approval", meaning: "REQ-SEC-055" }
+# added by 08 §4.2
+- { code: payments.amount_not_supported, http: 422, owner: C15, title: "Amount not supported by this payment method", meaning: "Khalti < 1000 paisa (04 P4); eSewa fractional rupees while unverified" }   # CR-C15-006
+- { code: payments.return_url_not_allowed, http: 422, owner: C15, title: "Return address not allowed", meaning: "returnUrl/cancelUrl outside the allowlist" }   # CR-C15-006
+- { code: payments.intent_invalid_transition, http: 409, owner: C15, title: "Payment cannot move to the requested state", meaning: "02-TRD §4.1" }   # CR-C15-006
+- { code: payments.intent_not_verifiable, http: 409, owner: C15, title: "Payment not confirmed by the provider", meaning: "Resolve requires gateway success + exact amount" }   # CR-C15-006
+- { code: payments.refund_not_allowed, http: 409, owner: C15, title: "Refund not allowed", meaning: "Intent not settled, refund in progress, or wrong refund state" }   # CR-C15-006
+- { code: payments.refund_self_approval_forbidden, http: 403, owner: C15, title: "Refund needs a second approver", meaning: "REQ-SEC-055 two-person rule" }   # CR-C15-006
+- { code: payments.credential_invalid, http: 422, owner: C15, title: "Merchant credentials rejected", meaning: "Gateway rejected the key during test" }   # CR-C15-006
+- { code: payments.reconciliation_in_progress, http: 409, owner: C15, title: "Reconciliation already running", meaning: "" }   # CR-C15-006
+- { code: payments.callback_mismatch, http: 400, owner: C15, title: "Callback does not match payment", meaning: "Recorded outcome only; callbacks never change state" }   # CR-C15-006
+- { code: payments.static_qr_already_reconciled, http: 409, owner: C15, title: "Already reconciled", meaning: "One worksheet per date and centre" }   # CR-C15-006
+# engagement (C16)
+- { code: engagement.slot_unavailable,     http: 409, owner: C16, title: "Slot unavailable", meaning: "" }
+- { code: engagement.booking_limit_reached,http: 429, owner: C16, title: "Booking limit reached", meaning: "Per-patient daily cap (REQ-SEC-100)" }
+- { code: engagement.booking_not_cancellable, http: 409, owner: C16, title: "Booking cannot be cancelled", meaning: "" }
+- { code: engagement.app_version_unsupported, http: 426, owner: C16, title: "App update required", meaning: "Minimum supported version (REQ-SEC-113)" }
+# added by 08 §4.2
+- { code: engagement.link_code_invalid, http: 422, owner: C16, title: "Code not valid", meaning: "Unknown, expired, used, wrong phone, or report link not valid — identical response" }   # CR-C16-003
+- { code: engagement.link_limit_reached, http: 409, owner: C16, title: "Profile limit reached", meaning: "Per-account or per-patient link limit; self profile exists; address limit" }   # CR-C16-003
+- { code: engagement.booking_invalid_transition, http: 409, owner: C16, title: "Booking cannot move to the requested state", meaning: "03-APP-FLOW §4.1" }   # CR-C16-003
+- { code: engagement.slot_outside_window, http: 422, owner: C16, title: "Slot not bookable", meaning: "Past, inside lead time, beyond horizon, or not a generated slot" }   # CR-C16-003
+- { code: engagement.orderable_not_bookable, http: 422, owner: C16, title: "Test not available for booking", meaning: "Not in the bookable catalogue for this kind, or sex restriction" }   # CR-C16-003
+- { code: engagement.address_required, http: 422, owner: C16, title: "Address required", meaning: "Home collection needs an address" }   # CR-C16-003
+- { code: engagement.queue_closed, http: 409, owner: C16, title: "Queue not open", meaning: "Queue inactive or queue feature off" }   # CR-C16-003
+- { code: engagement.queue_token_invalid_transition, http: 409, owner: C16, title: "Token cannot move to the requested state", meaning: "03-APP-FLOW §4.3" }   # CR-C16-003
+- { code: engagement.membership_overlap, http: 409, owner: C16, title: "Membership already active", meaning: "One active membership per patient" }   # CR-C16-003
+- { code: engagement.plan_inactive, http: 409, owner: C16, title: "Membership plan inactive", meaning: "" }   # CR-C16-003
+- { code: engagement.reminder_invalid_transition, http: 409, owner: C16, title: "Reminder cannot change", meaning: "Already sent/cancelled" }   # CR-C16-003
+- { code: engagement.enquiry_invalid_transition, http: 409, owner: C16, title: "Enquiry cannot change", meaning: "Closed, or open-enquiry limit" }   # CR-C16-003
+- { code: engagement.setting_out_of_range, http: 422, owner: C16, title: "Setting out of allowed range", meaning: "05-SCHEMA §2.1" }   # CR-C16-003
+# homecollection (C17)
+- { code: homecollection.visit_not_assigned, http: 403, owner: C17, title: "Visit not assigned to you", meaning: "" }
+- { code: homecollection.barcode_mismatch, http: 422, owner: C17, title: "Scanned barcode does not match", meaning: "Patient/specimen ID check" }
+- { code: homecollection.visit_closed,     http: 409, owner: C17, title: "Visit already closed", meaning: "" }
+- { code: homecollection.mutation_superseded, http: 409, owner: C17, title: "Change superseded by server", meaning: "Server-wins conflict, per-mutation outcome (04 S17)" }
+- { code: homecollection.unsynced_changes, http: 409, owner: C17, title: "Unsynced changes pending", meaning: "Logout blocked while unsynced (04 A15)" }
+# added by 08 §4.2
+- { code: homecollection.app_version_unsupported, http: 426, owner: C17, title: "App update required", meaning: "Below tenant min_app_version (REQ-SEC-113)" }   # CR-C17-007
+- { code: homecollection.device_not_registered, http: 409, owner: C17, title: "Device not registered", meaning: "Unknown device id or bound to another user" }   # CR-C17-007
+- { code: homecollection.visit_incomplete, http: 422, owner: C17, title: "Visit is not ready to assign", meaning: "Address and time window required" }   # CR-C17-007
+- { code: homecollection.phlebotomist_not_eligible, http: 422, owner: C17, title: "Phlebotomist cannot take this visit", meaning: "Inactive, other centre, or no phlebotomist role" }   # CR-C17-007
+- { code: homecollection.collection_not_held, http: 409, owner: C17, title: "Collection is not awaiting review", meaning: "" }   # CR-C17-007

@@ -1,7 +1,7 @@
 # SP-2 — Graphile Worker 0.18.0 least-privilege + `add_job` mapping
 
 - Date run: 2026-11-06 · Plan row: `spec/chunks/C0-foundation-contracts/06-IMPLEMENTATION-PLAN.md` SP-2 · 04 D6, IC §12, 08 A25 D-201, 07-SECURITY §6, REQ-ARCH-042
-- **Outcome: partial.** The worker runtime runs **no DDL** (schema current), `lims_api` can enqueue **only** through `app.enqueue_job` (direct `add_job` denied), and `job_key` dedupe with `unsafe_dedupe` works as documented. But the worker **needs** the ownership rights it inherits from `lims_queue`: every `graphile_worker._private_*` table has RLS enabled with zero policies, so only the owner can use them. A DML-only role was tested and fails. Residual privilege below. It is recorded in `services/worker/src/core/DECISIONS.md`, needs a line in 07-SECURITY §6 (D-201), and goes to CV §5.9 as a CR (`.orchestra/cr/SP-2.md`).
+- **Outcome: partial.** The worker runtime runs **no DDL** (schema current), `lims_api` can enqueue **only** through `app.enqueue_job` (direct `add_job` denied), and `job_key` dedupe with `unsafe_dedupe` works as documented. But the worker **needs** the ownership rights it inherits from `lims_queue`: every `graphile_worker._private_*` table has RLS enabled with zero policies, so only the owner can use them. A DML-only role was tested and fails. Residual privilege below. It is recorded in `services/worker/src/core/DECISIONS.md`, needs a line in 07-SECURITY §6 (D-201), and goes to CV §5.9 as a CR (`.orchestra/cr/SP-2.nonblocking.md`).
 
 ## Decision
 
@@ -82,6 +82,6 @@ pg_class graphile_worker._private_{jobs,job_queues,tasks,known_crontabs}: relrow
 
 ## Open points
 
-- 05-SCHEMA §10 comment "(graphile_worker schema installation by the runner happens here)" sits inside one `SET LOCAL ROLE` transaction. SP-5 / the runner must split it into the three-step window above (CR `.orchestra/cr/SP-2.md`).
+- 05-SCHEMA §10 comment "(graphile_worker schema installation by the runner happens here)" sits inside one `SET LOCAL ROLE` transaction. SP-5 / the runner must split it into the three-step window above (CR `.orchestra/cr/SP-2.nonblocking.md`).
 - Who deletes permanently failed jobs after the dead-letter wrapper has copied them to `core.dead_letters` (T0D-09: `cleanup({ tasks: ['DELETE_PERMAFAILED_JOBS'] })` in `core.retention_purge` is the obvious slot). Until then they count as `failed` in `app.queue_depth()` and block their `job_key`.
 - Spike ran on stock `postgres:17`, not `supabase/postgres:17.6.1.136`, and without PgBouncer. Re-check the install on the pinned image in T0A-09.

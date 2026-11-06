@@ -30,14 +30,14 @@ export interface CodeBlockProps {
   /** Accessible name of the region. */
   label: string;
   renderControlChars?: boolean;
-  /** Default true. false: no Copy button and copy/cut from the block is blocked. */
+  /** Default false (PHI). false: no Copy button and copy/cut from the block is blocked. */
   allowCopy?: boolean;
   caption?: string;
   'data-testid'?: string;
 }
 
 /** Verbatim monospace text (C7 raw messages, agent logs). Content is text nodes only (REQ-SEC-088). */
-export function CodeBlock({ value, label, renderControlChars = false, allowCopy = true, caption, ...rest }: CodeBlockProps) {
+export function CodeBlock({ value, label, renderControlChars = false, allowCopy = false, caption, ...rest }: CodeBlockProps) {
   const [copied, setCopied] = useState(false);
   const block = (e: SyntheticEvent) => {
     if (!allowCopy) e.preventDefault();

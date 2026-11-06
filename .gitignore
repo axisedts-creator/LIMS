@@ -12,3 +12,4 @@ supabase/.temp/
 .orchestra/logs/
 .orchestra/out/
 .orchestra/lock-*
+Claude outputs/

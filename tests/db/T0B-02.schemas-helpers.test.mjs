@@ -38,6 +38,16 @@ test('schemas migration sorts before helpers migration (schema test 21 order)', 
   assert.ok(s < h, `${s} must sort before ${h}`);
 });
 
+test('migration order: nothing sorts before schemas; every helper user sorts after helpers (schema test 21)', () => {
+  const s = find('app__create_schemas'), h = find('app__create_context_helpers');
+  const used = /app\.(is_platform_actor|current_partner_id|engagement_(preauth_stage|account_id|patient_ids|patient_visible)|current_lims_session_id|uuidv7)\s*\(/;
+  for (const f of files()) {
+    assert.ok(f >= s, `${f} must not sort before ${s}`);
+    if (f === s || f === h) continue;
+    if (used.test(read(f))) assert.ok(f > h, `${f} references app helpers so must sort after ${h}`);
+  }
+});
+
 test('every spec schema is created, and no other', () => {
   const sql = schemas();
   const created = [...sql.matchAll(/CREATE\s+SCHEMA\s+(?:IF\s+NOT\s+EXISTS\s+)?(\w+)/gi)].map((m) => m[1]).sort();

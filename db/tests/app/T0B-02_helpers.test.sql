@@ -62,11 +62,6 @@ SELECT is_empty($$SELECT a.grantee FROM pg_proc p, aclexplode(p.proacl) a WHERE 
   'PUBLIC has no EXECUTE on is_platform_actor');
 SELECT is((SELECT proacl IS NOT NULL FROM pg_proc WHERE oid = 'app.is_platform_actor()'::regprocedure), true, 'is_platform_actor has an explicit ACL');
 
--- creation order: schemas and helpers migrations precede every other migration (migrations_meta revision table, when present)
-SELECT ok((SELECT min(name) FROM (SELECT name FROM migrations_meta.revision WHERE name LIKE '%app__create\_%') x) LIKE '%app__create_schemas%',
-  'app__create_schemas is the first app__create_* migration applied')
-  WHERE to_regclass('migrations_meta.revision') IS NOT NULL;
-
 -- ---------- policy helpers: DEFINER/INVOKER, owner, PUBLIC revoked, lims_app granted
 SELECT is((SELECT prosecdef FROM pg_proc WHERE oid = sig::regprocedure), definer, sig || ' prosecdef = ' || definer)
   FROM (VALUES ('app.current_partner_id()', true), ('app.engagement_preauth_stage()', false), ('app.engagement_account_id()', true),

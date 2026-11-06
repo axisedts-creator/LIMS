@@ -174,6 +174,10 @@ importers:
         version: 7.0.2
 
   packages/shared-ts:
+    dependencies:
+      '@remotemerge/nepali-date-converter':
+        specifier: 1.2.7
+        version: 1.2.7
     devDependencies:
       typescript:
         specifier: 7.0.2
@@ -181,11 +185,24 @@ importers:
 
   packages/test-fixtures:
     devDependencies:
+      '@sbmdkl/nepali-date-converter':
+        specifier: 2.0.5
+        version: 2.0.5
+      bikram-sambat:
+        specifier: 1.8.1
+        version: 1.8.1
       typescript:
         specifier: 7.0.2
         version: 7.0.2
 
 packages:
+
+  '@remotemerge/nepali-date-converter@1.2.7':
+    resolution: {integrity: sha512-3tPcr9i7XEuJChchtcP/l89RuOpMzAeeJbHqxH4crbjWi69KFKPnrLjmTI2aeAPVNU56mLsPR5HY2dejsz9haQ==}
+    engines: {node: '>=18.12.0'}
+
+  '@sbmdkl/nepali-date-converter@2.0.5':
+    resolution: {integrity: sha512-LWars3RnZOU/Iqw2I5FCnYoQHVOnqt6RLgfekTVIF5pnvnBCVDPZa2tZfnj7abobhFZ4l53CTKFUOlQ5bVOXSg==}
 
   '@turbo/darwin-64@2.11.10':
     resolution: {integrity: sha512-By4idRap5+nLnMuRzLB4qkOPRlvNdyY1ne4VJYDyUoUB11H94k7uif9mbe3JT8JSNXs1D68uMcBj6hJ/jMQRvA==}
@@ -337,6 +354,12 @@ packages:
     cpu: [x64]
     os: [win32]
 
+  bikram-sambat@1.8.1:
+    resolution: {integrity: sha512-2leyyRBTUktjY07ZItl0UKPj5AhQ+Qay8+DMU52N/FV6ouPEunsmNgNZhH1KlcGZc5oBrOMgzAkG9/Drdmiidg==}
+
+  eurodigit@3.1.3:
+    resolution: {integrity: sha512-/bS2/yTT1/sa5tiT3sjxQ6dobYwGDkWRCeoWYUSUFcLYomEPWlgVfnCE3Iv4eJDJE9upHhtNycxD9XQbR+zicg==}
+
   turbo@2.11.10:
     resolution: {integrity: sha512-3GJYwig8ygEI89oaOZdduJX8/aw6O9eRPYHoIt6T3FZl9hkKjiyIspufJoVgqXihPoJu8M5CSV0DlZvzfohBCw==}
     hasBin: true
@@ -347,6 +370,10 @@ packages:
     hasBin: true
 
 snapshots:
+
+  '@remotemerge/nepali-date-converter@1.2.7': {}
+
+  '@sbmdkl/nepali-date-converter@2.0.5': {}
 
   '@turbo/darwin-64@2.11.10':
     optional: true
@@ -425,6 +452,12 @@ snapshots:
 
   '@typescript/typescript-win32-x64@7.0.2':
     optional: true
+
+  bikram-sambat@1.8.1:
+    dependencies:
+      eurodigit: 3.1.3
+
+  eurodigit@3.1.3: {}
 
   turbo@2.11.10:
     optionalDependencies:

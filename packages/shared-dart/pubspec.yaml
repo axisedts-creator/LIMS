@@ -5,5 +5,7 @@ publish_to: none
 environment:
   sdk: ^3.6.0
 resolution: workspace
+dependencies:
+  nepali_utils: 3.0.8
 dev_dependencies:
   test: ^1.25.0

@@ -15,5 +15,8 @@
   },
   "devDependencies": {
     "typescript": "7.0.2"
+  },
+  "dependencies": {
+    "@remotemerge/nepali-date-converter": "1.2.7"
   }
 }

@@ -1,0 +1,7 @@
+# T0A-06 impl (writer) — BLOCKED: dispute + human review
+- Files: `packages/shared-ts/src/bsdate/{impl.ts,index.ts}`, `packages/shared-ts/{package.json,tsconfig.json}` (dep 1.2.7 exact; rewriteRelativeImportExtensions), `packages/shared-dart/pubspec.yaml` (nepali_utils 3.0.8), `packages/test-fixtures/package.json` (oracle devDeps bikram-sambat 1.8.1, @sbmdkl 2.0.5 exact), `packages/test-fixtures/bsdate/{generate.mjs,review.json}`, `pnpm-lock.yaml`.
+- review.json: 107 UNRESOLVED month disagreements, all B.S. 2084–2097 (51: remotemerge vs both oracles, 2084–2090; 56: vs @sbmdkl only, 2091–2097). Human (founder/delegate) must set status/resolved_by/resolution, then wrapper override + `node packages/test-fixtures/bsdate/generate.mjs`. Golden NOT committed (TRD §3.2 step 3).
+- TS: typecheck clean; 18/20 pass vs a local `--preview` golden (deleted after). Fails: review.json (by design), l.168 (test wrong, see dispute).
+- [CONV] `BsDateError{code}` until LimsError (T0A-08); malformed → `common.validation_failed`; default tz Asia/Kathmandu; `fiscalYearBs` startsOn/endsOn are getters, throw out_of_range for FY 1974/75 start and FY 2099/00 end (outside table).
+- [CONV] projection = B.S. year > current B.S. year + 5 (2088 from --today 2026-11-07); probes seeded mulberry32.
+- Open: Dart wrapper `lib/src/bsdate/bsdate.dart` not written (stopped on dispute; dart blocked by approval, so nepali_utils comparison + `--dart` dump not run). generate.mjs imports bikram-sambat outside a test file: no-raw-bs-lib ORACLE exemption should cover it once the lint is wired.

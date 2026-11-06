@@ -23,7 +23,7 @@ export function buildUuidv7(unixMs: number, rand: Uint8Array): Uuidv7 {
 }
 
 /** Monotonic generator: rand_a is a 12-bit counter, randomly seeded per new ms; overflow advances the ms. */
-function makeGenerator(clock: () => number, fill: (b: Uint8Array) => void): () => Uuidv7 {
+function makeGenerator(clock: () => number, fill: (b: Uint8Array<ArrayBuffer>) => void): () => Uuidv7 {
   let lastMs = -1;
   let counter = 0;
   const rand = new Uint8Array(10);

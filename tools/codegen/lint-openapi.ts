@@ -223,7 +223,10 @@ export function lintOpenapi(files: { name: string; text: string }[], ctx: LintCo
           if (owner === undefined) v("4", `${at}: error code ${code} not in errors.yaml`);
           else if (!errorCodeAllowed(code, owner, name, ctx)) v("4", `${at}: error code ${code} (owner ${owner}) not usable by module ${name} (P-23)`);
         }
-        const body = isObj(op.requestBody) && !op.requestBody.$ref ? op.requestBody : undefined;
+        const rbRef = isObj(op.requestBody) && typeof op.requestBody.$ref === "string"
+          ? /^#\/components\/requestBodies\/([^/]+)$/.exec(op.requestBody.$ref)?.[1] : undefined;
+        const rbRaw = rbRef ? doc.components?.requestBodies?.[rbRef] : isObj(op.requestBody) && !op.requestBody.$ref ? op.requestBody : undefined;
+        const body = isObj(rbRaw) ? rbRaw : undefined;
         if (body && !hasExample(body.content)) v("4", `${at}: request body needs at least one example`);
         const inline = Object.values(isObj(op.responses) ? op.responses : {}).filter((r) => isObj(r) && !r.$ref && isObj(r.content));
         if (inline.length && !inline.some((r: any) => hasExample(r.content))) v("4", `${at}: needs at least one response example`);

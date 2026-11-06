@@ -1,6 +1,6 @@
-CHANGES
+APPROVE
 
-1. tools/codegen/lint-openapi.ts:226 — a `requestBody: { $ref: '#/components/requestBodies/X' }` sets `body = undefined`, so rule 4 (request example), rule 7 (`tenant_id`/`created_by`/`updated_by`/`status` in body) and rule 8 (`x-upload` on multipart) are all skipped. A module spec can declare `tenant_id` in a body and pass lint (CV §4.7, REQ-SEC-046). Fix: resolve local refs before the check, e.g. `const rb = isObj(op.requestBody) && typeof op.requestBody.$ref === "string" ? /^#\/components\/requestBodies\/([^/]+)$/.exec(op.requestBody.$ref)?.[1] : undefined; const body = rb ? doc.components?.requestBodies?.[rb] : (isObj(op.requestBody) ? op.requestBody : undefined);` (keep `isObj(body)` guard). Add one fixture in tools/codegen/__tests__/lint-openapi.test.ts: `$ref` requestBody with `tenant_id` → rule 7 violation; same with no example → rule 4 violation.
-
-Checked OK: _common.yaml component names and securitySchemes/credential names verbatim vs 02-TRD §5.1 and 08 R10; core.yaml matches 02-TRD §8 (operationIds, x-public strings, error codes all in errors.yaml with owner C0); rules 1–8, P-23 (fn-level), P-8, D-212 ops list = 02-TRD §6.3 15 ops; upload allowlist = CV §10.2; AB-20; only C0-0C paths; no secrets/PHI; 128/128 tests pass, `node tools/codegen/lint-openapi.ts` exits 0 on repo (run by reviewer).
-Non-blocking: lintRepo `portConsumers: {}` until T0C-05 (fail-closed: port-propagated codes rejected, not accepted); wire PORT_CONSUMERS in T0C-05. Vendored OAS schema not byte-compared to upstream commit by reviewer.
+Re-review after 72b5def / ecd974a. Item 1 (local `$ref` requestBody bypassing rules 4/7/8) fixed at tools/codegen/lint-openapi.ts:226-229; `body` now resolves `#/components/requestBodies/X`, feeding rules 4, 7 and 8 (upload). New fixtures: $ref+tenant_id → rule 7, $ref without example → rule 4, clean $ref → no violations.
+Ran: vitest 131/131 pass; `node tools/codegen/lint-openapi.ts` on repo exits 0.
+Earlier round still holds: names verbatim vs 02-TRD §5.1/§8 and 08 R10; rules 1–8, P-23, P-8, D-212; only C0-0C paths; no secrets or PHI.
+Non-blocking: cross-file `$ref` requestBodies/schemas (e.g. `_common.yaml#/...`) are not followed, same as local-only schema deref. Revisit if module specs start using them. `portConsumers: {}` stays until T0C-05. Vendored OAS schema not byte-compared to upstream.

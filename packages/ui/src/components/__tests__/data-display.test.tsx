@@ -130,7 +130,7 @@ describe('ResultValue', () => {
 });
 
 describe('MoneyText (integer paisa -> display only)', () => {
-  const m = { amount_paisa: 123456789, currency: 'NPR' } as const;
+  const m = { amountPaisa: 123456789, currency: 'NPR' } as const;
   it('default is lakh grouping: Rs. 12,34,567.89', () => {
     const { container } = render(<MoneyText value={m} />);
     expect(container.textContent).toBe('Rs. 12,34,567.89');
@@ -140,9 +140,9 @@ describe('MoneyText (integer paisa -> display only)', () => {
     expect(container.textContent).toBe('Rs. 1,234,567.89');
   });
   it('zero and sub-rupee amounts', () => {
-    const { container, rerender } = render(<MoneyText value={{ amount_paisa: 0, currency: 'NPR' }} />);
+    const { container, rerender } = render(<MoneyText value={{ amountPaisa: 0, currency: 'NPR' }} />);
     expect(container.textContent).toBe('Rs. 0.00');
-    rerender(<MoneyText value={{ amount_paisa: 7, currency: 'NPR' }} />);
+    rerender(<MoneyText value={{ amountPaisa: 7, currency: 'NPR' }} />);
     expect(container.textContent).toBe('Rs. 0.07');
   });
 });

@@ -13,6 +13,7 @@ const REQUIRED = [
   'Checkbox', 'RadioGroup', 'Switch', 'Form', 'Dialog', 'ConfirmDialog', 'Drawer', 'Toast', 'Banner', 'EmptyState', 'ErrorState',
   'LoadingSkeleton', 'PageShell', 'PageHeader', 'Tabs', 'StatusChip', 'FlagBadge', 'ResultValue', 'MoneyText', 'IdText',
   'DescriptionList', 'Stack', 'Inline', 'Grid', 'Card', 'Divider', 'VisuallyHidden',
+  'Tooltip', 'Popover', 'Spinner', 'Badge', // 04-UI-UX:233 layout primitives; review T0D-12 item 1
 ];
 
 const mods = import.meta.glob('../*/*.stories.tsx', { eager: true }) as Record<string, any>;

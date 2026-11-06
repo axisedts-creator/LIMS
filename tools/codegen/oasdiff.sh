@@ -4,10 +4,12 @@
 # Exit: 0 pass | 1 breaking, no label | 2 bad args/unreadable file | other = oasdiff tool error (fail closed)
 #
 # Job definition for 0A (02-TRD gate table row `oasdiff`, gate 6) — run when contracts/openapi/** changed:
+#   on: pull_request: types: [opened, synchronize, reopened, labeled, unlabeled]   # label add/remove re-runs gate
+#   env: PR_LABELS: ${{ join(github.event.pull_request.labels.*.name, ',') }}   # never inline ${{ }} in run:
+#   run: |
 #   for f in $(git diff --name-only origin/main...HEAD -- 'contracts/openapi/*.yaml'); do
 #     git show origin/main:"$f" > /tmp/base.yaml 2>/dev/null || continue   # new file: nothing to break
-#     PR_LABELS="${{ join(github.event.pull_request.labels.*.name, ',') }}" \
-#       bash tools/codegen/oasdiff.sh /tmp/base.yaml "$f"
+#     bash tools/codegen/oasdiff.sh /tmp/base.yaml "$f"
 #   done
 set -euo pipefail
 

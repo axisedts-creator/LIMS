@@ -1,0 +1,17 @@
+{
+  "name": "lims",
+  "private": true,
+  "packageManager": "pnpm@12.18.0",
+  "engines": {
+    "node": "26.13.0"
+  },
+  "scripts": {
+    "build": "turbo run build",
+    "verify": "turbo run build typecheck && node --test \"tools/lint/tests/*.test.mjs\"",
+    "typecheck": "turbo run typecheck"
+  },
+  "devDependencies": {
+    "turbo": "2.11.10",
+    "typescript": "7.0.2"
+  }
+}

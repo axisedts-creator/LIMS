@@ -1,0 +1,261 @@
+# contracts/openapi/_common.yaml (C0) — shared components (02-TRD §5.1, 02-CV §4.2–§4.12).
+# Every module spec references these through `$ref: '_common.yaml#/components/...'`. No paths here.
+openapi: 3.0.3
+info:
+  title: LIMS common components
+  version: 1.0.0
+paths: {}
+components:
+  schemas:
+    Problem:   # RFC 9457 (02-CV §4.6)
+      type: object
+      additionalProperties: false
+      required: [type, title, status, code, request_id]
+      properties:
+        type: { type: string, maxLength: 128, pattern: '^urn:lims:error:' }
+        title: { type: string, maxLength: 200 }
+        status: { type: integer, minimum: 400, maximum: 599 }
+        code: { $ref: '#/components/schemas/Code' }
+        detail: { type: string, maxLength: 2000 }
+        instance: { type: string, maxLength: 2048 }
+        request_id: { $ref: '#/components/schemas/Uuidv7' }
+        errors:
+          type: array
+          maxItems: 200
+          items: { $ref: '#/components/schemas/FieldError' }
+    FieldError:
+      type: object
+      additionalProperties: false
+      required: [path, code, message]
+      properties:
+        path: { type: string, maxLength: 512 }
+        code: { $ref: '#/components/schemas/Code' }
+        message: { type: string, maxLength: 500 }
+    Uuid:
+      type: string
+      format: uuid
+      minLength: 36
+      maxLength: 36
+      pattern: '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
+    Uuidv7:   # RFC 9562 version 7 (02-CV §4.10)
+      type: string
+      format: uuid
+      minLength: 36
+      maxLength: 36
+      pattern: '^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$'
+    IsoUtc:   # instant, UTC, millisecond precision (02-CV §4.8)
+      type: string
+      format: date-time
+      maxLength: 24
+      pattern: '^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}\.[0-9]{3}Z$'
+    IsoDate:  # A.D. calendar date (02-CV §4.8)
+      type: string
+      format: date
+      maxLength: 10
+      pattern: '^[0-9]{4}-[0-9]{2}-[0-9]{2}$'
+    DecimalString:
+      type: string
+      maxLength: 40
+      pattern: '^-?[0-9]+(\.[0-9]+)?$'
+    Code:
+      type: string
+      minLength: 1
+      maxLength: 100
+      pattern: '^[A-Za-z0-9][A-Za-z0-9_.:-]*$'
+    Money:    # 02-CV §4.9
+      type: object
+      additionalProperties: false
+      required: [amount_paisa, currency]
+      properties:
+        amount_paisa: { type: integer, format: int64, minimum: -9007199254740991, maximum: 9007199254740991 }
+        currency: { type: string, maxLength: 3, enum: [NPR] }
+    PageInfo: # 02-CV §4.3
+      type: object
+      additionalProperties: false
+      required: [limit]
+      properties:
+        next_cursor: { type: string, maxLength: 512 }
+        limit: { type: integer, minimum: 1, maximum: 200 }
+    Version:  # optimistic concurrency (02-CV §4.2)
+      type: integer
+      minimum: 1
+      maximum: 2147483647
+  parameters:
+    IdempotencyKey:   # 02-CV §4.5
+      name: Idempotency-Key
+      in: header
+      required: true
+      schema: { type: string, minLength: 1, maxLength: 64, pattern: '^[A-Za-z0-9_-]{1,64}$' }
+    IfMatch:          # If-Match: "<version>" (02-CV §4.2)
+      name: If-Match
+      in: header
+      required: true
+      schema: { type: string, maxLength: 12, pattern: '^"[1-9][0-9]*"$' }
+    Limit:
+      name: limit
+      in: query
+      required: false
+      schema: { type: integer, minimum: 1, maximum: 200, default: 50 }
+    Cursor:
+      name: cursor
+      in: query
+      required: false
+      schema: { type: string, maxLength: 512, pattern: '^[A-Za-z0-9_-]+$' }
+    RequestId:
+      name: X-Request-Id
+      in: header
+      required: false
+      schema: { $ref: '#/components/schemas/Uuidv7' }
+    Traceparent:      # W3C Trace Context
+      name: traceparent
+      in: header
+      required: false
+      schema: { type: string, maxLength: 55, pattern: '^[0-9a-f]{2}-[0-9a-f]{32}-[0-9a-f]{16}-[0-9a-f]{2}$' }
+  headers:
+    RetryAfter:
+      description: Seconds to wait before retrying.
+      schema: { type: integer, minimum: 0, maximum: 86400 }
+    IdempotentReplayed:
+      description: Present with value true when the response is a stored idempotent replay.
+      schema: { type: string, maxLength: 4, enum: ['true'] }
+    Deprecation:
+      description: Present with value true on deprecated operations (02-CV §4.11).
+      schema: { type: string, maxLength: 4, enum: ['true'] }
+    Sunset:
+      description: HTTP-date after which a deprecated operation is removed (02-CV §4.11).
+      schema: { type: string, maxLength: 29 }
+  responses:
+    BadRequest:
+      description: Request validation failed.
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/Problem' }
+          examples:
+            validation_failed:
+              value: { type: 'urn:lims:error:common.validation_failed', title: Request validation failed, status: 400, code: common.validation_failed, request_id: 01933b6f-0a11-7e2b-8c55-1d2e3f405162, errors: [{ path: /name, code: common.field_required, message: name is required }] }
+    Unauthorized:
+      description: Authentication required or credentials invalid.
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/Problem' }
+          examples:
+            unauthenticated:
+              value: { type: 'urn:lims:error:auth.unauthenticated', title: Authentication required, status: 401, code: auth.unauthenticated, request_id: 01933b6f-0a11-7e2b-8c55-1d2e3f405162 }
+    Forbidden:
+      description: Permission or scope missing.
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/Problem' }
+          examples:
+            forbidden:
+              value: { type: 'urn:lims:error:auth.forbidden', title: Forbidden, status: 403, code: auth.forbidden, request_id: 01933b6f-0a11-7e2b-8c55-1d2e3f405162 }
+    NotFound:
+      description: Missing or not visible to the caller.
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/Problem' }
+          examples:
+            not_found:
+              value: { type: 'urn:lims:error:common.not_found', title: Not found, status: 404, code: common.not_found, request_id: 01933b6f-0a11-7e2b-8c55-1d2e3f405162 }
+    Conflict:
+      description: Conflict with the current state (for example a version conflict).
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/Problem' }
+          examples:
+            version_conflict:
+              value: { type: 'urn:lims:error:common.version_conflict', title: Version conflict, status: 409, code: common.version_conflict, request_id: 01933b6f-0a11-7e2b-8c55-1d2e3f405162 }
+    PreconditionRequired:
+      description: If-Match required.
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/Problem' }
+          examples:
+            precondition_required:
+              value: { type: 'urn:lims:error:common.precondition_required', title: If-Match required, status: 428, code: common.precondition_required, request_id: 01933b6f-0a11-7e2b-8c55-1d2e3f405162 }
+    PayloadTooLarge:
+      description: Body or upload above limit.
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/Problem' }
+          examples:
+            payload_too_large:
+              value: { type: 'urn:lims:error:common.payload_too_large', title: Payload too large, status: 413, code: common.payload_too_large, request_id: 01933b6f-0a11-7e2b-8c55-1d2e3f405162 }
+    UnsupportedMediaType:
+      description: Content type not allowed.
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/Problem' }
+          examples:
+            unsupported_media_type:
+              value: { type: 'urn:lims:error:common.unsupported_media_type', title: Unsupported media type, status: 415, code: common.unsupported_media_type, request_id: 01933b6f-0a11-7e2b-8c55-1d2e3f405162 }
+    Unprocessable:
+      description: Request understood but not processable (codes registered with http 422).
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/Problem' }
+          examples:
+            idempotency_key_reused:
+              value: { type: 'urn:lims:error:common.idempotency_key_reused', title: Idempotency-Key reused, status: 422, code: common.idempotency_key_reused, request_id: 01933b6f-0a11-7e2b-8c55-1d2e3f405162 }
+    TooManyRequests:
+      description: Rate-limit tier exceeded.
+      headers:
+        Retry-After: { $ref: '#/components/headers/RetryAfter' }
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/Problem' }
+          examples:
+            rate_limited:
+              value: { type: 'urn:lims:error:common.rate_limited', title: Too many requests, status: 429, code: common.rate_limited, request_id: 01933b6f-0a11-7e2b-8c55-1d2e3f405162 }
+    Internal:
+      description: Unexpected failure.
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/Problem' }
+          examples:
+            internal:
+              value: { type: 'urn:lims:error:common.internal', title: Internal error, status: 500, code: common.internal, request_id: 01933b6f-0a11-7e2b-8c55-1d2e3f405162 }
+    ServiceUnavailable:
+      description: Maintenance, overload or dependency unavailable.
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/Problem' }
+          examples:
+            service_unavailable:
+              value: { type: 'urn:lims:error:common.service_unavailable', title: Service unavailable, status: 503, code: common.service_unavailable, request_id: 01933b6f-0a11-7e2b-8c55-1d2e3f405162 }
+  securitySchemes:   # 08 R10 scheme table; one resolver module per scheme
+    bffSession:
+      type: apiKey
+      in: cookie
+      name: __Host-lims_sid
+      description: Session cookie forwarded by a BFF; the request must also carry the X-Lims-Bff-Key header. Resolver identity (only /v1/identity/auth/*).
+    bearerJwt:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: GoTrue access JWT; claims resolved by the identity claimsResolver.
+    deviceToken:
+      type: http
+      scheme: bearer
+      bearerFormat: lims-device-credential
+      description: Bridge-agent device credential. Resolver instruments.
+    queueDisplayToken:
+      type: apiKey
+      in: header
+      name: X-Lims-Display-Token
+      description: Queue display device credential. Resolver engagement.
+    portalSession:
+      type: apiKey
+      in: header
+      name: X-Lims-Portal-Credential
+      description: Portal link or session credential. Resolver reporting.
+    patientPreAuth:
+      type: apiKey
+      in: header
+      name: X-Lims-Patient-PreAuth
+      description: Patient pre-auth credential. Resolver engagement.
+    paymentCallbackToken:
+      type: apiKey
+      in: query
+      name: callback_token
+      description: Carried as the path parameter callback_token (OpenAPI 3.0 apiKey cannot express a path location); usable only in payments.yaml. Resolver payments.

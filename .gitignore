@@ -3,6 +3,8 @@ dist/
 build/
 .turbo/
 coverage/
+*.tsbuildinfo
+.dart_tool/
 .env
 .env.*
 *.pem

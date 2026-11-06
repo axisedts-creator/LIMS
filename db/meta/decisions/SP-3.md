@@ -2,7 +2,7 @@
 
 - Date run: 2026-11-06 · Plan row: `spec/chunks/C0-foundation-contracts/06-IMPLEMENTATION-PLAN.md` SP-3 · CV §5.12, 05-SCHEMA §1, 08 A31.1, review C0 m#36
 - Image: `supabase/postgres:17.6.1.136` (`sha256:f371b5f3f2ac0a05703f33d6e6134515fb2498cab708fb948a0aeb7481467c00`), PostgreSQL 17.6
-- **Outcome: pass.** pgTAP 1.3.3, pg_trgm 1.6 and btree_gin 1.3 are available in the pinned tag. One new constraint: the image's own schemas (`extensions`, `auth`, `storage`) exist only in its init database, so LIMS must use that database (see "Database"). CR `.orchestra/cr/SP-3.md` fills the 05-SCHEMA §1 placeholder.
+- **Outcome: pass.** pgTAP 1.3.3, pg_trgm 1.6 and btree_gin 1.3 are available in the pinned tag. One new constraint: the image's own schemas (`extensions`, `auth`, `storage`) exist only in its init database, so LIMS must use that database (see "Database"). CR `.orchestra/cr/SP-3.nonblocking.md` fills the 05-SCHEMA §1 placeholder.
 
 ## Decision
 

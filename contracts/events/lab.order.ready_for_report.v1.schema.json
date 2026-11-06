@@ -1,0 +1,81 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:lims:event:lab.order.ready_for_report.v1",
+  "allOf": [
+    {
+      "$ref": "urn:lims:event:_envelope.v1"
+    },
+    {
+      "type": "object",
+      "properties": {
+        "event_type": {
+          "const": "lab.order.ready_for_report.v1"
+        },
+        "producer": {
+          "const": "lab"
+        },
+        "aggregate": {
+          "type": "object",
+          "properties": {
+            "type": {
+              "const": "order"
+            }
+          }
+        },
+        "payload": {
+          "$ref": "#/$defs/Payload"
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "Payload": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "order_id",
+        "completeness",
+        "order_item_ids",
+        "approved_set_hash",
+        "contains_amendment",
+        "ready_at"
+      ],
+      "properties": {
+        "order_id": {
+          "$ref": "urn:lims:event:_defs.v1#/$defs/Uuidv7"
+        },
+        "completeness": {
+          "enum": [
+            "complete",
+            "partial"
+          ]
+        },
+        "order_item_ids": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 200,
+          "items": {
+            "$ref": "urn:lims:event:_defs.v1#/$defs/Uuidv7"
+          }
+        },
+        "department_ids": {
+          "type": "array",
+          "maxItems": 50,
+          "items": {
+            "$ref": "urn:lims:event:_defs.v1#/$defs/Uuidv7"
+          }
+        },
+        "approved_set_hash": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "contains_amendment": {
+          "type": "boolean"
+        },
+        "ready_at": {
+          "$ref": "urn:lims:event:_defs.v1#/$defs/IsoUtc"
+        }
+      }
+    }
+  }
+}

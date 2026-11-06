@@ -1,0 +1,78 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:lims:event:lab.result.approved.v1",
+  "allOf": [
+    {
+      "$ref": "urn:lims:event:_envelope.v1"
+    },
+    {
+      "type": "object",
+      "properties": {
+        "event_type": {
+          "const": "lab.result.approved.v1"
+        },
+        "producer": {
+          "const": "lab"
+        },
+        "aggregate": {
+          "type": "object",
+          "properties": {
+            "type": {
+              "const": "result"
+            }
+          }
+        },
+        "payload": {
+          "$ref": "#/$defs/Payload"
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "Payload": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "result_id",
+        "result_version_no",
+        "order_id",
+        "order_item_id",
+        "test_id",
+        "analyte_id",
+        "department_id",
+        "approved_at",
+        "approved_by_membership_id"
+      ],
+      "properties": {
+        "result_id": {
+          "$ref": "urn:lims:event:_defs.v1#/$defs/Uuidv7"
+        },
+        "result_version_no": {
+          "type": "integer",
+          "const": 1
+        },
+        "order_id": {
+          "$ref": "urn:lims:event:_defs.v1#/$defs/Uuidv7"
+        },
+        "order_item_id": {
+          "$ref": "urn:lims:event:_defs.v1#/$defs/Uuidv7"
+        },
+        "test_id": {
+          "$ref": "urn:lims:event:_defs.v1#/$defs/Uuidv7"
+        },
+        "analyte_id": {
+          "$ref": "urn:lims:event:_defs.v1#/$defs/Uuidv7"
+        },
+        "department_id": {
+          "$ref": "urn:lims:event:_defs.v1#/$defs/Uuidv7"
+        },
+        "approved_at": {
+          "$ref": "urn:lims:event:_defs.v1#/$defs/IsoUtc"
+        },
+        "approved_by_membership_id": {
+          "$ref": "urn:lims:event:_defs.v1#/$defs/Uuidv7"
+        }
+      }
+    }
+  }
+}

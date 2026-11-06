@@ -1,7 +1,5 @@
 CHANGES
+1. tests/spikes/SP-1.decision.test.mjs:1 — stale copy still tracked at unowned root `tests/` (spec/program/01-CHUNK-MAP.md:16; arbiter ruling step 1 said `git mv`, commit cc22dad added a copy instead). Fix (tester): `git rm tests/spikes/SP-1.decision.test.mjs`; keep only `db/tests/spikes/SP-1.decision.test.mjs`.
 
-1. tests/spikes/SP-1.decision.test.mjs:1 — still at root `tests/` (unowned per 01-CHUNK-MAP §3; SP-1-tests.md names `db/tests/spikes/SP-1.decision.test.mjs`). Writer dispute (.orchestra/notes/SP-1-dispute.md) is valid: writer may not edit tests, so this item is for the TESTER. Fix: `git mv tests/spikes/SP-1.decision.test.mjs db/tests/spikes/SP-1.decision.test.mjs`; line 1 run command -> `node --test db/tests/spikes/SP-1.decision.test.mjs`; line 7 path -> `'../../meta/decisions/SP-1.md'`; re-run, confirm pass 8 fail 0, then update `.orchestra/notes/SP-1-impl.md:7` to the new path.
-
-Resolved since last review: SP-1-impl.md:7 now states the real path and pending move (no false claim).
-For planner (not a code defect): plan row SP-1 owner is "0B + 0D" and 01-CHUNK-MAP §3 marks `db/` C0-0B ONLY, while this lane is C0-0A; the brief assigns `db/meta/decisions/SP-1.md`, so accepted as assigned — confirm lane.
-Re-checked, no defect: db/meta/decisions/SP-1.md unchanged (plan steps 1–4 evidenced, names verbatim, hook not used/claimsResolver, synthetic user, no tokens/keys); RLS/permissions/idempotency/rate tier/error codes N/A. `node --test tests/spikes/SP-1.decision.test.mjs` -> pass 8, fail 0 (structural only).
+Checked OK: `node --test db/tests/spikes/SP-1.decision.test.mjs` → pass 8, fail 0. Record db/meta/decisions/SP-1.md covers done_when (session_id+aal present, aal1/aal2; `LIMS_CORE_JWT_ALG` = `ES256`; session_id stable across refresh); pinned digest; no JWT/key material; no secrets/PHI. RLS/permissions/idempotency/rate tier/error codes: N/A (decision-record spike, no DB/API surface).
+Not a defect for this task (planner): `db/` is C0-0B ONLY (01-CHUNK-MAP.md:107), and `meta/decisions/` is not in its listed meta files; lane C0-0A assignment needs confirmation. SP-2/3/5/8 tests also still at root `tests/spikes/`.

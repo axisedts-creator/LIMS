@@ -30,6 +30,8 @@ interface Props extends FieldBase {
   inputProps?: Record<string, unknown>;
   onKeyDown?: (e: KeyboardEvent<HTMLInputElement>) => void;
   footer?: ReactNode;
+  /** Rich rendering of the error (e.g. a diagnostics list); `error` stays the plain-text form for the Form summary. */
+  errorContent?: ReactNode;
 }
 
 export function TextInputBase(p: Props) {
@@ -48,7 +50,7 @@ export function TextInputBase(p: Props) {
     p.error,
   );
   const control = p.multiline ? (
-    <RacTextArea ref={ref} rows={p.rows ?? 3} className="lims-input" />
+    <RacTextArea ref={ref} rows={p.rows ?? 3} className={(p.inputProps?.['className'] as string | undefined) ?? 'lims-input'} />
   ) : (
     <Input ref={ref} className="lims-input" {...(p.inputProps ?? {})} {...(p.onKeyDown ? { onKeyDown: p.onKeyDown } : {})} />
   );
@@ -84,7 +86,7 @@ export function TextInputBase(p: Props) {
       ) : null}
       {error ? (
         <Text slot="errorMessage" className="lims-error">
-          {error}
+          {error === p.error && p.errorContent ? p.errorContent : error}
         </Text>
       ) : null}
       {p.footer}

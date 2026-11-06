@@ -158,3 +158,28 @@
 .lims-card { padding: var(--lims-space-4); border: 1px solid var(--lims-neutral-200); border-radius: var(--lims-radius-lg); background: var(--lims-neutral-0); box-shadow: var(--lims-elevation-1); }
 .lims-card-title { margin: 0 0 var(--lims-space-3); font-size: var(--lims-font-size-md-size); }
 .lims-divider { border: 0; border-top: 1px solid var(--lims-neutral-200); margin: var(--lims-space-4) 0; }
+
+/* T0D-12b Phase-1 components */
+.lims-diagnostic { display: block; }
+.lims-otp { display: flex; gap: var(--lims-space-2); }
+.lims-otp-cell { width: 2.75em; text-align: center; }
+.lims-rte-toolbar { display: flex; flex-wrap: wrap; gap: var(--lims-space-1); }
+.lims-rte-surface { min-height: 8em; white-space: pre-wrap; }
+.lims-kv { border: 0; padding: 0; margin: 0; }
+.lims-kv-row { display: flex; gap: var(--lims-space-2); align-items: center; }
+.lims-period-custom { display: flex; gap: var(--lims-space-3); flex-wrap: wrap; }
+.lims-codeblock-body { max-height: 32em; overflow: auto; border: 1px solid var(--lims-neutral-200); border-radius: var(--lims-radius-sm); padding: var(--lims-space-2); }
+.lims-codeblock-body pre { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; }
+.lims-ctrl { padding: 0 2px; border-radius: var(--lims-radius-sm); background: var(--lims-neutral-100); color: var(--lims-neutral-900); }
+.lims-secret-value { display: block; padding: var(--lims-space-2); font-size: var(--lims-font-size-md-size); user-select: all; overflow-wrap: anywhere; }
+.lims-stepper-list { display: flex; flex-wrap: wrap; gap: var(--lims-space-3); list-style: decimal inside; padding: 0; }
+.lims-step[aria-current='step'] .lims-step-label { font-weight: var(--lims-font-weight-medium); }
+.lims-thumbs { display: grid; grid-template-columns: repeat(auto-fill, minmax(8rem, 1fr)); gap: var(--lims-space-3); list-style: none; padding: 0; }
+.lims-thumb { display: flex; flex-direction: column; gap: var(--lims-space-1); }
+.lims-thumb-img { max-width: 100%; aspect-ratio: 1; object-fit: cover; }
+.lims-thumb-button { display: flex; flex-direction: column; gap: var(--lims-space-1); padding: 0; border: 0; background: none; text-align: start; cursor: pointer; }
+.lims-data-image { max-width: 100%; image-rendering: pixelated; }
+.lims-egrid-table td[role='gridcell']:focus { outline: 2px solid var(--lims-focus-ring); outline-offset: -2px; }
+.lims-codeblock-body:focus-visible, .lims-duration:focus-visible, .lims-rte-surface:focus-visible, .lims-chip[tabindex]:focus-visible { outline: 2px solid var(--lims-focus-ring); outline-offset: 2px; }
+.lims-perm { display: flex; flex-wrap: wrap; gap: var(--lims-space-1); align-items: center; }
+.lims-printframe { position: fixed; right: 0; bottom: 0; width: 0; height: 0; border: 0; }

@@ -7,3 +7,4 @@
 - Round 4 recheck: verify.log failures are all `validation.test.mjs` (T0A-08): `Cannot find package '@lims/contracts'` — T0C-02/T0C-05 not present, see `.orchestra/cr/T0A-08.md`. Not T0A-06 impl; no code edited.
 - bsdate state unchanged: golden absent (11 ENOENT), `review.json` 107 unresolved. FY test ruling (TESTS_WRONG) is for tester to apply. Still blocked on human resolving review.json.
 - Round 5 recheck: unchanged. golden absent, review.json 107 unresolved / 0 resolved. verify.log failures are validation.test.mjs (`@lims/contracts` missing, T0A-08 CR). No impl bug; no code edited. Blocked on human resolving review.json.
+- Round 6 recheck: unchanged. golden absent, review.json 107 unresolved (resolved_by null). verify.log has no bsdate failures; all are validation.test.mjs (`@lims/contracts` missing, T0A-08 CR). No impl bug; no code edited. Blocked on human resolving review.json.

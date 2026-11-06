@@ -1,5 +1,5 @@
 // T0A-02: path-ownership gate (CI gate 1) + CR-reference check + CODEOWNERS generation.
-// Run: node --test tests/lint/check-paths.test.mjs
+// Run: node --test tools/lint/tests/check-paths.test.mjs
 //
 // CLI contract the implementation must follow (spec gives only `--branch $HEAD_REF`; the rest is a test-side choice):
 //   node tools/lint/check-paths.ts --branch <HEAD_REF> --files <file> --body <file>
@@ -21,7 +21,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-const root = fileURLToPath(new URL('../../', import.meta.url));
+const root = fileURLToPath(new URL('../../../', import.meta.url));
 const script = join(root, 'tools/lint/check-paths.ts');
 const tmp = mkdtempSync(join(tmpdir(), 'check-paths-'));
 test.after(() => rmSync(tmp, { recursive: true, force: true }));

@@ -3,10 +3,11 @@ import { useEditText } from '../_shared/useEditText';
 import { formatPaisa, parseRupees } from '../_shared/decimal';
 import { msg } from '../_shared/messages';
 
-/** IC money: integer paisa + ISO currency (NPR only in v1). */
+/** 03-INTERFACE-CATALOG Money: integer paisa + currency (NPR only in v1). */
+// ponytail: local copy until @lims/shared-ts/types exports Money (0A)
 export interface Money {
-  amount_paisa: number;
-  currency: 'NPR';
+  readonly amountPaisa: number;
+  readonly currency: 'NPR';
 }
 
 export interface MoneyFieldProps extends FieldBase {
@@ -18,8 +19,8 @@ export interface MoneyFieldProps extends FieldBase {
   allowNegative?: boolean;
 }
 
-const same = (a?: Money, b?: Money) => a?.amount_paisa === b?.amount_paisa;
-const toText = (m: Money) => formatPaisa(m.amount_paisa, 'lakh');
+const same = (a?: Money, b?: Money) => a?.amountPaisa === b?.amountPaisa;
+const toText = (m: Money) => formatPaisa(m.amountPaisa, 'lakh');
 
 export function MoneyField({ value, onChange, min, max, allowNegative = false, ...rest }: MoneyFieldProps) {
   const { text, set } = useEditText(value, toText, same);
@@ -34,13 +35,13 @@ export function MoneyField({ value, onChange, min, max, allowNegative = false, .
         const t = raw.trim();
         if (!pattern.test(t)) return;
         const p = parseRupees(t);
-        set(t, p === undefined ? undefined : { amount_paisa: p, currency: 'NPR' }, onChange);
+        set(t, p === undefined ? undefined : { amountPaisa: p, currency: 'NPR' }, onChange);
       }}
       validate={(t) => {
         const p = parseRupees(t);
         if (p === undefined) return msg.decimals(rest.label, 2);
-        if ((min && p < min.amount_paisa) || (max && p > max.amount_paisa))
-          return msg.range(rest.label, min ? formatPaisa(min.amount_paisa) : '…', max ? formatPaisa(max.amount_paisa) : '…');
+        if ((min && p < min.amountPaisa) || (max && p > max.amountPaisa))
+          return msg.range(rest.label, min ? formatPaisa(min.amountPaisa) : '…', max ? formatPaisa(max.amountPaisa) : '…');
         return undefined;
       }}
     />

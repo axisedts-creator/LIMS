@@ -6,3 +6,7 @@
 ## Round 2
 - Same cause: verify fails with `Command "verify" not found`; root `package.json` has no `verify` script. Root package.json owned by C0-0A (01-CHUNK-MAP §3 line 100), not C0-0C. Impl/tests fine (vitest 250/250 per impl note).
 - No code change made. Needs C0-0A to add root `"verify"` script, or orchestrator to set T0C-02 verify cmd to `pnpm -C contracts test`.
+
+## Round 3
+- Same cause: root package.json still has no `verify` script (only build, typecheck). Owned by C0-0A, not C0-0C. Impl/tests fine (vitest 250/250 per impl note).
+- No code change made. Needs C0-0A to add root "verify", or orchestrator to set T0C-02 verify cmd to `pnpm -C contracts test`.

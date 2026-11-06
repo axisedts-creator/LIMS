@@ -308,6 +308,22 @@ describe("rule 7 — server-authority fields in request bodies (CV §4.7)", () =
       parameters: [{ name: "id", in: "path", required: true, schema: { type: "string", maxLength: 36 } }],
       requestBody: { required: true, ...json(s) } }) } }))]);
   });
+  // review T0C-04 item 1: $ref requestBody must not bypass rules 4 / 7
+  const refSpec = (rb: any) => file("widgets", spec(
+    { "/v1/widgets/items": { post: postOp({ requestBody: { $ref: "#/components/requestBodies/ItemBody" } }) } },
+    { components: {
+      securitySchemes: { bffSession: { type: "apiKey", in: "cookie", name: "sid" } },
+      requestBodies: { ItemBody: rb },
+    } }));
+  it("$ref requestBody with tenant_id -> rule 7", async () => {
+    const s = itemSchema();
+    s.properties.tenant_id = { type: "string", maxLength: 36 };
+    await expectRule("7", [refSpec({ required: true, ...json(s) })]);
+  });
+  it("$ref requestBody without example -> rule 4", async () =>
+    expectRule("4", [refSpec({ required: true, ...json(itemSchema(), null) })]));
+  it("$ref requestBody, clean schema + example -> no violations", async () =>
+    expect(await run([refSpec({ required: true, ...json(itemSchema()) })])).toEqual([]));
   it("same names in RESPONSE bodies are fine", async () => {
     const s = itemSchema();
     s.properties.tenant_id = { type: "string", maxLength: 36 };

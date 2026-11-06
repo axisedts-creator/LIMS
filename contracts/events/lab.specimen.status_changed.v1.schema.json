@@ -1,0 +1,88 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:lims:event:lab.specimen.status_changed.v1",
+  "allOf": [
+    {
+      "$ref": "urn:lims:event:_envelope.v1"
+    },
+    {
+      "type": "object",
+      "properties": {
+        "event_type": {
+          "const": "lab.specimen.status_changed.v1"
+        },
+        "producer": {
+          "const": "lab"
+        },
+        "aggregate": {
+          "type": "object",
+          "properties": {
+            "type": {
+              "const": "specimen"
+            }
+          }
+        },
+        "payload": {
+          "$ref": "#/$defs/Payload"
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "Payload": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "specimen_id",
+        "order_id",
+        "patient_id",
+        "centre_id",
+        "specimen_type_code",
+        "to_status",
+        "changed_at"
+      ],
+      "properties": {
+        "specimen_id": {
+          "$ref": "urn:lims:event:_defs.v1#/$defs/Uuidv7"
+        },
+        "order_id": {
+          "$ref": "urn:lims:event:_defs.v1#/$defs/Uuidv7"
+        },
+        "patient_id": {
+          "$ref": "urn:lims:event:_defs.v1#/$defs/Uuidv7"
+        },
+        "centre_id": {
+          "$ref": "urn:lims:event:_defs.v1#/$defs/Uuidv7"
+        },
+        "processing_branch_id": {
+          "$ref": "urn:lims:event:_defs.v1#/$defs/Uuidv7"
+        },
+        "specimen_type_code": {
+          "$ref": "urn:lims:event:_defs.v1#/$defs/Code"
+        },
+        "parent_specimen_id": {
+          "$ref": "urn:lims:event:_defs.v1#/$defs/Uuidv7"
+        },
+        "replaces_specimen_id": {
+          "$ref": "urn:lims:event:_defs.v1#/$defs/Uuidv7"
+        },
+        "from_status": {
+          "$ref": "urn:lims:event:_defs.v1#/$defs/SpecimenStatus"
+        },
+        "to_status": {
+          "$ref": "urn:lims:event:_defs.v1#/$defs/SpecimenStatus"
+        },
+        "changed_at": {
+          "$ref": "urn:lims:event:_defs.v1#/$defs/IsoUtc"
+        },
+        "order_item_ids": {
+          "type": "array",
+          "maxItems": 200,
+          "items": {
+            "$ref": "urn:lims:event:_defs.v1#/$defs/Uuidv7"
+          }
+        }
+      }
+    }
+  }
+}

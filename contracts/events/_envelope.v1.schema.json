@@ -1,0 +1,86 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:lims:event:_envelope.v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "event_id",
+    "event_type",
+    "tenant_id",
+    "occurred_at",
+    "actor",
+    "idempotency_key",
+    "producer",
+    "aggregate",
+    "request_id",
+    "payload"
+  ],
+  "properties": {
+    "event_id": {
+      "$ref": "urn:lims:event:_defs.v1#/$defs/Uuidv7"
+    },
+    "event_type": {
+      "type": "string",
+      "pattern": "^[a-z_]+\\.[a-z_]+\\.[a-z_]+\\.v[0-9]+$|^catalog\\.changed\\.v[0-9]+$"
+    },
+    "tenant_id": {
+      "$ref": "urn:lims:event:_defs.v1#/$defs/Uuidv7"
+    },
+    "occurred_at": {
+      "$ref": "urn:lims:event:_defs.v1#/$defs/IsoUtc"
+    },
+    "actor": {
+      "$ref": "urn:lims:event:_defs.v1#/$defs/Actor"
+    },
+    "idempotency_key": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200
+    },
+    "producer": {
+      "enum": [
+        "frontdesk",
+        "billing",
+        "lab",
+        "instruments",
+        "reporting",
+        "catalog",
+        "payments",
+        "quality",
+        "engagement",
+        "homecollection"
+      ]
+    },
+    "aggregate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "id",
+        "seq"
+      ],
+      "properties": {
+        "type": {
+          "type": "string",
+          "maxLength": 40
+        },
+        "id": {
+          "$ref": "urn:lims:event:_defs.v1#/$defs/Uuidv7"
+        },
+        "seq": {
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    },
+    "request_id": {
+      "$ref": "urn:lims:event:_defs.v1#/$defs/Uuidv7"
+    },
+    "causation_event_id": {
+      "$ref": "urn:lims:event:_defs.v1#/$defs/Uuidv7"
+    },
+    "payload": {
+      "type": "object"
+    }
+  }
+}

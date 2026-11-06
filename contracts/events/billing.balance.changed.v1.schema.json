@@ -1,0 +1,92 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:lims:event:billing.balance.changed.v1",
+  "allOf": [
+    {
+      "$ref": "urn:lims:event:_envelope.v1"
+    },
+    {
+      "type": "object",
+      "properties": {
+        "event_type": {
+          "const": "billing.balance.changed.v1"
+        },
+        "producer": {
+          "const": "billing"
+        },
+        "aggregate": {
+          "type": "object",
+          "properties": {
+            "type": {
+              "const": "order_balance"
+            }
+          }
+        },
+        "payload": {
+          "$ref": "#/$defs/Payload"
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "Payload": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "order_id",
+        "balance_version",
+        "invoiced",
+        "paid",
+        "credited",
+        "balance_due",
+        "cause",
+        "release_eligible"
+      ],
+      "properties": {
+        "order_id": {
+          "$ref": "urn:lims:event:_defs.v1#/$defs/Uuidv7"
+        },
+        "balance_version": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "invoiced": {
+          "$ref": "urn:lims:event:_defs.v1#/$defs/Money"
+        },
+        "paid": {
+          "$ref": "urn:lims:event:_defs.v1#/$defs/Money"
+        },
+        "credited": {
+          "$ref": "urn:lims:event:_defs.v1#/$defs/Money"
+        },
+        "balance_due": {
+          "$ref": "urn:lims:event:_defs.v1#/$defs/Money"
+        },
+        "cause": {
+          "enum": [
+            "invoice_issued",
+            "invoice_cancelled",
+            "payment_recorded",
+            "payment_reversed",
+            "credit_note_issued",
+            "gateway_payment_recorded"
+          ]
+        },
+        "release_eligible": {
+          "type": "boolean"
+        },
+        "release_basis": {
+          "enum": [
+            "paid_in_full",
+            "zero_balance",
+            "credit_party",
+            "override",
+            "policy_not_enforced",
+            "due_outstanding",
+            "no_invoice"
+          ]
+        }
+      }
+    }
+  }
+}

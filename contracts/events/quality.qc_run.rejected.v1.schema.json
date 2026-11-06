@@ -1,0 +1,108 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:lims:event:quality.qc_run.rejected.v1",
+  "allOf": [
+    {
+      "$ref": "urn:lims:event:_envelope.v1"
+    },
+    {
+      "type": "object",
+      "properties": {
+        "event_type": {
+          "const": "quality.qc_run.rejected.v1"
+        },
+        "producer": {
+          "const": "quality"
+        },
+        "aggregate": {
+          "type": "object",
+          "properties": {
+            "type": {
+              "const": "qc_run"
+            }
+          }
+        },
+        "payload": {
+          "$ref": "#/$defs/Payload"
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "Payload": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "qc_run_id",
+        "instrument_id",
+        "analyte_ids",
+        "rules_violated",
+        "rule_mode",
+        "controls_per_run",
+        "run_at",
+        "hold_since",
+        "rejected_at"
+      ],
+      "properties": {
+        "qc_run_id": {
+          "$ref": "urn:lims:event:_defs.v1#/$defs/Uuidv7"
+        },
+        "instrument_id": {
+          "$ref": "urn:lims:event:_defs.v1#/$defs/Uuidv7"
+        },
+        "analyte_ids": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 100,
+          "items": {
+            "$ref": "urn:lims:event:_defs.v1#/$defs/Uuidv7"
+          }
+        },
+        "rules_violated": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 12,
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "1-3s",
+              "2-2s",
+              "R-4s",
+              "4-1s",
+              "10x",
+              "2of3-2s",
+              "3-1s",
+              "6x",
+              "8x",
+              "9x",
+              "12x"
+            ]
+          }
+        },
+        "rule_mode": {
+          "enum": [
+            "classic",
+            "modern"
+          ]
+        },
+        "controls_per_run": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 6
+        },
+        "run_at": {
+          "$ref": "urn:lims:event:_defs.v1#/$defs/IsoUtc"
+        },
+        "last_in_control_run_at": {
+          "$ref": "urn:lims:event:_defs.v1#/$defs/IsoUtc"
+        },
+        "hold_since": {
+          "$ref": "urn:lims:event:_defs.v1#/$defs/IsoUtc"
+        },
+        "rejected_at": {
+          "$ref": "urn:lims:event:_defs.v1#/$defs/IsoUtc"
+        }
+      }
+    }
+  }
+}

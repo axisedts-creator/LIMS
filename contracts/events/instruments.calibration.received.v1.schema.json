@@ -1,0 +1,87 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:lims:event:instruments.calibration.received.v1",
+  "allOf": [
+    {
+      "$ref": "urn:lims:event:_envelope.v1"
+    },
+    {
+      "type": "object",
+      "properties": {
+        "event_type": {
+          "const": "instruments.calibration.received.v1"
+        },
+        "producer": {
+          "const": "instruments"
+        },
+        "aggregate": {
+          "type": "object",
+          "properties": {
+            "type": {
+              "const": "instrument_message"
+            }
+          }
+        },
+        "payload": {
+          "$ref": "#/$defs/Payload"
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "Payload": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "instrument_message_id",
+        "instrument_id",
+        "centre_id",
+        "instrument_analyte_code",
+        "mapping_status",
+        "received_at"
+      ],
+      "properties": {
+        "instrument_message_id": {
+          "$ref": "urn:lims:event:_defs.v1#/$defs/Uuidv7"
+        },
+        "instrument_id": {
+          "$ref": "urn:lims:event:_defs.v1#/$defs/Uuidv7"
+        },
+        "centre_id": {
+          "$ref": "urn:lims:event:_defs.v1#/$defs/Uuidv7"
+        },
+        "instrument_analyte_code": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "mapping_status": {
+          "enum": [
+            "mapped",
+            "unmapped"
+          ]
+        },
+        "analyte_id": {
+          "$ref": "urn:lims:event:_defs.v1#/$defs/Uuidv7"
+        },
+        "test_id": {
+          "$ref": "urn:lims:event:_defs.v1#/$defs/Uuidv7"
+        },
+        "calibrator_id_raw": {
+          "type": "string",
+          "maxLength": 64
+        },
+        "calibrator_lot_raw": {
+          "type": "string",
+          "maxLength": 64
+        },
+        "instrument_result_time": {
+          "$ref": "urn:lims:event:_defs.v1#/$defs/IsoUtc"
+        },
+        "received_at": {
+          "$ref": "urn:lims:event:_defs.v1#/$defs/IsoUtc"
+        }
+      }
+    }
+  }
+}

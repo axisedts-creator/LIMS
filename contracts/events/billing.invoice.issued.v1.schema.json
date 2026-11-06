@@ -1,0 +1,155 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:lims:event:billing.invoice.issued.v1",
+  "allOf": [
+    {
+      "$ref": "urn:lims:event:_envelope.v1"
+    },
+    {
+      "type": "object",
+      "properties": {
+        "event_type": {
+          "const": "billing.invoice.issued.v1"
+        },
+        "producer": {
+          "const": "billing"
+        },
+        "aggregate": {
+          "type": "object",
+          "properties": {
+            "type": {
+              "const": "invoice"
+            }
+          }
+        },
+        "payload": {
+          "$ref": "#/$defs/Payload"
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "Payload": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "invoice_id",
+        "invoice_no",
+        "fiscal_year_bs",
+        "invoice_kind",
+        "branch_id",
+        "issued_at",
+        "totals"
+      ],
+      "if": {
+        "required": [
+          "is_periodic_credit_bill"
+        ],
+        "properties": {
+          "is_periodic_credit_bill": {
+            "const": true
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "credit_party_id"
+        ],
+        "not": {
+          "anyOf": [
+            {
+              "required": [
+                "order_id"
+              ]
+            },
+            {
+              "required": [
+                "centre_id"
+              ]
+            }
+          ]
+        }
+      },
+      "else": {
+        "required": [
+          "order_id",
+          "centre_id"
+        ]
+      },
+      "properties": {
+        "invoice_id": {
+          "$ref": "urn:lims:event:_defs.v1#/$defs/Uuidv7"
+        },
+        "invoice_no": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 40
+        },
+        "fiscal_year_bs": {
+          "type": "string",
+          "pattern": "^[0-9]{4}/[0-9]{2}$"
+        },
+        "invoice_kind": {
+          "enum": [
+            "tax_invoice",
+            "abbreviated_tax_invoice"
+          ]
+        },
+        "order_id": {
+          "$ref": "urn:lims:event:_defs.v1#/$defs/Uuidv7"
+        },
+        "credit_party_id": {
+          "$ref": "urn:lims:event:_defs.v1#/$defs/Uuidv7"
+        },
+        "is_periodic_credit_bill": {
+          "type": "boolean"
+        },
+        "branch_id": {
+          "$ref": "urn:lims:event:_defs.v1#/$defs/Uuidv7"
+        },
+        "centre_id": {
+          "$ref": "urn:lims:event:_defs.v1#/$defs/Uuidv7"
+        },
+        "issued_at": {
+          "$ref": "urn:lims:event:_defs.v1#/$defs/IsoUtc"
+        },
+        "totals": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "gross",
+            "discount",
+            "exempt",
+            "taxable",
+            "vat",
+            "other_tax",
+            "net"
+          ],
+          "properties": {
+            "gross": {
+              "$ref": "urn:lims:event:_defs.v1#/$defs/Money"
+            },
+            "discount": {
+              "$ref": "urn:lims:event:_defs.v1#/$defs/Money"
+            },
+            "exempt": {
+              "$ref": "urn:lims:event:_defs.v1#/$defs/Money"
+            },
+            "taxable": {
+              "$ref": "urn:lims:event:_defs.v1#/$defs/Money"
+            },
+            "vat": {
+              "$ref": "urn:lims:event:_defs.v1#/$defs/Money"
+            },
+            "other_tax": {
+              "$ref": "urn:lims:event:_defs.v1#/$defs/Money"
+            },
+            "net": {
+              "$ref": "urn:lims:event:_defs.v1#/$defs/Money"
+            }
+          }
+        }
+      }
+    }
+  }
+}

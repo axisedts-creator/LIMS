@@ -1,0 +1,123 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:lims:event:homecollection.collection.synced.v1",
+  "allOf": [
+    {
+      "$ref": "urn:lims:event:_envelope.v1"
+    },
+    {
+      "type": "object",
+      "properties": {
+        "event_type": {
+          "const": "homecollection.collection.synced.v1"
+        },
+        "producer": {
+          "const": "homecollection"
+        },
+        "aggregate": {
+          "type": "object",
+          "properties": {
+            "type": {
+              "const": "home_visit"
+            }
+          }
+        },
+        "payload": {
+          "$ref": "#/$defs/Payload"
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "Payload": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "visit_id",
+        "order_id",
+        "phlebotomist_membership_id",
+        "synced_at",
+        "collections",
+        "payments"
+      ],
+      "properties": {
+        "visit_id": {
+          "$ref": "urn:lims:event:_defs.v1#/$defs/Uuidv7"
+        },
+        "order_id": {
+          "$ref": "urn:lims:event:_defs.v1#/$defs/Uuidv7"
+        },
+        "phlebotomist_membership_id": {
+          "$ref": "urn:lims:event:_defs.v1#/$defs/Uuidv7"
+        },
+        "booking_id": {
+          "$ref": "urn:lims:event:_defs.v1#/$defs/Uuidv7"
+        },
+        "synced_at": {
+          "$ref": "urn:lims:event:_defs.v1#/$defs/IsoUtc"
+        },
+        "collections": {
+          "type": "array",
+          "maxItems": 50,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "client_mutation_id",
+              "specimen_id",
+              "barcode_verified",
+              "collected_at_device"
+            ],
+            "properties": {
+              "client_mutation_id": {
+                "$ref": "urn:lims:event:_defs.v1#/$defs/Uuidv7"
+              },
+              "specimen_id": {
+                "$ref": "urn:lims:event:_defs.v1#/$defs/Uuidv7"
+              },
+              "barcode_verified": {
+                "type": "boolean"
+              },
+              "collected_at_device": {
+                "$ref": "urn:lims:event:_defs.v1#/$defs/IsoUtc"
+              }
+            }
+          }
+        },
+        "payments": {
+          "type": "array",
+          "maxItems": 10,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "client_mutation_id",
+              "payment_method_code",
+              "amount",
+              "captured_at_device"
+            ],
+            "properties": {
+              "client_mutation_id": {
+                "$ref": "urn:lims:event:_defs.v1#/$defs/Uuidv7"
+              },
+              "payment_method_code": {
+                "$ref": "urn:lims:event:_defs.v1#/$defs/Code"
+              },
+              "amount": {
+                "$ref": "urn:lims:event:_defs.v1#/$defs/Money"
+              },
+              "reference": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 100
+              },
+              "captured_at_device": {
+                "$ref": "urn:lims:event:_defs.v1#/$defs/IsoUtc"
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

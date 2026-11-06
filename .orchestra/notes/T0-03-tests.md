@@ -1,0 +1,7 @@
+# T0-03 tests
+- File: tests/monorepo/T0-03.pins.test.mjs (node:test, no deps). Run: `node --test tests/monorepo/T0-03.pins.test.mjs`
+- Checks: TRD §2.3 table (6 CV §15.1 cols, a row per §2.2/[PIN-C0] item, exact version, allowed licence, ISO last-release date, alternatives, 04-pinned versions), table vs installed pkg version+licence, exact versions in all package.json/pubspec, `.nvmrc`=engines.node (26.x.y), exact Dart+Flutter SDK in root pubspec, pnpm-lock/pubspec.lock committed and matching, banned list (direct + lockfile + pub + browser-only @supabase + ENUM), installed-tree licence scan.
+- Expected now: 8 of 23 fail (placeholder row/missing rows/no table rows, pubspec.lock absent, root `sdk: ^3.6.0`, vitest/ajv/yaml not in lockfile importers); 15 pass (banned/licence/exact-version guards hold today; selfchecks included).
+- CONFLICT: §2.3 lives in `spec/` (read-only per CLAUDE.md) but task says fill it; writer needs a CR or planner ruling. Test reads that path as the brief says.
+- My assumptions: required-row list also includes CV [PIN-C0] items outside §2.2 (staticcheck, k6, flutter_secure_storage, decimal lib, HTML sanitiser, SMTP client); table name = npm package name for npm rows; non-exact "Last release" staleness limit not tested (spec gives none).
+- Not testable here: CI gate 13 wiring, docker digest pins (no Dockerfiles yet; check passes vacuously), network-egress check of deps.

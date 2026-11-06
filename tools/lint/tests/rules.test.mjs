@@ -51,6 +51,8 @@ const cases = {
       [`${API}/modules/identity/repository/dl.ts`, "const q = 'delete from CORE.DEAD_LETTERS';", 'case-insensitive'],
       [`${API}/modules/identity/repository/dl.ts`, 'const q = `select 1 from "core"."dead_letters"`;', 'quoted identifiers'],
       [`${API}/modules/identity/sql/grant.sql`, 'GRANT SELECT ON core.dead_letters TO lims_app;', 'C2 SQL file granting on it'],
+      [`${API}/modules/identity/service/x.ts`, 'const q = `select * from core.${t}`;', 'interpolated core table could be dead_letters (AB-21)'],
+      [`${API}/modules/identity/repository/x.ts`, 'const q = `select * from core.${t}`;', 'interpolated core table flagged even in identity/repository'],
       [`${API}/modules/lab/repository/x.ts`, 'const q = `select * from core.tenants`;', 'other module naming core.'],
       [`${API}/modules/identity/service/x.ts`, 'const q = `select * from core.audit_log`;', 'identity outside repository/ naming core.'],
       [`services\\api\\src\\modules\\identity\\service\\dl.ts`, 'const q = `select * from core.dead_letters`;', 'backslash path (Windows) still caught'],
@@ -73,6 +75,8 @@ const cases = {
       [`${WEB}/lib/a.ts`, "const s = await import('@supabase/supabase-js');", 'dynamic import'],
       [`${WEB}/lib/a.ts`, "const s = require('@supabase/ssr');", 'require'],
       [`${WEB}/lib/a.ts`, "import x from '@supabase/ssr/dist/main';", 'subpath'],
+      ['apps/portal/src/app/page.tsx', "import { createClient } from '@supabase/supabase-js';", 'apps/portal is a browser app (02-CONVENTIONS 1.3)'],
+      ['apps/partner/src/app/page.tsx', "import { createBrowserClient } from '@supabase/ssr';", 'apps/partner is a browser app (02-CONVENTIONS 1.3)'],
     ],
     good: [
       [`${API}/modules/identity/a.ts`, "import { createClient } from '@supabase/supabase-js';", 'server code may use it (BFF)'],
@@ -111,6 +115,9 @@ const cases = {
       ['packages/shared-ts/src/bsdate-extra/m.ts', "import x from 'bikram-sambat';", 'prefix lookalike of bsdate dir'],
       ['packages/shared-dart/lib/src/money/m.dart', "import 'package:nepali_utils/nepali_utils.dart';", 'shared-dart but not bsdate/'],
       ['packages\\shared-ts\\src\\money\\m.ts', "import x from 'bikram-sambat';", 'backslash path'],
+      [`${WEB}/lib/d.ts`, "import x from '@remotemerge/nepali-date-converter';", 'converter still banned in app code'],
+      ['packages/test-fixtures/bsdate/gen.ts', "import x from 'bikram-sambat';", 'non-test file is still app code'],
+      ['packages/test-fixtures/bsdate/gen.test.ts', "import x from '@remotemerge/nepali-date-converter';", 'test exemption is bikram-sambat only'],
     ],
     good: [
       ['packages/shared-ts/src/bsdate/impl.ts', "import { adToBs } from '@remotemerge/nepali-date-converter';", 'allowed wrapper (TS)'],
@@ -119,6 +126,9 @@ const cases = {
       [`${WEB}/lib/d.ts`, "import { adToBs } from '@lims/shared-ts/bsdate';", 'wrapper import is fine'],
       [`${WEB}/lib/d.ts`, "// uses nepali_utils via the wrapper", 'comment'],
       [`${WEB}/lib/d.ts`, "const lib = 'bikram-sambat';", 'plain string, not an import'],
+      ['packages/test-fixtures/bsdate/gen.test.ts', "import x from 'bikram-sambat';", 'bikram-sambat allowed as test oracle (02-TRD l.97/144)'],
+      [`${WEB}/lib/d.spec.ts`, "import x from 'bikram-sambat';", '*.spec.* test oracle'],
+      [`${WEB}/lib/__tests__/d.ts`, "import x from 'bikram-sambat';", '__tests__ test oracle'],
     ],
   },
   'no-math-random': {

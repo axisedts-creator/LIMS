@@ -3,11 +3,12 @@
 // ASSUMED API (spec gives behaviour, not prop names; writer must match or raise CR). All fields take FieldBase (label, name, description?, error?, isRequired?, isDisabled?, isReadOnly?).
 //   CodeField        { value, onChange(v), maxLength, pattern: string (regex source), patternHint: string }  upper-cases input, hint linked by aria-describedby
 //   FormulaEditor    { value, onChange(v), maxLength, diagnostics?: {message:string; position:number}[] }       monospace textarea, diagnostics shown as text
-//   OtpInput         { onChange(v:string), onSubmit(v:string), length? (default 6) }                          cells or one field, digits only
-//   RichTextEditor   { value: string(html), onChange(html), maxLength }  + named export SafeHtml({ html })   allowlist p, br, strong, em, u, ul, ol, li, a[href]
+//   OtpInput         { label, length: 6, value?, onChange?(v), onComplete?(v), error?, isDisabled? }  (C6 04-UI-UX:322)   cells or one field, digits only; Enter and filling all 6 call onComplete
+//   RichTextEditor   { value?: string(html), onChange?(html), maxLength (TEXT-content chars), allowed: ('bold'|'italic'|'underline'|'bullet_list'|'ordered_list'|'table'|'h3'|'h4')[] }  (C6 04-UI-UX:319-320)
+//                    + named export SafeHtml({ html }) with the same allowlist (p, br, strong, em, u, ul, ol, li, a[href], h3, h4, table); toolbar shows only the `allowed` tools
 //   KeyValueListEditor { value: {key,value}[], onChange, maxRows, keyMaxLength, valueMaxLength }              buttons "Add" / "Remove"
-//   PeriodPicker     { value: {preset, from?, to?}, onChange, calendar: 'AD'|'BS' }  preset ids: today, yesterday, this_bs_month, last_bs_month,
-//                    this_fiscal_year, last_fiscal_year, this_ad_month, last_ad_month, custom; custom range <= 366 days (C8 04-UI-UX:44)
+//   PeriodPicker     { value: {preset, from?, to?}, presets: PresetId[] (only these are listed), onChange, calendar: 'AD'|'BS' }  (C8 02-TRD:1093) preset ids: today, yesterday, this_bs_month, last_bs_month,
+//                    this_fy, last_fy, this_ad_month, last_ad_month, custom; custom range <= 366 days (C8 04-UI-UX:44)
 import { useState } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 import { render, screen, waitFor, within } from '@testing-library/react';
@@ -99,14 +100,14 @@ describe('FormulaEditor (C3)', () => {
 describe('OtpInput (C2 + C6)', () => {
   const inputs = () => screen.getAllByRole('textbox') as HTMLInputElement[];
   it('is a group named by its label; every input is numeric and one carries autocomplete=one-time-code', () => {
-    render(<OtpInput label="6-digit code" name="otp" onChange={() => {}} onSubmit={() => {}} />);
+    render(<OtpInput label="6-digit code" length={6} onChange={() => {}} onComplete={() => {}} />);
     expect(screen.queryByRole('group', { name: /6-digit code/i }) ?? screen.queryByRole('textbox', { name: /6-digit code/i })).toBeTruthy();
     for (const i of inputs()) expect(i.getAttribute('inputmode')).toBe('numeric');
     expect(inputs().some((i) => i.getAttribute('autocomplete') === 'one-time-code')).toBe(true);
   });
   it('paste of 6 digits fills everything and reports them', async () => {
     const onChange = vi.fn();
-    render(<OtpInput label="6-digit code" name="otp" onChange={onChange} onSubmit={() => {}} />);
+    render(<OtpInput label="6-digit code" length={6} onChange={onChange} onComplete={() => {}} />);
     const u = user();
     await u.click(inputs()[0]);
     await u.paste('123456');
@@ -115,7 +116,7 @@ describe('OtpInput (C2 + C6)', () => {
   });
   it('typing digits works; letters and symbols are rejected; the reported value is digits only', async () => {
     const onChange = vi.fn();
-    render(<OtpInput label="6-digit code" name="otp" onChange={onChange} onSubmit={() => {}} />);
+    render(<OtpInput label="6-digit code" length={6} onChange={onChange} onComplete={() => {}} />);
     const u = user();
     await u.click(inputs()[0]);
     await u.keyboard('1a2-b3');
@@ -124,29 +125,50 @@ describe('OtpInput (C2 + C6)', () => {
   });
   it('pasting garbage or an over-long string never yields more than 6 or any non-digit', async () => {
     const onChange = vi.fn();
-    render(<OtpInput label="6-digit code" name="otp" onChange={onChange} onSubmit={() => {}} />);
+    const onComplete = vi.fn();
+    render(<OtpInput label="6-digit code" length={6} onChange={onChange} onComplete={onComplete} />);
     const u = user();
     await u.click(inputs()[0]);
     await u.paste('<script>alert(1)</script>');
     await u.paste('12345678901234567890');
     for (const c of onChange.mock.calls) expect(c[0]).toMatch(/^[0-9]{0,6}$/);
+    for (const c of onComplete.mock.calls) expect(c[0]).toMatch(/^[0-9]{6}$/);
   });
-  it('Enter submits only a complete code', async () => {
-    const onSubmit = vi.fn();
-    render(<OtpInput label="6-digit code" name="otp" onChange={() => {}} onSubmit={onSubmit} />);
+  it('onComplete: not called for a partial code (typing or Enter); called with the 6 digits once complete', async () => {
+    const onComplete = vi.fn();
+    render(<OtpInput label="6-digit code" length={6} onChange={() => {}} onComplete={onComplete} />);
     const u = user();
     await u.click(inputs()[0]);
     await u.keyboard('123{Enter}');
-    expect(onSubmit).not.toHaveBeenCalled();
-    await u.keyboard('456{Enter}');
-    expect(onSubmit).toHaveBeenCalledWith('123456');
+    expect(onComplete).not.toHaveBeenCalled();
+    await u.keyboard('456');
+    expect(onComplete).toHaveBeenCalledWith('123456'); // complete-fill calls onComplete (C0 §2.8)
+  });
+  it('Enter on a complete code calls onComplete(code)', async () => {
+    const onComplete = vi.fn();
+    render(<OtpInput label="6-digit code" length={6} onChange={() => {}} onComplete={onComplete} />);
+    const u = user();
+    await u.click(inputs()[0]);
+    await u.paste('654321');
+    onComplete.mockClear();
+    await u.keyboard('{Enter}');
+    expect(onComplete).toHaveBeenCalledWith('654321');
+  });
+  it('props are optional: renders with only label+length; isDisabled disables every input; value prop is shown', () => {
+    const { unmount } = render(<OtpInput label="6-digit code" length={6} value="123" />);
+    expect(inputs().map((i) => i.value).join('')).toBe('123');
+    unmount();
+    render(<OtpInput label="6-digit code" length={6} isDisabled />);
+    for (const i of inputs()) expect(i.disabled).toBe(true);
   });
   it('error is text; axe clean', async () => {
-    render(<OtpInput label="6-digit code" name="otp" onChange={() => {}} onSubmit={() => {}} error="That code is not right. You have 4 tries left." />);
+    render(<OtpInput label="6-digit code" length={6} onChange={() => {}} onComplete={() => {}} error="That code is not right. You have 4 tries left." />);
     expect(screen.getByText(/You have 4 tries left/)).toBeTruthy();
     expect(await seriousViolations()).toEqual([]);
   });
 });
+
+const ALL_TOOLS = ['bold', 'italic', 'underline', 'bullet_list', 'ordered_list', 'table', 'h3', 'h4'] as const;
 
 describe('RichTextEditor + SafeHtml (C6, REQ-SEC-088)', () => {
   const evil =
@@ -176,7 +198,7 @@ describe('RichTextEditor + SafeHtml (C6, REQ-SEC-088)', () => {
   });
   it('editor: labelled, has a toolbar with named toggle buttons, and sanitises hostile initial value', () => {
     (window as any).__xss = 0;
-    const { container } = render(<RichTextEditor label="Findings" name="findings" value={evil} onChange={() => {}} maxLength={20000} />);
+    const { container } = render(<RichTextEditor label="Findings" name="findings" value={evil} onChange={() => {}} maxLength={20000} allowed={ALL_TOOLS} />);
     expect(screen.getByRole('toolbar')).toBeTruthy();
     expect(within(screen.getByRole('toolbar')).getByRole('button', { name: /bold/i })).toBeTruthy();
     expect(within(screen.getByRole('toolbar')).getByRole('button', { name: /italic/i })).toBeTruthy();
@@ -185,7 +207,7 @@ describe('RichTextEditor + SafeHtml (C6, REQ-SEC-088)', () => {
     expect((window as any).__xss).toBe(0);
   });
   it('editor: the editing surface has a role and accessible name from the label; toolbar reachable by keyboard', async () => {
-    render(<RichTextEditor label="Findings" name="findings" value="<p>x</p>" onChange={() => {}} maxLength={20000} />);
+    render(<RichTextEditor label="Findings" name="findings" value="<p>x</p>" onChange={() => {}} maxLength={20000} allowed={ALL_TOOLS} />);
     expect(screen.getByRole('textbox', { name: /findings/i })).toBeTruthy();
     const u = user();
     await u.tab();
@@ -193,13 +215,47 @@ describe('RichTextEditor + SafeHtml (C6, REQ-SEC-088)', () => {
   });
   it('editor: onChange never emits a disallowed tag even when the value prop changes', async () => {
     const onChange = vi.fn();
-    const { rerender } = render(<RichTextEditor label="Findings" name="findings" value="<p>a</p>" onChange={onChange} maxLength={20000} />);
-    rerender(<RichTextEditor label="Findings" name="findings" value={evil} onChange={onChange} maxLength={20000} />);
+    const { rerender } = render(<RichTextEditor label="Findings" name="findings" value="<p>a</p>" onChange={onChange} maxLength={20000} allowed={ALL_TOOLS} />);
+    rerender(<RichTextEditor label="Findings" name="findings" value={evil} onChange={onChange} maxLength={20000} allowed={ALL_TOOLS} />);
     await waitFor(() => {});
     for (const c of onChange.mock.calls) expect(String(c[0])).not.toMatch(/<script|<img|<iframe|<svg|onerror|javascript:/i);
   });
+  it('SafeHtml keeps the spec allowlist extras h3, h4 and table (same allowlist as the editor, C6 :320) but still strips handlers', () => {
+    const { container } = render(<SafeHtml html={'<h3>Gross</h3><h4>Margins</h4><table><tbody><tr><td onclick="window.__xss=6">cell</td></tr></tbody></table>'} />);
+    expect(container.querySelector('h3')?.textContent).toBe('Gross');
+    expect(container.querySelector('h4')?.textContent).toBe('Margins');
+    expect(container.querySelector('table')).toBeTruthy();
+    expect(container.querySelector('td')?.textContent).toBe('cell');
+    expect(container.innerHTML).not.toMatch(/onclick/i);
+  });
+  it('toolbar shows only the tools listed in `allowed`', () => {
+    const { unmount } = render(<RichTextEditor label="Findings" name="findings" onChange={() => {}} maxLength={100} allowed={['italic', 'h3']} />);
+    const bar = screen.getByRole('toolbar');
+    expect(within(bar).getAllByRole('button')).toHaveLength(2);
+    expect(within(bar).getByRole('button', { name: /italic/i })).toBeTruthy();
+    expect(within(bar).getByRole('button', { name: /\b(h3|heading 3|heading level 3)\b/i })).toBeTruthy();
+    expect(within(bar).queryByRole('button', { name: /bold/i })).toBeNull();
+    expect(within(bar).queryByRole('button', { name: /underline/i })).toBeNull();
+    unmount();
+    render(<RichTextEditor label="Findings" name="findings" onChange={() => {}} maxLength={100} allowed={ALL_TOOLS} />);
+    expect(within(screen.getByRole('toolbar')).getAllByRole('button')).toHaveLength(8);
+  });
+  it('`value` is optional (renders an empty labelled editor)', () => {
+    render(<RichTextEditor label="Findings" name="findings" maxLength={100} allowed={['bold']} />);
+    expect(screen.getByRole('textbox', { name: /findings/i })).toBeTruthy();
+  });
+  it('maxLength counts text content chars, not serialised HTML length', () => {
+    const invalid = (c: HTMLElement) => !!(c.querySelector('[aria-invalid="true"]') ?? screen.queryByRole('alert'));
+    // html is 35 chars long, text is 4: must be within maxLength=10
+    const ok = render(<RichTextEditor label="Findings" name="findings" value="<p><strong><em>abcd</em></strong></p>" onChange={() => {}} maxLength={10} allowed={ALL_TOOLS} />);
+    expect(invalid(ok.container)).toBe(false);
+    ok.unmount();
+    // text is 12 chars: over maxLength=10
+    const bad = render(<RichTextEditor label="Findings" name="findings" value="<p>abcdefghijkl</p>" onChange={() => {}} maxLength={10} allowed={ALL_TOOLS} />);
+    expect(invalid(bad.container)).toBe(true);
+  });
   it('axe clean', async () => {
-    render(<RichTextEditor label="Findings" name="findings" value="<p>Normal <strong>mucosa</strong></p>" onChange={() => {}} maxLength={20000} />);
+    render(<RichTextEditor label="Findings" name="findings" value="<p>Normal <strong>mucosa</strong></p>" onChange={() => {}} maxLength={20000} allowed={ALL_TOOLS} />);
     expect(await seriousViolations()).toEqual([]);
   });
 });
@@ -245,35 +301,42 @@ describe('KeyValueListEditor (C7)', () => {
 
 describe('PeriodPicker (C8)', () => {
   const PRESETS = ['Today', 'Yesterday', 'This B.S. month', 'Last B.S. month', 'This fiscal year', 'Last fiscal year', 'This A.D. month', 'Last A.D. month', 'Custom'];
+  const ALL = ['today', 'yesterday', 'this_bs_month', 'last_bs_month', 'this_fy', 'last_fy', 'this_ad_month', 'last_ad_month', 'custom'] as const;
   it('lists the nine C8 presets, labelled, via keyboard', async () => {
-    render(<PeriodPicker label="Period" name="period" value={{ preset: 'today' }} onChange={() => {}} calendar="BS" />);
+    render(<PeriodPicker label="Period" name="period" value={{ preset: 'today' }} presets={ALL} onChange={() => {}} calendar="BS" />);
     const u = user();
     await u.click(screen.getByRole('button', { name: /period/i }));
     const opts = within(await screen.findByRole('listbox')).getAllByRole('option').map((o) => o.textContent);
     for (const p of PRESETS) expect(opts).toContain(p);
   });
+  it('`presets` limits the list to exactly the given options, in the given order (C4 reuse)', async () => {
+    render(<PeriodPicker label="Period" name="period" value={{ preset: 'today' }} presets={['today', 'this_ad_month', 'custom']} onChange={() => {}} calendar="AD" />);
+    await user().click(screen.getByRole('button', { name: /period/i }));
+    const opts = within(await screen.findByRole('listbox')).getAllByRole('option').map((o) => o.textContent);
+    expect(opts).toEqual(['Today', 'This A.D. month', 'Custom']);
+  });
   it('choosing a preset reports its id', async () => {
     const onChange = vi.fn();
-    render(<PeriodPicker label="Period" name="period" value={{ preset: 'today' }} onChange={onChange} calendar="AD" />);
+    render(<PeriodPicker label="Period" name="period" value={{ preset: 'today' }} presets={ALL} onChange={onChange} calendar="AD" />);
     const u = user();
     await u.click(screen.getByRole('button', { name: /period/i }));
     await u.click(await screen.findByRole('option', { name: 'Yesterday' }));
     expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ preset: 'yesterday' }));
   });
   it('custom shows From/To inputs; a range over 366 days shows a text error (no silent clamp)', () => {
-    render(<PeriodPicker label="Period" name="period" value={{ preset: 'custom', from: '2026-01-01', to: '2027-06-01' }} onChange={() => {}} calendar="AD" />);
+    render(<PeriodPicker label="Period" name="period" value={{ preset: 'custom', from: '2026-01-01', to: '2027-06-01' }} presets={ALL} onChange={() => {}} calendar="AD" />);
     expect(screen.getByText(/366/)).toBeTruthy();
   });
   it('custom range of exactly 366 days is accepted (boundary)', () => {
-    render(<PeriodPicker label="Period" name="period" value={{ preset: 'custom', from: '2026-01-01', to: '2027-01-01' }} onChange={() => {}} calendar="AD" />);
+    render(<PeriodPicker label="Period" name="period" value={{ preset: 'custom', from: '2026-01-01', to: '2027-01-01' }} presets={ALL} onChange={() => {}} calendar="AD" />);
     expect(screen.queryByText(/366/)).toBeNull();
   });
   it('from after to is an error too', () => {
-    render(<PeriodPicker label="Period" name="period" value={{ preset: 'custom', from: '2026-05-02', to: '2026-05-01' }} onChange={() => {}} calendar="AD" />);
+    render(<PeriodPicker label="Period" name="period" value={{ preset: 'custom', from: '2026-05-02', to: '2026-05-01' }} presets={ALL} onChange={() => {}} calendar="AD" />);
     expect(screen.queryByRole('alert') ?? screen.queryByText(/before|after|earlier/i)).toBeTruthy();
   });
   it('axe clean', async () => {
-    render(<PeriodPicker label="Period" name="period" value={{ preset: 'today' }} onChange={() => {}} calendar="BS" />);
+    render(<PeriodPicker label="Period" name="period" value={{ preset: 'today' }} presets={ALL} onChange={() => {}} calendar="BS" />);
     expect(await seriousViolations()).toEqual([]);
   });
 });

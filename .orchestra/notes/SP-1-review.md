@@ -1,0 +1,5 @@
+CHANGES
+
+1. tests/spikes/SP-1.decision.test.mjs:1 — path not owned. 01-CHUNK-MAP §3 has no root `tests/` entry ("Every path below has one owner"); SP-1 is 0B+0D and `db/tests/` is C0-0B owned. Fix: `git mv tests/spikes/SP-1.decision.test.mjs db/tests/spikes/SP-1.decision.test.mjs`; on line 7 change `'../../db/meta/decisions/SP-1.md'` to `'../../meta/decisions/SP-1.md'`; update the run command in line 1 and in `.orchestra/notes/SP-1-tests.md:2-3` and `.orchestra/notes/SP-1-impl.md:7` to `node --test db/tests/spikes/SP-1.decision.test.mjs`.
+
+Checked, no defect: names verbatim (`LIMS_CORE_JWT_ALG/_ISSUER/_AUDIENCE`, REQ-SEC-065/067, 08 R10, C2 T1, 07-BLOCKERS); plan steps 1–4 all evidenced (digest, password+TOTP, alg/iss/aud/session_id/aal/exp, stable across refresh); hook not used, claimsResolver stated; synthetic user only; no tokens/keys recorded; RLS/permissions/idempotency/rate tier/error codes N/A (decision record only). Tests: `node --test tests/spikes/SP-1.decision.test.mjs` → pass 8, fail 0 (structural only; live GoTrue behaviour not re-run by reviewer).

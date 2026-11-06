@@ -1,0 +1,16 @@
+{
+  "name": "@lims/contracts",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "ajv": "8.17.1",
+    "yaml": "2.8.1"
+  },
+  "devDependencies": {
+    "vitest": "3.2.4",
+    "typescript": "7.0.2"
+  }
+}

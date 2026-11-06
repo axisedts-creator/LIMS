@@ -1,0 +1,117 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:lims:event:reporting.delivery.status_changed.v1",
+  "allOf": [
+    {
+      "$ref": "urn:lims:event:_envelope.v1"
+    },
+    {
+      "type": "object",
+      "properties": {
+        "event_type": {
+          "const": "reporting.delivery.status_changed.v1"
+        },
+        "producer": {
+          "const": "reporting"
+        },
+        "aggregate": {
+          "type": "object",
+          "properties": {
+            "type": {
+              "const": "delivery"
+            }
+          }
+        },
+        "payload": {
+          "$ref": "#/$defs/Payload"
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "Payload": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "delivery_id",
+        "channel",
+        "purpose",
+        "recipient_kind",
+        "to_status",
+        "changed_at",
+        "attempt_no"
+      ],
+      "properties": {
+        "delivery_id": {
+          "$ref": "urn:lims:event:_defs.v1#/$defs/Uuidv7"
+        },
+        "report_id": {
+          "$ref": "urn:lims:event:_defs.v1#/$defs/Uuidv7"
+        },
+        "report_version_no": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "channel": {
+          "enum": [
+            "whatsapp",
+            "sms",
+            "email",
+            "print",
+            "portal"
+          ]
+        },
+        "purpose": {
+          "$ref": "urn:lims:event:_defs.v1#/$defs/Code"
+        },
+        "recipient_kind": {
+          "enum": [
+            "patient",
+            "referrer",
+            "centre",
+            "partner",
+            "staff",
+            "phone_otp"
+          ],
+          "x-extensible": true
+        },
+        "from_status": {
+          "enum": [
+            "queued",
+            "sent",
+            "delivered",
+            "read",
+            "failed",
+            "suppressed"
+          ]
+        },
+        "to_status": {
+          "enum": [
+            "queued",
+            "sent",
+            "delivered",
+            "read",
+            "failed",
+            "suppressed"
+          ]
+        },
+        "failure_code": {
+          "$ref": "urn:lims:event:_defs.v1#/$defs/Code"
+        },
+        "attempt_no": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "fallback_of_delivery_id": {
+          "$ref": "urn:lims:event:_defs.v1#/$defs/Uuidv7"
+        },
+        "changed_at": {
+          "$ref": "urn:lims:event:_defs.v1#/$defs/IsoUtc"
+        },
+        "delivery_created_at": {
+          "$ref": "urn:lims:event:_defs.v1#/$defs/IsoUtc"
+        }
+      }
+    }
+  }
+}

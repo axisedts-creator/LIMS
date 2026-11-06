@@ -1,0 +1,250 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:lims:event:instruments.result.received.v1",
+  "allOf": [
+    {
+      "$ref": "urn:lims:event:_envelope.v1"
+    },
+    {
+      "type": "object",
+      "properties": {
+        "event_type": {
+          "const": "instruments.result.received.v1"
+        },
+        "producer": {
+          "const": "instruments"
+        },
+        "aggregate": {
+          "type": "object",
+          "properties": {
+            "type": {
+              "const": "instrument_message"
+            }
+          }
+        },
+        "payload": {
+          "$ref": "#/$defs/Payload"
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "Payload": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "instrument_message_id",
+        "instrument_id",
+        "agent_id",
+        "centre_id",
+        "protocol",
+        "sample_barcode",
+        "record_kind",
+        "instrument_analyte_code",
+        "mapping_status",
+        "received_at"
+      ],
+      "properties": {
+        "instrument_message_id": {
+          "$ref": "urn:lims:event:_defs.v1#/$defs/Uuidv7"
+        },
+        "instrument_id": {
+          "$ref": "urn:lims:event:_defs.v1#/$defs/Uuidv7"
+        },
+        "agent_id": {
+          "$ref": "urn:lims:event:_defs.v1#/$defs/Uuidv7"
+        },
+        "centre_id": {
+          "$ref": "urn:lims:event:_defs.v1#/$defs/Uuidv7"
+        },
+        "protocol": {
+          "enum": [
+            "astm",
+            "hl7v2",
+            "file_drop"
+          ]
+        },
+        "sample_barcode": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 40
+        },
+        "record_kind": {
+          "enum": [
+            "quantitative",
+            "qualitative",
+            "ordinal",
+            "text",
+            "organism_id",
+            "ast",
+            "attachment"
+          ]
+        },
+        "instrument_analyte_code": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "mapping_status": {
+          "enum": [
+            "mapped",
+            "unmapped"
+          ]
+        },
+        "analyte_id": {
+          "$ref": "urn:lims:event:_defs.v1#/$defs/Uuidv7"
+        },
+        "test_id": {
+          "$ref": "urn:lims:event:_defs.v1#/$defs/Uuidv7"
+        },
+        "value_raw": {
+          "type": "string",
+          "maxLength": 200
+        },
+        "value_numeric": {
+          "$ref": "urn:lims:event:_defs.v1#/$defs/DecimalString"
+        },
+        "unit_raw": {
+          "type": "string",
+          "maxLength": 32
+        },
+        "unit_code": {
+          "$ref": "urn:lims:event:_defs.v1#/$defs/Code"
+        },
+        "instrument_flags": {
+          "type": "array",
+          "maxItems": 20,
+          "items": {
+            "type": "string",
+            "maxLength": 16
+          }
+        },
+        "instrument_result_time": {
+          "$ref": "urn:lims:event:_defs.v1#/$defs/IsoUtc"
+        },
+        "instrument_clock_offset_seconds": {
+          "type": "integer"
+        },
+        "received_at": {
+          "$ref": "urn:lims:event:_defs.v1#/$defs/IsoUtc"
+        },
+        "is_rerun": {
+          "type": "boolean"
+        },
+        "captured_at": {
+          "$ref": "urn:lims:event:_defs.v1#/$defs/IsoUtc"
+        },
+        "processing_kind": {
+          "enum": [
+            "live",
+            "reprocess",
+            "rematch"
+          ]
+        },
+        "source_record_id": {
+          "$ref": "urn:lims:event:_defs.v1#/$defs/Uuidv7"
+        },
+        "organism": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "organism_code_raw"
+          ],
+          "properties": {
+            "organism_code_raw": {
+              "type": "string",
+              "maxLength": 64
+            },
+            "organism_code": {
+              "$ref": "urn:lims:event:_defs.v1#/$defs/Code"
+            },
+            "isolate_seq": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        },
+        "ast": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "antibiotic_code_raw",
+            "method",
+            "raw_value"
+          ],
+          "properties": {
+            "antibiotic_code_raw": {
+              "type": "string",
+              "maxLength": 64
+            },
+            "antibiotic_code": {
+              "$ref": "urn:lims:event:_defs.v1#/$defs/Code"
+            },
+            "isolate_seq": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "method": {
+              "enum": [
+                "mic",
+                "zone_diameter",
+                "other"
+              ]
+            },
+            "raw_value": {
+              "type": "string",
+              "maxLength": 32
+            },
+            "interpretation_raw": {
+              "type": "string",
+              "maxLength": 16
+            },
+            "standard": {
+              "enum": [
+                "CLSI",
+                "EUCAST",
+                "ECOFF",
+                "unknown"
+              ]
+            },
+            "standard_version": {
+              "type": "string",
+              "maxLength": 32
+            }
+          }
+        },
+        "attachment": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "bucket",
+            "object_path",
+            "sha256",
+            "mime_type"
+          ],
+          "properties": {
+            "bucket": {
+              "type": "string",
+              "maxLength": 63
+            },
+            "object_path": {
+              "type": "string",
+              "maxLength": 512
+            },
+            "sha256": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "mime_type": {
+              "enum": [
+                "application/pdf",
+                "image/png",
+                "image/jpeg"
+              ]
+            }
+          }
+        }
+      }
+    }
+  }
+}

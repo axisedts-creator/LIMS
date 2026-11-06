@@ -1,20 +1,19 @@
 CHANGES
 
-Scope reviewed: `git diff 7996834..HEAD` (2 migrations, pgTAP file, node static test, notes).
-Verified OK: both migrations match 05-SCHEMA §2 and §10 (helpers stage) verbatim (only comment wording differs); the
-`current_lims_session_id` GRANT placed in the helpers stage per plan row review-fix note (08 A20.2); is_platform_actor
-REVOKE PUBLIC / GRANT lims_app, DEFINER + `search_path = ''`, check_function_bodies off/on; 5 policy helpers per 08 A30.1;
-uuidv7 bits 52/53 on a v4 base give version 7 / variant 10; lims_queue / lims_reporting_lookup default privileges set by
-the roles themselves; no supabase_auth_admin grant, no standing CREATE, no secrets/PHI; owned paths only.
-`node --test tests/db/T0B-01.bootstrap.test.mjs tests/db/T0B-02.schemas-helpers.test.mjs` -> 22 pass, 0 fail.
-pgTAP file not run (no live DB in this review).
+Scope re-reviewed: `git diff 7996834..HEAD` after fix round 1.
+Prior item 1 resolved: `migrations_meta.revision` query removed from pgTAP; node test "migration order: nothing sorts before
+schemas; every helper user sorts after helpers" added. Migrations unchanged and still match 05-SCHEMA §2 / §10 verbatim
+(uuidv7 body re-checked against 05-SCHEMA.md:593-601; set_bit 52/53 on v4 byte 6 gives nibble 7, variant 10 kept).
+Names, grants (is_platform_actor REVOKE PUBLIC / GRANT lims_app; current_lims_session_id lims_app/api/worker), owned
+paths, no secrets/PHI: OK. `node --test tests/db/T0B-01.bootstrap.test.mjs tests/db/T0B-02.schemas-helpers.test.mjs`
+-> 23 pass, 0 fail. pgTAP not run (no live DB).
 
-1. db/tests/app/T0B-02_helpers.test.sql:227-229 — the "creation order" assertion queries `migrations_meta.revision.name`,
-   a column the spec never defines (05-SCHEMA §2 only says "runner revision table"); if the runner's table has a different
-   column the whole pgTAP file errors, and even when it runs it only checks that `app__create_schemas` is the first
-   `app__create_*` row — not schema test 21's requirement that the helpers migration precedes every migration creating a
-   policy/function that references the helpers. Fix: delete lines 226-229, and in tests/db/T0B-02.schemas-helpers.test.mjs
-   add a test: for every `db/migrations/*.sql` other than the schemas and helpers files whose comment-stripped text matches
-   `/app\.(is_platform_actor|current_partner_id|engagement_(preauth_stage|account_id|patient_ids|patient_visible)|current_lims_session_id|uuidv7)\s*\(/`,
-   assert `file > find('app__create_context_helpers')` (lexical sort = apply order); also assert no file sorts before
-   `find('app__create_schemas')`.
+1. db/tests/app/T0B-02_helpers.test.sql:109-110 — "non-decreasing" assertion is flaky: 200 calls land in the same ms, so
+   many rows tie on `substr(u::text, 1, 13)`; PostgreSQL's sort is not stable, so `array_agg(u ORDER BY substr(...))` can
+   permute tied (distinct) uuids and the arrays differ even when the code is correct; the unordered `array_agg(u)` also has
+   no guaranteed order. Fix: replace lines 109-110 with
+   ```
+   SELECT ok((SELECT bool_and(t >= p) FROM (SELECT t, lag(t) OVER (ORDER BY n) p
+                FROM (SELECT n, substr(app.uuidv7()::text, 1, 13) t FROM generate_series(1, 200) n) s) w WHERE p IS NOT NULL),
+     'uuidv7 timestamp prefix is non-decreasing across successive calls');
+   ```

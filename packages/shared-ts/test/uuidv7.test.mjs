@@ -7,8 +7,8 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 
-const SRC = new URL('../../packages/shared-ts/src/uuidv7/index.ts', import.meta.url);
-const VECTORS = new URL('../../packages/test-fixtures/uuidv7/vectors.json', import.meta.url);
+const SRC = new URL('../src/uuidv7/index.ts', import.meta.url);
+const VECTORS = new URL('../../test-fixtures/uuidv7/vectors.json', import.meta.url);
 const RE = /^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/; // IC §2.1 Uuidv7
 const load = () => import(SRC.href);
 const hexToBytes = (h) => Uint8Array.from(h.match(/../g).map((b) => parseInt(b, 16)));

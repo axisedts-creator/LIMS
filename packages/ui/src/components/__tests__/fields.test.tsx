@@ -183,17 +183,18 @@ describe('MoneyField (value is integer paisa + NPR, no float drift)', () => {
     ['1', 100],
     ['1.1', 110],
     ['0.29', 29],
-  ])('typing %s -> amount_paisa %i', async (typed, paisa) => {
+  ])('typing %s -> amountPaisa %i', async (typed, paisa) => {
     const spy = vi.fn();
     render(<Ctl C={MoneyField} init={undefined} spy={spy} label="Amount" name="amount" />);
     await user().type(screen.getByLabelText('Amount'), typed);
     const v = last(spy);
-    expect(v).toEqual({ amount_paisa: paisa, currency: 'NPR' });
-    expect(Number.isInteger(v.amount_paisa)).toBe(true);
+    expect(v).toEqual({ amountPaisa: paisa, currency: 'NPR' });
+    expect(Number.isInteger(v.amountPaisa)).toBe(true);
+    expect('amount_paisa' in v).toBe(false); // 03-INTERFACE-CATALOG:1103 canonical Money, not the JSON wire name
   });
 
   it('shows an existing value in rupees', () => {
-    render(<MoneyField label="Amount" name="amount" value={{ amount_paisa: 123456, currency: 'NPR' }} />);
+    render(<MoneyField label="Amount" name="amount" value={{ amountPaisa: 123456, currency: 'NPR' }} />);
     expect((screen.getByLabelText('Amount') as HTMLInputElement).value).toMatch(/1,?234\.56/);
   });
 
@@ -201,13 +202,13 @@ describe('MoneyField (value is integer paisa + NPR, no float drift)', () => {
     const spy = vi.fn();
     render(<Ctl C={MoneyField} init={undefined} spy={spy} label="Amount" name="amount" />);
     await user().type(screen.getByLabelText('Amount'), '-5');
-    expect(spy.mock.calls.every(([v]) => v === undefined || v.amount_paisa >= 0)).toBe(true);
+    expect(spy.mock.calls.every(([v]) => v === undefined || v.amountPaisa >= 0)).toBe(true);
   });
 
   it('cleared field reports undefined', async () => {
     const spy = vi.fn();
     const u = user();
-    render(<Ctl C={MoneyField} init={{ amount_paisa: 500, currency: 'NPR' }} spy={spy} label="Amount" name="amount" />);
+    render(<Ctl C={MoneyField} init={{ amountPaisa: 500, currency: 'NPR' }} spy={spy} label="Amount" name="amount" />);
     await u.clear(screen.getByLabelText('Amount'));
     expect(last(spy)).toBeUndefined();
   });

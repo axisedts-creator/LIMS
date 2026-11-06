@@ -27,7 +27,7 @@ const tmp = mkdtempSync(join(tmpdir(), 'check-paths-'));
 test.after(() => rmSync(tmp, { recursive: true, force: true }));
 
 let n = 0;
-function run({ branch, files, body = '', raw }) {
+function run({ branch, files = [], body = '', raw }) {
   assert.ok(existsSync(script), 'tools/lint/check-paths.ts must exist');
   const f = join(tmp, `files-${n}.txt`), b = join(tmp, `body-${n}.txt`);
   n++;
@@ -145,6 +145,7 @@ test('path traversal / backslashes / leading ./ are normalised before matching',
 test('fail closed: missing args, missing files/body input, unknown flags', () => {
   assert.notEqual(run({ raw: [] }).code, 0);
   assert.notEqual(run({ raw: ['--branch', 'c05/x'] }).code, 0);
+  assert.notEqual(run({ raw: ['--branch', 'c05/x', '--bogus'] }).code, 0);
   assert.notEqual(run({ raw: ['--branch', 'c05/x', '--files', join(tmp, 'nope.txt'), '--body', join(tmp, 'nope2.txt')] }).code, 0);
   // db change + unreadable body must not pass
   const f = join(tmp, 'f-only.txt');

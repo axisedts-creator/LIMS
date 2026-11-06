@@ -2,3 +2,8 @@
 - Cause: verify log has only bsdate failures (T0A-06): `packages/test-fixtures/bsdate/golden-2000-2099.json` missing. Its generate.mjs writes it only once review.json has no unresolved entry (human resolution pending, see T0A-06 notes). No money test fails.
 - Fix: none. Money code (TS/Dart/golden) unchanged. Out of T0A-07 scope; fixing needs T0A-06 human review, not a T0A-07 impl change.
 - Open: Dart golden test never run (needs approval to run `dart test`).
+
+# round 2
+- Cause (unchanged): verify fails only in bsdate.test.mjs (T0A-06): `packages/test-fixtures/bsdate/golden-2000-2099.json` missing; generate.mjs writes it only after human resolves review.json. Zero money failures in log.
+- Re-ran `node --test packages/shared-ts/test/money.test.mjs`: 19/19 pass. Fix: none; no T0A-07 impl change possible or needed.
+- Open: Dart golden test not run (dart needs approval); bsdate fixture needs T0A-06 human review.

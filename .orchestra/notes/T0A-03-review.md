@@ -1,9 +1,9 @@
-CHANGES
+APPROVE
 
-Reviewed `git diff 7f0bade..HEAD`. `node --test tools/lint/tests/rules.test.mjs` gives 118/118 pass (Node 25.8.0). Owned paths only, no secrets/PHI, rule names verbatim from 06 row T0A-03. AB-21 fixtures present and passing. Three real defects:
-
-1. `tools/lint/rules/no-supabase-in-browser.ts:10` scope is `apps/web` only. 02-CONVENTIONS §1.3 says "any file that can be bundled for the browser", and `apps/portal` (C6) and `apps/partner` (C13) are Next.js browser apps (02-CONVENTIONS l.31, 01-CHUNK-MAP l.64/71). Probe: `check('apps/portal/src/app/page.tsx', "import { createClient } from '@supabase/supabase-js';")` returns `[]`. Fix: scope = `['apps/web','apps/portal','apps/partner']` via `under()`. Add a bad fixture for each new app to `tools/lint/tests/rules.test.mjs`.
-
-2. `tools/lint/rules/no-foreign-schema-sql.ts:263` (`CORE_REF`) needs `[a-z_]` right after `core.`, so an interpolated table name gets past it. Probe: `` `select * from core.${t}` `` in `modules/identity/service/x.ts` returns `[]`. 02-TRD l.743 bans SQL "mentioning `core.`" outside the two allowed dirs, and in identity/repository a dynamic name could be `dead_letters` (AB-21). Fix: let the table group also match `\$\{` (e.g. `([a-z_][a-z0-9_$]*|\$\{)`). Treat the `${` case like `dead_letters`, i.e. flag it in identity/repository too. Add bad fixtures for both paths.
-
-3. `tools/lint/rules/no-raw-bs-lib.ts:332` flags `bikram-sambat` in test files. Spec allows it as a test oracle: 02-TRD l.97 ("`bikram-sambat` outside tests" is banned), l.144 (T0A-06 golden-table oracle), 02-CONVENTIONS l.1195 ("may appear only as a test oracle, never imported by app code"). AC-0A-3.4 covers app code only. Probe: `check('packages/test-fixtures/bsdate/gen.test.ts', "import x from 'bikram-sambat';")` gives a violation, so T0A-06 would fail lint. Fix: exempt `bikram-sambat` only (not the other two libs) in test files (`*.test.*`, `*.spec.*`, `__tests__/`). Add a good fixture (test file) and keep a bad one (non-test app file).
+Round 2 review of `git diff 7f0bade..HEAD` (round-1 fixes in 7627b1c, 6e6bde8). Ran `node --test tools/lint/tests/*.test.mjs`: 163/163 pass (rules.test.mjs 128/128).
+All three round-1 defects are fixed:
+1. no-supabase-in-browser now covers apps/{web,portal,partner}. Bad fixtures added for portal and partner.
+2. no-foreign-schema-sql flags `core.${…}` everywhere outside core/**, identity/repository included. Probes: `core.${t}` and `"core"."${t}"` in identity/repository are flagged; `core.membership_branches` there is not; `core.${t}` in core/** is not.
+3. no-raw-bs-lib exempts only `bikram-sambat`, and only in *.test.*/*.spec.*/__tests__/. Probes: the converter is still flagged in a test file, and bikram-sambat is still flagged in a non-test app file.
+Only owned paths changed, with no secrets or PHI. The rule names match the 06 row T0A-03 exactly. Each rule has bad and good fixtures, and AB-21 / AC-0A-3.4 are covered.
+Known limits (non-blocking, already in impl notes): the hand lexer can misread regex literals or JSX text that contain quotes. CLI and CI wiring is deferred to T0A-10.

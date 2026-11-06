@@ -1,0 +1,81 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:lims:event:engagement.booking.cancelled.v1",
+  "allOf": [
+    {
+      "$ref": "urn:lims:event:_envelope.v1"
+    },
+    {
+      "type": "object",
+      "properties": {
+        "event_type": {
+          "const": "engagement.booking.cancelled.v1"
+        },
+        "producer": {
+          "const": "engagement"
+        },
+        "aggregate": {
+          "type": "object",
+          "properties": {
+            "type": {
+              "const": "booking"
+            }
+          }
+        },
+        "payload": {
+          "$ref": "#/$defs/Payload"
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "Payload": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "booking_id",
+        "patient_id",
+        "booking_kind",
+        "reason_code",
+        "cancelled_by_kind",
+        "cancelled_at"
+      ],
+      "properties": {
+        "booking_id": {
+          "$ref": "urn:lims:event:_defs.v1#/$defs/Uuidv7"
+        },
+        "patient_id": {
+          "$ref": "urn:lims:event:_defs.v1#/$defs/Uuidv7"
+        },
+        "booking_kind": {
+          "enum": [
+            "centre_visit",
+            "home_collection"
+          ]
+        },
+        "reason_code": {
+          "$ref": "urn:lims:event:_defs.v1#/$defs/Code"
+        },
+        "cancelled_by_kind": {
+          "enum": [
+            "patient",
+            "staff",
+            "system"
+          ]
+        },
+        "order_id": {
+          "$ref": "urn:lims:event:_defs.v1#/$defs/Uuidv7"
+        },
+        "home_visit_id": {
+          "$ref": "urn:lims:event:_defs.v1#/$defs/Uuidv7"
+        },
+        "slot_start": {
+          "$ref": "urn:lims:event:_defs.v1#/$defs/IsoUtc"
+        },
+        "cancelled_at": {
+          "$ref": "urn:lims:event:_defs.v1#/$defs/IsoUtc"
+        }
+      }
+    }
+  }
+}

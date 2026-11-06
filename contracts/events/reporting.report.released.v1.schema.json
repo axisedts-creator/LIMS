@@ -1,0 +1,120 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:lims:event:reporting.report.released.v1",
+  "allOf": [
+    {
+      "$ref": "urn:lims:event:_envelope.v1"
+    },
+    {
+      "type": "object",
+      "properties": {
+        "event_type": {
+          "const": "reporting.report.released.v1"
+        },
+        "producer": {
+          "const": "reporting"
+        },
+        "aggregate": {
+          "type": "object",
+          "properties": {
+            "type": {
+              "const": "report"
+            }
+          }
+        },
+        "payload": {
+          "$ref": "#/$defs/Payload"
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "Payload": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "report_id",
+        "version_no",
+        "order_id",
+        "patient_id",
+        "centre_id",
+        "report_kind",
+        "released_at",
+        "release_basis",
+        "audiences"
+      ],
+      "properties": {
+        "report_id": {
+          "$ref": "urn:lims:event:_defs.v1#/$defs/Uuidv7"
+        },
+        "version_no": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "order_id": {
+          "$ref": "urn:lims:event:_defs.v1#/$defs/Uuidv7"
+        },
+        "patient_id": {
+          "$ref": "urn:lims:event:_defs.v1#/$defs/Uuidv7"
+        },
+        "centre_id": {
+          "$ref": "urn:lims:event:_defs.v1#/$defs/Uuidv7"
+        },
+        "referrer_id": {
+          "$ref": "urn:lims:event:_defs.v1#/$defs/Uuidv7"
+        },
+        "partner_id": {
+          "$ref": "urn:lims:event:_defs.v1#/$defs/Uuidv7"
+        },
+        "report_kind": {
+          "enum": [
+            "final",
+            "partial",
+            "preliminary",
+            "amended",
+            "addendum"
+          ],
+          "x-extensible": true
+        },
+        "order_item_ids": {
+          "type": "array",
+          "maxItems": 200,
+          "items": {
+            "$ref": "urn:lims:event:_defs.v1#/$defs/Uuidv7"
+          }
+        },
+        "supersedes_version_no": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "released_at": {
+          "$ref": "urn:lims:event:_defs.v1#/$defs/IsoUtc"
+        },
+        "release_basis": {
+          "enum": [
+            "paid_in_full",
+            "zero_balance",
+            "credit_party",
+            "override",
+            "policy_not_enforced"
+          ]
+        },
+        "audiences": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 5,
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "patient",
+              "referrer",
+              "centre",
+              "partner",
+              "print_only"
+            ]
+          }
+        }
+      }
+    }
+  }
+}

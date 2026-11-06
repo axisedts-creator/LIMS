@@ -1,0 +1,79 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:lims:event:billing.invoice.cancelled.v1",
+  "allOf": [
+    {
+      "$ref": "urn:lims:event:_envelope.v1"
+    },
+    {
+      "type": "object",
+      "properties": {
+        "event_type": {
+          "const": "billing.invoice.cancelled.v1"
+        },
+        "producer": {
+          "const": "billing"
+        },
+        "aggregate": {
+          "type": "object",
+          "properties": {
+            "type": {
+              "const": "invoice"
+            }
+          }
+        },
+        "payload": {
+          "$ref": "#/$defs/Payload"
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "Payload": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "invoice_id",
+        "invoice_no",
+        "fiscal_year_bs",
+        "credit_note_id",
+        "credit_note_no",
+        "reason_code",
+        "cancelled_at",
+        "credited_total"
+      ],
+      "properties": {
+        "invoice_id": {
+          "$ref": "urn:lims:event:_defs.v1#/$defs/Uuidv7"
+        },
+        "invoice_no": {
+          "type": "string",
+          "maxLength": 40
+        },
+        "fiscal_year_bs": {
+          "type": "string",
+          "pattern": "^[0-9]{4}/[0-9]{2}$"
+        },
+        "order_id": {
+          "$ref": "urn:lims:event:_defs.v1#/$defs/Uuidv7"
+        },
+        "credit_note_id": {
+          "$ref": "urn:lims:event:_defs.v1#/$defs/Uuidv7"
+        },
+        "credit_note_no": {
+          "type": "string",
+          "maxLength": 40
+        },
+        "reason_code": {
+          "$ref": "urn:lims:event:_defs.v1#/$defs/Code"
+        },
+        "cancelled_at": {
+          "$ref": "urn:lims:event:_defs.v1#/$defs/IsoUtc"
+        },
+        "credited_total": {
+          "$ref": "urn:lims:event:_defs.v1#/$defs/Money"
+        }
+      }
+    }
+  }
+}

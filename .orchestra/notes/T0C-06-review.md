@@ -1,14 +1,12 @@
-CHANGES
+APPROVE
 
-Reviewed `git diff 950d663..HEAD` (T0C-06, AC-0C-2.2). Names verbatim vs 02-TRD:1073 / 02-CV:1142 / PRD AC-0C-2.2 (`oasdiff breaking ... --fail-on ERR`, 1.35.x, `cr-approved-breaking`): OK. Only owned paths (`tools/codegen/**`, own notes): OK. No PHI/secrets. RLS/permissions/idempotency/rate tier/error codes: N/A (CI script). Script logic is fail-closed and quotes args correctly. Ran `npx vitest run __tests__/oasdiff.test.ts`: 21 pass, 3 skipped (real oasdiff not installed).
+Re-review of `git diff 950d663..HEAD` (T0C-06, AC-0C-2.2) after writer fixes in 8cc9a70.
 
-Defects (both in the job definition that is handed to 0A, which 0A will copy verbatim):
+Prior defects:
+1. Script injection via inlined `${{ }}` in `run:` — fixed: tools/codegen/oasdiff.sh:8 passes labels through `env: PR_LABELS`, and the loop calls `bash tools/codegen/oasdiff.sh /tmp/base.yaml "$f"`.
+2. Missing re-run trigger on label add/remove — fixed: tools/codegen/oasdiff.sh:7 `on: pull_request: types: [opened, synchronize, reopened, labeled, unlabeled]`.
 
-1. tools/codegen/oasdiff.sh:9 — `PR_LABELS="${{ join(github.event.pull_request.labels.*.name, ',') }}"` inlines label text into the `run:` script. That is GitHub Actions script injection: a label name containing `"` or `$(...)` runs as shell. Fix: change the comment so the label list is passed through the step's `env:` block, e.g.
-   `#   env: PR_LABELS: ${{ join(github.event.pull_request.labels.*.name, ',') }}   # never inline ${{ }} in run:`
-   and the loop line becomes `#     bash tools/codegen/oasdiff.sh /tmp/base.yaml "$f"`.
+Re-checked: names verbatim (`oasdiff breaking ... --fail-on ERR`, 1.35.x, `cr-approved-breaking`); only owned paths touched; no PHI or secrets; fails closed (exit >1, missing binary, unreadable file, bad arg count); label match is exact-token. RLS, permissions, idempotency, rate tier, error codes: N/A (CI script).
+Ran `npx vitest run __tests__/oasdiff.test.ts`: 21 passed, 3 skipped (real oasdiff not installed).
 
-2. tools/codegen/oasdiff.sh:5 — the job definition leaves out the trigger. With the default `pull_request` types, adding `cr-approved-breaking` does not re-run the gate, so the red check stays and the bypass cannot work. Fix: add a comment line after line 5:
-   `#   on: pull_request: types: [opened, synchronize, reopened, labeled, unlabeled]`
-
-Not blocking (keep as an open item for 0A, already in the impl notes): the breaking fixture is checked only against the stubbed oasdiff. 0A CI must install oasdiff 1.35.x so the `real oasdiff` describe block runs and proves `head-breaking.yaml` actually fails.
+Open item for 0A (not blocking, already in impl notes): 0A CI must install oasdiff 1.35.x so the `real oasdiff` block runs and proves `head-breaking.yaml` really fails.

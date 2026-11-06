@@ -22,3 +22,8 @@
 - Cause (unchanged from round 4): all 12 verify failures are in `validation.test.mjs` (T0A-08): `src/errors/index.ts` can't resolve `@lims/contracts` (ERR_MODULE_NOT_FOUND). Zero money failures.
 - Re-ran money.test.mjs: 19/19 pass. Fix: none; T0A-08 dependency/CR (`.orchestra/cr/T0A-08.md`) issue, not a T0A-07 impl change.
 - Open: Dart golden test not run (dart needs approval); T0A-08 CR needs resolution.
+
+# round 6
+- Cause (unchanged from round 4/5): all 12 verify failures are in `validation.test.mjs` (T0A-08): `src/errors/index.ts` can't resolve `@lims/contracts` (ERR_MODULE_NOT_FOUND). Zero money failures (0 "money" hits in log).
+- Re-ran money.test.mjs: 19/19 pass. Fix: none; T0A-08 dependency/CR issue, not a T0A-07 impl change.
+- Open: Dart golden test not run (dart needs approval); T0A-08 CR needs resolution.

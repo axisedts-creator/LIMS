@@ -6,3 +6,4 @@
 - Expected now: 118 of 118 fail ("tools/lint/rules/<rule>.ts must exist"). Verified by run.
 - Assumptions (spec silent): no-bare-set also flags `set_config(…, false)`, not `UPDATE … SET`; no-supabase-in-browser scope = apps/web/**; no-foreign-schema-sql tested for `core.` only (no cross-module-schema cases); comments/strings must not trigger code rules.
 - Not tested: CI wiring/CLI runner (T0A-10), the C2 fixture JSON (C2-owned), ESLint/Prettier configs.
+- Review round 1: added 10 fixtures (128 tests total) for review items 1-3: apps/portal + apps/partner supabase bad; `core.${t}` bad in identity service+repository; bikram-sambat good in *.test.*/*.spec.*/__tests__ (bad kept for non-test file; converter still banned in tests). Run: 121 pass, 7 fail as expected (impl pending: the 7 new must-fail cases).

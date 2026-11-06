@@ -12,3 +12,8 @@
 - Cause (unchanged): only bsdate.test.mjs (T0A-06) fails; golden-2000-2099.json absent until human resolves bsdate/review.json. Zero money failures.
 - Re-ran money.test.mjs: 19/19 pass. Fix: none; not a T0A-07 impl issue.
 - Open: Dart golden test not run; T0A-06 human review needed.
+
+# round 4
+- Cause (changed): verify log now has 12 failures, all `validation.test.mjs` (T0A-08): `src/errors/index.ts` imports `@lims/contracts`, not resolvable (no dep/link in shared-ts; tsconfig excludes errors/validation pending `.orchestra/cr/T0A-08.md`). Zero money failures.
+- Re-ran money.test.mjs: 19/19 pass. Fix: none; T0A-08 CR/ownership issue, not a T0A-07 impl change.
+- Open: Dart golden test not run; T0A-08 CR needs resolution.

@@ -5,5 +5,7 @@
     "outDir": "dist",
     "rewriteRelativeImportExtensions": true
   },
-  "include": ["src"]
+  "include": ["src"],
+  "//": "errors/validation/types need @lims/contracts (T0C-02/T0C-05) — excluded until .orchestra/cr/T0A-08.md resolves",
+  "exclude": ["src/errors", "src/validation", "src/types.ts"]
 }

@@ -25,34 +25,47 @@ function withBadges(value: string): ReactNode[] {
   return out;
 }
 
+/** C7 02-TRD:1093. */
 export interface CodeBlockProps {
-  value: string;
   /** Accessible name of the region. */
   label: string;
+  text: string;
   renderControlChars?: boolean;
+  /** Pixels; the region scrolls beyond this. */
+  maxHeight?: number;
+  /** true: pre-wrap; false (default): pre. */
+  wrap?: boolean;
   /** Default false (PHI). false: no Copy button and copy/cut from the block is blocked. */
   allowCopy?: boolean;
-  caption?: string;
   'data-testid'?: string;
 }
 
 /** Verbatim monospace text (C7 raw messages, agent logs). Content is text nodes only (REQ-SEC-088). */
-export function CodeBlock({ value, label, renderControlChars = false, allowCopy = false, caption, ...rest }: CodeBlockProps) {
+export function CodeBlock({ label, text, renderControlChars = false, maxHeight, wrap = false, allowCopy = false, ...rest }: CodeBlockProps) {
   const [copied, setCopied] = useState(false);
   const block = (e: SyntheticEvent) => {
     if (!allowCopy) e.preventDefault();
   };
   return (
     <div className="lims-codeblock" {...rest}>
-      <div role="region" aria-label={label} tabIndex={0} className="lims-codeblock-body" onCopy={block} onCut={block}>
-        <pre className="lims-mono">{renderControlChars ? withBadges(value) : value}</pre>
+      <div
+        role="region"
+        aria-label={label}
+        tabIndex={0}
+        className="lims-codeblock-body"
+        style={maxHeight !== undefined && Number.isFinite(maxHeight) ? { maxHeight: `${maxHeight}px`, overflow: 'auto' } : undefined}
+        onCopy={block}
+        onCut={block}
+      >
+        <pre className="lims-mono" style={{ whiteSpace: wrap ? 'pre-wrap' : 'pre' }}>
+          {renderControlChars ? withBadges(text) : text}
+        </pre>
       </div>
-      {caption ? <p className="lims-description">{caption}</p> : null}
       {allowCopy ? (
         <Button
           size="sm"
           onPress={() => {
-            void navigator.clipboard?.writeText(value).then(() => setCopied(true), () => setCopied(false));
+            void navigator.clipboard?.writeText(text).then(() => setCopied(true), () => setCopied(false));
           }}
         >
           {copied ? msg.copied : msg.copy}

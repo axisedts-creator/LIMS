@@ -177,7 +177,7 @@
 .lims-thumbs { display: grid; grid-template-columns: repeat(auto-fill, minmax(8rem, 1fr)); gap: var(--lims-space-3); list-style: none; padding: 0; }
 .lims-thumb { display: flex; flex-direction: column; gap: var(--lims-space-1); }
 .lims-thumb-img { max-width: 100%; aspect-ratio: 1; object-fit: cover; }
-.lims-thumb-button { display: flex; flex-direction: column; gap: var(--lims-space-1); padding: 0; border: 0; background: none; text-align: start; cursor: pointer; }
+.lims-thumb-actions { display: flex; gap: var(--lims-space-1); }
 .lims-data-image { max-width: 100%; image-rendering: pixelated; }
 .lims-egrid-table td[role='gridcell']:focus { outline: 2px solid var(--lims-focus-ring); outline-offset: -2px; }
 .lims-codeblock-body:focus-visible, .lims-duration:focus-visible, .lims-rte-surface:focus-visible, .lims-chip[tabindex]:focus-visible { outline: 2px solid var(--lims-focus-ring); outline-offset: 2px; }

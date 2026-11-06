@@ -2,12 +2,12 @@ import { createElement, useEffect, useId, useMemo, useRef, useState, type Keyboa
 import type { FieldBase } from '../_shared/TextInputBase';
 import { msg } from '../_shared/messages';
 
-/* ---------- sanitiser (REQ-SEC-088): allowlist p, br, strong, em, u, ul, ol, li, a[href] ---------- */
+/* ---------- sanitiser (REQ-SEC-088): allowlist p, br, strong, em, u, ul, ol, li, a[href], h3, h4, table (C6 04-UI-UX:319-320) ---------- */
 
-type Tag = 'p' | 'br' | 'strong' | 'em' | 'u' | 'ul' | 'ol' | 'li' | 'a';
+type Tag = 'p' | 'br' | 'strong' | 'em' | 'u' | 'ul' | 'ol' | 'li' | 'a' | 'h3' | 'h4' | 'table' | 'thead' | 'tbody' | 'tr' | 'th' | 'td';
 type SNode = string | { tag: Tag; href?: string; children: SNode[] };
 
-const ALIAS: Record<string, Tag> = { p: 'p', div: 'p', br: 'br', strong: 'strong', b: 'strong', em: 'em', i: 'em', u: 'u', ul: 'ul', ol: 'ol', li: 'li', a: 'a' };
+const ALIAS: Record<string, Tag> = { p: 'p', div: 'p', br: 'br', strong: 'strong', b: 'strong', em: 'em', i: 'em', u: 'u', ul: 'ul', ol: 'ol', li: 'li', a: 'a', h3: 'h3', h4: 'h4', table: 'table', thead: 'thead', tbody: 'tbody', tr: 'tr', th: 'th', td: 'td' };
 /** Removed with their content. Everything else that is not allowlisted is unwrapped to its text. */
 const DROP = new Set(['script', 'style', 'iframe', 'frame', 'object', 'embed', 'svg', 'math', 'template', 'noscript', 'img', 'picture', 'video', 'audio', 'canvas', 'head', 'title', 'link', 'meta', 'base', 'textarea', 'select', 'input']);
 const SAFE_HREF = /^(https?:\/\/|\/(?![/\\])|#)/i;
@@ -54,6 +54,8 @@ export function sanitizeHtml(html: string): string {
   return serialise(parse(html));
 }
 
+const textLength = (nodes: SNode[]): number => nodes.reduce((n, x) => n + (typeof x === 'string' ? x.length : textLength(x.children)), 0);
+
 const toReact = (nodes: SNode[]): ReactNode[] =>
   nodes.map((n, i) =>
     typeof n === 'string'
@@ -78,13 +80,20 @@ export function SafeHtml({ html, ...rest }: SafeHtmlProps) {
 
 /* ---------- editor ---------- */
 
-const TOOLS = [
-  { label: 'Bold', cmd: 'bold' },
-  { label: 'Italic', cmd: 'italic' },
-  { label: 'Underline', cmd: 'underline' },
-  { label: 'Bulleted list', cmd: 'insertUnorderedList' },
-  { label: 'Numbered list', cmd: 'insertOrderedList' },
-] as const;
+export type RichTextTool = 'bold' | 'italic' | 'underline' | 'bullet_list' | 'ordered_list' | 'table' | 'h3' | 'h4';
+
+const TABLE = '<table><tbody><tr><td><br></td><td><br></td></tr><tr><td><br></td><td><br></td></tr></tbody></table>';
+/** [CONV] tool names. */
+const TOOLS: Record<RichTextTool, { label: string; cmd: string; arg?: string }> = {
+  bold: { label: 'Bold', cmd: 'bold' },
+  italic: { label: 'Italic', cmd: 'italic' },
+  underline: { label: 'Underline', cmd: 'underline' },
+  bullet_list: { label: 'Bulleted list', cmd: 'insertUnorderedList' },
+  ordered_list: { label: 'Numbered list', cmd: 'insertOrderedList' },
+  table: { label: 'Table', cmd: 'insertHTML', arg: TABLE },
+  h3: { label: 'Heading 3', cmd: 'formatBlock', arg: '<h3>' },
+  h4: { label: 'Heading 4', cmd: 'formatBlock', arg: '<h4>' },
+};
 
 const exec = (cmd: string, arg?: string) => {
   // ponytail: execCommand is deprecated but universally supported; swap for a model-based editor if it is ever removed.
@@ -93,13 +102,15 @@ const exec = (cmd: string, arg?: string) => {
 
 export interface RichTextEditorProps extends FieldBase {
   /** Stored HTML (allowlisted subset). Hostile input is sanitised before display. */
-  value: string;
+  value?: string;
   onChange?: (html: string) => void;
-  /** REQUIRED: max length of the stored HTML. */
+  /** Max text-content characters (not serialised HTML length). */
   maxLength: number;
+  /** Toolbar shows only these tools. */
+  allowed: readonly RichTextTool[];
 }
 
-export function RichTextEditor({ label, name, description, error, isRequired, isDisabled, isReadOnly, value, onChange, maxLength, ...rest }: RichTextEditorProps) {
+export function RichTextEditor({ label, name, description, error, isRequired, isDisabled, isReadOnly, value = '', onChange, maxLength, allowed, ...rest }: RichTextEditorProps) {
   const id = useId();
   const surface = useRef<HTMLDivElement>(null);
   const emitted = useRef(value);
@@ -108,6 +119,7 @@ export function RichTextEditor({ label, name, description, error, isRequired, is
   const [tool, setTool] = useState(0);
   const toolRefs = useRef<(HTMLButtonElement | null)[]>([]);
   const editable = !isDisabled && !isReadOnly;
+  const tools = allowed.filter((t) => Object.hasOwn(TOOLS, t));
   // Same element identity across our own re-renders, so React never touches DOM the user is editing.
   const seedNodes = useMemo(() => toReact(parse(seed.html)), [seed]);
 
@@ -131,14 +143,14 @@ export function RichTextEditor({ label, name, description, error, isRequired, is
 
   const onToolbarKey = (e: KeyboardEvent) => {
     const d = e.key === 'ArrowRight' ? 1 : e.key === 'ArrowLeft' ? -1 : 0;
-    const to = e.key === 'Home' ? 0 : e.key === 'End' ? TOOLS.length - 1 : (tool + d + TOOLS.length) % TOOLS.length;
+    const to = e.key === 'Home' ? 0 : e.key === 'End' ? tools.length - 1 : (tool + d + tools.length) % tools.length;
     if (!d && e.key !== 'Home' && e.key !== 'End') return;
     e.preventDefault();
     setTool(to);
     toolRefs.current[to]?.focus();
   };
 
-  const ownError = error ?? (current.length > maxLength ? msg.maxLength(label, maxLength) : undefined);
+  const ownError = error ?? (textLength(parse(current)) > maxLength ? msg.maxLength(label, maxLength) : undefined);
   const describedBy = [description ? `${id}-d` : '', ownError ? `${id}-e` : ''].filter(Boolean).join(' ') || undefined;
 
   return (
@@ -148,9 +160,9 @@ export function RichTextEditor({ label, name, description, error, isRequired, is
         {isRequired ? <span aria-hidden="true"> *</span> : null}
       </span>
       <div role="toolbar" aria-label={`${label}: formatting`} aria-controls={`${id}-s`} className="lims-rte-toolbar" onKeyDown={onToolbarKey}>
-        {TOOLS.map((t, i) => (
+        {tools.map((k, i) => (
           <button
-            key={t.cmd}
+            key={k}
             ref={(el) => {
               toolRefs.current[i] = el;
             }}
@@ -161,11 +173,11 @@ export function RichTextEditor({ label, name, description, error, isRequired, is
             onMouseDown={(e) => e.preventDefault()}
             onClick={() => {
               surface.current?.focus();
-              exec(t.cmd);
+              exec(TOOLS[k].cmd, TOOLS[k].arg);
               emit();
             }}
           >
-            {t.label}
+            {TOOLS[k].label}
           </button>
         ))}
       </div>

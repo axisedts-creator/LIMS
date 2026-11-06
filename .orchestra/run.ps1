@@ -33,7 +33,7 @@ $Cfg = @{
   arbiter  = @{ model = "opus";   turns = 25 }
 }
 $Allowed = "Read,Edit,Write,Bash(pnpm *),Bash(npm *),Bash(npx *),Bash(node *),Bash(git status*),Bash(git diff*),Bash(git log*),Bash(go *),Bash(docker *),Bash(supabase *),Bash(psql *),Bash(ls*),Bash(cat *),Bash(grep *),Bash(find *),Bash(mkdir *)"
-$TestPat = '(__tests__/|\.test\.|\.spec\.|_test\.go$|^db/tests/|^tests/)'
+$TestPat = '(__tests__/|\.test\.|\.spec\.|_test\.go$|_test\.py$|(^|/)tests?/|(^|/)test_[^/]+\.py$)'
 $TasksFile = Join-Path $StateDir "tasks\$Chunk.json"
 
 function Log($m) {
@@ -43,7 +43,12 @@ function Log($m) {
 function Lock([string]$name) {
   $p = Join-Path $StateDir "locks\$name.lock"
   for ($i = 0; $i -lt 1200; $i++) {
-    try { $fs = [System.IO.File]::Open($p,'CreateNew','Write','None'); $fs.Close(); return $p } catch { Start-Sleep -Milliseconds 500 }
+    try { $fs = [System.IO.File]::Open($p,'CreateNew','Write','None'); $w = New-Object System.IO.StreamWriter($fs); $w.Write("$PID"); $w.Close(); return $p }
+    catch {
+      $owner = (Get-Content $p -ErrorAction SilentlyContinue | Select-Object -First 1)
+      $age = ((Get-Date) - (Get-Item $p -ErrorAction SilentlyContinue).LastWriteTime).TotalSeconds
+      if ($age -gt 60 -and (-not $owner -or -not (Get-Process -Id ([int]$owner) -ErrorAction SilentlyContinue))) { Log "removing stale lock $name"; Remove-Item -Force $p -ErrorAction SilentlyContinue; continue }
+      Start-Sleep -Milliseconds 500 }
   }
   Log "lock $name stuck - delete $p if no other window uses it"; exit 1
 }
@@ -184,7 +189,13 @@ try {
       if (-not (Invoke-Agent "writer" $t.id $brief)) { Set-Status $t.id "blocked"; continue }
       Enforce "writer"; Commit "[writer] $($t.id) impl"; $st = "implemented"; Set-Status $t.id $st
     }
-    if (Test-Path (Join-Path $O "cr\$($t.id).md")) { Log "$($t.id) needs a change request - human"; Set-Status $t.id "blocked"; continue }
+    $crf = Join-Path $O "cr\$($t.id).md"
+    if (Test-Path $crf) {
+      if ((Get-Content $crf -Raw) -match '(?im)^\s*Blocking\?\s*no') {
+        Move-Item -Force $crf (Join-Path $O "cr\$($t.id).nonblocking.md"); Commit "[orchestra] $($t.id) non-blocking CR queued for lead"
+        Log "$($t.id) raised a NON-blocking CR (queued for lead) - continuing"
+      } else { Log "$($t.id) needs a blocking change request - human"; Set-Status $t.id "blocked"; continue }
+    }
     $disp = Join-Path $O "notes\$($t.id)-dispute.md"
     if (Test-Path $disp) {
       # reviewer arbitrates against the spec; a wrong test is fixed by the tester, never by the writer
@@ -195,12 +206,12 @@ try {
       $ruling = if (Test-Path $rf) { (Get-Content $rf -TotalCount 1).Trim() } else { "" }
       Move-Item -Force $disp (Join-Path $O "notes\$($t.id)-dispute-$(Get-Date -Format yyyyMMddHHmm).md")
       Commit "[arbiter] $($t.id) $ruling"
-      if ($ruling -eq "TESTS_WRONG") {
+      if ($ruling -match "^TESTS_WRONG") {
         if (-not (Invoke-Agent "tester" $t.id ($brief + "`nRevise your tests per .orchestra/notes/$($t.id)-ruling.md. Change only what the ruling says."))) { Set-Status $t.id "blocked"; continue }
         Enforce "tester"; Commit "[tester] $($t.id) tests revised per ruling"
         if (-not (Invoke-Agent "writer" $t.id $brief)) { Set-Status $t.id "blocked"; continue }
         Enforce "writer"; Commit "[writer] $($t.id) impl after ruling"
-      } elseif ($ruling -eq "IMPLEMENTATION_WRONG") {
+      } elseif ($ruling -match "^IMPLEMENTATION_WRONG") {
         if (-not (Invoke-Agent "writer" $t.id ($brief + "`nThe tests stand: read .orchestra/notes/$($t.id)-ruling.md and make them pass."))) { Set-Status $t.id "blocked"; continue }
         Enforce "writer"; Commit "[writer] $($t.id) impl per ruling"
       } else { Log "$($t.id) ruling '$ruling' - needs a human (see notes\$($t.id)-ruling.md)"; Set-Status $t.id "blocked"; continue }
@@ -210,7 +221,10 @@ try {
     $round = 0
     while ($st -in @("implemented","changes")) {
       if ($st -eq "changes") {
-        if (-not (Invoke-Agent "writer" $t.id ($brief + "`nApply every item in .orchestra/notes/$($t.id)-review.md."))) { $st = "blocked"; break }
+        $fb = "`nRead .orchestra/notes/$($t.id)-review.md (and .orchestra/notes/$($t.id)-ruling.md if it exists)."
+        if (-not (Invoke-Agent "tester" $t.id ($brief + $fb + " Apply ONLY the items that concern test files; if none, change nothing."))) { $st = "blocked"; break }
+        Enforce "tester"; Commit "[tester] $($t.id) review fixes (tests)"
+        if (-not (Invoke-Agent "writer" $t.id ($brief + $fb + " Apply every item that concerns implementation files; test items were handled by the tester."))) { $st = "blocked"; break }
         Enforce "writer"; Commit "[writer] $($t.id) review fixes"
       }
       $pass = Verify $t

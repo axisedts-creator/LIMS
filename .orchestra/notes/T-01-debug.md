@@ -4,3 +4,4 @@
 - Round 2: run.sh was again absent on disk (prior write lost); recreated infra/tests/run.sh. Verify log still "'sh' is not recognized": run.ps1 `cmd /c` needs sh/bash on PATH (outside my paths, human/orchestrator).
 - Round 3: run.sh absent a third time; recreated. Verify log still "'sh' is not recognized": cmd /c PATH lacks Git usr\bin. Human/orchestrator: add it to PATH or set verify to "bash infra/tests/run.sh".
 - NOT RUN: bash -n / run.sh denied approval. yamllint, ansible-lint, gitleaks availability unknown; missing tool = FAIL by design.
+- Round 4: run.sh missing again; recreated (Glob confirms). Verify log failures: yamllint/ansible-lint not on PATH (env, install needed); gitleaks "leaks found: 2" in infra/ — source unknown, gitleaks run denied approval; grep shows no obvious secret (only age1placeholder... in .sops.yaml). TypeError at test line 232 was list+tuple; current file has tuples, re-verify. Verify cmd (python only) does not run run.sh via sh issue.

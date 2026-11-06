@@ -1,4 +1,4 @@
-// T0A-01 / AC-0A-1.4: monorepo skeleton (02-TRD §1.1). Run: node --test tests/monorepo/skeleton.test.mjs
+// T0A-01 / AC-0A-1.4: monorepo skeleton (02-TRD §1.1). Run: node --test tools/lint/tests/monorepo-skeleton.test.mjs
 // Structural checks need no deps. The build smoke needs pnpm on PATH + the package registry (nothing else).
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
@@ -6,7 +6,7 @@ import { readFileSync, existsSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 
-const root = fileURLToPath(new URL('../../', import.meta.url));
+const root = fileURLToPath(new URL('../../../', import.meta.url));
 const p = (f) => root + f;
 const text = (f) => { assert.ok(existsSync(p(f)), `${f} must exist`); return readFileSync(p(f), 'utf8'); };
 const json = (f) => { try { return JSON.parse(text(f)); } catch (e) { assert.fail(`${f} must be valid JSON: ${e.message}`); } };

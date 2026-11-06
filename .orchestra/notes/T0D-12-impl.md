@@ -1,0 +1,7 @@
+# T0D-12 impl
+- Files: packages/ui/src/components/<Name>/{<Name>.tsx,<Name>.stories.tsx} for 41 batch-1 components (+ Icon, Form/{FormContext,ErrorSummary}.tsx, _shared/*), kit.css; packages/ui/{package.json,tsconfig.json}; assets/fonts (copied from @fontsource 5.3.0, OFL-1.1).
+- Review round: added Tooltip (RAC TooltipTrigger+Focusable, 500ms hover delay, opens on focus, Esc), Popover (RAC DialogTrigger+Pressable+modal Popover, heading names dialog, useRestoreFocus), Spinner (role=status, msg.loading default; Button reuses it with asStatus=false), Badge (tone via lims-tone-*, data-tone). Money now `readonly amountPaisa` / `readonly currency: 'NPR'` (03:1103), local copy marked ponytail until @lims/shared-ts exports it.
+- [CONV] Pins: react 19.3.1, react-aria-components 1.22.1, vitest 5.1.0, jsdom 31.0.0, RTL 16.3.3, user-event 14.6.8, axe-core 4.14.0. pnpm-lock.yaml (0A) not touched; CR filed: .orchestra/cr/T0D-12.md (no local lockfile edit existed to revert).
+- [CONV] Select popover non-modal; Tabs optional children in tabpanel; PageHeader unsafe hrefs render as text; ConfirmDialog non-dismissable; unspecified status labels marked in StatusChip; useRestoreFocus restores in microtask when focus fell to <body>.
+- Tests: `npx vitest run` in packages/ui -> 12 files, 343/343 pass. `tsc -p tsconfig.json --noEmit` clean.
+- Open: lockfile CR to 0A (blocking CI); root eslint ignores .tsx; strings in _shared/messages.ts until i18n en.json; no z-tooltip token (tooltip uses z-dropdown); no real-browser keyboard / Devanagari render check.

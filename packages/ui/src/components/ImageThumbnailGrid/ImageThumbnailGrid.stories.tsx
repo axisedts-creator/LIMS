@@ -2,14 +2,13 @@ import { ImageThumbnailGrid } from './ImageThumbnailGrid';
 
 export default { title: 'Data/ImageThumbnailGrid', component: ImageThumbnailGrid };
 
-export const States = {
-  args: {
-    label: 'Case images',
-    onSelect: () => {},
-    images: [
-      { id: 'a', src: '/bff/images/a/content', alt: 'Gross image 1', caption: 'Margin', state: 'ready' },
-      { id: 'b', src: '/bff/images/b/content', alt: 'Gross image 2', state: 'processing' },
-      { id: 'c', src: '/bff/images/c/content', alt: 'Gross image 3', state: 'quarantined' },
-    ],
-  },
+const items = [
+  { id: 'a', src: '/bff/images/a/content', caption: 'Margin', state: 'ready' },
+  { id: 'b', src: '/bff/images/b/content', state: 'scanning' },
+  { id: 'c', src: '/bff/images/c/content', state: 'rejected' },
+] as const;
+
+export const States = { args: { items, captionMaxLength: 200, max: 12 } };
+export const Editable = {
+  args: { items, captionMaxLength: 200, max: 12, onCaptionChange: () => {}, onRemove: () => {}, onReorder: () => {} },
 };

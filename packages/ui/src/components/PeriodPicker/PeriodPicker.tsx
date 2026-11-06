@@ -3,7 +3,7 @@ import { Select } from '../Select/Select';
 import type { FieldBase } from '../_shared/TextInputBase';
 
 export type PeriodPreset =
-  | 'today' | 'yesterday' | 'this_bs_month' | 'last_bs_month' | 'this_fiscal_year' | 'last_fiscal_year' | 'this_ad_month' | 'last_ad_month' | 'custom';
+  | 'today' | 'yesterday' | 'this_bs_month' | 'last_bs_month' | 'this_fy' | 'last_fy' | 'this_ad_month' | 'last_ad_month' | 'custom';
 
 export interface PeriodValue {
   preset: PeriodPreset;
@@ -18,13 +18,12 @@ const LABELS: Record<PeriodPreset, string> = {
   yesterday: 'Yesterday',
   this_bs_month: 'This B.S. month',
   last_bs_month: 'Last B.S. month',
-  this_fiscal_year: 'This fiscal year',
-  last_fiscal_year: 'Last fiscal year',
+  this_fy: 'This fiscal year',
+  last_fy: 'Last fiscal year',
   this_ad_month: 'This A.D. month',
   last_ad_month: 'Last A.D. month',
   custom: 'Custom',
 };
-const ORDER = Object.keys(LABELS) as PeriodPreset[];
 const MAX_DAYS = 366;
 
 const day = (s: string | undefined) => {
@@ -43,14 +42,17 @@ export function periodError(v: PeriodValue): string | undefined {
   return undefined;
 }
 
+/** C8 02-TRD:1093. */
 export interface PeriodPickerProps extends FieldBase {
   value: PeriodValue;
+  /** Only these presets are listed, in this order. */
+  presets: readonly PeriodPreset[];
   onChange: (v: PeriodValue) => void;
   /** Tenant primary calendar; resolution of presets to dates is the server's (period.label_ad / label_bs). */
   calendar: 'AD' | 'BS';
 }
 
-export function PeriodPicker({ label, name, description, error, isRequired, isDisabled, isReadOnly, value, onChange, calendar: _calendar, ...rest }: PeriodPickerProps) {
+export function PeriodPicker({ label, name, description, error, isRequired, isDisabled, isReadOnly, value, presets, onChange, calendar: _calendar, ...rest }: PeriodPickerProps) {
   const id = useId();
   const rangeError = periodError(value);
   const shown = error ?? rangeError;
@@ -76,7 +78,7 @@ export function PeriodPicker({ label, name, description, error, isRequired, isDi
         label={label}
         name={`${name}.preset`}
         value={value.preset}
-        options={ORDER.map((p) => ({ value: p, label: LABELS[p] }))}
+        options={presets.filter((p) => Object.hasOwn(LABELS, p)).map((p) => ({ value: p, label: LABELS[p] }))}
         onChange={(p) => onChange(p === 'custom' ? { preset: p, ...(value.from ? { from: value.from } : {}), ...(value.to ? { to: value.to } : {}) } : { preset: p })}
         {...(description ? { description } : {})}
         {...(isRequired ? { isRequired } : {})}

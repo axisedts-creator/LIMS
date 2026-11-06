@@ -1,9 +1,8 @@
 import { PdfFileCard } from './PdfFileCard';
 
-export default { title: 'Data/PdfFileCard', component: PdfFileCard, args: { fileName: 'scan-001.pdf', sizeBytes: 1048576, pageCount: 3 } };
+export default { title: 'Data/PdfFileCard', component: PdfFileCard, args: { filename: 'scan-001.pdf', sizeBytes: 1048576, pageCount: 3 } };
 
-export const Scanning = { args: { state: 'scanning' } };
-export const Ready = { args: { state: 'ready' } };
-export const Quarantined = { args: { state: 'quarantined' } };
-export const Rejected = { args: { state: 'rejected', rejectReason: 'too_many_pages' } };
-export const Confirmed = { args: { state: 'confirmed', confirmedBy: 'Asha Test', confirmedAt: '2026-11-06T04:15:00Z' } };
+// stateLabel copy is the caller's (C6 04-UI-UX:115-121).
+export const Scanning = { args: { state: 'scanning', stateLabel: 'Checking the file for viruses…', tone: 'info' } };
+export const Ready = { args: { state: 'ready', stateLabel: 'Ready. Open it and confirm it belongs to this patient.', tone: 'warning', onDownload: () => {} } };
+export const Quarantined = { args: { state: 'quarantined', stateLabel: 'This file was blocked by the virus scanner and has been isolated.', tone: 'danger' } };

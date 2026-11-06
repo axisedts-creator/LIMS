@@ -64,7 +64,7 @@ describe('deriveAccent', () => {
   });
 
   it('subtle = accent mixed 8% with white', () => {
-    expect(deriveAccent('#000000').subtle).toBe('#141414'); // round(255 * 0.08) = 20
+    expect(deriveAccent('#000000').subtle).toBe('#EBEBEB'); // 8% accent + 92% white: 255 - round(255 * 0.08) = 235
     expect(deriveAccent('#FFFFFF').subtle).toBe('#FFFFFF');
   });
 

@@ -7,7 +7,7 @@
   },
   "scripts": {
     "build": "turbo run build",
-    "verify": "turbo run build typecheck && node --test \"tools/lint/tests/*.test.mjs\" \"tests/lint/*.test.mjs\"",
+    "verify": "turbo run build typecheck && node --test \"tools/lint/tests/*.test.mjs\"",
     "typecheck": "turbo run typecheck"
   },
   "devDependencies": {

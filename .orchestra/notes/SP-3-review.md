@@ -1,13 +1,12 @@
-CHANGES
+APPROVE
 
-Scope: `git diff 43dc048..HEAD` holds only fed04e5 (rename `.orchestra/cr/SP-3.md` -> `SP-3.nonblocking.md`). The SP-3 deliverable (83979b8 record, cf4d0b9 tests) predates the base, so it was reviewed at HEAD as well.
+Scope: `git diff 43dc048..HEAD` = fed04e5 (CR rename to `.orchestra/cr/SP-3.nonblocking.md`), 9098688 (prior review), 9f1a5d0 (writer fix). SP-3 deliverable itself (83979b8, cf4d0b9) was reviewed at HEAD in the prior round; no change to its substance since.
 
-1. db/meta/decisions/SP-3.md:5 — dangling reference after the rename: "CR `.orchestra/cr/SP-3.md` fills the 05-SCHEMA §1 placeholder." Fix: replace `.orchestra/cr/SP-3.md` with `.orchestra/cr/SP-3.nonblocking.md`. (Same stale path in .orchestra/notes/SP-3-impl.md:2; writer may update its own note.)
+Prior CHANGES item 1 resolved:
+- db/meta/decisions/SP-3.md:5 now references `.orchestra/cr/SP-3.nonblocking.md`; file exists. Same fix in .orchestra/notes/SP-3-impl.md:2.
+- No remaining `cr/SP-3.md` references outside `.orchestra/logs/` (historical) and this note's history.
 
-Checked, no defect:
-- done_when met: Harness = pgtap 1.3.3 (test DBs only, bootstrap never creates it, matches 05-SCHEMA §1 l.76); pg_trgm 1.6 available, created WITH SCHEMA extensions (05-SCHEMA §1 l.73, REQ-ARCH-023), no CR to C4; btree_gin 1.3 (08 A31.1) with tenant-leading gin index built; GoTrue/Storage/PostgREST login roles recorded (supabase_auth_admin, supabase_storage_admin, authenticator) with database + GRANT CONNECT answer for review C0 m#36 (05-SCHEMA §1 l.78-80).
-- Names cross-checked against spec (app.uuidv7, @lims/shared-ts/uuidv7, 08 A31.1, m#36, REQ-ARCH-023); nothing invented. pg_uuidv7 absence handled without new mechanism.
-- No secrets (`<scratch>` placeholder), synthetic scratch DBs only, container bound to 127.0.0.1. No RLS/permission/error-code surface in this task.
-- Path: db/meta/decisions/SP-3.md is the path named in the task brief (same as SP-1/SP-2); tests in tests/spikes/ as SP-1/SP-2.
+Re-checked:
+- done_when still met (pgtap 1.3.3 harness for test DBs only; pg_trgm 1.6 in `extensions`; btree_gin 1.3; GoTrue/Storage/PostgREST login roles supabase_auth_admin, supabase_storage_admin, authenticator + GRANT CONNECT recorded).
+- Only owned/role-permitted paths touched (db/meta/decisions/SP-3.md, writer's own impl note, orchestra rename by orchestra). No secrets, no PHI, nothing invented. No RLS/permission/error-code surface in this task.
 - Tests: `node --test tests/spikes/SP-3.decision.test.mjs` run by reviewer: 15/15 pass. Structural only; live image behaviour not re-run.
-- Open points (services not started, POSTGRES_DB rename, pgtap schema) are declared and routed to SP-5/T0A-09/T0B-08; acceptable for a spike.

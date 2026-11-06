@@ -1,0 +1,14 @@
+node_modules/
+dist/
+build/
+.turbo/
+coverage/
+.env
+.env.*
+*.pem
+*.key
+supabase/.temp/
+.orchestra/inbox/
+.orchestra/logs/
+.orchestra/out/
+.orchestra/lock-*

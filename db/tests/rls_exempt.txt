@@ -1,0 +1,6 @@
+# Tables in module schemas without ENABLE + FORCE ROW LEVEL SECURITY, with the reason (AC-0B-2.1; CV §5.8). Format: <schema.table><whitespace><reason>
+core.g_permissions          global permission registry; no tenant data (CV §5.8)
+core.g_system_actors        global system-actor ids; no tenant data
+core.g_task_registry        global task identifiers; no tenant data
+audit.g_cs_access_actions   global coded set; no tenant data
+core.rate_limit_counters    UNLOGGED hashed counters; no grants to any app role; accessed only via app.ratelimit_hit (04 S11)

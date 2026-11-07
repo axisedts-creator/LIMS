@@ -79,6 +79,7 @@ export function createDeadLetters(deps: DeadLetterDeps) {
 
     let rows: any[];
     if (i.platformRows === true) {
+      if (i.tenantId !== undefined) return { items: [] }; // platform rows have tenant_id IS NULL: combined filter matches nothing
       ({ rows } = await tx.query(`SELECT ${COLS} FROM app.dl_list_platform($1, $2, $3, $4, $5, $6, $7)`, [
         i.state ?? null, i.taskIdentifier ?? null, i.deadAtFrom ?? null, i.deadAtTo ?? null, after?.k ?? null, after?.i ?? null, limit + 1,
       ]));

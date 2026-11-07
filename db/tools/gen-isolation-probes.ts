@@ -11,7 +11,7 @@ import { readYaml, rootDir, type TableMeta } from "./sql-lib.ts";
 
 const TOOL = "gen-isolation-probes";
 const IDENT = /^[a-z_][a-z0-9_]*\.[a-z_][a-z0-9_]*$/;
-const CLASSES = new Set(["M", "C", "B", "A", "E", "G"]); // CV §5.2 table classes
+const CLASSES = new Set(["M", "C", "B", "A", "E", "G", "R"]); // CV §5.2 table classes (R: CR-C8-003)
 const ACTORS = ["partner", "portal", "patient"] as const;
 const SCOPE_USER_ONLY = new Set(["core.membership_centres", "core.membership_branches"]); // tables with BEFORE INSERT app.tg_scope_user_only (LD-21)
 const SUBS: Record<string, string> = { partner: "35", portal: "a3", patient: "34" }; // step-9 fixture actor ids (pg_temp.id keys)
@@ -42,7 +42,7 @@ try {
 const errs: string[] = [];
 for (const [t, d] of Object.entries(tables)) {
   if (!IDENT.test(t)) { errs.push(`invalid table identifier ${JSON.stringify(t)} in tables.yaml (expected schema.table, [a-z0-9_])`); continue; }
-  if (!CLASSES.has(String(d.class))) errs.push(`${t}: unknown class ${JSON.stringify(d.class)} (expected M|C|B|A|E|G)`);
+  if (!CLASSES.has(String(d.class))) errs.push(`${t}: unknown class ${JSON.stringify(d.class)} (expected M|C|B|A|E|G|R)`);
   for (const a of d.shared_with ?? []) if (!(ACTORS as readonly string[]).includes(a)) errs.push(`${t}: shared_with value ${JSON.stringify(a)} not in partner|portal|patient`);
   for (const c of Object.keys(d.columns ?? {})) if (!/^[a-z_][a-z0-9_]*$/.test(c)) errs.push(`${t}: invalid column identifier ${JSON.stringify(c)}`);
 }

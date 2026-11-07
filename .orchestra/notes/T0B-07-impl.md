@@ -1,0 +1,7 @@
+# T0B-07 impl (writer)
+- Files: `db/tools/{check-migrations,check-registry,check-fk-dag,policy-dump,sql-lib}.ts`, `db/meta/{tables,dag,definer-inventory,system-actors}.yaml`. `node --test tests/db/T0B-07.registry-checks.test.mjs`: 58/58 pass.
+- [CONV] `sql-lib.ts` (shared tokenizer: comments stripped, `$tag$` bodies split out, quote-aware `;` split) added to db/tools — not in the brief's file list; avoids 3 copies.
+- [CONV] db/meta/*.yaml = JSON subset of YAML 1.2 + full-line `#` comments; tools parse with JSON.parse (no YAML dependency).
+- [CONV] tables.yaml: PHI of CV §5.3 mandatory columns = P1 (05-SCHEMA §3.1 pattern); association tables list `mandatory_column_exceptions`; `core.tenants` excepts `tenant_id` (check-migrations honours it). dag.yaml: each schema may reference all earlier schemas of the 02-TRD §4.2 stage order. system-actors.yaml: core + the 16 event_inbox schemas (05-SCHEMA §3.9), fresh UUIDv7s. definer-inventory.yaml: the 28 DEFINERs present in migrations today, `reviewer: null`.
+- check-migrations also rejects `NO FORCE ROW LEVEL SECURITY`; DROP allowed without label only for `DROP INDEX CONCURRENTLY IF EXISTS` (recovery file). check-registry checks `db/policies/*.sql` only (canonical set), not migration copies.
+- policy-dump.ts shells out to `psql` with DATABASE_URL (exit 2 without it); not run against a DB. Not done: composite-FK-only, tenant-leading index rule, grants-per-class / triggers / probes (catalog checks, T0B-08), CI wiring of gate 9 (T0A). db/tools is outside eslint/tsc config — no lint/typecheck ran on it.

@@ -11,6 +11,8 @@ export interface AgentsRepo {
   getCentre(tx: Tx, tenantId: string, centreId: string): Promise<{ id: string; centre_kind: string; is_active: boolean } | undefined>;
   insertAgent(tx: Tx, tenantId: string, row: Row): Promise<Row>;
   findAgent(tx: Tx, tenantId: string, agentId: string): Promise<Row | undefined>;
+  /** SELECT … FOR UPDATE on the agent row; serialises concurrent E14 for one agent. */
+  lockAgent(tx: Tx, tenantId: string, agentId: string): Promise<Row | undefined>;
   listAgents(tx: Tx, tenantId: string, q: Row): Promise<Page>;
   findRelease(tx: Tx, releaseId: string): Promise<{ id: string; channel: string; is_active: boolean } | undefined>;
   listReleases(tx: Tx, q: { channel?: string }): Promise<Row[]>;
@@ -89,6 +91,10 @@ export function createAgentsRepo(): AgentsRepo {
     },
     async findAgent(tx, tenantId, agentId) {
       const { rows } = await tx.query(`SELECT ${AGENT_COLS}, ${HEALTH('st')}, ${CREDENTIALS} ${AGENT_FROM} WHERE a.tenant_id = $1 AND a.id = $2`, [tenantId, agentId]);
+      return rows[0];
+    },
+    async lockAgent(tx, tenantId, agentId) {
+      const { rows } = await tx.query(`SELECT id, centre_id, status FROM instruments.agents WHERE tenant_id = $1 AND id = $2 FOR UPDATE`, [tenantId, agentId]);
       return rows[0];
     },
     async listAgents(tx, tenantId, q) {

@@ -205,6 +205,10 @@ export function createAgentsService(deps: { repo?: AgentsRepo; now?: () => Date 
       requireAudit(ctx);
       const agent = await loadAgent(s, input?.agentId, MANAGE);
       if (agent.status === 'retired') throw new LimsError('instruments.agent_not_active');
+      // Row lock: two concurrent E14 calls must not both see zero active codes and each insert one.
+      const locked = await repo.lockAgent(s.tx, s.tenantId, agent.id);
+      if (!locked) throw new LimsError('common.not_found');
+      if (locked.status === 'retired') throw new LimsError('instruments.agent_not_active');
       await repo.revokeCredentials(s.tx, s.tenantId, agent.id, { kinds: ['enrolment_code'], reasonCode: SUPERSEDED_REASON, actorId: s.actorId });
       const { token, secretSha256 } = generateEnrolmentCode();
       const credentialId = uuidv7();

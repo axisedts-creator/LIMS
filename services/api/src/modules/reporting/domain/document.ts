@@ -7,7 +7,7 @@ import { EXCLUDED_AMENDMENT_REASONS, regenerationNote, versionKind, type KindSec
 type Uuidv7 = string;
 type IsoUtc = string;
 
-/** mimeType is optional here: signature refs are minted from IdentityPort.Signatory, which carries no mime type; the render worker reads it with the bytes. */
+/** [CONV] mimeType optional (CR-C6-023, .orchestra/cr/C6-T06.md): signature refs are minted from IdentityPort.Signatory, which carries no mime type; the render worker reads it with the bytes. */
 export type AssetRef = { source: 'branding' | 'signature' | 'narrative_image' | 'instrument_attachment' | 'module_image'; id: string; sha256: string;
   mimeType?: 'image/png' | 'image/jpeg' | 'application/pdf' };
 export interface Signatory { membershipId: Uuidv7; displayName: string; displayTitle?: string; registrationNo?: string; signatureAssetRef?: AssetRef;
@@ -61,10 +61,11 @@ export interface BuildDocumentInput {
   demographics: any;              // FrontdeskPort.PatientDemographics (purpose report_render)
   referrer?: any;                 // CatalogPort.ReferrerProfile (purpose display)
   centre: { code: string; name: string; addressText?: string };
-  settings: any;                  // IdentityPort.TenantSettings (branding, calendarDisplay, timezone) [+ printCriticalLabel]
+  settings: any;                  // IdentityPort.TenantSettings (branding, calendarDisplay, timezone)
+  printCriticalLabel: boolean;    // reporting.settings.print_critical_label (02-TRD §10.2)
   signatories: readonly any[];    // IdentityPort.Signatory[]
   config: SignatoryConfig;
-  commentTexts?: Readonly<Record<string, string>>;   // comment code -> resolved text
+  commentTexts?: Readonly<Record<string, string>>;   // `${departmentId}|${code}` -> resolved text
   qrVerifyUrl: string;
   reportedAt: IsoUtc;
   complete: boolean;
@@ -110,7 +111,7 @@ export function buildReportDocument(input: BuildDocumentInput): ReportDocument {
   const panelById = new Map(input.panels.map((p) => [p.id, p]));
   const sigById = new Map(input.signatories.map((s) => [s.membershipId, s]));
   const include = new Set(input.includeOrderItemIds);
-  const printCrit = settings.printCriticalLabel === true;
+  const printCrit = input.printCriticalLabel === true;
 
   // Order-item order from the summary; every included id must be a known item with results (never a silently shorter report).
   const items = (orderSummary.items as any[]).filter((i) => include.has(i.orderItemId));
@@ -138,8 +139,8 @@ export function buildReportDocument(input: BuildDocumentInput): ReportDocument {
     let last: { key: string; block: Block } | undefined;
     for (const testId of item.testIds as string[]) {
       const test = testById.get(testId) ?? fail('test definition missing for an included test');
-      const results = groups.filter((g) => g.testId === testId).flatMap((g) => g.results as any[]).filter((r) => r.status === 'approved');
       const deptId = test.departmentId as string;
+      const results = groups.filter((g) => g.testId === testId).flatMap((g) => g.results as any[]).filter((r) => r.status === 'approved');
       const lines: { line: AnalyteLine; subheading?: string }[] = [];
       const approvers: [string, string][] = [];
       for (const a of [...test.analytes].sort((x: any, y: any) => x.sortOrder - y.sortOrder)) {
@@ -147,7 +148,7 @@ export function buildReportDocument(input: BuildDocumentInput): ReportDocument {
         const r = results.find((x) => x.analyteId === a.id);
         if (!r) continue;
         const name = a.printName ?? a.name;
-        const comment = [r.commentText, ...(r.commentCodes ?? []).map((c: string) => input.commentTexts?.[c])].filter((x) => x && String(x).trim()).join(' ');
+        const comment = [r.commentText, ...(r.commentCodes ?? []).map((c: string) => input.commentTexts?.[`${deptId}|${c}`])].filter((x) => x && String(x).trim()).join(' ');
         const range = r.referenceRangeSnapshot ? formatRefRange(r.referenceRangeSnapshot) : undefined;
         const ml = methodLine(r.methodName);
         const line: AnalyteLine = {

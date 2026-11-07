@@ -32,6 +32,7 @@ export interface AssemblyInput {
   reportedAt: string;
   complete: boolean;
   earlierReleased: boolean;
+  printCriticalLabel: boolean;   // reporting.settings.print_critical_label
   regeneration?: Regeneration;
 }
 
@@ -70,7 +71,8 @@ export async function assembleDocument(ctx: AssemblyCtx, input: AssemblyInput): 
     const rs = (g.results as any[]).filter((r) => r.status === 'approved');
     const codes = [...new Set(rs.flatMap((r) => r.commentCodes ?? []))] as string[];
     const asOf = maxIso(rs.map((r) => r.approvedAt).filter(Boolean));
-    return chunks(codes, COMMENT_BATCH).map((c) => catalog.resolveCommentCodes(ctx, { codes: c, departmentId: g.departmentId, ...(asOf ? { asOf } : {}) }));
+    return chunks(codes, COMMENT_BATCH).map((c) => catalog.resolveCommentCodes(ctx, { codes: c, departmentId: g.departmentId, ...(asOf ? { asOf } : {}) })
+      .then((res) => ({ departmentId: g.departmentId as string, resolved: res.resolved })));
   }));
 
   // T15: ask only for approvers of included results (+ nominees in nominated mode); image bytes are read by the render worker, not here.
@@ -86,15 +88,15 @@ export async function assembleDocument(ctx: AssemblyCtx, input: AssemblyInput): 
     identity.getTenantSettings(ctx, { keys: ['branding', 'calendarDisplay', 'timezone'] }),
   ]);
 
-  // ponytail: comment texts keyed by code only; a code with department-specific texts in two departments of one report gets one text. Key by department if that occurs.
   const commentTexts: Record<string, string> = {};
-  for (const res of commentRes) for (const c of res.resolved) commentTexts[c.code] ??= c.text;
+  for (const res of commentRes) for (const c of res.resolved) commentTexts[`${res.departmentId}|${c.code}`] ??= c.text;
 
   return buildReportDocument({
     orderResults, includeOrderItemIds: input.includeOrderItemIds, orderSummary,
     tests: tests.filter(Boolean), panels, demographics, ...(referrer ? { referrer } : {}),
     centre: input.centre, settings, signatories: sigRes.flat(), config: input.config, commentTexts,
     qrVerifyUrl: input.qrVerifyUrl, reportedAt: input.reportedAt, complete: input.complete, earlierReleased: input.earlierReleased,
+    printCriticalLabel: input.printCriticalLabel,
     ...(input.regeneration ? { regeneration: input.regeneration } : {}),
   });
 }

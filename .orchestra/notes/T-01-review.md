@@ -1,12 +1,7 @@
 APPROVE
-
-Re-review of `645b440..HEAD` (writer commit 84515c8 "T-01 review fixes"), checked against the 3 CHANGES items from 389d38b.
-
-1. Fixed. `infra/tests/static/__pycache__/test_t01_skeleton.cpython-314.pyc` removed from the index; `infra/.gitignore` = `__pycache__/`; `git ls-files infra | grep pycache` is empty.
-2. Fixed. `infra/.gitleaks.toml:8` narrowed to `infra/tests/static/__pycache__/`. Checked with a stale .pyc recompiled into that dir: `gitleaks detect --no-git --source infra` gives "no leaks found", so the path form matches. Stale file deleted afterwards.
-3. Fixed. `infra/tests/run.sh:3` and `infra/README.md:20` now state the LD-17 ansible-lint exception, matching run.sh:14-16.
-
-Earlier checks still hold (THIRD-PARTY-OPS covers 02-TRD s2 GPL/AGPL/MPL tools; schema covers s8.2 ids; placeholder recipients only; no secrets; only `infra/` paths plus own notes; LD-06/LD-17 cited). RLS/permissions/error codes/rate tier: not applicable.
-
-Ran `bash infra/tests/run.sh` locally 2026-11-07: ok gitleaks, ok yamllint, SKIP ansible-lint (CI only), 24 static tests OK, exit 0.
-Not verified by reviewer: ops runner / CI=true run with ansible-lint.
+# T-01 review (reviewer, chunk C3-catalog-pricing) — diff 8d7ad21..a5fe3ef
+- Diff scope: `services/api/src/modules/catalog/__tests__/probes/pending.json` (new, 107 entries) + `.orchestra/notes/T-01-impl.md`. Both owned/allowed paths; pending.json is listed in the task brief files.
+- pending.json is now tracked in git (`git ls-files` confirms), so the earlier ENOENT problem cannot come back.
+- Names: skeleton.test.ts:125 checks every entry is an operationId in contracts/openapi/catalog.yaml with no duplicates; :133 checks the list equals exactly the handlers that still throw common.service_unavailable/not_implemented. Nothing invented.
+- No PHI, no secrets (plain operationId strings). RLS/permissions/idempotency/rate tier: no code change in this diff.
+- Ran: `npx vitest run src/modules/catalog` = 1 file, 47/47 pass.

@@ -1,1 +1,1 @@
-cd /d "%~dp0..\.." && python -I -m unittest discover -s infra/tests/static -p "test_t01_*.py"
+cd /d "%~dp0..\.." && pnpm --filter @lims/api exec vitest run src/modules/catalog/__tests__/unit

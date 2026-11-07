@@ -6,11 +6,13 @@ import { enqueueCbmsSync } from './cbms.repo.js';
 import { getCreditAccount, sumOpenCreditExposure, upsertCreditAccount } from './creditAccounts.repo.js';
 import { insertCreditCharges, listCreditChargesByOrder, voidCreditChargesByIds } from './creditCharges.repo.js';
 import { insertCreditNoteTask } from './creditNoteTasks.repo.js';
-import { findInvoiceForPayment, insertInvoice, listInvoicesByOrder } from './invoices.repo.js';
-import { insertInvoiceLines, listInvoiceLinesByOrder } from './invoiceLines.repo.js';
+import { getCreditNote, listCreditNoteLines, markCreditNotePrinted } from './creditNotes.repo.js';
+import { findInvoiceForPayment, getInvoice, insertInvoice, listInvoicesByOrder, markInvoicePrinted } from './invoices.repo.js';
+import { insertInvoiceLines, listInvoiceLines, listInvoiceLinesByOrder, sumCreditedByLine } from './invoiceLines.repo.js';
 import { findLedgerByIdempotencyKey, insertLedgerEntry, listLedgerForDay, pageLedger, sumLedgerBySession } from './ledger.repo.js';
 import { findActiveOverride } from './overrides.repo.js';
 import { getPaymentMethod } from './paymentMethods.repo.js';
+import { insertPrintLog } from './printLog.repo.js';
 import { getBillingSettings } from './settings.repo.js';
 
 export const billingRepo = {
@@ -22,5 +24,7 @@ export const billingRepo = {
   // BL-T07
   getCreditAccount, sumOpenCreditExposure, upsertCreditAccount, insertCreditCharges, listCreditChargesByOrder, voidCreditChargesByIds,
   listInvoicesByOrder, listInvoiceLinesByOrder, insertCreditNoteTask,
+  // BL-T09
+  getInvoice, listInvoiceLines, sumCreditedByLine, getCreditNote, listCreditNoteLines, markInvoicePrinted, markCreditNotePrinted, insertPrintLog,
 };
 export type BillingRepo = typeof billingRepo;

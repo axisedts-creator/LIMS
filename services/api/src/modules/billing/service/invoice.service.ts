@@ -13,10 +13,11 @@ import { uuidv7 } from '../../../../../../packages/shared-ts/src/uuidv7/index.js
 import { LimsError, isLimsError, type FieldError } from '../../../core/errors.js';
 import { fiscalYearOf } from '../domain/fiscalYear.js';
 import { formatDocumentNumber, seriesKey, type SeriesScope } from '../domain/numberFormat.js';
-import { moneyOf } from '../domain/money/paisa.js';
+import { moneyOf, toPaisa } from '../domain/money/paisa.js';
 import type { BillingEvents } from '../events/publish.js';
 import { billingRepo, type BillingRepo } from '../repository/index.js';
 import { createBalanceService } from './balance.service.js';
+import { lineOf, present, iso, STAFF_DISPLAY, totalsOf } from './invoiceRead.service.js';
 import { computeQuote } from './quote.service.js';
 
 export interface InvoiceCtx {
@@ -25,7 +26,15 @@ export interface InvoiceCtx {
   readonly actor: { readonly type: string; readonly id: string; readonly membershipId?: string };
   readonly tx: unknown;
   readonly now: () => string;
-  readonly ports?: { readonly IdentityPort?: { getTenantSettings(ctx: any, input: { keys: readonly string[] }): Promise<any> } };
+  readonly ports?: {
+    readonly IdentityPort?: {
+      getTenantSettings(ctx: any, input: { keys: readonly string[] }): Promise<any>;
+      assertRole?(ctx: any, req: { permission: string; centreId?: string }): Promise<void>; // print (BL-T09)
+      readBrandingAsset?(ctx: any, input: { assetId: string }): Promise<{ kind: string; mimeType: string; base64: string }>;
+    };
+  };
+  /** core ctx.audit.access: one audit.access_log row on ctx.tx (print, BL-T09). */
+  readonly audit?: { access(entry: { action: string; entityType: string; entityId?: string; centreId?: string; outcome: 'allowed' | 'denied'; detail?: Record<string, string | number | boolean> }): Promise<unknown> };
 }
 interface Counter { allocate(tx: never, input: { tenantId: string; series: string; fiscalYearBs: string; actorId: string; invoiceNoPattern?: string; timezone?: string }): Promise<{ lastNo: number; allocatedAt: string }> }
 
@@ -97,6 +106,25 @@ function checkInput(input: unknown): Record<string, any> {
   if (errors.length) throw invalid(...errors);
   return input;
 }
+
+// ---- print (B3 printInvoice / B6 printCreditNote; 03-APP-FLOW §2.10, 07-SECURITY A6) ----
+export const COPY_MARK = 'Copy of Original / प्रतिलिपि';
+const CANCELLED_BANNER = 'CANCELLED';
+const REPRINT_PERMISSION = 'billing.invoice.reprint';
+const PRINT_REASONS: readonly string[] = ['first_print', 'reprint', 'printer_fault', 'customer_copy'];
+
+function checkPrintInput(raw: unknown, idKey: 'invoiceId' | 'creditNoteId'): { id: string; reasonCode?: string } {
+  const errors: FieldError[] = [];
+  const o = isRec(raw) ? raw : {};
+  if (typeof o[idKey] !== 'string' || !UUID.test(o[idKey])) errors.push(fieldError(idKey === 'invoiceId' ? '/invoice_id' : '/credit_note_id'));
+  const rc = o['reasonCode'];
+  if (rc !== undefined && (typeof rc !== 'string' || !PRINT_REASONS.includes(rc))) errors.push(fieldError('/reason_code'));
+  if (errors.length) throw invalid(...errors);
+  return { id: o[idKey], ...(rc === undefined ? {} : { reasonCode: rc as string }) };
+}
+
+const adDate = (instant: string, timeZone: string): string =>
+  new Intl.DateTimeFormat('en-CA', { timeZone, year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date(instant));
 
 const isRegistrationDuplicate = (e: unknown): boolean => {
   const x = e as { code?: unknown; constraint?: unknown; message?: unknown } | null;
@@ -197,6 +225,118 @@ export function createInvoiceService(deps: { repo?: BillingRepo; counter: Counte
 
     return { invoiceId, invoiceNo, fiscalYearBs: fy.long, issuedAt: allocatedAt, totals: t };
   }
-  return { issue };
+  /**
+   * Print an issued invoice (kind 'invoice') or credit note ('credit_note'). One caller transaction. Order: validate -> load (tenant from ctx; unknown and
+   * another tenant's id both common.not_found) -> assertRole -> port reads (settings, branding images) -> mark*Printed (row lock + print_count + 1 RETURNING:
+   * the number is never a read + 1, so parallel prints are distinct) -> document -> print_log -> activity -> access_log. Any throw rolls all of it back.
+   * print_no >= 2 is always a copy, whatever reason_code the client sends (A6). Fails closed (common.internal) without IdentityPort or ctx.audit.access.
+   */
+  async function printDocument(ctx: InvoiceCtx, kind: 'invoice' | 'credit_note', raw: unknown) {
+    if (typeof ctx?.tenantId !== 'string' || typeof ctx.actor?.id !== 'string' || !ctx.tx) throw new LimsError('auth.unauthenticated');
+    const isInvoice = kind === 'invoice';
+    const { id, reasonCode } = checkPrintInput(raw, isInvoice ? 'invoiceId' : 'creditNoteId');
+    const idp = ctx.ports?.IdentityPort;
+    const audit = ctx.audit;
+    if (!idp?.assertRole || !idp.readBrandingAsset || typeof audit?.access !== 'function') throw new LimsError('common.internal');
+    const tx = ctx.tx as never;
+    const tenantId = ctx.tenantId;
+    const actorId = ctx.actor.id;
+    const load = async (): Promise<Record<string, any> | undefined> => (isInvoice ? repo.getInvoice(tx, { tenantId, invoiceId: id }) : repo.getCreditNote(tx, { tenantId, creditNoteId: id }));
+
+    const found = await load();
+    if (!found) throw new LimsError('common.not_found');
+    const centreId = typeof found['centre_id'] === 'string' ? found['centre_id'] : undefined;
+    await idp.assertRole(ctx, { permission: REPRINT_PERMISSION, ...(centreId === undefined ? {} : { centreId }) });
+
+    const tenant = await idp.getTenantSettings(ctx, { keys: ['branding', 'timezone'] });
+    const b = tenant?.branding;
+    const legalName = [b?.legalName, b?.displayName].find((n) => typeof n === 'string' && n.trim() !== '');
+    if (typeof legalName !== 'string') throw new LimsError('common.internal'); // tenant branding not configured
+    const timezone: string = typeof tenant?.timezone === 'string' ? tenant.timezone : 'Asia/Kathmandu';
+    const images: Array<{ kind: string; mime_type: string; base64: string }> = [];
+    for (const assetId of [b?.logoAssetId, b?.letterheadHeaderAssetId, b?.letterheadFooterAssetId]) { // a failed read aborts the print: no original without its letterhead
+      if (typeof assetId !== 'string') continue;
+      const a = await idp.readBrandingAsset(ctx, { assetId });
+      images.push({ kind: a.kind, mime_type: a.mimeType, base64: a.base64 });
+    }
+    const arr = (v: unknown): string[] => (Array.isArray(v) ? v.filter((x): x is string => typeof x === 'string') : []);
+    const branding = present({ legal_name: legalName, address_lines: arr(b?.addressLines), phones: arr(b?.phones), receipt_footer_note: b?.receiptFooterNote, images });
+
+    // ---- the row lock is taken here; nothing below may fail on user input ----
+    const printNo = isInvoice
+      ? await repo.markInvoicePrinted(tx, { tenantId, invoiceId: id, userId: actorId })
+      : await repo.markCreditNotePrinted(tx, { tenantId, creditNoteId: id, userId: actorId });
+    if (printNo === undefined) throw new LimsError('common.not_found');
+    if (!Number.isSafeInteger(printNo) || printNo < 1) throw new LimsError('common.internal');
+    const row = await load(); // after the lock: status / version are the committed ones
+    if (!row) throw new LimsError('common.internal');
+
+    const copy = printNo > 1;
+    const now = ctx.now();
+    const orderId = row['order_id'];
+    const bal = typeof orderId === 'string' ? await repo.getOrderBalance(tx, { tenantId, orderId }) : undefined;
+    // [CONV] no balance row (cannot happen for an invoiced order) prints a zero payment block rather than guessing
+    const paid = bal ? toPaisa(bal['paid_paisa']) : 0;
+    const due = bal ? toPaisa(bal['invoiced_paisa']) - toPaisa(bal['credited_paisa']) - paid : 0;
+    const common = {
+      branding, dates: { bs: row[isInvoice ? 'invoice_date_bs' : 'credit_note_date_bs'], ad: adDate(iso(row['issued_at']), timezone) },
+      payment_block: { paid: moneyOf(paid), balance_due: moneyOf(due) }, print_no: printNo, ...(copy ? { copy_mark: COPY_MARK } : {}),
+    };
+
+    let document: Record<string, unknown>;
+    let documentNo: string;
+    if (isInvoice) {
+      documentNo = String(row['invoice_no']);
+      const lines = await repo.listInvoiceLines(tx, { tenantId, invoiceId: id });
+      const credited = toPaisa(row['credited_total_paisa']) > 0 ? await repo.sumCreditedByLine(tx, { tenantId, invoiceLineIds: lines.map((l) => String(l['id'])) }) : new Map<string, string>();
+      let cancellation;
+      if (row['status'] === 'cancelled' && row['cancelled_at']) {
+        const cn = row['credit_note_id'] ? await repo.getCreditNote(tx, { tenantId, creditNoteId: String(row['credit_note_id']) }) : undefined;
+        cancellation = present({
+          cancelled_at: iso(row['cancelled_at']), cancelled_by_display: STAFF_DISPLAY, reason_code: row['cancel_reason_code'], reason_text: row['cancel_reason_text'],
+          credit_note_id: row['credit_note_id'], credit_note_no: typeof cn?.['credit_note_no'] === 'string' ? cn['credit_note_no'] : '',
+        });
+      }
+      document = present({
+        id: row['id'], invoice_no: row['invoice_no'], invoice_seq: row['invoice_seq'], series: row['series'], fiscal_year_bs: row['fiscal_year_bs'], invoice_kind: row['invoice_kind'],
+        status: row['status'], is_active: row['is_active'], issued_at: iso(row['issued_at']), invoice_date_bs: row['invoice_date_bs'], branch_id: row['branch_id'], centre_id: row['centre_id'],
+        order_id: row['order_id'], credit_party_id: row['credit_party_id'], is_periodic_credit_bill: row['is_periodic_credit_bill'], referrer_id: row['referrer_id'],
+        buyer: present({ name: row['buyer_name'], pan: row['buyer_pan'], address: row['buyer_address'] }),
+        seller: present({ name: row['seller_name'], pan: row['seller_pan'], address: row['seller_address'] }),
+        lines: lines.map((l) => lineOf(l, credited.get(String(l['id'])))), totals: totalsOf(row), credited_total: moneyOf(toPaisa(row['credited_total_paisa'])), cancellation,
+        print_count: printNo, last_printed_at: now, cbms_state: row['cbms_state'], cbms_cancel_state: row['cbms_cancel_state'], version: row['version'],
+        cancelled_banner: row['status'] === 'cancelled' ? CANCELLED_BANNER : undefined, ...common,
+      });
+    } else {
+      documentNo = String(row['credit_note_no']);
+      const lines = await repo.listCreditNoteLines(tx, { tenantId, creditNoteId: id });
+      document = present({
+        id: row['id'], credit_note_no: row['credit_note_no'], credit_note_seq: row['credit_note_seq'], kind: row['kind'], invoice_id: row['invoice_id'], invoice_no: row['invoice_no'],
+        fiscal_year_bs: row['fiscal_year_bs'], issued_at: iso(row['issued_at']), credit_note_date_bs: row['credit_note_date_bs'], centre_id: row['centre_id'],
+        reason_code: row['reason_code'], reason_text: row['reason_text'],
+        lines: lines.map((l) => ({ invoice_line_id: l['invoice_line_id'], amount: moneyOf(toPaisa(l['net_paisa'])) })),
+        totals: { exempt: moneyOf(toPaisa(row['exempt_paisa'])), taxable: moneyOf(toPaisa(row['taxable_paisa'])), vat: moneyOf(toPaisa(row['vat_paisa'])),
+          other_tax: moneyOf(toPaisa(row['other_tax_paisa'])), net: moneyOf(toPaisa(row['net_paisa'])) },
+        print_count: printNo, cbms_state: row['cbms_state'], version: row['version'], ...common,
+      });
+    }
+
+    await repo.insertPrintLog(tx, {
+      id: uuidv7(), tenant_id: tenantId, ...(centreId === undefined ? {} : { centre_id: centreId }), document_kind: kind, document_id: id, document_no: documentNo,
+      print_no: printNo, is_copy: copy, ...(reasonCode === undefined ? {} : { reason_code: reasonCode }), printed_at: now, created_by: actorId,
+    });
+    await repo.insertActivity(tx, {
+      id: uuidv7(), tenant_id: tenantId, centre_id: centreId ?? null, action: `${kind}_printed`, document_kind: kind, document_id: id, document_no: documentNo,
+      actor_id: actorId, actor_membership_id: ctx.actor.membershipId ?? null, actor_type: ctx.actor.type, occurred_at: now, request_id: ctx.requestId ?? null,
+      details: { print_no: printNo, ...(reasonCode === undefined ? {} : { reason_code: reasonCode }) }, created_by: actorId,
+    });
+    await audit.access({ action: `${kind}.print`, entityType: kind, entityId: id, ...(centreId === undefined ? {} : { centreId }), outcome: 'allowed', detail: { print_no: printNo } });
+
+    return { print_no: printNo, ...(copy ? { copy_mark: COPY_MARK } : {}), document };
+  }
+  const print = (ctx: InvoiceCtx, input: unknown) => printDocument(ctx, 'invoice', input);
+  const printCreditNote = (ctx: InvoiceCtx, input: unknown) => printDocument(ctx, 'credit_note', input);
+
+  return { issue, print, printCreditNote };
 }
 export type InvoiceService = ReturnType<typeof createInvoiceService>;

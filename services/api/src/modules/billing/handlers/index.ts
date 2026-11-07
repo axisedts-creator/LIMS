@@ -29,6 +29,8 @@ export const handlers: Readonly<Record<(typeof OPERATION_IDS)[number], Handler>>
   getInvoice: invoiceHandlers['getInvoice']!,
   getOrderBilling: invoiceHandlers['getOrderBilling']!,
   listInvoicePrints: invoiceHandlers['listInvoicePrints']!,
+  printInvoice: invoiceHandlers['printInvoice']!,
+  printCreditNote: invoiceHandlers['printCreditNote']!,
   recordPayment: ledgerHandlers['recordPayment']!,
   getMyCashSession: ledgerHandlers['getMyCashSession']!,
   closeCashSession: ledgerHandlers['closeCashSession']!,

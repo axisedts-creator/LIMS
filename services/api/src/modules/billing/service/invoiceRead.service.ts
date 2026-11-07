@@ -57,7 +57,7 @@ export function decodeCursor(raw: unknown, sort: string, kind: 'time' | 'int'): 
 }
 
 // ---- row -> DTO ----
-const totalsOf = (r: Record<string, any>) => ({
+export const totalsOf = (r: Record<string, any>) => ({
   gross: moneyOf(toPaisa(r['gross_paisa'])), discount: moneyOf(toPaisa(r['discount_paisa'])), exempt: moneyOf(toPaisa(r['exempt_paisa'])),
   taxable: moneyOf(toPaisa(r['taxable_paisa'])), vat: moneyOf(toPaisa(r['vat_paisa'])), other_tax: moneyOf(toPaisa(r['other_tax_paisa'])), net: moneyOf(toPaisa(r['net_paisa'])),
 });
@@ -66,7 +66,7 @@ const summaryOf = (r: Record<string, any>) => present({
   issued_at: iso(r['issued_at']), invoice_date_bs: r['invoice_date_bs'], centre_id: r['centre_id'], order_id: r['order_id'], credit_party_id: r['credit_party_id'],
   buyer_name: r['buyer_name'], net: moneyOf(toPaisa(r['net_paisa'])), cbms_state: r['cbms_state'],
 });
-const lineOf = (r: Record<string, any>, credited: string | undefined) => present({
+export const lineOf = (r: Record<string, any>, credited: string | undefined) => present({
   id: r['id'], line_no: r['line_no'], line_kind: r['line_kind'], orderable_id: r['orderable_id'], code: r['code'], name: r['name'], department_id: r['department_id'], hs_code: r['hs_code'],
   quantity: r['quantity'], unit_price: moneyOf(toPaisa(r['unit_price_paisa'])), gross: moneyOf(toPaisa(r['gross_paisa'])), discount: moneyOf(toPaisa(r['discount_paisa'])),
   exempt: moneyOf(toPaisa(r['exempt_paisa'])), taxable: moneyOf(toPaisa(r['taxable_paisa'])), vat: moneyOf(toPaisa(r['vat_paisa'])), other_tax: moneyOf(toPaisa(r['other_tax_paisa'])),

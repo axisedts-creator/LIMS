@@ -4,3 +4,4 @@ Fix: none in implementation (would break the other test / review item 1). Existi
 Stopped for tester/lead ruling. 62/63 pass.
 Round 2 (re-run of verify cmd): same single failure, test l.536 vs l.562-565 (psql.j2 `PGHOST=127.0.0.1`, 62/63). `out/T-15-verify.log` is stale (yamllint/gitleaks of T-01 files), not T-15. No impl change; dispute stands, awaiting tester/lead ruling.
 Round 3: re-confirmed from fresh `out/T-15-verify.log` (63 tests, 1 failure, l.536 matched `127.0.0.1` in psql.j2). Test l.565 requires that literal; l.536 forbids it. No impl change; dispute `T-15-dispute.md` stands.
+Round 4: re-read verify log + test. Same single failure: l.536 (no IPv4 literal) vs l.565 (requires `PGHOST=127.0.0.1` in psql.j2). Unsatisfiable together; no impl change. Dispute `T-15-dispute.md` stands, needs tester/lead ruling (proposed l.536 fix: strip 127.0.0.1 first).

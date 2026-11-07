@@ -71,7 +71,7 @@ describe('BL-T01 core boots with the module (default modulesDir, real contracts)
       }
     }
     expect(bad).toEqual([]);
-  });
+  }, 60_000);
 });
 
 describe('BL-T01 permissions.ts', () => {

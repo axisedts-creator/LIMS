@@ -366,6 +366,7 @@ describe('downloadIrdAnnexDocument', () => {
     expect(out.headers['content-disposition']).toMatch(/^attachment/); expect(out.headers['x-content-type-options']).toBe('nosniff'); expect(out.headers['cache-control']).toBe('no-store');
     expect(out.headers['content-type']).toBe('application/pdf');
     expect(s.c.scan).not.toHaveBeenCalled();
+    expect(s.c.audit).not.toHaveBeenCalled(); // 02-TRD §9: no access_log row (platform ctx has no tenantId); platform_events only
     expect(dlEvents()).toEqual([expect.objectContaining({ targetId: s.d.id, targetTenantId: null, actorPlatformStaffId: STAFF_ID, requestId: REQ_ID })]);
     expect(JSON.stringify(dlEvents()[0]!.detail)).toContain(s.a.id);
   });

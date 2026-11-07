@@ -407,7 +407,7 @@ typedef LimsTransport = Future<Object?> Function(
 function genMsw(oas: Docs, domains: string[]) {
   const res = (x: any, ctx: string): { node: any; ctx: string } =>
     isObj(x) && typeof x.$ref === "string" ? (({ node, ctx: c }) => res(node, c))(deref(oas, x.$ref, ctx)) : { node: x, ctx };
-  const lines: { id: string; text: string }[] = [];
+  const lines: { key: string; id: string; text: string }[] = [];
   for (const d of domains) {
     const spec = oas.get(`${d}.yaml`);
     for (const path of Object.keys(spec.paths ?? {}).sort(cmp)) for (const method of METHODS) {
@@ -421,14 +421,15 @@ function genMsw(oas: Docs, domains: string[]) {
       const ex = first !== undefined ? res(first, r.ctx).node?.value : json?.example;
       const url = "*" + path.replace(/\{(\w+)\}/g, ":$1");
       const body = ex === undefined ? `new HttpResponse(null, { status: ${ok} })` : `HttpResponse.json(${JSON.stringify(ex)}, { status: ${ok} })`;
-      lines.push({ id: op.operationId, text: `  // ${op.operationId}\n  http.${method}(${q(url)}, () => ${body}),` });
+      // MSW takes the first match: key maps `:param` to U+FFFF so literal siblings (possible-duplicates) sort before templated ones.
+      lines.push({ key: url.replace(/:\w+/g, "￿"), id: op.operationId, text: `  // ${op.operationId}\n  http.${method}(${q(url)}, () => ${body}),` });
     }
   }
   return `${TS_H}
 import { http, HttpResponse } from "msw";
 
 export const handlers = [
-${lines.sort((a, b) => cmp(a.id, b.id)).map((l) => l.text).join("\n")}
+${lines.sort((a, b) => cmp(a.key, b.key) || cmp(a.id, b.id)).map((l) => l.text).join("\n")}
 ];
 `;
 }

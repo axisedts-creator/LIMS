@@ -1,5 +1,5 @@
 # FD-T03 impl
-- Files: services/api/src/modules/frontdesk/repository/{shared,patients,consents,orders,orderItems,discounts,discountApprovals,trf,flags,bookingLinks,settings,counters}.repo.ts; services/api/package.json + pnpm-lock.yaml (devDependency pg 8.23.1, already in lockfile via graphile-worker).
+- Files: services/api/src/modules/frontdesk/repository/{shared,patients,consents,orders,orderItems,discounts,discountApprovals,trf,flags,bookingLinks,settings,counters}.repo.ts. package.json/pnpm-lock.yaml pg hunks reverted per review (not C4-owned); CR `.orchestra/cr/FD-T03.md` asks C0-0D to add devDependency pg 8.23.1. FD-T03 blocked on that CR.
 - [CONV] Contract as tester assumed: fn(tx, tenantId, ...), raw rows, null/[] on miss; every SQL binds tenant_id = $1 and is schema-qualified (REQ-SEC-024, search_path '').
 - [CONV] insertRow: per-repo constant column allowlist (no identifiers from input); tenant_id always from the argument (row.tenant_id ignored); created_by/updated_by default to app.current_actor_id() when the row omits them; jsonb `discounts` JSON-encoded.
 - [CONV] Counters: single INSERT ... ON CONFLICT DO UPDATE last_value+1 (row lock serialises; gaps on rollback allowed, 03-IC §9.3).

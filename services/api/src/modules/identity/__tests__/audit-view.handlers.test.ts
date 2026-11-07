@@ -4,11 +4,16 @@
 // ASSUMED: services/api/src/modules/identity/handlers/<operationId>.ts exports `<operationId>: Handler` (named; a default export is also accepted);
 // HandlerContext carries tenantId, requestId, actor, centreScope, tx, audit (helpers.ts). Business behaviour: audit-view.service.test.ts.
 import { describe, expect, it } from 'vitest';
+import * as listAuditEntriesMod from '../handlers/listAuditEntries.js';
+import * as getAuditEntryMod from '../handlers/getAuditEntry.js';
+import * as listAccessLogEntriesMod from '../handlers/listAccessLogEntries.js';
+import * as listAuthEventsMod from '../handlers/listAuthEvents.js';
 import { CENTRE_A1, FROM, PHI_SENTINEL, TENANT_A, TO, USER_A, auditRow, accessRow, authRow, idN, makeEnv, readIdentitySpec } from './audit-view.helpers.js';
 
 const OPS = ['listAuditEntries', 'getAuditEntry', 'listAccessLogEntries', 'listAuthEvents'] as const;
 const spec: any = readIdentitySpec();
-const load = async (op: string) => { const m: any = await import(`../handlers/${op}.js`); return (m[op] ?? m.default) as (req: any, ctx: any) => Promise<any>; };
+const MODS: Record<string, any> = { listAuditEntries: listAuditEntriesMod, getAuditEntry: getAuditEntryMod, listAccessLogEntries: listAccessLogEntriesMod, listAuthEvents: listAuthEventsMod };
+const load = async (op: string) => { const m = MODS[op]; return (m[op] ?? m.default) as (req: any, ctx: any) => Promise<any>; };
 const bare = { operationId: 'x', clientIp: '203.0.113.9', log: { info() {}, warn() {}, error() {} } };
 const opMeta = (op: string) => { for (const p of Object.values<any>(spec.paths)) for (const m of Object.values<any>(p)) if (m?.operationId === op) return m; };
 const seed = () => ({ audit_log: [auditRow(1), auditRow(2, { centre_id: CENTRE_A1 })], access_log: [accessRow(1)], auth_events: [authRow(1)] });

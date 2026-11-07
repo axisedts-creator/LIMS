@@ -1,5 +1,14 @@
-CHANGES
-1. services/worker/src/core/replay.ts:616 — replay opens each page tx under core platform claims and then calls `deps.withTenantScope(tx, tenantId, actor, …)`. That use is not allowed. 08 R10 item 4 (as amended by A25 D-214) and 05-SCHEMA.md:314 name exactly two core-internal `withTenantScope` uses outside `identity`: the cron fan-out (A23.1) and `ctx.core.deadLetters.replay` of a tenant row (A23.2). `worker:replay` is not one of them. Fix: drop `withTenantScope` and open the page tx directly with the tenant claims, the same way consumer.ts:102 does: `deps.db.tx({ claims: tenantClaims(actor, tenantId), operation: 'core.replay' }, async (tx) => { …same body… })`. Import `tenantClaims` from './deadletter.js'. The claims shape stays `{sub, tenant_id, actor_type:'system'}`, so replay.test.ts needs no change. Also update the header comment at replay.ts:5 so it no longer cites withTenantScope or 08 A23.1.
-
-Checked OK: names (env vars 02-TRD §11, `core.g_system_actors(module, actor_id, is_active)`, `app.cron_tenant_ids()`, `app.enqueue_job`, `evt.<m>.<type>`, job_key `<event_id>:<m>`); SP-2 parsedCronItems; 90-day guard runs before any DB access; enqueue happens only via app.enqueue_job; logs carry ids and counts only, no PHI; no secrets; only owned paths changed (services/worker/src/**, notes); no existing test modified. vitest 112/112 pass. tsc shows no errors in the new files apart from the CJS-mode errors the writer noted.
-Non-blocking: the events/core/storage/files/audit ports are a throwing "not wired" proxy, and storage/ and uploads/ are still undelivered. A job that touches them dead-letters. This is outside LD-65 scope but must be tracked before the worker is deployed.
+APPROVE
+Round 2. Round-1 defect is fixed: replay.ts no longer calls withTenantScope. Each tenant page tx now opens with `tenantClaims(moduleSystemActor, tenantId)` the same way consumer.ts:81 does, and the header comment cites 08 R10 item 4 / A25 D-214 correctly.
+Checked OK:
+- Names match the spec: `core.event_log` columns per 05-SCHEMA §3201 table, `app.cron_tenant_ids()`, `app.enqueue_job` (identifier, payload, job_key, run_at, max_attempts), `evt.<m>.<type>`, job_key `<event_id>:<m>`, `core.g_system_actors`.
+- SP-2: run() gets parsedCronItems.
+- The 90-day guard and the EVENT_CONSUMERS check run before any DB access.
+- Writes happen only through app.enqueue_job. lims_worker inherits lims_app, which has SELECT on core.event_log (05-SCHEMA §5).
+- Logs carry ids and counts only. No secrets in the diff.
+- The diff only touches owned paths (services/worker/src/**, .orchestra notes/cr). No existing test was modified; only bootstrap.test.ts, replay.test.ts and replay-world.ts were added.
+- vitest: 112/112 pass (`pnpm exec vitest run --root services/worker src/core/__tests__`).
+Non-blocking, track before deploy:
+- The events/core/storage/files/audit ports are a throwing "not wired" proxy until IC X7 is wired. Any job that uses one of them goes to dead letters.
+- main.ts and the replay CLI exit path have no tests.
+- Real RLS and real Graphile run() are not exercised; the tests mock both.

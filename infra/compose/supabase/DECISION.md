@@ -35,11 +35,14 @@ Status of the done-when items (2026-11-07):
   sha256-checked release tarball), `infra/database/pgbackrest/pgbackrest.conf.j2` (repo1 posix + repo2 sftp,
   `aes-256-cbc` on both), `archive_command = 'pgbackrest --stanza=lims archive-push %p'`, role `pgbackrest`
   (timers: full weekly, incr daily, check every 15 min, verify weekly, metrics every minute), `pgbackrest_metrics.sh`.
-- NOT yet run (needs the image build + data-1/dr-1): `pgbackrest check` on both repos, first full + incr backup,
-  `info`/`repo-ls --output=json` field names against real output. Record results here when run.
+- Open, deferred until real hosts exist (blocker B12, LD-34): `pgbackrest check` on both repos, first full + incr
+  backup, `info`/`repo-ls --output=json` field names against real output. Record results here when run.
+- Tarball: release 2.60.0 fetched with curl, sha256 computed with sha256sum and recorded in the Dockerfile ARG
+  (2026-11-07); pgbackrest.org lists v2.60.0 as Current Stable Release (released October 18, 2026).
 
-Multi-repo failure behaviour (03-APP-FLOW s3.3). Source so far: the EDB-hosted pgBackRest guide (secondary,
-read 2026-11-06); the re-check against pgbackrest.org for 2.60 is still OPEN (no network from the writer session):
+Multi-repo failure behaviour (03-APP-FLOW s3.3). Re-checked 2026-11-07 against pgbackrest.org (release notes, 2.60
+is current stable; the archive-push multi-repo note reads: when one repository is failing, `archive-push` cannot
+push ahead to the other repositories unless `archive-async` is enabled). Earlier source: the EDB-hosted guide:
 - `archive-push` tries every reachable repo; when one repo (repo1 or repo2) fails it still returns an error to
   PostgreSQL, so PostgreSQL keeps the segment in `pg_wal` and retries.
 - With `archive-async=y` the async process keeps delivering WAL to the working repo, so a repo1 failure does
@@ -47,6 +50,7 @@ read 2026-11-06); the re-check against pgbackrest.org for 2.60 is still OPEN (no
 - Spool above `archive-push-queue-max` (20GiB): queued WAL is dropped and success is reported -> PITR gap
   until the next full backup (runbook forces one).
 
-WAL volume per day (06 R8, founder item F-10): NOT measured yet. Planning estimate from TRD s9.4 worst case:
-24 GiB/day before compression (1,536 segments x 16 MiB); the size after `compress-type=zst` is the M2
-measurement. Replace this line with the measured value, and apply R8 if repo2 exceeds 60 % of its volume.
+WAL volume per day (06 R8, founder item F-10): open, deferred to data-1 (B12, LD-34); no value is recorded here.
+Planning estimate from TRD s9.4 worst case: 24 GiB/day before compression (1,536 segments x 16 MiB); the size
+after `compress-type=zst` is the M2 measurement. Replace this line with the measured value, and apply R8 if
+repo2 exceeds 60 % of its volume.

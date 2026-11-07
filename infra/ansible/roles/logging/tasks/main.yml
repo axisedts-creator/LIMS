@@ -1,0 +1,113 @@
+---
+# 02-TRD s10.1 (AC-18.1, AC-18.4). Every host ships; the ops host stores.
+# Fails closed: without an ops host nothing could receive the logs.
+- name: Preconditions (an ops host exists, wg IP known)
+  ansible.builtin.assert:
+    that:
+      - groups['ops'] | default([]) | length > 0
+      - hostvars[groups['ops'][0]].wg_ip | default('') | length > 0
+      - wg_ip | default('') | length > 0
+      - env | default('') | length > 0
+      - site | default('') | length > 0
+    fail_msg: "logging: no ops host in the active inventory, or wg_ip/env/site missing"
+
+- name: Directories
+  ansible.builtin.file:
+    path: "{{ item.path }}"
+    state: directory
+    owner: "{{ item.owner | default('root') }}"
+    group: "{{ item.owner | default('root') }}"
+    mode: "{{ item.mode }}"
+  loop:
+    - {path: "{{ logging_dir }}", mode: "0755"}
+    - {path: "{{ logging_etc }}", mode: "0755"}
+    - {path: "{{ logging_fluent_state }}", mode: "0700"}
+    - {path: "{{ logging_fluent_state }}/storage", mode: "0700"}
+    - {path: "{{ logging_fluent_state }}/db", mode: "0700"}
+  loop_control:
+    label: "{{ item.path }}"
+
+- name: Fluent Bit config
+  ansible.builtin.template:
+    src: "{{ logging_src }}/fluent-bit/fluent-bit.conf.j2"
+    dest: "{{ logging_etc }}/fluent-bit.conf"
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Restart fluent-bit
+
+- name: Fluent Bit parsers and scrub filter
+  ansible.builtin.copy:
+    src: "{{ logging_src }}/fluent-bit/{{ item }}"
+    dest: "{{ logging_etc }}/{{ item }}"
+    owner: root
+    group: root
+    mode: "0644"
+  loop: [parsers.conf, scrub.lua]
+  notify: Restart fluent-bit
+
+- name: Fluent Bit compose file
+  ansible.builtin.template:
+    src: compose.fluent-bit.yml.j2
+    dest: "{{ logging_dir }}/compose.fluent-bit.yml"
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Restart fluent-bit
+
+# VictoriaLogs first on the ops host, so the shippers find a listener.
+- name: VictoriaLogs (ops host)
+  when: inventory_hostname == groups['ops'][0]
+  block:
+    - name: VictoriaLogs data directory
+      ansible.builtin.file:
+        path: "{{ logging_vl_data }}"
+        state: directory
+        owner: "65534"
+        group: "65534"
+        mode: "0750"
+
+    - name: VictoriaLogs flags (flags.env, no blank or comment lines)
+      ansible.builtin.set_fact:
+        logging_vl_flags: >-
+          {{ lookup('ansible.builtin.file', logging_src ~ '/victorialogs/flags.env').splitlines()
+          | map('trim') | reject('equalto', '') | reject('match', '^#') | list }}
+
+    - name: VictoriaLogs compose file
+      ansible.builtin.template:
+        src: compose.victoria-logs.yml.j2
+        dest: "{{ logging_dir }}/compose.victoria-logs.yml"
+        owner: root
+        group: root
+        mode: "0644"
+      notify: Restart victoria-logs
+
+    - name: VictoriaLogs up
+      ansible.builtin.command: >-
+        docker compose -f {{ logging_dir }}/compose.victoria-logs.yml
+        up -d --remove-orphans
+      register: logging_vl_up
+      changed_when: logging_vl_up.stderr is search('Creat|Start')
+
+    - name: VictoriaLogs answers on loopback
+      ansible.builtin.uri:
+        url: http://127.0.0.1:9428/health
+      register: logging_vl_health
+      retries: 30
+      delay: 2
+      until: logging_vl_health.status == 200
+
+- name: Fluent Bit up
+  ansible.builtin.command: >-
+    docker compose -f {{ logging_dir }}/compose.fluent-bit.yml
+    up -d --remove-orphans
+  register: logging_fb_up
+  changed_when: logging_fb_up.stderr is search('Creat|Start')
+
+- name: Fluent Bit metrics answer on the wg IP
+  ansible.builtin.uri:
+    url: "http://{{ wg_ip }}:2020/api/v1/health"
+  register: logging_fb_health
+  retries: 30
+  delay: 2
+  until: logging_fb_health.status == 200

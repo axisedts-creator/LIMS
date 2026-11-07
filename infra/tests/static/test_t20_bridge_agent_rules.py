@@ -186,9 +186,14 @@ class ImportedC7RulesTest(unittest.TestCase):
         _lint(self, self.rules, "imported")
 
     def test_import_adds_only_allowed_keys(self):  # severity, team, runbook_url (+ receiver label)
+        # T-20 ruling (TESTS_WRONG): the limit is on what C1 ADDS (02-TRD s11.3 :884); source labels such as
+        # C7's `route` are kept verbatim. Allowed = labels of the same alert in the C7 source
+        # (else at least {route}) + {severity, team, receiver, notify_tenant}.
+        src = _rules(C7_SRC) if C7_SRC.exists() else {}
         for name, r in self.rules.items():
             self.assertFalse(set(r) - {"alert", "expr", "for", "labels", "annotations", "keep_firing_for"}, name)
-            self.assertFalse(set(r["labels"]) - {"severity", "team", "receiver", "notify_tenant"}, "%s: %s" % (name, r["labels"]))
+            allowed = set((src.get(name) or {}).get("labels") or {"route": 1}) | {"severity", "team", "receiver", "notify_tenant"}
+            self.assertFalse(set(r["labels"]) - allowed, "%s: %s" % (name, r["labels"]))
             self.assertNotEqual(r["labels"].get("notify_tenant"), "true", "%s: tenant mail is for BridgeAgentOfflineLong" % name)
 
     def test_alert_import_drift_against_c7_source_when_present(self):  # 02-TRD s11.3 CI job alert-import-drift

@@ -238,6 +238,9 @@ export function makeDoctorsDb(seed: DoctorsSeed = {}) {
       ...mt.facade,
       startedAt: at,
       async query(text: string, values: unknown[] = []): Promise<{ rows: any[] }> {
+        // T-17: mergeDoctor also re-points / drops the merged doctor's price-list assignment. This fake models no price-list tables, so every statement on
+        // catalog.price_list_assignments sees an EMPTY table (the T-15 cases have no assignments); the T-17 cases use helpers/pricingDb.ts instead.
+        if (/\bcatalog\.price_list_assignments\b/i.test(text)) { await tick(); m.base.stmts.push({ txId: mt.id, tenantId, text, values }); return { rows: [] }; }
         if (!DOCTOR_RE.test(text)) return mt.facade.query(text, values);
         await tick();
         m.base.stmts.push({ txId: mt.id, tenantId, text, values });

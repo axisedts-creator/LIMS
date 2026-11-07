@@ -32,8 +32,8 @@ const ISO_UTC = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/;
 const SORTS = new Set(['code', '-code', 'name', '-name', 'report_order', '-report_order']);
 const ptr = (k: string) => `/${k.replaceAll('~', '~0').replaceAll('/', '~1')}`;
 const isUuid = (v: unknown): v is string => typeof v === 'string' && UUID.test(v);
-const pick = (o: Record<string, unknown>, keys: readonly string[]) => Object.fromEntries(keys.filter((k) => o[k] !== undefined).map((k) => [k, o[k]]));
-const compact = (o: Record<string, unknown>) => Object.fromEntries(Object.entries(o).filter(([, v]) => v != null));
+export const pick = (o: Record<string, unknown>, keys: readonly string[]) => Object.fromEntries(keys.filter((k) => o[k] !== undefined).map((k) => [k, o[k]]));
+export const compact = (o: Record<string, unknown>) => Object.fromEntries(Object.entries(o).filter(([, v]) => v != null));
 const iso = (v: unknown) => (v instanceof Date ? v : new Date(String(v))).toISOString();
 
 type Spec = { specimen_type_id: string; container_id: string | null; is_preferred: boolean; min_volume_ul: number | null };
@@ -72,21 +72,21 @@ function checkIfMatch(v: unknown): number {
 const workflowErr = (v: unknown, errors: FieldError[]) => { if (v !== undefined && !isWorkflowType(v)) errors.push(invalid('/workflow_type')); };
 
 /** Query object: declared keys only; `undefined` = absent. */
-function checkQuery(query: unknown, allowed: readonly string[]): Record<string, unknown> {
+export function checkQuery(query: unknown, allowed: readonly string[]): Record<string, unknown> {
   const q = query === undefined ? {} : query;
   if (!isObj(q)) return fail([invalid('')]);
   const bad = Object.keys(q).filter((k) => q[k] !== undefined && !allowed.includes(k));
   if (bad.length) fail(bad.map((k) => unknown(ptr(k))));
   return q;
 }
-const isActiveOf = (v: unknown, errors: FieldError[]): boolean | undefined => {
+export const isActiveOf = (v: unknown, errors: FieldError[]): boolean | undefined => {
   if (v === undefined || v === 'true') return true;
   if (v === 'false') return false;
   if (v === 'all') return undefined;
   errors.push(invalid('/is_active'));
   return undefined;
 };
-const limitOf = (v: unknown, dflt: number, max: number, errors: FieldError[]): number => {
+export const limitOf = (v: unknown, dflt: number, max: number, errors: FieldError[]): number => {
   const n = v === undefined ? dflt : typeof v === 'string' && /^[0-9]{1,3}$/.test(v) ? Number(v) : v;
   if (Number.isInteger(n) && (n as number) >= 1 && (n as number) <= max) return n as number;
   errors.push(invalid('/limit'));

@@ -8,6 +8,8 @@ import { outsourcedHandlers } from './handlers/outsourced.handlers.js';
 import { retryRenderHandlers } from './handlers/retry-render.handlers.js';
 import { settingsHandlers } from './handlers/settings.handlers.js';
 import { templatesHandlers } from './handlers/templates.handlers.js';
+import { portalHandlers } from './handlers/portal.handlers.js';
+import { portalSessionResolver } from './auth/portal.resolver.js';
 import { REPORTING_SYSTEM_PERMISSIONS } from './permissions.js';
 
 /** Read at import, so a bad LIMS_REPORTING_* value fails API boot. */
@@ -17,7 +19,7 @@ export const config = loadReportingConfig(process.env);
 const notImplemented: Handler = async () => ({ status: 501 });
 
 const OPENAPI = 'contracts/openapi/reporting.yaml';
-const implemented: Readonly<Record<string, Handler>> = { ...settingsHandlers, ...outsourcedHandlers, ...narrativeImageHandlers, ...narrativeHandlers, ...templatesHandlers, ...retryRenderHandlers };
+const implemented: Readonly<Record<string, Handler>> = { ...settingsHandlers, ...outsourcedHandlers, ...narrativeImageHandlers, ...narrativeHandlers, ...templatesHandlers, ...retryRenderHandlers, ...portalHandlers };
 
 export const manifest: ModuleManifest = Object.freeze({
   name: 'reporting',
@@ -26,8 +28,5 @@ export const manifest: ModuleManifest = Object.freeze({
     .map((op) => [op, Object.hasOwn(implemented, op) ? implemented[op]! : notImplemented]))),
   produces: Object.freeze(['reporting.report.released.v1', 'reporting.delivery.status_changed.v1']),
   systemPermissions: REPORTING_SYSTEM_PERMISSIONS,
-  authResolvers: Object.freeze({
-    // CR-C6-001 stub: fails closed (not an ok result -> unauthenticated) until the portal resolver task.
-    portalSession: { resolve: async () => ({ ok: false }) },
-  }),
+  authResolvers: Object.freeze({ portalSession: portalSessionResolver }),   // CR-C6-001
 });

@@ -98,7 +98,10 @@ export function makeDb(seed: Seed = {}, opts: { failOn?: Array<{ match: RegExp; 
   const stmts: Stmt[] = []; const jobs: Array<{ identifier: string; payload: any; jobKey: unknown; values: unknown[] }> = [];
 
   const eqFilters = (where: string, values: readonly unknown[]) =>
-    [...where.matchAll(/(?:\b\w+\.)?(\w+)\s*=\s*\$(\d+)(?:::\w+)?/g)].map((m) => [m[1]!, values[Number(m[2]) - 1]] as const).filter(([, v]) => v !== null && v !== undefined);
+    [
+      ...[...where.matchAll(/(?:\b\w+\.)?(\w+)\s*=\s*\$(\d+)(?:::\w+)?/g)].map((m) => [m[1]!, values[Number(m[2]) - 1]] as const),
+      ...[...where.matchAll(/(?:\b\w+\.)?(\w+)\s*=\s*'([^']*)'/g)].map((m) => [m[1]!, m[2]!] as const),   // literal `state = 'confirmed'`
+    ].filter(([, v]) => v !== null && v !== undefined);
   const matches = (r: Row, f: ReadonlyArray<readonly [string, unknown]>) => f.every(([c, v]) => !(c in r) || r[c] === v);
   const tokenValue = (t: string, values: readonly unknown[]): unknown => {
     const p = /\$(\d+)/.exec(t)?.[1]; if (p) return values[Number(p) - 1];

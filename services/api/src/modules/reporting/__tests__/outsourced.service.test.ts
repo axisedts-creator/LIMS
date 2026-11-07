@@ -74,8 +74,10 @@ describe('O1 rejections never store, never persist, never queue — AC-04.2 (inl
     expect(db.files()).toHaveLength(0); expect(storage.objects.size).toBe(0); expect(db.jobs).toHaveLength(0);
   };
   it('scanner hit at upload (EICAR) -> reporting.outsourced_pdf_rejected, nothing stored', async () => {
-    const s = await svc(); const { db, storage, ctx } = env();
+    const s = await svc(); const { db, storage, ctx, metrics } = env();
     expect(code(await rejection(upload(s, ctx, { file: incoming(eicarPdf()) })))).toBe('reporting.outsourced_pdf_rejected'); none(db, storage);
+    // AC-04.2: alert metric increments on the inline path too (same name + label as the worker)
+    expect(metrics.filter((m) => m.name === 'lims_reporting_sandbox_rejections_total' && m.labels?.reason === 'infected')).toHaveLength(1);
   });
   it('> 15 MB -> common.payload_too_large', async () => {
     const s = await svc(); const { db, storage, ctx } = env();
@@ -182,6 +184,15 @@ describe('O4 withdrawOutsourcedReport', () => {
     expect(body).toMatchObject({ state: 'withdrawn', version: 5 });
     expect(db.file(f.id)).toMatchObject({ state: 'withdrawn', withdrawn_reason_code: 'wrong_patient', withdrawn_reason_text: 'synthetic note' });
     expect(db.item(ITEM_1)!.outsourced_ready).toBe(false); expect(db.jobsOf('reporting.assemble_report').length).toBeGreaterThanOrEqual(1);
+  });
+  it('outsourced_ready means exactly ONE confirmed file (TRD §3): confirm A, confirm B -> false; withdraw A -> true again', async () => {
+    const s = await svc(); const a = fileRow({ state: 'ready' }), b = fileRow({ state: 'ready' }); const { db, ctx } = env({ input_files: [a, b] });
+    await s.confirm(ctx, { fileId: a.id, expectedVersion: 1, body: { patient_match_confirmed: true } });
+    expect(db.item(ITEM_1)!.outsourced_ready).toBe(true);
+    await s.confirm(ctx, { fileId: b.id, expectedVersion: 1, body: { patient_match_confirmed: true } });
+    expect(db.item(ITEM_1)!.outsourced_ready).toBe(false);
+    await s.withdraw(ctx, { fileId: a.id, expectedVersion: db.file(a.id)!.version, body: { reason_code: 'wrong_patient' } });
+    expect(db.item(ITEM_1)!.outsourced_ready).toBe(true);
   });
   it('ready (never confirmed) -> withdrawn without touching readiness', async () => {
     const s = await svc(); const f = fileRow({ state: 'ready' }); const { db, ctx } = env({ input_files: [f] });

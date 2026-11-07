@@ -3,3 +3,4 @@ Cause: core request-validator ajv (services/api/src/core/openapi.ts:80-88, stric
 Fix: none in billing code. Needed change is in C0-0D-owned openapi.ts (register `x-coded-set`/`x-extensible` as annotation keywords on the ajv option sets). Editing it violates CLAUDE.md ownership rule.
 Status: BLOCKED on CR .orchestra/cr/BL-T01.md (no resolved-* file yet; openapi.ts unchanged on main since e6f622c). Re-run boot test once CR lands.
 Round 2 recheck 2026-11-07: CR .orchestra/cr/BL-T01.md still unresolved; openapi.ts has no x-coded-set keyword (last change e6f622c). No billing-side fix exists. Still BLOCKED, no code edited.
+Round 3 recheck 2026-11-07: CR .orchestra/cr/BL-T01.md still unresolved (no resolved-* file); openapi.ts still lacks x-coded-set (last change e6f622c). Same failure in verify log. Still BLOCKED, no code edited.

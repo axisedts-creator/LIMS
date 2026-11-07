@@ -17,3 +17,7 @@
 
 ## Round 5
 - Same failure as round 4: decimal.test.mjs:23 rejects `@lims/contracts: workspace:*` (T0A-08-owned package.json). Dispute already in T0A-12-dispute.md, no ruling yet for it (T0A-12-ruling.md covers the older `__PROTO__` dispute). No impl change; stopped.
+
+## Round 6
+- Same failure: decimal.test.mjs:23 rejects `@lims/contracts: workspace:*` (T0A-08-owned package.json). No new ruling on T0A-12-dispute.md (ruling.md is the older `__PROTO__` one).
+- No impl change, tests untouched. Needs a ruling: tester skips `workspace:` values in the exact-pin loop (see dispute.md).

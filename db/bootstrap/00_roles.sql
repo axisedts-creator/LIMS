@@ -22,6 +22,7 @@ GRANT pg_monitor TO lims_monitor;                                        -- CR-C
 GRANT lims_owner     TO lims_migrator WITH INHERIT FALSE, SET TRUE;
 GRANT lims_queue     TO lims_migrator WITH INHERIT FALSE, SET TRUE;
 GRANT lims_reporting_lookup TO lims_migrator WITH INHERIT FALSE, SET TRUE;
+GRANT lims_app       TO lims_migrator WITH INHERIT FALSE, SET TRUE;   -- LD-30 (CR-C0-T0B-09): tenant seeds 010+ SET LOCAL ROLE lims_app
 GRANT lims_app   TO lims_api    WITH INHERIT TRUE,  SET FALSE;
 GRANT lims_app   TO lims_worker WITH INHERIT TRUE,  SET FALSE;
 GRANT lims_queue TO lims_worker WITH INHERIT TRUE,  SET FALSE;

@@ -1,0 +1,57 @@
+# Gate 16 (02-TRD §15.2). Schedule + manual only; never runs PR code.
+name: nightly
+
+on:
+  schedule:
+    - cron: '0 20 * * *' # 01:45 Asia/Kathmandu
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  nightly:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: package.json
+      - name: pnpm install
+        run: corepack enable && pnpm install --frozen-lockfile
+      - name: dev stack
+        run: pnpm dev:up --ci
+      - name: full migrations
+        run: pnpm db:migrate
+      - name: seeds at 1x
+        run: pnpm db:seed --scale 1
+      - name: smoke suite of every chunk
+        run: pnpm turbo run test:smoke
+      - name: E2E journeys that exist (DoD §5.2)
+        run: pnpm turbo run test:e2e
+      - name: isolation suite in full
+        run: pnpm turbo run test:isolation
+      - name: load smoke on 10x seed (reported, not gated until M4)
+        run: |
+          pnpm db:seed --scale 10
+          pnpm turbo run test:load-smoke
+
+  report:
+    needs: nightly
+    if: failure()
+    runs-on: ubuntu-24.04
+    permissions:
+      issues: write
+    steps:
+      - name: open issue labelled nightly
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: gh issue create --label nightly --title "nightly failed $(date -u +%F)" --body "Run: $RUN_URL"

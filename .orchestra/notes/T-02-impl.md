@@ -1,0 +1,7 @@
+# T-02 impl (writer)
+- Files (earlier round): infra/providers/{README.md,generic/*}; inventories/{dev,staging,prod}/*. This round (LD-45/LD-48): new inventories/{prod-lean,staging-lean}/{hosts.yml,known_hosts,group_vars/{all,data,app,dr,ops,backup}.yml}, inventories/DECISION.md; `topology_profile` added to dev(lean)/staging(full)/prod(full) all.yml; infra/README.md + providers/README.md name prod-lean as default.
+- prod-lean: prod-1 (10.77.0.11; data+app+ops) + backup-1 (10.77.0.51; new group `backup`), `dr: {}` (no standby). staging-lean: staging-1 only. [CONV] same env wg subnet as full profile (alternatives, never concurrent); unique RFC 5737 public IPs.
+- [CONV] Memory budget = `host_ram_gib` + `mem_limit_gib` {replicas, gib} on prod-1 in hosts.yml (host-specific). Σ = 25.375 GiB <= 27.2; LD-45 says "about 25.9" — its own item list sums to 25.375.
+- [CONV] `audit_db_name: lims_audit` in lean all.yml (LD-45). Standby off via existing `topology_profile` (standby role), no new flag.
+- Tests (after review fixes ee785a9, LD-48 lean tests added): T-02 suite 33 run, OK, 1 skip (ansible-inventory off CI, LD-17). All review items were test-only; no impl change needed.
+- Open: (1) closed — LD-48 lean tests exist and pass. (2) CR T-11 says repo2/replica on group `dr` (lean: backup-1); LD-48 puts backup-1 in `backup` — T-09/T-11 roles must target `backup` in lean. (3) backup-1 mem budget not given in LD-45. (4) No real provisioning; ansible-inventory not run (LD-17).

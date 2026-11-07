@@ -1,0 +1,11 @@
+---
+- name: Apply bridge sysctl
+  ansible.builtin.command: sysctl -p /etc/sysctl.d/91-lims-bridge.conf
+  changed_when: true
+
+# live-restore keeps containers running across this restart.
+- name: Restart docker
+  ansible.builtin.systemd_service:
+    name: docker
+    state: restarted
+    daemon_reload: true

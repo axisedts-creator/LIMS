@@ -1,0 +1,62 @@
+---
+# yamllint disable rule:line-length
+# Imported from C12
+#   services/worker/src/jobs/inventory/ops/inventory.rules.yml
+# (C12 02-TRD "Alert rules for C1").
+# expr/for verbatim; C1 adds only severity, team, runbook_url (s11.3).
+# The source file is not in this lane yet: transcribed from the TRD
+# table; ci/import-rules.sh overwrites it, alert-import-drift checks.
+groups:
+  - name: inventory
+    rules:
+      - alert: InventoryConsumerFailing
+        expr: >-
+          sum by (event_type) (increase(lims_inventory_consumer_failures_total[15m]))
+          > 0
+        for: 15m
+        labels:
+          severity: page
+          team: ops
+        annotations:
+          summary: >-
+            An inventory event consumer has been failing for 15 min.
+          runbook_url: >-
+            infra/runbooks/inventory.md#inventoryconsumerfailing
+      - alert: InventoryConsumptionLagHigh
+        expr: >-
+          histogram_quantile(0.95, sum by (le, event_type) (rate(lims_inventory_consumption_lag_seconds_bucket[5m])))
+          > 300
+        for: 15m
+        labels:
+          severity: warn
+          team: ops
+        annotations:
+          summary: >-
+            Inventory consumption lag p95 above 5 min for 15 min.
+          runbook_url: >-
+            infra/runbooks/inventory.md#inventoryconsumptionlaghigh
+      - alert: InventoryBalanceDrift
+        expr: >-
+          max by (tenant_id) (lims_inventory_balance_drift_rows) > 0
+        for: 0m
+        labels:
+          severity: page
+          team: ops
+        annotations:
+          summary: >-
+            Inventory balances drift from the movement ledger.
+          runbook_url: >-
+            infra/runbooks/inventory.md#inventorybalancedrift
+      - alert: InventoryUnresolvedBacklog
+        expr: >-
+          max by (tenant_id) (lims_inventory_unresolved_oldest_age_seconds)
+          > 86400
+        for: 5m
+        labels:
+          severity: warn
+          team: ops
+        annotations:
+          summary: >-
+            An unresolved inventory consumption is older than 24 h.
+          runbook_url: >-
+            infra/runbooks/inventory.md#inventoryunresolvedbacklog

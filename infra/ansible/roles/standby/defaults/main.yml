@@ -1,0 +1,34 @@
+---
+# 02-TRD s7.7, s9.5 (T-12, AC-22.1 prerequisite). Physical streaming standby
+# on the first host of group `dr`, CR-C1-002 accepted (`lims_replicator`).
+# LD-45: `lean` has no hot standby (the `dr` group holds the backup host
+# there), dev has an empty `dr` group; both install nothing.
+# Inventory (all.yml): topology_profile 'full' | 'lean' [CONV]. Fails closed
+# (LD-45: lean is the prod default): missing var => no standby, and the
+# tasks assert it is set whenever a dr host exists.
+# CR-C1-T09 option (a): seeded once by pg_basebackup over wg0 as
+# lims_replicator into slot dr1; no backup tool config and no key material
+# on the dr host (AC-12.3). Re-seed after slot invalidation (03-APP-FLOW
+# s3.3) by hand: drop slot dr1 on the primary, empty standby_pgdata, rerun.
+# Secret from secrets_render (s8): lims_replicator_password.
+# Inventory, required when enabled: standby_image_digest (same image digest
+# as the primary db service: a physical standby needs identical binaries
+# and extensions [CONV]).
+standby_enabled: >-
+  {{ (groups['dr'] | default([]) | length > 0)
+  and (topology_profile | default('lean')) == 'full' }}
+standby_container: standby-db
+standby_image: >-
+  registry.lims.internal/lims/postgres-pgbackrest@{{
+  standby_image_digest | default('') }}
+# On dr the `db` disk mounts at /srv/lims/db (luks_volumes) [CONV].
+standby_root: /srv/lims/db/standby
+standby_pgdata: "{{ standby_root }}/pgdata"
+standby_conf_dir: "{{ standby_root }}/conf"
+standby_secret_dir: /run/lims/secrets/standby
+# uid of `postgres` in the image: UNVERIFIED, same value as role pgbackrest.
+standby_pg_uid: "{{ pgbackrest_pg_uid | default(101) }}"
+standby_pg_gid: "{{ pgbackrest_pg_gid | default(102) }}"
+# Role used by the lag metric over the container's local socket
+# (pg_monitor, CR-C1-002).
+standby_metrics_pguser: lims_monitor

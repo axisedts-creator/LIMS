@@ -31,6 +31,9 @@ in an `always` step. Every automated decrypt writes an `ops_audit` line (s8.4).
 
 ## Rotation
 - Leaf certificates: automatic on every `site.yml` run when < 30 days remain.
+  Re-issued leaf names land in the fact `internal_ca_reissued`; role `monitoring`
+  restarts `ops-nginx` when it is listed. The registry consumer (T-23) must do the
+  same for `registry`, else it keeps serving the old certificate until it expires.
 - CA (5 years, or on suspected exposure): generate a new key as above, replace
   `internal_ca_key` in the secret store, delete `/srv/lims/pki/ca.crt` and the leaf
   `cert.pem` files, re-run `site.yml`, redistribute `ca.crt` to registry clients.

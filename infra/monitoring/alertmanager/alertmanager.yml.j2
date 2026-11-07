@@ -64,10 +64,14 @@ route:
       group_interval: 30m
 
 inhibit_rules:
-  # TargetDown{host="data-1"} silences the DB-family alerts from that host.
+  # TargetDown{host="data-1"} silences the DB-family alerts (s11.3 db row)
+  # from that host only; backup/WAL alerts stay live.
+{% set db_family = ['PostgresDown', 'PostgresConnectionsHigh',
+   'PostgresDeadlocks', 'LongRunningTx', 'PgBouncerWaiting',
+   'ReplicationSlotWalRetained', 'PostgresInvalidIndex'] %}
 {% for h in groups['data'] | default([]) %}
   - source_matchers: ['alertname="TargetDown"', 'host="{{ h }}"']
-    target_matchers: ['host="{{ h }}"', 'alertname!="TargetDown"']
+    target_matchers: ['host="{{ h }}"', 'alertname=~"{{ db_family | join('|') }}"']
 {% endfor %}
   # SiteADown silences per-service alerts on every site A host.
   - source_matchers: ['alertname="SiteADown"']

@@ -23,7 +23,9 @@ json_escape() {
   printf '%s' "$s" | LC_ALL=C tr -d '\000-\010\013\014\016-\037\177'
 }
 
-who=${SUDO_USER:-}
+# SUDO_USER is trusted only when actually running as root via sudo (else forgeable).
+who=
+if [[ $EUID -eq 0 && -n "${SUDO_USER:-}" ]]; then who=$SUDO_USER; fi
 [[ -n "$who" ]] || who=$(id -un 2>/dev/null || true)
 [[ -n "$who" ]] || who=${USER:-unknown}
 when=$(date -u +%Y-%m-%dT%H:%M:%SZ)

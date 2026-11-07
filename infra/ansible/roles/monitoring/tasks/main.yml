@@ -144,15 +144,20 @@
     content: "{{ item.content }}\n"
     dest: "/run/lims/secrets/monitoring/{{ item.name }}"
     owner: "{{ item.owner }}"
-    group: root
-    mode: "0400"
+    group: "{{ item.group }}"
+    mode: "{{ item.mode }}"
   loop:
     - name: grafana_admin_password
       content: "{{ grafana_admin_password }}"
       owner: "{{ monitoring_uids.grafana }}"
+      group: root
+      mode: "0400"
+    # nginx worker (uid/gid 101) reads auth_basic_user_file per request
     - name: ops_nginx_htpasswd
       content: "{{ ops_nginx_basic_auth }}"
       owner: root
+      group: "{{ monitoring_uids.ops_nginx }}"
+      mode: "0440"
   no_log: true
   notify: Restart ops stack
 
@@ -179,6 +184,12 @@
     up -d --remove-orphans
   register: monitoring_up
   changed_when: monitoring_up.stderr is search('Creat|Start')
+
+- name: Restart ops nginx after a leaf re-issue (loads the new cert)
+  ansible.builtin.command: >-
+    docker compose -f /srv/lims/monitoring/compose.yml restart ops-nginx
+  when: "'ops-nginx' in internal_ca_reissued | default([])"
+  changed_when: true
 
 - name: Flush handlers before the Grafana API calls
   ansible.builtin.meta: flush_handlers

@@ -28,5 +28,6 @@ monitoring_uids:
   prometheus: 65534
   alertmanager: 65534
   grafana: 472
+  ops_nginx: 101  # nginx worker in the official image
 
 monitoring_src: "{{ role_path }}/../../../monitoring"

@@ -174,7 +174,16 @@
         label: "{{ item.item.name }}"
       when: item.rc != 0
       changed_when: true
+      register: internal_ca_issued
       no_log: true
+
+    # Consumers keep the old cert in memory: they restart on this list
+    # (ops-nginx: roles/monitoring; registry: T-23).
+    - name: Names of re-issued leaves (internal_ca_reissued)
+      ansible.builtin.set_fact:
+        internal_ca_reissued: >-
+          {{ internal_ca_issued.results | selectattr('changed')
+          | map(attribute='item.item.name') | list }}
   always:
     - name: Remove CA key and CSRs from tmpfs (internal_ca_key absent)
       ansible.builtin.file:

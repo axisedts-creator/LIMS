@@ -15,11 +15,13 @@ host    all  all  ::1/128       scram-sha-256
 host    all  all  {{ docker_subnets.db }}  scram-sha-256
 
 # app-1: every db_net container arrives masqueraded to the app-1 wg IP (02-TRD s3.2).
-host    all  all  {{ wg_ip['app-1'] }}/32  scram-sha-256
+host    all  all  {{ hostvars[groups['app'][0]].wg_ip }}/32  scram-sha-256
 
+{% if groups['dr'] | length > 0 %}
 # dr-1: physical standby and the audit-store logical subscription only.
-host    replication        lims_replicator  {{ wg_ip['dr-1'] }}/32  scram-sha-256
-host    {{ app_db_name }}  lims_audit_ship  {{ wg_ip['dr-1'] }}/32  scram-sha-256
+host    replication        lims_replicator  {{ hostvars[groups['dr'][0]].wg_ip }}/32  scram-sha-256
+host    {{ app_db_name }}  lims_audit_ship  {{ hostvars[groups['dr'][0]].wg_ip }}/32  scram-sha-256
+{% endif %}
 
 # Default deny.
 host    all  all  0.0.0.0/0  reject

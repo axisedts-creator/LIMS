@@ -70,7 +70,7 @@ export function createRenderReportVersion(o: RenderPorts): TaskHandler {
       const assets = await collectAssets(ctx, versionId, doc);
       await addCouncils(ctx, doc);
 
-      // 3. Chromium renders the main pages; 4. the sandbox merges the sanitised outside files and stamps the page labels
+      // 3. the renderer service renders the main pages; 4. the sandbox merges the sanitised outside files and stamps the page labels
       const main = await o.renderer.render({ template_id: doc['family'] === 'narrative' ? 'narrative-report' : 'lab-report', variant: 'letterhead',
         template_version_config: json(tv['config']), document: doc, assets });
       const parts: Row[] = [{ kind: 'main', pdf_base64: Buffer.from(main.pdf).toString('base64'), sha256: sha(main.pdf) }];

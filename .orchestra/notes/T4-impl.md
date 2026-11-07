@@ -1,8 +1,8 @@
-# T4 impl (writer) — BLOCKED on manifest registration, CR `.orchestra/cr/T4.md` (CR-C2-020)
-Files: identity/claims/resolver.ts (createClaimsResolver, §6.2 steps 1–4), identity/repository/sessions.repo.ts (resolveSessionRow, DEFINER only), identity/handlers/index.ts (111 fail-closed stubs, ready for the manifest).
-Result: resolver.test.ts 81/81 pass; sessions.repo.test.ts fails to load (no identity/index.ts). With index.ts present all 90 pass but core boot breaks repo-wide (identity.yaml bffSession $ref collision in core bundleRefs) -> index.ts removed, CR filed.
-Manifest to add once CR lands: `{ name:'identity', openapi:'contracts/openapi/identity.yaml', handlers, produces: [], claimsResolver: createClaimsResolver({ db }) }` — core gives modules no db yet (CR open point); interim db must reject common.internal.
-[CONV] IP allowlist via node:net BlockList; IPv4-mapped v6 normalised; unparsable IP/entry never matches; cidr[] accepted as array or pg '{..}' string.
-[CONV] fail closed -> auth.unauthenticated: unknown kind, tenant kind w/o tenant/membership/tenant_status, membership_locked NULL, partner w/o partner_role, platform w/o staff id / known role, non-UUID jwt ids (no DB call), bffKey portal on identity families (no DB call).
-[CONV] support session counted only if support_session_id+tenant+scope set and support_expires_at > now; operation context 'identity_auth' (core tx.ts requires it).
-Pre-existing, unrelated failures in full suite: lab boot.test (LIMS_CORE_ENV config, reporting index.ts no manifest); errors.test timeout under full load (passes alone). tsc: 1 pre-existing error in packages/shared-ts bsdate.
+# T4 impl (writer) — unblocked: CR-C2-020 resolved (option A, core/module.ts LD-53)
+Files: identity/claims/resolver.ts (createClaimsResolver, §6.2 steps 1–4), identity/repository/sessions.repo.ts (resolveSessionRow, DEFINER only), identity/handlers/index.ts (fail-closed stubs), identity/index.ts (NEW manifest: name identity, identity.yaml, handlers, produces [], claimsResolver).
+Result: T4-verify (resolver + sessions.repo) and all src/modules/identity: 13 files / 611 tests pass. Real-modules boot (src/core/__tests__) green with identity present.
+[CONV] core gives module construction no db yet (CR-C2-020 open point, C0-0D): manifest db.identityAuthTx rejects common.internal, so bearerJwt fails closed until core wires ctx.db.
+[CONV] IP allowlist via node:net BlockList; IPv4-mapped v6 normalised; unparsable IP/entry never matches; cidr[] as array or pg '{..}' string.
+[CONV] fail closed -> auth.unauthenticated on missing/unknown kind data, non-UUID ids, portal bffKey; support session only if id+tenant+scope set and expires_at > now.
+Pre-existing (same with/without index.ts): 14 fails in instruments signing/boot/ci-scripts, reporting repository.static, core jwt flipped-char; tsc: 1 error packages/shared-ts bsdate.
+Open: live-DB integration + p95<=3 ms at 500 rps not run (needs docker DB + core db wiring).

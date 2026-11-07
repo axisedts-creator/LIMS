@@ -58,10 +58,10 @@ describe('checkApprove (US-FD-07.3, 07.4)', () => {
     expect(checkApprove({ ...ok, approverMembershipId: 'm-requester' })).toEqual({ ok: false, code: 'frontdesk.discount_self_approval_forbidden' });
   });
   it.each(['approved', 'rejected', 'expired', 'consumed'] as const)('already %s cannot be approved', (status) => {
-    expect(checkApprove({ ...ok, approval: { ...approval, status } }).ok).toBe(false);
+    expect(checkApprove({ ...ok, approval: { ...approval, status } })).toEqual({ ok: false, code: 'common.immutable_record' });
   });
   it('expired by clock (now >= expiresAt) cannot be approved', () => {
-    expect(checkApprove({ ...ok, now: plus(15) }).ok).toBe(false);
+    expect(checkApprove({ ...ok, now: plus(15) })).toEqual({ ok: false, code: 'common.immutable_record' });
     expect(checkApprove({ ...ok, now: plus(14.9) }).ok).toBe(true);
   });
   it('approver not covering the centre cannot approve', () => expect(checkApprove({ ...ok, approverCoversCentre: false }).ok).toBe(false));

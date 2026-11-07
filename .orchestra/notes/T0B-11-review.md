@@ -1,8 +1,7 @@
-CHANGES
+APPROVE
 
-Round 10. Reviewed `git diff 854782b..HEAD` (bbf98d2): LD-52 skip of `*_storage__*.sql` on BOTH `$DB` and `$RDB` is in place in `db/tests/billing_isolatable/T0B-11_billing_isolatable.sh` build_db (lines 38,43,47, comment names CR-C0-T0B-12); only owned paths; no tool, RLS, tenant or billing change; no PHI, no secrets. Earlier items still hold (LD-51 helpers, one-line verify.cmd). `.orchestra/out/T0B-11-verify.log` (19:36, after HEAD 19:31) shows both databases now migrate cleanly, the export/restore steps before line 137 pass, but there is still no `ok - AC-0B-6.4`; the run stops at log line 27:
-`FAIL: non-zero exit for an RLS-restricted role, but not for the RLS reason: ... FATAL:  permission denied for database "postgres" DETAIL:  User does not have CONNECT privilege.`
-
-1. `db/tests/billing_isolatable/T0B-11_billing_isolatable.sh:139` (tester): test fixture defect. `db/bootstrap/01_database.sql` revokes ALL on the database from PUBLIC and grants CONNECT only to the named lims_* roles, so the ad-hoc `t0b11_reader` cannot connect, and the negative RLS test never reaches the tool's `row_security=off` error. Fix: add the grant to the same `SU -c` statement, i.e. `... CREATE ROLE t0b11_reader LOGIN PASSWORD '$RPW'; GRANT CONNECT ON DATABASE $DB TO t0b11_reader; GRANT USAGE ON SCHEMA billing TO t0b11_reader; GRANT SELECT ON ALL TABLES IN SCHEMA billing TO t0b11_reader`. Do not change the assertion at line 143 or `01_database.sql`.
-
-Re-run: the harness re-runs `.orchestra/notes/T0B-11-verify.cmd`. APPROVE once `.orchestra/out/T0B-11-verify.log` shows `ok - AC-0B-6.4`. If a later seed/DDL mismatch appears, follow LD-51.
+Round 11. Reviewed `git diff 854782b..HEAD` (7f9da0b). The round-10 item is fixed: `db/tests/billing_isolatable/T0B-11_billing_isolatable.sh:139` now has `GRANT CONNECT ON DATABASE $DB TO t0b11_reader` in the same `SU -c` statement. The assertion after it is unchanged, and `db/bootstrap/01_database.sql` is untouched.
+The LD-52 storage skip is still in place on BOTH `$DB` and `$RDB` (build_db, with a comment that names CR-C0-T0B-12). The LD-51 helpers and the one-line `.orchestra/notes/T0B-11-verify.cmd` (node test `&&` run-live.cmd) still hold.
+The diff touches only owned paths. No change to the tool, RLS, tenant scope or billing behaviour. No PHI and no secrets.
+Live proof: `.orchestra/out/T0B-11-verify.log` (19:45:50, written after HEAD at 19:41) line 27 reads `ok - AC-0B-6.4: 9 tenant-A table fingerprints match after restore into a migrated empty billing schema, no other tenant's row restored, source unchanged`. The `&&` chain means the node test passed before the live run started.
+Still open, outside T0B-11: CR-C0-T0B-12 (storage migration grant) and the unproven live run of the T0B-12 storage test (see LD-52).

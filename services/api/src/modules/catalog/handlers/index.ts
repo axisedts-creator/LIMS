@@ -38,7 +38,6 @@ export const handlers: Readonly<Record<string, Handler>> = Object.freeze({
   updateInstrumentCodeMap: notImplemented,
   upsertInstrumentCodeMaps: notImplemented,
   ...importsHandlers,
-  commitImport: notImplemented,
   createExport: notImplemented,
   listExports: notImplemented,
   getExport: notImplemented,

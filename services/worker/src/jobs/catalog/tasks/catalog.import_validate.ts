@@ -13,16 +13,16 @@ export const IMPORT_VALIDATE = 'catalog.import_validate';
 const XLSX_CT = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
 const WORKING = ['uploaded', 'scanning', 'validating'];
 const MAX_PRICE = 9_999_999.99;
-const FILE_SHEET = '(file)';                         // [CONV] sheet label for file-level issues
+export const FILE_SHEET = '(file)';                       // [CONV] sheet label for file-level issues
 const CHUNK = 400;                                   // issue rows per INSERT (12 binds each)
 const KNOWN_COLS = ['orderable_code', 'orderable_kind', 'orderable_name', 'department', 'unit_price_npr'];
-const CODE_RE = /^[A-Z0-9][A-Z0-9_\-+.]{0,31}$/;     // orderables__code__ck
+export const CODE_RE =/^[A-Z0-9][A-Z0-9_\-+.]{0,31}$/;     // orderables__code__ck
 
 type Severity = 'error' | 'warning';
 interface Issue { severity: Severity; sheet: string; row_no: number | null; column_key: string | null; issue_code: string; message: string }
 
 // Template text only: never a cell value.
-const MSG: Record<string, string> = {
+export const MSG: Record<string, string> = {
   'file.not_xlsx': 'The file is not a valid .xlsx workbook.',
   'file.zip_unsafe': 'The file structure was rejected as unsafe.',
   'file.macro_present': 'The workbook contains macros, which are not allowed.',
@@ -47,11 +47,11 @@ const MSG: Record<string, string> = {
   'row.price_change_large': 'The price changes by more than the warning threshold.',
 };
 
-const blank = (v: unknown) => v === null || v === undefined || (typeof v === 'string' && v.trim() === '');
-const txt = (v: unknown) => (blank(v) || v instanceof Date ? '' : String(v).trim());
+export const blank = (v: unknown) => v === null || v === undefined || (typeof v === 'string' && v.trim() === '');
+export const txt = (v: unknown) => (blank(v) || v instanceof Date ? '' : String(v).trim());
 
 /** Number or numeric text, 0..MAX, <= 2 decimals. Anything else (commas, symbols, sign, bool, date) is price_invalid. */
-function parsePrice(v: unknown): { paise: number } | { code: 'row.price_invalid' | 'row.price_decimals' } {
+export function parsePrice(v: unknown): { paise: number } | { code: 'row.price_invalid' | 'row.price_decimals' } {
   const invalid = { code: 'row.price_invalid' as const };
   let s: string;
   if (typeof v === 'number') {

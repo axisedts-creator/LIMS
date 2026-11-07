@@ -46,7 +46,7 @@ SELECT is(pg_temp.x('lims_api', pg_temp.tcl(1, 90), NULL, $q$SELECT app.enqueue_
 SELECT is((SELECT count(*) FROM graphile_worker.jobs WHERE key = 'tenant.task:t1:2026-11-07T09:00'), 1::bigint, 'one job enqueued');
 SELECT is(pg_temp.x('lims_api', pg_temp.tcl(1, 90), NULL, $q$SELECT app.enqueue_job('tenant.task', '{"tenant_id":"01900000-0000-7000-8000-000000000001"}', 'tenant.task:t1:2026-11-07T09:00')::text$q$), '', 'second call with the same key succeeds');
 SELECT is((SELECT count(*) FROM graphile_worker.jobs WHERE key = 'tenant.task:t1:2026-11-07T09:00'), 1::bigint, 'AC-0D-5.15: same key enqueues nothing new (dedupe)');
-SELECT is((SELECT max_attempts FROM graphile_worker.jobs WHERE key = 'tenant.task:t1:2026-11-07T09:00'), 5, 'max_attempts defaults to the registry value');
+SELECT is((SELECT max_attempts::int FROM graphile_worker.jobs WHERE key = 'tenant.task:t1:2026-11-07T09:00'), 5, 'max_attempts defaults to the registry value');
 SELECT is(pg_temp.x('lims_api', NULL, NULL, $q$SELECT app.enqueue_job('tenant.task', '{"tenant_id":"01900000-0000-7000-8000-000000000001"}', 'nokey1')::text$q$), 'EP0001:job_tenant_mismatch', 'schema test 22: per_tenant enqueue without tenant claims -> job_tenant_mismatch');
 SELECT is(pg_temp.x('lims_api', pg_temp.tcl(1, 90), NULL, $q$SELECT app.enqueue_job('tenant.task', '{"tenant_id":"01900000-0000-7000-8000-000000000002"}', 'nokey2')::text$q$), 'EP0001:job_tenant_mismatch', 'schema test 22: another tenant''s id in the payload -> job_tenant_mismatch');
 SELECT is(pg_temp.x('lims_api', pg_temp.tcl(1, 90), NULL, $q$SELECT app.enqueue_job('tenant.task', '{}', 'nokey3')::text$q$), 'EP0001:job_tenant_mismatch', 'missing payload tenant_id -> job_tenant_mismatch');

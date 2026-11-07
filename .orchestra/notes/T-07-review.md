@@ -1,9 +1,7 @@
-CHANGES
+APPROVE
 
-Static suite: `python -B -m unittest discover -s infra/tests/static -p "test_t07_*.py"` -> 24/24 OK. Live test not run (no docker here).
-The ini values match 02-TRD s7.6 verbatim. pool_mode=transaction, max_prepared_statements=200, supavisor `!reset null` kept, no secrets in the ini, no `*` database, LD-45 cited, only owned paths edited. The rest is fine.
-
-1. infra/compose/supabase/override.data.yml:30 — the mount source `/run/lims/secrets/pgbouncer/userlist.txt` is rendered by nothing. secrets_render (`infra/ansible/roles/secrets_render/defaults/main.yml:37-38`) and `infra/secrets/schema/*.secrets.schema.yaml:15-21` only deliver `POSTGRES_PASSWORD` as env to data-1. With short-syntax bind mounts, Docker creates a missing source path as a directory, and mounting a directory onto `/etc/pgbouncer/userlist.txt` makes the pgbouncer container fail to start on data-1/prod-1. So the done_when "lims_api authenticates" cannot hold on a real deploy. The writer's note marks this OPEN but no CR was filed, which CLAUDE.md requires ("If something is missing: stop and write a CR"). Exact fix, pick one:
-   (a) Write `.orchestra/cr/T-07.md` (template in spec/program/04-CHANGE-REQUESTS.md) asking the secrets_render/schema owner to render `/run/lims/secrets/pgbouncer/userlist.txt` (mode 0400, content `"pgbouncer" "<POSTGRES_PASSWORD plaintext>"`). It must be plaintext: auth_user logs in to the server itself, so a SCRAM verifier is not enough. Block T-07 on that CR. Or:
-   (b) Remove the userlist volume line and let the pinned edoburu entrypoint write `"$DB_USER" "$DB_PASSWORD"` into its own writable `/etc/pgbouncer/userlist.txt` from the upstream env (already rendered). Then flip `AuthTest.test_auth_file_mounted_from_secrets_tmpfs` to assert there is no mount, and make `test_t07_live.py` start PgBouncer with `-e DB_USER=pgbouncer -e DB_PASSWORD=...` and no userlist mount, so it proves the entrypoint behaviour. This behaviour is UNVERIFIED for the pinned digest and must be proven by the live test before APPROVE.
-   Also update the T-07-impl note to match.
+Re-review after `8453e05` (review fixes). Static suite: `python -B -m unittest discover -s infra/tests/static -p "test_t07_*.py"` -> 24/24 OK. Live test (`LIMS_T07_LIVE=1`) not run (no docker here).
+- ini values match 02-TRD s7.6 verbatim (trailing comments moved to own lines, correctly); pool_mode=transaction, max_prepared_statements=200, auth_user=pgbouncer added (required for auth_query), no `*` database, no secrets, LD-45 cited, only owned paths.
+- `supavisor: !reset null` kept (AC-07.1); pgbouncer pinned digest v1.25.2-p0 >= 1.21.
+- Prior item 1 resolved via option (a): `.orchestra/cr/T-07.md` filed (secrets_render to render `/run/lims/secrets/pgbouncer/userlist.txt`, 0400, plaintext). Infra code unchanged, which is correct for that option.
+- Condition (not a T-07 code defect): deploy of T-07 to data-1/prod-1 is blocked until CR-C1-T07 lands; done_when "lims_api authenticates" and AC-07.3 (C0 AC-0D-2.3 on staging) must be proven by `test_t07_live.py` + staging run after that. AC-07.2 API URLs belong to T-14.

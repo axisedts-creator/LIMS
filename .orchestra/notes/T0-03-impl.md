@@ -1,0 +1,5 @@
+# T0-03 impl
+- Files: db/meta/decisions/T0-03-dependencies.md (LD-04 table, 54 rows, evidence fetched 2026-11-07 from npm/pub.dev/GitHub/Docker Hub/nodejs.org), package.json (+vitest 5.1.0), pnpm-workspace.yaml (+contracts, tools/codegen; allowBuilds esbuild:false), pnpm-lock.yaml, pubspec.yaml (sdk 3.12.0, flutter 3.44.0), packages/shared-dart/pubspec.yaml (sdk 3.12.0, test 1.33.0).
+- [CONV] Flutter 3.44.0 / Dart 3.12.0 = local toolchain (newer stable 3.47.9 exists); k6 replaced by autocannon (k6 is AGPL); decimal row = in-house bigint on Node 26.13.0 (T0A-12); dompurify used under Apache-2.0; no install scripts run (esbuild).
+- Tests: 23/25 pass. Fail 1: pgTAP licence = PostgreSQL License, not in CV §15.2 -> CR .orchestra/cr/T0-03.md. Fail 2: pubspec.lock absent — `dart pub get`/`flutter pub get` were denied permission in this session; run `flutter pub get` at root and commit pubspec.lock.
+- Open: contracts/codegen pin vitest 3.2.4 vs repo 5.1.0 (C0-0C, same CR); nodemailer MIT-0 (same CR); prom-client last release 2024-06-27.

@@ -1,2 +1,8 @@
 packages:
   - packages/*
+  # T0-03: contracts/ and tools/codegen declare npm deps; as workspace members their exact pins land in pnpm-lock.yaml (CV §15.1, REQ-SEC-129).
+  - contracts
+  - tools/codegen
+# T0-03 [CONV]: no dependency install scripts run; esbuild ships its binary via optional platform packages.
+allowBuilds:
+  esbuild: false

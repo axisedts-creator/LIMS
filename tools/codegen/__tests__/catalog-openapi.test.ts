@@ -8,7 +8,9 @@
 // Not testable here: Prism actually serving the file (prism not installed; mock wiring is T0C-08's mocks.test.ts).
 // Assumptions (TRD silent): If-Match is pinned on PATCH/PUT and on the named state-changing actions (publish/retire/discard/
 // verify/merge/end/commit); NOT on creates, read-only POSTs (#3 #36 #51 #60 #82), bulk-upsert/remove, createXDraft (TRD §5.0).
-// `-` in the TRD Idem column = `none`; a POST with `none` needs an `E1 `/`E2 ` x-idempotency-justification (lint rule 4/P-8).
+// `-` in the TRD Idem column: read-only POSTs (#3 #36 #51 #60 #82) = `none` + `E3 ` justification (LD-10, lint rule 4/P-8);
+// non-creating state actions (discard*/verifyDoctor/end*) = `optional` (02-CV §4.5: required only on POSTs that create state;
+// no E-label fits them and none may be faked). Assumption — the writer/lead may rule otherwise.
 import { cpSync, existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
@@ -48,7 +50,7 @@ rows.push(
   ["createAnalyteVersionDraft", "POST", "/analytes/{analyte_id}/versions", M, "required", 201],
   ["updateAnalyteVersionDraft", "PATCH", "/analyte-versions/{analyte_version_id}", M, "none", 200],
   ["publishAnalyteVersion", "POST", "/analyte-versions/{analyte_version_id}/publish", PUB, "required", 200],
-  ["discardAnalyteVersionDraft", "POST", "/analyte-versions/{analyte_version_id}/discard", M, "none", 200],
+  ["discardAnalyteVersionDraft", "POST", "/analyte-versions/{analyte_version_id}/discard", M, "optional", 200],
   ["validateFormula", "POST", "/formulas/validate", R, "none", 200],
 );
 for (const [s, P] of [["reference-range-sets", "ReferenceRangeSet"], ["critical-limit-sets", "CriticalLimitSet"]]) {
@@ -56,7 +58,7 @@ for (const [s, P] of [["reference-range-sets", "ReferenceRangeSet"], ["critical-
     [`list${P}s`, "GET", `/analytes/{analyte_id}/${s}`, R, "none", 200], [`create${P}Draft`, "POST", `/analytes/{analyte_id}/${s}`, M, "required", 201],
     [`get${P}`, "GET", `/${s}/{set_id}`, R, "none", 200], [`replace${P}Bands`, "PUT", `/${s}/{set_id}/bands`, M, "none", 200],
     [`publish${P}`, "POST", `/${s}/{set_id}/publish`, PUB, "required", 200], [`retire${P}`, "POST", `/${s}/{set_id}/retire`, PUB, "required", 200],
-    [`discard${P}Draft`, "POST", `/${s}/{set_id}/discard`, M, "none", 200],
+    [`discard${P}Draft`, "POST", `/${s}/{set_id}/discard`, M, "optional", 200],
   );
 }
 rows.push(
@@ -68,7 +70,7 @@ rows.push(
   ["updateCommentCode", "PATCH", "/comment-codes/{comment_code_id}", M, "none", 200],
   ["searchDoctors", "POST", "/doctors/search", DR, "none", 200], ["listDoctors", "GET", "/doctors", DR, "none", 200],
   ["createDoctor", "POST", "/doctors", DM, "required", 201], ["getDoctor", "GET", "/doctors/{doctor_id}", DR, "none", 200],
-  ["updateDoctor", "PATCH", "/doctors/{doctor_id}", DM, "none", 200], ["verifyDoctor", "POST", "/doctors/{doctor_id}/verify", DM, "none", 200],
+  ["updateDoctor", "PATCH", "/doctors/{doctor_id}", DM, "none", 200], ["verifyDoctor", "POST", "/doctors/{doctor_id}/verify", DM, "optional", 200],
   ["mergeDoctor", "POST", "/doctors/{doctor_id}/merge", DM, "required", 200],
   ["listCreditParties", "GET", "/credit-parties", PR, "none", 200], ["createCreditParty", "POST", "/credit-parties", PM, "required", 201],
   ["getCreditParty", "GET", "/credit-parties/{credit_party_id}", PR, "none", 200], ["updateCreditParty", "PATCH", "/credit-parties/{credit_party_id}", PM, "none", 200],
@@ -80,14 +82,14 @@ rows.push(
   ["upsertPriceListItems", "POST", "/price-list-versions/{price_list_version_id}/items/bulk-upsert", PM, "required", 200],
   ["removePriceListItems", "POST", "/price-list-versions/{price_list_version_id}/items/bulk-remove", PM, "required", 200],
   ["publishPriceListVersion", "POST", "/price-list-versions/{price_list_version_id}/publish", PM, "required", 200],
-  ["discardPriceListVersionDraft", "POST", "/price-list-versions/{price_list_version_id}/discard", PM, "none", 200],
+  ["discardPriceListVersionDraft", "POST", "/price-list-versions/{price_list_version_id}/discard", PM, "optional", 200],
   ["quotePrices", "POST", "/prices/quote", PR, "none", 200],
   ["listSurchargeRules", "GET", "/surcharge-rules", PR, "none", 200], ["createSurchargeRule", "POST", "/surcharge-rules", PM, "required", 201],
-  ["endSurchargeRule", "POST", "/surcharge-rules/{surcharge_rule_id}/end", PM, "none", 200],
+  ["endSurchargeRule", "POST", "/surcharge-rules/{surcharge_rule_id}/end", PM, "optional", 200],
   ["listTaxTypes", "GET", "/tax-types", PR, "none", 200], ["createTaxType", "POST", "/tax-types", PM, "required", 201],
   ["updateTaxType", "PATCH", "/tax-types/{tax_type_id}", PM, "none", 200],
   ["listTaxRules", "GET", "/tax-rules", PR, "none", 200], ["createTaxRule", "POST", "/tax-rules", PM, "required", 201],
-  ["endTaxRule", "POST", "/tax-rules/{tax_rule_id}/end", PM, "none", 200],
+  ["endTaxRule", "POST", "/tax-rules/{tax_rule_id}/end", PM, "optional", 200],
   ["listInstrumentCodeMaps", "GET", "/instrument-code-maps", IM, "none", 200], ["createInstrumentCodeMap", "POST", "/instrument-code-maps", IM, "required", 201],
   ["updateInstrumentCodeMap", "PATCH", "/instrument-code-maps/{map_id}", IM, "none", 200],
   ["upsertInstrumentCodeMaps", "POST", "/instrument-code-maps/bulk-upsert", IM, "required", 200],
@@ -95,7 +97,7 @@ rows.push(
   ["downloadImportTemplate", "GET", "/import-templates/{kind}", R, "none", 200], ["createImport", "POST", "/imports", R, "required", 201],
   ["listImports", "GET", "/imports", R, "none", 200], ["getImport", "GET", "/imports/{import_id}", R, "none", 200],
   ["listImportIssues", "GET", "/imports/{import_id}/issues", R, "none", 200], ["downloadImportReport", "GET", "/imports/{import_id}/report-file", R, "none", 200],
-  ["commitImport", "POST", "/imports/{import_id}/commit", R, "required", 202], ["discardImport", "POST", "/imports/{import_id}/discard", R, "none", 200],
+  ["commitImport", "POST", "/imports/{import_id}/commit", R, "required", 202], ["discardImport", "POST", "/imports/{import_id}/discard", R, "optional", 200],
   ["createExport", "POST", "/exports", R, "required", 202], ["getExport", "GET", "/exports/{export_id}", R, "none", 200],
   ["downloadExportFile", "GET", "/exports/{export_id}/file", R, "none", 200], ["listExports", "GET", "/exports", R, "none", 200],
 );
@@ -130,7 +132,8 @@ const ERRORS: Record<string, string[]> = {
 const KIND_PERM_OPS = ["downloadImportTemplate", "createImport", "listImports", "getImport", "listImportIssues", "downloadImportReport",
   "commitImport", "discardImport", "createExport", "getExport", "downloadExportFile", "listExports"];
 // If-Match: every PATCH/PUT, plus these state-changing actions on an existing resource (TRD §5.0)
-const IFMATCH_ACTIONS = ["publishAnalyteVersion", "discardAnalyteVersionDraft", "verifyDoctor", "mergeDoctor", "publishPriceListVersion",
+const READ_ONLY_POSTS = ["resolveOrderablesPreview", "validateFormula", "previewReferenceRange", "searchDoctors", "quotePrices"];
+const IFMATCH_ACTIONS =["publishAnalyteVersion", "discardAnalyteVersionDraft", "verifyDoctor", "mergeDoctor", "publishPriceListVersion",
   "discardPriceListVersionDraft", "endSurchargeRule", "endTaxRule", "commitImport", "discardImport",
   ...["ReferenceRangeSet", "CriticalLimitSet"].flatMap((P) => [`publish${P}`, `retire${P}`, `discard${P}Draft`])];
 // TRD §5.0: If-Match does NOT apply to read-only POSTs #3 #36 #51 #60 #82 nor creates #97 #104
@@ -270,9 +273,14 @@ describe.each(ROWS)("$id", (r) => {
     expect([undefined, "tenant"]).toContain(o["x-context"]);
     expect([undefined, "internal"]).toContain(o["x-edge-exposure"]);
   });
-  it(`success response ${r.status}; POST with idem none carries an E1/E2 justification`, () => {
+  // LD-10 (2026-11-07): the five read-only POSTs carry the honest `E3 ` (never a false E1/E2); state actions are `optional`.
+  it(`success response ${r.status}; POST with idem none carries an E3 justification (read-only)`, () => {
     expect(Object.keys(o.responses ?? {})).toContain(String(r.status));
-    if (r.method === "POST" && r.idem === "none") expect(o["x-idempotency-justification"]).toMatch(/^E[12] /);
+    if (r.method === "POST" && r.idem === "none") {
+      expect(READ_ONLY_POSTS).toContain(r.id);
+      expect(o["x-idempotency-justification"]).toMatch(/^E3 /);
+    }
+    if (READ_ONLY_POSTS.includes(r.id)) expect(r.idem).toBe("none");
   });
   it("lists the TRD specific error codes; never the retired catalog.import_invalid", () => {
     for (const c of ERRORS[r.id] ?? []) expect(o["x-error-codes"], c).toContain(c);
@@ -282,7 +290,7 @@ describe.each(ROWS)("$id", (r) => {
   it("Idempotency-Key where x-idempotency required; If-Match per TRD §5.0", () => {
     const params = JSON.stringify(o.parameters ?? []);
     if (r.idem === "required") expect(params).toMatch(/IdempotencyKey|Idempotency-Key/);
-    else expect(params).not.toMatch(/IdempotencyKey|Idempotency-Key/);
+    else if (r.idem === "none") expect(params).not.toMatch(/IdempotencyKey|Idempotency-Key/);
     const ifMatch = ["PATCH", "PUT"].includes(r.method) || IFMATCH_ACTIONS.includes(r.id);
     if (ifMatch) expect(params).toMatch(/IfMatch|If-Match/);
     if (NO_IFMATCH.includes(r.id) || r.method === "GET") expect(params).not.toMatch(/IfMatch|If-Match/);

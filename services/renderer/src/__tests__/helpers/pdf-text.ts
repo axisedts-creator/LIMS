@@ -43,9 +43,23 @@ function parseObjects(pdf: Buffer): Map<number, Obj> {
 const refs = (t: string) => [...t.matchAll(/(\d+) 0 R/g)].map((x) => Number(x[1]));
 
 function inlineOrRef(objs: Map<number, Obj>, text: string, key: string): string {
-  const m = new RegExp(`/${key}\\s*(<<[\\s\\S]*?>>|(\\d+) 0 R)`).exec(text);
+  const m = new RegExp(`/${key}\\s*(<<|(\\d+) 0 R)`).exec(text);
   if (!m) return '';
-  return m[2] ? (objs.get(Number(m[2]))?.dict ?? '') : m[1];
+  if (m[2]) return objs.get(Number(m[2]))?.dict ?? '';
+  // balanced << >> scan (Skia nests /ExtGState and /Font dicts inside /Resources)
+  let depth = 0;
+  const start = m.index + m[0].length - 2;
+  for (let i = start; i < text.length - 1; i++) {
+    if (text[i] === '<' && text[i + 1] === '<') {
+      depth++;
+      i++;
+    } else if (text[i] === '>' && text[i + 1] === '>') {
+      depth--;
+      i++;
+      if (depth === 0) return text.slice(start, i + 1);
+    }
+  }
+  return text.slice(start);
 }
 
 function hexToBytes(h: string): number[] {
@@ -132,7 +146,7 @@ function pageOrder(objs: Map<number, Obj>): number[] {
   return [...objs.entries()].filter(([, o]) => /\/Type\s*\/Page\b(?!s)/.test(o.dict)).map(([n]) => n);
 }
 
-/** Text of every page, in page order. Text-showing operators are joined with '\n'. */
+/** Text of every page, in page order. Runs within/between BT…ET blocks are concatenated without separator. */
 export function pdfPages(pdf: Uint8Array): string[] {
   const buf = Buffer.from(pdf);
   const objs = parseObjects(buf);
@@ -153,26 +167,36 @@ export function pdfPages(pdf: Uint8Array): string[] {
       fonts.set(f[1]!, Number(f[2]));
     }
     const cont = /\/Contents\s*(\[[^\]]*\]|\d+ 0 R)/.exec(page.dict)?.[1] ?? '';
-    const content = refs(cont).map((n) => objs.get(n)?.stream?.toString('latin1') ?? '').join('\n');
+    const content = refs(cont)
+      .map((n) => objs.get(n)?.stream?.toString('latin1') ?? '')
+      .join('\n')
+      // marked-content /ActualText (Devanagari clusters) replaces the glyph runs it wraps
+      .replace(/\/Span\s*<<\s*\/ActualText\s*<(?:FEFF)?([0-9A-Fa-f]*)>\s*>>\s*BDC[\s\S]*?EMC/g, (_, h: string) => `\u0001${uni(h)}\u0001`);
     const lines: string[] = [];
+    let blk = '';
     let cur: CMap | undefined;
     const tok =
-      /\/([^\s/<>\[\]()]+)\s+[-\d.]+\s+Tf|\[((?:[^\]\\]|\\.)*)\]\s*TJ|(<[0-9a-fA-F\s]*>|\((?:[^)\\]|\\.)*\))\s*Tj/g;
+      /\/([^\s/<>\[\]()]+)\s+[-\d.]+\s+Tf|\[((?:[^\]\\]|\\.)*)\]\s*TJ|(<[0-9a-fA-F\s]*>|\((?:[^)\\]|\\.)*\))\s*Tj|\u0001([^\u0001]*)\u0001|\b(ET)\b/g;
     for (const t of content.matchAll(tok)) {
       if (t[1] !== undefined) {
         const fn = fonts.get(t[1]);
         cur = fn !== undefined ? fontCMap(fn) : undefined;
       } else if (t[2] !== undefined) {
-        let s = '';
         for (const p of t[2].matchAll(/<([0-9a-fA-F\s]*)>|(\((?:[^)\\]|\\.)*\))/g)) {
-          s += decode(cur, p[1] !== undefined ? hexToBytes(p[1]) : litBytes(p[2]!));
+          blk += decode(cur, p[1] !== undefined ? hexToBytes(p[1]) : litBytes(p[2]!));
         }
-        lines.push(s);
       } else if (t[3] !== undefined) {
-        lines.push(decode(cur, t[3].startsWith('<') ? hexToBytes(t[3].slice(1, -1)) : litBytes(t[3])));
+        blk += decode(cur, t[3].startsWith('<') ? hexToBytes(t[3].slice(1, -1)) : litBytes(t[3]));
+      } else if (t[4] !== undefined) {
+        blk += t[4];
+      } else if (t[5] !== undefined) {
+        lines.push(blk);
+        blk = '';
       }
     }
-    return lines.join('\n');
+    lines.push(blk);
+    // '' join: a font change splits one visual line into several BT blocks
+    return lines.join('');
   });
 }
 

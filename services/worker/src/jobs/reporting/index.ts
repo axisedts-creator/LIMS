@@ -1,5 +1,5 @@
 // reporting worker manifest (02-TRD §3.3, §9). Tasks and per_tenant crons land with their tasks.
-import type { WorkerManifest } from '../../core/manifest.js';
+import type { TaskHandler, WorkerManifest } from '../../core/manifest.js';
 import { handle as catalogChanged } from './consumers/catalog.changed.v1.js';
 import { handle as orderCancelled } from './consumers/frontdesk.order.cancelled.v1.js';
 import { handle as orderCreated } from './consumers/frontdesk.order.created.v1.js';
@@ -21,16 +21,23 @@ const unwiredSandbox = { sanitize: async (): Promise<never> => { throw new Error
 const unwiredRenderer = { render: async (): Promise<never> => { throw Object.assign(new Error('renderer_not_configured'), { code: 'reporting.render_unavailable' }); } };
 const unwiredAssembler = { assemble: async (): Promise<never> => { throw Object.assign(new Error('pdf_sandbox_not_configured'), { code: 'reporting.render_unavailable' }); } };
 
+/** [CONV] Review C6-T09 #1: app.enqueue_job rejects identifiers missing from core.g_task_registry (built from manifest.tasks), so the render task's
+ *  release job needs a registered handler. No-op stub that only logs; the real reporting.release_if_eligible replaces it in its own task. */
+const releaseIfEligibleStub: TaskHandler = async (payload, ctx) => {
+  (ctx as any).log?.info?.({ event: 'release_if_eligible_stub', report_version_id: payload?.['report_version_id'] });
+};
+
 export const manifest: WorkerManifest = Object.freeze({
   module: 'reporting',
   tasks: Object.freeze({
     'reporting.process_input_file': createProcessInputFile({ sandbox: unwiredSandbox }),
     'reporting.assemble_report': createAssembleReport({ sandbox: unwiredSandbox }),
     'reporting.render_report_version': createRenderReportVersion({ renderer: unwiredRenderer, sandbox: unwiredAssembler }),
+    'reporting.release_if_eligible': releaseIfEligibleStub,
     [SWEEP_ASSEMBLY]: sweepAssembly,
     [SWEEP_RENDERS]: sweepStuckRenders,
   }),
-  maxAttempts: Object.freeze({ 'reporting.process_input_file': 5, 'reporting.assemble_report': 10, 'reporting.render_report_version': 5, [SWEEP_ASSEMBLY]: 5, [SWEEP_RENDERS]: 5 }),
+  maxAttempts: Object.freeze({ 'reporting.process_input_file': 5, 'reporting.assemble_report': 10, 'reporting.render_report_version': 5, 'reporting.release_if_eligible': 10, [SWEEP_ASSEMBLY]: 5, [SWEEP_RENDERS]: 5 }),
   subscriptions: Object.freeze({
     'frontdesk.order.created.v1': orderCreated,
     'frontdesk.order.items_changed.v1': itemsChanged,

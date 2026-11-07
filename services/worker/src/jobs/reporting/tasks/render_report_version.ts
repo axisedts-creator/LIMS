@@ -62,6 +62,8 @@ export function createRenderReportVersion(o: RenderPorts): TaskHandler {
       ctx.log?.error?.({ event: 'render_failed', report_version_id: versionId, error_code: code, attempt: ctx.attempt });   // critical alert (E11)
     };
 
+    // Review C6-T09 #2: a failing SQL statement aborts the tx; rolling back to this savepoint lets render_failed still commit (AC-03.9, E11).
+    await tx.query('SAVEPOINT render_attempt', []);
     try {
       // 2. inputs: template config of THIS version's template_version_id, the frozen snapshot (copied: the overlay below must not touch the stored one)
       const tv = (await rows(`SELECT config FROM reporting.report_template_versions WHERE tenant_id = $1 AND id = $2`, [tenantId, v['template_version_id']]))[0];
@@ -101,6 +103,7 @@ export function createRenderReportVersion(o: RenderPorts): TaskHandler {
       const code = e instanceof Permanent ? e.code : codeOf(e) === 'reporting.template_invalid' ? 'reporting.template_invalid' : undefined;
       const final = ctx.attempt >= ctx.maxAttempts;
       if (code === undefined && !final) throw Object.assign(new Error('render attempt failed'), { code: 'reporting.render_unavailable' });   // queue retry; original message may carry PHI
+      await tx.query('ROLLBACK TO SAVEPOINT render_attempt', []);
       await fail(code ?? 'reporting.render_unavailable');                  // permanent, or the final attempt: commit render_failed and resolve
     }
   };

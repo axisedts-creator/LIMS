@@ -14,7 +14,7 @@ describe('formatNumber goldens', () => {
     ['booking_no', 'BK{yy}{seq:6}', { year: 2026, seq: 15 }, 'BK26000015'],
     ['{fyl} long form', 'INV-{fyl}-{seq:4}', { fyl: '2082/83', seq: 12 }, 'INV-2082/83-0012'],
     ['{centre} token', '{centre}-{seq:3}', { centre: 'A1', seq: 9 }, 'A1-009'],
-    ['yy zero-pads', '{yy}', { year: 2005, seq: 1 }, '05'],
+    ['yy zero-pads', '{yy}{seq:1}', { year: 2005, seq: 1 }, '051'],
   ] as const)('%s', (_n, pattern, ctx, expected) => {
     expect(formatNumber(pattern, ctx as never)).toBe(expected);
   });

@@ -40,6 +40,9 @@ describe('DECISIONS.md (spike record)', () => {
     expect(t).toMatch(/```/);
     expect(t).toMatch(/playwright[^\n]*\d+\.\d+\.\d+/i);
   });
+  it('records the watermark technique and its per-page result (04-UI-UX §Watermark: confirmed per page by spike C6-T05)', () => {
+    expect(read('DECISIONS.md')).toMatch(/watermark/i);
+  });
   it('states "Page N Of M" is stamped by the sandbox, not Chromium', () => {
     expect(read('DECISIONS.md')).toMatch(/sandbox/i);
     expect(read('DECISIONS.md')).toMatch(/Page N Of M/);
@@ -122,5 +125,18 @@ describe('repeated header/footer technique (AC-03.2 gate, text extraction)', () 
       expect(p, `page ${i + 1} header`).toContain(HDR);
       expect(p, `page ${i + 1} footer`).toContain(FTR);
     }
+  });
+
+  // 04-UI-UX §Watermark: `position: fixed` centred, rotated −30°, 48 pt, opacity; must appear on EVERY page.
+  it('a fixed, centred, rotated watermark is extracted on every page of a 3-page document', async () => {
+    const WM = 'WMARKTEXT';
+    const html =
+      `<!doctype html><meta charset="utf-8"><style>@page{size:A4;margin:25mm 10mm}</style>` +
+      `<div style="position:fixed;top:50%;left:50%;transform:translate(-50%,-50%) rotate(-30deg);font-size:48pt;opacity:.08">${WM}</div>` +
+      body;
+    const { pdf, pageCount } = await pool.renderHtml(html);
+    const pages = pdfPages(pdf).map(norm);
+    expect(pageCount).toBeGreaterThanOrEqual(3);
+    for (const [i, p] of pages.entries()) expect(p, `page ${i + 1} watermark`).toContain(WM);
   });
 });

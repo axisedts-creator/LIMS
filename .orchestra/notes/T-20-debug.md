@@ -18,3 +18,7 @@
 - Cause: unchanged. `infra/monitoring/rules/tests/instruments.test.yml` absent (rules/tests empty); sole failure = PromtoolTestFileTest.setUpClass assert.
 - Fix: none possible in impl. Test file belongs to tester (LD-35, LD-39); debugger may not create `*.test.*`. Dispute stands in `T-20-dispute.md`.
 - Result: not re-run; log shows 1 ERROR, rest OK. Tester must write+commit the file.
+## Round 6
+- Cause: unchanged. `infra/monitoring/rules/tests/instruments.test.yml` absent (rules/tests empty); sole failure = PromtoolTestFileTest.setUpClass assert.
+- Fix: none possible in impl. Test file owned by tester (LD-35, LD-39); debugger may not create `*.test.*`. Dispute stands in `T-20-dispute.md`.
+- Result: not re-run; log shows 1 ERROR, rest OK. Tester must write+commit the file.

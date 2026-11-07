@@ -35,4 +35,10 @@ export const HealthChip = ({ state }: { state: string }) => chip(HEALTH, state);
 export const AgentStatusChip = ({ status }: { status: string }) => chip(STATUS, status);
 export const InstrumentStateChip = ({ state }: { state: string }) => chip(INSTRUMENT, state);
 
-export const hasPerm = (perms: readonly string[], p: string) => perms.includes(p);
+const options = (map: Record<string, readonly [Tone, string]>) => Object.entries(map).map(([value, [, label]]) => ({ value, label }));
+export const STATUS_OPTIONS = options(STATUS);
+export const HEALTH_OPTIONS = options(HEALTH);
+
+export const DEFAULT_CLOCK_OFFSET_WARN_SECONDS = 300; // 02-TRD settings default for clock_offset_warn_seconds [CONV]
+
+export const hasPerm =(perms: readonly string[], p: string) => perms.includes(p);

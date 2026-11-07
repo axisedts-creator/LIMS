@@ -10,8 +10,41 @@ export type HealthState = (typeof HEALTH_STATES)[number];
 export type AgentSort = (typeof AGENT_SORTS)[number];
 export type UpdateChannel = (typeof UPDATE_CHANNELS)[number];
 
+// 04-UI-UX SCR-01: default Status filter = all except retired; default sort agent code.
+export const DEFAULT_AGENT_STATUSES: readonly AgentStatus[] = ['pending_enrolment', 'active', 'revoked'];
+
+type Sp = Readonly<Record<string, string | readonly string[] | undefined>>;
+const csv = (v: Sp[string]) => (v === undefined ? [] : (typeof v === 'string' ? [v] : v).flatMap((x) => x.split(',')));
+const pick = <T extends string>(v: Sp[string], allowed: readonly T[]) => [...new Set(csv(v).filter((x): x is T => (allowed as readonly string[]).includes(x)))];
+
+/** SCR-01 URL query → E10 filters. Unknown values are dropped, so tampered input never reaches the API. */
+export function parseAgentQuery(sp: Sp): { centreId?: string; status: AgentStatus[]; healthState: HealthState[]; sort: AgentSort } {
+  const status = pick(sp.status, AGENT_STATUSES);
+  const centre = csv(sp.centre_id)[0];
+  const sort = pick(sp.sort, AGENT_SORTS)[0] ?? 'agent_code';
+  return {
+    ...(centre && UUID_RE.test(centre) ? { centreId: centre } : {}),
+    status: status.length ? status : [...DEFAULT_AGENT_STATUSES],
+    healthState: pick(sp.health_state, HEALTH_STATES),
+    sort,
+  };
+}
+
+export const COMMAND_KINDS =['upload_logs', 'refresh_config', 'restart_service', 'reupload_since'] as const;
+export type AgentCommandKind = (typeof COMMAND_KINDS)[number];
+// instruments.g_cs_revoke_reasons seed (05-SCHEMA §2, [CONV] codes). Displays [CONV]: no coded-set read API in apps/web yet.
+export const REVOKE_REASONS = [
+  { code: 'device_replaced', display: 'Device replaced' },
+  { code: 'device_lost_or_stolen', display: 'Device lost or stolen' },
+  { code: 'suspected_compromise', display: 'Suspected compromise' },
+  { code: 'decommissioned', display: 'Decommissioned' },
+  { code: 'staff_error', display: 'Staff error' },
+  { code: 'other', display: 'Other' },
+] as const;
+
 export const AGENT_CODE_RE = /^[A-Z0-9-]{2,32}$/;
 export const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+export const IDEMPOTENCY_KEY_RE = /^[A-Za-z0-9_-]{1,64}$/;
 
 export interface AgentHealth {
   state: HealthState;
@@ -89,6 +122,36 @@ export interface InstrumentSummary {
   state: string;
   link_state?: string;
   last_message_at?: string;
+  // Not in contracts InstrumentSummary yet (only Instrument.status has them) — CR in .orchestra/cr/WEB-T02.md.
+  last_link_error_code?: string;
+  silent_since?: string;
+}
+
+export interface AgentCommand {
+  command_id: string;
+  agent_id: string;
+  kind: AgentCommandKind;
+  params?: { since?: string };
+  state: 'queued' | 'delivered' | 'completed' | 'failed' | 'expired';
+  requested_at: string;
+  requested_by_display: string;
+  delivered_at?: string;
+  completed_at?: string;
+  result_code?: string;
+  expires_at: string;
+  log_bundle_id?: string;
+}
+
+export interface UpdateAgentInput { display_name?: string; update_channel?: UpdateChannel; backlog_threshold?: number }
+
+export interface ReasonInput { reason_code: string; reason_text?: string }
+/** Validated E15/E16 body, or null. */
+export function reasonBody(agentId: string, version: number, r: ReasonInput): ReasonInput | null {
+  const ok =
+    UUID_RE.test(agentId) && Number.isInteger(version) && version >= 1 &&
+    REVOKE_REASONS.some((x) => x.code === r?.reason_code) &&
+    (r.reason_text === undefined || (typeof r.reason_text === 'string' && r.reason_text.length <= 300));
+  return ok ? { reason_code: r.reason_code, ...(r.reason_text ? { reason_text: r.reason_text } : {}) } : null;
 }
 
 export interface PageInfo { limit: number; next_cursor?: string; prev_cursor?: string }

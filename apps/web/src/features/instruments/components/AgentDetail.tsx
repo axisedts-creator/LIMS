@@ -2,15 +2,16 @@
 // SCR-02 Agent detail (04-UI-UX §3). Renders only documented DTO fields: credentials show metadata, never a secret or hash (AC-16.3).
 import { useState } from 'react';
 import { Banner } from '@lims/ui/components/Banner';
-import { Button } from '@lims/ui/components/Button';
 import { DataTable, type ColumnDef } from '@lims/ui/components/DataTable';
 import { DateText } from '@lims/ui/components/DateText';
 import { DescriptionList } from '@lims/ui/components/DescriptionList';
 import { PageHeader } from '@lims/ui/components/PageHeader';
 import { Tabs } from '@lims/ui/components/Tabs';
 import { Timeline } from '@lims/ui/components/Timeline';
-import type { Agent, AgentCredential, HealthTransition, InstrumentSummary } from '../server/types';
-import { AgentStatusChip, HealthChip, InstrumentStateChip, hasPerm, healthLabel } from './labels';
+import type { Agent, AgentCommand, AgentCredential, HealthTransition, InstrumentSummary } from '../server/types';
+import { listAgentCommandsAction } from '../server/actions';
+import { AgentActions } from './AgentActions';
+import { AgentStatusChip, DEFAULT_CLOCK_OFFSET_WARN_SECONDS, HealthChip, InstrumentStateChip, hasPerm, healthLabel } from './labels';
 import { IssueEnrolmentCode } from './IssueEnrolmentCode';
 
 const TABS = [
@@ -21,6 +22,7 @@ const TABS = [
   { id: 'commands', label: 'Commands & logs' },
 ] as const;
 const DAY_MS = 86_400_000;
+const UPDATE_WARN = new Set(['verify_failed', 'rolled_back']);
 
 const when = (v: string | undefined) => (v ? <DateText value={v as never} withTime /> : '—');
 const txt = (v: string | number | undefined) => (v === undefined ? '—' : String(v));
@@ -41,13 +43,39 @@ const instrumentColumns: ColumnDef<InstrumentSummary>[] = [
   { id: 'state', header: 'State', cell: (i) => <InstrumentStateChip state={i.state} /> },
   { id: 'link', header: 'Link state', cell: (i) => txt(i.link_state) },
   { id: 'last_message', header: 'Last message', cell: (i) => when(i.last_message_at) },
+  { id: 'last_error', header: 'Last error code', cell: (i) => txt(i.last_link_error_code) },
+  { id: 'silence', header: 'Silence status', cell: (i) => (i.silent_since ? <>Silent since {when(i.silent_since)}</> : 'Not silent') }, // [CONV] texts
+];
+const COMMAND_LABEL: Record<AgentCommand['kind'], string> = { upload_logs: 'Upload logs', refresh_config: 'Refresh configuration', restart_service: 'Restart service', reupload_since: 'Re-upload since…' };
+const commandColumns: ColumnDef<AgentCommand>[] = [
+  { id: 'kind', header: 'Kind', isRowHeader: true, cell: (c) => COMMAND_LABEL[c.kind] ?? c.kind },
+  { id: 'state', header: 'State', cell: (c) => c.state },
+  { id: 'requested', header: 'Requested by / at', cell: (c) => <>{txt(c.requested_by_display)} · {when(c.requested_at)}</> },
+  { id: 'completed_at', header: 'Completed at', cell: (c) => when(c.completed_at) },
+  { id: 'result', header: 'Result', cell: (c) => txt(c.result_code) },
 ];
 
-export function AgentDetail({ agent, transitions, instruments, permissions }: { agent: Agent; transitions: readonly HealthTransition[]; instruments: readonly InstrumentSummary[]; permissions: readonly string[] }) {
+export function AgentDetail({ agent, transitions, instruments, permissions, clockOffsetWarnSeconds = DEFAULT_CLOCK_OFFSET_WARN_SECONDS }: { agent: Agent; transitions: readonly HealthTransition[]; instruments: readonly InstrumentSummary[]; permissions: readonly string[]; clockOffsetWarnSeconds?: number }) {
   const [tab, setTab] = useState<string>('overview');
+  const [commands, setCommands] = useState<{ rows: readonly AgentCommand[]; error?: string } | undefined>();
   const h = agent.health;
   const canManage = hasPerm(permissions, 'instruments.agent.manage');
   const ipChangedRecently = !!h.last_ip_changed_at && Date.now() - Date.parse(h.last_ip_changed_at) < DAY_MS; // [CONV] 24 h
+  const offsetSeconds = h.clock_offset_ms !== undefined ? h.clock_offset_ms / 1000 : h.clock_offset_seconds;
+  const clockOff = offsetSeconds !== undefined && Math.abs(offsetSeconds) > clockOffsetWarnSeconds;
+
+  const loadCommands = async () => {
+    try {
+      const r = await listAgentCommandsAction(agent.id);
+      setCommands(r.ok ? { rows: r.data } : { rows: [], error: r.code });
+    } catch {
+      setCommands({ rows: [], error: 'common.internal' });
+    }
+  };
+  const selectTab = (id: string) => {
+    setTab(id);
+    if (id === 'commands') void loadCommands();
+  };
 
   return (
     <section aria-label={`Agent ${agent.agent_code}`}>
@@ -64,11 +92,7 @@ export function AgentDetail({ agent, transitions, instruments, permissions }: { 
           canManage ? (
             <>
               <IssueEnrolmentCode agentId={agent.id} queueDepth={h.queue_depth} />
-              {/* ponytail: command/revoke/retire/edit dialogs not wired yet (no tests, open point in WEB-T02-impl.md) */}
-              <Button isDisabled>Request command</Button>
-              <Button variant="danger" isDisabled>Revoke</Button>
-              <Button variant="danger" isDisabled>Retire</Button>
-              <Button isDisabled>Edit</Button>
+              <AgentActions agent={agent} instruments={instruments} onCommandRequested={() => (tab === 'commands' ? void loadCommands() : undefined)} />
             </>
           ) : null
         }
@@ -77,8 +101,12 @@ export function AgentDetail({ agent, transitions, instruments, permissions }: { 
       {h.config_state && h.config_state !== 'ok' ? (
         <Banner tone="warning" title={`The agent rejected configuration version ${agent.latest_config_version}: ${h.config_state}. Contact support.`} />
       ) : null}
+      {h.update_state && UPDATE_WARN.has(h.update_state) ? (
+        <Banner tone="warning" title={`The agent update${h.update_target_version ? ` to ${h.update_target_version}` : ''} did not complete: ${h.update_state}. The previous version keeps running.`} /> // [CONV] text
+      ) : null}
+      {clockOff ? <Banner tone="warning" title={`This PC's clock is off by ${Math.round(offsetSeconds!)} s. Fix the PC's date and time.`} /> /* [CONV] text */ : null}
       {ipChangedRecently ? <Banner tone="warning" title="This agent's network address changed recently. If you didn't move the PC, revoke it." /> : null}
-      <Tabs items={TABS} selectedId={tab} onChange={setTab} aria-label="Agent sections">
+      <Tabs items={TABS} selectedId={tab} onChange={selectTab} aria-label="Agent sections">
         {tab === 'overview' ? (
           <DescriptionList
             columns={3}
@@ -106,7 +134,14 @@ export function AgentDetail({ agent, transitions, instruments, permissions }: { 
         ) : tab === 'credentials' ? (
           <DataTable caption="Credentials" columns={credentialColumns} rows={agent.credentials} getRowId={(c) => c.credential_id} emptyState={{ title: 'No credentials issued yet.' }} />
         ) : (
-          <p className="lims-description">Commands and log bundles appear here once requested.</p>
+          <DataTable
+            caption="Commands"
+            columns={commandColumns}
+            rows={commands?.rows ?? []}
+            getRowId={(c) => c.command_id ?? `${c.kind}-${c.requested_at}`}
+            {...(commands?.error ? { error: { title: 'Could not load commands', onRetry: () => void loadCommands() } } : {})}
+            emptyState={{ title: commands ? 'No commands requested yet.' : 'Loading commands…' }} // [CONV] kit isLoading skeleton fails axe empty-table-header
+          />
         )}
       </Tabs>
     </section>

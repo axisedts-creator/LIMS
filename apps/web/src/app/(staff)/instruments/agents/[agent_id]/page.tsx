@@ -5,17 +5,18 @@ import { getShellSession } from '@/core/session/server';
 import { AgentDetail } from '@/features/instruments/components/AgentDetail';
 import { getAgent } from '@/features/instruments/server/getAgent.server';
 import { listAgentHealthTransitions } from '@/features/instruments/server/listAgentHealthTransitions.server';
+import { listInstruments } from '@/features/instruments/server/listInstruments.server';
 
 export default async function AgentPage({ params }: { params: Promise<{ agent_id: string }> }) {
   const { agent_id } = await params;
-  const [session, agent, transitions] = await Promise.all([
+  const [session, agent, transitions, instruments] = await Promise.all([
     getShellSession(),
     getAgent(agent_id).catch((e: unknown) => {
       if (e instanceof ApiError && e.status === 404) notFound();
       throw e;
     }),
     listAgentHealthTransitions(agent_id).catch(() => ({ data: [] })), // [CONV] history is secondary; never blocks the page
+    listInstruments({ agentId: agent_id }).catch(() => ({ data: [] })), // [CONV] needs instruments.instrument.read; tab shows empty without it
   ]);
-  // ponytail: instruments tab is fed by E21 (WEB-T03 owns listInstruments); empty until then.
-  return <AgentDetail agent={agent} transitions={transitions.data} instruments={[]} permissions={session?.actor.permissions ?? []} />;
+  return <AgentDetail agent={agent} transitions={transitions.data} instruments={instruments.data} permissions={session?.actor.permissions ?? []} />;
 }

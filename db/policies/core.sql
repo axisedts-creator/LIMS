@@ -192,3 +192,9 @@ CREATE POLICY dead_letters__select__platform ON core.dead_letters FOR SELECT TO 
 CREATE POLICY dead_letters__update__platform ON core.dead_letters FOR UPDATE TO lims_app
   USING (tenant_id IS NOT NULL AND (SELECT app.is_platform_actor()))
   WITH CHECK (tenant_id IS NOT NULL AND (SELECT app.is_platform_actor()));
+
+-- from 20261105001400_core__create_tenant_platform_policies.sql (C2 05-SCHEMA §10.2)
+CREATE POLICY tenants__select__platform ON core.tenants FOR SELECT TO lims_app USING ((SELECT app.is_platform_actor()));
+CREATE POLICY tenants__insert__platform ON core.tenants FOR INSERT TO lims_app WITH CHECK ((SELECT app.is_platform_actor()));
+CREATE POLICY tenants__update__platform ON core.tenants FOR UPDATE TO lims_app
+  USING ((SELECT app.is_platform_actor())) WITH CHECK ((SELECT app.is_platform_actor()));

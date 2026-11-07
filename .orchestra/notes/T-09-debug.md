@@ -8,3 +8,4 @@
 - Round 4 (LD-34): curl worked. Dockerfile `ARG PGBACKREST_TARBALL_SHA256` = 7409309d...22d0 (sha256sum of release/2.60.0.tar.gz). DECISION.md: pgbackrest.org re-check recorded (2.60.0 current stable; archive-push multi-repo note); check/full/incr + WAL/day marked open (B12).
 - Still failing by design: test_check_ok_both_repos_and_full_incr_recorded, test_records_wal_per_day_measured need tester to mark skip `needs data-1/dr-1 hosts (B12)`; I may not edit tests.
 - Round 5: verify log = 1 fail of 35: test_records_wal_per_day_measured (line 488 wants measured `<n> MiB|GiB/day`). Cause: test lacks LD-34 skip. DECISION.md correct (WAL/day open, B12). No impl change; value not invented. Dispute filed: T-09-dispute.md.
+- Round 6: same 1 fail (test_records_wal_per_day_measured, no LD-34 skip). Impl/DECISION.md correct; value not invented. Dispute T-09-dispute.md stands; waiting on tester to add skip `needs data-1/dr-1 hosts (B12)`.

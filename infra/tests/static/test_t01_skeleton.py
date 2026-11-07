@@ -6,6 +6,7 @@ Run from repo root: python -I -m unittest discover -s infra/tests/static -p "tes
 
 NOTE: secret-looking fixtures are built at runtime so this file itself passes gitleaks.
 """
+import os
 import re
 import shutil
 import subprocess
@@ -116,7 +117,7 @@ class Skeleton(unittest.TestCase):
         for s in scripts:
             self.assertTrue(s.is_file(), f"{s} missing")
             self.assertTrue(read(s).startswith("#!"), f"{s.name}: no shebang")
-            r = run([bash, "-n", str(s)])
+            r = run([bash, "-n", s.as_posix()])
             self.assertEqual(r.returncode, 0, f"{s.name}: {r.stderr}")
 
     def test_readme_states_secrets_boundary(self):
@@ -133,6 +134,9 @@ class Lint(unittest.TestCase):
         self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
 
     def test_ansible_lint_available_and_clean(self):
+        # LD-17 (2026-11-07) T-01: ansible-lint does not run on native Windows; required only when CI=true.
+        if os.environ.get("CI") != "true" and shutil.which("ansible-lint") is None:
+            self.skipTest("SKIP ansible-lint (CI only)")
         a = need_tool(self, "ansible-lint")
         if (INFRA / "ansible").is_dir():  # created from T-02 on
             r = run([a, str(INFRA / "ansible")], cwd=ROOT)
@@ -140,7 +144,7 @@ class Lint(unittest.TestCase):
 
     def test_run_sh_is_green(self):
         bash = need_tool(self, "bash")
-        r = run([bash, str(INFRA / "tests/run.sh")], cwd=ROOT)
+        r = run([bash, (INFRA / "tests/run.sh").as_posix()], cwd=ROOT)
         self.assertEqual(r.returncode, 0, r.stdout[-2000:] + r.stderr[-2000:])
 
 
@@ -229,7 +233,7 @@ class SecretsSchema(unittest.TestCase):  # AC-19.3, TRD s8.2
     def test_covers_every_id_of_trd_8_2_in_every_env(self):
         for env, ids in self.s.items():
             have = set(ids)
-            miss = [i for i in UPSTREAM_IDS + tuple(TABLE_IDS) if i not in have]
+            miss = [i for i in UPSTREAM_IDS + TABLE_IDS if i not in have]
             miss += [f"<id containing {r}>" for r in DB_ROLES if not any(r in i for i in have)]
             miss += [f"<id containing {t}>" for t in FREE_TOKENS if not any(t in i for i in have)]
             if not any(i.startswith("reporting_channel_") for i in have):

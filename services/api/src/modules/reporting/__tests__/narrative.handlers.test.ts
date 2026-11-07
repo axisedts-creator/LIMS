@@ -2,7 +2,7 @@
 // permission (02-TRD §6.4 rows N1-N10, §4.1 narrative_ready; 01-PRD AC-05.1, 05.2, 05.4-05.7 (05.3 is C6-T11); 07-SECURITY REQ-SEC-088, T8).
 // Integration level: the REAL manifest handlers over the in-memory fakes of outsourced.helpers.ts; ports are fakes on ctx.ports.{IdentityPort,CatalogPort}.
 // ASSUMED (spec gives no more; see .orchestra/notes/C6-T17-tests.md): request shape { params, query, headers:{'if-match':'"<n>"'}, body } like O1-O4; If-Match is the
-// narrative_reports.version; N3/N4/N5 bump it and echo it as `version` + ETag; stored version sections are [{key, html}] (headings come from the template);
+// narrative_reports.version; N3/N4/N5 bump it and echo it as `version` + ETag; stored version sections are [{key, heading, html}] per 05-SCHEMA §2.12 (heading copied from the template at draft/save time, so signed versions are frozen; legacy rows without heading fall back to the template);
 // the first draft is created lazily by N2 when none exists (the order consumer is another task); N4/N5 call IdentityPort.assertRole({permission:'reporting.narrative.sign',
 // centreId}) in the handler path as defence-in-depth over the pipeline's privileged/aal2 gate; sign enqueues reporting.assemble_report (key assemble:<report_id>).
 import { mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
@@ -358,6 +358,15 @@ describe('AC-05.5 — sign: version signed, signatory recorded, item ready, edit
   });
   it('signing an already-signed narrative changes nothing and queues no second assembly', async () => {
     const t = e(N.sign); expect(await code(sign(t, NARR_SIGNED, 3))).toBe('reporting.narrative_locked'); nothingWritten(t);
+  });
+  it('the signed narrative is frozen incl. headings: an N10 heading rename after sign does not change what N2 returns for the signed version (05-SCHEMA §2.12 {key, heading, html})', async () => {
+    const t = e(N.sign); const saved = await save(t, full(), NARR_1, 1); const signed = await sign(t, NARR_1, saved.body.version); expect(signed.body.status).toBe('signed');
+    const renamed = SECTIONS.map((s) => ({ key: s.key, heading: `RENAMED ${s.heading}`, required: s.required, default_html: s.default_html }));
+    expect((await run(N.tUpdate, t, { params: { narrative_template_id: TPL_TEST }, headers: ifm(1), body: { sections: renamed } })).status).toBe(200);
+    const r = await run(N.get, t, { params: { narrative_id: NARR_1 } });
+    expect(r.body.current_version).toMatchObject({ status: 'signed' }); expect(r.body.current_version.sections.map((s: any) => [s.key, s.heading])).toEqual([['findings', 'Findings'], ['impression', 'Impression']]);
+    expect(JSON.stringify(r.body)).not.toContain('RENAMED');
+    expect(storedSections(versionsOf(t.db, NARR_1).at(-1)!).map((s: any) => s.heading)).toEqual(['Findings', 'Impression']);
   });
   it('two concurrent signs: exactly one succeeds, one assemble job, one signature', async () => {
     const t = e(N.sign); const rs = await Promise.allSettled([sign(t), sign(t)]);

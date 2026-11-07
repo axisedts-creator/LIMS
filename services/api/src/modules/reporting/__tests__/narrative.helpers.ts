@@ -105,7 +105,7 @@ export const SAFE_HTML = '<p>Synthetic <strong>finding</strong> with <em>emphasi
 
 export const asJson = (v: unknown): any => (typeof v === 'string' ? JSON.parse(v) : v);
 /** Stored sections of a version row, whatever the repo used to bind jsonb (object or JSON string). */
-export const storedSections = (r: Row): Array<{ key: string; html: string }> => asJson(r['sections']);
+export const storedSections = (r: Row): Array<{ key: string; heading?: string; html: string }> => asJson(r['sections']);
 /** uuid[] as bound by the repo: a JS array or a Postgres literal `{a,b}`. */
 export const storedIds = (v: unknown): string[] => (Array.isArray(v) ? v.map(String) : typeof v === 'string' ? v.replace(/^\{|\}$/g, '').split(',').filter(Boolean) : []);
 export const versionsOf = (db: ReturnType<typeof makeDb>, narrativeId: string) => db.store['narrative_versions']!.filter((v) => v['narrative_report_id'] === narrativeId).sort((a, b) => a['version_no'] - b['version_no']);

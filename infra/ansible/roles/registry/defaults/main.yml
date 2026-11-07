@@ -19,6 +19,8 @@ registry_auth_dir: /run/lims/registry  # tmpfs: htpasswd only (s8.3)
 # 05-SCHEMA retention: last 20 releases (tags) per image [CONV]; weekly GC.
 registry_keep_releases: 20
 registry_gc_on_calendar: "Sun *-*-* 03:30:00"  # [CONV]
+# Lock files (infra/ci/release-lock.sh); their digests are never pruned.
+registry_releases_dir: "{{ playbook_dir }}/../../releases"
 
 # Third-party pulls on ops-1 go through the ops Squid proxy (s3.3 :3128).
 registry_upstream_proxy: "http://{{ registry_wg_ip }}:3128"

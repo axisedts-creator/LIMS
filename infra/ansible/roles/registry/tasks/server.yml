@@ -90,6 +90,17 @@
     owner: root
     group: root
     mode: "0750"
+  vars:
+    # Digests pinned in infra/releases/*.lock.yaml are never pruned
+    # (02-TRD s12.3 step 1, AC-20.3 rollback). Re-run the play after a
+    # lock change so the script picks up new pins.
+    registry_lock_text: >-
+      {% for f in query('ansible.builtin.fileglob',
+      registry_releases_dir ~ '/*.lock.yaml') %}{{
+      lookup('ansible.builtin.file', f) }}
+      {% endfor %}
+    registry_pinned_digests: >-
+      {{ registry_lock_text | regex_findall('sha256:[0-9a-f]{64}') | unique }}
 
 - name: Retention + garbage-collect systemd units
   ansible.builtin.copy:

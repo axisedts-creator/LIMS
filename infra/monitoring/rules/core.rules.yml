@@ -1,0 +1,94 @@
+---
+# yamllint disable rule:line-length
+# Transcribed by C1 (02-TRD s11.3 intake row) from:
+#   C0 02-TRD s13 (Observability, alerts proposed to C1)
+# Thresholds verbatim from the owner's list;
+# alert names and unstated `for` are [CONV].
+groups:
+  - name: core
+    rules:
+      - alert: CoreDeadLetter
+        expr: >-
+          sum(increase(lims_core_dead_letters_total[5m])) > 0
+        for: 0m
+        labels:
+          severity: page
+          team: ops
+        annotations:
+          summary: >-
+            A job or event consumer dead-lettered (any task).
+          runbook_url: infra/runbooks/core.md#coredeadletter
+      - alert: CoreFakePortsActive
+        expr: >-
+          max by (env) (lims_core_fake_ports_active{env=~"staging|prod"})
+          > 0
+        for: 0m
+        labels:
+          severity: page
+          team: ops
+        annotations:
+          summary: >-
+            A fake port implementation is active in staging or prod.
+          runbook_url: >-
+            infra/runbooks/core.md#corefakeportsactive
+      - alert: CoreFanoutLagHigh
+        expr: >-
+          histogram_quantile(0.95, sum by (le) (rate(lims_core_event_fanout_lag_seconds_bucket[5m])))
+          > 10
+        for: 5m
+        labels:
+          severity: warn
+          team: ops
+        annotations:
+          summary: >-
+            Event fan-out lag p95 above 10 s for 5 min.
+          runbook_url: infra/runbooks/core.md#corefanoutlaghigh
+      - alert: CoreRlsDeniedSpike
+        expr: >-
+          sum(rate(lims_rls_denied_total[5m])) > 5 * sum(rate(lims_rls_denied_total[7d]))
+        for: 10m
+        labels:
+          severity: page
+          team: ops
+        annotations:
+          summary: >-
+            RLS denials above 5x the 7-day baseline for 10 min.
+          runbook_url: >-
+            infra/runbooks/core.md#corerlsdeniedspike
+      - alert: CoreAuthAlgFailure
+        expr: >-
+          increase(lims_core_auth_failures_total{reason="alg"}[5m]) > 0
+        for: 0m
+        labels:
+          severity: page
+          team: ops
+        annotations:
+          summary: >-
+            A token with a disallowed algorithm was presented.
+          runbook_url: >-
+            infra/runbooks/core.md#coreauthalgfailure
+      - alert: CoreAuthzNotAsserted
+        expr: >-
+          increase(lims_core_authz_not_asserted_total[5m]) > 0
+        for: 0m
+        labels:
+          severity: page
+          team: ops
+        annotations:
+          summary: >-
+            An operation returned without an authorization assertion.
+          runbook_url: >-
+            infra/runbooks/core.md#coreauthznotasserted
+      - alert: CoreRetentionPurgeCapped
+        expr: >-
+          sum by (table) (increase(lims_core_retention_purge_capped_total[26h]))
+          > 0
+        for: 72h
+        labels:
+          severity: warn
+          team: ops
+        annotations:
+          summary: >-
+            Retention purge hit its cap three days in a row.
+          runbook_url: >-
+            infra/runbooks/core.md#coreretentionpurgecapped

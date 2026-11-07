@@ -3,6 +3,7 @@
 // then the keyed render job `render:<id>` (same key the assembly and sweep_stuck_renders use, so a live job collapses). Errors never echo input.
 import { LimsError, type FieldError } from '../../../core/errors.js';
 import type { Handler, HandlerContext, HandlerRequest } from '../../../core/module.js';
+import { Q } from '../repository/retry-render.repo.js';
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const RENDER_TASK = 'reporting.render_report_version';
@@ -24,13 +25,12 @@ export const retryRenderHandlers: Readonly<Record<string, Handler>> = Object.fre
 
     const id = obj(req.params)['report_version_id'];
     if (typeof id !== 'string' || !UUID.test(id)) throw new LimsError('common.not_found');
-    const v = (await tx.query(`SELECT id, report_id, version_no, status, report_kind, completeness, version FROM reporting.report_versions WHERE tenant_id = $1 AND id = $2`, [tenantId, id])).rows[0];
+    const v = (await tx.query(Q.selectReportVersions, [tenantId, id])).rows[0];
     if (!v) throw new LimsError('common.not_found');                                  // other tenants' rows are invisible: same answer
     if (v.status !== 'render_failed') throw new LimsError('common.immutable_record');
     if (v.version !== expected) throw new LimsError('common.version_conflict');
 
-    const done = (await tx.query(`UPDATE reporting.report_versions SET status = 'rendering', render_attempts = 0, last_render_error_code = NULL, rendering_started_at = now(),
-        version = version + 1, updated_by = $4, updated_at = now() WHERE tenant_id = $1 AND id = $2 AND status = 'render_failed' AND version = $3 RETURNING version`, [tenantId, id, expected, actorId])).rows[0];
+    const done = (await tx.query(Q.updateReportVersions, [tenantId, id, expected, actorId])).rows[0];
     if (!done) throw new LimsError('common.version_conflict');                        // lost a race between the read above and the write
     await tx.query(ENQUEUE, [RENDER_TASK, JSON.stringify({ tenant_id: tenantId, report_id: v.report_id, report_version_id: id }), `render:${id}`, null, RENDER_MAX_ATTEMPTS]);
     return {

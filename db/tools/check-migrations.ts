@@ -71,11 +71,22 @@ for (const { file, text, stmts } of readSqlDir(root, "db/migrations")) {
       const d = /\b(?:ALTER\s+COLUMN\s+"?(id|tenant_id)"?\s+SET\s+DEFAULT|ADD\s+(?:COLUMN\s+)?(?:IF\s+NOT\s+EXISTS\s+)?"?(id|tenant_id)"?\s[^,]*\bDEFAULT)\b/i.exec(code);
       if (d) bad(`${a}.${d[1] ?? d[2]}: DEFAULT on ${d[1] ?? d[2]} is forbidden`);
     }
-    // CV §5.2: no DELETE to lims_app on class C/B/A
-    const g = /^GRANT\s+([\s\S]+?)\s+ON\s+(?:TABLE\s+)?([\s\S]+?)\s+TO\s+([\s\S]+?)(?:\s+WITH\s+GRANT\s+OPTION)?$/i.exec(code);
-    if (g && /\b(DELETE|ALL)\b/i.test(g[1]) && /\blims_app\b/i.test(g[3]))
-      for (const tbl of g[2].split(",").map((x) => x.trim().toLowerCase()))
-        if (NO_DELETE.has(meta[tbl]?.class ?? "")) bad(`${tbl}: GRANT DELETE to lims_app on a class ${meta[tbl]?.class} table is forbidden`);
+    // CV §5.2: no DELETE to lims_app on class C/B/A — explicit tables, ON ALL TABLES IN SCHEMA, and default privileges
+    const g = /^(?:ALTER\s+DEFAULT\s+PRIVILEGES\s+(?:FOR\s+(?:ROLE|USER)\s+[\w",\s]+?\s+)?(?:IN\s+SCHEMA\s+([\w",\s]+?)\s+)?)?GRANT\s+([\s\S]+?)\s+ON\s+([\s\S]+?)\s+TO\s+([\s\S]+?)(?:\s+WITH\s+GRANT\s+OPTION)?$/i.exec(code);
+    if (g && /\b(DELETE|ALL)\b/i.test(g[2]) && /\blims_app\b/i.test(g[4])) {
+      const list = (x: string) => x.split(",").map((y) => y.trim().replace(/"/g, "").toLowerCase());
+      const hit = (tbl: string) => NO_DELETE.has(meta[tbl]?.class ?? "");
+      const inSchema = /^ALL\s+TABLES\s+IN\s+SCHEMA\s+([\s\S]+)$/i.exec(g[3]);
+      // undefined = explicit table list; null = default privileges without IN SCHEMA (every schema)
+      const schemas = inSchema ? list(inSchema[1]) : /^TABLES$/i.test(g[3]) ? (g[1] ? list(g[1]) : null) : undefined;
+      if (schemas === undefined) {
+        for (const tbl of list(g[3].replace(/^TABLE\s+/i, "")))
+          if (hit(tbl)) bad(`${tbl}: GRANT DELETE to lims_app on a class ${meta[tbl]?.class} table is forbidden`);
+      } else {
+        const tbls = Object.keys(meta).filter((t) => hit(t) && (schemas === null || schemas.includes(t.split(".")[0])));
+        if (tbls.length) bad(`GRANT DELETE to lims_app on all/default tables covers class C/B/A table(s) ${tbls.join(", ")}; forbidden`);
+      }
+    }
   }
   // §4.3 item 4: ENABLE + FORCE RLS for every new table, in the same file
   for (const t of created)

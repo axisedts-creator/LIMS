@@ -6,6 +6,7 @@ import type { Handler } from '../../../core/module.js';
 import { analyteVersionsHandlers } from './analyteVersions.handlers.js';
 import { creditPartiesHandlers } from './creditParties.handlers.js';
 import { formulasHandlers } from './formulas.handlers.js';
+import { healthHandlers } from './health.handlers.js';
 import { importsHandlers } from './imports.handlers.js';
 import { mastersHandlers } from './masters.handlers.js';
 import { panelsHandlers } from './panels.handlers.js';
@@ -21,8 +22,7 @@ const notImplemented: Handler = async () => {
 };
 
 export const handlers: Readonly<Record<string, Handler>> = Object.freeze({
-  getCatalogRevision: notImplemented,
-  getCatalogHealthReport: notImplemented,
+  ...healthHandlers, // T-30: #1 (revision), #4 (health report)
   ...mastersHandlers, // T-04: #5–#16; T-05: #17–#22 (units, value sets); T-13: #57–#59 (comment codes)
   ...testsHandlers, // T-06: #2, #23–#27; T-14: #28
   ...analyteVersionsHandlers, // T-07: #29–#35

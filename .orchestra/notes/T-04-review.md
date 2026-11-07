@@ -1,9 +1,6 @@
 APPROVE
+Re-review after eee4ae1. Prior finding #1 resolved: `.orchestra/cr/T-04.md` filed following the spec/program/04-CHANGE-REQUESTS.md template (the IRD line covers billing only, so it does not apply here); masters.service.ts:16 cites it as `[CR-pending]`; code behaviour unchanged (400 on `sort=report_order` for specimen types/containers/methods until the CR is ruled on).
 
-- Diff 0e4233e..HEAD: code only in `services/api/src/modules/lab/events/publish.ts` (owned) + its `__tests__`; rest are `.orchestra/notes` role files.
-- 7 event names and idempotency keys verbatim from 02-TRD §7.1 (lines 376–382); `approved_set_hash` per 03-IC §3.12 (SHA-256 hex, sorted `result_id:version_no`); `value_sha256_prefix16` per §7.1 [CONV].
-- Payloads passed through; core schema (additionalProperties false) enforces IC shape; critical value used only in key hash, never in payload/logs. No logging, no secrets, no PHI.
-- Tenant from ctx (test :231). No DB/RLS, routes, permissions, rate tier or new error codes in scope for this task.
-- Ran: `vitest run src/modules/lab/events/__tests__` = 57/57 pass; `tsc --noEmit` no errors in lab/events.
-- Tests cover done_when (all 7 IC examples validate, keys, dedupe), AC-01.1 (:243), AC-05.1 (:261, rollback fixed per T-04-ruling), AC-05.5, AC-16.5.
-- Note (not a defect): aggregate seq choice (specimenVersion / resultRowVersion / readinessSeq) is [CONV], spec silent; real PG insert not proven here.
+Checked again, no defect: names match 02-TRD §5.1/§5.2, catalog.yaml and catalog.changed.v1; error codes are registered; SQL uses bind params only, with an explicit tenant_id plus RLS; the composite FK blocks cross-tenant default_specimen_type_id (23503 -> 404); If-Match gives 428/400/409 with FOR UPDATE then the version predicate; lock order is row then catalog_state; no logging and no echoed values (AB-20); only owned paths plus notes/cr; pending.json has the 12 ids removed.
+Tests: `vitest run src/modules/catalog` 1270/1271 passed. The 1 failure is skeleton.test.ts autoload (`LIMS_CORE_ENV` from the reporting config), an environment problem that predates T-04.
+Not verified: real Postgres/RLS, x-permission 403s, Idempotency-Key replay (core pipeline). The getTest half of AC-01.5 is deferred to T-06.

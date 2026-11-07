@@ -1,9 +1,6 @@
 APPROVE
-
-Round 2 (re-review of cfa4381..HEAD against prior CHANGES 1-3):
-1. Fixed: test_t06_secrets.py literals split; `test_t01_*.py` run, no finding mentions test_t06 / secrets_render (remaining t01 failures are pre-existing: upstream .env.example, T-05 yamllint).
-2. Fixed: `tasks/generate.yml` + `files/secrets_generate.py` - empty tempfile workdir, pinned snapshot key scripts (cwd=workdir, stdin closed), operator ids from sops via stdin, pipe into `sops --encrypt`, refuse overwrite, `secrets_not_default.py --values - --other` check before `mv`, unchecked file removed on failure, ops_audit line without values, all sops tasks no_log + localhost. `add-new-auth-keys.sh` is named by the pinned `.env.example` (not invented). wireguard stays host-generated and is not placed.
-3. Fixed: `secrets_render_prefix_placement.reporting_channel_` -> app / worker-a,b; merged in Placements set_fact; ids asserted `^[A-Za-z0-9_]+$`; static test added.
-
-Runs: T-06 static 48/48 OK.
-Not verifiable here (writer notes agree): upstream `utils/*.sh` not vendored yet (T-05), so `secrets_render_keys_scripts` paths and their `KEY=value` output are unverified until vendored; `sops --filename-override` needs sops >= 3.9; no ansible/sops run; live test_t06_live.py not run. Note for operators: cross-env check covers every value incl. contacts, so contact entries must differ per env or generation fails.
+Round 3. Round-2 item 1 fixed in 8d15a4f: the comment in `__tests__/helpers/testsDb.ts:174` is now on its own line, so the helper compiles again.
+Round-1 item 1 (`repo/tests.repo.ts:88` ordering `LENGTH(code), code COLLATE "C"`) is now checked by tests: orderables.search.test.ts:36/40 and :70.
+Checked in b23fef9..HEAD: only an owned test helper and .orchestra notes changed. No new names, logging, secrets or PHI.
+Run here: `vitest run src/modules/catalog` gave 17/17 files and 1723/1723 tests passed, including perf. `tsc --noEmit` showed no catalog errors.
+Still carried over from T-03 (not T-06): `stampOrderable` has no tenant predicate. Follow up under T-03.

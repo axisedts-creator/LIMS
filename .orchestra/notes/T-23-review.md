@@ -1,8 +1,9 @@
-CHANGES
-# T-23 review (reviewer) — diff a8f04b0..HEAD
+APPROVE
+# T-23 review round 2 (reviewer): diff a8f04b0..HEAD
 
-Checked: names vs 02-TRD s12.2/s3.3/s8.2 and 05-SCHEMA s2 (registry.lims.internal:5000, registry_htpasswd, releases/<env>.lock.yaml, vg_ops); no secrets, no PHI, htpasswd no_log + tmpfs 0400; TLS + auth on, wg-IP bind, no pull-through; only C1 paths (infra/**). RLS/permissions/rate tier/error codes: n/a (infra). test_t23: 40/40 OK (run by reviewer). Live egress probe / pull not run (stated in notes). CR T-23.nonblocking.md (name :5000 vs none; missing pull credential) correctly raised, not invented.
-
-1. infra/ansible/roles/registry/templates/registry-gc.sh.j2:16-22 — retention deletes any tag beyond the newest 20 by dir mtime, then `garbage-collect --delete-untagged` removes the manifest. Dev pushes a tag per merge (AC-20.1), so after >20 dev builds the digest pinned in `releases/prod.lock.yaml` (or staging) loses its tag and is garbage-collected: 02-TRD s12.3 step 1 ("registry has all digests") fails, AC-20.3 rollback to previous digests and a dr rebuild cannot pull. Fix: never delete a tag whose digest is pinned in any lock file. Exact: add default `registry_pinned_digests: "{{ lookup('ansible.builtin.fileglob', playbook_dir ~ '/../../releases/*.lock.yaml', wantlist=True) | map('ansible.builtin.file') | join('\n') | regex_findall('sha256:[0-9a-f]{64}') | unique }}"`, template it into the script as `pinned=( {{ registry_pinned_digests | join(' ') }} )`, and in the inner loop skip `$t` when `$(cat "$d/$t/current/link")` is in `pinned` (the 20-newest count then applies to unpinned tags only). Add a test in test_t23_registry.py: render the script with one pinned digest on an old tag, run it on a fake repositories tree with 25 tags + fake `docker`, assert the pinned tag dir survives and 20 unpinned remain.
-
-Note (not blocking T-23, for lead): server.yml:44-58 points the ops-1 docker daemon at Squid :3128, but no plan row builds the ops Squid (`ops_proxy` role, 02-TRD s3.3). Until it exists every image pull on ops-1 (registry itself, T-18 monitoring) fails after the docker restart. Lead should assign `ops_proxy` before T-23 is deployed live.
+Round-1 #1 fixed. registry-gc.sh.j2 now skips tags whose `current/link` digest is in `registry_pinned_digests`, and keep-N counts unpinned tags only. server.yml builds that list from `registry_releases_dir/*.lock.yaml` (= infra/releases, the same dir release-lock.sh writes to). RegistryGcPinnedTest renders the script and runs it on a fake tree of 25 tags with a fake docker: the pinned oldest tag survives, 20 unpinned remain, and garbage-collect still runs.
+What I ran: test_t23 43/43 OK. yamllint on roles/registry clean.
+Not run: live GC, pull, or egress probe; ansible-lint (CI only).
+Rest of round 1 unchanged: names verbatim, no secrets or PHI, only owned paths. RLS, permissions and error codes do not apply (infra).
+Residual (not blocking): the pin list is captured only when the play runs, so re-run the play after each lock change (documented). A pinned digest whose tag was re-pushed still gets GC'd (ponytail note; mirror tags are digest-derived).
+Lead note from round 1 still stands: no plan row builds the ops Squid (`ops_proxy`), so pulls on ops-1 break after the docker proxy drop-in until it exists.

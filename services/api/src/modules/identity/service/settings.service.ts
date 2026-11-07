@@ -229,12 +229,11 @@ export function createSettingsService(deps: { repo?: SettingsRepo; flagsRepo?: F
           id, tenant_id: s.tenantId, kind, membership_id: null, bucket: BUCKET, object_path: objectPath, content_type: acc.mime, size_bytes: acc.byteSize,
           width_px: w!, height_px: h!, sha256: acc.sha256, scan_state: scanState, actorId: s.actorId,
         });
+        // 03-APP-FLOW §6.2: pointer updated on upload (old asset kept); content stays 422 until clean (US-C4).
+        await repo.setAssetPointer(s.tx, s.tenantId, BRANDING_KINDS[kind]!, id, s.actorId);
+        invalidate(s.tenantId);
         if (scanState === 'pending') {
           await repo.enqueueJob(s.tx, { taskIdentifier: RESCAN_TASK, payload: { tenant_id: s.tenantId, asset_id: id, kind }, jobKey: `rescan:branding_assets:${id}` });
-        } else {
-          // [CONV] only a clean asset becomes the live pointer (a pending one would fail every render with 422).
-          await repo.setAssetPointer(s.tx, s.tenantId, BRANDING_KINDS[kind]!, id, s.actorId);
-          invalidate(s.tenantId);
         }
       } catch (e) {
         await ctx.storage.delete(BUCKET, objectPath).catch(() => undefined);   // no orphan object when the row is refused

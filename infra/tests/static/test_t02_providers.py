@@ -31,13 +31,17 @@ SUBNET = {"prod": "10.77.0.", "staging": "10.78.0.", "dev": "10.79.0."}  # 02-TR
 PROD_HOSTS = {"data-1", "app-1", "dr-1", "ops-1"}  # 02-TRD s3.1
 
 # Provider-specific values: vendor names, cloud regions/instance ids, metadata endpoint, cloud disk names.
+# Hosting contexts only (T-02 ruling): bare googleapis/azure/aws also appear in non-hosting places
+# (Envoy protobuf type URLs, vendored OAuth settings, foreign-registry deny lists).
 PROVIDER_RX = re.compile(
-    r"amazonaws|\baws\b|\bec2\b|azure|googleapis|\bgcp\b|google[ -]cloud|digitalocean|hetzner|"
-    r"linode|vultr|\bovh|alibaba|aliyun|scaleway|contabo|rackspace|"
-    r"169\.254\.169\.254|\bi-[0-9a-f]{8,17}\b|"
+    r"amazonaws\.com|\bec2\b|\.azure\.com|compute\.googleapis\.com|cloud\.google\.com|\bgcp\b|"
+    r"digitalocean|hetzner|linode|vultr|\bovh|alibaba|aliyun|scaleway|contabo|rackspace|"
+    r"\bi-[0-9a-f]{8,17}\b|"
     r"\b(?:us|eu|ap|sa|ca|me|af)-(?:north|south|east|west|central|southeast|northeast)-\d\b|/dev/xvd",
     re.I,
 )
+METADATA_RX = re.compile(r"169\.254\.169\.254")  # allowed only in tests/ (deny/probe assertions)
+VENDORED = "compose/supabase/upstream/"  # verbatim upstream, not LIMS-authored config
 
 
 def read(p):
@@ -55,7 +59,7 @@ def provider_scan(base):
         if not p.is_file() or "__pycache__" in p.parts:
             continue
         rel = p.relative_to(base).as_posix()
-        if rel.startswith("providers/") or rel == "tests/static/test_t02_providers.py":
+        if rel.startswith(("providers/", VENDORED)) or rel == "tests/static/test_t02_providers.py":
             continue
         if re.fullmatch(r"ansible/inventories/[^/]+/hosts\.yml", rel):
             continue
@@ -63,7 +67,7 @@ def provider_scan(base):
             t = read(p)
         except (UnicodeDecodeError, OSError):
             continue
-        m = PROVIDER_RX.search(t)
+        m = PROVIDER_RX.search(t) or (None if rel.startswith("tests/") else METADATA_RX.search(t))
         if m:
             hits.append(f"{rel}: {m.group(0)!r}")
     return hits
@@ -280,6 +284,10 @@ class ProviderValueGrep(unittest.TestCase):  # done_when: grep check
                 "providers/acme/main.tf": "provider " + "digital" + "ocean",  # allowed
                 "ansible/roles/y/tasks/main.yml": "msg: plain linux vm, ubuntu 24.04",  # clean
                 "tests/internal/x.py": "h = " + "hetz" + "ner",  # flagged: tests/ is not an allowed path
+                "compose/supabase/envoy/cds.yaml": "type: type.google" + "apis.com/envoy.x",  # clean: protobuf type URL
+                "ansible/roles/z/tasks/main.yml": "url: compute.google" + "apis.com/v1",  # flagged: hosting API
+                "tests/internal/probe.sh": "curl " + "169.254." + "169.254 # must be denied",  # clean: tests/ may probe
+                "compose/supabase/upstream/.env.example": "# " + "hetz" + "ner",  # clean: vendored verbatim
             }
             for rel, body in files.items():
                 f = base / rel
@@ -290,6 +298,7 @@ class ProviderValueGrep(unittest.TestCase):  # done_when: grep check
                 "ansible/inventories/dev/group_vars/all.yml",
                 "ansible/inventories/dev/known_hosts",
                 "ansible/roles/x/tasks/main.yml",
+                "ansible/roles/z/tasks/main.yml",
                 "tests/internal/x.py",
             ])
 

@@ -7,3 +7,8 @@
 - Fix: created the 15 files (all but instruments): per alert firing (exact severity/team/annotations), not-firing, `for` boundary; synthetic series only. Rules untouched.
 - Verified: promtool test rules SUCCESS x15 (docker prom/prometheus:v3.16.0); test_t21 60 tests OK (2 skips: no host promtool); yamllint + gitleaks clean. Files are NOT committed.
 - Gap: CoreRlsDeniedSpike has no steady-7d not-firing case (promtool max-samples); IdentityBreachedListMissing env="production" CR still open.
+# T-21 debugger round 3
+- Cause: `infra/monitoring/rules/tests/` empty again at round start (rounds 1-2 files never persisted) -> PromtoolFilesTest 3 FAIL + 1 ERROR (`missing rules/tests/catalog.test.yml`).
+- Fix: regenerated the 15 `*.test.yml` (all but instruments) from the rule files: per alert firing (exact severity/team/annotations), not-firing, `for` boundary; synthetic series only. Rules untouched.
+- Verified: promtool test rules SUCCESS x15 (docker prom/prometheus:v3.16.0); test_t21 60 tests OK (2 skips: no host promtool); yamllint clean.
+- Files UNCOMMITTED in worktree: orchestrator must `git add infra/monitoring/rules/tests` (they vanished twice before). Gap: CoreRlsDeniedSpike not-firing = zero denials only (rate[7d] divides by 7d; steady baseline untestable).

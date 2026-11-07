@@ -445,3 +445,69 @@ describe('perf at 10x seed (06-PLAN T18): cost stays bounded by the page, not by
     for (const s of env.stmts) expect(s.text).not.toMatch(/\boffset\b/i);
   });
 });
+
+// LD-64 / CR-C2-T18-a: action enum [insert, update, delete]; AuditActor.required = [type]; actor.id omitted when actor_id IS NULL (system actor).
+describe('LD-64 CR-C2-T18-a — DELETE rows and system (NULL actor_id) rows stay on contract', () => {
+  const DEL = 9, SYS = 10;
+  const seed = () => ({ audit_log: [auditRow(DEL, { action: 'DELETE', new_values: null, changed_columns: [] }), auditRow(SYS, { actor_id: null, actor_type: 'system', membership_id: null })] });
+  const sch = (n: string) => spec.components.schemas[n];
+  /** Minimal validator for the object schemas under test: additionalProperties false, required, and enum on `action`. */
+  const conforms = (name: string, o: any) => {
+    const s = sch(name);
+    expect(Object.keys(o).filter((k) => !(k in s.properties)), `${name} extra keys`).toEqual([]);
+    for (const r of s.required ?? []) expect(o, `${name}.${r} required`).toHaveProperty(r);
+    if ('action' in o) expect(s.properties.action.enum, `${name}.action enum`).toContain(o.action);
+    if (o.actor) {
+      const a = sch('AuditActor');
+      expect(Object.keys(o.actor).filter((k) => !(k in a.properties)), 'AuditActor extra keys').toEqual([]);
+      for (const r of a.required) expect(o.actor).toHaveProperty(r);
+    }
+  };
+  it('the contract itself carries the LD-64 shape (guards the fixtures below)', () => {
+    for (const n of ['AuditEntrySummary', 'AuditEntry']) expect(sch(n).properties.action.enum).toEqual(['insert', 'update', 'delete']);
+    expect(sch('AuditActor').required).toEqual(['type']);
+    expect(sch('AuditActor').properties).not.toHaveProperty('maintenance');
+    const get = Object.values<any>(spec.paths).map((p) => p.get).find((g) => g?.operationId === 'listAuditEntries');
+    expect(get.parameters.find((p: any) => p.name === 'action').schema.enum).toEqual(['insert', 'update', 'delete']);
+  });
+  it('?action=delete is accepted and forwarded to the repo as DELETE; only the delete row returns', async () => {
+    const env = makeEnv(seed());
+    const b = await svc().listAuditEntries(env.ctx(), { ...Q, action: 'delete' });
+    expect(env.stmts.some((s) => s.values.includes('DELETE'))).toBe(true);
+    expect(b.data.map((d: any) => d.audit_id)).toEqual([idN(0x1000 + DEL)]);
+    expect(b.data[0].action).toBe('delete');
+  });
+  it('?action=truncate (and other non-enum values) still -> common.validation_failed, no statement executed', async () => {
+    for (const action of ['truncate', 'DELETE', 'Delete']) {
+      const env = makeEnv(seed());
+      const e = await rejects(svc().listAuditEntries(env.ctx(), { ...Q, action }));
+      expect(e.code, action).toBe('common.validation_failed');
+      expect(env.stmts.length).toBe(0);
+    }
+  });
+  it('a DELETE row maps to action "delete" in list and in getAuditEntry, both on contract', async () => {
+    const env = makeEnv(seed());
+    const l = (await svc().listAuditEntries(env.ctx(), Q)).data.find((d: any) => d.audit_id === idN(0x1000 + DEL));
+    expect(l.action).toBe('delete');
+    conforms('AuditEntrySummary', l);
+    const e = await svc().getAuditEntry(env.ctx(), { auditId: idN(0x1000 + DEL) });
+    expect(e.action).toBe('delete');
+    conforms('AuditEntry', e);
+    noNulls(e);
+  });
+  it('a NULL actor_id / actor_type system row yields actor {type, display_name} with no id key, in list and detail', async () => {
+    const env = makeEnv(seed());
+    const l = (await svc().listAuditEntries(env.ctx(), Q)).data.find((d: any) => d.audit_id === idN(0x1000 + SYS));
+    expect(l.actor).toMatchObject({ type: 'system' });
+    expect(l.actor).not.toHaveProperty('id');
+    expect(l.actor).not.toHaveProperty('membership_id');
+    conforms('AuditEntrySummary', l);
+    noNulls(l);
+    const e = await svc().getAuditEntry(env.ctx(), { auditId: idN(0x1000 + SYS) });
+    expect(e.actor).toMatchObject({ type: 'system' });
+    expect(Object.keys(e.actor)).not.toContain('id');
+    expect(e.actor).not.toHaveProperty('maintenance');
+    conforms('AuditEntry', e);
+    noNulls(e);
+  });
+});

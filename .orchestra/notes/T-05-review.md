@@ -1,11 +1,7 @@
-APPROVE
+CHANGES
 
-Scope: `git diff dcf523a..HEAD` = test loader change (infra/tests/static/test_t05_supabase_compose.py), notes (impl, ruling, dispute rename). No product file changed in range; vendored upstream/ untouched (LD-33 byte-for-byte kept).
-- Test change matches ruling + LD-42 exactly: `_ComposeLoader(yaml.SafeLoader)` with pass-through `!reset`/`!override` constructors (scalar/sequence/mapping, `null`/`~`/"" -> None); used for both compose parses (lines 391-392); `yaml.safe_load` kept for UPSTREAM.lock (lines 106, 203). Assertions unchanged — no weakening. Still SafeLoader-based, so no arbitrary-object construction.
-- Ran: `python -B -m unittest discover -s infra/tests/static -p "test_t05_*.py"` -> Ran 41, OK.
-- Names/secrets/PHI: none introduced. Paths: test file + own notes only.
-- RLS/permissions/idempotency/rate tier/error codes: not applicable (infra compose task, no DB schema/API).
-Not blocking, for the record:
-- Live done_when items (GoTrue healthy + reach data-1/SMTP over db_net, Storage upload/download via api-gw from app_net, egress_probe auth) are NOT verified; they depend on infra/tests/integration/test_t05_live.py with LIMS_T05_LIVE=1 on real hosts (B12/LD-34).
-- Impl files (commit ae3e307, before this range) incl. `.gitattributes` edit were not part of this diff; `.gitattributes` is outside the T-05 `files` list — orchestrator to confirm ownership.
-- Style only: line 57 `ROOT =Path` missing space.
+1. services/api/src/modules/catalog/service/masters.service.ts:232,238 — `listUnits` `is_active` deviates from contracts/openapi/catalog.yaml:1193-1204 (enum `"true" | "false" | "all"`, default `"true"`; unchanged since base cf3accd). Now: `false`/`all` are rejected with 400 (valid requests per contract), and an absent param returns inactive rows too (contract default = active only). Fix: `checkEnumQuery(query, { scope: SCOPES, is_active: ['true', 'false', 'all'] })`, then `const ia = q['is_active'] ?? 'true'` and filter `ia === 'all' || u.is_active === (ia === 'true')`.
+2. services/api/src/modules/catalog/__tests__/integration/masterSets.service.test.ts:9,92-101 (tester) — tests encode the wrong contract ("contract enum is only \"true\"", "default lists inactive rows too"). Fix: default `{}` -> active rows only; `is_active:'false'` -> only inactive (global and tenant, shadowing still applied); `is_active:'all'` -> all; remove `is_active false` from the 400 cases (keep e.g. `is_active:'TRUE'`/`'yes'` as 400). Check masterSets.handlers.test.ts for the same assumption.
+
+Checked, OK: names (operationIds, `unit_id`/`value_set_id`, `catalog.code_duplicate`, `catalog.version_in_use`, entity types `unit`/`value_set` per 02-TRD L688/CR-C3-003); global rows never written (only g_* SELECTs; PATCH looks up cs_* only -> 404); in-use rule = tenant-bound `published` analyte_versions by code, sort_order frozen, removal impossible (TRD #22); all SQL values bound, column/table names from fixed constants; tenant_id explicit on every cs_* read/write; no logging/PHI/secrets; only owned paths + own notes. Permission/idempotency/rate tier come from the contract via the shared pipeline (unchanged). Ran T-05-verify set: 208/208 pass (pre-fix).
+Not blocking (already in impl notes): T-07 publish must lock the cs_value_sets row (FOR UPDATE) to close the sort_order-edit race; starter unit `none` display "" vs `Unit.display` minLength 1 (CR candidate).

@@ -3,7 +3,7 @@
 # - Examples are synthetic (uuids 0193c4a0-0000-7000-8000-…, "Synthetic …" strings).
 # - [CONV] IM rows (TRD §3.2) list common.version_conflict + common.precondition_required; required-idem rows list common.idempotency_key_reused.
 # - [CONV] shapes the TRD names without fields are marked [CONV] in their description.
-# - Open conflict with lint rule 4 (P-8): #14a requestOrderLabelPrint is a POST with x-idempotency none outside E1/E2, see .orchestra/cr/T0C-10.C5.md.
+# - P-8: #14a requestOrderLabelPrint (read-only POST) carries E3 per LD-10 (2026-11-07).
 openapi: 3.0.3
 info:
   title: LIMS lab (C5)
@@ -1543,7 +1543,7 @@ paths:
       x-permission: lab.specimen.label_print
       x-context: tenant
       x-idempotency: none
-      x-idempotency-justification: E3 read-like readiness check; no state written (08 A13 D-4). No E1/E2 exception fits; see .orchestra/cr/T0C-10.C5.md (same as CR-C0-0C-004 (2)).
+      x-idempotency-justification: "E3 read-only POST (LD-10): readiness check, no state written (08 A13 D-4), nothing to replay."
       x-rate-limit-tier: general
       x-error-codes:
         - common.validation_failed

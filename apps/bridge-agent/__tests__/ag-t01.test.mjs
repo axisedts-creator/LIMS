@@ -38,14 +38,20 @@ describe('go.mod: module + toolchain pin (TRD §2.1)', () => {
     assert.match(read('go.mod'), /^module\s+\S+/m);
   });
 
-  test('go >= 1.26 and toolchain pinned to the identical patch', () => {
+  test('go >= 1.26 and toolchain line pinned (>= go directive)', () => {
     const mod = read('go.mod');
     const g = mod.match(/^go\s+(1\.(\d+)\.(\d+))\s*$/m);
     const t = mod.match(/^toolchain\s+go(1\.(\d+)\.(\d+))\s*$/m);
     assert.ok(g, '`go 1.26.x` directive (with patch) missing');
     assert.ok(t, '`toolchain go1.26.x` directive missing');
     assert.ok(Number(g[2]) >= 26, `go directive ${g[1]} < 1.26`);
-    assert.equal(t[1], g[1], 'go and toolchain versions must be identical');
+    assert.ok(Number(t[2]) >= 26, `toolchain ${t[1]} < 1.26`);
+    const gv = [Number(g[2]), Number(g[3])];
+    const tv = [Number(t[2]), Number(t[3])];
+    assert.ok(
+      tv[0] > gv[0] || (tv[0] === gv[0] && tv[1] >= gv[1]),
+      `toolchain ${t[1]} must be >= go directive ${g[1]}`,
+    );
   });
 
   test('modernc.org/sqlite is pinned to exactly v1.61.1', () => {

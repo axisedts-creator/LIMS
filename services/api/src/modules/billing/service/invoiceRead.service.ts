@@ -5,6 +5,7 @@ import { LimsError, type FieldError } from '../../../core/errors.js';
 import { moneyOf, toPaisa } from '../domain/money/paisa.js';
 import * as cbmsRepo from '../repository/cbms.repo.js';
 import * as creditNotesRepo from '../repository/creditNotes.repo.js';
+import * as creditNoteTasksRepo from '../repository/creditNoteTasks.repo.js';
 import * as balancesRepo from '../repository/balances.repo.js';
 import * as invoiceLinesRepo from '../repository/invoiceLines.repo.js';
 import * as invoicesRepo from '../repository/invoices.repo.js';
@@ -12,31 +13,31 @@ import * as overridesRepo from '../repository/overrides.repo.js';
 import * as printLogRepo from '../repository/printLog.repo.js';
 import { decideRelease, releasePolicyEnforced, type BalanceCtx } from './balance.service.js';
 
-const repo = { ...cbmsRepo, ...creditNotesRepo, ...balancesRepo, ...invoiceLinesRepo, ...invoicesRepo, ...overridesRepo, ...printLogRepo };
+const repo = { ...cbmsRepo, ...creditNotesRepo, ...creditNoteTasksRepo, ...balancesRepo, ...invoiceLinesRepo, ...invoicesRepo, ...overridesRepo, ...printLogRepo };
 export type InvoiceReadRepo = typeof repo;
 
-const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-const UTC_INSTANT = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}(\.\d{1,3})?)?Z$/;
+export const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+export const UTC_INSTANT =/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}(\.\d{1,3})?)?Z$/;
 const FY = /^[0-9]{4}\/[0-9]{2}$/;
 const CURSOR = /^[A-Za-z0-9_-]{1,512}$/;
 /** [CONV] No source for the printer's/canceller's name exists in C4 (print_log and invoices hold only user ids; IdentityPort has no id->name call for these): a fixed label, never the raw id. */
-const STAFF_DISPLAY = 'Staff user';
+export const STAFF_DISPLAY = 'Staff user';
 
-const isRec = (v: unknown): v is Record<string, any> => typeof v === 'object' && v !== null && !Array.isArray(v);
-const bad = (path: string): LimsError => new LimsError('common.validation_failed', undefined, [{ path, code: 'common.field_invalid', message: 'Field invalid' } satisfies FieldError]);
-const iso = (v: unknown): string => {
+export const isRec = (v: unknown): v is Record<string, any> => typeof v === 'object' && v !== null && !Array.isArray(v);
+export const bad = (path: string): LimsError => new LimsError('common.validation_failed', undefined, [{ path, code: 'common.field_invalid', message: 'Field invalid' } satisfies FieldError]);
+export const iso = (v: unknown): string => {
   const d = v instanceof Date ? v : new Date(String(v));
   if (Number.isNaN(d.getTime())) throw new LimsError('common.internal');
   return d.toISOString();
 };
-const present = <T extends object>(o: T): T => Object.fromEntries(Object.entries(o).filter(([, v]) => v !== undefined && v !== null)) as T;
-const uuid = (v: unknown, path: string): string => { if (typeof v !== 'string' || !UUID.test(v)) throw bad(path); return v; };
+export const present = <T extends object>(o: T): T => Object.fromEntries(Object.entries(o).filter(([, v]) => v !== undefined && v !== null)) as T;
+export const uuid = (v: unknown, path: string): string => { if (typeof v !== 'string' || !UUID.test(v)) throw bad(path); return v; };
 
 function scope(ctx: BalanceCtx): { tx: never; tenantId: string } {
   if (typeof ctx?.tenantId !== 'string' || typeof ctx.actor?.id !== 'string' || !ctx.tx) throw new LimsError('auth.unauthenticated');
   return { tx: ctx.tx as never, tenantId: ctx.tenantId };
 }
-function limitOf(raw: unknown): number {
+export function limitOf(raw: unknown): number {
   if (raw === undefined) return 50;
   const n = typeof raw === 'string' && /^[0-9]{1,3}$/.test(raw) ? Number(raw) : raw;
   if (typeof n !== 'number' || !Number.isInteger(n) || n < 1 || n > 200) throw bad('/limit');
@@ -44,8 +45,8 @@ function limitOf(raw: unknown): number {
 }
 
 // ---- opaque keyset cursors: base64url(JSON [sort, value, id]) ----
-const encodeCursor = (sort: string, value: string | number, id: string): string => Buffer.from(JSON.stringify([sort, value, id]), 'utf8').toString('base64url');
-function decodeCursor(raw: unknown, sort: string, kind: 'time' | 'int'): { value: string | number; id: string } {
+export const encodeCursor = (sort: string, value: string | number, id: string): string => Buffer.from(JSON.stringify([sort, value, id]), 'utf8').toString('base64url');
+export function decodeCursor(raw: unknown, sort: string, kind: 'time' | 'int'): { value: string | number; id: string } {
   const invalidCursor = (): LimsError => new LimsError('common.invalid_cursor');
   if (typeof raw !== 'string' || !CURSOR.test(raw)) throw invalidCursor();
   let v: unknown;
@@ -178,6 +179,42 @@ export function createInvoiceReadService(deps: { repo?: InvoiceReadRepo } = {}) 
     };
   }
 
-  return { listInvoices, getInvoice, getOrderBilling, listInvoicePrints };
+  /** B35: finance work list. status open (default) | resolved; keyset by (created_at, id). Only the CreditNoteTask fields leave. */
+  async function listCreditNoteTasks(ctx: BalanceCtx, rawQuery: unknown) {
+    const { tx, tenantId } = scope(ctx);
+    const q = isRec(rawQuery) ? rawQuery : {};
+    const status = q['status'] === undefined ? 'open' : q['status'];
+    if (status !== 'open' && status !== 'resolved') throw bad('/status');
+    const limit = limitOf(q['limit']);
+    const c = q['cursor'] === undefined ? undefined : decodeCursor(q['cursor'], 'created_at', 'time');
+    const rows = await db.listCreditNoteTasks(tx, { tenantId, status, limit: limit + 1, ...(c === undefined ? {} : { after: { createdAt: String(c.value), id: c.id } }) });
+    const data = rows.slice(0, limit);
+    const last = data[data.length - 1];
+    const page: { limit: number; next_cursor?: string } = { limit };
+    // ponytail: the cursor carries created_at at ms precision (node-pg Date); two tasks inside one ms could skip one at a page edge.
+    if (rows.length > limit && last) page.next_cursor = encodeCursor('created_at', iso(last['created_at']), String(last['id']));
+    return {
+      data: data.map((t) => ({ id: t['id'], order_id: t['order_id'], invoice_id: t['invoice_id'], invoice_line_ids: t['invoice_line_ids'], cause: t['cause'], status: t['status'], created_at: iso(t['created_at']) })),
+      page,
+    };
+  }
+
+  /** CreditNoteDto of one note (B4 / B5 responses); the note and its lines are read in the caller's transaction. */
+  async function getCreditNote(ctx: BalanceCtx, input: { creditNoteId: string }) {
+    const { tx, tenantId } = scope(ctx);
+    const n = await db.getCreditNote(tx, { tenantId, creditNoteId: input.creditNoteId });
+    if (!n) throw new LimsError('common.not_found');
+    const lines = (await db.listCreditNoteLinesByInvoice(tx, { tenantId, invoiceId: String(n['invoice_id']) })).filter((l) => l['credit_note_id'] === n['id']);
+    return present({
+      id: n['id'], credit_note_no: n['credit_note_no'], credit_note_seq: n['credit_note_seq'], kind: n['kind'], invoice_id: n['invoice_id'], invoice_no: n['invoice_no'],
+      fiscal_year_bs: n['fiscal_year_bs'], issued_at: iso(n['issued_at']), credit_note_date_bs: n['credit_note_date_bs'], centre_id: n['centre_id'], reason_code: n['reason_code'],
+      reason_text: n['reason_text'], lines: lines.map((l) => ({ invoice_line_id: l['invoice_line_id'], amount: moneyOf(toPaisa(l['net_paisa'])) })),
+      totals: { exempt: moneyOf(toPaisa(n['exempt_paisa'])), taxable: moneyOf(toPaisa(n['taxable_paisa'])), vat: moneyOf(toPaisa(n['vat_paisa'])),
+        other_tax: moneyOf(toPaisa(n['other_tax_paisa'])), net: moneyOf(toPaisa(n['net_paisa'])) },
+      print_count: n['print_count'], cbms_state: n['cbms_state'], version: n['version'],
+    });
+  }
+
+  return { listInvoices, getInvoice, getOrderBilling, listInvoicePrints, listCreditNoteTasks, getCreditNote };
 }
 export type InvoiceReadService = ReturnType<typeof createInvoiceReadService>;

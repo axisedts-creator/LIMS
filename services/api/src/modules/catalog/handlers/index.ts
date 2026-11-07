@@ -9,6 +9,8 @@ import { importsHandlers } from './imports.handlers.js';
 import { mastersHandlers } from './masters.handlers.js';
 import { panelsHandlers } from './panels.handlers.js';
 import { pricingHandlers } from './pricing.handlers.js';
+import { rangePreviewHandlers } from './rangePreview.handlers.js';
+import { rangesHandlers } from './ranges.handlers.js';
 import { referrersHandlers } from './referrers.handlers.js';
 import { testsHandlers } from './tests.handlers.js';
 
@@ -25,35 +27,12 @@ export const handlers: Readonly<Record<string, Handler>> = Object.freeze({
   setTestTatTargets: notImplemented,
   ...analyteVersionsHandlers, // T-07: #29–#35
   validateFormula: notImplemented,
-  listReferenceRangeSets: notImplemented,
-  createReferenceRangeSetDraft: notImplemented,
-  getReferenceRangeSet: notImplemented,
-  replaceReferenceRangeSetBands: notImplemented,
-  publishReferenceRangeSet: notImplemented,
-  retireReferenceRangeSet: notImplemented,
-  discardReferenceRangeSetDraft: notImplemented,
-  listCriticalLimitSets: notImplemented,
-  createCriticalLimitSetDraft: notImplemented,
-  getCriticalLimitSet: notImplemented,
-  replaceCriticalLimitSetBands: notImplemented,
-  publishCriticalLimitSet: notImplemented,
-  retireCriticalLimitSet: notImplemented,
-  discardCriticalLimitSetDraft: notImplemented,
-  previewReferenceRange: notImplemented,
+  ...rangesHandlers, // T-08: #37–#50 (reference-range + critical-limit sets)
+  ...rangePreviewHandlers, // T-10: #51
   ...panelsHandlers, // T-12: #52–#56, #3
   ...referrersHandlers, // T-15: #60–#66 (doctors)
   ...creditPartiesHandlers, // T-16: #67–#70 (credit parties)
-  ...pricingHandlers, // T-17: #71–#81 (price lists)
-  quotePrices: notImplemented,
-  listSurchargeRules: notImplemented,
-  createSurchargeRule: notImplemented,
-  endSurchargeRule: notImplemented,
-  listTaxTypes: notImplemented,
-  createTaxType: notImplemented,
-  updateTaxType: notImplemented,
-  listTaxRules: notImplemented,
-  createTaxRule: notImplemented,
-  endTaxRule: notImplemented,
+  ...pricingHandlers, // T-17: #71–#81 (price lists); T-19: #82 (quotePrices); T-18: #83–#91 (surcharge / tax)
   listInstrumentCodeMaps: notImplemented,
   createInstrumentCodeMap: notImplemented,
   updateInstrumentCodeMap: notImplemented,

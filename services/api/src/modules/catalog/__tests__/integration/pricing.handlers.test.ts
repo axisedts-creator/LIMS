@@ -94,9 +94,8 @@ describe('the 11 operations exist in the contract with the TRD permissions / ide
 
 describe('probes (CR-C3-008): the price-list stubs are gone', () => {
   const pending: string[] = JSON.parse(readFileSync(join(import.meta.dirname, '..', 'probes', 'pending.json'), 'utf8'));
-  it('none of the eleven operationIds is listed in probes/pending.json any more (quotePrices #82 stays: T-19)', () => {
+  it('none of the eleven operationIds is listed in probes/pending.json any more', () => {
     for (const id of IDS) expect(pending, id).not.toContain(id);
-    expect(pending).toContain('quotePrices');
   });
   it.each(IDS)('%s does not answer 503 common.service_unavailable / not_implemented', { timeout: T }, async (id) => {
     const e = await call(mk(), id, req({ params: { price_list_id: ID(0x1), price_list_version_id: ID(0x2) }, headers: { ...IM1, ...KEY }, body: {} })).then(() => undefined, (x) => x);

@@ -81,6 +81,8 @@ describe('501 stubs in dev', () => {
     'listReportTemplates', 'createReportTemplate', 'getReportTemplate', 'updateReportTemplateDraft', 'publishReportTemplate',
     // LEAD-VISIBLE TESTER EDIT (C6-T09): R8 leaves the 501 list; covered by retry-render.test.ts.
     'retryRenderReportVersion',
+    // LEAD-VISIBLE TESTER EDIT (C6-T13): R6 leaves the 501 list; covered by release.handlers.test.ts.
+    'releaseReportVersion',
     // LEAD-VISIBLE TESTER EDIT (C6-T20): P1-P6 leave the 501 list; covered by the C6-T20 portal handler tests.
     'createPortalOtpChallenge', 'verifyPortalOtp', 'getPortalReport', 'downloadPortalReportPdf', 'requestPortalLinkReissue', 'endPortalSession']);
   const stubOps = ops.filter((o: string) => !IMPLEMENTED.has(o));

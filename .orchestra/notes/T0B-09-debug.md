@@ -14,3 +14,6 @@ No 0B-owned fix: a hand-edit of generated 001 is overwritten and fails the codeg
 Round 5: unchanged. Only failing test = 001 lacks `SET LOCAL ROLE lims_owner` (test l.73, valid per ruling/LD-30). Cause still tools/codegen/gen-permissions.ts:129 (C0-0C-owned, `DO UPDATE`, no SET LOCAL ROLE). 010 now follows LD-30 (lims_app), so earlier contradiction is gone. No 0B-owned fix; CR still open; no code change.
 
 Round 6: unchanged. Only failure = 001 lacks `SET LOCAL ROLE lims_owner` (test l.73, valid per ruling). Cause = tools/codegen/gen-permissions.ts:129 (C0-0C-owned; still `DO UPDATE`, no role switch). CR T0B-09-001-generator.md still open; hand-edit of generated 001 would be overwritten/fail drift check. No code change.
+
+Round 7: 001 now fixed (LD-38: gen-permissions.ts emits SET LOCAL ROLE lims_owner + DO NOTHING). Only failure left = 003: tools/codegen/gen-access-actions.ts:38-41 has no SET LOCAL ROLE lims_owner and uses `DO UPDATE`. LD-38 covers only gen-permissions.ts; gen-access-actions.ts is C0-0C-owned, so not edited.
+CR filed: .orchestra/cr/T0B-09-003-generator.md (same 2-line fix + `pnpm codegen`). Needs lead to extend LD-38 to this file. Test valid; no dispute.

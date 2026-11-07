@@ -100,7 +100,7 @@ export const importValidate: TaskHandler = async (payload, jobCtx) => {
   const quarantine = async () => {
     if (!(await lock())) return;
     await setState(ctx, 'quarantined', 'common.upload_quarantined');
-    ctx.metrics?.inc?.('catalog_import_quarantined_total', { kind: 'price_list' });   // [CONV] name; spec gives none
+    ctx.metrics?.inc?.('lims_catalog_imports_total', { kind: 'price_list', outcome: 'quarantined' });   // 02-TRD §12
     ctx.log?.error?.({ event: 'import_quarantined', import_id: importId });
   };
 
@@ -243,23 +243,20 @@ export const importValidate: TaskHandler = async (payload, jobCtx) => {
       ...Array.from({ length: width }, (_, j) => r[j] ?? null),
       i === 0 ? 'issues' : (rowCodes.get(i + 1)?.join('; ') ?? null)]) });
   }
-  if (sheets) reportSheets.push({ name: 'Issues', rows: [
+  reportSheets.push({ name: 'Issues', rows: [   // always: AC-16.10 also covers file-level rejections
     ['seq', 'severity', 'sheet', 'row_no', 'column_key', 'issue_code', 'message'],
     ...issues.map((x, i) => [i + 1, x.severity, x.sheet, x.row_no, x.column_key, x.issue_code, x.message])] });
-  const report = sheets ? await writeXlsx(reportSheets) : undefined;
+  const report = await writeXlsx(reportSheets);
 
   // ---- 6. persist in one transaction
   if (!(await lock())) return;
   const impExp = new Date(Date.parse(nowIso) + cfg.importTtlHours * 3_600_000);
   const fileExp = new Date(impExp.getTime() + cfg.fileRetentionDays * 86_400_000);
-  let reportId: string | null = null;
-  if (report) {
-    reportId = uuidv7();
-    const stem = String(imp.file_name).replace(/\.xlsx$/i, '').slice(0, 180) || 'import';
-    await q(
-      'INSERT INTO catalog.files (id, tenant_id, purpose, file_name, content_type, byte_size, sha256, content, expires_at, created_at, created_by) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)',
-      [reportId, tenantId, 'import_report', `${stem}-report.xlsx`, XLSX_CT, report.length, sha256(report), Buffer.from(report), fileExp, nowIso, actor]);
-  }
+  const reportId = uuidv7();
+  const stem = String(imp.file_name).replace(/\.xlsx$/i, '').slice(0, 180) || 'import';
+  await q(
+    'INSERT INTO catalog.files (id, tenant_id, purpose, file_name, content_type, byte_size, sha256, content, expires_at, created_at, created_by) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)',
+    [reportId, tenantId, 'import_report', `${stem}-report.xlsx`, XLSX_CT, report.length, sha256(report), Buffer.from(report), fileExp, nowIso, actor]);
   for (let s = 0; s < issues.length; s += CHUNK) {
     const part = issues.slice(s, s + CHUNK), vals: unknown[] = [];
     const tuples = part.map((x, i) => {
@@ -273,4 +270,5 @@ export const importValidate: TaskHandler = async (payload, jobCtx) => {
   await q(
     'UPDATE catalog.imports SET status = $3, summary = $4::jsonb, error_count = $5, warning_count = $6, base_version_no = $7, report_file_id = $8, validated_at = $9, expires_at = $10, last_error_code = NULL, version = version + 1, updated_at = $9, updated_by = $11 WHERE tenant_id = $1 AND id = $2',
     [tenantId, importId, status, JSON.stringify(summary), errors, warnings, baseNo, reportId, nowIso, impExp, actor]);
+  ctx.metrics?.inc?.('lims_catalog_imports_total', { kind: 'price_list', outcome: status });
 };

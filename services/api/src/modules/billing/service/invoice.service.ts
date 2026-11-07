@@ -273,12 +273,13 @@ export function createInvoiceService(deps: { repo?: BillingRepo; counter: Counte
     const nowIso = ctx.now();
     const tenant = await idp.getTenantSettings(ctx, { keys: ['numbering', 'ird', 'timezone'] });
     const pattern = tenant?.numbering?.creditNoteNoPattern;
-    if (typeof pattern !== 'string') throw new LimsError('billing.numbering_pattern_invalid');
+    // CN pattern problems -> common.internal: the only fitting code declared on cancelInvoice/issuePartialCreditNote (review BL-T10 item 2)
+    if (typeof pattern !== 'string') throw new LimsError('common.internal');
     const timezone: string = typeof tenant?.timezone === 'string' ? tenant.timezone : 'Asia/Kathmandu';
     const fy = fiscalYearOf(nowIso as IsoUtc, timezone);
     // dry-run with seq 1 BEFORE allocating, so a broken pattern consumes no number
     try { formatDocumentNumber(pattern, { fy, seq: 1, scope: 'tenant' }); }
-    catch (e) { throw isLimsError(e, 'common.validation_failed') ? new LimsError('billing.numbering_pattern_invalid') : e; }
+    catch (e) { throw isLimsError(e, 'common.validation_failed') ? new LimsError('common.internal') : e; }
     const cbmsRequired = tenant?.ird?.cbmsRealtimeRequired !== false; // unknown = required: never silently skip the tax authority
     const cbmsState = cbmsRequired ? 'pending' : 'not_required';
     const tot = sumParts(a.picks.map((p) => p.parts));
@@ -350,7 +351,8 @@ export function createInvoiceService(deps: { repo?: BillingRepo; counter: Counte
     const inv = await lockIssued(ctx, invoiceId, reasonCode, reasonText);
     const { lines, remaining } = await remainingByLine(ctx, invoiceId);
     const picks: NotePick[] = lines.filter((l) => remaining.get(String(l['id']))!.net > 0).map((l) => ({ line: l, parts: remaining.get(String(l['id']))! }));
-    if (picks.length === 0) throw new LimsError('billing.invoice_immutable'); // fully credited already: a zero-value note is forbidden (credit_notes__totals__ck)
+    // fully credited already: a zero-value note is forbidden (credit_notes__totals__ck). Spec names no code; a declared one is used until .orchestra/cr/BL-T10.md is ruled.
+    if (picks.length === 0) throw invalid(fieldError('/invoice_id'));
     const open = await repo.listOpenCreditNoteTasks(ctx.tx as never, { tenantId: ctx.tenantId, invoiceId }) as Row[]; // the cancellation resolves them (03-APP-FLOW §2.11)
     return writeNote(ctx, { kind: 'cancellation', inv, picks, reasonCode, reasonText, taskIds: open.map((t) => String(t['id'])) });
   }

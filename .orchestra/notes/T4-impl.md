@@ -1,0 +1,8 @@
+# T4 impl (writer) — BLOCKED on manifest registration, CR `.orchestra/cr/T4.md` (CR-C2-020)
+Files: identity/claims/resolver.ts (createClaimsResolver, §6.2 steps 1–4), identity/repository/sessions.repo.ts (resolveSessionRow, DEFINER only), identity/handlers/index.ts (111 fail-closed stubs, ready for the manifest).
+Result: resolver.test.ts 81/81 pass; sessions.repo.test.ts fails to load (no identity/index.ts). With index.ts present all 90 pass but core boot breaks repo-wide (identity.yaml bffSession $ref collision in core bundleRefs) -> index.ts removed, CR filed.
+Manifest to add once CR lands: `{ name:'identity', openapi:'contracts/openapi/identity.yaml', handlers, produces: [], claimsResolver: createClaimsResolver({ db }) }` — core gives modules no db yet (CR open point); interim db must reject common.internal.
+[CONV] IP allowlist via node:net BlockList; IPv4-mapped v6 normalised; unparsable IP/entry never matches; cidr[] accepted as array or pg '{..}' string.
+[CONV] fail closed -> auth.unauthenticated: unknown kind, tenant kind w/o tenant/membership/tenant_status, membership_locked NULL, partner w/o partner_role, platform w/o staff id / known role, non-UUID jwt ids (no DB call), bffKey portal on identity families (no DB call).
+[CONV] support session counted only if support_session_id+tenant+scope set and support_expires_at > now; operation context 'identity_auth' (core tx.ts requires it).
+Pre-existing, unrelated failures in full suite: lab boot.test (LIMS_CORE_ENV config, reporting index.ts no manifest); errors.test timeout under full load (passes alone). tsc: 1 pre-existing error in packages/shared-ts bsdate.

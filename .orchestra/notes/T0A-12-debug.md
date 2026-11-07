@@ -10,3 +10,7 @@
 ## Round 3
 - Re-ran T0A-12 scoped suite: 102/102 pass. verify.log failures still the 12 T0A-08 validation tests (`@lims/contracts` unresolved, CR T0A-08). No code change; not fixable in T0A-12 files.
 - Needs: verify scoped to T0A-12 tests (see T0A-12-verify.cmd), or T0A-08 CR resolved by C0-0C.
+
+## Round 4
+- New failure (not the T0A-08 one): decimal.test.mjs:23 exact-pin test rejects `@lims/contracts: workspace:*` in shared-ts/package.json (T0A-08-owned, not a T0A-12 file).
+- Test contradicts spec: workspace link is not a version range; exact-pin rule (02-CONVENTIONS.md:13) covers external versions. No impl change. Wrote .orchestra/notes/T0A-12-dispute.md; stopped.

@@ -1,10 +1,10 @@
-CHANGES
+APPROVE
 
-1. infra/database/postgresql/pg_hba.conf.j2:18,21,22 — `wg_ip['app-1']` / `wg_ip['dr-1']` treat `wg_ip` as a host-keyed dict, but every inventory defines `wg_ip` as a per-host scalar (infra/ansible/inventories/*/hosts.yml:13 etc.), and other templates rely on that (hardening/templates/lims.conf.j2:2 `ListenAddress {{ wg_ip }}`, chrony `hostvars[h].wg_ip`). Rendering on data-1 fails ('str' has no attribute 'app-1'), and a dict named `wg_ip` cannot be supplied without clobbering the host var. Dev has no `app-1`/`dr-1` hosts at all (single `dev-1`, `dr: {}`).
-   Fix: use group lookups, guard the empty dr group:
-   `host all all {{ hostvars[groups['app'][0]].wg_ip }}/32 scram-sha-256`
-   `{% if groups['dr'] | length > 0 %}` … `{{ hostvars[groups['dr'][0]].wg_ip }}/32` … `{% endif %}` for the two dr-1 lines.
-2. infra/tests/static/test_t04_postgres_image.py:41-45 (`_ctx`) + docstring line 12-14 — the template contract forces the wrong `wg_ip` dict shape above. Fix (tester): give `_ctx` `groups={'data':['data-1'],'app':['app-1'],'dr':['dr-1'],'ops':['ops-1']}` and `hostvars={h:{'wg_ip':ip} for h,ip in WG.items()}`, drop the `wg_ip` dict from the contract, and add one render case with `groups['dr']=[]` (dev) asserting no dr lines and the default-reject tail still last.
+Re-review of ca11d1e..HEAD after review fixes (26ee98e..5352f21).
+Prior items resolved:
+1. pg_hba.conf.j2:18,22,23 now use `hostvars[groups['app'][0]].wg_ip` / `hostvars[groups['dr'][0]].wg_ip`; dr lines guarded by `{% if groups['dr'] | length > 0 %}` (dev `dr: {}` -> empty group, renders no dr lines; dev app group = dev-1, resolves).
+2. test_t04_postgres_image.py `_ctx` uses groups/hostvars with scalar `wg_ip`; contract docstring updated; new `test_dev_without_dr_group_renders_no_dr_lines` asserts no dr lines, dr-1 denied, app-1 allowed, v4/v6 reject last.
 
-Checked, OK: zz-lims.conf values = 02-TRD §7.7 verbatim (archive_command → T-09, hot_standby_feedback → standby, documented); log_parameter_max_length(_on_error)=0, log_statement=none, auto_explain off (REQ-SEC-098, no PHI in logs); no trust/md5, no ops-1 entry, v4+v6 reject last; Dockerfile FROM digest matches db/meta/decisions/SP-3.md, no pgBackRest, config mounted at the TRD §7.2 paths; no secrets (live-test password is synthetic); only owned paths touched. RLS/permissions/idempotency/rate tier/error codes: n/a for this task.
-Not proven: live test (image start, four roles connect) never run — CI must run it with LIMS_T04_LIVE=1 before T-04 is closed. Known risk (already noted by writer): archive_mode=on with no archive_command keeps WAL in pg_wal until T-09.
+Ran: `python -B -m unittest discover -s infra/tests/static -p "test_t04_*.py"` -> Ran 31 tests, OK.
+Still checked OK: zz-lims.conf values per 02-TRD s7.7, log_parameter_max_length(_on_error)=0 (no PHI in logs), no trust/md5, no ops-1 entry, Dockerfile digest per SP-3, no secrets, owned paths only. RLS/permissions/idempotency/rate tier/error codes: n/a.
+Not proven: live test (infra/tests/integration/test_t04_live.py, LIMS_T04_LIVE=1) not run here; CI must run it before closing T-04. Known risk: archive_mode=on without archive_command until T-09.

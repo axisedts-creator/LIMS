@@ -1,0 +1,6 @@
+# T0B-07 tests (tester)
+- `tests/db/T0B-07.registry-checks.test.mjs` (node:test, no DB): bad-migration rejection for `check-migrations` (owner switch AC-0B-6.3, name, ENUM, USING/WITH CHECK (true)+allowlist, TO public/anon/authenticated, DEFINER search_path, DEFAULT id/tenant_id, no tenant_id, DELETE on C, DISABLE RLS, RLS-in-file, uncast centre A16.1, DROP label, auth., CONCURRENTLY); `check-fk-dag` (R3, billing, ALTER FK; AC-0B-6.2); `check-registry` (staff guard in qual AND with_check, shared_with + actor policy, __tenant_centre, uncast centre, phi_class, unregistered table); registry-file checks + policy-dump smoke.
+- Run: `node --test tests/db/T0B-07.registry-checks.test.mjs` or `.orchestra/notes/T0B-07-verify.cmd`.
+- CLI contract is tester-defined (spec silent), documented in the test header: `node db/tools/<tool>.ts [--root <dir>]`, exit 1 naming file/policy; tables.yaml `{tables:{"s.t":{class,columns:{col:phi},shared_with,...}}}`; dag.yaml `{allowed:{schema:[upstream]}}`. Fixtures are JSON-as-YAML in tmpdirs.
+- Status now: all fail (db/tools/*.ts, db/meta/*.yaml absent); helper asserts tool exists and did not crash, so "rejected" cases cannot pass on a missing-module exit code.
+- Not covered: AC-0B-2.3 real pg_policies diff (needs DB), CI wiring of gate 9 (T0A), cross-PR CONCURRENTLY recovery file, composite-FK-only, tenant-leading index rule.

@@ -4,6 +4,7 @@
 //                               tenant 01a1a98a-ac40-7000-8000-00000000a001, user ...a300, membership ...a500 exist). Used only to seed/restore.
 //   LIMS_TEST_API_DATABASE_URL  optional lims_api URL the resolver runs as (default: the superuser URL; use lims_api to prove FORCE RLS + DEFINER).
 // Needs the `pg` driver (not a services/api dependency yet; loaded dynamically so this file typechecks and skips without it).
+import { createHash } from 'node:crypto';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { createDb } from '../../../../core/db/tx.js';
 import { createClaimsResolver } from '../../claims/resolver.js';
@@ -13,7 +14,7 @@ const API_URL = process.env['LIMS_TEST_API_DATABASE_URL'] ?? URL_;
 const TENANT = '01a1a98a-ac40-7000-8000-00000000a001', SUB = '01a1a98a-ac40-7000-8000-00000000a300', MEMBERSHIP = '01a1a98a-ac40-7000-8000-00000000a500';
 const SYS = '01a1b34e-1000-7eee-9d29-d7ca59a102b5';
 const uid = (n: number) => `0190c200-0000-7000-8000-${String(n).padStart(12, '0')}`;
-const H = (s: string) => `\\x${Buffer.from(s).toString('hex')}`; // distinct, synthetic 'bytea' tokens (not a real hash)
+const H = (s: string) => `\\x${createHash('sha256').update(s).digest('hex')}`; // distinct synthetic 32-byte tokens (sessions__token_len__ck)
 const REQ = '01a1a98a-ac40-7000-8000-00000000c001';
 const request = (o: object = {}) => ({ clientIp: '203.0.113.7', requestId: REQ, endpointFamily: 'staff' as const, bffKey: 'staff_web' as const, ...o });
 const jwtFor = (n: number, aal: 'aal1' | 'aal2' = 'aal1') => ({ sub: SUB, sessionId: uid(9000 + n), aal, exp: 1_900_000_000, iat: 1_899_990_000 });
@@ -50,7 +51,7 @@ describe.skipIf(!URL_)('claimsResolver over a real DB (identity_resolve_session 
     const Pool = (pg.default ?? pg).Pool;
     admin = new Pool({ connectionString: URL_, max: 2 });
     apiPool = new Pool({ connectionString: API_URL, max: 20 });
-    resolver = createClaimsResolver({ db: createDb({ pool: apiPool }) });
+    resolver = createClaimsResolver({ db: createDb({ pool: apiPool, identitySystemActorId: SYS }) });
   });
   afterAll(async () => {
     for (const sql of cleanup.reverse()) await seed([[sql]]);
@@ -83,7 +84,7 @@ describe.skipIf(!URL_)('claimsResolver over a real DB (identity_resolve_session 
     expect(await resolver.resolve(jwtFor(4), request())).toEqual({ kind: 'rejected', code: 'auth.session_expired' });
   });
   it('locked membership -> auth.account_locked', async () => {
-    await addSession(5, {}, [[`UPDATE core.memberships SET locked_at = now(), locked_by = $1, lock_reason_code = 'admin_lock' WHERE id = $2`, [SYS, MEMBERSHIP]]]);
+    await addSession(5, {}, [[`UPDATE core.memberships SET locked_at = now(), locked_by = $1, lock_reason_code = 'security_concern' WHERE id = $2`, [SYS, MEMBERSHIP]]]);
     try { expect(await resolver.resolve(jwtFor(5), request())).toEqual({ kind: 'rejected', code: 'auth.account_locked' }); }
     finally { await seed([[`UPDATE core.memberships SET locked_at = NULL, locked_by = NULL, lock_reason_code = NULL WHERE id = $1`, [MEMBERSHIP]]]); }
   });

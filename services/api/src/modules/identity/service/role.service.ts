@@ -44,7 +44,7 @@ const SIGNOUT_TASK = 'identity.gotrue_signout';
 const SIGNOUT_BATCH = 200;                                     // 03-APP-FLOW §4.3 / §9.2
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 const ROLE_CODE = /^[a-z][a-z0-9_]{1,39}$/;
-// [CONV] 300 = DB roles__text__ck (the contract says 500; a 301-500 description would otherwise be a 500 from the CHECK). Open point in T14-impl.
+// [CONV] 300 = DB roles__text__ck (the contract says 500; a 301-500 description would otherwise be a 500 from the CHECK). CR: .orchestra/cr/T14.md (1).
 const DESCRIPTION_MAX = 300;
 
 type Tx = { query(sql: string, params?: unknown[]): Promise<{ rows: any[]; rowCount?: number | null }> };
@@ -242,7 +242,7 @@ export function createRoleService(deps: { repo?: RoleRepo } = {}) {
           await repo.revokeSessions(s.tx, s.tenantId, holders.map((h) => h.membershipId), REVOKE_REASON, s.actorId);
           const users = [...new Set(holders.map((h) => h.userId))];
           for (let i = 0; i < users.length; i += SIGNOUT_BATCH) {
-            // [CONV] job_key signout:<role_id>.<version>.<batch>:role_change — one key per batch (02-TRD §10 names session/user ids for single sign-outs).
+            // [CONV] job_key signout:<role_id>.<version>.<batch>:role_change — one key per batch (02-TRD §10 names session/user ids for single sign-outs). CR: .orchestra/cr/T14.md (2).
             await repo.enqueueJob(s.tx, {
               taskIdentifier: SIGNOUT_TASK,
               payload: { tenant_id: s.tenantId, user_ids: users.slice(i, i + SIGNOUT_BATCH), reason: REVOKE_REASON },

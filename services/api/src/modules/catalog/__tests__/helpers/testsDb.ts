@@ -36,11 +36,13 @@ import { ID, RowLock, makeMastersDb, parseExpr, pgError, splitTop, tick, type Ma
 
 export { ID, type Row };
 export const T6_TABLES = ['orderables', 'tests', 'panels', 'panel_members', 'test_specimen_types', 'analytes', 'analyte_versions', 'g_value_sets', 'cs_value_sets', 'g_value_set_values', 'cs_value_set_values',
-  'reference_range_sets', 'reference_ranges', 'critical_limit_sets', 'critical_limits'] as const;
+  'reference_range_sets', 'reference_ranges', 'critical_limit_sets', 'critical_limits', 'formula_dependencies'] as const;
 export type T6Table = (typeof T6_TABLES)[number];
 const TABLE_RE = new RegExp(`catalog\\.(${T6_TABLES.join('|')})\\b`, 'i');
 const WRITABLE = new Set<T6Table>(['orderables', 'tests', 'panels', 'panel_members', 'test_specimen_types', 'analytes', 'analyte_versions',
-  'reference_range_sets', 'reference_ranges', 'critical_limit_sets', 'critical_limits']);
+  'reference_range_sets', 'reference_ranges', 'critical_limit_sets', 'critical_limits', 'formula_dependencies']);
+// T-09 (additive): catalog.formula_dependencies (05-SCHEMA §10.2): PK (tenant_id, analyte_version_id, input_analyte_id), not_self CHECK, three FKs, and the
+// tg_parent_is_draft trigger (INSERT/UPDATE/DELETE only while the parent analyte version is a draft -> P0001 'immutable_row'). No DELETE grant in the fake.
 // T-08 (additive): range / critical-limit SETS (versioned, like analyte_versions but WITH 'retired') and their BANDS (children: INSERT/UPDATE/DELETE only while the
 // parent set is a draft — catalog.tg_parent_is_draft, P0001 'immutable_row'). DELETE is allowed on the two band tables (draft replace-all) and nowhere else new.
 const SET_TABLES = new Set<T6Table>(['reference_range_sets', 'critical_limit_sets']);
@@ -70,6 +72,7 @@ const COLUMNS: Record<T6Table, string[]> = {
   critical_limit_sets: SET_COLUMNS,
   reference_ranges: ['id', 'tenant_id', 'set_id', 'sex', ...BAND_AGE, 'specimen_type_id', 'kind', 'low', 'high', 'normal_codes', 'display_text', 'sort_order', 'created_at', 'created_by'],
   critical_limits: ['id', 'tenant_id', 'set_id', 'sex', ...BAND_AGE, 'specimen_type_id', 'low', 'high', 'abnormal_codes', 'sort_order', 'created_at', 'created_by'],
+  formula_dependencies: ['tenant_id', 'analyte_version_id', 'analyte_id', 'input_analyte_id', 'created_at', 'created_by'],
 };
 const NOT_NULL: Record<T6Table, string[]> = {
   orderables: ['id', 'tenant_id', 'kind', 'code', 'name', 'is_orderable', 'revision', 'created_by', 'updated_by'],
@@ -87,9 +90,11 @@ const NOT_NULL: Record<T6Table, string[]> = {
   critical_limit_sets: ['id', 'tenant_id', 'analyte_id', 'version_no', 'status', 'created_by', 'updated_by'],
   reference_ranges: ['id', 'tenant_id', 'set_id', 'sex', 'kind', 'sort_order', 'created_by'],
   critical_limits: ['id', 'tenant_id', 'set_id', 'sex', 'sort_order', 'created_by'],
+  formula_dependencies: ['tenant_id', 'analyte_version_id', 'analyte_id', 'input_analyte_id', 'created_by'],
 };
 const WORKFLOWS = ['standard', 'narrative', 'microbiology', 'anatomic', 'molecular', 'attachment', 'outsourced'];
-const keyOf = (t: T6Table, r: Row): string => (t === 'test_specimen_types' ? `${r.test_id}:${r.specimen_type_id}` : t === 'panel_members' ? `${r.panel_id}:${r.member_orderable_id}` : r.id);
+const keyOf = (t: T6Table, r: Row): string => (t === 'test_specimen_types' ? `${r.test_id}:${r.specimen_type_id}` : t === 'panel_members' ? `${r.panel_id}:${r.member_orderable_id}`
+  : t === 'formula_dependencies' ? `${r.analyte_version_id}:${r.input_analyte_id}` : r.id);
 const LEN = (v: unknown, min: number, max: number) => typeof v === 'string' && v.length >= min && v.length <= max;
 
 function checks(t: T6Table, r: Row): void {
@@ -165,6 +170,7 @@ function checks(t: T6Table, r: Row): void {
     if (r.low == null && r.high == null && !(Array.isArray(r.abnormal_codes) && r.abnormal_codes.length >= 1)) bad('critical_limits__something__ck');
     if (r.abnormal_codes != null && !(Array.isArray(r.abnormal_codes) && r.abnormal_codes.length <= 20)) bad('critical_limits__codes_max__ck');
   }
+  if (t === 'formula_dependencies' && r.analyte_id === r.input_analyte_id) bad('formula_dependencies__not_self__ck');
   if (t === 'test_specimen_types' && r.min_volume_ul != null && !(Number.isInteger(r.min_volume_ul) && r.min_volume_ul >= 1 && r.min_volume_ul <= 100000)) bad('test_specimen_types__vol__ck');
 }
 
@@ -236,6 +242,14 @@ export function makeTestsDb(seed: TestsSeed = {}) {
         if (!visible('orderables').some((x) => x.id === r.member_orderable_id)) throw pgError('23503', 'violates foreign key constraint "panel_members__member__fk"', 'panel_members__member__fk');
         return;
       }
+      if (t === 'formula_dependencies') {
+        const fk = (c: string) => pgError('23503', `violates foreign key constraint "formula_dependencies__${c}__fk"`, `formula_dependencies__${c}__fk`);
+        if (others.some((x) => keyOf(t, x) === keyOf(t, r))) throw pgError('23505', 'duplicate key value violates unique constraint "formula_dependencies__pk"', 'formula_dependencies__pk');
+        if (!visible('analyte_versions').some((x) => x.id === r.analyte_version_id)) throw fk('version');
+        if (!visible('analytes').some((x) => x.id === r.analyte_id)) throw fk('analyte');
+        if (!visible('analytes').some((x) => x.id === r.input_analyte_id)) throw fk('input');
+        return;
+      }
       if (others.some((x) => x.id === r.id)) throw pgError('23505', `duplicate key value violates unique constraint "${t}__pk"`, `${t}__pk`);
       if (t === 'panels' && !visible('orderables').some((x) => x.id === r.id && x.kind === r.kind)) throw pgError('23503', 'violates foreign key constraint "panels__orderable__fk"', 'panels__orderable__fk');
       if (t === 'orderables') {
@@ -276,6 +290,7 @@ export function makeTestsDb(seed: TestsSeed = {}) {
 
     /** catalog.tg_parent_is_draft (05-SCHEMA §10.2): a band is writable only while its set is a draft -> P0001 immutable_row. */
     function parentDraft(t: T6Table, r: Row): void {
+      if (t === 'formula_dependencies' && visible('analyte_versions').find((x) => x.id === r.analyte_version_id)?.status !== 'draft') throw pgError('P0001', 'immutable_row');
       const parent = BAND_PARENT[t];
       if (parent && visible(parent).find((x) => x.id === r.set_id)?.status !== 'draft') throw pgError('P0001', 'immutable_row');
     }

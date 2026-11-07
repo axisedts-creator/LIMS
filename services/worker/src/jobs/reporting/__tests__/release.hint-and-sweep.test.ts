@@ -160,6 +160,19 @@ describe('cron reporting.sweep_held_releases (hints are not authoritative)', () 
   it('the sweep is not a second path around the task: released versions are untouched even when the port would say eligible', async () => {
     const s = setup({ versions: [held(1)], billing: ELIGIBLE }); await sweep(s); expect(s.version(1)['status']).toBe('rendered'); expect(s.published).toHaveLength(0);
   });
+  it('more held versions than one tick takes (200): the batch rotates by held_checked_at, so the version skipped by tick 1 is enqueued by tick 2 (rule 5: every held version is re-checked)', async () => {
+    const BATCH = 200, t = (i: number) => new Date(Date.parse('2026-11-07T10:00:00.000Z') + i * 1000).toISOString();
+    const s = setup({ versions: Array.from({ length: BATCH + 1 }, (_v, i) => held(i + 1, { id: idN(0xd000 + i + 1), version_no: i + 1, held_checked_at: t(i) })) });
+    const { wrapTx } = await import('./assemble.helpers.js');
+    const ctx = s.jobCtx({ tx: wrapTx(s.tx, {} as any) });                 // applies ORDER BY / LIMIT like Postgres (the release tx wrapper ignores them)
+    const keys = () => new Set(releaseJobs(s).map((j) => j.jobKey));
+    const lastId = idN(0xd000 + BATCH + 1);
+    await sweep(s, { tenant_id: TENANT_A }, ctx);
+    expect(keys().size).toBe(BATCH); expect(keys().has(`release:${lastId}`)).toBe(false);        // newest-checked version waits for the next tick
+    for (const j of releaseJobs(s)) await s.tx.query('UPDATE reporting.report_versions SET held_checked_at = $1 WHERE tenant_id = $2 AND id = $3', ['2026-11-08T00:00:00.000Z', TENANT_A, j.payload.report_version_id]);   // the task re-held them
+    await sweep(s, { tenant_id: TENANT_A }, ctx);
+    expect(keys().has(`release:${lastId}`)).toBe(true);
+  });
   it('sweep -> task: a held version whose dues were paid (missed event) is released by the swept job', async () => {
     const s = setup({ versions: [held(1)], billing: ELIGIBLE }); await sweep(s); const rel = await loadRelease();
     for (const j of [...releaseJobs(s)]) await rel(j.payload, s.jobCtx());

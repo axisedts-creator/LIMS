@@ -165,6 +165,13 @@ describe('eligibility comes only from BillingPort.getReleaseEligibility', () => 
     const s = setup({ billing: billingDown() }); const e = await rejection(s.piped());
     expect(e?.code).toBe('common.unavailable'); expect(s.version(1)['status']).toBe('rendered'); expect(s.published).toHaveLength(0);
   });
+  it('fail closed: a user actor without ctx.audit -> common.internal (500), nothing released, superseded, published or enqueued (CR-C6-008: the access log is mandatory)', async () => {
+    const s = setup({ versions: [released(1), rendered(2)] });
+    const e = await rejection(s.piped({ id: V(2), ctx: s.userCtx({ audit: undefined }) }));
+    expect(e?.code).toBe('common.internal');
+    expect(s.version(1)['status']).toBe('released'); expect(s.version(2)['status']).toBe('rendered');
+    expect(s.published).toHaveLength(0); expect(s.jobs(DISPATCH_TASK)).toHaveLength(0); expect(s.accessLog).toHaveLength(0);
+  });
   it.each([
     ['eligible with a non-eligible basis', { eligible: true, basis: 'due_outstanding', balanceDue: money(50_000) }],
     ['not eligible with an eligible basis', { eligible: false, basis: 'paid_in_full', balanceDue: money(0) }],

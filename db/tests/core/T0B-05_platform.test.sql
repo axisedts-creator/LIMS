@@ -2,7 +2,7 @@
 -- Covers 05-SCHEMA §10 schema tests 7, 9, 10, 11, 12, 14, 15 (owner SELECT predicates), 22 (enqueue part), 23, 26 (catalog), 27, 29, 31; dedupe constraints
 -- (AC-0D-5.3), AC-0B-4.2 / 4.3 (grants), AC-0B-2.4 (FORCE RLS asserted before every DEFINER contract test), AC-0D-5.7 / 5.8 / 5.10 / 5.11 / 5.12 / 5.14 / 5.15 / 5.16 (DB half).
 -- Not repeated here (T0B-08 owns them, db/tests/definers/T0B-08_contracts_platform.test.sql): tests 13 and 16 in full, GUC-bound owner policy suite.
--- Synthetic data only. One rolled-back transaction. RLS is never disabled. Needs graphile_worker installed (the runner does it in the D-201 window, SP-2).
+-- Synthetic data only. One rolled-back transaction. RLS is never disabled. Does NOT need graphile_worker: enqueue_job / queue_depth behaviour is in T0B-05_queue.test.sql.
 -- Run from the repo root: pg_prove -d <migrated db> db/tests/core/T0B-05_platform.test.sql   (superuser; pgTAP in schema `extensions`)
 BEGIN;
 SET search_path = extensions, public, pg_catalog;
@@ -138,8 +138,6 @@ INSERT INTO core.g_task_registry (identifier, module, kind, scope, max_attempts,
   ('plat.other',  'core',    'task', 'platform',   3, true),
   ('tenant.task', 'catalog', 'task', 'per_tenant', 5, true),
   ('off.task',    'core',    'task', 'platform',   3, false);
-
--- graphile_worker is the real schema installed by the migration runner inside the D-201 window (SP-2); app.enqueue_job / queue_depth cannot be created without it.
 
 -- ---------------------------------------------------------------- 2. dedupe constraints (AC-0D-5.3, schema test 27)
 SELECT lives_ok(pg_temp.ev(1, 'k1', 70), 'event_log: first publish accepted');
@@ -307,30 +305,7 @@ SELECT ok(pg_temp.x('lims_api', NULL, $q$SELECT set_config('app.maintenance', 'p
 SELECT ok(pg_temp.x('lims_api', NULL, $q$SELECT set_config('app.maintenance', 'purge_dead_letters', true)$q$, 'SELECT 1 FROM core.dead_letters', 'n') = '0', 'lims_api setting the GUC gains nothing on dead_letters');
 SELECT ok(pg_temp.x('lims_api', NULL, $q$SELECT set_config('app.maintenance', 'purge_event_inboxes', true)$q$, 'SELECT 1 FROM lab.event_inbox', 'n') = '0', 'lims_api setting the GUC gains nothing on event_inbox');
 
--- ---------------------------------------------------------------- 9. app.enqueue_job + queue_depth (schema tests 22, 23; AC-0D-5.14 / 5.15)
-SELECT is(pg_temp.x('lims_api', pg_temp.tcl(1, 90), NULL, $q$SELECT app.enqueue_job('tenant.task', '{"tenant_id":"01900000-0000-7000-8000-000000000001"}', 'tenant.task:t1:2026-11-07T09:00')::text$q$), '', 'enqueue per_tenant job with matching tenant claims');
-SELECT is((SELECT count(*) FROM graphile_worker.jobs WHERE key = 'tenant.task:t1:2026-11-07T09:00'), 1::bigint, 'one job enqueued');
-SELECT is(pg_temp.x('lims_api', pg_temp.tcl(1, 90), NULL, $q$SELECT app.enqueue_job('tenant.task', '{"tenant_id":"01900000-0000-7000-8000-000000000001"}', 'tenant.task:t1:2026-11-07T09:00')::text$q$), '', 'second call with the same key succeeds');
-SELECT is((SELECT count(*) FROM graphile_worker.jobs WHERE key = 'tenant.task:t1:2026-11-07T09:00'), 1::bigint, 'AC-0D-5.15: same key enqueues nothing new (dedupe)');
-SELECT is((SELECT max_attempts FROM graphile_worker.jobs WHERE key = 'tenant.task:t1:2026-11-07T09:00'), 5, 'max_attempts defaults to the registry value');
-SELECT is(pg_temp.x('lims_api', NULL, NULL, $q$SELECT app.enqueue_job('tenant.task', '{"tenant_id":"01900000-0000-7000-8000-000000000001"}', 'nokey1')::text$q$), 'EP0001:job_tenant_mismatch', 'schema test 22: per_tenant enqueue without tenant claims -> job_tenant_mismatch');
-SELECT is(pg_temp.x('lims_api', pg_temp.tcl(1, 90), NULL, $q$SELECT app.enqueue_job('tenant.task', '{"tenant_id":"01900000-0000-7000-8000-000000000002"}', 'nokey2')::text$q$), 'EP0001:job_tenant_mismatch', 'schema test 22: another tenant''s id in the payload -> job_tenant_mismatch');
-SELECT is(pg_temp.x('lims_api', pg_temp.tcl(1, 90), NULL, $q$SELECT app.enqueue_job('tenant.task', '{}', 'nokey3')::text$q$), 'EP0001:job_tenant_mismatch', 'missing payload tenant_id -> job_tenant_mismatch');
-SELECT is(pg_temp.x('lims_api', pg_temp.pcl(61, 81), NULL, $q$SELECT app.enqueue_job('tenant.task', '{"tenant_id":"01900000-0000-7000-8000-000000000001"}', 'nokey4')::text$q$), 'EP0001:job_tenant_mismatch', 'schema test 23: platform claims only (no tenant) -> job_tenant_mismatch');
-SELECT is(pg_temp.x('lims_api', pg_temp.tcl(1, 90), NULL, $q$SELECT app.enqueue_job('plat.task', '{"x":1}', 'plat1')::text$q$), '', 'platform-scope identifier does not need a matching tenant');
-SELECT is(pg_temp.x('lims_api', pg_temp.tcl(1, 90), NULL, $q$SELECT app.enqueue_job('nope.task', '{}', 'nokey5')::text$q$), 'EP0001:unknown_task_identifier', 'unknown identifier refused');
-SELECT is(pg_temp.x('lims_api', pg_temp.tcl(1, 90), NULL, $q$SELECT app.enqueue_job('off.task', '{}', 'nokey6')::text$q$), 'EP0001:unknown_task_identifier', 'inactive identifier refused');
-SELECT is((SELECT count(*) FROM graphile_worker.jobs WHERE key LIKE 'nokey%'), 0::bigint, 'no refused call enqueued anything');
-SELECT is(pg_temp.x('lims_api', pg_temp.tcl(1, 90), NULL, $q$SELECT app.enqueue_job('plat.task', '{}', 'rn1', now() + interval '1 day', 9)::text$q$), '', 'run_at / max_attempts overrides accepted');
-SELECT is((SELECT max_attempts || ':' || (run_at > now() + interval '23 hours')::text FROM graphile_worker.jobs WHERE key = 'rn1'), '9:true', 'overrides applied');
-SELECT is(pg_temp.x('lims_api', pg_temp.tcl(1, 90), NULL, $q$SELECT graphile_worker.add_job('plat.task', '{}'::json)::text$q$), 'E42501:permission denied for schema graphile_worker', 'lims_api cannot call add_job directly (SP-2)');
-SELECT is(pg_temp.x('lims_api', pg_temp.tcl(1, 90), NULL, $q$SELECT count(*) FROM graphile_worker.jobs$q$), 'E42501:permission denied for schema graphile_worker', 'lims_api cannot read the queue');
--- schema test 23: tenant-row replay key under the owning module's system actor
-SELECT is(pg_temp.x('lims_api', pg_temp.tcl(1, 90), NULL, format($q$SELECT app.enqueue_job('tenant.task', '{"tenant_id":"01900000-0000-7000-8000-000000000001"}', %L)::text$q$, 'jk-511:replay:2')), '', 'schema test 23: replay enqueue inside the tenant scope succeeds');
-SELECT is((SELECT count(*) FROM graphile_worker.jobs WHERE key = 'jk-511:replay:2'), 1::bigint, 'schema test 23: exactly one job with the replay key');
-SELECT is(pg_temp.x('lims_worker', NULL, NULL, $q$SELECT ready || ':' || locked || ':' || failed FROM app.queue_depth() WHERE task_identifier = 'tenant.task'$q$), '2:0:0', 'queue_depth counts ready jobs per task (counts only)');
-SELECT is(pg_temp.x('lims_api', NULL, NULL, $q$SELECT * FROM app.queue_depth()$q$, 'n'), 'E42501:permission denied for function queue_depth', 'lims_api cannot call queue_depth');
-SELECT is((SELECT pg_get_function_result(to_regprocedure('app.queue_depth()'))), 'TABLE(task_identifier text, ready bigint, locked bigint, failed bigint)', 'queue_depth result shape (counts only)');
+-- 9. app.enqueue_job + queue_depth (schema tests 22, 23; AC-0D-5.14 / 5.15) live in T0B-05_queue.test.sql (needs the real graphile_worker schema, SP-2).
 
 -- ---------------------------------------------------------------- 10. cron fan-out (schema test 22, AC-0D-5.15), tenant resolver and hmac lookup (test 29), platform_list_tenants (test 16)
 SELECT is(pg_temp.x('lims_worker', pg_temp.sys(), NULL, $q$SELECT string_agg(c::text, ',' ORDER BY c) FROM app.cron_tenant_ids() c$q$), pg_temp.id(1)::text || ',' || pg_temp.id(2)::text,

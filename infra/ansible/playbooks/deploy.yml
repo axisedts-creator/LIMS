@@ -1,0 +1,118 @@
+---
+# 02-TRD s7.9 steps 2-3 / AC-27.2: deploy-time DB flow (DB part, T-08).
+# Order: migrations (lims_migrator) -> registry-sync -> seeds, all in the
+# one-shot `migrate` container on the app host, connecting directly to
+# {{ db_primary_wg_ip }}:5432, so the source address is the app wg IP that
+# pg_hba admits; nothing connects to the application DB from the ops host.
+# Any failure stops the play on every host (any_errors_fatal); app
+# containers keep the previous digests. LD-45: group `app` in every profile.
+# Pre-deploy backup and the app start/roll + smoke are the app part (T-24),
+# appended after the DB flow below.
+- name: Deploy DB flow
+  hosts: app
+  become: true
+  gather_facts: false
+  any_errors_fatal: true
+  vars:
+    deploy_compose_dir: /srv/lims/compose/lims
+    deploy_ops_note: "{{ playbook_dir }}/../../ci/ops-note.sh"
+    deploy_core_env: {dev: dev, staging: staging, prod: production}
+  tasks:
+    - name: Preconditions (env, DB address, api image, secrets file)
+      ansible.builtin.assert:
+        that:
+          - env in ['dev', 'staging', 'prod']
+          - db_primary_wg_ip | default('') | length > 0
+          - app_db_name | default('') | length > 0
+          - deploy_api_image | default('') is search('@sha256:[0-9a-f]{64}$')
+          - secrets_render_enc_file | default('') | length > 0
+        fail_msg: >-
+          deploy: env, db_primary_wg_ip, app_db_name, deploy_api_image
+          (by digest) or secrets_render_enc_file unset
+
+    - name: Compose directory of the LIMS runtime
+      ansible.builtin.file:
+        path: "{{ deploy_compose_dir }}"
+        state: directory
+        owner: root
+        group: root
+        mode: "0750"
+
+    - name: Install the LIMS runtime compose file (migrate service)
+      ansible.builtin.copy:
+        src: "{{ playbook_dir }}/../../compose/lims/compose.app.yml"
+        dest: "{{ deploy_compose_dir }}/compose.app.yml"
+        owner: root
+        group: root
+        mode: "0640"
+
+    - name: Decrypt the migrator credential on the controller (stdout only)
+      ansible.builtin.command:
+        argv:
+          - sops
+          - -d
+          - --extract
+          - '["lims_migrator_password"]'
+          - "{{ secrets_render_enc_file }}"
+      delegate_to: localhost
+      run_once: true
+      changed_when: false
+      register: deploy_migrator_secret
+      no_log: true
+
+    - name: ops_audit line for the decrypt (who/what/when only, s8.4)
+      ansible.builtin.command:
+        argv:
+          - "{{ deploy_ops_note }}"
+          - >-
+            deploy decrypted the migrator credential
+            for {{ ansible_play_hosts | join(',') }}
+      delegate_to: localhost
+      run_once: true
+      changed_when: false
+
+    # PGPASSWORD reaches the container through the compose service's
+    # `environment: [PGPASSWORD]` pass-through: never in argv or the log.
+    - name: DB flow as lims_migrator (credential only in this block's env)
+      environment:
+        LIMS_API_IMAGE: "{{ deploy_api_image }}"
+        PGPASSWORD: "{{ deploy_migrator_secret.stdout }}"
+      block:
+        - name: Apply migrations
+          ansible.builtin.command:
+            cmd: >-
+              docker compose -p lims
+              -f {{ deploy_compose_dir }}/compose.app.yml run --rm
+              -e PGHOST={{ db_primary_wg_ip }} -e PGPORT=5432
+              -e PGUSER=lims_migrator -e PGDATABASE={{ app_db_name }}
+              -e LIMS_CORE_ENV={{ deploy_core_env[env] }}
+              migrate pnpm db:migrate
+          run_once: true
+
+        - name: Sync the task registry
+          ansible.builtin.command:
+            cmd: >-
+              docker compose -p lims
+              -f {{ deploy_compose_dir }}/compose.app.yml run --rm
+              -e PGHOST={{ db_primary_wg_ip }} -e PGPORT=5432
+              -e PGUSER=lims_migrator -e PGDATABASE={{ app_db_name }}
+              -e LIMS_CORE_ENV={{ deploy_core_env[env] }}
+              migrate pnpm worker:registry-sync
+          run_once: true
+
+        # Seed runner name is UNVERIFIED (not in the spec): `pnpm db:seed`.
+        # C0 02-TRD s4.6: production runs only 001-003; staging/dev all.
+        - name: Apply seeds (prod 001-003, staging/dev all)
+          ansible.builtin.command:
+            cmd: >-
+              docker compose -p lims
+              -f {{ deploy_compose_dir }}/compose.app.yml run --rm
+              -e PGHOST={{ db_primary_wg_ip }} -e PGPORT=5432
+              -e PGUSER=lims_migrator -e PGDATABASE={{ app_db_name }}
+              -e LIMS_CORE_ENV={{ deploy_core_env[env] }}
+              migrate pnpm db:seed
+              {{ 'db/seeds/001_core__g_permissions.sql
+              db/seeds/002_core__g_system_actors.sql
+              db/seeds/003_audit__g_cs_access_actions.sql'
+              if env == 'prod' else '--all' }}
+          run_once: true

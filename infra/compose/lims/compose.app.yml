@@ -1,0 +1,26 @@
+---
+# app-1 LIMS runtime (02-TRD s7.4). T-08 adds only the one-shot
+# `migrate` service (s7.9), driven by deploy.yml:
+#   docker compose -p lims -f compose.app.yml run --rm migrate <pnpm step>
+# C0 api image by digest (release lock, T-23) as LIMS_API_IMAGE [CONV];
+# unset fails closed. Direct connection to db_primary_wg_ip:5432 as
+# lims_migrator via libpq PG* env passed by deploy.yml.
+services:
+  migrate:
+    image: ${LIMS_API_IMAGE:?LIMS_API_IMAGE (C0 api image) required}
+    restart: "no"
+    read_only: true
+    tmpfs: [/tmp]
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    # value inherited from deploy.yml's block env, never in argv
+    environment: [PGPASSWORD]
+    networks: [db_net]
+    mem_limit: 1g
+    pids_limit: 256
+
+# Created once by the docker_engine role (docker_engine_networks).
+networks:
+  db_net:
+    name: db_net
+    external: true

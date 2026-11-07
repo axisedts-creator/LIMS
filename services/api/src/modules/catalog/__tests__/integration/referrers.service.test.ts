@@ -573,7 +573,7 @@ describe('searchDoctors (#60) — match: doctor_code prefix (upper-cased q) OR n
     doc(15, A, { doctor_code: 'AB5', display_name: 'Back\\slash Man' }), doc(16, A, { doctor_code: 'DX1', display_name: 'Plain One' }), doc(17, A, { doctor_code: 'DX2', display_name: 'Plain Two' }),
   ];
   it.each([
-    ['%', ['AB1']], ['_', ['AB3']], ['\\', ['AB5']], ['D%', []], ['100%', ['AB1']], ['r_s', []], ['er_s', ['AB3']], ['%%', []], ['\\%', []], ['d_1', []],
+    ['%', ['AB1']], ['_', ['AB3']], ['\\', ['AB5']], ['D%', []], ['100%', ['AB1']], ['r_s', ['AB3']], ['er_s', ['AB3']], ['%%', []], ['\\%', []], ['d_1', []],
   ])('REQ-SEC-082: q %j is matched literally (wildcards %% _ and the escape character carry no meaning) -> %j', { timeout: T }, async (q, expected) => {
     const { db, svc } = setup({ doctors: ESC() });
     expect(codes(await search(db, svc, { q })).sort()).toEqual(expected);

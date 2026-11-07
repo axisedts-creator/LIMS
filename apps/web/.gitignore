@@ -1,0 +1,6 @@
+.next/
+next-env.d.ts
+AGENTS.md
+src/core/nav/generated.ts
+test-results/
+playwright-report/

@@ -11,6 +11,18 @@ const REPO_ROOT = join(import.meta.dirname, '..', '..', '..', '..');
 // [CONV] the worker has no package.json yet (lockfile is C0-0A's, LD-05): load the ajv that @lims/shared-ts depends on.
 const Ajv2020 = createRequire(join(REPO_ROOT, 'packages', 'shared-ts', 'package.json'))('ajv/dist/2020.js').default as new (o: object) => any;
 
+/** CV §7.2 / TRD §7.3 step 3: consumers accept unknown values of `x-extensible` enums, so validate against a copy without them. */
+function dropExtensibleEnums(node: any): any {
+  if (Array.isArray(node)) return node.map(dropExtensibleEnums);
+  if (!node || typeof node !== 'object') return node;
+  const out: any = {};
+  for (const [k, v] of Object.entries(node)) {
+    if (k === 'enum' && node['x-extensible'] === true) continue;
+    out[k] = dropExtensibleEnums(v);
+  }
+  return out;
+}
+
 let validators: Map<string, (v: unknown) => boolean> | undefined;
 /** Known-fields-only validators (CV §7.2). [CONV] removeAdditional: true, not 'all': 'all' strips the envelope fields that the
  *  per-event allOf branch does not list; every contract object declares additionalProperties: false, so `true` drops unknowns. */
@@ -22,7 +34,7 @@ function envelopeValidator(type: string): (v: unknown) => boolean {
     const ids: string[] = [];
     for (const f of readdirSync(dir)) {
       if (!f.endsWith('.schema.json')) continue;
-      ajv.addSchema(JSON.parse(readFileSync(join(dir, f), 'utf8')));
+      ajv.addSchema(dropExtensibleEnums(JSON.parse(readFileSync(join(dir, f), 'utf8'))));
       if (!f.startsWith('_')) ids.push(f.slice(0, -'.schema.json'.length));
     }
     validators = new Map(ids.map((t) => [t, ajv.getSchema(`urn:lims:event:${t}`)]));

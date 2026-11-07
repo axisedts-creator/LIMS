@@ -3,13 +3,13 @@ import { insertActivity } from './activity.repo.js';
 import { getOrderBalance, listDues, lockOrderBalance, readOrderTotals, upsertOrderBalance } from './balances.repo.js';
 import { closeCashSession, findOpenCashSession, getCashSession, insertCashSession, listCashSessionsForDay } from './cashSessions.repo.js';
 import { enqueueCbmsSync } from './cbms.repo.js';
-import { getCreditAccount, sumOpenCreditExposure, upsertCreditAccount } from './creditAccounts.repo.js';
-import { insertCreditCharges, listCreditChargesByOrder, voidCreditChargesByIds } from './creditCharges.repo.js';
+import { getCreditAccount, listCreditAccounts, readCreditPartyStatement, sumOpenCreditExposure, updateCreditAccount, upsertCreditAccount } from './creditAccounts.repo.js';
+import { insertCreditCharges, listCreditChargesByOrder, listCreditChargesByParty, lockUninvoicedCreditCharges, markCreditChargesInvoiced, voidCreditChargesByIds } from './creditCharges.repo.js';
 import { getCreditNote, insertCreditNote, insertCreditNoteLines, listCreditNoteLines, listCreditNoteLinesByInvoice, markCreditNotePrinted } from './creditNotes.repo.js';
 import { getCreditNoteTask, insertCreditNoteTask, listOpenCreditNoteTasks, resolveCreditNoteTasks } from './creditNoteTasks.repo.js';
-import { addInvoiceCredit, findInvoiceForPayment, getInvoice, getInvoiceForUpdate, insertInvoice, listInvoicesByOrder, markInvoiceCancelled, markInvoicePrinted } from './invoices.repo.js';
+import { addInvoiceCredit, findInvoiceForPayment, getInvoice, getInvoiceForUpdate, getPeriodicInvoiceForUpdate, insertInvoice, listInvoicesByOrder, markInvoiceCancelled, markInvoicePrinted } from './invoices.repo.js';
 import { insertInvoiceLines, listInvoiceLines, listInvoiceLinesByOrder, sumCreditedByLine } from './invoiceLines.repo.js';
-import { findGatewayPayment, findLedgerByIdempotencyKey, findReversalOf, getLedgerEntry, getPaymentIntentRef, insertLedgerEntry, listLedgerForDay, pageLedger, sumGatewayByIntent, sumLedgerBySession } from './ledger.repo.js';
+import { findGatewayPayment, findLedgerByIdempotencyKey, findReversalOf, getLedgerEntry, getPaymentIntentRef, insertLedgerEntry, listLedgerForDay, pageLedger, sumGatewayByIntent, sumLedgerByInvoice, sumLedgerBySession } from './ledger.repo.js';
 import { findActiveOverride, insertReleaseOverride } from './overrides.repo.js';
 import { getPaymentMethod } from './paymentMethods.repo.js';
 import { insertPrintLog } from './printLog.repo.js';
@@ -28,6 +28,9 @@ export const billingRepo = {
   // BL-T07
   getCreditAccount, sumOpenCreditExposure, upsertCreditAccount, insertCreditCharges, listCreditChargesByOrder, voidCreditChargesByIds,
   listInvoicesByOrder, listInvoiceLinesByOrder, insertCreditNoteTask,
+  // BL-T13
+  listCreditAccounts, updateCreditAccount, readCreditPartyStatement, listCreditChargesByParty, lockUninvoicedCreditCharges, markCreditChargesInvoiced,
+  getPeriodicInvoiceForUpdate, sumLedgerByInvoice,
   // BL-T11
   getLedgerEntry, findReversalOf, insertRefundRequest, getRefundRequest, decideRefundRequest, pageRefundRequests,
   getFinanceReviewItem, pageFinanceReviewItems, resolveFinanceReviewItem,

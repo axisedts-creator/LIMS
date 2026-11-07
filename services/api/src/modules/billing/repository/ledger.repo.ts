@@ -12,7 +12,7 @@ export interface NewLedgerEntry {
   readonly reversesEntryId?: string | null; readonly reasonCode?: string | null; readonly idempotencyKey?: string | null;
   readonly receiptNo?: string | null; readonly receiptSeq?: number | null; readonly cashSessionId?: string | null;
   readonly referenceText?: string | null; readonly capturedAtDevice?: string | null;
-  // BL-T11: reversal / refund / gateway columns
+  // BL-T11: reversal / refund / gateway columns. creditPartyId (B22, BL-T13): a payment of a credit party against its periodic bill (no order)
   readonly reasonText?: string | null; readonly approvedByMembershipId?: string | null; readonly refundRequestId?: string | null; readonly creditPartyId?: string | null;
   readonly gateway?: string | null; readonly gatewayTxnRef?: string | null; readonly intentId?: string | null;
 }
@@ -40,6 +40,12 @@ export async function getLedgerEntry(tx: Q, a: { tenantId: string; entryId: stri
 export async function findReversalOf(tx: Q, a: { tenantId: string; entryId: string }): Promise<Record<string, unknown> | undefined> {
   const { rows } = await tx.query('SELECT * FROM billing.ledger_entries WHERE tenant_id = $1 AND reverses_entry_id = $2', [a.tenantId, a.entryId]);
   return rows[0];
+}
+
+/** Signed sum (payments, reversals, refunds) of every ledger row against one invoice, paisa as text. */
+export async function sumLedgerByInvoice(tx: Q, a: { tenantId: string; invoiceId: string }): Promise<string> {
+  const { rows } = await tx.query('SELECT COALESCE(SUM(amount_paisa), 0)::text AS total FROM billing.ledger_entries WHERE tenant_id = $1 AND invoice_id = $2', [a.tenantId, a.invoiceId]);
+  return rows[0]?.total ?? '0';
 }
 
 export async function listLedgerForInvoice(tx: Q, a: { tenantId: string; invoiceId: string }): Promise<Record<string, unknown>[]> {

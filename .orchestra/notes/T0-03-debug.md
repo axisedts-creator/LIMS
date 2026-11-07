@@ -6,3 +6,7 @@
 ## Debugger pass 2 (2026-11-07)
 - Still 3/25 fail; no code change made. Licence fails (pgTAP PostgreSQL, lru-cache BlueOak-1.0.0) = spec/test dispute, see T0-03-dispute.md + CR T0-03-licences.md (needs founder ruling).
 - pubspec.lock missing: fix is `flutter pub get` at root + commit lockfile. Command needs approval and was denied again; not bypassed. Human must run it.
+
+## Debugger pass 3 (2026-11-07)
+- Still 3/25 fail; no code change. Licence fails (pgTAP PostgreSQL, lru-cache BlueOak-1.0.0) = spec/test dispute, T0-03-dispute.md + CR T0-03-licences.md await founder ruling.
+- pubspec.lock still absent; `flutter pub get` needs approval, denied again. Human must run it at root and commit pubspec.lock.

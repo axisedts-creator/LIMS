@@ -36,11 +36,14 @@ import { ID, RowLock, makeMastersDb, parseExpr, pgError, splitTop, tick, type Ma
 
 export { ID, type Row };
 export const T6_TABLES = ['orderables', 'tests', 'panels', 'panel_members', 'test_specimen_types', 'analytes', 'analyte_versions', 'g_value_sets', 'cs_value_sets', 'g_value_set_values', 'cs_value_set_values',
-  'reference_range_sets', 'reference_ranges', 'critical_limit_sets', 'critical_limits', 'formula_dependencies'] as const;
+  'reference_range_sets', 'reference_ranges', 'critical_limit_sets', 'critical_limits', 'formula_dependencies', 'tat_targets'] as const;
 export type T6Table = (typeof T6_TABLES)[number];
 const TABLE_RE = new RegExp(`catalog\\.(${T6_TABLES.join('|')})\\b`, 'i');
 const WRITABLE = new Set<T6Table>(['orderables', 'tests', 'panels', 'panel_members', 'test_specimen_types', 'analytes', 'analyte_versions',
-  'reference_range_sets', 'reference_ranges', 'critical_limit_sets', 'critical_limits', 'formula_dependencies']);
+  'reference_range_sets', 'reference_ranges', 'critical_limit_sets', 'critical_limits', 'formula_dependencies', 'tat_targets']);
+// T-14 (additive): catalog.tat_targets (05-SCHEMA TAT targets): PK, priority / segment / target_seconds 60..2592000 / window CHECKs -> 23514, FK (tenant, test) -> 23503,
+// partial UNIQUE (tenant, test, priority) WHERE effective_to IS NULL -> 23505 (tat_targets__open__p_uq; NOT deferrable, so insert-before-end fails like real PG).
+// UPDATE is plain (no trigger in the schema); no DELETE grant (42501). The partial unique index is checked per statement on the tx's own view.
 // T-09 (additive): catalog.formula_dependencies (05-SCHEMA §10.2): PK (tenant_id, analyte_version_id, input_analyte_id), not_self CHECK, three FKs, and the
 // tg_parent_is_draft trigger (INSERT/UPDATE/DELETE only while the parent analyte version is a draft -> P0001 'immutable_row'). No DELETE grant in the fake.
 // T-08 (additive): range / critical-limit SETS (versioned, like analyte_versions but WITH 'retired') and their BANDS (children: INSERT/UPDATE/DELETE only while the
@@ -73,6 +76,7 @@ const COLUMNS: Record<T6Table, string[]> = {
   reference_ranges: ['id', 'tenant_id', 'set_id', 'sex', ...BAND_AGE, 'specimen_type_id', 'kind', 'low', 'high', 'normal_codes', 'display_text', 'sort_order', 'created_at', 'created_by'],
   critical_limits: ['id', 'tenant_id', 'set_id', 'sex', ...BAND_AGE, 'specimen_type_id', 'low', 'high', 'abnormal_codes', 'sort_order', 'created_at', 'created_by'],
   formula_dependencies: ['tenant_id', 'analyte_version_id', 'analyte_id', 'input_analyte_id', 'created_at', 'created_by'],
+  tat_targets: ['id', 'tenant_id', 'test_id', 'priority', 'segment', 'target_seconds', 'effective_from', 'effective_to', 'version', 'is_active', 'created_at', 'created_by', 'updated_at', 'updated_by'],
 };
 const NOT_NULL: Record<T6Table, string[]> = {
   orderables: ['id', 'tenant_id', 'kind', 'code', 'name', 'is_orderable', 'revision', 'created_by', 'updated_by'],
@@ -91,6 +95,7 @@ const NOT_NULL: Record<T6Table, string[]> = {
   reference_ranges: ['id', 'tenant_id', 'set_id', 'sex', 'kind', 'sort_order', 'created_by'],
   critical_limits: ['id', 'tenant_id', 'set_id', 'sex', 'sort_order', 'created_by'],
   formula_dependencies: ['tenant_id', 'analyte_version_id', 'analyte_id', 'input_analyte_id', 'created_by'],
+  tat_targets: ['id', 'tenant_id', 'test_id', 'priority', 'segment', 'target_seconds', 'effective_from', 'created_by', 'updated_by'],
 };
 const WORKFLOWS = ['standard', 'narrative', 'microbiology', 'anatomic', 'molecular', 'attachment', 'outsourced'];
 const keyOf = (t: T6Table, r: Row): string => (t === 'test_specimen_types' ? `${r.test_id}:${r.specimen_type_id}` : t === 'panel_members' ? `${r.panel_id}:${r.member_orderable_id}`
@@ -171,6 +176,12 @@ function checks(t: T6Table, r: Row): void {
     if (r.abnormal_codes != null && !(Array.isArray(r.abnormal_codes) && r.abnormal_codes.length <= 20)) bad('critical_limits__codes_max__ck');
   }
   if (t === 'formula_dependencies' && r.analyte_id === r.input_analyte_id) bad('formula_dependencies__not_self__ck');
+  if (t === 'tat_targets') {
+    if (!['routine', 'urgent'].includes(r.priority)) bad('tat_targets__priority__ck');
+    if (!['within_lab', 'total'].includes(r.segment)) bad('tat_targets__segment__ck');
+    if (!(Number.isInteger(r.target_seconds) && r.target_seconds >= 60 && r.target_seconds <= 2592000)) bad('tat_targets__seconds__ck');
+    if (r.effective_to != null && +new Date(r.effective_to) < +new Date(r.effective_from)) bad('tat_targets__window__ck');
+  }
   if (t === 'test_specimen_types' && r.min_volume_ul != null && !(Number.isInteger(r.min_volume_ul) && r.min_volume_ul >= 1 && r.min_volume_ul <= 100000)) bad('test_specimen_types__vol__ck');
 }
 
@@ -201,6 +212,7 @@ export function makeTestsDb(seed: TestsSeed = {}) {
     if (SET_TABLES.has(t)) o.status = r.status ?? 'draft';
     if (t in BAND_PARENT) o.sort_order = r.sort_order ?? 100;
     if (t === 'g_value_sets' || t === 'cs_value_sets' || t === 'g_value_set_values' || t === 'cs_value_set_values') o.is_active = r.is_active ?? true;
+    if (t === 'tat_targets') o.segment = r.segment ?? 'within_lab';
     return o;
   }
   for (const t of T6_TABLES) for (const r of seed.t6?.[t] ?? []) committed.get(t)!.set(keyOf(t, r), fill(t, r));
@@ -271,6 +283,12 @@ export function makeTestsDb(seed: TestsSeed = {}) {
         if (r.method_id != null && !master('methods', r.method_id)) throw pgError('23503', 'violates foreign key constraint "analyte_versions__method__fk"', 'analyte_versions__method__fk');
       }
       if (t === 'tests' && !visible('orderables').some((x) => x.id === r.id && x.kind === r.kind)) throw pgError('23503', 'violates foreign key constraint "tests__orderable__fk"', 'tests__orderable__fk');
+      if (t === 'tat_targets') {
+        if (!visible('tests').some((x) => x.id === r.test_id)) throw pgError('23503', 'violates foreign key constraint "tat_targets__test__fk"', 'tat_targets__test__fk');
+        if (r.effective_to == null && others.some((x) => x.test_id === r.test_id && x.priority === r.priority && x.effective_to == null)) {
+          throw pgError('23505', 'duplicate key value violates unique constraint "tat_targets__open__p_uq"', 'tat_targets__open__p_uq');
+        }
+      }
       if (SET_TABLES.has(t)) {
         if (others.some((x) => x.analyte_id === r.analyte_id && x.version_no === r.version_no)) {
           throw pgError('23505', `duplicate key value violates unique constraint "${t}__tenant_id_analyte_id_version_no__uq"`, `${t}__tenant_id_analyte_id_version_no__uq`);
@@ -487,6 +505,10 @@ export const anv = (n: number, tenant: string, analyteId: string, o: Row = {}): 
   effective_from: new Date(Date.UTC(2026, 0, 1)), published_at: new Date(Date.UTC(2026, 0, 1)), change_reason: 'initial', ...o });
 
 // ------------------------------------------------------------------------------------------------ T-08 seed factories (synthetic)
+// ------------------------------------------------------------------------------------------------ T-14 seed factory (synthetic)
+/** A tat_targets row (default: routine, within_lab, 4 h, open since 2026-01-01). `n` makes the id unique (0x9000 range). */
+export const tat = (n: number, tenant: string, testId: string, o: Row = {}): Row => ({ id: ID(0x9000 + n), tenant_id: tenant, test_id: testId, priority: 'routine', segment: 'within_lab', target_seconds: 14400,
+  effective_from: new Date(Date.UTC(2026, 0, 1)), effective_to: null, ...o });
 /** A reference_range_sets row (default: published v1, unit g_dl, method null, effective since 2026-01-01). */
 export const rset = (n: number, tenant: string, analyteId: string, o: Row = {}): Row => ({ id: ID(0x6000 + n), tenant_id: tenant, analyte_id: analyteId, version_no: 1, status: 'published', unit_code: 'g_dl', method_id: null,
   effective_from: new Date(Date.UTC(2026, 0, 1)), published_at: new Date(Date.UTC(2026, 0, 1)), change_reason: 'initial', ...o });

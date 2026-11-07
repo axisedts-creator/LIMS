@@ -154,7 +154,7 @@ export function createOrgService(deps: { repo?: OrgRepo } = {}) {
     const s = scope(ctx); const v = expected(input?.expectedVersion); const id = idOf(input?.centreId);
     const cur = await loadCentre(s, id);
     if (cur.version !== v) throw new LimsError('common.version_conflict');
-    if (active) await activeBranch(s, cur.branch_id);   // [CONV] no active centre under an inactive branch (CR .orchestra/cr/T15.md)
+    if (active) await activeBranch(s, cur.branch_id);   // no active centre under an inactive branch: 409 centre_inactive (LD-64, CR .orchestra/cr/T15.md)
     return centreOut(await repo.setCentreActive(s.tx, s.tenantId, id, v, active, { actorId: s.actorId }));
   }
 

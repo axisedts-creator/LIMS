@@ -104,7 +104,12 @@ describe("generateAll — determinism and freshness (AC-0C-2.1)", () => {
     for (const [k, v] of Object.entries(out)) {
       expect(v.includes("\r"), `${k} has CR`).toBe(false);
       expect(v.endsWith("\n"), `${k} no trailing newline`).toBe(true);
-      expect(/\d{4}-\d\d-\d\d[T ]\d\d:\d\d/.test(v), `${k} has a timestamp`).toBe(false);
+      // Ruling T0C-05: handlers.generated.ts inlines spec-example IsoUtc values (AC-0C-4.2); determinism proven by rerun equality.
+      // Elsewhere, no timestamps; in the handlers file, none on comment lines.
+      const scan = k === "packages/fakes/src/msw/handlers.generated.ts"
+        ? v.split("\n").filter((l) => /^\s*(\/\/|\/\*|\*)/.test(l)).join("\n")
+        : v;
+      expect(/\d{4}-\d\d-\d\d[T ]\d\d:\d\d/.test(scan), `${k} has a timestamp`).toBe(false);
       expect(v.includes(ROOT) || v.includes(ROOT.replace(/\\/g, "/")), `${k} leaks abs path`).toBe(false);
     }
   });

@@ -96,7 +96,10 @@ describe("AC-0C-4.2 — @lims/fakes/msw package + codegen wiring", () => {
     const f = "packages/fakes/src/msw/handlers.generated.ts";
     expect(Object.keys(out)).toContain(f);
     expect(out[f]).toBe(read(f));
-    expect(out[f]).not.toMatch(/\r|\d{4}-\d\d-\d\dT|[A-Z]:\\|\/Users\//); // deterministic
+    // Ruling T0C-05: spec-example datetimes are required content; only comment lines must be timestamp-free.
+    expect(out[f]).not.toMatch(/\r|[A-Z]:\\|\/Users\//); // deterministic
+    const comments = out[f]!.split("\n").filter((l) => /^\s*(\/\/|\/\*|\*)/.test(l)).join("\n");
+    expect(comments).not.toMatch(/\d{4}-\d\d-\d\dT/);
   });
   it("the generated file names every operationId", () => {
     const t = read("packages/fakes/src/msw/handlers.generated.ts");

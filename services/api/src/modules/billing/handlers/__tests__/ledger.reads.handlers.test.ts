@@ -9,7 +9,7 @@
 //        SPEC GAP: C4 billing has no registration_no / patient name column (they live on frontdesk.orders / patients, which 06-PLAN says billing does not read) - the source of those two fields is undecided.
 //   B18: statements on billing.ledger_entries return RAW ledger rows of the business date (no SQL GROUP BY): the handler/service groups by (collected_by_membership_id, method_code) in code.
 //        billing.cash_sessions rows return the sessions of that date; for a closed session `expected` / `counted` are jsonb arrays [{method_code, amount_paisa}] (same shape as the close request).
-//        Money rule: entries = count(payment), reversals = count(reversal), gross = Σ payment, reversed = |Σ reversal|, net = gross - reversed (refund rows are not part of the B18 grid).
+//        Money rule: entries = count(payment), reversals = count(reversal + refund), gross = Σ payment, reversed = |Σ reversal + refund|, net = gross - reversed (= billing.v_pub_payment_collection, 05-SCHEMA:1788-1794).
 //   display_name of collected_by: source unspecified (IdentityPort offers getActor for the caller only) -> tests only require a string.
 import { describe, expect, it } from 'vitest';
 import { makeCtxFor } from '../../../../../../../packages/fakes/src/harness';
@@ -199,6 +199,17 @@ describe('B18 getDailyCash', () => {
     expect(out.body.totals.gross.amount_paisa).toBe(sum('gross')); expect(out.body.totals.reversed.amount_paisa).toBe(sum('reversed')); expect(out.body.totals.net.amount_paisa).toBe(sum('net'));
     expect(out.body.totals.net.amount_paisa).toBe(out.body.totals.gross.amount_paisa - Math.abs(out.body.totals.reversed.amount_paisa));
     expect(out.body.totals.gross).toEqual(M(100000 + 50000 + 70000 + 20000 + 5000 + 900000));
+  });
+  it('US-BL-11.1: a refund pay-out counts as a reversal and lowers net, like billing.v_pub_payment_collection (entry_kind IN reversal, refund)', async () => {
+    const { tx } = fakeTx({ ledger: [
+      led(A, { collected_by_membership_id: M1, method_code: 'cash', amount_paisa: '100000' }),
+      led(A, { collected_by_membership_id: M1, method_code: 'cash', entry_kind: 'reversal', amount_paisa: '-30000', reverses_entry_id: V7('0000000e9999'), reason_code: 'wrong_amount' }),
+      led(A, { collected_by_membership_id: M1, method_code: 'cash', entry_kind: 'refund', amount_paisa: '-20000', reason_code: 'overcharge', approved_by_membership_id: M2, refund_request_id: V7('0000000b0001') }),
+    ] });
+    const out = await run('getDailyCash', req({ query: { business_date: '2026-11-08' } }), hctx({ tx }));
+    const c = find(out.body, M1, 'cash');
+    expect(c).toMatchObject({ entries: 1, reversals: 2, gross: M(100000), net: M(50000) }); expect(Math.abs(c.reversed.amount_paisa)).toBe(50000);
+    expect(out.body.totals.net.amount_paisa).toBe(50000);
   });
   it('US-BL-11.3: home_collection and B22 credit-party rows (no cash session) are in daily cash', async () => {
     const { tx } = fakeTx({ ledger: day(A) });

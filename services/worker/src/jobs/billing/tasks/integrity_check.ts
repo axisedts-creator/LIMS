@@ -29,10 +29,10 @@ const CHECKS: ReadonlyArray<readonly [check: string, sql: string]> = [
   ['print_count', `with d as (${DOCS})
     select count(*)::int as n from d where d.print_count <> (select count(*) from billing.print_log p
       where p.tenant_id = $1 and p.document_id = d.id and p.document_kind = d.kind)`],
-  // order_balances = recomputation (invoiced = sum(invoices.net), credited = sum(credit_notes.net), paid = sum(signed ledger amounts), TRD "Balance:"); only orders that have a balance row
+  // order_balances = recomputation (invoiced = sum(invoices.net), credited = sum(credit_notes.net) joined via credit_notes.invoice_id (order_id is nullable), paid = sum(signed ledger amounts), TRD "Balance:"); only orders that have a balance row
   ['order_balance', `select count(*)::int as n from billing.order_balances b where b.tenant_id = $1
     and (b.invoiced_paisa <> coalesce((select sum(i.net_paisa) from billing.invoices i where i.tenant_id = $1 and i.order_id = b.order_id), 0)
-      or b.credited_paisa <> coalesce((select sum(c.net_paisa) from billing.credit_notes c where c.tenant_id = $1 and c.order_id = b.order_id), 0)
+      or b.credited_paisa <> coalesce((select sum(c.net_paisa) from billing.credit_notes c join billing.invoices i on i.tenant_id = c.tenant_id and i.id = c.invoice_id where c.tenant_id = $1 and i.order_id = b.order_id), 0)
       or b.paid_paisa <> coalesce((select sum(l.amount_paisa) from billing.ledger_entries l where l.tenant_id = $1 and l.order_id = b.order_id), 0))`],
 ];
 

@@ -13,8 +13,8 @@ import { I, SIGNATORIES, TESTS, PANELS, id, makeInput } from '../domain/__tests_
 const golden = (n: string) => JSON.parse(readFileSync(new URL(`../domain/__tests__/golden/${n}.json`, import.meta.url), 'utf8'));
 const norm = (sections: any[]) => JSON.parse(JSON.stringify(sections, (k, v) => (k === 'comment' ? undefined : k === 'specimenLine' && typeof v === 'string' ? v.replace(/^Specimen:\s*/, '') : v)));
 
-function rig(over: { orderSummary?: any; referrer?: any; failTest?: boolean } = {}) {
-  const base = makeInput();
+function rig(over: { orderSummary?: any; referrer?: any; failTest?: boolean; resolve?: (i: any) => any; mutate?: (orderResults: any) => void } = {}) {
+  const base = makeInput(); over.mutate?.(base.orderResults);
   const summary = over.orderSummary ?? base.orderSummary;
   const ports = {
     lab: { getOrderResults: vi.fn(async () => base.orderResults) },
@@ -23,7 +23,7 @@ function rig(over: { orderSummary?: any; referrer?: any; failTest?: boolean } = 
       getTest: vi.fn(async (_c: unknown, i: { testId: string }) => { if (over.failTest) { const e: any = new Error('catalog down'); e.code = 'common.unavailable'; throw e; } return TESTS.find((t) => t.id === i.testId); }),
       getPanel: vi.fn(async (_c: unknown, i: { panelId: string }) => PANELS.find((p) => p.id === i.panelId)),
       getReferrer: vi.fn(async () => over.referrer),
-      resolveCommentCodes: vi.fn(async () => ({ resolved: [{ code: 'SYN_CMT', commentCodeId: id(0x300), version: 1, text: 'Slide reviewed.' }], unknown: [] })),
+      resolveCommentCodes: vi.fn(async (_c: unknown, i: any) => over.resolve?.(i) ?? ({ resolved: [{ code: 'SYN_CMT', commentCodeId: id(0x300), version: 1, text: 'Slide reviewed.' }], unknown: [] })),
     },
     identity: {
       getTenantSettings: vi.fn(async () => base.settings),
@@ -85,6 +85,29 @@ describe('port reads (TRD §4.3 sources)', () => {
     expect(c.length).toBeGreaterThanOrEqual(1); expect(c.flatMap(([, i]) => i.codes)).toContain('SYN_CMT');
     const wbc = d.sections.flatMap((s: any) => s.blocks.flatMap((b: any) => b.subgroups.flatMap((g: any) => g.lines))).find((l: any) => l.name === 'WBC Count');
     expect(wbc.comment).toContain('Slide reviewed.');
+  });
+  it('same comment code in two departments resolves per department: each line prints its own department text (review item 3)', async () => {
+    const text: Record<string, string> = { [I.deptBio]: 'Bio text.', [I.deptHaem]: 'Haem text.' };
+    const { ctx, input } = rig({
+      mutate: (or) => { or.items[0].results[0].commentCodes = ['SYN_CMT']; },   // Glucose (Biochemistry); WBC (Haematology) already carries SYN_CMT
+      resolve: (i) => ({ resolved: i.codes.map((code: string) => ({ code, commentCodeId: id(0x300), version: 1, text: text[i.departmentId] })), unknown: [] }),
+    });
+    const d: any = await assembleDocument(ctx, input());
+    const line = (n: string) => d.sections.flatMap((s: any) => s.blocks.flatMap((b: any) => b.subgroups.flatMap((g: any) => g.lines))).find((l: any) => l.name === n);
+    expect(line('Glucose').comment).toContain('Bio text.'); expect(line('Glucose').comment).not.toContain('Haem text.');
+    expect(line('WBC Count').comment).toContain('Haem text.'); expect(line('WBC Count').comment).not.toContain('Bio text.');
+  });
+});
+
+describe('print_critical_label (C6 setting passed by the caller, TRD §4.4; review item 1)', () => {
+  const trig = (d: any) => d.sections.flatMap((s: any) => s.blocks.flatMap((b: any) => b.subgroups.flatMap((g: any) => g.lines))).find((l: any) => l.name === 'Triglycerides');
+  it('printCriticalLabel: true on the assembly input -> HH prints "Critical High"', async () => {
+    const { ctx, input } = rig(); const d: any = await assembleDocument(ctx, input({ includeOrderItemIds: [I.itemLipid], printCriticalLabel: true }));
+    expect(trig(d).flagLabel).toBe('Critical High'); expect(trig(d).valueBold).toBe(true);
+  });
+  it('absent / false -> "High"', async () => {
+    const { ctx, input } = rig(); const d: any = await assembleDocument(ctx, input({ includeOrderItemIds: [I.itemLipid] }));
+    expect(trig(d).flagLabel).toBe('High');
   });
 });
 

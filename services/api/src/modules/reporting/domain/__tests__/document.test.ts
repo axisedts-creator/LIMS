@@ -70,7 +70,7 @@ describe('AC-02.7 flag label, bold value, METHOD line', () => {
     const lip: any = buildReportDocument(withItems(I.itemLipid));
     expect(lineOf(lip, 'HDL Cholesterol').flagLabel).toBe('Low');
     expect(lineOf(lip, 'Triglycerides').flagLabel).toBe('High'); // HH, setting off
-    const crit: any = buildReportDocument(makeInput({ includeOrderItemIds: [I.itemLipid], settings: { ...makeInput().settings, printCriticalLabel: true } }));
+    const crit: any = buildReportDocument(makeInput({ includeOrderItemIds: [I.itemLipid], printCriticalLabel: true }));
     expect(lineOf(crit, 'Triglycerides').flagLabel).toBe('Critical High'); expect(lineOf(crit, 'Triglycerides').valueBold).toBe(true);
     expect(lineOf(buildReportDocument(withItems(I.itemUrine)), 'Protein').flagLabel).toBe('Abnormal');
   });
@@ -127,6 +127,13 @@ describe('comments', () => {
     const d: any = buildReportDocument(inp);
     expect(lineOf(d, 'WBC Count').comment).toContain('Counts verified manually.'); expect(lineOf(d, 'WBC Count').comment).not.toContain('SYN_CMT');
     expect(lineOf(d, 'RBC Count').comment).toBeUndefined();
+  });
+  it('same comment code with different texts in two departments: each line prints its own department\'s text', () => {
+    const inp = withItems(I.itemPkg); inp.orderResults.items[0].results[0].commentCodes = ['SYN_CMT'];   // Glucose (Biochemistry) + WBC (Haematology)
+    inp.commentTexts = { [`${I.deptBio}|SYN_CMT`]: 'Bio text.', [`${I.deptHaem}|SYN_CMT`]: 'Haem text.' };
+    const d: any = buildReportDocument(inp);
+    expect(lineOf(d, 'Glucose').comment).toContain('Bio text.'); expect(lineOf(d, 'Glucose').comment).not.toContain('Haem text.');
+    expect(lineOf(d, 'WBC Count').comment).toContain('Haem text.'); expect(lineOf(d, 'WBC Count').comment).not.toContain('Bio text.');
   });
 });
 

@@ -1,7 +1,7 @@
 // C6-T06 shared synthetic fixtures (no real data). Port-shaped inputs (contracts/ports/*) for the document builder tests.
 // ASSUMED builder input (spec names no signature; 02-TRD §3.2 "document.ts receives already-fetched port outputs"):
 //   BuildDocumentInput = { orderResults, includeOrderItemIds, orderSummary, tests, panels, demographics, referrer?, centre,
-//     settings{branding,calendarDisplay,timezone,printCriticalLabel?}, signatories, config{signatoryMode,maxSignatories,disclaimers,nominatedMembershipIds?},
+//     settings{branding,calendarDisplay,timezone}, printCriticalLabel? (top-level, C6 setting), signatories, config{signatoryMode,maxSignatories,disclaimers,nominatedMembershipIds?},
 //     commentTexts?, qrVerifyUrl, reportedAt, complete, earlierReleased, regeneration?{reasonCode,reasonText?,previousVersionNo,amendedAt} }
 export const id = (n: number): string => `01900000-0000-7000-8000-${n.toString(16).padStart(12, '0')}`;
 
@@ -126,7 +126,7 @@ export function makeInput(over: Record<string, unknown> = {}): any {
     },
     signatories: SIGNATORIES,
     config: { signatoryMode: 'approvers', maxSignatories: 2, disclaimers: ['Synthetic disclaimer line 1.', 'Synthetic disclaimer line 2.'] },
-    commentTexts: { SYN_CMT: 'Slide reviewed.' },
+    commentTexts: { [`${I.deptHaem}|SYN_CMT`]: 'Slide reviewed.' },   // keyed `${departmentId}|${code}` (C6-T06 review item 3)
     qrVerifyUrl: 'https://portal.example.invalid/v/AAAAAAAAAAAAAAAAAAAAAA',
     reportedAt: '2026-11-05T04:30:00.000Z',
     complete: true, earlierReleased: false,

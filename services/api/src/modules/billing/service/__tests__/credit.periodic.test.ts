@@ -50,6 +50,21 @@ describe('US-BL-10.1 monthly bill for 12 uninvoiced charges', () => {
     }
   });
 
+  it('line name = "<code> — <patient_display_name>" (03-APP-FLOW §2.14 step 3, review item 2)', async () => {
+    const { w, svc } = twelve();
+    await bill(w, svc);
+    for (const l of w.s.lines) expect(l.name).toBe('CBC — Synthetic Patient');
+  });
+
+  it('interim fail-closed (review item 1, CR pending): a taxable or other-tax charge -> catalog.tax_config_missing, nothing stored; replace with a priceFor(...).tax test once the CR is ruled', async () => {
+    for (const over of [{ vat_treatment: 'taxable' }, { other_tax_code: 'SYN_TAX' }]) {
+      const w = makeT13World(); w.addCharge(1); w.addCharge(2, over);
+      expect((await errCode(bill(w, svcOf(w)))).code, JSON.stringify(over)).toBe('catalog.tax_config_missing');
+      expect(w.s.invoices).toHaveLength(0);
+      expect(w.charges().every((c: any) => c.status === 'uninvoiced')).toBe(true);
+    }
+  });
+
   it('all 12 charges become invoiced and point at the invoice and their own line; none stays uninvoiced', async () => {
     const { w, svc } = twelve();
     await bill(w, svc);

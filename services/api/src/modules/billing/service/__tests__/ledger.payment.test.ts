@@ -43,7 +43,7 @@ describe('US-FD-08.1 / .2 part payment then settlement', () => {
   });
   it('2: later card 1,250.00 (reference) -> RC receipt, balance 0, event paid_in_full + release_eligible true', async () => {
     const { w, svc, ctx } = await setup();
-    await pay(w, svc, ctx, { amount: npr(100000) });
+    await pay(w, svc, ctx, { amount: npr(100000), issueReceiptNo: false });
     const r = await pay(w, svc, ctx, { methodCode: 'card', amount: npr(125000), reference: 'POS-AB12' });
     expect(r.receiptNo).toBe('RC-083/84-000001');
     expect(r.balance).toMatchObject({ paid: npr(225000), balanceDue: npr(0), balanceVersion: 3 });

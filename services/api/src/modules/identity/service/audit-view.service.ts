@@ -99,7 +99,8 @@ export function createAuditViewService(_deps: object = {}) {
       const p = page(q);
       const sort = optText(q, 'sort', (s) => s === '-occurred_at' || s === 'occurred_at');
       const table = optText(q, 'table', (s) => s.length <= 127 && /^[a-z_]+\.[a-z_]+$/.test(s));
-      const action = optText(q, 'action', (s) => s === 'insert' || s === 'update');
+      // LD-64 / CR-C2-T18-a: action enum is [insert, update, delete]; actor.id omitted when actor_id IS NULL (compact()).
+      const action = optText(q, 'action', (s) => s === 'insert' || s === 'update' || s === 'delete');
       const f = {
         schema_name: table?.split('.')[0], table_name: table?.split('.')[1], action: action?.toUpperCase(),
         row_id: optUuid(q, 'row_id'), actor_id: optUuid(q, 'actor_id'), membership_id: optUuid(q, 'membership_id'), centre_id: optUuid(q, 'centre_id'),

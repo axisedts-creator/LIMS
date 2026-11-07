@@ -9,6 +9,7 @@ import { assertCode } from '../domain/codes.js';
 import { PANEL_MAX_DEPTH, depthThrough, expandToTestIds, reachablePanels, wouldCreateCycle, type Member, type PanelGraph } from '../domain/panelGraph.js';
 import { decodeCursor, encodeCursor } from '../mappers/masters.mapper.js';
 import * as state from '../repo/catalogState.repo.js';
+import * as masters from '../repo/masters.repo.js';
 import * as repo from '../repo/tests.repo.js';
 import { BOOL, checkFields, checkUpdate, fail, invalid, isObj, mapPg, required, str, unknown, UUID, type Ctx, type Deps, type Tx } from './masters.service.js';
 import { createRevisionService } from './revision.service.js';
@@ -20,7 +21,8 @@ const MEMBER_COLS = ['panel_id', 'member_orderable_id', 'sort_order'];
 const MEMBER_ORDER = 'panel_id, sort_order, member_orderable_id';
 const AN_COLS = ['id', 'test_id', 'code', 'name', 'print_name', 'report_subheading', 'sort_order', 'is_reportable'];
 const AV_COLS = ['id', 'analyte_id', 'version_no', 'status', 'result_type', 'unit_code', 'decimals', 'formula_expression', 'formula_inputs', 'value_set_code'];
-const MEMBER_KEYS = new Set(['kind', 'orderable_id', 'sort_order']);
+const VAL_ORDER = 'sort_order, code';
+const MEMBER_KEYS =new Set(['kind', 'orderable_id', 'sort_order']);
 const PANEL_KINDS = ['clinical', 'package'];
 const SEX = ['male', 'female'];
 const ISO_UTC = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/;
@@ -84,7 +86,8 @@ async function checkRefs(tx: Tx, t: string, members: readonly Mem[]): Promise<vo
 function checkGraph(graph: PanelGraph, panelId: string, members: readonly Mem[]): void {
   const ms = members.map((m): Member => ({ kind: m.kind, id: m.id }));
   if (wouldCreateCycle(graph, panelId, ms)) throw new LimsError('catalog.panel_cycle');
-  if (depthThrough(graph, panelId, ms) > PANEL_MAX_DEPTH) fail([invalid('/members')]);
+  // +1 = the leaf test level: every panel has >= 1 member, so a chain of n panels ends in tests at level n + 1 (02-TRD §11).
+  if (depthThrough(graph, panelId, ms) + 1 > PANEL_MAX_DEPTH) fail([invalid('/members')]);
 }
 
 const enumErr = (v: unknown, allowed: readonly string[], path: string, errors: FieldError[]) => {
@@ -267,11 +270,11 @@ export function createPanelsService(deps: Deps) {
       for (const p of reachablePanels(graph, panelRoots)) if (panelActive.get(p) === false) throw new LimsError('catalog.test_inactive');
       const testIds = [...new Set(perRoot.flatMap((r) => r.test_ids))];
 
-      const tests = testIds.length ? await repo.find(tx, 'tests', ['id', 'workflow_type', 'is_active'], t, {}, { ids: testIds }) : [];
+      const tests = testIds.length ? await repo.find(tx, 'tests', ['id', 'workflow_type', 'uses_existing_material', 'is_active'], t, {}, { ids: testIds }) : [];
       const ords = testIds.length ? await repo.find(tx, 'orderables', ORD_COLS, t, { kind: 'test' }, { ids: testIds }) : [];
       if (tests.length !== testIds.length || ords.length !== testIds.length) throw notFound();
       if (tests.some((r) => r.is_active !== true) || ords.some((r) => r.is_active !== true)) throw new LimsError('catalog.test_inactive');
-      const wf = new Map(tests.map((r) => [r.id, r.workflow_type])), oBy = new Map(ords.map((o) => [o.id, o]));
+      const tBy = new Map(tests.map((r) => [r.id, r])), oBy = new Map(ords.map((o) => [o.id, o]));
 
       const find = (table: repo.Table, ids2: readonly string[]) => (ids2.length ? repo.find(tx, table, ['id', 'code'], t, {}, { ids: ids2 }) : Promise.resolve([] as any[]));
       const reqs = testIds.length ? await repo.find(tx, 'test_specimen_types', ['test_id', 'specimen_type_id', 'container_id', 'is_preferred'], t, {}, { anyOf: { col: 'test_id', values: testIds } }) : [];
@@ -285,6 +288,19 @@ export function createPanelsService(deps: Deps) {
       const versions = analytes.length ? (await repo.analyteVersions(tx, AV_COLS, t, analytes.map((a) => a.id), asOf)).filter((v) => v.status !== 'draft') : [];
       const current = new Map<string, any>();
       for (const v of versions) if (!current.has(v.analyte_id) || Number(v.version_no) > Number(current.get(v.analyte_id).version_no)) current.set(v.analyte_id, v);
+
+      // ordinalSetValues (03-IC §4.2, 08 D-9): active values by sort_order; a tenant set shadows the global set of the same code. One statement per table.
+      const setCodes = uniq([...current.values()].map((v) => v.value_set_code));
+      const tSets = setCodes.length ? await masters.selectRows(tx, 'cs_value_sets', ['id', 'code'], { tenant_id: t, code: setCodes }, 'code') : [];
+      const tSetCode = new Map(tSets.map((s) => [s.id, s.code as string]));
+      const gCodes = setCodes.filter((c) => !tSets.some((s) => s.code === c));
+      const vals = [
+        ...(tSets.length ? (await masters.selectRows(tx, 'cs_value_set_values', ['value_set_id', 'code', 'display', 'sort_order'], { tenant_id: t, value_set_id: [...tSetCode.keys()], is_active: true }, VAL_ORDER))
+          .map((r) => ({ ...r, value_set_code: tSetCode.get(r.value_set_id) })) : []),
+        ...(gCodes.length ? await masters.selectRows(tx, 'g_value_set_values', ['value_set_code', 'code', 'display', 'sort_order'], { value_set_code: gCodes, is_active: true }, VAL_ORDER) : []),
+      ];
+      const valuesOf = (setCode: string) => vals.filter((r) => r.value_set_code === setCode)
+        .map((r) => ({ code: r.code, display: r.display, sort_order: Number(r.sort_order) })).sort((a, b) => a.sort_order - b.sort_order || byCode(a.code, b.code));
 
       const groups = new Map<string, { specimen_type_code: string; container_code?: string; test_ids: string[] }>();
       const definitions = testIds.map((id) => {
@@ -301,13 +317,13 @@ export function createPanelsService(deps: Deps) {
         return compact({
           id, code: o.code, name: o.name, department_id: o.department_id, department_code: dept.get(o.department_id),
           specimen_type_codes: mine.map((r) => spec.get(r.specimen_type_id)!).sort(byCode), container_code: containerCode,
-          workflow_type: wf.get(id), is_active: true, revision: Number(o.revision),
+          workflow_type: tBy.get(id).workflow_type, uses_existing_material: tBy.get(id).uses_existing_material === true, is_active: true, revision: Number(o.revision),
           analytes: analytes.filter((a) => a.test_id === id && current.has(a.id)).map((a) => {
             const v = current.get(a.id);
             return compact({
               id: a.id, code: a.code, name: a.name, result_type: v.result_type, unit_code: v.unit_code, decimals: v.decimals == null ? undefined : Number(v.decimals),
               formula: v.formula_expression ? { expression: v.formula_expression, input_analyte_codes: v.formula_inputs ?? [] } : undefined,
-              ordinal_set_code: v.value_set_code, reportable: a.is_reportable === true, sort_order: Number(a.sort_order), report_subheading: a.report_subheading, print_name: a.print_name,
+              ordinal_set_code: v.value_set_code ?? undefined, ordinal_set_values: v.value_set_code ? valuesOf(v.value_set_code) : undefined, reportable: a.is_reportable === true, sort_order: Number(a.sort_order), report_subheading: a.report_subheading, print_name: a.print_name,
             });
           }),
         });

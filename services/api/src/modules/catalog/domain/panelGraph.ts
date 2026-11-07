@@ -1,9 +1,9 @@
 // Panel graph: expansion, cycle and depth checks (02-TRD §7.7). Pure: no I/O, no clock, never mutates its inputs.
 // Every walk is iterative (explicit stack) so a 5 000-deep chain cannot overflow the call stack.
-// Depth counts PANELS on a chain (leaf tests are not counted): package -> panel -> panel -> test = 3 [ASSUMPTION: AC-07.4 gives no unit].
+// The helpers below count PANELS on a chain; the limit counts levels including the leaf test (02-TRD §11: package -> panel -> panel -> test = 4).
 import { LimsError } from '../../../core/errors.js';
 
-/** LIMS_CATALOG_PANEL_MAX_DEPTH default (02-TRD §11 [CONV]). */
+/** LIMS_CATALOG_PANEL_MAX_DEPTH default (02-TRD §11): levels incl. the leaf test, i.e. at most 3 panels on a chain. */
 export const PANEL_MAX_DEPTH = 4;
 
 export interface Member { readonly kind: 'test' | 'panel'; readonly id: string }

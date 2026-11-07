@@ -90,8 +90,11 @@ SELECT pg_temp.rerun_done();
 SELECT is(pg_temp.snap(), (SELECT j FROM s0), 'third run: still identical');
 
 -- ---------- 5. partial state is healed, never duplicated ----------
+-- ruling T0B-09: audited DELETE needs actor context (tg_row_audit, A28.5); same system actor as seed 010, no app.maintenance
+SELECT set_config('request.jwt.claims', json_build_object('tenant_id',(pg_temp.tenants())[1],'sub','01a1b34e-1000-7eee-9d29-d7ca59a102b5','actor_type','system')::text, true);
 DELETE FROM core.role_permissions WHERE tenant_id = (pg_temp.tenants())[1] AND permission_code = (SELECT permission_code FROM exp_role_perms WHERE role_code = 'tenant_admin' ORDER BY 1 LIMIT 1)
   AND role_id = (SELECT id FROM core.roles WHERE tenant_id = (pg_temp.tenants())[1] AND role_code = 'tenant_admin');
+SELECT pg_temp.rerun_done();
 SELECT is((SELECT count(*) FROM core.role_permissions WHERE tenant_id = ANY (pg_temp.tenants())), (SELECT (j -> 'core.role_permissions' ->> 0)::bigint - 1 FROM s0), 'precondition: one default grant removed');
 \i db/seeds/010_core__synthetic_tenants.sql
 SELECT pg_temp.rerun_done();

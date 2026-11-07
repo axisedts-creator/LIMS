@@ -1,14 +1,8 @@
-APPROVE
+CHANGES
 
-Diff b15267f..HEAD: test-only changes (infra/tests/static/test_t02_providers.py) + T-02 notes. All 5 items of the previous CHANGES review are fixed:
-1. ENVS now covers dev, staging, prod, staging-lean, prod-lean; layout/parse/subnet/known_hosts/public_ip/ansible-inventory loops run over all; `test_no_inventory_dir_escapes_the_tests` locks the set.
-2. LD-48 role mapping: prod-lean = prod-1 in data/app/ops only, backup-1 in `backup` only, `dr` empty; staging-lean = one VM; every role group has a host in each profile.
-3. LD-45 memory budget: `mem_problems` + gate self-check; prod-lean/prod-1 pinned to 32 GiB, sum 25.375 <= 27.2.
-4. prod-lean named default in infra/README.md and DECISION.md; scale triggers (CPU > 60 %, RAM > 80 %, 7 days, DB > 150 GB, second lab group) asserted.
-5. `backup` in lean GROUPS/GVARS; group_vars/backup.yml required.
-Provider scan matches T-02-ruling.md items 1-4 (hosting-context regex, vendored upstream skipped, 169.254.169.254 allowed only under tests/, planted self-check extended).
+Verified: `vitest run src/modules/lab/domain/__tests__` → 3 files, 98/98 pass. S1–S15 / R1–R8 tables match 03-IC §10.1/§10.2 verbatim; all 03-IC + 03-APP-FLOW §1.1 forbidden examples tested (exhaustive pair sweep); roll-up matches 02-TRD §3.3; error codes/HTTP match 03-IC §8; pure (no DB/logs/PHI/secrets); only owned paths + own notes touched. RLS/permissions/idempotency/rate tier: N/A (pure domain, no routes/tables).
 
-Ran: T-02 suite 33 tests OK, 1 skip (ansible-inventory off CI, LD-17). yamllint on infra/ansible/inventories + infra/providers clean.
-Not T-02: T-01 suite has 3 failures (gitleaks on infra/compose/supabase/upstream/.env.example, yamllint on compose/supabase/override.app.yml, run.sh line-length) — all T-05 paths, outside this diff.
-No secrets, no PHI, only owned paths, no invented names. RLS/permissions/error codes N/A (inventory task).
-Carry-over (not blocking): T-09/T-11 must target group `backup` (not `dr`) in lean; backup-1 has no mem budget in LD-45.
+1. services/api/src/modules/lab/domain/specimen.state.ts:29 (+ :40) — an inactive specimen on a table-valid transition (e.g. S2 ordered→collected, S4 collected→received) throws `lab.specimen_invalid_transition`. Spec separates these: 02-TRD §5 rows 4/7 (`collectSpecimen`, `receiveSpecimen`) list both `lab.specimen_invalid_transition` and `lab.specimen_inactive` (CR-C5-005, 409, "Order cancelled or test removed; specimen not usable"). Fix: `lookup` returns the table id regardless of activity; in `specimenTransition`, after `if (!id) throw new LimsError('lab.specimen_invalid_transition')`, add `if (!(opts.isActive ?? true) && id !== 'S13' && id !== 'S14') throw new LimsError('lab.specimen_inactive');`. `isSpecimenTransitionAllowed` keeps returning false for that case. Order = table first, then inactive (an illegal pair stays invalid_transition).
+   Test fix: services/api/src/modules/lab/domain/__tests__/specimen.state.test.ts:378-382 — the tester's expectation is wrong per 02-TRD §5; expect `isLimsError(err, 'lab.specimen_inactive')` + statusCode 409 for S2/S4/S11 with `isActive:false`, and add one case that an illegal pair with `isActive:false` (e.g. `received → collected`) is still `lab.specimen_invalid_transition`.
+
+2. services/api/src/modules/lab/domain/result.state.ts:45 — S-02 approver ≠ verifier guard fails open: R6 with `verifiedBy` or `approvedBy` omitted returns 'R6' without any check (07-SECURITY S-02, 02-TRD §3.3 R6). A handler that forgets to pass either id silently bypasses two-step approval. Fix: for `id === 'R6'`, `if (!guards.verifiedBy || !guards.approvedBy || guards.approvedBy === guards.verifiedBy) throw new LimsError('lab.self_approval_forbidden');` (after the on_hold check). Test fix: services/api/src/modules/lab/domain/__tests__/result.state.test.ts — the allowed-table cases for R6 (TABLE row `['verified','approved','R6']`, used at :69-71 and the exhaustive loop :102) must pass `{ verifiedBy: 'u1', approvedBy: 'u2' }`; add cases that R6 with `verifiedBy` missing or `approvedBy` missing → `lab.self_approval_forbidden` (403).

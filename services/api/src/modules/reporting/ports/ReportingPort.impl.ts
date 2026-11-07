@@ -53,8 +53,8 @@ export function createReportingPort(deps: { env: Env }) {
       for (const k of ['releasedFrom', 'releasedTo']) if (f[k] !== undefined && (typeof f[k] !== 'string' || !ISO.test(f[k]) || Number.isNaN(Date.parse(f[k])))) bad(`/filter/${k}`);
       if (f['includeSuperseded'] !== undefined && typeof f['includeSuperseded'] !== 'boolean') bad('/filter/includeSuperseded');
       const asked = input.limit === undefined ? DEFAULT_LIMIT : input.limit;
-      if (typeof asked !== 'number' || !Number.isInteger(asked) || asked < 1) return bad('/limit');
-      const limit = Math.min(asked, MAX_LIMIT);                          // above 200 is clamped
+      if (typeof asked !== 'number' || !Number.isInteger(asked) || asked < 1 || asked > MAX_LIMIT) return bad('/limit');   // 02-CV §4.3: >200 → common.validation_failed
+      const limit = asked;
       const after = input.cursor === undefined ? undefined : decodeCursor(input.cursor);
 
       const rows = await listVersions(ctx.tx, tenantId, { column: SCOPES[scope]!, value: value.toLowerCase(), includeSuperseded: f['includeSuperseded'] === true,

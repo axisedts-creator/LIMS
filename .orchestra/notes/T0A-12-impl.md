@@ -4,5 +4,5 @@
 - [CONV] input not a DecimalString (pattern, ≤ 40 chars) → `missing_input:<CODE>`; absent/non-integer ageDays/ageYears → `missing_input:@age_*`; round() n outside integer 0..6 → `domain_error`; and/or evaluate both sides (no masking of missing input).
 - [CONV] type errors (boolean misuse, arity) reported as code `syntax`; too_deep counts parens/calls/unary/^ nesting AND AST depth; output > 40 chars sheds decimals half-up, integer part too large → `domain_error`.
 - [CONV] AST is an opaque frozen handle (WeakMap) — forged ASTs throw TypeError.
-- Ran (after ruling, impl unchanged): T0A-12 suite 102/102 pass; `tsc --noEmit -p packages/shared-ts` clean. Dispute resolved by T0A-12-ruling.md (TESTS_WRONG).
+- Ran (against tests revised per LD-40 ruling, commit 5a13130; impl unchanged): T0A-12 verify.cmd 102/102 pass; `tsc --noEmit -p packages/shared-ts` clean.
 - Open: lint rule not wired into a CI runner (no runner exists for rules yet); Dart side not done.

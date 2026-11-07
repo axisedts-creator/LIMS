@@ -20,3 +20,6 @@ CR filed: .orchestra/cr/T0B-09-003-generator.md (same 2-line fix + `pnpm codegen
 
 Round 8: unchanged. Only failure = 003: tools/codegen/gen-access-actions.ts:38-41 emits no `SET LOCAL ROLE lims_owner` and uses `DO UPDATE`. LD-38 authorizes only gen-permissions.ts; this file is C0-0C-owned, so no edit (hand-edit of generated 003 is overwritten + fails drift check).
 CR .orchestra/cr/T0B-09-003-generator.md still open: needs lead to extend LD-38 to gen-access-actions.ts. Test valid per LD-30; no dispute. No code change.
+
+Round 9: unchanged. Only failure = 003: tools/codegen/gen-access-actions.ts:38-42 emits no `SET LOCAL ROLE lims_owner` and uses `DO UPDATE`. LD-38 covers only gen-permissions.ts; no lead extension found in inbox/notes/cr. File is C0-0C-owned, so no edit (hand-edit of generated 003 is overwritten + fails drift check).
+Fix ready once authorized: add `SET LOCAL ROLE lims_owner;` after ${sqlHeader} and `ON CONFLICT (code) DO NOTHING;`, run `pnpm codegen`. CR .orchestra/cr/T0B-09-003-generator.md still open. Test valid; no dispute.

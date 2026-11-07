@@ -1,9 +1,5 @@
-APPROVE
+CHANGES
+1. services/api/src/modules/catalog/service/masters.service.ts:21,23,25 (`sorts: SORTS` for SpecimenType/Container/Method) — 02-TRD §5.2 #5–8 and catalog.yaml list `sort` (`code`,`name`,`report_order`) for every R, but these tables have no `report_order` column, so a contract-valid `sort=report_order` returns 400. The writer's note calls this a "CR candidate" but no CR was filed (`.orchestra/cr/` has none for T-04). Fix: write `.orchestra/cr/T-04.md` (template in spec/program/04-CHANGE-REQUESTS.md) asking to trim the sort enum to `code`,`name` for specimen types, containers and methods (or to define what report_order means there), and cite it as `[CR-pending]` in the comment on line 17. Keep the code as it is until the CR is ruled on.
 
-- Diff 0e4233e..HEAD: code only in `services/api/src/modules/lab/events/publish.ts` (owned) + its `__tests__`; rest are `.orchestra/notes` role files.
-- 7 event names and idempotency keys verbatim from 02-TRD §7.1 (lines 376–382); `approved_set_hash` per 03-IC §3.12 (SHA-256 hex, sorted `result_id:version_no`); `value_sha256_prefix16` per §7.1 [CONV].
-- Payloads passed through; core schema (additionalProperties false) enforces IC shape; critical value used only in key hash, never in payload/logs. No logging, no secrets, no PHI.
-- Tenant from ctx (test :231). No DB/RLS, routes, permissions, rate tier or new error codes in scope for this task.
-- Ran: `vitest run src/modules/lab/events/__tests__` = 57/57 pass; `tsc --noEmit` no errors in lab/events.
-- Tests cover done_when (all 7 IC examples validate, keys, dedupe), AC-01.1 (:243), AC-05.1 (:261, rollback fixed per T-04-ruling), AC-05.5, AC-16.5.
-- Note (not a defect): aggregate seq choice (specimenVersion / resultRowVersion / readinessSeq) is [CONV], spec silent; real PG insert not proven here.
+Checked, no defect: names match 02-TRD §5.1/§5.2, catalog.yaml and 03-IC catalog.changed.v1 (entity_type/change_kind enums); error codes are registered in contracts/errors.yaml; all SQL uses bind params, explicit tenant_id and RLS; the composite FK (tenant_id, default_specimen_type_id) blocks cross-tenant refs (23503 -> 404); If-Match gives 428/409 and FOR UPDATE then the version predicate; lock order is row then catalog_state; no logging and no echoed values (AB-20); only owned paths plus notes; pending.json has the 12 ids removed.
+Tests: catalog suite 507/508. The 1 failure (skeleton autoload, `LIMS_CORE_ENV must be one of dev|ci|staging|production` from the reporting config) comes from the environment and is not T-04. tsc shows no catalog errors. Not verified: real Postgres/RLS, x-permission 403s, Idempotency-Key replay (core pipeline). AC-01.5 getTest half is deferred to T-06.

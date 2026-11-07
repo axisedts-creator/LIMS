@@ -7,6 +7,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 import { bootstrap } from '../../../../core/bootstrap.js';
 import { loadConfig } from '../../../../core/config.js';
 import { checkHandlers, eventProducers, loadSpec, operationIds, REPO_ROOT, validateManifest } from '../../../../core/module.js';
+import { AUD, ISS, tmpFile } from '../../../../core/auth/__tests__/helpers.js';
 import { manifest } from '../../index.js';
 
 const BILLING_DIR = join(import.meta.dirname, '..', '..');
@@ -47,7 +48,15 @@ describe('BL-T01 manifest (index.ts)', () => {
 
 describe('BL-T01 core boots with the module (default modulesDir, real contracts)', () => {
   it('bootstrap resolves and every billing operation is mounted, none answers 2xx without credentials', async () => {
-    const app = await bootstrap({ config: loadConfig({ LIMS_CORE_ENV: 'ci' }) });
+    // core requires the bearerJwt verifier config to mount bearerJwt ops (02-TRD:623-624); synthetic HS256 secret
+    const config = loadConfig({
+      LIMS_CORE_ENV: 'ci',
+      LIMS_CORE_JWT_ALG: 'HS256',
+      LIMS_CORE_JWT_ISSUER: ISS,
+      LIMS_CORE_JWT_AUDIENCE: AUD,
+      LIMS_CORE_JWT_KEY_FILE: tmpFile('bl-t01-synthetic-hs256-secret-0123456789abcdef', 'jwt-hs.key'),
+    });
+    const app = await bootstrap({ config });
     open.push(app);
     const uuid = '00000000-0000-4000-8000-000000000001';
     const bad: string[] = [];

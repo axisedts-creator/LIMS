@@ -1,13 +1,9 @@
-APPROVE
+CHANGES
 
-Re-review after d3cd3ea (tester) and a67b088 (writer notes). The only code changes since the first review are in `infra/tests/static/test_t02_providers.py`. Both earlier defects are fixed as asked:
-1. Scanner exemption narrowed to `providers/` plus this one file by exact path. A planted `tests/internal/x.py` case was added and is flagged.
-2. The cross-env check now compares `public_ip`, and asserts it is present, instead of `ansible_host`.
+Diff b15267f..HEAD (ruling applied to provider scan) is correct and matches .orchestra/notes/T-02-ruling.md items 1-4; suite runs 22 OK, 1 skip. No secrets, no PHI, only owned paths, no invented names. Blocking gap: the LD-48 (binding) test list for the `lean` profile is not written, so `prod-lean/` and `staging-lean/` are untested (impl note T-02-impl.md "Open (1)" confirms).
 
-The implementation files are unchanged since the first review. That review found them consistent with 02-TRD §3.1, §3.4, §4, §12.1 and §15: no secrets, host_key_checking on, separate wg subnets per env, dev = 1 VM. RLS, permissions, idempotency, rate tier, error codes and PHI do not apply here (no DB, API or logging surface).
-
-Ran:
-- `python -B -m unittest discover -s infra/tests/static -p "test_t0*.py"`: 49 OK, 3 skipped.
-- `bash infra/tests/run.sh`: gitleaks no leaks, yamllint ok, ansible-lint skipped (CI only, LD-17), static 24 OK.
-
-Not verified: no real provisioning of the dev inventory against a VM, and `ansible-inventory` was not run (CI only).
+1. infra/tests/static/test_t02_providers.py:27 — `ENVS = ("dev", "staging", "prod")` excludes `prod-lean` and `staging-lean`, so layout, parse, env-separation (wg subnet, public_ip uniqueness) and known_hosts checks (lines 140-221, 254-260) never touch the lean inventories. Fix: add a profile set, e.g. `PROFILES = {"full": ("dev","staging","prod"), "lean": ("dev","staging-lean","prod-lean")}`, map `SUBNET["prod-lean"]="10.77.0."`, `SUBNET["staging-lean"]="10.78.0."`, and run the parse / group_vars / known_hosts / public_ip / subnet tests over every inventory dir (lean and full may share a subnet per the [CONV] in T-02-impl.md — exclude only the same-env pair from the cross-subnet assertion).
+2. infra/tests/static/test_t02_providers.py:139-174 — missing LD-48 test "every role maps to at least one host in each profile". Fix: add a test that for `prod-lean` asserts `prod-1` ∈ data, app, ops; `backup-1` ∈ new group `backup` and in no other group; `dr` empty (no hot standby, LD-45); `staging-lean` = exactly one VM. For `prod` keep the existing 4-host check. Read host names from the inventory, not literals, except where LD-48 names them.
+3. infra/tests/static/test_t02_providers.py (new test) — missing LD-48 test "Σ mem_limit <= 85 % RAM per host in both profiles". Fix: for every host carrying `host_ram_gib` + `mem_limit_gib`, assert `sum(replicas*gib) <= 0.85*host_ram_gib` (prod-lean/prod-1: <= 27.2); fail if a lean prod-1 lacks either key.
+4. infra/tests/static/test_t02_providers.py (new test) — missing LD-48 test "`prod-lean` documented as the default in infra/README.md and DECISION.md". Fix: assert both infra/README.md and infra/ansible/inventories/DECISION.md name `prod-lean` as default and list the scale triggers from LD-45 (CPU > 60 %, RAM > 80 %, DB > 150 GB, second lab group) in DECISION.md.
+5. infra/tests/static/test_t02_providers.py:28-29 — `GROUPS`/`GVARS` omit `backup`; `test_required_files_per_env` should require `group_vars/backup.yml` in both lean inventories (file exists today, so this only locks it in) and `test_all_four_groups_in_every_hosts_yml` should require `backup` in lean prod.

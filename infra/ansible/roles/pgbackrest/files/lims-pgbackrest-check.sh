@@ -3,10 +3,10 @@
 # Runs `pgbackrest --stanza=lims check` and keeps the consecutive-failure count
 # read by pgbackrest_metrics.sh (lims_ops_wal_check_consecutive_failures).
 set -u
-state=/var/lib/lims/pgbackrest/check_consecutive_failures
+state=${STATE_DIR:-/var/lib/lims/pgbackrest}/check_consecutive_failures
 n=$(cat "$state" 2>/dev/null || echo 0)
 case "$n" in '' | *[!0-9]*) n=0 ;; esac
-if /usr/local/lib/lims/bin/pgbackrest --stanza=lims check; then
+if "${PGBACKREST:-/usr/local/lib/lims/bin/pgbackrest}" --stanza=lims check; then
   n=0; rc=0
 else
   n=$((n + 1)); rc=1

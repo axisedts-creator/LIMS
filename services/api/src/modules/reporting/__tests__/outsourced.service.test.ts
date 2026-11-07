@@ -9,7 +9,7 @@
 // ctx = {tenantId, actor, requestId, tx, now, uploads, storage, audit.access, log, metrics}. Errors are LimsError codes. Enqueue = SELECT app.enqueue_job(id, payload, job_key, ...).
 import { describe, expect, it } from 'vitest';
 import {
-  BUCKET, CENTRE_1, ITEM_1, ITEM_2, ITEM_B, ITEM_LAB, ITEM_REMOVED, MEM, REPORT_1, SANITIZED, SENTINEL_NAME, TENANT_A, TENANT_B, USER,
+  BUCKET, CENTRE_1, ITEM_1, ITEM_2, ITEM_B, ITEM_LAB, ITEM_REMOVED, MEM, REPORT_1, REPORT_B, SANITIZED, SENTINEL_NAME, TENANT_A, TENANT_B, USER,
   eicarPdf, fileRow, idN, incoming, makeApiCtx, makeDb, makeStorage, pdfBytes, rejection, sanitizedPath, sha256, world,
   type Row,
 } from './outsourced.helpers.js';
@@ -201,6 +201,33 @@ describe('O4 withdrawOutsourcedReport', () => {
   it.each([[{ reason_code: 'not_in_set' }], [{}], [{ reason_code: 'wrong_patient', reason_text: 'x'.repeat(501) }], [{ reason_code: 'wrong_patient', extra: 1 }]])('invalid body %j -> common.validation_failed, no write', async (body) => {
     const s = await svc(); const f = confirmed(); const { db, ctx } = env({ input_files: [f] });
     expect(code(await rejection(wd(s, ctx, f, body as Row)))).toBe('common.validation_failed'); expect(db.writes()).toHaveLength(0);
+  });
+  describe('common.immutable_record — file attached to a released / superseded report version (02-TRD O4)', () => {
+    const version = (f: Row, status: string, o: Row = {}) =>
+      ({ id: idN(0x3000 + Math.floor(Math.random() * 0xfff)), tenant_id: TENANT_A, report_id: REPORT_1, status, content_snapshot: { outsourcedAttachments: [{ inputFileId: f['id'] }] }, ...o });
+    it.each([['released'], ['superseded']])('confirmed file in a %s version -> rejected, file still confirmed, readiness unchanged, nothing queued', async (status) => {
+      const s = await svc(); const f = confirmed(); const { db, ctx } = env({ input_files: [f], report_versions: [version(f, status)] });
+      db.item(ITEM_1)!.outsourced_ready = true;
+      expect(code(await rejection(wd(s, ctx, f)))).toBe('common.immutable_record');
+      expect(db.file(f.id)).toMatchObject({ state: 'confirmed', version: 4 }); expect(db.item(ITEM_1)!.outsourced_ready).toBe(true);
+      expect(db.writes()).toHaveLength(0); expect(db.jobsOf('reporting.assemble_report')).toHaveLength(0);
+    });
+    it('confirmed file only in a draft version -> withdraw succeeds', async () => {
+      const s = await svc(); const f = confirmed(); const { db, ctx } = env({ input_files: [f], report_versions: [version(f, 'draft')] });
+      db.item(ITEM_1)!.outsourced_ready = true;
+      expect((await wd(s, ctx, f)).state).toBe('withdrawn'); expect(db.item(ITEM_1)!.outsourced_ready).toBe(false);
+    });
+    it('a released version that holds a DIFFERENT file, or another tenant\'s version holding this id, does not block', async () => {
+      const s = await svc(); const f = confirmed(); const other = fileRow({ state: 'confirmed' });
+      const { db, ctx } = env({ input_files: [f, other], report_versions: [version(other, 'released'), version(f, 'released', { tenant_id: TENANT_B, report_id: REPORT_B })] });
+      expect((await wd(s, ctx, f)).state).toBe('withdrawn');
+      const lookup = db.stmts.find((st) => /reporting\.report_versions/i.test(st.text))!; expect(lookup.values).toContain(TENANT_A);
+    });
+    it('a ready (never confirmed) file skips the released-version lookup entirely', async () => {
+      const s = await svc(); const f = fileRow({ state: 'ready' }); const { db, ctx } = env({ input_files: [f], report_versions: [version(f, 'released')] });
+      expect((await wd(s, ctx, f)).state).toBe('withdrawn');
+      expect(db.stmts.filter((st) => /reporting\.report_versions/i.test(st.text))).toHaveLength(0);
+    });
   });
   it('If-Match missing -> 428, stale -> 409; cross-tenant -> not_found', async () => {
     const s = await svc(); const f = confirmed(); const foreign = fileRow({ tenant_id: TENANT_B, order_item_id: ITEM_B, state: 'ready' }); const { db, ctx } = env({ input_files: [f, foreign] });

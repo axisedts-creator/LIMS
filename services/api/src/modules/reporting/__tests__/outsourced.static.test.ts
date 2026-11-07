@@ -34,6 +34,16 @@ describe('layering', () => {
   it('the service reaches storage only through ctx (no direct createStorage / raw clients)', () => {
     expect(read(SERVICE)).not.toMatch(/createStorage|createClient|fetch\(|node:fs|node:child_process/);
   });
+  it('concurrent confirms: reassemble() row-locks the order item BEFORE counting confirmed files (READ COMMITTED stale-count race)', () => {
+    const svc = read(SERVICE); const start = svc.indexOf('async function reassemble');
+    expect(start).toBeGreaterThanOrEqual(0);
+    const body = svc.slice(start, start + 800);
+    const lock = body.indexOf('lockOrderItem('); const count = body.indexOf('confirmedFileIds(');
+    expect(lock).toBeGreaterThanOrEqual(0); expect(count).toBeGreaterThan(lock);
+    const repo = readFileSync(join(here, '..', 'repository', 'outsourced.repo.ts'), 'utf8');
+    const fn = /export async function lockOrderItem[\s\S]*?\n\}/.exec(repo)?.[0] ?? '';
+    expect(fn).toMatch(/FROM reporting\.report_order_items/i); expect(fn).toMatch(/tenant_id\s*=\s*\$1/); expect(fn).toMatch(/order_item_id\s*=\s*\$2/); expect(fn).toMatch(/FOR UPDATE/i);
+  });
   it('the task never shells out (qpdf runs only inside the sandbox container)', () => {
     expect(read(TASK)).not.toMatch(/node:child_process|\bexec(?:Sync|File)?\(|\bspawn\(|\bqpdf\b/);
   });

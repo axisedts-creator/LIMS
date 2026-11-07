@@ -76,6 +76,8 @@ function checkEntry(raw: unknown, nowMs: number, maxHours: unknown): Entry | und
   return { occurredAt: at!, downtimeRef: ref! };
 }
 
+// LD-25: `entry` (checked in checkEntry) and `branchCode` are not yet in contracts/ports/BillingCommandPort.ts issueOrderInvoice;
+// requested in CR-C4-BL06-002 (.orchestra/cr/BL-T06.nonblocking.md). `branchCode` is interim until C0 names the {branch} source.
 function checkInput(input: unknown): Record<string, any> {
   if (!isRec(input)) throw invalid(fieldError('/'));
   const errors: FieldError[] = [];

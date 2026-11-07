@@ -393,6 +393,20 @@ class AlertmanagerTest(unittest.TestCase):
         self.assertIn("data-1", inh)
         self.assertIn("SiteADown", inh)
 
+    def test_target_down_inhibits_only_db_family(self):  # 02-TRD s11.4 / s11.3 (review item 2)
+        for rule in self.cfg.get("inhibit_rules") or []:
+            if "TargetDown" not in json.dumps(rule.get("source_matchers") or rule.get("source_match") or ""):
+                continue
+            if "data-1" not in json.dumps(rule):
+                continue
+            tgt = json.dumps(rule.get("target_matchers") or rule.get("target_match") or rule.get("target_match_re") or "")
+            for fam in ("PostgresDown", "PgBouncerWaiting"):
+                self.assertIn(fam, tgt, "db-family alert missing from data-1 inhibition target")
+            for other in ("RpoAtRisk", "WalArchiveFailing", "BackupMissed"):
+                self.assertNotIn(other, tgt, "TargetDown on data-1 must not inhibit %s" % other)
+            return
+        self.fail("no TargetDown/data-1 inhibit rule")
+
     def test_escalation_address_configured(self):
         self.assertIn(ADDR["escalation"], self.text)
 
@@ -571,7 +585,8 @@ class RolesAndCaTest(unittest.TestCase):
             for p in _files(d):
                 if p.suffix in (".pyc",):
                     continue
-                self.assertNotRegex(p.read_text(encoding="utf-8", errors="ignore"), r"-----BEGIN [A-Z ]*PRIVATE KEY-----", str(p))
+                # pattern split so this source file does not itself match the T-01 / gitleaks private-key scan
+                self.assertNotRegex(p.read_text(encoding="utf-8", errors="ignore"), r"-----BEGIN [A-Z ]*" + "PRIVATE" + r" KEY-----", str(p))
                 self.assertNotIn(p.suffix, (".key", ".pem", ".p12", ".pfx"), "key/cert artefact committed: %s" % p)
 
     def test_pki_readme(self):
@@ -615,9 +630,9 @@ class OpsNoteTest(unittest.TestCase):
         self.bin.mkdir()
         (self.bin / "logger").write_bytes(b'#!/usr/bin/env bash\nprintf "%s\\n" "$*" >> "$FIX/logger.log"\n')
 
-    def run_note(self, *args, user="opsuser"):
+    def run_note(self, *args, user="opsuser", sudo_user=""):
         env = dict(os.environ, FIX=self.tmp.as_posix(), PATH=str(self.bin) + os.pathsep + os.environ.get("PATH", ""),
-                   USER=user, LOGNAME=user, SUDO_USER="", LIMS_OPERATOR=user)
+                   USER=user, LOGNAME=user, SUDO_USER=sudo_user, LIMS_OPERATOR=user)
         r = subprocess.run([_bash(), OPSNOTE.as_posix(), *args], env=env, capture_output=True, text=True, timeout=30, cwd=str(self.tmp))
         log = self.tmp / "logger.log"
         return r, r.stdout + (log.read_text() if log.exists() else "")
@@ -657,6 +672,15 @@ class OpsNoteTest(unittest.TestCase):
         self.assertEqual(len(recs), 1, "newline/quote in text must not forge a second record: %r" % out)
         self.assertEqual(recs[0]["what"].replace("\n", "").replace("\r", ""), evil.replace("\n", ""))
         self.assertNotIn("forged", [x.get("stream") for x in recs])
+
+    def test_non_root_cannot_forge_who_via_sudo_user(self):  # 02-TRD s8.4 who/what/when (review item 5)
+        idu = subprocess.run([_bash(), "-c", "id -un; echo $EUID"], capture_output=True, text=True, timeout=30).stdout.split()
+        if idu[-1] == "0":
+            self.skipTest("running as root: SUDO_USER is legitimate")
+        r, out = self.run_note("x", sudo_user="mallory")
+        self.assertEqual(r.returncode, 0, r.stderr)
+        who = [x for x in self.records(out) if x.get("stream") == "ops_audit"][0].get("who")
+        self.assertNotEqual(who, "mallory", "who forged from SUDO_USER by a non-root caller")
 
     def test_empty_text_rejected(self):
         for args in ((), ("",), ("   ",)):

@@ -11,8 +11,10 @@ import { readYaml, rootDir, type TableMeta } from "./sql-lib.ts";
 
 const TOOL = "gen-isolation-probes";
 const IDENT = /^[a-z_][a-z0-9_]*\.[a-z_][a-z0-9_]*$/;
-const CLASSES = new Set(["M", "C", "B", "A", "G"]); // CV §5.2 table classes
+const CLASSES = new Set(["M", "C", "B", "A", "E", "G"]); // CV §5.2 table classes
 const ACTORS = ["partner", "portal", "patient"] as const;
+const SCOPE_USER_ONLY = new Set(["core.membership_centres", "core.membership_branches"]); // tables with BEFORE INSERT app.tg_scope_user_only (LD-21)
+const SUBS: Record<string, string> = { partner: "35", portal: "a3", patient: "34" }; // step-9 fixture actor ids (pg_temp.id keys)
 const GENERATED = /^[a-z_][a-z0-9_]*\.[a-z_][a-z0-9_]*\.test\.sql$/; // hand-written suites in the same dir (T0B-08_*.test.sql) never match
 
 const root = rootDir();
@@ -40,7 +42,7 @@ try {
 const errs: string[] = [];
 for (const [t, d] of Object.entries(tables)) {
   if (!IDENT.test(t)) { errs.push(`invalid table identifier ${JSON.stringify(t)} in tables.yaml (expected schema.table, [a-z0-9_])`); continue; }
-  if (!CLASSES.has(String(d.class))) errs.push(`${t}: unknown class ${JSON.stringify(d.class)} (expected M|C|B|A|G)`);
+  if (!CLASSES.has(String(d.class))) errs.push(`${t}: unknown class ${JSON.stringify(d.class)} (expected M|C|B|A|E|G)`);
   for (const a of d.shared_with ?? []) if (!(ACTORS as readonly string[]).includes(a)) errs.push(`${t}: shared_with value ${JSON.stringify(a)} not in partner|portal|patient`);
   for (const c of Object.keys(d.columns ?? {})) if (!/^[a-z_][a-z0-9_]*$/.test(c)) errs.push(`${t}: invalid column identifier ${JSON.stringify(c)}`);
 }
@@ -76,6 +78,8 @@ function registrySql(): string {
 // Shared preamble: helpers + step 1 fixtures (tenants A/B, centres A1/A2, staff and fixture actors of 02-TRD §3.5). Synthetic data only.
 const PREAMBLE = `SET search_path = extensions, public, pg_catalog;
 SELECT * FROM no_plan();
+-- C2 identity stand-ins (skipped once the real tables exist): app.is_platform_actor() in the __platform policies reads identity.platform_staff
+\\ir ../fixtures/T0B-06_identity_standin.sql
 
 CREATE FUNCTION pg_temp.id(k text) RETURNS uuid LANGUAGE sql IMMUTABLE AS $$ SELECT ('01900000-0000-7000-8000-0000000000' || lpad(k, 2, '0'))::uuid $$;
 CREATE FUNCTION pg_temp.cl(p_type text, p_sub text, p_mem text DEFAULT NULL) RETURNS text LANGUAGE sql AS $$
@@ -106,6 +110,9 @@ CREATE FUNCTION pg_temp.ucol(p_tbl regclass) RETURNS text LANGUAGE sql AS $$
   SELECT CASE WHEN EXISTS (SELECT 1 FROM pg_attribute WHERE attrelid = p_tbl AND attname = 'updated_at' AND NOT attisdropped) THEN 'updated_at' ELSE pg_temp.tcol(p_tbl) END $$;
 CREATE FUNCTION pg_temp.owncol(p_tbl regclass) RETURNS text LANGUAGE sql AS $$
   SELECT CASE WHEN EXISTS (SELECT 1 FROM pg_attribute WHERE attrelid = p_tbl AND attname = 'actor_id' AND NOT attisdropped) THEN 'actor_id' ELSE 'created_by' END $$;
+-- row count of a query as the calling (super)user: step-1 preconditions, so a probe fails instead of passing on an empty table
+CREATE FUNCTION pg_temp.n(p_sql text) RETURNS bigint LANGUAGE plpgsql AS $f$
+DECLARE n bigint; BEGIN EXECUTE 'SELECT count(*) FROM (' || p_sql || ') t' INTO n; RETURN n; END $f$;
 CREATE FUNCTION pg_temp.q(p_fmt text, p_tbl regclass) RETURNS text LANGUAGE sql AS $$
   SELECT format(p_fmt, p_tbl, pg_temp.tcol(p_tbl), pg_temp.ucol(p_tbl)) $$;
 -- step 6: one INSERT per composite FK that carries the tenant column: a copy of a tenant-A row of T whose other FK columns point at a
@@ -136,6 +143,32 @@ BEGIN
   END LOOP;
 END $f$;
 
+-- INSERT of a copy of the first row of p_tbl matching p_where (read as the superuser), so only RLS can refuse it (no NOT NULL noise)
+CREATE FUNCTION pg_temp.copy(p_tbl regclass, p_where text) RETURNS text LANGUAGE plpgsql AS $f$
+DECLARE r jsonb; cols text;
+BEGIN
+  EXECUTE format('SELECT to_jsonb(t) FROM %s t WHERE %s LIMIT 1', p_tbl, p_where) INTO r;
+  IF r ? 'id' THEN r := r || jsonb_build_object('id', gen_random_uuid()); END IF;   -- no PK collision with the source row
+  SELECT string_agg(quote_ident(attname), ', ' ORDER BY attnum) INTO cols FROM pg_attribute
+   WHERE attrelid = p_tbl AND attnum > 0 AND NOT attisdropped AND attgenerated = '' AND attidentity <> 'a';
+  RETURN format('INSERT INTO %s (%s) SELECT %s FROM jsonb_populate_record(NULL::%s, %L::jsonb)', p_tbl, cols, cols, p_tbl, r);
+END $f$;
+-- step 6 runner: the rows of p_tbl are removed first (superuser, replica mode, inside a rolled-back subtransaction) so a
+-- natural-key UNIQUE collision with the copied row cannot mask the composite-FK check; returns pg_temp.x's result.
+CREATE FUNCTION pg_temp.fk_try(p_tbl regclass, p_stmt text) RETURNS text LANGUAGE plpgsql AS $f$
+DECLARE r text;
+BEGIN
+  BEGIN
+    SET LOCAL session_replication_role = replica;
+    EXECUTE format('DELETE FROM %s', p_tbl);   -- both tenants: some natural keys are global (e.g. memberships__user_id__p_uq)
+    SET LOCAL session_replication_role = origin;
+    r := pg_temp.x('lims_api', pg_temp.cl('user', '32', '42'), p_stmt, 'w');
+    RAISE EXCEPTION USING ERRCODE = 'P0001', MESSAGE = 'probe_rollback';
+  EXCEPTION WHEN raise_exception THEN NULL;
+  END;
+  RETURN r;
+END $f$;
+
 -- probe step 1: fixtures. Rows of tenant A and B (+ centres A1/A2) for the core tables; module rows come from db/seeds.
 SET LOCAL session_replication_role = replica;
 INSERT INTO core.tenants (id, tenant_code, legal_name, display_name, status, created_by, updated_by) VALUES
@@ -161,13 +194,69 @@ INSERT INTO core.memberships (id, tenant_id, user_id, actor_type, all_centres, p
   (pg_temp.id('44'), pg_temp.id('01'), pg_temp.id('34'), 'patient', false, NULL,             pg_temp.id('99'), pg_temp.id('99')),
   (pg_temp.id('45'), pg_temp.id('01'), pg_temp.id('35'), 'partner', false, 'partner_member', pg_temp.id('99'), pg_temp.id('99')) ON CONFLICT DO NOTHING;
 INSERT INTO core.membership_centres (tenant_id, membership_id, centre_id, created_by) VALUES
-  (pg_temp.id('01'), pg_temp.id('41'), pg_temp.id('21'), pg_temp.id('99')) ON CONFLICT DO NOTHING;
+  (pg_temp.id('01'), pg_temp.id('41'), pg_temp.id('21'), pg_temp.id('99')),
+  (pg_temp.id('02'), pg_temp.id('43'), pg_temp.id('23'), pg_temp.id('99')) ON CONFLICT DO NOTHING;
+INSERT INTO core.roles (id, tenant_id, role_code, display_name, created_by, updated_by) VALUES
+  (pg_temp.id('51'), pg_temp.id('01'), 'probe_role_a', 'Probe role A', pg_temp.id('99'), pg_temp.id('99')),
+  (pg_temp.id('52'), pg_temp.id('02'), 'probe_role_b', 'Probe role B', pg_temp.id('99'), pg_temp.id('99')) ON CONFLICT DO NOTHING;
+INSERT INTO core.g_permissions (code, module, privileged, phase) VALUES ('lab.result.read', 'lab', false, '1') ON CONFLICT DO NOTHING;
+INSERT INTO core.role_permissions (tenant_id, role_id, permission_code, created_by) VALUES
+  (pg_temp.id('01'), pg_temp.id('51'), 'lab.result.read', pg_temp.id('99')),
+  (pg_temp.id('02'), pg_temp.id('52'), 'lab.result.read', pg_temp.id('99')) ON CONFLICT DO NOTHING;
+INSERT INTO core.membership_roles (tenant_id, membership_id, role_id, created_by) VALUES
+  (pg_temp.id('01'), pg_temp.id('41'), pg_temp.id('51'), pg_temp.id('99')),
+  (pg_temp.id('02'), pg_temp.id('43'), pg_temp.id('52'), pg_temp.id('99')) ON CONFLICT DO NOTHING;
+INSERT INTO core.membership_branches (tenant_id, membership_id, branch_id, created_by) VALUES
+  (pg_temp.id('01'), pg_temp.id('41'), pg_temp.id('11'), pg_temp.id('99')),
+  (pg_temp.id('02'), pg_temp.id('43'), pg_temp.id('12'), pg_temp.id('99')) ON CONFLICT DO NOTHING;
+-- audit tables (centre-scoped): tenant A rows on centres A1 and A2, a tenant B row; access_log also one row per step-9 fixture actor
+INSERT INTO audit.audit_log (id, tenant_id, centre_id, schema_name, table_name, row_id, action, actor_id, actor_type, created_by) VALUES
+  (pg_temp.id('81'), pg_temp.id('01'), pg_temp.id('21'), 'core', 'users', pg_temp.id('31'), 'UPDATE', pg_temp.id('32'), 'user', pg_temp.id('32')),
+  (pg_temp.id('82'), pg_temp.id('01'), pg_temp.id('22'), 'core', 'users', pg_temp.id('32'), 'UPDATE', pg_temp.id('32'), 'user', pg_temp.id('32')),
+  (pg_temp.id('83'), pg_temp.id('02'), pg_temp.id('23'), 'core', 'users', pg_temp.id('33'), 'UPDATE', pg_temp.id('33'), 'user', pg_temp.id('33')) ON CONFLICT DO NOTHING;
+INSERT INTO audit.access_log (id, tenant_id, centre_id, actor_id, actor_type, action, entity_type, outcome, created_by) VALUES
+  (pg_temp.id('71'), pg_temp.id('01'), pg_temp.id('21'), pg_temp.id('32'), 'user',    'report.view', 'report', 'allowed', pg_temp.id('32')),
+  (pg_temp.id('72'), pg_temp.id('01'), pg_temp.id('22'), pg_temp.id('32'), 'user',    'report.view', 'report', 'allowed', pg_temp.id('32')),
+  (pg_temp.id('73'), pg_temp.id('01'), pg_temp.id('21'), pg_temp.id('35'), 'partner', 'report.view', 'report', 'allowed', pg_temp.id('35')),
+  (pg_temp.id('74'), pg_temp.id('01'), pg_temp.id('21'), pg_temp.id('a3'), 'portal',  'report.view', 'report', 'allowed', pg_temp.id('a3')),
+  (pg_temp.id('75'), pg_temp.id('01'), pg_temp.id('21'), pg_temp.id('34'), 'patient', 'report.view', 'report', 'allowed', pg_temp.id('34')),
+  (pg_temp.id('76'), pg_temp.id('02'), pg_temp.id('23'), pg_temp.id('33'), 'user',    'report.view', 'report', 'allowed', pg_temp.id('33')) ON CONFLICT DO NOTHING;
+-- T0B-05 platform tables: tenant A and B rows; event_log (owner column created_by) and idempotency_keys (actor_id) also one row per
+-- step-9 fixture actor (partner, portal, patient)
+INSERT INTO core.event_log (tenant_id, event_id, event_type, producer, idempotency_key, aggregate_type, aggregate_id, aggregate_seq, occurred_at, envelope, created_by) VALUES
+  (pg_temp.id('01'), pg_temp.id('e1'), 'probe.event', 'core', 'pk-e1', 'probe', pg_temp.id('31'), 1, now(), '{}', pg_temp.id('32')),
+  (pg_temp.id('01'), pg_temp.id('e2'), 'probe.event', 'core', 'pk-e2', 'probe', pg_temp.id('31'), 2, now(), '{}', pg_temp.id('35')),
+  (pg_temp.id('01'), pg_temp.id('e3'), 'probe.event', 'core', 'pk-e3', 'probe', pg_temp.id('31'), 3, now(), '{}', pg_temp.id('a3')),
+  (pg_temp.id('01'), pg_temp.id('e4'), 'probe.event', 'core', 'pk-e4', 'probe', pg_temp.id('31'), 4, now(), '{}', pg_temp.id('34')),
+  (pg_temp.id('02'), pg_temp.id('e5'), 'probe.event', 'core', 'pk-e5', 'probe', pg_temp.id('33'), 1, now(), '{}', pg_temp.id('33')) ON CONFLICT DO NOTHING;
+INSERT INTO core.idempotency_keys (tenant_id, actor_id, key, method, route, request_sha256, state, expires_at) VALUES
+  (pg_temp.id('01'), pg_temp.id('32'), 'probe-a', 'POST', '/v1/probe', decode(repeat('00', 32), 'hex'), 'in_progress', now() + interval '7 days'),
+  (pg_temp.id('01'), pg_temp.id('35'), 'probe-a', 'POST', '/v1/probe', decode(repeat('00', 32), 'hex'), 'in_progress', now() + interval '7 days'),
+  (pg_temp.id('01'), pg_temp.id('a3'), 'probe-a', 'POST', '/v1/probe', decode(repeat('00', 32), 'hex'), 'in_progress', now() + interval '7 days'),
+  (pg_temp.id('01'), pg_temp.id('34'), 'probe-a', 'POST', '/v1/probe', decode(repeat('00', 32), 'hex'), 'in_progress', now() + interval '7 days'),
+  (pg_temp.id('02'), pg_temp.id('33'), 'probe-b', 'POST', '/v1/probe', decode(repeat('00', 32), 'hex'), 'in_progress', now() + interval '7 days') ON CONFLICT DO NOTHING;
+INSERT INTO core.dead_letters (id, tenant_id, task_identifier, job_payload, last_error_code, last_error_message_redacted, attempts, first_failed_at, dead_at, created_by) VALUES
+  (pg_temp.id('d1'), pg_temp.id('01'), 'probe.task', '{}', 'E', 'm', 1, now(), now(), pg_temp.id('99')),
+  (pg_temp.id('d2'), pg_temp.id('02'), 'probe.task', '{}', 'E', 'm', 1, now(), now(), pg_temp.id('99')) ON CONFLICT DO NOTHING;
+DO $d$ DECLARE s text; BEGIN
+  FOREACH s IN ARRAY ARRAY['identity','frontdesk','billing','lab','instruments','reporting','analytics','quality',
+                           'micro','anatomic','inventory','partners','smartreport','payments','engagement','homecollection'] LOOP   -- 05-SCHEMA §3.9
+    EXECUTE format('INSERT INTO %I.event_inbox (tenant_id, event_id, event_type, created_by) VALUES ($1, $2, ''probe.event'', $3), ($4, $5, ''probe.event'', $6) ON CONFLICT DO NOTHING', s)
+      USING pg_temp.id('01'), pg_temp.id('e1'), pg_temp.id('99'), pg_temp.id('02'), pg_temp.id('e5'), pg_temp.id('99');
+  END LOOP;
+END $d$;
 SET LOCAL session_replication_role = origin;
 `;
+// ponytail: C0 fixtures are inline above; a table added by a later chunk without a row here fails its step-1 precondition until
+// tables.yaml probe_fixture: (02-TRD §4.5 step 1) is supported. Fixture INSERTs on tables absent from the catalog would abort the probe,
+// so every table above must exist when probes run (true for C0 migrations).
 
 function probeSql(t: string): string {
   const d = tables[t];
   const rc = `'${t}'::regclass`;
+  // LD-21 (2026-11-07, CR-C0-T0B-08 1a): app.tg_scope_user_only() is a BEFORE INSERT trigger on these two tables; it runs before
+  // RLS WITH CHECK and the FK, so steps 3/6/8 accept 23514 scope_user_only as the refusal code. Every other table requires 42501.
+  const scoped = SCOPE_USER_ONLY.has(t);
   const L: string[] = [
     `-- GENERATED by db/tools/gen-isolation-probes.ts from db/meta/tables.yaml (${t}: class ${d.class}${d.centre_scoped ? ", centre-scoped" : ""}${d.shared_with?.length ? ", shared_with " + d.shared_with.join("|") : ""}). Do not edit.`,
     "-- 02-TRD §4.5 isolation probe; AC-0B-3.1..3.7, AC-0B-3.6 (gate 10). Synthetic data only; one rolled-back transaction; RLS is never disabled.",
@@ -179,22 +268,34 @@ function probeSql(t: string): string {
   const writes = (role: string, claims: string, step: number) => {
     const tag = step === 8 ? `probe step 8: ${role} system claims` : `probe step ${step}:`;
     L.push(`SELECT is(pg_temp.x('${role}', ${claims}, pg_temp.q('SELECT 1 FROM %s WHERE %I = pg_temp.id(''02'')', ${rc}), 'n'), 'n=0', '${step === 8 ? tag : "probe step 2:"} tenant A claims see 0 tenant B rows of ${t}');`);
-    L.push(`SELECT is(pg_temp.x('${role}', ${claims}, pg_temp.q('INSERT INTO %s (%I) VALUES (pg_temp.id(''02''))', ${rc}), 'w'), 'E42501', '${step === 8 ? tag : "probe step 3:"} INSERT of a tenant B row into ${t} -> 42501');`);
+    const ins = `pg_temp.x('${role}', ${claims}, pg_temp.q('INSERT INTO %s (%I) VALUES (pg_temp.id(''02''))', ${rc}), 'w')`;
+    L.push(scoped
+      ? `SELECT is(CASE WHEN ${ins} IN ('E42501', 'E23514') THEN 'refused' ELSE ${ins} END, 'refused', '${step === 8 ? tag : "probe step 3:"} INSERT of a tenant B row into ${t} -> 42501 (23514 scope_user_only, LD-21)');`
+      : `SELECT is(${ins}, 'E42501', '${step === 8 ? tag : "probe step 3:"} INSERT of a tenant B row into ${t} -> 42501');`);
     L.push(`SELECT is(pg_temp.x('${role}', ${claims}, pg_temp.q('UPDATE %1$s SET %3$I = %3$I WHERE %2$I = pg_temp.id(''02'')', ${rc}), 'w'), pg_temp.want('${role}', ${rc}, 'UPDATE', pg_temp.ucol(${rc})), '${step === 8 ? tag : "probe step 4:"} UPDATE of tenant B rows of ${t} affects 0 rows');`);
     if (d.class === "M")
       L.push(`SELECT is(pg_temp.x('${role}', ${claims}, pg_temp.q('DELETE FROM %s WHERE %I = pg_temp.id(''02'')', ${rc}), 'w'), pg_temp.want('${role}', ${rc}, 'DELETE'), '${step === 8 ? tag : "probe step 4:"} DELETE of tenant B rows of ${t} affects 0 rows (42501 where not granted)');`);
   };
+  L.push("-- probe step 1: preconditions (as the superuser, before any SET ROLE): the rows the later steps filter really exist");
+  for (const [k, who] of [["01", "A"], ["02", "B"]])
+    L.push(`SELECT ok(pg_temp.n(pg_temp.q('SELECT 1 FROM %s WHERE %I = pg_temp.id(''${k}'')', ${rc})) > 0, 'probe step 1: tenant ${who} rows of ${t} seeded');`);
+  if (d.centre_scoped)
+    for (const [k, c] of [["21", "A1"], ["22", "A2"]])
+      L.push(`SELECT ok(pg_temp.n('SELECT 1 FROM ${t} WHERE tenant_id = pg_temp.id(''01'') AND centre_id = pg_temp.id(''${k}'')') > 0, 'probe step 1: centre ${c} rows of ${t} seeded');`);
+  if (d.shared_with?.length)
+    for (const a of ACTORS)
+      L.push(`SELECT ok(pg_temp.n(format('SELECT 1 FROM ${t} WHERE %I = pg_temp.id(''${SUBS[a]}'')', pg_temp.owncol(${rc}))) > 0, 'probe step 1: ${a} fixture actor rows of ${t} seeded');`);
   L.push("-- probe step 2/3/4: lims_api, claims of tenant A (all-centres staff): no tenant B row visible, insertable or changeable (expect 0 rows / 42501)");
   writes("lims_api", staff, 2);
   if (d.centre_scoped) {
     L.push("-- probe step 5: centre-A1 membership sees no centre A2 row and cannot insert one (42501)");
     L.push(`SELECT is(pg_temp.x('lims_api', pg_temp.cl('user', '31', '41'), 'SELECT 1 FROM ${t} WHERE centre_id = pg_temp.id(''22'')', 'n'), 'n=0', 'probe step 5: centre A1 claims see 0 centre A2 rows of ${t}');`);
-    L.push(`SELECT is(pg_temp.x('lims_api', pg_temp.cl('user', '31', '41'), 'INSERT INTO ${t} (tenant_id, centre_id) VALUES (pg_temp.id(''01''), pg_temp.id(''22''))', 'w'), 'E42501', 'probe step 5: centre A1 claims INSERT a centre A2 row into ${t} -> 42501');`);
+    L.push(`SELECT is(pg_temp.x('lims_api', pg_temp.cl('user', '31', '41'), pg_temp.copy(${rc}, 'tenant_id = pg_temp.id(''01'') AND centre_id = pg_temp.id(''22'')'), 'w'), 'E42501', 'probe step 5: centre A1 claims INSERT a centre A2 row into ${t} -> 42501');`);
   }
   L.push("-- probe step 6: every composite FK carrying the tenant column (pg_constraint): tenant A row referencing a tenant B parent -> 23503 or 42501");
   L.push(`SELECT CASE WHEN f.stmt IS NULL THEN skip('probe step 6: ' || f.conname || ' on ${t}: no tenant A row of the table or no tenant B parent row seeded', 1)`);
-  L.push(`            ELSE ok(pg_temp.x('lims_api', ${staff}, f.stmt, 'w') IN ('E23503', 'E42501'), 'probe step 6: ' || f.conname || ' on ${t} refuses a tenant B parent (23503/42501)') END`);
-  L.push(`  FROM pg_temp.fk_probes(${rc}) f;`);
+  L.push(`            ELSE is(CASE WHEN r.v IN ('E23503', 'E42501'${scoped ? ", 'E23514'" : ""}) THEN 'refused' ELSE r.v END, 'refused', 'probe step 6: ' || f.conname || ' on ${t} refuses a tenant B parent (23503/42501${scoped ? "; 23514 scope_user_only, LD-21" : ""})') END`);
+  L.push(`  FROM pg_temp.fk_probes(${rc}) f CROSS JOIN LATERAL (SELECT CASE WHEN f.stmt IS NULL THEN NULL ELSE pg_temp.fk_try(${rc}, f.stmt) END AS v) r;`);
   L.push(`SELECT pass('probe step 6: ${t} has no composite tenant FK') WHERE NOT EXISTS (SELECT 1 FROM pg_temp.fk_probes(${rc}));`);
   L.push("-- probe step 7: no claims -> fail closed (AC-0B-3.7)");
   L.push(`SELECT is(pg_temp.x('lims_api', '', 'SELECT 1 FROM ${t}', 'n'), 'n=0', 'probe step 7: lims_api without claims reads 0 rows of ${t}');`);
@@ -202,7 +303,7 @@ function probeSql(t: string): string {
   writes("lims_worker", sys, 8);
   L.push(`SELECT is(pg_temp.x('lims_worker', '', 'SELECT 1 FROM ${t}', 'n'), 'n=0', 'probe step 8: lims_worker without claims reads 0 rows of ${t}');`);
   const fixtures: Record<string, string> = { partner: "pg_temp.cl('partner', '35', '45')", portal: "pg_temp.cl('portal', 'a3')", patient: "pg_temp.cl('patient', '34', '44')" };
-  const subs: Record<string, string> = { partner: "35", portal: "a3", patient: "34" };
+  const subs = SUBS;
   if (d.shared_with?.length) {
     L.push("-- probe step 9: shared_with table: non-staff actors of tenant A see only the rows their actor policy admits (own rows), never tenant B rows");
     for (const a of ACTORS) {

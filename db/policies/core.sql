@@ -98,3 +98,97 @@ CREATE POLICY membership_roles__select__owner_only ON core.membership_roles FOR 
          AND EXISTS (SELECT 1 FROM core.memberships m
                      WHERE m.tenant_id = membership_roles.tenant_id AND m.id = membership_roles.membership_id
                        AND m.user_id = nullif(current_setting('app.pre_user_id', true), '')::uuid));
+
+-- from 20261105000900_core__create_event_log.sql
+CREATE POLICY event_log__select__tenant ON core.event_log FOR SELECT TO lims_app
+  USING (tenant_id = (SELECT app.current_tenant_id()) AND (SELECT app.is_staff_or_system()));
+CREATE POLICY event_log__insert__tenant ON core.event_log FOR INSERT TO lims_app
+  WITH CHECK (tenant_id = (SELECT app.current_tenant_id()) AND (SELECT app.is_staff_or_system()));
+CREATE POLICY event_log__insert__partner ON core.event_log FOR INSERT TO lims_app
+  WITH CHECK (tenant_id = (SELECT app.current_tenant_id()) AND created_by = (SELECT app.current_actor_id())
+              AND (SELECT app.current_actor_type()) = 'partner');
+CREATE POLICY event_log__insert__portal ON core.event_log FOR INSERT TO lims_app
+  WITH CHECK (tenant_id = (SELECT app.current_tenant_id()) AND created_by = (SELECT app.current_actor_id())
+              AND (SELECT app.current_actor_type()) = 'portal');
+CREATE POLICY event_log__insert__patient ON core.event_log FOR INSERT TO lims_app
+  WITH CHECK (tenant_id = (SELECT app.current_tenant_id()) AND created_by = (SELECT app.current_actor_id())
+              AND (SELECT app.current_actor_type()) = 'patient');
+CREATE POLICY dead_letters__select__tenant ON core.dead_letters FOR SELECT TO lims_app
+  USING (tenant_id = (SELECT app.current_tenant_id()) AND (SELECT app.is_staff_or_system()));
+CREATE POLICY dead_letters__insert__tenant ON core.dead_letters FOR INSERT TO lims_app
+  WITH CHECK (tenant_id = (SELECT app.current_tenant_id()) AND (SELECT app.is_staff_or_system()));
+CREATE POLICY dead_letters__update__tenant ON core.dead_letters FOR UPDATE TO lims_app
+  USING (tenant_id = (SELECT app.current_tenant_id()) AND (SELECT app.is_staff_or_system()))
+  WITH CHECK (tenant_id = (SELECT app.current_tenant_id()) AND (SELECT app.is_staff_or_system()));
+CREATE POLICY idempotency_keys__select__tenant ON core.idempotency_keys FOR SELECT TO lims_app
+  USING (tenant_id = (SELECT app.current_tenant_id()) AND actor_id = (SELECT app.current_actor_id()) AND (SELECT app.is_staff_or_system()));
+CREATE POLICY idempotency_keys__insert__tenant ON core.idempotency_keys FOR INSERT TO lims_app
+  WITH CHECK (tenant_id = (SELECT app.current_tenant_id()) AND actor_id = (SELECT app.current_actor_id()) AND (SELECT app.is_staff_or_system()));
+CREATE POLICY idempotency_keys__update__tenant ON core.idempotency_keys FOR UPDATE TO lims_app
+  USING (tenant_id = (SELECT app.current_tenant_id()) AND actor_id = (SELECT app.current_actor_id()) AND (SELECT app.is_staff_or_system()))
+  WITH CHECK (tenant_id = (SELECT app.current_tenant_id()) AND actor_id = (SELECT app.current_actor_id()) AND (SELECT app.is_staff_or_system()));
+CREATE POLICY idempotency_keys__delete__tenant ON core.idempotency_keys FOR DELETE TO lims_app
+  USING (tenant_id = (SELECT app.current_tenant_id()) AND actor_id = (SELECT app.current_actor_id()) AND (SELECT app.is_staff_or_system())
+         AND state = 'in_progress');
+CREATE POLICY idempotency_keys__select__partner ON core.idempotency_keys FOR SELECT TO lims_app
+  USING (tenant_id = (SELECT app.current_tenant_id()) AND actor_id = (SELECT app.current_actor_id()) AND (SELECT app.current_actor_type()) = 'partner');
+CREATE POLICY idempotency_keys__insert__partner ON core.idempotency_keys FOR INSERT TO lims_app
+  WITH CHECK (tenant_id = (SELECT app.current_tenant_id()) AND actor_id = (SELECT app.current_actor_id()) AND (SELECT app.current_actor_type()) = 'partner');
+CREATE POLICY idempotency_keys__update__partner ON core.idempotency_keys FOR UPDATE TO lims_app
+  USING (tenant_id = (SELECT app.current_tenant_id()) AND actor_id = (SELECT app.current_actor_id()) AND (SELECT app.current_actor_type()) = 'partner')
+  WITH CHECK (tenant_id = (SELECT app.current_tenant_id()) AND actor_id = (SELECT app.current_actor_id()) AND (SELECT app.current_actor_type()) = 'partner');
+CREATE POLICY idempotency_keys__delete__partner ON core.idempotency_keys FOR DELETE TO lims_app
+  USING (tenant_id = (SELECT app.current_tenant_id()) AND actor_id = (SELECT app.current_actor_id()) AND (SELECT app.current_actor_type()) = 'partner'
+         AND state = 'in_progress');
+CREATE POLICY idempotency_keys__select__portal ON core.idempotency_keys FOR SELECT TO lims_app
+  USING (tenant_id = (SELECT app.current_tenant_id()) AND actor_id = (SELECT app.current_actor_id()) AND (SELECT app.current_actor_type()) = 'portal');
+CREATE POLICY idempotency_keys__insert__portal ON core.idempotency_keys FOR INSERT TO lims_app
+  WITH CHECK (tenant_id = (SELECT app.current_tenant_id()) AND actor_id = (SELECT app.current_actor_id()) AND (SELECT app.current_actor_type()) = 'portal');
+CREATE POLICY idempotency_keys__update__portal ON core.idempotency_keys FOR UPDATE TO lims_app
+  USING (tenant_id = (SELECT app.current_tenant_id()) AND actor_id = (SELECT app.current_actor_id()) AND (SELECT app.current_actor_type()) = 'portal')
+  WITH CHECK (tenant_id = (SELECT app.current_tenant_id()) AND actor_id = (SELECT app.current_actor_id()) AND (SELECT app.current_actor_type()) = 'portal');
+CREATE POLICY idempotency_keys__delete__portal ON core.idempotency_keys FOR DELETE TO lims_app
+  USING (tenant_id = (SELECT app.current_tenant_id()) AND actor_id = (SELECT app.current_actor_id()) AND (SELECT app.current_actor_type()) = 'portal'
+         AND state = 'in_progress');
+CREATE POLICY idempotency_keys__select__patient ON core.idempotency_keys FOR SELECT TO lims_app
+  USING (tenant_id = (SELECT app.current_tenant_id()) AND actor_id = (SELECT app.current_actor_id()) AND (SELECT app.current_actor_type()) = 'patient');
+CREATE POLICY idempotency_keys__insert__patient ON core.idempotency_keys FOR INSERT TO lims_app
+  WITH CHECK (tenant_id = (SELECT app.current_tenant_id()) AND actor_id = (SELECT app.current_actor_id()) AND (SELECT app.current_actor_type()) = 'patient');
+CREATE POLICY idempotency_keys__update__patient ON core.idempotency_keys FOR UPDATE TO lims_app
+  USING (tenant_id = (SELECT app.current_tenant_id()) AND actor_id = (SELECT app.current_actor_id()) AND (SELECT app.current_actor_type()) = 'patient')
+  WITH CHECK (tenant_id = (SELECT app.current_tenant_id()) AND actor_id = (SELECT app.current_actor_id()) AND (SELECT app.current_actor_type()) = 'patient');
+CREATE POLICY idempotency_keys__delete__patient ON core.idempotency_keys FOR DELETE TO lims_app
+  USING (tenant_id = (SELECT app.current_tenant_id()) AND actor_id = (SELECT app.current_actor_id()) AND (SELECT app.current_actor_type()) = 'patient'
+         AND state = 'in_progress');
+CREATE POLICY idempotency_keys__select__platform ON core.idempotency_keys FOR SELECT TO lims_app
+  USING (tenant_id IS NULL AND actor_id = (SELECT app.current_actor_id()) AND (SELECT app.is_platform_actor()));
+CREATE POLICY idempotency_keys__insert__platform ON core.idempotency_keys FOR INSERT TO lims_app
+  WITH CHECK (tenant_id IS NULL AND actor_id = (SELECT app.current_actor_id()) AND (SELECT app.is_platform_actor()));
+CREATE POLICY idempotency_keys__update__platform ON core.idempotency_keys FOR UPDATE TO lims_app
+  USING (tenant_id IS NULL AND actor_id = (SELECT app.current_actor_id()) AND (SELECT app.is_platform_actor()))
+  WITH CHECK (tenant_id IS NULL AND actor_id = (SELECT app.current_actor_id()) AND (SELECT app.is_platform_actor()));
+CREATE POLICY idempotency_keys__delete__platform ON core.idempotency_keys FOR DELETE TO lims_app
+  USING (tenant_id IS NULL AND actor_id = (SELECT app.current_actor_id()) AND (SELECT app.is_platform_actor()) AND state = 'in_progress');
+CREATE POLICY idempotency_keys__delete__owner_only ON core.idempotency_keys FOR DELETE TO lims_owner
+  USING (current_setting('app.maintenance', true) = 'purge_idempotency_keys' AND expires_at < now());
+CREATE POLICY idempotency_keys__select__owner_only ON core.idempotency_keys FOR SELECT TO lims_owner
+  USING (current_setting('app.maintenance', true) = 'purge_idempotency_keys' AND expires_at < now());
+CREATE POLICY event_log__select__owner_only ON core.event_log FOR SELECT TO lims_owner
+  USING (current_setting('app.maintenance', true) = 'purge_event_log' AND created_at < now() - interval '90 days');
+CREATE POLICY event_log__delete__owner_only ON core.event_log FOR DELETE TO lims_owner
+  USING (current_setting('app.maintenance', true) = 'purge_event_log' AND created_at < now() - interval '90 days');
+CREATE POLICY dead_letters__select__owner_only ON core.dead_letters FOR SELECT TO lims_owner
+  USING (tenant_id IS NULL
+      OR (current_setting('app.maintenance', true) = 'purge_dead_letters'
+          AND state <> 'open' AND resolved_at < now() - interval '90 days'));
+CREATE POLICY dead_letters__delete__owner_only ON core.dead_letters FOR DELETE TO lims_owner
+  USING (current_setting('app.maintenance', true) = 'purge_dead_letters'
+         AND state <> 'open' AND resolved_at < now() - interval '90 days');
+CREATE POLICY dead_letters__insert__owner_only ON core.dead_letters FOR INSERT TO lims_owner WITH CHECK (tenant_id IS NULL);
+CREATE POLICY dead_letters__update__owner_only ON core.dead_letters FOR UPDATE TO lims_owner
+  USING (tenant_id IS NULL) WITH CHECK (tenant_id IS NULL);
+CREATE POLICY dead_letters__select__platform ON core.dead_letters FOR SELECT TO lims_app
+  USING (tenant_id IS NOT NULL AND (SELECT app.is_platform_actor()));
+CREATE POLICY dead_letters__update__platform ON core.dead_letters FOR UPDATE TO lims_app
+  USING (tenant_id IS NOT NULL AND (SELECT app.is_platform_actor()))
+  WITH CHECK (tenant_id IS NOT NULL AND (SELECT app.is_platform_actor()));

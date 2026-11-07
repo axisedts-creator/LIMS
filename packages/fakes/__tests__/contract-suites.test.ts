@@ -107,16 +107,17 @@ describe("formula.vectors.json (08 R12a; C3 TRD §7.1 G1–G10)", () => {
       expect(typeof v.id).toBe("string");
       expect(typeof v.expression).toBe("string");
       expect(typeof v.inputs).toBe("object");
-      expect(v.expect && typeof v.expect.ok === "boolean", `${v.id}: expect.ok`).toBe(true);
-      if (v.expect.ok) expect(typeof v.expect.value).toBe("string");
-      else expect(typeof v.expect.reason).toBe("string");
-      for (const x of Object.values(v.inputs)) expect(typeof x, `${v.id}: inputs are DecimalString`).toBe("string");
+      expect(v.expected && typeof v.expected.ok === "boolean", `${v.id}: expected.ok`).toBe(true);
+      if (v.expected.ok) expect(typeof v.expected.value).toBe("string");
+      else expect(typeof v.expected.reason).toBe("string");
+      // main's shared shape (formula.test.mjs): null = missing input
+      for (const x of Object.values(v.inputs)) expect(x === null || typeof x === "string", `${v.id}: inputs are DecimalString | null`).toBe(true);
     }
   });
 
   it("G1–G10 carry the spec expressions/inputs/expected values", () => {
     const by = new Map(load().vectors.map((v) => [v.id, v]));
-    const num = (id: string) => Number(by.get(id)!.expect.value);
+    const num = (id: string) => Number(by.get(id)!.expected.value);
     for (let i = 1; i <= 10; i++) expect(by.has(`G${i}`), `G${i}`).toBe(true);
     expect(by.get("G1")!.expression).toBe("MCV / RBC");
     expect(by.get("G1")!.inputs).toMatchObject({ MCV: "70.0", RBC: "5.60" });
@@ -125,20 +126,20 @@ describe("formula.vectors.json (08 R12a; C3 TRD §7.1 G1–G10)", () => {
     expect(num("G3")).toBe(125);
     expect(num("G4")).toBe(5.1);
     expect(num("G5")).toBe(120);
-    expect(by.get("G6")!.expect).toEqual({ ok: false, reason: "tg_over_400" });
-    expect(by.get("G7")!.expect).toEqual({ ok: false, reason: "division_by_zero" });
-    expect(by.get("G8")!.expect).toEqual({ ok: false, reason: "missing_input:ALB" });
-    expect(by.get("G8")!.inputs.ALB).toBeUndefined();
+    expect(by.get("G6")!.expected).toEqual({ ok: false, reason: "tg_over_400" });
+    expect(by.get("G7")!.expected).toEqual({ ok: false, reason: "division_by_zero" });
+    expect(by.get("G8")!.expected).toEqual({ ok: false, reason: "missing_input:ALB" });
+    expect(by.get("G8")!.inputs.ALB ?? null).toBeNull();    // missing (main's shape: null)
     expect(num("G9")).toBe(1.414);
-    expect(by.get("G9")!.expect.inexact).toBe(true);        // non-integer pow ⇒ IEEE-754 double ⇒ inexact
-    expect(by.get("G10")!.context?.sex).toBe("female");
+    expect(by.get("G9")!.expected.inexact).toBe(true);        // non-integer pow ⇒ IEEE-754 double ⇒ inexact
+    expect(by.get("G10")!.ctx?.sex).toBe("female");
     expect(num("G10")).toBe(9);
   });
 
   it("includes a log10 case marked inexact (C3 TRD §14 'incl. log10 and inexact cases')", () => {
     const v = load().vectors.find((x) => /log10/.test(x.expression));
     expect(v, "no log10 vector").toBeDefined();
-    expect(v!.expect.inexact).toBe(true);
+    expect(v!.expected.inexact).toBe(true);
   });
 
   it("contains no real-looking e-mail or phone data (synthetic only)", () => {

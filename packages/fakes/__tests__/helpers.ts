@@ -11,7 +11,7 @@
 //                                 ctxFor('A') / ctxFor('B') MUST exist: a `user` actor of synthetic tenant A / B (different tenantId).
 //   contract-tests/<Port>.contract.ts  export run<Port>Contract(makeImpl, opts?: { phase1Stub?: boolean })
 //                                 each IC §4 case is a literal it('(N) …') title; only cases tagged phase1Stub run when opts.phase1Stub.
-//   contract-tests/formula.vectors.json  { "vectors": [ { id, expression, inputs, context?, expect } ] }
+//   contract-tests/formula.vectors.json  { "vectors": [ { id, expression, inputs, ctx?, expected } ] }  (shape owned by main / formula.test.mjs)
 import { existsSync, readFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";

@@ -1,7 +1,5 @@
-# T0A-06 impl (writer, round 3) — LD-08 applied
-- Files: `packages/test-fixtures/bsdate/generate.mjs` (LD-08 auto-resolve + comment), `review.json` (107 entries resolved_by "LD-08", resolution = @remotemerge 1.2.7 value, `verify_before_golive: true`), new `golden-2000-2099.json` (1200 months, 200 probes; 107 rows B.S. 2084–2097 carry `verify_before_golive: true`).
-- [CONV] Generator now refuses only resolutions that DIFFER from the wrapper (needs override); LD-08 resolutions equal the wrapper, so no wrapper change. Generated with `--today 2026-11-07` (projection_after 2088).
-- RAN: `node --test packages/shared-ts/test/bsdate.test.mjs` 20/20 pass.
-- NOT run: `dart test test/bsdate_golden_test.dart` (dart command needs approval in this session). nepali_utils `--dart` comparison still not done.
-- Round 4 (review item 1): BLOCKED, not done. `dart pub get` / `dart test` and reading the pub cache (nepali_utils 3.0.8 source) were refused approval in this writer session, so the Dart golden run is still unproven. No code changed. Next step: someone with approval runs `cd packages/shared-dart && dart test test/bsdate_golden_test.dart`; if LD-08 months or 2099-12 fail, add an LD-08 override table in bsdate.dart that follows the golden.
-- Open: run Dart side; risk nepali_utils lacks B.S. 2100-01 (2099-12 length). All 107 LD-08 months must be checked against an official calendar before go-live.
+# T0A-06 impl (writer, round 5) — LD-08 applied, both sides pass
+- Files: `packages/test-fixtures/bsdate/{generate.mjs,review.json,golden-2000-2099.json}` (rounds 1–3: 107 entries resolved_by "LD-08", value from @remotemerge/nepali-date-converter 1.2.7, `verify_before_golive: true`); round 5: `packages/shared-dart/lib/src/bsdate/bsdate.dart` adds LD-08 first-day override for B.S. 2093-10.
+- [CONV] Diff of nepali_utils 3.0.8 vs golden over all 1200 months: only 2093-09 (lib 29, golden 30) and 2093-10 (lib 30, golden 29) differ; per LD-08 the golden (package value) wins, so Dart overrides first day of 2093-10 to 2037-01-15. nepali_utils covers B.S. 2100-01 (2099-12 OK).
+- RAN: `node --test packages/shared-ts/test/bsdate.test.mjs` 20/20 pass; `cd packages/shared-dart && dart test test/bsdate_golden_test.dart` 9/9 pass; `dart analyze lib/src/bsdate` no issues.
+- Open: all 107 LD-08 months (B.S. 2084–2097, incl. 2093-09/10 where the two libraries disagree) must be checked against an official calendar before go-live.

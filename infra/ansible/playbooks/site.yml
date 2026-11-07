@@ -1,0 +1,70 @@
+---
+# Host baseline on every host (02-TRD s4, s5); idempotent: a second run
+# must report zero changes. Order matters: wireguard runs before nftables,
+# chrony (clients sync to ops-1 over wg0), luks_volumes (keys come from
+# ops-1 over wg0) and docker_engine (docker.service is After=wg-quick@wg0).
+# sshd moves to the wg IP in a handler, i.e. only after wg0 is up.
+- name: Host baseline
+  hosts: all
+  become: true
+  roles:
+    - base_os
+    - hardening
+    - wireguard
+    - nftables
+    - chrony
+    - luks_volumes
+    - docker_engine
+
+# 02-TRD s9: pgBackRest config, tmpfs cipher passes, timers. `data` only:
+# dr-1 (repo2 host) never holds a cipher pass (AC-12.3).
+- name: pgBackRest
+  hosts: data
+  become: true
+  roles:
+    - pgbackrest
+
+# 02-TRD s9.5 (T-12): streaming standby on the dr host, seeded by
+# pg_basebackup (CR-C1-T09 (a)). Gated by standby_enabled: LD-45 `lean`
+# and dev install nothing.
+- name: Standby
+  hosts: dr
+  become: true
+  roles:
+    - standby
+
+# 02-TRD s9.5: object replica. Sync job on the Storage host (app), target
+# directory on dr; the dr host is groups['dr'][0] of the active profile
+# (LD-45), none in dev.
+- name: Object replica
+  hosts: app:dr
+  become: true
+  roles:
+    - object_replica
+
+# 02-TRD s11, s8.2: monitoring core on ops-1 (site B). internal_ca first:
+# it issues the ops nginx (and registry) certificates the stack mounts.
+- name: Monitoring core
+  hosts: ops
+  become: true
+  roles:
+    - internal_ca
+    - monitoring
+
+# 02-TRD s12.2: Nepal registry. Server on ops-1 (uses the internal_ca
+# registry leaf above); client trust + name on every host that pulls.
+- name: Registry
+  hosts: ops:data:app:dr
+  become: true
+  roles:
+    - registry
+
+# 02-TRD s6 (T-13): public edge nginx on the app host. edge_nginx first (it
+# bootstraps placeholder certs so nginx answers HTTP-01), then acme issues the
+# real ECDSA P-256 certificates and reloads nginx through its deploy hook.
+- name: Public edge
+  hosts: app
+  become: true
+  roles:
+    - edge_nginx
+    - acme

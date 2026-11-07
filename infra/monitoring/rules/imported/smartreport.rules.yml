@@ -1,0 +1,85 @@
+---
+# yamllint disable rule:line-length
+# Imported from C14
+#   services/worker/src/jobs/smartreport/ops/smartreport.rules.yml
+# (C14 02-TRD "Alert rules for C1").
+# expr/for verbatim; C1 adds only severity, team, runbook_url (s11.3).
+# The source file is not in this lane yet: transcribed from the TRD
+# table; ci/import-rules.sh overwrites it, alert-import-drift checks.
+groups:
+  - name: smartreport
+    rules:
+      - alert: SmartBuildErrors
+        expr: >-
+          sum(rate(lims_smartreport_builds_total{outcome="error"}[15m])) /
+          sum(rate(lims_smartreport_builds_total[15m])) > 0.05
+        for: 15m
+        labels:
+          severity: warn
+          team: ops
+        annotations:
+          summary: >-
+            More than 5 % of smart report builds errored over 15 min.
+          runbook_url: >-
+            infra/runbooks/smartreport.md#smartbuilderrors
+      - alert: SmartDraftsStale
+        expr: >-
+          max by (tenant_id) (lims_smartreport_drafts_oldest_age_seconds)
+          > 86400
+        for: 10m
+        labels:
+          severity: warn
+          team: ops
+        annotations:
+          summary: A smart report draft is older than 24 h.
+          runbook_url: >-
+            infra/runbooks/smartreport.md#smartdraftsstale
+      - alert: SmartLlmCallWhileDisabled
+        expr: >-
+          increase(lims_smartreport_llm_calls_while_disabled_total[5m]) >
+          0
+        for: 0m
+        labels:
+          severity: page
+          team: ops
+        annotations:
+          summary: >-
+            An LLM call was made while the LLM feature is disabled.
+          runbook_url: >-
+            infra/runbooks/smartreport.md#smartllmcallwhiledisabled
+      - alert: SmartLlmEndpointNotAllowed
+        expr: >-
+          increase(lims_smartreport_llm_endpoint_refused_total[5m]) > 0
+        for: 0m
+        labels:
+          severity: page
+          team: ops
+        annotations:
+          summary: >-
+            An LLM call to a non-allowlisted endpoint was refused.
+          runbook_url: >-
+            infra/runbooks/smartreport.md#smartllmendpointnotallowed
+      - alert: SmartLlmFailing
+        expr: >-
+          max(lims_smartreport_llm_circuit_open) == 1
+        for: 0m
+        labels:
+          severity: warn
+          team: ops
+        annotations:
+          summary: >-
+            The smart report LLM circuit breaker is open.
+          runbook_url: >-
+            infra/runbooks/smartreport.md#smartllmfailing
+      - alert: SmartConsumerLag
+        expr: >-
+          sum(lims_queue_depth{task=~"evt\\.smartreport\\..*"}) > 1000
+        for: 10m
+        labels:
+          severity: warn
+          team: ops
+        annotations:
+          summary: >-
+            More than 1000 smart report events queued for 10 min.
+          runbook_url: >-
+            infra/runbooks/smartreport.md#smartconsumerlag

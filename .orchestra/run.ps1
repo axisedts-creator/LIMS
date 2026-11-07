@@ -1,4 +1,4 @@
-<#
+﻿<#
   LIMS agent orchestra: tester -> writer -> verify -> debugger -> reviewer, one task at a time per lane.
   Single lane :  powershell -ExecutionPolicy Bypass -File C:\LIMS\.orchestra\run.ps1 -Chunk C0-foundation-contracts
   Parallel    :  use supervisor.ps1 (it runs this script once per lane, each in its own git worktree).
@@ -11,6 +11,7 @@ param(
   [string]$StateDir = "C:\LIMS-state",    # shared by all lanes: task list + locks + main log
   [string]$Integration = "",              # repo whose 'main' collects finished work (lanes only)
   [int]$MaxDebugRounds = 3,
+  [switch]$PlanOnly,                      # plan the chunk (write its task list) and exit
   [int]$LimitWaitMinutes = 10,
   [switch]$NoPush
 )
@@ -19,6 +20,9 @@ $ErrorActionPreference = "Continue"
 $Kit  = $PSScriptRoot
 $Root = if ($WorkDir) { $WorkDir } else { Split-Path -Parent $PSScriptRoot }
 Set-Location $Root
+# tool PATH for agents + verify: Git Bash before C:\Windows\System32\bash.exe (WSL launcher), Flutter/Dart, pip --user Scripts
+$extra = @("C:\Program Files\Git\bin","C:\Program Files\Git\usr\bin","C:\flutter\bin") + @(Get-ChildItem "$env:APPDATA\Python\Python*\Scripts" -Directory -ErrorAction SilentlyContinue | ForEach-Object { $_.FullName })
+$env:PATH = ((@($extra | Where-Object { Test-Path $_ })) -join ';') + ';' + $env:PATH
 $O = Join-Path $Root ".orchestra"
 foreach ($d in "notes","out","cr","inbox","logs","tasks") { New-Item -ItemType Directory -Force -Path (Join-Path $O $d) | Out-Null }
 foreach ($d in "tasks","locks","logs") { New-Item -ItemType Directory -Force -Path (Join-Path $StateDir $d) | Out-Null }
@@ -31,8 +35,12 @@ $Cfg = @{
   debugger = @{ model = "sonnet"; turns = 40 }
   reviewer = @{ model = "opus";   turns = 25 }
   arbiter  = @{ model = "opus";   turns = 25 }
+  lead     = @{ model = "opus";   turns = 20 }
+  merger   = @{ model = "opus";   turns = 40 }
 }
-$Allowed = "Read,Edit,Write,Bash(pnpm *),Bash(npm *),Bash(npx *),Bash(node *),Bash(git status*),Bash(git diff*),Bash(git log*),Bash(go *),Bash(docker *),Bash(supabase *),Bash(psql *),Bash(ls*),Bash(cat *),Bash(grep *),Bash(find *),Bash(mkdir *)"
+$Allowed = "Read,Edit,Write,WebFetch,WebSearch,Bash(pnpm *),Bash(npm *),Bash(npx *),Bash(node *),Bash(git status*),Bash(git diff*),Bash(git log*),Bash(go *),Bash(docker *),Bash(supabase *),Bash(psql *),Bash(ls*),Bash(cat *),Bash(grep *),Bash(find *),Bash(mkdir *),Bash(python *),Bash(py *),Bash(pip *),Bash(bash *),Bash(flutter *),Bash(dart *),Bash(yamllint *),Bash(gitleaks *),Bash(ansible-lint *),Bash(curl *),Bash(sha256sum *),Bash(git ls-remote *),Bash(git clone *),Bash(tar *),Bash(atlas *),Bash(git rm *),Bash(git mv *),Bash(cd *),Bash(/c/flutter/bin/flutter *),Bash(/c/flutter/bin/dart *)"
+$TestExempt = '^(infra/tests/run\.sh$|db/tests/isolation/)'   # deliverable scripts that live in test folders (writer/debugger own them)
+$TestNamePat = '(\.test\.|\.spec\.|_test\.go$|_test\.py$|(^|/)test_[^/]+\.py$|__tests__/|(^|/)conftest\.py$)'
 $TestPat = '(__tests__/|\.test\.|\.spec\.|_test\.go$|_test\.py$|(^|/)tests?/|(^|/)test_[^/]+\.py$)'
 $TasksFile = Join-Path $StateDir "tasks\$Chunk.json"
 
@@ -106,8 +114,13 @@ function Enforce([string]$Role) {
     if ($f -like "spec/*") { $ok = $false }
     elseif ($f -like ".orchestra/*") { $ok = ($f -like ".orchestra/notes/*" -or $f -like ".orchestra/cr/*" -or $f -like ".orchestra/tasks/*") }
     else {
-      $isTest = $f -match $TestPat
-      switch ($Role) { "tester" { $ok = $isTest } "writer" { $ok = -not $isTest } "debugger" { $ok = -not $isTest } default { $ok = $false } }
+      $isTest = ($f -match $TestPat) -and ($f -notmatch $TestExempt)
+      # a NEW non-test-named file inside a test folder (helper script, checker, generated probe) is a writer deliverable;
+      # tracked files in test folders and every test-named file stay tester-only
+      $isTestName = $f -match $TestNamePat
+      $isNew = -not (git ls-files -- "$f")
+      $writerOk = (-not $isTest) -or ($isNew -and -not $isTestName)
+      switch ($Role) { "tester" { $ok = $isTest } "writer" { $ok = $writerOk } "debugger" { $ok = $writerOk } "merger" { $ok = $true } default { $ok = $false } }
     }
     if (-not $ok) {
       Log "REVERT ($Role may not touch): $f"
@@ -120,7 +133,13 @@ function Commit([string]$msg) { git add -A | Out-Null; git commit -q -m $msg 2>$
 
 function Verify($t) {
   $log = Join-Path $O "out\$($t.id)-verify.log"
-  $cmd = if ($t.verify) { $t.verify } else { "pnpm -s verify" }
+  # each task is verified by ITS OWN tests only (a broken neighbour task must not fail this one)
+  $vf = Join-Path $O "notes\$($t.id)-verify.cmd"
+  if (-not (Test-Path $vf)) {
+    $null = Invoke-Agent "tester" $t.id ("Write ONE line to .orchestra/notes/$($t.id)-verify.cmd: a Windows cmd.exe command that runs ONLY the tests you wrote for $($t.id) and exits non-zero on failure. No other changes. For shell scripts use `"C:\Program Files\Git\bin\bash.exe`" <script>.")
+    Enforce "tester"; Commit "[tester] $($t.id) verify command"
+  }
+  $cmd = if (Test-Path $vf) { (Get-Content $vf -TotalCount 1).Trim() } elseif ($t.verify) { $t.verify } else { "pnpm -s verify" }
   if (-not (Test-Path "package.json") -and $cmd -like "pnpm*") { Set-Content $log "no package.json yet"; return $true }
   cmd /c "$cmd > `"$log`" 2>&1"; $pass = ($LASTEXITCODE -eq 0)
   Set-Content $log (Get-Content $log -Tail 200); return $pass
@@ -135,7 +154,23 @@ function Integrate([string]$id) {
   $l = Lock "merge"
   try {
     git -C $Integration merge --no-edit $branch 2>&1 | Out-Null
-    if ($LASTEXITCODE -ne 0) { git -C $Integration merge --abort 2>$null; Log "MERGE CONFLICT integrating $id from $branch - left for human"; return }
+    if ($LASTEXITCODE -ne 0) {
+      git -C $Integration merge --abort 2>$null
+      # resolve on the lane side: merge main into the lane, let the merger agent fix conflicts, commit, retry once
+      Log "merge conflict integrating $id - merger agent resolving on $branch"
+      git merge --no-edit main 2>&1 | Out-Null
+      if ($LASTEXITCODE -ne 0) {
+        $ok = Invoke-Agent "merger" $id "Resolve the in-progress merge of main into $branch."
+        # no Enforce here: a merge of main legitimately brings spec/ and .orchestra/ changes; stage what the merger resolved
+        git add -A | Out-Null
+        $left = @(git diff --cached --name-only --diff-filter=U) + @(git grep -l -E '^(<<<<<<<|>>>>>>>) ' -- . ':!spec' 2>$null)
+        if (-not $ok -or @($left | Where-Object { $_ }).Count) { git merge --abort 2>$null; Log "MERGE CONFLICT integrating $id from $branch - merger could not resolve ($(@($left) -join ', ')) - left for human"; return }
+        git add -A | Out-Null; git commit -q --no-edit 2>$null | Out-Null
+        Log "merger resolved conflicts for $id"
+      }
+      git -C $Integration merge --no-edit $branch 2>&1 | Out-Null
+      if ($LASTEXITCODE -ne 0) { git -C $Integration merge --abort 2>$null; Log "MERGE CONFLICT integrating $id from $branch after merger - left for human"; return }
+    }
     if (-not $NoPush) { git -C $Integration push -q origin main 2>$null; if ($LASTEXITCODE -ne 0) { Log "push failed (GitHub login?) - work is safe locally" } }
   } finally { Unlock $l }
   git merge --no-edit main 2>&1 | Out-Null
@@ -163,7 +198,25 @@ try {
       }
     } finally { Unlock $pl }
   }
+  if ($PlanOnly) { Log "plan-only: done"; exit 0 }
 
+  # lead/human resets: C:\LIMS-state\resets-<chunk>.json = {"TASK-ID":"status", ...}; applied once under the lock
+  $rs = Join-Path $StateDir "resets-$Chunk.json"
+  if (Test-Path $rs) {
+    $l = Lock "tasks-$Chunk"
+    try {
+      $map = Get-Content $rs -Raw -Encoding UTF8 | ConvertFrom-Json; $all = Get-Tasks
+      foreach ($p in $map.PSObject.Properties) { $x = $all | Where-Object { $_.id -eq $p.Name }; if ($x) {
+        $v = $p.Value; $st = if ($v -is [string]) { $v } else { $v.status }
+        if ($v -isnot [string] -and $v.depends) { $x | Add-Member -Force depends (@(@($x.depends) + @($v.depends) | Where-Object { $_ } | Select-Object -Unique)) }
+        $x | Add-Member -Force status $st; $x | Add-Member -Force reviewRounds 0; Log "reset $($p.Name) -> $st"
+        # a lead reset means the lead has ruled: archive any open blocking CR so it does not re-block (searched in every lane)
+        Get-ChildItem -Path (Join-Path (Split-Path $WorkDir -Parent) "*\.orchestra\cr\$($p.Name).md") -ErrorAction SilentlyContinue | ForEach-Object { Move-Item -Force $_.FullName ($_.FullName -replace '\.md$', ".resolved-$(Get-Date -Format yyyyMMddHHmm).md"); Log "archived CR $($_.FullName)" }
+      } }
+      $all | ConvertTo-Json -Depth 6 | Set-Content $TasksFile -Encoding UTF8
+      Remove-Item -Force $rs
+    } finally { Unlock $l }
+  }
   while ($true) {
     $all = Get-Tasks; $t = $null
     foreach ($c in $all) {
@@ -176,8 +229,14 @@ try {
     }
     if (-not $t) { Log "nothing runnable for '$Filter' right now (done, blocked, or waiting on other lanes)"; break }
     Set-Status $t.id ($t.status)
+    if ($Integration) { git merge --no-edit main 2>&1 | Out-Null; if ($LASTEXITCODE -ne 0) { git merge --abort 2>$null } }   # start from everyone's latest work
     $script:Base = (git rev-parse HEAD).Trim()
     $brief = ($t | Select-Object id,title,files,done_when,tests,acs | ConvertTo-Json -Depth 4) + "`nPlan: spec/chunks/$Chunk/06-IMPLEMENTATION-PLAN.md (row $($t.id)). PRD: spec/chunks/$Chunk/01-PRD.md. Security: spec/chunks/$Chunk/07-SECURITY.md."
+    $ld = Join-Path $StateDir "lead-decisions.md"
+    # lead decisions: global file (C0-era, ids are unique) + per-chunk file lead-decisions-<chunk>.md (ids only unique inside a chunk)
+    $idRx = "(^|[^A-Za-z0-9-])" + [regex]::Escape($t.id) + "([^A-Za-z0-9-]|$)"
+    $hit = @(@($ld, (Join-Path $StateDir "lead-decisions-$Chunk.md")) | Where-Object { Test-Path $_ } | ForEach-Object { Get-Content $_ -Encoding UTF8 } | Where-Object { $_ -match $idRx })
+    if ($hit.Count) { $brief += "`n`nLEAD DECISIONS (binding; they override the spec text for this task; cite them in code comments):`n" + ($hit -join "`n") }
     Log "START $($t.id) $($t.title)"
     $st = $t.status; $rr = [int]$t.reviewRounds
 
@@ -194,7 +253,25 @@ try {
       if ((Get-Content $crf -Raw) -match '(?im)^\s*Blocking\?\s*no') {
         Move-Item -Force $crf (Join-Path $O "cr\$($t.id).nonblocking.md"); Commit "[orchestra] $($t.id) non-blocking CR queued for lead"
         Log "$($t.id) raised a NON-blocking CR (queued for lead) - continuing"
-      } else { Log "$($t.id) needs a blocking change request - human"; Set-Status $t.id "blocked"; continue }
+      } else {
+        # lead agent rules on clear-cut CRs (roles/lead.md); anything else, or a 2nd CR on the same task, goes to the human
+        $prev = @(Get-ChildItem (Join-Path $O "notes\$($t.id)-lead-*.md") -ErrorAction SilentlyContinue).Count
+        if ($prev -ge 2 -or -not (Invoke-Agent "lead" $t.id $brief)) { Log "$($t.id) blocking CR - human"; Set-Status $t.id "blocked"; continue }
+        Enforce "lead"
+        $lf = Join-Path $O "notes\$($t.id)-lead.md"
+        $lv = if (Test-Path $lf) { @(Get-Content $lf -TotalCount 2) } else { @("ESCALATE") }
+        $verdict = $lv[0].Trim()
+        Move-Item -Force $lf (Join-Path $O "notes\$($t.id)-lead-$(Get-Date -Format yyyyMMddHHmmss).md") -ErrorAction SilentlyContinue
+        if ($verdict -match '^APPROVED_(RETEST|REWRITE)' -and $lv.Count -ge 2 -and $lv[1].Trim()) {
+          $dl = Lock "lead-decisions"
+          try { Add-Content (Join-Path $StateDir "lead-decisions-$Chunk.md") "- AUTO $(Get-Date -Format s) [lead agent; human reviews at next check] $($t.id): $($lv[1].Trim())" -Encoding UTF8 } finally { Unlock $dl }
+          Move-Item -Force $crf (Join-Path $O "cr\$($t.id).resolved-$(Get-Date -Format yyyyMMddHHmm).md")
+          Commit "[lead] $($t.id) $verdict"
+          $ns = if ($verdict -match 'RETEST') { "todo" } else { "tested" }
+          Log "$($t.id) CR auto-ruled $verdict -> $ns"; Set-Status $t.id $ns 0; continue
+        }
+        Commit "[lead] $($t.id) ESCALATE"; Log "$($t.id) blocking CR - lead agent escalated to human"; Set-Status $t.id "blocked"; continue
+      }
     }
     $disp = Join-Path $O "notes\$($t.id)-dispute.md"
     if (Test-Path $disp) {

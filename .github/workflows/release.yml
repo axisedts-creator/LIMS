@@ -1,0 +1,32 @@
+# Release-only P-14 chunk jobs (08 A13 P-14): c7-go-release-tag-check (C7 §5.11), c17-release-binary-scan (C17, tags phlebo-v*).
+# Build/sign steps land with the release pipeline; these jobs only gate the artefacts.
+name: release
+
+on:
+  push:
+    tags: ['phlebo-v*']
+  workflow_dispatch: # bridge-agent release (C7 has no release tag pattern yet)
+
+permissions:
+  contents: read
+
+jobs:
+  c7-go-release-tag-check:
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: release binary not built with nonprod tag
+        run: bash apps/bridge-agent/build/ci.sh release-tag-check apps/bridge-agent/dist/agent.exe
+
+  c17-release-binary-scan:
+    if: startsWith(github.ref_name, 'phlebo-v')
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: APK scan (REQ-SEC-107)
+        run: bash apps/phlebo_app/tool/ci/scan_apk.sh

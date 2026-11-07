@@ -142,11 +142,11 @@ SELECT is((SELECT count(*)::int FROM pg_attribute WHERE attrelid = ANY (ARRAY['c
   AND attname = 'is_active' AND attgenerated = ''), 5, 'every other class-M is_active is a plain column');
 
 -- schema test 8 + 33 (indexes lead with tenant_id)
-SELECT is((SELECT a.attname FROM pg_index i JOIN pg_attribute a ON a.attrelid = i.indrelid AND a.attnum = i.indkey[0] WHERE i.indexrelid = ('core.' || ix)::regclass),
+SELECT is((SELECT a.attname::text FROM pg_index i JOIN pg_attribute a ON a.attrelid = i.indrelid AND a.attnum = i.indkey[0] WHERE i.indexrelid = ('core.' || ix)::regclass),
           'tenant_id', ix || ' leads with tenant_id')
   FROM unnest(ARRAY['role_permissions__tenant_id_permission_code__idx','membership_roles__tenant_id_role_id__idx','users__tenant_id_email_normalized__uq',
     'branches__tenant_id_branch_code__uq','collection_centres__tenant_id_centre_code__uq','memberships__tenant_id_user_id_actor_type__p_uq','roles__tenant_id_role_code__uq']) ix;
-SELECT is((SELECT a.attname FROM pg_index i JOIN pg_attribute a ON a.attrelid = i.indrelid AND a.attnum = i.indkey[1] WHERE i.indexrelid = ('core.' || ix)::regclass),
+SELECT is((SELECT a.attname::text FROM pg_index i JOIN pg_attribute a ON a.attrelid = i.indrelid AND a.attnum = i.indkey[1] WHERE i.indexrelid = ('core.' || ix)::regclass),
           col, ix || ' second column ' || col)
   FROM (VALUES ('role_permissions__tenant_id_permission_code__idx','permission_code'), ('membership_roles__tenant_id_role_id__idx','role_id'),
                ('users__tenant_id_email_normalized__uq','email_normalized')) v(ix, col);

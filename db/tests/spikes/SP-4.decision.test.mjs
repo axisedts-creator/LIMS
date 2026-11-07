@@ -71,7 +71,8 @@ test('api-proxied: server-credentials-only path, C6/C4 TRD adapt via CR, no end-
   assert.match(t, /server[- ](side )?(credential|key|role)|service[_ -]role/i);
   assert.match(t, /C6/);
   assert.match(t, /C4/);
-  assert.match(t, /\bCR\b|change request|\.orchestra\/cr/i);
+  assert.match(t, /\.orchestra\/cr\/SP-4[\w.-]*\.md|CR-C2-011/);
+  assert.ok(existsSync(fileURLToPath(new URL('../../../.orchestra/cr/SP-4.nonblocking.md', import.meta.url))), 'C4 wording CR filed');
   assert.match(t, /T0B-12/);
   assert.match(t, /no end-user (storage )?polic|end-user polic[^\n]*(not|none|no)/i);
 });

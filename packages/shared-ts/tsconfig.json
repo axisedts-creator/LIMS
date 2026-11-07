@@ -6,6 +6,6 @@
     "rewriteRelativeImportExtensions": true
   },
   "include": ["src"],
-  "//": "errors/validation/types need @lims/contracts (T0C-02/T0C-05) — excluded until .orchestra/cr/T0A-08.md resolves",
+  "//": "errors/validation/types excluded: CR T0A-08 resolved (LD-03), but contracts/ports/common.ts (C0-0C owned) has TS2835 extensionless imports; remove exclude once C0-0C fixes them",
   "exclude": ["src/errors", "src/validation", "src/types.ts"]
 }

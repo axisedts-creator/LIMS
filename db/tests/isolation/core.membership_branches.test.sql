@@ -122,9 +122,10 @@ INSERT INTO core.membership_centres (tenant_id, membership_id, centre_id, create
 INSERT INTO core.roles (id, tenant_id, role_code, display_name, created_by, updated_by) VALUES
   (pg_temp.id('51'), pg_temp.id('01'), 'probe_role_a', 'Probe role A', pg_temp.id('99'), pg_temp.id('99')),
   (pg_temp.id('52'), pg_temp.id('02'), 'probe_role_b', 'Probe role B', pg_temp.id('99'), pg_temp.id('99')) ON CONFLICT DO NOTHING;
+INSERT INTO core.g_permissions (code, module, privileged, phase) VALUES ('lab.result.read', 'lab', false, '1') ON CONFLICT DO NOTHING;
 INSERT INTO core.role_permissions (tenant_id, role_id, permission_code, created_by) VALUES
-  (pg_temp.id('01'), pg_temp.id('51'), 'probe.fixture.read', pg_temp.id('99')),
-  (pg_temp.id('02'), pg_temp.id('52'), 'probe.fixture.read', pg_temp.id('99')) ON CONFLICT DO NOTHING;
+  (pg_temp.id('01'), pg_temp.id('51'), 'lab.result.read', pg_temp.id('99')),
+  (pg_temp.id('02'), pg_temp.id('52'), 'lab.result.read', pg_temp.id('99')) ON CONFLICT DO NOTHING;
 INSERT INTO core.membership_roles (tenant_id, membership_id, role_id, created_by) VALUES
   (pg_temp.id('01'), pg_temp.id('41'), pg_temp.id('51'), pg_temp.id('99')),
   (pg_temp.id('02'), pg_temp.id('43'), pg_temp.id('52'), pg_temp.id('99')) ON CONFLICT DO NOTHING;

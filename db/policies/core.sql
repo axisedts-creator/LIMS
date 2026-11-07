@@ -63,6 +63,14 @@ CREATE POLICY membership_centres__delete__tenant ON core.membership_centres FOR 
 CREATE POLICY membership_centres__select__owner_only ON core.membership_centres FOR SELECT TO lims_owner
   USING (tenant_id = (SELECT app.current_tenant_id()));
 
+-- from 20261105000700_core__create_membership_branches.sql
+CREATE POLICY membership_branches__select__tenant ON core.membership_branches FOR SELECT TO lims_app
+  USING (tenant_id = (SELECT app.current_tenant_id()) AND (SELECT app.is_staff_or_system()));
+CREATE POLICY membership_branches__insert__tenant ON core.membership_branches FOR INSERT TO lims_app
+  WITH CHECK (tenant_id = (SELECT app.current_tenant_id()) AND (SELECT app.is_staff_or_system()));
+CREATE POLICY membership_branches__delete__tenant ON core.membership_branches FOR DELETE TO lims_app
+  USING (tenant_id = (SELECT app.current_tenant_id()) AND (SELECT app.is_staff_or_system()));
+
 -- from 20261105000500_core__create_roles_and_permissions.sql
 CREATE POLICY roles__select__tenant ON core.roles FOR SELECT TO lims_app
   USING (tenant_id = (SELECT app.current_tenant_id()) AND (SELECT app.is_staff_or_system()));

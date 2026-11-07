@@ -35,10 +35,13 @@ ${codes.map((c) => `  ${JSON.stringify(c)},`).join("\n")}
 ];
 `;
   // display = code [CONV]: the 03-IC block keeps display text only as comments.
+  // LD-30/LD-41: class-G seed runs as lims_owner; DO NOTHING (spec requires no updates; changes go by migration).
   const sql = `${sqlHeader}
+SET LOCAL ROLE lims_owner;
+
 INSERT INTO audit.g_cs_access_actions (code, display, sort_order) VALUES
 ${codes.map((c, i) => `  ('${c}', '${c}', ${(i + 1) * 10})`).join(",\n")}
-ON CONFLICT (code) DO UPDATE SET display = EXCLUDED.display, sort_order = EXCLUDED.sort_order, is_active = true;
+ON CONFLICT (code) DO NOTHING;
 `;
   return { ts, sql };
 }

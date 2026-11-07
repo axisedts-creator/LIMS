@@ -7,3 +7,4 @@ Backward compatible? yes (seed only). Caveat: DO NOTHING does not propagate disp
 Tenant/security impact: none (class-G, no RLS).
 Alternatives considered: hand-edit 003 (overwritten, fails drift); relax test (forbidden).
 Tests that will prove it: tests/db/T0B-09.seeds.test.mjs; db/tests/seeds/T0B-09_seeds.test.sql.
+Status: CLOSED 2026-11-07 under LD-41 — applied in gen-access-actions.ts, 003 regenerated, node test green.

@@ -1,6 +1,6 @@
-# C6-T17 impl (writer)
-Files: domain/sanitise.ts (DOMPurify+jsdom, allowlist, lazy createRequire); repository/narrative.repo.ts; service/narrative.service.ts; handlers/narrative.handlers.ts (N1-N5, N8-N10); index.ts wiring; narrative-image.service.ts (N7 P-10); outsourced.handlers.ts (`ifMatch` exported); services/api/package.json + pnpm-lock.yaml (dompurify 3.4.17, jsdom 31.0.0 — C0 pins in db/meta/decisions/T0-03-dependencies.md, CR-C6-019 ACCEPT).
-Result (after ruling + revised tests, no impl change): verify.cmd 235/235 pass (handlers, static, manifest); reporting suite 964/965 (only failure = pre-existing reports.service.ts inline SQL, C6-T04). tsc: only 2 pre-existing errors (contracts/ports, shared-ts).
-[CONV] N5 leaves narrative_ready unchanged; N4 always flags needs_assembly + enqueues deduped assemble:<report_id> for the item's reports (like the outsourced hook), narrative_ready = all non-cancelled narratives of the item signed.
-[CONV] No template found -> N2 creates an empty draft (template_id null); sign then needs >= 1 non-blank section. jsdom/dompurify load on first sanitise (~2.3 s cold): first N3/N9 call in a cold process is slow.
-Open: repository.static.test "no inline SQL in services" fails on service/reports.service.ts (26 literals, C6-T04, not touched here). pnpm install reported ERR_PNPM_IGNORED_BUILDS (@scarf/scarf) after linking — unrelated build-script policy. Real DB/RLS not exercised.
+# C6-T17 impl (writer) — review round
+Files: service/narrative.service.ts (review #2: stored sections now {key, heading, html} per 05-SCHEMA §2.12; heading copied from template at draft creation and on N3, N5 copies prev; view uses stored heading, falls back to template/key for legacy rows; content_sha256 now covers headings). services/api/package.json + pnpm-lock.yaml reverted to 5ecae71 (review #1); `.orchestra/cr/C6-T17.md` asks C0-0D to add dompurify 3.4.17 + jsdom 31.0.0 per CR-C6-019.
+[CONV] N3 with no template: heading = key.
+Checks: tsc — only the 2 pre-existing errors (contracts/ports, shared-ts). vitest (handlers, static, manifest, narrative-image): FAIL — "Cannot find module 'dompurify'" + static "declared dependencies" assertion, because the deps were reverted. Expected until C0-0D lands the CR.
+NOT verified: the new heading-freeze test and the rest of the suite with deps present (re-run with deps restored was blocked by approval prompts in this session).
+Open: task stays pending-cr on CR-C6-019 / .orchestra/cr/C6-T17.md. Real DB/RLS not exercised.

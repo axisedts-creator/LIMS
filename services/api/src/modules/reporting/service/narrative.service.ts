@@ -1,7 +1,7 @@
 // Narrative engine, API side: templates N8-N10, list/get N1-N2, draft save N3, sign N4, amendment N5 (02-TRD §6.4, §4.1 narrative_ready;
 // 01-PRD AC-05.1, 05.2, 05.4-05.7; 07-SECURITY REQ-SEC-088). Tenant and actor come from ctx only.
-// - Every html string is sanitised server-side (domain/sanitise.ts, DOMPurify) before it is stored or returned; stored sections are [{key, html}],
-//   headings come from the template.
+// - Every html string is sanitised server-side (domain/sanitise.ts, DOMPurify) before it is stored or returned; stored sections are [{key, heading, html}]
+//   (05-SCHEMA §2.12), so a signed version's headings are frozen and covered by content_sha256.
 // - If-Match = narrative_reports.version. N3/N4/N5 first win the version-guarded UPDATE of narrative_reports (the lost racer gets
 //   common.version_conflict having written nothing), then write the narrative_versions row (status-guarded).
 // - [CONV] N2 creates draft v1 lazily from the test's template (AC-05.1); N4/N5 call IdentityPort.assertRole(reporting.narrative.sign) after loading
@@ -48,7 +48,7 @@ const asJson = (v: unknown): any => (typeof v === 'string' ? JSON.parse(v) : v);
 const idList = (v: unknown): string[] => (Array.isArray(v) ? v.map(String) : typeof v === 'string' ? v.replace(/^\{|\}$/g, '').split(',').filter(Boolean) : []);
 const errCode = (e: unknown) => (e as { code?: string } | null)?.code;
 
-type StoredSection = { key: string; html: string };
+type StoredSection = { key: string; heading: string; html: string };
 type TemplateSection = { key: string; heading: string; required: boolean; default_html: string };
 
 /** Template sections (N9/N10 body): closed objects, unique keys, default_html sanitised (it is pre-filled into every draft). */
@@ -117,7 +117,7 @@ export function createNarrativeService(deps: { newId?: () => string } = {}) {
     const existing = await repo.findVersion(tx, tenantId, n.id, n.current_version_no);
     if (existing || n.status !== 'draft') return existing;
     const tpl = await pickTemplate(tx, tenantId, n);
-    const sections: StoredSection[] = tpl ? (asJson(tpl.sections) as TemplateSection[]).map((s) => ({ key: s.key, html: sanitiseHtml(s.default_html ?? '') })) : [];
+    const sections: StoredSection[] = tpl ? (asJson(tpl.sections) as TemplateSection[]).map((s) => ({ key: s.key, heading: s.heading, html: sanitiseHtml(s.default_html ?? '') })) : [];
     await repo.insertVersion(tx, {
       id: newId(), tenantId, centreId: n.centre_id, narrativeId: n.id, versionNo: n.current_version_no, templateId: tpl?.id ?? null, sections, imageFileIds: [],
       amendmentOf: null, reasonCode: null, reasonText: null, actorId,
@@ -137,7 +137,7 @@ export function createNarrativeService(deps: { newId?: () => string } = {}) {
     }
     const current: Record<string, unknown> = {
       version_no: cv.version_no, status: cv.status, ...(cv.template_id ? { template_id: cv.template_id } : {}),
-      sections: (asJson(cv.sections) as StoredSection[]).map((s) => ({ key: s.key, heading: headings.get(s.key) ?? s.key, html: s.html })), images,
+      sections: (asJson(cv.sections) as StoredSection[]).map((s) => ({ key: s.key, heading: s.heading ?? headings.get(s.key) ?? s.key, html: s.html })), images,
     };
     if (cv.signed_by_membership_id) current['signed_by'] = cv.signed_by_membership_id;
     if (cv.signed_at) current['signed_at'] = iso(cv.signed_at);
@@ -271,7 +271,7 @@ export function createNarrativeService(deps: { newId?: () => string } = {}) {
         if (typeof s['key'] !== 'string' || s['key'].length < 1 || s['key'].length > 40 || keys.has(s['key'])) fail(`/sections/${i}/key`);
         if (typeof s['html'] !== 'string' || s['html'].length > MAX_HTML) fail(`/sections/${i}/html`);
         keys.add(s['key'] as string);
-        return { key: s['key'] as string, html: sanitiseHtml(s['html'] as string) };
+        return { key: s['key'] as string, heading: s['key'] as string, html: sanitiseHtml(s['html'] as string) };
       });
       const ids = new Set<string>();
       const images = (b['images'] as unknown[]).map((im, i) => {
@@ -298,7 +298,8 @@ export function createNarrativeService(deps: { newId?: () => string } = {}) {
       }
       if (tpl && tpl.tenant_id === tenantId) {
         const allowed = new Set((asJson(tpl.sections) as TemplateSection[]).map((s) => s.key));
-        sections.forEach((s, i) => { if (!allowed.has(s.key)) fail(`/sections/${i}/key`); });
+        const tplHeadings = new Map((asJson(tpl.sections) as TemplateSection[]).map((s) => [s.key, s.heading]));
+        sections.forEach((s, i) => { if (!allowed.has(s.key)) fail(`/sections/${i}/key`); s.heading = tplHeadings.get(s.key) ?? s.key; });
       }
       for (const [i, im] of images.entries()) {   // only this narrative's ready images; never another tenant's, never quarantined / rejected / withdrawn
         const f = await repo.findImage(tx, tenantId, im.id);

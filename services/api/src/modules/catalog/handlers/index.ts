@@ -6,6 +6,7 @@ import type { Handler } from '../../../core/module.js';
 import { analyteVersionsHandlers } from './analyteVersions.handlers.js';
 import { importsHandlers } from './imports.handlers.js';
 import { mastersHandlers } from './masters.handlers.js';
+import { panelsHandlers } from './panels.handlers.js';
 import { referrersHandlers } from './referrers.handlers.js';
 import { testsHandlers } from './tests.handlers.js';
 
@@ -16,7 +17,6 @@ const notImplemented: Handler = async () => {
 
 export const handlers: Readonly<Record<string, Handler>> = Object.freeze({
   getCatalogRevision: notImplemented,
-  resolveOrderablesPreview: notImplemented,
   getCatalogHealthReport: notImplemented,
   ...mastersHandlers, // T-04: #5–#16; T-05: #17–#22 (units, value sets); T-13: #57–#59 (comment codes)
   ...testsHandlers, // T-06: #2, #23–#27
@@ -38,11 +38,7 @@ export const handlers: Readonly<Record<string, Handler>> = Object.freeze({
   retireCriticalLimitSet: notImplemented,
   discardCriticalLimitSetDraft: notImplemented,
   previewReferenceRange: notImplemented,
-  listPanels: notImplemented,
-  createPanel: notImplemented,
-  getPanelDetail: notImplemented,
-  updatePanel: notImplemented,
-  replacePanelMembers: notImplemented,
+  ...panelsHandlers, // T-12: #52–#56, #3
   ...referrersHandlers, // T-15: #60–#66 (doctors)
   listCreditParties: notImplemented,
   createCreditParty: notImplemented,

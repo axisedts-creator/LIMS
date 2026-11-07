@@ -12,7 +12,8 @@ beforeEach(() => {
 afterEach(closeAll);
 
 describe('AC-0D-1.1 autoload mounts operations of <m>/index.ts manifests', () => {
-  it('mounts every operation of every module found, with no central list', async () => {
+  // T-01 ruling: first boot gets 30000 ms headroom (default 5000 ms is a harness assumption under parallel load).
+  it('mounts every operation of every module found, with no central list', { timeout: 30000 }, async () => {
     const app = await boot('ok'); // ok/ holds catalog + identity (+ a dir without index.ts that is ignored)
     const list = await app.inject({ method: 'GET', url: '/v1/catalog/things' });
     expect(list.statusCode).toBe(200);

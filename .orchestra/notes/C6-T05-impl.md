@@ -1,7 +1,7 @@
 # C6-T05 impl (writer)
-Files: services/renderer/{package.json, tsconfig.json, DECISIONS.md, Dockerfile.renderer, fonts/ (Noto Sans R/B, Noto Sans Devanagari R/B, Noto Sans Mono R + OFL.txt), src/{pool,guard,render,server}.ts}; pnpm-lock.yaml (playwright 1.65.0, prom-client 15.1.3 added for @lims/renderer).
-Spike: **Technique: thead-tfoot** (page.pdf templates rejected: separate doc without page CSS/fonts; fixed-position lost hdr/ftr on p1/p3). "Page N Of M" left to the sandbox.
-[CONV] fresh context per job, ≤ N concurrent; recycle drains pool first; crash → relaunch on next job, in-flight → 503; RSS = cgroup memory.current (fallback node RSS); fonts injected as data: @font-face + fontconfig in image; blocked navigation answered 204; file: counted from Chromium console refusal; 413 for > 20 MB; port 8080 fixed (spec names no key).
+Files (review round): services/renderer/src/pool.ts (data: @font-face injection removed; bounded acquire → 503 'pool saturated'), Dockerfile.renderer (both FROM pinned @sha256:add5c17c… from Docker Hub registry; /app/fonts copy dropped, fontconfig only), DECISIONS.md (watermark section + per-page result, fonts bullet per 02-TRD §5.1, 503 bullet).
+Spike: **Technique: thead-tfoot**; watermark = position:fixed centred rotate(-30deg), present on all 3 pages (per-page Form XObject). "Page N Of M" left to the sandbox.
+[CONV] fresh context per job, ≤ N concurrent; queue wait ≤ LIMS_RENDERER_TIMEOUT_MS then 503; recycle drains pool first; crash → relaunch, in-flight → 503; RSS = cgroup memory.current; fonts via fontconfig only; blocked navigation 204; 413 > 20 MB; port 8080.
 render(templateId, data, assets, pool): registry empty until T06+; unknown id → 400, template throw → 422.
-Tests: after ruling (helper revised, 15814e4) 47/47 pass, no impl change needed. tsc clean.
-Open: Docker image not built/run here (node:26.13.0-bookworm-slim tag unverified); RSS cap untested inside a real cgroup; 503 saturation (queue) not implemented — callers wait.
+Tests: tsc clean; vitest 47/50. Failing: watermark (helper skips Form XObjects), Devanagari embed (host lacks Noto fonts), saturation (timing race, flaky) → see C6-T05-dispute.md.
+Open: Docker image not built/run here; RSS cap untested in a real cgroup.

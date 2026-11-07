@@ -1,7 +1,6 @@
 // Chromium pool (02-TRD §5.1): 1 browser, at most N concurrent contexts, recycle after K renders or RSS > 85 % of the
 // container limit, per-job timeout (408), page limit (422), JS disabled, request guard, bundled fonts.
-import { readFileSync, readdirSync } from 'node:fs';
-import { fileURLToPath } from 'node:url';
+import { readFileSync } from 'node:fs';
 import { chromium, type Browser, type Page } from 'playwright';
 import { Counter, Gauge, Histogram, Registry } from 'prom-client';
 import { CHROMIUM_ARGS, countLocalResourceRefusals, guardContext } from './guard.js';
@@ -45,25 +44,8 @@ const readNum = (p: string): number | undefined => {
 const rssBytes = () => readNum('/sys/fs/cgroup/memory.current') ?? process.memoryUsage().rss;
 const containerLimit = () => readNum('/sys/fs/cgroup/memory.max') ?? 1.5 * 1024 ** 3;
 
-// Bundled fonts (02-TRD §1, AC-03.4). In the image they are also installed into fontconfig; injecting them as data:
-// @font-face guarantees the bundled files are used on any host (data: is the only scheme the guard lets through).
-const FONT_DIR = fileURLToPath(new URL('../fonts/', import.meta.url));
-const FONT_CSS = readdirSync(FONT_DIR)
-  .filter((f) => /^NotoSans.*-(Regular|Bold)\.ttf$/.test(f))
-  .map((f) => {
-    const [, fam, w] = /^(NotoSans(?:Devanagari|Mono)?)-(Regular|Bold)/.exec(f)!;
-    const family = fam!.replace(/(Sans|Devanagari|Mono)/g, ' $1');
-    const b64 = readFileSync(FONT_DIR + f).toString('base64');
-    return `@font-face{font-family:'${family}';font-weight:${w === 'Bold' ? 700 : 400};src:url(data:font/ttf;base64,${b64}) format('truetype')}`;
-  })
-  .join('');
-const FONT_STYLE = `<style>${FONT_CSS}</style>`;
-
-/** Fonts go right after the doctype (or first) so the document's own mode and <head> are untouched. */
-const withFonts = (html: string) => {
-  const m = /^\s*<!doctype[^>]*>/i.exec(html);
-  return m ? m[0] + FONT_STYLE + html.slice(m[0].length) : FONT_STYLE + html;
-};
+// Fonts (02-TRD §5.1): system fonts installed in the image only (fonts/ → fontconfig, Dockerfile.renderer);
+// templates name the bundled families; no @font-face.
 
 const countPages = (pdf: Buffer) => (pdf.toString('latin1').match(/\/Type\s*\/Page\b(?!s)/g) ?? []).length;
 
@@ -105,7 +87,20 @@ export async function createPool(opts: PoolOptions = {}) {
 
   const acquire = async () => {
     // A pending recycle drains the pool first, so it cannot starve under constant load.
-    while (busy >= max || (needRecycle && busy > 0)) await new Promise<void>((r) => waiters.push(r));
+    // Wait is bounded by timeoutMs: no free context in time → 503 pool saturated (02-TRD §5.1, worker retries).
+    const deadline = Date.now() + timeoutMs;    while (busy >= max || (needRecycle && busy > 0)) {
+      await new Promise<void>((resolve, reject) => {
+        const t = setTimeout(() => {
+          waiters.splice(waiters.indexOf(wake) >>> 0, 1);
+          reject(new RenderError(503, 'pool saturated'));
+        }, deadline - Date.now());
+        const wake = () => {
+          clearTimeout(t);
+          resolve();
+        };
+        waiters.push(wake);
+      });
+    }
     busy++;
   };
   const release = () => {
@@ -139,7 +134,7 @@ export async function createPool(opts: PoolOptions = {}) {
       const work = (async () => {
         const page = await c.newPage();
         countLocalResourceRefusals(page, onBlocked);
-        await page.setContent(withFonts(html), { waitUntil: 'load', timeout: 0 });
+        await page.setContent(html, { waitUntil: 'load', timeout: 0 });
         await page.evaluate(() => document.fonts.ready).catch(() => {}); // utility world; page JS stays off
         return page.pdf({ format: 'A4', printBackground: true, preferCSSPageSize: true, ...o.pdf });
       })();

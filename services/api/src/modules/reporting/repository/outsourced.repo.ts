@@ -37,6 +37,12 @@ export async function listFiles(tx: Tx, tenantId: string, orderItemId: string, l
   return rows.slice(0, limit);
 }
 
+/** Serialises concurrent confirm/withdraw on one item so the confirmed-count below is not stale under READ COMMITTED. */
+export async function lockOrderItem(tx: Tx, tenantId: string, orderItemId: string): Promise<void> {
+  await tx.query(`SELECT 1 FROM reporting.report_order_items WHERE tenant_id = $1 AND order_item_id = $2 FOR UPDATE`,
+    [tenantId, orderItemId]);
+}
+
 export async function confirmedFileIds(tx: Tx, tenantId: string, orderItemId: string): Promise<string[]> {
   const { rows } = await tx.query(`SELECT id FROM reporting.input_files WHERE tenant_id = $1 AND order_item_id = $2 AND state = $3`,
     [tenantId, orderItemId, 'confirmed']);

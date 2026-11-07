@@ -79,6 +79,7 @@ export function createOutsourcedService(deps: { newId?: () => string } = {}) {
   }
   /** Readiness changed on this item: outsourced_ready = exactly one confirmed file (02-TRD §3); flag its reports and queue (deduped) assembly. */
   async function reassemble(tx: repo.Tx, tenantId: string, orderItemId: string, actorId: string) {
+    await repo.lockOrderItem(tx, tenantId, orderItemId);
     const ready = (await repo.confirmedFileIds(tx, tenantId, orderItemId)).length === 1;
     for (const reportId of await repo.setOutsourcedReady(tx, tenantId, orderItemId, ready, actorId)) {
       await repo.markNeedsAssembly(tx, tenantId, reportId, actorId);

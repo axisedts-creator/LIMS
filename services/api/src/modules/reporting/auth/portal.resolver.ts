@@ -15,6 +15,7 @@ const LINK_NOT_REVOKED = `SELECT id FROM reporting.portal_links WHERE tenant_id 
 type Tx = { query(sql: string, values?: unknown[]): Promise<{ rows: any[] }> };
 
 export const portalSessionResolver = Object.freeze({
+  invalidError: 'reporting.link_invalid', // LD-66 / CR-C6-021: core pre-resolver rejections (empty / >4096) are the same 404 as every other invalid credential
   async resolve(credential: string, tx: unknown) {
     const m = typeof credential === 'string' ? CREDENTIAL.exec(credential) : null;
     if (!m) return INVALID;

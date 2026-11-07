@@ -25,6 +25,8 @@ export interface HandlerRequest {
 /** T0D-01 subset of HandlerContext (§6.3); auth/db/events/... are added by their tasks. */
 export interface HandlerContext {
   readonly operationId: string;
+  /** 08 A25 P-61 (02-TRD §6.4); modules never parse a header. */
+  readonly clientIp: string;
   readonly log: { info(o: object, m?: string): void; warn(o: object, m?: string): void; error(o: object, m?: string): void };
 }
 export type Handler = (req: HandlerRequest, ctx: HandlerContext) => Promise<HandlerResult>;
@@ -49,7 +51,7 @@ export const PORT_OWNERS: Readonly<Record<string, ModuleName>> = Object.freeze({
 });
 
 /** authResolvers key -> the only module allowed to supply it (02-TRD §6.3). */
-const AUTH_RESOLVER_OWNERS: Readonly<Record<string, ModuleName>> = {
+export const AUTH_RESOLVER_OWNERS: Readonly<Record<string, ModuleName>> = {
   deviceToken: 'instruments', portalSession: 'reporting', paymentCallback: 'payments',
   patientPreAuth: 'engagement', queueDisplayToken: 'engagement',
 };

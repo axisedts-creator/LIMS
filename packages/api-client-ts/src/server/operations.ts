@@ -283,6 +283,931 @@ export interface Operations {
       };
     };
   };
+  amendResult: {
+    params: {
+      result_id: string;
+    };
+    query: Record<string, never>;
+    headers: {
+      "Idempotency-Key": string;
+      "If-Match": string;
+    };
+    body: {
+      value_numeric?: string;
+      value_text?: string;
+      ordinal_code?: string;
+      comment_codes?: string[];
+      comment_text?: string;
+      amendment_reason_code: string;
+      amendment_reason_text?: string;
+    };
+    responses: {
+      200: ({
+        id: string;
+        version: number;
+        order_id: string;
+        order_item_id: string;
+        specimen_id?: string;
+        test_id: string;
+        analyte_id: string;
+        analyte_code: string;
+        status: "pending" | "resulted" | "verified" | "approved" | "cancelled";
+        origin: string;
+        value_numeric?: string;
+        value_text?: string;
+        ordinal_code?: string;
+        unit_code?: string;
+        flag?: "LL" | "L" | "N" | "H" | "HH" | "A";
+        reference_range_snapshot?: {
+          range_id?: string;
+          range_version?: number;
+          low?: string;
+          high?: string;
+          text?: string;
+          unit_code?: string;
+        };
+        range_unavailable_age_unknown: boolean;
+        delta?: {
+          status: string;
+          prev_value?: string;
+          abs?: string;
+          pct?: string;
+          prev_at?: string;
+        };
+        critical: {
+          is_critical: boolean;
+          critical_event_id?: string;
+        };
+        calc?: {
+          status: string;
+          reason?: string;
+          provenance?: string;
+        };
+        comment_codes?: string[];
+        comment_text?: string;
+        on_hold: boolean;
+        qc_review_required: boolean;
+        unit_mismatch: boolean;
+        instrument_id?: string;
+        instrument_flags?: string[];
+        current_version_no: number;
+        verified_at?: string;
+        verified_by?: string;
+        approved_at?: string;
+        approved_by?: string;
+        amendment?: {
+          reason_code: string;
+          reason_text?: string;
+          amended_at: string;
+          amended_by: string;
+        };
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      409: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      422: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      428: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  anonymisePatient: {
+    params: {
+      patient_id: string;
+    };
+    query: Record<string, never>;
+    headers: {
+      "Idempotency-Key": string;
+      "If-Match": string;
+    };
+    body: {
+      reason_code: string;
+      reason_text?: string;
+    };
+    responses: {
+      200: ({
+        id: string;
+        patient_code: string;
+        full_name: string;
+        sex: "male" | "female" | "other" | "unknown";
+        age_display: string;
+        phone_masked: string;
+        last_visit_at?: string;
+        is_anonymised: boolean;
+        birth_on?: string;
+        is_birth_on_estimated: boolean;
+        phone_e164?: string;
+        email?: string;
+        address_text?: string;
+        consents: {
+          processing: boolean;
+          sms: boolean;
+          whatsapp: boolean;
+          email: boolean;
+          share_with_referrer: boolean;
+          consent_text_version: string;
+        };
+        version: number;
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      409: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      422: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      428: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  approveDiscount: {
+    params: {
+      approval_id: string;
+    };
+    query: Record<string, never>;
+    headers: {
+      "Idempotency-Key": string;
+      "If-Match": string;
+    };
+    body: {
+      note?: string;
+    };
+    responses: {
+      200: ({
+        id: string;
+        status: "pending" | "approved" | "rejected" | "expired" | "consumed";
+        centre_id: string;
+        requested_by: {
+          membership_id: string;
+          display_name: string;
+        };
+        discounts: ({
+          scope: "line" | "bill";
+          orderable_id?: string;
+          kind: "amount" | "percent";
+          amount_paisa?: number;
+          percent_bp?: number;
+          reason_code: string;
+          reason_text?: string;
+        })[];
+        computed_discount: {
+          amount_paisa: number;
+          currency: "NPR";
+        };
+        gross: {
+          amount_paisa: number;
+          currency: "NPR";
+        };
+        percent_of_gross_bp: number;
+        reason_code: string;
+        reason_text?: string;
+        decided_by?: {
+          membership_id: string;
+          display_name: string;
+        };
+        decided_at?: string;
+        note?: string;
+        expires_at: string;
+        consumed_order_id?: string;
+        version: number;
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      409: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      422: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      428: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  approveRefund: {
+    params: {
+      refund_request_id: string;
+    };
+    query: Record<string, never>;
+    headers: {
+      "Idempotency-Key": string;
+      "If-Match": string;
+    };
+    body: {
+      note?: string;
+    };
+    responses: {
+      200: ({
+        id: string;
+        order_id: string;
+        method_code: string;
+        refund_amount: {
+          amount_paisa: number;
+          currency: "NPR";
+        };
+        reason_code: string;
+        reason_text?: string;
+        reference_masked?: string;
+        status: "pending" | "approved" | "rejected";
+        requested_by: {
+          membership_id: string;
+          display_name: string;
+        };
+        requested_at: string;
+        decided_by?: {
+          membership_id: string;
+          display_name: string;
+        };
+        decided_at?: string;
+        note?: string;
+        ledger_entry?: {
+          id: string;
+          entry_kind: "payment" | "reversal" | "refund";
+          capture_kind: "manual" | "gateway" | "home_collection";
+          order_id?: string;
+          invoice_id?: string;
+          credit_party_id?: string;
+          method_code: string;
+          amount: {
+            amount_paisa: number;
+            currency: "NPR";
+          };
+          reference_masked?: string;
+          receipt_no?: string;
+          reverses_entry_id?: string;
+          collected_by?: {
+            membership_id: string;
+            display_name: string;
+          };
+          cash_session_id?: string;
+          created_at: string;
+          business_date_bs: string;
+        };
+        version: number;
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      409: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      422: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      428: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  approveResult: {
+    params: {
+      result_id: string;
+    };
+    query: Record<string, never>;
+    headers: {
+      "If-Match": string;
+    };
+    body: Record<string, never>;
+    responses: {
+      200: ({
+        id: string;
+        version: number;
+        order_id: string;
+        order_item_id: string;
+        specimen_id?: string;
+        test_id: string;
+        analyte_id: string;
+        analyte_code: string;
+        status: "pending" | "resulted" | "verified" | "approved" | "cancelled";
+        origin: string;
+        value_numeric?: string;
+        value_text?: string;
+        ordinal_code?: string;
+        unit_code?: string;
+        flag?: "LL" | "L" | "N" | "H" | "HH" | "A";
+        reference_range_snapshot?: {
+          range_id?: string;
+          range_version?: number;
+          low?: string;
+          high?: string;
+          text?: string;
+          unit_code?: string;
+        };
+        range_unavailable_age_unknown: boolean;
+        delta?: {
+          status: string;
+          prev_value?: string;
+          abs?: string;
+          pct?: string;
+          prev_at?: string;
+        };
+        critical: {
+          is_critical: boolean;
+          critical_event_id?: string;
+        };
+        calc?: {
+          status: string;
+          reason?: string;
+          provenance?: string;
+        };
+        comment_codes?: string[];
+        comment_text?: string;
+        on_hold: boolean;
+        qc_review_required: boolean;
+        unit_mismatch: boolean;
+        instrument_id?: string;
+        instrument_flags?: string[];
+        current_version_no: number;
+        verified_at?: string;
+        verified_by?: string;
+        approved_at?: string;
+        approved_by?: string;
+        amendment?: {
+          reason_code: string;
+          reason_text?: string;
+          amended_at: string;
+          amended_by: string;
+        };
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      409: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      428: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
   approveSupportSession: {
     params: {
       support_session_id: string;
@@ -426,6 +1351,2428 @@ export interface Operations {
       };
     };
   };
+  assignIngestException: {
+    params: {
+      exception_id: string;
+    };
+    query: Record<string, never>;
+    headers: {
+      "Idempotency-Key": string;
+    };
+    body: {
+      result_id: string;
+      override_analyte?: boolean;
+    };
+    responses: {
+      200: ({
+        exception: {
+          id: string;
+          status: "open" | "resolved" | "discarded";
+          reason: "unmapped_code" | "unknown_barcode" | "specimen_rejected" | "specimen_not_received" | "analyte_not_ordered" | "result_locked" | "result_already_verified" | "unit_mismatch";
+          instrument_id?: string;
+          result_key: string;
+          sample_barcode?: string;
+          instrument_analyte_code?: string;
+          result_id?: string;
+          created_at: string;
+          resolved_at?: string;
+          resolution?: string;
+        };
+        outcome: "applied" | "held" | "unmatched" | "rejected_state" | "duplicate" | "not_applicable";
+        result?: {
+          id: string;
+          version: number;
+          order_id: string;
+          order_item_id: string;
+          specimen_id?: string;
+          test_id: string;
+          analyte_id: string;
+          analyte_code: string;
+          status: "pending" | "resulted" | "verified" | "approved" | "cancelled";
+          origin: string;
+          value_numeric?: string;
+          value_text?: string;
+          ordinal_code?: string;
+          unit_code?: string;
+          flag?: "LL" | "L" | "N" | "H" | "HH" | "A";
+          reference_range_snapshot?: {
+            range_id?: string;
+            range_version?: number;
+            low?: string;
+            high?: string;
+            text?: string;
+            unit_code?: string;
+          };
+          range_unavailable_age_unknown: boolean;
+          delta?: {
+            status: string;
+            prev_value?: string;
+            abs?: string;
+            pct?: string;
+            prev_at?: string;
+          };
+          critical: {
+            is_critical: boolean;
+            critical_event_id?: string;
+          };
+          calc?: {
+            status: string;
+            reason?: string;
+            provenance?: string;
+          };
+          comment_codes?: string[];
+          comment_text?: string;
+          on_hold: boolean;
+          qc_review_required: boolean;
+          unit_mismatch: boolean;
+          instrument_id?: string;
+          instrument_flags?: string[];
+          current_version_no: number;
+          verified_at?: string;
+          verified_by?: string;
+          approved_at?: string;
+          approved_by?: string;
+          amendment?: {
+            reason_code: string;
+            reason_text?: string;
+            amended_at: string;
+            amended_by: string;
+          };
+        };
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      422: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  bulkApproveResults: {
+    params: Record<string, never>;
+    query: Record<string, never>;
+    headers: {
+      "Idempotency-Key": string;
+    };
+    body: {
+      items: {
+        id: string;
+        version: number;
+      }[];
+    };
+    responses: {
+      200: ({
+        results: ({
+          id: string;
+          outcome: "ok" | "error";
+          code?: string;
+          result?: {
+            id: string;
+            version: number;
+            order_id: string;
+            order_item_id: string;
+            specimen_id?: string;
+            test_id: string;
+            analyte_id: string;
+            analyte_code: string;
+            status: "pending" | "resulted" | "verified" | "approved" | "cancelled";
+            origin: string;
+            value_numeric?: string;
+            value_text?: string;
+            ordinal_code?: string;
+            unit_code?: string;
+            flag?: "LL" | "L" | "N" | "H" | "HH" | "A";
+            reference_range_snapshot?: {
+              range_id?: string;
+              range_version?: number;
+              low?: string;
+              high?: string;
+              text?: string;
+              unit_code?: string;
+            };
+            range_unavailable_age_unknown: boolean;
+            delta?: {
+              status: string;
+              prev_value?: string;
+              abs?: string;
+              pct?: string;
+              prev_at?: string;
+            };
+            critical: {
+              is_critical: boolean;
+              critical_event_id?: string;
+            };
+            calc?: {
+              status: string;
+              reason?: string;
+              provenance?: string;
+            };
+            comment_codes?: string[];
+            comment_text?: string;
+            on_hold: boolean;
+            qc_review_required: boolean;
+            unit_mismatch: boolean;
+            instrument_id?: string;
+            instrument_flags?: string[];
+            current_version_no: number;
+            verified_at?: string;
+            verified_by?: string;
+            approved_at?: string;
+            approved_by?: string;
+            amendment?: {
+              reason_code: string;
+              reason_text?: string;
+              amended_at: string;
+              amended_by: string;
+            };
+          };
+        })[];
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      409: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      422: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  bulkCollectSpecimens: {
+    params: Record<string, never>;
+    query: Record<string, never>;
+    headers: {
+      "Idempotency-Key": string;
+    };
+    body: {
+      items: {
+        id: string;
+        version: number;
+      }[];
+    };
+    responses: {
+      200: ({
+        results: ({
+          id: string;
+          outcome: "ok" | "error";
+          code?: string;
+          specimen?: {
+            id: string;
+            version: number;
+            barcode: string;
+            order_id: string;
+            registration_no: string;
+            specimen_type_code: string;
+            container_code?: string;
+            status: "ordered" | "collected" | "in_transit" | "received" | "aliquoted" | "in_process" | "resulted" | "verified" | "approved" | "reported" | "rejected" | "recollection_ordered" | "stored" | "discarded";
+            priority: string;
+            centre_id: string;
+            processing_centre_id?: string;
+            parent_specimen_id?: string;
+            replaces_specimen_id?: string;
+            is_active: boolean;
+            collected_at?: string;
+            in_transit_at?: string;
+            received_at?: string;
+            rejected_at?: string;
+            rejection_reason_code?: string;
+            collection_barcode_unverified: boolean;
+            label_print_count: number;
+            tests: {
+              test_id: string;
+              test_code: string;
+            }[];
+          };
+        })[];
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      409: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      422: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  bulkDispatchSpecimens: {
+    params: Record<string, never>;
+    query: Record<string, never>;
+    headers: {
+      "Idempotency-Key": string;
+    };
+    body: {
+      items: {
+        id: string;
+        version: number;
+      }[];
+    };
+    responses: {
+      200: ({
+        results: ({
+          id: string;
+          outcome: "ok" | "error";
+          code?: string;
+          specimen?: {
+            id: string;
+            version: number;
+            barcode: string;
+            order_id: string;
+            registration_no: string;
+            specimen_type_code: string;
+            container_code?: string;
+            status: "ordered" | "collected" | "in_transit" | "received" | "aliquoted" | "in_process" | "resulted" | "verified" | "approved" | "reported" | "rejected" | "recollection_ordered" | "stored" | "discarded";
+            priority: string;
+            centre_id: string;
+            processing_centre_id?: string;
+            parent_specimen_id?: string;
+            replaces_specimen_id?: string;
+            is_active: boolean;
+            collected_at?: string;
+            in_transit_at?: string;
+            received_at?: string;
+            rejected_at?: string;
+            rejection_reason_code?: string;
+            collection_barcode_unverified: boolean;
+            label_print_count: number;
+            tests: {
+              test_id: string;
+              test_code: string;
+            }[];
+          };
+        })[];
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      409: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      422: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  bulkEnterResults: {
+    params: Record<string, never>;
+    query: Record<string, never>;
+    headers: {
+      "Idempotency-Key": string;
+    };
+    body: {
+      entries: {
+        result_id: string;
+        version: number;
+        value_numeric?: string;
+        value_text?: string;
+        ordinal_code?: string;
+        manual_abnormal?: boolean;
+        comment_codes?: string[];
+        comment_text?: string;
+      }[];
+    };
+    responses: {
+      200: ({
+        results: ({
+          result_id: string;
+          outcome: "ok" | "error";
+          code?: string;
+          result?: {
+            id: string;
+            version: number;
+            order_id: string;
+            order_item_id: string;
+            specimen_id?: string;
+            test_id: string;
+            analyte_id: string;
+            analyte_code: string;
+            status: "pending" | "resulted" | "verified" | "approved" | "cancelled";
+            origin: string;
+            value_numeric?: string;
+            value_text?: string;
+            ordinal_code?: string;
+            unit_code?: string;
+            flag?: "LL" | "L" | "N" | "H" | "HH" | "A";
+            reference_range_snapshot?: {
+              range_id?: string;
+              range_version?: number;
+              low?: string;
+              high?: string;
+              text?: string;
+              unit_code?: string;
+            };
+            range_unavailable_age_unknown: boolean;
+            delta?: {
+              status: string;
+              prev_value?: string;
+              abs?: string;
+              pct?: string;
+              prev_at?: string;
+            };
+            critical: {
+              is_critical: boolean;
+              critical_event_id?: string;
+            };
+            calc?: {
+              status: string;
+              reason?: string;
+              provenance?: string;
+            };
+            comment_codes?: string[];
+            comment_text?: string;
+            on_hold: boolean;
+            qc_review_required: boolean;
+            unit_mismatch: boolean;
+            instrument_id?: string;
+            instrument_flags?: string[];
+            current_version_no: number;
+            verified_at?: string;
+            verified_by?: string;
+            approved_at?: string;
+            approved_by?: string;
+            amendment?: {
+              reason_code: string;
+              reason_text?: string;
+              amended_at: string;
+              amended_by: string;
+            };
+          };
+        })[];
+        recomputed: ({
+          id: string;
+          version: number;
+          order_id: string;
+          order_item_id: string;
+          specimen_id?: string;
+          test_id: string;
+          analyte_id: string;
+          analyte_code: string;
+          status: "pending" | "resulted" | "verified" | "approved" | "cancelled";
+          origin: string;
+          value_numeric?: string;
+          value_text?: string;
+          ordinal_code?: string;
+          unit_code?: string;
+          flag?: "LL" | "L" | "N" | "H" | "HH" | "A";
+          reference_range_snapshot?: {
+            range_id?: string;
+            range_version?: number;
+            low?: string;
+            high?: string;
+            text?: string;
+            unit_code?: string;
+          };
+          range_unavailable_age_unknown: boolean;
+          delta?: {
+            status: string;
+            prev_value?: string;
+            abs?: string;
+            pct?: string;
+            prev_at?: string;
+          };
+          critical: {
+            is_critical: boolean;
+            critical_event_id?: string;
+          };
+          calc?: {
+            status: string;
+            reason?: string;
+            provenance?: string;
+          };
+          comment_codes?: string[];
+          comment_text?: string;
+          on_hold: boolean;
+          qc_review_required: boolean;
+          unit_mismatch: boolean;
+          instrument_id?: string;
+          instrument_flags?: string[];
+          current_version_no: number;
+          verified_at?: string;
+          verified_by?: string;
+          approved_at?: string;
+          approved_by?: string;
+          amendment?: {
+            reason_code: string;
+            reason_text?: string;
+            amended_at: string;
+            amended_by: string;
+          };
+        })[];
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      409: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      422: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  bulkReceiveSpecimens: {
+    params: Record<string, never>;
+    query: Record<string, never>;
+    headers: {
+      "Idempotency-Key": string;
+    };
+    body: {
+      processing_centre_id: string;
+      items: {
+        id: string;
+        version: number;
+      }[];
+    };
+    responses: {
+      200: ({
+        results: ({
+          id: string;
+          outcome: "ok" | "error";
+          code?: string;
+          specimen?: {
+            id: string;
+            version: number;
+            barcode: string;
+            order_id: string;
+            registration_no: string;
+            specimen_type_code: string;
+            container_code?: string;
+            status: "ordered" | "collected" | "in_transit" | "received" | "aliquoted" | "in_process" | "resulted" | "verified" | "approved" | "reported" | "rejected" | "recollection_ordered" | "stored" | "discarded";
+            priority: string;
+            centre_id: string;
+            processing_centre_id?: string;
+            parent_specimen_id?: string;
+            replaces_specimen_id?: string;
+            is_active: boolean;
+            collected_at?: string;
+            in_transit_at?: string;
+            received_at?: string;
+            rejected_at?: string;
+            rejection_reason_code?: string;
+            collection_barcode_unverified: boolean;
+            label_print_count: number;
+            tests: {
+              test_id: string;
+              test_code: string;
+            }[];
+          };
+        })[];
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      409: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      422: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  bulkVerifyResults: {
+    params: Record<string, never>;
+    query: Record<string, never>;
+    headers: {
+      "Idempotency-Key": string;
+    };
+    body: {
+      items: ({
+        id: string;
+        version: number;
+        acknowledged_flags?: ("delta" | "critical" | "unit_mismatch" | "instrument_flag")[];
+      })[];
+    };
+    responses: {
+      200: ({
+        results: ({
+          id: string;
+          outcome: "ok" | "error";
+          code?: string;
+          result?: {
+            id: string;
+            version: number;
+            order_id: string;
+            order_item_id: string;
+            specimen_id?: string;
+            test_id: string;
+            analyte_id: string;
+            analyte_code: string;
+            status: "pending" | "resulted" | "verified" | "approved" | "cancelled";
+            origin: string;
+            value_numeric?: string;
+            value_text?: string;
+            ordinal_code?: string;
+            unit_code?: string;
+            flag?: "LL" | "L" | "N" | "H" | "HH" | "A";
+            reference_range_snapshot?: {
+              range_id?: string;
+              range_version?: number;
+              low?: string;
+              high?: string;
+              text?: string;
+              unit_code?: string;
+            };
+            range_unavailable_age_unknown: boolean;
+            delta?: {
+              status: string;
+              prev_value?: string;
+              abs?: string;
+              pct?: string;
+              prev_at?: string;
+            };
+            critical: {
+              is_critical: boolean;
+              critical_event_id?: string;
+            };
+            calc?: {
+              status: string;
+              reason?: string;
+              provenance?: string;
+            };
+            comment_codes?: string[];
+            comment_text?: string;
+            on_hold: boolean;
+            qc_review_required: boolean;
+            unit_mismatch: boolean;
+            instrument_id?: string;
+            instrument_flags?: string[];
+            current_version_no: number;
+            verified_at?: string;
+            verified_by?: string;
+            approved_at?: string;
+            approved_by?: string;
+            amendment?: {
+              reason_code: string;
+              reason_text?: string;
+              amended_at: string;
+              amended_by: string;
+            };
+          };
+        })[];
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      409: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      422: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  cancelInvoice: {
+    params: {
+      invoice_id: string;
+    };
+    query: Record<string, never>;
+    headers: {
+      "Idempotency-Key": string;
+      "If-Match": string;
+    };
+    body: {
+      reason_code: string;
+      reason_text?: string;
+    };
+    responses: {
+      200: ({
+        invoice: {
+          id: string;
+          invoice_no: string;
+          invoice_seq: number;
+          series: string;
+          fiscal_year_bs: string;
+          invoice_kind: string;
+          status: string;
+          is_active: boolean;
+          issued_at: string;
+          invoice_date_bs: string;
+          branch_id: string;
+          centre_id?: string;
+          order_id?: string;
+          credit_party_id?: string;
+          is_periodic_credit_bill: boolean;
+          referrer_id?: string;
+          buyer: {
+            name: string;
+            pan?: string;
+            address?: string;
+          };
+          seller: {
+            name: string;
+            pan?: string;
+            address?: string;
+          };
+          lines: {
+            id: string;
+            line_no: number;
+            line_kind: string;
+            orderable_id?: string;
+            code: string;
+            name: string;
+            department_id?: string;
+            hs_code?: string;
+            quantity: number;
+            unit_price: {
+              amount_paisa: number;
+              currency: "NPR";
+            };
+            gross: {
+              amount_paisa: number;
+              currency: "NPR";
+            };
+            discount: {
+              amount_paisa: number;
+              currency: "NPR";
+            };
+            exempt: {
+              amount_paisa: number;
+              currency: "NPR";
+            };
+            taxable: {
+              amount_paisa: number;
+              currency: "NPR";
+            };
+            vat: {
+              amount_paisa: number;
+              currency: "NPR";
+            };
+            other_tax: {
+              amount_paisa: number;
+              currency: "NPR";
+            };
+            other_tax_code?: string;
+            net: {
+              amount_paisa: number;
+              currency: "NPR";
+            };
+            credited: {
+              amount_paisa: number;
+              currency: "NPR";
+            };
+          }[];
+          totals: {
+            gross: {
+              amount_paisa: number;
+              currency: "NPR";
+            };
+            discount: {
+              amount_paisa: number;
+              currency: "NPR";
+            };
+            exempt: {
+              amount_paisa: number;
+              currency: "NPR";
+            };
+            taxable: {
+              amount_paisa: number;
+              currency: "NPR";
+            };
+            vat: {
+              amount_paisa: number;
+              currency: "NPR";
+            };
+            other_tax: {
+              amount_paisa: number;
+              currency: "NPR";
+            };
+            net: {
+              amount_paisa: number;
+              currency: "NPR";
+            };
+          };
+          credited_total: {
+            amount_paisa: number;
+            currency: "NPR";
+          };
+          cancellation?: {
+            cancelled_at: string;
+            cancelled_by_display: string;
+            reason_code: string;
+            reason_text?: string;
+            credit_note_id: string;
+            credit_note_no: string;
+          };
+          print_count: number;
+          last_printed_at?: string;
+          cbms_state: string;
+          cbms_cancel_state?: string;
+          version: number;
+        };
+        credit_note: {
+          id: string;
+          credit_note_no: string;
+          credit_note_seq: number;
+          kind: "cancellation" | "partial";
+          invoice_id: string;
+          invoice_no: string;
+          fiscal_year_bs: string;
+          issued_at: string;
+          credit_note_date_bs: string;
+          centre_id?: string;
+          reason_code: string;
+          reason_text?: string;
+          lines: {
+            invoice_line_id: string;
+            amount: {
+              amount_paisa: number;
+              currency: "NPR";
+            };
+          }[];
+          totals: {
+            exempt: {
+              amount_paisa: number;
+              currency: "NPR";
+            };
+            taxable: {
+              amount_paisa: number;
+              currency: "NPR";
+            };
+            vat: {
+              amount_paisa: number;
+              currency: "NPR";
+            };
+            other_tax: {
+              amount_paisa: number;
+              currency: "NPR";
+            };
+            net: {
+              amount_paisa: number;
+              currency: "NPR";
+            };
+          };
+          print_count: number;
+          cbms_state: string;
+          version: number;
+        };
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      409: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      422: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      428: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      503: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  cancelOrder: {
+    params: {
+      order_id: string;
+    };
+    query: Record<string, never>;
+    headers: {
+      "Idempotency-Key": string;
+      "If-Match": string;
+    };
+    body: {
+      reason_code: string;
+      reason_text?: string;
+    };
+    responses: {
+      200: ({
+        id: string;
+        registration_no: string;
+        patient: {
+          id: string;
+          patient_code: string;
+          full_name: string;
+          sex: "male" | "female" | "other" | "unknown";
+          age_at_order: string;
+        };
+        branch_id: string;
+        centre_id: string;
+        visit_type: "opd" | "ipd";
+        billing_mode: "cash" | "credit";
+        credit_party_id?: string;
+        referrer_id?: string;
+        priority: "routine" | "urgent";
+        collection_mode: "walk_in" | "home" | "centre" | "partner";
+        source: string;
+        source_ref_id?: string;
+        status: "pre_registered" | "registered" | "in_progress" | "completed" | "cancelled";
+        items: ({
+          id: string;
+          orderable_id: string;
+          orderable_kind: "test" | "panel";
+          code: string;
+          name: string;
+          priority: "routine" | "urgent";
+          status: string;
+          unit_price: {
+            amount_paisa: number;
+            currency: "NPR";
+          };
+          urgent_surcharge?: {
+            amount_paisa: number;
+            currency: "NPR";
+          };
+          outsourced: boolean;
+        })[];
+        discounts: ({
+          scope: "line" | "bill";
+          orderable_id?: string;
+          kind: "amount" | "percent";
+          amount_paisa?: number;
+          percent_bp?: number;
+          reason_code: string;
+          reason_text?: string;
+        })[];
+        trf_attachments: ({
+          id: string;
+          order_id?: string;
+          mime_type: "image/jpeg" | "image/png" | "application/pdf";
+          size_bytes: number;
+          scan_state: "pending" | "clean" | "quarantined" | "failed";
+          uploaded_at: string;
+          uploaded_by: {
+            membership_id: string;
+            display_name: string;
+          };
+          original_filename: string;
+        })[];
+        flags: ({
+          id: string;
+          order_id: string;
+          kind: "recollection_required" | "booking_cancelled_after_registration";
+          status: "open" | "resolved";
+          specimen_id?: string;
+          created_at: string;
+          resolved_at?: string;
+          resolved_by?: {
+            membership_id: string;
+            display_name: string;
+          };
+          resolution_code?: string;
+          version: number;
+        })[];
+        requires_credit_note: boolean;
+        registered_at?: string;
+        cancelled_at?: string;
+        cancel_reason_code?: string;
+        billing?: {
+          order_id: string;
+          invoiced: {
+            amount_paisa: number;
+            currency: "NPR";
+          };
+          paid: {
+            amount_paisa: number;
+            currency: "NPR";
+          };
+          credited: {
+            amount_paisa: number;
+            currency: "NPR";
+          };
+          balance_due: {
+            amount_paisa: number;
+            currency: "NPR";
+          };
+          balance_version: number;
+          as_of: string;
+        };
+        version: number;
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      409: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      422: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      428: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  captureQcResult: {
+    params: Record<string, never>;
+    query: Record<string, never>;
+    headers: {
+      "Idempotency-Key": string;
+    };
+    body: {
+      centre_id: string;
+      instrument_id: string;
+      analyte_id: string;
+      control_id_raw: string;
+      control_lot_raw?: string;
+      control_level?: string;
+      value_numeric: string;
+      unit_code?: string;
+      instrument_result_time: string;
+    };
+    responses: {
+      201: {
+        id: string;
+        centre_id: string;
+        instrument_id: string;
+        analyte_id: string;
+        control_id_raw: string;
+        control_lot_raw?: string;
+        control_level?: string;
+        value_numeric: string;
+        unit_code?: string;
+        instrument_result_time: string;
+        source: string;
+        received_at: string;
+      };
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      422: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  changeOrderItems: {
+    params: {
+      order_id: string;
+    };
+    query: Record<string, never>;
+    headers: {
+      "Idempotency-Key": string;
+      "If-Match": string;
+    };
+    body: {
+      add?: ({
+        orderable_id: string;
+        priority: "routine" | "urgent";
+      })[];
+      remove?: {
+        order_item_id: string;
+        reason_code: string;
+      }[];
+      quote_fingerprint?: string;
+      payments?: {
+        method_code: string;
+        amount_received_paisa: number;
+        reference?: string;
+        tendered_paisa?: number;
+      }[];
+    };
+    responses: {
+      200: ({
+        id: string;
+        registration_no: string;
+        patient: {
+          id: string;
+          patient_code: string;
+          full_name: string;
+          sex: "male" | "female" | "other" | "unknown";
+          age_at_order: string;
+        };
+        branch_id: string;
+        centre_id: string;
+        visit_type: "opd" | "ipd";
+        billing_mode: "cash" | "credit";
+        credit_party_id?: string;
+        referrer_id?: string;
+        priority: "routine" | "urgent";
+        collection_mode: "walk_in" | "home" | "centre" | "partner";
+        source: string;
+        source_ref_id?: string;
+        status: "pre_registered" | "registered" | "in_progress" | "completed" | "cancelled";
+        items: ({
+          id: string;
+          orderable_id: string;
+          orderable_kind: "test" | "panel";
+          code: string;
+          name: string;
+          priority: "routine" | "urgent";
+          status: string;
+          unit_price: {
+            amount_paisa: number;
+            currency: "NPR";
+          };
+          urgent_surcharge?: {
+            amount_paisa: number;
+            currency: "NPR";
+          };
+          outsourced: boolean;
+        })[];
+        discounts: ({
+          scope: "line" | "bill";
+          orderable_id?: string;
+          kind: "amount" | "percent";
+          amount_paisa?: number;
+          percent_bp?: number;
+          reason_code: string;
+          reason_text?: string;
+        })[];
+        trf_attachments: ({
+          id: string;
+          order_id?: string;
+          mime_type: "image/jpeg" | "image/png" | "application/pdf";
+          size_bytes: number;
+          scan_state: "pending" | "clean" | "quarantined" | "failed";
+          uploaded_at: string;
+          uploaded_by: {
+            membership_id: string;
+            display_name: string;
+          };
+          original_filename: string;
+        })[];
+        flags: ({
+          id: string;
+          order_id: string;
+          kind: "recollection_required" | "booking_cancelled_after_registration";
+          status: "open" | "resolved";
+          specimen_id?: string;
+          created_at: string;
+          resolved_at?: string;
+          resolved_by?: {
+            membership_id: string;
+            display_name: string;
+          };
+          resolution_code?: string;
+          version: number;
+        })[];
+        requires_credit_note: boolean;
+        registered_at?: string;
+        cancelled_at?: string;
+        cancel_reason_code?: string;
+        billing?: {
+          order_id: string;
+          invoiced: {
+            amount_paisa: number;
+            currency: "NPR";
+          };
+          paid: {
+            amount_paisa: number;
+            currency: "NPR";
+          };
+          credited: {
+            amount_paisa: number;
+            currency: "NPR";
+          };
+          balance_due: {
+            amount_paisa: number;
+            currency: "NPR";
+          };
+          balance_version: number;
+          as_of: string;
+        };
+        version: number;
+        supplementary_invoice?: {
+          id: string;
+          invoice_no: string;
+          invoice_seq: number;
+          series: string;
+          fiscal_year_bs: string;
+          invoice_kind: string;
+          status: string;
+          is_active: boolean;
+          issued_at: string;
+          invoice_date_bs: string;
+          branch_id: string;
+          centre_id?: string;
+          order_id?: string;
+          credit_party_id?: string;
+          is_periodic_credit_bill: boolean;
+          referrer_id?: string;
+          buyer: {
+            name: string;
+            pan?: string;
+            address?: string;
+          };
+          seller: {
+            name: string;
+            pan?: string;
+            address?: string;
+          };
+          lines: {
+            id: string;
+            line_no: number;
+            line_kind: string;
+            orderable_id?: string;
+            code: string;
+            name: string;
+            department_id?: string;
+            hs_code?: string;
+            quantity: number;
+            unit_price: {
+              amount_paisa: number;
+              currency: "NPR";
+            };
+            gross: {
+              amount_paisa: number;
+              currency: "NPR";
+            };
+            discount: {
+              amount_paisa: number;
+              currency: "NPR";
+            };
+            exempt: {
+              amount_paisa: number;
+              currency: "NPR";
+            };
+            taxable: {
+              amount_paisa: number;
+              currency: "NPR";
+            };
+            vat: {
+              amount_paisa: number;
+              currency: "NPR";
+            };
+            other_tax: {
+              amount_paisa: number;
+              currency: "NPR";
+            };
+            other_tax_code?: string;
+            net: {
+              amount_paisa: number;
+              currency: "NPR";
+            };
+            credited: {
+              amount_paisa: number;
+              currency: "NPR";
+            };
+          }[];
+          totals: {
+            gross: {
+              amount_paisa: number;
+              currency: "NPR";
+            };
+            discount: {
+              amount_paisa: number;
+              currency: "NPR";
+            };
+            exempt: {
+              amount_paisa: number;
+              currency: "NPR";
+            };
+            taxable: {
+              amount_paisa: number;
+              currency: "NPR";
+            };
+            vat: {
+              amount_paisa: number;
+              currency: "NPR";
+            };
+            other_tax: {
+              amount_paisa: number;
+              currency: "NPR";
+            };
+            net: {
+              amount_paisa: number;
+              currency: "NPR";
+            };
+          };
+          credited_total: {
+            amount_paisa: number;
+            currency: "NPR";
+          };
+          cancellation?: {
+            cancelled_at: string;
+            cancelled_by_display: string;
+            reason_code: string;
+            reason_text?: string;
+            credit_note_id: string;
+            credit_note_no: string;
+          };
+          print_count: number;
+          last_printed_at?: string;
+          cbms_state: string;
+          cbms_cancel_state?: string;
+          version: number;
+        };
+        credit_note_required: boolean;
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      409: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      422: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      428: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      503: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
   changeOwnPassword: {
     params: Record<string, never>;
     query: Record<string, never>;
@@ -479,6 +3826,332 @@ export interface Operations {
         }[];
       };
       422: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  closeCashSession: {
+    params: {
+      cash_session_id: string;
+    };
+    query: Record<string, never>;
+    headers: {
+      "Idempotency-Key": string;
+      "If-Match": string;
+    };
+    body: {
+      counted: {
+        method_code: string;
+        amount_paisa: number;
+      }[];
+      note?: string;
+    };
+    responses: {
+      200: ({
+        id: string;
+        opened_by: {
+          membership_id: string;
+          display_name: string;
+        };
+        centre_id: string;
+        status: "open" | "closed";
+        opened_at: string;
+        closed_at?: string;
+        rows: {
+          method_code: string;
+          expected: {
+            amount_paisa: number;
+            currency: "NPR";
+          };
+          counted?: {
+            amount_paisa: number;
+            currency: "NPR";
+          };
+          variance?: {
+            amount_paisa: number;
+            currency: "NPR";
+          };
+        }[];
+        note?: string;
+        version: number;
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      409: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      422: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      428: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  collectSpecimen: {
+    params: {
+      specimen_id: string;
+    };
+    query: Record<string, never>;
+    headers: {
+      "If-Match": string;
+    };
+    body: {
+      collected_at?: string;
+    };
+    responses: {
+      200: ({
+        id: string;
+        version: number;
+        barcode: string;
+        order_id: string;
+        registration_no: string;
+        specimen_type_code: string;
+        container_code?: string;
+        status: "ordered" | "collected" | "in_transit" | "received" | "aliquoted" | "in_process" | "resulted" | "verified" | "approved" | "reported" | "rejected" | "recollection_ordered" | "stored" | "discarded";
+        priority: string;
+        centre_id: string;
+        processing_centre_id?: string;
+        parent_specimen_id?: string;
+        replaces_specimen_id?: string;
+        is_active: boolean;
+        collected_at?: string;
+        in_transit_at?: string;
+        received_at?: string;
+        rejected_at?: string;
+        rejection_reason_code?: string;
+        collection_barcode_unverified: boolean;
+        label_print_count: number;
+        tests: {
+          test_id: string;
+          test_code: string;
+        }[];
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      409: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      428: {
         type: string;
         title: string;
         status: number;
@@ -838,6 +4511,678 @@ export interface Operations {
         }[];
       };
       401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  confirmPreRegisteredOrder: {
+    params: {
+      order_id: string;
+    };
+    query: Record<string, never>;
+    headers: {
+      "Idempotency-Key": string;
+      "If-Match": string;
+    };
+    body: {
+      quote_fingerprint: string;
+      payments: {
+        method_code: string;
+        amount_received_paisa: number;
+        reference?: string;
+        tendered_paisa?: number;
+      }[];
+      discounts?: ({
+        scope: "line" | "bill";
+        orderable_id?: string;
+        kind: "amount" | "percent";
+        amount_paisa?: number;
+        percent_bp?: number;
+        reason_code: string;
+        reason_text?: string;
+      })[];
+      discount_approval_id?: string;
+      items_override?: {
+        items: ({
+          orderable_id: string;
+          priority?: "routine" | "urgent";
+        })[];
+      };
+    };
+    responses: {
+      200: ({
+        order: {
+          id: string;
+          registration_no: string;
+          patient: {
+            id: string;
+            patient_code: string;
+            full_name: string;
+            sex: "male" | "female" | "other" | "unknown";
+            age_at_order: string;
+          };
+          branch_id: string;
+          centre_id: string;
+          visit_type: "opd" | "ipd";
+          billing_mode: "cash" | "credit";
+          credit_party_id?: string;
+          referrer_id?: string;
+          priority: "routine" | "urgent";
+          collection_mode: "walk_in" | "home" | "centre" | "partner";
+          source: string;
+          source_ref_id?: string;
+          status: "pre_registered" | "registered" | "in_progress" | "completed" | "cancelled";
+          items: ({
+            id: string;
+            orderable_id: string;
+            orderable_kind: "test" | "panel";
+            code: string;
+            name: string;
+            priority: "routine" | "urgent";
+            status: string;
+            unit_price: {
+              amount_paisa: number;
+              currency: "NPR";
+            };
+            urgent_surcharge?: {
+              amount_paisa: number;
+              currency: "NPR";
+            };
+            outsourced: boolean;
+          })[];
+          discounts: ({
+            scope: "line" | "bill";
+            orderable_id?: string;
+            kind: "amount" | "percent";
+            amount_paisa?: number;
+            percent_bp?: number;
+            reason_code: string;
+            reason_text?: string;
+          })[];
+          trf_attachments: ({
+            id: string;
+            order_id?: string;
+            mime_type: "image/jpeg" | "image/png" | "application/pdf";
+            size_bytes: number;
+            scan_state: "pending" | "clean" | "quarantined" | "failed";
+            uploaded_at: string;
+            uploaded_by: {
+              membership_id: string;
+              display_name: string;
+            };
+            original_filename: string;
+          })[];
+          flags: ({
+            id: string;
+            order_id: string;
+            kind: "recollection_required" | "booking_cancelled_after_registration";
+            status: "open" | "resolved";
+            specimen_id?: string;
+            created_at: string;
+            resolved_at?: string;
+            resolved_by?: {
+              membership_id: string;
+              display_name: string;
+            };
+            resolution_code?: string;
+            version: number;
+          })[];
+          requires_credit_note: boolean;
+          registered_at?: string;
+          cancelled_at?: string;
+          cancel_reason_code?: string;
+          billing?: {
+            order_id: string;
+            invoiced: {
+              amount_paisa: number;
+              currency: "NPR";
+            };
+            paid: {
+              amount_paisa: number;
+              currency: "NPR";
+            };
+            credited: {
+              amount_paisa: number;
+              currency: "NPR";
+            };
+            balance_due: {
+              amount_paisa: number;
+              currency: "NPR";
+            };
+            balance_version: number;
+            as_of: string;
+          };
+          version: number;
+        };
+        invoice?: {
+          id: string;
+          invoice_no: string;
+          invoice_seq: number;
+          series: string;
+          fiscal_year_bs: string;
+          invoice_kind: string;
+          status: string;
+          is_active: boolean;
+          issued_at: string;
+          invoice_date_bs: string;
+          branch_id: string;
+          centre_id?: string;
+          order_id?: string;
+          credit_party_id?: string;
+          is_periodic_credit_bill: boolean;
+          referrer_id?: string;
+          buyer: {
+            name: string;
+            pan?: string;
+            address?: string;
+          };
+          seller: {
+            name: string;
+            pan?: string;
+            address?: string;
+          };
+          lines: {
+            id: string;
+            line_no: number;
+            line_kind: string;
+            orderable_id?: string;
+            code: string;
+            name: string;
+            department_id?: string;
+            hs_code?: string;
+            quantity: number;
+            unit_price: {
+              amount_paisa: number;
+              currency: "NPR";
+            };
+            gross: {
+              amount_paisa: number;
+              currency: "NPR";
+            };
+            discount: {
+              amount_paisa: number;
+              currency: "NPR";
+            };
+            exempt: {
+              amount_paisa: number;
+              currency: "NPR";
+            };
+            taxable: {
+              amount_paisa: number;
+              currency: "NPR";
+            };
+            vat: {
+              amount_paisa: number;
+              currency: "NPR";
+            };
+            other_tax: {
+              amount_paisa: number;
+              currency: "NPR";
+            };
+            other_tax_code?: string;
+            net: {
+              amount_paisa: number;
+              currency: "NPR";
+            };
+            credited: {
+              amount_paisa: number;
+              currency: "NPR";
+            };
+          }[];
+          totals: {
+            gross: {
+              amount_paisa: number;
+              currency: "NPR";
+            };
+            discount: {
+              amount_paisa: number;
+              currency: "NPR";
+            };
+            exempt: {
+              amount_paisa: number;
+              currency: "NPR";
+            };
+            taxable: {
+              amount_paisa: number;
+              currency: "NPR";
+            };
+            vat: {
+              amount_paisa: number;
+              currency: "NPR";
+            };
+            other_tax: {
+              amount_paisa: number;
+              currency: "NPR";
+            };
+            net: {
+              amount_paisa: number;
+              currency: "NPR";
+            };
+          };
+          credited_total: {
+            amount_paisa: number;
+            currency: "NPR";
+          };
+          cancellation?: {
+            cancelled_at: string;
+            cancelled_by_display: string;
+            reason_code: string;
+            reason_text?: string;
+            credit_note_id: string;
+            credit_note_no: string;
+          };
+          print_count: number;
+          last_printed_at?: string;
+          cbms_state: string;
+          cbms_cancel_state?: string;
+          version: number;
+        };
+        credit_charges?: {
+          id: string;
+          credit_party_id: string;
+          order_id?: string;
+          invoice_id?: string;
+          amount: {
+            amount_paisa: number;
+            currency: "NPR";
+          };
+          period_month: string;
+          status: string;
+          created_at: string;
+        }[];
+        ledger_entries: ({
+          id: string;
+          entry_kind: "payment" | "reversal" | "refund";
+          capture_kind: "manual" | "gateway" | "home_collection";
+          order_id?: string;
+          invoice_id?: string;
+          credit_party_id?: string;
+          method_code: string;
+          amount: {
+            amount_paisa: number;
+            currency: "NPR";
+          };
+          reference_masked?: string;
+          receipt_no?: string;
+          reverses_entry_id?: string;
+          collected_by?: {
+            membership_id: string;
+            display_name: string;
+          };
+          cash_session_id?: string;
+          created_at: string;
+          business_date_bs: string;
+        })[];
+        balance: {
+          order_id: string;
+          invoiced: {
+            amount_paisa: number;
+            currency: "NPR";
+          };
+          paid: {
+            amount_paisa: number;
+            currency: "NPR";
+          };
+          credited: {
+            amount_paisa: number;
+            currency: "NPR";
+          };
+          balance_due: {
+            amount_paisa: number;
+            currency: "NPR";
+          };
+          balance_version: number;
+          as_of: string;
+        };
+        print: {
+          invoice_id?: string;
+          receipt_ledger_entry_ids: string[];
+        };
+        notifications: {
+          registration_sms: "queued" | "suppressed_no_consent" | "suppressed_no_contact" | "suppressed_channel_disabled" | "not_attempted";
+        };
+        label_print: {
+          autoprint: boolean;
+        };
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      409: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      422: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      428: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      503: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  createAliquots: {
+    params: {
+      specimen_id: string;
+    };
+    query: Record<string, never>;
+    headers: {
+      "Idempotency-Key": string;
+      "If-Match": string;
+    };
+    body: {
+      aliquots: {
+        specimen_type_code?: string;
+        test_ids: string[];
+      }[];
+    };
+    responses: {
+      200: ({
+        parent: {
+          id: string;
+          version: number;
+          barcode: string;
+          order_id: string;
+          registration_no: string;
+          specimen_type_code: string;
+          container_code?: string;
+          status: "ordered" | "collected" | "in_transit" | "received" | "aliquoted" | "in_process" | "resulted" | "verified" | "approved" | "reported" | "rejected" | "recollection_ordered" | "stored" | "discarded";
+          priority: string;
+          centre_id: string;
+          processing_centre_id?: string;
+          parent_specimen_id?: string;
+          replaces_specimen_id?: string;
+          is_active: boolean;
+          collected_at?: string;
+          in_transit_at?: string;
+          received_at?: string;
+          rejected_at?: string;
+          rejection_reason_code?: string;
+          collection_barcode_unverified: boolean;
+          label_print_count: number;
+          tests: {
+            test_id: string;
+            test_code: string;
+          }[];
+        };
+        aliquots: ({
+          id: string;
+          version: number;
+          barcode: string;
+          order_id: string;
+          registration_no: string;
+          specimen_type_code: string;
+          container_code?: string;
+          status: "ordered" | "collected" | "in_transit" | "received" | "aliquoted" | "in_process" | "resulted" | "verified" | "approved" | "reported" | "rejected" | "recollection_ordered" | "stored" | "discarded";
+          priority: string;
+          centre_id: string;
+          processing_centre_id?: string;
+          parent_specimen_id?: string;
+          replaces_specimen_id?: string;
+          is_active: boolean;
+          collected_at?: string;
+          in_transit_at?: string;
+          received_at?: string;
+          rejected_at?: string;
+          rejection_reason_code?: string;
+          collection_barcode_unverified: boolean;
+          label_print_count: number;
+          tests: {
+            test_id: string;
+            test_code: string;
+          }[];
+        })[];
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      409: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      422: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      428: {
         type: string;
         title: string;
         status: number;
@@ -1264,6 +5609,134 @@ export interface Operations {
         }[];
       };
       403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      422: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  createBillingExport: {
+    params: Record<string, never>;
+    query: Record<string, never>;
+    headers: {
+      "Idempotency-Key": string;
+    };
+    body: {
+      kind: "sales_register" | "cancelled_invoices" | "credit_notes" | "audit_trail" | "daily_cash" | "invoice_documents";
+      format: "xlsx" | "xml" | "pdf";
+      filters: {
+        fiscal_year_bs?: string;
+        from?: string;
+        to?: string;
+        centre_id?: string;
+        actor_membership_id?: string;
+      };
+    };
+    responses: {
+      202: ({
+        id: string;
+        kind: "sales_register" | "cancelled_invoices" | "credit_notes" | "audit_trail" | "daily_cash" | "invoice_documents";
+        format: "xlsx" | "xml" | "pdf";
+        status: "queued" | "running" | "ready" | "failed" | "expired";
+        row_count?: number;
+        created_at: string;
+        completed_at?: string;
+        expires_at?: string;
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
         type: string;
         title: string;
         status: number;
@@ -2102,6 +6575,134 @@ export interface Operations {
         }[];
       };
       409: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      422: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  createDeltaCheckRule: {
+    params: Record<string, never>;
+    query: Record<string, never>;
+    headers: {
+      "Idempotency-Key": string;
+    };
+    body: {
+      analyte_id: string;
+      window_seconds: number;
+      abs_threshold?: string;
+      pct_threshold?: string;
+      unit_code: string;
+      effective_from?: string;
+    };
+    responses: {
+      201: {
+        id: string;
+        version: number;
+        analyte_id: string;
+        rule_version: number;
+        window_seconds: number;
+        abs_threshold?: string;
+        pct_threshold?: string;
+        unit_code: string;
+        effective_from: string;
+        effective_to?: string;
+        is_active: boolean;
+      };
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
         type: string;
         title: string;
         status: number;
@@ -3226,6 +7827,339 @@ export interface Operations {
       };
     };
   };
+  createPatient: {
+    params: Record<string, never>;
+    query: Record<string, never>;
+    headers: {
+      "Idempotency-Key": string;
+    };
+    body: {
+      full_name: string;
+      sex: "male" | "female" | "other" | "unknown";
+      birth_on?: string;
+      age?: {
+        years: number;
+        months?: number;
+        days?: number;
+      };
+      phone_e164?: string;
+      email?: string;
+      address_text?: string;
+      consents: {
+        processing: boolean;
+        sms: boolean;
+        whatsapp: boolean;
+        email: boolean;
+        share_with_referrer: boolean;
+        consent_text_version: string;
+      };
+      duplicate_override?: {
+        reason_code: string;
+      };
+    };
+    responses: {
+      201: ({
+        id: string;
+        patient_code: string;
+        full_name: string;
+        sex: "male" | "female" | "other" | "unknown";
+        age_display: string;
+        phone_masked: string;
+        last_visit_at?: string;
+        is_anonymised: boolean;
+        birth_on?: string;
+        is_birth_on_estimated: boolean;
+        phone_e164?: string;
+        email?: string;
+        address_text?: string;
+        consents: {
+          processing: boolean;
+          sms: boolean;
+          whatsapp: boolean;
+          email: boolean;
+          share_with_referrer: boolean;
+          consent_text_version: string;
+        };
+        version: number;
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      409: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      422: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  createPaymentIntent: {
+    params: {
+      order_id: string;
+    };
+    query: Record<string, never>;
+    headers: {
+      "Idempotency-Key": string;
+    };
+    body: {
+      gateway: "esewa" | "khalti" | "fonepay";
+    };
+    responses: {
+      201: ({
+        intent_id: string;
+        gateway: "esewa" | "khalti" | "fonepay";
+        amount: {
+          amount_paisa: number;
+          currency: "NPR";
+        };
+        action: ({
+          kind: "form_post";
+          url: string;
+          fields: {
+            name: string;
+            value: string;
+          }[];
+          launch_url?: string;
+        } | {
+          kind: "redirect";
+          url: string;
+        } | {
+          kind: "qr";
+          qr_payload: string;
+        });
+        expires_at?: string;
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      409: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      422: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      503: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
   createPlatformIrdAnnex: {
     params: Record<string, never>;
     query: Record<string, never>;
@@ -3746,6 +8680,614 @@ export interface Operations {
         }[];
       };
       409: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      422: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  createRegistration: {
+    params: Record<string, never>;
+    query: Record<string, never>;
+    headers: {
+      "Idempotency-Key": string;
+    };
+    body: {
+      patient: ({
+        patient_id: string;
+      } | {
+        new_patient: {
+          full_name: string;
+          sex: "male" | "female" | "other" | "unknown";
+          birth_on?: string;
+          age?: {
+            years: number;
+            months?: number;
+            days?: number;
+          };
+          phone_e164?: string;
+          email?: string;
+          address_text?: string;
+          consents: {
+            processing: boolean;
+            sms: boolean;
+            whatsapp: boolean;
+            email: boolean;
+            share_with_referrer: boolean;
+            consent_text_version: string;
+          };
+          duplicate_override?: {
+            reason_code: string;
+          };
+        };
+      });
+      centre_id: string;
+      visit_type: "opd" | "ipd";
+      billing_mode: "cash" | "credit";
+      credit_party_id?: string;
+      referrer_id?: string;
+      priority?: "routine" | "urgent";
+      collection_mode?: "walk_in" | "home" | "centre" | "partner";
+      items: ({
+        orderable_id: string;
+        priority?: "routine" | "urgent";
+      })[];
+      discounts?: ({
+        scope: "line" | "bill";
+        orderable_id?: string;
+        kind: "amount" | "percent";
+        amount_paisa?: number;
+        percent_bp?: number;
+        reason_code: string;
+        reason_text?: string;
+      })[];
+      buyer_pan?: string;
+      quote_fingerprint: string;
+      payments: {
+        method_code: string;
+        amount_received_paisa: number;
+        reference?: string;
+        tendered_paisa?: number;
+      }[];
+      trf_attachment_ids?: string[];
+      discount_approval_id?: string;
+    };
+    responses: {
+      201: ({
+        order: {
+          id: string;
+          registration_no: string;
+          patient: {
+            id: string;
+            patient_code: string;
+            full_name: string;
+            sex: "male" | "female" | "other" | "unknown";
+            age_at_order: string;
+          };
+          branch_id: string;
+          centre_id: string;
+          visit_type: "opd" | "ipd";
+          billing_mode: "cash" | "credit";
+          credit_party_id?: string;
+          referrer_id?: string;
+          priority: "routine" | "urgent";
+          collection_mode: "walk_in" | "home" | "centre" | "partner";
+          source: string;
+          source_ref_id?: string;
+          status: "pre_registered" | "registered" | "in_progress" | "completed" | "cancelled";
+          items: ({
+            id: string;
+            orderable_id: string;
+            orderable_kind: "test" | "panel";
+            code: string;
+            name: string;
+            priority: "routine" | "urgent";
+            status: string;
+            unit_price: {
+              amount_paisa: number;
+              currency: "NPR";
+            };
+            urgent_surcharge?: {
+              amount_paisa: number;
+              currency: "NPR";
+            };
+            outsourced: boolean;
+          })[];
+          discounts: ({
+            scope: "line" | "bill";
+            orderable_id?: string;
+            kind: "amount" | "percent";
+            amount_paisa?: number;
+            percent_bp?: number;
+            reason_code: string;
+            reason_text?: string;
+          })[];
+          trf_attachments: ({
+            id: string;
+            order_id?: string;
+            mime_type: "image/jpeg" | "image/png" | "application/pdf";
+            size_bytes: number;
+            scan_state: "pending" | "clean" | "quarantined" | "failed";
+            uploaded_at: string;
+            uploaded_by: {
+              membership_id: string;
+              display_name: string;
+            };
+            original_filename: string;
+          })[];
+          flags: ({
+            id: string;
+            order_id: string;
+            kind: "recollection_required" | "booking_cancelled_after_registration";
+            status: "open" | "resolved";
+            specimen_id?: string;
+            created_at: string;
+            resolved_at?: string;
+            resolved_by?: {
+              membership_id: string;
+              display_name: string;
+            };
+            resolution_code?: string;
+            version: number;
+          })[];
+          requires_credit_note: boolean;
+          registered_at?: string;
+          cancelled_at?: string;
+          cancel_reason_code?: string;
+          billing?: {
+            order_id: string;
+            invoiced: {
+              amount_paisa: number;
+              currency: "NPR";
+            };
+            paid: {
+              amount_paisa: number;
+              currency: "NPR";
+            };
+            credited: {
+              amount_paisa: number;
+              currency: "NPR";
+            };
+            balance_due: {
+              amount_paisa: number;
+              currency: "NPR";
+            };
+            balance_version: number;
+            as_of: string;
+          };
+          version: number;
+        };
+        invoice?: {
+          id: string;
+          invoice_no: string;
+          invoice_seq: number;
+          series: string;
+          fiscal_year_bs: string;
+          invoice_kind: string;
+          status: string;
+          is_active: boolean;
+          issued_at: string;
+          invoice_date_bs: string;
+          branch_id: string;
+          centre_id?: string;
+          order_id?: string;
+          credit_party_id?: string;
+          is_periodic_credit_bill: boolean;
+          referrer_id?: string;
+          buyer: {
+            name: string;
+            pan?: string;
+            address?: string;
+          };
+          seller: {
+            name: string;
+            pan?: string;
+            address?: string;
+          };
+          lines: {
+            id: string;
+            line_no: number;
+            line_kind: string;
+            orderable_id?: string;
+            code: string;
+            name: string;
+            department_id?: string;
+            hs_code?: string;
+            quantity: number;
+            unit_price: {
+              amount_paisa: number;
+              currency: "NPR";
+            };
+            gross: {
+              amount_paisa: number;
+              currency: "NPR";
+            };
+            discount: {
+              amount_paisa: number;
+              currency: "NPR";
+            };
+            exempt: {
+              amount_paisa: number;
+              currency: "NPR";
+            };
+            taxable: {
+              amount_paisa: number;
+              currency: "NPR";
+            };
+            vat: {
+              amount_paisa: number;
+              currency: "NPR";
+            };
+            other_tax: {
+              amount_paisa: number;
+              currency: "NPR";
+            };
+            other_tax_code?: string;
+            net: {
+              amount_paisa: number;
+              currency: "NPR";
+            };
+            credited: {
+              amount_paisa: number;
+              currency: "NPR";
+            };
+          }[];
+          totals: {
+            gross: {
+              amount_paisa: number;
+              currency: "NPR";
+            };
+            discount: {
+              amount_paisa: number;
+              currency: "NPR";
+            };
+            exempt: {
+              amount_paisa: number;
+              currency: "NPR";
+            };
+            taxable: {
+              amount_paisa: number;
+              currency: "NPR";
+            };
+            vat: {
+              amount_paisa: number;
+              currency: "NPR";
+            };
+            other_tax: {
+              amount_paisa: number;
+              currency: "NPR";
+            };
+            net: {
+              amount_paisa: number;
+              currency: "NPR";
+            };
+          };
+          credited_total: {
+            amount_paisa: number;
+            currency: "NPR";
+          };
+          cancellation?: {
+            cancelled_at: string;
+            cancelled_by_display: string;
+            reason_code: string;
+            reason_text?: string;
+            credit_note_id: string;
+            credit_note_no: string;
+          };
+          print_count: number;
+          last_printed_at?: string;
+          cbms_state: string;
+          cbms_cancel_state?: string;
+          version: number;
+        };
+        credit_charges?: {
+          id: string;
+          credit_party_id: string;
+          order_id?: string;
+          invoice_id?: string;
+          amount: {
+            amount_paisa: number;
+            currency: "NPR";
+          };
+          period_month: string;
+          status: string;
+          created_at: string;
+        }[];
+        ledger_entries: ({
+          id: string;
+          entry_kind: "payment" | "reversal" | "refund";
+          capture_kind: "manual" | "gateway" | "home_collection";
+          order_id?: string;
+          invoice_id?: string;
+          credit_party_id?: string;
+          method_code: string;
+          amount: {
+            amount_paisa: number;
+            currency: "NPR";
+          };
+          reference_masked?: string;
+          receipt_no?: string;
+          reverses_entry_id?: string;
+          collected_by?: {
+            membership_id: string;
+            display_name: string;
+          };
+          cash_session_id?: string;
+          created_at: string;
+          business_date_bs: string;
+        })[];
+        balance: {
+          order_id: string;
+          invoiced: {
+            amount_paisa: number;
+            currency: "NPR";
+          };
+          paid: {
+            amount_paisa: number;
+            currency: "NPR";
+          };
+          credited: {
+            amount_paisa: number;
+            currency: "NPR";
+          };
+          balance_due: {
+            amount_paisa: number;
+            currency: "NPR";
+          };
+          balance_version: number;
+          as_of: string;
+        };
+        print: {
+          invoice_id?: string;
+          receipt_ledger_entry_ids: string[];
+        };
+        notifications: {
+          registration_sms: "queued" | "suppressed_no_consent" | "suppressed_no_contact" | "suppressed_channel_disabled" | "not_attempted";
+        };
+        label_print: {
+          autoprint: boolean;
+        };
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      409: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      422: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      503: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  createReleaseOverride: {
+    params: {
+      order_id: string;
+    };
+    query: Record<string, never>;
+    headers: {
+      "Idempotency-Key": string;
+    };
+    body: {
+      reason_code: string;
+      reason_text?: string;
+      expires_at?: string;
+    };
+    responses: {
+      201: {
+        override_id: string;
+        created_at: string;
+      };
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
         type: string;
         title: string;
         status: number;
@@ -4974,6 +10516,135 @@ export interface Operations {
       };
     };
   };
+  createWorksheet: {
+    params: Record<string, never>;
+    query: Record<string, never>;
+    headers: {
+      "Idempotency-Key": string;
+    };
+    body: {
+      title: string;
+      centre_id?: string;
+      department_id?: string;
+      instrument_id?: string;
+      order_test_ids: string[];
+    };
+    responses: {
+      201: {
+        id: string;
+        title: string;
+        centre_id: string;
+        processing_centre_id?: string;
+        department_id?: string;
+        instrument_id?: string;
+        created_at: string;
+        rows: {
+          order_test_id: string;
+          position: number;
+          barcode?: string;
+          test_code: string;
+        }[];
+      };
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      422: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
   deactivateBranch: {
     params: {
       branch_id: string;
@@ -5129,6 +10800,143 @@ export interface Operations {
         is_active: boolean;
         version: number;
       });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      409: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      428: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  deactivateDeltaCheckRule: {
+    params: {
+      rule_id: string;
+    };
+    query: Record<string, never>;
+    headers: {
+      "If-Match": string;
+    };
+    body: Record<string, never>;
+    responses: {
+      200: {
+        id: string;
+        version: number;
+        analyte_id: string;
+        rule_version: number;
+        window_seconds: number;
+        abs_threshold?: string;
+        pct_threshold?: string;
+        unit_code: string;
+        effective_from: string;
+        effective_to?: string;
+        is_active: boolean;
+      };
       400: {
         type: string;
         title: string;
@@ -6369,6 +12177,116 @@ export interface Operations {
       };
     };
   };
+  discardIngestException: {
+    params: {
+      exception_id: string;
+    };
+    query: Record<string, never>;
+    headers: Record<string, never>;
+    body: {
+      reason_code: string;
+      comment?: string;
+    };
+    responses: {
+      200: ({
+        id: string;
+        status: "open" | "resolved" | "discarded";
+        reason: "unmapped_code" | "unknown_barcode" | "specimen_rejected" | "specimen_not_received" | "analyte_not_ordered" | "result_locked" | "result_already_verified" | "unit_mismatch";
+        instrument_id?: string;
+        result_key: string;
+        sample_barcode?: string;
+        instrument_analyte_code?: string;
+        result_id?: string;
+        created_at: string;
+        resolved_at?: string;
+        resolution?: string;
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
   discardPriceListVersionDraft: {
     params: {
       price_list_version_id: string;
@@ -6544,6 +12462,159 @@ export interface Operations {
           sort_order: number;
         })[];
         version: number;
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      409: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      428: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  discardSpecimen: {
+    params: {
+      specimen_id: string;
+    };
+    query: Record<string, never>;
+    headers: {
+      "If-Match": string;
+    };
+    body: {
+      discard_reason: string;
+    };
+    responses: {
+      200: ({
+        id: string;
+        version: number;
+        barcode: string;
+        order_id: string;
+        registration_no: string;
+        specimen_type_code: string;
+        container_code?: string;
+        status: "ordered" | "collected" | "in_transit" | "received" | "aliquoted" | "in_process" | "resulted" | "verified" | "approved" | "reported" | "rejected" | "recollection_ordered" | "stored" | "discarded";
+        priority: string;
+        centre_id: string;
+        processing_centre_id?: string;
+        parent_specimen_id?: string;
+        replaces_specimen_id?: string;
+        is_active: boolean;
+        collected_at?: string;
+        in_transit_at?: string;
+        received_at?: string;
+        rejected_at?: string;
+        rejection_reason_code?: string;
+        collection_barcode_unverified: boolean;
+        label_print_count: number;
+        tests: {
+          test_id: string;
+          test_code: string;
+        }[];
       });
       400: {
         type: string;
@@ -7808,6 +13879,117 @@ export interface Operations {
       };
     };
   };
+  getAnalyteTrend: {
+    params: {
+      patient_id: string;
+      analyte_id: string;
+    };
+    query: {
+      limit?: number;
+    };
+    headers: Record<string, never>;
+    body: never;
+    responses: {
+      200: ({
+        points: ({
+          result_id: string;
+          at: string;
+          value: string;
+          unit_code?: string;
+          flag?: "LL" | "L" | "N" | "H" | "HH" | "A";
+        })[];
+        reference_band?: {
+          low?: string;
+          high?: string;
+          unit_code: string;
+        };
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
   getAuditEntry: {
     params: {
       audit_id: string;
@@ -8032,6 +14214,438 @@ export interface Operations {
       };
     };
   };
+  getAuditTrail: {
+    params: Record<string, never>;
+    query: {
+      actor_membership_id?: string;
+      action?: string;
+      occurred_at_from?: string;
+      occurred_at_to?: string;
+      cursor?: string;
+      limit?: number;
+    };
+    headers: Record<string, never>;
+    body: never;
+    responses: {
+      200: {
+        data: {
+          occurred_at: string;
+          actor: {
+            membership_id: string;
+            display_name: string;
+          };
+          action: string;
+          entity_type: string;
+          entity_id?: string;
+          summary?: string;
+        }[];
+        page: {
+          next_cursor?: string;
+          limit: number;
+        };
+      };
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  getBillingExport: {
+    params: {
+      export_id: string;
+    };
+    query: Record<string, never>;
+    headers: Record<string, never>;
+    body: never;
+    responses: {
+      200: ({
+        id: string;
+        kind: "sales_register" | "cancelled_invoices" | "credit_notes" | "audit_trail" | "daily_cash" | "invoice_documents";
+        format: "xlsx" | "xml" | "pdf";
+        status: "queued" | "running" | "ready" | "failed" | "expired";
+        row_count?: number;
+        created_at: string;
+        completed_at?: string;
+        expires_at?: string;
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  getBillingExportContent: {
+    params: {
+      export_id: string;
+    };
+    query: Record<string, never>;
+    headers: Record<string, never>;
+    body: never;
+    responses: {
+      200: string | string | string;
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      409: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  getBillingSettings: {
+    params: Record<string, never>;
+    query: Record<string, never>;
+    headers: Record<string, never>;
+    body: never;
+    responses: {
+      200: ({
+        invoice_series_scope: "tenant" | "branch";
+        prices_include_tax: boolean;
+        abbreviated_invoice_enabled: boolean;
+        pay_by_qr_enabled: boolean;
+        receipt_no_enabled: boolean;
+        credit_days_auto_lock: boolean;
+        cash_variance_alert_paisa: number;
+        refund_alert_per_day: number;
+        version?: number;
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
   getBrandingAssetContent: {
     params: {
       asset_id: string;
@@ -8098,6 +14712,125 @@ export interface Operations {
         }[];
       };
       422: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  getCancelledInvoiceRegister: {
+    params: Record<string, never>;
+    query: {
+      fiscal_year_bs?: string;
+      issued_at_from?: string;
+      issued_at_to?: string;
+      centre_id?: string;
+      cursor?: string;
+      limit?: number;
+    };
+    headers: Record<string, never>;
+    body: never;
+    responses: {
+      200: {
+        data: {
+          sn: number;
+          cancelled_date_bs: string;
+          cancelled_date_ad: string;
+          invoice_no: string;
+          credit_note_no: string;
+          buyer_name: string;
+          buyer_pan?: string;
+          total: {
+            amount_paisa: number;
+            currency: "NPR";
+          };
+          reason_code: string;
+        }[];
+        page: {
+          next_cursor?: string;
+          limit: number;
+        };
+      };
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
         type: string;
         title: string;
         status: number;
@@ -8338,6 +15071,389 @@ export interface Operations {
       };
     };
   };
+  getCreditAccount: {
+    params: {
+      credit_party_id: string;
+    };
+    query: Record<string, never>;
+    headers: Record<string, never>;
+    body: never;
+    responses: {
+      200: {
+        id: string;
+        name: string;
+        credit_limit_paisa?: number;
+        credit_days?: number;
+        is_locked: boolean;
+        lock_reason_code?: string;
+        outstanding: {
+          amount_paisa: number;
+          currency: "NPR";
+        };
+        version: number;
+      };
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  getCreditNote: {
+    params: {
+      credit_note_id: string;
+    };
+    query: Record<string, never>;
+    headers: Record<string, never>;
+    body: never;
+    responses: {
+      200: ({
+        id: string;
+        credit_note_no: string;
+        credit_note_seq: number;
+        kind: "cancellation" | "partial";
+        invoice_id: string;
+        invoice_no: string;
+        fiscal_year_bs: string;
+        issued_at: string;
+        credit_note_date_bs: string;
+        centre_id?: string;
+        reason_code: string;
+        reason_text?: string;
+        lines: {
+          invoice_line_id: string;
+          amount: {
+            amount_paisa: number;
+            currency: "NPR";
+          };
+        }[];
+        totals: {
+          exempt: {
+            amount_paisa: number;
+            currency: "NPR";
+          };
+          taxable: {
+            amount_paisa: number;
+            currency: "NPR";
+          };
+          vat: {
+            amount_paisa: number;
+            currency: "NPR";
+          };
+          other_tax: {
+            amount_paisa: number;
+            currency: "NPR";
+          };
+          net: {
+            amount_paisa: number;
+            currency: "NPR";
+          };
+        };
+        print_count: number;
+        cbms_state: string;
+        version: number;
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  getCreditNoteRegister: {
+    params: Record<string, never>;
+    query: {
+      fiscal_year_bs?: string;
+      issued_at_from?: string;
+      issued_at_to?: string;
+      centre_id?: string;
+      cursor?: string;
+      limit?: number;
+    };
+    headers: Record<string, never>;
+    body: never;
+    responses: {
+      200: ({
+        data: ({
+          sn: number;
+          credit_note_date_bs: string;
+          credit_note_date_ad: string;
+          credit_note_no: string;
+          kind: "cancellation" | "partial";
+          invoice_no: string;
+          buyer_name: string;
+          buyer_pan?: string;
+          reason_code: string;
+          exempt: {
+            amount_paisa: number;
+            currency: "NPR";
+          };
+          taxable: {
+            amount_paisa: number;
+            currency: "NPR";
+          };
+          vat: {
+            amount_paisa: number;
+            currency: "NPR";
+          };
+          other_tax: {
+            amount_paisa: number;
+            currency: "NPR";
+          };
+          net: {
+            amount_paisa: number;
+            currency: "NPR";
+          };
+        })[];
+        page: {
+          next_cursor?: string;
+          limit: number;
+        };
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
   getCreditParty: {
     params: {
       credit_party_id: string;
@@ -8403,6 +15519,139 @@ export interface Operations {
         }[];
       };
       404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  getCreditPartyStatement: {
+    params: {
+      credit_party_id: string;
+    };
+    query: {
+      from_month?: string;
+      to_month?: string;
+    };
+    headers: Record<string, never>;
+    body: never;
+    responses: {
+      200: {
+        rows: {
+          period_month: string;
+          fiscal_year_bs: string;
+          invoiced: {
+            amount_paisa: number;
+            currency: "NPR";
+          };
+          paid: {
+            amount_paisa: number;
+            currency: "NPR";
+          };
+          credited: {
+            amount_paisa: number;
+            currency: "NPR";
+          };
+          closing_balance: {
+            amount_paisa: number;
+            currency: "NPR";
+          };
+        }[];
+      };
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      422: {
         type: string;
         title: string;
         status: number;
@@ -8567,6 +15816,294 @@ export interface Operations {
       };
     };
   };
+  getCriticalValue: {
+    params: {
+      critical_event_id: string;
+    };
+    query: Record<string, never>;
+    headers: Record<string, never>;
+    body: never;
+    responses: {
+      200: ({
+        id: string;
+        result_id: string;
+        order_id: string;
+        analyte_code: string;
+        value: string;
+        unit_code?: string;
+        flag?: "LL" | "L" | "N" | "H" | "HH" | "A";
+        direction: "low" | "high" | "abnormal";
+        status: "open" | "notified" | "closed";
+        detected_at: string;
+        first_confirmed_notification_at?: string;
+        closed_at?: string;
+        value_changed_after_detection: boolean;
+        centre_id?: string;
+        notifications: ({
+          id: string;
+          critical_event_id: string;
+          notified_party_kind: "referrer" | "clinician" | "ward" | "patient" | "other";
+          notified_party_name: string;
+          contact_method: "phone" | "sms" | "in_person" | "whatsapp" | "other";
+          contact_detail?: string;
+          notified_at: string;
+          outcome: "reached" | "not_reached" | "left_message";
+          read_back_confirmed: boolean;
+          read_back_text?: string;
+          comment?: string;
+          recorded_at: string;
+        })[];
+        referrer_display_name?: string;
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  getDailyCash: {
+    params: Record<string, never>;
+    query: {
+      business_date?: string;
+      centre_id?: string;
+      collected_by_membership_id?: string;
+    };
+    headers: Record<string, never>;
+    body: never;
+    responses: {
+      200: ({
+        business_date: string;
+        business_date_bs: string;
+        rows: {
+          collected_by: {
+            membership_id: string;
+            display_name: string;
+          };
+          method_code: string;
+          entries: number;
+          reversals: number;
+          gross: {
+            amount_paisa: number;
+            currency: "NPR";
+          };
+          reversed: {
+            amount_paisa: number;
+            currency: "NPR";
+          };
+          net: {
+            amount_paisa: number;
+            currency: "NPR";
+          };
+        }[];
+        totals: {
+          gross: {
+            amount_paisa: number;
+            currency: "NPR";
+          };
+          reversed: {
+            amount_paisa: number;
+            currency: "NPR";
+          };
+          net: {
+            amount_paisa: number;
+            currency: "NPR";
+          };
+        };
+        sessions: ({
+          id: string;
+          opened_by: {
+            membership_id: string;
+            display_name: string;
+          };
+          centre_id: string;
+          status: "open" | "closed";
+          opened_at: string;
+          closed_at?: string;
+          rows: {
+            method_code: string;
+            expected: {
+              amount_paisa: number;
+              currency: "NPR";
+            };
+            counted?: {
+              amount_paisa: number;
+              currency: "NPR";
+            };
+            variance?: {
+              amount_paisa: number;
+              currency: "NPR";
+            };
+          }[];
+          note?: string;
+          version: number;
+        })[];
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
   getDeadLetter: {
     params: {
       dead_letter_id: string;
@@ -8588,6 +16125,138 @@ export interface Operations {
         resolved_by?: string;
         resolved_at?: string;
         resolution_note?: string;
+        version: number;
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  getDiscountApproval: {
+    params: {
+      approval_id: string;
+    };
+    query: Record<string, never>;
+    headers: Record<string, never>;
+    body: never;
+    responses: {
+      200: ({
+        id: string;
+        status: "pending" | "approved" | "rejected" | "expired" | "consumed";
+        centre_id: string;
+        requested_by: {
+          membership_id: string;
+          display_name: string;
+        };
+        discounts: ({
+          scope: "line" | "bill";
+          orderable_id?: string;
+          kind: "amount" | "percent";
+          amount_paisa?: number;
+          percent_bp?: number;
+          reason_code: string;
+          reason_text?: string;
+        })[];
+        computed_discount: {
+          amount_paisa: number;
+          currency: "NPR";
+        };
+        gross: {
+          amount_paisa: number;
+          currency: "NPR";
+        };
+        percent_of_gross_bp: number;
+        reason_code: string;
+        reason_text?: string;
+        decided_by?: {
+          membership_id: string;
+          display_name: string;
+        };
+        decided_at?: string;
+        note?: string;
+        expires_at: string;
+        consumed_order_id?: string;
         version: number;
       });
       400: {
@@ -8890,6 +16559,110 @@ export interface Operations {
       };
     };
   };
+  getFrontdeskSettings: {
+    params: Record<string, never>;
+    query: Record<string, never>;
+    headers: Record<string, never>;
+    body: never;
+    responses: {
+      200: {
+        discount_self_limit_bp: number;
+        discount_self_limit_paisa: number;
+        discount_absolute_max_bp: number;
+        require_referrer: boolean;
+        consent_text_version: string;
+        registration_sms_enabled: boolean;
+        label_autoprint: boolean;
+        buyer_pan_pattern: string;
+        patient_search_min_chars: number;
+        version?: number;
+      };
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
   getImport: {
     params: {
       import_id: string;
@@ -8922,6 +16695,579 @@ export interface Operations {
         created_by: string;
         version: number;
       });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  getIngestException: {
+    params: {
+      exception_id: string;
+    };
+    query: Record<string, never>;
+    headers: Record<string, never>;
+    body: never;
+    responses: {
+      200: ({
+        id: string;
+        status: "open" | "resolved" | "discarded";
+        reason: "unmapped_code" | "unknown_barcode" | "specimen_rejected" | "specimen_not_received" | "analyte_not_ordered" | "result_locked" | "result_already_verified" | "unit_mismatch";
+        instrument_id?: string;
+        result_key: string;
+        sample_barcode?: string;
+        instrument_analyte_code?: string;
+        result_id?: string;
+        created_at: string;
+        resolved_at?: string;
+        resolution?: string;
+        raw_value?: string;
+        raw_flags?: string[];
+        unit_raw?: string;
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  getInvoice: {
+    params: {
+      invoice_id: string;
+    };
+    query: Record<string, never>;
+    headers: Record<string, never>;
+    body: never;
+    responses: {
+      200: ({
+        id: string;
+        invoice_no: string;
+        invoice_seq: number;
+        series: string;
+        fiscal_year_bs: string;
+        invoice_kind: string;
+        status: string;
+        is_active: boolean;
+        issued_at: string;
+        invoice_date_bs: string;
+        branch_id: string;
+        centre_id?: string;
+        order_id?: string;
+        credit_party_id?: string;
+        is_periodic_credit_bill: boolean;
+        referrer_id?: string;
+        buyer: {
+          name: string;
+          pan?: string;
+          address?: string;
+        };
+        seller: {
+          name: string;
+          pan?: string;
+          address?: string;
+        };
+        lines: {
+          id: string;
+          line_no: number;
+          line_kind: string;
+          orderable_id?: string;
+          code: string;
+          name: string;
+          department_id?: string;
+          hs_code?: string;
+          quantity: number;
+          unit_price: {
+            amount_paisa: number;
+            currency: "NPR";
+          };
+          gross: {
+            amount_paisa: number;
+            currency: "NPR";
+          };
+          discount: {
+            amount_paisa: number;
+            currency: "NPR";
+          };
+          exempt: {
+            amount_paisa: number;
+            currency: "NPR";
+          };
+          taxable: {
+            amount_paisa: number;
+            currency: "NPR";
+          };
+          vat: {
+            amount_paisa: number;
+            currency: "NPR";
+          };
+          other_tax: {
+            amount_paisa: number;
+            currency: "NPR";
+          };
+          other_tax_code?: string;
+          net: {
+            amount_paisa: number;
+            currency: "NPR";
+          };
+          credited: {
+            amount_paisa: number;
+            currency: "NPR";
+          };
+        }[];
+        totals: {
+          gross: {
+            amount_paisa: number;
+            currency: "NPR";
+          };
+          discount: {
+            amount_paisa: number;
+            currency: "NPR";
+          };
+          exempt: {
+            amount_paisa: number;
+            currency: "NPR";
+          };
+          taxable: {
+            amount_paisa: number;
+            currency: "NPR";
+          };
+          vat: {
+            amount_paisa: number;
+            currency: "NPR";
+          };
+          other_tax: {
+            amount_paisa: number;
+            currency: "NPR";
+          };
+          net: {
+            amount_paisa: number;
+            currency: "NPR";
+          };
+        };
+        credited_total: {
+          amount_paisa: number;
+          currency: "NPR";
+        };
+        cancellation?: {
+          cancelled_at: string;
+          cancelled_by_display: string;
+          reason_code: string;
+          reason_text?: string;
+          credit_note_id: string;
+          credit_note_no: string;
+        };
+        print_count: number;
+        last_printed_at?: string;
+        cbms_state: string;
+        cbms_cancel_state?: string;
+        version: number;
+        cbms_submissions: ({
+          document_kind: "invoice" | "invoice_cancellation";
+          attempt_no: number;
+          client_mode: string;
+          outcome: string;
+          submitted_at: string;
+        })[];
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  getLabOrder: {
+    params: {
+      order_id: string;
+    };
+    query: Record<string, never>;
+    headers: Record<string, never>;
+    body: never;
+    responses: {
+      200: ({
+        order_id: string;
+        registration_no: string;
+        specimens: ({
+          id: string;
+          version: number;
+          barcode: string;
+          order_id: string;
+          registration_no: string;
+          specimen_type_code: string;
+          container_code?: string;
+          status: "ordered" | "collected" | "in_transit" | "received" | "aliquoted" | "in_process" | "resulted" | "verified" | "approved" | "reported" | "rejected" | "recollection_ordered" | "stored" | "discarded";
+          priority: string;
+          centre_id: string;
+          processing_centre_id?: string;
+          parent_specimen_id?: string;
+          replaces_specimen_id?: string;
+          is_active: boolean;
+          collected_at?: string;
+          in_transit_at?: string;
+          received_at?: string;
+          rejected_at?: string;
+          rejection_reason_code?: string;
+          collection_barcode_unverified: boolean;
+          label_print_count: number;
+          tests: {
+            test_id: string;
+            test_code: string;
+          }[];
+        })[];
+        order_tests: ({
+          id: string;
+          order_item_id: string;
+          test_id: string;
+          test_code: string;
+          specimen_id?: string;
+          status: "awaiting_collection" | "awaiting_receipt" | "in_process" | "resulted" | "verified" | "approved" | "cancelled" | "excluded" | "outsourced";
+          priority: string;
+        })[];
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  getLabSettings: {
+    params: Record<string, never>;
+    query: Record<string, never>;
+    headers: Record<string, never>;
+    body: never;
+    responses: {
+      200: {
+        version: number;
+        label_width_mm: number;
+        label_height_mm: number;
+        label_copies_default: number;
+        label_renderer: "html_svg";
+        host_query_requires_received: boolean;
+        ingest_auto_receive: boolean;
+        critical_notification_blocks_approval: boolean;
+        recollection_default: boolean;
+        delta_check_enabled: boolean;
+        history_days: number;
+      };
       400: {
         type: string;
         title: string;
@@ -9131,6 +17477,630 @@ export interface Operations {
       };
     };
   };
+  getMyCashSession: {
+    params: Record<string, never>;
+    query: Record<string, never>;
+    headers: Record<string, never>;
+    body: never;
+    responses: {
+      200: ({
+        id: string;
+        opened_by: {
+          membership_id: string;
+          display_name: string;
+        };
+        centre_id: string;
+        status: "open" | "closed";
+        opened_at: string;
+        closed_at?: string;
+        rows: {
+          method_code: string;
+          expected: {
+            amount_paisa: number;
+            currency: "NPR";
+          };
+          counted?: {
+            amount_paisa: number;
+            currency: "NPR";
+          };
+          variance?: {
+            amount_paisa: number;
+            currency: "NPR";
+          };
+        }[];
+        note?: string;
+        version: number;
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  getOrder: {
+    params: {
+      order_id: string;
+    };
+    query: Record<string, never>;
+    headers: Record<string, never>;
+    body: never;
+    responses: {
+      200: ({
+        id: string;
+        registration_no: string;
+        patient: {
+          id: string;
+          patient_code: string;
+          full_name: string;
+          sex: "male" | "female" | "other" | "unknown";
+          age_at_order: string;
+        };
+        branch_id: string;
+        centre_id: string;
+        visit_type: "opd" | "ipd";
+        billing_mode: "cash" | "credit";
+        credit_party_id?: string;
+        referrer_id?: string;
+        priority: "routine" | "urgent";
+        collection_mode: "walk_in" | "home" | "centre" | "partner";
+        source: string;
+        source_ref_id?: string;
+        status: "pre_registered" | "registered" | "in_progress" | "completed" | "cancelled";
+        items: ({
+          id: string;
+          orderable_id: string;
+          orderable_kind: "test" | "panel";
+          code: string;
+          name: string;
+          priority: "routine" | "urgent";
+          status: string;
+          unit_price: {
+            amount_paisa: number;
+            currency: "NPR";
+          };
+          urgent_surcharge?: {
+            amount_paisa: number;
+            currency: "NPR";
+          };
+          outsourced: boolean;
+        })[];
+        discounts: ({
+          scope: "line" | "bill";
+          orderable_id?: string;
+          kind: "amount" | "percent";
+          amount_paisa?: number;
+          percent_bp?: number;
+          reason_code: string;
+          reason_text?: string;
+        })[];
+        trf_attachments: ({
+          id: string;
+          order_id?: string;
+          mime_type: "image/jpeg" | "image/png" | "application/pdf";
+          size_bytes: number;
+          scan_state: "pending" | "clean" | "quarantined" | "failed";
+          uploaded_at: string;
+          uploaded_by: {
+            membership_id: string;
+            display_name: string;
+          };
+          original_filename: string;
+        })[];
+        flags: ({
+          id: string;
+          order_id: string;
+          kind: "recollection_required" | "booking_cancelled_after_registration";
+          status: "open" | "resolved";
+          specimen_id?: string;
+          created_at: string;
+          resolved_at?: string;
+          resolved_by?: {
+            membership_id: string;
+            display_name: string;
+          };
+          resolution_code?: string;
+          version: number;
+        })[];
+        requires_credit_note: boolean;
+        registered_at?: string;
+        cancelled_at?: string;
+        cancel_reason_code?: string;
+        billing?: {
+          order_id: string;
+          invoiced: {
+            amount_paisa: number;
+            currency: "NPR";
+          };
+          paid: {
+            amount_paisa: number;
+            currency: "NPR";
+          };
+          credited: {
+            amount_paisa: number;
+            currency: "NPR";
+          };
+          balance_due: {
+            amount_paisa: number;
+            currency: "NPR";
+          };
+          balance_version: number;
+          as_of: string;
+        };
+        version: number;
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  getOrderBilling: {
+    params: {
+      order_id: string;
+    };
+    query: Record<string, never>;
+    headers: Record<string, never>;
+    body: never;
+    responses: {
+      200: ({
+        balance: {
+          order_id: string;
+          invoiced: {
+            amount_paisa: number;
+            currency: "NPR";
+          };
+          paid: {
+            amount_paisa: number;
+            currency: "NPR";
+          };
+          credited: {
+            amount_paisa: number;
+            currency: "NPR";
+          };
+          balance_due: {
+            amount_paisa: number;
+            currency: "NPR";
+          };
+          balance_version: number;
+          as_of: string;
+        };
+        eligibility: {
+          order_id: string;
+          eligible: boolean;
+          basis: "paid_in_full" | "zero_balance" | "credit_party" | "override" | "policy_not_enforced";
+          balance_due: {
+            amount_paisa: number;
+            currency: "NPR";
+          };
+          override_id?: string;
+          evaluated_at: string;
+        };
+        invoices: {
+          id: string;
+          invoice_no: string;
+          invoice_seq: number;
+          fiscal_year_bs: string;
+          invoice_kind: string;
+          status: string;
+          issued_at: string;
+          invoice_date_bs: string;
+          centre_id?: string;
+          order_id?: string;
+          credit_party_id?: string;
+          buyer_name: string;
+          net: {
+            amount_paisa: number;
+            currency: "NPR";
+          };
+          cbms_state: string;
+        }[];
+        credit_notes: ({
+          id: string;
+          credit_note_no: string;
+          credit_note_seq: number;
+          kind: "cancellation" | "partial";
+          invoice_id: string;
+          invoice_no: string;
+          fiscal_year_bs: string;
+          issued_at: string;
+          credit_note_date_bs: string;
+          centre_id?: string;
+          reason_code: string;
+          reason_text?: string;
+          lines: {
+            invoice_line_id: string;
+            amount: {
+              amount_paisa: number;
+              currency: "NPR";
+            };
+          }[];
+          totals: {
+            exempt: {
+              amount_paisa: number;
+              currency: "NPR";
+            };
+            taxable: {
+              amount_paisa: number;
+              currency: "NPR";
+            };
+            vat: {
+              amount_paisa: number;
+              currency: "NPR";
+            };
+            other_tax: {
+              amount_paisa: number;
+              currency: "NPR";
+            };
+            net: {
+              amount_paisa: number;
+              currency: "NPR";
+            };
+          };
+          print_count: number;
+          cbms_state: string;
+          version: number;
+        })[];
+        ledger_entries: ({
+          id: string;
+          entry_kind: "payment" | "reversal" | "refund";
+          capture_kind: "manual" | "gateway" | "home_collection";
+          order_id?: string;
+          invoice_id?: string;
+          credit_party_id?: string;
+          method_code: string;
+          amount: {
+            amount_paisa: number;
+            currency: "NPR";
+          };
+          reference_masked?: string;
+          receipt_no?: string;
+          reverses_entry_id?: string;
+          collected_by?: {
+            membership_id: string;
+            display_name: string;
+          };
+          cash_session_id?: string;
+          created_at: string;
+          business_date_bs: string;
+        })[];
+        credit_charges: {
+          id: string;
+          credit_party_id: string;
+          order_id?: string;
+          invoice_id?: string;
+          amount: {
+            amount_paisa: number;
+            currency: "NPR";
+          };
+          period_month: string;
+          status: string;
+          created_at: string;
+        }[];
+        open_credit_note_tasks: {
+          id: string;
+          order_id: string;
+          invoice_id: string;
+          invoice_line_ids: string[];
+          cause: string;
+          status: string;
+          created_at: string;
+        }[];
+        open_finance_review_items: ({
+          id: string;
+          order_id: string;
+          kind: string;
+          status: "open" | "resolved";
+          amount?: {
+            amount_paisa: number;
+            currency: "NPR";
+          };
+          ledger_entry_id?: string;
+          created_at: string;
+          resolved_at?: string;
+          resolved_by?: {
+            membership_id: string;
+            display_name: string;
+          };
+          resolution_code?: "refunded" | "kept_as_advance" | "other";
+          note?: string;
+          refund_ledger_entry_id?: string;
+          version: number;
+        })[];
+        refund_requests: ({
+          id: string;
+          order_id: string;
+          method_code: string;
+          refund_amount: {
+            amount_paisa: number;
+            currency: "NPR";
+          };
+          reason_code: string;
+          reason_text?: string;
+          reference_masked?: string;
+          status: "pending" | "approved" | "rejected";
+          requested_by: {
+            membership_id: string;
+            display_name: string;
+          };
+          requested_at: string;
+          decided_by?: {
+            membership_id: string;
+            display_name: string;
+          };
+          decided_at?: string;
+          note?: string;
+          ledger_entry?: {
+            id: string;
+            entry_kind: "payment" | "reversal" | "refund";
+            capture_kind: "manual" | "gateway" | "home_collection";
+            order_id?: string;
+            invoice_id?: string;
+            credit_party_id?: string;
+            method_code: string;
+            amount: {
+              amount_paisa: number;
+              currency: "NPR";
+            };
+            reference_masked?: string;
+            receipt_no?: string;
+            reverses_entry_id?: string;
+            collected_by?: {
+              membership_id: string;
+              display_name: string;
+            };
+            cash_session_id?: string;
+            created_at: string;
+            business_date_bs: string;
+          };
+          version: number;
+        })[];
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
   getPanelDetail: {
     params: {
       panel_id: string;
@@ -9157,6 +18127,124 @@ export interface Operations {
           orderable_id: string;
           sort_order: number;
         })[];
+        version: number;
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  getPatient: {
+    params: {
+      patient_id: string;
+    };
+    query: Record<string, never>;
+    headers: Record<string, never>;
+    body: never;
+    responses: {
+      200: ({
+        id: string;
+        patient_code: string;
+        full_name: string;
+        sex: "male" | "female" | "other" | "unknown";
+        age_display: string;
+        phone_masked: string;
+        last_visit_at?: string;
+        is_anonymised: boolean;
+        birth_on?: string;
+        is_birth_on_estimated: boolean;
+        phone_e164?: string;
+        email?: string;
+        address_text?: string;
+        consents: {
+          processing: boolean;
+          sms: boolean;
+          whatsapp: boolean;
+          email: boolean;
+          share_with_referrer: boolean;
+          consent_text_version: string;
+        };
         version: number;
       });
       400: {
@@ -9520,6 +18608,371 @@ export interface Operations {
       };
     };
   };
+  getReleaseEligibility: {
+    params: {
+      order_id: string;
+    };
+    query: Record<string, never>;
+    headers: Record<string, never>;
+    body: never;
+    responses: {
+      200: ({
+        order_id: string;
+        eligible: boolean;
+        basis: "paid_in_full" | "zero_balance" | "credit_party" | "override" | "policy_not_enforced";
+        balance_due: {
+          amount_paisa: number;
+          currency: "NPR";
+        };
+        override_id?: string;
+        evaluated_at: string;
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  getResult: {
+    params: {
+      result_id: string;
+    };
+    query: Record<string, never>;
+    headers: Record<string, never>;
+    body: never;
+    responses: {
+      200: ({
+        id: string;
+        version: number;
+        order_id: string;
+        order_item_id: string;
+        specimen_id?: string;
+        test_id: string;
+        analyte_id: string;
+        analyte_code: string;
+        status: "pending" | "resulted" | "verified" | "approved" | "cancelled";
+        origin: string;
+        value_numeric?: string;
+        value_text?: string;
+        ordinal_code?: string;
+        unit_code?: string;
+        flag?: "LL" | "L" | "N" | "H" | "HH" | "A";
+        reference_range_snapshot?: {
+          range_id?: string;
+          range_version?: number;
+          low?: string;
+          high?: string;
+          text?: string;
+          unit_code?: string;
+        };
+        range_unavailable_age_unknown: boolean;
+        delta?: {
+          status: string;
+          prev_value?: string;
+          abs?: string;
+          pct?: string;
+          prev_at?: string;
+        };
+        critical: {
+          is_critical: boolean;
+          critical_event_id?: string;
+        };
+        calc?: {
+          status: string;
+          reason?: string;
+          provenance?: string;
+        };
+        comment_codes?: string[];
+        comment_text?: string;
+        on_hold: boolean;
+        qc_review_required: boolean;
+        unit_mismatch: boolean;
+        instrument_id?: string;
+        instrument_flags?: string[];
+        current_version_no: number;
+        verified_at?: string;
+        verified_by?: string;
+        approved_at?: string;
+        approved_by?: string;
+        amendment?: {
+          reason_code: string;
+          reason_text?: string;
+          amended_at: string;
+          amended_by: string;
+        };
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  getResultHistory: {
+    params: {
+      result_id: string;
+    };
+    query: {
+      limit?: number;
+    };
+    headers: Record<string, never>;
+    body: never;
+    responses: {
+      200: ({
+        data: ({
+          result_id: string;
+          approved_at: string;
+          value: string;
+          unit_code?: string;
+          flag?: "LL" | "L" | "N" | "H" | "HH" | "A";
+          version_no: number;
+        })[];
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
   getRole: {
     params: {
       role_id: string;
@@ -9539,6 +18992,140 @@ export interface Operations {
         member_count: number;
         is_active: boolean;
         version: number;
+      };
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  getSalesRegister: {
+    params: Record<string, never>;
+    query: {
+      fiscal_year_bs?: string;
+      issued_at_from?: string;
+      issued_at_to?: string;
+      centre_id?: string;
+      cursor?: string;
+      limit?: number;
+    };
+    headers: Record<string, never>;
+    body: never;
+    responses: {
+      200: {
+        data: {
+          sn: number;
+          invoice_date_bs: string;
+          invoice_date_ad: string;
+          invoice_no: string;
+          buyer_name: string;
+          buyer_pan?: string;
+          total: {
+            amount_paisa: number;
+            currency: "NPR";
+          };
+          exempt: {
+            amount_paisa: number;
+            currency: "NPR";
+          };
+          taxable: {
+            amount_paisa: number;
+            currency: "NPR";
+          };
+          vat: {
+            amount_paisa: number;
+            currency: "NPR";
+          };
+          other_tax: {
+            amount_paisa: number;
+            currency: "NPR";
+          };
+          status: string;
+        }[];
+        page: {
+          next_cursor?: string;
+          limit: number;
+        };
       };
       400: {
         type: string;
@@ -9716,6 +19303,258 @@ export interface Operations {
         }[];
       };
       403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  getSpecimen: {
+    params: {
+      specimen_id: string;
+    };
+    query: Record<string, never>;
+    headers: Record<string, never>;
+    body: never;
+    responses: {
+      200: ({
+        id: string;
+        version: number;
+        barcode: string;
+        order_id: string;
+        registration_no: string;
+        specimen_type_code: string;
+        container_code?: string;
+        status: "ordered" | "collected" | "in_transit" | "received" | "aliquoted" | "in_process" | "resulted" | "verified" | "approved" | "reported" | "rejected" | "recollection_ordered" | "stored" | "discarded";
+        priority: string;
+        centre_id: string;
+        processing_centre_id?: string;
+        parent_specimen_id?: string;
+        replaces_specimen_id?: string;
+        is_active: boolean;
+        collected_at?: string;
+        in_transit_at?: string;
+        received_at?: string;
+        rejected_at?: string;
+        rejection_reason_code?: string;
+        collection_barcode_unverified: boolean;
+        label_print_count: number;
+        tests: {
+          test_id: string;
+          test_code: string;
+        }[];
+        rejection_comment?: string;
+        transitions: ({
+          from_status?: "ordered" | "collected" | "in_transit" | "received" | "aliquoted" | "in_process" | "resulted" | "verified" | "approved" | "reported" | "rejected" | "recollection_ordered" | "stored" | "discarded";
+          to_status: "ordered" | "collected" | "in_transit" | "received" | "aliquoted" | "in_process" | "resulted" | "verified" | "approved" | "reported" | "rejected" | "recollection_ordered" | "stored" | "discarded";
+          at: string;
+        })[];
+        results_summary: {
+          total: number;
+          resulted: number;
+          verified: number;
+          approved: number;
+        };
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  getStatusBoard: {
+    params: Record<string, never>;
+    query: {
+      centre_id?: string;
+      registered_at_from: string;
+      registered_at_to?: string;
+      board_status?: string;
+      cursor?: string;
+      limit?: number;
+    };
+    headers: Record<string, never>;
+    body: never;
+    responses: {
+      200: ({
+        data: ({
+          order_id: string;
+          registration_no: string;
+          patient_display: {
+            full_name: string;
+            age_sex: string;
+            patient_code: string;
+          };
+          centre_id: string;
+          board_status: "collected" | "in_lab" | "ready" | "printed" | "waiting";
+          rejected_specimens: number;
+          last_released_at?: string;
+          priority: string;
+        })[];
+        page: {
+          next_cursor?: string;
+          limit: number;
+        };
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
         type: string;
         title: string;
         status: number;
@@ -10184,6 +20023,222 @@ export interface Operations {
       };
     };
   };
+  getTrfAttachment: {
+    params: {
+      attachment_id: string;
+    };
+    query: Record<string, never>;
+    headers: Record<string, never>;
+    body: never;
+    responses: {
+      200: ({
+        id: string;
+        order_id?: string;
+        mime_type: "image/jpeg" | "image/png" | "application/pdf";
+        size_bytes: number;
+        scan_state: "pending" | "clean" | "quarantined" | "failed";
+        uploaded_at: string;
+        uploaded_by: {
+          membership_id: string;
+          display_name: string;
+        };
+        original_filename: string;
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  getTrfAttachmentContent: {
+    params: {
+      attachment_id: string;
+    };
+    query: Record<string, never>;
+    headers: Record<string, never>;
+    body: never;
+    responses: {
+      200: string | string | string;
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      422: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
   getUser: {
     params: {
       membership_id: string;
@@ -10225,6 +20280,115 @@ export interface Operations {
           expires_at: string;
         };
       });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  getWorksheet: {
+    params: {
+      worksheet_id: string;
+    };
+    query: Record<string, never>;
+    headers: Record<string, never>;
+    body: never;
+    responses: {
+      200: {
+        id: string;
+        title: string;
+        centre_id: string;
+        processing_centre_id?: string;
+        department_id?: string;
+        instrument_id?: string;
+        created_at: string;
+        rows: {
+          order_test_id: string;
+          position: number;
+          barcode?: string;
+          test_code: string;
+        }[];
+      };
       400: {
         type: string;
         title: string;
@@ -10702,6 +20866,477 @@ export interface Operations {
         }[];
       };
       500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  issuePartialCreditNote: {
+    params: {
+      invoice_id: string;
+    };
+    query: Record<string, never>;
+    headers: {
+      "Idempotency-Key": string;
+      "If-Match": string;
+    };
+    body: {
+      lines: {
+        invoice_line_id: string;
+        amount_paisa?: number;
+      }[];
+      reason_code: string;
+      reason_text?: string;
+      resolves_task_ids?: string[];
+    };
+    responses: {
+      201: ({
+        id: string;
+        credit_note_no: string;
+        credit_note_seq: number;
+        kind: "cancellation" | "partial";
+        invoice_id: string;
+        invoice_no: string;
+        fiscal_year_bs: string;
+        issued_at: string;
+        credit_note_date_bs: string;
+        centre_id?: string;
+        reason_code: string;
+        reason_text?: string;
+        lines: {
+          invoice_line_id: string;
+          amount: {
+            amount_paisa: number;
+            currency: "NPR";
+          };
+        }[];
+        totals: {
+          exempt: {
+            amount_paisa: number;
+            currency: "NPR";
+          };
+          taxable: {
+            amount_paisa: number;
+            currency: "NPR";
+          };
+          vat: {
+            amount_paisa: number;
+            currency: "NPR";
+          };
+          other_tax: {
+            amount_paisa: number;
+            currency: "NPR";
+          };
+          net: {
+            amount_paisa: number;
+            currency: "NPR";
+          };
+        };
+        print_count: number;
+        cbms_state: string;
+        version: number;
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      409: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      422: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      428: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      503: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  issuePeriodicInvoice: {
+    params: {
+      credit_party_id: string;
+    };
+    query: Record<string, never>;
+    headers: {
+      "Idempotency-Key": string;
+    };
+    body: {
+      period_month: string;
+      branch_id: string;
+    };
+    responses: {
+      201: {
+        id: string;
+        invoice_no: string;
+        invoice_seq: number;
+        series: string;
+        fiscal_year_bs: string;
+        invoice_kind: string;
+        status: string;
+        is_active: boolean;
+        issued_at: string;
+        invoice_date_bs: string;
+        branch_id: string;
+        centre_id?: string;
+        order_id?: string;
+        credit_party_id?: string;
+        is_periodic_credit_bill: boolean;
+        referrer_id?: string;
+        buyer: {
+          name: string;
+          pan?: string;
+          address?: string;
+        };
+        seller: {
+          name: string;
+          pan?: string;
+          address?: string;
+        };
+        lines: {
+          id: string;
+          line_no: number;
+          line_kind: string;
+          orderable_id?: string;
+          code: string;
+          name: string;
+          department_id?: string;
+          hs_code?: string;
+          quantity: number;
+          unit_price: {
+            amount_paisa: number;
+            currency: "NPR";
+          };
+          gross: {
+            amount_paisa: number;
+            currency: "NPR";
+          };
+          discount: {
+            amount_paisa: number;
+            currency: "NPR";
+          };
+          exempt: {
+            amount_paisa: number;
+            currency: "NPR";
+          };
+          taxable: {
+            amount_paisa: number;
+            currency: "NPR";
+          };
+          vat: {
+            amount_paisa: number;
+            currency: "NPR";
+          };
+          other_tax: {
+            amount_paisa: number;
+            currency: "NPR";
+          };
+          other_tax_code?: string;
+          net: {
+            amount_paisa: number;
+            currency: "NPR";
+          };
+          credited: {
+            amount_paisa: number;
+            currency: "NPR";
+          };
+        }[];
+        totals: {
+          gross: {
+            amount_paisa: number;
+            currency: "NPR";
+          };
+          discount: {
+            amount_paisa: number;
+            currency: "NPR";
+          };
+          exempt: {
+            amount_paisa: number;
+            currency: "NPR";
+          };
+          taxable: {
+            amount_paisa: number;
+            currency: "NPR";
+          };
+          vat: {
+            amount_paisa: number;
+            currency: "NPR";
+          };
+          other_tax: {
+            amount_paisa: number;
+            currency: "NPR";
+          };
+          net: {
+            amount_paisa: number;
+            currency: "NPR";
+          };
+        };
+        credited_total: {
+          amount_paisa: number;
+          currency: "NPR";
+        };
+        cancellation?: {
+          cancelled_at: string;
+          cancelled_by_display: string;
+          reason_code: string;
+          reason_text?: string;
+          credit_note_id: string;
+          credit_note_no: string;
+        };
+        print_count: number;
+        last_printed_at?: string;
+        cbms_state: string;
+        cbms_cancel_state?: string;
+        version: number;
+      };
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      409: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      422: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      503: {
         type: string;
         title: string;
         status: number;
@@ -11328,6 +21963,107 @@ export interface Operations {
       };
     };
   };
+  listBillingCodes: {
+    params: {
+      set_name: "payment_methods" | "invoice_cancel_reasons" | "reversal_reasons" | "refund_reasons" | "override_reasons" | "cash_variance_reasons" | "lock_reasons";
+    };
+    query: Record<string, never>;
+    headers: Record<string, never>;
+    body: never;
+    responses: {
+      200: {
+        data: {
+          code: string;
+          display: string;
+          sort_order: number;
+        }[];
+      };
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
   listBranches: {
     params: Record<string, never>;
     query: {
@@ -11377,6 +22113,118 @@ export interface Operations {
         }[];
       };
       403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  listCbmsDocuments: {
+    params: Record<string, never>;
+    query: {
+      state?: string;
+      document_kind?: "invoice" | "invoice_cancellation" | "credit_note";
+      cursor?: string;
+      limit?: number;
+    };
+    headers: Record<string, never>;
+    body: never;
+    responses: {
+      200: ({
+        data: ({
+          document_kind: "invoice" | "invoice_cancellation" | "credit_note";
+          document_id: string;
+          document_no: string;
+          cbms_state: string;
+          attempts: number;
+          last_attempt_at?: string;
+          last_outcome?: string;
+        })[];
+        page: {
+          next_cursor?: string;
+          limit: number;
+        };
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
         type: string;
         title: string;
         status: number;
@@ -11742,6 +22590,498 @@ export interface Operations {
       };
     };
   };
+  listCreditAccounts: {
+    params: Record<string, never>;
+    query: {
+      cursor?: string;
+      limit?: number;
+    };
+    headers: Record<string, never>;
+    body: never;
+    responses: {
+      200: {
+        data: {
+          id: string;
+          name: string;
+          credit_limit_paisa?: number;
+          credit_days?: number;
+          is_locked: boolean;
+          lock_reason_code?: string;
+          outstanding: {
+            amount_paisa: number;
+            currency: "NPR";
+          };
+          version: number;
+        }[];
+        page: {
+          next_cursor?: string;
+          limit: number;
+        };
+      };
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  listCreditCharges: {
+    params: {
+      credit_party_id: string;
+    };
+    query: {
+      status?: string;
+      period_month?: string;
+      cursor?: string;
+      limit?: number;
+    };
+    headers: Record<string, never>;
+    body: never;
+    responses: {
+      200: {
+        data: {
+          id: string;
+          credit_party_id: string;
+          order_id?: string;
+          invoice_id?: string;
+          amount: {
+            amount_paisa: number;
+            currency: "NPR";
+          };
+          period_month: string;
+          status: string;
+          created_at: string;
+        }[];
+        page: {
+          next_cursor?: string;
+          limit: number;
+        };
+      };
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  listCreditNoteTasks: {
+    params: Record<string, never>;
+    query: {
+      status?: string;
+      cursor?: string;
+      limit?: number;
+    };
+    headers: Record<string, never>;
+    body: never;
+    responses: {
+      200: {
+        data: {
+          id: string;
+          order_id: string;
+          invoice_id: string;
+          invoice_line_ids: string[];
+          cause: string;
+          status: string;
+          created_at: string;
+        }[];
+        page: {
+          next_cursor?: string;
+          limit: number;
+        };
+      };
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  listCreditNotes: {
+    params: Record<string, never>;
+    query: {
+      invoice_id?: string;
+      fiscal_year_bs?: string;
+      cursor?: string;
+      limit?: number;
+    };
+    headers: Record<string, never>;
+    body: never;
+    responses: {
+      200: ({
+        data: ({
+          id: string;
+          credit_note_no: string;
+          credit_note_seq: number;
+          kind: "cancellation" | "partial";
+          invoice_id: string;
+          invoice_no: string;
+          fiscal_year_bs: string;
+          issued_at: string;
+          credit_note_date_bs: string;
+          centre_id?: string;
+          reason_code: string;
+          reason_text?: string;
+          lines: {
+            invoice_line_id: string;
+            amount: {
+              amount_paisa: number;
+              currency: "NPR";
+            };
+          }[];
+          totals: {
+            exempt: {
+              amount_paisa: number;
+              currency: "NPR";
+            };
+            taxable: {
+              amount_paisa: number;
+              currency: "NPR";
+            };
+            vat: {
+              amount_paisa: number;
+              currency: "NPR";
+            };
+            other_tax: {
+              amount_paisa: number;
+              currency: "NPR";
+            };
+            net: {
+              amount_paisa: number;
+              currency: "NPR";
+            };
+          };
+          print_count: number;
+          cbms_state: string;
+          version: number;
+        })[];
+        page: {
+          next_cursor?: string;
+          limit: number;
+        };
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
   listCreditParties: {
     params: Record<string, never>;
     query: {
@@ -11986,6 +23326,127 @@ export interface Operations {
       };
     };
   };
+  listCriticalValues: {
+    params: Record<string, never>;
+    query: {
+      status?: "open" | "notified" | "closed";
+      detected_at_from?: string;
+      detected_at_to?: string;
+      centre_id?: string;
+      cursor?: string;
+      limit?: number;
+    };
+    headers: Record<string, never>;
+    body: never;
+    responses: {
+      200: ({
+        data: ({
+          id: string;
+          result_id: string;
+          order_id: string;
+          analyte_code: string;
+          value: string;
+          unit_code?: string;
+          flag?: "LL" | "L" | "N" | "H" | "HH" | "A";
+          direction: "low" | "high" | "abnormal";
+          status: "open" | "notified" | "closed";
+          detected_at: string;
+          first_confirmed_notification_at?: string;
+          closed_at?: string;
+          value_changed_after_detection: boolean;
+          centre_id?: string;
+        })[];
+        page: {
+          next_cursor?: string;
+          limit: number;
+        };
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
   listDeadLetters: {
     params: Record<string, never>;
     query: {
@@ -12051,6 +23512,116 @@ export interface Operations {
         }[];
       };
       403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  listDeltaCheckRules: {
+    params: Record<string, never>;
+    query: {
+      analyte_id?: string;
+      is_active?: boolean;
+    };
+    headers: Record<string, never>;
+    body: never;
+    responses: {
+      200: {
+        data: {
+          id: string;
+          version: number;
+          analyte_id: string;
+          rule_version: number;
+          window_seconds: number;
+          abs_threshold?: string;
+          pct_threshold?: string;
+          unit_code: string;
+          effective_from: string;
+          effective_to?: string;
+          is_active: boolean;
+        }[];
+      };
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
         type: string;
         title: string;
         status: number;
@@ -12209,6 +23780,147 @@ export interface Operations {
       };
     };
   };
+  listDiscountApprovals: {
+    params: Record<string, never>;
+    query: {
+      status?: "pending" | "approved" | "rejected" | "expired" | "consumed";
+      centre_id?: string;
+      cursor?: string;
+      limit?: number;
+    };
+    headers: Record<string, never>;
+    body: never;
+    responses: {
+      200: ({
+        data: ({
+          id: string;
+          status: "pending" | "approved" | "rejected" | "expired" | "consumed";
+          centre_id: string;
+          requested_by: {
+            membership_id: string;
+            display_name: string;
+          };
+          discounts: ({
+            scope: "line" | "bill";
+            orderable_id?: string;
+            kind: "amount" | "percent";
+            amount_paisa?: number;
+            percent_bp?: number;
+            reason_code: string;
+            reason_text?: string;
+          })[];
+          computed_discount: {
+            amount_paisa: number;
+            currency: "NPR";
+          };
+          gross: {
+            amount_paisa: number;
+            currency: "NPR";
+          };
+          percent_of_gross_bp: number;
+          reason_code: string;
+          reason_text?: string;
+          decided_by?: {
+            membership_id: string;
+            display_name: string;
+          };
+          decided_at?: string;
+          note?: string;
+          expires_at: string;
+          consumed_order_id?: string;
+          version: number;
+        })[];
+        page: {
+          next_cursor?: string;
+          limit: number;
+        };
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
   listDoctors: {
     params: Record<string, never>;
     query: {
@@ -12231,6 +23943,133 @@ export interface Operations {
           is_verified: boolean;
           is_active: boolean;
           canonical_doctor_id?: string;
+        }[];
+        page: {
+          next_cursor?: string;
+          limit: number;
+        };
+      };
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  listDues: {
+    params: Record<string, never>;
+    query: {
+      centre_id?: string;
+      min_due_paisa?: number;
+      older_than_days?: number;
+      cursor?: string;
+      limit?: number;
+    };
+    headers: Record<string, never>;
+    body: never;
+    responses: {
+      200: {
+        data: {
+          order_id: string;
+          registration_no: string;
+          patient_display: string;
+          centre_id: string;
+          invoiced: {
+            amount_paisa: number;
+            currency: "NPR";
+          };
+          paid: {
+            amount_paisa: number;
+            currency: "NPR";
+          };
+          credited: {
+            amount_paisa: number;
+            currency: "NPR";
+          };
+          balance_due: {
+            amount_paisa: number;
+            currency: "NPR";
+          };
+          oldest_invoice_at: string;
         }[];
         page: {
           next_cursor?: string;
@@ -12525,6 +24364,230 @@ export interface Operations {
       };
     };
   };
+  listFinanceReviewItems: {
+    params: Record<string, never>;
+    query: {
+      status?: "open" | "resolved";
+      cursor?: string;
+      limit?: number;
+    };
+    headers: Record<string, never>;
+    body: never;
+    responses: {
+      200: ({
+        data: ({
+          id: string;
+          order_id: string;
+          kind: string;
+          status: "open" | "resolved";
+          amount?: {
+            amount_paisa: number;
+            currency: "NPR";
+          };
+          ledger_entry_id?: string;
+          created_at: string;
+          resolved_at?: string;
+          resolved_by?: {
+            membership_id: string;
+            display_name: string;
+          };
+          resolution_code?: "refunded" | "kept_as_advance" | "other";
+          note?: string;
+          refund_ledger_entry_id?: string;
+          version: number;
+        })[];
+        page: {
+          next_cursor?: string;
+          limit: number;
+        };
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  listFrontdeskCodes: {
+    params: {
+      set_name: "order_cancel_reasons" | "item_removal_reasons" | "discount_reasons" | "duplicate_override_reasons" | "anonymise_reasons" | "flag_resolutions";
+    };
+    query: Record<string, never>;
+    headers: Record<string, never>;
+    body: never;
+    responses: {
+      200: {
+        data: {
+          code: string;
+          display: string;
+          sort_order: number;
+        }[];
+      };
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
   listImportIssues: {
     params: {
       import_id: string;
@@ -12765,6 +24828,123 @@ export interface Operations {
       };
     };
   };
+  listIngestExceptions: {
+    params: Record<string, never>;
+    query: {
+      status?: "open" | "resolved" | "discarded";
+      reason?: string;
+      instrument_id?: string;
+      cursor?: string;
+      limit?: number;
+    };
+    headers: Record<string, never>;
+    body: never;
+    responses: {
+      200: ({
+        data: ({
+          id: string;
+          status: "open" | "resolved" | "discarded";
+          reason: "unmapped_code" | "unknown_barcode" | "specimen_rejected" | "specimen_not_received" | "analyte_not_ordered" | "result_locked" | "result_already_verified" | "unit_mismatch";
+          instrument_id?: string;
+          result_key: string;
+          sample_barcode?: string;
+          instrument_analyte_code?: string;
+          result_id?: string;
+          created_at: string;
+          resolved_at?: string;
+          resolution?: string;
+        })[];
+        page: {
+          next_cursor?: string;
+          limit: number;
+        };
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
   listInstrumentCodeMaps: {
     params: Record<string, never>;
     query: {
@@ -12884,6 +25064,478 @@ export interface Operations {
       };
     };
   };
+  listInvoicePrints: {
+    params: {
+      invoice_id: string;
+    };
+    query: {
+      cursor?: string;
+      limit?: number;
+    };
+    headers: Record<string, never>;
+    body: never;
+    responses: {
+      200: ({
+        data: ({
+          print_no: number;
+          is_copy: boolean;
+          reason_code?: "first_print" | "reprint" | "printer_fault" | "customer_copy";
+          printed_by_display: string;
+          printed_at: string;
+        })[];
+        page: {
+          next_cursor?: string;
+          limit: number;
+        };
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  listInvoices: {
+    params: Record<string, never>;
+    query: {
+      status?: string;
+      centre_id?: string;
+      issued_at_from?: string;
+      issued_at_to?: string;
+      fiscal_year_bs?: string;
+      order_id?: string;
+      credit_party_id?: string;
+      invoice_no?: string;
+      sort?: "-issued_at" | "issued_at" | "invoice_seq" | "-invoice_seq";
+      cursor?: string;
+      limit?: number;
+    };
+    headers: Record<string, never>;
+    body: never;
+    responses: {
+      200: {
+        data: {
+          id: string;
+          invoice_no: string;
+          invoice_seq: number;
+          fiscal_year_bs: string;
+          invoice_kind: string;
+          status: string;
+          issued_at: string;
+          invoice_date_bs: string;
+          centre_id?: string;
+          order_id?: string;
+          credit_party_id?: string;
+          buyer_name: string;
+          net: {
+            amount_paisa: number;
+            currency: "NPR";
+          };
+          cbms_state: string;
+        }[];
+        page: {
+          next_cursor?: string;
+          limit: number;
+        };
+      };
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  listLabCodedSet: {
+    params: {
+      set_name: "rejection_reasons" | "return_reasons" | "amendment_reasons" | "exception_discard_reasons";
+    };
+    query: Record<string, never>;
+    headers: Record<string, never>;
+    body: never;
+    responses: {
+      200: ({
+        data: ({
+          code: string;
+          display: string;
+          sort_order: number;
+          is_active: boolean;
+          source: "global" | "tenant";
+        })[];
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  listLedgerEntries: {
+    params: Record<string, never>;
+    query: {
+      collected_by_membership_id?: string;
+      method_code?: string;
+      centre_id?: string;
+      created_at_from?: string;
+      created_at_to?: string;
+      entry_kind?: "payment" | "reversal" | "refund";
+      cursor?: string;
+      limit?: number;
+    };
+    headers: Record<string, never>;
+    body: never;
+    responses: {
+      200: ({
+        data: ({
+          id: string;
+          entry_kind: "payment" | "reversal" | "refund";
+          capture_kind: "manual" | "gateway" | "home_collection";
+          order_id?: string;
+          invoice_id?: string;
+          credit_party_id?: string;
+          method_code: string;
+          amount: {
+            amount_paisa: number;
+            currency: "NPR";
+          };
+          reference_masked?: string;
+          receipt_no?: string;
+          reverses_entry_id?: string;
+          collected_by?: {
+            membership_id: string;
+            display_name: string;
+          };
+          cash_session_id?: string;
+          created_at: string;
+          business_date_bs: string;
+        })[];
+        page: {
+          next_cursor?: string;
+          limit: number;
+        };
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
   listMethods: {
     params: Record<string, never>;
     query: {
@@ -12911,6 +25563,452 @@ export interface Operations {
           limit: number;
         };
       };
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  listOrderFlags: {
+    params: Record<string, never>;
+    query: {
+      status?: "open" | "resolved";
+      kind?: "recollection_required" | "booking_cancelled_after_registration";
+      centre_id?: string;
+      cursor?: string;
+      limit?: number;
+    };
+    headers: Record<string, never>;
+    body: never;
+    responses: {
+      200: ({
+        data: ({
+          id: string;
+          order_id: string;
+          kind: "recollection_required" | "booking_cancelled_after_registration";
+          status: "open" | "resolved";
+          specimen_id?: string;
+          created_at: string;
+          resolved_at?: string;
+          resolved_by?: {
+            membership_id: string;
+            display_name: string;
+          };
+          resolution_code?: string;
+          version: number;
+        })[];
+        page: {
+          next_cursor?: string;
+          limit: number;
+        };
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  listOrderResults: {
+    params: {
+      order_id: string;
+    };
+    query: {
+      department_id?: string;
+    };
+    headers: Record<string, never>;
+    body: never;
+    responses: {
+      200: ({
+        order: {
+          order_id: string;
+          registration_no: string;
+          specimens: ({
+            id: string;
+            version: number;
+            barcode: string;
+            order_id: string;
+            registration_no: string;
+            specimen_type_code: string;
+            container_code?: string;
+            status: "ordered" | "collected" | "in_transit" | "received" | "aliquoted" | "in_process" | "resulted" | "verified" | "approved" | "reported" | "rejected" | "recollection_ordered" | "stored" | "discarded";
+            priority: string;
+            centre_id: string;
+            processing_centre_id?: string;
+            parent_specimen_id?: string;
+            replaces_specimen_id?: string;
+            is_active: boolean;
+            collected_at?: string;
+            in_transit_at?: string;
+            received_at?: string;
+            rejected_at?: string;
+            rejection_reason_code?: string;
+            collection_barcode_unverified: boolean;
+            label_print_count: number;
+            tests: {
+              test_id: string;
+              test_code: string;
+            }[];
+          })[];
+          order_tests: ({
+            id: string;
+            order_item_id: string;
+            test_id: string;
+            test_code: string;
+            specimen_id?: string;
+            status: "awaiting_collection" | "awaiting_receipt" | "in_process" | "resulted" | "verified" | "approved" | "cancelled" | "excluded" | "outsourced";
+            priority: string;
+          })[];
+        };
+        items: ({
+          order_item_id: string;
+          test: {
+            test_id: string;
+            test_code: string;
+          };
+          results: ({
+            id: string;
+            version: number;
+            order_id: string;
+            order_item_id: string;
+            specimen_id?: string;
+            test_id: string;
+            analyte_id: string;
+            analyte_code: string;
+            status: "pending" | "resulted" | "verified" | "approved" | "cancelled";
+            origin: string;
+            value_numeric?: string;
+            value_text?: string;
+            ordinal_code?: string;
+            unit_code?: string;
+            flag?: "LL" | "L" | "N" | "H" | "HH" | "A";
+            reference_range_snapshot?: {
+              range_id?: string;
+              range_version?: number;
+              low?: string;
+              high?: string;
+              text?: string;
+              unit_code?: string;
+            };
+            range_unavailable_age_unknown: boolean;
+            delta?: {
+              status: string;
+              prev_value?: string;
+              abs?: string;
+              pct?: string;
+              prev_at?: string;
+            };
+            critical: {
+              is_critical: boolean;
+              critical_event_id?: string;
+            };
+            calc?: {
+              status: string;
+              reason?: string;
+              provenance?: string;
+            };
+            comment_codes?: string[];
+            comment_text?: string;
+            on_hold: boolean;
+            qc_review_required: boolean;
+            unit_mismatch: boolean;
+            instrument_id?: string;
+            instrument_flags?: string[];
+            current_version_no: number;
+            verified_at?: string;
+            verified_by?: string;
+            approved_at?: string;
+            approved_by?: string;
+            amendment?: {
+              reason_code: string;
+              reason_text?: string;
+              amended_at: string;
+              amended_by: string;
+            };
+          })[];
+        })[];
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  listOrders: {
+    params: Record<string, never>;
+    query: {
+      status?: "pre_registered" | "registered" | "in_progress" | "completed" | "cancelled";
+      centre_id?: string;
+      registered_at_from?: string;
+      registered_at_to?: string;
+      source?: string;
+      has_open_flag?: boolean;
+      sort?: "-registered_at" | "registered_at";
+      cursor?: string;
+      limit?: number;
+    };
+    headers: Record<string, never>;
+    body: never;
+    responses: {
+      200: ({
+        data: ({
+          id: string;
+          registration_no: string;
+          patient_id: string;
+          patient_display: string;
+          centre_id: string;
+          status: "pre_registered" | "registered" | "in_progress" | "completed" | "cancelled";
+          billing_mode: "cash" | "credit";
+          source: string;
+          registered_at?: string;
+          item_count: number;
+          has_open_flag: boolean;
+          version: number;
+        })[];
+        page: {
+          next_cursor?: string;
+          limit: number;
+        };
+      });
       400: {
         type: string;
         title: string;
@@ -13312,6 +26410,248 @@ export interface Operations {
             sort_order: number;
           })[];
           version: number;
+        })[];
+        page: {
+          next_cursor?: string;
+          limit: number;
+        };
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  listPatientOrders: {
+    params: {
+      patient_id: string;
+    };
+    query: {
+      sort?: "-registered_at" | "registered_at";
+      cursor?: string;
+      limit?: number;
+    };
+    headers: Record<string, never>;
+    body: never;
+    responses: {
+      200: ({
+        data: ({
+          id: string;
+          registration_no: string;
+          patient_id: string;
+          patient_display: string;
+          centre_id: string;
+          status: "pre_registered" | "registered" | "in_progress" | "completed" | "cancelled";
+          billing_mode: "cash" | "credit";
+          source: string;
+          registered_at?: string;
+          item_count: number;
+          has_open_flag: boolean;
+          version: number;
+        })[];
+        page: {
+          next_cursor?: string;
+          limit: number;
+        };
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  listPendingItems: {
+    params: Record<string, never>;
+    query: {
+      department_id?: string;
+      item_status?: string;
+      priority?: string;
+      centre_id?: string;
+      over_target?: boolean;
+      cursor?: string;
+      limit?: number;
+    };
+    headers: Record<string, never>;
+    body: never;
+    responses: {
+      200: ({
+        data: ({
+          order_test_id: string;
+          order_id: string;
+          registration_no: string;
+          patient_display: {
+            full_name: string;
+            age_sex: string;
+            patient_code: string;
+          };
+          test_code: string;
+          item_status: "awaiting_collection" | "awaiting_receipt" | "in_process" | "resulted" | "verified" | "approved" | "cancelled" | "excluded" | "outsourced";
+          priority: string;
+          centre_id?: string;
+          age_seconds: number;
+          age_anchor: "registered" | "received";
+          tat_target_seconds?: number;
+          over_target: boolean;
         })[];
         page: {
           next_cursor?: string;
@@ -13989,6 +27329,130 @@ export interface Operations {
       };
     };
   };
+  listPossibleDuplicatePatients: {
+    params: Record<string, never>;
+    query: {
+      created_on?: string;
+      cursor?: string;
+      limit?: number;
+    };
+    headers: Record<string, never>;
+    body: never;
+    responses: {
+      200: ({
+        data: ({
+          patient: {
+            id: string;
+            patient_code: string;
+            full_name: string;
+            sex: "male" | "female" | "other" | "unknown";
+            age_display: string;
+            phone_masked: string;
+            last_visit_at?: string;
+            is_anonymised: boolean;
+          };
+          candidates: ({
+            id: string;
+            patient_code: string;
+            full_name: string;
+            sex: "male" | "female" | "other" | "unknown";
+            age_display: string;
+            phone_masked: string;
+            last_visit_at?: string;
+            is_anonymised: boolean;
+          })[];
+        })[];
+        page: {
+          next_cursor?: string;
+          limit: number;
+        };
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
   listPriceListItems: {
     params: {
       price_list_version_id: string;
@@ -14231,6 +27695,230 @@ export interface Operations {
       };
     };
   };
+  listQcHolds: {
+    params: Record<string, never>;
+    query: {
+      status?: "active" | "released";
+    };
+    headers: Record<string, never>;
+    body: never;
+    responses: {
+      200: ({
+        data: ({
+          id: string;
+          instrument_id: string;
+          analyte_id: string;
+          status: "active" | "released";
+          held_at: string;
+          released_at?: string;
+          release_comment?: string;
+        })[];
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  listQcResults: {
+    params: Record<string, never>;
+    query: {
+      instrument_id?: string;
+      analyte_id?: string;
+      instrument_result_time_from?: string;
+      instrument_result_time_to?: string;
+      cursor?: string;
+      limit?: number;
+    };
+    headers: Record<string, never>;
+    body: never;
+    responses: {
+      200: {
+        data: {
+          id: string;
+          centre_id: string;
+          instrument_id: string;
+          analyte_id: string;
+          control_id_raw: string;
+          control_lot_raw?: string;
+          control_level?: string;
+          value_numeric: string;
+          unit_code?: string;
+          instrument_result_time: string;
+          source: string;
+          received_at: string;
+        }[];
+        page: {
+          next_cursor?: string;
+          limit: number;
+        };
+      };
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
   listReferenceRangeSets: {
     params: {
       analyte_id: string;
@@ -14271,6 +27959,276 @@ export interface Operations {
             sort_order: number;
           })[];
           version: number;
+        })[];
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  listRefundRequests: {
+    params: Record<string, never>;
+    query: {
+      status?: "pending" | "approved" | "rejected";
+      order_id?: string;
+      cursor?: string;
+      limit?: number;
+    };
+    headers: Record<string, never>;
+    body: never;
+    responses: {
+      200: ({
+        data: ({
+          id: string;
+          order_id: string;
+          method_code: string;
+          refund_amount: {
+            amount_paisa: number;
+            currency: "NPR";
+          };
+          reason_code: string;
+          reason_text?: string;
+          reference_masked?: string;
+          status: "pending" | "approved" | "rejected";
+          requested_by: {
+            membership_id: string;
+            display_name: string;
+          };
+          requested_at: string;
+          decided_by?: {
+            membership_id: string;
+            display_name: string;
+          };
+          decided_at?: string;
+          note?: string;
+          ledger_entry?: {
+            id: string;
+            entry_kind: "payment" | "reversal" | "refund";
+            capture_kind: "manual" | "gateway" | "home_collection";
+            order_id?: string;
+            invoice_id?: string;
+            credit_party_id?: string;
+            method_code: string;
+            amount: {
+              amount_paisa: number;
+              currency: "NPR";
+            };
+            reference_masked?: string;
+            receipt_no?: string;
+            reverses_entry_id?: string;
+            collected_by?: {
+              membership_id: string;
+              display_name: string;
+            };
+            cash_session_id?: string;
+            created_at: string;
+            business_date_bs: string;
+          };
+          version: number;
+        })[];
+        page: {
+          next_cursor?: string;
+          limit: number;
+        };
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  listResultVersions: {
+    params: {
+      result_id: string;
+    };
+    query: Record<string, never>;
+    headers: Record<string, never>;
+    body: never;
+    responses: {
+      200: ({
+        data: ({
+          result_id: string;
+          version_no: number;
+          value_numeric?: string;
+          value_text?: string;
+          ordinal_code?: string;
+          unit_code?: string;
+          flag?: "LL" | "L" | "N" | "H" | "HH" | "A";
+          reference_range_snapshot?: {
+            range_id?: string;
+            range_version?: number;
+            low?: string;
+            high?: string;
+            text?: string;
+            unit_code?: string;
+          };
+          comment_codes?: string[];
+          comment_text?: string;
+          amendment_reason_code?: string;
+          amendment_reason_text?: string;
+          recorded_at: string;
+          superseded: boolean;
         })[];
       });
       400: {
@@ -14585,6 +28543,143 @@ export interface Operations {
           limit: number;
         };
       };
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  listSpecimens: {
+    params: Record<string, never>;
+    query: {
+      order_id?: string;
+      status?: string;
+      centre_id?: string;
+      processing_centre_id?: string;
+      priority?: string;
+      received_at_from?: string;
+      received_at_to?: string;
+      is_active?: boolean;
+      sort?: "-created_at" | "received_at" | "-received_at";
+      cursor?: string;
+      limit?: number;
+    };
+    headers: Record<string, never>;
+    body: never;
+    responses: {
+      200: ({
+        data: ({
+          id: string;
+          version: number;
+          barcode: string;
+          order_id: string;
+          registration_no: string;
+          specimen_type_code: string;
+          container_code?: string;
+          status: "ordered" | "collected" | "in_transit" | "received" | "aliquoted" | "in_process" | "resulted" | "verified" | "approved" | "reported" | "rejected" | "recollection_ordered" | "stored" | "discarded";
+          priority: string;
+          centre_id: string;
+          processing_centre_id?: string;
+          parent_specimen_id?: string;
+          replaces_specimen_id?: string;
+          is_active: boolean;
+          collected_at?: string;
+          in_transit_at?: string;
+          received_at?: string;
+          rejected_at?: string;
+          rejection_reason_code?: string;
+          collection_barcode_unverified: boolean;
+          label_print_count: number;
+          tests: {
+            test_id: string;
+            test_code: string;
+          }[];
+        })[];
+        page: {
+          next_cursor?: string;
+          limit: number;
+        };
+      });
       400: {
         type: string;
         title: string;
@@ -15651,6 +29746,424 @@ export interface Operations {
       };
     };
   };
+  listVerificationQueue: {
+    params: Record<string, never>;
+    query: {
+      stage: "verify" | "approve";
+      department_id?: string;
+      priority?: string;
+      flagged_only?: boolean;
+      cursor?: string;
+      limit?: number;
+    };
+    headers: Record<string, never>;
+    body: never;
+    responses: {
+      200: ({
+        data: ({
+          result: {
+            id: string;
+            version: number;
+            order_id: string;
+            order_item_id: string;
+            specimen_id?: string;
+            test_id: string;
+            analyte_id: string;
+            analyte_code: string;
+            status: "pending" | "resulted" | "verified" | "approved" | "cancelled";
+            origin: string;
+            value_numeric?: string;
+            value_text?: string;
+            ordinal_code?: string;
+            unit_code?: string;
+            flag?: "LL" | "L" | "N" | "H" | "HH" | "A";
+            reference_range_snapshot?: {
+              range_id?: string;
+              range_version?: number;
+              low?: string;
+              high?: string;
+              text?: string;
+              unit_code?: string;
+            };
+            range_unavailable_age_unknown: boolean;
+            delta?: {
+              status: string;
+              prev_value?: string;
+              abs?: string;
+              pct?: string;
+              prev_at?: string;
+            };
+            critical: {
+              is_critical: boolean;
+              critical_event_id?: string;
+            };
+            calc?: {
+              status: string;
+              reason?: string;
+              provenance?: string;
+            };
+            comment_codes?: string[];
+            comment_text?: string;
+            on_hold: boolean;
+            qc_review_required: boolean;
+            unit_mismatch: boolean;
+            instrument_id?: string;
+            instrument_flags?: string[];
+            current_version_no: number;
+            verified_at?: string;
+            verified_by?: string;
+            approved_at?: string;
+            approved_by?: string;
+            amendment?: {
+              reason_code: string;
+              reason_text?: string;
+              amended_at: string;
+              amended_by: string;
+            };
+          };
+          registration_no: string;
+          barcode?: string;
+          patient_display: {
+            full_name: string;
+            age_sex: string;
+            patient_code: string;
+          };
+          priority: string;
+        })[];
+        page: {
+          next_cursor?: string;
+          limit: number;
+        };
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  listWorklistItems: {
+    params: Record<string, never>;
+    query: {
+      department_id?: string;
+      instrument_id?: string;
+      priority?: string;
+      status?: string;
+      processing_centre_id?: string;
+      sort?: "priority_received" | "received_at";
+      cursor?: string;
+      limit?: number;
+    };
+    headers: Record<string, never>;
+    body: never;
+    responses: {
+      200: ({
+        data: ({
+          order_test_id: string;
+          order_id: string;
+          specimen_id?: string;
+          barcode?: string;
+          registration_no: string;
+          patient_display: {
+            full_name: string;
+            age_sex: string;
+            patient_code: string;
+          };
+          test_id: string;
+          test_code: string;
+          priority: string;
+          status: "awaiting_collection" | "awaiting_receipt" | "in_process" | "resulted" | "verified" | "approved" | "cancelled" | "excluded" | "outsourced";
+          received_at?: string;
+          result_counts: {
+            total: number;
+            resulted: number;
+            verified: number;
+          };
+        })[];
+        page: {
+          next_cursor?: string;
+          limit: number;
+        };
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  listWorksheets: {
+    params: Record<string, never>;
+    query: {
+      created_at_from?: string;
+      created_at_to?: string;
+      department_id?: string;
+      cursor?: string;
+      limit?: number;
+    };
+    headers: Record<string, never>;
+    body: never;
+    responses: {
+      200: {
+        data: {
+          id: string;
+          title: string;
+          centre_id: string;
+          processing_centre_id?: string;
+          department_id?: string;
+          instrument_id?: string;
+          created_at: string;
+          row_count: number;
+        }[];
+        page: {
+          next_cursor?: string;
+          limit: number;
+        };
+      };
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
   lockUser: {
     params: {
       membership_id: string;
@@ -15768,6 +30281,140 @@ export interface Operations {
         }[];
       };
       428: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  logCriticalNotification: {
+    params: {
+      critical_event_id: string;
+    };
+    query: Record<string, never>;
+    headers: {
+      "Idempotency-Key": string;
+    };
+    body: {
+      notified_party_kind: "referrer" | "clinician" | "ward" | "patient" | "other";
+      notified_party_name: string;
+      contact_method: "phone" | "sms" | "in_person" | "whatsapp" | "other";
+      contact_detail?: string;
+      notified_at: string;
+      outcome: "reached" | "not_reached" | "left_message";
+      read_back_confirmed: boolean;
+      read_back_text?: string;
+      comment?: string;
+    };
+    responses: {
+      201: ({
+        id: string;
+        critical_event_id: string;
+        notified_party_kind: "referrer" | "clinician" | "ward" | "patient" | "other";
+        notified_party_name: string;
+        contact_method: "phone" | "sms" | "in_person" | "whatsapp" | "other";
+        contact_detail?: string;
+        notified_at: string;
+        outcome: "reached" | "not_reached" | "left_message";
+        read_back_confirmed: boolean;
+        read_back_text?: string;
+        comment?: string;
+        recorded_at: string;
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      422: {
         type: string;
         title: string;
         status: number;
@@ -16173,6 +30820,157 @@ export interface Operations {
         }[];
       };
       401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  lookupSpecimenByBarcode: {
+    params: Record<string, never>;
+    query: Record<string, never>;
+    headers: Record<string, never>;
+    body: ({
+      barcode: string;
+    } | {
+      registration_no: string;
+    });
+    responses: {
+      200: (({
+        id: string;
+        version: number;
+        barcode: string;
+        order_id: string;
+        registration_no: string;
+        specimen_type_code: string;
+        container_code?: string;
+        status: "ordered" | "collected" | "in_transit" | "received" | "aliquoted" | "in_process" | "resulted" | "verified" | "approved" | "reported" | "rejected" | "recollection_ordered" | "stored" | "discarded";
+        priority: string;
+        centre_id: string;
+        processing_centre_id?: string;
+        parent_specimen_id?: string;
+        replaces_specimen_id?: string;
+        is_active: boolean;
+        collected_at?: string;
+        in_transit_at?: string;
+        received_at?: string;
+        rejected_at?: string;
+        rejection_reason_code?: string;
+        collection_barcode_unverified: boolean;
+        label_print_count: number;
+        tests: {
+          test_id: string;
+          test_code: string;
+        }[];
+      } | {
+        data: ({
+          id: string;
+          version: number;
+          barcode: string;
+          order_id: string;
+          registration_no: string;
+          specimen_type_code: string;
+          container_code?: string;
+          status: "ordered" | "collected" | "in_transit" | "received" | "aliquoted" | "in_process" | "resulted" | "verified" | "approved" | "reported" | "rejected" | "recollection_ordered" | "stored" | "discarded";
+          priority: string;
+          centre_id: string;
+          processing_centre_id?: string;
+          parent_specimen_id?: string;
+          replaces_specimen_id?: string;
+          is_active: boolean;
+          collected_at?: string;
+          in_transit_at?: string;
+          received_at?: string;
+          rejected_at?: string;
+          rejection_reason_code?: string;
+          collection_barcode_unverified: boolean;
+          label_print_count: number;
+          tests: {
+            test_id: string;
+            test_code: string;
+          }[];
+        })[];
+      }));
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
         type: string;
         title: string;
         status: number;
@@ -16677,6 +31475,596 @@ export interface Operations {
         }[];
       };
       404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  printCreditNote: {
+    params: {
+      credit_note_id: string;
+    };
+    query: Record<string, never>;
+    headers: {
+      "Idempotency-Key": string;
+    };
+    body: never;
+    responses: {
+      200: ({
+        print_no: number;
+        copy_mark?: string;
+        document: {
+          id: string;
+          credit_note_no: string;
+          credit_note_seq: number;
+          kind: "cancellation" | "partial";
+          invoice_id: string;
+          invoice_no: string;
+          fiscal_year_bs: string;
+          issued_at: string;
+          credit_note_date_bs: string;
+          centre_id?: string;
+          reason_code: string;
+          reason_text?: string;
+          lines: {
+            invoice_line_id: string;
+            amount: {
+              amount_paisa: number;
+              currency: "NPR";
+            };
+          }[];
+          totals: {
+            exempt: {
+              amount_paisa: number;
+              currency: "NPR";
+            };
+            taxable: {
+              amount_paisa: number;
+              currency: "NPR";
+            };
+            vat: {
+              amount_paisa: number;
+              currency: "NPR";
+            };
+            other_tax: {
+              amount_paisa: number;
+              currency: "NPR";
+            };
+            net: {
+              amount_paisa: number;
+              currency: "NPR";
+            };
+          };
+          print_count: number;
+          cbms_state: string;
+          version: number;
+          branding: {
+            legal_name: string;
+            address_lines: string[];
+            phones: string[];
+            receipt_footer_note?: string;
+            images: {
+              kind: string;
+              mime_type: string;
+              base64: string;
+            }[];
+          };
+          dates: {
+            bs: string;
+            ad: string;
+          };
+          payment_block: {
+            paid: {
+              amount_paisa: number;
+              currency: "NPR";
+            };
+            balance_due: {
+              amount_paisa: number;
+              currency: "NPR";
+            };
+          };
+          copy_mark?: string;
+          print_no: number;
+          cancelled_banner?: string;
+        };
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      422: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  printInvoice: {
+    params: {
+      invoice_id: string;
+    };
+    query: Record<string, never>;
+    headers: {
+      "Idempotency-Key": string;
+    };
+    body: {
+      reason_code?: "first_print" | "reprint" | "printer_fault" | "customer_copy";
+    };
+    responses: {
+      200: {
+        print_no: number;
+        copy_mark?: string;
+        document: {
+          id: string;
+          invoice_no: string;
+          invoice_seq: number;
+          series: string;
+          fiscal_year_bs: string;
+          invoice_kind: string;
+          status: string;
+          is_active: boolean;
+          issued_at: string;
+          invoice_date_bs: string;
+          branch_id: string;
+          centre_id?: string;
+          order_id?: string;
+          credit_party_id?: string;
+          is_periodic_credit_bill: boolean;
+          referrer_id?: string;
+          buyer: {
+            name: string;
+            pan?: string;
+            address?: string;
+          };
+          seller: {
+            name: string;
+            pan?: string;
+            address?: string;
+          };
+          lines: {
+            id: string;
+            line_no: number;
+            line_kind: string;
+            orderable_id?: string;
+            code: string;
+            name: string;
+            department_id?: string;
+            hs_code?: string;
+            quantity: number;
+            unit_price: {
+              amount_paisa: number;
+              currency: "NPR";
+            };
+            gross: {
+              amount_paisa: number;
+              currency: "NPR";
+            };
+            discount: {
+              amount_paisa: number;
+              currency: "NPR";
+            };
+            exempt: {
+              amount_paisa: number;
+              currency: "NPR";
+            };
+            taxable: {
+              amount_paisa: number;
+              currency: "NPR";
+            };
+            vat: {
+              amount_paisa: number;
+              currency: "NPR";
+            };
+            other_tax: {
+              amount_paisa: number;
+              currency: "NPR";
+            };
+            other_tax_code?: string;
+            net: {
+              amount_paisa: number;
+              currency: "NPR";
+            };
+            credited: {
+              amount_paisa: number;
+              currency: "NPR";
+            };
+          }[];
+          totals: {
+            gross: {
+              amount_paisa: number;
+              currency: "NPR";
+            };
+            discount: {
+              amount_paisa: number;
+              currency: "NPR";
+            };
+            exempt: {
+              amount_paisa: number;
+              currency: "NPR";
+            };
+            taxable: {
+              amount_paisa: number;
+              currency: "NPR";
+            };
+            vat: {
+              amount_paisa: number;
+              currency: "NPR";
+            };
+            other_tax: {
+              amount_paisa: number;
+              currency: "NPR";
+            };
+            net: {
+              amount_paisa: number;
+              currency: "NPR";
+            };
+          };
+          credited_total: {
+            amount_paisa: number;
+            currency: "NPR";
+          };
+          cancellation?: {
+            cancelled_at: string;
+            cancelled_by_display: string;
+            reason_code: string;
+            reason_text?: string;
+            credit_note_id: string;
+            credit_note_no: string;
+          };
+          print_count: number;
+          last_printed_at?: string;
+          cbms_state: string;
+          cbms_cancel_state?: string;
+          version: number;
+          branding: {
+            legal_name: string;
+            address_lines: string[];
+            phones: string[];
+            receipt_footer_note?: string;
+            images: {
+              kind: string;
+              mime_type: string;
+              base64: string;
+            }[];
+          };
+          dates: {
+            bs: string;
+            ad: string;
+          };
+          payment_block: {
+            paid: {
+              amount_paisa: number;
+              currency: "NPR";
+            };
+            balance_due: {
+              amount_paisa: number;
+              currency: "NPR";
+            };
+          };
+          copy_mark?: string;
+          print_no: number;
+          cancelled_banner?: string;
+        };
+      };
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      422: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  printSpecimenLabels: {
+    params: Record<string, never>;
+    query: Record<string, never>;
+    headers: Record<string, never>;
+    body: {
+      order_id?: string;
+      specimen_ids?: string[];
+      copies?: number;
+    };
+    responses: {
+      200: {
+        labels: {
+          specimen_id: string;
+          barcode: string;
+          patient_name: string;
+          age_sex: string;
+          registration_no: string;
+          specimen_type_code: string;
+          container_code?: string;
+          collected_on?: string;
+          test_codes: string[];
+          more_tests: number;
+          urgent: boolean;
+          copies: number;
+        }[];
+        errors: {
+          id: string;
+          code: string;
+        }[];
+        size: {
+          width_mm: number;
+          height_mm: number;
+        };
+        label_copies_default: number;
+      };
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      409: {
         type: string;
         title: string;
         status: number;
@@ -17522,6 +32910,219 @@ export interface Operations {
       };
     };
   };
+  quoteOrderItemsChange: {
+    params: {
+      order_id: string;
+    };
+    query: Record<string, never>;
+    headers: Record<string, never>;
+    body: {
+      add: ({
+        orderable_id: string;
+        priority?: "routine" | "urgent";
+      })[];
+    };
+    responses: {
+      200: ({
+        lines: ({
+          line_ref: string;
+          orderable_id: string;
+          orderable_kind: "test" | "panel";
+          code: string;
+          name: string;
+          priority: "routine" | "urgent";
+          kind: "orderable" | "urgent_surcharge";
+          unit_price: {
+            amount_paisa: number;
+            currency: "NPR";
+          };
+          discount: {
+            amount_paisa: number;
+            currency: "NPR";
+          };
+          taxable: {
+            amount_paisa: number;
+            currency: "NPR";
+          };
+          exempt: {
+            amount_paisa: number;
+            currency: "NPR";
+          };
+          vat: {
+            amount_paisa: number;
+            currency: "NPR";
+          };
+          other_tax: {
+            amount_paisa: number;
+            currency: "NPR";
+          };
+          other_tax_code?: string;
+          net: {
+            amount_paisa: number;
+            currency: "NPR";
+          };
+          price_source: string;
+          price_list_id: string;
+          price_list_version: number;
+        })[];
+        totals: {
+          gross: {
+            amount_paisa: number;
+            currency: "NPR";
+          };
+          discount: {
+            amount_paisa: number;
+            currency: "NPR";
+          };
+          exempt: {
+            amount_paisa: number;
+            currency: "NPR";
+          };
+          taxable: {
+            amount_paisa: number;
+            currency: "NPR";
+          };
+          vat: {
+            amount_paisa: number;
+            currency: "NPR";
+          };
+          other_tax: {
+            amount_paisa: number;
+            currency: "NPR";
+          };
+          net: {
+            amount_paisa: number;
+            currency: "NPR";
+          };
+        };
+        discount_evaluation: {
+          within_limit: boolean;
+          approval_required: boolean;
+          limit_percent_bp: number;
+          limit_paisa: number;
+        };
+        catalog_revision: number;
+        quote_fingerprint: string;
+        base_fingerprint: string;
+        credit_status?: {
+          state: "ok" | "locked" | "over_limit";
+        };
+        fiscal_year_bs: string;
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      409: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      422: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
   quotePrices: {
     params: Record<string, never>;
     query: Record<string, never>;
@@ -17609,6 +33210,262 @@ export interface Operations {
         }[];
       };
       404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  quoteRegistration: {
+    params: Record<string, never>;
+    query: Record<string, never>;
+    headers: Record<string, never>;
+    body: {
+      patient: ({
+        patient_id: string;
+      } | {
+        new_patient: {
+          full_name: string;
+          sex: "male" | "female" | "other" | "unknown";
+          birth_on?: string;
+          age?: {
+            years: number;
+            months?: number;
+            days?: number;
+          };
+          phone_e164?: string;
+          email?: string;
+          address_text?: string;
+          consents: {
+            processing: boolean;
+            sms: boolean;
+            whatsapp: boolean;
+            email: boolean;
+            share_with_referrer: boolean;
+            consent_text_version: string;
+          };
+          duplicate_override?: {
+            reason_code: string;
+          };
+        };
+      });
+      centre_id: string;
+      visit_type: "opd" | "ipd";
+      billing_mode: "cash" | "credit";
+      credit_party_id?: string;
+      referrer_id?: string;
+      priority?: "routine" | "urgent";
+      collection_mode?: "walk_in" | "home" | "centre" | "partner";
+      items: ({
+        orderable_id: string;
+        priority?: "routine" | "urgent";
+      })[];
+      discounts?: ({
+        scope: "line" | "bill";
+        orderable_id?: string;
+        kind: "amount" | "percent";
+        amount_paisa?: number;
+        percent_bp?: number;
+        reason_code: string;
+        reason_text?: string;
+      })[];
+      buyer_pan?: string;
+    };
+    responses: {
+      200: ({
+        lines: ({
+          line_ref: string;
+          orderable_id: string;
+          orderable_kind: "test" | "panel";
+          code: string;
+          name: string;
+          priority: "routine" | "urgent";
+          kind: "orderable" | "urgent_surcharge";
+          unit_price: {
+            amount_paisa: number;
+            currency: "NPR";
+          };
+          discount: {
+            amount_paisa: number;
+            currency: "NPR";
+          };
+          taxable: {
+            amount_paisa: number;
+            currency: "NPR";
+          };
+          exempt: {
+            amount_paisa: number;
+            currency: "NPR";
+          };
+          vat: {
+            amount_paisa: number;
+            currency: "NPR";
+          };
+          other_tax: {
+            amount_paisa: number;
+            currency: "NPR";
+          };
+          other_tax_code?: string;
+          net: {
+            amount_paisa: number;
+            currency: "NPR";
+          };
+          price_source: string;
+          price_list_id: string;
+          price_list_version: number;
+        })[];
+        totals: {
+          gross: {
+            amount_paisa: number;
+            currency: "NPR";
+          };
+          discount: {
+            amount_paisa: number;
+            currency: "NPR";
+          };
+          exempt: {
+            amount_paisa: number;
+            currency: "NPR";
+          };
+          taxable: {
+            amount_paisa: number;
+            currency: "NPR";
+          };
+          vat: {
+            amount_paisa: number;
+            currency: "NPR";
+          };
+          other_tax: {
+            amount_paisa: number;
+            currency: "NPR";
+          };
+          net: {
+            amount_paisa: number;
+            currency: "NPR";
+          };
+        };
+        discount_evaluation: {
+          within_limit: boolean;
+          approval_required: boolean;
+          limit_percent_bp: number;
+          limit_paisa: number;
+        };
+        catalog_revision: number;
+        quote_fingerprint: string;
+        base_fingerprint: string;
+        credit_status?: {
+          state: "ok" | "locked" | "over_limit";
+        };
+        fiscal_year_bs: string;
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      409: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      422: {
         type: string;
         title: string;
         status: number;
@@ -18217,6 +34074,269 @@ export interface Operations {
       };
     };
   };
+  reapplyIngestException: {
+    params: {
+      exception_id: string;
+    };
+    query: Record<string, never>;
+    headers: Record<string, never>;
+    body: Record<string, never>;
+    responses: {
+      200: ({
+        exception: {
+          id: string;
+          status: "open" | "resolved" | "discarded";
+          reason: "unmapped_code" | "unknown_barcode" | "specimen_rejected" | "specimen_not_received" | "analyte_not_ordered" | "result_locked" | "result_already_verified" | "unit_mismatch";
+          instrument_id?: string;
+          result_key: string;
+          sample_barcode?: string;
+          instrument_analyte_code?: string;
+          result_id?: string;
+          created_at: string;
+          resolved_at?: string;
+          resolution?: string;
+        };
+        outcome: "applied" | "held" | "unmatched" | "rejected_state" | "duplicate" | "not_applicable";
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  receiveSpecimen: {
+    params: {
+      specimen_id: string;
+    };
+    query: Record<string, never>;
+    headers: {
+      "If-Match": string;
+    };
+    body: {
+      processing_centre_id: string;
+    };
+    responses: {
+      200: ({
+        id: string;
+        version: number;
+        barcode: string;
+        order_id: string;
+        registration_no: string;
+        specimen_type_code: string;
+        container_code?: string;
+        status: "ordered" | "collected" | "in_transit" | "received" | "aliquoted" | "in_process" | "resulted" | "verified" | "approved" | "reported" | "rejected" | "recollection_ordered" | "stored" | "discarded";
+        priority: string;
+        centre_id: string;
+        processing_centre_id?: string;
+        parent_specimen_id?: string;
+        replaces_specimen_id?: string;
+        is_active: boolean;
+        collected_at?: string;
+        in_transit_at?: string;
+        received_at?: string;
+        rejected_at?: string;
+        rejection_reason_code?: string;
+        collection_barcode_unverified: boolean;
+        label_print_count: number;
+        tests: {
+          test_id: string;
+          test_code: string;
+        }[];
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      409: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      428: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
   recordAccessReview: {
     params: Record<string, never>;
     query: Record<string, never>;
@@ -18321,6 +34441,468 @@ export interface Operations {
       };
     };
   };
+  recordCreditPartyPayment: {
+    params: {
+      credit_party_id: string;
+    };
+    query: Record<string, never>;
+    headers: {
+      "Idempotency-Key": string;
+    };
+    body: {
+      invoice_id: string;
+      method_code: string;
+      amount_received_paisa: number;
+      reference?: string;
+    };
+    responses: {
+      201: ({
+        id: string;
+        entry_kind: "payment" | "reversal" | "refund";
+        capture_kind: "manual" | "gateway" | "home_collection";
+        order_id?: string;
+        invoice_id?: string;
+        credit_party_id?: string;
+        method_code: string;
+        amount: {
+          amount_paisa: number;
+          currency: "NPR";
+        };
+        reference_masked?: string;
+        receipt_no?: string;
+        reverses_entry_id?: string;
+        collected_by?: {
+          membership_id: string;
+          display_name: string;
+        };
+        cash_session_id?: string;
+        created_at: string;
+        business_date_bs: string;
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      422: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  recordPatientConsent: {
+    params: {
+      patient_id: string;
+    };
+    query: Record<string, never>;
+    headers: {
+      "Idempotency-Key": string;
+    };
+    body: {
+      processing: boolean;
+      sms: boolean;
+      whatsapp: boolean;
+      email: boolean;
+      share_with_referrer: boolean;
+      consent_text_version: string;
+    };
+    responses: {
+      201: {
+        id: string;
+        patient_id: string;
+        consents: {
+          processing: boolean;
+          sms: boolean;
+          whatsapp: boolean;
+          email: boolean;
+          share_with_referrer: boolean;
+          consent_text_version: string;
+        };
+        recorded_at: string;
+        recorded_by: {
+          membership_id: string;
+          display_name: string;
+        };
+      };
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      422: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  recordPayment: {
+    params: {
+      order_id: string;
+    };
+    query: Record<string, never>;
+    headers: {
+      "Idempotency-Key": string;
+    };
+    body: {
+      method_code: string;
+      amount_received_paisa: number;
+      reference?: string;
+      invoice_id?: string;
+    };
+    responses: {
+      201: ({
+        ledger_entry: {
+          id: string;
+          entry_kind: "payment" | "reversal" | "refund";
+          capture_kind: "manual" | "gateway" | "home_collection";
+          order_id?: string;
+          invoice_id?: string;
+          credit_party_id?: string;
+          method_code: string;
+          amount: {
+            amount_paisa: number;
+            currency: "NPR";
+          };
+          reference_masked?: string;
+          receipt_no?: string;
+          reverses_entry_id?: string;
+          collected_by?: {
+            membership_id: string;
+            display_name: string;
+          };
+          cash_session_id?: string;
+          created_at: string;
+          business_date_bs: string;
+        };
+        balance: {
+          order_id: string;
+          invoiced: {
+            amount_paisa: number;
+            currency: "NPR";
+          };
+          paid: {
+            amount_paisa: number;
+            currency: "NPR";
+          };
+          credited: {
+            amount_paisa: number;
+            currency: "NPR";
+          };
+          balance_due: {
+            amount_paisa: number;
+            currency: "NPR";
+          };
+          balance_version: number;
+          as_of: string;
+        };
+        receipt_no: string;
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      409: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      422: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      503: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
   refreshMobileSession: {
     params: Record<string, never>;
     query: Record<string, never>;
@@ -18369,6 +34951,678 @@ export interface Operations {
         }[];
       };
       401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  rejectDiscount: {
+    params: {
+      approval_id: string;
+    };
+    query: Record<string, never>;
+    headers: {
+      "Idempotency-Key": string;
+      "If-Match": string;
+    };
+    body: {
+      note: string;
+    };
+    responses: {
+      200: ({
+        id: string;
+        status: "pending" | "approved" | "rejected" | "expired" | "consumed";
+        centre_id: string;
+        requested_by: {
+          membership_id: string;
+          display_name: string;
+        };
+        discounts: ({
+          scope: "line" | "bill";
+          orderable_id?: string;
+          kind: "amount" | "percent";
+          amount_paisa?: number;
+          percent_bp?: number;
+          reason_code: string;
+          reason_text?: string;
+        })[];
+        computed_discount: {
+          amount_paisa: number;
+          currency: "NPR";
+        };
+        gross: {
+          amount_paisa: number;
+          currency: "NPR";
+        };
+        percent_of_gross_bp: number;
+        reason_code: string;
+        reason_text?: string;
+        decided_by?: {
+          membership_id: string;
+          display_name: string;
+        };
+        decided_at?: string;
+        note?: string;
+        expires_at: string;
+        consumed_order_id?: string;
+        version: number;
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      409: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      422: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      428: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  rejectRefund: {
+    params: {
+      refund_request_id: string;
+    };
+    query: Record<string, never>;
+    headers: {
+      "Idempotency-Key": string;
+      "If-Match": string;
+    };
+    body: {
+      note: string;
+    };
+    responses: {
+      200: ({
+        id: string;
+        order_id: string;
+        method_code: string;
+        refund_amount: {
+          amount_paisa: number;
+          currency: "NPR";
+        };
+        reason_code: string;
+        reason_text?: string;
+        reference_masked?: string;
+        status: "pending" | "approved" | "rejected";
+        requested_by: {
+          membership_id: string;
+          display_name: string;
+        };
+        requested_at: string;
+        decided_by?: {
+          membership_id: string;
+          display_name: string;
+        };
+        decided_at?: string;
+        note?: string;
+        ledger_entry?: {
+          id: string;
+          entry_kind: "payment" | "reversal" | "refund";
+          capture_kind: "manual" | "gateway" | "home_collection";
+          order_id?: string;
+          invoice_id?: string;
+          credit_party_id?: string;
+          method_code: string;
+          amount: {
+            amount_paisa: number;
+            currency: "NPR";
+          };
+          reference_masked?: string;
+          receipt_no?: string;
+          reverses_entry_id?: string;
+          collected_by?: {
+            membership_id: string;
+            display_name: string;
+          };
+          cash_session_id?: string;
+          created_at: string;
+          business_date_bs: string;
+        };
+        version: number;
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      409: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      422: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      428: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  rejectSpecimen: {
+    params: {
+      specimen_id: string;
+    };
+    query: Record<string, never>;
+    headers: {
+      "Idempotency-Key": string;
+      "If-Match": string;
+    };
+    body: {
+      reason_code: string;
+      comment?: string;
+      recollection_required: boolean;
+    };
+    responses: {
+      200: ({
+        specimen: {
+          id: string;
+          version: number;
+          barcode: string;
+          order_id: string;
+          registration_no: string;
+          specimen_type_code: string;
+          container_code?: string;
+          status: "ordered" | "collected" | "in_transit" | "received" | "aliquoted" | "in_process" | "resulted" | "verified" | "approved" | "reported" | "rejected" | "recollection_ordered" | "stored" | "discarded";
+          priority: string;
+          centre_id: string;
+          processing_centre_id?: string;
+          parent_specimen_id?: string;
+          replaces_specimen_id?: string;
+          is_active: boolean;
+          collected_at?: string;
+          in_transit_at?: string;
+          received_at?: string;
+          rejected_at?: string;
+          rejection_reason_code?: string;
+          collection_barcode_unverified: boolean;
+          label_print_count: number;
+          tests: {
+            test_id: string;
+            test_code: string;
+          }[];
+        };
+        recollection_specimen?: {
+          id: string;
+          version: number;
+          barcode: string;
+          order_id: string;
+          registration_no: string;
+          specimen_type_code: string;
+          container_code?: string;
+          status: "ordered" | "collected" | "in_transit" | "received" | "aliquoted" | "in_process" | "resulted" | "verified" | "approved" | "reported" | "rejected" | "recollection_ordered" | "stored" | "discarded";
+          priority: string;
+          centre_id: string;
+          processing_centre_id?: string;
+          parent_specimen_id?: string;
+          replaces_specimen_id?: string;
+          is_active: boolean;
+          collected_at?: string;
+          in_transit_at?: string;
+          received_at?: string;
+          rejected_at?: string;
+          rejection_reason_code?: string;
+          collection_barcode_unverified: boolean;
+          label_print_count: number;
+          tests: {
+            test_id: string;
+            test_code: string;
+          }[];
+        };
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      409: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      422: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      428: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  releaseQcHold: {
+    params: {
+      hold_id: string;
+    };
+    query: Record<string, never>;
+    headers: Record<string, never>;
+    body: {
+      comment: string;
+    };
+    responses: {
+      200: ({
+        id: string;
+        instrument_id: string;
+        analyte_id: string;
+        status: "active" | "released";
+        held_at: string;
+        released_at?: string;
+        release_comment?: string;
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
         type: string;
         title: string;
         status: number;
@@ -19639,6 +36893,288 @@ export interface Operations {
       };
     };
   };
+  requestDiscountApproval: {
+    params: Record<string, never>;
+    query: Record<string, never>;
+    headers: {
+      "Idempotency-Key": string;
+    };
+    body: {
+      centre_id: string;
+      base_fingerprint: string;
+      discounts: ({
+        scope: "line" | "bill";
+        orderable_id?: string;
+        kind: "amount" | "percent";
+        amount_paisa?: number;
+        percent_bp?: number;
+        reason_code: string;
+        reason_text?: string;
+      })[];
+      reason_code: string;
+      reason_text?: string;
+      patient_ref: ({
+        patient_id: string;
+      } | {
+        draft_hash: string;
+      });
+    };
+    responses: {
+      201: ({
+        id: string;
+        status: "pending" | "approved" | "rejected" | "expired" | "consumed";
+        centre_id: string;
+        requested_by: {
+          membership_id: string;
+          display_name: string;
+        };
+        discounts: ({
+          scope: "line" | "bill";
+          orderable_id?: string;
+          kind: "amount" | "percent";
+          amount_paisa?: number;
+          percent_bp?: number;
+          reason_code: string;
+          reason_text?: string;
+        })[];
+        computed_discount: {
+          amount_paisa: number;
+          currency: "NPR";
+        };
+        gross: {
+          amount_paisa: number;
+          currency: "NPR";
+        };
+        percent_of_gross_bp: number;
+        reason_code: string;
+        reason_text?: string;
+        decided_by?: {
+          membership_id: string;
+          display_name: string;
+        };
+        decided_at?: string;
+        note?: string;
+        expires_at: string;
+        consumed_order_id?: string;
+        version: number;
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      422: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  requestOrderLabelPrint: {
+    params: {
+      order_id: string;
+    };
+    query: Record<string, never>;
+    headers: Record<string, never>;
+    body: Record<string, never>;
+    responses: {
+      200: ({
+        order_id: string;
+        specimens: ({
+          specimen_id: string;
+          barcode: string;
+          outcome: "ready" | "inactive";
+        })[];
+        labels_route: "staff.lab.order_labels";
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      409: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
   requestPasswordRecovery: {
     params: Record<string, never>;
     query: Record<string, never>;
@@ -19663,6 +37199,379 @@ export interface Operations {
         }[];
       };
       401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  requestRecollection: {
+    params: {
+      specimen_id: string;
+    };
+    query: Record<string, never>;
+    headers: {
+      "Idempotency-Key": string;
+      "If-Match": string;
+    };
+    body: Record<string, never>;
+    responses: {
+      200: ({
+        specimen: {
+          id: string;
+          version: number;
+          barcode: string;
+          order_id: string;
+          registration_no: string;
+          specimen_type_code: string;
+          container_code?: string;
+          status: "ordered" | "collected" | "in_transit" | "received" | "aliquoted" | "in_process" | "resulted" | "verified" | "approved" | "reported" | "rejected" | "recollection_ordered" | "stored" | "discarded";
+          priority: string;
+          centre_id: string;
+          processing_centre_id?: string;
+          parent_specimen_id?: string;
+          replaces_specimen_id?: string;
+          is_active: boolean;
+          collected_at?: string;
+          in_transit_at?: string;
+          received_at?: string;
+          rejected_at?: string;
+          rejection_reason_code?: string;
+          collection_barcode_unverified: boolean;
+          label_print_count: number;
+          tests: {
+            test_id: string;
+            test_code: string;
+          }[];
+        };
+        recollection_specimen: {
+          id: string;
+          version: number;
+          barcode: string;
+          order_id: string;
+          registration_no: string;
+          specimen_type_code: string;
+          container_code?: string;
+          status: "ordered" | "collected" | "in_transit" | "received" | "aliquoted" | "in_process" | "resulted" | "verified" | "approved" | "reported" | "rejected" | "recollection_ordered" | "stored" | "discarded";
+          priority: string;
+          centre_id: string;
+          processing_centre_id?: string;
+          parent_specimen_id?: string;
+          replaces_specimen_id?: string;
+          is_active: boolean;
+          collected_at?: string;
+          in_transit_at?: string;
+          received_at?: string;
+          rejected_at?: string;
+          rejection_reason_code?: string;
+          collection_barcode_unverified: boolean;
+          label_print_count: number;
+          tests: {
+            test_id: string;
+            test_code: string;
+          }[];
+        };
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      409: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      422: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      428: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  requestRefund: {
+    params: {
+      order_id: string;
+    };
+    query: Record<string, never>;
+    headers: {
+      "Idempotency-Key": string;
+    };
+    body: {
+      method_code: string;
+      refund_amount_paisa: number;
+      reason_code: string;
+      reason_text?: string;
+      reference?: string;
+    };
+    responses: {
+      201: ({
+        id: string;
+        order_id: string;
+        method_code: string;
+        refund_amount: {
+          amount_paisa: number;
+          currency: "NPR";
+        };
+        reason_code: string;
+        reason_text?: string;
+        reference_masked?: string;
+        status: "pending" | "approved" | "rejected";
+        requested_by: {
+          membership_id: string;
+          display_name: string;
+        };
+        requested_at: string;
+        decided_by?: {
+          membership_id: string;
+          display_name: string;
+        };
+        decided_at?: string;
+        note?: string;
+        ledger_entry?: {
+          id: string;
+          entry_kind: "payment" | "reversal" | "refund";
+          capture_kind: "manual" | "gateway" | "home_collection";
+          order_id?: string;
+          invoice_id?: string;
+          credit_party_id?: string;
+          method_code: string;
+          amount: {
+            amount_paisa: number;
+            currency: "NPR";
+          };
+          reference_masked?: string;
+          receipt_no?: string;
+          reverses_entry_id?: string;
+          collected_by?: {
+            membership_id: string;
+            display_name: string;
+          };
+          cash_session_id?: string;
+          created_at: string;
+          business_date_bs: string;
+        };
+        version: number;
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      409: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      422: {
         type: string;
         title: string;
         status: number;
@@ -20035,6 +37944,327 @@ export interface Operations {
         }[];
       };
       409: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      428: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  resolveFinanceReviewItem: {
+    params: {
+      item_id: string;
+    };
+    query: Record<string, never>;
+    headers: {
+      "Idempotency-Key": string;
+      "If-Match": string;
+    };
+    body: {
+      resolution_code: "refunded" | "kept_as_advance" | "other";
+      note?: string;
+      refund_ledger_entry_id?: string;
+    };
+    responses: {
+      200: ({
+        id: string;
+        order_id: string;
+        kind: string;
+        status: "open" | "resolved";
+        amount?: {
+          amount_paisa: number;
+          currency: "NPR";
+        };
+        ledger_entry_id?: string;
+        created_at: string;
+        resolved_at?: string;
+        resolved_by?: {
+          membership_id: string;
+          display_name: string;
+        };
+        resolution_code?: "refunded" | "kept_as_advance" | "other";
+        note?: string;
+        refund_ledger_entry_id?: string;
+        version: number;
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      409: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      422: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      428: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  resolveOrderFlag: {
+    params: {
+      flag_id: string;
+    };
+    query: Record<string, never>;
+    headers: {
+      "Idempotency-Key": string;
+      "If-Match": string;
+    };
+    body: {
+      resolution_code: string;
+      note?: string;
+    };
+    responses: {
+      200: ({
+        id: string;
+        order_id: string;
+        kind: "recollection_required" | "booking_cancelled_after_registration";
+        status: "open" | "resolved";
+        specimen_id?: string;
+        created_at: string;
+        resolved_at?: string;
+        resolved_by?: {
+          membership_id: string;
+          display_name: string;
+        };
+        resolution_code?: string;
+        version: number;
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      409: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      422: {
         type: string;
         title: string;
         status: number;
@@ -20807,6 +39037,457 @@ export interface Operations {
       };
     };
   };
+  retryCbmsDocument: {
+    params: {
+      document_kind: "invoice" | "invoice_cancellation" | "credit_note";
+      document_id: string;
+    };
+    query: Record<string, never>;
+    headers: {
+      "Idempotency-Key": string;
+    };
+    body: never;
+    responses: {
+      200: {
+        cbms_state: string;
+      };
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      422: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  returnResult: {
+    params: {
+      result_id: string;
+    };
+    query: Record<string, never>;
+    headers: {
+      "If-Match": string;
+    };
+    body: {
+      reason_code: string;
+      comment?: string;
+    };
+    responses: {
+      200: ({
+        id: string;
+        version: number;
+        order_id: string;
+        order_item_id: string;
+        specimen_id?: string;
+        test_id: string;
+        analyte_id: string;
+        analyte_code: string;
+        status: "pending" | "resulted" | "verified" | "approved" | "cancelled";
+        origin: string;
+        value_numeric?: string;
+        value_text?: string;
+        ordinal_code?: string;
+        unit_code?: string;
+        flag?: "LL" | "L" | "N" | "H" | "HH" | "A";
+        reference_range_snapshot?: {
+          range_id?: string;
+          range_version?: number;
+          low?: string;
+          high?: string;
+          text?: string;
+          unit_code?: string;
+        };
+        range_unavailable_age_unknown: boolean;
+        delta?: {
+          status: string;
+          prev_value?: string;
+          abs?: string;
+          pct?: string;
+          prev_at?: string;
+        };
+        critical: {
+          is_critical: boolean;
+          critical_event_id?: string;
+        };
+        calc?: {
+          status: string;
+          reason?: string;
+          provenance?: string;
+        };
+        comment_codes?: string[];
+        comment_text?: string;
+        on_hold: boolean;
+        qc_review_required: boolean;
+        unit_mismatch: boolean;
+        instrument_id?: string;
+        instrument_flags?: string[];
+        current_version_no: number;
+        verified_at?: string;
+        verified_by?: string;
+        approved_at?: string;
+        approved_by?: string;
+        amendment?: {
+          reason_code: string;
+          reason_text?: string;
+          amended_at: string;
+          amended_by: string;
+        };
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      409: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      428: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  reverseLedgerEntry: {
+    params: {
+      ledger_entry_id: string;
+    };
+    query: Record<string, never>;
+    headers: {
+      "Idempotency-Key": string;
+    };
+    body: {
+      reason_code: string;
+      reason_text?: string;
+    };
+    responses: {
+      201: ({
+        id: string;
+        entry_kind: "payment" | "reversal" | "refund";
+        capture_kind: "manual" | "gateway" | "home_collection";
+        order_id?: string;
+        invoice_id?: string;
+        credit_party_id?: string;
+        method_code: string;
+        amount: {
+          amount_paisa: number;
+          currency: "NPR";
+        };
+        reference_masked?: string;
+        receipt_no?: string;
+        reverses_entry_id?: string;
+        collected_by?: {
+          membership_id: string;
+          display_name: string;
+        };
+        cash_session_id?: string;
+        created_at: string;
+        business_date_bs: string;
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      409: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      422: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
   revokeOwnSession: {
     params: {
       session_id: string;
@@ -21480,6 +40161,114 @@ export interface Operations {
           is_orderable: boolean;
           is_active: boolean;
           revision: number;
+        })[];
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  searchPatients: {
+    params: Record<string, never>;
+    query: Record<string, never>;
+    headers: Record<string, never>;
+    body: {
+      query: string;
+      mode?: "auto" | "name" | "phone" | "code" | "registration_no";
+      limit?: number;
+    };
+    responses: {
+      200: ({
+        data: ({
+          id: string;
+          patient_code: string;
+          full_name: string;
+          sex: "male" | "female" | "other" | "unknown";
+          age_display: string;
+          phone_masked: string;
+          last_visit_at?: string;
+          is_anonymised: boolean;
         })[];
       });
       400: {
@@ -22626,6 +41415,159 @@ export interface Operations {
       };
     };
   };
+  storeSpecimen: {
+    params: {
+      specimen_id: string;
+    };
+    query: Record<string, never>;
+    headers: {
+      "If-Match": string;
+    };
+    body: {
+      location: string;
+    };
+    responses: {
+      200: ({
+        id: string;
+        version: number;
+        barcode: string;
+        order_id: string;
+        registration_no: string;
+        specimen_type_code: string;
+        container_code?: string;
+        status: "ordered" | "collected" | "in_transit" | "received" | "aliquoted" | "in_process" | "resulted" | "verified" | "approved" | "reported" | "rejected" | "recollection_ordered" | "stored" | "discarded";
+        priority: string;
+        centre_id: string;
+        processing_centre_id?: string;
+        parent_specimen_id?: string;
+        replaces_specimen_id?: string;
+        is_active: boolean;
+        collected_at?: string;
+        in_transit_at?: string;
+        received_at?: string;
+        rejected_at?: string;
+        rejection_reason_code?: string;
+        collection_barcode_unverified: boolean;
+        label_print_count: number;
+        tests: {
+          test_id: string;
+          test_code: string;
+        }[];
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      409: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      428: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
   suspendTenant: {
     params: {
       tenant_id: string;
@@ -23535,6 +42477,133 @@ export interface Operations {
       };
     };
   };
+  updateBillingSettings: {
+    params: Record<string, never>;
+    query: Record<string, never>;
+    headers: Record<string, never>;
+    body: {
+      invoice_series_scope: "tenant" | "branch";
+      prices_include_tax: boolean;
+      abbreviated_invoice_enabled: boolean;
+      pay_by_qr_enabled: boolean;
+      receipt_no_enabled: boolean;
+      credit_days_auto_lock: boolean;
+      cash_variance_alert_paisa: number;
+      refund_alert_per_day: number;
+      version?: number;
+    };
+    responses: {
+      200: ({
+        invoice_series_scope: "tenant" | "branch";
+        prices_include_tax: boolean;
+        abbreviated_invoice_enabled: boolean;
+        pay_by_qr_enabled: boolean;
+        receipt_no_enabled: boolean;
+        credit_days_auto_lock: boolean;
+        cash_variance_alert_paisa: number;
+        refund_alert_per_day: number;
+        version?: number;
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      409: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
   updateBranch: {
     params: {
       branch_id: string;
@@ -24094,6 +43163,148 @@ export interface Operations {
       };
     };
   };
+  updateCreditAccount: {
+    params: {
+      credit_party_id: string;
+    };
+    query: Record<string, never>;
+    headers: {
+      "If-Match": string;
+    };
+    body: {
+      credit_limit_paisa?: number;
+      credit_days?: number;
+      is_locked: boolean;
+      lock_reason_code?: string;
+    };
+    responses: {
+      200: {
+        id: string;
+        name: string;
+        credit_limit_paisa?: number;
+        credit_days?: number;
+        is_locked: boolean;
+        lock_reason_code?: string;
+        outstanding: {
+          amount_paisa: number;
+          currency: "NPR";
+        };
+        version: number;
+      };
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      409: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      428: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
   updateCreditParty: {
     params: {
       credit_party_id: string;
@@ -24533,6 +43744,151 @@ export interface Operations {
       };
     };
   };
+  updateFrontdeskSettings: {
+    params: Record<string, never>;
+    query: Record<string, never>;
+    headers: {
+      "If-Match": string;
+    };
+    body: {
+      discount_self_limit_bp: number;
+      discount_self_limit_paisa: number;
+      discount_absolute_max_bp: number;
+      require_referrer: boolean;
+      consent_text_version: string;
+      registration_sms_enabled: boolean;
+      label_autoprint: boolean;
+      buyer_pan_pattern: string;
+      patient_search_min_chars: number;
+      version?: number;
+    };
+    responses: {
+      200: {
+        discount_self_limit_bp: number;
+        discount_self_limit_paisa: number;
+        discount_absolute_max_bp: number;
+        require_referrer: boolean;
+        consent_text_version: string;
+        registration_sms_enabled: boolean;
+        label_autoprint: boolean;
+        buyer_pan_pattern: string;
+        patient_search_min_chars: number;
+        version?: number;
+      };
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      409: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      428: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
   updateInstrumentCodeMap: {
     params: {
       map_id: string;
@@ -24824,6 +44180,152 @@ export interface Operations {
       };
     };
   };
+  updateLabSettings: {
+    params: Record<string, never>;
+    query: Record<string, never>;
+    headers: {
+      "If-Match": string;
+    };
+    body: {
+      label_width_mm: number;
+      label_height_mm: number;
+      label_copies_default: number;
+      label_renderer: "html_svg";
+      host_query_requires_received: boolean;
+      ingest_auto_receive: boolean;
+      critical_notification_blocks_approval: boolean;
+      recollection_default: boolean;
+      delta_check_enabled: boolean;
+      history_days: number;
+    };
+    responses: {
+      200: {
+        version: number;
+        label_width_mm: number;
+        label_height_mm: number;
+        label_copies_default: number;
+        label_renderer: "html_svg";
+        host_query_requires_received: boolean;
+        ingest_auto_receive: boolean;
+        critical_notification_blocks_approval: boolean;
+        recollection_default: boolean;
+        delta_check_enabled: boolean;
+        history_days: number;
+      };
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      409: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      428: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
   updateMethod: {
     params: {
       id: string;
@@ -24994,6 +44496,167 @@ export interface Operations {
           orderable_id: string;
           sort_order: number;
         })[];
+        version: number;
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      409: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      428: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  updatePatient: {
+    params: {
+      patient_id: string;
+    };
+    query: Record<string, never>;
+    headers: {
+      "If-Match": string;
+    };
+    body: {
+      full_name?: string;
+      sex?: "male" | "female" | "other" | "unknown";
+      birth_on?: string;
+      age?: {
+        years: number;
+        months?: number;
+        days?: number;
+      };
+      phone_e164?: string;
+      email?: string;
+      address_text?: string;
+      unset?: ("birth_on" | "phone_e164" | "email" | "address_text")[];
+    };
+    responses: {
+      200: ({
+        id: string;
+        patient_code: string;
+        full_name: string;
+        sex: "male" | "female" | "other" | "unknown";
+        age_display: string;
+        phone_masked: string;
+        last_visit_at?: string;
+        is_anonymised: boolean;
+        birth_on?: string;
+        is_birth_on_estimated: boolean;
+        phone_e164?: string;
+        email?: string;
+        address_text?: string;
+        consents: {
+          processing: boolean;
+          sms: boolean;
+          whatsapp: boolean;
+          email: boolean;
+          share_with_referrer: boolean;
+          consent_text_version: string;
+        };
         version: number;
       });
       400: {
@@ -27349,6 +47012,159 @@ export interface Operations {
       };
     };
   };
+  uploadTrf: {
+    params: Record<string, never>;
+    query: Record<string, never>;
+    headers: {
+      "Idempotency-Key": string;
+    };
+    body: {
+      file: string;
+      centre_id: string;
+      order_id?: string;
+    };
+    responses: {
+      201: ({
+        id: string;
+        order_id?: string;
+        mime_type: "image/jpeg" | "image/png" | "application/pdf";
+        size_bytes: number;
+        scan_state: "pending" | "clean" | "quarantined" | "failed";
+        uploaded_at: string;
+        uploaded_by: {
+          membership_id: string;
+          display_name: string;
+        };
+        original_filename: string;
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      413: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      415: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      422: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
   uploadUserSignature: {
     params: {
       membership_id: string;
@@ -27624,6 +47440,142 @@ export interface Operations {
         }[];
       };
       422: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  upsertLabCode: {
+    params: {
+      set_name: "rejection_reasons" | "return_reasons" | "amendment_reasons" | "exception_discard_reasons";
+      code: string;
+    };
+    query: Record<string, never>;
+    headers: {
+      "If-Match"?: string;
+    };
+    body: {
+      display: string;
+      sort_order: number;
+      is_active: boolean;
+    };
+    responses: {
+      200: ({
+        code: string;
+        display: string;
+        sort_order: number;
+        is_active: boolean;
+        source: "global" | "tenant";
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      409: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      428: {
         type: string;
         title: string;
         status: number;
@@ -28116,6 +48068,469 @@ export interface Operations {
         }[];
       };
       409: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  verifyPaymentIntent: {
+    params: {
+      order_id: string;
+      intent_id: string;
+    };
+    query: Record<string, never>;
+    headers: Record<string, never>;
+    body: never;
+    responses: {
+      200: ({
+        status: "created" | "initiated" | "pending" | "settled" | "failed" | "expired" | "held_for_review" | "refunded" | "partially_refunded";
+        balance: {
+          order_id: string;
+          invoiced: {
+            amount_paisa: number;
+            currency: "NPR";
+          };
+          paid: {
+            amount_paisa: number;
+            currency: "NPR";
+          };
+          credited: {
+            amount_paisa: number;
+            currency: "NPR";
+          };
+          balance_due: {
+            amount_paisa: number;
+            currency: "NPR";
+          };
+          balance_version: number;
+          as_of: string;
+        };
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  verifyResult: {
+    params: {
+      result_id: string;
+    };
+    query: Record<string, never>;
+    headers: {
+      "If-Match": string;
+    };
+    body: {
+      acknowledged_flags?: ("delta" | "critical" | "unit_mismatch" | "instrument_flag")[];
+    };
+    responses: {
+      200: ({
+        id: string;
+        version: number;
+        order_id: string;
+        order_item_id: string;
+        specimen_id?: string;
+        test_id: string;
+        analyte_id: string;
+        analyte_code: string;
+        status: "pending" | "resulted" | "verified" | "approved" | "cancelled";
+        origin: string;
+        value_numeric?: string;
+        value_text?: string;
+        ordinal_code?: string;
+        unit_code?: string;
+        flag?: "LL" | "L" | "N" | "H" | "HH" | "A";
+        reference_range_snapshot?: {
+          range_id?: string;
+          range_version?: number;
+          low?: string;
+          high?: string;
+          text?: string;
+          unit_code?: string;
+        };
+        range_unavailable_age_unknown: boolean;
+        delta?: {
+          status: string;
+          prev_value?: string;
+          abs?: string;
+          pct?: string;
+          prev_at?: string;
+        };
+        critical: {
+          is_critical: boolean;
+          critical_event_id?: string;
+        };
+        calc?: {
+          status: string;
+          reason?: string;
+          provenance?: string;
+        };
+        comment_codes?: string[];
+        comment_text?: string;
+        on_hold: boolean;
+        qc_review_required: boolean;
+        unit_mismatch: boolean;
+        instrument_id?: string;
+        instrument_flags?: string[];
+        current_version_no: number;
+        verified_at?: string;
+        verified_by?: string;
+        approved_at?: string;
+        approved_by?: string;
+        amendment?: {
+          reason_code: string;
+          reason_text?: string;
+          amended_at: string;
+          amended_by: string;
+        };
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      409: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      428: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  versionDeltaCheckRule: {
+    params: {
+      rule_id: string;
+    };
+    query: Record<string, never>;
+    headers: {
+      "Idempotency-Key": string;
+      "If-Match": string;
+    };
+    body: {
+      window_seconds: number;
+      abs_threshold?: string;
+      pct_threshold?: string;
+      unit_code: string;
+      effective_from?: string;
+    };
+    responses: {
+      201: {
+        id: string;
+        version: number;
+        analyte_id: string;
+        rule_version: number;
+        window_seconds: number;
+        abs_threshold?: string;
+        pct_threshold?: string;
+        unit_code: string;
+        effective_from: string;
+        effective_to?: string;
+        is_active: boolean;
+      };
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      409: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      422: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      428: {
         type: string;
         title: string;
         status: number;

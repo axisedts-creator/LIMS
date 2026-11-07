@@ -2720,7 +2720,7 @@ paths:
           $ref: _common.yaml#/components/responses/Internal
   /v1/billing/credit-parties:
     get:
-      operationId: listCreditParties
+      operationId: listCreditAccounts
       tags:
         - billing
       summary: List credit accounts
@@ -2777,7 +2777,7 @@ paths:
           $ref: _common.yaml#/components/responses/Internal
   /v1/billing/credit-parties/{credit_party_id}:
     get:
-      operationId: getCreditParty
+      operationId: getCreditAccount
       tags:
         - billing
       summary: Get a credit account

@@ -89,9 +89,8 @@ describe('the 9 operations exist in the contract with the TRD permissions / idem
 
 describe('probes (CR-C3-008): the surcharge / tax stubs are gone', () => {
   const pending: string[] = JSON.parse(readFileSync(join(import.meta.dirname, '..', 'probes', 'pending.json'), 'utf8'));
-  it('none of the nine operationIds is listed in probes/pending.json any more (quotePrices #82 stays: T-19)', () => {
+  it('none of the nine operationIds is listed in probes/pending.json any more (quotePrices #82 is T-19\'s: quote.handlers.test.ts asserts it leaves the list)', () => {
     for (const id of IDS) expect(pending, id).not.toContain(id);
-    expect(pending).toContain('quotePrices');
   });
   it.each(IDS)('%s does not answer 503 common.service_unavailable / not_implemented', { timeout: T }, async (id) => {
     const e = await call(mk(), id, req({ params: { surcharge_rule_id: '0190c300-0000-7000-8000-000000000001', tax_type_id: '0190c300-0000-7000-8000-000000000002', tax_rule_id: '0190c300-0000-7000-8000-000000000003' }, headers: { ...IM1, ...KEY }, body: {} })).then(() => undefined, (x) => x);

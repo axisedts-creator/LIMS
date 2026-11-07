@@ -5,9 +5,9 @@ import { closeCashSession, findOpenCashSession, getCashSession, insertCashSessio
 import { enqueueCbmsSync } from './cbms.repo.js';
 import { getCreditAccount, sumOpenCreditExposure, upsertCreditAccount } from './creditAccounts.repo.js';
 import { insertCreditCharges, listCreditChargesByOrder, voidCreditChargesByIds } from './creditCharges.repo.js';
-import { insertCreditNoteTask } from './creditNoteTasks.repo.js';
-import { getCreditNote, listCreditNoteLines, markCreditNotePrinted } from './creditNotes.repo.js';
-import { findInvoiceForPayment, getInvoice, insertInvoice, listInvoicesByOrder, markInvoicePrinted } from './invoices.repo.js';
+import { getCreditNote, insertCreditNote, insertCreditNoteLines, listCreditNoteLines, listCreditNoteLinesByInvoice, markCreditNotePrinted } from './creditNotes.repo.js';
+import { getCreditNoteTask, insertCreditNoteTask, listOpenCreditNoteTasks, resolveCreditNoteTasks } from './creditNoteTasks.repo.js';
+import { addInvoiceCredit, findInvoiceForPayment, getInvoice, getInvoiceForUpdate, insertInvoice, listInvoicesByOrder, markInvoiceCancelled, markInvoicePrinted } from './invoices.repo.js';
 import { insertInvoiceLines, listInvoiceLines, listInvoiceLinesByOrder, sumCreditedByLine } from './invoiceLines.repo.js';
 import { findLedgerByIdempotencyKey, insertLedgerEntry, listLedgerForDay, pageLedger, sumLedgerBySession } from './ledger.repo.js';
 import { findActiveOverride } from './overrides.repo.js';
@@ -18,6 +18,9 @@ import { getBillingSettings } from './settings.repo.js';
 export const billingRepo = {
   getBillingSettings, insertInvoice, insertInvoiceLines, insertActivity, enqueueCbmsSync,
   readOrderTotals, getOrderBalance, upsertOrderBalance, findActiveOverride,
+  // BL-T10
+  getInvoiceForUpdate, markInvoiceCancelled, addInvoiceCredit, listInvoiceLines, insertCreditNote, insertCreditNoteLines, listCreditNoteLinesByInvoice,
+  getCreditNoteTask, listOpenCreditNoteTasks, resolveCreditNoteTasks,
   // BL-T08
   lockOrderBalance, getPaymentMethod, findLedgerByIdempotencyKey, findInvoiceForPayment, insertLedgerEntry, sumLedgerBySession, pageLedger, listLedgerForDay,
   findOpenCashSession, insertCashSession, getCashSession, closeCashSession, listCashSessionsForDay, listDues,
@@ -25,6 +28,6 @@ export const billingRepo = {
   getCreditAccount, sumOpenCreditExposure, upsertCreditAccount, insertCreditCharges, listCreditChargesByOrder, voidCreditChargesByIds,
   listInvoicesByOrder, listInvoiceLinesByOrder, insertCreditNoteTask,
   // BL-T09
-  getInvoice, listInvoiceLines, sumCreditedByLine, getCreditNote, listCreditNoteLines, markInvoicePrinted, markCreditNotePrinted, insertPrintLog,
+  getInvoice, sumCreditedByLine, getCreditNote, listCreditNoteLines, markInvoicePrinted, markCreditNotePrinted, insertPrintLog,
 };
 export type BillingRepo = typeof billingRepo;

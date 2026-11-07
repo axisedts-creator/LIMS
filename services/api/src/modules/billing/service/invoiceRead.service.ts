@@ -5,6 +5,7 @@ import { LimsError, type FieldError } from '../../../core/errors.js';
 import { moneyOf, toPaisa } from '../domain/money/paisa.js';
 import * as cbmsRepo from '../repository/cbms.repo.js';
 import * as creditNotesRepo from '../repository/creditNotes.repo.js';
+import * as creditNoteTasksRepo from '../repository/creditNoteTasks.repo.js';
 import * as balancesRepo from '../repository/balances.repo.js';
 import * as invoiceLinesRepo from '../repository/invoiceLines.repo.js';
 import * as invoicesRepo from '../repository/invoices.repo.js';
@@ -12,7 +13,7 @@ import * as overridesRepo from '../repository/overrides.repo.js';
 import * as printLogRepo from '../repository/printLog.repo.js';
 import { decideRelease, releasePolicyEnforced, type BalanceCtx } from './balance.service.js';
 
-const repo = { ...cbmsRepo, ...creditNotesRepo, ...balancesRepo, ...invoiceLinesRepo, ...invoicesRepo, ...overridesRepo, ...printLogRepo };
+const repo = { ...cbmsRepo, ...creditNotesRepo, ...creditNoteTasksRepo, ...balancesRepo, ...invoiceLinesRepo, ...invoicesRepo, ...overridesRepo, ...printLogRepo };
 export type InvoiceReadRepo = typeof repo;
 
 export const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -178,6 +179,42 @@ export function createInvoiceReadService(deps: { repo?: InvoiceReadRepo } = {}) 
     };
   }
 
-  return { listInvoices, getInvoice, getOrderBilling, listInvoicePrints };
+  /** B35: finance work list. status open (default) | resolved; keyset by (created_at, id). Only the CreditNoteTask fields leave. */
+  async function listCreditNoteTasks(ctx: BalanceCtx, rawQuery: unknown) {
+    const { tx, tenantId } = scope(ctx);
+    const q = isRec(rawQuery) ? rawQuery : {};
+    const status = q['status'] === undefined ? 'open' : q['status'];
+    if (status !== 'open' && status !== 'resolved') throw bad('/status');
+    const limit = limitOf(q['limit']);
+    const c = q['cursor'] === undefined ? undefined : decodeCursor(q['cursor'], 'created_at', 'time');
+    const rows = await db.listCreditNoteTasks(tx, { tenantId, status, limit: limit + 1, ...(c === undefined ? {} : { after: { createdAt: String(c.value), id: c.id } }) });
+    const data = rows.slice(0, limit);
+    const last = data[data.length - 1];
+    const page: { limit: number; next_cursor?: string } = { limit };
+    // ponytail: the cursor carries created_at at ms precision (node-pg Date); two tasks inside one ms could skip one at a page edge.
+    if (rows.length > limit && last) page.next_cursor = encodeCursor('created_at', iso(last['created_at']), String(last['id']));
+    return {
+      data: data.map((t) => ({ id: t['id'], order_id: t['order_id'], invoice_id: t['invoice_id'], invoice_line_ids: t['invoice_line_ids'], cause: t['cause'], status: t['status'], created_at: iso(t['created_at']) })),
+      page,
+    };
+  }
+
+  /** CreditNoteDto of one note (B4 / B5 responses); the note and its lines are read in the caller's transaction. */
+  async function getCreditNote(ctx: BalanceCtx, input: { creditNoteId: string }) {
+    const { tx, tenantId } = scope(ctx);
+    const n = await db.getCreditNote(tx, { tenantId, creditNoteId: input.creditNoteId });
+    if (!n) throw new LimsError('common.not_found');
+    const lines = (await db.listCreditNoteLinesByInvoice(tx, { tenantId, invoiceId: String(n['invoice_id']) })).filter((l) => l['credit_note_id'] === n['id']);
+    return present({
+      id: n['id'], credit_note_no: n['credit_note_no'], credit_note_seq: n['credit_note_seq'], kind: n['kind'], invoice_id: n['invoice_id'], invoice_no: n['invoice_no'],
+      fiscal_year_bs: n['fiscal_year_bs'], issued_at: iso(n['issued_at']), credit_note_date_bs: n['credit_note_date_bs'], centre_id: n['centre_id'], reason_code: n['reason_code'],
+      reason_text: n['reason_text'], lines: lines.map((l) => ({ invoice_line_id: l['invoice_line_id'], amount: moneyOf(toPaisa(l['net_paisa'])) })),
+      totals: { exempt: moneyOf(toPaisa(n['exempt_paisa'])), taxable: moneyOf(toPaisa(n['taxable_paisa'])), vat: moneyOf(toPaisa(n['vat_paisa'])),
+        other_tax: moneyOf(toPaisa(n['other_tax_paisa'])), net: moneyOf(toPaisa(n['net_paisa'])) },
+      print_count: n['print_count'], cbms_state: n['cbms_state'], version: n['version'],
+    });
+  }
+
+  return { listInvoices, getInvoice, getOrderBilling, listInvoicePrints, listCreditNoteTasks, getCreditNote };
 }
 export type InvoiceReadService = ReturnType<typeof createInvoiceReadService>;

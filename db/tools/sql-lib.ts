@@ -113,8 +113,9 @@ export function alterTarget(code: string): string | null {
   return m ? m[1].toLowerCase() : null;
 }
 
-/** 08 A16.1: `(SELECT app.current_centre_ids())` not followed by `::uuid[]`. */
-export const UNCAST_CENTRE = /\(\s*SELECT\s+app\.current_centre_ids\s*\(\s*\)\s*\)(?!\s*::\s*uuid\s*\[\s*\])/i;
+/** 08 A16.1: `(SELECT app.current_centre_ids())` not followed by `::uuid[]`; also the pg_policies-deparsed
+ *  form `( SELECT app.current_centre_ids() AS current_centre_ids)` and its cast `((…))::uuid[]`. */
+export const UNCAST_CENTRE = /\(\s*SELECT\s+app\.current_centre_ids\s*\(\s*\)(?:\s+AS\s+\w+)?\s*\)(?!(?:\s*\))*\s*::\s*uuid\s*\[\s*\])/i;
 
 /** Print violations; exit 1 if any, else 0. */
 export function finish(tool: string, errs: string[]): never {

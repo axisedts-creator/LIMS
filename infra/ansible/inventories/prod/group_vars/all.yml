@@ -2,6 +2,7 @@
 # Non-secret vars for env prod, all hosts (02-TRD s15). No secrets here:
 # roles read them via secrets_render (s8). Addresses/disks: hosts.yml only.
 env: prod
+topology_profile: full  # LD-45/LD-48: 02-TRD s3.1; default = prod-lean/
 wg_subnet: 10.77.0.0/24  # s12.1 [CONV]
 db_primary_wg_ip: 10.77.0.11  # data-1 role; dr-promote.yml changes it
 app_db_name: postgres

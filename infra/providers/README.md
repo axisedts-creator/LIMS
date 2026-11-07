@@ -6,7 +6,7 @@ The rest of `infra/` configures plain Linux VMs over SSH (Ansible, 02-TRD §4). 
 
 Every adapter under `providers/<name>/` must deliver these items. It can use an API (IaC tool chosen per provider) or documented manual steps in its `checklist.md`.
 
-1. **VMs.** Prod gets four VMs (`data-1`, `app-1`, `dr-1`, `ops-1`). Staging gets two VMs, one per site. Each VM has the 02-TRD §3.1 sizes, the **Ubuntu 24.04** image, and a **static public IPv4**. Private disks are separate **block devices**, and their `/dev/disk/by-id` names are recorded in `inventories/<env>/hosts.yml`.
+1. **VMs.** Default prod profile `lean` (LD-45, LD-48): two VMs, `prod-1` (site A, 16 vCPU / 32 GB / ~640 GB NVMe) and `backup-1` (site B, a different provider, 4 vCPU / 8 GB / ≥ 160 GB). Profile `full`: four VMs (`data-1`, `app-1`, `dr-1`, `ops-1`). Staging gets one VM (lean) or two VMs, one per site (full). Each VM has the 02-TRD §3.1 sizes, the **Ubuntu 24.04** image, and a **static public IPv4**. Private disks are separate **block devices**, and their `/dev/disk/by-id` names are recorded in `inventories/<env>/hosts.yml`.
 2. **Provider firewall** (if any). It opens 80/443 to app-1 and **51820**/udp between the VM public IPs, and closes everything else. Host nftables still enforces 02-TRD §3.3.
 3. **Out-of-band console** access for break-glass (LUKS unlock, lost WireGuard).
 4. **Snapshot** capability is recorded. Backups never rely on it.

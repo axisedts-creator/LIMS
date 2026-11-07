@@ -2,6 +2,7 @@
 # Non-secret vars for env staging, all hosts (02-TRD s15). No secrets here:
 # roles read them via secrets_render (s8). Addresses/disks: hosts.yml only.
 env: staging
+topology_profile: full  # LD-45/LD-48: 2-host 02-TRD s3.1; lean = staging-lean/
 wg_subnet: 10.78.0.0/24  # s12.1 [CONV]
 db_primary_wg_ip: 10.78.0.11  # data-1 role; dr-promote.yml changes it
 app_db_name: postgres

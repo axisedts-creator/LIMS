@@ -26,6 +26,12 @@ These tools must be on PATH: `bash`, `python3`, `gitleaks`, `yamllint` and `ansi
 - `secrets/.sops.yaml` holds the age **public** recipients, one rule per env. The current recipients are placeholders until the key ceremony. Private keys are never stored here.
 - Secrets are rendered to tmpfs on the target hosts (`/run/lims/secrets/...`) by the role `secrets_render` (02-TRD §8.3).
 
+## Topology profiles (LD-45, LD-48)
+
+- **`prod-lean` is the default prod inventory** (`ansible/inventories/prod-lean/`): `prod-1` (site A, groups data + app + ops) and `backup-1` (site B, different provider, group `backup`). No hot standby.
+- `full` = `ansible/inventories/prod/`, the 4-host topology of 02-TRD §3.1. Staging: `staging-lean/` (one VM) or `staging/`.
+- Scale triggers and details: `ansible/inventories/DECISION.md`.
+
 ## Layout and where to look
 
 - `THIRD-PARTY-OPS.md`: every ops tool, with version, licence, host and network reach (CR-C1-007 conditions).

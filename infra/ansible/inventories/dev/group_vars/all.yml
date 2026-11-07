@@ -2,6 +2,7 @@
 # Non-secret vars for env dev, all hosts (02-TRD s15). No secrets here:
 # roles read them via secrets_render (s8). Addresses/disks: hosts.yml only.
 env: dev
+topology_profile: lean  # LD-45: dev = one VM, no standby
 wg_subnet: 10.79.0.0/24  # s12.1 [CONV]
 db_primary_wg_ip: 10.79.0.11  # data-1 role; dr-promote.yml changes it
 app_db_name: postgres

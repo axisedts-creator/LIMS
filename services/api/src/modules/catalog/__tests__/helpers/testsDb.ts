@@ -12,7 +12,15 @@
 //     partial UNIQUE (tenant_id, test_id) WHERE is_preferred -> 23505, min_volume_ul CHECK, FKs test/specimen type/container -> 23503
 //     (specimen types / containers / departments are looked up in COMMITTED masters rows). DELETE is allowed on test_specimen_types only
 //     (association table); every other table raises 42501 (lims_app has no DELETE grant).
-//   - analytes / analyte_versions / panels are SEED-ONLY: SELECT works, any write throws "fake: unsupported" (their writers are T-07 / T-12).
+//   - panels are SEED-ONLY (writer T-12): SELECT works, any write throws "fake: unsupported". g_value_sets (global, no tenant) and cs_value_sets
+//     (tenant) are SEED-ONLY too (read by the T-07 ordinal check; their writers are T-05).
+//   - T-07 (additive): analytes and analyte_versions are WRITABLE (INSERT / UPDATE; no DELETE: 42501). Analytes: PK, UNIQUE(tenant_id, code) -> 23505,
+//     CHECKs (code regex, name/print_name/subheading lengths) -> 23514, FK test -> 23503. Analyte versions: PK, UNIQUE(tenant_id, analyte_id, version_no)
+//     -> 23505, partial UNIQUE one draft per analyte -> 23505 (analyte_versions__tenant_id_analyte_id__draft__p_uq), CHECKs (status enum WITHOUT
+//     'retired', result_type enum, unit/value-set regexes, decimals 0-6, numeric_decimals, valueset, formula_numeric, published_fields, window) -> 23514,
+//     FK analyte / method -> 23503, and the two BEFORE UPDATE triggers of 05-SCHEMA §10.2: catalog.tg_version_status (draft->draft|published|discarded,
+//     published->published|superseded|retired, nothing else) and app.enforce_mutable_columns when OLD.status <> 'draft' (only status, effective_to,
+//     updated_at, updated_by, version may change) -> P0001 'immutable_row' (DETAIL catalog.analyte_versions).
 // SQL dialect (anything else throws "fake: unsupported SQL" — the writer must stay inside it; one table per statement, no joins/subqueries):
 //   INSERT INTO catalog.<t> (cols) VALUES (exprs)[, (exprs)…] [RETURNING cols|*]
 //   SELECT <anything|count(*)> FROM catalog.<t> [alias] [WHERE expr] [ORDER BY expr [ASC|DESC], …] [LIMIT n|$n] [OFFSET n|$n] [FOR UPDATE|SHARE]
@@ -24,10 +32,12 @@ import { STARTED_AT, TENANT_A, USER } from './catalogDb.js';
 import { ID, RowLock, makeMastersDb, parseExpr, pgError, splitTop, tick, type MastersSeed, type Row } from './mastersDb.js';
 
 export { ID, type Row };
-export const T6_TABLES = ['orderables', 'tests', 'panels', 'test_specimen_types', 'analytes', 'analyte_versions'] as const;
+export const T6_TABLES = ['orderables', 'tests', 'panels', 'test_specimen_types', 'analytes', 'analyte_versions', 'g_value_sets', 'cs_value_sets'] as const;
 export type T6Table = (typeof T6_TABLES)[number];
 const TABLE_RE = new RegExp(`catalog\\.(${T6_TABLES.join('|')})\\b`, 'i');
-const WRITABLE = new Set<T6Table>(['orderables', 'tests', 'test_specimen_types']);
+const WRITABLE = new Set<T6Table>(['orderables', 'tests', 'test_specimen_types', 'analytes', 'analyte_versions']);
+const GLOBAL = new Set<T6Table>(['g_value_sets']);                                   // no tenant_id: visible to every tenant
+const VERSION_MUTABLE = new Set(['status', 'effective_to', 'updated_at', 'updated_by', 'version']);
 
 const COLUMNS: Record<T6Table, string[]> = {
   orderables: ['id', 'tenant_id', 'kind', 'code', 'name', 'department_id', 'sex_restriction', 'is_orderable', 'revision', 'version', 'is_active', 'created_at', 'created_by', 'updated_at', 'updated_by'],
@@ -37,14 +47,18 @@ const COLUMNS: Record<T6Table, string[]> = {
   analytes: ['id', 'tenant_id', 'test_id', 'code', 'name', 'print_name', 'report_subheading', 'sort_order', 'is_reportable', 'version', 'is_active', 'created_at', 'created_by', 'updated_at', 'updated_by'],
   analyte_versions: ['id', 'tenant_id', 'analyte_id', 'version_no', 'status', 'result_type', 'unit_code', 'decimals', 'method_id', 'value_set_code', 'formula_expression', 'formula_inputs',
     'formula_input_units', 'effective_from', 'effective_to', 'change_reason', 'published_at', 'published_by', 'source_import_id', 'version', 'is_active', 'created_at', 'created_by', 'updated_at', 'updated_by'],
+  g_value_sets: ['id', 'code', 'display', 'is_ordered', 'is_active'],
+  cs_value_sets: ['id', 'tenant_id', 'code', 'display', 'is_ordered', 'is_active'],
 };
 const NOT_NULL: Record<T6Table, string[]> = {
   orderables: ['id', 'tenant_id', 'kind', 'code', 'name', 'is_orderable', 'revision', 'created_by', 'updated_by'],
   tests: ['id', 'tenant_id', 'kind', 'workflow_type', 'report_order', 'uses_existing_material', 'created_by', 'updated_by'],
   panels: ['id', 'tenant_id', 'kind', 'panel_kind'],
   test_specimen_types: ['tenant_id', 'test_id', 'specimen_type_id', 'is_preferred', 'created_by'],
-  analytes: ['id', 'tenant_id', 'test_id', 'code', 'name'],
-  analyte_versions: ['id', 'tenant_id', 'analyte_id', 'version_no', 'status', 'result_type'],
+  analytes: ['id', 'tenant_id', 'test_id', 'code', 'name', 'created_by', 'updated_by'],
+  analyte_versions: ['id', 'tenant_id', 'analyte_id', 'version_no', 'status', 'result_type', 'created_by', 'updated_by'],
+  g_value_sets: ['id', 'code', 'is_ordered'],
+  cs_value_sets: ['id', 'tenant_id', 'code', 'is_ordered'],
 };
 const WORKFLOWS = ['standard', 'narrative', 'microbiology', 'anatomic', 'molecular', 'attachment', 'outsourced'];
 const keyOf = (t: T6Table, r: Row): string => (t === 'test_specimen_types' ? `${r.test_id}:${r.specimen_type_id}` : r.id);
@@ -63,6 +77,27 @@ function checks(t: T6Table, r: Row): void {
     if (r.kind !== 'test') bad('tests__kind__ck');
     if (!WORKFLOWS.includes(r.workflow_type)) bad('tests__workflow__ck');
     if (!(Number.isInteger(r.report_order) && r.report_order >= 0 && r.report_order <= 9999)) bad('tests__order__ck');
+  }
+  if (t === 'analytes') {
+    if (!(typeof r.code === 'string' && /^[A-Z][A-Z0-9_]{0,31}$/.test(r.code))) bad('analytes__code__ck');
+    if (!LEN(r.name, 1, 120)) bad('analytes__name__ck');
+    if (r.print_name != null && !LEN(r.print_name, 0, 120)) bad('analytes__print_name__ck');
+    if (r.report_subheading != null && !LEN(r.report_subheading, 0, 80)) bad('analytes__subheading__ck');
+  }
+  if (t === 'analyte_versions') {
+    if (!(Number.isInteger(r.version_no) && r.version_no >= 1)) bad('analyte_versions__no__ck');
+    if (!['draft', 'published', 'superseded', 'discarded'].includes(r.status)) bad('analyte_versions__status__ck');
+    if (!['numeric', 'text', 'ordinal', 'coded', 'attachment', 'narrative'].includes(r.result_type)) bad('analyte_versions__result_type__ck');
+    if (r.unit_code != null && !(typeof r.unit_code === 'string' && /^[A-Za-z0-9_]{1,32}$/.test(r.unit_code))) bad('analyte_versions__unit__ck');
+    if (r.decimals != null && !(Number.isInteger(r.decimals) && r.decimals >= 0 && r.decimals <= 6)) bad('analyte_versions__decimals__ck');
+    if (r.value_set_code != null && !(typeof r.value_set_code === 'string' && /^[A-Z0-9_]{1,32}$/.test(r.value_set_code))) bad('analyte_versions__vs__ck');
+    if (r.formula_expression != null && !LEN(r.formula_expression, 0, 500)) bad('analyte_versions__formula__ck');
+    if (r.change_reason != null && !LEN(r.change_reason, 0, 500)) bad('analyte_versions__reason__ck');
+    if (r.result_type === 'numeric' && r.decimals == null) bad('analyte_versions__numeric_decimals__ck');
+    if ((r.result_type === 'ordinal' || r.result_type === 'coded') && r.value_set_code == null) bad('analyte_versions__valueset__ck');
+    if (r.formula_expression != null && r.result_type !== 'numeric') bad('analyte_versions__formula_numeric__ck');
+    if (!['draft', 'discarded'].includes(r.status) && (r.effective_from == null || r.published_at == null || r.change_reason == null)) bad('analyte_versions__published_fields__ck');
+    if (r.effective_to != null && r.effective_from != null && +new Date(r.effective_to) < +new Date(r.effective_from)) bad('analyte_versions__window__ck');
   }
   if (t === 'test_specimen_types' && r.min_volume_ul != null && !(Number.isInteger(r.min_volume_ul) && r.min_volume_ul >= 1 && r.min_volume_ul <= 100000)) bad('test_specimen_types__vol__ck');
 }
@@ -90,7 +125,8 @@ export function makeTestsDb(seed: TestsSeed = {}) {
     if (t === 'panels') o.kind = 'panel';
     if (t === 'test_specimen_types') o.is_preferred = r.is_preferred ?? false;
     if (t === 'analytes') { o.sort_order = r.sort_order ?? 100; o.is_reportable = r.is_reportable ?? true; }
-    if (t === 'analyte_versions') o.formula_inputs = r.formula_inputs ?? [];
+    if (t === 'analyte_versions') { o.formula_inputs = r.formula_inputs ?? []; o.status = r.status ?? 'draft'; }
+    if (t === 'g_value_sets' || t === 'cs_value_sets') o.is_active = r.is_active ?? true;
     return o;
   }
   for (const t of T6_TABLES) for (const r of seed.t6?.[t] ?? []) committed.get(t)!.set(keyOf(t, r), fill(t, r));
@@ -102,13 +138,13 @@ export function makeTestsDb(seed: TestsSeed = {}) {
     const now = STARTED_AT;
     const visible = (t: T6Table): Row[] => {
       const m = new Map<string, Row>();
-      for (const [k, r] of committed.get(t)!) if (r.tenant_id === tenantId) m.set(k, r);
+      for (const [k, r] of committed.get(t)!) if (GLOBAL.has(t) || r.tenant_id === tenantId) m.set(k, r);
       for (const [k, r] of local.get(t)!) { if (r === null) m.delete(k); else m.set(k, r); }
       return [...m.values()];
     };
     const take = async (t: T6Table) => { const k = `${t}:${tenantId}`; await lockOf(k).acquire(mtx.id); held.add(k); };
     const releaseAll = () => { for (const k of held) lockOf(k).release(mtx.id); held.clear(); };
-    const master = (tbl: 'departments' | 'specimen_types' | 'containers', id: unknown) => id != null && masters.row(tbl, String(id))?.tenant_id === tenantId;
+    const master = (tbl: 'departments' | 'specimen_types' | 'containers' | 'methods', id: unknown) => id != null && masters.row(tbl, String(id))?.tenant_id === tenantId;
     const out = (rows: Row[], returning: string | undefined) => (returning ? { rows: rows.map((r) => ({ ...r })) } : { rows: [] as Row[] });
 
     /** All constraints for a row about to be written; `self` = the key of the row being replaced (UPDATE) so it does not conflict with itself. */
@@ -131,7 +167,32 @@ export function makeTestsDb(seed: TestsSeed = {}) {
         if (others.some((x) => x.code === r.code)) throw pgError('23505', 'duplicate key value violates unique constraint "orderables__tenant_id_code__uq"', 'orderables__tenant_id_code__uq');
         if (r.department_id != null && !master('departments', r.department_id)) throw pgError('23503', 'violates foreign key constraint "orderables__department__fk"', 'orderables__department__fk');
       }
+      if (t === 'analytes') {
+        if (others.some((x) => x.code === r.code)) throw pgError('23505', 'duplicate key value violates unique constraint "analytes__tenant_id_code__uq"', 'analytes__tenant_id_code__uq');
+        if (!visible('tests').some((x) => x.id === r.test_id)) throw pgError('23503', 'violates foreign key constraint "analytes__test__fk"', 'analytes__test__fk');
+      }
+      if (t === 'analyte_versions') {
+        if (others.some((x) => x.analyte_id === r.analyte_id && x.version_no === r.version_no)) {
+          throw pgError('23505', 'duplicate key value violates unique constraint "analyte_versions__tenant_id_analyte_id_version_no__uq"', 'analyte_versions__tenant_id_analyte_id_version_no__uq');
+        }
+        if (r.status === 'draft' && others.some((x) => x.analyte_id === r.analyte_id && x.status === 'draft')) {
+          throw pgError('23505', 'duplicate key value violates unique constraint "analyte_versions__tenant_id_analyte_id__draft__p_uq"', 'analyte_versions__tenant_id_analyte_id__draft__p_uq');
+        }
+        if (!visible('analytes').some((x) => x.id === r.analyte_id)) throw pgError('23503', 'violates foreign key constraint "analyte_versions__analyte__fk"', 'analyte_versions__analyte__fk');
+        if (r.method_id != null && !master('methods', r.method_id)) throw pgError('23503', 'violates foreign key constraint "analyte_versions__method__fk"', 'analyte_versions__method__fk');
+      }
       if (t === 'tests' && !visible('orderables').some((x) => x.id === r.id && x.kind === r.kind)) throw pgError('23503', 'violates foreign key constraint "tests__orderable__fk"', 'tests__orderable__fk');
+    }
+
+    /** BEFORE UPDATE triggers analyte_versions__status + analyte_versions__mutable_columns (05-SCHEMA §10.2). */
+    function versionTriggers(o: Row, n: Row): void {
+      const immutable = () => pgError('P0001', 'immutable_row');
+      const ok = (o.status === 'draft' && ['draft', 'published', 'discarded'].includes(n.status)) || (o.status === 'published' && ['published', 'superseded', 'retired'].includes(n.status));
+      if (!ok) throw immutable();
+      if (o.status !== 'draft') {
+        const same = (a: unknown, b: unknown) => (a instanceof Date || b instanceof Date ? +new Date(a as never) === +new Date(b as never) : JSON.stringify(a ?? null) === JSON.stringify(b ?? null));
+        for (const c of COLUMNS.analyte_versions) if (!VERSION_MUTABLE.has(c) && !same(o[c], n[c])) throw immutable();
+      }
     }
 
     const target = (m: RegExpExecArray | null, text: string, kind: string): T6Table => {
@@ -209,6 +270,7 @@ export function makeTestsDb(seed: TestsSeed = {}) {
         const n: Row = { ...r };
         for (const s of sets) n[s.col] = s.ev({ row: r, values, now });
         if (n.tenant_id !== tenantId) throw pgError('42501', 'new row violates row-level security policy');
+        if (t === 'analyte_versions') versionTriggers(r, n);
         validate(t, n, keyOf(t, r));
         local.get(t)!.set(keyOf(t, n), n); changed.push(n);
       }

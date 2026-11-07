@@ -3,7 +3,7 @@
 import { describe, expect, it } from 'vitest';
 import { TENANT_A, TENANT_B } from './catalogDb.js';
 import { dept, spec as specimen, cont } from './mastersDb.js';
-import { ID, makeTestsDb, pnl, tsr, tst, type Row } from './testsDb.js';
+import { ID, ana, anv, makeTestsDb, pnl, tsr, tst, type Row } from './testsDb.js';
 
 const D1 = dept(1, TENANT_A); const S1 = specimen(1, TENANT_A); const S2 = specimen(2, TENANT_A); const C1 = cont(1, TENANT_A);
 const names = ['100% pure', 'Alpha_beta', 'AlphaXbeta', 'back\\slash', 'Plain'];
@@ -97,5 +97,57 @@ describe('tables, RLS and constraints', () => {
     const t = tst(1, TENANT_A, D1.id);
     const db = makeTestsDb({ rows: { departments: [D1], specimen_types: [S1] }, t6: { orderables: [t.orderable], tests: [t.test], test_specimen_types: [tsr(t.test.id, S1.id, TENANT_A, { is_preferred: true })] } });
     expect((await q(db, 'SELECT * FROM catalog.test_specimen_types WHERE tenant_id = $1 AND test_id = $2', [TENANT_A, t.test.id])).rows).toHaveLength(1);
+  });
+});
+
+describe('T-07 additions: analytes / analyte_versions constraints + the two version triggers', () => {
+  const t = tst(1, TENANT_A, D1.id);
+  const A1 = ana(1, TENANT_A, t.test.id, { code: 'HB' });
+  const draftRow = anv(1, TENANT_A, A1.id, { version_no: 1, status: 'draft', decimals: 1, unit_code: 'g_dl', effective_from: null, published_at: null, change_reason: null });
+  const pubRow = anv(2, TENANT_A, A1.id, { version_no: 2, status: 'published', decimals: 1, unit_code: 'g_dl' });
+  const mk = (versions: Row[]) => makeTestsDb({ rows: { departments: [D1] }, t6: { orderables: [t.orderable], tests: [t.test], analytes: [A1], analyte_versions: versions,
+    g_value_sets: [{ id: ID(0x5001), code: 'G_SET', display: 'g', is_ordered: true }], cs_value_sets: [{ id: ID(0x5003), tenant_id: TENANT_B, code: 'B_SET', display: 'b', is_ordered: true }] } });
+  const upd = (db: ReturnType<typeof mk>, id: string, set: string) => q(db, `UPDATE catalog.analyte_versions SET ${set} WHERE tenant_id = $1 AND id = $2`, [TENANT_A, id]);
+
+  it('P0001 immutable_row: clinical columns of a published row cannot change; status/effective_to/updated_*/version can; illegal transitions are refused', async () => {
+    const db = mk([draftRow, pubRow]);
+    for (const set of ["unit_code = 'mg_dl'", 'decimals = 3', "change_reason = 'x'", "status = 'draft'"]) expect((await rej(upd(db, pubRow.id, set))).code, set).toBe('P0001');
+    await upd(db, pubRow.id, "effective_to = '2027-01-01T00:00:00.000Z', version = 2, updated_by = '" + ID(7) + "'");
+    expect(db.row('analyte_versions', pubRow.id)).toMatchObject({ version: 2 });
+    await upd(db, pubRow.id, "status = 'superseded'");
+    expect((await rej(upd(db, pubRow.id, "status = 'published'"))).code).toBe('P0001');       // nothing out of superseded
+    expect((await rej(upd(db, draftRow.id, "status = 'superseded', effective_from = '2026-01-01T00:00:00.000Z'"))).code).toBe('P0001');
+  });
+  it('a draft is editable; draft -> published needs the published_* fields (CHECK 23514); draft -> discarded is legal and final', async () => {
+    const db = mk([draftRow]);
+    await upd(db, draftRow.id, "unit_code = 'mg_dl'");
+    expect((await rej(upd(db, draftRow.id, "status = 'published'"))).code).toBe('23514');
+    await upd(db, draftRow.id, "status = 'discarded'");
+    expect((await rej(upd(db, draftRow.id, "status = 'draft'"))).code).toBe('P0001');
+  });
+  it('one draft per analyte and one row per version_no (23505); CHECKs 23514; FK 23503; DELETE 42501', async () => {
+    const db = mk([draftRow, pubRow]);
+    const ins = (cols: string, vals: string, v: unknown[]) => q(db, `INSERT INTO catalog.analyte_versions (${cols}) VALUES (${vals})`, v);
+    const base = (n: number, over: Row = {}) => ({ id: ID(0x9000 + n), tenant_id: TENANT_A, analyte_id: A1.id, version_no: 3, status: 'draft', result_type: 'numeric', decimals: 1, created_by: ID(1), updated_by: ID(1), ...over });
+    const put = (r: Row) => ins('id, tenant_id, analyte_id, version_no, status, result_type, decimals, method_id, created_by, updated_by', '$1, $2, $3, $4, $5, $6, $7, $8, $9, $10',
+      [r.id, r.tenant_id, r.analyte_id, r.version_no, r.status, r.result_type, r.decimals ?? null, r.method_id ?? null, r.created_by, r.updated_by]);
+    expect((await rej(put(base(1)))).constraint).toBe('analyte_versions__tenant_id_analyte_id__draft__p_uq');
+    expect((await rej(put(base(2, { version_no: 2, status: 'discarded' })))).constraint).toBe('analyte_versions__tenant_id_analyte_id_version_no__uq');
+    expect((await rej(put(base(3, { version_no: 3, status: 'discarded', result_type: 'numeric', decimals: null })))).code).toBe('23514');
+    expect((await rej(put(base(4, { version_no: 3, status: 'discarded', analyte_id: ID(0xdead) })))).code).toBe('23503');
+    expect((await rej(put(base(5, { version_no: 3, status: 'discarded', method_id: ID(0xdead) })))).code).toBe('23503');
+    expect((await rej(q(db, 'DELETE FROM catalog.analyte_versions WHERE tenant_id = $1', [TENANT_A]))).code).toBe('42501');
+  });
+  it('analytes: UNIQUE(tenant, code) 23505, code CHECK 23514, FK test 23503; global value sets are visible to every tenant, tenant sets only to their own', async () => {
+    const db = mk([]);
+    const ins = (id: string, code: string, test: string) => q(db, 'INSERT INTO catalog.analytes (id, tenant_id, test_id, code, name, created_by, updated_by) VALUES ($1, $2, $3, $4, $5, $6, $7)', [id, TENANT_A, test, code, 'n', ID(1), ID(1)]);
+    expect((await rej(ins(ID(0x9100), 'HB', t.test.id))).code).toBe('23505');
+    expect((await rej(ins(ID(0x9101), 'hb2', t.test.id))).code).toBe('23514');
+    expect((await rej(ins(ID(0x9102), 'NEW', ID(0xdead)))).code).toBe('23503');
+    await ins(ID(0x9103), 'NEW', t.test.id);
+    expect((await q(db, 'SELECT * FROM catalog.g_value_sets WHERE code = $1', ['G_SET'])).rows).toHaveLength(1);
+    expect((await q(db, 'SELECT * FROM catalog.g_value_sets WHERE code = $1', ['G_SET'], TENANT_B)).rows).toHaveLength(1);
+    expect((await q(db, 'SELECT * FROM catalog.cs_value_sets WHERE tenant_id = $1 AND code = $2', [TENANT_A, 'B_SET'])).rows).toHaveLength(0);
+    expect((await rej(q(db, 'UPDATE catalog.g_value_sets SET display = $1 WHERE code = $2', ['x', 'G_SET']))).message).toMatch(/unsupported/);
   });
 });

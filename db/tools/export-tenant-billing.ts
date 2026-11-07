@@ -7,24 +7,29 @@
 // Needs `psql` on PATH. Exit codes: 0 ok, 1 usage/validation (checked before any connection or file), 2 environment/DB failure (no output written).
 // row_security=off: a role subject to RLS gets an error (exit 2) instead of a silently short export; use a BYPASSRLS/superuser role.
 import { spawnSync } from "node:child_process";
-import { writeFileSync } from "node:fs";
+import { writeFileSync, writeSync } from "node:fs";
 import { resolve } from "node:path";
 
 const USAGE = "usage: DATABASE_URL=postgres://… node db/tools/export-tenant-billing.ts --tenant <uuid> [--out <file>]";
-const fail = (code: number, msg: string): never => { console.error(`export-tenant-billing: ${msg}`); process.exit(code); };
+const fail = async (code: number, msg: string): Promise<never> => {
+  writeSync(2, `export-tenant-billing: ${msg}\n`);
+  process.exitCode = code;
+  await new Promise((r) => setImmediate(r));   // let pending async warning/stderr work settle: process.exit() mid-flight aborts libuv on Windows (0xC0000409)
+  return process.exit(code);
+};
 
 const arg = (name: string): string | undefined => {
   const i = process.argv.indexOf(name);
   return i > 0 ? process.argv[i + 1] ?? "" : undefined;
 };
 const tenant = arg("--tenant");
-if (tenant === undefined) fail(1, `--tenant is required\n${USAGE}`);
-if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(tenant!)) fail(1, `--tenant must be a canonical UUID\n${USAGE}`);
+if (tenant === undefined) await fail(1, `--tenant is required\n${USAGE}`);
+if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(tenant!)) await fail(1,`--tenant must be a canonical UUID\n${USAGE}`);
 const outArg = arg("--out");
-if (outArg === "") fail(1, `--out needs a file name\n${USAGE}`);
+if (outArg === "") await fail(1,`--out needs a file name\n${USAGE}`);
 
 const url = process.env.DATABASE_URL;
-if (!url) fail(2, "DATABASE_URL is not set; a migrated database is required");
+if (!url) await fail(2,"DATABASE_URL is not set; a migrated database is required");
 
 // Server-side generation: one INSERT per row via json_populate_record (exact types, no client-side quoting); tenant bound as a psql variable.
 // ponytail: whole export held in memory, stream per table if a tenant's billing data outgrows that.
@@ -50,7 +55,7 @@ const r = spawnSync("psql", [url!, "-X", "-q", "-A", "-t", "-v", "ON_ERROR_STOP=
 });
 if (r.error || r.status !== 0) {
   const why = r.error ? (r.error as NodeJS.ErrnoException).code === "ENOENT" ? "psql is not on PATH" : r.error.message : r.stderr;
-  fail(2, `psql failed: ${why.split(url!).join("<DATABASE_URL>")}`);
+  await fail(2, `psql failed: ${why.split(url!).join("<DATABASE_URL>")}`);
 }
 const script = `${r.stdout.trimEnd()}\n`;
 if (outArg === undefined) process.stdout.write(script);

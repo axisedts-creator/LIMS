@@ -2,14 +2,17 @@
 // SCR-02 Agent detail (04-UI-UX §3). Renders only documented DTO fields: credentials show metadata, never a secret or hash (AC-16.3).
 import { useState } from 'react';
 import { Banner } from '@lims/ui/components/Banner';
+import { Button } from '@lims/ui/components/Button';
+import { CodeBlock } from '@lims/ui/components/CodeBlock';
 import { DataTable, type ColumnDef } from '@lims/ui/components/DataTable';
+import { Drawer } from '@lims/ui/components/Drawer';
 import { DateText } from '@lims/ui/components/DateText';
 import { DescriptionList } from '@lims/ui/components/DescriptionList';
 import { PageHeader } from '@lims/ui/components/PageHeader';
 import { Tabs } from '@lims/ui/components/Tabs';
 import { Timeline } from '@lims/ui/components/Timeline';
 import type { Agent, AgentCommand, AgentCredential, HealthTransition, InstrumentSummary } from '../server/types';
-import { listAgentCommandsAction } from '../server/actions';
+import { getAgentLogBundleAction, listAgentCommandsAction } from '../server/actions';
 import { AgentActions } from './AgentActions';
 import { AgentStatusChip, DEFAULT_CLOCK_OFFSET_WARN_SECONDS, HealthChip, InstrumentStateChip, hasPerm, healthLabel } from './labels';
 import { IssueEnrolmentCode } from './IssueEnrolmentCode';
@@ -54,10 +57,12 @@ const commandColumns: ColumnDef<AgentCommand>[] = [
   { id: 'completed_at', header: 'Completed at', cell: (c) => when(c.completed_at) },
   { id: 'result', header: 'Result', cell: (c) => txt(c.result_code) },
 ];
+const hasLog = (c: AgentCommand) => c.kind === 'upload_logs' && c.state === 'completed' && !!c.log_bundle_id;
 
 export function AgentDetail({ agent, transitions, instruments, permissions, clockOffsetWarnSeconds = DEFAULT_CLOCK_OFFSET_WARN_SECONDS }: { agent: Agent; transitions: readonly HealthTransition[]; instruments: readonly InstrumentSummary[]; permissions: readonly string[]; clockOffsetWarnSeconds?: number }) {
   const [tab, setTab] = useState<string>('overview');
   const [commands, setCommands] = useState<{ rows: readonly AgentCommand[]; error?: string } | undefined>();
+  const [log, setLog] = useState<{ bundleId: string; lines?: readonly string[]; error?: string } | undefined>();
   const h = agent.health;
   const canManage = hasPerm(permissions, 'instruments.agent.manage');
   const ipChangedRecently = !!h.last_ip_changed_at && Date.now() - Date.parse(h.last_ip_changed_at) < DAY_MS; // [CONV] 24 h
@@ -72,6 +77,19 @@ export function AgentDetail({ agent, transitions, instruments, permissions, cloc
       setCommands({ rows: [], error: 'common.internal' });
     }
   };
+  const openLog = async (bundleId: string) => {
+    setLog({ bundleId });
+    try {
+      const r = await getAgentLogBundleAction(agent.id, bundleId);
+      setLog(r.ok ? { bundleId, lines: r.data.lines } : { bundleId, error: r.code });
+    } catch {
+      setLog({ bundleId, error: 'common.internal' });
+    }
+  };
+  // "View log" only for manage (E20 needs instruments.agent.manage) on completed upload_logs with a bundle (04-UI-UX SCR-02).
+  const cmdColumns: ColumnDef<AgentCommand>[] = canManage
+    ? [...commandColumns, { id: 'log', header: 'Log', cell: (c) => (hasLog(c) ? <Button variant="secondary" onPress={() => void openLog(c.log_bundle_id!)}>View log</Button> : '—') }]
+    : commandColumns;
   const selectTab = (id: string) => {
     setTab(id);
     if (id === 'commands') void loadCommands();
@@ -136,7 +154,7 @@ export function AgentDetail({ agent, transitions, instruments, permissions, cloc
         ) : (
           <DataTable
             caption="Commands"
-            columns={commandColumns}
+            columns={cmdColumns}
             rows={commands?.rows ?? []}
             getRowId={(c) => c.command_id ?? `${c.kind}-${c.requested_at}`}
             {...(commands?.error ? { error: { title: 'Could not load commands', onRetry: () => void loadCommands() } } : {})}
@@ -144,6 +162,15 @@ export function AgentDetail({ agent, transitions, instruments, permissions, cloc
           />
         )}
       </Tabs>
+      <Drawer title="Agent log" width="lg" isOpen={!!log} onClose={() => setLog(undefined)}>
+        {log?.error ? (
+          <Banner tone="danger" title="Could not load the log">{log.error}</Banner>
+        ) : log?.lines ? (
+          <CodeBlock label="Agent log" text={log.lines.join('\n')} allowCopy />
+        ) : (
+          <p>Loading log…</p>
+        )}
+      </Drawer>
     </section>
   );
 }

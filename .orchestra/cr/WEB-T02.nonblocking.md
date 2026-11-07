@@ -32,3 +32,15 @@ Proposed change (exact): add optional `last_link_error_code: string maxLength 64
 Backward compatible? yes (additive optional fields)
 Tenant/security impact: none (no PHI)
 Tests that will prove it: contract test on E21 response; WEB-T02 Instruments-tab test.
+
+---
+
+Title: CR-C7-WEB-T02-d: SCR-01 / SCR-05 page shortcut Alt+N clashes with global Alt+N
+From chunk: C7            To owner: C0-0D (shell shortcuts) / spec owner of C7 04-UI-UX §4
+Type: spec
+Blocking? no — SCR-01 New agent stays reachable by its button; help no longer lists Alt+N.
+Problem: C7 04-UI-UX.md:190 (SCR-01 `Alt+N` New agent) and :192 (SCR-05 `Alt+N` New instrument) collide with GLOBAL_KEYS `Alt+N` in apps/web/src/core/shortcuts/registry.ts:3; `shortcuts.register` throws on a global-key clash (AC-0D-7.5).
+Proposed change (exact): spec owner assigns SCR-01 and SCR-05 a free page key in C7 04-UI-UX §4, or rules that page "New" actions reuse the global Alt+N handler.
+Backward compatible? yes
+Tenant/security impact: none
+Tests that will prove it: WEB-T02 shortcuts test registering the ruled key on the SCR-01 page.

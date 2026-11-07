@@ -4,13 +4,14 @@
 import 'server-only';
 import { ApiError } from '@/core/api/server-fetch';
 import { createAgent } from './createAgent.server';
+import { getAgentLogBundle } from './getAgentLogBundle.server';
 import { issueEnrolmentCode } from './issueEnrolmentCode.server';
 import { listAgentCommands } from './listAgentCommands.server';
 import { requestAgentCommand } from './requestAgentCommand.server';
 import { retireAgent } from './retireAgent.server';
 import { revokeAgent } from './revokeAgent.server';
 import { updateAgent } from './updateAgent.server';
-import type { ActionResult, Agent, AgentCommand, AgentCommandKind, CreateAgentInput, EnrolmentCodeIssued, ReasonInput, UpdateAgentInput } from './types';
+import type { ActionResult, Agent, AgentCommand, AgentLogBundle,AgentCommandKind, CreateAgentInput, EnrolmentCodeIssued, ReasonInput, UpdateAgentInput } from './types';
 
 async function run<T>(f: () => Promise<T>): Promise<ActionResult<T>> {
   try {
@@ -56,4 +57,11 @@ export async function requestAgentCommandAction(agentId: string, cmd: { kind: Ag
 
 export async function listAgentCommandsAction(agentId: string): Promise<ActionResult<AgentCommand[]>> {
   return run(async () => (await listAgentCommands(agentId)).data);
+}
+
+export async function getAgentLogBundleAction(agentId: string, bundleId: string): Promise<ActionResult<Pick<AgentLogBundle, 'bundle_id' | 'lines'>>> {
+  return run(async () => {
+    const b = await getAgentLogBundle(agentId, bundleId);
+    return { bundle_id: b.bundle_id, lines: b.lines };
+  });
 }

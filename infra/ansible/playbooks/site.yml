@@ -24,6 +24,15 @@
   roles:
     - pgbackrest
 
+# 02-TRD s9.5 (T-12): streaming standby on the dr host, seeded by
+# pg_basebackup (CR-C1-T09 (a)). Gated by standby_enabled: LD-45 `lean`
+# and dev install nothing.
+- name: Standby
+  hosts: dr
+  become: true
+  roles:
+    - standby
+
 # 02-TRD s9.5: object replica. Sync job on the Storage host (app), target
 # directory on dr; the dr host is groups['dr'][0] of the active profile
 # (LD-45), none in dev.

@@ -1,6 +1,6 @@
 // QR Model 2 encoder: byte mode, error-correction level M (04-UI-UX §3.2 [CONV]), versions 1–10 (<= 213 bytes), mask by the
 // standard penalty rules. Pure, no network, deterministic: same text -> same image.
-// [CONV] in-tree until C0 pins a QR encoder package (02-TRD §1 "QR code encoder: C0 pins"; .orchestra/cr/C6-T07.md).
+// [CONV] in-tree until C0 pins a QR encoder package (02-TRD §1 "QR code encoder: C0 pins"; .orchestra/cr/C6-T07.nonblocking.md).
 // ponytail: versions 1–10 only; a verify URL is ~60 bytes. Extend the two tables if a longer payload ever appears.
 const ECC_PER_BLOCK = [0, 10, 16, 26, 18, 24, 16, 18, 22, 22, 26];
 const BLOCKS = [0, 1, 1, 1, 2, 2, 4, 4, 4, 5, 5];

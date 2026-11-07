@@ -164,7 +164,9 @@ export function shell(input: RenderInput, o: { title: string; css?: string; cols
 /** 04-UI-UX §3.2 status boxes at the top of page 1 (Amended, Addendum, Preliminary). */
 export function statusBox(d: ReportDocument): string {
   const n = d.amendmentNotes?.[0];
-  // [CONV] "issued {date}": the snapshot carries no issue time of the replaced version; amendedAt is printed.
+  // [CONV] "issued {date}": the snapshot carries no issue time of the replaced version; amendedAt is printed
+  // until CR-C6-024 item 3 (.orchestra/cr/C6-T07.nonblocking.md) adds amendmentNotes[].previousIssuedAt; then print that.
+  // [CONV] partial box pending CR-C6-024 item 4 (ReportDocument.pendingTestCount); reportKind 'partial' renders no box.
   const issued = n ? ` issued ${fmtInstant(n.amendedAt, d)}` : '';
   let lines: string[] = [];
   if (d.reportKind === 'amended' && n) {

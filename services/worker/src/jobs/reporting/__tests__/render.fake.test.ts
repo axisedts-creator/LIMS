@@ -19,6 +19,11 @@ describe('render harness', () => {
     expect((await id.port.getSignatories({}, { membershipIds: [I.m1, I.m2] })).map((p: any) => p.council)).toEqual(['NMC', 'NHPC']);
     expect((await makeIdentity({ noCouncil: true }).port.getSignatories({}, { membershipIds: [I.m1] }))[0]).not.toHaveProperty('council');
   });
+  it('fake tx honours savepoints: an UPDATE after SAVEPOINT x is undone by ROLLBACK TO SAVEPOINT x', async () => {
+    const s = renderSetup(); const q = (t: string, v: unknown[] = []) => s.db.tx.query(t, v);
+    await q('SAVEPOINT x'); await q(`UPDATE reporting.report_versions SET status = 'rendered' WHERE tenant_id = $1`, [s.version()['tenant_id']]);
+    expect(s.version().status).toBe('rendered'); await q('ROLLBACK TO SAVEPOINT x'); expect(s.version().status).toBe('rendering');
+  });
   it('renderer / assembler / store fakes', async () => {
     expect((await makeRenderer().render({})).pageCount).toBe(2); expect(((await settle(makeRenderer(unavailable()).render({}))) as any).code).toBe('reporting.render_unavailable');
     const a = makeAssembler({ pageCount: 7 }); expect(await a.assemble({ parts: [] })).toMatchObject({ pageCount: 7 }); expect(a.calls).toHaveLength(1);

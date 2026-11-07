@@ -141,7 +141,7 @@ test('constraints verbatim (names + literal sets) — schema tests 2, 3, 5, 6, 3
   assert.match(sql, /tenants__status__ck CHECK \(status IN \('provisioning', ?'active', ?'suspended', ?'offboarded'\)\)/);
   assert.match(sql, /tenants__status_reason__ck CHECK \(coalesce\(char_length\(status_reason\), ?0\) <= 500\)/);
   assert.match(sql, /role_permissions__no_platform__ck CHECK \(permission_code NOT LIKE 'platform\.%'\)/);
-  assert.match(sql, /audit_log__actor__ck CHECK \(\(actor_id IS NOT NULL AND created_by IS NOT NULL\) OR \(actor_id IS NULL AND created_by IS NULL AND actor_type = 'system' AND detail \? 'maintenance'\)\)/);
+  assert.match(sql, /audit_log__actor__ck CHECK \(\(actor_id IS NOT NULL AND created_by IS NOT NULL\) OR \(actor_id IS NULL AND created_by IS NULL AND actor_type = 'system' AND coalesce\(detail \? 'maintenance', false\)\)\)/);
   assert.match(sql, /audit_log__pk PRIMARY KEY \(tenant_id, occurred_at, id\)/);
   assert.match(sql, /users__pk PRIMARY KEY \(tenant_id, id\)/);
   assert.match(sql, /collection_centres__branch__fk FOREIGN KEY \(tenant_id, branch_id\) REFERENCES core\.branches \(tenant_id, id\)/, 'composite FK (AC-0B-3.5)');

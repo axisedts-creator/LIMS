@@ -23,7 +23,7 @@ CREATE TABLE audit.audit_log (
   CONSTRAINT audit_log__pk PRIMARY KEY (tenant_id, occurred_at, id),
   CONSTRAINT audit_log__action__ck CHECK (action IN ('INSERT','UPDATE','DELETE')),
   CONSTRAINT audit_log__actor__ck CHECK ((actor_id IS NOT NULL AND created_by IS NOT NULL)
-     OR (actor_id IS NULL AND created_by IS NULL AND actor_type = 'system' AND detail ? 'maintenance')),   -- 08 A28.5
+     OR (actor_id IS NULL AND created_by IS NULL AND actor_type = 'system' AND coalesce(detail ? 'maintenance', false))),   -- LD-02 (2026-11-07), 08 A28.5
   CONSTRAINT audit_log__ua__ck CHECK (coalesce(char_length(user_agent),0) <= 512)
 );
 CREATE INDEX audit_log__tenant_id_id__idx ON audit.audit_log (tenant_id, id);

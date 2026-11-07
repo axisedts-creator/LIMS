@@ -36,7 +36,11 @@ const EVENTS_PRODUCED = [
 const INGEST = ['instruments.ingest.config_read', 'instruments.ingest.enrol', 'instruments.ingest.heartbeat',
   'instruments.ingest.host_query', 'instruments.ingest.submit'];
 /** operationIds whose stub a later task has replaced; that task moves its ids here (tester-owned list). */
-const IMPLEMENTED: readonly string[] = [];
+const IMPLEMENTED: readonly string[] = [
+  'listAgents', 'createAgent', 'getAgent', 'updateAgent', 'issueEnrolmentCode', 'revokeAgent',
+  'retireAgent', 'requestAgentCommand', 'listAgentCommands', 'listAgentHealthTransitions',
+  'getAgentLogBundle', 'listAgentReleases',
+];
 
 const FAKE_REQ = { params: {}, query: {}, headers: {}, body: {} };
 const fakeCtx = (operationId: string) =>

@@ -36,7 +36,17 @@ describe.skipIf(!SU)('billing.fiscal_counter_prepare + billing.integrity_check o
       await c.query('COMMIT');
     } catch (e) { await c.query('ROLLBACK').catch(() => undefined); throw e; } finally { c.release(); }
   }
-  const ins = (table: string, row: object): [string, unknown[]] => [`INSERT INTO ${table} SELECT * FROM jsonb_populate_record(NULL::${table}, $1::jsonb)`, [JSON.stringify(row)]];
+  // explicit column list so omitted columns take their table DEFAULTs (a bare SELECT * would insert NULLs)
+  const ins = (table: string, row: object): [string, unknown[]] => {
+    const cols = Object.keys(row).join(', ');
+    return [`INSERT INTO ${table} (${cols}) SELECT ${cols} FROM jsonb_populate_record(NULL::${table}, $1::jsonb)`, [JSON.stringify(row)]];
+  };
+  const S_RC = 'RC';
+  const receipt = (id: string, seq: number) => ({
+    id, tenant_id: TENANT, branch_id: BRANCH, centre_id: CENTRE, order_id: uid(700 + seq), entry_kind: 'payment', capture_kind: 'gateway', method_code: 'esewa',
+    amount_paisa: 1000, gateway: 'esewa', gateway_txn_ref: `BLT17-TXN-${seq}`, intent_id: uid(800 + seq), receipt_no: `RC-BLT17-${seq}`, receipt_seq: seq,
+    fiscal_year_bs: FY, business_date: '2099-01-01', created_by: SYS,
+  });
 
   /** Run a task in one transaction with system claims for TENANT; returns the metric calls it made. */
   async function run(id: string, now = new Date().toISOString()) {
@@ -62,6 +72,8 @@ describe.skipIf(!SU)('billing.fiscal_counter_prepare + billing.integrity_check o
   async function cleanup() {
     await asSystem([
       [`DELETE FROM billing.print_log WHERE tenant_id = $1 AND document_id = ANY($2)`, [TENANT, [uid(1), uid(2), uid(3), uid(51), uid(52)]]],
+      [`DELETE FROM billing.order_balances WHERE tenant_id = $1 AND order_id = $2`, [TENANT, uid(750)]],
+      [`DELETE FROM billing.ledger_entries WHERE tenant_id = $1 AND fiscal_year_bs = $2`, [TENANT, FY]],
       [`DELETE FROM billing.invoices WHERE tenant_id = $1 AND fiscal_year_bs = $2`, [TENANT, FY]],
       [`DELETE FROM billing.fiscal_counters WHERE tenant_id = $1 AND (fiscal_year_bs = $2 OR fiscal_year_bs = ANY($3))`, [TENANT, FY, PREP_FYS]],
     ]);
@@ -115,6 +127,41 @@ describe.skipIf(!SU)('billing.fiscal_counter_prepare + billing.integrity_check o
       await asSystem([[`UPDATE billing.fiscal_counters SET last_no = 2 WHERE tenant_id=$1 AND series=$2 AND fiscal_year_bs=$3`, [TENANT, S_GAP, FY]], ins('billing.invoices', invoice(uid(2), S_GAP, 2))]);
       await asSystem([[`UPDATE billing.fiscal_counters SET last_no = 3 WHERE tenant_id=$1 AND series=$2 AND fiscal_year_bs=$3`, [TENANT, S_GAP, FY]], ins('billing.invoices', invoice(uid(3), S_GAP, 3))]);
       expect(violations(await run(CHECK), 'seq_gap')).toBe(violations(clean, 'seq_gap'));
+    });
+  });
+
+  describe('integrity_check: receipts + paid recomputation (review BL-T17 items 1-2)', () => {
+    it('detects a planted RC gap (receipts 1 and 3 in ledger_entries, counter 3) and a paid_paisa that differs from the ledger sum; reports, never fixes', async () => {
+      await cleanup();
+      const base = await run(CHECK);
+      const baseGap = violations(base, 'seq_gap'), baseBal = violations(base, 'order_balance');
+      // RC: counter moves +1 at a time (guard); receipt 2 is simply never written
+      await asSystem([ins('billing.fiscal_counters', counter(S_RC, FY, 1)), ins('billing.ledger_entries', receipt(uid(61), 1))]);
+      await asSystem([[`UPDATE billing.fiscal_counters SET last_no = 2 WHERE tenant_id = $1 AND series = $2 AND fiscal_year_bs = $3`, [TENANT, S_RC, FY]]]);
+      await asSystem([[`UPDATE billing.fiscal_counters SET last_no = 3 WHERE tenant_id = $1 AND series = $2 AND fiscal_year_bs = $3`, [TENANT, S_RC, FY]],
+        ins('billing.ledger_entries', receipt(uid(63), 3))]);
+      // paid mismatch: balance row claims 500 paid for an order with no ledger entries and no invoices (invoiced/credited agree at 0)
+      await asSystem([ins('billing.order_balances', { tenant_id: TENANT, order_id: uid(750), centre_id: CENTRE, billing_mode: 'cash', paid_paisa: 500, created_by: SYS, updated_by: SYS })]);
+
+      const inc = await run(CHECK);
+      expect(violations(inc, 'seq_gap')).toBeGreaterThan(baseGap);        // visible only if RC is checked against ledger_entries.receipt_seq
+      expect(violations(inc, 'order_balance')).toBeGreaterThan(baseBal);  // visible only if paid_paisa is recomputed from ledger_entries
+
+      expect((await q(`SELECT last_no FROM billing.fiscal_counters WHERE tenant_id=$1 AND series=$2 AND fiscal_year_bs=$3`, [TENANT, S_RC, FY]))[0].last_no).toBe(3);
+      expect((await q(`SELECT receipt_seq FROM billing.ledger_entries WHERE tenant_id=$1 AND fiscal_year_bs=$2 ORDER BY receipt_seq`, [TENANT, FY])).map((r: any) => r.receipt_seq)).toEqual([1, 3]);
+      expect(Number((await q(`SELECT paid_paisa FROM billing.order_balances WHERE tenant_id=$1 AND order_id=$2`, [TENANT, uid(750)]))[0].paid_paisa)).toBe(500);
+    });
+
+    it('a contiguous RC series 1..2 whose paid_paisa equals the ledger sum adds no violations', async () => {
+      await cleanup();
+      const base = await run(CHECK);
+      await asSystem([ins('billing.fiscal_counters', counter(S_RC, FY, 1)), ins('billing.ledger_entries', receipt(uid(61), 1))]);
+      await asSystem([[`UPDATE billing.fiscal_counters SET last_no = 2 WHERE tenant_id = $1 AND series = $2 AND fiscal_year_bs = $3`, [TENANT, S_RC, FY]],
+        ins('billing.ledger_entries', { ...receipt(uid(62), 2), order_id: uid(750) })]);
+      await asSystem([ins('billing.order_balances', { tenant_id: TENANT, order_id: uid(750), centre_id: CENTRE, billing_mode: 'cash', paid_paisa: 1000, created_by: SYS, updated_by: SYS })]);
+      const inc = await run(CHECK);
+      expect(violations(inc, 'seq_gap')).toBe(violations(base, 'seq_gap'));
+      expect(violations(inc, 'order_balance')).toBe(violations(base, 'order_balance'));
     });
   });
 

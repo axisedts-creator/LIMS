@@ -1,0 +1,27 @@
+{
+  "name": "@lims/web",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build:nav": "node src/core/nav/build-nav.ts",
+    "dev": "pnpm run build:nav && next dev",
+    "build": "pnpm run build:nav && next build",
+    "typecheck": "pnpm run build:nav && tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@lims/ui": "workspace:*",
+    "next": "16.4.5",
+    "react": "19.3.1",
+    "react-dom": "19.3.1",
+    "server-only": "0.0.1"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.65.0",
+    "@types/node": "26.6.6",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
+    "typescript": "7.0.2",
+    "yaml": "2.8.1"
+  }
+}

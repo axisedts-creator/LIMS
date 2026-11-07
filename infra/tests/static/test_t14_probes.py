@@ -19,7 +19,8 @@ CONTRACTS (writer meets them or files a dispute):
    `python3` is provided on PATH (the fake maps it to the test interpreter) for JSON parsing; jq is NOT guaranteed.
  * env interface
      renderer_egress.sh : RENDERER_CONTAINER (required), DATA_WG_IP (required), PROBE_IMAGE (optional), SANDBOX_IP (optional)
-     sandbox_envelope.sh: SANDBOX_CONTAINER, SANDBOX_PORT, WORKER_CONTAINERS (space list), DENY_CONTAINERS (space list) required
+     sandbox_envelope.sh: SANDBOX_CONTAINER, SANDBOX_PORT, WORKER_CONTAINERS (space list), DENY_CONTAINERS (space list) required;
+                          DATA_WG_IP (optional; adds DB-host probes)
      valkey_ephemeral.sh: VALKEY_CONTAINER (required)
      egress_probe.sh    : `auth` (T-05, unchanged) | `db <container>` | `edge <container>` | `proxy <container>`; env DATA_WG_IP
                           required for db/edge; PROXY_ALLOWED_FQDN + PROXY_DENIED_FQDN required for proxy; SMTP_RELAY_HOST for auth.
@@ -336,7 +337,7 @@ class SandboxEnvelope(_Base, unittest.TestCase):
     def test_no_outbound_from_sandbox(self):
         need_script(self.SCRIPT)
         for t in ("1.1.1.1:443", "169.254.169.254:80", DATA_WG + ":5432", "172.30.40.1:53"):
-            r = self.go(reach=GOOD_REACH + [SBX + ">" + t])
+            r = self.go(reach=GOOD_REACH + [SBX + ">" + t], env={"DATA_WG_IP": DATA_WG})
             self.assertEqual(r.returncode, 1, "outbound %s not detected" % t)
 
     def test_cannot_pass_vacuously(self):

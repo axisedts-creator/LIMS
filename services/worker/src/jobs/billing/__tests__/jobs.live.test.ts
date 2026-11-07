@@ -73,6 +73,7 @@ describe.skipIf(!SU)('billing.fiscal_counter_prepare + billing.integrity_check o
     await asSystem([
       [`DELETE FROM billing.print_log WHERE tenant_id = $1 AND document_id = ANY($2)`, [TENANT, [uid(1), uid(2), uid(3), uid(51), uid(52)]]],
       [`DELETE FROM billing.order_balances WHERE tenant_id = $1 AND order_id = $2`, [TENANT, uid(750)]],
+      [`DELETE FROM billing.credit_notes WHERE tenant_id = $1 AND fiscal_year_bs = $2`, [TENANT, FY]],
       [`DELETE FROM billing.ledger_entries WHERE tenant_id = $1 AND fiscal_year_bs = $2`, [TENANT, FY]],
       [`DELETE FROM billing.invoices WHERE tenant_id = $1 AND fiscal_year_bs = $2`, [TENANT, FY]],
       [`DELETE FROM billing.fiscal_counters WHERE tenant_id = $1 AND (fiscal_year_bs = $2 OR fiscal_year_bs = ANY($3))`, [TENANT, FY, PREP_FYS]],
@@ -162,6 +163,37 @@ describe.skipIf(!SU)('billing.fiscal_counter_prepare + billing.integrity_check o
       const inc = await run(CHECK);
       expect(violations(inc, 'seq_gap')).toBe(violations(base, 'seq_gap'));
       expect(violations(inc, 'order_balance')).toBe(violations(base, 'order_balance'));
+    });
+  });
+
+  describe('integrity_check: credited via credit_notes.invoice_id (review BL-T17 round 2, TRD "Balance:")', () => {
+    const S_CN = 'INV:BLT17C', CN = 'CN';
+    const cnInvoice = () => invoice(uid(5), S_CN, 1, { order_id: uid(750) });
+    // credit_notes.order_id is nullable; the credit note is tied to the order only through its invoice
+    const creditNote = () => ({
+      id: uid(71), tenant_id: TENANT, branch_id: BRANCH, centre_id: CENTRE, series: CN, fiscal_year_bs: FY, credit_note_seq: 1, credit_note_no: 'CN-BLT17-1',
+      kind: 'partial', invoice_id: uid(5), invoice_no: 'INV-BLT17-C-1', invoice_fiscal_year_bs: FY, buyer_name: 'Test Patient (SYNTHETIC)',
+      issued_at: new Date().toISOString(), credit_note_date_bs: '2099-01-01', reason_code: 'correction', gross_paisa: 300, discount_paisa: 0, exempt_paisa: 300,
+      taxable_paisa: 0, vat_paisa: 0, other_tax_paisa: 0, net_paisa: 300, cbms_state: 'not_required', created_by: SYS, updated_by: SYS,
+    });
+    const balance = (credited: number) => ins('billing.order_balances', { tenant_id: TENANT, order_id: uid(750), centre_id: CENTRE, billing_mode: 'cash',
+      invoiced_paisa: 1000, paid_paisa: 0, credited_paisa: credited, created_by: SYS, updated_by: SYS });
+
+    it('a CN with NULL order_id against the order\'s invoice counts as credited: matching credited_paisa adds no order_balance violation, a wrong one does', async () => {
+      await cleanup();
+      const base = await run(CHECK);
+      await asSystem([ins('billing.fiscal_counters', counter(S_CN, FY, 1)), ins('billing.invoices', cnInvoice())]);
+      await asSystem([ins('billing.fiscal_counters', counter(CN, FY, 1)), ins('billing.credit_notes', creditNote())]);
+      expect((await q(`SELECT order_id FROM billing.credit_notes WHERE id=$1`, [uid(71)]))[0].order_id).toBeNull();
+
+      await asSystem([balance(300)]);
+      const ok = await run(CHECK);
+      expect(violations(ok, 'order_balance')).toBe(violations(base, 'order_balance'));   // red while credited is keyed on credit_notes.order_id (sees 0, flags 300)
+      expect(violations(ok, 'seq_gap')).toBe(violations(base, 'seq_gap'));
+
+      await asSystem([[`DELETE FROM billing.order_balances WHERE tenant_id=$1 AND order_id=$2`, [TENANT, uid(750)]], balance(0)]);
+      const bad = await run(CHECK);
+      expect(violations(bad, 'order_balance')).toBeGreaterThan(violations(base, 'order_balance'));   // the real mismatch (CN not reflected) must not be hidden
     });
   });
 

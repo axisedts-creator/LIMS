@@ -125,13 +125,10 @@ SELECT throws_ok(pg_temp.ins_branch(1, 44, 11), '23514', 'scope_user_only', 'dia
 SELECT is((SELECT count(*) FROM core.membership_branches WHERE membership_id IN (pg_temp.id(44), pg_temp.id(45))), 0::bigint, 'no scope row exists for a patient or partner membership');
 SELECT is((SELECT count(*) FROM core.membership_centres WHERE membership_id IN (pg_temp.id(44), pg_temp.id(45))), 0::bigint, 'no centre row exists for a patient or partner membership');
 -- UPDATE of the membership_id to a non-user membership is impossible (no UPDATE grant); the trigger is INSERT-only by design
-SELECT like(pg_temp.w(pg_temp.cl('user', 1, 31, 41), format('UPDATE core.membership_branches SET membership_id = %L WHERE branch_id = %L', pg_temp.id(44), pg_temp.id(11))),
-            'E42501:%', 'lims_app has no UPDATE on membership_branches (cannot re-point a scope row at a patient membership)');
+SELECT ok(pg_temp.w(pg_temp.cl('user', 1, 31, 41), format('UPDATE core.membership_branches SET membership_id = %L WHERE branch_id = %L', pg_temp.id(44), pg_temp.id(11))) LIKE 'E42501:%', 'lims_app has no UPDATE on membership_branches (cannot re-point a scope row at a patient membership)');
 -- all_centres on a non-user membership (08 R3, memberships__all_centres_user_only__ck): CHECK violation 23514
-SELECT like(pg_temp.w(pg_temp.cl('user', 1, 31, 41), format('UPDATE core.memberships SET all_centres = true WHERE id = %L', pg_temp.id(44))), 'E23514:%memberships__all_centres_user_only__ck%',
-            'all_centres = true on a patient membership -> CHECK violation memberships__all_centres_user_only__ck');
-SELECT like(pg_temp.w(pg_temp.cl('user', 1, 31, 41), format('UPDATE core.memberships SET all_centres = true WHERE id = %L', pg_temp.id(45))), 'E23514:%memberships__all_centres_user_only__ck%',
-            'all_centres = true on a partner membership -> CHECK violation');
+SELECT ok(pg_temp.w(pg_temp.cl('user', 1, 31, 41), format('UPDATE core.memberships SET all_centres = true WHERE id = %L', pg_temp.id(44))) LIKE 'E23514:%memberships__all_centres_user_only__ck%', 'all_centres = true on a patient membership -> CHECK violation memberships__all_centres_user_only__ck');
+SELECT ok(pg_temp.w(pg_temp.cl('user', 1, 31, 41), format('UPDATE core.memberships SET all_centres = true WHERE id = %L', pg_temp.id(45))) LIKE 'E23514:%memberships__all_centres_user_only__ck%', 'all_centres = true on a partner membership -> CHECK violation');
 
 -- ---------------------------------------------------------------- DELETE is allowed (association class); audited
 SELECT is(pg_temp.w(pg_temp.cl('user', 2, 33, 43), format('DELETE FROM core.membership_branches WHERE branch_id = %L', pg_temp.id(11))), '0', 'tenant B cannot delete tenant A rows (0 rows)');

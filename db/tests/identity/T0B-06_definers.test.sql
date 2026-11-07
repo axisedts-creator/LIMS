@@ -433,7 +433,7 @@ SELECT is(pg_temp.wrkj($$SELECT encode(h, 'hex') AS h FROM app.identity_notify_i
           jsonb_build_array(jsonb_build_object('h', encode(pg_temp.h(31), 'hex')), jsonb_build_object('h', encode(pg_temp.h(32), 'hex'))),
           'test 35: distinct HMACs of tenant-less login_failed events of that IP since p_since (not other IPs, older events, tenant rows, other event types, NULL hmac)');
 SELECT is(pg_temp.guc('app.maintenance'), '', 'test 35: app.maintenance empty after notify_ip_throttle_hmacs');
-SELECT like(pg_temp.api($$SELECT app.identity_notify_ip_throttle_hmacs('10.0.0.7'::inet, now())$$), 'E42501:%', 'test 35: EXECUTE for lims_worker only (lims_api -> 42501)');
+SELECT ok(pg_temp.api($$SELECT app.identity_notify_ip_throttle_hmacs('10.0.0.7'::inet, now())$$) LIKE 'E42501:%', 'test 35: EXECUTE for lims_worker only (lims_api -> 42501)');
 -- every maintenance function: empty-GUC check also holds when nothing matched
 SELECT is(pg_temp.wrk('SELECT app.identity_purge_sessions()'), '0', 'purge_sessions: second run -> 0');
 SELECT is(pg_temp.guc('app.maintenance'), '', 'app.maintenance empty after a no-op maintenance run');
@@ -444,8 +444,8 @@ SELECT is(pg_temp.api($$SELECT app.identity_record_auth_event(jsonb_build_object
           'created_by', '$$ || pg_temp.id(99) || $$'))::text$$), '', 'record_auth_event: succeeds with no claims');
 SELECT is((SELECT count(*) FROM identity.auth_events WHERE id = pg_temp.id(361) AND tenant_id IS NULL AND event_type = 'login_failed' AND client_ip = '10.0.0.5'::inet), 1::bigint,
           'record_auth_event: inserts exactly one tenant-less row');
-SELECT like(pg_temp.api($$SELECT app.identity_record_auth_event(jsonb_build_object('id', '$$ || pg_temp.id(363) || $$', 'tenant_id', '$$ || pg_temp.id(1) || $$', 'event_type', 'login_ok',
-          'created_by', '$$ || pg_temp.id(99) || $$'))$$), 'EP0001:tenant_events_use_rls_path%', 'record_auth_event: a tenant_id in the payload -> P0001 tenant_events_use_rls_path');
+SELECT ok(pg_temp.api($$SELECT app.identity_record_auth_event(jsonb_build_object('id', '$$ || pg_temp.id(363) || $$', 'tenant_id', '$$ || pg_temp.id(1) || $$', 'event_type', 'login_ok',
+          'created_by', '$$ || pg_temp.id(99) || $$'))$$) LIKE 'EP0001:tenant_events_use_rls_path%', 'record_auth_event: a tenant_id in the payload -> P0001 tenant_events_use_rls_path');
 SELECT is((SELECT count(*) FROM identity.auth_events WHERE id = pg_temp.id(363)), 0::bigint, 'record_auth_event: the refused tenant row was not written');
 SELECT is((SELECT count(*) FROM pg_trigger t WHERE NOT t.tgisinternal AND t.tgrelid IN ('identity.platform_staff'::regclass, 'identity.platform_events'::regclass)
             AND t.tgfoid = 'app.tg_row_audit()'::regprocedure), 0::bigint, 'test 25 / schema test 19: no app.tg_row_audit trigger on identity.platform_staff or identity.platform_events');
@@ -457,20 +457,16 @@ SELECT is((SELECT count(*) FROM identity.platform_staff WHERE id = pg_temp.id(40
 SELECT is((SELECT count(*) FROM identity.platform_events WHERE id = pg_temp.id(403) AND event_type = 'bootstrap_admin_created' AND target_id = pg_temp.id(401)), 1::bigint,
           'test 25: bootstrap_admin_created event inserted');
 SELECT is((SELECT count(*) FROM audit.audit_log), (SELECT n FROM audit_before), 'test 25: bootstrap writes no audit.audit_log row');
-SELECT like(pg_temp.api('SELECT app.identity_bootstrap_platform_admin(' || pg_temp.q(404) || ',' || pg_temp.q(405) || ', ''second@example.test'', ''Second'', ' || pg_temp.q(406) || ')::text'), 'EP0001:bootstrap_closed%',
-          'test 11: a second bootstrap while an active superadmin exists -> P0001 bootstrap_closed');
+SELECT ok(pg_temp.api('SELECT app.identity_bootstrap_platform_admin(' || pg_temp.q(404) || ',' || pg_temp.q(405) || ', ''second@example.test'', ''Second'', ' || pg_temp.q(406) || ')::text') LIKE 'EP0001:bootstrap_closed%', 'test 11: a second bootstrap while an active superadmin exists -> P0001 bootstrap_closed');
 SELECT is((SELECT count(*) FROM identity.platform_staff WHERE role_code = 'platform_superadmin'), 1::bigint, 'bootstrap_closed: no second superadmin was written');
-SELECT like(pg_temp.api('SELECT app.identity_bootstrap_platform_admin(' || pg_temp.q(404) || ',' || pg_temp.q(405) || ', ''x@example.test'', ''X'', ' || pg_temp.q(406) || ')::text'), 'E%',
-          'bootstrap: the refused call raises (never a silent success)');
-SELECT like(pg_temp.x('lims_api', NULL, NULL, $$INSERT INTO identity.platform_staff (id, user_id, email_normalized, display_name, role_code, created_by, updated_by) VALUES
-          ('$$ || pg_temp.id(407) || $$', '$$ || pg_temp.id(408) || $$', 'z@example.test', 'Z', 'platform_superadmin', '$$ || pg_temp.id(99) || $$', '$$ || pg_temp.id(99) || $$')$$, 'w'),
-          'E42501:%', 'lims_api cannot INSERT into identity.platform_staff directly (owner policy is TO lims_owner; no grant)');
+SELECT ok(pg_temp.api('SELECT app.identity_bootstrap_platform_admin(' || pg_temp.q(404) || ',' || pg_temp.q(405) || ', ''x@example.test'', ''X'', ' || pg_temp.q(406) || ')::text') LIKE 'E%', 'bootstrap: the refused call raises (never a silent success)');
+SELECT ok(pg_temp.x('lims_api', NULL, NULL, $$INSERT INTO identity.platform_staff (id, user_id, email_normalized, display_name, role_code, created_by, updated_by) VALUES
+          ('$$ || pg_temp.id(407) || $$', '$$ || pg_temp.id(408) || $$', 'z@example.test', 'Z', 'platform_superadmin', '$$ || pg_temp.id(99) || $$', '$$ || pg_temp.id(99) || $$')$$, 'w') LIKE 'E42501:%', 'lims_api cannot INSERT into identity.platform_staff directly (owner policy is TO lims_owner; no grant)');
 
 -- ================================================================ test 34: platform-staff auth DEFINERs (08 A28.1)
 CREATE FUNCTION pg_temp.sysclaims() RETURNS text LANGUAGE sql AS $$ SELECT jsonb_build_object('sub', pg_temp.id(99), 'actor_type', 'system')::text $$;
-SELECT like(pg_temp.x('lims_api', pg_temp.sysclaims(), NULL, $$INSERT INTO identity.sessions (id, user_id, kind, expires_at, created_by, updated_by) VALUES
-          ('$$ || pg_temp.id(410) || $$', '$$ || pg_temp.id(32) || $$', 'platform', now() + interval '1 day', '$$ || pg_temp.id(99) || $$', '$$ || pg_temp.id(99) || $$')$$, 'w'),
-          'E42501:%', 'test 34: a direct INSERT of a platform session by lims_api (system claims, no tenant) is refused');
+SELECT ok(pg_temp.x('lims_api', pg_temp.sysclaims(), NULL, $$INSERT INTO identity.sessions (id, user_id, kind, expires_at, created_by, updated_by) VALUES
+          ('$$ || pg_temp.id(410) || $$', '$$ || pg_temp.id(32) || $$', 'platform', now() + interval '1 day', '$$ || pg_temp.id(99) || $$', '$$ || pg_temp.id(99) || $$')$$, 'w') LIKE 'E42501:%', 'test 34: a direct INSERT of a platform session by lims_api (system claims, no tenant) is refused');
 SELECT is(pg_temp.x('lims_api', pg_temp.sysclaims(), NULL, $$SELECT app.identity_platform_auth_write_session_insert('$$ || pg_temp.id(32) || $$',
           jsonb_build_object('id', '$$ || pg_temp.id(410) || $$', 'user_id', '$$ || pg_temp.id(32) || $$', 'kind', 'platform', 'state', 'active', 'aal', 'aal1',
           'expires_at', (now() + interval '1 day')::text, 'mfa_failed_attempts', 0, 'version', 1, 'created_at', now()::text, 'updated_at', now()::text,
@@ -478,23 +474,21 @@ SELECT is(pg_temp.x('lims_api', pg_temp.sysclaims(), NULL, $$SELECT app.identity
           'test 34: session_insert DEFINER inserts the platform session');
 SELECT is((SELECT count(*) FROM identity.sessions WHERE id = pg_temp.id(410) AND tenant_id IS NULL AND kind = 'platform'), 1::bigint, 'test 34: the platform session exists');
 SELECT is(pg_temp.guc('app.pre_user_id'), '', 'test 34: app.pre_user_id empty after session_insert');
-SELECT like(pg_temp.x('lims_api', pg_temp.sysclaims(), NULL, $$SELECT app.identity_platform_auth_write_session_insert('$$ || pg_temp.id(32) || $$',
+SELECT ok(pg_temp.x('lims_api', pg_temp.sysclaims(), NULL, $$SELECT app.identity_platform_auth_write_session_insert('$$ || pg_temp.id(32) || $$',
           jsonb_build_object('id', '$$ || pg_temp.id(411) || $$', 'user_id', '$$ || pg_temp.id(32) || $$', 'kind', 'tenant_staff', 'tenant_id', '$$ || pg_temp.id(1) || $$',
-          'expires_at', (now() + interval '1 day')::text, 'created_by', '$$ || pg_temp.id(32) || $$', 'updated_by', '$$ || pg_temp.id(32) || $$'))::text$$, 'v'),
-          'EP0001:identity_platform_auth_write_invalid_input%', 'test 34: session_insert refuses a non-platform kind / a tenant_id');
-SELECT like(pg_temp.x('lims_api', pg_temp.sysclaims(), NULL, $$SELECT app.identity_platform_auth_write_session_insert('$$ || pg_temp.id(39) || $$',
+          'expires_at', (now() + interval '1 day')::text, 'created_by', '$$ || pg_temp.id(32) || $$', 'updated_by', '$$ || pg_temp.id(32) || $$'))::text$$, 'v') LIKE 'EP0001:identity_platform_auth_write_invalid_input%', 'test 34: session_insert refuses a non-platform kind / a tenant_id');
+SELECT ok(pg_temp.x('lims_api', pg_temp.sysclaims(), NULL, $$SELECT app.identity_platform_auth_write_session_insert('$$ || pg_temp.id(39) || $$',
           jsonb_build_object('id', '$$ || pg_temp.id(412) || $$', 'user_id', '$$ || pg_temp.id(32) || $$', 'kind', 'platform',
-          'expires_at', (now() + interval '1 day')::text, 'created_by', '$$ || pg_temp.id(32) || $$', 'updated_by', '$$ || pg_temp.id(32) || $$'))::text$$, 'v'),
-          'EP0001:identity_platform_auth_write_invalid_input%', 'test 34: session_insert refuses a row of another user');
+          'expires_at', (now() + interval '1 day')::text, 'created_by', '$$ || pg_temp.id(32) || $$', 'updated_by', '$$ || pg_temp.id(32) || $$'))::text$$, 'v') LIKE 'EP0001:identity_platform_auth_write_invalid_input%', 'test 34: session_insert refuses a row of another user');
 SELECT is(pg_temp.x('lims_api', pg_temp.sysclaims(), NULL, $$SELECT app.identity_platform_auth_write_session_update('$$ || pg_temp.id(32) || $$', '$$ || pg_temp.id(410) || $$',
           jsonb_build_object('aal', 'aal2', 'mfa_failed_attempts', 2, 'updated_by', '$$ || pg_temp.id(32) || $$'))$$, 'v'), '1', 'test 34: session_update changes an allowed column set and returns 1');
 SELECT is((SELECT aal || ':' || mfa_failed_attempts FROM identity.sessions WHERE id = pg_temp.id(410)), 'aal2:2', 'test 34: aal and mfa_failed_attempts updated');
 SELECT is(pg_temp.x('lims_api', pg_temp.sysclaims(), NULL, $$SELECT app.identity_platform_auth_write_session_update('$$ || pg_temp.id(39) || $$', '$$ || pg_temp.id(410) || $$',
           jsonb_build_object('aal', 'aal1'))$$, 'v'), '0', 'test 34: session_update for another user''s session id returns 0');
-SELECT like(pg_temp.x('lims_api', pg_temp.sysclaims(), NULL, $$SELECT app.identity_platform_auth_write_session_update('$$ || pg_temp.id(32) || $$', '$$ || pg_temp.id(410) || $$',
-          jsonb_build_object('tenant_id', '$$ || pg_temp.id(1) || $$'))$$, 'v'), 'EP0001:identity_platform_auth_write_invalid_input%', 'test 34: session_update with an unlisted key (tenant_id) -> invalid_input');
-SELECT like(pg_temp.x('lims_api', pg_temp.sysclaims(), NULL, $$SELECT app.identity_platform_auth_write_session_update('$$ || pg_temp.id(32) || $$', '$$ || pg_temp.id(410) || $$',
-          jsonb_build_object('kind', 'tenant_staff'))$$, 'v'), 'EP0001:identity_platform_auth_write_invalid_input%', 'test 34: session_update with an unlisted key (kind) -> invalid_input');
+SELECT ok(pg_temp.x('lims_api', pg_temp.sysclaims(), NULL, $$SELECT app.identity_platform_auth_write_session_update('$$ || pg_temp.id(32) || $$', '$$ || pg_temp.id(410) || $$',
+          jsonb_build_object('tenant_id', '$$ || pg_temp.id(1) || $$'))$$, 'v') LIKE 'EP0001:identity_platform_auth_write_invalid_input%', 'test 34: session_update with an unlisted key (tenant_id) -> invalid_input');
+SELECT ok(pg_temp.x('lims_api', pg_temp.sysclaims(), NULL, $$SELECT app.identity_platform_auth_write_session_update('$$ || pg_temp.id(32) || $$', '$$ || pg_temp.id(410) || $$',
+          jsonb_build_object('kind', 'tenant_staff'))$$, 'v') LIKE 'EP0001:identity_platform_auth_write_invalid_input%', 'test 34: session_update with an unlisted key (kind) -> invalid_input');
 SELECT is(pg_temp.x('lims_api', pg_temp.sysclaims(), NULL, $$SELECT app.identity_platform_auth_write_session_update('$$ || pg_temp.id(32) || $$', '$$ || pg_temp.id(101) || $$',
           jsonb_build_object('aal', 'aal2'))$$, 'v'), '0', 'test 34: session_update cannot touch a tenant session (returns 0)');
 SELECT is(pg_temp.guc('app.pre_user_id'), '', 'test 34: app.pre_user_id empty after session_update');
@@ -505,9 +499,9 @@ SELECT is(pg_temp.x('lims_api', pg_temp.sysclaims(), NULL, $$SELECT app.identity
 SELECT is(pg_temp.x('lims_api', pg_temp.sysclaims(), NULL, $$SELECT app.identity_platform_auth_write_mfa_factor('$$ || pg_temp.id(32) || $$', '$$ || pg_temp.id(420) || $$',
           jsonb_build_object('status', 'verified', 'verified_at', now()::text, 'updated_by', '$$ || pg_temp.id(32) || $$'))$$, 'v'), '1', 'test 34: mfa_factor verifies it');
 SELECT is((SELECT status FROM identity.mfa_factors WHERE id = pg_temp.id(420)), 'verified', 'test 34: factor status verified');
-SELECT like(pg_temp.x('lims_api', pg_temp.sysclaims(), NULL, $$SELECT app.identity_platform_auth_write_mfa_factor('$$ || pg_temp.id(32) || $$', NULL,
+SELECT ok(pg_temp.x('lims_api', pg_temp.sysclaims(), NULL, $$SELECT app.identity_platform_auth_write_mfa_factor('$$ || pg_temp.id(32) || $$', NULL,
           jsonb_build_object('id', '$$ || pg_temp.id(421) || $$', 'user_id', '$$ || pg_temp.id(32) || $$', 'tenant_id', '$$ || pg_temp.id(1) || $$', 'status', 'pending',
-          'created_by', '$$ || pg_temp.id(32) || $$', 'updated_by', '$$ || pg_temp.id(32) || $$'))$$, 'v'), 'EP0001:identity_platform_auth_write_invalid_input%', 'test 34: mfa_factor refuses a row with a tenant_id');
+          'created_by', '$$ || pg_temp.id(32) || $$', 'updated_by', '$$ || pg_temp.id(32) || $$'))$$, 'v') LIKE 'EP0001:identity_platform_auth_write_invalid_input%', 'test 34: mfa_factor refuses a row with a tenant_id');
 SELECT is(pg_temp.x('lims_api', pg_temp.sysclaims(), NULL, $$SELECT app.identity_platform_auth_write_mfa_factor('$$ || pg_temp.id(32) || $$', '$$ || pg_temp.id(71) || $$',
           jsonb_build_object('status', 'removed'))$$, 'v'), '0', 'test 34: mfa_factor cannot update a tenant factor (returns 0)');
 SELECT is((SELECT status FROM identity.mfa_factors WHERE id = pg_temp.id(71)), 'verified', 'test 34: the tenant factor is unchanged');
@@ -523,12 +517,11 @@ SELECT ok((SELECT last_login_at IS NOT NULL FROM identity.platform_staff WHERE i
 SELECT is((SELECT last_login_at IS NULL FROM identity.platform_staff WHERE id = pg_temp.id(62)), true, 'test 34: other staff rows untouched');
 SELECT is(pg_temp.x('lims_api', pg_temp.sysclaims(), NULL, $$SELECT app.identity_platform_auth_write_staff_login('$$ || pg_temp.id(42) || $$')$$, 'v'), '0', 'test 34: staff_login for an inactive staff row returns 0');
 SELECT is(pg_temp.guc('app.pre_user_id'), '', 'test 34: app.pre_user_id empty after the last write');
-SELECT like(pg_temp.x('lims_api', pg_temp.sysclaims(), $$SELECT set_config('app.pre_user_id', '$$ || pg_temp.id(32) || $$', true)$$,
+SELECT ok(pg_temp.x('lims_api', pg_temp.sysclaims(), $$SELECT set_config('app.pre_user_id', '$$ || pg_temp.id(32) || $$', true)$$,
           $$INSERT INTO identity.sessions (id, user_id, kind, expires_at, created_by, updated_by) VALUES
-          ('$$ || pg_temp.id(413) || $$', '$$ || pg_temp.id(32) || $$', 'platform', now() + interval '1 day', '$$ || pg_temp.id(99) || $$', '$$ || pg_temp.id(99) || $$')$$, 'w'),
-          'E42501:%', 'test 34: lims_api setting app.pre_user_id itself still cannot insert a platform session (policies TO lims_owner)');
-SELECT like(pg_temp.x('lims_api', pg_temp.sysclaims(), $$SELECT set_config('app.pre_user_id', '$$ || pg_temp.id(32) || $$', true)$$,
-          $$UPDATE identity.platform_staff SET last_login_at = NULL$$, 'w'), 'E42501:%', 'test 34: lims_api setting app.pre_user_id itself cannot update platform_staff');
+          ('$$ || pg_temp.id(413) || $$', '$$ || pg_temp.id(32) || $$', 'platform', now() + interval '1 day', '$$ || pg_temp.id(99) || $$', '$$ || pg_temp.id(99) || $$')$$, 'w') LIKE 'E42501:%', 'test 34: lims_api setting app.pre_user_id itself still cannot insert a platform session (policies TO lims_owner)');
+SELECT ok(pg_temp.x('lims_api', pg_temp.sysclaims(), $$SELECT set_config('app.pre_user_id', '$$ || pg_temp.id(32) || $$', true)$$,
+          $$UPDATE identity.platform_staff SET last_login_at = NULL$$, 'w') LIKE 'E42501:%', 'test 34: lims_api setting app.pre_user_id itself cannot update platform_staff');
 
 -- ================================================================ AC-0D-2.3 (DB half): no GUC leaks into the next transaction
 -- (set_config(..., true) is transaction-local; verified by the grep of the migration in the static suite and by the '' checks above)

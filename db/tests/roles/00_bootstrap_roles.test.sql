@@ -10,7 +10,7 @@ SELECT is_empty($$SELECT rolname FROM pg_roles WHERE rolname LIKE 'lims\_%' AND 
   'AC-0B-1.1 no lims_% role has rolsuper or rolbypassrls');
 
 -- exact role set (no role outside the table; lims_migration is not created)
-SELECT results_eq($$SELECT rolname::text FROM pg_roles WHERE rolname LIKE 'lims\_%' ORDER BY 1$$,
+SELECT results_eq($$SELECT rolname::text COLLATE "C" FROM pg_roles WHERE rolname LIKE 'lims\_%' ORDER BY 1$$,
   $$VALUES ('lims_analytics'),('lims_api'),('lims_app'),('lims_audit_ship'),('lims_migrator'),('lims_monitor'),
            ('lims_owner'),('lims_queue'),('lims_replicator'),('lims_reporting_lookup'),('lims_worker')$$,
   'exactly the 11 spec roles exist; lims_migration not created');
@@ -26,7 +26,7 @@ SELECT is_empty($$SELECT rolname FROM pg_roles WHERE rolname LIKE 'lims\_%' AND 
   'no lims_% role has CREATEDB or CREATEROLE');
 
 -- replication only for lims_replicator and lims_audit_ship
-SELECT results_eq($$SELECT rolname::text FROM pg_roles WHERE rolname LIKE 'lims\_%' AND rolreplication ORDER BY 1$$,
+SELECT results_eq($$SELECT rolname::text COLLATE "C" FROM pg_roles WHERE rolname LIKE 'lims\_%' AND rolreplication ORDER BY 1$$,
   $$VALUES ('lims_audit_ship'),('lims_replicator')$$, 'rolreplication only lims_replicator + lims_audit_ship');
 
 -- membership with INHERIT / SET options (PG16+ pg_auth_members)

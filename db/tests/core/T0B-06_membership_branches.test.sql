@@ -106,8 +106,8 @@ SELECT is(pg_temp.n(pg_temp.cl('patient', 1, 34, 44), 'SELECT 1 FROM core.member
 SELECT matches(pg_temp.w(pg_temp.cl('user', 1, 31, 41), pg_temp.ins_branch(2, 43, 13)), '^E(42501|23514):', 'tenant A claims cannot insert a tenant B row (refused by the BEFORE trigger lookup or RLS WITH CHECK, never accepted)');
 SELECT matches(pg_temp.w(pg_temp.cl('partner', 1, 35, 45), pg_temp.ins_branch(1, 41, 12)), '^E(42501|23514):', 'partner claims cannot insert a branch scope row (staff guard: trigger lookup or WITH CHECK)');
 -- composite FK: a branch of another tenant for an own-tenant user membership
-SELECT like(pg_temp.w(pg_temp.cl('user', 1, 31, 41), pg_temp.ins_branch(1, 41, 13)), 'E23503:%', 'branch of another tenant -> composite FK violation');
-SELECT like(pg_temp.w(pg_temp.cl('user', 1, 31, 41), pg_temp.ins_branch(1, 41, 11)), 'E23505:%', 'duplicate (tenant, membership, branch) -> PK violation');
+SELECT ok(pg_temp.w(pg_temp.cl('user', 1, 31, 41), pg_temp.ins_branch(1, 41, 13)) LIKE 'E23503:%', 'branch of another tenant -> composite FK violation');
+SELECT ok(pg_temp.w(pg_temp.cl('user', 1, 31, 41), pg_temp.ins_branch(1, 41, 11)) LIKE 'E23505:%', 'duplicate (tenant, membership, branch) -> PK violation');
 
 -- ---------------------------------------------------------------- 08 R3 / schema test 14: scope tables are for staff (actor_type = user) only
 SELECT is(pg_temp.w(pg_temp.cl('user', 1, 31, 41), pg_temp.ins_branch(1, 42, 12)), '1', 'a second user membership (all_centres = true) may still carry an explicit branch row (trigger tests actor_type only)');

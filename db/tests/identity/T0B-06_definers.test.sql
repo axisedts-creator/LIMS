@@ -151,7 +151,7 @@ INSERT INTO sigs VALUES
   ('identity_expire_audit_exports()', 'lims_worker'), ('identity_purge_auth_events()', 'lims_worker'),
   ('identity_load_breached_batch(bytea[],text)', 'lims_worker'), ('identity_finish_breached_import(text)', 'lims_worker'),
   ('identity_notify_ip_throttle_hmacs(inet,timestamptz)', 'lims_worker');
-SELECT is((SELECT count(*) FROM sigs), 18::bigint, 'inventory: 18 identity DEFINERs of C2 05-SCHEMA §6/§10.3 (excl. identity_tenants_for_email_hmacs = T0B-05, identity_is_breached = INVOKER)');
+SELECT is((SELECT count(*) FROM sigs), 19::bigint, 'inventory: 19 identity DEFINERs of C2 05-SCHEMA §6/§10.3 (excl. identity_tenants_for_email_hmacs = T0B-05, identity_is_breached = INVOKER)');
 SELECT ok(to_regprocedure('app.' || sig) IS NOT NULL, 'exists: app.' || sig) FROM sigs ORDER BY sig;
 SELECT ok(p.prosecdef, 'prosecdef: app.' || s.sig) FROM sigs s JOIN pg_proc p ON p.oid = to_regprocedure('app.' || s.sig) ORDER BY s.sig;
 SELECT ok(pg_get_userbyid(p.proowner) = 'lims_owner', 'owner lims_owner: app.' || s.sig) FROM sigs s JOIN pg_proc p ON p.oid = to_regprocedure('app.' || s.sig) ORDER BY s.sig;
@@ -176,9 +176,9 @@ SELECT is((SELECT array_agg(proname::text ORDER BY proname) FROM pg_proc WHERE p
 SELECT ok(NOT p.prosecdef, 'app.identity_is_breached is INVOKER (when created)') FROM pg_proc p WHERE p.oid = to_regprocedure('app.identity_is_breached(bytea)');
 SELECT ok(NOT p.prosecdef, 'app.tg_scope_user_only is INVOKER') FROM pg_proc p WHERE p.oid = to_regprocedure('app.tg_scope_user_only()');
 -- lims_app cannot call the DEFINERs except as granted; an ungranted role gets 42501 (not a silent empty result)
-SELECT like(pg_temp.api($$SELECT app.identity_purge_sessions()$$), 'E42501:%', 'lims_api cannot call a lims_worker DEFINER (purge_sessions)');
-SELECT like(pg_temp.wrk($$SELECT app.identity_user_exists('$$ || pg_temp.id(31) || $$'::uuid)$$), 'E42501:%', 'lims_worker cannot call a lims_api DEFINER (user_exists)');
-SELECT like(pg_temp.x('lims_queue', NULL, NULL, $$SELECT app.identity_user_exists('$$ || pg_temp.id(31) || $$'::uuid)$$, 'v'), 'E42501:%', 'lims_queue cannot call identity DEFINERs');
+SELECT ok(pg_temp.api($$SELECT app.identity_purge_sessions()$$) LIKE 'E42501:%', 'lims_api cannot call a lims_worker DEFINER (purge_sessions)');
+SELECT ok(pg_temp.wrk($$SELECT app.identity_user_exists('$$ || pg_temp.id(31) || $$'::uuid)$$) LIKE 'E42501:%', 'lims_worker cannot call a lims_api DEFINER (user_exists)');
+SELECT ok(pg_temp.x('lims_queue', NULL, NULL, $$SELECT app.identity_user_exists('$$ || pg_temp.id(31) || $$'::uuid)$$, 'v') LIKE 'E42501:%', 'lims_queue cannot call identity DEFINERs');
 
 -- ================================================================ owner policies are lims_owner-only (C0 §4.3 GUC rule; C2 §11 test 24 last sentence; schema test 17)
 SELECT ok(NOT EXISTS (SELECT 1 FROM pg_policies WHERE (qual ~ 'app\.(pre_|maintenance)' OR with_check ~ 'app\.(pre_|maintenance)') AND roles <> '{lims_owner}'),

@@ -67,7 +67,7 @@ SELECT is((SELECT count(*) FROM pg_indexes WHERE schemaname = 'audit' AND indexn
   AND indexdef ILIKE '%(tenant_id, support_session_id, occurred_at DESC)%' AND indexdef ILIKE '%WHERE (support_session_id IS NOT NULL)%'), 2::bigint, 'support_session partial indexes on both tables');
 
 -- ---------- policy catalog mirrors db/policies/audit.sql ----------
-SELECT results_eq($$SELECT tablename::text, policyname::text, cmd::text FROM pg_policies WHERE schemaname = 'audit' AND tablename IN ('audit_log', 'access_log') ORDER BY 1, 2$$,
+SELECT results_eq($$SELECT tablename::text COLLATE "C", policyname::text COLLATE "C", cmd::text COLLATE "C" FROM pg_policies WHERE schemaname = 'audit' AND tablename IN ('audit_log', 'access_log') ORDER BY 1, 2$$,
   $$VALUES ('access_log','access_log__insert__partner','INSERT'), ('access_log','access_log__insert__patient','INSERT'), ('access_log','access_log__insert__portal','INSERT'),
   ('access_log','access_log__insert__tenant','INSERT'), ('access_log','access_log__select__tenant','SELECT'),
   ('audit_log','audit_log__insert__owner_only','INSERT'), ('audit_log','audit_log__select__tenant','SELECT')$$, 'policy inventory on audit.* (no UPDATE/DELETE policy)');

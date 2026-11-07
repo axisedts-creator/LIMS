@@ -1,1 +1,1 @@
-cd /d "%~dp0..\.." && pnpm --dir services/api exec vitest run src/modules/lab/events/__tests__
+cd /d "%~dp0..\.." && pnpm --filter @lims/api exec vitest run src/modules/catalog/__tests__/helpers/mastersDb.test.ts src/modules/catalog/__tests__/integration/masters.service.test.ts src/modules/catalog/__tests__/integration/masters.handlers.test.ts

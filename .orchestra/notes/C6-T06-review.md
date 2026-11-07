@@ -1,9 +1,7 @@
-CHANGES
+APPROVE
 
-Verified: verify.cmd 71/71 pass. Names/types vs 02-TRD §4.3–4.5 and 03-IC §4.6 otherwise match; no SQL/RLS in scope; no PHI in logs; owned paths only.
-
-1. services/api/src/modules/reporting/domain/document.ts:113 (+ :64) and service/assembly.service.ts:84 — `print_critical_label` is a C6 setting (`reporting.settings.print_critical_label`, 02-TRD §10.2, 05-SCHEMA), not an `IdentityPort.TenantSettings` key. Builder reads `settings.printCriticalLabel`, which assembly never supplies (keys = branding/calendarDisplay/timezone), so on the real path `HH`/`LL` never print "Critical High"/"Critical Low" when the tenant sets it true (TRD §4.4). Fix: add `printCriticalLabel: boolean` to `AssemblyInput` and to `BuildDocumentInput` (top level), pass it through in `assembleDocument`, use `input.printCriticalLabel === true` in the builder; drop the `[+ printCriticalLabel]` note on `settings`. Tester: move the flag in document.test.ts:73 from `settings` to the top-level input and add one assembly.service test that `printCriticalLabel: true` yields `flagLabel = 'Critical High'`.
-
-2. services/api/src/modules/reporting/domain/document.ts:11-12 — `AssetRef.mimeType` made optional, but 02-TRD §4.3 declares it required. Changing a spec type is not allowed without a CR. Fix: write `.orchestra/cr/C6-T06.md` (template in spec/program/04-CHANGE-REQUESTS.md) asking for `mimeType` to be optional on signature refs, because `IdentityPort.Signatory` (03-IC §4.6) has no mime type and `SignatureImageContent.mimeType` is only known at render. Keep the `[CONV]` comment and cite the CR id.
-
-3. services/api/src/modules/reporting/service/assembly.service.ts:89-91 and domain/document.ts:150 — comment texts are keyed by code only, although they are resolved per `departmentId`. If two departments in one report share a code with department-specific texts, one department prints the other's text (wrong clinical comment). Fix: key `commentTexts` as `` `${g.departmentId}|${c.code}` `` in assembly, and look up `` input.commentTexts?.[`${test.departmentId}|${c}`] `` in the builder (or nest as `Record<departmentId, Record<code, text>>`); remove the ponytail note. Tester: add a two-department same-code case.
+Re-review after 1693f71 + 6d270e9. verify.cmd: 75/75 pass (2 files).
+1. print_critical_label: now top-level `printCriticalLabel` on AssemblyInput/BuildDocumentInput, passed through; assembly test covers HH -> "Critical High" and default "High". Fixed.
+2. AssetRef.mimeType optional: CR filed at .orchestra/cr/C6-T06.md (CR-C6-023, non-blocking), [CONV] comment cites it. Fixed.
+3. Comment texts keyed `${departmentId}|${code}` in assembly and builder; two-department same-code tests in both suites. Fixed.
+No new defects: owned paths only, no SQL/RLS in scope, no PHI in logs, no secrets.

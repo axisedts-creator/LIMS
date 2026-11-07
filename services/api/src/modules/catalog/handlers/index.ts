@@ -9,6 +9,7 @@ import { importsHandlers } from './imports.handlers.js';
 import { mastersHandlers } from './masters.handlers.js';
 import { panelsHandlers } from './panels.handlers.js';
 import { pricingHandlers } from './pricing.handlers.js';
+import { rangePreviewHandlers } from './rangePreview.handlers.js';
 import { rangesHandlers } from './ranges.handlers.js';
 import { referrersHandlers } from './referrers.handlers.js';
 import { testsHandlers } from './tests.handlers.js';
@@ -27,7 +28,7 @@ export const handlers: Readonly<Record<string, Handler>> = Object.freeze({
   ...analyteVersionsHandlers, // T-07: #29–#35
   validateFormula: notImplemented,
   ...rangesHandlers, // T-08: #37–#50 (reference-range + critical-limit sets)
-  previewReferenceRange: notImplemented,
+  ...rangePreviewHandlers, // T-10: #51
   ...panelsHandlers, // T-12: #52–#56, #3
   ...referrersHandlers, // T-15: #60–#66 (doctors)
   ...creditPartiesHandlers, // T-16: #67–#70 (credit parties)

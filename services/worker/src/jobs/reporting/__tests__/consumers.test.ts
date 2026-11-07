@@ -308,7 +308,7 @@ describe('frontdesk.order.items_changed.v1 (AC-01.3; 02-TRD §8.2: add/remove, d
 
 // ============================================================================================ frontdesk.order.cancelled.v1
 describe('frontdesk.order.cancelled.v1 (02-TRD §8.2: state cancelled, unreleased versions discarded, released ones flagged)', () => {
-  const version = (n: number, report: string, status: string, extra: Row = {}) => ({ id: idN(0xd100 + n), tenant_id: TENANT_A, centre_id: CENTRE, report_id: report, order_id: ORDER, version_no: n, status, ...extra, _seed: true });
+  const version = (n: number, report: string, status: string, extra: Row = {}) => ({ id: idN(0xd100 + n), tenant_id: TENANT_A, centre_id: CENTRE, report_id: report, order_id: ORDER, version_no: n, status, discarded_at: null, discard_reason: null, ...extra, _seed: true });
   const ctxFor = (db: Db) => makeCtx(db, { ports: makePorts().ports }).ctx;
 
   it('sets every report of the order to cancelled; unreleased versions -> discarded (order_cancelled); a released version is untouched and the report is flagged', async () => {

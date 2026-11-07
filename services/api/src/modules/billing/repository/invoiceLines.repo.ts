@@ -23,6 +23,15 @@ export async function insertInvoiceLines(tx: Q, rows: ReadonlyArray<Record<strin
   await tx.query('INSERT INTO billing.invoice_lines (' + COLUMNS.join(', ') + ') VALUES ' + tuples.join(', '), values);
 }
 
+/** Every line of every invoice of the order (raiseCreditNoteRequirement), invoice order then line order. */
+export async function listInvoiceLinesByOrder(tx: Q, a: { tenantId: string; orderId: string }): Promise<Array<{ id: string; invoice_id: string; order_item_id: string | null }>> {
+  const { rows } = await tx.query(
+    `SELECT l.id, l.invoice_id, l.order_item_id FROM billing.invoice_lines l
+       JOIN billing.invoices i ON i.tenant_id = l.tenant_id AND i.id = l.invoice_id
+      WHERE l.tenant_id = $1 AND i.order_id = $2 ORDER BY i.issued_at, i.id, l.line_no`, [a.tenantId, a.orderId]);
+  return rows;
+}
+
 /** Σ credit-note net per invoice line (B2 `credited`); empty while no credit note exists. */
 export async function sumCreditedByLine(tx: Q, a: { tenantId: string; invoiceLineIds: readonly string[] }): Promise<Map<string, string>> {
   if (a.invoiceLineIds.length === 0) return new Map();

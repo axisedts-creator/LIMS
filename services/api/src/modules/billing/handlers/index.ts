@@ -28,4 +28,7 @@ export const handlers: Readonly<Record<(typeof OPERATION_IDS)[number], Handler>>
   getInvoice: invoiceHandlers['getInvoice']!,
   getOrderBilling: invoiceHandlers['getOrderBilling']!,
   listInvoicePrints: invoiceHandlers['listInvoicePrints']!,
+  listCreditNoteTasks: invoiceHandlers['listCreditNoteTasks']!,
+  cancelInvoice: invoiceHandlers['cancelInvoice']!,
+  issuePartialCreditNote: invoiceHandlers['issuePartialCreditNote']!,
 });

@@ -11,9 +11,10 @@ import type { IsoUtc } from '../../../../../../packages/shared-ts/src/bsdate/ind
 import { formatBs, instantToBs } from '../../../../../../packages/shared-ts/src/bsdate/index.js';
 import { uuidv7 } from '../../../../../../packages/shared-ts/src/uuidv7/index.js';
 import { LimsError, isLimsError, type FieldError } from '../../../core/errors.js';
+import { splitCredit, type Parts } from '../domain/creditSplit.js';
 import { fiscalYearOf } from '../domain/fiscalYear.js';
 import { formatDocumentNumber, seriesKey, type SeriesScope } from '../domain/numberFormat.js';
-import { moneyOf } from '../domain/money/paisa.js';
+import { moneyOf, toPaisa } from '../domain/money/paisa.js';
 import type { BillingEvents } from '../events/publish.js';
 import { billingRepo, type BillingRepo } from '../repository/index.js';
 import { createBalanceService } from './balance.service.js';
@@ -102,6 +103,53 @@ const isRegistrationDuplicate = (e: unknown): boolean => {
   const x = e as { code?: unknown; constraint?: unknown; message?: unknown } | null;
   return x?.code === '23505' && (x.constraint === REGISTRATION_UNIQUE || (typeof x.message === 'string' && x.message.includes(REGISTRATION_UNIQUE)));
 };
+
+// ---- B4 cancel / B5 partial credit (BL-T10) ----
+const CANCEL_UNIQUE = 'credit_notes__tenant_id_invoice_cancellation__p_uq';
+const REASON_CODE = /^[A-Za-z0-9_.-]{1,64}$/;
+const TEXT_CONTROL = /[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/; // tab / newline allowed in free text
+const MAX_NOTE_LINES = 200;
+const MAX_TASK_IDS = 50;
+type Row = Record<string, any>;
+interface NotePick { readonly line: Row; readonly parts: Parts }
+
+const isCancelDuplicate = (e: unknown): boolean => {
+  const x = e as { code?: unknown; constraint?: unknown; message?: unknown } | null;
+  return x?.code === '23505' && (x.constraint === CANCEL_UNIQUE || (typeof x.message === 'string' && x.message.includes(CANCEL_UNIQUE)));
+};
+const partsOf = (r: Row): Parts => ({
+  gross: toPaisa(r['gross_paisa']), discount: toPaisa(r['discount_paisa']), exempt: toPaisa(r['exempt_paisa']), taxable: toPaisa(r['taxable_paisa']),
+  vat: toPaisa(r['vat_paisa']), otherTax: toPaisa(r['other_tax_paisa']), net: toPaisa(r['net_paisa']),
+});
+const COLS = { gross: 'gross_paisa', discount: 'discount_paisa', exempt: 'exempt_paisa', taxable: 'taxable_paisa', vat: 'vat_paisa', otherTax: 'other_tax_paisa', net: 'net_paisa' } as const;
+const sumParts = (ps: readonly Parts[]): Parts =>
+  ps.reduce((t, p) => ({ gross: t.gross + p.gross, discount: t.discount + p.discount, exempt: t.exempt + p.exempt, taxable: t.taxable + p.taxable, vat: t.vat + p.vat, otherTax: t.otherTax + p.otherTax, net: t.net + p.net }),
+    { gross: 0, discount: 0, exempt: 0, taxable: 0, vat: 0, otherTax: 0, net: 0 });
+const minus = (a: Parts, b: Parts): Parts => ({ gross: a.gross - b.gross, discount: a.discount - b.discount, exempt: a.exempt - b.exempt, taxable: a.taxable - b.taxable, vat: a.vat - b.vat, otherTax: a.otherTax - b.otherTax, net: a.net - b.net });
+const colsOf = (p: Parts) => Object.fromEntries((Object.keys(COLS) as Array<keyof Parts>).map((k) => [COLS[k], p[k]]));
+
+/** Shape of the common request fields; returns trimmed text (blank = none). */
+function checkReasonFields(input: Row, errors: FieldError[]): { reasonCode: string; reasonText: string | undefined } {
+  const code = input['reasonCode'];
+  if (typeof code !== 'string' || !REASON_CODE.test(code)) errors.push(fieldError('/reason_code'));
+  const t = input['reasonText'];
+  let reasonText: string | undefined;
+  if (t !== undefined) {
+    if (typeof t !== 'string' || t.length > 500 || TEXT_CONTROL.test(t)) errors.push(fieldError('/reason_text'));
+    else if (t.trim() !== '') reasonText = t.trim();
+  }
+  return { reasonCode: code as string, reasonText };
+}
+/** The record, a UUID invoice id and the reason fields; throws ONE validation error carrying every path found. */
+function checkNoteInput(raw: unknown, extra?: (input: Row, errors: FieldError[]) => void) {
+  if (!isRec(raw)) throw invalid(fieldError('/'));
+  const errors: FieldError[] = [];
+  if (typeof raw['invoiceId'] !== 'string' || !UUID.test(raw['invoiceId'])) errors.push(fieldError('/invoice_id'));
+  const reason = checkReasonFields(raw, errors);
+  extra?.(raw, errors);
+  if (errors.length) throw invalid(...errors);
+  return { invoiceId: raw['invoiceId'] as string, ...reason, input: raw };
+}
 
 export function createInvoiceService(deps: { repo?: BillingRepo; counter: Counter; events: BillingEvents }) {
   const repo = deps.repo ?? billingRepo;
@@ -197,6 +245,167 @@ export function createInvoiceService(deps: { repo?: BillingRepo; counter: Counte
 
     return { invoiceId, invoiceNo, fiscalYearBs: fy.long, issuedAt: allocatedAt, totals: t };
   }
-  return { issue };
+
+  /** Loads and locks the invoice (tenant-filtered: another tenant's id is "not found"); state first, then the reason rule. */
+  async function lockIssued(ctx: InvoiceCtx, invoiceId: string, reasonCode: string, reasonText: string | undefined): Promise<Row> {
+    const inv = await repo.getInvoiceForUpdate(ctx.tx as never, { tenantId: ctx.tenantId, invoiceId }) as Row | undefined;
+    if (!inv) throw new LimsError('common.not_found');
+    if (inv['status'] === 'cancelled') throw new LimsError('billing.invoice_already_cancelled');
+    if (inv['status'] !== 'issued') throw new LimsError('billing.invoice_immutable');
+    if (reasonCode === 'other' && reasonText === undefined) throw new LimsError('billing.cancel_reason_required');
+    return inv;
+  }
+  /** What is left of each invoice line after the earlier credit notes (per component), keyed by invoice line id. */
+  async function remainingByLine(ctx: InvoiceCtx, invoiceId: string): Promise<{ lines: Row[]; remaining: Map<string, Parts> }> {
+    const tx = ctx.tx as never;
+    const lines = await repo.listInvoiceLines(tx, { tenantId: ctx.tenantId, invoiceId }) as Row[];
+    const prior = await repo.listCreditNoteLinesByInvoice(tx, { tenantId: ctx.tenantId, invoiceId }) as Row[];
+    const remaining = new Map<string, Parts>();
+    for (const l of lines) remaining.set(String(l['id']), minus(partsOf(l), sumParts(prior.filter((p) => p['invoice_line_id'] === l['id']).map(partsOf))));
+    return { lines, remaining };
+  }
+
+  /** The common write path: number (LAST) -> note -> note lines -> invoice -> tasks -> activity -> CBMS -> events -> balance. Any throw rolls the caller's tx back. */
+  async function writeNote(ctx: InvoiceCtx, a: { kind: 'cancellation' | 'partial'; inv: Row; picks: NotePick[]; reasonCode: string; reasonText: string | undefined; taskIds: string[] }) {
+    const tx = ctx.tx as never, tenantId = ctx.tenantId, actorId = ctx.actor.id, inv = a.inv;
+    const idp = ctx.ports?.IdentityPort;
+    if (!idp) throw new LimsError('common.internal');
+    const nowIso = ctx.now();
+    const tenant = await idp.getTenantSettings(ctx, { keys: ['numbering', 'ird', 'timezone'] });
+    const pattern = tenant?.numbering?.creditNoteNoPattern;
+    if (typeof pattern !== 'string') throw new LimsError('billing.numbering_pattern_invalid');
+    const timezone: string = typeof tenant?.timezone === 'string' ? tenant.timezone : 'Asia/Kathmandu';
+    const fy = fiscalYearOf(nowIso as IsoUtc, timezone);
+    // dry-run with seq 1 BEFORE allocating, so a broken pattern consumes no number
+    try { formatDocumentNumber(pattern, { fy, seq: 1, scope: 'tenant' }); }
+    catch (e) { throw isLimsError(e, 'common.validation_failed') ? new LimsError('billing.numbering_pattern_invalid') : e; }
+    const cbmsRequired = tenant?.ird?.cbmsRealtimeRequired !== false; // unknown = required: never silently skip the tax authority
+    const cbmsState = cbmsRequired ? 'pending' : 'not_required';
+    const tot = sumParts(a.picks.map((p) => p.parts));
+    const priorCredited = toPaisa(inv['credited_total_paisa']);
+
+    // ---- allocation LAST: no repo call between this line and insertCreditNote (TRD §12) ----
+    const { lastNo, allocatedAt } = await deps.counter.allocate(tx, { tenantId, series: seriesKey('CN', 'tenant'), fiscalYearBs: fy.long, actorId, timezone });
+    const creditNoteNo = formatDocumentNumber(pattern, { fy, seq: lastNo, scope: 'tenant' });
+    const creditNoteId = uuidv7();
+    try {
+      await repo.insertCreditNote(tx, {
+        id: creditNoteId, tenant_id: tenantId, branch_id: inv['branch_id'], centre_id: inv['centre_id'] ?? null, series: 'CN', fiscal_year_bs: fy.long, credit_note_seq: lastNo,
+        credit_note_no: creditNoteNo, kind: a.kind, invoice_id: inv['id'], invoice_no: inv['invoice_no'], invoice_fiscal_year_bs: inv['fiscal_year_bs'], order_id: inv['order_id'] ?? null,
+        credit_party_id: inv['credit_party_id'] ?? null, buyer_name: inv['buyer_name'], buyer_pan: inv['buyer_pan'] ?? null, issued_at: allocatedAt,
+        credit_note_date_bs: formatBs(instantToBs(allocatedAt as IsoUtc, timezone)), reason_code: a.reasonCode, reason_text: a.reasonText ?? null, ...colsOf(tot),
+        cbms_state: cbmsState, created_by: actorId, updated_by: actorId,
+      });
+    } catch (e) {
+      if (isCancelDuplicate(e)) throw new LimsError('billing.invoice_already_cancelled'); // DB backstop: one cancellation note per invoice
+      throw e;
+    }
+    await repo.insertCreditNoteLines(tx, a.picks.map((p) => ({
+      id: uuidv7(), tenant_id: tenantId, credit_note_id: creditNoteId, invoice_line_id: p.line['id'], centre_id: inv['centre_id'] ?? p.line['centre_id'] ?? null,
+      ...colsOf(p.parts), created_by: actorId,
+    })));
+
+    const creditedTotal = priorCredited + tot.net;
+    const updated = (a.kind === 'cancellation'
+      ? await repo.markInvoiceCancelled(tx, {
+        tenantId, invoiceId: inv['id'], cancelledAt: allocatedAt, cancelledBy: actorId, reasonCode: a.reasonCode, reasonText: a.reasonText ?? null, creditNoteId,
+        creditedTotalPaisa: creditedTotal, cbmsCancelState: cbmsState, userId: actorId,
+      })
+      : await repo.addInvoiceCredit(tx, { tenantId, invoiceId: inv['id'], creditedTotalPaisa: creditedTotal, userId: actorId })) as Row | undefined;
+    if (!updated) throw new LimsError('common.version_conflict');
+
+    if (a.taskIds.length > 0) { // one statement; every id was an open task of this invoice when checked, and the invoice row is locked
+      const done = await repo.resolveCreditNoteTasks(tx, { tenantId, taskIds: a.taskIds, creditNoteId, userId: actorId, resolvedAt: allocatedAt });
+      if (done.length !== a.taskIds.length) throw new LimsError('common.version_conflict');
+    }
+    const cancelled = a.kind === 'cancellation';
+    await repo.insertActivity(tx, {
+      id: uuidv7(), tenant_id: tenantId, centre_id: inv['centre_id'] ?? null, action: cancelled ? 'invoice_cancelled' : 'credit_note_issued', document_kind: cancelled ? 'invoice' : 'credit_note',
+      document_id: cancelled ? inv['id'] : creditNoteId, document_no: cancelled ? inv['invoice_no'] : creditNoteNo, actor_id: actorId, actor_membership_id: ctx.actor.membershipId ?? null,
+      actor_type: ctx.actor.type, occurred_at: allocatedAt, request_id: ctx.requestId ?? null,
+      details: cancelled ? { credit_note_id: creditNoteId, credit_note_no: creditNoteNo, reason_code: a.reasonCode } : { invoice_id: inv['id'], reason_code: a.reasonCode }, created_by: actorId,
+    });
+    if (cbmsRequired) { // never marked synced here (US-BL-13.1); the cancellation job is keyed by the INVOICE, the credit note job by the note
+      if (cancelled) await repo.enqueueCbmsSync(tx, { tenantId, documentKind: 'invoice_cancellation', documentId: inv['id'] });
+      await repo.enqueueCbmsSync(tx, { tenantId, documentKind: 'credit_note', documentId: creditNoteId });
+    }
+    if (cancelled) { // no PHI / free text in the payload (REQ-SEC-006)
+      await deps.events.invoiceCancelled(ctx as never, {
+        invoice_id: inv['id'], invoice_no: inv['invoice_no'], fiscal_year_bs: inv['fiscal_year_bs'], ...(inv['order_id'] ? { order_id: inv['order_id'] } : {}),
+        credit_note_id: creditNoteId, credit_note_no: creditNoteNo, reason_code: a.reasonCode, cancelled_at: allocatedAt, credited_total: moneyOf(creditedTotal),
+      }, Number(updated['version']));
+    }
+    if (inv['order_id']) await balance.applyChange(ctx, { orderId: inv['order_id'], cause: cancelled ? 'invoice_cancelled' : 'credit_note_issued' }); // periodic bills have no order balance
+    return { creditNoteId, creditNoteNo, issuedAt: allocatedAt, invoiceId: inv['id'] as string };
+  }
+
+  function authed(ctx: InvoiceCtx): void {
+    if (typeof ctx?.tenantId !== 'string' || typeof ctx.actor?.id !== 'string' || !ctx.tx) throw new LimsError('auth.unauthenticated');
+  }
+
+  /** B4: cancel an issued invoice = status cancelled + a full credit note of what is not yet credited (US-BL-04.1–.3, .5). */
+  async function cancel(ctx: InvoiceCtx, rawInput: unknown) {
+    authed(ctx);
+    const { invoiceId, reasonCode, reasonText } = checkNoteInput(rawInput);
+    const inv = await lockIssued(ctx, invoiceId, reasonCode, reasonText);
+    const { lines, remaining } = await remainingByLine(ctx, invoiceId);
+    const picks: NotePick[] = lines.filter((l) => remaining.get(String(l['id']))!.net > 0).map((l) => ({ line: l, parts: remaining.get(String(l['id']))! }));
+    if (picks.length === 0) throw new LimsError('billing.invoice_immutable'); // fully credited already: a zero-value note is forbidden (credit_notes__totals__ck)
+    const open = await repo.listOpenCreditNoteTasks(ctx.tx as never, { tenantId: ctx.tenantId, invoiceId }) as Row[]; // the cancellation resolves them (03-APP-FLOW §2.11)
+    return writeNote(ctx, { kind: 'cancellation', inv, picks, reasonCode, reasonText, taskIds: open.map((t) => String(t['id'])) });
+  }
+
+  /** B5: partial credit note for chosen lines (amount omitted = the line's remaining); optionally resolves listed open tasks of this invoice (US-BL-05.1/.2). */
+  async function credit(ctx: InvoiceCtx, rawInput: unknown) {
+    authed(ctx);
+    const { invoiceId, reasonCode, reasonText, input } = checkNoteInput(rawInput, (i, errors) => {
+      const ls = i['lines'];
+      if (!Array.isArray(ls) || ls.length < 1 || ls.length > MAX_NOTE_LINES) errors.push(fieldError('/lines'));
+      else ls.forEach((l, n) => {
+        if (!isRec(l)) { errors.push(fieldError(`/lines/${n}`)); return; }
+        if (typeof l['invoiceLineId'] !== 'string' || !UUID.test(l['invoiceLineId'])) errors.push(fieldError(`/lines/${n}/invoice_line_id`));
+        const amt = l['amountPaisa'];
+        if (amt !== undefined && !(typeof amt === 'number' && Number.isSafeInteger(amt) && amt >= 1)) errors.push(fieldError(`/lines/${n}/amount_paisa`));
+      });
+      const ids = i['resolvesTaskIds'];
+      if (ids === undefined) return;
+      if (!Array.isArray(ids) || ids.length > MAX_TASK_IDS) errors.push(fieldError('/resolves_task_ids'));
+      else ids.forEach((t, n) => { if (typeof t !== 'string' || !UUID.test(t)) errors.push(fieldError(`/resolves_task_ids/${n}`)); });
+    });
+    const inv = await lockIssued(ctx, invoiceId, reasonCode, reasonText);
+    const { lines, remaining } = await remainingByLine(ctx, invoiceId);
+    const lineById = new Map(lines.map((l) => [String(l['id']), l]));
+
+    const errors: FieldError[] = [];
+    const picks: NotePick[] = [];
+    const seen = new Set<string>();
+    (input['lines'] as Row[]).forEach((req, n) => {
+      const id = req['invoiceLineId'] as string;
+      const rem = remaining.get(id);
+      if (!rem) { errors.push(fieldError(`/lines/${n}/invoice_line_id`)); return; }
+      const amount: number = req['amountPaisa'] ?? rem.net;
+      if (amount < 1 || amount > rem.net) { // a repeated line exhausted by an earlier entry is reported on the id, not the amount
+        errors.push(fieldError(seen.has(id) ? `/lines/${n}/invoice_line_id` : `/lines/${n}/amount_paisa`));
+        return;
+      }
+      const parts = splitCredit(rem, amount);
+      remaining.set(id, minus(rem, parts));
+      seen.add(id);
+      picks.push({ line: lineById.get(id)!, parts });
+    });
+    if (errors.length) throw invalid(...errors);
+
+    const taskIds: string[] = [];
+    const ids = (input['resolvesTaskIds'] ?? []) as string[];
+    for (const [n, taskId] of ids.entries()) {
+      if (taskIds.includes(taskId)) continue;
+      const task = await repo.getCreditNoteTask(ctx.tx as never, { tenantId: ctx.tenantId, taskId }) as Row | undefined;
+      if (!task) throw new LimsError('common.not_found'); // unknown and another tenant's task look the same (A11)
+      if (task['invoice_id'] !== invoiceId || task['status'] !== 'open') throw invalid(fieldError(`/resolves_task_ids/${n}`));
+      taskIds.push(taskId);
+    }
+    return writeNote(ctx, { kind: 'partial', inv, picks, reasonCode, reasonText, taskIds });
+  }
+  return { issue, cancel, credit };
 }
 export type InvoiceService = ReturnType<typeof createInvoiceService>;

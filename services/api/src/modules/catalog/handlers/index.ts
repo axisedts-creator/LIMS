@@ -6,6 +6,7 @@ import type { Handler } from '../../../core/module.js';
 import { creditPartiesHandlers } from './creditParties.handlers.js';
 import { importsHandlers } from './imports.handlers.js';
 import { mastersHandlers } from './masters.handlers.js';
+import { pricingHandlers } from './pricing.handlers.js';
 import { referrersHandlers } from './referrers.handlers.js';
 import { testsHandlers } from './tests.handlers.js';
 
@@ -51,17 +52,7 @@ export const handlers: Readonly<Record<string, Handler>> = Object.freeze({
   replacePanelMembers: notImplemented,
   ...referrersHandlers, // T-15: #60–#66 (doctors)
   ...creditPartiesHandlers, // T-16: #67–#70 (credit parties)
-  listPriceLists: notImplemented,
-  createPriceList: notImplemented,
-  getPriceListDetail: notImplemented,
-  updatePriceList: notImplemented,
-  replacePriceListAssignments: notImplemented,
-  createPriceListVersionDraft: notImplemented,
-  listPriceListItems: notImplemented,
-  upsertPriceListItems: notImplemented,
-  removePriceListItems: notImplemented,
-  publishPriceListVersion: notImplemented,
-  discardPriceListVersionDraft: notImplemented,
+  ...pricingHandlers, // T-17: #71–#81 (price lists)
   quotePrices: notImplemented,
   listSurchargeRules: notImplemented,
   createSurchargeRule: notImplemented,

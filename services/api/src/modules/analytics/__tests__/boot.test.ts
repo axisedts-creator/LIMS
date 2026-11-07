@@ -16,7 +16,6 @@ import { afterAll, afterEach, describe, expect, it, vi } from 'vitest';
 import { PERMISSION_CODES } from '../../../../../../contracts/ports/generated/permissions.js';
 import { bootstrap } from '../../../core/bootstrap.js';
 import { loadConfig } from '../../../core/config.js';
-import { isLimsError } from '../../../core/errors.js';
 import { eventProducers, loadSpec, operationIds, REPO_ROOT, validateManifest } from '../../../core/module.js';
 import { AUD, ISS, makeKeys, tmpFile } from '../../../core/auth/__tests__/helpers.js';
 import { loadAnalyticsConfig } from '../config.js';
@@ -102,10 +101,12 @@ describe('AN-T01 handler map (30 operationIds)', () => {
   it('in staging/production a stub never answers 501: it rejects with common.internal', async () => {
     for (const env of ['staging', 'production']) {
       const m = await withEnv(env);
+      // same module registry as the stub (withEnv resets modules), so instanceof is meaningful
+      const { isLimsError: isLE } = await import('../../../core/errors.js');
       for (const op of stubs) {
         const out = await Promise.resolve(m.handlers[op]!(FAKE_REQ, fakeCtx(op))).then((v) => ({ ok: true as const, v }), (e: unknown) => ({ ok: false as const, e }));
         expect(out.ok, `${env} ${op} resolved: ${JSON.stringify(out)}`).toBe(false);
-        if (!out.ok) expect(isLimsError(out.e, 'common.internal'), `${env} ${op}`).toBe(true);
+        if (!out.ok) expect(isLE(out.e, 'common.internal'), `${env} ${op}`).toBe(true);
       }
     }
   });

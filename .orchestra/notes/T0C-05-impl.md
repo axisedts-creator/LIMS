@@ -1,4 +1,4 @@
-# T0C-05 impl (round 3: review items 1-2 test-only, fixed by tester 2463706; no impl change) — tools/codegen 176 pass/3 skip; contracts 250/250
+# T0C-05 impl (round 4, 2026-11-07: BLOCKED — codegen.test.ts 14 fail on duplicate operationId listCreditParties billing vs catalog, from T0C-10 transcriptions; CR .orchestra/cr/T0C-05.md = CR-C0-0C-004. LD-09 needs no generator change. No impl change.)
 - Files: tools/codegen/{codegen.ts,gen-permissions.ts (LD-01 patient exception),gen-access-actions.ts}, lint-openapi.ts, package.json; generated outputs in contracts/ports/generated/, packages/api-client-{ts,dart}/, db/seeds/00{1,3}_*.sql, shared-ts routes, shared-dart .g.dart (02-TRD §5.3 hand-off paths).
 - Round 2: contracts/package.json "exports" for ./ports/common and ./ports/generated/error-codes (LD-03); contracts/ports/common.ts LimsError: no parameter properties, fields declared, assigned in the constructor (LD-03); ERROR_META already emitted.
 - [CONV] LimsError assigns safeDetail/fieldErrors only when defined (exactOptionalPropertyTypes).

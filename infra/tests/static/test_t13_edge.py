@@ -855,6 +855,15 @@ class LimitsTest(unittest.TestCase):
         counted = [t for t in [0] * 100 if eval_map(mp, "GET:/auth/login")]
         self.assertEqual(counted, [])
 
+    def test_every_limited_location_keeps_the_perip_safety_net(self):  # TRD s6.5 "every server"; T-13 review item 1
+        # a location-level limit_req replaces the server-level one (nginx inheritance), so each must also carry zone=perip
+        for name in ORIGINS:
+            srv = https_server(name)
+            for loc in [n for n in walk(srv) if n.name == "location"]:
+                zs = [a.split("=", 1)[1] for d in loc.kids("limit_req") for a in d.args if a.startswith("zone=")]
+                if zs:
+                    self.assertIn("perip", zs, "%s location %s sets limit_req %s without zone=perip" % (name, " ".join(loc.args), zs))
+
     def test_ac_scenarios_from_the_declared_numbers(self):  # AC-04.1/.2/.3/.9/.10
         z = lambda n: self.zones[n][2]
         b = {n: v[1] for n, v in ZONES.items()}
@@ -1196,6 +1205,8 @@ class ExternalSuiteTest(unittest.TestCase):
             self.assertIn(token, t)
         self.assertRegex(t, r"(?i)lims-ratelimit|source[ _-]?ip|distinct", "A27.2: distinct source IPs or jail disabled")
         self.assertRegex(t, r"4 \* 1024 \* 1024|4194304|4 ?MiB", "AC-04.3a body boundary")
+        self.assertIn("SKIP AC-04.10", t, "no otp-challenges route in public-routes.yaml (C16 not shipped) -> SKIP, not FAIL")
+        self.assertIn("public-routes.yaml", t)
 
 
 if __name__ == "__main__":

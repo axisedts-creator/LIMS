@@ -55,6 +55,13 @@ def req(host, method, path, src=None, body=None, headers=None):
     return r.status, {k.lower(): v for k, v in r.getheaders()}, data
 
 
+def otp_route_published():
+    import yaml
+    p = os.environ.get("LIMS_ROUTES_YAML") or os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "edge", "public-routes.yaml")
+    with open(p, encoding="utf-8") as f:
+        return any(r["path"].startswith("/v1/engagement/auth/otp-challenges") for r in yaml.safe_load(f)["routes"])
+
+
 def burst(host, method, path, n, src):
     with ThreadPoolExecutor(min(n, 64)) as ex:
         return list(ex.map(lambda _: req(host, method, path, src), range(n)))
@@ -119,7 +126,10 @@ def main():
 
     # AC-04.9 provider-callbacks, AC-04.10 otp-challenges: 41 at once -> 21 pass
     t.limited("AC-04.9 41 POST provider-callbacks", burst(o["api"], "POST", "/v1/reporting/provider-callbacks/x", 41, next(src)), 20, "60")
-    t.limited("AC-04.10 41 POST otp-challenges", burst(o["api"], "POST", "/v1/engagement/auth/otp-challenges", 41, next(src)), 20, "60")
+    if otp_route_published():
+        t.limited("AC-04.10 41 POST otp-challenges", burst(o["api"], "POST", "/v1/engagement/auth/otp-challenges", 41, next(src)), 20, "60")
+    else:
+        print("SKIP AC-04.10 (no otp-challenges route in public-routes.yaml; C16 not shipped)")
 
     if slow:  # evenly spaced over 60 s -> none rejected
         s = next(src)

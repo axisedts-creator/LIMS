@@ -387,6 +387,55 @@ test('supabase-pin: unreadable compose/lock is a usage error, not a pass', () =>
   assert.notEqual(pin(null, lock(`supabase/postgres@sha256:${D1}`)).code, 0);
   assert.notEqual(pin(compose(`supabase/postgres@sha256:${D1}`), null).code, 0);
 });
+// review round 1, item 4: a canonical `repo:tag@sha256:<d>` ref must match the same lock line (tag stripped on both sides).
+test('supabase-pin: tagged+digest ref in compose equals identical tagged+digest lock line', () => {
+  const ref = `supabase/postgres:17.6.1.136@sha256:${D1}`;
+  const r = pin(compose(ref), lock(ref));
+  assert.equal(r.code, 0, r.out);
+});
+test('supabase-pin: tagged+digest lock line vs compose with another digest still fails', () => {
+  const r = pin(compose(`supabase/postgres:17.6.1.136@sha256:${D2}`), lock(`supabase/postgres:17.6.1.136@sha256:${D1}`));
+  assert.equal(r.code, 1, r.out);
+  assert.match(r.out, /supabase\/postgres/);
+});
+test('supabase-pin: lock with the same repo as tagged and untagged refs and different digests fails closed', () => {
+  const r = pin(compose(`supabase/postgres@sha256:${D1}`), lock(`supabase/postgres:17.6.1.136@sha256:${D1}`, `supabase/postgres@sha256:${D2}`));
+  assert.notEqual(r.code, 0, r.out);
+});
+
+// ---------- review round 1: gate completeness (02-TRD 15.1, CV 12 rows 6, 9, 12, 13; C17 02-TRD row) ----------
+const prJobs = () => jobsOf(read('.github/workflows/pr.yml'));
+
+test('oasdiff (gate 6): deleted and renamed spec files are diffed too, not only modified (--diff-filter=MDR)', () => {
+  const b = prJobs().oasdiff ?? '';
+  assert.match(b, /--diff-filter=MDR/, 'oasdiff must list M, D and R spec files');
+  assert.doesNotMatch(b, /--diff-filter=M\b(?!D)/, 'M-only filter lets a deleted openapi file pass without cr-approved-breaking');
+});
+
+test('migrations (gate 9): upgrade apply, policy diff vs db/policies, and PR-body checklist check are present', () => {
+  const b = prJobs().migrations ?? '';
+  assert.ok(has(b, 'db/policies'), 'migrations must diff policies against db/policies');
+  assert.match(b, /upgrade/i, 'migrations must apply the upgrade on the previous release');
+  assert.match(b, /PR_BODY:\s*\$\{\{\s*github\.event\.pull_request\.body\s*\}\}/, 'checklist check reads the PR body through env');
+  assert.match(b, /checklist/i, 'migrations must check the manual checklist is in the PR body (B10)');
+});
+
+test('deps (gates 12/13): licence allowlist, banned-dependency list and audit triage file are checked by a tools/lint script', () => {
+  const b = prJobs().deps ?? '';
+  assert.match(b, /tools\/lint\/[\w./-]+/, 'deps must call a tools/lint script for the lockfile checks');
+  assert.ok(has(b, 'licen'), 'deps must check the licence allowlist (CV 15.2)');
+  assert.ok(has(b, 'banned'), 'deps must check the banned list (CV 15.3)');
+  assert.ok(has(b, 'triage'), 'deps must check the pnpm audit triage file (15.1)');
+  assert.doesNotMatch(b.replace(/name:.*/g, ''), /pnpm audit --audit-level critical\s*$/m, 'bare pnpm audit is not the triage check');
+});
+
+test('c17-db-forensics: an Android emulator is booted before the integration test (C17 02-TRD row)', () => {
+  const b = prJobs()['c17-db-forensics'] ?? '';
+  const noNames = b.replace(/^\s*(-\s*)?name:.*$/gm, '');
+  assert.match(noNames, /android-emulator-runner|avdmanager|emulator\s+-avd/i, 'job needs an emulator step, not only a name mentioning it');
+  assert.ok(noNames.search(/android-emulator-runner|avdmanager|emulator\s+-avd/i) <= noNames.search(/flutter test/i), 'emulator must start before flutter test (runner action wraps it)');
+});
+
 test('supabase-pin: repo devstack compose (when present) matches the C1 lock (when present)', (t) => {
   if (!existsSync(P('tools/devstack/compose.yaml')) || !existsSync(P('infra/compose/supabase/upstream/UPSTREAM.lock'))) return t.skip('devstack/UPSTREAM.lock land with T0B/C1');
   const r = node('tools/lint/check-supabase-pin.ts', ['--compose', P('tools/devstack/compose.yaml'), '--lock', P('infra/compose/supabase/upstream/UPSTREAM.lock')]);

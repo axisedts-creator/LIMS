@@ -2,20 +2,15 @@
 // The only file allowed to import nepali_utils (AC-0A-3.4).
 import 'package:nepali_utils/nepali_utils.dart' show NepaliDateTime;
 
+import '../error_codes.g.dart';
+import '../errors.dart';
+
 const bsMinYear = 1975, bsMaxYear = 2099; // 04 D13 common range
 
-/// [CONV] carries the registered code until LimsException lands (T0A-08); swap then.
-class BsDateError implements Exception {
-  BsDateError(this.code, this.message);
-  final String code; // 'common.date_out_of_range' | 'common.validation_failed'
-  final String message;
-  @override
-  String toString() => 'BsDateError($code): $message';
-}
-
-BsDateError _outOfRange(String what) =>
-    BsDateError('common.date_out_of_range', '$what is outside B.S. $bsMinYear–$bsMaxYear');
-BsDateError _invalid(String what) => BsDateError('common.validation_failed', 'invalid date: $what');
+LimsException _outOfRange(String what) => LimsException(LimsErrorCodes.commonDateOutOfRange,
+    safeDetail: '$what is outside B.S. $bsMinYear–$bsMaxYear');
+LimsException _invalid(String what) =>
+    LimsException(LimsErrorCodes.commonValidationFailed, safeDetail: 'invalid date: $what');
 
 /// month 1 = Baisakh … 4 = Shrawan … 12 = Chaitra.
 class BsDate {

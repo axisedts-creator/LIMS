@@ -5988,6 +5988,185 @@ export interface Operations {
       };
     };
   };
+  createAnalyticsExport: {
+    params: Record<string, never>;
+    query: Record<string, never>;
+    headers: {
+      "Idempotency-Key": string;
+    };
+    body: {
+      report_code: string;
+      format: "xlsx" | "csv" | "pdf";
+      params: {
+        business_date_from?: string;
+        business_date_to?: string;
+        bs_month?: string;
+        fiscal_year_bs?: string;
+        centre_id?: string[];
+        branch_id?: string[];
+        group_by?: string;
+        filters?: {
+          department_id?: string[];
+          processing_branch_id?: string[];
+          priority?: "routine" | "urgent";
+          segment?: ("pre_analytical" | "transport" | "within_lab" | "total_first_release" | "total_final_release")[];
+          payment_method_code?: string[];
+          rollup?: "canonical" | "none";
+          referrer_id?: string[];
+          item_status?: ("awaiting_collection" | "awaiting_receipt" | "in_process" | "resulted" | "verified")[];
+          overdue_only?: boolean;
+        };
+      };
+    };
+    responses: {
+      202: ({
+        id: string;
+        report_code: string;
+        format: "xlsx" | "csv" | "pdf";
+        status: "queued" | "building" | "ready" | "failed" | "expired";
+        params: {
+          business_date_from?: string;
+          business_date_to?: string;
+          bs_month?: string;
+          fiscal_year_bs?: string;
+          centre_id?: string[];
+          branch_id?: string[];
+          group_by?: string;
+          filters?: {
+            department_id?: string[];
+            processing_branch_id?: string[];
+            priority?: "routine" | "urgent";
+            segment?: ("pre_analytical" | "transport" | "within_lab" | "total_first_release" | "total_final_release")[];
+            payment_method_code?: string[];
+            rollup?: "canonical" | "none";
+            referrer_id?: string[];
+            item_status?: ("awaiting_collection" | "awaiting_receipt" | "in_process" | "resulted" | "verified")[];
+            overdue_only?: boolean;
+          };
+        };
+        requested_at: string;
+        ready_at?: string;
+        expires_at?: string;
+        row_count?: number;
+        size_bytes?: number;
+        downloads_used: number;
+        downloads_allowed: number;
+        failure_code?: string;
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      409: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      422: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
   createAuditExport: {
     params: Record<string, never>;
     query: Record<string, never>;
@@ -10867,6 +11046,173 @@ export interface Operations {
       };
     };
   };
+  createReportSchedule: {
+    params: Record<string, never>;
+    query: Record<string, never>;
+    headers: {
+      "Idempotency-Key": string;
+    };
+    body: {
+      name: string;
+      report_codes: string[];
+      frequency: "daily" | "weekly" | "monthly_ad" | "monthly_bs";
+      send_time_local: string;
+      weekday?: number;
+      period_rule: "previous_business_day" | "previous_7_days" | "month_to_date_ad" | "previous_ad_month" | "month_to_date_bs" | "previous_bs_month" | "fiscal_year_to_date";
+      scope: {
+        all_centres: boolean;
+        centre_ids?: string[];
+      };
+      recipient_membership_ids: string[];
+    };
+    responses: {
+      201: ({
+        name: string;
+        report_codes: string[];
+        frequency: "daily" | "weekly" | "monthly_ad" | "monthly_bs";
+        send_time_local: string;
+        weekday?: number;
+        period_rule: "previous_business_day" | "previous_7_days" | "month_to_date_ad" | "previous_ad_month" | "month_to_date_bs" | "previous_bs_month" | "fiscal_year_to_date";
+        scope: {
+          all_centres: boolean;
+          centre_ids?: string[];
+        };
+        recipient_membership_ids: string[];
+        id: string;
+        version: number;
+        is_active: boolean;
+        next_run_at?: string;
+        created_at: string;
+        owner_membership_id: string;
+        last_run?: {
+          id: string;
+          created_at: string;
+          period: {
+            business_date_from: string;
+            business_date_to: string;
+            days: number;
+            label_ad: string;
+            label_bs: string;
+            bs_month?: string;
+            fiscal_year_bs?: string;
+            timezone: "Asia/Kathmandu";
+          };
+        };
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      409: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      422: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
   createReportTemplate: {
     params: Record<string, never>;
     query: Record<string, never>;
@@ -12931,6 +13277,163 @@ export interface Operations {
       };
     };
   };
+  deactivateReportSchedule: {
+    params: {
+      schedule_id: string;
+    };
+    query: Record<string, never>;
+    headers: {
+      "If-Match": string;
+    };
+    body: Record<string, never>;
+    responses: {
+      200: ({
+        name: string;
+        report_codes: string[];
+        frequency: "daily" | "weekly" | "monthly_ad" | "monthly_bs";
+        send_time_local: string;
+        weekday?: number;
+        period_rule: "previous_business_day" | "previous_7_days" | "month_to_date_ad" | "previous_ad_month" | "month_to_date_bs" | "previous_bs_month" | "fiscal_year_to_date";
+        scope: {
+          all_centres: boolean;
+          centre_ids?: string[];
+        };
+        recipient_membership_ids: string[];
+        id: string;
+        version: number;
+        is_active: boolean;
+        next_run_at?: string;
+        created_at: string;
+        owner_membership_id: string;
+        last_run?: {
+          id: string;
+          created_at: string;
+          period: {
+            business_date_from: string;
+            business_date_to: string;
+            days: number;
+            label_ad: string;
+            label_bs: string;
+            bs_month?: string;
+            fiscal_year_bs?: string;
+            timezone: "Asia/Kathmandu";
+          };
+        };
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      409: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      428: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
   deactivateRole: {
     params: {
       role_id: string;
@@ -14609,6 +15112,129 @@ export interface Operations {
         }[];
       };
       404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  downloadAnalyticsExport: {
+    params: {
+      export_id: string;
+    };
+    query: Record<string, never>;
+    headers: Record<string, never>;
+    body: never;
+    responses: {
+      200: string | string | string;
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      409: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      410: {
         type: string;
         title: string;
         status: number;
@@ -16921,6 +17547,617 @@ export interface Operations {
       };
     };
   };
+  getAnalyticsDashboard: {
+    params: Record<string, never>;
+    query: {
+      business_date_from?: string;
+      business_date_to?: string;
+      bs_month?: string;
+      fiscal_year_bs?: string;
+      centre_id?: string[];
+      branch_id?: string[];
+    };
+    headers: Record<string, never>;
+    body: never;
+    responses: {
+      200: ({
+        report_code: string;
+        period: {
+          business_date_from: string;
+          business_date_to: string;
+          days: number;
+          label_ad: string;
+          label_bs: string;
+          bs_month?: string;
+          fiscal_year_bs?: string;
+          timezone: "Asia/Kathmandu";
+        };
+        scope: {
+          all_centres: boolean;
+          centre_ids: string[];
+          tenant_wide_sections_hidden: string[];
+        };
+        freshness: ({
+          family: string;
+          refreshed_at?: string;
+          is_stale: boolean;
+          stale_reason?: "refresh_lagging" | "refresh_failed" | "never_refreshed";
+          live: boolean;
+        })[];
+        generated_at: string;
+        tiles: {
+          patient_visits: {
+            value: number;
+            previous?: number;
+            delta?: number;
+            delta_bp?: number;
+            unit: "count" | "paisa" | "seconds";
+          };
+          new_patients: {
+            value: number;
+            previous?: number;
+            delta?: number;
+            delta_bp?: number;
+            unit: "count" | "paisa" | "seconds";
+          };
+          net_orders: {
+            value: number;
+            previous?: number;
+            delta?: number;
+            delta_bp?: number;
+            unit: "count" | "paisa" | "seconds";
+          };
+          tests_ordered: {
+            value: number;
+            previous?: number;
+            delta?: number;
+            delta_bp?: number;
+            unit: "count" | "paisa" | "seconds";
+          };
+          net_sales_paisa: {
+            value: number;
+            previous?: number;
+            delta?: number;
+            delta_bp?: number;
+            unit: "count" | "paisa" | "seconds";
+          };
+          invoiced_paisa: {
+            value: number;
+            previous?: number;
+            delta?: number;
+            delta_bp?: number;
+            unit: "count" | "paisa" | "seconds";
+          };
+          credit_notes_paisa: {
+            value: number;
+            previous?: number;
+            delta?: number;
+            delta_bp?: number;
+            unit: "count" | "paisa" | "seconds";
+          };
+          results_approved: {
+            value: number;
+            previous?: number;
+            delta?: number;
+            delta_bp?: number;
+            unit: "count" | "paisa" | "seconds";
+          };
+          net_collected_paisa?: {
+            value: number;
+            previous?: number;
+            delta?: number;
+            delta_bp?: number;
+            unit: "count" | "paisa" | "seconds";
+          };
+          reports_pending: {
+            value: number;
+            previous?: number;
+            delta?: number;
+            delta_bp?: number;
+            unit: "count" | "paisa" | "seconds";
+          };
+          reports_ready_unreleased: {
+            value: number;
+            previous?: number;
+            delta?: number;
+            delta_bp?: number;
+            unit: "count" | "paisa" | "seconds";
+          };
+          pending_tests: {
+            value: number;
+            previous?: number;
+            delta?: number;
+            delta_bp?: number;
+            unit: "count" | "paisa" | "seconds";
+          };
+          pending_overdue: {
+            value: number;
+            previous?: number;
+            delta?: number;
+            delta_bp?: number;
+            unit: "count" | "paisa" | "seconds";
+          };
+        };
+        series: {
+          days: {
+            business_date: string;
+            net_sales_paisa: number;
+            patient_visits: number;
+            net_orders: number;
+          }[];
+        };
+        department_top: {
+          department_id?: string;
+          label: string;
+          is_multiple: boolean;
+          net_paisa: number;
+          share_bp: number;
+        }[];
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      422: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      503: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  getAnalyticsExport: {
+    params: {
+      export_id: string;
+    };
+    query: Record<string, never>;
+    headers: Record<string, never>;
+    body: never;
+    responses: {
+      200: ({
+        id: string;
+        report_code: string;
+        format: "xlsx" | "csv" | "pdf";
+        status: "queued" | "building" | "ready" | "failed" | "expired";
+        params: {
+          business_date_from?: string;
+          business_date_to?: string;
+          bs_month?: string;
+          fiscal_year_bs?: string;
+          centre_id?: string[];
+          branch_id?: string[];
+          group_by?: string;
+          filters?: {
+            department_id?: string[];
+            processing_branch_id?: string[];
+            priority?: "routine" | "urgent";
+            segment?: ("pre_analytical" | "transport" | "within_lab" | "total_first_release" | "total_final_release")[];
+            payment_method_code?: string[];
+            rollup?: "canonical" | "none";
+            referrer_id?: string[];
+            item_status?: ("awaiting_collection" | "awaiting_receipt" | "in_process" | "resulted" | "verified")[];
+            overdue_only?: boolean;
+          };
+        };
+        requested_at: string;
+        ready_at?: string;
+        expires_at?: string;
+        row_count?: number;
+        size_bytes?: number;
+        downloads_used: number;
+        downloads_allowed: number;
+        failure_code?: string;
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  getAnalyticsFilterOptions: {
+    params: Record<string, never>;
+    query: Record<string, never>;
+    headers: Record<string, never>;
+    body: never;
+    responses: {
+      200: {
+        centres: {
+          id: string;
+          label: string;
+          branch_id: string;
+          is_active: boolean;
+        }[];
+        branches: {
+          id: string;
+          label: string;
+          is_active: boolean;
+        }[];
+        departments: {
+          id: string;
+          label: string;
+          is_active: boolean;
+        }[];
+        payment_methods: {
+          code: string;
+          display: string;
+        }[];
+        specimen_types: {
+          code: string;
+        }[];
+        recipients?: {
+          membership_id: string;
+          display_name: string;
+        }[];
+      };
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  getAnalyticsFreshness: {
+    params: Record<string, never>;
+    query: Record<string, never>;
+    headers: Record<string, never>;
+    body: never;
+    responses: {
+      200: ({
+        data: ({
+          family: string;
+          refreshed_at?: string;
+          is_stale: boolean;
+          stale_reason?: "refresh_lagging" | "refresh_failed" | "never_refreshed";
+          live: boolean;
+        })[];
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
   getAuditEntry: {
     params: {
       audit_id: string;
@@ -17959,6 +19196,275 @@ export interface Operations {
         }[];
       };
       404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  getCollectionsFilterOptions: {
+    params: Record<string, never>;
+    query: Record<string, never>;
+    headers: Record<string, never>;
+    body: never;
+    responses: {
+      200: {
+        centres: {
+          id: string;
+          label: string;
+          branch_id: string;
+          is_active: boolean;
+        }[];
+        branches: {
+          id: string;
+          label: string;
+          is_active: boolean;
+        }[];
+        payment_methods: {
+          code: string;
+          display: string;
+        }[];
+      };
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  getCollectionsReport: {
+    params: Record<string, never>;
+    query: {
+      business_date_from?: string;
+      business_date_to?: string;
+      bs_month?: string;
+      fiscal_year_bs?: string;
+      centre_id?: string[];
+      branch_id?: string[];
+      group_by?: "method" | "staff" | "staff_method" | "centre" | "day" | "ad_month" | "bs_month";
+      payment_method_code?: string[];
+    };
+    headers: Record<string, never>;
+    body: never;
+    responses: {
+      200: ({
+        report_code: string;
+        period: {
+          business_date_from: string;
+          business_date_to: string;
+          days: number;
+          label_ad: string;
+          label_bs: string;
+          bs_month?: string;
+          fiscal_year_bs?: string;
+          timezone: "Asia/Kathmandu";
+        };
+        scope: {
+          all_centres: boolean;
+          centre_ids: string[];
+          tenant_wide_sections_hidden: string[];
+        };
+        freshness: ({
+          family: string;
+          refreshed_at?: string;
+          is_stale: boolean;
+          stale_reason?: "refresh_lagging" | "refresh_failed" | "never_refreshed";
+          live: boolean;
+        })[];
+        generated_at: string;
+        rows: {
+          key: string;
+          label: string;
+          label_bs?: string;
+          is_inactive?: boolean;
+          entries: number;
+          reversals: number;
+          gross_collected_paisa: number;
+          reversed_paisa: number;
+          net_collected_paisa: number;
+        }[];
+        totals: {
+          entries: number;
+          reversals: number;
+          gross_collected_paisa: number;
+          reversed_paisa: number;
+          net_collected_paisa: number;
+        };
+        daily_cash_route_id?: "staff.billing.daily_cash";
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      422: {
         type: string;
         title: string;
         status: number;
@@ -19264,6 +20770,354 @@ export interface Operations {
       };
     };
   };
+  getDeliveryReport: {
+    params: Record<string, never>;
+    query: {
+      business_date_from?: string;
+      business_date_to?: string;
+      bs_month?: string;
+      fiscal_year_bs?: string;
+      centre_id?: string[];
+      branch_id?: string[];
+      group_by?: "channel" | "day" | "ad_month" | "bs_month";
+    };
+    headers: Record<string, never>;
+    body: never;
+    responses: {
+      200: ({
+        report_code: string;
+        period: {
+          business_date_from: string;
+          business_date_to: string;
+          days: number;
+          label_ad: string;
+          label_bs: string;
+          bs_month?: string;
+          fiscal_year_bs?: string;
+          timezone: "Asia/Kathmandu";
+        };
+        scope: {
+          all_centres: boolean;
+          centre_ids: string[];
+          tenant_wide_sections_hidden: string[];
+        };
+        freshness: ({
+          family: string;
+          refreshed_at?: string;
+          is_stale: boolean;
+          stale_reason?: "refresh_lagging" | "refresh_failed" | "never_refreshed";
+          live: boolean;
+        })[];
+        generated_at: string;
+        deliveries: {
+          rows: {
+            key: string;
+            label: string;
+            label_bs?: string;
+            is_inactive?: boolean;
+            queued: number;
+            sent: number;
+            delivered: number;
+            read: number;
+            failed: number;
+            suppressed: number;
+            failure_share_bp: number;
+          }[];
+          totals: {
+            queued: number;
+            sent: number;
+            delivered: number;
+            read: number;
+            failed: number;
+            suppressed: number;
+            failure_share_bp: number;
+          };
+        };
+        releases: {
+          rows: {
+            key: string;
+            label: string;
+            label_bs?: string;
+            is_inactive?: boolean;
+            released: number;
+            final: number;
+            partial: number;
+            preliminary: number;
+            amended: number;
+            overrides: number;
+          }[];
+          totals: {
+            released: number;
+            final: number;
+            partial: number;
+            preliminary: number;
+            amended: number;
+            overrides: number;
+          };
+        };
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      422: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  getDepartmentIncomeReport: {
+    params: Record<string, never>;
+    query: {
+      business_date_from?: string;
+      business_date_to?: string;
+      bs_month?: string;
+      fiscal_year_bs?: string;
+      centre_id?: string[];
+      branch_id?: string[];
+      group_by?: "department" | "department_ad_month" | "department_bs_month";
+      department_id?: string[];
+    };
+    headers: Record<string, never>;
+    body: never;
+    responses: {
+      200: ({
+        report_code: string;
+        period: {
+          business_date_from: string;
+          business_date_to: string;
+          days: number;
+          label_ad: string;
+          label_bs: string;
+          bs_month?: string;
+          fiscal_year_bs?: string;
+          timezone: "Asia/Kathmandu";
+        };
+        scope: {
+          all_centres: boolean;
+          centre_ids: string[];
+          tenant_wide_sections_hidden: string[];
+        };
+        freshness: ({
+          family: string;
+          refreshed_at?: string;
+          is_stale: boolean;
+          stale_reason?: "refresh_lagging" | "refresh_failed" | "never_refreshed";
+          live: boolean;
+        })[];
+        generated_at: string;
+        rows: {
+          key: string;
+          label: string;
+          label_bs?: string;
+          is_inactive?: boolean;
+          department_id?: string;
+          is_multiple: boolean;
+          period_key?: string;
+          line_count: number;
+          gross_paisa: number;
+          discount_paisa: number;
+          net_paisa: number;
+          share_bp: number;
+        }[];
+        totals: {
+          line_count: number;
+          gross_paisa: number;
+          discount_paisa: number;
+          net_paisa: number;
+        };
+        reconciles_with_income: boolean;
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      422: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
   getDiscountApproval: {
     params: {
       approval_id: string;
@@ -19789,6 +21643,177 @@ export interface Operations {
         }[];
       };
       404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  getIncomeReport: {
+    params: Record<string, never>;
+    query: {
+      business_date_from?: string;
+      business_date_to?: string;
+      bs_month?: string;
+      fiscal_year_bs?: string;
+      centre_id?: string[];
+      branch_id?: string[];
+      group_by?: "day" | "ad_month" | "bs_month" | "branch" | "centre";
+    };
+    headers: Record<string, never>;
+    body: never;
+    responses: {
+      200: ({
+        report_code: string;
+        period: {
+          business_date_from: string;
+          business_date_to: string;
+          days: number;
+          label_ad: string;
+          label_bs: string;
+          bs_month?: string;
+          fiscal_year_bs?: string;
+          timezone: "Asia/Kathmandu";
+        };
+        scope: {
+          all_centres: boolean;
+          centre_ids: string[];
+          tenant_wide_sections_hidden: string[];
+        };
+        freshness: ({
+          family: string;
+          refreshed_at?: string;
+          is_stale: boolean;
+          stale_reason?: "refresh_lagging" | "refresh_failed" | "never_refreshed";
+          live: boolean;
+        })[];
+        generated_at: string;
+        rows: {
+          key: string;
+          label: string;
+          label_bs?: string;
+          is_inactive?: boolean;
+          invoices_issued: number;
+          invoices_cancelled: number;
+          gross_paisa: number;
+          discount_paisa: number;
+          exempt_paisa: number;
+          taxable_paisa: number;
+          vat_paisa: number;
+          other_tax_paisa: number;
+          invoiced_paisa: number;
+          credit_notes_paisa: number;
+          net_sales_paisa: number;
+        }[];
+        totals: {
+          invoices_issued: number;
+          invoices_cancelled: number;
+          gross_paisa: number;
+          discount_paisa: number;
+          exempt_paisa: number;
+          taxable_paisa: number;
+          vat_paisa: number;
+          other_tax_paisa: number;
+          invoiced_paisa: number;
+          credit_notes_paisa: number;
+          net_sales_paisa: number;
+        };
+        basis_note_key: string;
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      422: {
         type: string;
         title: string;
         status: number;
@@ -20497,6 +22522,172 @@ export interface Operations {
         }[];
       };
       404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  getInterfacesReport: {
+    params: Record<string, never>;
+    query: {
+      business_date_from?: string;
+      business_date_to?: string;
+      bs_month?: string;
+      fiscal_year_bs?: string;
+      centre_id?: string[];
+      branch_id?: string[];
+    };
+    headers: Record<string, never>;
+    body: never;
+    responses: {
+      200: ({
+        report_code: string;
+        period: {
+          business_date_from: string;
+          business_date_to: string;
+          days: number;
+          label_ad: string;
+          label_bs: string;
+          bs_month?: string;
+          fiscal_year_bs?: string;
+          timezone: "Asia/Kathmandu";
+        };
+        scope: {
+          all_centres: boolean;
+          centre_ids: string[];
+          tenant_wide_sections_hidden: string[];
+        };
+        freshness: ({
+          family: string;
+          refreshed_at?: string;
+          is_stale: boolean;
+          stale_reason?: "refresh_lagging" | "refresh_failed" | "never_refreshed";
+          live: boolean;
+        })[];
+        generated_at: string;
+        instruments: {
+          instrument_id: string;
+          instrument_code?: string;
+          label?: string;
+          is_active?: boolean;
+          centre_id: string;
+          messages: number;
+          patient_records: number;
+          qc_records: number;
+          unmatched: number;
+          quarantined: number;
+          duplicates: number;
+        }[];
+        agents: {
+          by_state: {
+            state: string;
+            count: number;
+          }[];
+          agents: {
+            agent_id: string;
+            centre_id: string;
+            state: string;
+            last_heartbeat_at: string;
+            agent_version: string;
+            queue_depth: number;
+          }[];
+        };
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      422: {
         type: string;
         title: string;
         status: number;
@@ -22216,6 +24407,169 @@ export interface Operations {
       };
     };
   };
+  getPendingTestsSummary: {
+    params: Record<string, never>;
+    query: {
+      centre_id?: string[];
+      branch_id?: string[];
+      department_id?: string[];
+      priority?: "routine" | "urgent";
+      processing_branch_id?: string[];
+    };
+    headers: Record<string, never>;
+    body: never;
+    responses: {
+      200: ({
+        report_code: string;
+        scope: {
+          all_centres: boolean;
+          centre_ids: string[];
+          tenant_wide_sections_hidden: string[];
+        };
+        freshness: ({
+          family: string;
+          refreshed_at?: string;
+          is_stale: boolean;
+          stale_reason?: "refresh_lagging" | "refresh_failed" | "never_refreshed";
+          live: boolean;
+        })[];
+        generated_at: string;
+        total: number;
+        overdue: number;
+        no_target: number;
+        by_status: ({
+          item_status: "awaiting_collection" | "awaiting_receipt" | "in_process" | "resulted" | "verified";
+          count: number;
+        })[];
+        by_priority: ({
+          priority: "routine" | "urgent";
+          count: number;
+        })[];
+        by_department: {
+          department_id: string;
+          label: string;
+          count: number;
+          overdue: number;
+        }[];
+        by_age_bucket: ({
+          bucket: "lt_4h" | "h4_24" | "d1_3" | "gt_3d";
+          count: number;
+        })[];
+        backlog: {
+          reports_pending: number;
+          awaiting_results: number;
+          ready_unreleased: number;
+          oldest_registered_at?: string;
+          by_centre: {
+            centre_id: string;
+            label: string;
+            reports_pending: number;
+            awaiting_results: number;
+            ready_unreleased: number;
+          }[];
+        };
+        age_anchor_note_key: string;
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      503: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
   getPortalDues: {
     params: Record<string, never>;
     query: Record<string, never>;
@@ -22688,6 +25042,180 @@ export interface Operations {
       };
     };
   };
+  getQualityIndicatorsReport: {
+    params: Record<string, never>;
+    query: {
+      business_date_from?: string;
+      business_date_to?: string;
+      bs_month?: string;
+      fiscal_year_bs?: string;
+      centre_id?: string[];
+      branch_id?: string[];
+      group_by?: "reason" | "centre" | "specimen_type" | "day" | "ad_month" | "bs_month";
+    };
+    headers: Record<string, never>;
+    body: never;
+    responses: {
+      200: ({
+        report_code: string;
+        period: {
+          business_date_from: string;
+          business_date_to: string;
+          days: number;
+          label_ad: string;
+          label_bs: string;
+          bs_month?: string;
+          fiscal_year_bs?: string;
+          timezone: "Asia/Kathmandu";
+        };
+        scope: {
+          all_centres: boolean;
+          centre_ids: string[];
+          tenant_wide_sections_hidden: string[];
+        };
+        freshness: ({
+          family: string;
+          refreshed_at?: string;
+          is_stale: boolean;
+          stale_reason?: "refresh_lagging" | "refresh_failed" | "never_refreshed";
+          live: boolean;
+        })[];
+        generated_at: string;
+        rejections: {
+          rows: {
+            key: string;
+            label: string;
+            label_bs?: string;
+            is_inactive?: boolean;
+            rejections: number;
+            recollections_ordered: number;
+            specimens_received: number;
+            per_100_received_bp: number;
+          }[];
+          totals: {
+            rejections: number;
+            recollections_ordered: number;
+            specimens_received: number;
+            per_100_received_bp: number;
+          };
+        };
+        critical_values: {
+          rows: {
+            business_date: string;
+            detected: number;
+            notified: number;
+            notified_bp: number;
+            median_notify_seconds?: number;
+            max_notify_seconds?: number;
+          }[];
+          totals: {
+            detected: number;
+            notified: number;
+            notified_bp: number;
+            max_notify_seconds?: number;
+          };
+        };
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      422: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
   getReadiness: {
     params: Record<string, never>;
     query: Record<string, never>;
@@ -22791,6 +25319,172 @@ export interface Operations {
         }[];
       };
       404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  getReferralIncentiveReport: {
+    params: Record<string, never>;
+    query: {
+      business_date_from?: string;
+      business_date_to?: string;
+      bs_month?: string;
+      fiscal_year_bs?: string;
+      centre_id?: string[];
+      branch_id?: string[];
+      group_by?: "referrer" | "referrer_ad_month" | "referrer_bs_month";
+      rollup?: "canonical" | "none";
+      referrer_id?: string[];
+      cursor?: string;
+      limit?: number;
+    };
+    headers: Record<string, never>;
+    body: never;
+    responses: {
+      200: ({
+        report_code: string;
+        period: {
+          business_date_from: string;
+          business_date_to: string;
+          days: number;
+          label_ad: string;
+          label_bs: string;
+          bs_month?: string;
+          fiscal_year_bs?: string;
+          timezone: "Asia/Kathmandu";
+        };
+        scope: {
+          all_centres: boolean;
+          centre_ids: string[];
+          tenant_wide_sections_hidden: string[];
+        };
+        freshness: ({
+          family: string;
+          refreshed_at?: string;
+          is_stale: boolean;
+          stale_reason?: "refresh_lagging" | "refresh_failed" | "never_refreshed";
+          live: boolean;
+        })[];
+        generated_at: string;
+        rows: {
+          referrer_id?: string;
+          label: string;
+          is_self: boolean;
+          period_key?: string;
+          period_label?: string;
+          orders: number;
+          patient_visits: number;
+          tests_ordered: number;
+          net_billed_paisa?: number;
+        }[];
+        totals: {
+          orders: number;
+          patient_visits: number;
+          tests_ordered: number;
+          net_billed_paisa?: number;
+        };
+        billed_note_key: string;
+        page: {
+          next_cursor?: string;
+          limit: number;
+        };
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      422: {
         type: string;
         title: string;
         status: number;
@@ -23111,6 +25805,271 @@ export interface Operations {
         expires_at: string;
         excluded_ids?: string[];
         error_code?: string;
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  getReportRun: {
+    params: {
+      report_run_id: string;
+    };
+    query: Record<string, never>;
+    headers: Record<string, never>;
+    body: never;
+    responses: {
+      200: ({
+        id: string;
+        schedule_id: string;
+        schedule_name: string;
+        report_codes: string[];
+        period: {
+          business_date_from: string;
+          business_date_to: string;
+          days: number;
+          label_ad: string;
+          label_bs: string;
+          bs_month?: string;
+          fiscal_year_bs?: string;
+          timezone: "Asia/Kathmandu";
+        };
+        scope_all_centres: boolean;
+        scope_centre_ids: string[];
+        created_at: string;
+        effective_scope: {
+          all_centres: boolean;
+          centre_ids: string[];
+          tenant_wide_sections_hidden: string[];
+        };
+        viewer_omitted_report_codes: string[];
+        recipients?: ({
+          membership_id: string;
+          display_name: string;
+          outcome: "queued" | "suppressed" | "skipped_ineligible" | "failed";
+        })[];
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  getReportSchedule: {
+    params: {
+      schedule_id: string;
+    };
+    query: Record<string, never>;
+    headers: Record<string, never>;
+    body: never;
+    responses: {
+      200: ({
+        name: string;
+        report_codes: string[];
+        frequency: "daily" | "weekly" | "monthly_ad" | "monthly_bs";
+        send_time_local: string;
+        weekday?: number;
+        period_rule: "previous_business_day" | "previous_7_days" | "month_to_date_ad" | "previous_ad_month" | "month_to_date_bs" | "previous_bs_month" | "fiscal_year_to_date";
+        scope: {
+          all_centres: boolean;
+          centre_ids?: string[];
+        };
+        recipient_membership_ids: string[];
+        id: string;
+        version: number;
+        is_active: boolean;
+        next_run_at?: string;
+        created_at: string;
+        owner_membership_id: string;
+        last_run?: {
+          id: string;
+          created_at: string;
+          period: {
+            business_date_from: string;
+            business_date_to: string;
+            days: number;
+            label_ad: string;
+            label_bs: string;
+            bs_month?: string;
+            fiscal_year_bs?: string;
+            timezone: "Asia/Kathmandu";
+          };
+        };
+        runs: {
+          id: string;
+          created_at: string;
+          period: {
+            business_date_from: string;
+            business_date_to: string;
+            days: number;
+            label_ad: string;
+            label_bs: string;
+            bs_month?: string;
+            fiscal_year_bs?: string;
+            timezone: "Asia/Kathmandu";
+          };
+        }[];
       });
       400: {
         type: string;
@@ -24466,6 +27425,165 @@ export interface Operations {
       };
     };
   };
+  getTatReport: {
+    params: Record<string, never>;
+    query: {
+      business_date_from?: string;
+      business_date_to?: string;
+      bs_month?: string;
+      fiscal_year_bs?: string;
+      centre_id?: string[];
+      branch_id?: string[];
+      segment?: ("pre_analytical" | "transport" | "within_lab" | "total_first_release" | "total_final_release")[];
+      priority?: "routine" | "urgent";
+      specimen_type_code?: string[];
+      processing_branch_id?: string[];
+      group_by?: "none" | "centre" | "processing_branch" | "priority" | "specimen_type" | "day" | "ad_month" | "bs_month";
+    };
+    headers: Record<string, never>;
+    body: never;
+    responses: {
+      200: ({
+        report_code: string;
+        period: {
+          business_date_from: string;
+          business_date_to: string;
+          days: number;
+          label_ad: string;
+          label_bs: string;
+          bs_month?: string;
+          fiscal_year_bs?: string;
+          timezone: "Asia/Kathmandu";
+        };
+        scope: {
+          all_centres: boolean;
+          centre_ids: string[];
+          tenant_wide_sections_hidden: string[];
+        };
+        freshness: ({
+          family: string;
+          refreshed_at?: string;
+          is_stale: boolean;
+          stale_reason?: "refresh_lagging" | "refresh_failed" | "never_refreshed";
+          live: boolean;
+        })[];
+        generated_at: string;
+        rows: ({
+          segment: "pre_analytical" | "transport" | "within_lab" | "total_first_release" | "total_final_release";
+          key?: string;
+          label?: string;
+          n: number;
+          median_seconds?: number;
+          p90_seconds?: number;
+          max_seconds?: number;
+          anomalies: number;
+        })[];
+        segment_definitions: ({
+          segment: "pre_analytical" | "transport" | "within_lab" | "total_first_release" | "total_final_release";
+          start_label_key: string;
+          stop_label_key: string;
+        })[];
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      422: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
   getTenant: {
     params: {
       tenant_id: string;
@@ -24891,6 +28009,491 @@ export interface Operations {
       };
     };
   };
+  getTestsDoneReport: {
+    params: Record<string, never>;
+    query: {
+      business_date_from?: string;
+      business_date_to?: string;
+      bs_month?: string;
+      fiscal_year_bs?: string;
+      processing_branch_id?: string[];
+      department_id?: string[];
+      group_by?: "department" | "test" | "processing_branch" | "day" | "ad_month" | "bs_month";
+    };
+    headers: Record<string, never>;
+    body: never;
+    responses: {
+      200: ({
+        report_code: string;
+        period: {
+          business_date_from: string;
+          business_date_to: string;
+          days: number;
+          label_ad: string;
+          label_bs: string;
+          bs_month?: string;
+          fiscal_year_bs?: string;
+          timezone: "Asia/Kathmandu";
+        };
+        scope: {
+          all_centres: boolean;
+          centre_ids: string[];
+          tenant_wide_sections_hidden: string[];
+        };
+        freshness: ({
+          family: string;
+          refreshed_at?: string;
+          is_stale: boolean;
+          stale_reason?: "refresh_lagging" | "refresh_failed" | "never_refreshed";
+          live: boolean;
+        })[];
+        generated_at: string;
+        rows: {
+          key: string;
+          label: string;
+          label_bs?: string;
+          is_inactive?: boolean;
+          results_resulted: number;
+          results_verified: number;
+          results_approved: number;
+          results_amended: number;
+          auto_verified: number;
+          critical_count: number;
+          abnormal_count: number;
+          tests_approved: number;
+        }[];
+        totals: {
+          results_resulted: number;
+          results_verified: number;
+          results_approved: number;
+          results_amended: number;
+          auto_verified: number;
+          critical_count: number;
+          abnormal_count: number;
+          tests_approved: number;
+        };
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      422: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  getTopCentresReport: {
+    params: Record<string, never>;
+    query: {
+      business_date_from?: string;
+      business_date_to?: string;
+      bs_month?: string;
+      fiscal_year_bs?: string;
+      centre_id?: string[];
+      branch_id?: string[];
+      sort?: "-orders" | "-net_sales_paisa" | "-patient_visits" | "-tests_ordered";
+      limit?: number;
+    };
+    headers: Record<string, never>;
+    body: never;
+    responses: {
+      200: ({
+        report_code: string;
+        period: {
+          business_date_from: string;
+          business_date_to: string;
+          days: number;
+          label_ad: string;
+          label_bs: string;
+          bs_month?: string;
+          fiscal_year_bs?: string;
+          timezone: "Asia/Kathmandu";
+        };
+        scope: {
+          all_centres: boolean;
+          centre_ids: string[];
+          tenant_wide_sections_hidden: string[];
+        };
+        freshness: ({
+          family: string;
+          refreshed_at?: string;
+          is_stale: boolean;
+          stale_reason?: "refresh_lagging" | "refresh_failed" | "never_refreshed";
+          live: boolean;
+        })[];
+        generated_at: string;
+        rows: {
+          rank: number;
+          centre_id: string;
+          label: string;
+          branch_id: string;
+          orders: number;
+          patient_visits: number;
+          tests_ordered: number;
+          net_sales_paisa: number;
+          by_mode: {
+            walk_in: number;
+            home: number;
+            centre: number;
+            partner: number;
+          };
+        }[];
+        totals: {
+          orders: number;
+          patient_visits: number;
+          tests_ordered: number;
+          net_sales_paisa: number;
+        };
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      422: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  getTopReferrersReport: {
+    params: Record<string, never>;
+    query: {
+      business_date_from?: string;
+      business_date_to?: string;
+      bs_month?: string;
+      fiscal_year_bs?: string;
+      centre_id?: string[];
+      branch_id?: string[];
+      sort?: "-orders" | "-patient_visits" | "-tests_ordered";
+      limit?: number;
+      rollup?: "canonical" | "none";
+      referrer_id?: string[];
+    };
+    headers: Record<string, never>;
+    body: never;
+    responses: {
+      200: ({
+        report_code: string;
+        period: {
+          business_date_from: string;
+          business_date_to: string;
+          days: number;
+          label_ad: string;
+          label_bs: string;
+          bs_month?: string;
+          fiscal_year_bs?: string;
+          timezone: "Asia/Kathmandu";
+        };
+        scope: {
+          all_centres: boolean;
+          centre_ids: string[];
+          tenant_wide_sections_hidden: string[];
+        };
+        freshness: ({
+          family: string;
+          refreshed_at?: string;
+          is_stale: boolean;
+          stale_reason?: "refresh_lagging" | "refresh_failed" | "never_refreshed";
+          live: boolean;
+        })[];
+        generated_at: string;
+        rows: {
+          rank: number;
+          referrer_id?: string;
+          label: string;
+          is_self: boolean;
+          is_inactive: boolean;
+          orders: number;
+          patient_visits: number;
+          tests_ordered: number;
+        }[];
+        totals: {
+          orders: number;
+          patient_visits: number;
+          tests_ordered: number;
+        };
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      422: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
   getTrfAttachment: {
     params: {
       attachment_id: string;
@@ -25191,6 +28794,172 @@ export interface Operations {
         }[];
       };
       404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  getVolumeReport: {
+    params: Record<string, never>;
+    query: {
+      business_date_from?: string;
+      business_date_to?: string;
+      bs_month?: string;
+      fiscal_year_bs?: string;
+      centre_id?: string[];
+      branch_id?: string[];
+      group_by?: "day" | "ad_month" | "bs_month" | "branch" | "centre";
+    };
+    headers: Record<string, never>;
+    body: never;
+    responses: {
+      200: ({
+        report_code: string;
+        period: {
+          business_date_from: string;
+          business_date_to: string;
+          days: number;
+          label_ad: string;
+          label_bs: string;
+          bs_month?: string;
+          fiscal_year_bs?: string;
+          timezone: "Asia/Kathmandu";
+        };
+        scope: {
+          all_centres: boolean;
+          centre_ids: string[];
+          tenant_wide_sections_hidden: string[];
+        };
+        freshness: ({
+          family: string;
+          refreshed_at?: string;
+          is_stale: boolean;
+          stale_reason?: "refresh_lagging" | "refresh_failed" | "never_refreshed";
+          live: boolean;
+        })[];
+        generated_at: string;
+        rows: {
+          key: string;
+          label: string;
+          label_bs?: string;
+          is_inactive?: boolean;
+          orders_registered: number;
+          orders_cancelled: number;
+          net_orders: number;
+          patient_visits: number;
+          new_patients: number;
+          urgent_orders: number;
+          opd_orders: number;
+          ipd_orders: number;
+          tests_ordered: number;
+        }[];
+        totals: {
+          orders_registered: number;
+          orders_cancelled: number;
+          net_orders: number;
+          patient_visits: number;
+          new_patients: number;
+          urgent_orders: number;
+          opd_orders: number;
+          ipd_orders: number;
+          tests_ordered: number;
+        };
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      422: {
         type: string;
         title: string;
         status: number;
@@ -27268,6 +31037,142 @@ export interface Operations {
             config_state?: "ok" | "signature_invalid" | "agent_mismatch" | "rollback_rejected" | "schema_invalid";
             update_state?: "idle" | "downloading" | "verifying" | "staged" | "applying" | "rolled_back" | "verify_failed" | "failed";
           };
+        })[];
+        page: {
+          next_cursor?: string;
+          limit: number;
+        };
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  listAnalyticsExports: {
+    params: Record<string, never>;
+    query: {
+      status?: ("queued" | "building" | "ready" | "failed" | "expired")[];
+      cursor?: string;
+      limit?: number;
+    };
+    headers: Record<string, never>;
+    body: never;
+    responses: {
+      200: ({
+        data: ({
+          id: string;
+          report_code: string;
+          format: "xlsx" | "csv" | "pdf";
+          status: "queued" | "building" | "ready" | "failed" | "expired";
+          params: {
+            business_date_from?: string;
+            business_date_to?: string;
+            bs_month?: string;
+            fiscal_year_bs?: string;
+            centre_id?: string[];
+            branch_id?: string[];
+            group_by?: string;
+            filters?: {
+              department_id?: string[];
+              processing_branch_id?: string[];
+              priority?: "routine" | "urgent";
+              segment?: ("pre_analytical" | "transport" | "within_lab" | "total_first_release" | "total_final_release")[];
+              payment_method_code?: string[];
+              rollup?: "canonical" | "none";
+              referrer_id?: string[];
+              item_status?: ("awaiting_collection" | "awaiting_receipt" | "in_process" | "resulted" | "verified")[];
+              overdue_only?: boolean;
+            };
+          };
+          requested_at: string;
+          ready_at?: string;
+          expires_at?: string;
+          row_count?: number;
+          size_bytes?: number;
+          downloads_used: number;
+          downloads_allowed: number;
+          failure_code?: string;
         })[];
         page: {
           next_cursor?: string;
@@ -34097,6 +38002,145 @@ export interface Operations {
       };
     };
   };
+  listPendingTests: {
+    params: Record<string, never>;
+    query: {
+      centre_id?: string[];
+      branch_id?: string[];
+      department_id?: string[];
+      priority?: "routine" | "urgent";
+      processing_branch_id?: string[];
+      item_status?: ("awaiting_collection" | "awaiting_receipt" | "in_process" | "resulted" | "verified")[];
+      overdue_only?: boolean;
+      sort?: "-age_seconds" | "age_seconds";
+      cursor?: string;
+      limit?: number;
+    };
+    headers: Record<string, never>;
+    body: never;
+    responses: {
+      200: ({
+        data: ({
+          order_item_id: string;
+          order_id: string;
+          centre_id: string;
+          processing_branch_id?: string;
+          department_id: string;
+          test_id: string;
+          test_code: string;
+          test_label: string;
+          priority: "routine" | "urgent";
+          item_status: "awaiting_collection" | "awaiting_receipt" | "in_process" | "resulted" | "verified";
+          age_seconds: number;
+          tat_target_seconds?: number;
+          is_overdue: boolean;
+          open_route_id?: "staff.lab.order_results";
+        })[];
+        page: {
+          next_cursor?: string;
+          limit: number;
+        };
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      503: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
   listPermissions: {
     params: Record<string, never>;
     query: Record<string, never>;
@@ -35565,6 +39609,141 @@ export interface Operations {
             business_date_bs: string;
           };
           version: number;
+        })[];
+        page: {
+          next_cursor?: string;
+          limit: number;
+        };
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  listReportSchedules: {
+    params: Record<string, never>;
+    query: {
+      is_active?: boolean;
+      cursor?: string;
+      limit?: number;
+    };
+    headers: Record<string, never>;
+    body: never;
+    responses: {
+      200: ({
+        data: ({
+          name: string;
+          report_codes: string[];
+          frequency: "daily" | "weekly" | "monthly_ad" | "monthly_bs";
+          send_time_local: string;
+          weekday?: number;
+          period_rule: "previous_business_day" | "previous_7_days" | "month_to_date_ad" | "previous_ad_month" | "month_to_date_bs" | "previous_bs_month" | "fiscal_year_to_date";
+          scope: {
+            all_centres: boolean;
+            centre_ids?: string[];
+          };
+          recipient_membership_ids: string[];
+          id: string;
+          version: number;
+          is_active: boolean;
+          next_run_at?: string;
+          created_at: string;
+          owner_membership_id: string;
+          last_run?: {
+            id: string;
+            created_at: string;
+            period: {
+              business_date_from: string;
+              business_date_to: string;
+              days: number;
+              label_ad: string;
+              label_bs: string;
+              bs_month?: string;
+              fiscal_year_bs?: string;
+              timezone: "Asia/Kathmandu";
+            };
+          };
         })[];
         page: {
           next_cursor?: string;
@@ -45960,6 +50139,104 @@ export interface Operations {
       };
     };
   };
+  requestAnalyticsRefresh: {
+    params: Record<string, never>;
+    query: Record<string, never>;
+    headers: Record<string, never>;
+    body: {
+      families?: string[];
+    };
+    responses: {
+      202: {
+        queued_families: string[];
+        next_allowed_at: string;
+      };
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
   requestDiscountApproval: {
     params: Record<string, never>;
     query: Record<string, never>;
@@ -50835,6 +55112,107 @@ export interface Operations {
         }[];
       };
       428: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  searchAnalyticsReferrers: {
+    params: Record<string, never>;
+    query: Record<string, never>;
+    headers: Record<string, never>;
+    body: {
+      query: string;
+    };
+    responses: {
+      200: {
+        data: {
+          referrer_id: string;
+          label: string;
+          is_active: boolean;
+        }[];
+      };
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
         type: string;
         title: string;
         status: number;
@@ -58744,6 +63122,189 @@ export interface Operations {
         }[];
       };
       409: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      428: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  updateReportSchedule: {
+    params: {
+      schedule_id: string;
+    };
+    query: Record<string, never>;
+    headers: {
+      "If-Match": string;
+    };
+    body: {
+      name: string;
+      report_codes: string[];
+      frequency: "daily" | "weekly" | "monthly_ad" | "monthly_bs";
+      send_time_local: string;
+      weekday?: number;
+      period_rule: "previous_business_day" | "previous_7_days" | "month_to_date_ad" | "previous_ad_month" | "month_to_date_bs" | "previous_bs_month" | "fiscal_year_to_date";
+      scope: {
+        all_centres: boolean;
+        centre_ids?: string[];
+      };
+      recipient_membership_ids: string[];
+    };
+    responses: {
+      200: ({
+        name: string;
+        report_codes: string[];
+        frequency: "daily" | "weekly" | "monthly_ad" | "monthly_bs";
+        send_time_local: string;
+        weekday?: number;
+        period_rule: "previous_business_day" | "previous_7_days" | "month_to_date_ad" | "previous_ad_month" | "month_to_date_bs" | "previous_bs_month" | "fiscal_year_to_date";
+        scope: {
+          all_centres: boolean;
+          centre_ids?: string[];
+        };
+        recipient_membership_ids: string[];
+        id: string;
+        version: number;
+        is_active: boolean;
+        next_run_at?: string;
+        created_at: string;
+        owner_membership_id: string;
+        last_run?: {
+          id: string;
+          created_at: string;
+          period: {
+            business_date_from: string;
+            business_date_to: string;
+            days: number;
+            label_ad: string;
+            label_bs: string;
+            bs_month?: string;
+            fiscal_year_bs?: string;
+            timezone: "Asia/Kathmandu";
+          };
+        };
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      409: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      422: {
         type: string;
         title: string;
         status: number;

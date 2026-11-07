@@ -7,6 +7,7 @@ import { parse } from 'yaml';
 // [CONV] relative import until @lims/shared-ts is a services/api dependency (lockfile is C0-0A's, LD-05).
 import { isUuidv7, uuidv7 } from '../../../../packages/shared-ts/src/uuidv7/index.js';
 import { REPO_ROOT } from './module.js';
+import { setErrorCode } from './observability/logging.js';
 
 export interface FieldError { readonly path: string; readonly code: string; readonly message: string }
 export interface Problem {
@@ -115,6 +116,7 @@ const pathOf = (url: string): string => url.split('?', 1)[0]!; // REQ-SEC-098: n
 export function sendProblem(err: unknown, req: FastifyRequest, reply: FastifyReply): FastifyReply {
   const e = normalise(err);
   const p = toProblem(e, pathOf(req.url), String(req.id));
+  setErrorCode(req, p.code);
   if (p.status >= 500) {
     // ponytail: name + code only (no message/stack: may carry SQL/PHI); full error logging is T0D-10.
     req.log.error({ event: 'request_failed', error_code: p.code, err_name: (err as Error | null)?.name }, 'request_failed');

@@ -251,7 +251,11 @@ describe.each([
       }
       expect(fromTrd.size).toBeGreaterThan(name === "frontdesk" ? 25 : 35);
       const mine = new Set(specs.map((s) => s.id));
-      for (const id of fromTrd) expect(mine.has(id), `TRD operationId ${id} not in test table`).toBe(true);
+      const CR004: Record<string, string> = { listCreditParties: "listCreditAccounts", getCreditParty: "getCreditAccount" }; // CR-C0-0C-004 option (1), AUTO 2026-11-07T08:30:15
+      for (const id of fromTrd) {
+        const want = name === "billing" ? (CR004[id] ?? id) : id;
+        expect(mine.has(want), `TRD operationId ${id} not in test table`).toBe(true);
+      }
     });
     it(`every path is ${PFX}/… with tags [${name}]; no human-number path params (REQ-SEC-098)`, () => {
       expect(Object.keys(doc.paths ?? {}).length, "no paths").toBeGreaterThan(0);

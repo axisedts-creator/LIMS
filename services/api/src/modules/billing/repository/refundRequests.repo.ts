@@ -75,6 +75,17 @@ export async function resolveFinanceReviewItem(tx: Q, a: {
   return rows[0];
 }
 
+/** BL-T12: a gateway overpayment recorded with allowExceedsDue (kind is checked by finance_review_items__kind__ck). */
+export async function insertFinanceReviewItem(tx: Q, a: {
+  id: string; tenantId: string; centreId: string; orderId: string; kind: string; ledgerEntryId: string; amountPaisa: number; userId: string;
+}): Promise<Row | undefined> {
+  const { rows } = await tx.query(
+    `INSERT INTO billing.finance_review_items (id, tenant_id, centre_id, order_id, kind, ledger_entry_id, amount_paisa, created_by, updated_by)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $8) RETURNING *`,
+    [a.id, a.tenantId, a.centreId, a.orderId, a.kind, a.ledgerEntryId, a.amountPaisa, a.userId]);
+  return rows[0];
+}
+
 // `table` is one of the two literals above, never user input.
 async function keyset(tx: Q, table: string, p: unknown[], conds: string[], a: Page): Promise<Row[]> {
   if (a.after !== undefined) {

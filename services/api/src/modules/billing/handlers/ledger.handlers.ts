@@ -15,14 +15,14 @@ import { createLedgerReadService } from '../service/ledgerRead.service.js';
 import { createRefundService } from '../service/refund.service.js';
 import { ifMatch } from './settings.handlers.js';
 
-function bind(fn: (ctx: BalanceCtx, req: HandlerRequest) => Promise<HandlerResult>): Handler {
+export function bind(fn: (ctx: BalanceCtx, req: HandlerRequest) => Promise<HandlerResult>): Handler {
   return async (req: HandlerRequest, hctx: HandlerContext): Promise<HandlerResult> => {
     const c = hctx as unknown as Partial<BalanceCtx>;
     if (typeof c.tenantId !== 'string' || typeof c.actor?.id !== 'string' || !c.tx) throw new LimsError('auth.unauthenticated');
     return fn(c as BalanceCtx, req);
   };
 }
-const obj = (v: unknown): Record<string, any> => (typeof v === 'object' && v !== null ? (v as Record<string, any>) : {});
+export const obj = (v: unknown): Record<string, any> => (typeof v === 'object' && v !== null ? (v as Record<string, any>) : {});
 const etagged = (dto: { version: number }): Record<string, string> => ({ etag: `"${dto.version}"` });
 
 let ledger: ReturnType<typeof createLedgerService> | undefined;

@@ -7,11 +7,12 @@
   },
   "scripts": {
     "build": "turbo run build",
-    "verify": "turbo run build typecheck && node --test \"tools/lint/tests/*.test.mjs\"",
+    "verify": "turbo run build typecheck && node --test \"tools/lint/tests/*.test.mjs\" && node --test \"packages/shared-ts/test/*.test.mjs\"",
     "typecheck": "turbo run typecheck"
   },
   "devDependencies": {
     "turbo": "2.11.10",
-    "typescript": "7.0.2"
+    "typescript": "7.0.2",
+    "vitest": "5.1.0"
   }
 }

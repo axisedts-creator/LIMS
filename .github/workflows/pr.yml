@@ -688,6 +688,10 @@ jobs:
         id: plan
         run: node tools/lint/ci-plan.ts --files "$RUNNER_TEMP/changed.txt" --job "$GITHUB_JOB" >> "$GITHUB_OUTPUT"
       - if: steps.plan.outputs.run == 'true'
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: apps/bridge-agent/go.mod
+      - if: steps.plan.outputs.run == 'true'
         name: C7 build (CR-C7-013)
         run: bash apps/bridge-agent/build/ci.sh build
 
@@ -712,6 +716,10 @@ jobs:
       - name: plan
         id: plan
         run: node tools/lint/ci-plan.ts --files "$RUNNER_TEMP/changed.txt" --job "$GITHUB_JOB" >> "$GITHUB_OUTPUT"
+      - if: steps.plan.outputs.run == 'true'
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: apps/bridge-agent/go.mod
       - if: steps.plan.outputs.run == 'true'
         name: C7 Windows tests (CR-C7-013)
         shell: pwsh
@@ -738,6 +746,10 @@ jobs:
       - name: plan
         id: plan
         run: node tools/lint/ci-plan.ts --files "$RUNNER_TEMP/changed.txt" --job "$GITHUB_JOB" >> "$GITHUB_OUTPUT"
+      - if: steps.plan.outputs.run == 'true'
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: apps/bridge-agent/go.mod
       - if: steps.plan.outputs.run == 'true'
         name: C7 simulator sessions
         run: bash apps/bridge-agent/build/ci.sh sessions

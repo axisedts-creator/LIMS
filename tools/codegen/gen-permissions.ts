@@ -123,10 +123,13 @@ export const FIXED_ACTOR_PERMISSIONS = {
 ${fixedTs}
 } as const satisfies Record<string, readonly PermissionCode[] | Record<string, readonly PermissionCode[]>>;
 `;
+  // Class-G seed: owner role (LD-30, LD-38); DO NOTHING so a re-run never rewrites rows (02-TRD §4.6, CR-C0-T0B-09b).
   const sql = `${sqlHeader}
+SET LOCAL ROLE lims_owner;
+
 INSERT INTO core.g_permissions (code, module, privileged, phase) VALUES
 ${perms.map((p) => `  (${sq(p.code)}, ${sq(p.code.split(".")[0]!)}, ${p.privileged ? "true" : "false"}, ${sq(String(p.phase ?? "1"))})`).join(",\n")}
-ON CONFLICT (code) DO UPDATE SET module = EXCLUDED.module, privileged = EXCLUDED.privileged, phase = EXCLUDED.phase, is_active = true;
+ON CONFLICT (code) DO NOTHING;
 `;
   return { ts, sql };
 }

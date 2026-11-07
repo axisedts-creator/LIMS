@@ -1,7 +1,8 @@
 // B11 listLedgerEntries, B16 listDues, B18 getDailyCash (02-TRD §5; openapi LedgerEntryPage / DuePage / DailyCash; PRD US-BL-11.1/.3; REQ-SEC-040).
 // Read-only. Tenant and actor come from ctx only; every user value is validated first and then only ever a bound parameter.
-// B18 groups the day's raw ledger rows in code, so the grid is exactly the ledger: entries = payments, reversals = reversal rows, gross = Σ payments,
-// reversed = |Σ reversals|, net = gross - reversed. Gateway rows (no collector) and refund rows are not part of the grid; home_collection and B22 rows (no session) are.
+// B18 groups the day's raw ledger rows in code, so the grid is exactly the ledger: entries = payments, reversals = reversal + refund rows
+// (as billing.v_pub_payment_collection), gross = Σ payments, reversed = |Σ reversals + refunds|, net = gross - reversed. home_collection and B22 rows (no session) are in.
+// [CONV] Gateway rows (collected_by NULL, 08 R8) are left out until CR-C4-BL08-003 is ruled (DailyCash rows need an Actor).
 import { LimsError } from '../../../core/errors.js';
 import { moneyOf, toPaisa } from '../domain/money/paisa.js';
 import { billingRepo, type BillingRepo } from '../repository/index.js';
@@ -116,7 +117,7 @@ export function createLedgerReadService(deps: { repo?: ReadRepo } = {}) {
       const who = String(r['collected_by_membership_id']), method = String(r['method_code']), amount = toPaisa(r['amount_paisa']);
       const g = groups.get(who + '|' + method) ?? { who, method, entries: 0, reversals: 0, gross: 0, reversed: 0 };
       if (r['entry_kind'] === 'payment') { g.entries += 1; g.gross += amount; }
-      else if (r['entry_kind'] === 'reversal') { g.reversals += 1; g.reversed += Math.abs(amount); }
+      else if (r['entry_kind'] === 'reversal' || r['entry_kind'] === 'refund') { g.reversals += 1; g.reversed += Math.abs(amount); }
       groups.set(who + '|' + method, g);
     }
     const display = await names(ctx, [...ledger.map((r) => r['collected_by_membership_id']), ...sessions.map((s) => s['membership_id'])]);

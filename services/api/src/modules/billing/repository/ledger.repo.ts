@@ -74,7 +74,7 @@ export async function pageLedger(tx: Q, a: LedgerPageArgs): Promise<Record<strin
 /** B18: raw payment/reversal rows of one business date that have a collector (gateway rows have none). Grouped in code by the service. */
 export async function listLedgerForDay(tx: Q, a: { tenantId: string; businessDate: string; centreId?: string; collectedBy?: string }): Promise<Record<string, unknown>[]> {
   const p: unknown[] = [a.tenantId, a.businessDate];
-  const conds = ['l.tenant_id = $1', 'l.business_date = $2::date', "l.entry_kind IN ('payment', 'reversal')", 'l.collected_by_membership_id IS NOT NULL'];
+  const conds = ['l.tenant_id = $1', 'l.business_date = $2::date', "l.entry_kind IN ('payment', 'reversal', 'refund')", 'l.collected_by_membership_id IS NOT NULL'];
   if (a.centreId !== undefined) { p.push(a.centreId); conds.push('l.centre_id = $' + p.length); }
   if (a.collectedBy !== undefined) { p.push(a.collectedBy); conds.push('l.collected_by_membership_id = $' + p.length); }
   // ponytail: one tenant-day of rows is read into memory (thousands at most); move to SQL GROUP BY if a day ever exceeds that.

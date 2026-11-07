@@ -25,4 +25,19 @@ Tests that will prove it: contract test of B8 with receipt_no_enabled=false.
 
 ---
 
-Also noted (no CR yet): (a) B18 rows need an Actor, so gateway rows (collected_by NULL) and refund rows are left out of the grid; (b) `display_name` of other users is the fixed label "Staff user" (IdentityPort.getActor is caller-only); (c) B8 maps `Idempotency-Key` to ledger.idempotency_key as `<order_id>:pay:<key>` ([CONV]); (d) an uninvoiced home_collection payment has no branch source in billing and answers common.not_found.
+Title: CR-C4-BL08-003: B18 DailyCash has no place for gateway rows (collected_by NULL)
+From chunk: C4            To owner: C0 (contracts/openapi/billing.yaml DailyCash)
+Type: api
+Blocking? no (gateway rows excluded [CONV] until ruling)
+Problem: gateway ledger rows have `collected_by_membership_id IS NULL` (08 R8); `billing.v_pub_payment_collection` groups them under a NULL collector, but DailyCash `rows[].collected_by` is a required Actor. B18 therefore leaves them out, so B18 totals will differ from the view once C15 posts gateway money (PRD US-BL-11.1 requires equality).
+Proposed change (exact): either make `rows[].collected_by` nullable for gateway rows, or add a separate `gateway` totals row to DailyCash. C0 picks.
+Backward compatible? yes (additive / relaxing).
+Tenant/security impact: none. IRD/regulatory impact: none.
+Alternatives considered: synthetic "gateway" Actor (invents an identity; rejected).
+Tests that will prove it: ledger.reads.handlers.test.ts B18 with a gateway row; equality with v_pub_payment_collection.
+
+---
+
+Also noted: a missing `TenantSettings.numbering.receiptNoPattern` maps to `billing.numbering_pattern_invalid` (registry defines it for the invoice `{branch}` case); kept as fail-closed, needs a registry line or a dedicated code.
+
+Also noted (no CR yet): (a) refund rows are now in B18 (review item 1); gateway rows see CR-C4-BL08-003; (b) `display_name` of other users is the fixed label "Staff user" (IdentityPort.getActor is caller-only); (c) B8 maps `Idempotency-Key` to ledger.idempotency_key as `<order_id>:pay:<key>` ([CONV]); (d) an uninvoiced home_collection payment has no branch source in billing and answers common.not_found.

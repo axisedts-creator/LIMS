@@ -1,7 +1,8 @@
-CHANGES
+APPROVE
 
-1. services/api/src/modules/reporting/ports/ReportingPort.impl.ts:58 — `limit` above 200 is clamped (`Math.min(asked, MAX_LIMIT)`). 02-CV §4.3 says "default 50, max 200; >200 → common.validation_failed". The writer's [CONV] note about clamping contradicts the spec. Fix: after the `asked < 1` check, add `if (asked > MAX_LIMIT) return bad('/limit');` and use `const limit = asked;`.
-2. services/api/src/modules/reporting/__tests__/reportingport.read.test.ts:187 (the limit test that accepts "refused or clamped") — tighten it to assert that `limit: 201` rejects with `common.validation_failed` (path `/limit`) and that `limit: 200` is accepted. That way the defect in item 1 is caught.
-
-Checked OK: names (report_versions / qr_tokens columns, report_kind incl. addendum, smart_summary_id all-or-none CHECK, error codes common.validation_failed / common.invalid_cursor / common.not_found); tenant_id = $1 on every statement, `ANY($2::uuid[])` cast, all values parameterised, scope column comes from a fixed union; partner/patient visibility left to RLS (05-SCHEMA §4 __partner/__patient on the version's partner_id copy); no logging, no secrets; only C6-owned paths. Released_at precision is safe for the cursor, because release.service writes `now` with ms precision. The 3 T21 test files pass 32/32 (ran locally). tsc shows no errors in T21 files. The only error is the pre-existing contracts/ports/common.ts TS2835.
-Not verified: real PG/RLS, the 50 ms/page budget. With multiple qr_tokens per version (reissue), the panelNames row is chosen arbitrarily. The snapshot is expected to be identical, so this is not a defect.
+Re-review of 4af8bc9d..HEAD (review fixes):
+1. ReportingPort.impl.ts:56: `asked > MAX_LIMIT` now returns `bad('/limit')` (common.validation_failed), so clamping is gone. This matches 02-CV §4.3. Fixed.
+2. reportingport.read.test.ts:187: the test asserts that 201 and 1000 are rejected with common.validation_failed at path `/limit`, and that 200 is accepted. Fixed.
+The impl note [CONV] was updated to match. Re-ran the 3 T21 test files: 32/32 pass.
+Earlier checks still hold: names, tenant_id = $1, `::uuid[]`, RLS-only scoping, no logging or secrets, owned paths only.
+Not verified: real PG/RLS, 50 ms/page budget.

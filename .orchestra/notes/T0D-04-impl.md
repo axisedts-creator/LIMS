@@ -4,5 +4,5 @@
 - [CONV] ajv errors -> errors[] with JSON-pointer path (RFC 6901 escaping), sub-codes field_required/unknown_field/field_invalid, fixed messages (no value echo). Query errors use the ajv instancePath (`/limit`).
 - [CONV] default text/plain parser removed (JSON + multipart only) so text bodies are 415. uuidv7 imported relatively from packages/shared-ts until @lims/shared-ts is a dependency (LD-05).
 - 5xx log = event/error_code/err_name only (no message/stack); full logging is T0D-10.
-- Results: suite 715/717, typecheck clean. 2 failing = teapot test (same case, rv on/off) — see T0D-04-dispute.md.
+- Results (after ruling, tests revised): errors suite 97/97, full api suite 717/717, typecheck clean. No impl change needed.
 - Open: sqlstate.ts still constructs AuthError (now a LimsError; works), switch to LimsError when T0D-03 is next touched.

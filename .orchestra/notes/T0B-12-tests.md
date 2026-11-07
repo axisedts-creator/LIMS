@@ -1,6 +1,6 @@
-# T0B-12 tests (tester, rewritten for LD-54: provisioning script, no SQL on schema storage)
-- `tests/db/T0B-12.storage-buckets.test.mjs` (node, no DB, no network): detector self-tests; 08 §4.8 parse (11 buckets); SP-4 api-proxied; no SQL in db/{migrations,policies,seeds,bootstrap} references schema storage and `*_storage__*.sql` is gone or comment-only; check-migrations exit 0.
-- Same file, static on `db/provisioning/create-storage-buckets.mjs`: parses, 11 names verbatim, public:false never true, credential only via LIMS_CORE_STORAGE_KEY_FILE, no URL/key/pg client; `db/provisioning/README.md` has the first-deploy smoke test.
-- `db/tests/storage/T0B-12_storage.test.sql` (pgTAP): header edited, now a post-provisioning smoke probe; NOT run (LD-54).
-- NOT WRITTEN: stub-HTTP-server behaviour tests. Service-URL env name + bucket endpoints are not recorded in SP-4/TRD -> `.orchestra/cr/T0B-12.provisioning-contract.md`; describe "GATE" (2 tests) fails until recorded. Lead must rule, then tester adds them.
-- Run: `.orchestra\notes\T0B-12-verify.cmd`. Fails now: migration still present, script/README missing, GATE.
+# T0B-12 tests (tester, LD-54 + LD-55)
+- `tests/db/T0B-12.storage-buckets.test.mjs` (unchanged, incl. both GATE tests): static checks, no SQL on schema storage, script/README static.
+- NEW `tests/db/T0B-12.storage-provisioning.test.mjs` (node, 127.0.0.1 stub Storage server, spawns the script): unset/empty URL, key file missing/empty/trimmed, base path prefix, both auth headers, create absent (private), flip public, idempotent re-run, untouched private/foreign buckets, pagination >100 (offsets 0/100/200), 4xx/5xx on list/PUT/POST exit non-zero, POST-fail re-list, no credential/URL/body in output.
+- `db/tests/storage/T0B-12_storage.test.sql` (pgTAP): post-provisioning smoke; NOT run (LD-54).
+- Fails now (script still stubbed, exits 2): 16 of 39 new tests; passing "exits non-zero" ones pass for the wrong reason until the transport is wired. GATE fails until SP-4.md gets the LD-55 section.
+- Run: `.orchestra\notes\T0B-12-verify.cmd` (both node files). Writer: wire HTTP in create-storage-buckets.mjs; output lines `<bucket> created|ok|flipped`.

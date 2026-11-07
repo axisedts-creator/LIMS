@@ -35,11 +35,9 @@ Map<String, dynamic> _phiEvent() => {
       },
       'extra': {'patient_name': 'Sita Poudel', 'registration_no': 'MRN-0042', 'retry': 2},
       'contexts': {'custom': {'phone': '9812345678', 'attempt': 1}},
-      'breadcrumbs': {
-        'values': [
-          {'message': 'GET /v1/reports?patient_code=MRN-0042 token $_jwt', 'category': 'http', 'data': {'url': 'https://app.example.test/v1/reports?x=MRN-0042', 'phone': '9812345678'}},
-        ],
-      },
+      'breadcrumbs': [
+        {'message': 'GET /v1/reports?patient_code=MRN-0042 token $_jwt', 'category': 'http', 'data': {'url': 'https://app.example.test/v1/reports?x=MRN-0042', 'phone': '9812345678'}},
+      ],
       'exception': {
         'values': [
           {'type': 'StateError', 'value': 'Bad state: otp 482913 rejected for 9812345678'},

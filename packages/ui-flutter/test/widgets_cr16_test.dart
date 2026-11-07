@@ -15,7 +15,7 @@ const _crockford = '0123456789ABCDEFGHJKMNPQRSTVWXYZ';
 TextField _tf(WidgetTester t) => t.widget<TextField>(find.byType(TextField).first);
 
 void main() {
-  group('LimsOtpField (C16 04 §3: 6 digits, ^[0-9]{6}$, single semantic field, oneTimeCode)', () {
+  group('LimsOtpField (C16 04 §3: 6 digits, ^[0-9]{6}\$, single semantic field, oneTimeCode)', () {
     testWidgets('completes once on the 6th digit; non-digits dropped; extra digits truncated', (tester) async {
       final done = <String>[];
       await tester.pumpWidget(host(LimsOtpField(length: 6, onCompleted: done.add, autofocus: true)));
@@ -43,7 +43,7 @@ void main() {
     });
   });
 
-  group('LimsPhoneField (C16 04 §3: E.164 ^\\+[1-9][0-9]{7,14}$, 15 digits max, display-only formatting)', () {
+  group('LimsPhoneField (C16 04 §3: E.164 ^\\+[1-9][0-9]{7,14}\$, 15 digits max, display-only formatting)', () {
     testWidgets('emits E.164 = prefix + national digits only', (tester) async {
       final got = <String>[];
       await tester.pumpWidget(host(LimsPhoneField(label: 'Mobile number', prefixes: const ['+977', '+91'], initialPrefix: '+977', onChanged: got.add)));

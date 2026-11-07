@@ -122,7 +122,7 @@ void main() {
     for (final b in _banned) {
       expect({...deps, ...dev}.containsKey(b), isFalse, reason: b);
     }
-    final lock = File('${repoRoot().path}/pubspec.lock').readAsStringSync();
+    final lock = File('${repoRoot().path}/pubspec.lock').readAsStringSync().replaceAll('\r\n', '\n');
     for (final e in deps.entries.where((e) => !_internal.contains(e.key))) {
       final m = RegExp('^  ${e.key}:\\n(?:    .*\\n)*?    version: "([^"]+)"', multiLine: true).firstMatch(lock);
       expect(m, isNotNull, reason: '${e.key} not in committed pubspec.lock (run flutter pub get, commit the lock)');

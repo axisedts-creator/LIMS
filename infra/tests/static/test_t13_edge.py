@@ -204,6 +204,15 @@ def loc_parts(loc):
     return loc.args[0], loc.args[1]
 
 
+def zone_limits(loc):
+    """T-13 ruling: a location's own limit_req replaces the server-level one in nginx, so it must repeat the
+    02-TRD.md:382 perip safety net exactly; returns the remaining (zone-specific) limit_req arg lists."""
+    lr = [x.args for x in loc.kids("limit_req")]
+    if lr:
+        assert ["zone=perip", "burst=200", "nodelay"] in lr, "location limit_req lacks perip safety net: %s" % lr
+    return [a for a in lr if "zone=perip" not in a]
+
+
 def match_location(server, uri):
     """nginx precedence: exact, longest ^~/plain prefix (^~ stops), first matching regex, else longest prefix."""
     locs = [(loc_parts(l), l) for l in server.kids("location") if not loc_parts(l)[1].startswith("@")]
@@ -577,15 +586,13 @@ class BffOriginsTest(unittest.TestCase):
     def test_staff_web_login_routes_use_the_login_zone(self):  # AC-04.1
         s = https_server("staff_web")
         for uri in ("/auth/login", "/auth/mfa", "/auth/mfa/enrol", "/auth/forgot", "/auth/confirm", "/auth/set-password"):
-            lr = match_location(s, uri).kids("limit_req")
-            self.assertEqual([x.args for x in lr], [["zone=login", "burst=20", "nodelay"]], uri)
+            self.assertEqual(zone_limits(match_location(s, uri)), [["zone=login", "burst=20", "nodelay"]], uri)
             self.assertEqual([d.args for d in match_location(s, uri).kids("set") if d.args[0] == "$retry_after"], [["$retry_after", "60"]])
         self.assertFalse([d for d in match_location(s, "/auth/v1/user").kids("limit_req")])
 
     def test_portal_qr_zone_only_on_v(self):  # AC-04.2
         s = https_server("portal")
-        lr = match_location(s, "/v/abc").kids("limit_req")
-        self.assertEqual([x.args for x in lr], [["zone=qrverify", "burst=9", "nodelay"]])
+        self.assertEqual(zone_limits(match_location(s, "/v/abc")), [["zone=qrverify", "burst=9", "nodelay"]])
         for uri in ("/", "/r/abc", "/status/", "/verify"):
             self.assertNotIn("qrverify", " ".join(" ".join(x.args) for x in match_location(s, uri).kids("limit_req")))
         self.assertIsNone(re.search("qrverify", render(SITES / "api.conf.j2")), "api origin must have no QR zone (08 A13 D-32)")
@@ -744,7 +751,7 @@ class ApiOriginTest(unittest.TestCase):
             rt = [{"path": "/v1/zz/%s/" % zone, "match": "prefix", "owner": "T", "phase": 1, "methods": ["GET", "POST"], "zone": zone, "body_limit": None}]
             s = https_server("api", routes=rt)
             l = match_location(s, "/v1/zz/%s/x" % zone)
-            self.assertEqual([d.args for d in l.kids("limit_req")], [["zone=" + zone, "burst=%d" % burst, "nodelay"]], zone)
+            self.assertEqual(zone_limits(l), [["zone=" + zone, "burst=%d" % burst, "nodelay"]], zone)
             ra = [d.args for d in l.kids("set") if d.args[0] == "$retry_after"]
             self.assertEqual(ra, [["$retry_after", retry]] if retry else [], zone)
 
@@ -802,7 +809,7 @@ class PaymentsLocationsTest(unittest.TestCase):
 
     def test_payments_zone_and_headers(self):  # AC-04.8
         for u, l in self.locs.items():
-            self.assertEqual([d.args for d in l.kids("limit_req")], [["zone=payments", "burst=20", "nodelay"]], u)
+            self.assertEqual(zone_limits(l), [["zone=payments", "burst=20", "nodelay"]], u)
             self.assertEqual([d.args for d in l.kids("set") if d.args[0] == "$retry_after"], [])  # default 1 from the server
             h = headers_of(self.s, l)
             self.assertEqual(h["referrer-policy"], ("no-referrer", True), u)

@@ -6,7 +6,7 @@
 // validate (ajv), every op has a servable 2xx example, examples synthetic (no e-mail / mobile number / paths).
 // Not testable here: Prism actually serving the file (prism not installed; mock wiring is T0C-08's mocks.test.ts).
 // Assumptions (TRD silent): POST without an explicit status = 200, except pure creates #20/#37/#44/#50 = 201; ambiguous creates
-// (#9, #10, #11, #40, #51) accept 200 or 201; `—` Idem = none; #14a (only `none` POST) needs lint P-8 `E1 `/`E2 ` justification
+// (#9, #10, #11, #40, #51) accept 200 or 201; `—` Idem = none; #14a (only `none` POST) needs an `E3 ` justification (LD-10, read-only POST)
 // mentioning "readiness"; bulk ops list the per-id codes of the single-object op in x-error-codes; If-Match is a parameter only on the
 // TRD §3.2 list (#4 #7 #9 #10 #11 #12 #13 #27 #29 #30 #32 #48 #51 #52 #54) and absent elsewhere.
 import { cpSync, existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
@@ -249,11 +249,11 @@ describe("lab.yaml (T0C-10.C5)", () => {
       expect([undefined, "tenant"]).toContain(o["x-context"]);
       expect([undefined, "internal"]).toContain(o["x-edge-exposure"]);
     });
-    it("success response status; POST with idem none carries an E1/E2 justification", () => {
+    it("success response status; POST with idem none carries an E3 justification (LD-10: read-only POST)", () => {
       const want = ([] as number[]).concat(r.status).map(String);
       expect(Object.keys(o.responses ?? {}).some((c) => want.includes(c)), `want one of ${want}`).toBe(true);
       if (r.method === "POST" && r.idem === "none") {
-        expect(o["x-idempotency-justification"]).toMatch(/^E[12] /);
+        expect(o["x-idempotency-justification"]).toMatch(/^E3 /);
         expect(o["x-idempotency-justification"]).toMatch(/readiness/i);
       }
     });

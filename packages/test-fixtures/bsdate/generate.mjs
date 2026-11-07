@@ -73,7 +73,14 @@ for (const r of months) {
   if (distinct.size > 1) {
     const key = { bs_year: r.bs_year, bs_month: r.bs_month };
     const old = priorByKey.get(keyOf(key));
-    entries.push(old?.status === 'resolved' ? { ...old, values } : { key, values, status: 'unresolved', resolved_by: null, resolution: null });
+    // Resolved entries (human or LD-08) are kept as-is; only the observed library values are refreshed.
+    // LD-08 (2026-11-07, owner): no human review blocks T0A-06 — an open disagreement takes the source
+    // package's value (@remotemerge/nepali-date-converter@1.2.7) and is flagged verify_before_golive.
+    entries.push(old?.status === 'resolved' ? { ...old, values } : {
+      key, values, status: 'resolved', resolved_by: 'LD-08',
+      resolution: values['@remotemerge/nepali-date-converter@1.2.7'], verify_before_golive: true,
+    });
+    if (entries.at(-1).verify_before_golive) r.verify_before_golive = true;
   }
 }
 
@@ -86,10 +93,12 @@ if (open.length && !preview) {
   console.error(`${open.length} unresolved disagreement(s) in review.json; golden NOT written.`);
   process.exit(1);
 }
-const resolved = entries.filter((e) => e.status === 'resolved');
-if (resolved.length && !preview) {
+const candidate = (e) => e.values['@remotemerge/nepali-date-converter@1.2.7'];
+const diverging = entries.filter((e) => e.status === 'resolved'
+  && (e.resolution?.days !== candidate(e).days || e.resolution?.ad_first_day !== candidate(e).ad_first_day));
+if (diverging.length && !preview) {
   // A resolution that departs from the candidate library needs a wrapper override first; refuse silently diverging.
-  console.error(`${resolved.length} resolved entr(y/ies): apply each resolution in the wrapper, then re-run. golden NOT written.`);
+  console.error(`${diverging.length} resolution(s) differ from the wrapper: apply each in the wrapper, then re-run. golden NOT written.`);
   process.exit(1);
 }
 

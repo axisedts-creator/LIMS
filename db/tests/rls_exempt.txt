@@ -24,3 +24,5 @@ instruments.g_cs_revoke_reasons     global coded revoke-reason set; no tenant da
 instruments.g_cs_reprocess_reasons  global coded reprocess-reason set; no tenant data (CV §5.8)
 analytics.g_cs_families             global coded family set; no tenant data (CV §5.8)
 analytics.g_cs_report_codes         global coded report-code set; no tenant data (CV §5.8)
+reporting.g_message_templates       global catalogue; no tenant data (CV §5.8)
+reporting.g_cs_reasons              global catalogue; no tenant data (CV §5.8)

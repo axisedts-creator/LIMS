@@ -24,11 +24,30 @@ INFRA = ROOT / "infra"
 ANS = INFRA / "ansible"
 INV = ANS / "inventories"
 PROV = INFRA / "providers"
-ENVS = ("dev", "staging", "prod")
+# LD-45/LD-48: two topology profiles. full = 4-host TRD s3.1 (+ staging 2 VMs); lean = prod-1 + backup-1, staging = 1 VM.
+PROFILES = {"full": ("dev", "staging", "prod"), "lean": ("dev", "staging-lean", "prod-lean")}
+LEAN_ONLY = ("staging-lean", "prod-lean")
+ENVS = ("dev", "staging", "prod", "staging-lean", "prod-lean")  # every inventory dir
+BASE_ENV = {"staging-lean": "staging", "prod-lean": "prod"}  # a lean inventory shares its env's wg subnet (T-02-impl [CONV])
 GROUPS = ("data", "app", "dr", "ops")
+LEAN_GROUPS = GROUPS + ("backup",)  # LD-48: new group `backup`
 GVARS = ("all", "data", "app", "dr", "ops")
+LEAN_GVARS = GVARS + ("backup",)
 SUBNET = {"prod": "10.77.0.", "staging": "10.78.0.", "dev": "10.79.0."}  # 02-TRD s12.1 [CONV]
 PROD_HOSTS = {"data-1", "app-1", "dr-1", "ops-1"}  # 02-TRD s3.1
+RAM_BUDGET = 0.85  # LD-45: sum(mem_limit) <= 85 % of host RAM
+
+
+def groups_of(e):
+    return LEAN_GROUPS if e in LEAN_ONLY else GROUPS
+
+
+def gvars_of(e):
+    return LEAN_GVARS if e in LEAN_ONLY else GVARS
+
+
+def subnet_of(e):
+    return SUBNET[BASE_ENV.get(e, e)]
 
 # Provider-specific values: vendor names, cloud regions/instance ids, metadata endpoint, cloud disk names.
 # Hosting contexts only (T-02 ruling): bare googleapis/azure/aws also appear in non-hosting places
@@ -92,6 +111,27 @@ def inventory(path):
     return groups, hv
 
 
+def mem_problems(hv):
+    """LD-45/LD-48: per host carrying host_ram_gib / mem_limit_gib -> list of problems (empty = ok)."""
+    bad = []
+    for h, v in sorted(hv.items()):
+        ram, lim = v.get("host_ram_gib"), v.get("mem_limit_gib")
+        if lim is None:
+            continue  # RAM alone is fine (backup-1: LD-45 gives no per-service budget); prod-1 is pinned separately
+        if ram is None:
+            bad.append(f"{h}: mem_limit_gib without host_ram_gib")
+            continue
+        total = 0.0
+        for svc, s in lim.items():
+            if not isinstance(s, dict) or "replicas" not in s or "gib" not in s:
+                bad.append(f"{h}/{svc}: needs replicas and gib")
+                continue
+            total += s["replicas"] * s["gib"]
+        if total > RAM_BUDGET * ram + 1e-9:
+            bad.append(f"{h}: sum mem_limit {total} GiB > {RAM_BUDGET:.0%} of {ram} GiB")
+    return bad
+
+
 class ProviderDocs(unittest.TestCase):  # 02-TRD s3.4
     CONTRACT = [  # (what, regex) - each of the five adapter duties must be written down
         ("Ubuntu 24.04 image", r"ubuntu\s*24\.04"),
@@ -141,13 +181,17 @@ class InventoryLayout(unittest.TestCase):  # 02-TRD s1, s3.1, s3.2
         want = []
         for e in ENVS:
             want += [INV / e / "hosts.yml", INV / e / "known_hosts"]
-            want += [INV / e / "group_vars" / f"{g}.yml" for g in GVARS]
+            want += [INV / e / "group_vars" / f"{g}.yml" for g in gvars_of(e)]  # lean: + backup.yml (LD-48)
         self.assertEqual([str(w.relative_to(ROOT)) for w in want if not w.is_file()], [])
 
-    def test_all_four_groups_in_every_hosts_yml(self):
+    def test_no_inventory_dir_escapes_the_tests(self):
+        got = sorted(p.name for p in INV.iterdir() if p.is_dir())
+        self.assertEqual(got, sorted(ENVS), "every inventory dir must be covered by these tests (add it to ENVS)")
+
+    def test_all_groups_in_every_hosts_yml(self):  # lean inventories also carry `backup` (LD-48)
         for e in ENVS:
             g, _ = inventory(INV / e / "hosts.yml")
-            for grp in GROUPS:
+            for grp in groups_of(e):
                 self.assertIn(grp, g, f"{e}: group `{grp}`")
 
     def test_dev_is_one_generic_vm_all_roles_except_dr(self):
@@ -173,6 +217,45 @@ class InventoryLayout(unittest.TestCase):  # 02-TRD s1, s3.1, s3.2
         for grp, host in zip(GROUPS, ("data-1", "app-1", "dr-1", "ops-1")):
             self.assertEqual(g[grp], {host}, f"prod: `{grp}`")
 
+    def test_prod_lean_roles_map_to_prod_1_and_backup_1(self):  # LD-45, LD-48
+        g, hv = inventory(INV / "prod-lean" / "hosts.yml")
+        self.assertEqual(set(hv), {"prod-1", "backup-1"}, "prod-lean = exactly prod-1 + backup-1")
+        for grp in ("data", "app", "ops"):
+            self.assertEqual(g[grp], {"prod-1"}, f"prod-lean: prod-1 must be the only member of `{grp}`")
+        self.assertEqual(g["backup"], {"backup-1"}, "prod-lean: backup-1 is the only member of `backup`")
+        for grp, members in g.items():
+            if grp not in ("backup", "all"):  # `all` is the implicit parent of every host
+                self.assertNotIn("backup-1", members, f"prod-lean: backup-1 must be in `backup` only, found in `{grp}`")
+        self.assertEqual(g["dr"], set(), "prod-lean: no hot standby, group `dr` empty (LD-45)")
+        self.assertNotEqual(hv["prod-1"]["public_ip"], hv["backup-1"]["public_ip"])
+
+    def test_staging_lean_is_exactly_one_vm(self):  # LD-45, LD-48
+        g, hv = inventory(INV / "staging-lean" / "hosts.yml")
+        self.assertEqual(len(hv), 1, f"staging-lean = one VM, got {sorted(hv)}")
+        (host,) = hv
+        for grp in ("data", "app", "ops"):
+            self.assertEqual(g[grp], {host}, f"staging-lean: `{grp}` on the single VM")
+        self.assertEqual(g["dr"], set())
+        self.assertEqual(g["backup"], set())
+
+    def test_every_role_maps_to_a_host_in_each_profile(self):  # LD-48; dev(lean) has no dr/backup
+        for prof, envs in PROFILES.items():
+            for e in envs:
+                g, _ = inventory(INV / e / "hosts.yml")
+                need = ["data", "app", "ops"]
+                if e == "prod":
+                    need.append("dr")  # full prod keeps the standby site
+                if e == "prod-lean":
+                    need.append("backup")
+                for grp in need:
+                    self.assertTrue(g.get(grp), f"{prof}/{e}: role group `{grp}` has no host")
+
+    def test_topology_profile_var_selects_profile(self):  # LD-48: group vars select per-profile values
+        want = {"prod-lean": "lean", "staging-lean": "lean", "prod": "full"}
+        for e, prof in want.items():
+            d = load(INV / e / "group_vars" / "all.yml")
+            self.assertEqual(d.get("topology_profile"), prof, f"{e}: topology_profile")
+
     def test_every_host_has_address_and_by_id_disk(self):
         for e in ENVS:
             p = INV / e / "hosts.yml"
@@ -183,13 +266,53 @@ class InventoryLayout(unittest.TestCase):  # 02-TRD s1, s3.1, s3.2
 
     def test_group_vars_parse_and_hold_no_host_specific_values(self):
         for e in ENVS:
-            for gname in GVARS:
+            for gname in gvars_of(e):
                 p = INV / e / "group_vars" / f"{gname}.yml"
                 d = load(p)
                 self.assertTrue(d is None or isinstance(d, dict), f"{p.name}: must be a mapping")
                 t = read(p)
                 self.assertNotIn("/dev/disk/by-id/", t, f"{e}/{p.name}: disk names belong in hosts.yml only")
                 self.assertNotRegex(t, r"(?m)^\s*ansible_host\s*:", f"{e}/{p.name}: addresses belong in hosts.yml only")
+
+
+class MemoryBudget(unittest.TestCase):  # LD-45, LD-48: sum(mem_limit) <= 85 % of host RAM, both profiles
+    def test_every_inventory_within_budget(self):
+        for e in ENVS:
+            _, hv = inventory(INV / e / "hosts.yml")
+            self.assertEqual(mem_problems(hv), [], f"{e}: memory budget")
+
+    def test_prod_lean_prod_1_declares_its_budget(self):  # a missing key must fail, not pass vacuously
+        _, hv = inventory(INV / "prod-lean" / "hosts.yml")
+        p1 = hv["prod-1"]
+        self.assertEqual(p1.get("host_ram_gib"), 32, "prod-1 = 32 GB (LD-45)")
+        self.assertTrue(p1.get("mem_limit_gib"), "prod-1: mem_limit_gib missing")
+        total = sum(s["replicas"] * s["gib"] for s in p1["mem_limit_gib"].values())
+        self.assertLessEqual(total, 27.2 + 1e-9, "LD-45: 85 % of 32 GiB = 27.2")
+        self.assertGreater(total, 20, "budget must list the LD-45 services (about 25.9 GiB), not a stub")
+
+    def test_budget_gate_can_fail(self):  # proves mem_problems flags over-budget and half-declared hosts
+        over = {"h": {"host_ram_gib": 10, "mem_limit_gib": {"a": {"replicas": 3, "gib": 3}}}}  # 9 > 8.5
+        half = {"h": {"mem_limit_gib": {"a": {"replicas": 1, "gib": 1}}}}  # limits without a RAM figure
+        ok = {"h": {"host_ram_gib": 10, "mem_limit_gib": {"a": {"replicas": 2, "gib": 4}}}}  # 8 <= 8.5
+        self.assertEqual(len(mem_problems(over)), 1)
+        self.assertEqual(len(mem_problems(half)), 1)
+        self.assertEqual(mem_problems(ok), [])
+
+
+class ProfileDocs(unittest.TestCase):  # LD-48: prod-lean documented as the default
+    DEFAULT_RX = r"(?is)prod-lean[^\n]{0,80}default|default[^\n]{0,80}prod-lean"
+
+    def test_readme_and_decision_name_prod_lean_default(self):
+        for p in (INFRA / "README.md", INV / "DECISION.md"):
+            self.assertTrue(p.is_file(), f"{p.relative_to(ROOT)} missing")
+            self.assertRegex(read(p), self.DEFAULT_RX, f"{p.relative_to(ROOT)}: must name `prod-lean` as the default")
+
+    def test_decision_lists_scale_triggers(self):  # LD-45
+        t = read(INV / "DECISION.md")
+        for what, rx in (("CPU > 60 %", r"CPU\s*>\s*60\s*%"), ("RAM > 80 %", r"RAM\s*>\s*80\s*%"),
+                         ("7 days", r"7\s*days"), ("DB > 150 GB", r">\s*150\s*GB"),
+                         ("second lab group", r"(?i)second lab group")):
+            self.assertRegex(t, rx, f"DECISION.md scale trigger: {what}")
 
 
 class EnvSeparation(unittest.TestCase):  # REQ-SEC-136, AC-21.1, 02-TRD s12.1
@@ -199,15 +322,24 @@ class EnvSeparation(unittest.TestCase):  # REQ-SEC-136, AC-21.1, 02-TRD s12.1
     def test_each_env_uses_own_wireguard_subnet_only(self):
         for e in ENVS:
             t = self.env_text(e)
-            self.assertIn(SUBNET[e], t, f"{e}: must use wg subnet {SUBNET[e]}x")
-            for o in ENVS:
-                if o != e:
-                    self.assertNotIn(SUBNET[o], t, f"{e}: contains {o}'s wg subnet {SUBNET[o]}x")
+            mine = subnet_of(e)
+            self.assertIn(mine, t, f"{e}: must use wg subnet {mine}x")
+            for o, sub in SUBNET.items():
+                if sub != mine:
+                    self.assertNotIn(sub, t, f"{e}: contains {o}'s wg subnet {sub}x")
 
     def test_prod_wg_ips_match_trd(self):
         t = self.env_text("prod")
         for last in (11, 21, 31, 41):
             self.assertIn(f"10.77.0.{last}", t, f"prod wg_ip .{last}")
+
+    def test_lean_hosts_have_wg_ip_in_their_env_subnet(self):
+        for e in LEAN_ONLY:
+            _, hv = inventory(INV / e / "hosts.yml")
+            ips = [v.get("wg_ip") for v in hv.values()]
+            for h, v in hv.items():
+                self.assertTrue(str(v.get("wg_ip", "")).startswith(subnet_of(e)), f"{e}/{h}: wg_ip in {subnet_of(e)}x")
+            self.assertEqual(len(set(ips)), len(ips), f"{e}: duplicate wg_ip")
 
     def test_no_public_address_shared_between_envs(self):
         seen = {}
@@ -317,9 +449,10 @@ class Tooling(unittest.TestCase):
             if os.environ.get("CI") == "true":
                 self.fail("ansible-inventory missing on CI")
             self.skipTest("SKIP ansible-inventory (CI only)")
-        r = subprocess.run([a, "-i", str(INV / "dev"), "--list"], cwd=ROOT, capture_output=True, text=True, timeout=120)
-        self.assertEqual(r.returncode, 0, r.stdout[-1500:] + r.stderr[-1500:])
-        self.assertIn("_meta", r.stdout)
+        for e in ENVS:  # every inventory, both profiles (LD-48)
+            r = subprocess.run([a, "-i", str(INV / e), "--list"], cwd=ROOT, capture_output=True, text=True, timeout=120)
+            self.assertEqual(r.returncode, 0, f"{e}: " + r.stdout[-1500:] + r.stderr[-1500:])
+            self.assertIn("_meta", r.stdout)
 
 
 if __name__ == "__main__":

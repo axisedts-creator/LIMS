@@ -1,9 +1,9 @@
 ---
 # Imported from C7 services/worker/src/jobs/instruments/alerts/
 # instruments.rules.yml (C7 02-TRD s13 "Alert rules for C1", CR-C7-012).
-# expr/for verbatim; C1 adds only severity, team, runbook_url (s11.3).
-# The C7 source file is not in this lane yet: transcribed from the C7 TRD
-# table; ci/import-rules.sh (T-21) overwrites it, alert-import-drift checks.
+# expr/for and source labels (incl. route) verbatim; C1 adds only severity,
+# team, runbook_url (02-TRD s11.3; T-20 ruling). ci/import-rules.sh (T-21)
+# overwrites it, alert-import-drift checks.
 # Deployed only while c7_metrics_live=true.
 groups:
   - name: instruments-c7
@@ -14,6 +14,7 @@ groups:
         labels:
           severity: page
           team: ops
+          route: oncall-email
         annotations:
           summary: A bridge agent update failed in the last 15 min.
           runbook_url: >-
@@ -25,6 +26,7 @@ groups:
         labels:
           severity: page
           team: ops
+          route: oncall-email
         annotations:
           summary: >-
             Bridge agent rejected a signed configuration (possible
@@ -37,6 +39,7 @@ groups:
         labels:
           severity: page
           team: ops
+          route: oncall-email
         annotations:
           summary: Device auth failures above 0.1/s for 5 min (security).
           runbook_url: >-
@@ -49,6 +52,7 @@ groups:
         labels:
           severity: warn
           team: ops
+          route: ops-digest-email
         annotations:
           summary: More than 5 % of ingested instrument messages quarantined.
           runbook_url: >-
@@ -61,6 +65,7 @@ groups:
         labels:
           severity: page
           team: ops
+          route: oncall-email
         annotations:
           summary: An instrument attachment was quarantined (security).
           runbook_url: >-
@@ -74,6 +79,7 @@ groups:
         labels:
           severity: warn
           team: ops
+          route: ops-digest-email
         annotations:
           summary: Instrument ingest batch p95 above 3 s for 15 min.
           runbook_url: >-

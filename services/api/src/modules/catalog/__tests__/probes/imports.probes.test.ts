@@ -194,13 +194,13 @@ describe('S-13 / REQ-SEC-095: nothing personal or internal in logs or error mess
   }, T);
 });
 
-describe('CR-C3-008: handler wiring for the T-20 operations', () => {
-  const T20_OPS = ['downloadImportTemplate', 'createImport', 'listImports', 'getImport', 'listImportIssues', 'downloadImportReport', 'discardImport'];
+describe('CR-C3-008: handler wiring for the T-20 + T-23 operations', () => {
+  // T-23 moved commitImport (#102) from pending to implemented: it is wired like the seven T-20 operations.
+  const T20_OPS = ['downloadImportTemplate', 'createImport', 'listImports', 'getImport', 'listImportIssues', 'downloadImportReport', 'discardImport', 'commitImport'];
   const pending = JSON.parse(readFileSync(join(import.meta.dirname, 'pending.json'), 'utf8')) as string[];
 
-  it('the seven T-20 operations are no longer in probes/pending.json; commitImport (#102, T-23) still is', () => {
+  it('the eight import operations (T-20 + commitImport, T-23) are no longer in probes/pending.json', () => {
     for (const op of T20_OPS) expect(pending, op).not.toContain(op);
-    expect(pending).toContain('commitImport');
   });
 
   it.each(T20_OPS)('%s is a real handler, not the 503 not_implemented stub', async (op) => {

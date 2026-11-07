@@ -1,10 +1,11 @@
-CHANGES
+APPROVE
 
-Note: `git diff d2819ff..HEAD` is empty (HEAD == d2819ff; T0A-08 commits ea0b07f..b6e77ad are already ancestors). Reviewed the T0A-08 files in tree against 02-TRD §3.1, PRD AC-0A-5.1–5.3, CV §9.1/§9.2. Ran verify.cmd: 73/73 pass. Typecheck of src with tsconfig `exclude` removed: shared-ts files clean; only errors are TS2835 extensionless imports in `contracts/ports/common.ts` (C0-0C owned) — so the exclude in `packages/shared-ts/tsconfig.json:9-10` must stay until C0-0C fixes those; update its comment to say that (CR already resolved).
-
-1. `packages/shared-ts/src/errors/index.ts:27` — signature deviates from 02-TRD §3.1 "exact": `requestId: string`. Fix: `import type { Uuidv7 } from '@lims/contracts/ports/common';` and declare `toProblem(err: unknown, instance: string, requestId: Uuidv7): Problem` (Problem.request_id may stay `string`).
-2. `packages/shared-ts/src/logger/index.ts:44` — Nepali mobile scrubber `9[78]\d{8}` misses valid 96x mobile ranges (e.g. 961/962 Smart Telecom), so "98…"/"97…"-only numbers are masked and others leak (AC-0A-5.2, CV §9.2). Fix: change to `/(?<![0-9A-Za-z])(?:\+?977[-\s]?)?9\d{9}(?![0-9A-Za-z])/g`, and add a planted synthetic `961xxxxxxx`-shaped case to `packages/shared-ts/test/logger.test.mjs` (message and integer field).
-3. `packages/shared-ts/src/logger/index.ts:29-36` — denylist omits CV §9.2 health-data categories "comments" and "critical-value details", "test or panel names", "smart-report text": keys like `comment`, `critical_value`, `test_name`, `panel_name`, `smart_report` are logged verbatim. Fix: add `'comment', 'critical', 'test_name', 'panel_name', 'smart_report'` to DENY, and add one planted-PHI test asserting `{ comment: '…', test_name: '…' }` are `[REDACTED]`.
-4. `packages/shared-ts/src/logger/index.ts:85` — `child()` calls `clean(ctx)` without the try/catch used in `at()`, so a context with a throwing getter makes `child()` throw (logger "never throws" contract, impl note). Fix: `child: (ctx) => { let c; try { c = clean(ctx); } catch { c = { log_fields_dropped: true }; } return wrap(p.child(c)); }` plus a test.
-
-Checked OK: names/codes verbatim (common.validation_failed/field_required/unknown_field/field_invalid/internal exist in contracts/errors.yaml); toProblem never leaks message/stack (REQ-SEC-095); validation reports no values; crypto CSPRNG + sizes 16/32, randomDigits ≥6, constant-time compare; LimsError from contracts (LD-03, no parameter properties); no secrets/PHI in fixtures; only owned paths. RLS/permissions/idempotency/rate tier: N/A (library task).
+Round 2 (diff d2819ff..ae15b50). All 4 round-1 defects fixed:
+1. errors/index.ts:27 toProblem(err, instance, requestId: Uuidv7) per 02-TRD §3.1.
+2. logger/index.ts:44 mobile scrubber `9\d{9}` covers 96x; tests plant 961/962 in message + integer field.
+3. logger/index.ts:35 DENY adds comment/critical/test_name/panel_name/smart_report; planted-PHI test added.
+4. logger/index.ts:85-89 child() wraps clean() in try/catch; throwing-getter test added.
+tsconfig comment updated (exclude stays until C0-0C fixes TS2835 in contracts/ports/common.ts).
+pnpm-lock.yaml delta = prom-client/@opentelemetry from merged main (services/api/package.json, T0D-10), lockfile sync only.
+Ran: `node --test test/logger.test.mjs` 30/30 pass; `tsc --noEmit -p packages/shared-ts` clean.
+No PHI/secrets in fixtures (synthetic, .invalid domains). Only owned paths. RLS/permissions/idempotency/rate tier N/A (library).

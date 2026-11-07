@@ -297,3 +297,27 @@ describe("checkPermissionRules — 08 §4.1 CI rules (TRD §5.3 gen-permissions)
     expect((await permMod()).checkPermissionRules(d).some((x) => x.code === "no.such.code")).toBe(true);
   });
 });
+
+describe("@lims/contracts package surface (LD-03, review T0C-05 items 1-2)", () => {
+  it("package.json is @lims/contracts and exports ./ports/common + ./ports/generated/error-codes to existing files", () => {
+    const pkg = JSON.parse(readFileSync(join(ROOT, "contracts/package.json"), "utf8"));
+    expect(pkg.name).toBe("@lims/contracts");
+    for (const sub of ["./ports/common", "./ports/generated/error-codes"]) {
+      const target = pkg.exports?.[sub];
+      expect(target, `exports["${sub}"]`).toBeTruthy();
+      const file = typeof target === "string" ? target : (target.import ?? target.default ?? target.types);
+      expect(existsSync(join(ROOT, "contracts", file)), `${sub} -> ${file}`).toBe(true);
+    }
+  });
+
+  it("LimsError loads under Node type stripping (no TS parameter properties) and keeps fields", () => {
+    const url = pathToFileURL(join(ROOT, "contracts/ports/common.ts")).href;
+    const script =
+      `const m = await import(${JSON.stringify(url)});` +
+      `const e = new m.LimsError('X', 'd', [{path:'p',code:'X',message:'m'}]);` +
+      `if (e.code !== 'X' || e.safeDetail !== 'd' || e.fieldErrors.length !== 1 || e.message !== 'X') process.exit(3);`;
+    const r = spawnSync(process.execPath, ["--experimental-strip-types", "--input-type=module", "-e", script], { encoding: "utf8" });
+    expect(r.stderr + r.stdout).not.toMatch(/ERR_UNSUPPORTED_TYPESCRIPT_SYNTAX/);
+    expect(r.status).toBe(0);
+  });
+});

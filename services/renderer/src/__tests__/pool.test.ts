@@ -108,7 +108,7 @@ describe('AC-03.9 — timeout and crash', () => {
 });
 
 describe('saturation (02-TRD §5.1 error table: 503 pool saturated, worker retries)', () => {
-  it('a job that cannot get a context within timeoutMs rejects 503 (bounded wait) while the long job holds it', async () => {
+  it('a job that cannot get a context within timeoutMs rejects 503 or 408 (bounded wait) while the long job holds it', async () => {
     const pool = await mk({ contexts: 1, timeoutMs: 1000, maxPages: 100_000 });
     const long = pool.renderHtml(doc('LONG', 1500)).then(
       () => 'ok',
@@ -117,7 +117,8 @@ describe('saturation (02-TRD §5.1 error table: 503 pool saturated, worker retri
     await new Promise((r) => setTimeout(r, 50)); // long job owns the single context
     expect(pool.stats().contextsBusy).toBe(1);
     const t0 = Date.now();
-    await expect(pool.renderHtml(doc('WAIT'))).rejects.toMatchObject({ httpStatus: 503 });
+    // 02-TRD §5.1 defines one per-job timeout and a 503 status, no separate queue-wait bound: the waiter may get 503 or 408 (arbiter ruling, round 2)
+    await expect(pool.renderHtml(doc('WAIT'))).rejects.toSatisfy((e: { httpStatus?: number }) => e.httpStatus === 503 || e.httpStatus === 408);
     expect(Date.now() - t0).toBeLessThan(4000); // wait bounded by ~timeoutMs, not "until the long job ends"
     await long; // settles (408 or ok), must not hang
     expect(pool.stats().contextsBusy).toBe(0);

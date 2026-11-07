@@ -159,24 +159,24 @@ export function pdfPages(pdf: Uint8Array): string[] {
     }
     return cmaps.get(n);
   };
-  return pageOrder(objs).map((pn) => {
-    const page = objs.get(pn)!;
-    const res = inlineOrRef(objs, page.dict, 'Resources');
-    const fonts = new Map<string, number>();
-    for (const f of inlineOrRef(objs, res, 'Font').matchAll(/\/([^\s/<>\[\]]+)\s+(\d+) 0 R/g)) {
+  const fontsOf = (resText: string, fallback?: Map<string, number>) => {
+    const fonts = new Map<string, number>(fallback);
+    for (const f of inlineOrRef(objs, resText, 'Font').matchAll(/\/([^\s/<>\[\]]+)\s+(\d+) 0 R/g)) {
       fonts.set(f[1]!, Number(f[2]));
     }
-    const cont = /\/Contents\s*(\[[^\]]*\]|\d+ 0 R)/.exec(page.dict)?.[1] ?? '';
-    const content = refs(cont)
-      .map((n) => objs.get(n)?.stream?.toString('latin1') ?? '')
-      .join('\n')
+    return fonts;
+  };
+  // Text of one content stream. `Do` on a /Subtype /Form XObject (opacity transparency groups, e.g. watermarks) recurses
+  // with the Form's own /Resources (fonts fall back to the enclosing resources).
+  const extract = (rawContent: string, res: string, fonts: Map<string, number>, depth: number): string => {
+    const content = rawContent
       // marked-content /ActualText (Devanagari clusters) replaces the glyph runs it wraps
       .replace(/\/Span\s*<<\s*\/ActualText\s*<(?:FEFF)?([0-9A-Fa-f]*)>\s*>>\s*BDC[\s\S]*?EMC/g, (_, h: string) => `\u0001${uni(h)}\u0001`);
     const lines: string[] = [];
     let blk = '';
     let cur: CMap | undefined;
     const tok =
-      /\/([^\s/<>\[\]()]+)\s+[-\d.]+\s+Tf|\[((?:[^\]\\]|\\.)*)\]\s*TJ|(<[0-9a-fA-F\s]*>|\((?:[^)\\]|\\.)*\))\s*Tj|\u0001([^\u0001]*)\u0001|\b(ET)\b/g;
+      /\/([^\s/<>\[\]()]+)\s+[-\d.]+\s+Tf|\[((?:[^\]\\]|\\.)*)\]\s*TJ|(<[0-9a-fA-F\s]*>|\((?:[^)\\]|\\.)*\))\s*Tj|\u0001([^\u0001]*)\u0001|\b(ET)\b|\/([^\s/<>\[\]()]+)\s+Do\b/g;
     for (const t of content.matchAll(tok)) {
       if (t[1] !== undefined) {
         const fn = fonts.get(t[1]);
@@ -192,11 +192,27 @@ export function pdfPages(pdf: Uint8Array): string[] {
       } else if (t[5] !== undefined) {
         lines.push(blk);
         blk = '';
+      } else if (t[6] !== undefined && depth < 8) {
+        const xr = new RegExp(`/${t[6].replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s+(\\d+) 0 R`).exec(inlineOrRef(objs, res, 'XObject'));
+        const form = xr ? objs.get(Number(xr[1])) : undefined;
+        if (form?.stream && /\/Subtype\s*\/Form\b/.test(form.dict)) {
+          const fres = inlineOrRef(objs, form.dict, 'Resources') || res;
+          blk += extract(form.stream.toString('latin1'), fres, fontsOf(fres, fonts), depth + 1);
+        }
       }
     }
     lines.push(blk);
     // '' join: a font change splits one visual line into several BT blocks
     return lines.join('');
+  };
+  return pageOrder(objs).map((pn) => {
+    const page = objs.get(pn)!;
+    const res = inlineOrRef(objs, page.dict, 'Resources');
+    const cont = /\/Contents\s*(\[[^\]]*\]|\d+ 0 R)/.exec(page.dict)?.[1] ?? '';
+    const content = refs(cont)
+      .map((n) => objs.get(n)?.stream?.toString('latin1') ?? '')
+      .join('\n');
+    return extract(content, res, fontsOf(res), 0);
   });
 }
 

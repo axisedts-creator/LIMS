@@ -288,9 +288,9 @@ describe.each([
       expect([undefined, "tenant"]).toContain(o["x-context"]);
       expect([undefined, "internal"]).toContain(o["x-edge-exposure"]);
     });
-    it(`success response ${r.status}; POST with idem none carries an E1/E2 justification`, () => {
+    it(`success response ${r.status}; POST with idem none carries an E1-E4 justification (LD-10)`, () => {
       expect(Object.keys(o.responses ?? {})).toContain(String(r.status));
-      if (r.method === "POST" && r.idem === "none") expect(o["x-idempotency-justification"]).toMatch(/^E[12] /);
+      if (r.method === "POST" && r.idem === "none") expect(o["x-idempotency-justification"]).toMatch(/^E[1-4] /);
     });
     it("lists the TRD extra error codes plus the common set implied by the §5 conventions line", () => {
       const common6 = ["common.validation_failed", "common.not_found", "auth.forbidden", "auth.unauthenticated", "common.rate_limited", "common.internal"];

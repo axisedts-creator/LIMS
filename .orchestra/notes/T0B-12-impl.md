@@ -1,6 +1,7 @@
-# T0B-12 impl (writer)
-- Added `db/migrations/20261105002200_storage__create_buckets.sql`: 11 buckets of 08 §4.8 verbatim (reporting-legacy reserved, not created), public = false, `ON CONFLICT (id) DO UPDATE SET public = false`.
-- [CONV] File named `_storage__create_buckets.sql`, not the plan-row `_create_policies.sql`: SP-4 = api-proxied, so it holds buckets only (SP-4.md "skips *_storage__create_policies.sql").
-- [CONV] No policy/grant on storage.* or realtime.*; isolation = private buckets + ctx.storage adapter (C0-0D T0D-17).
-- Ran `node --test tests/db/T0B-12.storage-buckets.test.mjs`: 61/61 pass. Full tests/db: 703/705; 2 failures pre-existing, not storage (T0B-03 core.tenants `__platform` policies; T0B-04 003 seed header).
-- Open: live pgTAP not run (LD-51 no docker). lims_owner has no privilege on storage.buckets in 05-SCHEMA §1 -> live INSERT likely fails; CR `.orchestra/cr/T0B-12.md`.
+# T0B-12 impl (rework per LD-54, CR-C0-T0B-12 option b)
+- Deleted `db/migrations/20261105002200_storage__create_buckets.sql` (a comment-only placeholder would fail check-migrations' first-statement rule). No SQL references schema storage.
+- Added `db/provisioning/create-storage-buckets.mjs`: 11 buckets of 08 §4.8 verbatim (reporting-legacy reserved), `plan(existing)` = create missing / flip public to private, always public:false; credential only from the file in `LIMS_CORE_STORAGE_KEY_FILE`.
+- [CONV] The script sends no HTTP request and exits 2: the Storage base-URL env name and the bucket endpoints are not recorded (CR-C0-T0B-12-b, `.orchestra/cr/T0B-12.provisioning-contract.md`). LD-54 forbids guessing them.
+- Added `db/provisioning/README.md`: status plus the first-deploy smoke test (script, re-run, then `db/tests/storage/T0B-12_storage.test.sql`). Not executed.
+- Tests: `node --test tests/db/T0B-12.storage-buckets.test.mjs` gives 64/66 pass. The 2 failures are the GATE tests, which stay red until the lead rules on CR-C0-T0B-12-b.
+- Open: the lead must rule on CR-C0-T0B-12-b, then the HTTP calls get wired and the tester writes the stub-server tests. The live pgTAP has not been run (LD-54).

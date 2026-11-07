@@ -1,0 +1,12 @@
+openapi: 3.0.3
+info: { title: fixture common, version: 1.0.0 }
+paths: {}
+components:
+  securitySchemes:
+    bffSession:
+      type: apiKey
+      in: header
+      name: X-Lims-Bff-Key
+  responses:
+    Err:
+      description: error

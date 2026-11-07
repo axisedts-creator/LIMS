@@ -47,9 +47,9 @@ function scope(ctx: OutsourcedCtx) {
 const nowIso = (ctx: OutsourcedCtx) => (typeof ctx.now === 'function' ? ctx.now() : new Date().toISOString());
 const iso = (v: unknown) => (v instanceof Date ? v.toISOString() : String(v));
 /** Client filename = P2 metadata: basename only, no separators / traversal / controls, ≤ 200 (input_files__len__ck). */
-export function safeName(name: string): string {
+export function safeName(name: string, fallback = 'outsourced.pdf'): string {
   const base = (name.split(/[\\/]/).pop() ?? '').replace(/[^\x20-\x7e]|["\\/]/g, '_').replace(/\.{2,}/g, '_').trim();
-  return (base || 'outsourced.pdf').slice(-200);
+  return (base || fallback).slice(-200);
 }
 
 /** OpenAPI InputFile: only these keys; absent optional values are omitted (the schema has no nulls). */

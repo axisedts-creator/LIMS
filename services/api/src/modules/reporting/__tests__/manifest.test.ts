@@ -66,13 +66,19 @@ describe('501 stubs in dev', () => {
 
   it('the spec has operations (guards against an empty parametrisation)', () => expect(ops.length).toBeGreaterThan(50));
   it('handler keys == spec operationIds', () => expect(Object.keys(manifest.handlers).sort()).toEqual([...ops].sort()));
-  it.each(ops)('%s answers 501', async (op) => {
+  // LEAD-VISIBLE TESTER EDIT (C6-T03): the eight operations implemented by C6-T03 (S1-S7, R17) leave the 501 list; they are covered by settings.handlers.test.ts.
+  // Each later task must add its operationIds here the same way. Nothing else is weakened: all other operations still must answer 501.
+  const IMPLEMENTED = new Set(['getReportingSettings', 'updateReportingSettings', 'listCentreContacts', 'createCentreContact', 'updateCentreContact',
+    'replaceStaffAssignments', 'upsertReferrerPreference', 'listReportingCodes']);
+  const stubOps = ops.filter((o: string) => !IMPLEMENTED.has(o));
+  it('only already-implemented operations are excluded from the 501 list', () => expect(ops.length - stubOps.length).toBe(IMPLEMENTED.size));
+  it.each(stubOps)('%s answers 501', async (op) => {
     const r = await manifest.handlers[op]({ params: {}, query: {}, headers: {}, body: undefined }, ctx(op));
     expect(r.status).toBe(501);
   });
   it('a 501 never echoes request input (no PHI / token reflection)', async () => {
     const planted = 'PLANTED-TOKEN-9f3a';
-    for (const op of ops) {
+    for (const op of stubOps) {
       const r = await manifest.handlers[op]({ params: { id: planted }, query: { q: planted }, headers: { authorization: planted }, body: { name: planted } }, ctx(op));
       expect(JSON.stringify(r)).not.toContain(planted);
     }

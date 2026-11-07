@@ -55,7 +55,7 @@ def provider_scan(base):
         if not p.is_file() or "__pycache__" in p.parts:
             continue
         rel = p.relative_to(base).as_posix()
-        if rel.startswith(("providers/", "tests/")):
+        if rel.startswith("providers/") or rel == "tests/static/test_t02_providers.py":
             continue
         if re.fullmatch(r"ansible/inventories/[^/]+/hosts\.yml", rel):
             continue
@@ -210,9 +210,10 @@ class EnvSeparation(unittest.TestCase):  # REQ-SEC-136, AC-21.1, 02-TRD s12.1
         for e in ENVS:
             _, hv = inventory(INV / e / "hosts.yml")
             for h, v in hv.items():
-                a = v.get("ansible_host")
+                a = v.get("public_ip")
+                self.assertTrue(a, f"{e}/{h}: public_ip")
                 if a in seen:
-                    self.fail(f"{e}/{h} and {seen[a]} share ansible_host {a}")
+                    self.fail(f"{e}/{h} and {seen[a]} share public_ip {a}")
                 seen[a] = f"{e}/{h}"
 
 
@@ -278,6 +279,7 @@ class ProviderValueGrep(unittest.TestCase):  # done_when: grep check
                 "ansible/inventories/dev/known_hosts": "# " + "169.254." + "169.254",  # flagged
                 "providers/acme/main.tf": "provider " + "digital" + "ocean",  # allowed
                 "ansible/roles/y/tasks/main.yml": "msg: plain linux vm, ubuntu 24.04",  # clean
+                "tests/internal/x.py": "h = " + "hetz" + "ner",  # flagged: tests/ is not an allowed path
             }
             for rel, body in files.items():
                 f = base / rel
@@ -288,6 +290,7 @@ class ProviderValueGrep(unittest.TestCase):  # done_when: grep check
                 "ansible/inventories/dev/group_vars/all.yml",
                 "ansible/inventories/dev/known_hosts",
                 "ansible/roles/x/tasks/main.yml",
+                "tests/internal/x.py",
             ])
 
 

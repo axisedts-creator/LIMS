@@ -1,0 +1,19 @@
+{{/* 02-TRD s11.4: alert e-mails carry alert name + opaque ids + runbook link only.
+     Never range over all labels/annotations: only the fields below are printed. */}}
+{{ define "lims.mail.subject" }}[{{ .Status | toUpper }}] {{ .CommonLabels.alertname }} ({{ .CommonLabels.severity }}){{ if .CommonLabels.host }} {{ .CommonLabels.host }}{{ end }}{{ end }}
+
+{{ define "lims.mail.alert" }}alertname: {{ .Labels.alertname }}
+severity:  {{ .Labels.severity }}
+host:      {{ .Labels.host }}
+service:   {{ .Labels.service }}
+tenant_id: {{ .Labels.tenant_id }}
+summary:   {{ .Annotations.summary }}
+runbook:   {{ .Annotations.runbook_url }}
+since:     {{ .StartsAt.UTC.Format "2006-01-02T15:04:05Z" }}
+{{ end }}
+
+{{ define "lims.mail.text" }}{{ .Alerts.Firing | len }} firing, {{ .Alerts.Resolved | len }} resolved
+{{ range .Alerts }}
+{{ template "lims.mail.alert" . }}{{ end }}{{ end }}
+
+{{ define "lims.mail.html" }}<pre>{{ template "lims.mail.text" . }}</pre>{{ end }}

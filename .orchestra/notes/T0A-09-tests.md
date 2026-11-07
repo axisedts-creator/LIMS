@@ -1,0 +1,7 @@
+# T0A-09 tests (tester)
+- File: `tools/devstack/__tests__/devstack.test.mjs`. Run: `node --test tools/devstack/__tests__/devstack.test.mjs` (= `.orchestra/notes/T0A-09-verify.cmd`). Live port scan opt-in: `DEVSTACK_LIVE=1` with stack up (skipped otherwise).
+- Covers AC-0A-6.1 (compose services/digest pins/db 17.6.1.136/PostgREST api+max-rows/SMTP mailpit/up.ts step order/root `dev:*` scripts), 6.2 (every port `127.0.0.1:h:c`, no host net/0.0.0.0, studio/meta/realtime/redis profiles, no Supavisor, + live scan), 6.3 (init-secrets fresh+distinct, differ from example, JWT re-sign, no stdout leak, `--check`), REQ-SEC-037/128 (no example value in committed files, `.env.devstack` gitignored, env/ templates secret-free).
+- Contracts ASSUMED (header of test file): `init-secrets.ts --out/--example/--check` (exit 0/1/2); default out `tools/devstack/.env.devstack`; vendored published example at `tools/devstack/upstream.env.example`; LIMS_API/WORKER/MIGRATOR_PASSWORD key names; existing out file left untouched.
+- Implementer must fetch the real pinned Supabase `.env.example` into `upstream.env.example` (none in repo; I did not invent values). If not fetchable, write a CR.
+- Current state: all tests fail (init-secrets.ts, compose.yaml, up/down/reset.ts, upstream.env.example absent) — expected.
+- Not tested: Docker health, migrations/seeds actually loaded, UPSTREAM.lock parity (C1 file absent; covered by T0A-10 supabase-pin).

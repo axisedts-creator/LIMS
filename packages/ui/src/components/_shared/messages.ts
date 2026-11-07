@@ -11,6 +11,7 @@ export const msg = {
   retry: 'Retry',
   help: 'Help',
   copy: 'Copy',
+  copied: 'Copied',
   reason: 'Reason',
   details: 'Details',
   loading: 'Loading…',

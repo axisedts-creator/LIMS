@@ -17,7 +17,7 @@ import { manifest } from '../../index.js';
 import { TENANT_A } from '../helpers/catalogDb.js';
 import { makeIdentity } from '../helpers/identity.js';
 import { rejection } from '../helpers/t6.js';
-import { FAMILIES, HB, ID, T, draftSet, pBody, rBody, setup8, type Env8, type Family, type Row } from '../helpers/t8.js';
+import { FAMILIES, HB, ID, M1, T, draftSet, pBody, rBody, setup8, type Env8, type Family, type Row } from '../helpers/t8.js';
 
 const spec: any = loadSpec(join(REPO_ROOT, 'contracts/openapi/catalog.yaml'));
 const requireAjv = createRequire(createRequire(import.meta.url).resolve('@fastify/ajv-compiler'));
@@ -45,8 +45,8 @@ const ok = (e: Env8, id: string, r: ReturnType<typeof req>) => call(e, id, r).do
 
 const OPS = ['list', 'create', 'get', 'replace', 'publish', 'retire', 'discard'] as const;
 const ALL_IDS = FAMILIES.flatMap((f) => OPS.map((o) => f[o]));
-const P1 = (f: Family, o: Row = {}) => f.mkSet(1, TENANT_A, HB.id, o);
-const D2 = (f: Family) => draftSet(f.mkSet, 2, HB.id);
+const P1 = (f: Family, o: Row = {}) => f.mkSet(1, TENANT_A, HB.id, { method_id: M1.id, ...o });   // HB_V1 has method M1: the set snapshot must match (unit/method rule, TRD §5.2)
+const D2 = (f: Family) => draftSet(f.mkSet, 2, HB.id, { method_id: M1.id });
 const world = (f: Family) => setup8({ t6: { [f.setTable]: [P1(f), D2(f)], [f.bandTable]: [f.mkBand(1, TENANT_A, P1(f).id as string, { low: '13.0', high: '17.0', sort_order: 0 }),
   f.mkBand(11, TENANT_A, D2(f).id as string, { sex: 'male', age_low_value: 18, age_low_unit: 'year', low: '13.0', high: '17.0', sort_order: 0 }),
   f.mkBand(12, TENANT_A, D2(f).id as string, { sex: 'any', age_high_value: 18, age_high_unit: 'year', low: '11.0', high: '16.0', sort_order: 1 })] } as never });

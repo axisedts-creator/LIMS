@@ -19,10 +19,12 @@ const run = (e: Env8, f: Family, name: keyof Family, input: unknown, o: any = {}
 const list = (e: Env8, f: Family, analyte_id: string, status?: string, o: any = {}) => run(e, f, 'list', { analyte_id, status }, o);
 const create = (e: Env8, f: Family, analyte_id: string, body?: unknown, o: any = {}) => run(e, f, 'create', { analyte_id, body }, o);
 const get = (e: Env8, f: Family, id: string, o: any = {}) => run(e, f, 'get', { id }, o);
-const replace = (e: Env8, f: Family, id: string, bands: unknown, expectedVersion: unknown = 1, o: any = {}) => run(e, f, 'replace', { id, expectedVersion, body: { bands } }, o);
-const publish = (e: Env8, f: Family, id: string, body: unknown = pBody(), expectedVersion: unknown = 1, o: any = {}) => run(e, f, 'publish', { id, expectedVersion, body }, o);
-const retire = (e: Env8, f: Family, id: string, body: unknown = rBody(), expectedVersion: unknown = 1, o: any = {}) => run(e, f, 'retire', { id, expectedVersion, body }, o);
-const discard = (e: Env8, f: Family, id: string, expectedVersion: unknown = 1, o: any = {}) => run(e, f, 'discard', { id, expectedVersion }, o);
+const ABSENT = 'absent';                                                    // sentinel = no If-Match (an `undefined` argument would just trigger the default of 1)
+const ev = (v: unknown) => (v === ABSENT ? undefined : v);
+const replace = (e: Env8, f: Family, id: string, bands: unknown, expectedVersion: unknown = 1, o: any = {}) => run(e, f, 'replace', { id, expectedVersion: ev(expectedVersion), body: { bands } }, o);
+const publish = (e: Env8, f: Family, id: string, body: unknown = pBody(), expectedVersion: unknown = 1, o: any = {}) => run(e, f, 'publish', { id, expectedVersion: ev(expectedVersion), body }, o);
+const retire = (e: Env8, f: Family, id: string, body: unknown = rBody(), expectedVersion: unknown = 1, o: any = {}) => run(e, f, 'retire', { id, expectedVersion: ev(expectedVersion), body }, o);
+const discard = (e: Env8, f: Family, id: string, expectedVersion: unknown = 1, o: any = {}) => run(e, f, 'discard', { id, expectedVersion: ev(expectedVersion) }, o);
 const notFound = (x: any) => lims(x, 'common.not_found', 404);
 const inUse = (x: any) => lims(x, 'catalog.version_in_use', 409);
 const conflict = (x: any) => lims(x, 'common.version_conflict', 409);
@@ -84,13 +86,13 @@ describe.each(FAMILIES)('$name sets — list / get (#37 #39 / #44 #46)', (f) => 
   });
 
   it('list: another tenant\'s sets never appear (RLS + explicit tenant predicate)', { timeout: T }, async () => {
-    const e = world(f, { t6: { [f.setTable]: [f.mkSet(90, TENANT_B, ID(0x3003), { method_id: null })] } as never });
+    const e = world(f, { extraSets: [f.mkSet(90, TENANT_B, ID(0x3003), { method_id: null })] });
     expect((await list(e, f, HB.id)).data.every((s: any) => s.analyte_id === HB.id)).toBe(true);
     expect((await list(e, f, ID(0x3003), undefined, { tenantId: TENANT_B })).data.map((s: any) => s.id)).toEqual([ID(0x6000 + 90 + (f.setTable === 'critical_limit_sets' ? 0x800 : 0))]);
   });
 
   it('get: the set with its bands; 404 for unknown and for another tenant\'s id; 400 for a malformed id', { timeout: T }, async () => {
-    const e = world(f, { t6: { [f.setTable]: [f.mkSet(90, TENANT_B, ID(0x3003), { method_id: null })] } as never });
+    const e = world(f, { extraSets: [f.mkSet(90, TENANT_B, ID(0x3003), { method_id: null })] });
     expect(await get(e, f, P1(f).id)).toMatchObject({ id: P1(f).id, version_no: 1, status: 'published', bands: [{ sex: 'any', low: '13.0', high: '17.0' }] });
     notFound(await rejection(get(e, f, ID(0x6000 + 90 + (f.setTable === 'critical_limit_sets' ? 0x800 : 0)))));
     notFound(await rejection(get(e, f, ID(0xdead))));
@@ -240,7 +242,7 @@ describe.each(FAMILIES)('$name sets — replace bands (#40 / #47): V2', (f) => {
   it('a stale If-Match -> 409 common.version_conflict; a missing one -> 428; the old bands stay', { timeout: T }, async () => {
     const e = world(f); const before = snap(e.db);
     conflict(await rejection(replace(e, f, D2(f).id, [clean(f.band())], 7)));
-    lims(await rejection(replace(e, f, D2(f).id, [clean(f.band())], undefined)), 'common.precondition_required', 428);
+    lims(await rejection(replace(e, f, D2(f).id, [clean(f.band())], ABSENT)), 'common.precondition_required', 428);
     expect(snap(e.db)).toBe(before);
   });
 
@@ -252,7 +254,7 @@ describe.each(FAMILIES)('$name sets — replace bands (#40 / #47): V2', (f) => {
   });
 
   it('unknown set / another tenant\'s set -> 404; malformed id -> 400', { timeout: T }, async () => {
-    const e = world(f, { t6: { [f.setTable]: [f.mkSet(90, TENANT_B, ID(0x3003), { status: 'draft', method_id: null, effective_from: null, published_at: null, change_reason: null })] } as never });
+    const e = world(f, { extraSets: [f.mkSet(90, TENANT_B, ID(0x3003), { status: 'draft', method_id: null, effective_from: null, published_at: null, change_reason: null })] });
     const before = snap(e.db);
     notFound(await rejection(replace(e, f, ID(0xdead), [clean(f.band())])));
     notFound(await rejection(replace(e, f, ID(0x6000 + 90 + (f.setTable === 'critical_limit_sets' ? 0x800 : 0)), [clean(f.band())])));
@@ -488,7 +490,7 @@ describe.each(FAMILIES)('$name sets — publish (#41 / #48): V4 + V5', (f) => {
   it('stale If-Match -> 409 common.version_conflict; missing -> 428; unknown / other tenant\'s id -> 404; malformed -> 400', { timeout: T }, async () => {
     const e = world(f); const before = snap(e.db);
     conflict(await rejection(publish(e, f, D2(f).id, pBody(), 5)));
-    lims(await rejection(publish(e, f, D2(f).id, pBody(), undefined)), 'common.precondition_required', 428);
+    lims(await rejection(publish(e, f, D2(f).id, pBody(), ABSENT)), 'common.precondition_required', 428);
     notFound(await rejection(publish(e, f, ID(0xdead)))); validation400(await rejection(publish(e, f, 'x')));
     notFound(await rejection(publish(e, f, D2(f).id, pBody(), 1, { tenantId: TENANT_B })));
     expect(snap(e.db)).toBe(before);
@@ -593,7 +595,7 @@ describe.each(FAMILIES)('$name sets — retire (#42 / #49): V6', (f) => {
   it('stale If-Match -> 409; missing -> 428; unknown / other tenant\'s id -> 404; malformed -> 400', { timeout: T }, async () => {
     const e = pubOnly(f); const before = snap(e.db);
     conflict(await rejection(retire(e, f, P1(f).id, rBody(), 9)));
-    lims(await rejection(retire(e, f, P1(f).id, rBody(), undefined)), 'common.precondition_required', 428);
+    lims(await rejection(retire(e, f, P1(f).id, rBody(), ABSENT)), 'common.precondition_required', 428);
     notFound(await rejection(retire(e, f, ID(0xdead)))); validation400(await rejection(retire(e, f, 'x')));
     notFound(await rejection(retire(e, f, P1(f).id, rBody(), 1, { tenantId: TENANT_B })));
     expect(snap(e.db)).toBe(before);
@@ -645,7 +647,7 @@ describe.each(FAMILIES)('$name sets — discard (#43 / #50): V3', (f) => {
   it('stale If-Match -> 409; missing -> 428; unknown / other tenant\'s id -> 404; malformed -> 400', { timeout: T }, async () => {
     const e = world(f); const before = snap(e.db);
     conflict(await rejection(discard(e, f, D2(f).id, 9)));
-    lims(await rejection(discard(e, f, D2(f).id, undefined)), 'common.precondition_required', 428);
+    lims(await rejection(discard(e, f, D2(f).id, ABSENT)), 'common.precondition_required', 428);
     notFound(await rejection(discard(e, f, ID(0xdead)))); validation400(await rejection(discard(e, f, 'x')));
     notFound(await rejection(discard(e, f, D2(f).id, 1, { tenantId: TENANT_B })));
     expect(snap(e.db)).toBe(before);
@@ -675,7 +677,7 @@ describe.each(FAMILIES)('$name sets — tenant isolation (S-1) and DB backstops 
 
   it('every statement on the set / band tables carries the tenant (explicit tenant_id predicate or value, not RLS alone)', { timeout: T }, async () => {
     const e = world(f);
-    await get(e, f, P1(f).id); await list(e, f, HB.id); await replace(e, f, D2(f).id, [clean(f.band())]); await publish(e, f, D2(f).id); await retire(e, f, D2(f).id, rBody(), 2);
+    await get(e, f, P1(f).id); await list(e, f, HB.id); await replace(e, f, D2(f).id, [clean(f.band())]); await publish(e, f, D2(f).id, pBody(), 2); await retire(e, f, D2(f).id, rBody(), 3);
     const stmts = e.db.t6Stmts().filter((s) => new RegExp(`catalog\\.(${f.setTable}|${f.bandTable})\\b`, 'i').test(s.text));
     expect(stmts.length).toBeGreaterThan(5);
     for (const s of stmts) expect(s.text, s.text).toMatch(/tenant_id/i);

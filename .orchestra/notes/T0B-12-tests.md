@@ -1,0 +1,6 @@
+# T0B-12 tests (tester)
+- `tests/db/T0B-12.storage-buckets.test.mjs` (node, no DB): 11 buckets parsed from 08 §4.8 (reserved `reporting-legacy` excluded); ONE `db/migrations/<ts>_storage__create_(buckets|policies).sql` after frontdesk/billing/reporting; INSERT INTO storage.buckets with names verbatim, no extra bucket, `public` false, `ON CONFLICT (id) DO UPDATE SET public = false`; SP-4 = api-proxied so NO policy/GRANT/RLS-off on storage.* or realtime.* in db/{migrations,policies,seeds,bootstrap}; check-migrations exit 0; detector self-tests.
+- `db/tests/storage/T0B-12_storage.test.sql` (pgTAP, live, NOT executed here: LD-51 no docker): buckets exist/private/no extras, RLS on, no end-user policy, lims_* have no privilege, authenticated + anon cross-tenant read/insert/update/delete denied on 22 seeded objects.
+- Run: `.orchestra\notes\T0B-12-verify.cmd`; live: `bash db/tests/run-suites.sh db/tests/storage/T0B-12_storage.test.sql`.
+- Fails now for the right reason: no `*_storage__*.sql` migration. Assumes the pinned image ships storage.buckets/objects with RLS on and no default policy; lims_migrator needs INSERT on storage.buckets (writer may need a grant or role switch; dispute if so).
+- Not covered: Storage-API HTTP probes (SP-4 done), `ctx.storage` adapter path refusal (C0-0D T0D-17).

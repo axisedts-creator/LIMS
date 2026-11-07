@@ -62,6 +62,16 @@ describe('AC-19.2 bump increments the tenant catalog_revision by exactly 1', () 
     expect(s.db.createdByOf(TENANT_A)).toBe(USER);
   });
 
+  it('the catalog_state UPDATE is scoped by tenant_id explicitly (bound = tx tenant), not by RLS alone (03-APP-FLOW §168)', async () => {
+    const s = at418();
+    await s.db.run((ctx) => bump(s, ctx));
+    const upd = s.db.stmts.filter((x) => /^\s*UPDATE\s+catalog\.catalog_state/i.test(x.text));
+    expect(upd).toHaveLength(1);
+    expect(upd[0]!.text).toMatch(/WHERE\s+tenant_id\s*=\s*\$1/i);
+    expect(upd[0]!.values[0]).toBe(TENANT_A);
+    expect(upd[0]!.values[0]).toBe(upd[0]!.tenantId);
+  });
+
   it('two roots changed in ONE transaction -> two increments, two events (one per increment)', async () => {
     const s = at418();
     const out = await s.db.run(async (ctx) => [

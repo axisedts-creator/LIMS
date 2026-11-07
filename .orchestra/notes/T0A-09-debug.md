@@ -3,3 +3,4 @@
 - Not fixed: sandbox denies network (curl "requires approval", non-interactive). Commit sha not resolvable offline; not invented. Needs a human/orchestrator with network to run the curl, then re-run verify.
 - Round 2 (LD-23): cause unchanged, upstream.env.example still absent. curl/git ls-remote to github need approval; denied non-interactively. Commit for C1 02-TRD §2 tags (gotrue v2.197.0, studio 2026.11.02-sha-a05e7ec) not resolvable offline; not invented.
 - Needs human/orchestrator with network: find commit, `curl -sSfL https://raw.githubusercontent.com/supabase/supabase/<commit>/docker/.env.example` + first-line comment naming commit, then re-run verify.
+- Round 3: unchanged. tools/devstack/upstream.env.example absent; repo has no recorded Supabase commit (no UPSTREAM.lock, no sha in THIRD-PARTY-OPS/check-supabase-pin). curl to raw.githubusercontent.com denied (needs approval, non-interactive). Not fixable offline; sha not invented. No code change.

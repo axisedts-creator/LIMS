@@ -19,3 +19,7 @@
 ## Debugger pass 5 (2026-11-07)
 - Only fail: pubspec.lock absent; flutter present at /c/flutter/bin so LD-15 skip n/a. No code defect.
 - Fix = `flutter pub get` at repo root + commit pubspec.lock. Needs approval, not granted again; not bypassed. Human must run it.
+
+## Debugger pass 6 (2026-11-07)
+- Only fail: pubspec.lock absent; flutter present so LD-15 skip n/a. No code defect.
+- Fix = `flutter pub get` at repo root + commit pubspec.lock. Needs approval, denied again; not bypassed. Human must run it.

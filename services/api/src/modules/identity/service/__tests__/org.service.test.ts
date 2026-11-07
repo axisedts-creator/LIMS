@@ -162,7 +162,7 @@ describe('createCentre — AC-C1.1', () => {
     for (const code of ['HC-2', 'HC-3', 'HC-4']) expect((await svc.createCentre(ctx, cIn({ code, kind: 'home_collection', branchId: BR_A2 }))).body.kind).toBe('home_collection');
   });
   it.each(['own', 'franchise', 'home_collection'])('kind %s accepted', async (kind) => {
-    const { svc, ctx } = setup(); expect((await svc.createCentre(ctx, cIn({ code: `K-${kind}`.slice(0, 16), kind }))).body.kind).toBe(kind);
+    const { svc, ctx } = setup(); expect((await svc.createCentre(ctx, cIn({ code: `K-${kind.replace(/_/g, '-')}`.slice(0, 16), kind }))).body.kind).toBe(kind);
   });
   it('inactive branch -> 409 identity.centre_inactive, nothing written', async () => {
     const { svc, ctx, writes } = setup();

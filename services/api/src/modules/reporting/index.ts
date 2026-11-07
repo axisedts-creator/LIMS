@@ -2,10 +2,12 @@
 import { join } from 'node:path';
 import { loadSpec, operationIds, REPO_ROOT, type Handler, type ModuleManifest } from '../../core/module.js';
 import { loadReportingConfig } from './config.js';
+import { narrativeHandlers } from './handlers/narrative.handlers.js';
 import { narrativeImageHandlers } from './handlers/narrative-image.handlers.js';
 import { outsourcedHandlers } from './handlers/outsourced.handlers.js';
 import { retryRenderHandlers } from './handlers/retry-render.handlers.js';
 import { settingsHandlers } from './handlers/settings.handlers.js';
+import { templatesHandlers } from './handlers/templates.handlers.js';
 import { REPORTING_SYSTEM_PERMISSIONS } from './permissions.js';
 
 /** Read at import, so a bad LIMS_REPORTING_* value fails API boot. */
@@ -15,7 +17,7 @@ export const config = loadReportingConfig(process.env);
 const notImplemented: Handler = async () => ({ status: 501 });
 
 const OPENAPI = 'contracts/openapi/reporting.yaml';
-const implemented: Readonly<Record<string, Handler>> = { ...settingsHandlers, ...outsourcedHandlers, ...narrativeImageHandlers, ...retryRenderHandlers };
+const implemented: Readonly<Record<string, Handler>> = { ...settingsHandlers, ...outsourcedHandlers, ...narrativeImageHandlers, ...narrativeHandlers, ...templatesHandlers, ...retryRenderHandlers };
 
 export const manifest: ModuleManifest = Object.freeze({
   name: 'reporting',

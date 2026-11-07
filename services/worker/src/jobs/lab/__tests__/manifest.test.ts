@@ -17,7 +17,7 @@ function trdConsumed(): string[] {
   const end = text.indexOf('\n## 8.', start);
   expect(start, '02-TRD §7.2 heading not found').toBeGreaterThan(-1);
   expect(end, '02-TRD §8 heading not found').toBeGreaterThan(start);
-  return [...text.slice(start, end).matchAll(/^\| `([a-z_]+\.[a-z_]+\.[a-z_]+\.v\d+)`/gm)].map((m) => m[1]!);
+  return [...text.slice(start, end).matchAll(/^\| `([a-z_]+(?:\.[a-z_]+)+\.v\d+)`/gm)].map((m) => m[1]!);
 }
 
 describe('T-01 worker manifest (lab)', () => {

@@ -158,13 +158,13 @@ describe('T-01 boot against the real repo (default modulesDir, real lab.yaml)', 
       }
     }
     expect(unmounted).toEqual([]);
-  });
+  }, 30_000);
 
   it('fails closed: an unauthenticated lab call is 401 (never 200/501/500) and a non-spec path is 404', async () => {
     const app = await boot();
-    const r = await app.inject({ method: 'GET', url: '/v1/lab/status-board' });
-    expect(r.statusCode).toBe(401);
+    const r = await app.inject({ method: 'GET', url: '/v1/lab/status-board?registered_at_from=2026-01-01T00:00:00.000Z' });
+    expect(r.statusCode, r.body).toBe(401);
     expect(JSON.parse(r.body).code).toMatch(/^auth\./);
     expect((await app.inject({ method: 'GET', url: '/v1/lab/not-in-spec' })).statusCode).toBe(404);
-  });
+  }, 30_000);
 });

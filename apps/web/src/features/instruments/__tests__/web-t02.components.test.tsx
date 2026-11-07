@@ -366,14 +366,31 @@ describe('SCR-02 AgentDetail (AC-16.3)', () => {
     const rowsI = [{ ...instruments[0]!, link_state: 'error', last_link_error_code: 'firewall_rule_missing', silent_since: '2026-11-07T01:00:00.000Z' }];
     wrap(<AgentDetail agent={detail() as never} transitions={[]} instruments={rowsI as never} permissions={READ} />);
     await userEvent.click(screen.getByRole('tab', { name: 'Instruments' }));
-    for (const h of ['Instrument code', 'State', 'Link state', 'Last message', 'Last error code', 'Silence status']) expect(screen.getByRole('columnheader', { name: new RegExp(h, 'i') })).toBeTruthy();
+    for (const h of ['Instrument code', 'State', 'Link state', 'Last message', 'Last error code', 'Silence status']) expect(screen.getByRole('columnheader', { name: new RegExp(`^${h}$`, 'i') })).toBeTruthy();
     expect(screen.getByText('firewall_rule_missing')).toBeTruthy();
   });
 
   // review #6: SCR-02 actions must not ship as disabled stubs. Commands & logs tab lists E18 rows.
-  it('manage actions are enabled, not disabled stubs', async () => {
+  it('manage actions are enabled, not disabled stubs (Retire is gated separately, below)', async () => {
     await render1(MANAGE);
-    for (const n of [/request command/i, /revoke/i, /retire/i, /edit/i]) expect((screen.getByRole('button', { name: n }) as HTMLButtonElement).disabled, String(n)).toBe(false);
+    for (const n of [/request command/i, /revoke/i, /edit/i]) expect((screen.getByRole('button', { name: n }) as HTMLButtonElement).disabled, String(n)).toBe(false);
+  });
+
+  // 04-UI-UX.md:115 — Retire "disabled with tooltip when instruments are not retired".
+  it('Retire is disabled with a tooltip while any instrument is not retired', async () => {
+    await render1(MANAGE); // fixture instrument is state: 'live'
+    const retire = screen.getByRole('button', { name: /retire/i }) as HTMLButtonElement;
+    expect(retire.disabled).toBe(true);
+    expect(retire.getAttribute('title') || retire.getAttribute('aria-describedby')).toBeTruthy();
+  });
+
+  it('Retire is enabled when the agent has no instruments or all are retired', async () => {
+    const AgentDetail = await load();
+    const { unmount } = wrap(<AgentDetail agent={detail({ credentials }) as never} transitions={transitions as never} instruments={[]} permissions={MANAGE} />);
+    expect((screen.getByRole('button', { name: /retire/i }) as HTMLButtonElement).disabled).toBe(false);
+    unmount();
+    wrap(<AgentDetail agent={detail({ credentials }) as never} transitions={transitions as never} instruments={[{ ...instruments[0]!, state: 'retired' }] as never} permissions={MANAGE} />);
+    expect((screen.getByRole('button', { name: /retire/i }) as HTMLButtonElement).disabled).toBe(false);
   });
 
   it('Revoke opens a danger ConfirmDialog with the 04-UI-UX body and a reason field; nothing is sent until confirmed', async () => {

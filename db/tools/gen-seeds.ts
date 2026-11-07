@@ -20,6 +20,8 @@ const q = (v: unknown): string => (v === null || v === undefined ? "NULL" : `'${
 const human = (code: string): string => code.charAt(0).toUpperCase() + code.slice(1).replace(/_/g, " ");
 const rows = (r: string[]): string => r.map((x) => `  (${x})`).join(",\n");
 const LOCKED_AT = "2026-11-07 00:00:00+00"; // [CONV] fixed timestamp: seeds must be deterministic for the idempotent re-run test
+// [CONV] insert-only link tables get the same fixed created_at, so a healed (re-inserted) row is identical to the original, not now()
+const AT = `${q(LOCKED_AT)}::timestamptz`;
 
 const tenantRoles: { code: string; mfa_required: boolean; description: string }[] = perms.roles;
 const roleCodes = tenantRoles.map((r) => r.code);
@@ -48,7 +50,7 @@ function tenantBlock(key: "tenant_a" | "tenant_b"): string[] {
   const mine = actors.filter((a) => a.tenantId === t.id && ["user", "partner", "patient"].includes(a.actorType));
   const membershipId = (actorId: string): string => famId(actorId, "5", actorId.slice(-2));
   const grants: string[] = [];
-  for (const p of perms.permissions) for (const r of p.roles ?? []) if (roleCodes.includes(r)) grants.push(`${q(t.id)}, ${q(roleId(r))}, ${q(p.code)}, ${by}`);
+  for (const p of perms.permissions) for (const r of p.roles ?? []) if (roleCodes.includes(r)) grants.push(`${q(t.id)}, ${q(roleId(r))}, ${q(p.code)}, ${by}, ${AT}`);
   const claims = JSON.stringify({ tenant_id: t.id, sub: CORE_ACTOR, actor_type: "system" });
   const scoped = mine.filter((a) => a.centreIds);
   return [
@@ -73,7 +75,7 @@ function tenantBlock(key: "tenant_a" | "tenant_b"): string[] {
     rows(tenantRoles.map((r) => `${q(roleId(r.code))}, ${q(t.id)}, ${q(r.code)}, ${q(human(r.code))}, ${q(r.description)}, true, ${r.mfa_required}, ${by}, ${by}`)),
     "ON CONFLICT DO NOTHING;",
     "",
-    "INSERT INTO core.role_permissions (tenant_id, role_id, permission_code, created_by) VALUES",
+    "INSERT INTO core.role_permissions (tenant_id, role_id, permission_code, created_by, created_at) VALUES",
     rows(grants),
     "ON CONFLICT DO NOTHING;",
     "",
@@ -86,12 +88,12 @@ function tenantBlock(key: "tenant_a" | "tenant_b"): string[] {
       a.locked ? `${q(LOCKED_AT)}::timestamptz` : "NULL", a.locked ? by : "NULL", a.locked ? "'other'" : "NULL", q(a.partnerRole), by, by].join(", "))),
     "ON CONFLICT DO NOTHING;",
     "",
-    "INSERT INTO core.membership_roles (tenant_id, membership_id, role_id, created_by) VALUES",
-    rows(mine.filter((a) => a.role).map((a) => `${q(t.id)}, ${q(membershipId(a.id))}, ${q(roleId(a.role!))}, ${by}`)),
+    "INSERT INTO core.membership_roles (tenant_id, membership_id, role_id, created_by, created_at) VALUES",
+    rows(mine.filter((a) => a.role).map((a) => `${q(t.id)}, ${q(membershipId(a.id))}, ${q(roleId(a.role!))}, ${by}, ${AT}`)),
     "ON CONFLICT DO NOTHING;",
     "",
-    "INSERT INTO core.membership_centres (tenant_id, membership_id, centre_id, created_by) VALUES",
-    rows(scoped.flatMap((a) => a.centreIds!.map((c) => `${q(t.id)}, ${q(membershipId(a.id))}, ${q(c)}, ${by}`))),
+    "INSERT INTO core.membership_centres (tenant_id, membership_id, centre_id, created_by, created_at) VALUES",
+    rows(scoped.flatMap((a) => a.centreIds!.map((c) => `${q(t.id)}, ${q(membershipId(a.id))}, ${q(c)}, ${by}, ${AT}`))),
     "ON CONFLICT DO NOTHING;",
     "",
   ];

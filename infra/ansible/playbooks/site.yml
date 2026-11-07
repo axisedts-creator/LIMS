@@ -32,3 +32,11 @@
   roles:
     - internal_ca
     - monitoring
+
+# 02-TRD s12.2: Nepal registry. Server on ops-1 (uses the internal_ca
+# registry leaf above); client trust + name on every host that pulls.
+- name: Registry
+  hosts: ops:data:app:dr
+  become: true
+  roles:
+    - registry

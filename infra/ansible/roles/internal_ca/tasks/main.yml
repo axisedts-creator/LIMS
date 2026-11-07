@@ -56,7 +56,7 @@
 - name: Leaf key mode
   ansible.builtin.file:
     path: "{{ internal_ca_dir }}/{{ item.name }}/key.pem"
-    owner: root
+    owner: "{{ item.owner | default('root') }}"
     group: root
     mode: "0600"
   loop: "{{ internal_ca_leaves }}"

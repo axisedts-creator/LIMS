@@ -440,9 +440,10 @@ describe('createAnalyteVersionDraft (#32) — copy, numbering, one open draft (A
 describe('updateAnalyteVersionDraft (#33) — draft edits only (AC-03.2), AC-02.6, unset', () => {
   it('200: patches clinical fields; version 2; round-trips formula_expression verbatim; no event, no revision bump (draft)', { timeout: T }, async () => {
     const e = setup7({ t6: { analyte_versions: [HB_V2] } });
-    const out = await patchV(e, HB_V2.id, { unit_code: 'mg_dl', decimals: 3, method_id: M2.id, formula_expression: 'HB * 3' });
-    expect(out).toMatchObject({ id: HB_V2.id, status: 'draft', unit_code: 'mg_dl', decimals: 3, method_id: M2.id, formula_expression: 'HB * 3', version: 2 });
-    expect(e.db.row('analyte_versions', HB_V2.id)).toMatchObject({ unit_code: 'mg_dl', decimals: 3, method_id: M2.id, formula_expression: 'HB * 3', version: 2, updated_by: USER, status: 'draft' });
+    // T-11: `HB * 3` on HB's own draft is a self-cycle (AC-04.3) -> the verbatim round-trip uses another existing numeric analyte (RBC).
+    const out = await patchV(e, HB_V2.id, { unit_code: 'mg_dl', decimals: 3, method_id: M2.id, formula_expression: 'RBC * 3' });
+    expect(out).toMatchObject({ id: HB_V2.id, status: 'draft', unit_code: 'mg_dl', decimals: 3, method_id: M2.id, formula_expression: 'RBC * 3', version: 2 });
+    expect(e.db.row('analyte_versions', HB_V2.id)).toMatchObject({ unit_code: 'mg_dl', decimals: 3, method_id: M2.id, formula_expression: 'RBC * 3', version: 2, updated_by: USER, status: 'draft' });
     expect(e.db.events).toHaveLength(0); expect(e.db.revisionOf(TENANT_A)).toBe(417); expect(orderableRev(e.db, CBC.test.id)).toBe(0);
   });
 
@@ -490,7 +491,7 @@ describe('updateAnalyteVersionDraft (#33) — draft edits only (AC-03.2), AC-02.
   });
 
   // ---- AC-03.2 / AB-9: published rows are immutable through the API
-  const FIELDS: Array<[string, unknown]> = [['unit_code', 'mg_dl'], ['decimals', 3], ['method_id', M2.id], ['value_set_code', 'MY_ORD'], ['formula_expression', 'HB * 2'], ['result_type', 'text']];
+  const FIELDS: Array<[string, unknown]> = [['unit_code', 'mg_dl'], ['decimals', 3], ['method_id', M2.id], ['value_set_code', 'MY_ORD'], ['formula_expression', 'RBC * 2'], ['result_type', 'text']];
   const v1 = pubOf(1, HB.id, { status: 'superseded', effective_to: new Date('2026-06-01T00:00:00.000Z'), version: 2 });
   const v2 = pubOf(2, HB.id, { version_no: 2, effective_from: new Date('2026-06-01T00:00:00.000Z'), published_at: new Date('2026-06-01T00:00:00.000Z') });
   const v3 = draftOf(3, HB.id, { version_no: 3, status: 'discarded' });

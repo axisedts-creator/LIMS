@@ -3,7 +3,7 @@
 # - Examples are synthetic. E-mail fields show the placeholder "<synthetic-email>" (lint AB-20); phones use +1555 test numbers.
 # - [CONV] IM rows also list common.version_conflict + common.precondition_required (02-CV §4.2); required-idem rows list common.idempotency_key_reused.
 # - [CONV] shapes the TRD names without fields are marked [CONV] in their description.
-# - Open conflict with lint rule 4 (P-8): POSTs with x-idempotency none outside E1/E2, see .orchestra/cr/T0C-10.C4.md.
+# - P-8: read-only POSTs carry E3 per LD-10 (2026-11-07).
 openapi: 3.0.3
 info:
   title: LIMS frontdesk (C4)
@@ -22,7 +22,7 @@ paths:
       x-permission: frontdesk.patient.read
       x-context: tenant
       x-idempotency: none
-      x-idempotency-justification: E3 read-only POST (query/quote in the body; no state change) — no E1/E2 exception fits, see .orchestra/cr/T0C-10.C4.md
+      x-idempotency-justification: "E3 read-only POST (LD-10): query/quote in the body, no state written, nothing to replay."
       x-rate-limit-tier: general
       x-error-codes:
         - common.validation_failed
@@ -666,7 +666,7 @@ paths:
       x-permission: frontdesk.registration.create
       x-context: tenant
       x-idempotency: none
-      x-idempotency-justification: E3 read-only POST (query/quote in the body; no state change) — no E1/E2 exception fits, see .orchestra/cr/T0C-10.C4.md
+      x-idempotency-justification: "E3 read-only POST (LD-10): query/quote in the body, no state written, nothing to replay."
       x-rate-limit-tier: general
       x-error-codes:
         - common.validation_failed
@@ -1402,7 +1402,7 @@ paths:
       x-permission: frontdesk.order.edit
       x-context: tenant
       x-idempotency: none
-      x-idempotency-justification: E3 read-only POST (query/quote in the body; no state change) — no E1/E2 exception fits, see .orchestra/cr/T0C-10.C4.md
+      x-idempotency-justification: "E3 read-only POST (LD-10): query/quote in the body, no state written, nothing to replay."
       x-rate-limit-tier: general
       x-error-codes:
         - common.validation_failed

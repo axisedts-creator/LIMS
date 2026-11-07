@@ -3,7 +3,6 @@
 # - Examples are synthetic. E-mail fields show the placeholder "<synthetic-email>" (lint AB-20); phones use +1555 test numbers.
 # - [CONV] IM rows also list common.version_conflict + common.precondition_required (02-CV §4.2); required-idem rows list common.idempotency_key_reused.
 # - [CONV] shapes the TRD names without fields are marked [CONV] in their description.
-# - Open conflict with lint rule 4 (P-8): POSTs with x-idempotency none outside E1/E2, see .orchestra/cr/T0C-10.C4.md.
 openapi: 3.0.3
 info:
   title: LIMS billing (C4)
@@ -2720,6 +2719,7 @@ paths:
           $ref: _common.yaml#/components/responses/Internal
   /v1/billing/credit-parties:
     get:
+      # LD-12 / CR-C0-0C-004 opt (1): renamed from listCreditParties
       operationId: listCreditAccounts
       tags:
         - billing
@@ -2777,6 +2777,7 @@ paths:
           $ref: _common.yaml#/components/responses/Internal
   /v1/billing/credit-parties/{credit_party_id}:
     get:
+      # LD-12 / CR-C0-0C-004 opt (1): renamed from getCreditParty
       operationId: getCreditAccount
       tags:
         - billing

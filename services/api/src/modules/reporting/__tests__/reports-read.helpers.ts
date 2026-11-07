@@ -82,6 +82,9 @@ export function readSetup(o: ReadOpts = {}) {
     startedAt: base.startedAt, savepoint: base.savepoint, release: base.release,
     async query(text: string, values: unknown[] = []) {
       const res = await base.query(text, values);
+      // The fake cannot evaluate `to_char(<col> AT TIME ZONE 'UTC', '...US"Z"') AS sort_key` (µs-precision keyset cursor, review C6-T15 #1): emulate it from the stored value.
+      const sk = /to_char\(\s*(\w+)\s+at\s+time\s+zone[^)]*\)\s+as\s+sort_key\b/i.exec(text);
+      if (sk) res.rows = res.rows.map((r: Row) => ({ ...r, sort_key: typeof r[sk[1]!] === 'string' ? r[sk[1]!] : new Date(r[sk[1]!] as any).toISOString().replace(/\.(\d{3})Z$/, '.$1000Z') }));
       if (centres && /^\s*select/i.test(text) && /\breporting\./i.test(text)) return { rows: res.rows.filter((r: Row) => r['centre_id'] === undefined || centres.has(r['centre_id'])) };
       return res;
     },

@@ -152,6 +152,17 @@ describe('R1 filters, sort, paging', () => {
     expect(pages).toBe(3); expect(seen).toHaveLength(7); expect(new Set(seen).size).toBe(7);
     expect(seen).toEqual([...Array(7)].map((_, k) => RID(7 - k)));            // -updated_at: report 7 is the newest
   });
+  // review C6-T15 #1: timestamptz has µs precision; a cursor truncated to ms drops / repeats rows that share the cursor row's millisecond (R7 bulk release = one now() for up to 200 reports).
+  it.each([2, 3])('limit %i + cursor: reports whose updated_at share one millisecond (µs differ or tie) are each returned exactly once across the page boundary', async (limit) => {
+    const at = (us: string) => `2026-11-04T00:10:00.123${us}Z`;
+    const s = readSetup({ reports: [reportRow(1, { updated_at: iso(4, 1) }), reportRow(2, { updated_at: iso(4, 2) }),
+      reportRow(6, { updated_at: iso(4, 30) }), reportRow(3, { updated_at: at('789') }), reportRow(5, { updated_at: at('456') }), reportRow(4, { updated_at: at('456') })] });  // newest-first: 6, 3, 5, 4 (id desc on the tie), 2, 1
+    const seen: string[] = []; let cursor: string | undefined; let pages = 0;
+    do {
+      const r = await list(s, { limit: String(limit), ...(cursor ? { cursor } : {}) }); pages++; seen.push(...ids(r)); cursor = r.body.page.next_cursor;
+    } while (cursor && pages < 10);
+    expect(seen).toEqual([6, 3, 5, 4, 2, 1].map(RID));
+  });
   it('a malformed / tampered cursor -> 400 common.invalid_cursor (no SQL, no echo)', async () => {
     const planted = "PLANTED';DROP TABLE reporting.reports;--";
     for (const c of ['not-a-cursor', planted, Buffer.from('{"k":"x","i":1}').toString('base64url'), 'A'.repeat(600)]) {

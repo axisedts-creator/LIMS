@@ -163,6 +163,21 @@ describe.each(FAMILIES)('$name sets — create draft (#38 / #45): V1', (f) => {
     expect(bandsOf(e.db, f, P1(f).id)).toEqual(before);
   });
 
+  it('no bands and no copy_from_set_id -> copies the latest published set (03-APP-FLOW §2.1 V1): new band ids, same content; no published set -> empty draft', { timeout: T }, async () => {
+    const e = pubOnly(f, {}, [pBand(f, 1, { sex: 'male', ...SY }), pBand(f, 2, { sex: 'any', ...SC, low: '11.0', high: '16.0', sort_order: 1 })]);
+    const before = bandsOf(e.db, f, P1(f).id);
+    const out = await create(e, f, HB.id);
+    expect(out.bands).toHaveLength(2);
+    expect(out.bands[0]).toMatchObject({ sex: 'male', age_low: { value: 18, unit: 'year' }, low: '13.0', high: '17.0' });
+    expect(out.bands[1]).toMatchObject({ sex: 'any', age_high: { value: 18, unit: 'year' }, low: '11.0', high: '16.0' });
+    const copy = bandsOf(e.db, f, out.id);
+    expect(copy).toHaveLength(2);
+    for (const r of copy) expect(before.map((b) => b['id'])).not.toContain(r['id']);
+    expect(bandsOf(e.db, f, P1(f).id)).toEqual(before);
+    const none = setup8({ t6: { [f.setTable]: [P1(f, { status: 'retired', effective_to: new Date(T1) })], [f.bandTable]: [pBand(f)] } as never });
+    expect((await create(none, f, HB.id)).bands).toHaveLength(0);
+  });
+
   it('copy_from_set_id of an unknown set or another tenant\'s set -> 404; nothing written', { timeout: T }, async () => {
     const e = setup8({ t6: { [f.setTable]: [P1(f), f.mkSet(90, TENANT_B, ID(0x3003), { method_id: null })] } as never });
     const before = snap(e.db);

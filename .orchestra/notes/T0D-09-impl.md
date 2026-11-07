@@ -1,0 +1,7 @@
+Files: services/worker/src/core/{manifest,tasklist,consumer,fanout,deadletter,cron,retention,registry-sync,tenant-scope}.ts. Tests 84/84 (`T0D-09-verify.cmd`); tsc ESM-format errors remain until worker package.json exists; eslint not installed at root.
+Review round: (1) consumer validators built from a copy of each schema with `enum` removed where `x-extensible: true` (CV §7.2, TRD §7.3 step 3). (2) tenant-scope.ts: 4-arg withTenantScope, UUID-checked tenant/actor, nested use rejected, claims switched/restored with set_config(..., true) in finally. (3) CR filed: .orchestra/cr/T0D-09.md (CR-C0-0D-006).
+[CONV] ajv `removeAdditional: true` not 'all'; ajv loaded from @lims/shared-ts via createRequire (LD-05). Cron: `_cron` payload routed to cronTick; failed tenants rethrow (job_key dedupe).
+[CONV] withTenantScope reads previous claims via current_setting in the switch statement; tx.claims (wrapper-tracked) is the fallback when no row comes back.
+[CONV] DL message scrubbed via a real shared-ts logger; first_failed_at = job.created_at; module tasks default per_tenant, max_attempts 25; JobContext.db.tx reuses the job tx; tenant DL dead_at = CURRENT_TIMESTAMP.
+BLOCKED on CR-C0-0D-006: bootstrap.ts/main.ts (Graphile run(), parseCronItems, pools, wiring tenant-scope into deps), replay.ts CLI, storage/, uploads/. Task NOT done until then.
+Open: MODULE_NAMES imported from services/api/src/core/module.ts (cross-service relative import).

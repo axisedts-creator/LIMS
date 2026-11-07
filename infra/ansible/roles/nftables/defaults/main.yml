@@ -1,0 +1,11 @@
+---
+# 02-TRD s5.5. Fixed container IPs from s3.2 / s15 [CONV].
+nftables_nginx_edge_ip: 172.30.10.10
+nftables_auth_ip: 172.30.50.20
+nftables_pdf_sandbox_ip: 172.30.40.11
+# worker-a/b addresses on render_net. The spec fixes none yet; while the
+# list is empty the sandbox "only from the workers" rule (s5.5 step 6) is
+# not rendered and the sandbox relies on its bearer token (s3.2).
+nftables_render_worker_ips: []
+# Interface that holds public_ip (from facts; no provider value here).
+nftables_public_iface: "{{ ansible_default_ipv4.interface }}"

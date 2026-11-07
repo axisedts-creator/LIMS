@@ -1,0 +1,28 @@
+# Managed by Ansible (infra/database/postgresql/pg_hba.conf.j2) - 02-TRD s7.7, 07-SECURITY A1.
+# First match wins. ssl = off (wg0 encrypts), so no hostssl lines.
+# No entry for the ops host (02-TRD s5.5). postgres_exporter connects over the local socket.
+# TYPE  DATABASE  USER  ADDRESS  METHOD
+
+# Local socket: image default for the internal roles.
+local   all  supabase_admin  scram-sha-256
+local   all  all             peer map=supabase_map
+
+# Loopback inside the container (healthchecks, image scripts).
+host    all  all  127.0.0.1/32  scram-sha-256
+host    all  all  ::1/128       scram-sha-256
+
+# Docker bridge db_net on data-1: pgbouncer and local services.
+host    all  all  {{ docker_subnets.db }}  scram-sha-256
+
+# app-1: every db_net container arrives masqueraded to the app-1 wg IP (02-TRD s3.2).
+host    all  all  {{ hostvars[groups['app'][0]].wg_ip }}/32  scram-sha-256
+
+{% if groups['dr'] | length > 0 %}
+# dr-1: physical standby and the audit-store logical subscription only.
+host    replication        lims_replicator  {{ hostvars[groups['dr'][0]].wg_ip }}/32  scram-sha-256
+host    {{ app_db_name }}  lims_audit_ship  {{ hostvars[groups['dr'][0]].wg_ip }}/32  scram-sha-256
+{% endif %}
+
+# Default deny.
+host    all  all  0.0.0.0/0  reject
+host    all  all  ::/0       reject

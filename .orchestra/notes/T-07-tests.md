@@ -1,0 +1,7 @@
+# T-07 tests (tester)
+- Static: `infra/tests/static/test_t07_pgbouncer.py` (stdlib+jinja2+PyYAML). Live (CI/staging, `LIMS_T07_LIVE=1`, docker): `infra/tests/integration/test_t07_live.py` (SHOW CONFIG, lims_api auth, tx-local leak check; C0 AC-0D-2.3 itself runs on staging).
+- Run: `.orchestra\notes\T-07-verify.cmd`. Now: 18 fail (missing `pgbouncer.ini.j2`; no ini mount in `override.data.yml`), 6 pass (ports, supavisor reset, digest/version >= 1.21 already true).
+- CONTRACT: template uses only `app_db_name`/`inventory_hostname`; output identical for data-1/prod-1/dev-1 (LD-45); exactly one `[databases]` entry `<app_db_name> = host=db port=5432 dbname=<app_db_name>`, no `*`.
+- CONTRACT: TRD s7.6 values verbatim, but NO trailing `; comment` on value lines (PgBouncer would read it as part of the value); ini holds no secrets; `auth_file` (absolute) is set, and mounted ro from `/run/lims/secrets/...` in `override.data.yml`; if `auth_query` is used then `auth_user = pgbouncer`. No userlist/auth file committed under `infra/database/pgbouncer/`.
+- Override: ini mounted ro at `/etc/pgbouncer/pgbouncer.ini` from `.../database/pgbouncer/pgbouncer.ini`; port stays `${WG_IP:?...}:6432:6432`; `supavisor: !reset null` kept.
+- NOT covered here: AC-07.2 `LIMS_CORE_DATABASE_URL`/`LIMS_CORE_WORKER_DATABASE_URL` (API compose, T-14); real edoburu entrypoint behaviour with a mounted ini (live test only); real `get_auth` returning lims_api (needs live DB).

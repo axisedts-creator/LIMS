@@ -1,0 +1,100 @@
+# 02-TRD s11 / s3.3: ops-1 monitoring stack (compose project `ops`).
+# Host network: every UI binds 127.0.0.1 only; the single wg0 listener is
+# ops nginx on {{ wg_ip }}:443 (TLS from the internal CA + basic auth).
+# Nothing is published on any interface.
+name: ops
+services:
+  prometheus:
+    image: {{ monitoring_images.prometheus }}
+    network_mode: host
+    restart: unless-stopped
+    read_only: true
+    cap_drop: [ALL]
+    user: "{{ monitoring_uids.prometheus }}"
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+      - --storage.tsdb.retention.time=90d
+      - --web.listen-address=127.0.0.1:9090
+      - --web.external-url=https://{{ wg_ip }}/prometheus/
+      - --web.route-prefix=/
+    volumes:
+      - /etc/lims/monitoring/prometheus:/etc/prometheus:ro
+      - /srv/lims/monitoring/prometheus:/prometheus
+
+  alertmanager:
+    image: {{ monitoring_images.alertmanager }}
+    network_mode: host
+    restart: unless-stopped
+    read_only: true
+    cap_drop: [ALL]
+    user: "{{ monitoring_uids.alertmanager }}"
+    command:
+      - --config.file=/etc/alertmanager/alertmanager.yml
+      - --storage.path=/alertmanager
+      - --web.listen-address=127.0.0.1:9093
+      - --web.external-url=https://{{ wg_ip }}/alertmanager/
+      - --web.route-prefix=/
+      - --cluster.listen-address=
+    volumes:
+      # config + templates + SMTP password file live on tmpfs (s11.4)
+      - /run/lims/alertmanager:/etc/alertmanager:ro
+      - /srv/lims/monitoring/alertmanager:/alertmanager
+
+  blackbox:
+    image: {{ monitoring_images.blackbox }}
+    network_mode: host
+    restart: unless-stopped
+    read_only: true
+    cap_drop: [ALL]
+    command:
+      - --config.file=/etc/blackbox/blackbox.yml
+      - --web.listen-address=127.0.0.1:9115
+    volumes:
+      - /etc/lims/monitoring/blackbox:/etc/blackbox:ro
+
+  grafana:
+    image: {{ monitoring_images.grafana }}
+    network_mode: host
+    restart: unless-stopped
+    read_only: true
+    cap_drop: [ALL]
+    user: "{{ monitoring_uids.grafana }}"
+    environment:
+      GF_SERVER_HTTP_ADDR: "127.0.0.1"
+      GF_SERVER_HTTP_PORT: "3000"
+      GF_SERVER_ROOT_URL: "https://{{ wg_ip }}/grafana/"
+      GF_SERVER_SERVE_FROM_SUB_PATH: "true"
+      GF_SECURITY_ADMIN_USER: "admin"
+      GF_SECURITY_ADMIN_PASSWORD__FILE: /run/secrets/grafana_admin_password
+      GF_AUTH_ANONYMOUS_ENABLED: "false"
+      GF_USERS_ALLOW_SIGN_UP: "false"
+      GF_USERS_ALLOW_ORG_CREATE: "false"
+      GF_ANALYTICS_REPORTING_ENABLED: "false"
+      GF_ANALYTICS_CHECK_FOR_UPDATES: "false"
+      GF_ANALYTICS_CHECK_FOR_PLUGIN_UPDATES: "false"
+      GF_NEWS_NEWS_FEED_ENABLED: "false"
+      GF_PLUGINS_PREINSTALL_DISABLED: "true"
+      GF_LOG_MODE: console
+    volumes:
+      - /etc/lims/monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+      - /etc/lims/monitoring/grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - /srv/lims/monitoring/grafana:/var/lib/grafana
+      - /run/lims/secrets/monitoring/grafana_admin_password:/run/secrets/grafana_admin_password:ro
+    tmpfs:
+      - /tmp
+
+  ops-nginx:
+    image: {{ monitoring_images.ops_nginx }}
+    network_mode: host
+    restart: unless-stopped
+    read_only: true
+    cap_drop: [ALL]
+    cap_add: [CHOWN, SETUID, SETGID, NET_BIND_SERVICE]
+    volumes:
+      - /etc/lims/monitoring/nginx/ops.conf:/etc/nginx/conf.d/default.conf:ro
+      - /srv/lims/pki/ops-nginx:/etc/nginx/tls:ro
+      - /run/lims/secrets/monitoring/ops_nginx_htpasswd:/run/secrets/ops_nginx_htpasswd:ro
+    tmpfs:
+      - /var/cache/nginx
+      - /var/run

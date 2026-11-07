@@ -10,6 +10,7 @@ coverage/
 *.pem
 *.key
 supabase/.temp/
+tools/codegen/out/
 .orchestra/inbox/
 .orchestra/logs/
 .orchestra/out/

@@ -4,10 +4,74 @@
 import { AjvCompiler } from '@fastify/ajv-compiler';
 import type { FastifyInstance, FastifyReply, FastifyRequest, FastifyServerOptions, RouteOptions } from 'fastify';
 import openapiGlue from 'fastify-openapi-glue';
+import type { BffKeyVerifier, BffKind } from './auth/bff-key.js';
+import { authenticateBearer, endpointFamilyOf, type ClaimsResolver } from './auth/claims-resolver.js';
+import type { DbClaims } from './auth/claims.js';
+import type { ClientIpResolver } from './auth/client-ip.js';
+import { AuthError } from './auth/errors.js';
+import { isRenderedProblem, LimsError } from './errors.js';
+import type { JwtVerifier } from './auth/jwt.js';
 import type { Handler, HandlerContext } from './module.js';
+import { setErrorCode } from './observability/logging.js';
+
+/** Per-boot auth dependencies (02-TRD §6.5). */
+export interface CoreAuth {
+  readonly verifier?: JwtVerifier;
+  readonly claimsResolver?: ClaimsResolver | undefined;
+  readonly bff: BffKeyVerifier;
+  readonly clientIp: ClientIpResolver;
+}
+interface RequestAuth {
+  readonly clientIp: string;
+  readonly bffKind?: BffKind;
+  claims?: DbClaims;
+}
+const requestAuth = new WeakMap<FastifyRequest, RequestAuth>();
+/** DbClaims of an authenticated request (for the request transaction, T0D-03). */
+export const claimsOf = (req: FastifyRequest): DbClaims | undefined => requestAuth.get(req)?.claims;
+
+const header = (v: unknown): string | undefined => (typeof v === 'string' ? v : undefined);
+const BEARER = /^Bearer ([^\s]+)$/i;
+
+/** securityHandlers for fastify-openapi-glue. Schemes without a handler here fail closed (glue rejects the request). */
+function securityHandlers(auth: CoreAuth): Record<string, (req: FastifyRequest) => Promise<void>> {
+  const out: Record<string, (req: FastifyRequest) => Promise<void>> = {};
+  const { verifier, claimsResolver } = auth;
+  if (verifier) {
+    out.bearerJwt = async (req) => {
+      const m = BEARER.exec(header(req.headers.authorization) ?? '');
+      if (!m) throw new AuthError('auth.unauthenticated');
+      const ra = requestAuth.get(req)!;
+      const { claims } = await authenticateBearer({ verifier, claimsResolver }, m[1]!, {
+        clientIp: ra.clientIp, requestId: String(req.id), endpointFamily: endpointFamilyOf(req.routeOptions.url ?? '', ra.bffKind),
+        ...(ra.bffKind ? { bffKey: ra.bffKind } : {}),
+      });
+      ra.claims = claims;
+    };
+  }
+  return out;
+}
+
+/** glue wraps handler errors in a SecurityError without a code; surface the auth error itself (one scheme list per op). */
+function unwrapSecurity(pre: (req: FastifyRequest, reply: FastifyReply) => Promise<void>) {
+  return async (req: FastifyRequest, reply: FastifyReply) => {
+    try {
+      await pre(req, reply);
+    } catch (e) {
+      const inner = (e as { errors?: unknown[] }).errors?.find((x) => x instanceof Error && 'code' in x);
+      throw inner ?? new AuthError('auth.unauthenticated');
+    }
+  };
+}
 
 /** SP-8 O1 [CONV]. removeAdditional:false is mandatory (REQ-SEC-080). */
-export const AJV_OPTIONS = { removeAdditional: false, coerceTypes: 'array', allErrors: true } as const;
+/** x-coded-set is annotation-only (02-CONVENTIONS.md:573); registered per lead AUTO 2026-11-07T19:16:21 (T-01). */
+export const AJV_OPTIONS = {
+  removeAdditional: false,
+  coerceTypes: 'array',
+  allErrors: true,
+  keywords: ['x-coded-set'],
+} as const;
 /**
  * [CONV] coerceTypes 'array' is only for query/path/header strings (SP-8 O1); JSON bodies are typed, so a body
  * `{"name": 5}` against `type: string` is 400, not silently coerced to "5".
@@ -43,20 +107,25 @@ function withoutRequired(s: unknown): unknown {
   return out;
 }
 
-export class ResponseContractError extends Error {
-  readonly statusCode = 500;
-  readonly code = 'common.internal';
+export class ResponseContractError extends LimsError {
   constructor() {
     super('common.internal');
   }
 }
 
 /** Register before any spec is mounted: O2 + O4 are applied per route in onRoute. */
-export function installRouteHooks(app: FastifyInstance, opts: { responseValidation: boolean }): void {
+export function installRouteHooks(app: FastifyInstance, opts: { responseValidation: boolean; auth: CoreAuth }): void {
   const compile = ajvPool({}, { customOptions: RESPONSE_AJV_OPTIONS });
+  // ctx.clientIp + BFF kind for every request (P-61, D-32). req.ip is the TCP peer: Fastify trustProxy stays off.
+  app.addHook('onRequest', async (req) => {
+    const bffKind = opts.auth.bff.verify(req.headers['x-lims-bff-key']);
+    const clientIp = opts.auth.clientIp({ peer: req.ip, forwardedFor: header(req.headers['x-forwarded-for']), bffKind });
+    requestAuth.set(req, bffKind ? { clientIp, bffKind } : { clientIp });
+  });
   app.addHook('onRoute', (route: RouteOptions) => {
     const schema = route.schema as any;
     if (!schema?.operationId) return; // not a spec route
+    if (typeof route.preHandler === 'function') route.preHandler = unwrapSecurity(route.preHandler as any) as any; // glue security
     // O2: unknown query params -> 400. Never on headers (proxies add headers).
     if (schema.querystring && typeof schema.querystring === 'object') schema.querystring.additionalProperties = false;
     else schema.querystring = { type: 'object', properties: {}, additionalProperties: false };
@@ -70,11 +139,18 @@ export function installRouteHooks(app: FastifyInstance, opts: { responseValidati
     }
     // [CONV] The serializer only strips undeclared fields; it never 500s on a missing `required` field. Contract
     // checking is solely the toggle below, so "off" really means no check (SP-8 O4), and stripping stays on in production.
+    // problem+json bodies are built by errors.ts (always a valid Problem); a declared schema would make the serializer strip them.
+    for (const [status, s] of Object.entries<any>(schema.response ?? {})) {
+      if (!s?.content?.['application/problem+json']) continue;
+      delete s.content['application/problem+json'];
+      if (Object.keys(s.content).length === 0) delete schema.response[status];
+    }
     if (schema.response) schema.response = withoutRequired(schema.response);
     if (!opts.responseValidation) return;
     // Mismatch -> 500 common.internal + log response_contract_violation (02-TRD §6.2 stage 12).
     const operationId: string = schema.operationId;
     const hook = async (req: FastifyRequest, reply: FastifyReply, payload: unknown) => {
+      if (isRenderedProblem(payload)) return payload; // core-built Problem (errors.ts), valid by construction
       const v = validators.get(String(reply.statusCode)) ?? validators.get('default');
       if (v && v(payload)) return payload;
       // No data in the log: only the operation, status and failing schema paths.
@@ -91,15 +167,34 @@ export function installRouteHooks(app: FastifyInstance, opts: { responseValidati
   });
 }
 
+/** x-error-codes of one operation. */
+function errorCodesOf(spec: any, operationId: string): readonly string[] {
+  for (const item of Object.values<any>(spec?.paths ?? {})) {
+    for (const op of Object.values<any>(item ?? {})) if (op?.operationId === operationId) return op['x-error-codes'] ?? [];
+  }
+  return [];
+}
+
 /** Wrap a module handler: HandlerResult { status, body, headers } is applied to the reply (SP-8 O3). */
-function wrap(operationId: string, h: Handler) {
+function wrap(operationId: string, h: Handler, errorCodes: readonly string[]) {
   return async (req: FastifyRequest, reply: FastifyReply) => {
-    const ctx: HandlerContext = { operationId, log: req.log };
+    const ctx: HandlerContext = { operationId, log: req.log, clientIp: requestAuth.get(req)?.clientIp ?? req.ip };
     const r = await h({ params: req.params, query: req.query, headers: req.headers, body: req.body }, ctx);
+    // A non-Problem error result (e.g. readiness 503) logs the declared x-error-codes entry for its status.
+    if (r.status >= 400) {
+      const code = errorCodes.find((c) => new LimsError(c).statusCode === r.status);
+      if (code) setErrorCode(req, code);
+    }
     if (r.headers) reply.headers(r.headers);
     reply.code(r.status);
     return reply.send(r.body);
   };
+}
+
+/** True if any operation (or the document default) requires `scheme`. */
+function usesScheme(spec: any, scheme: string): boolean {
+  const has = (sec: unknown) => Array.isArray(sec) && sec.some((r) => r && Object.hasOwn(r, scheme));
+  return has(spec?.security) || Object.values<any>(spec?.paths ?? {}).some((item) => Object.values<any>(item ?? {}).some((op) => has(op?.security)));
 }
 
 /** Mount one spec. A missing handler throws in operationResolver, so register (and boot) fails (SP-8 O3). */
@@ -108,13 +203,20 @@ export async function mountSpec(
   name: string,
   spec: object,
   handlers: Readonly<Record<string, Handler>>,
+  auth: CoreAuth,
 ): Promise<void> {
-  await app.register(openapiGlue, {
-    specification: spec,
-    operationResolver: (operationId: string) => {
-      const h = Object.hasOwn(handlers, operationId) ? handlers[operationId] : undefined;
-      if (typeof h !== 'function') throw new Error(`module ${name}: missing handler for operationId ${operationId}`);
-      return wrap(operationId, h);
-    },
+  if (!auth.verifier && usesScheme(spec, 'bearerJwt')) throw new Error(`module ${name}: bearerJwt operations need LIMS_CORE_JWT_* config`);
+  await app.register(async (scope) => {
+    // route config.module labels the stage-13 log line and metrics (observability/logging.ts).
+    scope.addHook('onRoute', (route) => { route.config = { ...(route.config as object), module: name }; });
+    await scope.register(openapiGlue, {
+      specification: spec,
+      securityHandlers: securityHandlers(auth),
+      operationResolver: (operationId: string) => {
+        const h = Object.hasOwn(handlers, operationId) ? handlers[operationId] : undefined;
+        if (typeof h !== 'function') throw new Error(`module ${name}: missing handler for operationId ${operationId}`);
+        return wrap(operationId, h, errorCodesOf(spec, operationId));
+      },
+    });
   });
 }

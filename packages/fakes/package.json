@@ -1,0 +1,22 @@
+{
+  "name": "@lims/fakes",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./msw": "./src/msw/server.ts",
+    "./harness": "./src/harness.ts",
+    "./event-spy": "./src/event-spy.ts",
+    "./stubs/*": "./src/stubs/*.ts",
+    "./*": "./src/*.ts"
+  },
+  "scripts": {
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@lims/contracts": "link:../../contracts",
+    "msw": "3.0.3"
+  },
+  "devDependencies": {
+    "vitest": "3.2.4"
+  }
+}

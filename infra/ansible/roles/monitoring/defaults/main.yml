@@ -1,0 +1,33 @@
+---
+# 02-TRD s11 / s3.3. Applied to group `ops` only (ops-1, site B).
+# Secrets come from secrets_render (s8), never from git or inventories:
+#   alert_contacts {oncall, escalation, finance_oncall, watchdog}
+#   tenant_ops_contacts {<tenant_id>: <address>}
+#   alertmanager_smtp_relay {user, password, from}   [CONV keys]
+#   grafana_admin_password, grafana_users [{login, password, role}]
+#   ops_nginx_basic_auth (htpasswd, bcrypt)
+# Inventory (non-secret): smtp_relay_fqdn, origins.*, wg_ip, public_ip.
+smtp_from: "{{ alertmanager_smtp_relay.from }}"
+
+# Pinned versions (02-TRD s2). Digests are added by the release lock (T-23).
+monitoring_images:
+  prometheus: prom/prometheus:v3.16.0
+  alertmanager: prom/alertmanager:v0.34.2
+  grafana: grafana/grafana:13.3.0
+  blackbox: prom/blackbox-exporter:v0.29.1
+  # nginx stable 1.30.x; exact patch pinned here (02-TRD s2 "C1 pins").
+  ops_nginx: nginx:1.30.6
+
+# Grafana local users -> Grafana org role (02-TRD s11.5).
+grafana_role_map:
+  ops_admin: Admin
+  ops_oncall: Editor
+  ops_readonly: Viewer
+
+monitoring_uids:
+  prometheus: 65534
+  alertmanager: 65534
+  grafana: 472
+  ops_nginx: 101  # nginx worker in the official image
+
+monitoring_src: "{{ role_path }}/../../../monitoring"

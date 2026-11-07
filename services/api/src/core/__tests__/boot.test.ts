@@ -143,7 +143,7 @@ describe('core sample module (02-TRD §14): mounted only for LIMS_CORE_ENV=ci + 
   });
 
   it('ci + flag: sample module mounts (done_when: sample module mounts)', async () => {
-    const app = await bootstrap({ config: cfg({ LIMS_CORE_LOAD_SAMPLE_MODULE: '1' }) });
+    const app = await bootstrap({ config: cfg({ LIMS_CORE_LOAD_SAMPLE_MODULE: '1' }), modulesDir: fixturesShared() + '/does-not-exist' });
     try {
       const r = await app.inject(firstRoute());
       expect(r.statusCode).not.toBe(404);
@@ -158,7 +158,7 @@ describe('core sample module (02-TRD §14): mounted only for LIMS_CORE_ENV=ci + 
     ['staging with flag=1', 'staging', { LIMS_CORE_LOAD_SAMPLE_MODULE: '1' }],
     ['production with flag=1', 'production', { LIMS_CORE_LOAD_SAMPLE_MODULE: '1' }],
   ])('%s: sample module is NOT mounted', async (_n, env, extra) => {
-    const app = await bootstrap({ config: cfg({ LIMS_CORE_ENV: env, ...extra }) });
+    const app = await bootstrap({ config: cfg({ LIMS_CORE_ENV: env, ...extra }), modulesDir: fixturesShared() + '/does-not-exist' });
     try {
       const r = await app.inject(firstRoute());
       expect(r.statusCode).toBe(404);

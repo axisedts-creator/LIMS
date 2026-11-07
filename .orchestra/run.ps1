@@ -20,6 +20,9 @@ $ErrorActionPreference = "Continue"
 $Kit  = $PSScriptRoot
 $Root = if ($WorkDir) { $WorkDir } else { Split-Path -Parent $PSScriptRoot }
 Set-Location $Root
+# tool PATH for agents + verify: Git Bash before C:\Windows\System32\bash.exe (WSL launcher), Flutter/Dart, pip --user Scripts
+$extra = @("C:\Program Files\Git\bin","C:\Program Files\Git\usr\bin","C:\flutter\bin") + @(Get-ChildItem "$env:APPDATA\Python\Python*\Scripts" -Directory -ErrorAction SilentlyContinue | ForEach-Object { $_.FullName })
+$env:PATH = ((@($extra | Where-Object { Test-Path $_ })) -join ';') + ';' + $env:PATH
 $O = Join-Path $Root ".orchestra"
 foreach ($d in "notes","out","cr","inbox","logs","tasks") { New-Item -ItemType Directory -Force -Path (Join-Path $O $d) | Out-Null }
 foreach ($d in "tasks","locks","logs") { New-Item -ItemType Directory -Force -Path (Join-Path $StateDir $d) | Out-Null }
@@ -33,9 +36,11 @@ $Cfg = @{
   reviewer = @{ model = "opus";   turns = 25 }
   arbiter  = @{ model = "opus";   turns = 25 }
   lead     = @{ model = "opus";   turns = 20 }
+  merger   = @{ model = "opus";   turns = 40 }
 }
-$Allowed = "Read,Edit,Write,Bash(pnpm *),Bash(npm *),Bash(npx *),Bash(node *),Bash(git status*),Bash(git diff*),Bash(git log*),Bash(go *),Bash(docker *),Bash(supabase *),Bash(psql *),Bash(ls*),Bash(cat *),Bash(grep *),Bash(find *),Bash(mkdir *),Bash(python *),Bash(py *),Bash(pip *),Bash(bash *),Bash(flutter *),Bash(dart *),Bash(yamllint *),Bash(gitleaks *),Bash(ansible-lint *)"
+$Allowed = "Read,Edit,Write,WebFetch,WebSearch,Bash(pnpm *),Bash(npm *),Bash(npx *),Bash(node *),Bash(git status*),Bash(git diff*),Bash(git log*),Bash(go *),Bash(docker *),Bash(supabase *),Bash(psql *),Bash(ls*),Bash(cat *),Bash(grep *),Bash(find *),Bash(mkdir *),Bash(python *),Bash(py *),Bash(pip *),Bash(bash *),Bash(flutter *),Bash(dart *),Bash(yamllint *),Bash(gitleaks *),Bash(ansible-lint *),Bash(curl *),Bash(sha256sum *),Bash(git ls-remote *),Bash(git clone *),Bash(tar *),Bash(atlas *),Bash(git rm *),Bash(git mv *),Bash(cd *),Bash(/c/flutter/bin/flutter *),Bash(/c/flutter/bin/dart *)"
 $TestExempt = '^(infra/tests/run\.sh$|db/tests/isolation/)'   # deliverable scripts that live in test folders (writer/debugger own them)
+$TestNamePat = '(\.test\.|\.spec\.|_test\.go$|_test\.py$|(^|/)test_[^/]+\.py$|__tests__/|(^|/)conftest\.py$)'
 $TestPat = '(__tests__/|\.test\.|\.spec\.|_test\.go$|_test\.py$|(^|/)tests?/|(^|/)test_[^/]+\.py$)'
 $TasksFile = Join-Path $StateDir "tasks\$Chunk.json"
 
@@ -110,7 +115,12 @@ function Enforce([string]$Role) {
     elseif ($f -like ".orchestra/*") { $ok = ($f -like ".orchestra/notes/*" -or $f -like ".orchestra/cr/*" -or $f -like ".orchestra/tasks/*") }
     else {
       $isTest = ($f -match $TestPat) -and ($f -notmatch $TestExempt)
-      switch ($Role) { "tester" { $ok = $isTest } "writer" { $ok = -not $isTest } "debugger" { $ok = -not $isTest } default { $ok = $false } }
+      # a NEW non-test-named file inside a test folder (helper script, checker, generated probe) is a writer deliverable;
+      # tracked files in test folders and every test-named file stay tester-only
+      $isTestName = $f -match $TestNamePat
+      $isNew = -not (git ls-files -- "$f")
+      $writerOk = (-not $isTest) -or ($isNew -and -not $isTestName)
+      switch ($Role) { "tester" { $ok = $isTest } "writer" { $ok = $writerOk } "debugger" { $ok = $writerOk } "merger" { $ok = $true } default { $ok = $false } }
     }
     if (-not $ok) {
       Log "REVERT ($Role may not touch): $f"
@@ -144,7 +154,23 @@ function Integrate([string]$id) {
   $l = Lock "merge"
   try {
     git -C $Integration merge --no-edit $branch 2>&1 | Out-Null
-    if ($LASTEXITCODE -ne 0) { git -C $Integration merge --abort 2>$null; Log "MERGE CONFLICT integrating $id from $branch - left for human"; return }
+    if ($LASTEXITCODE -ne 0) {
+      git -C $Integration merge --abort 2>$null
+      # resolve on the lane side: merge main into the lane, let the merger agent fix conflicts, commit, retry once
+      Log "merge conflict integrating $id - merger agent resolving on $branch"
+      git merge --no-edit main 2>&1 | Out-Null
+      if ($LASTEXITCODE -ne 0) {
+        $ok = Invoke-Agent "merger" $id "Resolve the in-progress merge of main into $branch."
+        # no Enforce here: a merge of main legitimately brings spec/ and .orchestra/ changes; stage what the merger resolved
+        git add -A | Out-Null
+        $left = @(git diff --cached --name-only --diff-filter=U) + @(git grep -l -E '^(<<<<<<<|>>>>>>>) ' -- . ':!spec' 2>$null)
+        if (-not $ok -or @($left | Where-Object { $_ }).Count) { git merge --abort 2>$null; Log "MERGE CONFLICT integrating $id from $branch - merger could not resolve ($(@($left) -join ', ')) - left for human"; return }
+        git add -A | Out-Null; git commit -q --no-edit 2>$null | Out-Null
+        Log "merger resolved conflicts for $id"
+      }
+      git -C $Integration merge --no-edit $branch 2>&1 | Out-Null
+      if ($LASTEXITCODE -ne 0) { git -C $Integration merge --abort 2>$null; Log "MERGE CONFLICT integrating $id from $branch after merger - left for human"; return }
+    }
     if (-not $NoPush) { git -C $Integration push -q origin main 2>$null; if ($LASTEXITCODE -ne 0) { Log "push failed (GitHub login?) - work is safe locally" } }
   } finally { Unlock $l }
   git merge --no-edit main 2>&1 | Out-Null
@@ -207,7 +233,10 @@ try {
     $script:Base = (git rev-parse HEAD).Trim()
     $brief = ($t | Select-Object id,title,files,done_when,tests,acs | ConvertTo-Json -Depth 4) + "`nPlan: spec/chunks/$Chunk/06-IMPLEMENTATION-PLAN.md (row $($t.id)). PRD: spec/chunks/$Chunk/01-PRD.md. Security: spec/chunks/$Chunk/07-SECURITY.md."
     $ld = Join-Path $StateDir "lead-decisions.md"
-    if (Test-Path $ld) { $hit = @(Select-String -Path $ld -Pattern ("(^|[^A-Za-z0-9-])" + [regex]::Escape($t.id) + "([^A-Za-z0-9-]|$)") | ForEach-Object { $_.Line }); if ($hit.Count) { $brief += "`n`nLEAD DECISIONS (binding; they override the spec text for this task; cite them in code comments):`n" + ($hit -join "`n") } }
+    # lead decisions: global file (C0-era, ids are unique) + per-chunk file lead-decisions-<chunk>.md (ids only unique inside a chunk)
+    $idRx = "(^|[^A-Za-z0-9-])" + [regex]::Escape($t.id) + "([^A-Za-z0-9-]|$)"
+    $hit = @(@($ld, (Join-Path $StateDir "lead-decisions-$Chunk.md")) | Where-Object { Test-Path $_ } | ForEach-Object { Get-Content $_ -Encoding UTF8 } | Where-Object { $_ -match $idRx })
+    if ($hit.Count) { $brief += "`n`nLEAD DECISIONS (binding; they override the spec text for this task; cite them in code comments):`n" + ($hit -join "`n") }
     Log "START $($t.id) $($t.title)"
     $st = $t.status; $rr = [int]$t.reviewRounds
 
@@ -235,7 +264,7 @@ try {
         Move-Item -Force $lf (Join-Path $O "notes\$($t.id)-lead-$(Get-Date -Format yyyyMMddHHmmss).md") -ErrorAction SilentlyContinue
         if ($verdict -match '^APPROVED_(RETEST|REWRITE)' -and $lv.Count -ge 2 -and $lv[1].Trim()) {
           $dl = Lock "lead-decisions"
-          try { Add-Content (Join-Path $StateDir "lead-decisions.md") "- AUTO $(Get-Date -Format s) [lead agent; human reviews at next check] $($t.id): $($lv[1].Trim())" -Encoding UTF8 } finally { Unlock $dl }
+          try { Add-Content (Join-Path $StateDir "lead-decisions-$Chunk.md") "- AUTO $(Get-Date -Format s) [lead agent; human reviews at next check] $($t.id): $($lv[1].Trim())" -Encoding UTF8 } finally { Unlock $dl }
           Move-Item -Force $crf (Join-Path $O "cr\$($t.id).resolved-$(Get-Date -Format yyyyMMddHHmm).md")
           Commit "[lead] $($t.id) $verdict"
           $ns = if ($verdict -match 'RETEST') { "todo" } else { "tested" }

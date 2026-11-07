@@ -1,0 +1,32 @@
+---
+# 02-TRD s11.3 backup rules. T-10 adds RestoreDrillOverdue (AC-13.2,
+# 04 I3 "last drill < 35 days"); T-19 extends this file with the rest of
+# the backup family. Every rule: summary + runbook_url + team. The metric is
+# written by infra/drill/report.sh only on a drill that succeeded with 0
+# failed checks.
+groups:
+  - name: backup
+    rules:
+      - alert: RestoreDrillOverdue
+        expr: >-
+          time() - lims_ops_restore_drill_last_success_timestamp_seconds
+          > 35 * 86400
+        labels:
+          severity: warn
+          team: ops
+        annotations:
+          summary: >-
+            No successful restore drill for more than 35 days
+            (04 I3); pages at 40 days.
+          runbook_url: "infra/runbooks/backup.md#restoredrilloverdue"
+      - alert: RestoreDrillOverdue
+        expr: >-
+          time() - lims_ops_restore_drill_last_success_timestamp_seconds
+          > 40 * 86400
+        labels:
+          severity: page
+          team: ops
+        annotations:
+          summary: >-
+            No successful restore drill for more than 40 days (04 I3).
+          runbook_url: "infra/runbooks/backup.md#restoredrilloverdue"

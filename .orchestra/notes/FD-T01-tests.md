@@ -5,3 +5,4 @@
 - Export names the writer must use: `manifest` (index.ts, worker index.ts), `handlers` (handlers/index.ts, same object as manifest.handlers), `navManifest` (nav.manifest.ts). permissions.ts/config.ts export shape is free; keys/codes must be spec-verbatim.
 - Assumption: "nav entry hidden" = `navManifest.entries` is `[]` (NavEntry has no hidden flag). If a different mechanism is intended, file a CR.
 - Expected now: all fail (files missing). Not testable here: tenant-flag config, live auth with claims.
+- Revised per FD-T01-ruling.md: the 3 bootstrap tests now use `bootConfig()` = loadConfig with LIMS_CORE_JWT_ALG/ISSUER/AUDIENCE/KEY_FILE (ES256, synthetic key from core/auth/__tests__/helpers.ts). Assertions unchanged.

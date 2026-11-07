@@ -8,6 +8,7 @@ import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { parse } from 'yaml';
 import { afterEach, describe, expect, it } from 'vitest';
+import { AUD, ISS, makeKeys } from '../../../../core/auth/__tests__/helpers.js';
 import { bootstrap } from '../../../../core/bootstrap.js';
 import { loadConfig } from '../../../../core/config.js';
 import { isLimsError } from '../../../../core/errors.js';
@@ -35,6 +36,12 @@ const PERMISSIONS = [
 ];
 // 02-TRD §3.1 index.ts / 03-IC §3.1–3.3.
 const PRODUCES = ['frontdesk.order.created.v1', 'frontdesk.order.items_changed.v1', 'frontdesk.order.cancelled.v1'];
+
+// Core fails boot closed without a JWT verifier (C0 TRD:945, :623) and frontdesk.yaml uses bearerJwt: pass all four (synthetic key).
+const keys = makeKeys('ES256');
+const bootConfig = () => loadConfig({
+  LIMS_CORE_ENV: 'ci', LIMS_CORE_JWT_ALG: 'ES256', LIMS_CORE_JWT_ISSUER: ISS, LIMS_CORE_JWT_AUDIENCE: AUD, LIMS_CORE_JWT_KEY_FILE: keys.verifyKeyFile,
+});
 
 const apps: Array<{ close(): Promise<unknown> }> = [];
 afterEach(async () => { await Promise.all(apps.splice(0).map((a) => a.close())); });
@@ -84,14 +91,14 @@ describe('manifest (02-TRD §3.1, §6.3 autoloader rules)', () => {
 
 describe('done_when: core boots with module (AC-0D-1.1/1.2 through the real bootstrap, real repo root)', () => {
   it('bootstrap with default repoRoot/modulesDir resolves (every operationId has a handler)', async () => {
-    const app = await bootstrap({ config: loadConfig({ LIMS_CORE_ENV: 'ci' }) });
+    const app = await bootstrap({ config: bootConfig() });
     apps.push(app);
     const { manifest } = await load(FILES.index);
     expect(Object.keys(manifest.handlers).sort()).toEqual(operationIds(spec()).sort());
   });
 
   it('every frontdesk operation is mounted (never 404/405) and answers unauthenticated calls with 400/401, never by running a stub', async () => {
-    const app = await bootstrap({ config: loadConfig({ LIMS_CORE_ENV: 'ci' }) });
+    const app = await bootstrap({ config: bootConfig() });
     apps.push(app);
     const ops = operations();
     expect(ops.length).toBe(29);
@@ -106,7 +113,7 @@ describe('done_when: core boots with module (AC-0D-1.1/1.2 through the real boot
   });
 
   it('mounts nothing outside the spec (REQ-SEC-099)', async () => {
-    const app = await bootstrap({ config: loadConfig({ LIMS_CORE_ENV: 'ci' }) });
+    const app = await bootstrap({ config: bootConfig() });
     apps.push(app);
     expect((await app.inject({ method: 'GET', url: '/v1/frontdesk/__nothing__' })).statusCode).toBe(404);
     expect((await app.inject({ method: 'GET', url: '/v1/frontdesk/orders/../../etc/passwd' })).statusCode).toBe(404);

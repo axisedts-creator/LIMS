@@ -252,6 +252,16 @@ test('c17-db-forensics: KVM + emulator runner are gated, emulator action pinned,
   assert.ok(steps.indexOf(kvm) < steps.indexOf(emu), 'KVM before emulator');
 });
 
+test('c17-db-forensics: provisions Flutter SDK (gated, version from packages/ui-flutter/pubspec.yaml) before the emulator step', () => {
+  const steps = stepsOf(prJob('c17-db-forensics'));
+  const setup = steps.findIndex((st) => /uses:\s*subosito\/flutter-action@\S+/.test(st));
+  assert.ok(setup >= 0, 'no flutter-action step; Flutter is not on the hosted image');
+  assert.match(steps[setup], /^\s*-?\s*if:\s*steps\.plan\.outputs\.run == 'true'/m, 'Flutter setup must be gated on the plan step');
+  assert.match(steps[setup], /flutter-version-file:\s*["']?packages\/ui-flutter\/pubspec\.yaml["']?/, 'Flutter version from the C0 pin (single pin)');
+  const emu = steps.findIndex((st) => /android-emulator-runner@\S+/.test(st));
+  assert.ok(setup < emu, 'Flutter setup must come before the emulator step');
+});
+
 // ---------- release-only jobs ----------
 test('c17-release-binary-scan: only on phlebo-v* tags, runs scan_apk.sh, never in pr.yml', () => {
   assert.ok(!('c17-release-binary-scan' in pr().jobs), 'release-only job must not be a PR job');

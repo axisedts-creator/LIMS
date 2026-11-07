@@ -5,3 +5,4 @@
 - Test-side contract: Go jobs (c7-go-build, c7-go-windows, c7-go-sessions) need `actions/setup-go` with `go-version-file: apps/bridge-agent/go.mod` before the command (C7 TRD s2.1 pins Go 1.26 in go.mod + CI image).
 - Result now: 107 pass, 3 fail (the 3 setup-go tests: pr.yml has no Go toolchain step). T0A-10 already wired the jobs; chunk scripts themselves are not checked (chunk-owned).
 - Not tested: real GitHub execution, Flutter SDK provisioning (no spec pin found), one-PR-per-CR (process).
+Review round: added c17-db-forensics Flutter-SDK setup test (fails until pr.yml gets subosito/flutter-action step).

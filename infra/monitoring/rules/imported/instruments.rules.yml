@@ -27,8 +27,8 @@ groups:
           team: ops
         annotations:
           summary: >-
-            A bridge agent rejected a config in the last 15 min
-            (possible tampering).
+            Bridge agent rejected a signed configuration (possible
+            tampering)
           runbook_url: >-
             infra/runbooks/instruments.md#instrumentsagentconfigrejected
       - alert: InstrumentsDeviceAuthFailureSpike

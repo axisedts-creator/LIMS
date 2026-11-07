@@ -16,7 +16,7 @@
 Consequences:
 
 - **T0B-12**: buckets of 08 §4.8 private, no end-user `storage.objects` policies (05-SCHEMA §8 "until SP-4 passes" branch stays in force). REQ-SEC-034 is met by the `ctx.storage` adapter (first path segment = `ctx.tenantId`, module bucket prefix) plus private buckets; tests target the adapter (C0-0D) and "authenticated role reads nothing" on `storage.objects`.
-- **C6 / C4**: their TRDs already use the server-side path (C6 02-TRD §CR block "no client-side Storage access in any case"; C4 07-SECURITY streams files through F21a/B29a). No new CR is raised; CR-C2-011 / R12b already cover it. Open point below on one C4 wording.
+- **C6 / C4**: their TRDs already use the server-side path (C6 02-TRD §CR block "no client-side Storage access in any case"; C4 07-SECURITY streams files through F21a/B29a). No C6 CR needed (CR-C2-011 / R12b already server-side); C4 wording CR: `.orchestra/cr/SP-4.nonblocking.md`.
 - **REQ-SEC-035**: `ctx.storage.signedUrl` stays internal; signed URLs never reach a browser or a log (logger denylist `url`). This record contains no signed URL.
 - **REQ-SEC-036 / T0B-14**: `realtime.messages` policies stay gated and Flutter-only (04 S5). Realtime enforcement works, but the Flutter apps hold an opaque LIMS session token, not a GoTrue JWT (08 R10, CR-C17-004), and no JWT carries `tenant_id`. T0B-14 does not create Realtime policies; C16/C17 keep polling (C16 02-TRD) until a CR defines a tenant-bearing Realtime token. Phase-3 relevance, so this can lag.
 
@@ -94,6 +94,6 @@ Reading: every cross-tenant read and write attempt was denied, by RLS (403 `new 
 
 ## Open points
 
-- C4 07-SECURITY REQ-SEC-034 row says "CHECK + storage policy". Under api-proxied there is no storage policy; the guards are the CHECK plus the `ctx.storage` adapter. This is a wording fix for the C4 doc owner, with no behaviour change.
+- C4 07-SECURITY REQ-SEC-034 row says "CHECK + storage policy". Under api-proxied there is no storage policy; the guards are the CHECK plus the `ctx.storage` adapter. This is a wording fix for the C4 doc owner, with no behaviour change; filed as `.orchestra/cr/SP-4.nonblocking.md`.
 - Probed on the CLI dev stack, not the C1 self-hosted compose stack. Re-run when `infra/compose/supabase/upstream/UPSTREAM.lock` lands, only if a future CR proposes a tenant-bearing token for Storage/Realtime.
 - To revisit storage-policies or Realtime policies, raise a CR against 08 R10 for a token issuer that carries `tenant_id` and is verifiable by Storage/Realtime. Today's probe shows the enforcement side would work.

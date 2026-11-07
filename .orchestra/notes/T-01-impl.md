@@ -1,6 +1,7 @@
-# T-01 impl (writer)
-- Files: infra/{README.md,THIRD-PARTY-OPS.md,.gitleaks.toml,.gitignore}, infra/ci/*.sh (12 stubs), infra/secrets/.sops.yaml, infra/secrets/schema/{dev,staging,prod}.secrets.schema.yaml, infra/tests/run.sh (LD-06).
-- This round (review items 1-3): untracked committed .pyc (`git rm --cached`) + new infra/.gitignore `__pycache__/`; gitleaks allowlist narrowed to `infra/tests/static/__pycache__/` (checked: without allowlist a stale .pyc gives 2 leaks, with it 0); run.sh:3 and README:20 now state the LD-17 ansible-lint exception.
-- [CONV] .sops.yaml age recipients are placeholders (sops rejects = fail closed); real keys at key ceremony. Free-name ids as before.
-- Ran: `bash infra/tests/run.sh` = gitleaks ok, yamllint ok, ansible-lint SKIP (LD-17), static 24 OK. `python -m unittest discover -s infra/tests/static` = 27 run, OK (1 skip).
-- Open: ansible-lint / CI=true run on ops runner not verified locally.
+# T-01 impl (C5 writer) — NOTE: overwrites C1's T-01-impl.md (same id collision as T-01-tests.md)
+- Files: api `modules/lab/{index,permissions,config}.ts`, `modules/lab/handlers/index.ts`; worker `jobs/lab/index.ts`.
+- [CONV] 55 stubs generated in handlers/index.ts from one explicit operationId list (no 55 placeholder files); each throws LimsError `common.internal`.
+- [CONV] worker: 9 §7.2 consumer stubs reject `common.internal`; `tasks: {}`, `crontab: []` (§8 tasks come with their tasks; no Phase-1 crontab).
+- [CONV] config: bool only `true`/`false`; ints decimal digits >= 1; error names the LIMS_LAB_* key. No LabPort in manifest yet.
+- Tests: api 71/73, worker 3/5. BLOCKED: test regex bug (dispute `T-01-dispute.md` #1) + core ajv `x-coded-set` (CR `.orchestra/cr/T-01.md`).
+- tsc (services/api): no errors in lab files. Full suite/lint not run.

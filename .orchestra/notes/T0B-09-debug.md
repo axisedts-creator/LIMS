@@ -12,3 +12,5 @@ Round 4: unchanged. 001 lacks `SET LOCAL ROLE lims_owner` and uses `ON CONFLICT 
 No 0B-owned fix: a hand-edit of generated 001 is overwritten and fails the codegen drift check. CR .orchestra/cr/T0B-09-001-generator.md is still unresolved; no code change.
 
 Round 5: unchanged. Only failing test = 001 lacks `SET LOCAL ROLE lims_owner` (test l.73, valid per ruling/LD-30). Cause still tools/codegen/gen-permissions.ts:129 (C0-0C-owned, `DO UPDATE`, no SET LOCAL ROLE). 010 now follows LD-30 (lims_app), so earlier contradiction is gone. No 0B-owned fix; CR still open; no code change.
+
+Round 6: unchanged. Only failure = 001 lacks `SET LOCAL ROLE lims_owner` (test l.73, valid per ruling). Cause = tools/codegen/gen-permissions.ts:129 (C0-0C-owned; still `DO UPDATE`, no role switch). CR T0B-09-001-generator.md still open; hand-edit of generated 001 would be overwritten/fail drift check. No code change.

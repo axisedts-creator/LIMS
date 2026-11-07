@@ -165,9 +165,12 @@ describe('R1 filters, sort, paging', () => {
   });
   it('a malformed / tampered cursor -> 400 common.invalid_cursor (no SQL, no echo)', async () => {
     const planted = "PLANTED';DROP TABLE reporting.reports;--";
-    for (const c of ['not-a-cursor', planted, Buffer.from('{"k":"x","i":1}').toString('base64url'), 'A'.repeat(600)]) {
+    // review C6-T15 round 2 #1: well-formed ISO shape but not a real date (would reach `$10::timestamptz` -> Postgres 22008 -> 500)
+    const impossibleDate = Buffer.from(JSON.stringify({ k: '2026-99-99T00:00Z', i: RID(1), s: '-updated_at' })).toString('base64url');
+    for (const c of ['not-a-cursor', planted, Buffer.from('{"k":"x","i":1}').toString('base64url'), 'A'.repeat(600), impossibleDate]) {
       const s = readSetup(fleet(2)); const e = await rejection(list(s, { cursor: c }));
       expect(e?.code).toBe('common.invalid_cursor'); expect(JSON.stringify({ m: e?.message, d: e?.details })).not.toContain('PLANTED');
+      expect(s.stmtText()).not.toMatch(/from\s+reporting\.reports/i);
     }
   });
   it.each([['limit', '0'], ['limit', '201'], ['limit', 'abc'], ['family', 'other'], ['sort', 'patient_name'], ['display_status', 'bogus'], ['has_review_flag', 'maybe'], ['registered_at_from', 'yesterday'], ['centre_id', 'not-a-uuid']])

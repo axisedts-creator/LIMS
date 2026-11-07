@@ -25,7 +25,10 @@ KEY=${REPLICA_SSH_KEY:-/run/lims/secrets/object_replica/ssh_key}
 KNOWN=${REPLICA_KNOWN_HOSTS:-/etc/lims/object_replica_known_hosts}
 
 SSH="ssh -p 2222 -i $KEY -o BatchMode=yes -o StrictHostKeyChecking=yes -o UserKnownHostsFile=$KNOWN"
-FLAGS=(-a --ignore-existing --partial --checksum-choice=xxh128 -e "$SSH")
+# 02-TRD s9.5 lists a bare partial flag; we use --partial-dir instead (CR .orchestra/cr/T-11.md).
+# With --ignore-existing, a half file kept under its final name is skipped forever.
+# --partial-dir keeps the half file in a side dir and still resumes (03-APP-FLOW: partial transfer resumes).
+FLAGS=(-a --ignore-existing --partial-dir=.rsync-partial --checksum-choice=xxh128 -e "$SSH")
 
 if [ "$mode" = verify ]; then
   # No --ignore-existing here: existing files must be compared.

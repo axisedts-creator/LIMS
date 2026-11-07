@@ -33,7 +33,28 @@ from pathlib import Path
 
 import yaml
 
-ROOT = Path(__file__).resolve().parents[3]
+
+class _ComposeLoader(yaml.SafeLoader):
+    """LD-42: vendored upstream compose files use !reset/!override; pass the plain value through."""
+
+
+def _passthrough(loader, node):
+    if isinstance(node, yaml.ScalarNode):
+        return loader.construct_scalar(node) if node.value not in ("", "null", "~") else None
+    if isinstance(node, yaml.SequenceNode):
+        return loader.construct_sequence(node, deep=True)
+    return loader.construct_mapping(node, deep=True)
+
+
+_ComposeLoader.add_constructor("!reset", _passthrough)
+_ComposeLoader.add_constructor("!override", _passthrough)
+
+
+def _load_compose(path):
+    return yaml.load(Path(path).read_text(encoding="utf-8"), Loader=_ComposeLoader)
+
+
+ROOT =Path(__file__).resolve().parents[3]
 SUPA = ROOT / "infra" / "compose" / "supabase"
 UP = SUPA / "upstream"
 LOCK = UP / "UPSTREAM.lock"
@@ -367,8 +388,8 @@ class UpstreamLockTest(unittest.TestCase):
     def test_lock_images_match_upstream_compose_tags(self):
         for rel in REQUIRED_UPSTREAM[:2]:
             self.assertTrue((UP / rel).is_file(), "missing file infra/compose/supabase/upstream/%s" % rel)
-        base = yaml.safe_load((UP / "docker-compose.yml").read_text(encoding="utf-8"))["services"]
-        pgb = yaml.safe_load((UP / "docker-compose.pgbouncer.yml").read_text(encoding="utf-8"))["services"]
+        base = _load_compose(UP / "docker-compose.yml")["services"]
+        pgb = _load_compose(UP / "docker-compose.pgbouncer.yml")["services"]
         imgs = lock()["images"]
         for s in sorted(LOCK_IMAGES):
             raw = (pgb.get(s) or base.get(s) or {}).get("image")

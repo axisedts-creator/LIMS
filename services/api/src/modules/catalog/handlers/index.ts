@@ -6,6 +6,7 @@ import type { Handler } from '../../../core/module.js';
 import { analyteVersionsHandlers } from './analyteVersions.handlers.js';
 import { importsHandlers } from './imports.handlers.js';
 import { mastersHandlers } from './masters.handlers.js';
+import { referrersHandlers } from './referrers.handlers.js';
 import { testsHandlers } from './tests.handlers.js';
 
 /** 503 common.service_unavailable, detail not_implemented (06-PLAN T-01). Never echoes the request. */
@@ -42,13 +43,7 @@ export const handlers: Readonly<Record<string, Handler>> = Object.freeze({
   getPanelDetail: notImplemented,
   updatePanel: notImplemented,
   replacePanelMembers: notImplemented,
-  searchDoctors: notImplemented,
-  listDoctors: notImplemented,
-  createDoctor: notImplemented,
-  getDoctor: notImplemented,
-  updateDoctor: notImplemented,
-  verifyDoctor: notImplemented,
-  mergeDoctor: notImplemented,
+  ...referrersHandlers, // T-15: #60–#66 (doctors)
   listCreditParties: notImplemented,
   createCreditParty: notImplemented,
   getCreditParty: notImplemented,

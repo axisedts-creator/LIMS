@@ -1,0 +1,7 @@
+# T-15 impl (writer)
+- Files: infra/auditstore/{schema.sql,drift.py,digest.sql,gen-schema.sh,DECISION.md}; infra/tests/internal/auditstore_roles.sql; role infra/ansible/roles/auditstore (defaults, tasks, handlers, files/lims-auditstore-{metrics,digest}.sh, templates psql/psql-super + digest/metrics units); site.yml play "Audit store" (data:dr) after pgBackRest.
+- [CONV] subscription owner audit_writer + run_as_owner=true + pg_create_subscription + CREATE on db (no owner membership); slot pre-created, create_slot=false in both profiles (LD-45). Verdict CONFIRMED by PG docs; live test NOT run.
+- [CONV] schema.sql: lims_monitor created only if absent (lean shares cluster); REVOKE CONNECT/TEMP on :"DBNAME" from PUBLIC; lims_monitor SELECT(tenant_id, occurred_at) on audit.audit_log for the lag metric.
+- [CONV] digest.sql digests yesterday only, re-verifies D-6..D, mismatches -> ops_audit 'digest_mismatch' (env default 'dev' if -v env unset); counter = count of those rows.
+- Open: secrets schema lacks audit_writer/audit_digest/audit_reader/auditstore_superuser passwords; pg_hba.conf.j2 (T-04) needs a scram line for lims_audit_ship from localhost in lean and breaks on empty groups['dr']; no CI job auditstore-drift; digests not yet shipped off-host to backup host / VictoriaLogs; gen-schema.sh never executed (no PG here).
+- Tests: 62/62 static green; live test py_compile only; yamllint clean on T-15 files. Full static suite: 18 fail/2 err, none in T-15 files (T-14 probes/memory, T-20/T-21 promtool, upstream .env.example gitleaks, others' yamllint).

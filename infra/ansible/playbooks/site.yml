@@ -24,6 +24,15 @@
   roles:
     - pgbackrest
 
+# 02-TRD s10.3 (T-15): append-only audit store + subscription audit_ship.
+# LD-45: full = own instance on the dr host; lean/dev = database lims_audit
+# on the data host. The role gates on auditstore_host_group.
+- name: Audit store
+  hosts: data:dr
+  become: true
+  roles:
+    - auditstore
+
 # 02-TRD s9.5 (T-12): streaming standby on the dr host, seeded by
 # pg_basebackup (CR-C1-T09 (a)). Gated by standby_enabled: LD-45 `lean`
 # and dev install nothing.

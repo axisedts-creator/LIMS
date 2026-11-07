@@ -1,7 +1,7 @@
-# T0-03 tests (revised per LD-04 / LD-05)
+# T0-03 tests (revised per LD-04 / LD-05 / LD-13 / LD-15)
 - File: tests/monorepo/T0-03.pins.test.mjs (node:test, no deps). Run: `node --test tests/monorepo/T0-03.pins.test.mjs` (verify: .orchestra/notes/T0-03-verify.cmd).
-- LD-04: table now read from `db/meta/decisions/T0-03-dependencies.md` (whole file; one markdown table, 6 CV §15.1 cols, a row per §2.2/[PIN-C0] item, exact version, allowed licence, ISO last-release date, alternatives). spec/ untouched.
-- LD-05: new test requires rows for the 14 T0D-12 CR pins (react-aria-components 1.22.1, react/react-dom 19.3.1, @fontsource/noto-sans* 5.3.0, RTL 16.3.3, user-event 14.6.8, @types/react(-dom) 19.3.0, axe-core 4.14.0, jsdom 31.0.0, typescript 7.0.2, vitest 5.1.0). Fonts may be rows named "Noto Sans…" or the @fontsource name. Lockfile test covers pnpm-lock vs package.json once packages/ui deps land.
-- Changed: banned-list tests now allow `bikram-sambat` ONLY as devDependency of packages/test-fixtures (CV §15.3 line 1195: test oracle); new test forbids any other use / app-code import. Previously failed on that legit oracle.
-- Expected now: 11 of 25 fail (decisions file absent -> 7 table tests, lockfile specifiers vitest/ajv/yaml, pubspec.lock absent, root pubspec `sdk: ^3.6.0`, pubspec exactness); 14 pass.
-- Not testable: CI gate 13 wiring, docker digests (vacuous), network egress. Local node is v25.8.0 vs .nvmrc 26.x (installed-tree checks).
+- LD-04: table read from `db/meta/decisions/T0-03-dependencies.md`. spec/ untouched.
+- LD-05/LD-13: pin test now requires rows for T0D-12 + T0D-01 + T0D-14 CR pins (adds fastify 5.12.8, fastify-openapi-glue 4.12.0, @fastify/ajv-compiler 4.0.7, yaml 2.8.1, @types/node 26.6.6, next 16.4.5, server-only 0.0.1, @playwright/test 1.65.0). New test: pnpm-workspace.yaml lists `services/*` and `apps/*`.
+- LD-15: ALLOWED adds `PostgreSQL`, `BlueOak-1.0.0`. pubspec.lock test is its own test; skipped with `needs flutter pub get (human)` only if `flutter` is not on PATH (flutter IS installed here, so it runs and fails until `flutter pub get` is committed).
+- Expected now: 6 of 27 fail (pins table rows for LD-13 CRs, installed-vs-table, every-dep-has-row, workspace globs, pubspec.lock, lock specifiers); 21 pass.
+- Not testable: CI gate 13 wiring, docker digests, network egress. Local node v25.8.0 vs .nvmrc 26.x.

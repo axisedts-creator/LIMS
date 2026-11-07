@@ -5,6 +5,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync, existsSync, readdirSync, statSync } from 'node:fs';
+import { spawnSync } from 'node:child_process';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -20,7 +21,9 @@ const EXACT_ANY = /^v?\d+(\.\d+)+([-+][0-9A-Za-z.-]+)?$/; // tools / fonts / SDK
 const RANGE_CHARS = /[\^~><*|]|\bx\b|latest|\|\||\s-\s/i;
 
 const ALLOWED = ['MIT', 'Apache-2.0', 'BSD-2-Clause', 'BSD-3-Clause', 'ISC', '0BSD', 'Zlib',
-  'Unicode-DFS', 'Unicode-3.0', 'OFL-1.1'];
+  'Unicode-DFS', 'Unicode-3.0', 'OFL-1.1',
+  // LD-15 (2026-11-07) T0-03: pgTAP (test-only) and lru-cache (dev-only) are permissive SPDX ids.
+  'PostgreSQL', 'BlueOak-1.0.0'];
 const REVIEW = ['MPL-2.0', 'EPL-2.0', 'LGPL', 'CC-BY'];
 const BANNED_LICENCE = /(?<!L)GPL|AGPL|SSPL|BUSL|\bFSL\b|Commons[ -]Clause|non-?commercial|source-available|UNLICENSED|UNLICENSE[D]?\b|proprietary/i;
 
@@ -204,8 +207,11 @@ const T0D12_PINS = {
   '@testing-library/react': '16.3.3', '@testing-library/user-event': '14.6.8',
   '@types/react': '19.3.0', '@types/react-dom': '19.3.0', 'axe-core': '4.14.0', 'jsdom': '31.0.0',
   'typescript': '7.0.2', 'vitest': '5.1.0',
+  // LD-13 (2026-11-07) T0-03: pins from CR-C0-0D-002 (T0D-01) and CR-C0-0D-003 (T0D-14).
+  'fastify': '5.12.8', 'fastify-openapi-glue': '4.12.0', '@fastify/ajv-compiler': '4.0.7', 'yaml': '2.8.1',
+  '@types/node': '26.6.6', 'next': '16.4.5', 'server-only': '0.0.1', '@playwright/test': '1.65.0',
 };
-test('dependencies table (LD-05): T0D-12 pins are recorded with the exact CR versions', () => {
+test('dependencies table (LD-05/LD-13): T0D-12, T0D-01, T0D-14 pins are recorded with the exact CR versions', () => {
   const { rows } = loadTable();
   const byName = new Map(rows.map((r) => [clean(r[0]).toLowerCase(), clean(r[1])]));
   const errs = [];
@@ -302,9 +308,22 @@ test('Node base image / CI image references are never :latest and carry a digest
 });
 
 // ---------- lockfiles ----------
-test('lockfiles committed: pnpm-lock.yaml and pubspec.lock exist and are not git-ignored', () => {
+// LD-13 (2026-11-07) T0-03: services/* and apps/* are workspace members so their pins land in pnpm-lock.yaml.
+test('pnpm-workspace.yaml lists services/* and apps/* (LD-13)', () => {
+  const ws = read(p('pnpm-workspace.yaml'));
+  for (const g of ['services/*', 'apps/*']) {
+    assert.ok(ws.split(/\r?\n/).some((l) => l.replace(/['"\s]/g, '') === '-' + g), g + ' missing from packages:');
+  }
+});
+
+// LD-15 (2026-11-07) T0-03: pubspec.lock needs a human-run `flutter pub get` when flutter is not installed.
+const HAS_FLUTTER = spawnSync('flutter', ['--version'], { shell: true, stdio: 'ignore' }).status === 0;
+test('pubspec.lock exists (REQ-SEC-129; CV §15.1)', { skip: HAS_FLUTTER ? false : 'needs flutter pub get (human)' }, () => {
+  assert.ok(existsSync(p('pubspec.lock')), 'pubspec.lock');
+});
+
+test('lockfiles committed: pnpm-lock.yaml exists; lockfiles are not git-ignored', () => {
   assert.ok(existsSync(p('pnpm-lock.yaml')), 'pnpm-lock.yaml');
-  assert.ok(existsSync(p('pubspec.lock')), 'pubspec.lock (REQ-SEC-129; CV §15.1)');
   const gi = existsSync(p('.gitignore')) ? read(p('.gitignore')) : '';
   assert.ok(!/^\s*(pnpm-lock\.yaml|pubspec\.lock)\s*$/m.test(gi), 'lockfiles must not be git-ignored');
 });

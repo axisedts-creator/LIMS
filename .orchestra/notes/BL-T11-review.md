@@ -1,9 +1,12 @@
-CHANGES
+APPROVE
 
-1. services/api/src/modules/billing/service/refund.service.ts:113 — invented rule. TRD §5 B10 / §6.5 define no credit-order refusal, and they list no `common.validation_failed` for B10. Delete the `billing_mode === 'credit'` line. The refundable check on line 115 already covers it: a credit order with no patient payments has refundable <= 0, so it gets `billing.ledger_reversal_invalid` as the spec says. Add one test: a credit-mode order with refundable > 0 can be requested, and one with refundable <= 0 returns 409 `billing.ledger_reversal_invalid`.
-2. B10 `common.feature_disabled` (TRD §5 B10, §6.5: "gateway methods while C15 is live") is not implemented, and no CR was filed for it. `g_cs_payment_methods`/`cs_payment_methods` (05-SCHEMA) have no column marking a method as a gateway method. File `.orchestra/cr/BL-T11.md` using the template in spec/program/04-CHANGE-REQUESTS.md, asking which field identifies a gateway method. Do not invent a heuristic. The 'refunded' resolution without `refund_ledger_entry_id` (B36) and the B36 list default status are also undefined; put them in the same CR.
+Re-review of 58531f19..70bcaaac (after review fixes b6eb050e, 70bcaaac).
 
-Notes (non-blocking):
-- Commit eea6d890 also renames `.orchestra/cr/C6-T20.md` and `.orchestra/cr/T0D-09.md` to `*.resolved-*`. These are not writer paths and were probably picked up by `git add -A`. Leave them alone if the lead made the renames; otherwise revert them.
-- Verified: names in the DTOs, routes and error codes match 03/openapi/errors.yaml. The tenant is bound in every statement. Reversal copies exactly the guard's column list, and cash_session follows the guard's rule. The refund cap is re-read under the order_balances lock at approval. Approver != requester is checked before any write. A refund ledger row is written only in B10a. Activity details carry no free text or reference. 132/132 BL-T11 tests pass.
-- Not verified: real SQL, RLS and the guard trigger (tests use fakes only). Idempotency and the 40P01 retry for B10/B10a rely on the core pipeline and core/db/tx.
+1. Fixed: invented credit-order refusal removed from refund.service.ts. New tests 8b (credit, refundable > 0, so 750.00 is pending and 750.01 gets 409) and 8c (credit, refundable <= 0, so 409 `billing.ledger_reversal_invalid` and nothing stored) cover it.
+2. Fixed: `.orchestra/cr/BL-T11.md` filed in template form. It covers the gateway-method marker and C15-live detection for B10 `common.feature_disabled`, the B36 'refunded' rule without `refund_ledger_entry_id`, and the B36 list default status. Non-blocking. Nothing invented.
+
+Checks run: BL-T11 suite (6 files), 134/134 pass. tsc reports 0 errors in BL-T11 files. Existing TS2835 errors in contracts/ports/* are outside this chunk and not from this task.
+
+Notes (non-blocking, carried over):
+- The renames of C6-T20/T0D-09 to *.resolved-* in eea6d890 are still present. The lead should confirm they made them.
+- Not verified: real SQL, RLS and the guard trigger (fakes only). Idempotency and the 40P01 retry rely on the core pipeline.

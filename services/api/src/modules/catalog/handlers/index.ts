@@ -3,6 +3,7 @@
 // them from __tests__/probes/pending.json (CR-C3-008; the list must be empty at M6).
 import { LimsError } from '../../../core/errors.js';
 import type { Handler } from '../../../core/module.js';
+import { importsHandlers } from './imports.handlers.js';
 
 /** 503 common.service_unavailable, detail not_implemented (06-PLAN T-01). Never echoes the request. */
 const notImplemented: Handler = async () => {
@@ -105,14 +106,8 @@ export const handlers: Readonly<Record<string, Handler>> = Object.freeze({
   createInstrumentCodeMap: notImplemented,
   updateInstrumentCodeMap: notImplemented,
   upsertInstrumentCodeMaps: notImplemented,
-  downloadImportTemplate: notImplemented,
-  createImport: notImplemented,
-  listImports: notImplemented,
-  getImport: notImplemented,
-  listImportIssues: notImplemented,
-  downloadImportReport: notImplemented,
+  ...importsHandlers,
   commitImport: notImplemented,
-  discardImport: notImplemented,
   createExport: notImplemented,
   listExports: notImplemented,
   getExport: notImplemented,

@@ -3,6 +3,6 @@
 - `lib/lims_shared.dart` barrel exports bsdate, error_codes.g, errors, money, routes.g, uuidv7.
 - `lib/src/bsdate/bsdate.dart`: BsDateError removed; throws LimsException with `LimsErrorCodes.commonDateOutOfRange` / `commonValidationFailed`, message moved to safeDetail.
 - Added `analysis_options.yaml` = `include: ../../analysis_options.yaml` [CONV] (single source of CV §1.3 strict flags).
-- Ran: `dart test` (4 files) = 43/43 pass; `dart analyze --fatal-infos` on lib + 3 other tests = clean.
-- OPEN: `dart analyze` fails on `test/money_golden_test.dart` (11 strict-casts errors, test-owned) — see T0A-11-dispute.md.
+- Ran T0A-11-verify.cmd steps after ruling fix (ca60286): `dart analyze --fatal-infos` = No issues found; `dart test` (4 files) = 43/43 pass.
+- Dispute resolved by T0A-11-ruling.md (test-side cast fix); no impl change needed.
 - Money top-level `add/sub/compare/format` exported unprefixed; consumers should prefix-import (per tester note).

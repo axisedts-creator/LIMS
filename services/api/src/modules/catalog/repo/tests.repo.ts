@@ -2,10 +2,11 @@
 // Every value is a bind parameter; table, column and ORDER BY text come only from fixed constants in service/tests.service.ts.
 // One table per statement; every statement carries an explicit `tenant_id = $1` predicate on top of RLS (07-SECURITY S-1).
 interface Tx { query(text: string, values?: unknown[]): Promise<{ rows: any[] }> }
-export type Table = 'orderables' | 'tests' | 'panels' | 'test_specimen_types' | 'analytes' | 'analyte_versions' | 'departments';
+export type Table = 'orderables' | 'tests' | 'panels' | 'panel_members' | 'test_specimen_types' | 'analytes' | 'analyte_versions' | 'departments' | 'specimen_types' | 'containers';
 
 export interface FindOpts {
   ids?: readonly string[];                          // id = ANY(...)
+  anyOf?: { col: string; values: readonly string[] };   // <col> = ANY(...); col is a fixed constant of the caller (T-12)
   after?: { col: string; desc: boolean; value: unknown; id: string };   // keyset
   order?: string; limit?: number; lock?: boolean;
 }
@@ -15,6 +16,7 @@ export async function find(tx: Tx, table: Table, cols: readonly string[], tenant
   const bind = (v: unknown) => { values.push(v); return `$${values.length}`; };
   const where = ['tenant_id = $1', ...Object.entries(eq).map(([c, v]) => `${c} = ${bind(v)}`)];
   if (o.ids) where.push(`id = ANY(${bind(o.ids)})`);
+  if (o.anyOf) where.push(`${o.anyOf.col} = ANY(${bind(o.anyOf.values)})`);
   if (o.after) where.push(`(${o.after.col}, id) ${o.after.desc ? '<' : '>'} (${bind(o.after.value)}, ${bind(o.after.id)})`);
   let sql = `SELECT ${cols.join(', ')} FROM catalog.${table} WHERE ${where.join(' AND ')}`;
   if (o.order) sql += ` ORDER BY ${o.order}`;
@@ -34,7 +36,7 @@ export async function insert(tx: Tx, table: Table, rows: readonly Record<string,
 
 /** UPDATE … WHERE tenant_id AND id [AND version]; returns the updated row or undefined. */
 export async function update(
-  tx: Tx, table: 'orderables' | 'tests', cols: readonly string[],
+  tx: Tx, table: 'orderables' | 'tests' | 'panels' | 'analytes' | 'analyte_versions', cols: readonly string[],
   k: { tenantId: string; id: string; actorId: string; expectedVersion?: number }, patch: Record<string, unknown>,
 ): Promise<any> {
   const values: unknown[] = [k.tenantId, k.id, k.actorId];
@@ -48,6 +50,10 @@ export async function update(
 
 export async function deleteSpecimens(tx: Tx, tenantId: string, testId: string): Promise<void> {
   await tx.query('DELETE FROM catalog.test_specimen_types WHERE tenant_id = $1 AND test_id = $2', [tenantId, testId]);
+}
+
+export async function deleteMembers(tx: Tx, tenantId: string, panelId: string): Promise<void> {
+  await tx.query('DELETE FROM catalog.panel_members WHERE tenant_id = $1 AND panel_id = $2', [tenantId, panelId]);
 }
 
 /** Versions that can be shown on a test: the draft, and the version in force at `asOf` ([effective_from, effective_to)). */

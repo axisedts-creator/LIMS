@@ -10,8 +10,9 @@ Static part = a pg_hba first-match simulator (the "connection matrix per role/so
 The live part (real container) is infra/tests/integration/test_t04_live.py, CI only (LIMS_T04_LIVE=1).
 
 Template contract (variables the templates may use; anything else renders as UNDEF<...> and FAILS):
-  app_db_name, wg_ip['data-1'|'app-1'|'dr-1'|'ops-1'] (also 'app_1' style keys), db_primary_wg_ip,
-  docker_subnets.{edge,app,auth,render,db,egress}, archive_timeout_s, inventory_hostname.
+  app_db_name, wg_ip (scalar = this host's IP, like the inventories), groups (data/app/dr/ops -> [host]),
+  hostvars[host].wg_ip, db_primary_wg_ip, docker_subnets.{edge,app,auth,render,db,egress},
+  archive_timeout_s, inventory_hostname. dev has groups['dr'] == [] (no dr-1 lines then).
 Stdlib + jinja2 + PyYAML only. Missing file = FAIL (never skip).
 Run from repo root: python -B -m unittest discover -s infra/tests/static -p "test_t04_*.py" -v
 """
@@ -39,10 +40,10 @@ class _Undef(jinja2.ChainableUndefined):
     __html__ = __str__
 
 
-def _ctx(app_db="postgres"):
-    wg = dict(WG)
-    wg.update({k.replace("-", "_"): v for k, v in WG.items()})
-    return {"app_db_name": app_db, "wg_ip": wg, "db_primary_wg_ip": WG["data-1"],
+def _ctx(app_db="postgres", dr=True):
+    groups = {"data": ["data-1"], "app": ["app-1"], "dr": ["dr-1"] if dr else [], "ops": ["ops-1"]}
+    return {"app_db_name": app_db, "wg_ip": WG["data-1"], "groups": groups,
+            "hostvars": {h: {"wg_ip": ip} for h, ip in WG.items()}, "db_primary_wg_ip": WG["data-1"],
             "docker_subnets": dict(SUBNETS), "archive_timeout_s": 60, "inventory_hostname": "data-1"}
 
 
@@ -51,12 +52,12 @@ def _find(glob):
     return hits[0] if hits else None
 
 
-def render(glob, app_db="postgres"):
+def render(glob, app_db="postgres", dr=True):
     p = _find(glob)
     if p is None:
         raise AssertionError("missing file infra/database/postgresql/%s" % glob)
     env = jinja2.Environment(undefined=_Undef, keep_trailing_newline=True)
-    out = env.from_string(p.read_text(encoding="utf-8")).render(**_ctx(app_db))
+    out = env.from_string(p.read_text(encoding="utf-8")).render(**_ctx(app_db, dr))
     bad = re.findall(r"UNDEF<[^>]*>", out)
     if bad:
         raise AssertionError("%s uses variables outside the template contract: %s" % (p.name, sorted(set(bad))))
@@ -234,6 +235,15 @@ class HbaTest(unittest.TestCase):
             hit = [r for r in tail if r["method"] == "reject" and r["addr"] and r["addr"].version == ver
                    and r["addr"].prefixlen == 0 and r["db"] == ["all"] and r["user"] == ["all"]]
             self.assertTrue(hit, "last two entries must be 'host all all 0.0.0.0/0 reject' and '::/0 reject'")
+
+    def test_dev_without_dr_group_renders_no_dr_lines(self):  # dev inventory: dr: {}
+        rules = parse_hba(render("pg_hba.conf*", dr=False))
+        self.assertNotIn(WG["dr-1"], render("pg_hba.conf*", dr=False))
+        self.assertTrue(denied(decide(rules, "host", "replication", "lims_replicator", WG["dr-1"])))
+        self.assertTrue(denied(decide(rules, "host", "postgres", "lims_audit_ship", WG["dr-1"])))
+        self.assertEqual(decide(rules, "host", "postgres", "authenticator", WG["app-1"]), "scram-sha-256")
+        for ver, last in ((4, rules[-2]), (6, rules[-1])):
+            self.assertEqual((last["method"], last["addr"].version, last["addr"].prefixlen), ("reject", ver, 0))
 
     def test_ops1_has_no_entry(self):  # TRD s7.7 / s5.5, AC-08 (ops-1 rejected)
         txt = render("pg_hba.conf*")

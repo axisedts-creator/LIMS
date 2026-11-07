@@ -9,6 +9,16 @@ import { getRole } from './getRole.js';
 import { listPermissions } from './listPermissions.js';
 import { listRoles } from './listRoles.js';
 import { updateRole } from './updateRole.js';
+import { createBranch } from './createBranch.js';
+import { createCentre } from './createCentre.js';
+import { deactivateBranch } from './deactivateBranch.js';
+import { deactivateCentre } from './deactivateCentre.js';
+import { listBranches } from './listBranches.js';
+import { listCentres } from './listCentres.js';
+import { reactivateBranch } from './reactivateBranch.js';
+import { reactivateCentre } from './reactivateCentre.js';
+import { updateBranch } from './updateBranch.js';
+import { updateCentre } from './updateCentre.js';
 
 const OPERATION_IDS = [
   // auth (identity_auth)
@@ -45,6 +55,8 @@ const notImplemented = (operationId: string): Handler => async () => {
 
 const implemented: Partial<Record<IdentityOperationId, Handler>> = {
   listPermissions, listRoles, createRole, getRole, updateRole, deactivateRole,   // T14
+  listBranches, createBranch, updateBranch, deactivateBranch, reactivateBranch,                  // T15
+  listCentres, createCentre, updateCentre, deactivateCentre, reactivateCentre,                    // T15
 };
 
 export const handlers: Readonly<Record<IdentityOperationId, Handler>> = Object.freeze(

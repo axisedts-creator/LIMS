@@ -91,7 +91,7 @@ SELECT pg_temp.ins('reporting.settings', jsonb_build_object('id', pg_temp.uid(30
 SELECT pg_temp.ins('reporting.channel_accounts', jsonb_build_object('id', pg_temp.uid(371), 'tenant_id', pg_temp.ta(), 'channel', 'sms', 'provider_kind', 'recording', 'secret_ref', 'zz/secret-ref', 'callback_token_sha256', pg_temp.by('44')));
 SELECT pg_temp.ins('reporting.channel_accounts', jsonb_build_object('id', pg_temp.uid(372), 'tenant_id', pg_temp.tb(), 'channel', 'sms', 'provider_kind', 'recording', 'secret_ref', 'zz/secret-ref-b', 'callback_token_sha256', pg_temp.by('55')));
 -- reports: R1 (A, centre a201, order 11), R2 (A, centre a202, order 12), RB (B)
-SELECT pg_temp.ins('reporting.reports', jsonb_build_object('id', pg_temp.uid(r.n), 'tenant_id', r.t, 'centre_id', r.c, 'branch_id', r.br, 'order_id', r.o, 'patient_id', r.p, 'partner_id', pg_temp.uid(70), 'family', 'laboratory',
+SELECT pg_temp.ins('reporting.reports', jsonb_build_object('id', pg_temp.uid(r.n), 'tenant_id', r.t, 'centre_id', r.c, 'branch_id', r.br, 'order_id', pg_temp.uid(r.o), 'patient_id', pg_temp.uid(r.p), 'partner_id', pg_temp.uid(70), 'family', 'laboratory',
     'order_source', 'front_desk', 'registered_at', now() - interval '5 hours', 'registration_no', 'R-' || r.o, 'centre_code', 'ZZ' || r.n, 'patient_display_name', 'Test Patient'))
   FROM (VALUES (311, pg_temp.ta(), pg_temp.id('00000000a201'), pg_temp.id('00000000a101'), 11, 1), (312, pg_temp.ta(), pg_temp.id('00000000a202'), pg_temp.id('00000000a101'), 12, 1),
                (313, pg_temp.tb(), pg_temp.id('00000000b201'), pg_temp.id('00000000b101'), 13, 2)) r(n, t, c, br, o, p);
@@ -145,6 +145,9 @@ SELECT is(pg_temp.b('SELECT 1 FROM reporting.reports', 'n'), 'n=1', 'C6 check 11
 SELECT is(pg_temp.a('SELECT 1 FROM ' || tt.q, 'n') <> 'n=0', true, 'C6 check 11: control: tenant A sees rows of ' || tt.q) FROM tt;
 
 -- ===================================================================================================================================== C6 check 11: non-staff actors + no claims (AC-0B-3.7; CR-C13-011, 08 R3, review fix #34)
+-- T0B-10.C6 ruling item 5: these helpers read Wave-2 tables (C0 05-SCHEMA:551-577, bodies compiled late per C0:400); stub them inside the test transaction (rolled back), as the spec's own check did (C6 05-SCHEMA:1209).
+CREATE OR REPLACE FUNCTION app.current_partner_id() RETURNS uuid LANGUAGE sql STABLE AS $$ SELECT NULL::uuid $$;
+CREATE OR REPLACE FUNCTION app.engagement_patient_ids() RETURNS uuid[] LANGUAGE sql STABLE AS $$ SELECT '{}'::uuid[] $$;
 SELECT is(pg_temp.x('lims_app', pg_temp.cl(pg_temp.ta(), k.t), 'SELECT 1 FROM ' || tt.q, 'n'), 'n=0', 'C6 check 11: ' || k.t || ' (no actor link) sees 0 rows of ' || tt.q) FROM tt CROSS JOIN (VALUES ('partner'),('patient')) k(t);
 SELECT is(pg_temp.x('lims_app', pg_temp.cl(pg_temp.ta(), 'portal'), 'SELECT 1 FROM ' || tt.q, 'n'), 'n=0', 'C6 check 11: portal actor without session claims sees 0 rows of ' || tt.q) FROM tt;
 SELECT is(pg_temp.x('lims_app', NULL, 'SELECT 1 FROM ' || tt.q, 'n'), 'n=0', 'AC-0B-3.7: no claims -> 0 rows of ' || tt.q) FROM tt;
@@ -340,7 +343,8 @@ SELECT is(pg_temp.x('lims_api', NULL, format($$ SELECT 1 FROM app.reporting_rede
 SELECT is((SELECT count(*)::int FROM audit.audit_log WHERE schema_name = 'reporting' AND table_name = 'portal_links' AND row_id = pg_temp.uid(341) AND action = 'UPDATE'), 0,
   'C6 check 14 / §1 note: redeem-counter updates are not row-audited (conditional audit trigger)');
 SELECT is((SELECT count(*)::int FROM audit.audit_log WHERE schema_name = 'reporting' AND table_name = 'portal_links' AND row_id = pg_temp.uid(341) AND action = 'INSERT'), 1, 'the link INSERT is audited (portal_links__audit_ins)');
--- app.reporting_ingest_provider_callback (needs the graphile_worker schema: app.enqueue_job)
+-- app.reporting_ingest_provider_callback: LD-49 (b) -- the DEFINER no longer enqueues and returns the resolved tenant id; the C6 API handler enqueues under withTenantScope (covered by C6-T29).
+SELECT todo_start('CR T0B-10.C6 -> LD-49 (b); covered by C6-T29');
 SELECT is(pg_temp.x('lims_api', NULL, format($$ SELECT app.reporting_ingest_provider_callback('recording', decode(%L, 'hex'), %L::jsonb) $$, repeat('44', 32),
   jsonb_build_array(jsonb_build_object('id', pg_temp.uid(601), 'provider_message_id', 'pm-1', 'status_raw', 'ok', 'mapped_status', 'sent', 'occurred_at', now()))::text), 's'), '1',
   'C6 check 14: provider callback with a valid token stores the event and returns the count');
@@ -355,6 +359,7 @@ SELECT ok(pg_temp.guc_empty('app.pre_callback_token_sha256') AND pg_temp.guc_emp
 SELECT is((SELECT count(*)::int FROM reporting.provider_events WHERE tenant_id = pg_temp.tb()), 0, 'the callback of tenant A''s account wrote nothing for tenant B');
 SELECT alike(pg_temp.x('lims_app', pg_temp.cl(pg_temp.ta()), 'UPDATE reporting.provider_events SET mapped_status = ''failed''', 'w'), 'EP0001|immutable_row%', 'provider_events: only applied_at / delivery_id / ignored_reason may change (AC-0B-4.1)');
 SELECT is(pg_temp.a('UPDATE reporting.provider_events SET applied_at = now(), delivery_id = ' || quote_literal(pg_temp.uid(361)), 'w'), 'n=1', 'provider_events apply columns are updatable');
+SELECT * FROM todo_end();
 -- audit rows (AC-0B-5.1 / 5.2) and the supersede / revoke lifecycle
 SELECT is(pg_temp.a('UPDATE reporting.reports SET review_flag = ''released_item_removed'', version = version + 1 WHERE id = ' || quote_literal(pg_temp.uid(312))), 'n=1', 'C6 check 14: reports lifecycle update');
 SELECT is((SELECT array_agg(c ORDER BY c) FROM audit.audit_log a, unnest(a.changed_columns) c WHERE a.schema_name = 'reporting' AND a.table_name = 'reports' AND a.row_id = pg_temp.uid(312) AND a.action = 'UPDATE'),

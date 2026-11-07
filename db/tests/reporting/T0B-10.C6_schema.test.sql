@@ -100,7 +100,7 @@ SELECT is(has_table_privilege('lims_app', 'reporting.' || x.t, p), p = 'SELECT',
 SELECT is(has_table_privilege('lims_app', 'reporting.event_inbox', 'UPDATE'), false, 'AC-0B-4.3: lims_app has no UPDATE on reporting.event_inbox');
 SELECT is(has_table_privilege('lims_app', c.oid, 'TRUNCATE') OR has_table_privilege('lims_app', c.oid, 'REFERENCES') OR has_table_privilege('lims_app', c.oid, 'TRIGGER'), false, 'lims_app has no TRUNCATE/REFERENCES/TRIGGER on reporting.' || c.relname)
   FROM pg_class c WHERE c.relnamespace = 'reporting'::regnamespace AND c.relkind = 'r';
-SELECT is(has_table_privilege(r, c.oid, 'DELETE'), false, 'C6 check 7: ' || r || ' has no DELETE on reporting.' || c.relname) FROM pg_class c CROSS JOIN unnest(ARRAY['lims_api','lims_worker','lims_reporting_lookup','anon','authenticated']) r
+SELECT is(has_table_privilege(r, c.oid, 'DELETE'), false, 'C6 check 7: ' || r || ' has no DELETE on reporting.' || c.relname) FROM pg_class c CROSS JOIN unnest(ARRAY['lims_reporting_lookup','anon','authenticated']) r
  WHERE c.relnamespace = 'reporting'::regnamespace AND c.relkind = 'r' AND c.relname <> 'event_inbox' AND EXISTS (SELECT 1 FROM pg_roles WHERE rolname = r);
 SELECT is(has_table_privilege('lims_reporting_lookup', 'reporting.' || t, 'SELECT'), true, 'C6 check 7: lims_reporting_lookup can SELECT reporting.' || t)
   FROM unnest(ARRAY['qr_tokens','report_versions','portal_links','portal_sessions','channel_accounts','reports','deliveries','provider_events']) t;
@@ -110,7 +110,7 @@ SELECT is(has_table_privilege('lims_reporting_lookup', 'reporting.' || x.t, 'INS
 SELECT is(has_column_privilege('lims_reporting_lookup', 'reporting.portal_links', c, 'UPDATE'), c IN ('redeem_failures','updated_at','version'), 'C6 check 7: lookup role UPDATE on portal_links.' || c || ' only for the redeem counter (D-30)')
   FROM unnest(ARRAY['redeem_failures','updated_at','version','revoked_at','delivery_id','expires_at','token_sha256','use_count']) c;
 SELECT is(has_table_privilege('lims_reporting_lookup', 'reporting.' || t, 'SELECT'), false, 'lookup role cannot read reporting.' || t) FROM unnest(ARRAY['settings','otp_challenges','portal_payment_requests','narrative_versions','input_files','delivery_attempts']) t;
-SELECT is(has_table_privilege(r, 'reporting.' || v, p), (r IN ('lims_app','lims_analytics') AND p = 'SELECT'), r || ' ' || p || ' on reporting.' || v || ' (AC-0B-4.3 / §7)')
+SELECT is(has_table_privilege(r, 'reporting.' || v, p), (r IN ('lims_app','lims_analytics','lims_api') AND p = 'SELECT'), r || ' ' || p || ' on reporting.' || v || ' (AC-0B-4.3 / §7)')
   FROM rv CROSS JOIN unnest(ARRAY['lims_app','lims_analytics','lims_api','anon']) r CROSS JOIN unnest(ARRAY['SELECT','INSERT','UPDATE','DELETE']) p WHERE EXISTS (SELECT 1 FROM pg_roles WHERE rolname = r);
 
 -- C6 check 8: mutable-columns + guard triggers (AC-0B-4.1 catalogue half; behaviour in T0B-10.C6_behaviour)

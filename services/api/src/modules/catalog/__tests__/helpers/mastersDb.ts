@@ -24,8 +24,8 @@ export const TABLES = ['departments', 'specimen_types', 'containers', 'methods']
 export type Table = (typeof TABLES)[number];
 const TABLE_RE = new RegExp(`catalog\\.(${TABLES.join('|')})\\b`, 'i');
 
-const pgError = (code: string, message: string, constraint?: string) => Object.assign(new Error(message), { code, constraint });
-const tick = () => new Promise<void>((r) => setImmediate(r));
+export const pgError = (code: string, message: string, constraint?: string) => Object.assign(new Error(message), { code, constraint });
+export const tick = () => new Promise<void>((r) => setImmediate(r));
 export const ID = (n: number) => `0190c300-0000-7000-8000-${n.toString(16).padStart(12, '0')}`;
 
 // ------------------------------------------------------------------------------------------------ constraints
@@ -79,7 +79,7 @@ function tokenize(s: string): Tok[] {
 type Env = { row: Row | undefined; values: readonly unknown[]; now: Date };
 type Ev = (e: Env) => any;
 const cmpVal = (a: any, b: any): number => (a instanceof Date || b instanceof Date ? +a - +b : a < b ? -1 : a > b ? 1 : 0);
-function cmpAny(a: any, b: any): number | undefined {
+export function cmpAny(a: any, b: any): number | undefined {
   if (Array.isArray(a) && Array.isArray(b)) {
     for (let i = 0; i < a.length; i++) { const c = cmpAny(a[i], b[i]); if (c === undefined) return undefined; if (c !== 0) return c; }
     return 0;
@@ -88,7 +88,7 @@ function cmpAny(a: any, b: any): number | undefined {
   return cmpVal(a, b);
 }
 
-function parseExpr(sql: string): Ev {
+export function parseExpr(sql: string): Ev {
   const t = tokenize(sql);
   let i = 0;
   const peek = () => t[i];
@@ -168,7 +168,7 @@ function parseExpr(sql: string): Ev {
   return ev;
 }
 /** Splits on top-level commas (outside parentheses and quotes). */
-function splitTop(s: string): string[] {
+export function splitTop(s: string): string[] {
   const out: string[] = []; let d = 0, q = false, cur = '';
   for (const ch of s) {
     if (ch === "'") q = !q;
@@ -180,7 +180,7 @@ function splitTop(s: string): string[] {
   return out;
 }
 
-class RowLock {
+export class RowLock {
   owner: number | undefined;
   private readonly q: Array<{ id: number; go: () => void }> = [];
   async acquire(id: number) {

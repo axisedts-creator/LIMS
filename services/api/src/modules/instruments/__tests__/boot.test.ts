@@ -233,8 +233,9 @@ describe('API-T01 boot against the real repo (default modulesDir, real instrumen
       expect(r.statusCode, `${url}: ${r.body}`).toBe(401);
       expect(JSON.parse(r.body).code).toMatch(/^auth\./);
     }
-    const enrol = await app.inject({ method: 'POST', url: '/v1/instruments/agent/enrolments', payload: {} });
+    const enrol = await app.inject({ method: 'POST', url: '/v1/instruments/agent/enrolments', payload: { host_fingerprint_sha256: '3f2a'.repeat(16), agent_version: '1.2.0', launcher_version: '1.0.1', os_version: 'Windows 10.0.19045' } });
     expect(enrol.statusCode, enrol.body).toBe(401);
+    expect(JSON.parse(enrol.body).code).toMatch(/^auth\./);
     expect((await app.inject({ method: 'GET', url: '/v1/instruments/not-in-spec' })).statusCode).toBe(404);
   }, 30_000);
 });

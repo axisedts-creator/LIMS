@@ -1,5 +1,8 @@
 -- T0B-12 live Storage probes (REQ-SEC-034; 08 §4.8, R12b, R26; 05-SCHEMA §8; SP-4 api-proxied => buckets exist, NO end-user policy on storage.*).
--- Run from the repo root on a bootstrapped + migrated test DB as superuser (pgTAP in schema `extensions`):
+-- LD-54 (CR-C0-T0B-12 option b): buckets are NOT created by SQL. This is the first-deploy smoke probe: run it only AFTER
+--   db/provisioning/create-storage-buckets.mjs has ensured the 11 buckets through the Storage API (see db/provisioning/README.md).
+--   It is not part of the DB harness suite order and is not executed by the T0B-12 task.
+-- Run from the repo root on a bootstrapped + migrated + provisioned DB as superuser (pgTAP in schema `extensions`):
 --   bash db/tests/run-suites.sh db/tests/storage/T0B-12_storage.test.sql
 -- Synthetic tenants/objects only; everything is rolled back. Never disables RLS.
 BEGIN;

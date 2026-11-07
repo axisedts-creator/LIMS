@@ -1,0 +1,12 @@
+{
+  "receivedAt": "2026-11-07T04:20:00.000Z",
+  "capturedAt": "2026-11-07T04:20:00.000Z",
+  "instrumentTimezone": "Asia/Kathmandu",
+  "qcSampleIdPatterns": [
+    "^QC-"
+  ],
+  "options": {
+    "barcode": "E2600000042",
+    "attachment_instrument_code": "HISTO-IMG"
+  }
+}

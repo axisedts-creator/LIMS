@@ -13,6 +13,16 @@ export function toDto(row: Record<string, any>, fields: readonly string[]): Reco
   return out;
 }
 
+// Unit / ValueSet / ValueSetValue (catalog.yaml). Global rows carry no id/version (02-TRD: "id (tenant rows)").
+type R = Record<string, any>;
+const valueDto = (v: R) => ({ code: v.code, display: v.display, sort_order: Number(v.sort_order), is_active: v.is_active === true });
+export const globalUnitDto = (r: R) => ({ code: r.code as string, display: r.display, scope: 'global', is_active: r.is_active === true });
+export const unitDto = (r: R) => ({ id: r.id, ...globalUnitDto(r), scope: 'tenant', version: Number(r.version) });
+export const globalSetDto = (r: R, values: R[]) => ({
+  code: r.code as string, display: r.display, is_ordered: r.is_ordered === true, scope: 'global', is_active: r.is_active === true, values: values.map(valueDto),
+});
+export const setDto = (r: R, values: R[]) => ({ id: r.id, ...globalSetDto(r, values), scope: 'tenant', version: Number(r.version) });
+
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 
 /** base64url(JSON [sort, last sort value, last id]). */

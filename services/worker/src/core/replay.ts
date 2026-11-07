@@ -2,10 +2,11 @@
 // Re-enqueues evt.<module>.<event_type> consumer jobs for stored events. Stays inside the event_log retention (<= 90 days) and
 // enqueues only through app.enqueue_job, with the fan-out's job shape (02-TRD §7.3): payload ids only, job_key '<event_id>:<module>'
 // (a pending original dedupes; the consumer inbox makes a re-delivery a no-op). event_log is tenant-RLS, so tenants come from
-// app.cron_tenant_ids() and each tenant is read and enqueued under withTenantScope(tenant, <module system actor>) (08 A23.1).
+// app.cron_tenant_ids() and each tenant page tx opens directly with tenant claims for the module system actor, as consumer.ts
+// does (withTenantScope is reserved for the 08 R10 item 4 / A25 D-214 core-internal uses; replay is not one of them).
 import { pathToFileURL } from 'node:url';
 import { EVENT_CONSUMERS } from '../../../../contracts/ports/generated/events.js';
-import { platformClaims } from './deadletter.js';
+import { platformClaims, tenantClaims } from './deadletter.js';
 import { ENQUEUE_SQL, EVT_MAX_ATTEMPTS, consumerIdentifier } from './fanout.js';
 import type { WorkerDeps } from './tasklist.js';
 
@@ -54,7 +55,7 @@ export async function replayEvents(deps: WorkerDeps, input: ReplayInput): Promis
     const tenantId = String(r.tenant_id ?? r.cron_tenant_ids);
     let cursor: string | null = null;
     for (;;) {
-      const page: number = await deps.db.tx({ claims: core, operation: 'core.replay' }, (tx) => deps.withTenantScope(tx, tenantId, actor, async () => {
+      const page: number = await deps.db.tx({ claims: tenantClaims(actor, tenantId), operation: 'core.replay' }, async (tx) => {
         const rows = (await tx.query(PAGE_SQL, [tenantId, eventType, since.toISOString(), cursor])).rows;
         for (const e of rows) {
           const eventId = String(e.event_id);
@@ -62,7 +63,7 @@ export async function replayEvents(deps: WorkerDeps, input: ReplayInput): Promis
           cursor = eventId;
         }
         return rows.length;
-      }));
+      });
       enqueued += page;                                                 // includes jobs app.enqueue_job deduped on job_key
       if (page < PAGE) break;
     }

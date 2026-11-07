@@ -1,7 +1,7 @@
-CHANGES
-
-Range 76d3ee2..HEAD changes only .orchestra notes and cr renames. No T0A-06 code, test or fixture changed. So I reviewed the T0A-06 owned paths as they stand at HEAD. The previous item is still open (T0A-06-impl.md round 4 says BLOCKED).
-
-1. packages/shared-dart/test/bsdate_golden_test.dart:18 — done_when "both sides pass" is still not shown. The Dart side has never been run: the writer was blocked (T0A-06-impl.md:6), and this reviewer session's `dart test` call was also refused approval. The risk is still real. packages/shared-dart/lib/src/bsdate/bsdate.dart:3 takes its data from nepali_utils 3.0.8, but the golden's 107 LD-08 months use the @remotemerge/nepali-date-converter@1.2.7 values. Any month where the two disagree will fail, and so will 2099-12 if nepali_utils lacks B.S. 2100-01. Fix: a session with dart approval runs `cd packages/shared-dart && dart pub get && dart test test/bsdate_golden_test.dart` and records the real output in T0A-06-impl.md. If any month fails, bsdate.dart must follow the golden (LD-08: the package value wins), for example with an LD-08-commented month-length override for the failing keys. Do not edit the golden to fit nepali_utils.
-
-Checked OK (re-run at HEAD): `node --test packages/shared-ts/test/bsdate.test.mjs` gives 20/20 pass (golden, range, fiscal year, isolation, pins). review.json, the golden, the LD-08 citations, the deps record, the verify.cmd scope (LD-07) and owned paths are unchanged since the last review and still OK. No secrets or PHI.
+APPROVE
+- Diff f4d11bf..HEAD: Dart LD-08 first-day override (2093-10 -> 2037-01-15, matches golden row l.6884-6887), review.json tests accept resolved_by 'LD-08' only with verify_before_golive:true (TS + Dart), pubspec.lock populated (root Dart workspace, C0-0A owned).
+- done_when: golden-2000-2099.json and review.json tracked in git; all entries resolved (LD-08 flagged).
+- Reviewer RAN: `node --test packages/shared-ts/test/bsdate.test.mjs` 20/20 pass; `dart test test/bsdate_golden_test.dart` 9/9 pass.
+- LD-08 packages recorded in db/meta/decisions/T0-03-dependencies.md (l.47 @remotemerge/nepali-date-converter 1.2.7 MIT; l.58 nepali_utils 3.0.8 MIT).
+- N/A for this task: RLS, permissions, idempotency, rate tier. No PHI/secrets; only owned paths.
+- Non-blocking: all 107 LD-08 months (B.S. 2084–2097, incl. 2093-09/10 where libraries disagree) must be checked against an official calendar before go-live.

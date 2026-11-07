@@ -66,6 +66,10 @@ void main() {
       final entries = (_json('review.json')['entries'] as List).cast<Map<String, dynamic>>();
       for (final e in entries) {
         expect(e['status'], 'resolved', reason: '${e['key']}');
+        // LD-08 / LD-20: package-sourced entries must be flagged verify_before_golive.
+        if (e['resolved_by'] == 'LD-08') {
+          expect(e['verify_before_golive'], true, reason: '${e['key']}');
+        }
       }
     });
   });

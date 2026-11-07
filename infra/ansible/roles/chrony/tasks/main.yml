@@ -1,0 +1,68 @@
+---
+# 02-TRD s5.6 (AC-29.2): chrony everywhere, ops-1 is the internal server.
+- name: Time sources are configured (ntp_upstreams has no default)
+  ansible.builtin.assert:
+    that:
+      - "'ops' not in group_names or (ntp_upstreams | default([]) | length) > 0"
+    fail_msg: >-
+      Set ntp_upstreams (list) in inventories/<env>/group_vars/all.yml;
+      02-TRD s15 gives no default (Nepal sources UNVERIFIED).
+
+- name: Install chrony
+  ansible.builtin.apt:
+    name: chrony
+    state: present
+
+- name: Chrony configuration
+  ansible.builtin.template:
+    src: chrony.conf.j2
+    dest: /etc/chrony/chrony.conf
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Restart chrony
+
+- name: Chrony enabled and running
+  ansible.builtin.service:
+    name: chrony
+    state: started
+    enabled: true
+
+- name: Apply configuration before the sync check
+  ansible.builtin.meta: flush_handlers
+
+- name: Wait until chrony is synchronised
+  ansible.builtin.command: chronyc tracking
+  register: chrony_tracking
+  changed_when: false
+  retries: 30
+  delay: 10
+  until: chrony_tracking.stdout is search('Leap status\s*:\s*Normal')
+
+- name: Offset below 100 ms (AC-29.2 [CONV]; ClockSkew fires at 0.5 s)
+  ansible.builtin.assert:
+    that:
+      - chrony_offset | float < 0.1
+    fail_msg: "chrony system time offset {{ chrony_offset }} s >= 0.1 s"
+  vars:
+    chrony_offset: >-
+      {{ chrony_tracking.stdout
+         | regex_search('System time\s*:\s*([0-9.]+)', '\1') | first }}
+
+# ClockSkew (TRD s5.6) is computed from node_timex_offset_seconds, which
+# node_exporter (monitoring role, T-18) exports on <wg_ip>:9100. Until
+# node_exporter runs this check is a no-op; afterwards it must hold.
+- name: Read node_exporter metrics
+  ansible.builtin.uri:
+    url: "http://{{ wg_ip }}:9100/metrics"
+    return_content: true
+    timeout: 5
+  register: chrony_node_metrics
+  failed_when: false
+
+- name: Metric node_timex_offset_seconds is exported (ClockSkew source)
+  ansible.builtin.assert:
+    that:
+      - "'node_timex_offset_seconds' in chrony_node_metrics.content"
+    fail_msg: node_exporter runs but node_timex_offset_seconds is absent
+  when: chrony_node_metrics.status | default(-1) == 200

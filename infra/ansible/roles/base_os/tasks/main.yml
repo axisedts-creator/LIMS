@@ -1,0 +1,74 @@
+---
+# 02-TRD s5.1 packages/users, s5.4 sysctl.
+- name: Remove unneeded services (snapd, cups, avahi, rpcbind, telnet)
+  ansible.builtin.apt:
+    name: "{{ base_os_removed_packages }}"
+    state: absent
+    purge: true
+
+- name: Install unattended-upgrades
+  ansible.builtin.apt:
+    name: unattended-upgrades
+    state: present
+    update_cache: true
+    cache_valid_time: 86400
+
+- name: Download security updates but never install them (patching s13)
+  ansible.builtin.copy:
+    dest: /etc/apt/apt.conf.d/20auto-upgrades
+    owner: root
+    group: root
+    mode: "0644"
+    content: |
+      // Managed by Ansible (02-TRD s5.1): download only, install via s13.
+      APT::Periodic::Update-Package-Lists "1";
+      APT::Periodic::Download-Upgradeable-Packages "1";
+      APT::Periodic::Unattended-Upgrade "0";
+
+- name: Group ops (sshd AllowGroups ops)
+  ansible.builtin.group:
+    name: ops
+    state: present
+
+- name: Named ops accounts ops_<name> (sudo asks for the password)
+  ansible.builtin.user:
+    name: "ops_{{ item.name }}"
+    groups: [ops, sudo]
+    append: true
+    password: >-
+      {{ base_os_password_hashes[item.name] | default('!') }}
+  loop: "{{ base_os_ops_users }}"
+  loop_control:
+    label: "ops_{{ item.name }}"
+  no_log: true
+
+- name: SSH directory of ops accounts
+  ansible.builtin.file:
+    path: "/home/ops_{{ item.name }}/.ssh"
+    state: directory
+    owner: "ops_{{ item.name }}"
+    group: "ops_{{ item.name }}"
+    mode: "0700"
+  loop: "{{ base_os_ops_users }}"
+  loop_control:
+    label: "ops_{{ item.name }}"
+
+- name: Authorized keys of ops accounts (key + password for sudo)
+  ansible.builtin.copy:
+    dest: "/home/ops_{{ item.name }}/.ssh/authorized_keys"
+    content: "{{ item.ssh_keys | join('\n') }}\n"
+    owner: "ops_{{ item.name }}"
+    group: "ops_{{ item.name }}"
+    mode: "0600"
+  loop: "{{ base_os_ops_users }}"
+  loop_control:
+    label: "ops_{{ item.name }}"
+
+- name: Kernel parameters /etc/sysctl.d/90-lims.conf
+  ansible.builtin.template:
+    src: 90-lims.conf.j2
+    dest: /etc/sysctl.d/90-lims.conf
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Apply sysctl

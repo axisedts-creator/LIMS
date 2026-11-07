@@ -43,7 +43,14 @@ late final List<int> _firsts = [
     for (var m = 1; m <= 12; m++) _libFirst(y, m),
   _libFirst(bsMaxYear + 1, 1),
 ];
+// LD-08 (2026-11-07): the golden follows @remotemerge/nepali-date-converter@1.2.7 for unresolved
+// months (verify_before_golive). nepali_utils 3.0.8 disagrees only on B.S. 2093-09/10
+// (29/30 vs 30/29 days), so the package value wins via this first-day override.
+const _ld08FirstDay = {'2093-10': [2037, 1, 15]};
+
 int _libFirst(int y, int m) {
+  final o = _ld08FirstDay['$y-${_p(m, 2)}'];
+  if (o != null) return _dn(o[0], o[1], o[2]);
   final t = NepaliDateTime(y, m, 1).toDateTime();
   return _dn(t.year, t.month, t.day);
 }

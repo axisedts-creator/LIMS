@@ -112,6 +112,10 @@ describe('P-19 scanner down: stored as pending, content 422 until the re-scan se
     expect(JSON.stringify(j.payload)).toContain(r.body.asset_id); expect(JSON.stringify(j.payload)).toContain(TENANT_A);
     expect(JSON.stringify(j.payload)).not.toMatch(/base64|bytes/i);   // payload carries ids, never file content
     expect(R.calls.find((c) => c.m === 'enqueueJob')!.tx).toBe(k.ctx.tx);   // same tx as the row: committed together
+    // 03-APP-FLOW s6.2: the pointer is updated on upload even while pending (content stays 422 until clean); the re-scan job only sets scan_state
+    const ptr = R.calls.filter((c) => c.m === 'setAssetPointer'); expect(ptr).toHaveLength(1);
+    expect(ptr[0]!).toMatchObject({ tx: k.ctx.tx, tenantId: TENANT_A }); expect(ptr[0]!.args.slice(0, 2)).toEqual(['logo_asset_id', r.body.asset_id]);
+    expect(R.settingsOf(TENANT_A)['logo_asset_id']).toBe(r.body.asset_id); expect(invalidated).toEqual([TENANT_A]);
   });
   it('end to end: upload (scanner down) -> content 422 (pending, any number of times) -> job result clean -> content 200 with the stored bytes', async () => {
     const k = await makeCtx({ scan: 'unavailable' }); const r = await (await upload(incoming(png(6, 6)), 'logo', k)).p; const id = r.body.asset_id;

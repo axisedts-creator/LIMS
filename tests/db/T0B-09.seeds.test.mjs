@@ -65,10 +65,10 @@ describe("T0B-09 files and naming (02-TRD §4.6)", () => {
       assert.match(find(n) ?? "(missing)", re, `seed ${n}`);
     for (const f of files()) assert.match(f, /^\d{3}_[a-z0-9]+__[a-z0-9_]+\.sql$/, `bad seed name ${f}`);
   });
-  it("every seed is idempotent, role-scoped (001-003 lims_owner, 010+ lims_app) and destructive-free", () => {
+  it("every seed is idempotent, role-scoped (001-004 lims_owner, 010+ lims_app) and destructive-free", () => {
     for (const f of files()) {
       const sql = read(join(SEEDS, f)), code = stripComments(sql);
-      if (/^00[1-3]_/.test(f)) {
+      if (/^00[1-4]_/.test(f)) {
         // class-G seeds keep lims_owner (LD-30)
         assert.match(code, /SET\s+LOCAL\s+ROLE\s+lims_owner/i, `${f}: must run SET LOCAL ROLE lims_owner`);
       } else if (/^(0[1-9]\d|[1-9]\d\d)_/.test(f)) {
@@ -142,9 +142,9 @@ describe("T0B-09 010 synthetic tenants (02-TRD §3.5, §4.6)", () => {
   });
 });
 
-describe("T0B-09 prod subset (production runs only 001-003)", () => {
+describe("T0B-09 prod subset (production runs only 001-004; LD-59)", () => {
   const prod = () => files().filter((f) => prefix(f) < 10);
-  it("prod subset = exactly 001, 002, 003", () => assert.deepEqual(prod().map((f) => f.slice(0, 3)), ["001", "002", "003"]));
+  it("prod subset = exactly 001, 002, 003, 004 (004 = reporting message templates, LD-59)", () => assert.deepEqual(prod().map((f) => f.slice(0, 3)), ["001", "002", "003", "004"]));
   it("prod seeds touch only class-G coded sets: no tenants, users, memberships, centres or synthetic ids", () => {
     for (const f of prod()) {
       const s = read(join(SEEDS, f)), code = stripComments(s);

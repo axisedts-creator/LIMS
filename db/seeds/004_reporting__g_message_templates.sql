@@ -1,4 +1,4 @@
--- Hand-written seed (LD-57, 2026-11-07: CR-C6-022 ruled; sole db/ exception for C6-T19). Rows verbatim from CR-C6-022 (08 A13 D-34).
+-- Hand-written seed (LD-59, 2026-11-07: CR-C6-024 ruled, corrects LD-57; sole db/ exception for C6-T19). Class-G range 001-004, in the production subset. Rows verbatim from CR-C6-022 (08 A13 D-34).
 -- Class G global template registry (02-TRD §7.2, 04-UI-UX §7); no PHI. params = the only allowed keys (REQ-SEC-070).
 -- Idempotent: re-running inserts nothing new.
 SET LOCAL ROLE lims_owner;

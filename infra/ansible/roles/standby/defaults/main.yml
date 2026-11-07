@@ -3,7 +3,9 @@
 # on the first host of group `dr`, CR-C1-002 accepted (`lims_replicator`).
 # LD-45: `lean` has no hot standby (the `dr` group holds the backup host
 # there), dev has an empty `dr` group; both install nothing.
-# Inventory (all.yml): topology_profile 'full' | 'lean' (default 'full').
+# Inventory (all.yml): topology_profile 'full' | 'lean' [CONV]. Fails closed
+# (LD-45: lean is the prod default): missing var => no standby, and the
+# tasks assert it is set whenever a dr host exists.
 # CR-C1-T09 option (a): seeded once by pg_basebackup over wg0 as
 # lims_replicator into slot dr1; no backup tool config and no key material
 # on the dr host (AC-12.3). Re-seed after slot invalidation (03-APP-FLOW
@@ -14,7 +16,7 @@
 # and extensions [CONV]).
 standby_enabled: >-
   {{ (groups['dr'] | default([]) | length > 0)
-  and (topology_profile | default('full')) != 'lean' }}
+  and (topology_profile | default('lean')) == 'full' }}
 standby_container: standby-db
 standby_image: >-
   registry.lims.internal/lims/postgres-pgbackrest@{{

@@ -4,6 +4,16 @@
 # primary is groups['data'][0] of the active profile.
 # standby_promoted (inventory, set by the DR promotion, T-29): the host is
 # now the primary; never touch it as a standby again.
+- name: topology_profile set when a dr host exists (LD-45 fail closed)
+  ansible.builtin.assert:
+    that:
+      - topology_profile is defined
+      - topology_profile in ['full', 'lean']
+    fail_msg: >-
+      standby: set topology_profile ('full' | 'lean') in the inventory;
+      LD-45 forbids guessing a profile
+  when: groups['dr'] | default([]) | length > 0
+
 - name: Nothing to do without a standby (LD-45 lean, empty dr, promoted)
   ansible.builtin.meta: end_host
   when: >-

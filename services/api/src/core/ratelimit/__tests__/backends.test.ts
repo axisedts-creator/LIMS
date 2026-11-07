@@ -2,7 +2,7 @@
 // Expected API:
 //   core/ratelimit/pg.ts    createPgBackend({ query(sql, values): Promise<{ rows }> }) -> RateLimitBackend (see limiter.test.ts)
 //       slidingWindow / counter call ONLY `SELECT allowed, retry_after_seconds FROM app.ratelimit_hit($1,$2,$3)` with [keyHash, windowSeconds, limit]
-//       (counter: window = ttlSeconds). The counter table has no grants, so SQL must never name core.rate_limit_counters.
+//       (counter: window = limit*ttlSeconds + 1 so the previous window can't fade within one OTP lifetime, review item 1). The counter table has no grants, so SQL must never name core.rate_limit_counters.
 //       tokenBucket on Postgres is an approximation (ratelimit_hit is a sliding window); contract: first call allowed, never more than `burst` in one instant.
 //   core/ratelimit/redis.ts createRedisBackend({ client }) -> RateLimitBackend (ioredis-shaped client). Live semantics only run when
 //       LIMS_TEST_REDIS_URL is set (ioredis is not yet a dependency of services/api — lockfile is C0-0A's, LD-05).
@@ -94,6 +94,16 @@ describe('boundary-burst (REQ-SEC-079): a burst straddling a window edge cannot 
     expect(await burst(20, 'report_download', 'l:link-1')).toBe(20);
     c.set(edge + H + 5_000);
     expect(await burst(20, 'report_download', 'l:link-1')).toBe(0);
+  });
+  it('otp_verify (counter tier) on pg: never more than 5 attempts within one 600 s OTP lifetime, whatever the window alignment', async () => {
+    // Window-alignment independent: sweep the first-burst time across the counter's window; 5 + 10 attempts, the 2nd burst 540 s later (< 600 s).
+    for (let offsetS = 0; offsetS < 3_100; offsetS += 50) {
+      const { c, burst } = mk(WINDOW_START - 1_000 + offsetS * 1_000);
+      const first = await burst(5, 'otp_verify', 'o:otp-1');
+      c.advance(540_000);
+      const second = await burst(10, 'otp_verify', 'o:otp-1');
+      expect(first + second, `offset ${offsetS}s`).toBeLessThanOrEqual(5);
+    }
   });
   it('rejected attempts count toward the next window (hammering extends the lockout)', async () => {
     const { c, burst, hit } = mk(WINDOW_START + 3_590_000);

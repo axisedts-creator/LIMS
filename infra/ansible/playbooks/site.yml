@@ -68,3 +68,18 @@
   roles:
     - edge_nginx
     - acme
+
+# 02-TRD s7.4 (T-14): LIMS runtime on the app host. secrets_render first
+# (tmpfs secret files + the valkey password), then the inputs the stack
+# mounts (Valkey ACL, squid.conf + SMTP relay set, envelope probes), then
+# lims_runtime starts compose.app.yml for the active profile (LD-45) and
+# runs the deploy-time probes.
+- name: LIMS runtime
+  hosts: app
+  become: true
+  roles:
+    - secrets_render
+    - valkey
+    - egress_proxy
+    - renderer_runtime
+    - lims_runtime

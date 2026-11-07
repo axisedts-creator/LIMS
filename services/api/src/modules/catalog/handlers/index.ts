@@ -5,6 +5,7 @@ import { LimsError } from '../../../core/errors.js';
 import type { Handler } from '../../../core/module.js';
 import { importsHandlers } from './imports.handlers.js';
 import { mastersHandlers } from './masters.handlers.js';
+import { testsHandlers } from './tests.handlers.js';
 
 /** 503 common.service_unavailable, detail not_implemented (06-PLAN T-01). Never echoes the request. */
 const notImplemented: Handler = async () => {
@@ -13,21 +14,10 @@ const notImplemented: Handler = async () => {
 
 export const handlers: Readonly<Record<string, Handler>> = Object.freeze({
   getCatalogRevision: notImplemented,
-  searchOrderables: notImplemented,
   resolveOrderablesPreview: notImplemented,
   getCatalogHealthReport: notImplemented,
-  ...mastersHandlers, // T-04: #5–#16
-  listUnits: notImplemented,
-  createUnit: notImplemented,
-  updateUnit: notImplemented,
-  listValueSets: notImplemented,
-  createValueSet: notImplemented,
-  updateValueSet: notImplemented,
-  listTests: notImplemented,
-  createTest: notImplemented,
-  getTestDetail: notImplemented,
-  updateTest: notImplemented,
-  replaceTestSpecimenRequirements: notImplemented,
+  ...mastersHandlers, // T-04: #5–#16; T-05: #17–#22 (units, value sets); T-13: #57–#59 (comment codes)
+  ...testsHandlers, // T-06: #2, #23–#27
   setTestTatTargets: notImplemented,
   createAnalyte: notImplemented,
   getAnalyte: notImplemented,
@@ -57,9 +47,6 @@ export const handlers: Readonly<Record<string, Handler>> = Object.freeze({
   getPanelDetail: notImplemented,
   updatePanel: notImplemented,
   replacePanelMembers: notImplemented,
-  listCommentCodes: notImplemented,
-  createCommentCode: notImplemented,
-  updateCommentCode: notImplemented,
   searchDoctors: notImplemented,
   listDoctors: notImplemented,
   createDoctor: notImplemented,

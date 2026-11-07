@@ -14,7 +14,8 @@
 //   SELECT <anything|count(*)> FROM catalog.<t> [alias] [WHERE expr] [ORDER BY col [ASC|DESC], …] [LIMIT n|$n] [OFFSET n|$n] [FOR UPDATE|SHARE]
 //   UPDATE catalog.<t> [alias] SET col = expr, … WHERE expr [RETURNING cols|*]
 //   expr: $n, 'text', numbers, true/false/NULL, now(), col | alias.col, + -, = <> != < > <= >=, row tuples (a, b) > ($1, $2), AND/OR/NOT,
-//         IS [NOT] NULL, [NOT] IN (…), = ANY($n), COALESCE(…), LOWER(…), parentheses. No joins, subqueries, DELETE (lims_app has no DELETE grant -> 42501).
+//         IS [NOT] NULL, [NOT] IN (…), = ANY($n), COALESCE(…), LOWER(…), UPPER(…), LENGTH(…), parentheses,
+//         [NOT] LIKE/ILIKE pat [ESCAPE c] (default escape \), a || b, CASE WHEN … THEN … [ELSE …] END (also in ORDER BY; T-06 additions). No joins, subqueries, DELETE (lims_app has no DELETE grant -> 42501).
 // Synthetic data only.
 import { REQ_ID, STARTED_AT, TENANT_A, USER, makeCatalogDb, type CatalogDb } from './catalogDb.js';
 import { createEvents } from '../../../../core/events/publish.js';
@@ -24,8 +25,8 @@ export const TABLES = ['departments', 'specimen_types', 'containers', 'methods']
 export type Table = (typeof TABLES)[number];
 const TABLE_RE = new RegExp(`catalog\\.(${TABLES.join('|')})\\b`, 'i');
 
-const pgError = (code: string, message: string, constraint?: string) => Object.assign(new Error(message), { code, constraint });
-const tick = () => new Promise<void>((r) => setImmediate(r));
+export const pgError = (code: string, message: string, constraint?: string) => Object.assign(new Error(message), { code, constraint });
+export const tick = () => new Promise<void>((r) => setImmediate(r));
 export const ID = (n: number) => `0190c300-0000-7000-8000-${n.toString(16).padStart(12, '0')}`;
 
 // ------------------------------------------------------------------------------------------------ constraints
@@ -62,7 +63,7 @@ function checks(t: Table, r: Row): void {
 type Tok = { k: 'id' | 'param' | 'num' | 'str' | 'op'; v: string };
 function tokenize(s: string): Tok[] {
   const out: Tok[] = [];
-  const re = /\s*(?:(\$\d+)|('(?:[^']|'')*')|(\d+(?:\.\d+)?)|([A-Za-z_][A-Za-z0-9_.]*)|(<>|!=|<=|>=|[(),=<>+\-*]))/gy;
+  const re = /\s*(?:(\$\d+)|('(?:[^']|'')*')|(\d+(?:\.\d+)?)|([A-Za-z_][A-Za-z0-9_.]*)|(<>|!=|<=|>=|\|\||[(),=<>+\-*]))/gy;
   let m: RegExpExecArray | null;
   let pos = 0;
   while (pos < s.trimEnd().length && (m = re.exec(s))) {
@@ -76,10 +77,10 @@ function tokenize(s: string): Tok[] {
   if (pos < s.trimEnd().length) throw new Error(`fake: cannot tokenize SQL near "${s.slice(pos, pos + 30)}"`);
   return out;
 }
-type Env = { row: Row | undefined; values: readonly unknown[]; now: Date };
-type Ev = (e: Env) => any;
+export type Env = { row: Row | undefined; values: readonly unknown[]; now: Date };
+export type Ev = (e: Env) => any;
 const cmpVal = (a: any, b: any): number => (a instanceof Date || b instanceof Date ? +a - +b : a < b ? -1 : a > b ? 1 : 0);
-function cmpAny(a: any, b: any): number | undefined {
+export function cmpAny(a: any, b: any): number | undefined {
   if (Array.isArray(a) && Array.isArray(b)) {
     for (let i = 0; i < a.length; i++) { const c = cmpAny(a[i], b[i]); if (c === undefined) return undefined; if (c !== 0) return c; }
     return 0;
@@ -88,7 +89,28 @@ function cmpAny(a: any, b: any): number | undefined {
   return cmpVal(a, b);
 }
 
-function parseExpr(sql: string): Ev {
+const likeCache = new Map<string, RegExp>();
+const reEsc = (c: string) => c.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+/** SQL LIKE/ILIKE pattern -> RegExp: % = any run, _ = any one char, `esc` + char = that char literally. */
+export function likeRe(p: string, esc: string, ci: boolean): RegExp {
+  const key = `${ci ? 'i' : 's'}|${esc}|${p}`;
+  let r = likeCache.get(key);
+  if (r) return r;
+  let body = '';
+  for (let k = 0; k < p.length; k++) {
+    const c = p[k]!;
+    if (esc && c === esc && k + 1 < p.length) body += reEsc(p[++k]!);
+    else if (c === '%') body += '[\\s\\S]*';
+    else if (c === '_') body += '[\\s\\S]';
+    else body += reEsc(c);
+  }
+  r = new RegExp(`^${body}$`, ci ? 'i' : '');
+  if (likeCache.size > 500) likeCache.clear();
+  likeCache.set(key, r);
+  return r;
+}
+
+export function parseExpr(sql: string): Ev {
   const t = tokenize(sql);
   let i = 0;
   const peek = () => t[i];
@@ -108,7 +130,14 @@ function parseExpr(sql: string): Ev {
       return (e) => (l(e) == null) !== neg;
     }
     let neg = false;
-    if (kw('NOT') && t[i + 1]?.v.toUpperCase() === 'IN') { neg = true; i++; }
+    if (kw('NOT') && ['IN', 'LIKE', 'ILIKE'].includes(t[i + 1]?.v.toUpperCase() ?? '')) { neg = true; i++; }
+    if (kw('LIKE') || kw('ILIKE')) {
+      const ci = kw('ILIKE'); i++;
+      const pat = add();
+      let esc: Ev = () => '\\';
+      if (kw('ESCAPE')) { i++; esc = add(); }
+      return (e) => { const v = l(e), p = pat(e); if (v == null || p == null) return null; const hit = likeRe(String(p), String(esc(e)), ci).test(String(v)); return neg ? !hit : hit; };
+    }
     if (kw('IN')) {
       i++; expect('('); const items: Ev[] = [add()]; while (op(',')) { i++; items.push(add()); } expect(')');
       return (e) => { const v = l(e); if (v == null) return null; const hit = items.some((x) => cmpAny(v, x(e)) === 0); return neg ? !hit : hit; };
@@ -127,9 +156,9 @@ function parseExpr(sql: string): Ev {
   };
   const add = (): Ev => {
     let l = atom();
-    while (op('+') || op('-')) {
+    while (op('+') || op('-') || op('||')) {
       const o = eat().v, a = l, b = atom();
-      l = (e) => { const x = a(e), y = b(e); return x == null || y == null ? null : o === '+' ? x + y : x - y; };
+      l = (e) => { const x = a(e), y = b(e); return x == null || y == null ? null : o === '||' ? String(x) + String(y) : o === '+' ? x + y : x - y; };
     }
     return l;
   };
@@ -149,12 +178,22 @@ function parseExpr(sql: string): Ev {
       if (u === 'TRUE') return () => true;
       if (u === 'FALSE') return () => false;
       if (u === 'NULL') return () => null;
+      if (u === 'CASE') {
+        const arms: Array<[Ev, Ev]> = []; let other: Ev = () => null;
+        while (kw('WHEN')) { i++; const c = or(); if (!kw('THEN')) throw new Error('fake: CASE WHEN without THEN'); i++; arms.push([c, or()]); }
+        if (kw('ELSE')) { i++; other = or(); }
+        if (!kw('END')) throw new Error('fake: CASE without END');
+        i++;
+        return (e) => { for (const [c, v] of arms) if (c(e) === true) return v(e); return other(e); };
+      }
       if (op('(')) {                                          // function call
         i++; const args: Ev[] = [];
         if (!op(')')) { args.push(or()); while (op(',')) { i++; args.push(or()); } }
         expect(')');
         if (u === 'NOW') return (e) => e.now;
         if (u === 'COALESCE') return (e) => { for (const a of args) { const v = a(e); if (v != null) return v; } return null; };
+        if (u === 'UPPER') return (e) => { const v = args[0]!(e); return v == null ? null : String(v).toUpperCase(); };
+        if (u === 'LENGTH' || u === 'CHAR_LENGTH') return (e) => { const v = args[0]!(e); return v == null ? null : String(v).length; };
         if (u === 'LOWER') return (e) => { const v = args[0]!(e); return v == null ? null : String(v).toLowerCase(); };
         throw new Error(`fake: unsupported function ${tk.v}()`);
       }
@@ -168,7 +207,7 @@ function parseExpr(sql: string): Ev {
   return ev;
 }
 /** Splits on top-level commas (outside parentheses and quotes). */
-function splitTop(s: string): string[] {
+export function splitTop(s: string): string[] {
   const out: string[] = []; let d = 0, q = false, cur = '';
   for (const ch of s) {
     if (ch === "'") q = !q;
@@ -180,7 +219,7 @@ function splitTop(s: string): string[] {
   return out;
 }
 
-class RowLock {
+export class RowLock {
   owner: number | undefined;
   private readonly q: Array<{ id: number; go: () => void }> = [];
   async acquire(id: number) {
@@ -269,8 +308,8 @@ export function makeMastersDb(seed: MastersSeed = {}) {
       const where = m[4] ? parseExpr(m[4]) : () => true;
       let rows = visible(t).filter((r) => where({ row: r, values, now }) === true);
       if (m[5]) {
-        const keys = splitTop(m[5]).map((k) => { const p = k.trim().split(/\s+/); return { col: p[0]!.slice(p[0]!.lastIndexOf('.') + 1), desc: /^DESC$/i.test(p[1] ?? '') }; });
-        rows.sort((a, b) => { for (const k of keys) { const c = cmpAny(a[k.col], b[k.col]) ?? 0; if (c) return k.desc ? -c : c; } return 0; });
+        const keys = splitTop(m[5]).map((k) => { const mm = /^(.*?)(?:\s+(ASC|DESC))?$/i.exec(k.trim())!; return { ev: parseExpr(mm[1]!), desc: /^DESC$/i.test(mm[2] ?? '') }; });
+        rows.sort((a, b) => { for (const k of keys) { const c = cmpAny(k.ev({ row: a, values, now }), k.ev({ row: b, values, now })) ?? 0; if (c) return k.desc ? -c : c; } return 0; });
       }
       const num = (s: string | undefined) => (s === undefined ? undefined : s.startsWith('$') ? Number(values[Number(s.slice(1)) - 1]) : Number(s));
       const off = num(m[7]); const lim = num(m[6]);

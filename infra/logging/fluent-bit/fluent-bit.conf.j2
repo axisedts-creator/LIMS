@@ -1,0 +1,141 @@
+# Fluent Bit 5.1.5 -> VictoriaLogs 1.53.0 (02-TRD s10.1, s6.7; AC-18.1, AC-18.4).
+# Rendered by role logging on every host (LD-45: both topology profiles; the
+# shipping target is the first host of group ops, read from the active inventory).
+# Profile: {{ topology_profile }}  host: {{ inventory_hostname }}
+[SERVICE]
+    Flush                     1
+    Grace                     5
+    Log_Level                 info
+    Parsers_File              parsers.conf
+    HTTP_Server               On
+    HTTP_Listen               {{ wg_ip }}
+    HTTP_Port                 2020
+    Health_Check              On
+    storage.path              /var/lib/fluent-bit/storage
+    storage.sync              normal
+    storage.backlog.mem_limit 5M
+
+# --- inputs: every one has a Tag and a disk buffer ---------------------------
+[INPUT]
+    Name              tail
+    Tag               docker
+    Path              /var/lib/docker/containers/*/*-json.log
+    Parser            docker
+    DB                /var/lib/fluent-bit/db/docker.db
+    Skip_Long_Lines   On
+    Refresh_Interval  5
+    Mem_Buf_Limit     5MB
+    storage.type      filesystem
+
+[INPUT]
+    Name              systemd
+    Tag               journal
+    Path              /var/log/journal
+    DB                /var/lib/fluent-bit/db/journal.db
+    Read_From_Tail    On
+    Strip_Underscores Off
+    Lowercase         Off
+    storage.type      filesystem
+{% if 'app' in group_names %}
+
+[INPUT]
+    Name              tail
+    Tag               nginx
+    Path              /var/log/nginx/access.json
+    Parser            nginx_json
+    DB                /var/lib/fluent-bit/db/nginx.db
+    Skip_Long_Lines   On
+    Refresh_Interval  5
+    Mem_Buf_Limit     5MB
+    storage.type      filesystem
+{% endif %}
+
+# --- ops_audit: journald lines with SYSLOG_IDENTIFIER ops_audit (infra/ci/ops-note.sh) become their own stream
+[FILTER]
+    Name                   rewrite_tag
+    Match                  journal
+    Rule                   $SYSLOG_IDENTIFIER ^ops_audit$ ops_audit false
+    Emitter_Name           re_ops_audit
+    Emitter_Storage.type   filesystem
+
+# --- parse first, scrub after ---------------------------------------------------
+[FILTER]
+    Name          parser
+    Match         docker
+    Key_Name      log
+    Parser        app_json
+    Reserve_Data  On
+
+[FILTER]
+    Name          parser
+    Match         ops_audit
+    Key_Name      MESSAGE
+    Parser        ops_audit_json
+    Reserve_Data  On
+
+[FILTER]
+    Name           nest
+    Match          docker
+    Operation      lift
+    Nested_under   attrs
+    Add_prefix     attrs_
+
+# --- service name (stream field) per source ---------------------------------------
+[FILTER]
+    Name             modify
+    Match            docker
+    Copy             attrs_tag service
+    Add              service container
+    Remove_wildcard  attrs_
+
+[FILTER]
+    Name    modify
+    Match   journal
+    Copy    SYSLOG_IDENTIFIER service
+    Add     service journald
+
+[FILTER]
+    Name    modify
+    Match   ops_audit
+    Set     service ops_audit
+
+[FILTER]
+    Name    modify
+    Match   nginx
+    Set     service edge
+
+# a source field called host/env/site would duplicate the keys added below
+[FILTER]
+    Name    modify
+    Match   *
+    Rename  host src_host
+    Rename  env src_env
+    Rename  site src_site
+
+# --- PHI / secret scrub (02-CONVENTIONS s9.2, REQ-SEC-098); nothing leaves the host unscrubbed
+[FILTER]
+    Name    lua
+    Match   *
+    script  /fluent-bit/etc/scrub.lua
+    call    cb_filter
+
+[FILTER]
+    Name    record_modifier
+    Match   *
+    Record  host {{ inventory_hostname }}
+    Record  env {{ env }}
+    Record  site {{ site }}
+
+# --- output: VictoriaLogs on the ops host over wg0 (plain; wg0 already encrypts) ----
+[OUTPUT]
+    Name                     http
+    Match                    *
+    Host                     {{ '127.0.0.1' if 'ops' in group_names else hostvars[groups['ops'][0]].wg_ip }}
+    Port                     9428
+    URI                      /insert/jsonline?_stream_fields=service,env,host&_msg_field=log,MESSAGE,msg,what&_time_field=date
+    Format                   json_lines
+    json_date_key            date
+    json_date_format         iso8601
+    compress                 gzip
+    Retry_Limit              False
+    storage.total_limit_size 1G

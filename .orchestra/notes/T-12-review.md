@@ -1,7 +1,9 @@
 APPROVE
 
-Round 2. Previous item 1 (fail-open `topology_profile`) fixed: defaults/main.yml:17-19 now `default('lean')` == 'full' (fail closed, LD-45); tasks/main.yml:7-15 asserts `topology_profile in ['full','lean']` whenever a dr host exists; test updated (43 tests).
-Re-checked, no defect: names verbatim (`lims_replicator`, `lims_monitor`, slot `dr1`, `primary_slot_name`, StandbyLagHigh > 60 s); primary bound `max_slot_wal_keep_size = 50GB` (zz-lims.conf.j2:24); standby capacity params == primary (200/10/10); hba replication line for lims_replicator from groups['dr'][0] only; seeding pg_receivewal --create-slot --if-not-exists + pg_basebackup -X stream --slot=dr1 once (creates guard); standby.signal ensured every run; `standby_promoted` no-op guard; passfile tmpfs 0600 no_log, libpq-escaped; no cipher/pgBackRest on dr-1 (AC-12.3); no PHI logging; no secrets; no host names; only owned paths (+ site.yml play, notes). No RLS/permission/error-code surface in this task.
-Ran: `python -B -m unittest discover -s infra/tests/static -p "test_t12_*.py"` -> Ran 43 tests, OK.
-Not verified (environment): live test (lag < 60 s under load, link-cut -> slot lost, pg_wal bounded) never run; compose.dr.yml standby container not in T-12 scope.
-For LEAD: staging/prod inventories have no `topology_profile` yet -> Standby play stops by design until `full`/`lean` is set (outside T-12 files). T-29: `archive_mode = off` in zz-standby.conf persists after promotion; tmpfs passfile must be re-rendered after a dr reboot before the standby can reconnect.
+Re-review of round-1 items (commits abca82e, 1ca4f9c):
+1. Depth: fixed. checkGraph rejects at `depthThrough + 1 > PANEL_MAX_DEPTH` (TRD §11 counts levels including the leaf test). The [ASSUMPTION] comment is gone. Tests now say: 3 panels allowed, 4 panels -> 400 /members, and ancestors count too (panelGraph.test.ts, panels.service.test.ts).
+2. ordinal_set_values: fixed. Active values are returned sorted by sort_order asc and only when ordinal_set_code is set. Reads use selectRows with an explicit tenant_id on cs_*. Column names match the migration. A resolve test covers active/inactive values, a foreign set, and an analyte with no set.
+3. uses_existing_material: fixed. It is selected and returned as a boolean. A test covers it being absent from specimen_requirements and returning specimen_type_codes [].
+
+Note (not a defect): the [CONV] rule that a tenant cs_value_sets set shadows the global set with the same code is untested. It is recorded in T-12-impl.md.
+Ran: the T-12-verify vitest set passed (6 files, 358 tests). `tsc --noEmit` shows 0 errors under modules/catalog. The errors that remain are pre-existing ones in contracts/ and packages/shared-ts.

@@ -31,10 +31,11 @@ const run = (op: string, t: ReturnType<typeof e>, req: { params?: unknown; query
 const e = (op: string, seed = seedAll(), over: Record<string, unknown> = {}) => env(op, manifest, seed, over);
 const body = (html: string, key = 'findings') => ({ sections: [{ key, html }], images: [] });
 const full = (f = '<p>Synthetic finding.</p>', i = '<p>Synthetic impression.</p>') => ({ sections: [{ key: 'findings', html: f }, { key: 'impression', html: i }], images: [] });
-const save = (t: ReturnType<typeof e>, b: unknown, id: unknown = NARR_1, v: unknown = 1) => run(N.save, t, { params: { narrative_id: id }, headers: v === undefined ? {} : ifm(v), body: b });
-const sign = (t: ReturnType<typeof e>, id: unknown = NARR_1, v: unknown = 1) => run(N.sign, t, { params: { narrative_id: id }, headers: v === undefined ? {} : ifm(v) });
+const NO_IFM = Symbol('no-if-match'); // explicit "send no If-Match header" (JS default params would swallow `undefined`)
+const save = (t: ReturnType<typeof e>, b: unknown, id: unknown = NARR_1, v: unknown = 1) => run(N.save, t, { params: { narrative_id: id }, headers: v === NO_IFM ? {} : ifm(v), body: b });
+const sign = (t: ReturnType<typeof e>, id: unknown = NARR_1, v: unknown = 1) => run(N.sign, t, { params: { narrative_id: id }, headers: v === NO_IFM ? {} : ifm(v) });
 const amend = (t: ReturnType<typeof e>, b: unknown = { reason_code: 'transcription_error' }, id: unknown = NARR_SIGNED, v: unknown = 3) =>
-  run(N.amend, t, { params: { narrative_id: id }, headers: v === undefined ? {} : ifm(v), body: b });
+  run(N.amend, t, { params: { narrative_id: id }, headers: v === NO_IFM ? {} : ifm(v), body: b });
 const code = async (p: Promise<unknown>) => (await rejection(p))?.code;
 const nothingWritten = (t: ReturnType<typeof e>) => { expect(t.db.writes()).toHaveLength(0); expect(t.db.jobs).toHaveLength(0); };
 const allHtml = (r: any) => JSON.stringify(r.body.current_version.sections.map((s: any) => s.html));
@@ -116,7 +117,7 @@ describe('N9 createNarrativeTemplate', () => {
 });
 
 describe('N10 updateNarrativeTemplate', () => {
-  const patch = (t: ReturnType<typeof e>, b: unknown, id: unknown = TPL_TEST, v: unknown = 1) => run(N.tUpdate, t, { params: { narrative_template_id: id }, headers: v === undefined ? {} : ifm(v), body: b });
+  const patch = (t: ReturnType<typeof e>, b: unknown, id: unknown = TPL_TEST, v: unknown = 1) => run(N.tUpdate, t, { params: { narrative_template_id: id }, headers: v === NO_IFM ? {} : ifm(v), body: b });
   it('200: renames, toggles is_active, replaces sections; version + 1; sanitises default_html', async () => {
     const t = e(N.tUpdate); const r = await patch(t, { name: 'Renamed', is_active: false, sections: [{ key: 'findings', heading: 'Findings', required: true, default_html: '<p>KEEP-ME</p><script>alert(1)</script>' }] });
     expect(r.status).toBe(200); expect(r.body).toMatchObject({ id: TPL_TEST, name: 'Renamed', is_active: false, version: 2 });
@@ -127,7 +128,7 @@ describe('N10 updateNarrativeTemplate', () => {
     expect(JSON.stringify(versionsOf(t.db, NARR_1))).toBe(before);
   });
   it('missing If-Match -> 428; stale -> 409 version_conflict; malformed / overflowing -> 400, never 500', async () => {
-    expect(await code(patch(e(N.tUpdate), { name: 'x' }, TPL_TEST, undefined))).toBe('common.precondition_required');
+    expect(await code(patch(e(N.tUpdate), { name: 'x' }, TPL_TEST, NO_IFM))).toBe('common.precondition_required');
     expect(await code(patch(e(N.tUpdate), { name: 'x' }, TPL_TEST, 7))).toBe('common.version_conflict');
     for (const v of ['abc', '0', '99999999999']) expect(await code(run(N.tUpdate, e(N.tUpdate), { params: { narrative_template_id: TPL_TEST }, headers: { 'if-match': v === 'abc' ? 'abc' : `"${v}"` }, body: { name: 'x' } }))).toBe('common.validation_failed');
   });
@@ -240,7 +241,7 @@ describe('N3 saveNarrativeDraft — contract, versioning, concurrency, isolation
     expect(versionsOf(t.db, NARR_1)[0]!['updated_by']).toBe(USER);
   });
   it('missing If-Match -> 428; stale -> 409 version_conflict; malformed/overflowing -> 400 (never a 500 from the integer column); nothing written', async () => {
-    const t = e(N.save); expect(await code(save(t, body('<p>x</p>'), NARR_1, undefined))).toBe('common.precondition_required');
+    const t = e(N.save); expect(await code(save(t, body('<p>x</p>'), NARR_1, NO_IFM))).toBe('common.precondition_required');
     expect(await code(save(t, body('<p>x</p>'), NARR_1, 9))).toBe('common.version_conflict');
     for (const v of ['"abc"', '"0"', '"99999999999"']) expect(await code(run(N.save, t, { params: { narrative_id: NARR_1 }, headers: { 'if-match': v }, body: body('<p>x</p>') }))).toBe('common.validation_failed');
     nothingWritten(t);
@@ -370,7 +371,7 @@ describe('AC-05.5 — sign: version signed, signatory recorded, item ready, edit
     expect(rs.filter((x) => x.status === 'fulfilled').length).toBeLessThanOrEqual(1 + (v['status'] === 'signed' ? 0 : 1));
   });
   it('missing If-Match -> 428; stale -> 409 version_conflict; overflow -> 400; nothing written', async () => {
-    const t = e(N.sign); expect(await code(sign(t, NARR_1, undefined))).toBe('common.precondition_required'); expect(await code(sign(t, NARR_1, 5))).toBe('common.version_conflict');
+    const t = e(N.sign); expect(await code(sign(t, NARR_1, NO_IFM))).toBe('common.precondition_required'); expect(await code(sign(t, NARR_1, 5))).toBe('common.version_conflict');
     expect(await code(run(N.sign, t, { params: { narrative_id: NARR_1 }, headers: { 'if-match': '"99999999999"' } }))).toBe('common.validation_failed'); nothingWritten(t);
   });
   it.each([['another tenant', NARR_B], ['unknown', idN(0xdead)], ['not a uuid', "1' OR '1'='1"]])('BOLA / bad id: %s -> 404, no write, no assembly', async (_n, id) => {
@@ -452,7 +453,7 @@ describe('AC-05.6 — amendment of a signed narrative', () => {
     expect((await amend(e(N.amend, s), { reason_code: 'tenant_reason' })).status).toBe(201); expect(await code(amend(e(N.amend, s), { reason_code: 'b_reason' }))).toBe('common.validation_failed');
   });
   it('missing If-Match -> 428; stale -> 409; BOLA -> 404', async () => {
-    const t = e(N.amend); expect(await code(amend(t, { reason_code: 'transcription_error' }, NARR_SIGNED, undefined))).toBe('common.precondition_required'); expect(await code(amend(t, { reason_code: 'transcription_error' }, NARR_SIGNED, 1))).toBe('common.version_conflict');
+    const t = e(N.amend); expect(await code(amend(t, { reason_code: 'transcription_error' }, NARR_SIGNED, NO_IFM))).toBe('common.precondition_required'); expect(await code(amend(t, { reason_code: 'transcription_error' }, NARR_SIGNED, 1))).toBe('common.version_conflict');
     expect(await code(amend(t, { reason_code: 'transcription_error' }, NARR_B, 1))).toBe('common.not_found'); nothingWritten(t);
   });
 });

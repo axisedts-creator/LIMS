@@ -48,7 +48,7 @@ describe('narrative sources (non-test)', () => {
     for (const s of narrative) expect(s.text, s.file).not.toMatch(/\beval\(|new Function\(|child_process|vm\.run|\.innerHTML\s*=|runScripts/);
   });
   it('the server DOM is created without script execution or resource loading', () => {
-    need(all.filter((x) => /new JSDOM(/.test(x.text)).length, 'server DOM construction');
+    need(all.filter((x) => /new JSDOM\(/.test(x.text)).length, 'server DOM construction');
     for (const s of all.filter((x) => /new JSDOM\(/.test(x.text))) expect(s.text, s.file).not.toMatch(/runScripts\s*:\s*['"](dangerously|outside-only)['"]|resources\s*:\s*['"]usable['"]/);
   });
   it('SQL on narrative tables is static: no template-literal interpolation into reporting.narrative_* statements', () => {

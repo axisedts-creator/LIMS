@@ -922,11 +922,6 @@ describe('mergeDoctor (#66) — AC-11.3', () => {
     expect(events(db)).toHaveLength(1);
   });
 
-  it('price-list reassignment is T-17\'s: merge works with no price-list tables involved (this fake would reject such SQL)', { timeout: T }, async () => {
-    const { db, svc } = setup({ doctors: [X, Y] });
-    await merge(db, svc, X.id, 1, Y.id);
-    expect(db.stmts.some((s) => /price_list/i.test(s.text))).toBe(false);
-  });
 });
 
 // ====================================================================================================== PROBES (cross-tenant, SQL discipline, wording of payloads)

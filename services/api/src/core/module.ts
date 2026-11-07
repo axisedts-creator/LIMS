@@ -131,7 +131,11 @@ function bundleRefs(spec: any, dir: string): any {
       if (placed.get(ptr) !== file) throw new Error(`spec: $ref ${file}${ptr} collides with ${placed.get(ptr)}${ptr}`);
       return;
     }
-    if (get(spec, ptr) !== undefined) throw new Error(`spec: $ref ${file}${ptr} collides with a local definition`);
+    const local = get(spec, ptr);
+    // LD-53 (1), CR-C2-020 option A: a local node that is exactly `{ $ref: <this file + this pointer> }` is an alias of
+    // the very target being placed; it is replaced by the cloned target below. Any other local node still collides.
+    const alias = local && typeof local === 'object' && Object.keys(local).length === 1 && local.$ref === `${file}${ptr}`;
+    if (local !== undefined && !alias) throw new Error(`spec: $ref ${file}${ptr} collides with a local definition`);
     const v = get(docs.get(file), ptr);
     if (v === undefined) throw new Error(`spec: unresolved $ref ${file}${ptr}`);
     const keys = ptr.slice(2).split('/');
@@ -148,8 +152,9 @@ function bundleRefs(spec: any, dir: string): any {
       const file = f || from;
       if (!file) return; // local ref of the spec itself
       if (!docs.has(file)) docs.set(file, parse(readFileSync(join(dir, file), 'utf8')));
-      node.$ref = `#${ptr}`;
+      // place before rewriting: the alias check needs this node's original $ref (LD-53 (1)).
       place(file, `#${ptr}`);
+      node.$ref = `#${ptr}`;
       return;
     }
     for (const v of Object.values(node)) visit(v, from);

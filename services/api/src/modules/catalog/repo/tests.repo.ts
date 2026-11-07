@@ -5,7 +5,8 @@ interface Tx { query(text: string, values?: unknown[]): Promise<{ rows: any[] }>
 export type RangeSetTable = 'reference_range_sets' | 'critical_limit_sets';
 export type RangeBandTable = 'reference_ranges' | 'critical_limits';
 export type Table = 'orderables' | 'tests' | 'panels' | 'panel_members' | 'test_specimen_types' | 'analytes' | 'analyte_versions' | 'departments' | 'specimen_types' | 'containers'
-  | RangeSetTable | RangeBandTable;   // T-08
+  | RangeSetTable | RangeBandTable   // T-08
+  | 'formula_dependencies';          // T-09 (insert only)
 
 export interface FindOpts {
   ids?: readonly string[];                          // id = ANY(...)

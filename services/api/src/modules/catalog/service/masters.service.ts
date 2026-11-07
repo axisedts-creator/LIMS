@@ -8,7 +8,7 @@ import { decodeCursor, encodeCursor, globalSetDto, globalUnitDto, setDto, toDto,
 import * as repo from '../repo/masters.repo.js';
 import { createRevisionService } from './revision.service.js';
 
-type Field = { t: 'str'; min: number; max: number } | { t: 'int'; min: number; max: number } | { t: 'bool' } | { t: 'uuid' };
+export type Field = { t: 'str'; min: number; max: number } | { t: 'int'; min: number; max: number } | { t: 'bool' } | { t: 'uuid' };
 interface Def { R: string; table: repo.MasterTable; entity: string; fields: Record<string, Field>; required: readonly string[]; sorts: readonly string[] }
 
 export const str = (min: number, max: number): Field => ({ t: 'str', min, max });

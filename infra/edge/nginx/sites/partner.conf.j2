@@ -1,0 +1,17 @@
+# partner origin (02-TRD s6.1, Phase 2): rendered only with partner_enabled.
+# Partner-BFF login zone: C13 has not named its login paths yet (T-33).
+{% if partner_enabled %}
+server {
+    server_name {{ origins.partner }};
+    ssl_certificate     /etc/nginx/certs/{{ origins.partner }}/fullchain.pem;
+    ssl_certificate_key /etc/nginx/certs/{{ origins.partner }}/privkey.pem;
+    include /etc/nginx/snippets/server.conf;
+    client_max_body_size 16m;                # [CONV] same upload cap as staff_web
+
+    include /etc/nginx/snippets/reserved-deny.conf;
+
+    location / {
+        proxy_pass http://partner:3000;
+    }
+}
+{% endif %}

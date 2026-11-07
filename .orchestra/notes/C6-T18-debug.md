@@ -7,3 +7,7 @@ Action: C6-T18 verify stays blocked until that CR lands; rerun verify after a cl
 ## round 2
 Cause unchanged: `Cannot find module 'dompurify'` (sanitise.ts:24), dompurify/jsdom still absent from services/api/package.json. Not a T18 defect (136/136 pass with stubs).
 Fix: none in C6 paths; blocked on CR-C6-019 (.orchestra/cr/C6-T17.md). Rerun verify after C0-0D lands deps + lockfile. No test/impl edits.
+
+## round 3
+Cause unchanged: `Cannot find module 'dompurify'` (sanitise.ts:24). dompurify/jsdom still not in services/api/package.json or node_modules. Not a T18 defect.
+Fix: none in C6 paths; blocked on CR-C6-019 (.orchestra/cr/C6-T17.md). Rerun verify after C0-0D adds deps + lockfile and clean install. No test/impl edits.

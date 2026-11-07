@@ -6,9 +6,16 @@ import { adToBs, bsToAd, type IsoUtc } from '../../../../../../../packages/share
 import { checkFiscalYear, fiscalYearOf } from '../fiscalYear.js';
 
 const utc = (s: string) => s as IsoUtc;
-const NPT_MS = (5 * 60 + 45) * 60_000;
-/** Instant at 00:00 Asia/Kathmandu of an A.D. date, plus `ms`. */
-const nptMidnight = (ad: string, ms = 0): IsoUtc => new Date(Date.parse(`${ad}T00:00:00Z`) - NPT_MS + ms).toISOString() as IsoUtc;
+const KTM = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kathmandu', hourCycle: 'h23', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' });
+const ktmLocal = (t: number): string => { const p = Object.fromEntries(KTM.formatToParts(t).map((x) => [x.type, x.value])); return `${p.year}-${p.month}-${p.day}T${p.hour}:${p.minute}`; };
+/** Instant at 00:00 Asia/Kathmandu of an A.D. date, plus `ms`. Offset comes from the zone (+05:30 before 1986-01-01, +05:45 after), not a constant. */
+const nptMidnight = (ad: string, ms = 0): IsoUtc => {
+  for (const off of [(5 * 60 + 45) * 60_000, (5 * 60 + 30) * 60_000]) {
+    const t = Date.parse(`${ad}T00:00:00Z`) - off;
+    if (ktmLocal(t) === `${ad}T00:00`) return new Date(t + ms).toISOString() as IsoUtc;
+  }
+  throw new Error(`no Asia/Kathmandu midnight for ${ad}`);
+};
 
 describe('fiscalYearOf — 01 §4.8 boundary (Shrawan 1 2082 = 2025-07-17)', () => {
   it('2025-07-16 23:59 NPT -> 2081/82', () => {
@@ -54,7 +61,7 @@ describe('fiscalYearOf — shared B.S. table sweep 2000..2099 (every Shrawan 1)'
     }
   });
   it('long always matches the DB check invoices__fy__ck ^[0-9]{4}/[0-9]{2}$ and short is long without the leading digit', () => {
-    for (const i of ['2025-07-17T00:00:00Z', '2030-01-01T00:00:00Z', '2090-12-31T12:00:00Z']) {
+    for (const i of ['2025-07-17T00:00:00Z', '2030-01-01T00:00:00Z', '2042-12-31T12:00:00Z']) {
       const fy = fiscalYearOf(utc(i));
       expect(fy.long).toMatch(/^[0-9]{4}\/[0-9]{2}$/);
       expect(fy.short).toBe(fy.long.slice(1));

@@ -34,7 +34,12 @@ function liveHarness(): Harness {
     gateway,
     latestTokenHash: async (email, type) =>
       sql(`select ot.token_hash from auth.one_time_tokens ot join auth.users u on u.id = ot.user_id where lower(u.email) = lower(${lit(email)}) and ot.token_type = '${tokenType[type]}' order by ot.created_at desc limit 1`) || undefined,
-    ageEmailTokens: async (s) => { sql(`update auth.one_time_tokens set created_at = created_at - interval '${Math.trunc(s)} seconds'`); },
+    // GoTrue enforces the link TTL from auth.users.{recovery_sent_at,confirmation_sent_at,invited_at}, not one_time_tokens.created_at; age both.
+    ageEmailTokens: async (s) => {
+      const n = Math.trunc(s);
+      sql(`update auth.one_time_tokens set created_at = created_at - interval '${n} seconds'`);
+      sql(`update auth.users set recovery_sent_at = recovery_sent_at - interval '${n} seconds', confirmation_sent_at = confirmation_sent_at - interval '${n} seconds', invited_at = invited_at - interval '${n} seconds'`);
+    },
     passReuseInterval: async () => { await new Promise((r) => setTimeout(r, (Number(process.env['LIMS_TEST_GOTRUE_REUSE_INTERVAL_S'] ?? 10) + 1) * 1000)); },
     passwordHash: async (id) => sql(`select encrypted_password from auth.users where id = ${lit(id)}`) || undefined,
   };

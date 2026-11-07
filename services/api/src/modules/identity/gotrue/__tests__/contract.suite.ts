@@ -1,8 +1,10 @@
 // Shared GoTrueGateway contract (02-TRD s8, plan T1): happy + failure per method. The SAME suite runs against
 //  (1) gateway.fake.ts (fake.contract.test.ts, always) and (2) gateway.http.ts vs the real container (http.live.test.ts, env-gated).
+import { existsSync, readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { describe, it, expect } from 'vitest';
 import type { GoTrueGateway, GoTrueTokens } from '../gateway.js';
-import { goodPassword, jwtClaims, readVerdicts, totp, uniqueEmail, UUID } from './helpers.js';
+import { CR_DIR, goodPassword, jwtClaims, readVerdicts, totp, uniqueEmail, UUID } from './helpers.js';
 
 export interface Harness {
   readonly gateway: GoTrueGateway;
@@ -88,14 +90,35 @@ export function describeGatewayContract(name: string, make: () => Harness, timeo
       it('failure: garbage token → reason invalid', async () => {
         expect(await g.refresh('not-a-real-refresh-token')).toEqual({ ok: false, reason: 'invalid' });
       });
-      it('reuse of a rotated-out token (after the reuse interval) → reason reused, and the family dies', async () => {
+      // Reuse behaviour of the pinned version is what T1 must VERIFY (02-TRD:490), so it is asserted against the
+      // mapping.md REFRESH_REUSE verdict, never hard-coded. LIMS itself revokes the LIMS session on `reused` (02-TRD:125).
+      it('reuse of a token two rotations old (after the reuse interval) → reason reused; newest token per REFRESH_REUSE verdict', async () => {
+        const verdict = readVerdicts().REFRESH_REUSE; expect(verdict).toBeDefined();
         const u = await newUser(g, 'ru');
         const t0 = await login(g, u.email, u.password);
         const t1 = await g.refresh(t0.refreshToken); expect(t1.ok).toBe(true); if (!t1.ok) return;
+        const t2 = await g.refresh(t1.tokens.refreshToken); expect(t2.ok).toBe(true); if (!t2.ok) return;
         await h.passReuseInterval();
         expect(await g.refresh(t0.refreshToken)).toEqual({ ok: false, reason: 'reused' });
-        const newest = await g.refresh(t1.tokens.refreshToken);      // GoTrue revokes the whole session family
-        expect(newest.ok).toBe(false);
+        if (verdict === 'CONFIRMED') {
+          expect((await g.refresh(t2.tokens.refreshToken)).ok).toBe(false);      // GoTrue revoked the token family
+        } else {
+          expect(existsSync(resolve(CR_DIR, 'T1.nonblocking.md'))).toBe(true);   // REFUTED ⇒ CR-C2-T1-b must exist
+          expect(readFileSync(resolve(CR_DIR, 'T1.nonblocking.md'), 'utf8')).toContain('CR-C2-T1-b');
+        }
+      });
+      it('reuse of the immediate parent after one rotation (after the reuse interval) is pinned to the REFRESH_REUSE verdict', async () => {
+        const verdict = readVerdicts().REFRESH_REUSE; expect(verdict).toBeDefined();
+        const u = await newUser(g, 'rp');
+        const t0 = await login(g, u.email, u.password);
+        const t1 = await g.refresh(t0.refreshToken); expect(t1.ok).toBe(true); if (!t1.ok) return;
+        await h.passReuseInterval();
+        const again = await g.refresh(t0.refreshToken);
+        if (verdict === 'CONFIRMED') expect(again).toEqual({ ok: false, reason: 'reused' });
+        else {                                                                   // REFUTED ⇒ real GoTrue is lenient toward the immediate parent
+          expect(again.ok).toBe(true);
+          if (again.ok) expect(again.tokens.sessionId).toBe(t0.sessionId);
+        }
       });
       it('failure: refresh after local sign-out / admin sign-out → not ok (revoked or invalid)', async () => {
         const u = await newUser(g, 'rs');

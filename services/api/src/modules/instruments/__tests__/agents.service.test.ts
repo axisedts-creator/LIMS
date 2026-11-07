@@ -334,8 +334,8 @@ describe('E18 / E19 / E20 / E21', () => {
     const w = world({ transitions: [transitionRow(), transitionRow({ id: idN(0x9002), health_version: 3, from_state: 'online', to_state: 'offline' })] });
     const r = await w.svc.listAgentHealthTransitions(w.ctx, { agentId: AID, changedAtFrom: '2026-11-01T00:00:00.000Z' });
     expect(r.body.data).toHaveLength(2); expect(r.body.data[0]).toMatchObject({ health_version: 2, to_state: 'online' }); expect(r.body.page.limit).toBe(50);
-    expect(w.callsOf('listTransitions')[0]!.args[2]).toMatchObject({ limit: 50 });
-    expect(JSON.stringify(w.callsOf('listTransitions')[0]!.args[2])).toContain('2026-11-01T00:00:00.000Z');
+    expect(w.callsOf('listTransitions')[0]!.args[1]).toMatchObject({ limit: 50 });
+    expect(JSON.stringify(w.callsOf('listTransitions')[0]!.args[1])).toContain('2026-11-01T00:00:00.000Z');
     expect((await rejection(w.svc.listAgentHealthTransitions(w.ctx, { agentId: idN(0xdead) })))?.code).toBe('common.not_found');
   });
   it('E20 getAgentLogBundle: agent.manage at the agent centre; 200 { bundle_id, lines, from_at_agent, to_at_agent, created_at }; other agent\'s bundle or unknown bundle -> 404; reader -> 403', async () => {

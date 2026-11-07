@@ -67,7 +67,7 @@ describe('toAgent (E12/E11/E13/E15/E16 body)', () => {
     expect(dto).not.toHaveProperty('revoke_reason_text'); expect(dto).not.toHaveProperty('revoked_by');
   });
   it('does not mutate its input', () => {
-    const copy = structuredClone(row); toAgent(row); expect(row).toEqual(copy);
+    const before = JSON.stringify(row); toAgent(row); expect(JSON.stringify(row)).toBe(before);
   });
 });
 

@@ -3,5 +3,5 @@ Files (review round): services/renderer/src/pool.ts (data: @font-face injection 
 Spike: **Technique: thead-tfoot**; watermark = position:fixed centred rotate(-30deg), present on all 3 pages (per-page Form XObject). "Page N Of M" left to the sandbox.
 [CONV] fresh context per job, ≤ N concurrent; queue wait ≤ LIMS_RENDERER_TIMEOUT_MS then 503; recycle drains pool first; crash → relaunch, in-flight → 503; RSS = cgroup memory.current; fonts via fontconfig only; blocked navigation 204; 413 > 20 MB; port 8080.
 render(templateId, data, assets, pool): registry empty until T06+; unknown id → 400, template throw → 422.
-Tests: tsc clean; vitest 47/50. Failing: watermark (helper skips Form XObjects), Devanagari embed (host lacks Noto fonts), saturation (timing race, flaky) → see C6-T05-dispute.md.
+Tests (round 3): vitest 48 pass / 1 skip (Devanagari embed, image-only) / 1 fail (saturation: waiter succeeds, test unwinnable) → see C6-T05-dispute.md.
 Open: Docker image not built/run here; RSS cap untested in a real cgroup.

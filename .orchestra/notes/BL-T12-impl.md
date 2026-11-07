@@ -1,0 +1,7 @@
+# BL-T12 impl
+Files: ports/BillingPort.impl.ts (new; `createBillingPort`, `billingPort`), service/release.service.ts (new; `createReleaseService`: getEligibility, createOverride), handlers/release.handlers.ts (new; B14/B15) + handlers/index.ts, billing/index.ts (manifest.ports.BillingPort), ledger.handlers.ts (export `bind`, `obj`), repository/{ledger,overrides,refundRequests}.repo.ts + index.ts (findGatewayPayment, getPaymentIntentRef, sumGatewayByIntent, insertReleaseOverride, insertFinanceReviewItem).
+Tests: 8 files / 178 tests green (contract, harness self-check, static, release.service, release.handlers). Full api run: only catalog/instruments/reporting failures (other lanes; catalog autoload passes with a 60s timeout).
+[CONV] actor guard (user|system else auth.forbidden) runs before validation; B14 needs a user with membership (system -> auth.forbidden).
+[CONV] gateway row: method_code = gateway, businessDate/fiscal year from ctx.now(), review item amount = excess over max(due,0); activity actions payment_recorded / refund_recorded / override_created.
+[CONV] replay with another order/intent -> common.idempotency_key_reused; intent ref for another order -> validation_failed (payment) / ledger_reversal_invalid (refund). Ledger insert runs in tx.savepoint when present so a lost unique race does not abort the tx.
+Open: openapi ReleaseEligibilityDto.basis lacks due_outstanding/no_invoice (cr/BL-T06.nonblocking.md) - B15 response validation needs a C0 fix. Real SQL (RLS, CHECKs, sumGatewayByIntent FILTER) untested: fakes only.

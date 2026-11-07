@@ -379,7 +379,8 @@ describe('static guards on the WEB-T02 files (REQ-SEC-068: browser holds no JWT/
   it('components/* never mention the API origin, bearer tokens, or persist anything', async () => {
     const { readdirSync, readFileSync } = await import('node:fs');
     const { join } = await import('node:path');
-    const dir = join(process.cwd(), 'src/features/instruments/components');
+    const WEB = join(import.meta.dirname, '..', '..', '..', '..');
+    const dir = join(WEB, 'src/features/instruments/components');
     const files = readdirSync(dir).filter((f) => /\.tsx?$/.test(f) && !/\.(test|spec)\./.test(f));
     expect(files.length).toBeGreaterThan(0);
     for (const f of files) {
@@ -391,7 +392,8 @@ describe('static guards on the WEB-T02 files (REQ-SEC-068: browser holds no JWT/
   it('every server/*.server.ts starts with the "server-only" guard (02-CONVENTIONS §2.4)', async () => {
     const { readdirSync, readFileSync } = await import('node:fs');
     const { join } = await import('node:path');
-    const dir = join(process.cwd(), 'src/features/instruments/server');
+    const WEB = join(import.meta.dirname, '..', '..', '..', '..');
+    const dir = join(WEB, 'src/features/instruments/server');
     const files = readdirSync(dir).filter((f) => f.endsWith('.server.ts'));
     for (const n of ['listAgents', 'getAgent', 'createAgent', 'issueEnrolmentCode', 'listAgentHealthTransitions']) expect(files, n).toContain(`${n}.server.ts`);
     for (const f of files) expect(readFileSync(join(dir, f), 'utf8'), f).toMatch(/^(\s*\/\/[^\n]*\n|\s*'use server';?\s*\n)*\s*import ['"]server-only['"]/);
@@ -400,8 +402,9 @@ describe('static guards on the WEB-T02 files (REQ-SEC-068: browser holds no JWT/
   it('route pages exist as server components: agents/page.tsx and agents/[agent_id]/page.tsx (no "use client")', async () => {
     const { readFileSync, existsSync } = await import('node:fs');
     const { join } = await import('node:path');
+    const WEB = join(import.meta.dirname, '..', '..', '..', '..');
     for (const p of ['agents/page.tsx', 'agents/[agent_id]/page.tsx']) {
-      const f = join(process.cwd(), 'src/app/(staff)/instruments', p);
+      const f = join(WEB, 'src/app/(staff)/instruments', p);
       expect(existsSync(f), p).toBe(true);
       expect(readFileSync(f, 'utf8'), p).not.toMatch(/^\s*['"]use client['"]/);
     }

@@ -72,7 +72,13 @@ export interface JobRec { identifier: string; payload: any; jobKey: string | nul
 // ------------------------------------------------------------------------------------------------ tiny SQL helpers
 const unsupported = (what: string): never => { throw new Error(`FAKE-UNSUPPORTED-SQL: ${what} (single-table statements with $n parameters only)`); };
 const norm = (s: string) => s.replace(/\s+/g, ' ').trim();
-function splitTop(s: string, sep: RegExp): string[] {   // split on a separator word/char at paren depth 0 and outside quotes
+const splitMemo = new Map<string, string[]>();   // pure function of (s, sep): evalWhere re-splits the same WHERE text once per ROW per statement (O(rows x len^2)); cache it (C6-T14 load host cost)
+function splitTop(s: string, sep: RegExp): string[] {
+  const key = `${sep.source}/${sep.flags}|${s}`; const hit = splitMemo.get(key);
+  if (hit) return [...hit];
+  const r = splitTopRaw(s, sep); if (splitMemo.size > 5000) splitMemo.clear(); splitMemo.set(key, r); return [...r];
+}
+function splitTopRaw(s: string, sep: RegExp): string[] {   // split on a separator word/char at paren depth 0 and outside quotes
   const out: string[] = []; let d = 0; let q = false; let cur = '';
   for (let i = 0; i < s.length; i++) {
     const ch = s[i]!;
@@ -146,9 +152,12 @@ function evalAtom(row: Row, atomRaw: string, values: readonly unknown[]): boolea
   }
   return unsupported(`WHERE atom \`${atom}\``);
 }
+const whereMemo = new Map<string, string[][]>();   // WHERE text -> AND-list of OR-lists of atoms (parsed once, not once per row)
 function evalWhere(row: Row, where: string, values: readonly unknown[]): boolean {
   if (!where.trim()) return true;
-  return splitTop(where, /^\s+and\s+/i).every((conj) => splitTop(stripParens(conj), /^\s+or\s+/i).some((a) => evalAtom(row, a, values)));
+  let c = whereMemo.get(where);
+  if (!c) { c = splitTop(where, /^\s+and\s+/i).map((conj) => splitTop(stripParens(conj), /^\s+or\s+/i)); if (whereMemo.size > 5000) whereMemo.clear(); whereMemo.set(where, c); }
+  return c.every((ors) => ors.some((a) => evalAtom(row, a, values)));
 }
 
 // ------------------------------------------------------------------------------------------------ the database

@@ -34,7 +34,7 @@ export function checkApprove(x: {
   if (x.approverAal !== 'aal2') return { ok: false, code: 'auth.mfa_required' };
   // [CONV] centre not covered is indistinguishable from missing (common.not_found meaning).
   if (!x.approverCoversCentre) return { ok: false, code: 'common.not_found' };
-  if (effectiveStatus(x.approval, x.now) !== 'pending') return { ok: false, code: 'common.version_conflict' };
+  if (effectiveStatus(x.approval, x.now) !== 'pending') return { ok: false, code: 'common.immutable_record' };
   return { ok: true };
 }
 

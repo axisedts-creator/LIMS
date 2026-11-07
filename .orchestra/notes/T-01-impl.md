@@ -1,6 +1,8 @@
-# T-01 impl (writer)
-- Files: infra/{README.md,THIRD-PARTY-OPS.md,.gitleaks.toml,.gitignore}, infra/ci/*.sh (12 stubs), infra/secrets/.sops.yaml, infra/secrets/schema/{dev,staging,prod}.secrets.schema.yaml, infra/tests/run.sh (LD-06).
-- This round (review items 1-3): untracked committed .pyc (`git rm --cached`) + new infra/.gitignore `__pycache__/`; gitleaks allowlist narrowed to `infra/tests/static/__pycache__/` (checked: without allowlist a stale .pyc gives 2 leaks, with it 0); run.sh:3 and README:20 now state the LD-17 ansible-lint exception.
-- [CONV] .sops.yaml age recipients are placeholders (sops rejects = fail closed); real keys at key ceremony. Free-name ids as before.
-- Ran: `bash infra/tests/run.sh` = gitleaks ok, yamllint ok, ansible-lint SKIP (LD-17), static 24 OK. `python -m unittest discover -s infra/tests/static` = 27 run, OK (1 skip).
-- Open: ansible-lint / CI=true run on ops runner not verified locally.
+# T-01 impl (C5 writer). NOTE: overwrites C1's T-01-impl.md (same id collision as T-01-tests.md)
+- Files: api `modules/lab/{index,permissions,config}.ts`, `modules/lab/handlers/index.ts`; worker `jobs/lab/index.ts`; round 2: `core/openapi.ts` (lead AUTO 2026-11-07T19:16:21).
+- [CONV] 55 stubs in handlers/index.ts come from one explicit operationId list; each throws LimsError `common.internal`.
+- [CONV] worker: the 9 §7.2 consumer stubs reject with `common.internal`; `tasks: {}`, `crontab: []`.
+- [CONV] config: bools accept only `true`/`false`; ints must be decimal digits >= 1; the error names the LIMS_LAB_* key.
+- Round 2: `AJV_OPTIONS.keywords = ['x-coded-set']` (strict and removeAdditional:false unchanged). The real repo now boots.
+- Round 3 (after the ruling and the revised tests): no code change. api lab 73/73, worker lab 5/5. api tsc clean (worker has no tsconfig).
+- Open: core tests fail because lab is the first autoloaded module (ruling #5, escalated to the lead for C0).

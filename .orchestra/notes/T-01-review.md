@@ -1,12 +1,7 @@
 APPROVE
-
-Re-review of `645b440..HEAD` (writer commit 84515c8 "T-01 review fixes"), checked against the 3 CHANGES items from 389d38b.
-
-1. Fixed. `infra/tests/static/__pycache__/test_t01_skeleton.cpython-314.pyc` removed from the index; `infra/.gitignore` = `__pycache__/`; `git ls-files infra | grep pycache` is empty.
-2. Fixed. `infra/.gitleaks.toml:8` narrowed to `infra/tests/static/__pycache__/`. Checked with a stale .pyc recompiled into that dir: `gitleaks detect --no-git --source infra` gives "no leaks found", so the path form matches. Stale file deleted afterwards.
-3. Fixed. `infra/tests/run.sh:3` and `infra/README.md:20` now state the LD-17 ansible-lint exception, matching run.sh:14-16.
-
-Earlier checks still hold (THIRD-PARTY-OPS covers 02-TRD s2 GPL/AGPL/MPL tools; schema covers s8.2 ids; placeholder recipients only; no secrets; only `infra/` paths plus own notes; LD-06/LD-17 cited). RLS/permissions/error codes/rate tier: not applicable.
-
-Ran `bash infra/tests/run.sh` locally 2026-11-07: ok gitleaks, ok yamllint, SKIP ansible-lint (CI only), 24 static tests OK, exit 0.
-Not verified by reviewer: ops runner / CI=true run with ansible-lint.
+Scope: `git diff 394c323..HEAD` (core/openapi.ts AJV keywords, 3 test fixes per ruling, notes).
+- `AJV_OPTIONS.keywords = ['x-coded-set']` matches lead AUTO 2026-11-07T19:16:21 exactly: strict + `removeAdditional:false` unchanged, no `x-extensible` (absent from every contracts/openapi/*.yaml), no `strictSchema:false`. Annotation-only per 02-CONVENTIONS §5.5. Inherited by BODY_/RESPONSE_AJV_OPTIONS. Edit outside C5 ownership is authorised by that decision and cited in a comment.
+- Test changes match ruling items 1-3. Nothing weakened: the 401 + `auth.*` and 404 assertions are kept, the regex only widens to 2-segment names, and the timeouts are a harness limit.
+- No new names, PHI, secrets, RLS or DDL in this diff.
+Verified: api `src/modules/lab` 73/73; worker `src/jobs/lab` 5/5; api `tsc --noEmit` clean.
+Non-blocking, for the lead (ruling #5, C0): the full api suite is 11 failed / 1334 passed. Causes are `module lab: bearerJwt operations need LIMS_CORE_JWT_* config` and 5000 ms timeouts in core tests that autoload the real modulesDir. `core/__tests__/openapi.test.ts` passes alone (9/9), so the AJV change did not cause these. Fix belongs to C0 test config, not C5 paths.

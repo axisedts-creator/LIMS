@@ -37,3 +37,37 @@ export async function voidCreditChargesByIds(tx: Q, a: { tenantId: string; ids: 
       WHERE tenant_id = $1 AND id = ANY($2::uuid[]) AND status = 'uninvoiced' RETURNING id`, [a.tenantId, a.ids, a.userId, a.reasonCode]);
   return rows.length;
 }
+
+/** B20: keyset on id (ascending); `periodMonth` is the first day of the A.D. month ('YYYY-MM-01'). The caller asks for limit + 1. */
+export async function listCreditChargesByParty(tx: Q, a: { tenantId: string; creditPartyId: string; status?: string; periodMonth?: string; afterId?: string; limit: number }): Promise<Record<string, any>[]> {
+  const p: unknown[] = [a.tenantId, a.creditPartyId];
+  const where = ['tenant_id = $1', 'credit_party_id = $2'];
+  const add = (sql: string, v: unknown) => { p.push(v); where.push(sql.replace('?', '$' + String(p.length))); };
+  if (a.status !== undefined) add('status = ?', a.status);
+  if (a.periodMonth !== undefined) add('period_month = ?::date', a.periodMonth);
+  if (a.afterId !== undefined) add('id > ?::uuid', a.afterId);
+  p.push(a.limit);
+  return (await tx.query('SELECT * FROM billing.credit_charges WHERE ' + where.join(' AND ') + ' ORDER BY id LIMIT $' + String(p.length), p)).rows;
+}
+
+/** B21: the party's uninvoiced charges of one month, FOR UPDATE (two finance users cannot bill the same month twice), in bill order. */
+export async function lockUninvoicedCreditCharges(tx: Q, a: { tenantId: string; creditPartyId: string; periodMonth: string }): Promise<Record<string, any>[]> {
+  const { rows } = await tx.query(
+    `SELECT * FROM billing.credit_charges WHERE tenant_id = $1 AND credit_party_id = $2 AND period_month = $3::date AND status = 'uninvoiced'
+      ORDER BY charged_at, id FOR UPDATE`, [a.tenantId, a.creditPartyId, a.periodMonth]);
+  return rows;
+}
+
+/** uninvoiced -> invoiced for every link, one statement. Returns how many rows moved (the caller compares it with links.length). */
+export async function markCreditChargesInvoiced(tx: Q, a: {
+  tenantId: string; links: ReadonlyArray<{ chargeId: string; invoiceId: string; invoiceLineId: string }>; invoicedAt: string; userId: string;
+}): Promise<number> {
+  if (a.links.length === 0) return 0;
+  const { rows } = await tx.query(
+    `UPDATE billing.credit_charges c SET status = 'invoiced', invoice_id = l.invoice_id, invoice_line_id = l.line_id, invoiced_at = $5::timestamptz,
+            updated_at = now(), updated_by = $6, version = c.version + 1
+       FROM unnest($2::uuid[], $3::uuid[], $4::uuid[]) AS l(charge_id, invoice_id, line_id)
+      WHERE c.tenant_id = $1 AND c.id = l.charge_id AND c.status = 'uninvoiced' RETURNING c.id`,
+    [a.tenantId, a.links.map((l) => l.chargeId), a.links.map((l) => l.invoiceId), a.links.map((l) => l.invoiceLineId), a.invoicedAt, a.userId]);
+  return rows.length;
+}

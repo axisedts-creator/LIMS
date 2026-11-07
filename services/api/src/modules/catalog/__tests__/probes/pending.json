@@ -8,8 +8,6 @@
   "getExport",
   "listExports",
   "listInstrumentCodeMaps",
-  "setTestTatTargets",
   "updateInstrumentCodeMap",
-  "upsertInstrumentCodeMaps",
-  "validateFormula"
+  "upsertInstrumentCodeMaps"
 ]

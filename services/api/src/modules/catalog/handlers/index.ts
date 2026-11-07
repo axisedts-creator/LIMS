@@ -5,6 +5,7 @@ import { LimsError } from '../../../core/errors.js';
 import type { Handler } from '../../../core/module.js';
 import { analyteVersionsHandlers } from './analyteVersions.handlers.js';
 import { creditPartiesHandlers } from './creditParties.handlers.js';
+import { formulasHandlers } from './formulas.handlers.js';
 import { importsHandlers } from './imports.handlers.js';
 import { mastersHandlers } from './masters.handlers.js';
 import { panelsHandlers } from './panels.handlers.js';
@@ -23,10 +24,9 @@ export const handlers: Readonly<Record<string, Handler>> = Object.freeze({
   getCatalogRevision: notImplemented,
   getCatalogHealthReport: notImplemented,
   ...mastersHandlers, // T-04: #5–#16; T-05: #17–#22 (units, value sets); T-13: #57–#59 (comment codes)
-  ...testsHandlers, // T-06: #2, #23–#27
-  setTestTatTargets: notImplemented,
+  ...testsHandlers, // T-06: #2, #23–#27; T-14: #28
   ...analyteVersionsHandlers, // T-07: #29–#35
-  validateFormula: notImplemented,
+  ...formulasHandlers, // T-11: #36
   ...rangesHandlers, // T-08: #37–#50 (reference-range + critical-limit sets)
   ...rangePreviewHandlers, // T-10: #51
   ...panelsHandlers, // T-12: #52–#56, #3

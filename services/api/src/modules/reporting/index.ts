@@ -10,6 +10,7 @@ import { retryRenderHandlers } from './handlers/retry-render.handlers.js';
 import { settingsHandlers } from './handlers/settings.handlers.js';
 import { templatesHandlers } from './handlers/templates.handlers.js';
 import { portalHandlers } from './handlers/portal.handlers.js';
+import { verifyHandlers } from './handlers/verify.handlers.js';
 import { portalSessionResolver } from './auth/portal.resolver.js';
 import { REPORTING_SYSTEM_PERMISSIONS } from './permissions.js';
 
@@ -20,7 +21,7 @@ export const config = loadReportingConfig(process.env);
 const notImplemented: Handler = async () => ({ status: 501 });
 
 const OPENAPI = 'contracts/openapi/reporting.yaml';
-const implemented: Readonly<Record<string, Handler>> = { ...settingsHandlers, ...outsourcedHandlers, ...narrativeImageHandlers, ...narrativeHandlers, ...templatesHandlers, ...retryRenderHandlers, ...releaseHandlers, ...portalHandlers };
+const implemented: Readonly<Record<string, Handler>> = { ...settingsHandlers, ...outsourcedHandlers, ...narrativeImageHandlers, ...narrativeHandlers, ...templatesHandlers, ...retryRenderHandlers, ...releaseHandlers, ...portalHandlers, ...verifyHandlers };
 
 export const manifest: ModuleManifest = Object.freeze({
   name: 'reporting',

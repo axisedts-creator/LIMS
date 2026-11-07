@@ -176,7 +176,114 @@ export function createLedgerService(deps: { repo?: BillingRepo; counter: Counter
       entry: ledgerEntryDto(row, display),
     };
   }
-  return { recordPayment };
+
+  /**
+   * B9 reverseLedgerEntry (TRD §5 B9, §6.5 "Reversal"; PRD US-BL-06.1; REQ-SEC-057). One new signed row that copies the original's capture fields (billing.ledger_reversal_guard
+   * checks the same list); the original is never touched. Order: validate -> load original -> lock order_balances -> replay -> kind / already-reversed checks -> session -> insert ->
+   * balance recompute -> activity. The reverser (ctx membership) is the approver; no receipt number is consumed.
+   */
+  async function reverseEntry(ctx: BalanceCtx, rawInput: unknown) {
+    if (typeof ctx?.tenantId !== 'string' || typeof ctx.actor?.id !== 'string' || !ctx.tx) throw new LimsError('auth.unauthenticated');
+    const reverser = ctx.actor.membershipId;
+    if (reverser === undefined) throw new LimsError('auth.forbidden');
+    const i = checkReverse(rawInput);
+    const tx = ctx.tx as never;
+    const { tenantId } = ctx;
+    const actorId = ctx.actor.id;
+    const nowIso = ctx.now();
+
+    const orig = await repo.getLedgerEntry(tx, { tenantId, entryId: i.ledgerEntryId });
+    if (!orig) throw new LimsError('common.not_found');
+    // ponytail: order-less rows (credit-party payments, B22) have no order_balances row to lock or recompute; refused until their reversal is specified.
+    if (typeof orig['order_id'] !== 'string') throw new LimsError('billing.ledger_reversal_invalid');
+    const orderId = orig['order_id'];
+    await repo.lockOrderBalance(tx, { tenantId, orderId });
+
+    const prior = await repo.findLedgerByIdempotencyKey(tx, { tenantId, idempotencyKey: i.idempotencyKey });
+    const totals = await repo.readOrderTotals(tx, { tenantId, orderId });
+    if (!totals) throw new LimsError('common.internal');
+    if (prior) {
+      if (prior['reverses_entry_id'] !== i.ledgerEntryId) throw new LimsError('common.idempotency_key_reused');
+      const bal = await repo.getOrderBalance(tx, { tenantId, orderId });
+      if (!bal) throw new LimsError('common.internal');
+      const display = await names(ctx, [prior['collected_by_membership_id']]);
+      return {
+        duplicate: true, entry: ledgerEntryDto(prior, display),
+        balance: balanceOf(orderId, totals, toPaisa(totals.paid_paisa), Number(bal['balance_version']), bal['updated_at'] ? iso(bal['updated_at']) : nowIso),
+      };
+    }
+    if (orig['entry_kind'] !== 'payment' || (await repo.findReversalOf(tx, { tenantId, entryId: i.ledgerEntryId }))) throw new LimsError('billing.ledger_reversal_invalid');
+
+    // cash session (TRD §6.5): the original's while it is still open, else the reverser's open session at the original's centre, else none. A reversal never opens one.
+    const centreId = typeof orig['centre_id'] === 'string' ? orig['centre_id'] : null;
+    let cashSessionId: string | null = null;
+    const origSession = typeof orig['cash_session_id'] === 'string' ? await repo.getCashSession(tx, { tenantId, sessionId: orig['cash_session_id'] }) : undefined;
+    if (origSession?.['status'] === 'open') cashSessionId = String(origSession['id']);
+    else if (centreId !== null) {
+      const mine = await repo.findOpenCashSession(tx, { tenantId, membershipId: reverser, centreId });
+      if (mine) cashSessionId = String(mine['id']);
+    }
+
+    const idp = ctx.ports?.IdentityPort;
+    if (!idp) throw new LimsError('common.internal');
+    const tenant = await idp.getTenantSettings(ctx, { keys: ['timezone'] });
+    const timezone: string = typeof tenant?.timezone === 'string' ? tenant.timezone : DEFAULT_TZ;
+    const fy = fiscalYearOf(nowIso as IsoUtc, timezone);
+
+    const amount = -toPaisa(orig['amount_paisa']);
+    const ledgerId = uuidv7();
+    let row: Record<string, unknown> | undefined;
+    try {
+      row = await repo.insertLedgerEntry(tx, {
+        id: ledgerId, tenantId, branchId: String(orig['branch_id']), centreId, orderId, invoiceId: strOrNull(orig['invoice_id']), creditPartyId: strOrNull(orig['credit_party_id']),
+        entryKind: 'reversal', captureKind: orig['capture_kind'] as 'manual' | 'gateway' | 'home_collection', methodCode: String(orig['method_code']), amountPaisa: amount,
+        gateway: strOrNull(orig['gateway']), gatewayTxnRef: strOrNull(orig['gateway_txn_ref']), intentId: strOrNull(orig['intent_id']),
+        collectedByMembershipId: strOrNull(orig['collected_by_membership_id']), approvedByMembershipId: reverser, reversesEntryId: i.ledgerEntryId,
+        reasonCode: i.reasonCode, reasonText: i.reasonText ?? null, fiscalYearBs: fy.long, businessDate: localDate(nowIso, timezone), cashSessionId, userId: actorId, idempotencyKey: i.idempotencyKey,
+      });
+    } catch (e) {
+      throw reversalRace(e) ? new LimsError('billing.ledger_reversal_invalid') : e; // a lost race on the unique index, or the DB guard refusing a stale copy
+    }
+    if (!row) throw new LimsError('common.internal');
+
+    const applied = await balance.applyChange(ctx, { orderId, cause: 'payment_reversed' });
+    await repo.insertActivity(tx, {
+      id: uuidv7(), tenant_id: tenantId, centre_id: centreId, action: 'payment_reversed', document_kind: 'ledger_entry', document_id: ledgerId, document_no: null,
+      actor_id: actorId, actor_membership_id: reverser, actor_type: ctx.actor.type, occurred_at: nowIso, request_id: ctx.requestId ?? null,
+      details: { order_id: orderId, reverses_entry_id: i.ledgerEntryId, amount_paisa: amount, reason_code: i.reasonCode }, created_by: actorId, // never the free reason text
+    });
+    const display = await names(ctx, [orig['collected_by_membership_id']]);
+    return {
+      duplicate: false, entry: ledgerEntryDto(row, display),
+      balance: balanceOf(orderId, totals, toPaisa(totals.paid_paisa) + amount, applied.balanceVersion, nowIso),
+    };
+  }
+  return { recordPayment, reverseEntry };
+}
+
+const strOrNull = (v: unknown): string | null => (typeof v === 'string' ? v : null);
+
+function checkReverse(raw: unknown): { ledgerEntryId: string; reasonCode: string; reasonText?: string; idempotencyKey: string } {
+  if (!isRec(raw)) throw invalid(fieldError('/'));
+  const errors: FieldError[] = [];
+  const bad = (path: string) => { errors.push(fieldError(path)); };
+  const id = raw['ledgerEntryId'];
+  if (typeof id !== 'string' || !UUID.test(id)) bad('/ledgerEntryId');
+  const code = raw['reasonCode'];
+  if (typeof code !== 'string' || code.length < 1 || code.length > 64 || CONTROL.test(code)) bad('/reasonCode');
+  const text = raw['reasonText'];
+  if (text !== undefined && (typeof text !== 'string' || text.length > 500)) bad('/reasonText');
+  const key = raw['idempotencyKey'];
+  if (typeof key !== 'string' || key.length < 1 || key.length > 255 || CONTROL.test(key)) bad('/idempotencyKey');
+  if (errors.length) throw invalid(...errors);
+  return { ledgerEntryId: id as string, reasonCode: code as string, ...(text === undefined ? {} : { reasonText: text as string }), idempotencyKey: key as string };
+}
+
+/** 23505 on ledger_entries__tenant_id_reverses__p_uq, or the guard's P0001 reversal_mismatch. */
+function reversalRace(e: unknown): boolean {
+  const x = e as { code?: unknown; message?: unknown; constraint?: unknown } | null;
+  const text = `${String(x?.constraint ?? '')} ${String(x?.message ?? '')}`;
+  return (x?.code === '23505' && text.includes('reverses')) || (x?.code === 'P0001' && text.includes('reversal_mismatch'));
 }
 export type LedgerService = ReturnType<typeof createLedgerService>;
 

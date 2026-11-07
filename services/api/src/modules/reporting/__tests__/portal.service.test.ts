@@ -294,7 +294,7 @@ describe('P5 requestPortalLinkReissue (AC-11.5, review fix #14)', () => {
     expect(bodies.size).toBe(1);
     const rev = w.mkLink({ revoked_at: w.now() }); const shapes = new Set<string>();
     for (const c of [rev.cred, 'link.' + 'Z'.repeat(22), 'junk']) shapes.add(errShape(await rejection(w.call.p5(c))));
-    expect(shapes.size).toBe(1); expect(w.db.jobsOf('reporting.reissue_portal_link')).toHaveLength(1);
+    expect(shapes.size).toBe(1); expect(w.db.jobsOf('reporting.reissue_portal_link')).toHaveLength(3); // LD-66: link_reissue_max_per_day default 3
   });
   it('never issues a token itself and never uses the rate limiter grammar (strict) for a reissue key', async () => {
     const w = makePortalWorld(); const l = expired(w); await w.call.p5(l.cred);

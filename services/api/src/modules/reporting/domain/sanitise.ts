@@ -1,7 +1,7 @@
 // Narrative rich-text sanitiser (REQ-SEC-088; 02-TRD §2 "HTML sanitiser", CR-C6-019): DOMPurify on a jsdom window, explicit allowlist,
 // no regex tag stripping. jsdom runs with its defaults (no script execution, no sub-resource loading) and the markup is only parsed,
 // never evaluated. The output is plain serialised HTML containing only the formatting tags below and no attributes besides table spans.
-// [CONV] jsdom + dompurify are loaded on first use (createRequire): importing the module manifest stays cheap for the ~60 other operations.
+// [CONV] jsdom + dompurify are loaded synchronously at module import (createRequire), so no request pays the cold-load cost.
 import { createRequire } from 'node:module';
 
 const CONFIG = {
@@ -24,6 +24,7 @@ function deps() {
   purify ??= (require('dompurify') as (w: unknown) => Purifier)(new JSDOM('').window);
   return { JSDOM, purify };
 }
+deps(); // warm at import: the ~2.3 s cold load must not land on the first N3/N9 request (C6-T17 verify: it timed out at 5 s)
 
 /** Returns allowlisted HTML only. Idempotent: sanitiseHtml(sanitiseHtml(x)) === sanitiseHtml(x). */
 export function sanitiseHtml(html: string): string {

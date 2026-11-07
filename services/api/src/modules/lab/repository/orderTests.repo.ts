@@ -1,0 +1,33 @@
+// lab.order_tests + worksheets (lab.worksheets, lab.worksheet_items) (05-SCHEMA §1; indexes 05 §5). Tenant filter explicit (REQ-SEC-024).
+import { getRow, insertRow, isUuid, limitOf, query, table, updateRow, type RepoCtx, type Row } from './base.repo.js';
+
+export const ORDER_TESTS = table('lab.order_tests', 'id', ['id', 'tenant_id', 'centre_id', 'processing_centre_id', 'processing_branch_id', 'order_id', 'order_item_id',
+  'test_id', 'test_code', 'test_revision', 'catalog_revision', 'department_id', 'workflow_type', 'priority', 'specimen_id', 'uses_existing_material', 'status',
+  'approved_at', 'reported_at', 'tat_target_seconds', 'ordered_at', 'received_at', 'cancelled_at', 'cancel_reason',
+  'version', 'is_active', 'created_at', 'created_by', 'updated_at', 'updated_by'], { frozen: ['order_id', 'order_item_id', 'test_id'] });
+export const WORKSHEETS = table('lab.worksheets', 'id', ['id', 'tenant_id', 'centre_id', 'processing_centre_id', 'title', 'department_id', 'instrument_id', 'item_count',
+  'version', 'is_active', 'created_at', 'created_by', 'updated_at', 'updated_by']);
+/** Snapshot rows (class A). */
+export const WORKSHEET_ITEMS = table('lab.worksheet_items', 'id', ['id', 'tenant_id', 'centre_id', 'processing_centre_id', 'worksheet_id', 'position', 'order_test_id',
+  'specimen_id', 'snapshot', 'created_at', 'created_by']);
+
+export const insertOrderTest = (rc: RepoCtx, row: Row) => insertRow(rc, ORDER_TESTS, row);
+export const getOrderTest = (rc: RepoCtx, id: string) => getRow(rc, ORDER_TESTS, id);
+export const updateOrderTest = (rc: RepoCtx, id: string, expectedVersion: number, patch: Row) => updateRow(rc, ORDER_TESTS, id, expectedVersion, patch);
+
+/** order_tests__tenant_id_order__idx */
+export const listOrderTestsByOrder = async (rc: RepoCtx, orderId: string) =>
+  (isUuid(orderId) ? query(rc, 'SELECT * FROM lab.order_tests WHERE tenant_id = $1 AND order_id = $2 ORDER BY ordered_at, id', [orderId]) : []);
+
+/** order_tests__tenant_id_worklist__p_idx; urgent first ('urgent' > 'routine'), then receipt time. */
+export const listWorklist = async (rc: RepoCtx, o: { departmentId: string; limit: number }) => {
+  const limit = limitOf(o?.limit);
+  if (!isUuid(o.departmentId)) return [];
+  return query(rc, `SELECT * FROM lab.order_tests WHERE tenant_id = $1 AND department_id = $2 AND status IN ('in_process','resulted','verified')
+                    ORDER BY priority DESC, received_at, id LIMIT $3`, [o.departmentId, limit]);
+};
+
+/** order_tests__tenant_id_pending__p_idx; oldest order first. */
+export const listPending = (rc: RepoCtx, o: { limit: number }) =>
+  query(rc, `SELECT * FROM lab.order_tests WHERE tenant_id = $1 AND status IN ('awaiting_collection','awaiting_receipt','in_process','resulted','verified')
+             ORDER BY ordered_at, id LIMIT $2`, [limitOf(o?.limit)]);

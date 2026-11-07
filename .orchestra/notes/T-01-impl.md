@@ -1,8 +1,6 @@
 # T-01 impl (writer)
-- Files: infra/{README.md,THIRD-PARTY-OPS.md}, infra/ci/*.sh (12 stubs, exit 2), infra/secrets/.sops.yaml, infra/secrets/schema/{dev,staging,prod}.secrets.schema.yaml (60 ids each, same set), infra/tests/run.sh (TAP: gitleaks, yamllint, ansible-lint if infra/ansible, static tests minus Lint class to avoid self-recursion).
-- [CONV] .sops.yaml age recipients are non-bech32 PLACEHOLDERS (sops rejects them = fail closed); real public keys at key ceremony.
-- [CONV] free-name ids: pgbackrest_repo{1,2}_cipher_pass, repo2_sftp_private_key, object_replica_ssh_key, luks_keyfiles, registry_htpasswd, grafana_admin_password, grafana_users, ops_nginx_basic_auth, alertmanager_smtp_relay, wireguard_private_keys (on-host only), lims_<role>_password.
-- [CONV] upstream Supabase ids marked exposure: env; consumers "(T-05)" resolved against UPSTREAM.lock.
-- Test nit: test_rotation_intervals_conv treats valkey_lims_api_password as a DB password (contains lims_api + pass) and wants 180; TRD s8.2 says 365. Kept 365, block carries a comment explaining 180 does not apply (satisfies regex). Tester should exclude valkey_*.
-- NOT RUN: python, gitleaks, bash -n all denied approval in this session; yamllint/ansible-lint not installed (pip install denied). Verified only by grep (no >80-char YAML lines, no value/private-key keys).
-- Removed stale T-01-dispute.md (test file now exists; tool gap stays open, see above).
+- Files: infra/{README.md,THIRD-PARTY-OPS.md}, infra/ci/*.sh (12 stubs), infra/secrets/.sops.yaml, infra/secrets/schema/{dev,staging,prod}.secrets.schema.yaml, infra/tests/run.sh (LD-06).
+- This round: run.sh applies LD-17 (missing ansible-lint = `SKIP ansible-lint (CI only)` unless CI=true, then FAIL); yamllint falls back to `python -m yamllint` when script not on PATH (still FAIL if absent); wrapped 2 over-80 comment lines in dev/staging schema.
+- [CONV] .sops.yaml age recipients are placeholders (sops rejects = fail closed); real keys at key ceremony. Free-name ids as before (pgbackrest_repo{1,2}_cipher_pass, lims_<role>_password, ...).
+- Ran: `bash infra/tests/run.sh` = all ok (gitleaks ok, yamllint ok, ansible-lint SKIP, static 24 OK). Full unittest: 27 run, 1 skip, 1 FAIL test_yamllint_clean.
+- Open (env, not code): yamllint 1.38.0 pip-installed --user to %APPDATA%\Python\Python314\Scripts, not on PATH; shutil.which fails. Fix: add that dir to PATH. ansible-lint not verified (CI only).

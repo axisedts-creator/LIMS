@@ -23,6 +23,10 @@ export type IdentityPortImpl = IdentityPort & { invalidateTenantSettings(tenantI
 const KNOWN = new Set<string>(PERMISSION_CODES);
 const isPrivileged = (p: string) => (PRIVILEGED as ReadonlySet<string>).has(p);
 const PARTNER_ROLES: readonly string[] = ['partner_admin', 'partner_member'];
+// verbatim from sessions__revoke_reason__ck / memberships__deactivation_reason__ck (DB CHECKs; avoid raw 23514)
+const REVOKE_REASONS: readonly string[] = ['logout', 'admin_revoke', 'self_revoke', 'password_change', 'role_change', 'lock', 'deactivate',
+  'tenant_suspended', 'mfa_failed', 'mfa_reset', 'refresh_failed', 'superseded', 'token_reuse'];
+const DEACTIVATION_REASONS: readonly string[] = ['left_organisation', 'security_concern', 'policy_violation', 'other'];
 const BRANDING_KINDS: readonly string[] = ['logo', 'letterhead_header', 'letterhead_footer'];
 const MIME: readonly string[] = ['image/png', 'image/jpeg'];
 const RESTRICTED_SETTING_KEYS: readonly string[] = ['timezone', 'calendarDisplay'];             // 08 A19 D-119
@@ -324,6 +328,7 @@ export function createIdentityPort(deps: IdentityPortDeps): IdentityPortImpl {
       if (!['deactivate', 'reactivate', 'set_role', 'resend_invitation'].includes(i.action)) throw invalid('action_invalid');
       if (i.action === 'set_role' && !PARTNER_ROLES.includes(i.partnerRole)) throw invalid('partner_role_invalid');
       if (i.reasonCode !== undefined && (typeof i.reasonCode !== 'string' || !CODE_RE.test(i.reasonCode))) throw invalid('reason_code_invalid');
+      if (i.action === 'deactivate' && i.reasonCode !== undefined && !DEACTIVATION_REASONS.includes(i.reasonCode)) throw invalid('reason_code_invalid');
       if (i.expectedVersion !== undefined && !Number.isInteger(i.expectedVersion)) throw invalid('expected_version_invalid');
       const m = await repo.lockMembership(ctx, { membershipId: i.membershipId });          // SELECT … FOR UPDATE (D-100)
       if (!m || m.actorType !== 'partner' || m.tenantId !== ctx.tenantId) throw err('common.not_found');
@@ -358,7 +363,7 @@ export function createIdentityPort(deps: IdentityPortDeps): IdentityPortImpl {
         if (!uuid(i.membershipId) || claim(r.claims, 'membership_id') !== i.membershipId) throw forbidden();
       } else if (ctx.actor.type !== 'system') throw forbidden();
       if (!uuid(i.membershipId)) throw invalid('membership_id_invalid');
-      if (typeof i.reason !== 'string' || !CODE_RE.test(i.reason)) throw invalid('reason_invalid');
+      if (typeof i.reason !== 'string' || !REVOKE_REASONS.includes(i.reason)) throw invalid('reason_invalid');
       if (typeof i.deactivateMembership !== 'boolean') throw invalid('deactivate_membership_invalid');
       // [CONV] deactivateMembership=true needs the A28.2 identity-system-actor write scope (ctx.db.withTenantScope) — not wired yet
       if (i.deactivateMembership) throw err('common.internal', 'blocked_a28_2');

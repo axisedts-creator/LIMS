@@ -73,8 +73,8 @@ WHERE m.tenant_id = $1 AND m.id = $2`;
 const LOCK_SQL = `SELECT id FROM core.memberships WHERE tenant_id = $1 AND id = $2 FOR UPDATE`;
 
 const SUPPORT_SQL = `
-SELECT s.scope, (s.status = 'active' AND s.expires_at > now()) AS active, ps.display_name
-FROM identity.support_sessions s JOIN identity.platform_staff ps ON ps.id = s.platform_staff_id
+SELECT s.scope, (s.status = 'active' AND s.expires_at > now()) AS active, coalesce(ps.display_name, '') AS display_name
+FROM identity.support_sessions s LEFT JOIN identity.platform_staff ps ON ps.id = s.platform_staff_id  -- lims_app has no platform_staff SELECT policy (CR T5)
 WHERE s.tenant_id = $1 AND s.id = $2`;
 
 const TENANT_STATUS_SQL = `SELECT status FROM core.tenants WHERE id = $1`;

@@ -861,7 +861,8 @@ describe('publishPriceListVersion (#80) — AC-13.3, AC-13.5', () => {
   });
 
   it('only a DRAFT can be published: published / superseded / discarded -> 409 catalog.version_in_use, nothing changes', { timeout: T }, async () => {
-    const { db, svc } = W({ price_list_versions: [pver(7, A, LP.id as string, 7, { status: 'discarded' })] });
+    const v1 = pver(1, A, LP.id as string, 1, { status: 'superseded', effective_to: new Date('2026-06-01T00:00:00.000Z') });
+    const { db, svc } = W({ price_list_versions: [v1, V2, V3, pver(7, A, LP.id as string, 7, { status: 'discarded' })] });
     const before = snap(db);
     for (const id of [V2.id, ID(0xb01), ID(0xb07)]) lims(await rejection(publish(db, svc, id as string, 1, { change_reason: REASON })), 'catalog.version_in_use', 409);
     expect(snap(db)).toBe(before); expect(events(db)).toHaveLength(0);

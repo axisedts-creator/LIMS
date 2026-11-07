@@ -1,7 +1,10 @@
-CHANGES
+APPROVE
 
-1. services/api/src/modules/catalog/service/masters.service.ts:232,238 — `listUnits` `is_active` deviates from contracts/openapi/catalog.yaml:1193-1204 (enum `"true" | "false" | "all"`, default `"true"`; unchanged since base cf3accd). Now: `false`/`all` are rejected with 400 (valid requests per contract), and an absent param returns inactive rows too (contract default = active only). Fix: `checkEnumQuery(query, { scope: SCOPES, is_active: ['true', 'false', 'all'] })`, then `const ia = q['is_active'] ?? 'true'` and filter `ia === 'all' || u.is_active === (ia === 'true')`.
-2. services/api/src/modules/catalog/__tests__/integration/masterSets.service.test.ts:9,92-101 (tester) — tests encode the wrong contract ("contract enum is only \"true\"", "default lists inactive rows too"). Fix: default `{}` -> active rows only; `is_active:'false'` -> only inactive (global and tenant, shadowing still applied); `is_active:'all'` -> all; remove `is_active false` from the 400 cases (keep e.g. `is_active:'TRUE'`/`'yes'` as 400). Check masterSets.handlers.test.ts for the same assumption.
+Re-review of 0c7ca1d..HEAD (review fixes):
+- Finding 1 fixed: masters.service.ts:232-239 `listUnits` accepts `is_active` enum true|false|all per contracts/openapi/catalog.yaml, default 'true' (active only); shadowing applied before the filter.
+- Finding 2 fixed: masterSets.service.test.ts / masterSets.handlers.test.ts now cover default, 'true', 'false' (incl. shadowing case), 'all', and 400 for 'TRUE'/'yes'/boolean.
+- No other callers of listUnits outside T-05 files.
+Ran: `vitest run src/modules/catalog` -> 11 files, 1481/1481 pass.
 
-Checked, OK: names (operationIds, `unit_id`/`value_set_id`, `catalog.code_duplicate`, `catalog.version_in_use`, entity types `unit`/`value_set` per 02-TRD L688/CR-C3-003); global rows never written (only g_* SELECTs; PATCH looks up cs_* only -> 404); in-use rule = tenant-bound `published` analyte_versions by code, sort_order frozen, removal impossible (TRD #22); all SQL values bound, column/table names from fixed constants; tenant_id explicit on every cs_* read/write; no logging/PHI/secrets; only owned paths + own notes. Permission/idempotency/rate tier come from the contract via the shared pipeline (unchanged). Ran T-05-verify set: 208/208 pass (pre-fix).
-Not blocking (already in impl notes): T-07 publish must lock the cs_value_sets row (FOR UPDATE) to close the sort_order-edit race; starter unit `none` display "" vs `Unit.display` minLength 1 (CR candidate).
+Prior checks (names, global read-only, in-use rule, tenant binding, no PHI/secrets, owned paths) still hold; diff touched only the is_active filter.
+Not blocking (carried): T-07 publish must lock cs_value_sets row (FOR UPDATE) to close sort_order-edit race; starter unit `none` display "" vs `Unit.display` minLength 1 (CR candidate).

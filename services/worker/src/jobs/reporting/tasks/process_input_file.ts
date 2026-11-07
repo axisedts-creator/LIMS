@@ -1,10 +1,13 @@
 // Task reporting.process_input_file (02-TRD §9; 01-PRD AC-04.2/.3/.6/.7; 07-SECURITY T9, A12, REQ-SEC-084).
 // pending_scan -> scanning -> (quarantined | sanitizing) -> (ready | rejected). The worker re-scans the quarantine object itself
-// (ctx.storage.read + ctx.files.scan, 08 A17 P-19), sends clean bytes to the PDF sandbox /internal/sanitize (02-TRD §5.2), and trusts
-// nothing in the reply: the sanitised bytes are re-hashed and magic-checked, and only a ctx-built tenant-first key is written.
+// (ctx.storage.read + ctx.files.scan, 08 A17 P-19). outsourced_pdf: clean bytes go to the PDF sandbox /internal/sanitize (02-TRD §5.2) and
+// nothing in the reply is trusted (re-hashed, magic-checked). narrative_image (AC-05.3, REQ-SEC-085): never the sandbox; the object is
+// re-encoded again by the core PNG re-encoder (tampered / non-PNG / corrupt -> rejected). Only a ctx-built tenant-first key is written.
 // Scanner unavailable / sandbox transport error -> throw (queue retry, never ready). Every state move is guarded by the state it read.
 import { createHash } from 'node:crypto';
 import type { TaskHandler } from '../../../core/manifest.js';
+import { ImageRejected, reencodePng } from '../../../../../api/src/core/uploads/image.js';
+import { markImageReady } from '../../../../../api/src/modules/reporting/repository/narrative-image.repo.js';
 import * as repo from '../../../../../api/src/modules/reporting/repository/outsourced.repo.js';
 
 export type SanitizeReply =
@@ -14,6 +17,8 @@ export interface SandboxClient { sanitize(bytes: Uint8Array): Promise<SanitizeRe
 
 const BUCKET = 'reporting-inputs';
 const REJECTED = 'reporting.outsourced_pdf_rejected';
+const IMAGE_REJECTED = 'common.upload_quarantined';            // [CONV] N6 error code (02-TRD §6.4) reused for worker-side image rejection
+const KINDS = ['outsourced_pdf', 'narrative_image'];
 const METRIC = 'lims_reporting_sandbox_rejections_total';    // 02-TRD §11 {reason}; [CONV] scanner hits counted with reason 'infected'
 const REASONS = ['encrypted', 'malformed', 'too_many_pages', 'timeout', 'not_pdf'];
 const DEFAULT_TIMEOUT_MS = 60_000;                           // [CONV] no sanitise timeout value in 02-TRD §5.2
@@ -70,10 +75,10 @@ export function createProcessInputFile(o: { sandbox: SandboxClient; timeoutMs?: 
     const metrics = (ctx as unknown as { metrics?: { inc(name: string, labels?: Record<string, string>): void } }).metrics;
 
     const row = await repo.findFile(tx, tenantId, fileId);
-    if (!row || row.tenant_id !== tenantId || row.kind !== 'outsourced_pdf' || !ACTIVE.includes(row.state)) return;   // idempotent: terminal / unknown
+    if (!row || row.tenant_id !== tenantId || !KINDS.includes(row.kind) || !ACTIVE.includes(row.state)) return;   // idempotent: terminal / unknown
     let state: string = row.state;
     const reject = async (to: 'quarantined' | 'rejected', reason: string) => {
-      await repo.failFile(tx, tenantId, fileId, state, to, REJECTED, actorId);
+      await repo.failFile(tx, tenantId, fileId, state, to, row.kind === 'narrative_image' ? IMAGE_REJECTED : REJECTED, actorId);
       metrics?.inc(METRIC, { reason });
       ctx.log?.warn?.({ event: 'input_file_rejected', input_file_id: fileId, state: to, reason });
     };
@@ -88,17 +93,32 @@ export function createProcessInputFile(o: { sandbox: SandboxClient; timeoutMs?: 
       state = 'sanitizing';
     }
 
+    const now = ctx.now();
+    const publish = async (path: string, bytes: Uint8Array, digest: string, contentType: string) => {
+      try {
+        await storage.put(BUCKET, path, bytes, { contentType, ifAbsent: true });
+      } catch (e) {
+        // Retry after a lost DB step: the write-once object may already be there. Continue only if it is byte-identical.
+        const existing = await storage.read(BUCKET, path).catch(() => undefined);
+        if (!existing || sha(existing) !== digest) throw e;
+      }
+    };
+
+    if (row.kind === 'narrative_image') {
+      // ponytail: PNG only (core re-encoder has no JPEG decoder, CR T0D-17); N6 never stores a JPEG today.
+      let img;
+      try { img = reencodePng(original, 40); } catch (e) { if (e instanceof ImageRejected) return reject('rejected', 'malformed'); throw e; }
+      const digest = sha(img.bytes);
+      const path = `${tenantId}/narrative-images/${now.slice(0, 4)}/${now.slice(5, 7)}/${fileId}.png`;
+      await publish(path, img.bytes, digest, 'image/png');
+      await markImageReady(tx, tenantId, fileId, { path, sha256: digest, mime: 'image/png', width: img.width, height: img.height, actorId });
+      return;
+    }
+
     const out = checkReply(await sanitize(original));
     if ('reason' in out) return reject('rejected', out.reason);
-    const now = ctx.now();
     const path = `${tenantId}/outsourced/${now.slice(0, 4)}/${now.slice(5, 7)}/${fileId}.pdf`;
-    try {
-      await storage.put(BUCKET, path, out.bytes, { contentType: 'application/pdf', ifAbsent: true });
-    } catch (e) {
-      // Retry after a lost DB step: the write-once object may already be there. Continue only if it is byte-identical.
-      const existing = await storage.read(BUCKET, path).catch(() => undefined);
-      if (!existing || sha(existing) !== out.sha256) throw e;
-    }
+    await publish(path, out.bytes, out.sha256, 'application/pdf');
     await repo.markReady(tx, tenantId, fileId, { path, sha256: out.sha256, pageCount: out.pages, mime: 'application/pdf', actorId });
   };
 }

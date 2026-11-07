@@ -11,8 +11,9 @@
 //                                                                          // (ancestors above + panelId + descendants below); a cycle throws catalog.panel_cycle
 //   expandToTestIds(graph, root: Member): string[]                         // depth-first in member order, de-duplicated, first occurrence wins; a test root -> [id];
 //                                                                          // an unknown / empty panel -> []; a cycle throws LimsError catalog.panel_cycle
-// ASSUMPTION (AC-07.4 says "nesting depth > 4" without a unit): depth counts PANELS on a chain, the leaf tests are not counted, so
-// package -> panel -> panel -> test (the TRD §11 example) has depth 3 and a chain of 4 panels is still allowed, 5 is not.
+// DEPTH UNIT (02-TRD §11: PANEL_MAX_DEPTH = 4 is "package -> panel -> panel -> test", i.e. levels INCLUDING the leaf test; reviewer T-12-review item 1):
+// nestingDepth/depthThrough still count PANELS on a chain (a panel chain of n always ends in a test at level n + 1); the SERVICE rejects when
+// depthThrough + 1 > PANEL_MAX_DEPTH, so at most 3 panels on a chain are allowed and a 4-panel chain is over the limit.
 import { describe, expect, it } from 'vitest';
 import { isLimsError } from '../../../../core/errors.js';
 import { PANEL_MAX_DEPTH, depthThrough, expandToTestIds, nestingDepth, wouldCreateCycle, type Member, type PanelGraph } from '../panelGraph.js';
@@ -125,7 +126,7 @@ describe('nestingDepth / depthThrough — AC-07.4', () => {
   it('counts panels on the longest chain: 1, 2, 3, 4, 5', () => {
     for (const n of [1, 2, 3, 4, 5]) expect(nestingDepth(chain(n), 'p1'), `chain ${n}`).toBe(n);
   });
-  it('package -> panel -> panel -> test (the TRD example) has depth 3', () => {
+  it('package -> panel -> panel -> test (the TRD example) has 3 panels = 4 levels with the leaf test = PANEL_MAX_DEPTH', () => {
     expect(nestingDepth(graph({ pkg: [P('lipid')], lipid: [P('sub')], sub: [T('t')] }), 'pkg')).toBe(3);
   });
   it('the longest branch wins when branches differ (and a diamond is not double counted)', () => {
@@ -139,9 +140,9 @@ describe('nestingDepth / depthThrough — AC-07.4', () => {
     expect(nestingDepth(g, 'x', [T('t')])).toBe(1);
     expect(nestingDepth(g, 'fresh', [P('q1')])).toBe(4);                  // a panel not in the graph yet
   });
-  it('the 4-panel chain is within PANEL_MAX_DEPTH, the 5-panel chain is over it', () => {
-    expect(nestingDepth(chain(4), 'p1')).toBeLessThanOrEqual(PANEL_MAX_DEPTH);
-    expect(nestingDepth(chain(5), 'p1')).toBeGreaterThan(PANEL_MAX_DEPTH);
+  it('levels incl. the leaf test (panels + 1): the 3-panel chain (package -> panel -> panel -> test) is within PANEL_MAX_DEPTH, the 4-panel chain is over it', () => {
+    expect(nestingDepth(chain(3), 'p1') + 1).toBeLessThanOrEqual(PANEL_MAX_DEPTH);
+    expect(nestingDepth(chain(4), 'p1') + 1).toBeGreaterThan(PANEL_MAX_DEPTH);
   });
   it('depthThrough counts the ANCESTORS above the panel too (a short subtree under a deep parent chain is still too deep)', () => {
     const g = graph({ top: [P('mid')], mid: [P('leaf')], leaf: [T('t')], c1: [P('c2')], c2: [P('c3')], c3: [T('t')] });

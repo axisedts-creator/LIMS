@@ -369,36 +369,37 @@ describe('replacePanelMembers (#56) — AC-07.3 cycle, AC-07.4 depth', () => {
   });
 
   // ---- AC-07.4 depth
-  it('AC-07.4: nesting depth > 4 -> 400 common.validation_failed with path /members (a new link makes the chain 5 panels deep); nothing written', { timeout: T }, async () => {
-    const c = chainSeed('d', 4);                                           // d1 ⊃ d2 ⊃ d3 ⊃ d4 ⊃ test: already 4 deep
+  // DEPTH UNIT (02-TRD §11: 4 = "package -> panel -> panel -> test", levels INCLUDING the leaf test; T-12-review item 1): at most 3 panels on a chain.
+  it('AC-07.4: nesting depth > 4 levels (incl. the leaf test) -> 400 common.validation_failed with path /members (a new link makes the chain 4 panels deep); nothing written', { timeout: T }, async () => {
+    const c = chainSeed('d', 3);                                           // d1 ⊃ d2 ⊃ d3 ⊃ test: already 4 levels
     const env = setup12({ t6: c.rows }); const before = snap(env.db);
-    const e = await rejection(replace(env, BASIC.panel.id, [mem('panel', c.ids[0]!, 1)]));         // BASIC + 4 = 5
+    const e = await rejection(replace(env, BASIC.panel.id, [mem('panel', c.ids[0]!, 1)]));         // BASIC + 3 = 4 panels = 5 levels
     expect(e.statusCode).toBe(400); expect(e.code).toBe('common.validation_failed');
     expect(errPaths(e)).toContain('/members');
     expect(snap(env.db)).toBe(before);
   });
-  it('depth counts the ANCESTORS above the edited panel: u1 ⊃ u2 ⊃ u3, then u3 := [c1 ⊃ c2 ⊃ c3] makes 6 deep -> 400 /members; u3 := [c2] (5) -> 400; u3 := [c3] (4) -> ok', { timeout: T }, async () => {
-    const u = chainSeed('u', 3, 200), c = chainSeed('c', 3, 300);
+  it('depth counts the ANCESTORS above the edited panel: u1 ⊃ u2, then u2 := [c1 ⊃ c2 ⊃ c3] makes 5 panels -> 400 /members; u2 := [c2] (4 panels) -> 400; u2 := [c3] (3 panels) -> ok', { timeout: T }, async () => {
+    const u = chainSeed('u', 2, 200), c = chainSeed('c', 3, 300);
     const env = setup12({ t6: { orderables: [...u.rows.orderables!, ...c.rows.orderables!], panels: [...u.rows.panels!, ...c.rows.panels!], panel_members: [...u.rows.panel_members!, ...c.rows.panel_members!] } });
     const before = snap(env.db);
     for (const target of [c.ids[0]!, c.ids[1]!]) {
-      const e = await rejection(replace(env, u.ids[2]!, [mem('panel', target, 1)]));
+      const e = await rejection(replace(env, u.ids[1]!, [mem('panel', target, 1)]));
       expect(e.code).toBe('common.validation_failed'); expect(e.statusCode).toBe(400); expect(errPaths(e)).toContain('/members');
     }
     expect(snap(env.db)).toBe(before);
-    const ok = await replace(env, u.ids[2]!, [mem('panel', c.ids[2]!, 1)]);                          // u1,u2,u3,c3 = 4 [ASSUMPTION: depth counts panels]
+    const ok = await replace(env, u.ids[1]!, [mem('panel', c.ids[2]!, 1)]);                          // u1,u2,c3 = 3 panels = 4 levels with the test
     expect(ok.members).toEqual([mem('panel', c.ids[2]!, 1)]);
   });
-  it('depth 4 (four panels on a chain) is allowed; package -> panel -> panel -> test (the TRD example) is allowed [ASSUMPTION: depth counts panels, tests are leaves]', { timeout: T }, async () => {
-    const c = chainSeed('e', 3);
+  it('4 levels incl. the leaf test (3 panels on a chain) is allowed; package -> panel -> panel -> test (the TRD §11 example) is allowed', { timeout: T }, async () => {
+    const c = chainSeed('e', 2);
     const env = setup12({ t6: c.rows });
-    const out = await replace(env, BASIC.panel.id, [mem('panel', c.ids[0]!, 1)]);                  // BASIC + e1,e2,e3 = 4 panels
+    const out = await replace(env, BASIC.panel.id, [mem('panel', c.ids[0]!, 1)]);                  // BASIC + e1,e2 = 3 panels -> test
     expect(out.members).toEqual([mem('panel', c.ids[0]!, 1)]);
     const pkg = await call(env, 'createPanel', pBody({ code: 'pkg3', panel_kind: 'package', members: [mem('panel', LIPID.panel.id, 1)] }));
-    expect(pkg.members).toHaveLength(1);                                                            // package -> LIPID -> test (depth 2)
+    expect(pkg.members).toHaveLength(1);                                                            // package -> LIPID -> test (3 levels)
   });
-  it('createPanel enforces the same depth: a new panel over a 4-chain is 5 deep -> 400 /members, nothing written', { timeout: T }, async () => {
-    const c = chainSeed('f', 4);
+  it('createPanel enforces the same depth: a new panel over a 3-chain is 4 panels (5 levels) -> 400 /members, nothing written', { timeout: T }, async () => {
+    const c = chainSeed('f', 3);
     const env = setup12({ t6: c.rows }); const before = snap(env.db);
     const e = await rejection(call(env, 'createPanel', pBody({ members: [mem('panel', c.ids[0]!, 1)] })));
     expect(e.code).toBe('common.validation_failed'); expect(e.statusCode).toBe(400); expect(errPaths(e)).toContain('/members');

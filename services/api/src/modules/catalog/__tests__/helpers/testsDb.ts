@@ -35,11 +35,11 @@ import { STARTED_AT, TENANT_A, USER } from './catalogDb.js';
 import { ID, RowLock, makeMastersDb, parseExpr, pgError, splitTop, tick, type MastersSeed, type Row } from './mastersDb.js';
 
 export { ID, type Row };
-export const T6_TABLES = ['orderables', 'tests', 'panels', 'panel_members', 'test_specimen_types', 'analytes', 'analyte_versions', 'g_value_sets', 'cs_value_sets'] as const;
+export const T6_TABLES = ['orderables', 'tests', 'panels', 'panel_members', 'test_specimen_types', 'analytes', 'analyte_versions', 'g_value_sets', 'cs_value_sets', 'g_value_set_values', 'cs_value_set_values'] as const;
 export type T6Table = (typeof T6_TABLES)[number];
 const TABLE_RE = new RegExp(`catalog\\.(${T6_TABLES.join('|')})\\b`, 'i');
 const WRITABLE = new Set<T6Table>(['orderables', 'tests', 'panels', 'panel_members', 'test_specimen_types', 'analytes', 'analyte_versions']);
-const GLOBAL = new Set<T6Table>(['g_value_sets']);                                   // no tenant_id: visible to every tenant
+const GLOBAL = new Set<T6Table>(['g_value_sets', 'g_value_set_values']);                                  // no tenant_id: visible to every tenant
 const VERSION_MUTABLE = new Set(['status', 'effective_to', 'updated_at', 'updated_by', 'version']);
 
 const COLUMNS: Record<T6Table, string[]> = {
@@ -53,6 +53,9 @@ const COLUMNS: Record<T6Table, string[]> = {
     'formula_input_units', 'effective_from', 'effective_to', 'change_reason', 'published_at', 'published_by', 'source_import_id', 'version', 'is_active', 'created_at', 'created_by', 'updated_at', 'updated_by'],
   g_value_sets: ['id', 'code', 'display', 'is_ordered', 'is_active'],
   cs_value_sets: ['id', 'tenant_id', 'code', 'display', 'is_ordered', 'is_active'],
+  // T-12 (additive, seed-only): the value rows #3 reads for ordinalSetValues (05-SCHEMA g_value_set_values / cs_value_set_values)
+  g_value_set_values: ['id', 'value_set_code', 'code', 'display', 'sort_order', 'is_active'],
+  cs_value_set_values: ['id', 'tenant_id', 'value_set_id', 'code', 'display', 'sort_order', 'is_active'],
 };
 const NOT_NULL: Record<T6Table, string[]> = {
   orderables: ['id', 'tenant_id', 'kind', 'code', 'name', 'is_orderable', 'revision', 'created_by', 'updated_by'],
@@ -64,6 +67,8 @@ const NOT_NULL: Record<T6Table, string[]> = {
   analyte_versions: ['id', 'tenant_id', 'analyte_id', 'version_no', 'status', 'result_type', 'created_by', 'updated_by'],
   g_value_sets: ['id', 'code', 'is_ordered'],
   cs_value_sets: ['id', 'tenant_id', 'code', 'is_ordered'],
+  g_value_set_values: ['id', 'value_set_code', 'code', 'display', 'sort_order'],
+  cs_value_set_values: ['id', 'tenant_id', 'value_set_id', 'code', 'display', 'sort_order'],
 };
 const WORKFLOWS = ['standard', 'narrative', 'microbiology', 'anatomic', 'molecular', 'attachment', 'outsourced'];
 const keyOf = (t: T6Table, r: Row): string => (t === 'test_specimen_types' ? `${r.test_id}:${r.specimen_type_id}` : t === 'panel_members' ? `${r.panel_id}:${r.member_orderable_id}` : r.id);
@@ -139,7 +144,7 @@ export function makeTestsDb(seed: TestsSeed = {}) {
     if (t === 'test_specimen_types') o.is_preferred = r.is_preferred ?? false;
     if (t === 'analytes') { o.sort_order = r.sort_order ?? 100; o.is_reportable = r.is_reportable ?? true; }
     if (t === 'analyte_versions') { o.formula_inputs = r.formula_inputs ?? []; o.status = r.status ?? 'draft'; }
-    if (t === 'g_value_sets' || t === 'cs_value_sets') o.is_active = r.is_active ?? true;
+    if (t === 'g_value_sets' || t === 'cs_value_sets' || t === 'g_value_set_values' || t === 'cs_value_set_values') o.is_active = r.is_active ?? true;
     return o;
   }
   for (const t of T6_TABLES) for (const r of seed.t6?.[t] ?? []) committed.get(t)!.set(keyOf(t, r), fill(t, r));

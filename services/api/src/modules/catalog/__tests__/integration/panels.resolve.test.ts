@@ -6,6 +6,7 @@
 // Interface: helpers/t12.ts (SEAM header). Authoring notes in .orchestra/notes/T-12-tests.md.
 import { describe, expect, it } from 'vitest';
 import { TENANT_A, TENANT_B } from '../helpers/catalogDb.js';
+import { ana, anv } from '../helpers/testsDb.js';
 import {
   A1C, ADDON, BASIC, CBC, DEAD, FBS, HDL, HP_ELITE_M, ID, LDL, LIPID, OLD, PANEL_B, SEED_REVISION, T, TC, TEST_B, TG,
   chainSeed, errPaths, lims, mem, pBody, pmb, pnl, rejection, setup12, validation400, type Env12,
@@ -47,6 +48,33 @@ describe('resolveOrderablesPreview (#3) — AC-07.1, AC-07.2', () => {
     expect(t.analytes).toHaveLength(1);
     expect(t.analytes[0]).toMatchObject({ code: 'HB', name: 'Hemoglobin', result_type: 'numeric', unit_code: 'g_dl', decimals: 1, reportable: true, sort_order: 10, report_subheading: 'RBC parameters' });
     for (const k of ['tenant_id', 'created_by', 'updated_by', 'version']) expect(t).not.toHaveProperty(k);
+  });
+
+  it('T-12-review item 3 (CR-C11-009): a uses_existing_material test is absent from specimen_requirements, has specimen_type_codes [] and uses_existing_material true; others say false', { timeout: T }, async () => {
+    const r = await resolve(setup12(), [ADDON.test.id, TC.test.id]);
+    const addon = r.tests.find((t: any) => t.id === ADDON.test.id), tc = r.tests.find((t: any) => t.id === TC.test.id);
+    expect(addon).toMatchObject({ code: 'ADDON', specimen_type_codes: [], uses_existing_material: true });
+    expect(tc.uses_existing_material).toBe(false);
+    expect(r.specimen_requirements.flatMap((g: any) => g.test_ids)).not.toContain(ADDON.test.id);
+  });
+
+  it('T-12-review item 2 (03-IC §4.2 / 08 D-9): an analyte with an ordinal set returns ordinal_set_code AND exactly that set\'s ACTIVE values (code, display, sort_order) by sort_order asc; no ordinal set -> neither key', { timeout: T }, async () => {
+    const hb = ana(40, TENANT_A, A1C.test.id, { code: 'UPROT', name: 'Urine protein', sort_order: 20 });
+    const v = anv(40, TENANT_A, hb.id, { version_no: 1, status: 'published', result_type: 'ordinal', value_set_code: 'URINE_SEMIQ', effective_from: new Date('2026-01-01T00:00:00.000Z'), published_at: new Date('2026-01-01T00:00:00.000Z'), change_reason: 'initial' });
+    const gv = (n: number, code: string, sort_order: number, o: Record<string, unknown> = {}) => ({ id: ID(0x7100 + n), value_set_code: 'URINE_SEMIQ', code, display: `Display ${code}`, sort_order, ...o });
+    const env = setup12({ t6: {
+      analytes: [hb], analyte_versions: [v],
+      g_value_sets: [{ id: ID(0x7001), code: 'URINE_SEMIQ', display: 'Urine semi-quantitative', is_ordered: true }, { id: ID(0x7002), code: 'OTHER_SET', display: 'Other', is_ordered: true }],
+      g_value_set_values: [gv(1, 'TRACE', 20), gv(2, 'NEG', 10), gv(3, 'GONE', 15, { is_active: false }), gv(4, 'POS3', 30), { ...gv(5, 'X', 5), value_set_code: 'OTHER_SET' }],
+    } });
+    const r = await resolve(env, [A1C.test.id, CBC.test.id]);
+    const a = r.tests.find((t: any) => t.id === A1C.test.id).analytes.find((x: any) => x.code === 'UPROT');
+    expect(a.ordinal_set_code).toBe('URINE_SEMIQ');
+    expect(a.ordinal_set_values).toEqual([
+      { code: 'NEG', display: 'Display NEG', sort_order: 10 }, { code: 'TRACE', display: 'Display TRACE', sort_order: 20 }, { code: 'POS3', display: 'Display POS3', sort_order: 30 },
+    ]);
+    const hbOut = r.tests.find((t: any) => t.id === CBC.test.id).analytes.find((x: any) => x.code === 'HB');
+    expect(hbOut).not.toHaveProperty('ordinal_set_code'); expect(hbOut).not.toHaveProperty('ordinal_set_values');
   });
 
   it('AC-07.2 / contract (4): a test present in two ordered panels appears once in `tests`; each orderable still lists it in its own test_ids [ASSUMPTION: per-orderable lists are not globally de-duplicated]', { timeout: T }, async () => {

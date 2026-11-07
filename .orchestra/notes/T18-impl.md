@@ -4,5 +4,5 @@ Files: identity/repository/audit-read.repo.ts (all SQL), identity/service/audit-
 [CONV] Optional filters as `($n IS NULL OR col = $n)`. Display name via LEFT JOIN core.users on (tenant_id, actor_id) for actor_type 'user'.
 [CONV] Detail: view logged via ctx.audit.access before return; write failure propagates (D-T3). Bad cursor -> common.validation_failed.
 Review item 1 (DELETE action / NULL actor_id rows off-contract): no mapping invented; filed .orchestra/cr/T18.md (CR-C2-T18-a, to C0-0C, blocking). Impl unchanged pending ruling; then add delete/NULL-actor service tests.
-Tests: T18-verify.cmd 3 files, 99/99 pass (re-run 2026-11-07 20:39). tsc: only pre-existing shared-ts/bsdate TS5097.
+Tests: T18-verify.cmd 3 files, 99/99 pass (re-run 2026-11-07 20:44; no ruling on CR-C2-T18-a yet, identity.yaml still enum [insert, update] / required [type, id], so code left unchanged per review). tsc: only pre-existing shared-ts/bsdate TS5097.
 Open: CR-C2-T18-a; no live Postgres/EXPLAIN run; HTTP manifest not wired.

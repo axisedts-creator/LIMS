@@ -1,11 +1,5 @@
-APPROVE
+CHANGES
+1. services/api/src/modules/catalog/repo/catalogState.repo.ts:14-18 — `incrementRevision` runs `UPDATE catalog.catalog_state … RETURNING …` with no WHERE clause, so tenant scoping rests on RLS alone. 03-APP-FLOW.md:168 gives the exact SQL: `UPDATE catalog.catalog_state SET catalog_revision = catalog_revision + 1, updated_at = now() WHERE tenant_id = $1 RETURNING catalog_revision, catalog_root_id`. Fix: change the signature to `incrementRevision(tx, tenantId)`, add `WHERE tenant_id = $1` bound to `[tenantId]`, and pass `ctx.tenantId` from both call sites in revision.service.ts:22 and :25. ensureState already binds tenant_id explicitly, so this also makes the repo consistent. The test fake accepts a trailing WHERE ("…" in catalogDb.ts:13), so no test change is needed. Add one assertion to revision.test.ts that the bound value of the UPDATE stmt is the tx tenant.
 
-Scope: `git diff 3384f2a..HEAD` = `infra/tests/internal/container_hardening.py` (new) + debug note. Owned path (task brief files list).
-- Checker keys/values verbatim from 02-TRD s5.7 (log-driver, log-opts max-size/max-file, live-restore, no-new-privileges, icc, userland-proxy, default-ulimits nofile 65536/65536); extra `hosts` guard (unix:// / fd:// only) supports REQ-SEC-130 "no TCP API", not an invented requirement.
-- Stdlib only; exits 0/1/2; malformed / missing / non-object file fails closed (exit 2).
-- Role call (`docker_engine/tasks/main.yml:73-78`, `ansible.builtin.script` + `role_path/../../../tests/internal/...`) resolves to this file and copies it to the host — correct.
-- No PHI, no secrets, no DB/RLS/permissions surface in this diff (N/A).
-- Ran `python -B -m unittest discover -s infra/tests/static -p "test_t03*.py"`: 51 OK, 1 skip (CI-only ansible syntax-check).
-- Not verified here: ansible converge twice / idempotency, `nft -c`, LUKS unlock fallback (need real hosts; not part of this diff).
-- Note (not a defect): T-03-debug.md round 4 says "left uncommitted"; file is in fact committed in 357159c.
-- Later scope: Σ mem_limit ≤ 85 % (AC-30.1) and compose hardening checks belong to the compose tasks, not T-03.
+Checked OK: event name/aggregate {type 'catalog', id root, seq rev}/idempotency key `<tenant>:catalog:<rev>` match 02-TRD §9.1 + 03-IC §3.19; payload has exactly the 5 schema keys (additionalProperties false), no PHI; publish runs in the caller tx (rollback drops the event); lazy create = INSERT … ON CONFLICT (tenant_id) DO NOTHING + uuidv7 root + created_by (05-SCHEMA catalog_state columns); RLS policies select/insert/update exist in db/policies/catalog.sql; all SQL bind-only; no logs, no secrets; code only in owned paths; error code `common.internal` exists. Stamping is test|panel only; analyte/range/TAT owners are deferred to T-06+ (stated in the notes; outside the T-03 done_when).
+Not run by reviewer: vitest (no node_modules approval). The writer reports 55/55.

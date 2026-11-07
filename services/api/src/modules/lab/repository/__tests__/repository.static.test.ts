@@ -25,8 +25,8 @@ function specTables(): string[] {
 }
 
 describe('T-03 repository files', () => {
-  it('the spec lists the expected number of lab tables (27 + the 8 coded-set tables, minus event_inbox)', () => {
-    expect(specTables().length).toBeGreaterThanOrEqual(34);
+  it('the spec lists the expected number of lab tables (25 single-table rows + 8 coded-set tables, minus event_inbox = 32)', () => {
+    expect(specTables().length).toBe(32);
   });
 
   it.each(REQUIRED_FILES)('%s exists under repository/', (f) => {

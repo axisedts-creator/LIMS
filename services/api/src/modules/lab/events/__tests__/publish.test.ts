@@ -259,15 +259,15 @@ describe('AC-01.1 — order consumer: two specimens -> two status_changed with f
 });
 
 describe('AC-05.1 — rejection with recollection: 4 events in one transaction', () => {
-  const sequence = (s: ReturnType<typeof setup>) => s.run(async () => {
+  const body = (s: ReturnType<typeof setup>) => async () => {
     await s.lab.specimenStatusChanged(s.ctx, changed({ from_status: 'received', to_status: 'rejected' }), { specimenVersion: 3 });
     await s.lab.specimenRejected(s.ctx, rejectedP(), { specimenVersion: 3 });
     await s.lab.specimenStatusChanged(s.ctx, changed({ from_status: 'rejected', to_status: 'recollection_ordered' }), { specimenVersion: 4 });
     await s.lab.specimenStatusChanged(s.ctx, changed({ specimen_id: SPEC_NEW, replaces_specimen_id: SPEC1, to_status: 'ordered' }), { specimenVersion: 1 });
-  });
+  };
   it('stores status_changed(->rejected), rejected(recollection_required), status_changed(->recollection_ordered), status_changed(new: absent->ordered)', async () => {
     const s = setup();
-    await sequence(s);
+    await s.run(body(s));
     expect(s.db.events.map((e) => e.key)).toEqual([
       `${SPEC1}:rejected:3`, `${SPEC1}:rejected`, `${SPEC1}:recollection_ordered:4`, `${SPEC_NEW}:ordered:1`,
     ]);
@@ -282,7 +282,7 @@ describe('AC-05.1 — rejection with recollection: 4 events in one transaction',
   });
   it('rolls back with the caller transaction: nothing is stored when the transaction fails after publishing', async () => {
     const s = setup();
-    await rejection(s.db.transaction(() => sequence(s), { rollback: true }));
+    await rejection(s.db.transaction(body(s), { rollback: true }));
     expect(s.db.events).toHaveLength(0);
   });
   it('rejected event carries no free-text comment (IC §3.8) and the C4 collected_by/home_visit ids are optional', async () => {

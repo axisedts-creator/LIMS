@@ -1,0 +1,10 @@
+[Unit]
+Description=pgBackRest textfile metrics (02-TRD s9.4)
+After=docker.service
+
+[Service]
+Type=oneshot
+Environment=PATH=/usr/local/lib/lims/bin:/usr/bin:/bin
+Environment=TEXTFILE_DIR=/var/lib/node_exporter/textfile
+Environment=STATE_DIR=/var/lib/lims/pgbackrest
+ExecStart=/bin/bash /usr/local/lib/lims/pgbackrest_metrics.sh

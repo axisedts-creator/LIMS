@@ -1,0 +1,134 @@
+---
+# yamllint disable rule:line-length
+# Transcribed by C1 (02-TRD s11.3 intake row) from:
+#   None
+# Thresholds verbatim from the owner's list;
+# alert names and unstated `for` are [CONV].
+groups:
+  - name: identity
+    rules:
+      - alert: IdentityLoginFailureSpike
+        expr: >-
+          sum(increase(lims_identity_logins_total{outcome="failed"}[5m]))
+          > 50 or max by (tenant_id) (lims_identity_login_failures_by_tenant_5m)
+          > 20
+        for: 0m
+        labels:
+          severity: warn
+          team: ops
+        annotations:
+          summary: >-
+            Login failures above the platform or per-tenant 5-min limit.
+          runbook_url: >-
+            infra/runbooks/identity.md#identityloginfailurespike
+      - alert: IdentityCredentialStuffing
+        expr: >-
+          lims_identity_stuffing_distinct_accounts_15m >= 30 and lims_identity_stuffing_distinct_ips_15m
+          >= 10
+        for: 0m
+        labels:
+          severity: page
+          team: ops
+        annotations:
+          summary: >-
+            Credential-stuffing pattern: 30+ accounts from 10+ IPs in 15 min.
+          runbook_url: >-
+            infra/runbooks/identity.md#identitycredentialstuffing
+      - alert: IdentityLoginIpThrottleEngaged
+        expr: >-
+          increase(lims_identity_logins_total{outcome="ip_throttled"}[5m])
+          > 0 or lims_identity_login_ip_throttles_active > 0
+        for: 0m
+        labels:
+          severity: page
+          team: ops
+        annotations:
+          summary: >-
+            The per-IP login failure throttle is engaged.
+          runbook_url: >-
+            infra/runbooks/identity.md#identityloginipthrottleengaged
+      - alert: IdentityPlatformIpDenied
+        expr: >-
+          increase(lims_identity_logins_total{outcome="ip_denied"}[5m]) >
+          0
+        for: 0m
+        labels:
+          severity: page
+          team: ops
+        annotations:
+          summary: A platform login came from a denied IP.
+          runbook_url: >-
+            infra/runbooks/identity.md#identityplatformipdenied
+      - alert: IdentitySupportSessionOpened
+        expr: >-
+          increase(lims_identity_support_sessions_opened_total[5m]) > 0
+        for: 0m
+        labels:
+          severity: info
+          team: ops
+        annotations:
+          summary: A support session was opened.
+          runbook_url: >-
+            infra/runbooks/identity.md#identitysupportsessionopened
+      - alert: IdentityAuditExportsHigh
+        expr: >-
+          max by (tenant_id) (lims_identity_audit_exports_tenant_day) > 3
+        for: 0m
+        labels:
+          severity: warn
+          team: ops
+        annotations:
+          summary: >-
+            A tenant created more than 3 audit exports today.
+          runbook_url: >-
+            infra/runbooks/identity.md#identityauditexportshigh
+      - alert: IdentityGoTrueUnavailable
+        expr: >-
+          sum(rate(lims_identity_gotrue_requests_total{outcome="error"}[5m]))
+          / sum(rate(lims_identity_gotrue_requests_total[5m])) > 0.2
+        for: 5m
+        labels:
+          severity: page
+          team: ops
+        annotations:
+          summary: >-
+            More than 20 % of GoTrue requests failing for 5 min.
+          runbook_url: >-
+            infra/runbooks/identity.md#identitygotrueunavailable
+      - alert: IdentityRefreshFailures
+        expr: >-
+          increase(lims_identity_session_resolves_total{outcome="refresh_failed"}[10m])
+          > 10
+        for: 0m
+        labels:
+          severity: warn
+          team: ops
+        annotations:
+          summary: >-
+            More than 10 session refresh failures in 10 min.
+          runbook_url: >-
+            infra/runbooks/identity.md#identityrefreshfailures
+      - alert: IdentityBreachedListMissing
+        expr: >-
+          lims_identity_breached_list_loaded{env="production"} == 0
+        for: 10m
+        labels:
+          severity: page
+          team: ops
+        annotations:
+          summary: >-
+            The breached-password list is not loaded in production.
+          runbook_url: >-
+            infra/runbooks/identity.md#identitybreachedlistmissing
+      - alert: IdentityDeadLetter
+        expr: >-
+          increase(lims_core_dead_letters_total{task=~"identity\\..*"}[5m])
+          > 0
+        for: 0m
+        labels:
+          severity: page
+          team: ops
+        annotations:
+          summary: An identity job dead-lettered.
+          runbook_url: >-
+            infra/runbooks/identity.md#identitydeadletter

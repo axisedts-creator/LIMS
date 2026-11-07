@@ -197,10 +197,14 @@ test('identity owner policies (C2 05-SCHEMA §5.4 / §10.1): wherever they are c
   const spec = policies(t.slice(a, b));
   assert.equal(spec.length, 24, 'spec lists 24 identity owner policies');
   for (const p of spec) assert.deepEqual(p.roles, ['lims_owner']);
-  const mine = policies(allMig()).filter((p) => p.table.startsWith('identity.'));
+  // identity.event_inbox policies belong to T0B-05 (05-SCHEMA §3.9/§6), not to the 24 C2 owner policies
+  const mine = policies(allMig()).filter((p) => p.table.startsWith('identity.') && p.table !== 'identity.event_inbox');
   const polFile = root + 'db/policies/identity.sql';
   const inFile = existsSync(polFile) ? policies(readStripped(polFile)) : [];
-  const pool = mine.length ? mine : inFile;
+  // C2 §10.1 lims_app policies (05-SCHEMA.md:1262-1275) legitimately share identity.*; this test covers the owner policies only
+  const isOwner = (p) => /__owner_only$/.test(p.name) || p.roles.includes('lims_owner');
+  const ownerMine = mine.filter(isOwner);
+  const pool = ownerMine.length ? ownerMine : inFile.filter(isOwner);
   if (!pool.length) {
     // The identity tables are C2 DDL (a later stage); the plan assigns the owner policies to T0B-06. Until the writer decides where they live
     // (a migration that runs once the tables exist, or db/policies/identity.sql) only the live suite (stand-in tables with the real policies) covers them.

@@ -1,0 +1,241 @@
+---
+# 02-TRD s5.3 (AC-29.1, REQ-SEC-125). Data-loss guard: a disk is formatted
+# only if it is not LUKS yet AND blkid finds no signature on it at all.
+- name: Every disk key of hosts.yml has a data class
+  ansible.builtin.assert:
+    that:
+      - item in luks_volumes_classes
+      - groups['ops'] | default([]) | length > 0
+    fail_msg: "disk key {{ item }}: no VG for it in 02-TRD s5.3"
+  loop: "{{ (disks | default({})).keys() | list }}"
+
+- name: Volumes of this host (one LUKS2 container per disk)
+  ansible.builtin.set_fact:
+    luks_volumes_list: >-
+      {{ luks_volumes_list | default([]) + [luks_volumes_entry] }}
+  vars:
+    luks_volumes_cls: "{{ luks_volumes_classes[item.key] }}"
+    luks_volumes_entry:
+      key: "{{ item.key }}"
+      name: "luks_{{ item.key }}"
+      dev: "{{ item.value }}"
+      vg: "{{ 'vg_dr' if 'dr' in group_names else luks_volumes_cls.vg }}"
+      lv: "lv_{{ item.key }}"
+      fs: "{{ luks_volumes_cls.fs }}"
+      mount: "/srv/lims/{{ item.key }}"
+  loop: "{{ disks | default({}) | dict2items }}"
+  loop_control:
+    label: "{{ item.key }}"
+
+- name: Install cryptsetup, lvm2, age, xfsprogs, curl
+  ansible.builtin.apt:
+    name: [cryptsetup, lvm2, age, xfsprogs, curl]
+    state: present
+
+- name: Directory /etc/lims/luks
+  ansible.builtin.file:
+    path: /etc/lims/luks
+    state: directory
+    owner: root
+    group: root
+    mode: "0700"
+
+- name: Host age identity (decrypts this host's keys fetched from ops-1)
+  ansible.builtin.shell:
+    cmd: umask 077 && age-keygen -o /etc/lims/luks/host-age.txt
+    creates: /etc/lims/luks/host-age.txt
+  when: not luks_volumes_passphrase_only | bool
+
+- name: Host age recipient
+  ansible.builtin.command: age-keygen -y /etc/lims/luks/host-age.txt
+  register: luks_volumes_recipient
+  changed_when: false
+  when: not luks_volumes_passphrase_only | bool
+
+- name: Disks exist (by-id names from hosts.yml)
+  ansible.builtin.stat:
+    path: "{{ item.dev }}"
+  register: luks_volumes_stat
+  loop: "{{ luks_volumes_list | default([]) }}"
+  loop_control:
+    label: "{{ item.dev }}"
+  failed_when: not luks_volumes_stat.stat.exists
+
+- name: Is the disk LUKS already (cryptsetup isLuks)
+  ansible.builtin.command: cryptsetup isLuks {{ item.dev }}
+  register: luks_volumes_isluks
+  loop: "{{ luks_volumes_list | default([]) }}"
+  loop_control:
+    label: "{{ item.dev }}"
+  changed_when: false
+  failed_when: luks_volumes_isluks.rc not in [0, 1]
+
+- name: Non-LUKS disks carry no signature (blkid -p exit 2 = blank)
+  ansible.builtin.command: blkid -p {{ item.item.dev }}
+  register: luks_volumes_blkid
+  loop: "{{ luks_volumes_isluks.results }}"
+  loop_control:
+    label: "{{ item.item.dev }}"
+  when: item.rc != 0
+  changed_when: false
+  failed_when: luks_volumes_blkid.rc != 2
+
+- name: A passphrase is supplied for every disk to format
+  ansible.builtin.assert:
+    that:
+      - item.item.key in luks_volumes_passphrases
+    fail_msg: >-
+      {{ item.item.dev }} is blank: pass luks_volumes_passphrases at run
+      time to format it (founder/ops lead hold the passphrases)
+  loop: "{{ luks_volumes_isluks.results }}"
+  loop_control:
+    label: "{{ item.item.dev }}"
+  when: item.rc != 0
+
+- name: Format LUKS2, add the ops-1 key slot, create VG/LV/filesystem
+  ansible.builtin.shell: |
+    set -euo pipefail
+    umask 077
+    mkdir -p /run/lims-luks
+    dev='{{ item.item.dev }}'
+    name='{{ item.item.name }}'
+    printf '%s' "$LUKS_PASS" \
+      | cryptsetup luksFormat --type luks2 --batch-mode --key-file - "$dev"
+    {% if not luks_volumes_passphrase_only | bool %}
+    k="/run/lims-luks/$name.key"
+    head -c 64 /dev/urandom > "$k"
+    printf '%s' "$LUKS_PASS" | cryptsetup luksAddKey --key-file - "$dev" "$k"
+    age -a -r '{{ luks_volumes_recipient.stdout }}' \
+      -o "/run/lims-luks/$name.age" "$k"
+    shred -u "$k"
+    {% endif %}
+    printf '%s' "$LUKS_PASS" \
+      | cryptsetup open --type luks2 --key-file - "$dev" "$name"
+    pvcreate "/dev/mapper/$name"
+    if vgs '{{ item.item.vg }}' >/dev/null 2>&1; then
+      vgextend '{{ item.item.vg }}' "/dev/mapper/$name"
+    else
+      vgcreate '{{ item.item.vg }}' "/dev/mapper/$name"
+    fi
+    lvcreate -y -l 100%PVS -n '{{ item.item.lv }}' '{{ item.item.vg }}' \
+      "/dev/mapper/$name"
+    mkfs.{{ item.item.fs }} '/dev/{{ item.item.vg }}/{{ item.item.lv }}'
+    mkdir -p '{{ item.item.mount }}'
+  args:
+    executable: /bin/bash
+  environment:
+    LUKS_PASS: "{{ luks_volumes_passphrases[item.item.key] }}"
+  loop: "{{ luks_volumes_isluks.results }}"
+  loop_control:
+    label: "{{ item.item.dev }}"
+  when: item.rc != 0
+  changed_when: true
+  register: luks_volumes_formatted
+  no_log: true
+
+- name: Mount points
+  ansible.builtin.file:
+    path: "{{ item.mount }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+  loop: "{{ luks_volumes_list | default([]) }}"
+  loop_control:
+    label: "{{ item.mount }}"
+
+- name: Unlock script
+  ansible.builtin.copy:
+    src: lims-luks-unlock.sh
+    dest: /usr/local/sbin/lims-luks-unlock.sh
+    owner: root
+    group: root
+    mode: "0700"
+
+# AC-14.1: grow online, e.g. lims-lv-grow.sh vg_storage/lv_storage +100G
+- name: LV grow helper (lvextend -r, online)
+  ansible.builtin.copy:
+    src: lims-lv-grow.sh
+    dest: /usr/local/sbin/lims-lv-grow.sh
+    owner: root
+    group: root
+    mode: "0700"
+
+- name: Unlock configuration
+  ansible.builtin.template:
+    src: unlock.conf.j2
+    dest: /etc/lims/luks/unlock.conf
+    owner: root
+    group: root
+    mode: "0600"
+  notify: Restart lims-luks-unlock
+
+- name: Unit lims-luks-unlock.service
+  ansible.builtin.copy:
+    src: lims-luks-unlock.service
+    dest: /etc/systemd/system/lims-luks-unlock.service
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Restart lims-luks-unlock
+
+- name: Unlock unit enabled and run (opens + mounts the volumes)
+  ansible.builtin.systemd_service:
+    name: lims-luks-unlock.service
+    state: started
+    enabled: true
+    daemon_reload: true
+  when: luks_volumes_list | default([]) | length > 0
+
+- name: Mount new volumes now
+  ansible.builtin.meta: flush_handlers
+
+# ops-1 keeps one age-encrypted key per volume and serves it over wg0.
+- name: Read the new encrypted key (ASCII armour; opaque without the host)
+  ansible.builtin.slurp:
+    src: "/run/lims-luks/{{ item.item.item.name }}.age"
+  register: luks_volumes_blob
+  loop: "{{ luks_volumes_formatted.results | default([]) }}"
+  loop_control:
+    label: "{{ item.item.item.dev }}"
+  when:
+    - item.changed | default(false)
+    - not luks_volumes_passphrase_only | bool
+
+- name: New keys of this run
+  ansible.builtin.set_fact:
+    luks_volumes_new: >-
+      {{ luks_volumes_blob.results | default([])
+         | selectattr('content', 'defined') | list }}
+    luks_volumes_store: >-
+      {{ luks_volumes_keystore_dir }}/{{ inventory_hostname }}
+
+- name: Key store directory on ops-1
+  ansible.builtin.file:
+    path: "{{ luks_volumes_store }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+  delegate_to: "{{ groups['ops'][0] }}"
+  when: luks_volumes_new | length > 0
+
+- name: Store the encrypted key on ops-1
+  ansible.builtin.copy:
+    content: "{{ item.content | b64decode }}"
+    dest: "{{ luks_volumes_store }}/{{ item.item.item.item.name }}.age"
+    owner: root
+    group: root
+    mode: "0644"
+  delegate_to: "{{ groups['ops'][0] }}"
+  loop: "{{ luks_volumes_new }}"
+  loop_control:
+    label: "{{ item.item.item.item.name }}"
+
+- name: Remove the encrypted key copy from tmpfs
+  ansible.builtin.file:
+    path: "/run/lims-luks/{{ item.item.item.item.name }}.age"
+    state: absent
+  loop: "{{ luks_volumes_new }}"
+  loop_control:
+    label: "{{ item.item.item.item.name }}"

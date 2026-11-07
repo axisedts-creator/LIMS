@@ -8,7 +8,6 @@
   "getExport",
   "listExports",
   "listInstrumentCodeMaps",
-  "setTestTatTargets",
   "updateInstrumentCodeMap",
   "upsertInstrumentCodeMaps"
 ]

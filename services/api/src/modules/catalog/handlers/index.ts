@@ -24,8 +24,7 @@ export const handlers: Readonly<Record<string, Handler>> = Object.freeze({
   getCatalogRevision: notImplemented,
   getCatalogHealthReport: notImplemented,
   ...mastersHandlers, // T-04: #5–#16; T-05: #17–#22 (units, value sets); T-13: #57–#59 (comment codes)
-  ...testsHandlers, // T-06: #2, #23–#27
-  setTestTatTargets: notImplemented,
+  ...testsHandlers, // T-06: #2, #23–#27; T-14: #28
   ...analyteVersionsHandlers, // T-07: #29–#35
   ...formulasHandlers, // T-11: #36
   ...rangesHandlers, // T-08: #37–#50 (reference-range + critical-limit sets)

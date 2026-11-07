@@ -168,10 +168,10 @@ describe('credit note numbering: own gapless series CN, allocated LAST (TRD §12
     expect((await errCode(cancel(w, a.invoiceId))).code).toBe('billing.counter_busy');
     expect(w.x().creditNotes).toHaveLength(0); expect(invOf(w, a.invoiceId)).toEqual(snap); expect(w.db.events).toHaveLength(n);
   });
-  it('pattern problems are found BEFORE allocating: missing creditNoteNoPattern or a pattern with an unknown token -> billing.numbering_pattern_invalid, counter untouched', async () => {
+  it('pattern problems are found BEFORE allocating: missing creditNoteNoPattern or a pattern with an unknown token -> common.internal (the only declared code on cancelInvoice; review BL-T10 item 2), counter untouched', async () => {
     for (const numbering of [{ invoiceNoPattern: '{fy}-{seq:6}' }, { invoiceNoPattern: '{fy}-{seq:6}', creditNoteNoPattern: 'CN-{nope}-{seq:6}' }]) {
       const w = makeT10World(); const a = await issued(w); w.tenantSettings['numbering'] = numbering;
-      expect((await errCode(cancel(w, a.invoiceId))).code).toBe('billing.numbering_pattern_invalid');
+      expect((await errCode(cancel(w, a.invoiceId))).code).toBe('common.internal');
       expect(w.cnCalls()).toHaveLength(0); expect(w.x().creditNotes).toHaveLength(0);
     }
   });

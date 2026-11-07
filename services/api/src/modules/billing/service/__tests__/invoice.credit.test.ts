@@ -242,6 +242,17 @@ describe('B5 reason rules and state', () => {
   });
 });
 
+describe('credit note number pattern problems (review BL-T10 item 2)', () => {
+  it('missing or broken creditNoteNoPattern -> common.internal (declared on issuePartialCreditNote); no number allocated, nothing written', async () => {
+    for (const numbering of [{ invoiceNoPattern: '{fy}-{seq:6}' }, { invoiceNoPattern: '{fy}-{seq:6}', creditNoteNoPattern: 'CN-{nope}-{seq:6}' }]) {
+      const w = makeT10World(); const a = await issued(w); const [id1] = lineIds(w, a.invoiceId); w.tenantSettings['numbering'] = numbering;
+      const snap = structuredClone(invOf(w, a.invoiceId)); const n = w.db.events.length;
+      expect((await errCode(credit(w, a.invoiceId, [{ invoiceLineId: id1, amountPaisa: 100 }]))).code).toBe('common.internal');
+      expect(w.cnCalls()).toHaveLength(0); expect(w.x().creditNotes).toHaveLength(0); expect(invOf(w, a.invoiceId)).toEqual(snap); expect(w.db.events).toHaveLength(n);
+    }
+  });
+});
+
 describe('resolves_task_ids (B35 tasks): only open tasks of THIS invoice in THIS tenant', () => {
   it('several tasks resolved by one note; the repo is asked once for the whole list (no per-task writes in a loop that could half-apply)', async () => {
     const w = makeT10World(); const a = await issued(w); const [id1, id2] = lineIds(w, a.invoiceId);

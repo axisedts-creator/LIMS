@@ -225,7 +225,7 @@ class InventorySecurity(unittest.TestCase):  # 02-TRD s4 rules
         bad = []
         for p in self.inv_files():
             t = read(p)
-            if re.search(r"PRIVATE KEY-----|AGE-SECRET-KEY-|ENC\[AES256_GCM", t):
+            if re.search("PRIVATE" + " KEY-----|AGE-SECRET" + "-KEY-|ENC\\[AES256_GCM", t):
                 bad.append(f"{p.relative_to(ROOT)}: key material")
             for m in re.finditer(r"(?mi)^\s*([\w.-]*(?:password|passwd|secret|token|private_key|api_key|become_pass|ssh_pass)[\w.-]*)\s*:\s*(\S.*)$", t):
                 v = m.group(2).strip().strip("\"'")

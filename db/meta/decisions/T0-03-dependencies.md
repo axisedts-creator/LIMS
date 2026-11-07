@@ -23,6 +23,7 @@ Versions that 04/CV or a spike fixed are copied, not re-chosen: fastify (SP-8), 
 | pino | 10.4.0 | MIT | logger backend behind `@lims/shared-ts/logger` (CV §9.1) | 2026-10-02 (npm time[10.4.0]) | winston, bunyan |
 | prom-client | 15.1.3 | Apache-2.0 | Prometheus metrics (CV §9.4) | 2024-06-27 (npm time[15.1.3]; still latest — low release cadence) | @opentelemetry/sdk-metrics + Prometheus exporter |
 | ioredis | 6.0.0 | MIT | optional rate-limit cache client, UNLOGGED-table fallback (04 S11) | 2026-07-31 (npm time[6.0.0]) | redis (node-redis) |
+| graphile-worker | 0.18.0 | MIT | queue schema install (`--schema-only`, SP-2 step b) in db/tests/run-suites.sh and the runner; root devDependency; LD-31 (CR T0B-05) | 2026-09-08 (npm time[0.18.0]) | pg-boss (no D-201 role split per SP-2) |
 | turbo | 2.11.10 | MIT | Turborepo task runner (`turbo.json`, CM §3) | 2026-10-20 (npm time[2.11.10]) | nx, plain pnpm -r |
 | vitest | 5.1.0 | MIT | TS test runner (CV §11.1); T0D-12 pin; root devDependency | 2026-11-02 (npm time[5.1.0]) | jest, node:test |
 | @playwright/test | 1.65.0 | Apache-2.0 | E2E + a11y browser automation; same family as C6 renderer | 2026-11-05 (npm time[1.65.0]) | cypress, webdriverio |

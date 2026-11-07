@@ -197,7 +197,8 @@ test('identity owner policies (C2 05-SCHEMA §5.4 / §10.1): wherever they are c
   const spec = policies(t.slice(a, b));
   assert.equal(spec.length, 24, 'spec lists 24 identity owner policies');
   for (const p of spec) assert.deepEqual(p.roles, ['lims_owner']);
-  const mine = policies(allMig()).filter((p) => p.table.startsWith('identity.'));
+  // identity.event_inbox policies belong to T0B-05 (05-SCHEMA §3.9/§6), not to the 24 C2 owner policies
+  const mine = policies(allMig()).filter((p) => p.table.startsWith('identity.') && p.table !== 'identity.event_inbox');
   const polFile = root + 'db/policies/identity.sql';
   const inFile = existsSync(polFile) ? policies(readStripped(polFile)) : [];
   const pool = mine.length ? mine : inFile;

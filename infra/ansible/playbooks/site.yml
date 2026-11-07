@@ -15,3 +15,28 @@
     - chrony
     - luks_volumes
     - docker_engine
+
+# 02-TRD s9: pgBackRest config, tmpfs cipher passes, timers. `data` only:
+# dr-1 (repo2 host) never holds a cipher pass (AC-12.3).
+- name: pgBackRest
+  hosts: data
+  become: true
+  roles:
+    - pgbackrest
+
+# 02-TRD s11, s8.2: monitoring core on ops-1 (site B). internal_ca first:
+# it issues the ops nginx (and registry) certificates the stack mounts.
+- name: Monitoring core
+  hosts: ops
+  become: true
+  roles:
+    - internal_ca
+    - monitoring
+
+# 02-TRD s12.2: Nepal registry. Server on ops-1 (uses the internal_ca
+# registry leaf above); client trust + name on every host that pulls.
+- name: Registry
+  hosts: ops:data:app:dr
+  become: true
+  roles:
+    - registry

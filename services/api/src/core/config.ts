@@ -30,6 +30,15 @@ export interface CoreConfig {
   readonly identityAuthOps: readonly string[];
   /** LIMS_CORE_WITH_TENANT_SCOPE_OPS (D-214); unset = WITH_TENANT_SCOPE_OPS. */
   readonly withTenantScopeOps: readonly string[];
+  /** LIMS_CORE_METRICS_PORT (02-TRD §11): internal /metrics + /health/live listener. */
+  readonly metricsPort: number;
+}
+
+function portKey(env: Env, key: string, fallback: number): number {
+  const v = env[key];
+  if (v === undefined) return fallback;
+  if (!/^\d{1,5}$/.test(v) || Number(v) > 65535) throw new Error(`config: ${key} must be a port 0..65535`);
+  return Number(v);
 }
 
 function intKey(env: Env, key: string, fallback: number): number {
@@ -97,5 +106,6 @@ export function loadConfig(env: Env = process.env): CoreConfig {
     txRetryMax: intKey(env, 'LIMS_CORE_TX_RETRY_MAX', 3),
     identityAuthOps: opList(env, 'LIMS_CORE_IDENTITY_AUTH_OPS', IDENTITY_AUTH_OPS),
     withTenantScopeOps: opList(env, 'LIMS_CORE_WITH_TENANT_SCOPE_OPS', WITH_TENANT_SCOPE_OPS),
+    metricsPort: portKey(env, 'LIMS_CORE_METRICS_PORT', 9464),
   });
 }

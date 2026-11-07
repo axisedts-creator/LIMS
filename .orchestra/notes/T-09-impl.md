@@ -1,0 +1,7 @@
+# T-09 impl (writer)
+- Files: images/postgres-pgbackrest/Dockerfile; database/pgbackrest/pgbackrest.conf.j2; postgresql/zz-lims.conf.j2 (archive_command); roles/pgbackrest/** (tasks, cipher.conf tmpfs include, wrappers, backup/check scripts, 5 UTC timers); playbooks/site.yml; monitoring/textfile/pgbackrest_metrics.sh; compose/supabase/DECISION.md; secrets/schema/*.yaml (dr-1 not a repo2-pass consumer, AC-12.3).
+- Review round: lims-pgbackrest-check.sh honours $STATE_DIR / $PGBACKREST (defaults unchanged) -> CheckCounterTest OK. CR filed: .orchestra/cr/T-09.md (AC-12.3 vs TRD s9.5; blocks T-10/T-12).
+- [CONV] passes via PGBACKREST_CONFIG_INCLUDE_PATH=/run/secrets/pgbackrest; counter in /var/lib/lims/pgbackrest; textfile dir /var/lib/node_exporter/textfile.
+- Tests: test_t09 31/35 OK. 4 FAIL, not fixable from this session (would need inventing values): DockerfileTest tarball sha256 (curl to github needs approval, not granted in non-interactive run); DecisionTest x3 (check on both repos, full+incr, multi-repo re-check vs pgbackrest.org 2.60, measured WAL/day need image build + data-1/dr-1).
+- OPEN: run on CI/staging, set ARG PGBACKREST_TARBALL_SHA256, replace DECISION.md "NOT yet run/measured/still OPEN" lines with real results + `WAL volume per day (measured ...): <n> GiB/day`.
+- OPEN for compose owner: mounts for pgbackrest.conf, repo1, PGBACKREST_CONFIG_INCLUDE_PATH. Gap: absent-metric alerts (T-18).

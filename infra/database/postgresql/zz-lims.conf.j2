@@ -1,7 +1,6 @@
 # Managed by Ansible (infra/database/postgresql/zz-lims.conf.j2) - 02-TRD s7.7.
 # Mounted into the image conf.d directory; zz- prefix sorts last so these values win.
 # Config is code (never changed at runtime). shared_preload_libraries stays the image default.
-# archive_command is added by T-09.
 
 max_connections = 200
 shared_buffers = 8GB
@@ -19,6 +18,7 @@ checkpoint_timeout = 15min
 checkpoint_completion_target = 0.9
 archive_mode = on
 archive_timeout = '{{ archive_timeout_s }}s'
+archive_command = 'pgbackrest --stanza=lims archive-push %p'
 max_wal_senders = 10
 max_replication_slots = 10
 max_slot_wal_keep_size = 50GB

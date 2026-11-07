@@ -1,0 +1,7 @@
+TESTS_WRONG — tools/codegen/__tests__/codegen.test.ts:107 (and mocks.test.ts:99, same cause) forbids any ISO datetime in generated output, but the spec forbids only generation-time timestamps; fixed datetimes copied from spec examples are required content. Change the test: exempt `packages/fakes/src/msw/handlers.generated.ts` from the `/\d{4}-\d\d-\d\d[T ]\d\d:\d\d/` check (or apply it only to header/comment lines of that file), keep it for all other outputs; keep the double-run byte-equality test as the determinism proof.
+- spec/chunks/C0-foundation-contracts/02-TRD.md:362 "Codegen is deterministic (sorted keys, no timestamps). CI gate 8 reruns it and fails on any diff." — "no timestamps" is a determinism rule (no run-time clock values), proven by rerun equality, not a ban on example data.
+- spec/chunks/C0-foundation-contracts/01-PRD.md:183 AC-0C-4.2: MSW handler for every operationId "returns the spec example" — handlers must inline the examples verbatim.
+- spec/chunks/C0-foundation-contracts/02-TRD.md:397: responses come from the spec examples, which must be realistic synthetic data.
+- contracts/openapi/_common.yaml:46-48 `IsoUtc` is `format: date-time` (02-CV §4.8); required IsoUtc fields in examples necessarily contain `YYYY-MM-DDTHH:MM` strings.
+- Escaping dates or dropping required date-time fields to satisfy the regex would break AC-0C-4.2; writer correctly did neither.
+- Same ruling applies to the pending `.orchestra/notes/T0C-10.C2-dispute.md` (handler-file timestamp check).

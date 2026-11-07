@@ -35,6 +35,7 @@ server {
 {%- endif %}
 {%- if z is not none %}
         limit_req zone={{ z }} burst={{ zone_table[z][0] }} nodelay;
+        limit_req zone=perip burst=200 nodelay;  # TRD s6.5 "every server": location limit_req replaces the server one
 {%- if zone_table[z][1] is not none %}
         set $retry_after {{ zone_table[z][1] }};
 {%- endif %}

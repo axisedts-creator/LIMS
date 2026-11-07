@@ -13,6 +13,7 @@ server {
     # Public login/recovery routes (08 R6 / Addendum A1): POSTs + GET /auth/confirm count ($login_key).
     location ~ ^/auth/(login|mfa|mfa/enrol|forgot|confirm|set-password)$ {
         limit_req zone=login burst=20 nodelay;
+        limit_req zone=perip burst=200 nodelay;  # TRD s6.5 "every server": location limit_req replaces the server one
         set $retry_after 60;
         proxy_pass http://web:3000;
     }

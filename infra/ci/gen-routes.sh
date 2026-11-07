@@ -48,6 +48,7 @@ TABLE = [  # path, match, owner, phase, zone, body_limit
 # Wave-1 operations the TRD lists but contracts/openapi (C0-owned) does not mark
 # public yet. Used only where no contract operation produced the route; delete an
 # entry once its operations carry `x-edge-exposure: public`.
+# Interim basis: CR-C1-T13 (.orchestra/cr/T-13.md); delete SEED when it is accepted.
 SEED = {
     "/v1/instruments/agent/": ["GET", "POST"],            # C7 E01-E05, E07, E08
     "/v1/instruments/agent/attachments": ["POST"],        # C7 E06

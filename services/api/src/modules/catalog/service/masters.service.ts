@@ -229,13 +229,14 @@ function setsService(revision: ReturnType<typeof createRevisionService>) {
 
   return {
     async listUnits(ctx: Ctx, query?: unknown) {
-      const q = checkEnumQuery(query, { scope: SCOPES, is_active: ['true'] });
+      const q = checkEnumQuery(query, { scope: SCOPES, is_active: ['true', 'false', 'all'] });
+      const ia = q['is_active'] ?? 'true';
       const tx = ctx.tx as Tx;
       const g = q['scope'] === 'tenant' ? [] : await repo.selectRows(tx, 'g_units', ['code', 'display', 'is_active'], {}, 'code');
       const t = q['scope'] === 'global' ? [] : await repo.selectRows(tx, 'cs_units', UNIT_COLS, { tenant_id: ctx.tenantId }, 'code');
       const shadowed = new Set(t.map((r) => r.code));
       const data = [...g.filter((r) => !shadowed.has(r.code)).map(globalUnitDto), ...t.map(unitDto)];
-      return { data: data.filter((u) => q['is_active'] !== 'true' || u.is_active).sort(byCode) };
+      return { data: data.filter((u) => ia === 'all' || u.is_active === (ia === 'true')).sort(byCode) };
     },
 
     async createUnit(ctx: Ctx, body?: unknown) {

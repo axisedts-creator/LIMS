@@ -5,3 +5,4 @@
 - [CONV] global ∪ tenant = two SELECTs merged in code; tenant row shadows global by code even when inactive; scope=global returns the raw global list (no shadowing).
 - In-use check runs only when a PATCH changes an existing value's sort_order (removal is impossible: omitted codes are kept); reads analyte_versions status=published, tenant + code bound.
 - Open: concurrent publish (T-07) vs sort_order edit — T-07 publish should lock the cs_value_sets row (FOR UPDATE) before checking, else a narrow race remains. Case-insensitive unit look-alikes (G_DL vs g_dl) allowed (spec silent). Starter unit `none` display "" vs Unit.display minLength 1 (tester CR candidate).
+- Review fix: listUnits `is_active` per catalog.yaml enum true|false|all, default true (active only); ruling file concerns C1 compose, not applicable.

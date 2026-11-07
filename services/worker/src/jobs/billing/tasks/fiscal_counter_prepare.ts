@@ -1,6 +1,6 @@
 // billing.fiscal_counter_prepare (02-TRD §10): counter rows for the current FY (and the next FY from Ashadh 25 B.S. [CONV]) for INV, CN, RC;
 // closed_at on counters of FYs that ended > 1 day ago. Creates rows / sets closed_at only — numbering is never written here.
-// ponytail: per-branch INV series (scope = branch) not prepared; they are created on first allocation. Add when branch scope ships.
+// billing.settings.invoice_series_scope = 'branch' -> also `INV:<branch_code>` per active core.branches row (TRD §12 series keys).
 import { fiscalYearOf } from '../../../../../api/src/modules/billing/domain/fiscalYear.js';
 import { instantToBs, type IsoUtc } from '../../../../../../packages/shared-ts/src/bsdate/index.js';
 import type { TaskHandler } from '../../../core/manifest.js';
@@ -26,7 +26,12 @@ export const fiscalCounterPrepare: TaskHandler = async (payload, jobCtx) => {
   for (const fy of years) {
     await ctx.tx.query(
       `INSERT INTO billing.fiscal_counters (tenant_id, series, fiscal_year_bs, created_by, updated_by)
-       SELECT $1, s, $2, $3, $3 FROM unnest($4::text[]) AS s ON CONFLICT (tenant_id, series, fiscal_year_bs) DO NOTHING`,
+       SELECT $1, s, $2, $3, $3 FROM (
+         SELECT unnest($4::text[]) AS s
+         UNION SELECT 'INV:' || b.branch_code FROM core.branches b
+           WHERE b.tenant_id = $1 AND b.is_active
+             AND EXISTS (SELECT 1 FROM billing.settings st WHERE st.tenant_id = $1 AND st.invoice_series_scope = 'branch')
+       ) x ON CONFLICT (tenant_id, series, fiscal_year_bs) DO NOTHING`,
       [tenantId, fy, actor, SERIES]);
   }
   // FY ended > 1 day ago = the FY of (now - 1 day) is later than the counter's FY. Numeric start-year compare (2099/00 vs 2100/01).

@@ -336,9 +336,12 @@ class RuleLintTest(unittest.TestCase):
             text = _path(s).read_text(encoding="utf-8")
             self.assertIsNone(EMAIL_RE.search(text), "%s: e-mail address" % s)
             for n, r in _rules(_path(s)).items():
-                blob = json.dumps(r)
+                # arbiter ruling C1.T-21-ruling.md: drop list bans label NAMES (02-TRD s11.2 item 2, :912), not values
+                # such as the receiver `oncall-email`.
+                self.assertFalse(set(r.get("labels", {})) & set(DROP_LABELS), "%s/%s drop-list label key" % (s, n))
+                tmpl = json.dumps([r.get("expr"), r.get("annotations", {})])
                 for lbl in DROP_LABELS:
-                    self.assertNotRegex(blob, r"\b%s\b" % lbl, "%s/%s uses drop-list label %s" % (s, n, lbl))
+                    self.assertNotRegex(tmpl, r"\$labels\.%s\b" % lbl, "%s/%s templates drop-list label %s" % (s, n, lbl))
 
     def test_routing_page_oncall_warn_digest_finance(self):  # s11.4 against the real T-18 Alertmanager template
         cfg = yaml.safe_load(_render(AM_J2))
@@ -412,8 +415,8 @@ class PromtoolFilesTest(unittest.TestCase):
         for s in self.STEMS:
             blob = (PT / ("%s.test.yml" % s)).read_text(encoding="utf-8")
             self.assertIsNone(EMAIL_RE.search(blob), s)
-            for lbl in DROP_LABELS:
-                self.assertNotRegex(blob, r"\b%s\b" % lbl, "%s: %s" % (s, lbl))
+            for lbl in DROP_LABELS:  # ruling: series label KEYS only (`lbl=` / `lbl:`), not bare words
+                self.assertNotRegex(blob, r"\b%s\s*[=:]" % lbl, "%s: %s" % (s, lbl))
 
     def test_promtool_test_rules(self):
         if not shutil.which("promtool"):

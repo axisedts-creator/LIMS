@@ -1,0 +1,108 @@
+# T-21 (tester, LD-39): promtool tests for ../imported/inventory.rules.yml. Synthetic series only (no real tenant or patient data).
+# Per alert one firing case (labels carry the rule's severity and team), one not-firing case, and for rules with a
+# `for` clause a pending-before-`for` + firing-after-`for` check. Thresholds are the owner's (02-TRD s11.3).
+rule_files:
+  - ../imported/inventory.rules.yml
+evaluation_interval: 1m
+tests:
+
+  - interval: 1m
+    name: "InventoryConsumerFailing fires"
+    input_series:
+      - series: 'lims_inventory_consumer_failures_total{event_type="evt_a"}'
+        values: "0+1x40"
+    alert_rule_test:
+      - alertname: InventoryConsumerFailing
+        eval_time: 14m
+        exp_alerts: []
+      - alertname: InventoryConsumerFailing
+        eval_time: 37m
+        exp_alerts:
+          - exp_labels: {severity: "page", team: "ops", event_type: "evt_a"}
+
+  - interval: 1m
+    name: "InventoryConsumerFailing quiet"
+    input_series:
+      - series: 'lims_inventory_consumer_failures_total{event_type="evt_a"}'
+        values: "0+0x40"
+    alert_rule_test:
+      - alertname: InventoryConsumerFailing
+        eval_time: 37m
+        exp_alerts: []
+
+  - interval: 1m
+    name: "InventoryConsumptionLagHigh fires"
+    input_series:
+      - series: 'lims_inventory_consumption_lag_seconds_bucket{event_type="evt_a",le="150"}'
+        values: "0+0x30"
+      - series: 'lims_inventory_consumption_lag_seconds_bucket{event_type="evt_a",le="3000"}'
+        values: "0+1x30"
+      - series: 'lims_inventory_consumption_lag_seconds_bucket{event_type="evt_a",le="+Inf"}'
+        values: "0+1x30"
+    alert_rule_test:
+      - alertname: InventoryConsumptionLagHigh
+        eval_time: 14m
+        exp_alerts: []
+      - alertname: InventoryConsumptionLagHigh
+        eval_time: 27m
+        exp_alerts:
+          - exp_labels: {severity: "warn", team: "ops", event_type: "evt_a"}
+
+  - interval: 1m
+    name: "InventoryConsumptionLagHigh quiet"
+    input_series:
+      - series: 'lims_inventory_consumption_lag_seconds_bucket{event_type="evt_a",le="150"}'
+        values: "0+1x30"
+      - series: 'lims_inventory_consumption_lag_seconds_bucket{event_type="evt_a",le="3000"}'
+        values: "0+1x30"
+      - series: 'lims_inventory_consumption_lag_seconds_bucket{event_type="evt_a",le="+Inf"}'
+        values: "0+1x30"
+    alert_rule_test:
+      - alertname: InventoryConsumptionLagHigh
+        eval_time: 27m
+        exp_alerts: []
+
+  - interval: 1m
+    name: "InventoryBalanceDrift fires"
+    input_series:
+      - series: 'lims_inventory_balance_drift_rows{tenant_id="t1"}'
+        values: "1x15"
+    alert_rule_test:
+      - alertname: InventoryBalanceDrift
+        eval_time: 12m
+        exp_alerts:
+          - exp_labels: {severity: "page", team: "ops", tenant_id: "t1"}
+
+  - interval: 1m
+    name: "InventoryBalanceDrift quiet"
+    input_series:
+      - series: 'lims_inventory_balance_drift_rows{tenant_id="t1"}'
+        values: "0x15"
+    alert_rule_test:
+      - alertname: InventoryBalanceDrift
+        eval_time: 12m
+        exp_alerts: []
+
+  - interval: 1m
+    name: "InventoryUnresolvedBacklog fires"
+    input_series:
+      - series: 'lims_inventory_unresolved_oldest_age_seconds{tenant_id="t1"}'
+        values: "86401x20"
+    alert_rule_test:
+      - alertname: InventoryUnresolvedBacklog
+        eval_time: 4m
+        exp_alerts: []
+      - alertname: InventoryUnresolvedBacklog
+        eval_time: 17m
+        exp_alerts:
+          - exp_labels: {severity: "warn", team: "ops", tenant_id: "t1"}
+
+  - interval: 1m
+    name: "InventoryUnresolvedBacklog quiet"
+    input_series:
+      - series: 'lims_inventory_unresolved_oldest_age_seconds{tenant_id="t1"}'
+        values: "86400x20"
+    alert_rule_test:
+      - alertname: InventoryUnresolvedBacklog
+        eval_time: 17m
+        exp_alerts: []

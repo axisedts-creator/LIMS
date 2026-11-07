@@ -123,6 +123,22 @@ describe('E14 issueEnrolmentCode — AC-01.3 / AC-02.3', () => {
     expect((await rejection(w.svc.issueEnrolmentCode(w.ctx, { agentId: AID })))?.code).toBe('instruments.agent_not_active');
     expect(w.mutations()).toHaveLength(0); expect(w.accessRows()).toHaveLength(0);
   });
+  it('race guard: locks the agent row (lockAgent, tenant-scoped) before revoking earlier codes and inserting the new one', async () => {
+    const w = world();
+    await w.svc.issueEnrolmentCode(w.ctx, { agentId: AID });
+    const order = w.calls.map((c) => c.op);
+    expect(order).toContain('lockAgent');
+    expect(order.indexOf('lockAgent')).toBeLessThan(order.indexOf('revokeCredentials'));
+    expect(order.indexOf('lockAgent')).toBeLessThan(order.indexOf('insertCredential'));
+    expect(w.callsOf('lockAgent')[0]).toMatchObject({ tenantId: TENANT_A, args: [AID] });
+  });
+  it('race guard: status is re-checked on the LOCKED row — retired by a concurrent tx -> 409 agent_not_active, nothing written', async () => {
+    const w = world();
+    const lock = w.repo.lockAgent;
+    w.repo.lockAgent = async (...a: Parameters<typeof lock>) => { const r = await lock(...a); return r && { ...r, status: 'retired' }; };
+    expect((await rejection(w.svc.issueEnrolmentCode(w.ctx, { agentId: AID })))?.code).toBe('instruments.agent_not_active');
+    expect(w.mutations()).toHaveLength(0); expect(w.accessRows()).toHaveLength(0);
+  });
   it('two codes issued back to back differ (CSPRNG) and only the newest stays active', async () => {
     const w = world({ agents: [agentRow({ id: AID, credentials: [] })] });
     const a = await w.svc.issueEnrolmentCode(w.ctx, { agentId: AID }); const b = await w.svc.issueEnrolmentCode(w.ctx, { agentId: AID });

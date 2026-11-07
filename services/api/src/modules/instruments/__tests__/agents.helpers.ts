@@ -117,6 +117,8 @@ export function makeRepo(seed: FakeSeed = {}) {
       });
     },
     async findAgent(_tx, t, id) { return rec('findAgent', t, [id], () => dto(mine(t).find((a) => a.id === id))); },
+    /** SELECT … FOR UPDATE on the agent row (serialises concurrent E14); returns the locked row so the service can re-check status. */
+    async lockAgent(_tx, t, id) { return rec('lockAgent', t, [id], () => dto(mine(t).find((a) => a.id === id))); },
     async listAgents(_tx, t, q) {
       return rec('listAgents', t, [q], () => {
         let rows = mine(t);

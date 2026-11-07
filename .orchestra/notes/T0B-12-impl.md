@@ -1,7 +1,7 @@
-# T0B-12 impl (rework per LD-54, CR-C0-T0B-12 option b)
-- Deleted `db/migrations/20261105002200_storage__create_buckets.sql` (a comment-only placeholder would fail check-migrations' first-statement rule). No SQL references schema storage.
-- Added `db/provisioning/create-storage-buckets.mjs`: 11 buckets of 08 §4.8 verbatim (reporting-legacy reserved), `plan(existing)` = create missing / flip public to private, always public:false; credential only from the file in `LIMS_CORE_STORAGE_KEY_FILE`.
-- [CONV] The script sends no HTTP request and exits 2: the Storage base-URL env name and the bucket endpoints are not recorded (CR-C0-T0B-12-b, `.orchestra/cr/T0B-12.provisioning-contract.md`). LD-54 forbids guessing them.
-- Added `db/provisioning/README.md`: status plus the first-deploy smoke test (script, re-run, then `db/tests/storage/T0B-12_storage.test.sql`). Not executed.
-- Tests: `node --test tests/db/T0B-12.storage-buckets.test.mjs` gives 64/66 pass. The 2 failures are the GATE tests, which stay red until the lead rules on CR-C0-T0B-12-b.
-- Open: the lead must rule on CR-C0-T0B-12-b, then the HTTP calls get wired and the tester writes the stub-server tests. The live pgTAP has not been run (LD-54).
+# T0B-12 impl (LD-54 + LD-55)
+- `db/provisioning/create-storage-buckets.mjs`: HTTP transport wired per LD-55: `LIMS_CORE_STORAGE_URL` (no default, trailing slash trimmed), paged `GET /bucket?limit=100&offset=N`, `POST /bucket` for absent, `PUT /bucket/{id}` {public:false} for public, private untouched; Bearer + apikey headers; POST non-2xx re-lists and accepts only present+private.
+- Output only `<bucket> created|ok|flipped`; errors name operation + HTTP status only (no URL, credential, body; fetch errors swallowed to "request failed").
+- [CONV] exit via `process.exitCode`, not `process.exit()`: on Windows, exiting with fetch sockets closing crashes libuv (`UV_HANDLE_CLOSING` assertion), seen in the tests.
+- `db/meta/decisions/SP-4.md`: appended "Provisioning contract (LD-55)" (items 1-4, existing text unchanged). `db/provisioning/README.md`: status updated.
+- Tests: `.orchestra\notes\T0B-12-verify.cmd` (both node files) gives 105/105 pass, GATE tests included.
+- Open: live run against real Storage = first-deploy smoke test (LD-54), not executed; routes come from storage-api v1.89.13 source and are unconfirmed live.

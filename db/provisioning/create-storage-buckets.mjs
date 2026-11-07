@@ -1,12 +1,11 @@
 // T0B-12: ensure the Storage buckets of 08 §4.8 (names verbatim, <owner-module>-<purpose>, exception `reports`; 08 R26), all private (REQ-SEC-034).
 // LD-54 (2026-11-07, CR-C0-T0B-12 option b): SQL never touches the Storage-owned schema; buckets are ensured here through the Storage service
 //   HTTP API with the server credential (08 R12b), read only from the file named by LIMS_CORE_STORAGE_KEY_FILE (C0 02-TRD §11, C1 02-TRD §8.2).
+// LD-55 (2026-11-07, CR-C0-T0B-12-b): contract recorded in db/meta/decisions/SP-4.md "Provisioning contract (LD-55)": base URL env
+//   LIMS_CORE_STORAGE_URL (no default), GET /bucket?limit=100&offset=N, POST /bucket, PUT /bucket/{id}; Authorization: Bearer + apikey headers.
 // SP-4 api-proxied: buckets only, no end-user policies. `reporting-legacy` stays reserved (B4) and is never created.
-// Idempotent: an existing private bucket is left alone, an existing public one is flipped private, a missing one is created private.
-//
-// BLOCKED (CR-C0-T0B-12-b, .orchestra/cr/T0B-12.provisioning-contract.md): the Storage base-URL env name and the bucket list/create/update
-//   endpoints are not recorded in db/meta/decisions/SP-4.md or the C0/C1 TRD, and LD-54 forbids guessing them. Until the lead rules, main()
-//   loads the credential and the plan, then exits 2 without any network call. Then send plan(list) to the recorded endpoints.
+// Idempotent: list first; a private bucket is left alone, a public one is flipped private, a missing one is created private.
+// Output: only `<bucket> created|ok|flipped` lines; never the credential, URL or a response body.
 import { readFileSync } from "node:fs";
 import { pathToFileURL } from "node:url";
 
@@ -23,6 +22,8 @@ export const BUCKETS = [
   "anatomic-images",
   "partners-slips",
 ];
+
+const PAGE = 100;
 
 export const desired = (id) => ({ id, name: id, public: false });
 
@@ -41,25 +42,85 @@ export function plan(existing) {
 export function loadCredential(env = process.env) {
   const path = env.LIMS_CORE_STORAGE_KEY_FILE;
   if (!path) throw new Error("LIMS_CORE_STORAGE_KEY_FILE is not set");
-  const value = readFileSync(path, "utf8").trim();
+  let value;
+  try {
+    value = readFileSync(path, "utf8").trim();
+  } catch {
+    throw new Error("file named by LIMS_CORE_STORAGE_KEY_FILE cannot be read");
+  }
   if (!value) throw new Error("file named by LIMS_CORE_STORAGE_KEY_FILE is empty");
   return value;
 }
 
-export async function main() {
-  loadCredential();
-  process.stderr.write(
-    "create-storage-buckets: Storage base-URL env and bucket endpoints not recorded (CR-C0-T0B-12-b); no request sent.\n",
-  );
-  return 2;
+// One HTTP call. Errors name only the operation, never the URL, credential or response body (LD-55 item 4).
+function client(base, credential) {
+  const headers = { Authorization: `Bearer ${credential}`, apikey: credential };
+  return async (method, path, body, what) => {
+    let res;
+    try {
+      res = await fetch(base + path, {
+        method,
+        headers: body ? { ...headers, "content-type": "application/json" } : headers,
+        body: body ? JSON.stringify(body) : undefined,
+      });
+    } catch {
+      throw new Error(`${what}: request failed`);
+    }
+    const text = await res.text().catch(() => "");
+    return { ok: res.ok, status: res.status, text };
+  };
+}
+
+async function listAll(call) {
+  const all = [];
+  for (let offset = 0; ; offset += PAGE) {
+    const r = await call("GET", `/bucket?limit=${PAGE}&offset=${offset}`, undefined, "list buckets");
+    if (!r.ok) throw new Error(`list buckets: HTTP ${r.status}`);
+    let page;
+    try {
+      page = JSON.parse(r.text);
+    } catch {
+      page = undefined;
+    }
+    if (!Array.isArray(page)) throw new Error("list buckets: unexpected response");
+    all.push(...page);
+    if (page.length < PAGE) return all;
+  }
+}
+
+export async function main(env = process.env, out = process.stdout) {
+  const base = (env.LIMS_CORE_STORAGE_URL ?? "").replace(/\/+$/, "");
+  if (!base) throw new Error("LIMS_CORE_STORAGE_URL is not set");
+  const call = client(base, loadCredential(env));
+  const ops = new Map(plan(await listAll(call)).map((o) => [o.body.id, o]));
+  for (const id of BUCKETS) {
+    const o = ops.get(id);
+    if (!o) {
+      out.write(`${id} ok\n`);
+    } else if (o.op === "make-private") {
+      const r = await call("PUT", `/bucket/${encodeURIComponent(id)}`, { public: false }, id);
+      if (!r.ok) throw new Error(`${id}: make private failed, HTTP ${r.status}`);
+      out.write(`${id} flipped\n`);
+    } else {
+      const r = await call("POST", "/bucket", o.body, id);
+      if (!r.ok) {
+        // LD-55 item 4: no reliance on an 'already exists' body; accept only if a re-list shows it present and private.
+        const now = (await listAll(call)).find((b) => b.id === id);
+        if (!now || now.public !== false) throw new Error(`${id}: create failed, HTTP ${r.status}`);
+      }
+      out.write(`${id} created\n`);
+    }
+  }
+  return 0;
 }
 
 if (import.meta.url === pathToFileURL(process.argv[1] ?? "").href) {
+  // exitCode, not process.exit(): exiting while fetch sockets close trips a libuv assertion on Windows (UV_HANDLE_CLOSING).
   main().then(
-    (code) => process.exit(code),
+    (code) => (process.exitCode = code),
     (e) => {
       process.stderr.write(`create-storage-buckets: ${e.message}\n`);
-      process.exit(1);
+      process.exitCode = 1;
     },
   );
 }

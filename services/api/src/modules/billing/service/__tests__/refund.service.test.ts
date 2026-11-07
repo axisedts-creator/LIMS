@@ -105,6 +105,18 @@ describe('refundable cap at request: refundable = paid - (invoiced - credited) (
     expect((await errCode(request(w, svc, f1, { refundAmountPaisa: 75001 }))).code).toBe('billing.ledger_reversal_invalid');
     expect((await request(w, svc, f1, { refundAmountPaisa: 75000 })).status).toBe('pending');
   });
+  // Review item 1: TRD §5 B10 / §6.5 define no credit-order refusal; only the refundable cap applies.
+  it('8b: credit-mode order with refundable > 0 (paid 3,000.00, invoiced 2,250.00, credited 0) can be requested: 750.00 -> pending, 750.01 -> 409', async () => {
+    const { w, svc, f1 } = await setup({ billingMode: 'credit', credited: 0, paid: 300000 });
+    expect((await errCode(request(w, svc, f1, { refundAmountPaisa: 75001 }))).code).toBe('billing.ledger_reversal_invalid');
+    expect((await request(w, svc, f1, { refundAmountPaisa: 75000 })).status).toBe('pending');
+  });
+  it('8c: credit-mode order with refundable <= 0 -> 409 billing.ledger_reversal_invalid (not common.validation_failed); nothing stored', async () => {
+    const { w, svc, f1 } = await setup({ billingMode: 'credit', credited: 0 });
+    const e = await errCode(request(w, svc, f1, { refundAmountPaisa: 1 }));
+    expect(e.code).toBe('billing.ledger_reversal_invalid');
+    expect(w.requests()).toHaveLength(0);
+  });
 });
 
 describe('request validation and scoping', () => {

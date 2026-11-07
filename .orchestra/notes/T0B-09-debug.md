@@ -7,3 +7,6 @@ Heads-up: 010 still has `SET LOCAL ROLE lims_owner` but LD-30 requires lims_app 
 
 Round 3: unchanged. 001 failure = tools/codegen/gen-permissions.ts:126-130 (C0-0C-owned; main and lane/C0-0C still lack SET LOCAL ROLE and still use DO UPDATE). CR T0B-09-001-generator.md unresolved; 0B cannot edit it. No code change.
 LD-30 (lims_app for 010+, grant in 00_roles.sql) still not applied; test line 71 demands lims_owner in EVERY seed, which contradicts LD-30 for 010. See T0B-09-dispute.md.
+
+Round 4: unchanged. 001 lacks `SET LOCAL ROLE lims_owner` and uses `ON CONFLICT DO UPDATE`; both come from tools/codegen/gen-permissions.ts:126-129 (C0-0C-owned). Test is valid per ruling (LD-30 leaves 001-003 on lims_owner), so no dispute.
+No 0B-owned fix: a hand-edit of generated 001 is overwritten and fails the codegen drift check. CR .orchestra/cr/T0B-09-001-generator.md is still unresolved; no code change.

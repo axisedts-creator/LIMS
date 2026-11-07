@@ -172,6 +172,12 @@ function expectedPolicies() {        // explicit CREATE POLICYs of §10.1 on ide
     gen.push({ name: `${t}__${c}__tenant`, table: `identity.${t}`, key: `${t}__${c}__tenant@identity.${t}`, cmd: c.toUpperCase(), roles: 'lims_app',
       using: c === 'insert' ? '' : norm(PRED_T), check: c === 'select' ? '' : norm(PRED_T) });
   }
+  // 08 A28.1 DO-loop of §10.1 (05-SCHEMA.md:1267-1275): 6 policies {mfa_factors,invitations}__{select,insert,update}__platform
+  const PRED_P = norm('tenant_id IS NULL AND (SELECT app.is_platform_actor())');
+  for (const t of ['mfa_factors', 'invitations']) for (const c of ['select', 'insert', 'update']) {
+    gen.push({ name: `${t}__${c}__platform`, table: `identity.${t}`, key: `${t}__${c}__platform@identity.${t}`, cmd: c.toUpperCase(), roles: 'lims_app',
+      using: c === 'insert' ? '' : PRED_P, check: c === 'select' ? '' : PRED_P });
+  }
   return { explicit, gen, all: [...explicit, ...gen] };
 }
 

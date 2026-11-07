@@ -48,10 +48,11 @@ describe('commitImport — happy path (AC-16.6 API half)', () => {
   it('validated -> committing: returns the Import, stores the commit params, bumps version, enqueues catalog.import_commit keyed by the import id', async () => {
     const s = setup();
     const imp = s.seedImport();
+    const v0 = imp.version; // seed returns the live row; commit mutates it
     const out = await commit(s, imp, body({ effective_from: EFFECTIVE }));
-    expect(out).toMatchObject({ id: imp.id, kind: 'price_list', status: 'committing', version: imp.version + 1 });
+    expect(out).toMatchObject({ id: imp.id, kind: 'price_list', status: 'committing', version: v0 + 1 });
     const r = row(s, imp.id);
-    expect(r).toMatchObject({ status: 'committing', commit_change_reason: REASON, commit_publish: true, commit_accept_stale_base: false, committed_by: USER, version: imp.version + 1 });
+    expect(r).toMatchObject({ status: 'committing', commit_change_reason: REASON, commit_publish: true, commit_accept_stale_base: false, committed_by: USER, version: v0 + 1 });
     expect(new Date(r.commit_effective_from).toISOString()).toBe(EFFECTIVE);
     expect(r.committed_at ?? null).toBeNull();                       // set by the job when the apply commits
     expect(r.result_price_list_version_id ?? null).toBeNull();
@@ -269,10 +270,11 @@ describe('importsHandlers.commitImport — HTTP mapping (#102)', () => {
   it('202 with the Import body and ETag "<version>"', async () => {
     const s = setup();
     const imp = s.seedImport();
-    const res = await call(s, { params: { import_id: imp.id }, headers: { 'if-match': `"${imp.version}"` }, body: body({ effective_from: EFFECTIVE }) });
+    const v0 = imp.version; // seed returns the live row; commit mutates it
+    const res = await call(s, { params: { import_id: imp.id }, headers: { 'if-match': `"${v0}"` }, body: body({ effective_from: EFFECTIVE }) });
     expect(res.status).toBe(202);
     expect(res.body).toMatchObject({ id: imp.id, status: 'committing' });
-    expect(res.headers.etag).toBe(`"${imp.version + 1}"`);
+    expect(res.headers.etag).toBe(`"${v0 + 1}"`);
     expect(s.db.jobs).toHaveLength(1);
   }, T);
 

@@ -190,6 +190,51 @@ class PlaybookTest(unittest.TestCase):
         self.assertRegex(resc, r"failed|aborted", "rescue reports state failed/aborted")
         self.assertRegex(resc, r"ansible\.builtin\.fail|\"fail\"|meta", "rescue must re-fail the play (no silent rc 0)")
 
+    def test_success_report_runs_after_scratch_lv_removed(self):  # T-10 review 1; 03-APP-FLOW 4.1 cleaning->succeeded guard
+        # The success metric (lims_ops_restore_drill_last_success_timestamp_seconds) is a side effect of `succeeded`,
+        # which is only legal once the LV is discarded AND removed. So the success report.sh must sit after the
+        # main block's `always` (lvremove), never inside `block`.
+        leaf = [(t, c) for t, c in self.tasks if "block" not in t]
+        lv = next((i for i, (t, c) in enumerate(leaf) if "always" in c and "lvremove" in tj(t)), None)
+        self.assertIsNotNone(lv, "need the lvremove task in always:")
+        succ = [i for i, (t, c) in enumerate(leaf)
+                if re.search(r"report\.sh", tj(t)) and "rescue" not in c and re.search(r"succeeded", tj(t))]
+        self.assertTrue(succ, "need a success report.sh task (DRILL_STATE succeeded)")
+        for i in succ:
+            self.assertNotIn("block", leaf[i][1], "success report.sh must be outside `block:` (runs only after cleanup): %s" % leaf[i][0].get("name"))
+            self.assertGreater(i, lv, "success report.sh must come after the `Remove the scratch LV` task: %s" % leaf[i][0].get("name"))
+        end = next((i for i, (t, c) in enumerate(leaf) if "drill_ops_note" in tj(t)
+                    and re.search(r"restore-drill end", tj(t))), None)
+        if end is not None:
+            self.assertLess(max(succ), end, "success report.sh must precede the `ops_audit - drill end` note")
+
+    def test_scratch_container_egress_limited_to_dr_sftp(self):  # T-10 review 2; 02-TRD 9.6 step 1 "no network except wg0 to dr-1:2222"
+        leaf = [(t, c) for t, c in self.tasks if "block" not in t]
+        run = next((i for i, (t, c) in enumerate(leaf)
+                    if '"docker", "run"' in tj(t) and re.search(r"drill_container|drill-pg", tj(t))), None)
+        self.assertIsNotNone(run, "need the `docker run` of drill-pg")
+        argv = leaf[run][0]["ansible.builtin.command"]["argv"]
+        nets = [str(a) for a in argv if re.match(r"--net(work)?[= ]", str(a))] \
+            + [str(argv[i + 1]) for i, a in enumerate(argv[:-1]) if str(a) in ("--network", "--net")]
+        self.assertTrue(nets, "docker run for drill-pg needs --network=<dedicated network> (default bridge has open egress)")
+        val = re.sub(r"^--net(work)?[= ]", "", nets[0])
+        self.assertNotRegex(val, r"^(host|bridge|default|container:.*)$", "must be a dedicated user network, got %r" % val)
+        fw = [(i, t, c) for i, (t, c) in enumerate(leaf) if re.search(r"DOCKER-USER", tj(t))]
+        self.assertTrue(fw, "need a DOCKER-USER firewall rule restricting the scratch network's egress")
+        adds = [(i, t) for i, t, c in fw if "always" not in c and "rescue" not in c]
+        dels = [(i, t) for i, t, c in fw if "always" in c]
+        self.assertTrue(adds, "egress rule must be added in the preparing phase (block), not only in always")
+        self.assertLess(min(i for i, _ in adds), run, "egress rule must exist before the container starts")
+        self.assertTrue(dels, "egress rule must be removed in always:")
+        blob = " ".join(tj(t) for _, t in adds)
+        ports = re.findall(r"(?:--dport|--destination-port|dport)\W{0,3}(\d+)", blob)
+        self.assertTrue(ports, "egress allow rule must name a destination port")
+        self.assertEqual(set(ports), {"2222"}, "only dr SFTP tcp/2222 may be allowed, got %s" % ports)
+        self.assertRegex(blob, r"groups\[\W{0,3}dr\W{0,3}\]", "destination must come from the dr group (LD-45), not a literal")
+        self.assertRegex(blob, r"wg_ip")
+        self.assertRegex(blob, r"DROP|REJECT|drop|reject", "everything else from the scratch network must be dropped")
+        self.assertRegex(" ".join(tj(t) for _, t in dels), r"-D\b|--delete|delete|flush|absent", "always: rule must be deleted")
+
     def test_scratch_instance_never_reachable(self):  # 03-APP-FLOW 4.3
         blob = code_lines(self.text) + "\n" + code_lines("\n".join(drill_texts().values()))
         self.assertRegex(blob, r"drill-pg")

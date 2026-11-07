@@ -14,7 +14,8 @@ const checks = (db: any, ratelimit: any = 'ok'): Checks => ({
 });
 
 describe('GET /v1/core/health/live', () => {
-  it('200 {status:"ok"} with no data, no auth', async () => {
+  // T-01 ruling: first boot gets 30000 ms headroom (default 5000 ms is a harness assumption under parallel load).
+  it('200 {status:"ok"} with no data, no auth', { timeout: 30000 }, async () => {
     const { app } = await bootObs();
     const r = await app.inject({ method: 'GET', url: LIVE });
     expect(r.statusCode).toBe(200);

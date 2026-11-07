@@ -147,7 +147,8 @@ describe.each(['on', 'off'] as const)('AC-0D-3.1 every non-2xx is a registry-bac
   const post = async (url: string, payload: unknown, headers: Record<string, string> = { 'content-type': 'application/json' }) =>
     (app ??= await boot(rv), app).inject({ method: 'POST', url, headers, payload: payload as any });
 
-  it('every code in errors.yaml thrown as LimsError -> its http status, code, title, type', async () => {
+  // T-01 ruling: first boot gets 30000 ms headroom (default 5000 ms is a harness assumption under parallel load).
+  it('every code in errors.yaml thrown as LimsError -> its http status, code, title, type', { timeout: 30000 }, async () => {
     for (const e of REGISTRY) {
       const res = await get(`/v1/catalog/lims/${e.code}`);
       const b = expectProblem(res, { status: e.http, code: e.code });

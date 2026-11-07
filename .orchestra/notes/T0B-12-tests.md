@@ -1,6 +1,6 @@
-# T0B-12 tests (tester)
-- `tests/db/T0B-12.storage-buckets.test.mjs` (node, no DB): 11 buckets parsed from 08 §4.8 (reserved `reporting-legacy` excluded); ONE `db/migrations/<ts>_storage__create_(buckets|policies).sql` after frontdesk/billing/reporting; INSERT INTO storage.buckets with names verbatim, no extra bucket, `public` false, `ON CONFLICT (id) DO UPDATE SET public = false`; SP-4 = api-proxied so NO policy/GRANT/RLS-off on storage.* or realtime.* in db/{migrations,policies,seeds,bootstrap}; check-migrations exit 0; detector self-tests.
-- `db/tests/storage/T0B-12_storage.test.sql` (pgTAP, live, NOT executed here: LD-51 no docker): buckets exist/private/no extras, RLS on, no end-user policy, lims_* have no privilege, authenticated + anon cross-tenant read/insert/update/delete denied on 22 seeded objects.
-- Run: `.orchestra\notes\T0B-12-verify.cmd`; live: `bash db/tests/run-suites.sh db/tests/storage/T0B-12_storage.test.sql`.
-- Fails now for the right reason: no `*_storage__*.sql` migration. Assumes the pinned image ships storage.buckets/objects with RLS on and no default policy; lims_migrator needs INSERT on storage.buckets (writer may need a grant or role switch; dispute if so).
-- Not covered: Storage-API HTTP probes (SP-4 done), `ctx.storage` adapter path refusal (C0-0D T0D-17).
+# T0B-12 tests (tester, LD-54 + LD-55)
+- `tests/db/T0B-12.storage-buckets.test.mjs` (unchanged, incl. both GATE tests): static checks, no SQL on schema storage, script/README static.
+- NEW `tests/db/T0B-12.storage-provisioning.test.mjs` (node, 127.0.0.1 stub Storage server, spawns the script): unset/empty URL, key file missing/empty/trimmed, base path prefix, both auth headers, create absent (private), flip public, idempotent re-run, untouched private/foreign buckets, pagination >100 (offsets 0/100/200), 4xx/5xx on list/PUT/POST exit non-zero, POST-fail re-list, no credential/URL/body in output.
+- `db/tests/storage/T0B-12_storage.test.sql` (pgTAP): post-provisioning smoke; NOT run (LD-54).
+- Fails now (script still stubbed, exits 2): 16 of 39 new tests; passing "exits non-zero" ones pass for the wrong reason until the transport is wired. GATE fails until SP-4.md gets the LD-55 section.
+- Run: `.orchestra\notes\T0B-12-verify.cmd` (both node files). Writer: wire HTTP in create-storage-buckets.mjs; output lines `<bucket> created|ok|flipped`.

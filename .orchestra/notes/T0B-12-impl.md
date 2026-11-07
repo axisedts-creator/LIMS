@@ -1,6 +1,7 @@
-# T0B-12 impl (writer)
-- Added `db/migrations/20261105002200_storage__create_buckets.sql`: 11 buckets of 08 §4.8 verbatim (reporting-legacy reserved, not created), public = false, `ON CONFLICT (id) DO UPDATE SET public = false`.
-- [CONV] File named `_storage__create_buckets.sql`, not the plan-row `_create_policies.sql`: SP-4 = api-proxied, so it holds buckets only (SP-4.md "skips *_storage__create_policies.sql").
-- [CONV] No policy/grant on storage.* or realtime.*; isolation = private buckets + ctx.storage adapter (C0-0D T0D-17).
-- Ran `node --test tests/db/T0B-12.storage-buckets.test.mjs`: 61/61 pass. Full tests/db: 703/705; 2 failures pre-existing, not storage (T0B-03 core.tenants `__platform` policies; T0B-04 003 seed header).
-- Open: live pgTAP not run (LD-51 no docker). lims_owner has no privilege on storage.buckets in 05-SCHEMA §1 -> live INSERT likely fails; CR `.orchestra/cr/T0B-12.md`.
+# T0B-12 impl (LD-54 + LD-55)
+- `db/provisioning/create-storage-buckets.mjs`: HTTP transport wired per LD-55: `LIMS_CORE_STORAGE_URL` (no default, trailing slash trimmed), paged `GET /bucket?limit=100&offset=N`, `POST /bucket` for absent, `PUT /bucket/{id}` {public:false} for public, private untouched; Bearer + apikey headers; POST non-2xx re-lists and accepts only present+private.
+- Output only `<bucket> created|ok|flipped`; errors name operation + HTTP status only (no URL, credential, body; fetch errors swallowed to "request failed").
+- [CONV] exit via `process.exitCode`, not `process.exit()`: on Windows, exiting with fetch sockets closing crashes libuv (`UV_HANDLE_CLOSING` assertion), seen in the tests.
+- `db/meta/decisions/SP-4.md`: appended "Provisioning contract (LD-55)" (items 1-4, existing text unchanged). `db/provisioning/README.md`: status updated.
+- Tests: `.orchestra\notes\T0B-12-verify.cmd` (both node files) gives 105/105 pass, GATE tests included.
+- Open: live run against real Storage = first-deploy smoke test (LD-54), not executed; routes come from storage-api v1.89.13 source and are unconfirmed live.

@@ -1,0 +1,16 @@
+openapi: 3.0.3
+info: { title: fixture alias after ref, version: 1.0.0 }
+paths:
+  /v1/x:
+    get:
+      operationId: getX
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema:
+                $ref: _common.yaml#/components/securitySchemes/bffSession
+components:
+  securitySchemes:
+    bffSession: { $ref: _common.yaml#/components/securitySchemes/bffSession }

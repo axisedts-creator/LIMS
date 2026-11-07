@@ -51,8 +51,10 @@ function setup(o: { grants?: readonly string[]; aal?: 1 | 2 } = {}) {
   db.seed.priceList(TENANT_B, PL_B);
   const identity = makeIdentity(o.grants ?? ALL, o.aal ?? 2);
   const svc = createImportsService({ identity } as never) as unknown as Svc;
-  const run = <R>(fn: (s: Svc, ctx: any) => Promise<R>, tenantId = TENANT_A) => db.run((ctx) => fn(svc, ctx), { tenantId });
-  return { db, identity, svc, run };
+  const accessLog: Array<Record<string, unknown>> = [];                       // fake ctx.audit.access (02-TRD §5.2 access-log table, :366)
+  const audit = { access: async (e: Record<string, unknown>) => { accessLog.push(e); } };
+  const run = <R>(fn: (s: Svc, ctx: any) => Promise<R>, tenantId = TENANT_A) => db.run((ctx) => fn(svc, ctx), { tenantId, ctx: { audit } });
+  return { db, identity, svc, run, accessLog };
 }
 type S = ReturnType<typeof setup>;
 const fileOf = (bytes: Uint8Array = fakeXlsx('a'), filename = 'prices.xlsx', mimeType = XLSX) => ({ filename, mimeType, bytes });
@@ -692,5 +694,43 @@ describe('AC-16.1 downloadImportTemplate: xlsx with Instructions, data sheets an
     const s = setup();
     await expectErr(s.run((svc, ctx) => svc.downloadTemplate(ctx, '../../etc/passwd')), 'common.validation_failed');
     noWrites(s);
+  }, T);
+});
+
+describe('02-TRD §5.2 access log: #96 / #101 write one data.export entry, #97–#100 and #103 none', () => {
+  it('#96 downloadTemplate: exactly one entry {data.export, catalog_file, detail.kind, allowed}', async () => {
+    const s = setup();
+    await s.run((svc, ctx) => svc.downloadTemplate(ctx, 'price_list'));
+    expect(s.accessLog).toHaveLength(1);
+    expect(s.accessLog[0]).toMatchObject({ action: 'data.export', entityType: 'catalog_file', detail: { kind: 'price_list' }, outcome: 'allowed' });
+  }, T);
+
+  it('#101 downloadImportReport: exactly one entry {data.export, catalog_file, entityId = report_file_id, allowed}', async () => {
+    const s = setup();
+    const rep = s.db.seed.file(TENANT_A, { purpose: 'import_report', file_name: 'import-report.xlsx', content: fakeXlsx('rep') });
+    const imp = s.db.seed.import(TENANT_A, { kind: 'catalog_master', status: 'invalid', report_file_id: rep.id });
+    await s.run((svc, ctx) => svc.downloadImportReport(ctx, imp.id));
+    expect(s.accessLog).toHaveLength(1);
+    expect(s.accessLog[0]).toMatchObject({ action: 'data.export', entityType: 'catalog_file', entityId: rep.id, outcome: 'allowed' });
+  }, T);
+
+  it('report not ready (409) or permission denied: no "allowed" entry', async () => {
+    const s = setup();
+    const imp = s.db.seed.import(TENANT_A, { kind: 'catalog_master', status: 'validating', report_file_id: null });
+    await errOf(s.run((svc, ctx) => svc.downloadImportReport(ctx, imp.id)));
+    const d = setup({ grants: [] });
+    await errOf(d.run((svc, ctx) => svc.downloadTemplate(ctx, 'price_list')));
+    expect([...s.accessLog, ...d.accessLog].filter((e) => e.outcome === 'allowed')).toEqual([]);
+  }, T);
+
+  it('#97 createImport, #98 list, #99 get, #100 issues, #103 discard write no access-log entry', async () => {
+    const s = setup();
+    const r = await up(s);
+    await s.run((svc, ctx) => svc.listImports(ctx, {}));
+    await s.run((svc, ctx) => svc.getImport(ctx, r.body.id));
+    await s.run((svc, ctx) => svc.listImportIssues(ctx, r.body.id, {}));
+    const imp = s.db.seed.import(TENANT_A, { kind: 'catalog_master', status: 'validated' });
+    await s.run((svc, ctx) => svc.discardImport(ctx, imp.id));
+    expect(s.accessLog).toEqual([]);
   }, T);
 });

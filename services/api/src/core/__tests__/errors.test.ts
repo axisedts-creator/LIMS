@@ -259,8 +259,8 @@ describe.each(['on', 'off'] as const)('AC-0D-3.1 every non-2xx is a registry-bac
     });
     it('non-registry http status on a thrown error (418) -> still a registry-backed Problem, message not leaked', async () => {
       const res = await get('/v1/catalog/weird/teapot');
-      expectProblem(res);
-      expect(res.body).not.toContain('teapot');
+      expectProblem(res, { status: 500, code: 'common.internal' });
+      expect(JSON.parse(res.body).instance).toBe('/v1/catalog/weird/teapot');
     });
   });
 

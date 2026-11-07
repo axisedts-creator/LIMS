@@ -34,7 +34,7 @@ export async function insert(tx: Tx, table: Table, rows: readonly Record<string,
 
 /** UPDATE … WHERE tenant_id AND id [AND version]; returns the updated row or undefined. */
 export async function update(
-  tx: Tx, table: 'orderables' | 'tests', cols: readonly string[],
+  tx: Tx, table: 'orderables' | 'tests' | 'analytes' | 'analyte_versions', cols: readonly string[],
   k: { tenantId: string; id: string; actorId: string; expectedVersion?: number }, patch: Record<string, unknown>,
 ): Promise<any> {
   const values: unknown[] = [k.tenantId, k.id, k.actorId];

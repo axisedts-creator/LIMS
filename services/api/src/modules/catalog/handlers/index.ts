@@ -3,6 +3,7 @@
 // them from __tests__/probes/pending.json (CR-C3-008; the list must be empty at M6).
 import { LimsError } from '../../../core/errors.js';
 import type { Handler } from '../../../core/module.js';
+import { analyteVersionsHandlers } from './analyteVersions.handlers.js';
 import { importsHandlers } from './imports.handlers.js';
 import { mastersHandlers } from './masters.handlers.js';
 import { testsHandlers } from './tests.handlers.js';
@@ -19,13 +20,7 @@ export const handlers: Readonly<Record<string, Handler>> = Object.freeze({
   ...mastersHandlers, // T-04: #5–#16; T-05: #17–#22 (units, value sets); T-13: #57–#59 (comment codes)
   ...testsHandlers, // T-06: #2, #23–#27
   setTestTatTargets: notImplemented,
-  createAnalyte: notImplemented,
-  getAnalyte: notImplemented,
-  updateAnalyte: notImplemented,
-  createAnalyteVersionDraft: notImplemented,
-  updateAnalyteVersionDraft: notImplemented,
-  publishAnalyteVersion: notImplemented,
-  discardAnalyteVersionDraft: notImplemented,
+  ...analyteVersionsHandlers, // T-07: #29–#35
   validateFormula: notImplemented,
   listReferenceRangeSets: notImplemented,
   createReferenceRangeSetDraft: notImplemented,

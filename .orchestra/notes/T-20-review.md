@@ -1,7 +1,8 @@
-CHANGES
-Scope: C3 T-20 (Import API #96–#101, #103), diff 356e46c..HEAD. Verify run: 158/158 pass. Names, columns (05-SCHEMA catalog.files/imports/import_issues), error codes, dedupe key/status set, TTL+retention, job `catalog.import_validate` with job_key = import id, 2-active limit, P-10 per-kind asserts, If-Match on #103: match spec.
-
-1. `infra/monitoring/rules/tests/instruments.test.yml` (whole file, commit 88768d5) — path is owned by C1 (spec/program/01-CHUNK-MAP.md:59 `infra/`), not C3; the ruling (.orchestra/notes/T-20-ruling.md) said route it to the C1 lane's tester. Fix: remove this file from lane/C3b (`git rm infra/monitoring/rules/tests/instruments.test.yml`) and hand it to the C1 lane.
-2. `services/api/src/modules/catalog/service/imports.service.ts:104-110` (#96 downloadTemplate) — missing access-log call required by 02-TRD §5.2 access-log table (02-TRD.md:361). Fix: after the permission assert and template build, `await ctx.audit.access({ action: 'data.export', entityType: 'catalog_file', detail: { kind }, outcome: 'allowed' })` (pattern: modules/reporting/service/outsourced.service.ts:185; add `audit` to ImportsCtx and pass it through in imports.handlers.ts `bind`).
-3. `services/api/src/modules/catalog/service/imports.service.ts:220-228` (#101 downloadImportReport) — missing access-log call required by 02-TRD.md:362. Fix: before returning bytes, `await ctx.audit.access({ action: 'data.export', entityType: 'catalog_file', entityId: row.report_file_id, outcome: 'allowed' })`.
-4. Tests (`__tests__/integration/imports.test.ts`) — no assertion on the #96/#101 access-log calls (02-TRD.md:366 "Each call carries outcome"). Fix (tester): add a fake `ctx.audit.access` and assert exactly one call per #96/#101 with the action/entityType/entityId above, and none for #97–#100, #103.
+APPROVE
+Scope: C3 T-20 re-review (Import API #96–#101, #103), diff 356e46c..HEAD. Verify run: 162/162 pass (imports.test.ts + imports.probes.test.ts).
+Prior CHANGES resolved:
+1. `infra/monitoring/rules/tests/instruments.test.yml` no longer in the lane diff; only owned C3 paths + .orchestra notes changed.
+2. #96 downloadTemplate writes access log `data.export` / `catalog_file` / detail.kind / outcome allowed (imports.service.ts accessLog).
+3. #101 downloadImportReport writes access log with entityId = report_file_id, only after the file is found.
+4. Tests assert exactly one entry for #96 and #101, none on denied paths, none for #97–#100 and #103 (imports.test.ts:700-734).
+Names, tenant binding on every statement, advisory-lock dedupe + 2-active limit, same-tx enqueue, P-10 per-kind asserts, 413/415/429: unchanged from the earlier review and still match the spec.

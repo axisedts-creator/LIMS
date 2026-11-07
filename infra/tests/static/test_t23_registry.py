@@ -579,6 +579,62 @@ class PushShTest(unittest.TestCase):
         self.assertNotEqual(r.returncode, 0, "mirror whose digest changed must not be accepted")
 
 
+# ============================================================ registry GC retention (rendered script, fake docker)
+class RegistryGcPinnedTest(unittest.TestCase):
+    """Review T-23 #1: retention must never delete a tag whose digest is pinned in a releases/*.lock.yaml
+    (02-TRD s12.3 step 1, AC-20.3 rollback). CONTRACT: the GC template (templates/*gc*.j2) takes the list var
+    `registry_pinned_digests` and keeps pinned tags; the keep-N count applies to unpinned tags only."""
+
+    N = 25
+
+    def setUp(self):
+        self.tmp = Path(tempfile.mkdtemp(prefix="t23gc"))
+        self.addCleanup(shutil.rmtree, self.tmp, True)
+        self.bin = self.tmp / "bin"
+        self.bin.mkdir()
+        (self.bin / "docker").write_text("#!/usr/bin/env bash\necho \"$*\" >> \"$FAKE_LOG\"\nexit 0\n", encoding="utf-8", newline="\n")
+        self.log = self.tmp / "docker.log"
+        self.store = self.tmp / "store"
+        self.tags = self.store / "docker/registry/v2/repositories/lims/api/_manifests/tags"
+        for i in range(self.N):  # t00 oldest ... t24 newest
+            d = self.tags / ("t%02d" % i) / "current"
+            d.mkdir(parents=True)
+            digest = dg("f") if i == 0 else "sha256:%064x" % i  # t00 = pinned digest, others unique
+            (d / "link").write_text(digest, encoding="utf-8", newline="")
+            os.utime(self.tags / ("t%02d" % i), (1_700_000_000 + i * 100,) * 2)
+
+    def run_gc(self, pinned):
+        tpls = sorted((ROLE / "templates").glob("*gc*.j2")) if (ROLE / "templates").exists() else []
+        self.assertTrue(tpls, "no GC template (templates/*gc*.j2) in roles/registry")
+        ctx = _ctx(_defaults())
+        ctx.update(registry_storage=self.store.as_posix(), registry_etc=(self.tmp / "etc").as_posix(),
+                   registry_keep_releases=20, registry_pinned_digests=pinned)
+        script = self.tmp / "gc.sh"
+        script.write_text(_render_str(tpls[0].read_text(encoding="utf-8"), ctx), encoding="utf-8", newline="\n")
+        env = dict(os.environ, FAKE_LOG=self.log.as_posix(), PATH=self.bin.as_posix() + os.pathsep + os.environ.get("PATH", ""))
+        return subprocess.run([_bash(), script.as_posix()], env=env, capture_output=True, text=True, timeout=60)
+
+    def left(self):
+        return sorted(p.name for p in self.tags.iterdir())
+
+    def test_pinned_old_tag_survives_and_20_unpinned_remain(self):
+        pinned = dg("f")  # t00 is the oldest tag and pinned by a lock file
+        r = self.run_gc([pinned])
+        self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
+        left = self.left()
+        self.assertIn("t00", left, "pinned digest's tag was deleted by retention: %s" % left)
+        self.assertEqual(left, ["t00"] + ["t%02d" % i for i in range(5, self.N)], "20 newest unpinned + the pinned one must remain")
+
+    def test_no_pins_keeps_newest_20(self):
+        r = self.run_gc([])
+        self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
+        self.assertEqual(self.left(), ["t%02d" % i for i in range(5, self.N)])
+
+    def test_gc_still_runs_garbage_collect(self):
+        self.run_gc([dg("f")])
+        self.assertIn("garbage-collect", self.log.read_text(encoding="utf-8") if self.log.exists() else "")
+
+
 # ============================================================ egress probe script (faked nc)
 FAKE_NC = r"""#!/usr/bin/env bash
 # nc -z -w 3 HOST PORT ; succeeds when "HOST:PORT" (or "*") is in $FAKE_REACH

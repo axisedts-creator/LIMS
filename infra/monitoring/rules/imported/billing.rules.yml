@@ -1,0 +1,48 @@
+---
+# yamllint disable rule:line-length
+# Imported from C4
+#   services/worker/src/jobs/billing/alerts/*.yaml
+# (C4 02-TRD "Alert rules for C1").
+# expr/for verbatim; C1 adds only severity, team, runbook_url (s11.3).
+# The source file is not in this lane yet: transcribed from the TRD
+# table; ci/import-rules.sh overwrites it, alert-import-drift checks.
+groups:
+  - name: billing
+    rules:
+      - alert: BillingIntegrityViolation
+        expr: >-
+          increase(lims_billing_integrity_violations_total[1d]) > 0
+        for: 0m
+        labels:
+          severity: page
+          team: ops
+        annotations:
+          summary: >-
+            A billing integrity violation was recorded in the last day.
+          runbook_url: >-
+            infra/runbooks/billing.md#billingintegrityviolation
+      - alert: BillingCounterBusy
+        expr: >-
+          increase(lims_billing_counter_busy_total[5m]) > 5
+        for: 0m
+        labels:
+          severity: warn
+          team: ops
+        annotations:
+          summary: >-
+            Invoice number counter busy more than 5 times in 5 min.
+          runbook_url: >-
+            infra/runbooks/billing.md#billingcounterbusy
+      - alert: BillingNumberingPatternInvalid
+        expr: >-
+          increase(lims_billing_numbering_pattern_invalid_total[15m]) > 0
+        for: 0m
+        labels:
+          severity: warn
+          team: ops
+        annotations:
+          summary: >-
+            A tenant's invoice numbering pattern was rejected as invalid in
+            the last 15 min.
+          runbook_url: >-
+            infra/runbooks/billing.md#billingnumberingpatterninvalid

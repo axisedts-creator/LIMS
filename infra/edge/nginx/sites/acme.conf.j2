@@ -1,0 +1,15 @@
+# :80 (02-TRD s6.2, AC-02.4): ACME HTTP-01 webroot, everything else 301 to HTTPS.
+# Unknown hosts hit the default_server in nginx.conf (444).
+server {
+    listen 80;
+    server_name {{ origins.staff_web }} {{ origins.portal }} {{ origins.api }}{% if partner_enabled %} {{ origins.partner }}{% endif %};
+
+    location ^~ /.well-known/acme-challenge/ {
+        root /var/www/acme;
+        default_type text/plain;
+    }
+
+    location / {
+        return 301 https://$host$request_uri;
+    }
+}

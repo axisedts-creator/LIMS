@@ -1,0 +1,11 @@
+# Managed by Ansible (02-TRD s5.2). sshd listens on the wg IP only.
+ListenAddress {{ wg_ip }}
+PasswordAuthentication no
+KbdInteractiveAuthentication no
+PermitRootLogin no
+AllowGroups ops
+MaxAuthTries 3
+LoginGraceTime 20
+X11Forwarding no
+AllowTcpForwarding local
+ClientAliveInterval 300

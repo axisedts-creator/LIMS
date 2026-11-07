@@ -1,0 +1,59 @@
+---
+# 02-TRD s3.2/s3.3: wg0 overlay; ListenPort 51820 (nftables limits it to
+# the peers' public IPs). The private key is generated on the host and
+# never leaves it; peers learn each other's public key from host facts.
+- name: Install wireguard-tools
+  ansible.builtin.apt:
+    name: wireguard-tools
+    state: present
+
+- name: Directory /etc/wireguard
+  ansible.builtin.file:
+    path: /etc/wireguard
+    state: directory
+    owner: root
+    group: root
+    mode: "0700"
+
+- name: Generate the host private key (once)
+  ansible.builtin.shell:
+    cmd: umask 077 && wg genkey > /etc/wireguard/wg0.key
+    creates: /etc/wireguard/wg0.key
+
+- name: Private key mode 0600
+  ansible.builtin.file:
+    path: /etc/wireguard/wg0.key
+    owner: root
+    group: root
+    mode: "0600"
+
+- name: Derive the public key
+  ansible.builtin.shell: |
+    set -o pipefail
+    wg pubkey < /etc/wireguard/wg0.key
+  args:
+    executable: /bin/bash
+  register: wireguard_pubkey
+  changed_when: false
+
+- name: Publish the public key to the other hosts of this run
+  ansible.builtin.set_fact:
+    wireguard_public_key: "{{ wireguard_pubkey.stdout }}"
+
+- name: Interface configuration /etc/wireguard/wg0.conf
+  ansible.builtin.template:
+    src: wg0.conf.j2
+    dest: /etc/wireguard/wg0.conf
+    owner: root
+    group: root
+    mode: "0600"
+  notify: Restart wg-quick@wg0
+
+- name: Wg-quick@wg0 enabled and running
+  ansible.builtin.systemd_service:
+    name: wg-quick@wg0
+    state: started
+    enabled: true
+
+- name: Apply wg0 changes now (later roles need the wg IP)
+  ansible.builtin.meta: flush_handlers

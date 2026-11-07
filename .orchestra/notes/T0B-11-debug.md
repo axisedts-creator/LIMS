@@ -1,0 +1,3 @@
+Cause: fail() called process.exit() immediately; on Windows, when the child is slow/cold, node's pending async work (MODULE_TYPELESS warning on stderr) is still in flight -> libuv assert "!(handle->flags & UV_HANDLE_CLOSING)", exit 0xC0000409 (3221226505) instead of 1. Hit the first spawn in the test file, deterministic there (not reproducible standalone).
+Fix: db/tools/export-tenant-billing.ts fail() is now async: writeSync(2,...), set exitCode, await setImmediate, then process.exit; call sites use `await fail(...)`. No test changed.
+Verified: node --test tests/db/T0B-11.billing-export.test.mjs 19/19 pass, 3 runs in a row. Not verified: live-DB billing_isolatable .sh (needs Postgres).

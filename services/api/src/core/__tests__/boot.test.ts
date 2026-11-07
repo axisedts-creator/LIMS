@@ -12,7 +12,8 @@ beforeEach(() => {
 afterEach(closeAll);
 
 describe('AC-0D-1.1 autoload mounts operations of <m>/index.ts manifests', () => {
-  it('mounts every operation of every module found, with no central list', async () => {
+  // T-01 ruling: first boot gets 30000 ms headroom (default 5000 ms is a harness assumption under parallel load).
+  it('mounts every operation of every module found, with no central list', { timeout: 30000 }, async () => {
     const app = await boot('ok'); // ok/ holds catalog + identity (+ a dir without index.ts that is ignored)
     const list = await app.inject({ method: 'GET', url: '/v1/catalog/things' });
     expect(list.statusCode).toBe(200);
@@ -143,6 +144,7 @@ describe('core sample module (02-TRD §14): mounted only for LIMS_CORE_ENV=ci + 
   });
 
   it('ci + flag: sample module mounts (done_when: sample module mounts)', async () => {
+    // AUTO 2026-11-07 T-01: isolate from real modules (catalog needs JWT config); same as line 53.
     const app = await bootstrap({ config: cfg({ LIMS_CORE_LOAD_SAMPLE_MODULE: '1' }), modulesDir: fixturesShared() + '/does-not-exist' });
     try {
       const r = await app.inject(firstRoute());

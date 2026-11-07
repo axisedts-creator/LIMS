@@ -2,6 +2,8 @@
 import { join } from 'node:path';
 import { loadSpec, operationIds, REPO_ROOT, type Handler, type ModuleManifest } from '../../core/module.js';
 import { loadReportingConfig } from './config.js';
+import { narrativeImageHandlers } from './handlers/narrative-image.handlers.js';
+import { outsourcedHandlers } from './handlers/outsourced.handlers.js';
 import { settingsHandlers } from './handlers/settings.handlers.js';
 import { REPORTING_SYSTEM_PERMISSIONS } from './permissions.js';
 
@@ -12,12 +14,13 @@ export const config = loadReportingConfig(process.env);
 const notImplemented: Handler = async () => ({ status: 501 });
 
 const OPENAPI = 'contracts/openapi/reporting.yaml';
+const implemented: Readonly<Record<string, Handler>> = { ...settingsHandlers, ...outsourcedHandlers, ...narrativeImageHandlers };
 
 export const manifest: ModuleManifest = Object.freeze({
   name: 'reporting',
   openapi: OPENAPI,
   handlers: Object.freeze(Object.fromEntries(operationIds(loadSpec(join(REPO_ROOT, OPENAPI)))
-    .map((op) => [op, Object.hasOwn(settingsHandlers, op) ? settingsHandlers[op]! : notImplemented]))),
+    .map((op) => [op, Object.hasOwn(implemented, op) ? implemented[op]! : notImplemented]))),
   produces: Object.freeze(['reporting.report.released.v1', 'reporting.delivery.status_changed.v1']),
   systemPermissions: REPORTING_SYSTEM_PERMISSIONS,
   authResolvers: Object.freeze({

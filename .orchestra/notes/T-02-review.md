@@ -1,7 +1,8 @@
 APPROVE
 
-Re-review (round 2) of `e51b650..HEAD`, fixes in 2db6028 + 92c6e4a.
-- Fix 1 resolved: specimen.state.ts checks the table first (`lab.specimen_invalid_transition`), then inactive non-S13/S14 → `lab.specimen_inactive` (409, contracts/errors.yaml:124, CR-C5-005). Tests: S2/S4/S11 inactive → specimen_inactive 409; illegal pair inactive stays invalid_transition.
-- Fix 2 resolved: result.state.ts R6 fails closed when `verifiedBy`/`approvedBy` is missing or the two are equal → `lab.self_approval_forbidden` (403, errors.yaml:116). Tests cover missing/empty/equal; the allowed-table and exhaustive sweeps pass distinct ids.
-- Verified: `vitest run src/modules/lab/domain/__tests__` → 3 files, 100/100 pass; `tsc --noEmit` → 0 errors.
-- Diff touches only owned paths (services/api/src/modules/lab/domain/**) and T-02 notes. Pure domain: no DB, no logs, no PHI, no secrets. RLS, permissions, idempotency and rate tier do not apply (no routes or tables).
+T-02 review (C3 reviewer), diff 7213083..bee3f0c.
+- Names verbatim: statuses match 03-APP-FLOW §2.1/§2.2 and V1–V6; all ten code regexes match 02-TRD §5.1 (master, orderable, analyte, value set/value, comment, doctor, party, price list, tax type); error codes `catalog.version_in_use`, `common.version_conflict`, `catalog.import_not_committable`, `common.validation_failed`/`common.field_invalid` exist in contracts/errors.yaml and match 02-TRD §5.2 error columns (#33–#35, #41–#43, #80–#81, #103).
+- Transitions: V6 only for range/critical sets; import table = §2.2 diagram exactly; final-failure mapping = 02-TRD §10 (scan_unavailable -> quarantined, committing -> commit_failed, else failed); commit guard consistent with cron `expires_at < now`.
+- V4 window: tolerance 300 s (AC-03.3, path `/effective_from`), > sibling effective_from, ≥ retired sibling effective_to. Matches §2.1.
+- Pure domain: no DB/RLS/permissions/logging/secrets in scope; only C3-owned paths + role notes touched.
+- Tests: `vitest run src/modules/catalog/domain/__tests__` re-run by reviewer: 3 files, 763/763 pass. Exhaustive allowed+forbidden matrices cover the transition tables; branch coverage not instrument-measured (no coverage plugin) — accepted, noted by writer/tester.

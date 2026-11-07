@@ -1,11 +1,11 @@
-<# LIMS build queue: runs every chunk in wave order with no manual input.
+﻿<# LIMS build queue: runs every chunk in wave order with no manual input.
    Start once (from C:\LIMS):  powershell -ExecutionPolicy Bypass -File .orchestra\queue.ps1 -NoPush
    - Keeps at most $MaxLanes lane windows open at once (each lane = own git worktree + branch, so no collisions).
    - Starts a queued lane when its "after" chunks are finished (every task done or blocked) and a slot is free.
    - Every 10 minutes: re-checks, restarts any lane window that died, starts the next lanes.
    - Re-running it after a reboot is safe: finished chunks are skipped, unfinished ones resume. #>
 param([string]$Integration = "C:\LIMS", [string]$LanesRoot = "C:\LIMS-lanes", [string]$StateDir = "C:\LIMS-state",
-      [int]$MaxLanes = 6, [int]$EveryMinutes = 10, [switch]$NoPush)
+      [int]$MaxLanes = 8, [int]$EveryMinutes = 3, [switch]$NoPush)
 
 $C0 = "C0-foundation-contracts"
 # order = priority. after = chunks that must be finished first (spec/program/01-CHUNK-MAP.md §1).
@@ -70,6 +70,22 @@ while ($true) {
     if ($NoPush) { $plist += "-NoPush" }
     $procs[$l.name] = Start-Process powershell -ArgumentList $plist -PassThru
     Q "started lane $($l.name) ($($l.chunk))"
+    Start-Sleep -Seconds 20
+  }
+  # 2b. plan ahead: chunks still waiting on dependencies get their task list now (planner only, cheap model), so they start instantly later
+  foreach ($l in $Queue) {
+    if ($procs.Count -ge $MaxLanes) { break }
+    if (Test-Path (Join-Path $StateDir "tasks\$($l.chunk).json")) { continue }
+    $pk = "plan-$($l.chunk)"
+    if ($procs.ContainsKey($pk) -or @($procs.Keys | Where-Object { $_ -like 'plan-*' }).Count -ge 2) { continue }   # max 2 planners at once
+    if (@($Queue | Where-Object { $_.chunk -eq $l.chunk -and $procs.ContainsKey($_.name) }).Count) { continue }   # lane already running will plan it
+    $wt = Join-Path $LanesRoot $l.name; $br = "lane/$($l.name)"
+    if (-not (Test-Path $wt)) {
+      if (git branch --list $br) { git worktree add $wt $br 2>&1 | Out-Null } else { git worktree add $wt -b $br main 2>&1 | Out-Null }
+    }
+    $plist = @("-ExecutionPolicy","Bypass","-File","`"$Integration\.orchestra\run.ps1`"","-Chunk",$l.chunk,"-WorkDir","`"$wt`"","-StateDir","`"$StateDir`"","-PlanOnly","-NoPush")
+    $procs[$pk] = Start-Process powershell -ArgumentList $plist -PassThru
+    Q "planning ahead: $($l.chunk)"
     Start-Sleep -Seconds 20
   }
   # 3. status line

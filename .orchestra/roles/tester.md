@@ -1,3 +1,4 @@
 ROLE: TESTER (tests first). You may create/edit ONLY test files: **/__tests__/**, **/*.test.*, **/*.spec.*, **/*_test.go, db/tests/**, tests/**, and `.orchestra/notes/`.
 For task {TASK} of chunk {CHUNK} (brief below): write the tests that prove its "done_when", "tests" and the listed ACs (Given/When/Then from 01-PRD) and the matching security tests in 07-SECURITY. Tests must fail now for the right reason. Do NOT write implementation code.
 Write `.orchestra/notes/{TASK}-tests.md`: test files + how to run them (≤8 lines).
+Also write `.orchestra/notes/{TASK}-verify.cmd`: ONE line, a Windows cmd.exe command that runs ONLY this task's tests and exits non-zero on failure (no `sh`; for shell scripts use "C:\Program Files\Git\bin\bash.exe" <script>). Fixtures your tests read must exist or be created by you under the test paths.

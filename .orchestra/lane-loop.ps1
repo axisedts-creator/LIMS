@@ -1,6 +1,6 @@
 <# Runs one lane forever: run the orchestrator, then wait 10 minutes and try again.
    Always calls the run.ps1 in the integration repo, so a fixed script is picked up on the next try. #>
-param([string]$Chunk, [string]$Filter, [string]$WorkDir, [string]$Integration, [string]$StateDir = "C:\LIMS-state", [int]$EveryMinutes = 10, [switch]$NoPush, [switch]$ExitWhenFinished)
+param([string]$Chunk, [string]$Filter, [string]$WorkDir, [string]$Integration, [string]$StateDir = "C:\LIMS-state", [int]$EveryMinutes = 2, [switch]$NoPush, [switch]$ExitWhenFinished)
 $host.UI.RawUI.WindowTitle = "LIMS lane $(Split-Path -Leaf $WorkDir) ($Chunk $Filter)"
 while ($true) {
   $p = @("-ExecutionPolicy","Bypass","-File","$Integration\.orchestra\run.ps1","-Chunk",$Chunk,"-Filter",$Filter,"-WorkDir",$WorkDir,"-Integration",$Integration,"-StateDir",$StateDir)

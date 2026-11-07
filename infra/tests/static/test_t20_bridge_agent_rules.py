@@ -98,11 +98,11 @@ def _lint(tc, rules, label):
         tc.assertEqual(str(a.get("runbook_url", "")).lower(), "infra/runbooks/instruments.md#%s" % name.lower(),
                        "%s %s: runbook_url" % (label, name))
         tc.assertEqual((r.get("labels") or {}).get("team"), "ops", "%s %s: team" % (label, name))
-        blob = json.dumps(r)
-        for lbl in DROP_LABELS:
-            tc.assertNotRegex(blob, r"\b%s\b" % lbl, "%s %s mentions PHI-class label %s" % (label, name, lbl))
-        # annotation templates may use only opaque ids (AC-25.2: tenant_id, centre_id, agent_id only)
-        for k, v in a.items():
+        # T-20 ruling (2026-11-08): check label KEYS and template uses, not a substring over the blob
+        # (receiver name `oncall-email` is spec-mandated routing, not a PHI label).
+        tc.assertEqual(set(r.get("labels") or {}) & set(DROP_LABELS), set(), "%s %s: PHI-class label key" % (label, name))
+        # expr and annotation templates may use only opaque ids (AC-25.2: tenant_id, centre_id, agent_id only)
+        for k, v in list(a.items()) + [("expr", r["expr"])]:
             for used in re.findall(r"\$labels\.(\w+)|\.Labels\.(\w+)", str(v)):
                 used = used[0] or used[1]
                 tc.assertIn(used, TENANT_OK_LABELS | {"alertname", "severity", "team"}, "%s %s: annotation %s uses label %s" % (label, name, k, used))
@@ -292,7 +292,7 @@ class PromtoolTestFileTest(unittest.TestCase):
         blob = PTEST.read_text(encoding="utf-8")
         self.assertNotRegex(blob, r"[A-Za-z0-9._%+-]+@[A-Za-z0-9-]+\.[A-Za-z]{2,}")
         for lbl in DROP_LABELS:
-            self.assertNotRegex(blob, r"\b%s\b" % lbl)
+            self.assertNotRegex(blob, r"[{,\s]%s\s*[=:]" % lbl)  # label key only; ruling 2026-11-08
 
     def test_runs_unmodified_rule_names(self):
         known = set(self.rules)

@@ -10,6 +10,19 @@ export async function valueSetOrdered(tx: Tx, tenantId: string, code: string): P
   return global.rows[0] ? global.rows[0].is_ordered === true : undefined;
 }
 
+/** Active value codes of a value set visible to the tenant (own cs_ set first, else the global one); undefined when the set does not exist (T-08 ordinal codes). */
+export async function valueSetCodes(tx: Tx, tenantId: string, code: string): Promise<Set<string> | undefined> {
+  const own = await tx.query('SELECT id FROM catalog.cs_value_sets WHERE tenant_id = $1 AND code = $2 AND is_active = $3', [tenantId, code, true]);
+  if (own.rows[0]) {
+    const v = await tx.query('SELECT code FROM catalog.cs_value_set_values WHERE tenant_id = $1 AND value_set_id = $2 AND is_active = $3', [tenantId, own.rows[0].id, true]);
+    return new Set(v.rows.map((r) => r.code as string));
+  }
+  const global = await tx.query('SELECT code FROM catalog.g_value_sets WHERE code = $1 AND is_active = $2', [code, true]);
+  if (!global.rows[0]) return undefined;
+  const v = await tx.query('SELECT code FROM catalog.g_value_set_values WHERE value_set_code = $1 AND is_active = $2', [code, true]);
+  return new Set(v.rows.map((r) => r.code as string));
+}
+
 /** result_type of the published version of each given analyte (AC-02.3). */
 export async function publishedResultTypes(tx: Tx, tenantId: string, analyteIds: readonly string[]): Promise<any[]> {
   if (!analyteIds.length) return [];

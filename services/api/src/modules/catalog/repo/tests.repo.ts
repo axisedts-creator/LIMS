@@ -2,7 +2,11 @@
 // Every value is a bind parameter; table, column and ORDER BY text come only from fixed constants in service/tests.service.ts.
 // One table per statement; every statement carries an explicit `tenant_id = $1` predicate on top of RLS (07-SECURITY S-1).
 interface Tx { query(text: string, values?: unknown[]): Promise<{ rows: any[] }> }
-export type Table = 'orderables' | 'tests' | 'panels' | 'panel_members' | 'test_specimen_types' | 'analytes' | 'analyte_versions' | 'departments' | 'specimen_types' | 'containers';
+export type RangeSetTable = 'reference_range_sets' | 'critical_limit_sets';
+export type RangeBandTable = 'reference_ranges' | 'critical_limits';
+export type Table = 'orderables' | 'tests' | 'panels' | 'panel_members' | 'test_specimen_types' | 'analytes' | 'analyte_versions' | 'departments' | 'specimen_types' | 'containers'
+  | RangeSetTable | RangeBandTable   // T-08
+  | 'formula_dependencies';          // T-09 (insert only)
 
 export interface FindOpts {
   ids?: readonly string[];                          // id = ANY(...)
@@ -36,7 +40,7 @@ export async function insert(tx: Tx, table: Table, rows: readonly Record<string,
 
 /** UPDATE … WHERE tenant_id AND id [AND version]; returns the updated row or undefined. */
 export async function update(
-  tx: Tx, table: 'orderables' | 'tests' | 'panels' | 'analytes' | 'analyte_versions', cols: readonly string[],
+  tx: Tx, table: 'orderables' | 'tests' | 'panels' | 'analytes' | 'analyte_versions' | RangeSetTable, cols: readonly string[],
   k: { tenantId: string; id: string; actorId: string; expectedVersion?: number }, patch: Record<string, unknown>,
 ): Promise<any> {
   const values: unknown[] = [k.tenantId, k.id, k.actorId];
@@ -50,6 +54,11 @@ export async function update(
 
 export async function deleteSpecimens(tx: Tx, tenantId: string, testId: string): Promise<void> {
   await tx.query('DELETE FROM catalog.test_specimen_types WHERE tenant_id = $1 AND test_id = $2', [tenantId, testId]);
+}
+
+/** Draft replace-all (T-08): the band tables are children of a draft set; the DB trigger refuses this on a non-draft parent. */
+export async function deleteBands(tx: Tx, table: RangeBandTable, tenantId: string, setId: string): Promise<void> {
+  await tx.query(`DELETE FROM catalog.${table} WHERE tenant_id = $1 AND set_id = $2`, [tenantId, setId]);
 }
 
 export async function deleteMembers(tx: Tx, tenantId: string, panelId: string): Promise<void> {

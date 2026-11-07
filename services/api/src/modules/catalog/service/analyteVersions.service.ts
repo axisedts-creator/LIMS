@@ -9,6 +9,7 @@ import { LimsError, type FieldError } from '../../../core/errors.js';
 import * as arepo from '../repo/analytes.repo.js';
 import * as repo from '../repo/tests.repo.js';
 import { BOOL, checkFields, checkUpdate, fail, invalid, isObj, required, str, UUID, type Field } from './masters.service.js';
+import { createRangesService } from './ranges.service.js';
 import { createRevisionService } from './revision.service.js';
 
 interface Tx { query(text: string, values?: unknown[]): Promise<{ rows: any[] }> }
@@ -41,6 +42,13 @@ const iso = (v: unknown) => (v instanceof Date ? v : new Date(String(v))).toISOS
 /** A UTC-ms ISO string that round-trips (rejects 2026-13-01 and other overflowing dates). */
 const isIso = (v: unknown): v is string => typeof v === 'string' && ISO_UTC.test(v) && !Number.isNaN(Date.parse(v)) && new Date(v).toISOString() === v;
 
+/**
+ * Analyte codes a formula reads (TRD §7.1 grammar): identifiers that are not function names (followed by `(`), `@variables`, string literals or number parts.
+ * ponytail: lexical scan, not the T-11 parser; same result for every valid formula, upgrade when formula.ts lands.
+ */
+const formulaRefs = (expr: unknown): string[] =>
+  typeof expr !== 'string' ? [] : [...new Set(expr.replace(/"[^"]*"/g, ' ').match(/(?<![\w.@])[A-Za-z_]\w*(?!\w*\s*\()/g) ?? [])];
+
 /** 23505 -> code clash (analytes) or a lost draft/numbering race (versions); 23503 -> not found in this tenant (S-1); P0001 -> immutable row (AB-9 DB backstop). */
 const pgCode = (e: unknown) => (e as { code?: unknown })?.code;
 const pgConstraint = (e: unknown) => String((e as { constraint?: unknown })?.constraint ?? '');
@@ -69,6 +77,7 @@ async function clinicalErrors(tx: Tx, tenantId: string, v: Record<string, any>, 
 
 export function createAnalyteVersionsService(deps: Deps) {
   const revision = createRevisionService(deps);
+  const ranges = createRangesService(deps);
   const nowIso = (ctx: Ctx) => ctx.now?.() ?? new Date().toISOString();
   const bump = (ctx: Ctx, analyte: { id: string; test_id: string }, changeKind: string, effectiveFrom = nowIso(ctx)) =>
     revision.bumpRevision(ctx, { entityType: 'analyte', entityId: analyte.id, changeKind, effectiveFrom, stampOrderableId: analyte.test_id });
@@ -136,6 +145,15 @@ export function createAnalyteVersionsService(deps: Deps) {
     if (v['value_set_code'] !== undefined && !VALUE_SET_RE.test(v['value_set_code'] as string)) errors.push(invalid(`${prefix}/value_set_code`));
     if (errors.length) fail(errors);
     return v;
+  }
+
+  /** One formula_dependencies edge per DISTINCT analyte the draft's formula reads (codes resolved tenant-wide; unknown codes are T-11's validation error, not an edge). */
+  async function writeFormulaEdges(ctx: Ctx, analyteId: string, draft: Record<string, any>) {
+    const codes = formulaRefs(draft['formula_expression']);
+    if (!codes.length) return;
+    const found = await repo.find(ctx.tx as Tx, 'analytes', ['id'], ctx.tenantId, {}, { anyOf: { col: 'code', values: codes } });
+    const inputs = [...new Set(found.map((r) => r.id as string))].filter((x) => x !== analyteId);
+    await repo.insert(ctx.tx as Tx, 'formula_dependencies', inputs.map((input) => ({ tenant_id: ctx.tenantId, analyte_version_id: draft['id'], analyte_id: analyteId, input_analyte_id: input, created_by: ctx.actor.id })), ['created_at']);
   }
 
   return {
@@ -253,7 +271,7 @@ export function createAnalyteVersionsService(deps: Deps) {
       if (pred && Date.parse(effective) <= +new Date(pred.effective_from)) fail([invalid('/effective_from')]);
       const vErrors = await clinicalErrors(tx, t, draft, '');
       if (vErrors.length) fail(vErrors);
-      // AC-03.5: a unit/method change needs a range set (attached by T-08/T-09) or an explicit waiver. ponytail: the set ids are only format-checked here.
+      // AC-03.5: a unit/method change needs a reference-range set (published with the bundle below) or an explicit waiver.
       if (pred && b['reference_range_set_id'] === undefined && b['allow_without_ranges'] !== true
         && ((pred.unit_code ?? null) !== (draft.unit_code ?? null) || (pred.method_id ?? null) !== (draft.method_id ?? null))) fail([invalid('/reference_range_set_id')]);
       // AC-02.3: at most one active reportable narrative analyte on narrative-type workflows (other analytes only).
@@ -265,11 +283,16 @@ export function createAnalyteVersionsService(deps: Deps) {
         }
       }
 
+      await writeFormulaEdges(ctx, owner.id, draft);                    // TRD §7.2 step 6: BEFORE the status UPDATE (tg_parent_is_draft)
       if (pred) await updateVersion(ctx, pred.id, Number(pred.version), { status: 'superseded', effective_to: new Date(effective) });
       const published = await updateVersion(ctx, id, ev, {
         status: 'published', effective_from: new Date(effective), published_at: new Date(now), published_by: ctx.actor.id, change_reason: b['change_reason'],
       });
       await bump(ctx, owner, 'versioned', effective);
+      // T-09 bundle: the sets are published after the version (their T-08 rules compare with it), in the same transaction; one event each.
+      const member = { analyteId: owner.id, unit_code: draft.unit_code, method_id: draft.method_id, effective, now, reason: b['change_reason'] as string, testId: owner.test_id };
+      if (b['reference_range_set_id'] !== undefined) await ranges.publishReferenceRangeSetInBundle(ctx, b['reference_range_set_id'] as string, { ...member, path: '/reference_range_set_id' });
+      if (b['critical_limit_set_id'] !== undefined) await ranges.publishCriticalLimitSetInBundle(ctx, b['critical_limit_set_id'] as string, { ...member, path: '/critical_limit_set_id' });
       return versionDto(published);
     },
 

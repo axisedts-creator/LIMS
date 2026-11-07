@@ -463,6 +463,19 @@ describe('provisionPartnerMembership / updatePartnerMembership (D-100)', () => {
     await s.port.updatePartnerMembership(asUser('admin'), { membershipId: mid(4), action: 'deactivate' });
     expect(s.calls['lockMembership']).toBeGreaterThanOrEqual(1);
   });
+  // T5 review item 3: memberships__deactivation_reason__ck allows only these four; anything else must be a validation error, not a raw PG 23514.
+  it('deactivate: reasonCode outside the DB CHECK set -> common.validation_failed and NO write; each allowed code accepted', async () => {
+    const s = setup();
+    const ctx = asUser('admin');
+    for (const bad of ['fired', 'x', 'Other', 'left organisation']) {
+      expect(await code(s.port.updatePartnerMembership(ctx, { membershipId: mid(4), action: 'deactivate', reasonCode: bad as any })), bad).toBe('common.validation_failed');
+    }
+    expect(s.calls['applyPartnerAction'] ?? 0).toBe(0);
+    for (const ok of ['left_organisation', 'security_concern', 'policy_violation', 'other']) {
+      const s2 = setup();
+      await expect(s2.port.updatePartnerMembership(asUser('admin'), { membershipId: mid(4), action: 'deactivate', reasonCode: ok as any }), ok).resolves.toBeDefined();
+    }
+  });
 });
 
 describe('patient methods: caller restriction (blocked paths stay fail-closed until C2 T1, 08 A25 D-218)', () => {
@@ -480,6 +493,25 @@ describe('patient methods: caller restriction (blocked paths stay fail-closed un
     s.st.claims.set(ctx.actor.id, { aal: 'aal1', membership_id: mid(20), session_state: 'active' });
     await expect(s.port.revokePatientSessions(ctx, { membershipId: mid(20) as any, reason: 'logout', deactivateMembership: false })).resolves.toEqual({ revokedSessions: 1 });
     expect(await code(s.port.revokePatientSessions(ctx, { membershipId: mid(21) as any, reason: 'logout', deactivateMembership: false }))).toBe('auth.forbidden');
+  });
+  // T5 review item 2: sessions__revoke_reason__ck allows only these 13 reasons; anything else must be a validation error, not a raw PG 23514.
+  it('revokePatientSessions: reason outside the DB CHECK set -> common.validation_failed and NO revoke; each allowed reason accepted', async () => {
+    const allowed = ['logout', 'admin_revoke', 'self_revoke', 'password_change', 'role_change', 'lock', 'deactivate', 'tenant_suspended', 'mfa_failed', 'mfa_reset', 'refresh_failed', 'superseded', 'token_reuse'];
+    const mk = () => {
+      const s = setup({ members: [member('A', 'pt', 20, { actorType: 'patient', roleCodes: [] })] });
+      const ctx = makeCtx('A', 'patient', 'pt');
+      s.st.claims.set(ctx.actor.id, { aal: 'aal1', membership_id: mid(20), session_state: 'active' });
+      return { s, ctx };
+    };
+    const { s, ctx } = mk();
+    for (const bad of ['not_a_reason', 'x', 'LOGOUT', 'because']) {
+      expect(await code(s.port.revokePatientSessions(ctx, { membershipId: mid(20) as any, reason: bad as any, deactivateMembership: false })), bad).toBe('common.validation_failed');
+    }
+    expect(s.calls['revokeSessions'] ?? 0).toBe(0);
+    for (const ok of allowed) {
+      const m = mk();
+      await expect(m.s.port.revokePatientSessions(m.ctx, { membershipId: mid(20) as any, reason: ok as any, deactivateMembership: false }), ok).resolves.toEqual({ revokedSessions: 1 });
+    }
   });
 });
 

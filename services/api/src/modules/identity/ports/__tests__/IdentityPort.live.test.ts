@@ -65,6 +65,25 @@ describe.skipIf(!URL_)('IdentityPort over a real DB', () => {
       await asAdmin(`UPDATE core.memberships SET status = 'active', deactivated_at = NULL, deactivated_by = NULL, deactivation_reason_code = NULL WHERE id = $1`, [MEMBERSHIP]);
     }
   });
+  // T5 review item 1: lims_app cannot SELECT identity.platform_staff (only lims_owner has a policy), so the support-session read must depend
+  // only on identity.support_sessions. Run with LIMS_TEST_API_DATABASE_URL = the lims_app URL, otherwise the RLS defect is invisible.
+  it('support actor with an active support session -> allowlist profile, not identity.support_session_required (C2-1, 02-TRD §7.2/§7.4, live RLS)', async () => {
+    const STAFF = '01a1a98a-ac40-7000-8000-00000000a600', SSID = '01a1a98a-ac40-7000-8000-00000000a601';
+    await asAdmin(`INSERT INTO identity.platform_staff (id, user_id, email_normalized, display_name, role_code, created_by, updated_by)
+                   VALUES ($1, $1, 'support.t5@example.test', 'Support T5', 'platform_support', $2, $2) ON CONFLICT (id) DO NOTHING`, [STAFF, SYS]);
+    await asAdmin(`INSERT INTO identity.support_sessions (id, tenant_id, platform_staff_id, scope, reason_text, ticket_ref, duration_minutes, status, started_at, expires_at, created_by, updated_by)
+                   VALUES ($1, $2, $3, 'read_only', 'T5 live support-session test', 'T5-LIVE', 30, 'active', now(), now() + interval '30 minutes', $4, $4)
+                   ON CONFLICT (id) DO UPDATE SET status = 'active', started_at = now(), expires_at = now() + interval '30 minutes', ended_at = NULL, end_reason = NULL`, [SSID, TENANT, STAFF, SYS]);
+    try {
+      const sclaims = { sub: STAFF, tenant_id: TENANT, actor_type: 'user' as const, aal: 'aal2' as const, scope: 'support', support_session_id: SSID, support_scope: 'read_only', platform_staff_id: STAFF };
+      const a: any = await db.requestTx({ requestId: REQ, clientIp: '203.0.113.7', operation: { module: 'identity', operationId: 'T5liveSupport' }, claims: sclaims as any },
+        (tx) => port.getActor({ tenantId: TENANT, actor: { type: 'user', id: STAFF, supportSessionId: SSID }, requestId: REQ, tx, now: () => new Date().toISOString(), ports: {} } as any));
+      expect([...a.permissions].sort()).toEqual(['audit.log.read', 'identity.centre.read', 'identity.user.read']);
+      expect(a.roles).toEqual([]);
+    } finally {
+      await asAdmin(`UPDATE identity.support_sessions SET status = 'ended', ended_at = now(), end_reason = 'ended_by_staff' WHERE id = $1`, [SSID]);
+    }
+  });
   it('bench: memoised assertRole p95 <= 2 ms, privileged re-validation p95 <= 10 ms (200 requests)', async () => {
     const memo: number[] = [], priv: number[] = [];
     for (let i = 0; i < 200; i++) {

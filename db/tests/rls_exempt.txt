@@ -18,3 +18,7 @@ lab.g_cs_rejection_reasons           global coded rejection-reason set; no tenan
 lab.g_cs_return_reasons              global coded return-reason set; no tenant data (CV §5.8)
 lab.g_cs_amendment_reasons           global coded amendment-reason set; no tenant data (CV §5.8)
 lab.g_cs_exception_discard_reasons   global coded exception-discard-reason set; no tenant data (CV §5.8)
+instruments.g_drivers               global driver catalogue; no tenant data (CV §5.8)
+instruments.g_agent_releases        global agent-release catalogue; no tenant data (CV §5.8)
+instruments.g_cs_revoke_reasons     global coded revoke-reason set; no tenant data (CV §5.8)
+instruments.g_cs_reprocess_reasons  global coded reprocess-reason set; no tenant data (CV §5.8)

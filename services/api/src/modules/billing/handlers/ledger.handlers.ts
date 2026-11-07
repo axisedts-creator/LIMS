@@ -12,6 +12,7 @@ import { createCashService } from '../service/cash.service.js';
 import { createCounterService } from '../service/counter.service.js';
 import { createLedgerService } from '../service/ledger.service.js';
 import { createLedgerReadService } from '../service/ledgerRead.service.js';
+import { createRefundService } from '../service/refund.service.js';
 import { ifMatch } from './settings.handlers.js';
 
 function bind(fn: (ctx: BalanceCtx, req: HandlerRequest) => Promise<HandlerResult>): Handler {
@@ -27,7 +28,10 @@ const etagged = (dto: { version: number }): Record<string, string> => ({ etag: `
 let ledger: ReturnType<typeof createLedgerService> | undefined;
 const ledgerService = () => (ledger ??= createLedgerService({ counter: createCounterService() as never, events: createBillingEvents(createEvents({ producer: 'billing' }) as never) }));
 
-export const ledgerHandlers: Readonly<Record<string, Handler>> = Object.freeze({
+let refunds: ReturnType<typeof createRefundService> | undefined;
+const refundService = () => (refunds ??= createRefundService({ events: createBillingEvents(createEvents({ producer: 'billing' }) as never) }));
+
+export const ledgerHandlers:Readonly<Record<string, Handler>> = Object.freeze({
   recordPayment: bind(async (ctx, req) => {
     const key = obj(req.headers)['idempotency-key'];
     if (typeof key !== 'string' || key === '') throw new LimsError('common.idempotency_key_required');
@@ -51,6 +55,47 @@ export const ledgerHandlers: Readonly<Record<string, Handler>> = Object.freeze({
         ...(r.receiptNo === undefined ? {} : { receipt_no: r.receiptNo }),
       },
     };
+  }),
+  // B9: the reversal row is the body. [CONV] service key = `<ledger_entry_id>:reverse:<Idempotency-Key>` (ledger_entries.idempotency_key is unique per tenant, like B8's `<order_id>:pay:<key>`).
+  reverseLedgerEntry: bind(async (ctx, req) => {
+    const key = obj(req.headers)['idempotency-key'];
+    if (typeof key !== 'string' || key === '') throw new LimsError('common.idempotency_key_required');
+    const entryId = obj(req.params)['ledger_entry_id'];
+    const b = obj(req.body);
+    const r = await ledgerService().reverseEntry(ctx, {
+      ledgerEntryId: entryId, reasonCode: b['reason_code'], ...(b['reason_text'] === undefined ? {} : { reasonText: b['reason_text'] }), idempotencyKey: `${String(entryId)}:reverse:${key}`,
+    });
+    return { status: 201, body: r.entry };
+  }),
+  // B10 (no stored key: a retry is a second pending request, capped by the refundable amount; the core pipeline's x-idempotency covers replays)
+  requestRefund: bind(async (ctx, req) => {
+    const b = obj(req.body);
+    const dto = await refundService().requestRefund(ctx, {
+      orderId: obj(req.params)['order_id'], methodCode: b['method_code'], refundAmountPaisa: b['refund_amount_paisa'], reasonCode: b['reason_code'],
+      ...(b['reason_text'] === undefined ? {} : { reasonText: b['reason_text'] }), ...(b['reference'] === undefined ? {} : { reference: b['reference'] }),
+    });
+    return { status: 201, body: dto };
+  }),
+  approveRefund: bind(async (ctx, req) => {
+    const b = obj(req.body);
+    const dto = await refundService().approveRefund(ctx, {
+      refundRequestId: obj(req.params)['refund_request_id'], expectedVersion: ifMatch(req), ...(b['note'] === undefined ? {} : { note: b['note'] }),
+    });
+    return { status: 200, body: dto, headers: etagged(dto as { version: number }) };
+  }),
+  rejectRefund: bind(async (ctx, req) => {
+    const dto = await refundService().rejectRefund(ctx, { refundRequestId: obj(req.params)['refund_request_id'], expectedVersion: ifMatch(req), note: obj(req.body)['note'] });
+    return { status: 200, body: dto, headers: etagged(dto as { version: number }) };
+  }),
+  listRefundRequests: bind(async (ctx, req) => ({ status: 200, body: await refundService().listRefundRequests(ctx, req.query) })),
+  listFinanceReviewItems: bind(async (ctx, req) => ({ status: 200, body: await refundService().listFinanceReviewItems(ctx, req.query) })),
+  resolveFinanceReviewItem: bind(async (ctx, req) => {
+    const b = obj(req.body);
+    const dto = await refundService().resolveFinanceReviewItem(ctx, {
+      itemId: obj(req.params)['item_id'], expectedVersion: ifMatch(req), resolutionCode: b['resolution_code'],
+      ...(b['note'] === undefined ? {} : { note: b['note'] }), ...(b['refund_ledger_entry_id'] === undefined ? {} : { refundLedgerEntryId: b['refund_ledger_entry_id'] }),
+    });
+    return { status: 200, body: dto, headers: etagged(dto as { version: number }) };
   }),
   getMyCashSession: bind(async (ctx) => {
     const dto = await createCashService().getMyCashSession(ctx);

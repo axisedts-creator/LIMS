@@ -40,4 +40,11 @@ export const handlers: Readonly<Record<(typeof OPERATION_IDS)[number], Handler>>
   listLedgerEntries: ledgerHandlers['listLedgerEntries']!,
   listDues: ledgerHandlers['listDues']!,
   getDailyCash: ledgerHandlers['getDailyCash']!,
+  reverseLedgerEntry: ledgerHandlers['reverseLedgerEntry']!,
+  requestRefund: ledgerHandlers['requestRefund']!,
+  approveRefund: ledgerHandlers['approveRefund']!,
+  rejectRefund: ledgerHandlers['rejectRefund']!,
+  listRefundRequests: ledgerHandlers['listRefundRequests']!,
+  listFinanceReviewItems: ledgerHandlers['listFinanceReviewItems']!,
+  resolveFinanceReviewItem: ledgerHandlers['resolveFinanceReviewItem']!,
 });

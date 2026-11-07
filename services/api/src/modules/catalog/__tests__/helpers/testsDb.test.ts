@@ -81,9 +81,11 @@ describe('tables, RLS and constraints', () => {
   it('no DELETE on orderables/tests (42501); seed-only tables refuse writes; panels/analytes are readable', async () => {
     const p = pnl(1, TENANT_A, { panel_kind: 'package' });
     const t = tst(2, TENANT_A, D1.id);
-    const db = makeTestsDb({ rows: { departments: [D1] }, t6: { orderables: [p.orderable, t.orderable], panels: [p.panel], tests: [t.test] } });
+    const db = makeTestsDb({ rows: { departments: [D1] }, t6: { orderables: [p.orderable, t.orderable], panels: [p.panel], tests: [t.test],
+      g_value_sets: [{ id: ID(0x5001), code: 'G_SET', display: 'g', is_ordered: true }] } });
     expect((await rej(q(db, 'DELETE FROM catalog.orderables WHERE tenant_id = $1', [TENANT_A]))).code).toBe('42501');
-    expect((await rej(q(db, 'UPDATE catalog.panels SET panel_kind = $1 WHERE id = $2', ['clinical', p.panel.id]))).message).toMatch(/unsupported/);
+    // T-12: panels became writable; the value sets stay seed-only (their writers are T-05).
+    expect((await rej(q(db, 'UPDATE catalog.g_value_sets SET display = $1 WHERE code = $2', ['x', 'G_SET']))).message).toMatch(/unsupported/);
     expect((await q(db, 'SELECT * FROM catalog.panels WHERE tenant_id = $1', [TENANT_A])).rows[0].panel_kind).toBe('package');
   });
   it('lock-then-re-evaluate: two txs updating the same row with the same version -> the second matches 0 rows', async () => {
@@ -97,6 +99,44 @@ describe('tables, RLS and constraints', () => {
     const t = tst(1, TENANT_A, D1.id);
     const db = makeTestsDb({ rows: { departments: [D1], specimen_types: [S1] }, t6: { orderables: [t.orderable], tests: [t.test], test_specimen_types: [tsr(t.test.id, S1.id, TENANT_A, { is_preferred: true })] } });
     expect((await q(db, 'SELECT * FROM catalog.test_specimen_types WHERE tenant_id = $1 AND test_id = $2', [TENANT_A, t.test.id])).rows).toHaveLength(1);
+  });
+});
+
+describe('T-12 additions: panels / panel_members', () => {
+  const p1 = pnl(1, TENANT_A, { code: 'P1' }); const p2 = pnl(2, TENANT_A, { code: 'P2' }); const t1 = tst(1, TENANT_A, D1.id, { code: 'T1' });
+  const pb = pnl(9, TENANT_B, { code: 'PB' });
+  const mk = (members: Row[] = []) => makeTestsDb({ rows: { departments: [D1, dept(9, TENANT_B)] }, t6: {
+    orderables: [p1.orderable, p2.orderable, t1.orderable, pb.orderable], tests: [t1.test], panels: [p1.panel, p2.panel, pb.panel], panel_members: members } });
+  const insM = (db: ReturnType<typeof mk>, panel: string, member: string, sort = 1, tenant = TENANT_A) =>
+    q(db, 'INSERT INTO catalog.panel_members (tenant_id, panel_id, member_orderable_id, sort_order, created_by) VALUES ($1, $2, $3, $4, $5)', [tenant, panel, member, sort, ID(1)], tenant);
+
+  it('panel_members: insert / select / delete (allowed) with PK 23505, not-self CHECK 23514, FK 23503, RLS 42501; rows are private to a tx until COMMIT', async () => {
+    const db = mk();
+    await insM(db, p1.panel.id, t1.test.id, 2);
+    await insM(db, p1.panel.id, p2.panel.id, 1);
+    expect((await rej(insM(db, p1.panel.id, t1.test.id))).constraint).toBe('panel_members__pk');
+    expect((await rej(insM(db, p1.panel.id, p1.panel.id))).constraint).toBe('panel_members__not_self__ck');
+    expect((await rej(insM(db, ID(0xdead), t1.test.id))).constraint).toBe('panel_members__panel__fk');
+    expect((await rej(insM(db, p2.panel.id, ID(0xdead)))).constraint).toBe('panel_members__member__fk');
+    expect((await rej(insM(db, pb.panel.id, t1.test.id, 1, TENANT_B))).constraint).toBe('panel_members__member__fk');      // a member of another tenant is invisible
+    expect((await rej(insM(db, p1.panel.id, p2.panel.id, 1, TENANT_B))).code).toBe('23503');                              // tenant B cannot see panel P1
+    const rows = (await q(db, 'SELECT * FROM catalog.panel_members WHERE tenant_id = $1 AND panel_id = $2 ORDER BY sort_order', [TENANT_A, p1.panel.id])).rows;
+    expect(rows.map((r) => r.member_orderable_id)).toEqual([p2.panel.id, t1.test.id]);
+    expect((await q(db, 'SELECT * FROM catalog.panel_members WHERE tenant_id = $1', [TENANT_A], TENANT_B)).rows).toHaveLength(0);     // RLS: B sees none of A's rows
+    await q(db, 'DELETE FROM catalog.panel_members WHERE tenant_id = $1 AND panel_id = $2', [TENANT_A, p1.panel.id]);
+    expect(db.rows('panel_members')).toHaveLength(0);
+  });
+  it('panels: UPDATE works (version, is_active); panel_kind CHECK 23514; INSERT needs the orderable (23503) and a unique id (23505); DELETE 42501', async () => {
+    const db = mk();
+    const r = await q(db, 'UPDATE catalog.panels SET version = version + 1, is_active = $3 WHERE tenant_id = $1 AND id = $2 RETURNING version', [TENANT_A, p1.panel.id, false]);
+    expect(r.rows[0].version).toBe(2);
+    expect(db.row('panels', p1.panel.id)).toMatchObject({ version: 2, is_active: false });
+    expect((await rej(q(db, 'UPDATE catalog.panels SET panel_kind = $3 WHERE tenant_id = $1 AND id = $2', [TENANT_A, p1.panel.id, 'bundle']))).code).toBe('23514');
+    const ins = (id: string) => q(db, 'INSERT INTO catalog.panels (id, tenant_id, panel_kind, created_by, updated_by) VALUES ($1, $2, $3, $4, $4)', [id, TENANT_A, 'clinical', ID(1)]);
+    expect((await rej(ins(ID(0xbeef)))).code).toBe('23503');                         // no orderables row of kind panel with that id
+    expect((await rej(ins(t1.test.id))).code).toBe('23503');                         // an orderable of kind test is not a panel
+    expect((await rej(ins(p2.panel.id))).code).toBe('23505');
+    expect((await rej(q(db, 'DELETE FROM catalog.panels WHERE tenant_id = $1', [TENANT_A]))).code).toBe('42501');
   });
 });
 

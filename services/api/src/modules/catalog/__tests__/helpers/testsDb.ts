@@ -12,7 +12,10 @@
 //     partial UNIQUE (tenant_id, test_id) WHERE is_preferred -> 23505, min_volume_ul CHECK, FKs test/specimen type/container -> 23503
 //     (specimen types / containers / departments are looked up in COMMITTED masters rows). DELETE is allowed on test_specimen_types only
 //     (association table); every other table raises 42501 (lims_app has no DELETE grant).
-//   - panels are SEED-ONLY (writer T-12): SELECT works, any write throws "fake: unsupported". g_value_sets (global, no tenant) and cs_value_sets
+//   - T-12 (additive): panels and panel_members are WRITABLE. panels: PK, panel_kind enum CHECK -> 23514, FK (id, kind) -> orderables -> 23503, no DELETE (42501).
+//     panel_members: PK (tenant_id, panel_id, member_orderable_id) -> 23505, CHECK panel_id <> member_orderable_id -> 23514 (panel_members__not_self__ck),
+//     sort_order integer, FK panel / member orderable -> 23503 (looked up among the tx's own-tenant orderables), DELETE allowed (association table).
+//   - g_value_sets (global, no tenant) and cs_value_sets
 //     (tenant) are SEED-ONLY too (read by the T-07 ordinal check; their writers are T-05).
 //   - T-07 (additive): analytes and analyte_versions are WRITABLE (INSERT / UPDATE; no DELETE: 42501). Analytes: PK, UNIQUE(tenant_id, code) -> 23505,
 //     CHECKs (code regex, name/print_name/subheading lengths) -> 23514, FK test -> 23503. Analyte versions: PK, UNIQUE(tenant_id, analyte_id, version_no)
@@ -32,10 +35,10 @@ import { STARTED_AT, TENANT_A, USER } from './catalogDb.js';
 import { ID, RowLock, makeMastersDb, parseExpr, pgError, splitTop, tick, type MastersSeed, type Row } from './mastersDb.js';
 
 export { ID, type Row };
-export const T6_TABLES = ['orderables', 'tests', 'panels', 'test_specimen_types', 'analytes', 'analyte_versions', 'g_value_sets', 'cs_value_sets'] as const;
+export const T6_TABLES = ['orderables', 'tests', 'panels', 'panel_members', 'test_specimen_types', 'analytes', 'analyte_versions', 'g_value_sets', 'cs_value_sets'] as const;
 export type T6Table = (typeof T6_TABLES)[number];
 const TABLE_RE = new RegExp(`catalog\\.(${T6_TABLES.join('|')})\\b`, 'i');
-const WRITABLE = new Set<T6Table>(['orderables', 'tests', 'test_specimen_types', 'analytes', 'analyte_versions']);
+const WRITABLE = new Set<T6Table>(['orderables', 'tests', 'panels', 'panel_members', 'test_specimen_types', 'analytes', 'analyte_versions']);
 const GLOBAL = new Set<T6Table>(['g_value_sets']);                                   // no tenant_id: visible to every tenant
 const VERSION_MUTABLE = new Set(['status', 'effective_to', 'updated_at', 'updated_by', 'version']);
 
@@ -43,6 +46,7 @@ const COLUMNS: Record<T6Table, string[]> = {
   orderables: ['id', 'tenant_id', 'kind', 'code', 'name', 'department_id', 'sex_restriction', 'is_orderable', 'revision', 'version', 'is_active', 'created_at', 'created_by', 'updated_at', 'updated_by'],
   tests: ['id', 'tenant_id', 'kind', 'workflow_type', 'report_order', 'uses_existing_material', 'version', 'is_active', 'created_at', 'created_by', 'updated_at', 'updated_by'],
   panels: ['id', 'tenant_id', 'kind', 'panel_kind', 'version', 'is_active', 'created_at', 'created_by', 'updated_at', 'updated_by'],
+  panel_members: ['tenant_id', 'panel_id', 'member_orderable_id', 'sort_order', 'created_at', 'created_by'],
   test_specimen_types: ['tenant_id', 'test_id', 'specimen_type_id', 'container_id', 'is_preferred', 'min_volume_ul', 'created_at', 'created_by'],
   analytes: ['id', 'tenant_id', 'test_id', 'code', 'name', 'print_name', 'report_subheading', 'sort_order', 'is_reportable', 'version', 'is_active', 'created_at', 'created_by', 'updated_at', 'updated_by'],
   analyte_versions: ['id', 'tenant_id', 'analyte_id', 'version_no', 'status', 'result_type', 'unit_code', 'decimals', 'method_id', 'value_set_code', 'formula_expression', 'formula_inputs',
@@ -53,7 +57,8 @@ const COLUMNS: Record<T6Table, string[]> = {
 const NOT_NULL: Record<T6Table, string[]> = {
   orderables: ['id', 'tenant_id', 'kind', 'code', 'name', 'is_orderable', 'revision', 'created_by', 'updated_by'],
   tests: ['id', 'tenant_id', 'kind', 'workflow_type', 'report_order', 'uses_existing_material', 'created_by', 'updated_by'],
-  panels: ['id', 'tenant_id', 'kind', 'panel_kind'],
+  panels: ['id', 'tenant_id', 'kind', 'panel_kind', 'created_by', 'updated_by'],
+  panel_members: ['tenant_id', 'panel_id', 'member_orderable_id', 'sort_order', 'created_by'],
   test_specimen_types: ['tenant_id', 'test_id', 'specimen_type_id', 'is_preferred', 'created_by'],
   analytes: ['id', 'tenant_id', 'test_id', 'code', 'name', 'created_by', 'updated_by'],
   analyte_versions: ['id', 'tenant_id', 'analyte_id', 'version_no', 'status', 'result_type', 'created_by', 'updated_by'],
@@ -61,7 +66,7 @@ const NOT_NULL: Record<T6Table, string[]> = {
   cs_value_sets: ['id', 'tenant_id', 'code', 'is_ordered'],
 };
 const WORKFLOWS = ['standard', 'narrative', 'microbiology', 'anatomic', 'molecular', 'attachment', 'outsourced'];
-const keyOf = (t: T6Table, r: Row): string => (t === 'test_specimen_types' ? `${r.test_id}:${r.specimen_type_id}` : r.id);
+const keyOf = (t: T6Table, r: Row): string => (t === 'test_specimen_types' ? `${r.test_id}:${r.specimen_type_id}` : t === 'panel_members' ? `${r.panel_id}:${r.member_orderable_id}` : r.id);
 const LEN = (v: unknown, min: number, max: number) => typeof v === 'string' && v.length >= min && v.length <= max;
 
 function checks(t: T6Table, r: Row): void {
@@ -72,6 +77,14 @@ function checks(t: T6Table, r: Row): void {
     if (!LEN(r.name, 1, 200)) bad('orderables__name__ck');
     if (r.sex_restriction != null && !['male', 'female'].includes(r.sex_restriction)) bad('orderables__sex__ck');
     if (r.kind === 'test' && r.department_id == null) bad('orderables__test_has_department__ck');
+  }
+  if (t === 'panels') {
+    if (r.kind !== 'panel') bad('panels__kind__ck');
+    if (!['clinical', 'package'].includes(r.panel_kind)) bad('panels__panel_kind__ck');
+  }
+  if (t === 'panel_members') {
+    if (r.panel_id === r.member_orderable_id) bad('panel_members__not_self__ck');
+    if (!Number.isInteger(r.sort_order)) bad('panel_members__sort_order__ck');
   }
   if (t === 'tests') {
     if (r.kind !== 'test') bad('tests__kind__ck');
@@ -162,7 +175,14 @@ export function makeTestsDb(seed: TestsSeed = {}) {
         if (r.container_id != null && !master('containers', r.container_id)) throw pgError('23503', 'violates foreign key constraint "test_specimen_types__container__fk"', 'test_specimen_types__container__fk');
         return;
       }
+      if (t === 'panel_members') {
+        if (others.some((x) => keyOf(t, x) === keyOf(t, r))) throw pgError('23505', 'duplicate key value violates unique constraint "panel_members__pk"', 'panel_members__pk');
+        if (!visible('panels').some((x) => x.id === r.panel_id)) throw pgError('23503', 'violates foreign key constraint "panel_members__panel__fk"', 'panel_members__panel__fk');
+        if (!visible('orderables').some((x) => x.id === r.member_orderable_id)) throw pgError('23503', 'violates foreign key constraint "panel_members__member__fk"', 'panel_members__member__fk');
+        return;
+      }
       if (others.some((x) => x.id === r.id)) throw pgError('23505', `duplicate key value violates unique constraint "${t}__pk"`, `${t}__pk`);
+      if (t === 'panels' && !visible('orderables').some((x) => x.id === r.id && x.kind === r.kind)) throw pgError('23503', 'violates foreign key constraint "panels__orderable__fk"', 'panels__orderable__fk');
       if (t === 'orderables') {
         if (others.some((x) => x.code === r.code)) throw pgError('23505', 'duplicate key value violates unique constraint "orderables__tenant_id_code__uq"', 'orderables__tenant_id_code__uq');
         if (r.department_id != null && !master('departments', r.department_id)) throw pgError('23503', 'violates foreign key constraint "orderables__department__fk"', 'orderables__department__fk');
@@ -281,7 +301,7 @@ export function makeTestsDb(seed: TestsSeed = {}) {
       const m = /^DELETE FROM catalog\.(\w+)(?: (?:AS )?(?!WHERE\b)(\w+))? WHERE (.+?)(?: RETURNING (.+))?$/i.exec(text);
       if (!m) throw new Error(`fake: unsupported DELETE (a WHERE clause is required): ${text.slice(0, 160)}`);
       const t = m[1]!.toLowerCase() as T6Table;
-      if (t !== 'test_specimen_types') throw pgError('42501', `permission denied for table ${t} (lims_app has no DELETE grant)`);
+      if (t !== 'test_specimen_types' && t !== 'panel_members') throw pgError('42501', `permission denied for table ${t} (lims_app has no DELETE grant)`);
       await take(t);
       const where = parseExpr(m[3]!);
       const hit = visible(t).filter((r) => where({ row: r, values, now }) === true);
@@ -365,6 +385,8 @@ export const pnl = (n: number, tenant: string, o: Row = {}): { orderable: Row; p
     panel: { id, tenant_id: tenant, panel_kind: o['panel_kind'] ?? 'clinical', is_active: o['is_active'] ?? true },
   };
 };
+/** A panel_members row (member = any orderable id of the same tenant). */
+export const pmb = (panelId: string, memberId: string, tenant: string, sortOrder = 1): Row => ({ tenant_id: tenant, panel_id: panelId, member_orderable_id: memberId, sort_order: sortOrder });
 export const tsr = (testId: string, specimenTypeId: string, tenant: string, o: Row = {}): Row => ({ tenant_id: tenant, test_id: testId, specimen_type_id: specimenTypeId, container_id: o['container_id'] ?? null, is_preferred: o['is_preferred'] ?? false, min_volume_ul: o['min_volume_ul'] ?? null });
 export const ana = (n: number, tenant: string, testId: string, o: Row = {}): Row => ({ id: ID(0x3000 + n), tenant_id: tenant, test_id: testId, code: o['code'] ?? `AN${n}`, name: o['name'] ?? `Analyte ${n}`, ...o });
 export const anv = (n: number, tenant: string, analyteId: string, o: Row = {}): Row => ({ id: ID(0x4000 + n), tenant_id: tenant, analyte_id: analyteId, version_no: 1, status: 'published', result_type: 'numeric', decimals: 1,

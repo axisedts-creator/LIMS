@@ -40,8 +40,8 @@ function world(opts: { mode?: 'notify' | 'approval_required'; role?: 'platform_s
   const bound = () => { const sid = f.binding.get(PSESSION); const r = sid ? f.rows.find((x) => x.id === sid) : undefined; return r && r.status === 'active' && r.expires_at && r.expires_at.getTime() > clock.now.getTime() ? r : undefined; };
   const definerRow = () => {
     const r = bound();
-    return r ? supportRow({ platform_staff_id: STAFF_ID, platform_role: opts.role ?? 'platform_support', support_session_id: r.id, support_tenant_id: r.tenant_id, support_scope: r.scope, support_expires_at: r.expires_at })
-      : platformRow({ platform_staff_id: STAFF_ID, platform_role: opts.role ?? 'platform_support' });
+    return r ? supportRow({ platform_staff_id: STAFF_ID, platform_role: opts.role ?? 'platform_support', support_session_id: r.id, support_tenant_id: r.tenant_id, support_scope: r.scope, support_expires_at: r.expires_at, idle_expires_at: mins(600), absolute_expires_at: mins(600) })
+      : platformRow({ platform_staff_id: STAFF_ID, platform_role: opts.role ?? 'platform_support', idle_expires_at: mins(600), absolute_expires_at: mins(600) });
   };
   const ran = vi.fn();
   const call: World['call'] = async (o = {}) => {

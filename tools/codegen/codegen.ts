@@ -402,6 +402,37 @@ typedef LimsTransport = Future<Object?> Function(
 });
 `;
 
+// gen-msw (02-TRD §5.3/§5.5, AC-0C-4.2): one handler per operationId, any origin, lowest 2xx + first JSON example.
+// ponytail: `:` inside a literal path segment would read as an MSW param; no spec path has one yet.
+function genMsw(oas: Docs, domains: string[]) {
+  const res = (x: any, ctx: string): { node: any; ctx: string } =>
+    isObj(x) && typeof x.$ref === "string" ? (({ node, ctx: c }) => res(node, c))(deref(oas, x.$ref, ctx)) : { node: x, ctx };
+  const lines: { id: string; text: string }[] = [];
+  for (const d of domains) {
+    const spec = oas.get(`${d}.yaml`);
+    for (const path of Object.keys(spec.paths ?? {}).sort(cmp)) for (const method of METHODS) {
+      const op = spec.paths[path][method];
+      if (!isObj(op) || method === "trace") continue; // MSW has no trace helper
+      const ok = Object.keys(op.responses ?? {}).filter((s) => /^2\d\d$/.test(s)).sort(cmp)[0];
+      if (!ok) throw new Error(`${op.operationId}: no 2xx response for gen-msw`);
+      const r = res(op.responses[ok], `${d}.yaml`);
+      const json = r.node?.content?.["application/json"];
+      const first = isObj(json?.examples) ? Object.values(json.examples)[0] : undefined;
+      const ex = first !== undefined ? res(first, r.ctx).node?.value : json?.example;
+      const url = "*" + path.replace(/\{(\w+)\}/g, ":$1");
+      const body = ex === undefined ? `new HttpResponse(null, { status: ${ok} })` : `HttpResponse.json(${JSON.stringify(ex)}, { status: ${ok} })`;
+      lines.push({ id: op.operationId, text: `  // ${op.operationId}\n  http.${method}(${q(url)}, () => ${body}),` });
+    }
+  }
+  return `${TS_H}
+import { http, HttpResponse } from "msw";
+
+export const handlers = [
+${lines.sort((a, b) => cmp(a.id, b.id)).map((l) => l.text).join("\n")}
+];
+`;
+}
+
 // ---------------------------------------------------------------- entry points
 export function generateAll(rootDir: string): Record<string, string> {
   const inp = loadInputs(rootDir);
@@ -432,6 +463,7 @@ export function generateAll(rootDir: string): Record<string, string> {
   out["packages/api-client-ts/src/client.ts"] = genTsClient(inp.domains);
   out["packages/api-client-ts/src/server/operations.ts"] = genOperations(all);
   out["packages/api-client-dart/lib/src/transport.dart"] = DART_TRANSPORT;
+  out["packages/fakes/src/msw/handlers.generated.ts"] = genMsw(inp.oas, inp.domains);
   return Object.fromEntries(Object.keys(out).sort(cmp).map((k) => [k, out[k]!]));
 }
 

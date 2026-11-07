@@ -8,9 +8,12 @@
   "scripts": {
     "build": "turbo run build",
     "verify": "turbo run build typecheck && node --test \"tools/lint/tests/*.test.mjs\"",
-    "typecheck": "turbo run typecheck"
+    "typecheck": "turbo run typecheck",
+    "mock:core": "prism mock contracts/openapi/core.yaml --host 127.0.0.1 --port 4100",
+    "mock:list": "node -p \"Object.entries(require('./package.json').scripts).filter(([k])=>k.startsWith('mock:')&&k!=='mock:list').map(([k,v])=>k.slice(5)+' http://127.0.0.1:'+v.split('--port ')[1]).join('\\n')\""
   },
   "devDependencies": {
+    "@stoplight/prism-cli": "5.16.0",
     "turbo": "2.11.10",
     "typescript": "7.0.2"
   }

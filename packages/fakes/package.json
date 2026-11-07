@@ -1,0 +1,11 @@
+{
+  "name": "@lims/fakes",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./msw": "./src/msw/server.ts"
+  },
+  "dependencies": {
+    "msw": "3.0.3"
+  }
+}

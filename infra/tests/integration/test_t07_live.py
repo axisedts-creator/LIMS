@@ -98,5 +98,71 @@ class Live(unittest.TestCase):
         self.assertEqual(b.stdout.strip(), "NULL")
 
 
+# LD-67 (2026-11-08, C1 T-06 reopened, settles CR-C1-T07): the same checks, but PgBouncer mounts the userlist as the
+# secrets_render role renders it (T-06 test_t06_userlist.py pins the contract), not a hand-written one.
+@unittest.skipUnless(LIVE, "live docker test: CI/staging only (LIMS_T07_LIVE=1)")
+class LiveRenderedUserlist(unittest.TestCase):
+    NET2, DB2, PGB2 = "lims_t07r_net", "lims_t07r_db", "lims_t07r_pgb"
+
+    @classmethod
+    def setUpClass(cls):
+        import test_t06_userlist as ul  # noqa: E402  (static dir already on sys.path)
+        cls.tmp = tempfile.TemporaryDirectory()
+        d = Path(cls.tmp.name)
+        rendered = ul._render(PW)  # role template/content rendered with the synthetic password
+        assert rendered == '"pgbouncer" "%s"\n' % PW, "role must render exactly one two-field line"
+        (d / "userlist.txt").write_text(rendered, encoding="utf-8")
+        os.chmod(d / "userlist.txt", 0o444)  # container uid differs from the CI user; 0400/owner proven statically
+        ini = st.render("postgres").replace("default_pool_size = 40", "default_pool_size = 1")
+        (d / "pgbouncer.ini").write_text(ini, encoding="utf-8")
+        (d / "zz-lims.conf").write_text(pg.render("zz-lims.conf*"), encoding="utf-8")
+        (d / "pg_hba.conf").write_text(pg.render("pg_hba.conf*"), encoding="utf-8")
+        auth_file = st.one(st.pgb()["pgbouncer"], "auth_file")
+        sh("docker", "build", "-t", IMG, str(pg.DOCKERFILE.parent))
+        sh("docker", "network", "create", "--subnet", pg.SUBNETS["db"], cls.NET2, check=False)
+        sh("docker", "rm", "-f", cls.DB2, cls.PGB2, check=False)
+        sh("docker", "run", "-d", "--name", cls.DB2, "--network", cls.NET2, "--network-alias", "db",
+           "-e", "POSTGRES_PASSWORD=" + PW,
+           "-v", "%s:/etc/postgresql-custom/conf.d/zz-lims.conf:ro" % (d / "zz-lims.conf"),
+           "-v", "%s:/etc/postgresql/pg_hba.conf:ro" % (d / "pg_hba.conf"), IMG)
+        for _ in range(60):
+            if sh("docker", "exec", cls.DB2, "pg_isready", "-U", "postgres", check=False).returncode == 0:
+                break
+            time.sleep(2)
+        sh("docker", "exec", cls.DB2, "psql", "-U", "supabase_admin", "-d", "postgres", "-c",
+           "CREATE ROLE lims_api LOGIN PASSWORD '%s'" % PW, check=False)
+        sh("docker", "run", "-d", "--name", cls.PGB2, "--network", cls.NET2, "--network-alias", PGB,
+           "-v", "%s:/etc/pgbouncer/pgbouncer.ini:ro" % (d / "pgbouncer.ini"),
+           "-v", "%s:%s:ro" % (d / "userlist.txt", auth_file),
+           "edoburu/pgbouncer@" + re.search(r"sha256:[0-9a-f]{64}", (st.LOCK).read_text()).group(0))
+        time.sleep(5)
+
+    @classmethod
+    def tearDownClass(cls):
+        sh("docker", "rm", "-f", cls.DB2, cls.PGB2, check=False)
+        sh("docker", "network", "rm", cls.NET2, check=False)
+        cls.tmp.cleanup()
+
+    def _psql(self, user, db, sql, pw=PW):
+        return subprocess.run(
+            ["docker", "run", "--rm", "--network", self.NET2, "-e", "PGPASSWORD=" + pw, "supabase/postgres:17.6.1.136",
+             "psql", "-h", PGB, "-p", "6432", "-U", user, "-d", db, "-tAc", sql], capture_output=True, text=True)
+
+    def test_pgbouncer_starts_with_rendered_file_mounted(self):
+        r = sh("docker", "inspect", "-f", "{{.State.Running}}", self.PGB2, check=False)
+        self.assertEqual(r.stdout.strip(), "true", sh("docker", "logs", self.PGB2, check=False).stderr[-300:])
+
+    def test_show_config_effective_with_rendered_file(self):
+        r = self._psql("pgbouncer", "pgbouncer", "SHOW CONFIG")
+        self.assertEqual(r.returncode, 0, r.stderr)
+        cfg = {ln.split("|")[0]: ln.split("|")[1] for ln in r.stdout.splitlines() if "|" in ln}
+        self.assertEqual(cfg["pool_mode"], "transaction")
+        self.assertEqual(cfg["max_prepared_statements"], "200")
+
+    def test_lims_api_logs_in_via_auth_query_with_rendered_file(self):
+        self.assertEqual(self._psql("lims_api", "postgres", "SELECT 1").stdout.strip(), "1")
+        self.assertNotEqual(self._psql("lims_api", "postgres", "SELECT 1", pw="wrong").returncode, 0)
+
+
 if __name__ == "__main__":
     unittest.main()

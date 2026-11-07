@@ -47,7 +47,8 @@ async function traffic(app: any) {
 }
 
 describe('request log line (stage 13, CV §9.1 fields)', () => {
-  it('one JSON line per request with the mandatory fields', async () => {
+  // T-01 ruling: first boot gets 30000 ms headroom (default 5000 ms is a harness assumption under parallel load).
+  it('one JSON line per request with the mandatory fields', { timeout: 30000 }, async () => {
     const { app, lines } = await bootObs();
     await app.inject({ method: 'GET', url: LIVE, headers: { 'x-request-id': RID, traceparent: TRACEPARENT } });
     const mine = lines().filter((l) => l.request_id === RID && l.status !== undefined);

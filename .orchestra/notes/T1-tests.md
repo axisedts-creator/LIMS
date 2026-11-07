@@ -1,0 +1,7 @@
+# T1 tests (tester)
+Files: services/api/src/modules/identity/gotrue/__tests__/{contract.suite,helpers}.ts (shared) + {fake.contract,http.unit,http.live,mapping}.test.ts. Run: `.orchestra\notes\T1-verify.cmd` (vitest, that dir). Now: all files fail on missing `../gateway*.js` / `mapping.md`.
+Fake API needed: `createFakeGoTrueGateway()` + `.mailbox.latestTokenHash`, `.advanceTime(s)`, `.calls[{method}]`, `.passwordHash(id)` (see fake.contract.test.ts header). HTTP: `createHttpGoTrueGateway({url,serviceKey,fetch?,timeoutMs?})`; outage/timeout/open circuit throw `LimsError('common.dependency_unavailable')`; 4xx auth failure → `{ok:false}`.
+mapping.md format is spelled out in mapping.test.ts header (`### method` + Request/Headers/Request fields/Response fields/Env/Source bullets; `## Verdicts` keys; `Live contract run: PASS <date>`; REFUTED ⇒ CR in .orchestra/cr/).
+Live suite (real container) is env-gated, NOT run by verify.cmd unless set: LIMS_TEST_GOTRUE_URL, _SERVICE_KEY, _PSQL (cmd prefix running SQL on GoTrue DB), optional _REUSE_INTERVAL_S; LIMS_TEST_REQUIRE_LIVE=1 makes missing env a failure. Writer must run it and record the PASS line.
+Assumed where spec silent (writer: object via dispute): password min 12; unknown-user admin calls reject; adminSignOutUser/signOut idempotent on no-session; link TTL checked by ageing one_time_tokens 3601 s.
+Not covered: D-218(b) credential-less session path (no gateway method until T1 names it; verdict + CR rules only), AU-T12 only if live DB access given.

@@ -32,9 +32,11 @@ function main(argv: string[]): number {
   }
   const lock = new Map<string, string>();
   for (const m of lockText.matchAll(TOKEN)) {
-    const prev = lock.get(m[1]);
-    if (prev && prev !== m[2]) throw new Usage(`lock pins ${m[1]} to two digests`);
-    lock.set(m[1], m[2]);
+    // key by repo (tag stripped) so a canonical `repo:tag@sha256:<d>` lock line matches compose (review r1 item 4)
+    const repo = repoOf(m[1]);
+    const prev = lock.get(repo);
+    if (prev && prev !== m[2]) throw new Usage(`lock pins ${repo} to two digests`);
+    lock.set(repo, m[2]);
   }
   if (!lock.size) throw new Usage('lock contains no <repo>@sha256:<digest> entries');
 

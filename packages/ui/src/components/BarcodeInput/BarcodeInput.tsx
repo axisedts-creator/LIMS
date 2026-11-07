@@ -55,10 +55,12 @@ function useRun() {
       }
     },
     /** Ends the run; returns classification inputs. */
-    end(): { slow: boolean; durationMs: number } {
+    end(max: number): { slow: boolean; durationMs: number } {
       const r = run.current;
       run.current = null;
-      return r ? { slow: r.slow, durationMs: Math.max(0, now() - r.start) } : { slow: true, durationMs: 0 };
+      const t = now();
+      // 04-UI-UX §2.4 rule 1: the gap before the submit key counts too.
+      return r ? { slow: r.slow || t - r.last > max, durationMs: Math.max(0, t - r.start) } : { slow: true, durationMs: 0 };
     },
     reset() {
       run.current = null;
@@ -127,7 +129,7 @@ export function BarcodeInput({
 
   const submit = (el: HTMLInputElement) => {
     const value = el.value.trim().toUpperCase();
-    const { slow, durationMs } = run.end();
+    const { slow, durationMs } = run.end(scannerMaxInterKeyMs);
     if (value === '') return false;
     const source: ScanMeta['source'] = !slow && value.length >= minScanLength ? 'scanner' : 'keyboard';
     if (!pattern.test(value)) {

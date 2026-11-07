@@ -1,5 +1,5 @@
 // Date helpers for the kit's date components (04-UI-UX §2.3). All B.S. conversion goes through @lims/shared-ts/bsdate (04 D13).
-// [CONV] relative source import until @lims/ui depends on @lims/shared-ts with a `./bsdate` export (open point, owner C0-0A: package.json + lock).
+// [CONV] relative source import until @lims/ui depends on @lims/shared-ts with a `./bsdate` export — see .orchestra/cr/T0D-13.nonblocking.md (owner C0-0A: package.json + lock).
 import {
   BS_SUPPORTED,
   BsDateError,

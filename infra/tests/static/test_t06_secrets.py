@@ -205,6 +205,15 @@ class RoleDefaultsTest(unittest.TestCase):
                 names = set(pl[i]["services"])
                 self.assertTrue(all(any(n == c or n in str(c) for c in by[i]) for n in names), i)
 
+    def test_reporting_channel_prefix_placement(self):
+        pp = _defaults().get("secrets_render_prefix_placement") or {}
+        e = pp.get("reporting_channel_")
+        self.assertTrue(e, "secrets_render_prefix_placement['reporting_channel_'] missing")
+        self.assertEqual(e["hosts"], ["app"])
+        self.assertEqual(set(e["services"]), WORKERS)
+        main = _txt(_yaml(_need(os.path.join(ROLE, "tasks", "main.yml"))))
+        self.assertIn("secrets_render_prefix_placement", main, "tasks must apply prefix placement")
+
     def test_unknown_host_groups_rejected(self):
         for i, e in (_defaults().get("secrets_render_placement") or {}).items():
             self.assertTrue(set(e["hosts"]) <= {"data", "app", "ops", "dr"}, i)
@@ -285,9 +294,9 @@ class RoleTasksTest(unittest.TestCase):
         for f in glob.glob(os.path.join(ROLE, "**", "*"), recursive=True):
             if os.path.isfile(f):
                 t = open(f, encoding="utf-8", errors="ignore").read()
-                self.assertNotIn("AGE-SECRET-KEY-", t, f)
-                self.assertNotIn("BEGIN PRIVATE KEY", t, f)
-                self.assertNotIn("ENC[AES256_GCM", t, f)
+                self.assertNotIn("AGE-SECRET-" + "KEY-", t, f)
+                self.assertNotIn("BEGIN " + "PRIVATE KEY", t, f)
+                self.assertNotIn("ENC" + "[AES256_GCM", t, f)
 
     def test_no_persistent_destination_anywhere(self):
         for f in glob.glob(os.path.join(ROLE, "**", "*.y*ml"), recursive=True):

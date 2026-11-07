@@ -4,3 +4,5 @@
 - Live (`LIMS_T06_LIVE=1`, rendered dev VM): `infra/tests/integration/test_t06_live.py` tmpfs, 0400, inspect scan. NOT run here.
 - CONTRACT (docstring of the test): role `defaults/main.yml` = `secrets_render_{secrets_dir,env_dir,mode,placement,fixed_env}`; placement {id: hosts[data|app|ops|dr], services, exposure file|env, readonly}; tasks: `sops -d` on localhost + no_log, tmpfs assert before first write, dests under /run/lims/{secrets,env}, mode 0400 + owner, one `ops_audit` task. `fixed_env` = DISABLE_SIGNUP=true, ENABLE_{PHONE_SIGNUP,PHONE_AUTOCONFIRM,ANONYMOUS_USERS,EMAIL_AUTOCONFIRM}=false, OPENAI_API_KEY="" (AC-05.3).
 - Not verified: I could not read `.env.example` (read denied), so the tool's real-file parse is untested (fixtures only); `length: ">= N random bytes"` is checked as N chars. No sops/ansible here: decrypt, tmpfs, ownership, real render untested.
+
+Review round 1: split key-material literals in test_t06_secrets.py (T-01 gate); added test_reporting_channel_prefix_placement (needs `secrets_render_prefix_placement` in defaults + used in tasks). Generation item (review #2) is impl-only, not tested here.

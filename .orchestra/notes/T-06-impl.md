@@ -5,4 +5,5 @@
 - [CONV] lock order on writes: orderables FOR UPDATE -> tests FOR UPDATE -> test_specimen_types -> catalog_state; updateTest/replace bump tests.version only (orderables.version untouched); is_active mirrored to both rows.
 - [CONV] getTestDetail current_version = status published/superseded/retired with effective_from <= as_of < effective_to (highest version_no wins); draft_version_id = the draft; formula_input_codes not emitted (needs analyte-code lookup, T-07/T-12).
 - [CONV] listTests: driving table orderables (code/name) or tests (report_order); a filter living on the other table is resolved to an id list first (ponytail: fine at the 5k catalog ASSUMPTION).
-- Open: SQL `ORDER BY code` uses DB collation (code-point order only if C collation) — JS re-sort fixes order within the page, not which rows hit the LIMIT; tat_targets always [] until #28; T-03 stampOrderable still has no tenant predicate.
+- Review fix: search ORDER BY now ends `code COLLATE "C"`, so the LIMIT cut uses code-point order and matches the JS re-sort. Blocked: tester helper testsDb.ts does not compile (see T-06-dispute.md).
+- Open: tat_targets always [] until #28; T-03 stampOrderable still has no tenant predicate.

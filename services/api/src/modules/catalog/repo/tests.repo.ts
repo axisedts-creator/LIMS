@@ -85,7 +85,7 @@ export async function searchOrderables(tx: Tx, cols: readonly string[], a: Searc
   if (a.ids) where.push(`id = ANY(${bind(a.ids)})`);
   const rank = "CASE WHEN code = $2 THEN 0 WHEN code LIKE $3 ESCAPE '\\' THEN 1 WHEN name ILIKE $4 ESCAPE '\\' THEN 2 ELSE 3 END";
   const { rows } = await tx.query(
-    `SELECT ${cols.join(', ')} FROM catalog.orderables WHERE ${where.join(' AND ')} ORDER BY ${rank}, LENGTH(code), code LIMIT ${bind(a.limit)}`,
+    `SELECT ${cols.join(', ')} FROM catalog.orderables WHERE ${where.join(' AND ')} ORDER BY ${rank}, LENGTH(code), code COLLATE "C" LIMIT ${bind(a.limit)}`,
     values,
   );
   return rows;

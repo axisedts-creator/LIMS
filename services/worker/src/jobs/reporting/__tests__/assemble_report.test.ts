@@ -96,6 +96,32 @@ describe('AC-02.1 — all items ready -> one frozen version (rendering) with QR 
     const s = setup({ smartFlag: true }); await go(s);
     expect(s.versions()).toHaveLength(1); expect(s.versions()[0]!['smart_summary_json'] ?? null).toBeNull(); expect(snapshotOf(s.versions()[0]!).smart).toBeUndefined();
   });
+  // TRD §4.3 (08 A19 P-44): buildSummary runs inside a SAVEPOINT so whatever the port wrote before throwing smartreport.* is rolled back before the version commits.
+  const MARK = 'smart_port_write_marker';
+  const portWritesThenThrows = (s: Setup, err: Error) => {
+    (s.ports.ports as any).smartreport.buildSummary = async (c: any, i: unknown) => {
+      s.ports.calls.smart.push(i);
+      await c.tx.query('SELECT id FROM reporting.reports WHERE tenant_id = $1 AND id = $2', [TENANT_A, LAB, MARK]);
+      throw err;
+    };
+  };
+  const idx = (s: Setup, re: RegExp) => s.db.stmts.findIndex((x) => re.test(x.text));
+  it('smart flag on + port writes then throws smartreport.* -> SAVEPOINT before the port call, ROLLBACK TO SAVEPOINT before the version INSERT; version created, smart columns NULL', async () => {
+    const s = setup({ smartFlag: true }); portWritesThenThrows(s, Object.assign(new Error('boom'), { code: 'smartreport.template_missing' })); await go(s);
+    expect(s.ports.calls.smart).toHaveLength(1);
+    const sp = idx(s, /^savepoint\b/i); const port = s.db.stmts.findIndex((x) => x.values.includes(MARK));
+    const rb = idx(s, /^rollback to savepoint\b/i); const ins = idx(s, /^insert into reporting\.report_versions\b/i);
+    expect(sp).toBeGreaterThanOrEqual(0); expect(port).toBeGreaterThan(sp); expect(rb).toBeGreaterThan(port); expect(ins).toBeGreaterThan(rb);
+    expect(s.versions()).toHaveLength(1); const v = s.versions()[0]!;
+    expect(v['smart_summary_json'] ?? null).toBeNull(); expect(v['smart_summary_id'] ?? null).toBeNull(); expect(v['smart_summary_version'] ?? null).toBeNull();
+    expect(snapshotOf(v).smart).toBeUndefined();
+  });
+  it('smart flag on + port writes then throws a NON smartreport.* error -> rolled back to the savepoint and the task rejects (no version)', async () => {
+    const s = setup({ smartFlag: true }); portWritesThenThrows(s, Object.assign(new Error('db down'), { code: 'common.unavailable' }));
+    expect(await attempt(s)).not.toBe('ok');
+    expect(idx(s, /^rollback to savepoint\b/i)).toBeGreaterThan(s.db.stmts.findIndex((x) => x.values.includes(MARK)));
+    expect(s.versions()).toHaveLength(0);
+  });
 });
 
 describe('AC-02.2 — three readiness events inside 30 s -> exactly one version (debounce + fingerprint)', () => {

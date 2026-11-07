@@ -18,6 +18,12 @@ export async function getInvoice(tx: Q, a: { tenantId: string; invoiceId: string
   return rows[0];
 }
 
+/** recordPayment: only the columns needed to check that an invoice belongs to the order being paid. */
+export async function findInvoiceForPayment(tx: Q, a: { tenantId: string; invoiceId: string }): Promise<{ id: string; order_id: string | null; status: string } | undefined> {
+  const { rows } = await tx.query('SELECT id, order_id, status FROM billing.invoices WHERE tenant_id = $1 AND id = $2', [a.tenantId, a.invoiceId]);
+  return rows[0];
+}
+
 /** print_count may grow by exactly 1 (DB guard). Returns the new count, undefined when the invoice is not found. */
 export async function markInvoicePrinted(tx: Q, a: { tenantId: string; invoiceId: string; userId: string }): Promise<number | undefined> {
   try {

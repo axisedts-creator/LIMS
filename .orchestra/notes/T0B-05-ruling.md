@@ -1,7 +1,8 @@
 TESTS_WRONG — the test asserts something the spec does not require (say precisely what to change in the test)
-1. Disputed assertion (db/tests/core/T0B-05_queue.test.sql:49) intent is right: spec requires the job's max_attempts to default to the registry value — spec/chunks/C0-foundation-contracts/05-SCHEMA.md:1075 `max_attempts => coalesce(enqueue_job.max_attempts, v_reg.max_attempts)::smallint`; registry column is `max_attempts integer` (05-SCHEMA.md:804).
-2. The spec itself casts to smallint when calling graphile_worker (05-SCHEMA.md:1075), so a smallint column in graphile_worker.jobs is consistent with the spec; the spec does not require the jobs column to be integer (05-SCHEMA.md:1080 marks jobs column details UNVERIFIED for 0.18.0).
-3. The original `is(max_attempts, 5, ...)` compared smallint to integer, which pgTAP cannot resolve — a test type defect, not an implementation fault.
-4. Change: compare as `max_attempts::int` against `5` (or column vs `5::smallint`). Already applied in commit 7433883 (line 49 now `SELECT max_attempts::int ...`); keep it. Line 59 (`max_attempts || ':' || ...`) concatenates to text and needs no change.
-5. Implementation: no change required for this point. Tests 6-23 must now be run; any new failure there is a fresh finding, not covered by this ruling.
-6. Seed-010 RLS failure (T0B-09) is out of scope for this dispute; `--no-seeds` in run-suites.sh is a local-run aid only and must not be the CI default.
+1. Fixture db/tests/core/T0B-05_platform.test.sql:134-135 inserts identity.platform_staff with `role_code = 'platform_admin'`; no such role exists in the spec.
+2. Spec role set is exactly `platform_superadmin`, `platform_support`: spec/chunks/C2-identity-admin/05-SCHEMA.md:174; spec/chunks/C0-foundation-contracts/05-SCHEMA.md:242.
+3. The migration CHECK db/migrations/20261105001300_identity__create_identity_schema.sql:59 enforces that set verbatim, so the insert correctly fails; implementation is not at fault.
+4. dl_* functions are gated by `platform.dead_letter.manage`, roles `[platform_superadmin]` only: spec/program/03-INTERFACE-CATALOG.md:3003.
+5. Change: on lines 134 and 135 replace `'platform_admin'` with `'platform_superadmin'`. No other change to the fixture.
+6. Matches LD-36. Earlier max_attempts ruling (queue.test.sql:49 `max_attempts::int`) stands; implementation then continues with LD-31.
+7. Queue file tests 6-23 never ran; any failure there after this fix is a fresh finding, not covered by this ruling.

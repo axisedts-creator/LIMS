@@ -36,7 +36,7 @@ SU -v lims_migrator_pw="$MIG_PW" -v lims_api_pw="$API_PW" -v lims_worker_pw="$WO
    -v lims_replicator_pw="$REPL_PW" -v lims_audit_ship_pw="$SHIP_PW" -v dbname="$DB" -f db/bootstrap/00_roles.sql
 build_db() { # $1 database: bootstrap + all migrations (same D-201 window as run-suites.sh)
   local d="$1" f STEP_C="20261105001200"
-  [ "$d" = "$DB" ] || SU -c "CREATE DATABASE $d"
+  [ "$d" = "$DB" ] || { SU -c "CREATE DATABASE $d"; SUD "$d" -c "CREATE SCHEMA IF NOT EXISTS extensions"; }  # fresh DB lacks the image's init-DB `extensions` schema (review round 4)
   SUD "$d" -c "CREATE EXTENSION IF NOT EXISTS pgtap WITH SCHEMA extensions"
   SUD "$d" -v dbname="$d" -f db/bootstrap/01_database.sql
   for f in $(ls db/migrations/*.sql | sort); do if [[ "$(basename "$f")" < "$STEP_C" ]]; then MIGD "$d" --single-transaction -f "/repo/$f"; fi; done

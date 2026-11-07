@@ -875,7 +875,7 @@ describe('publishAnalyteVersion (#34) — V4 + V5: supersede the predecessor, wi
     await get(e, a.id);
     const d = await draft(e, HB.id);
     await patchV(e, d.id, { decimals: 3 });
-    await publish(e, d.id, pBody({ change_reason: planted }));
+    await publish(e, d.id, pBody({ change_reason: planted }), 2);
     await discard(e, a.draft_version_id);
     const stmts = aStmts(e.db);
     expect(stmts.length).toBeGreaterThan(8);

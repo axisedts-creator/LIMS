@@ -163,7 +163,7 @@ paths:
       x-permission: catalog.test.read
       x-context: tenant
       x-idempotency: none
-      x-idempotency-justification: "Read-only POST (query in the body): creates no state, so there is nothing to replay. No E1/E2 exception fits; see .orchestra/cr/T0C-10.C3.md."
+      x-idempotency-justification: "E3 read-only POST (LD-10): query in the body, no state written, nothing to replay."
       x-rate-limit-tier: general
       x-error-codes:
         - catalog.test_inactive
@@ -2766,8 +2766,8 @@ paths:
         - bearerJwt: []
       x-permission: catalog.test.manage
       x-context: tenant
-      x-idempotency: none
-      x-idempotency-justification: State action on an existing row, guarded by If-Match on its version (a repeat fails with common.version_conflict). No E1/E2 exception fits; see .orchestra/cr/T0C-10.C3.md.
+      # LD-10: no E-label fits a non-creating state action; optional per 02-CV 4.5 (If-Match guards repeats).
+      x-idempotency: optional
       x-rate-limit-tier: general
       x-error-codes:
         - catalog.version_in_use
@@ -2833,7 +2833,7 @@ paths:
       x-permission: catalog.test.read
       x-context: tenant
       x-idempotency: none
-      x-idempotency-justification: "Read-only POST (query in the body): creates no state, so there is nothing to replay. No E1/E2 exception fits; see .orchestra/cr/T0C-10.C3.md."
+      x-idempotency-justification: "E3 read-only POST (LD-10): query in the body, no state written, nothing to replay."
       x-rate-limit-tier: general
       x-error-codes: []
       requestBody:
@@ -3422,8 +3422,8 @@ paths:
         - bearerJwt: []
       x-permission: catalog.test.manage
       x-context: tenant
-      x-idempotency: none
-      x-idempotency-justification: State action on an existing row, guarded by If-Match on its version (a repeat fails with common.version_conflict). No E1/E2 exception fits; see .orchestra/cr/T0C-10.C3.md.
+      # LD-10: no E-label fits a non-creating state action; optional per 02-CV 4.5 (If-Match guards repeats).
+      x-idempotency: optional
       x-rate-limit-tier: general
       x-error-codes:
         - catalog.version_in_use
@@ -4001,8 +4001,8 @@ paths:
         - bearerJwt: []
       x-permission: catalog.test.manage
       x-context: tenant
-      x-idempotency: none
-      x-idempotency-justification: State action on an existing row, guarded by If-Match on its version (a repeat fails with common.version_conflict). No E1/E2 exception fits; see .orchestra/cr/T0C-10.C3.md.
+      # LD-10: no E-label fits a non-creating state action; optional per 02-CV 4.5 (If-Match guards repeats).
+      x-idempotency: optional
       x-rate-limit-tier: general
       x-error-codes:
         - catalog.version_in_use
@@ -4075,7 +4075,7 @@ paths:
       x-permission: catalog.test.read
       x-context: tenant
       x-idempotency: none
-      x-idempotency-justification: "Read-only POST (query in the body): creates no state, so there is nothing to replay. No E1/E2 exception fits; see .orchestra/cr/T0C-10.C3.md."
+      x-idempotency-justification: "E3 read-only POST (LD-10): query in the body, no state written, nothing to replay."
       x-rate-limit-tier: general
       x-error-codes: []
       requestBody:
@@ -4700,7 +4700,7 @@ paths:
       x-permission: catalog.referrer.read
       x-context: tenant
       x-idempotency: none
-      x-idempotency-justification: "Read-only POST (query in the body): creates no state, so there is nothing to replay. No E1/E2 exception fits; see .orchestra/cr/T0C-10.C3.md."
+      x-idempotency-justification: "E3 read-only POST (LD-10): query in the body, no state written, nothing to replay."
       x-rate-limit-tier: general
       x-error-codes: []
       requestBody:
@@ -5063,8 +5063,8 @@ paths:
         - bearerJwt: []
       x-permission: catalog.referrer.manage
       x-context: tenant
-      x-idempotency: none
-      x-idempotency-justification: State action on an existing row, guarded by If-Match on its version (a repeat fails with common.version_conflict). No E1/E2 exception fits; see .orchestra/cr/T0C-10.C3.md.
+      # LD-10: no E-label fits a non-creating state action; optional per 02-CV 4.5 (If-Match guards repeats).
+      x-idempotency: optional
       x-rate-limit-tier: general
       x-error-codes:
         - catalog.version_in_use
@@ -6233,8 +6233,8 @@ paths:
         - bearerJwt: []
       x-permission: catalog.price_list.manage
       x-context: tenant
-      x-idempotency: none
-      x-idempotency-justification: State action on an existing row, guarded by If-Match on its version (a repeat fails with common.version_conflict). No E1/E2 exception fits; see .orchestra/cr/T0C-10.C3.md.
+      # LD-10: no E-label fits a non-creating state action; optional per 02-CV 4.5 (If-Match guards repeats).
+      x-idempotency: optional
       x-rate-limit-tier: general
       x-error-codes:
         - catalog.version_in_use
@@ -6294,7 +6294,7 @@ paths:
       x-permission: catalog.price_list.read
       x-context: tenant
       x-idempotency: none
-      x-idempotency-justification: "Read-only POST (query in the body): creates no state, so there is nothing to replay. No E1/E2 exception fits; see .orchestra/cr/T0C-10.C3.md."
+      x-idempotency-justification: "E3 read-only POST (LD-10): query in the body, no state written, nothing to replay."
       x-rate-limit-tier: general
       x-error-codes: []
       requestBody:
@@ -6504,8 +6504,8 @@ paths:
         - bearerJwt: []
       x-permission: catalog.price_list.manage
       x-context: tenant
-      x-idempotency: none
-      x-idempotency-justification: State action on an existing row, guarded by If-Match on its version (a repeat fails with common.version_conflict). No E1/E2 exception fits; see .orchestra/cr/T0C-10.C3.md.
+      # LD-10: no E-label fits a non-creating state action; optional per 02-CV 4.5 (If-Match guards repeats).
+      x-idempotency: optional
       x-rate-limit-tier: general
       x-error-codes:
         - common.version_conflict
@@ -6899,8 +6899,8 @@ paths:
         - bearerJwt: []
       x-permission: catalog.price_list.manage
       x-context: tenant
-      x-idempotency: none
-      x-idempotency-justification: State action on an existing row, guarded by If-Match on its version (a repeat fails with common.version_conflict). No E1/E2 exception fits; see .orchestra/cr/T0C-10.C3.md.
+      # LD-10: no E-label fits a non-creating state action; optional per 02-CV 4.5 (If-Match guards repeats).
+      x-idempotency: optional
       x-rate-limit-tier: general
       x-error-codes:
         - common.validation_failed
@@ -7824,8 +7824,8 @@ paths:
         - bearerJwt: []
       x-permission: catalog.test.read
       x-context: tenant
-      x-idempotency: none
-      x-idempotency-justification: State action on an existing row, guarded by If-Match on its version (a repeat fails with common.version_conflict). No E1/E2 exception fits; see .orchestra/cr/T0C-10.C3.md.
+      # LD-10: no E-label fits a non-creating state action; optional per 02-CV 4.5 (If-Match guards repeats).
+      x-idempotency: optional
       x-rate-limit-tier: general
       x-error-codes:
         - catalog.import_not_committable

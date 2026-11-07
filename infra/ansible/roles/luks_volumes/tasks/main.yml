@@ -152,6 +152,15 @@
     group: root
     mode: "0700"
 
+# AC-14.1: grow online, e.g. lims-lv-grow.sh vg_storage/lv_storage +100G
+- name: LV grow helper (lvextend -r, online)
+  ansible.builtin.copy:
+    src: lims-lv-grow.sh
+    dest: /usr/local/sbin/lims-lv-grow.sh
+    owner: root
+    group: root
+    mode: "0700"
+
 - name: Unlock configuration
   ansible.builtin.template:
     src: unlock.conf.j2

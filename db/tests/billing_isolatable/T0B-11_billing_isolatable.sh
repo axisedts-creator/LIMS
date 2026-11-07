@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # T0B-11 / AC-0B-6.4 (04 D16, B17): runtime proof that `billing` is isolatable per tenant.
 #   seed billing rows for tenants A and B (incl. the FK chain invoices/invoice_lines/credit_notes/credit_note_lines/ledger_entries + one self-referencing reversal)
-#   -> `node db/tools/export-tenant-billing.ts --tenant A` -> restore the output into an EMPTY, really-migrated `billing` schema (second database, same migrations except storage (SP-3))
+#   -> `node db/tools/export-tenant-billing.ts --tenant A` -> restore the output into an EMPTY, really-migrated `billing` schema (second database, same migrations except storage (LD-52))
 #   -> per tenant table: row count and md5 checksum of A's rows match the source; zero rows of any other tenant; B's id/values absent from the output;
 #   source billing data unchanged by the export (read-only); a role under FORCE RLS gets an error, never a silently short export.
 # Run from the repo root:  bash db/tests/billing_isolatable/T0B-11_billing_isolatable.sh     Exit 0 = pass, 1 = assertion failed, 2 = environment.
@@ -35,15 +35,15 @@ RURL="postgres://supabase_admin:$SUPER_PW@127.0.0.1:$PORT/$RDB"
 SU -v lims_migrator_pw="$MIG_PW" -v lims_api_pw="$API_PW" -v lims_worker_pw="$WORKER_PW" -v lims_monitor_pw="$MON_PW" \
    -v lims_replicator_pw="$REPL_PW" -v lims_audit_ship_pw="$SHIP_PW" -v dbname="$DB" -f db/bootstrap/00_roles.sql
 build_db() { # $1 database: bootstrap + all migrations (same D-201 window as run-suites.sh)
-  # SP-3 (run-suites.sh:12): the `storage` schema exists only in the image's init database, so storage migrations run on $DB only; the restore target needs just `billing`.
+  # LD-52: skip every <timestamp>_storage__*.sql on BOTH databases (storage grant defect belongs to CR-C0-T0B-12 / T0B-12, out of scope for AC-0B-6.4; billing needs no storage).
   local d="$1" f STEP_C="20261105001200"
   [ "$d" = "$DB" ] || { SU -c "CREATE DATABASE $d"; SUD "$d" -c "CREATE SCHEMA IF NOT EXISTS extensions"; }  # fresh DB lacks the image's init-DB `extensions` schema (review round 4)
   SUD "$d" -c "CREATE EXTENSION IF NOT EXISTS pgtap WITH SCHEMA extensions"
   SUD "$d" -v dbname="$d" -f db/bootstrap/01_database.sql
-  for f in $(ls db/migrations/*.sql | sort); do case "$(basename "$f")" in *_storage__*) [ "$d" = "$DB" ] || continue;; esac; if [[ "$(basename "$f")" < "$STEP_C" ]]; then MIGD "$d" --single-transaction -f "/repo/$f"; fi; done
+  for f in $(ls db/migrations/*.sql | sort); do case "$(basename "$f")" in *_storage__*) continue;; esac; if [[ "$(basename "$f")" < "$STEP_C" ]]; then MIGD "$d" --single-transaction -f "/repo/$f"; fi; done
   if ! PGOPTIONS='-c role=lims_queue' PGPASSWORD="$MIG_PW" npx --no-install graphile-worker --schema-only -c "postgres://lims_migrator@127.0.0.1:$PORT/$d"; then
     echo "T0B-11: graphile-worker --schema-only failed"; exit 2; fi
-  for f in $(ls db/migrations/*.sql | sort); do case "$(basename "$f")" in *_storage__*) [ "$d" = "$DB" ] || continue;; esac; if [[ ! "$(basename "$f")" < "$STEP_C" ]]; then MIGD "$d" --single-transaction -f "/repo/$f"; fi; done
+  for f in $(ls db/migrations/*.sql | sort); do case "$(basename "$f")" in *_storage__*) continue;; esac; if [[ ! "$(basename "$f")" < "$STEP_C" ]]; then MIGD "$d" --single-transaction -f "/repo/$f"; fi; done
 }
 build_db "$DB"; build_db "$RDB"
 

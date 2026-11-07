@@ -3,6 +3,12 @@
 // replaces it with handlers/<operationId>.ts. [CONV] same one-list stub pattern as modules/lab/handlers/index.ts.
 import type { Handler } from '../../../core/module.js';
 import { LimsError } from '../../../core/errors.js';
+import { createRole } from './createRole.js';
+import { deactivateRole } from './deactivateRole.js';
+import { getRole } from './getRole.js';
+import { listPermissions } from './listPermissions.js';
+import { listRoles } from './listRoles.js';
+import { updateRole } from './updateRole.js';
 
 const OPERATION_IDS = [
   // auth (identity_auth)
@@ -37,6 +43,10 @@ const notImplemented = (operationId: string): Handler => async () => {
   throw new LimsError('common.internal', `identity ${operationId} not implemented`);
 };
 
+const implemented: Partial<Record<IdentityOperationId, Handler>> = {
+  listPermissions, listRoles, createRole, getRole, updateRole, deactivateRole,   // T14
+};
+
 export const handlers: Readonly<Record<IdentityOperationId, Handler>> = Object.freeze(
-  Object.fromEntries(OPERATION_IDS.map((op) => [op, notImplemented(op)])) as Record<IdentityOperationId, Handler>,
+  Object.fromEntries(OPERATION_IDS.map((op) => [op, implemented[op] ?? notImplemented(op)])) as Record<IdentityOperationId, Handler>,
 );

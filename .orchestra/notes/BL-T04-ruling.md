@@ -1,0 +1,9 @@
+TESTS_WRONG — the assertion is right, but the SimDb fixture models an INSERT the way Postgres does not, so the test fails for a reason the spec does not cover
+Reasons:
+1. The assertions at counter.concurrency.test.ts:46-48 (committed numbers contiguous 1..k, counter = k) are what the spec requires: 02-TRD.md:613 says counter UPDATE and document insert commit or roll back together, and 02-TRD.md:607 says a rollback leaves no gap. Keep the assertions as they are.
+2. 02-TRD.md:602 tells the service to run `INSERT … (last_no 0) ON CONFLICT DO NOTHING` inside the caller's tx when the row is missing, then retry the UPDATE once. The service does this.
+3. helpers.ts:66 makes a row from an uncommitted INSERT visible to every tx at once, and its undo (`rows.delete(k)`) removes the row while other txs are queued on its lock chain (helpers.ts:75-82). The next waiter then reads `undefined`, so `undefined + 1 = NaN`. Real PG 17 does not do this: other txs cannot see an uncommitted row, and a concurrent `ON CONFLICT DO NOTHING` waits for the inserting tx to finish. Reproduced: 1 failed | 6 passed, with `NaN` in `ok`.
+Change in the test (tester owns it):
+4. In SimDb, make a row created by INSERT visible only to the tx that created it until that tx commits. Another tx's UPDATE on that key returns 0 rows. Another tx's INSERT on that key waits until the creator commits or rolls back: on commit it becomes a no-op (conflict); on rollback this tx inserts the row itself (last_no 0) and its follow-up UPDATE takes the lock.
+5. Do NOT fix this by seeding the row (`db.rows.set(key,0)`). That would hide the missing-row path, which 02-TRD.md:602 requires and this burst test is the only one to exercise when concurrent and a caller fails.
+6. Implementation: no change. Once SimDb is fixed, re-run counter.concurrency.test.ts. If it still fails, the writer must take the failure back up.

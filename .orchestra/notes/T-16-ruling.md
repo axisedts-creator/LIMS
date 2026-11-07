@@ -1,0 +1,7 @@
+TESTS_WRONG — the test asserts something the spec does not require (2 cases in services/api/src/modules/catalog/__tests__/integration/creditParties.service.test.ts)
+
+1. Line 408: the loop includes `"'; DROP TABLE catalog.credit_parties; --"` (40 chars) and expects `[]`. The spec caps `q` at 20: contracts/openapi/catalog.yaml:5243-5248 (`q` maxLength 20) and spec/chunks/C3-catalog-pricing/02-TRD.md:290 (#67 `q` "code prefix only, ≤20"). The test's own line 415 (21 chars -> 400) agrees with that. So a 40-char q must get 400, not `[]`.
+   Change: replace that loop entry with an injection string of ≤20 chars, e.g. `"';DROP TABLE x;--"` (17 chars). Keep the line-409 check that no statement text contains `DROP TABLE`. REQ-SEC-082 (07-SECURITY.md:30; 01-PRD.md:159) needs bound parameters and escaped LIKE. It sets no length rule, so the shorter string tests the same thing.
+2. Line 606: `expect(probed.length).toBeGreaterThan(4)`. No spec line sets how many SELECT/UPDATE statements create/get/list/update must run. S-1 (07-SECURITY.md:122) and REQ-SEC-082 require tenant scoping and parameterisation, not a statement count. AC-12.1 (01-PRD.md:181) requires an auto `CP{seq:5}` code; nothing requires a SELECT during create. A threshold of `> 4` would force a read that no spec text asks for.
+   Change: use `toBeGreaterThanOrEqual(4)`. Lines 607–608 (tenant_id predicate + bound tenant A on every probed statement, no DELETE) stay as they are.
+No implementation change is required for these two cases.

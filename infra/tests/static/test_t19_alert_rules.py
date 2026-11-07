@@ -443,7 +443,10 @@ class EdgeMetricsScriptTest(unittest.TestCase):
             (self.out / "edge.prom").write_text(old, encoding="utf-8")
         env = dict(os.environ, FIX=self.tmp.as_posix(), TEXTFILE_DIR=self.out.as_posix(),
                    VL_URL="http://127.0.0.1:9428", PATH=str(self.bin) + os.pathsep + os.environ.get("PATH", ""))
-        r = subprocess.run([_bash(), "-c", "cd '%s' && bash '%s'" % (ROOT.as_posix(), EDGE_SH.as_posix())],
+        # Ruling C1.T-19-ruling: Git Bash's login profile prepends /mingw64/bin (real curl.exe), so put the fake first inside the shell.
+        cmd = ("command -v cygpath >/dev/null && B=\"$(cygpath -u '%s')\" || B='%s'; export PATH=\"$B:$PATH\"; "
+               "cd '%s' && bash '%s'" % (str(self.bin), self.bin.as_posix(), ROOT.as_posix(), EDGE_SH.as_posix()))
+        r = subprocess.run([_bash(), "-c", cmd],
                            env=env, capture_output=True, text=True, timeout=60, stdin=subprocess.DEVNULL)
         f = self.out / "edge.prom"
         return r, (f.read_text(encoding="utf-8") if f.exists() else "")

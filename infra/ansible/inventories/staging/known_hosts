@@ -1,0 +1,4 @@
+# Pinned SSH host keys, env staging (02-TRD s4; host key checking stays on).
+# One line per host: "<wg IP> <keytype> <base64 key>", hosts in 10.78.0.0/24.
+# Fetched over the provider console (providers/generic/checklist.md step 9).
+# Empty until the VMs exist; no wildcard entries.

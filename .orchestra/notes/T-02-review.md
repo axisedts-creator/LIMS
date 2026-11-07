@@ -1,9 +1,14 @@
-CHANGES
+APPROVE
 
-Diff b15267f..HEAD (ruling applied to provider scan) is correct and matches .orchestra/notes/T-02-ruling.md items 1-4; suite runs 22 OK, 1 skip. No secrets, no PHI, only owned paths, no invented names. Blocking gap: the LD-48 (binding) test list for the `lean` profile is not written, so `prod-lean/` and `staging-lean/` are untested (impl note T-02-impl.md "Open (1)" confirms).
+Diff b15267f..HEAD: test-only changes (infra/tests/static/test_t02_providers.py) + T-02 notes. All 5 items of the previous CHANGES review are fixed:
+1. ENVS now covers dev, staging, prod, staging-lean, prod-lean; layout/parse/subnet/known_hosts/public_ip/ansible-inventory loops run over all; `test_no_inventory_dir_escapes_the_tests` locks the set.
+2. LD-48 role mapping: prod-lean = prod-1 in data/app/ops only, backup-1 in `backup` only, `dr` empty; staging-lean = one VM; every role group has a host in each profile.
+3. LD-45 memory budget: `mem_problems` + gate self-check; prod-lean/prod-1 pinned to 32 GiB, sum 25.375 <= 27.2.
+4. prod-lean named default in infra/README.md and DECISION.md; scale triggers (CPU > 60 %, RAM > 80 %, 7 days, DB > 150 GB, second lab group) asserted.
+5. `backup` in lean GROUPS/GVARS; group_vars/backup.yml required.
+Provider scan matches T-02-ruling.md items 1-4 (hosting-context regex, vendored upstream skipped, 169.254.169.254 allowed only under tests/, planted self-check extended).
 
-1. infra/tests/static/test_t02_providers.py:27 — `ENVS = ("dev", "staging", "prod")` excludes `prod-lean` and `staging-lean`, so layout, parse, env-separation (wg subnet, public_ip uniqueness) and known_hosts checks (lines 140-221, 254-260) never touch the lean inventories. Fix: add a profile set, e.g. `PROFILES = {"full": ("dev","staging","prod"), "lean": ("dev","staging-lean","prod-lean")}`, map `SUBNET["prod-lean"]="10.77.0."`, `SUBNET["staging-lean"]="10.78.0."`, and run the parse / group_vars / known_hosts / public_ip / subnet tests over every inventory dir (lean and full may share a subnet per the [CONV] in T-02-impl.md — exclude only the same-env pair from the cross-subnet assertion).
-2. infra/tests/static/test_t02_providers.py:139-174 — missing LD-48 test "every role maps to at least one host in each profile". Fix: add a test that for `prod-lean` asserts `prod-1` ∈ data, app, ops; `backup-1` ∈ new group `backup` and in no other group; `dr` empty (no hot standby, LD-45); `staging-lean` = exactly one VM. For `prod` keep the existing 4-host check. Read host names from the inventory, not literals, except where LD-48 names them.
-3. infra/tests/static/test_t02_providers.py (new test) — missing LD-48 test "Σ mem_limit <= 85 % RAM per host in both profiles". Fix: for every host carrying `host_ram_gib` + `mem_limit_gib`, assert `sum(replicas*gib) <= 0.85*host_ram_gib` (prod-lean/prod-1: <= 27.2); fail if a lean prod-1 lacks either key.
-4. infra/tests/static/test_t02_providers.py (new test) — missing LD-48 test "`prod-lean` documented as the default in infra/README.md and DECISION.md". Fix: assert both infra/README.md and infra/ansible/inventories/DECISION.md name `prod-lean` as default and list the scale triggers from LD-45 (CPU > 60 %, RAM > 80 %, DB > 150 GB, second lab group) in DECISION.md.
-5. infra/tests/static/test_t02_providers.py:28-29 — `GROUPS`/`GVARS` omit `backup`; `test_required_files_per_env` should require `group_vars/backup.yml` in both lean inventories (file exists today, so this only locks it in) and `test_all_four_groups_in_every_hosts_yml` should require `backup` in lean prod.
+Ran: T-02 suite 33 tests OK, 1 skip (ansible-inventory off CI, LD-17). yamllint on infra/ansible/inventories + infra/providers clean.
+Not T-02: T-01 suite has 3 failures (gitleaks on infra/compose/supabase/upstream/.env.example, yamllint on compose/supabase/override.app.yml, run.sh line-length) — all T-05 paths, outside this diff.
+No secrets, no PHI, only owned paths, no invented names. RLS/permissions/error codes N/A (inventory task).
+Carry-over (not blocking): T-09/T-11 must target group `backup` (not `dr`) in lean; backup-1 has no mem budget in LD-45.

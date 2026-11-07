@@ -1,7 +1,7 @@
 // @lims/shared-ts/errors (02-TRD §3.1; CV §4.6 problem+json; REQ-SEC-095: no internals in responses).
 // Needs T0C-02 `contracts/ports/common.ts` + T0C-05 `contracts/ports/generated/error-codes.ts` — see .orchestra/cr/T0A-08.md.
 import { LimsError } from '@lims/contracts/ports/common';
-import type { ErrorCode, FieldError } from '@lims/contracts/ports/common';
+import type { ErrorCode, FieldError, Uuidv7 } from '@lims/contracts/ports/common';
 import { ERROR_META } from '@lims/contracts/ports/generated/error-codes';
 
 export { LimsError };
@@ -24,7 +24,7 @@ export function isLimsError(e: unknown, code?: ErrorCode): e is LimsError {
 }
 
 /** Any throwable -> CV §4.6 Problem. Non-LimsError (or unregistered code) -> 500 common.internal with request_id only. */
-export function toProblem(err: unknown, instance: string, requestId: string): Problem {
+export function toProblem(err: unknown, instance: string, requestId: Uuidv7): Problem {
   const known = isLimsError(err) && Object.hasOwn(META, err.code) ? err : undefined;
   const code = (known ? known.code : 'common.internal') as ErrorCode;
   const m = META[code]!;

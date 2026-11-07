@@ -21,8 +21,8 @@ List<Map<String, dynamic>> _cases() {
   return (j['cases'] as List).cast<Map<String, dynamic>>();
 }
 
-m.Money _m(Object n) => m.money(n as int);
-List<int> _ints(Object l) => (l as List).cast<int>();
+m.Money _m(Object? n) => m.money(n! as int);
+List<int> _ints(Object? l) => (l! as List<Object?>).cast<int>();
 
 // Independent BigInt oracle.
 BigInt _pct(int a, int bp) =>

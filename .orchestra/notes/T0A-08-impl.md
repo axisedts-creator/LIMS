@@ -5,4 +5,4 @@
 - [CONV] crypto: timingSafeEqualStr compares sha256 digests (no length leak). clock: local IsoUtc brand (as uuidv7) until contracts resolve.
 - [CONV] validation: ajv strict + allErrors, compiled-schema WeakMap cache, ≤100 fieldErrors, codes field_required / unknown_field / field_invalid, ajv constraint messages only (no values). errors: ERROR_HTTP derived from assumed `ERROR_META{http,title}`.
 - Open: ajv has no ajv-formats → strict compile throws on `uuid`/`date-time` formats; decide if shared-ts adds ajv-formats. Free-text secrets without a digit after keyword ("password hunter") not scrubbed. bsdate tests fail pre-existing (missing test-fixtures golden JSON, T0A-06).
-- tsconfig exclude of errors/validation/types keeps `pnpm -w build` green; remove when CR lands.
+- Review fixes: toProblem requestId: Uuidv7; mobile scrubber `9\d{9}` (96x too); DENY + comment/critical/test_name/panel_name/smart_report; child() never throws. verify.cmd 79/79, tsc clean. tsconfig exclude stays until C0-0C fixes TS2835 in contracts/ports/common.ts.

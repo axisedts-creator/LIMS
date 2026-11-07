@@ -1,6 +1,7 @@
-TESTS_WRONG — both disputed assertions were test defects, not spec requirements; tester already fixed them in c05f65a (no further test change needed).
-1. `infra/tests/static/test_t01_skeleton.py` (old :232) `list + tuple` TypeError: spec requires only that every 02-TRD §8.2 id be present per env (spec/chunks/C1-infrastructure-ops/02-TRD.md:653; task done_when "schema covers every id of 02-TRD s8.2"). A TypeError is no spec behaviour. Now :236 `UPSTREAM_IDS + TABLE_IDS` with both lists — correct.
-2. Old :119/:141-144 passed `str(Path)` to Git-Bash. Spec only requires static gates run (02-TRD.md:1011); path quoting is harness detail. Now :120/:147 use `.as_posix()` — correct. Matches LD-17.
-3. Remaining local failure `test_yamllint_clean` ("`yamllint` not on PATH") is NOT a test defect: 02-TRD.md:1011 lists yamllint as a static gate and LD-17 makes yamllint required locally (pip). Environment must install it (`pip install yamllint`); test stays as is.
-4. ansible-lint skip locally / required when CI=true per LD-17; not disputed.
-Verified: `python -m unittest discover -s infra/tests/static` → 27 run, 1 fail (yamllint missing), 1 skip.
+TESTS_WRONG
+Change (owner C0-0D, no production change): the 5 failing tests fail only on vitest's default 5000 ms timeout, which no spec line requires. Give the first boot of each file headroom: boot once in `beforeAll` with a 30000 ms hook timeout, or pass `{ timeout: 30000 }` to the first `it` in boot.test.ts:15, errors.test.ts (describe at :144), health.test.ts (first test, :18), openapi.test.ts:11 (O1), observability/__tests__/http.test.ts:49. Assertions stay unchanged.
+Reasons:
+- C3 has to autoload. 01-CHUNK-MAP.md:183-187 says the core scans `src/modules/*/index.ts`, and the T-01 brief done_when says "Module autoloads; one handler per catalog.yaml operationId". So the catalog implementation is correct as written.
+- No spec line sets a boot-time or test-time budget. Grep of spec/ for boot/startup with ms/s values found nothing in C0 or C3 docs.
+- Correction to the dispute: none of these 5 tests boots the real modules dir. core/__tests__/helpers.ts:28 uses a fixture `modulesDir`, observability/__tests__/helpers.ts:35 uses EMPTY_MODULES, and errors.test.ts:62 uses fixtures/errors/modules. bootstrap.ts:50 only autoloads the `modulesDir` it is given. So catalog.yaml is not compiled inside these tests. The slowdown comes from CPU contention in the parallel suite (for example catalog skeleton.test.ts:58 autoloads all 107 ops). The LD for boot.test.ts:146/161 (fixture modulesDir) is therefore not the fix here.
+- The suite gets slower as each module lands (C4+), so a fixed 5000 ms first boot under parallel load is a test-harness assumption, not a spec obligation.

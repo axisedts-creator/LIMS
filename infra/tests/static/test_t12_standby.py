@@ -258,12 +258,22 @@ class RoleStaticTest(unittest.TestCase):
 
     def test_enabled_only_in_full_profile_with_a_dr_host(self):  # LD-45: no hot standby in lean
         self.assertTrue(self._enabled("full", topology_profile="full"))
-        self.assertTrue(self._enabled("full"), "inventories without topology_profile are `full`")
+        # LD-45: fail closed. `lean` is the prod default and its `dr` group is backup-1.
+        try:
+            on = self._enabled("full")
+        except Exception:  # an explicit failure on a missing var is also closed
+            on = False
+        self.assertFalse(on, "inventory without topology_profile must NOT enable a standby (LD-45 fail closed)")
         self.assertFalse(self._enabled("lean", topology_profile="lean"), "lean: backup host in `dr` must not get a standby")
         self.assertFalse(self._enabled("dev"), "dev: empty dr group")
         c = dict(ctx("full", topology_profile="full"), groups={**PROFILES["full"]["groups"], "dr": []})
         d = yaml.safe_load(need(ROLE / "defaults" / "main.yml"))["standby_enabled"]
         self.assertNotEqual(str(ENV.from_string(d).render(**c)).strip().lower(), "true", "full but no dr host")
+
+    def test_missing_topology_profile_is_asserted(self):  # LD-45 review item 1
+        t = need(ROLE / "tasks" / "main.yml")
+        self.assertRegex(t, r"topology_profile")
+        self.assertRegex(t, r"ansible\.builtin\.assert|\bassert:", "tasks must assert topology_profile is defined and in [full, lean]")
 
     def test_all_work_is_gated_on_standby_enabled(self):  # empty dr / lean = installs nothing, starts nothing
         tasks = yaml.safe_load(need(ROLE / "tasks" / "main.yml"))

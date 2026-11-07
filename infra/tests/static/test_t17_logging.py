@@ -272,6 +272,13 @@ class RenderedConfTest(unittest.TestCase):
             self.assertTrue(s.get("storage.path"), "storage.path")
             self.assertIn("parsers.conf", s.get("parsers_file", ""))
 
+    def test_health_check_on_because_role_probes_api_v1_health(self):
+        # review T-17: Fluent Bit serves /api/v1/health only with Health_Check On; the role waits on it.
+        self.assertIn("/api/v1/health", "\n".join(role_text("tasks").values()), "role no longer probes /api/v1/health; drop this test")
+        for prof, host, c, text, secs in self.each():
+            s = sections(secs, "SERVICE")[0]
+            self.assertEqual(s.get("health_check", "").lower(), "on", "%s/%s: [SERVICE] needs Health_Check On" % (prof, host))
+
     def test_inputs_tagged_and_buffered_to_disk(self):
         for prof, host, c, text, secs in self.each():
             ins = sections(secs, "INPUT")
@@ -555,6 +562,15 @@ class ScrubBehaviourTest(unittest.TestCase):
             blob = self.dump(f)
             self.assertIsNone(re.search(r"9841234567|984-1234567|98-41-234567|9812345678", blob), "phone survived in %r -> %r" % (s, blob))
             self.assertTrue(f.get("msg", "").startswith("call"), "surrounding text kept for %r" % s)
+
+    def test_uuids_not_mistaken_for_phone_numbers(self):  # review T-17: CONVENTIONS s9.2 UUIDs stay intact
+        uuids = ("0b1c2d3e-9123-4567-89ab-cdef01234567", "9123abcd-1234-4567-89ab-123456789012")
+        for u in uuids:
+            code, f = run_scrub({"request_id": u, "msg": "id " + u + " done"})
+            self.assertEqual(f.get("request_id"), u, "UUID altered: %r" % f.get("request_id"))
+            self.assertEqual(f.get("msg"), "id " + u + " done")
+        code, f = run_scrub({"a": "call 9841234567 now", "b": "call +977-9841234567 now"})
+        self.assertNotIn("9841234567", self.dump(f), "real phones must still be redacted")
 
     def test_bearer_and_jwt_in_values(self):
         jwt = "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJzeW50aCJ9.c2lnbmF0dXJl"

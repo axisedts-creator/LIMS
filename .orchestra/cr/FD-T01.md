@@ -1,4 +1,4 @@
-Title: CR-C4-001: core ajv must accept the `x-coded-set` schema annotation so specs using it can mount
+Title: FD-T01: core ajv must accept the `x-coded-set` schema annotation so specs using it can mount
 From chunk: C4-frontdesk-billing            To owner: C0-0D (services/api/src/core/openapi.ts)
 Type: shared-lib
 Blocking? yes — FD-T01 done_when "Core boots with module". 3 boot tests in services/api/src/modules/frontdesk/__tests__/unit/boot.test.ts fail; 27/30 vitest + 9/9 node:test pass.

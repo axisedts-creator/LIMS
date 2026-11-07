@@ -19,7 +19,7 @@ export interface InsertRecord { id: string; tenantId: string | null; annexCode: 
 export interface TransitionFields { submittedOn?: string; completedOn?: string; referenceNo?: string }
 export interface EventArg { recordId: string; tenantId: string | null; fromStatus: AnnexStatus | null; toStatus: AnnexStatus; note?: string; actorId: string; occurredAt: Date }
 export interface PlatformEventArg {
-  eventType: 'annex_1_changed' | 'ird_document_downloaded'; targetType: string; targetId: string; targetTenantId: string | null; detail: Record<string, unknown>;
+  eventType: 'annex_1_changed' | 'ird_document_downloaded' | 'dead_letter_viewed'; targetType: string; targetId: string; targetTenantId: string | null; detail: Record<string, unknown>;
   actorPlatformStaffId: string; actorId: string; requestId?: string; clientIp?: string;
 }
 export interface DocInsert {

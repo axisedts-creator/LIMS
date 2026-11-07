@@ -2,6 +2,7 @@
 // Every stub refuses with common.service_unavailable (503) until its task (BL-T03..) replaces it; never a 2xx (REQ-SEC-099).
 import { LimsError } from '../../../core/errors.js';
 import type { Handler } from '../../../core/module.js';
+import { cbmsHandlers } from './cbms.handlers.js';
 import { creditHandlers } from './credit.handlers.js';
 import { invoiceHandlers } from './invoice.handlers.js';
 import { ledgerHandlers } from './ledger.handlers.js';
@@ -55,4 +56,6 @@ export const handlers: Readonly<Record<(typeof OPERATION_IDS)[number], Handler>>
   listRefundRequests: ledgerHandlers['listRefundRequests']!,
   listFinanceReviewItems: ledgerHandlers['listFinanceReviewItems']!,
   resolveFinanceReviewItem: ledgerHandlers['resolveFinanceReviewItem']!,
+  listCbmsDocuments: cbmsHandlers['listCbmsDocuments']!,
+  retryCbmsDocument: cbmsHandlers['retryCbmsDocument']!,
 });

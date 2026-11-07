@@ -40,6 +40,10 @@ export interface InvoiceCtx {
 interface Counter { allocate(tx: never, input: { tenantId: string; series: string; fiscalYearBs: string; actorId: string; invoiceNoPattern?: string; timezone?: string }): Promise<{ lastNo: number; allocatedAt: string }> }
 
 export const DOWNTIME_MAX_HOURS_KEY = 'downtime_backentry_max_hours';
+// LD-26 (2026-11-07, A33-3 training tenant, BL-T14): tenant setting `trainingMode` (set at provisioning only), read through the C2 settings port (CR C2.T16 adds the key).
+// true => invoice numbers carry `TRN-`, cbms_state / cbms_cancel_state are not_required and no CBMS job is queued. The CN prefix is unspecified: credit-note numbers stay as patterned.
+const TRAINING_KEY = 'trainingMode';
+const TRAINING_PREFIX = 'TRN-';
 const DEFAULT_MAX_HOURS = 72;
 const MAX_REF_CHARS = 32;
 const HOUR_MS = 3_600_000;
@@ -194,7 +198,8 @@ export function createInvoiceService(deps: { repo?: BillingRepo; counter: Counte
 
     const nowIso = ctx.now();
     const backEntry = isRec(input['entry']) && input['entry']['mode'] === 'downtime_backentry';
-    const tenant = await idp.getTenantSettings(ctx, { keys: ['numbering', 'ird', 'branding', 'timezone', ...(backEntry ? [DOWNTIME_MAX_HOURS_KEY] : [])] });
+    const tenant = await idp.getTenantSettings(ctx, { keys: ['numbering', 'ird', 'branding', 'timezone', TRAINING_KEY, ...(backEntry ? [DOWNTIME_MAX_HOURS_KEY] : [])] });
+    const training = tenant?.[TRAINING_KEY] === true; // LD-26
     const entry = checkEntry(input['entry'], Date.parse(nowIso), tenant?.[DOWNTIME_MAX_HOURS_KEY]);
 
     // the fingerprint is recomputed from the submitted lines/discounts: never trusted (catalog.tax_config_missing propagates)
@@ -220,14 +225,14 @@ export function createInvoiceService(deps: { repo?: BillingRepo; counter: Counte
 
     // ---- allocation LAST: no repo call between this line and insertInvoice (TRD §12) ----
     const { lastNo, allocatedAt } = await deps.counter.allocate(tx, { tenantId, series, fiscalYearBs: fy.long, actorId, invoiceNoPattern: pattern, timezone });
-    const invoiceNo = formatDocumentNumber(pattern, { fy, seq: lastNo, scope: scope as SeriesScope, ...(branchCode === undefined ? {} : { branch: branchCode }) });
+    const invoiceNo = (training ? TRAINING_PREFIX : '') + formatDocumentNumber(pattern, { fy, seq: lastNo, scope: scope as SeriesScope, ...(branchCode === undefined ? {} : { branch: branchCode }) });
     const invoiceId = uuidv7();
     const t = quote.totals;
     const buyer = input['buyer'] as { name: string; pan?: string; address?: string };
     const net = t.net.amountPaisa;
     const limit = tenant?.ird?.abbreviatedInvoiceLimitPaisa;
     const kind = settings['abbreviated_invoice_enabled'] === true && buyer.pan === undefined && typeof limit === 'number' && net <= limit ? 'abbreviated_tax_invoice' : 'tax_invoice';
-    const cbmsRequired = tenant?.ird?.cbmsRealtimeRequired !== false; // unknown = required: never silently skip the tax authority
+    const cbmsRequired = !training && tenant?.ird?.cbmsRealtimeRequired !== false; // unknown = required: never silently skip the tax authority; a training tenant never syncs (LD-26)
     const addressLines: unknown = tenant?.branding?.addressLines;
 
     try {
@@ -410,7 +415,7 @@ export function createInvoiceService(deps: { repo?: BillingRepo; counter: Counte
     const idp = ctx.ports?.IdentityPort;
     if (!idp) throw new LimsError('common.internal');
     const nowIso = ctx.now();
-    const tenant = await idp.getTenantSettings(ctx, { keys: ['numbering', 'ird', 'timezone'] });
+    const tenant = await idp.getTenantSettings(ctx, { keys: ['numbering', 'ird', 'timezone', TRAINING_KEY] });
     const pattern = tenant?.numbering?.creditNoteNoPattern;
     // CN pattern problems -> common.internal: the only fitting code declared on cancelInvoice/issuePartialCreditNote (review BL-T10 item 2)
     if (typeof pattern !== 'string') throw new LimsError('common.internal');
@@ -419,7 +424,7 @@ export function createInvoiceService(deps: { repo?: BillingRepo; counter: Counte
     // dry-run with seq 1 BEFORE allocating, so a broken pattern consumes no number
     try { formatDocumentNumber(pattern, { fy, seq: 1, scope: 'tenant' }); }
     catch (e) { throw isLimsError(e, 'common.validation_failed') ? new LimsError('common.internal') : e; }
-    const cbmsRequired = tenant?.ird?.cbmsRealtimeRequired !== false; // unknown = required: never silently skip the tax authority
+    const cbmsRequired = tenant?.[TRAINING_KEY] !== true && tenant?.ird?.cbmsRealtimeRequired !== false; // unknown = required: never silently skip the tax authority; training never syncs (LD-26)
     const cbmsState = cbmsRequired ? 'pending' : 'not_required';
     const tot = sumParts(a.picks.map((p) => p.parts));
     const priorCredited = toPaisa(inv['credited_total_paisa']);

@@ -2,7 +2,7 @@
 import { insertActivity } from './activity.repo.js';
 import { getOrderBalance, listDues, lockOrderBalance, readOrderTotals, upsertOrderBalance } from './balances.repo.js';
 import { closeCashSession, findOpenCashSession, getCashSession, insertCashSession, listCashSessionsForDay } from './cashSessions.repo.js';
-import { enqueueCbmsSync } from './cbms.repo.js';
+import { enqueueCbmsSync, getCbmsDocumentForUpdate, insertCbmsSubmission, listCbmsDocuments, recordCbmsAttempt, resetCbmsToPending } from './cbms.repo.js';
 import { getCreditAccount, listCreditAccounts, readCreditPartyStatement, sumOpenCreditExposure, updateCreditAccount, upsertCreditAccount } from './creditAccounts.repo.js';
 import { insertCreditCharges, listCreditChargesByOrder, listCreditChargesByParty, lockUninvoicedCreditCharges, markCreditChargesInvoiced, voidCreditChargesByIds } from './creditCharges.repo.js';
 import { getCreditNote, insertCreditNote, insertCreditNoteLines, listCreditNoteLines, listCreditNoteLinesByInvoice, markCreditNotePrinted } from './creditNotes.repo.js';
@@ -36,5 +36,7 @@ export const billingRepo = {
   getFinanceReviewItem, pageFinanceReviewItems, resolveFinanceReviewItem,
   // BL-T09
   getInvoice, sumCreditedByLine, getCreditNote, listCreditNoteLines, markInvoicePrinted, markCreditNotePrinted, insertPrintLog,
+  // BL-T14
+  getCbmsDocumentForUpdate, insertCbmsSubmission, recordCbmsAttempt, resetCbmsToPending, listCbmsDocuments,
 };
 export type BillingRepo = typeof billingRepo;

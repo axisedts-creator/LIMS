@@ -193,7 +193,7 @@ SELECT is(pg_temp.a('UPDATE lab.specimens SET status = ''collected'', collected_
 SELECT alike(pg_temp.a('UPDATE lab.specimens SET status = ''bogus'' WHERE id = ' || quote_literal(pg_temp.uid(32))), 'E23514|%specimens__status__ck%', 'specimens.status CHECK');
 SELECT alike(pg_temp.a('UPDATE lab.specimens SET received_at = now() WHERE id = ' || quote_literal(pg_temp.uid(32))), 'E23514|%specimens__received_has_centre__ck%', 'received without processing centre -> CHECK');
 SELECT alike(pg_temp.a('UPDATE lab.result_versions SET value_numeric = 1 WHERE id = ' || quote_literal(pg_temp.uid(61))), 'EP0001|immutable_row%', 'C5 check 6: result_versions value frozen (evaluation columns written at insert only)');
-SELECT alike(pg_temp.a('UPDATE lab.result_versions SET approved_at = now() WHERE id = ' || quote_literal(pg_temp.uid(61))), 'EP0001|immutable_row%', 'C5 check 6: result_versions.approved_at frozen');
+SELECT alike(pg_temp.a('UPDATE lab.result_versions SET approved_at = now() + interval ''1 second'' WHERE id = ' || quote_literal(pg_temp.uid(61))), 'EP0001|immutable_row%', 'C5 check 6: result_versions.approved_at frozen');
 SELECT is(pg_temp.a('UPDATE lab.result_versions SET superseded_at = now(), superseded_by_version_no = 2, version = version + 1 WHERE id = ' || quote_literal(pg_temp.uid(61))), 'n=1', 'C5 check 6: result_versions supersede columns are updatable');
 SELECT alike(pg_temp.a(format($$ INSERT INTO lab.result_versions (id, tenant_id, centre_id, result_id, version_no, origin, is_critical, approved_at, approved_by_membership_id, created_by, updated_by)
   VALUES (%L, %L, %L, %L, 2, 'manual', false, now(), %L, %L, %L) $$, pg_temp.uid(62), pg_temp.ta(), pg_temp.id('00000000a201'), pg_temp.uid(51), pg_temp.id('00000000a500'), pg_temp.sys(), pg_temp.sys())), 'E23514|%result_versions__amend__ck%',
@@ -237,6 +237,7 @@ SELECT is(pg_temp.a('SELECT 1 FROM lab.v_pub_result_daily WHERE results_resulted
 SELECT is(pg_temp.b('SELECT 1 FROM lab.v_pub_result_daily', 'n'), 'n=0', 'v_pub_result_daily: tenant B sees none of A''s results');
 SELECT is(pg_temp.a($$ SELECT value_numeric FROM lab.v_pub_qc_result WHERE control_id_raw = 'QC-L1' $$, 's'), '4.9', 'v_pub_qc_result.value_numeric is a text decimal');
 SELECT is(pg_temp.dev(pg_temp.id('00000000a201'), 'SELECT 1 FROM lab.v_pub_qc_result'), 'n=1', 'v_pub_qc_result follows centre RLS');
+SELECT pg_temp.a('UPDATE lab.results SET current_version_no = 1 WHERE id = ' || quote_literal(pg_temp.uid(51)));
 SELECT is(pg_temp.a('SELECT 1 FROM lab.v_result_current WHERE id = ''' || pg_temp.uid(51) || ''' AND cur_value_numeric = 5.1 AND cur_approved_at IS NOT NULL', 'n'), 'n=1', 'v_result_current joins the current version of an approved result');
 SELECT is(pg_temp.a('SELECT 1 FROM lab.v_result_current WHERE id = ''' || pg_temp.uid(53) || ''' AND cur_value_numeric IS NULL', 'n'), 'n=1', 'v_result_current: non-approved result has no current version columns');
 

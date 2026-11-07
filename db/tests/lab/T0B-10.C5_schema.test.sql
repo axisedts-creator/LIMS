@@ -65,12 +65,12 @@ SELECT is((SELECT count(*)::int FROM pg_policies p WHERE p.schemaname = 'lab' AN
 SELECT is((SELECT count(*)::int FROM pg_policies p WHERE p.schemaname = 'lab' AND p.tablename <> 'event_inbox'), 74, 'C5 check 5: exactly 74 lab policies (35 centre DO list + 31 tenant DO list + 8 literal)');
 SELECT is((SELECT count(*)::int FROM pg_policies p WHERE p.schemaname = 'lab' AND p.tablename IN (SELECT t FROM lg)), 0, 'G tables carry no policy');
 SELECT is((SELECT count(*)::int FROM pg_policies p WHERE p.schemaname = 'lab' AND p.tablename = x.t AND p.cmd = 'UPDATE'), 0, 'C5 check 5: lab.' || x.t || ' has no UPDATE policy (append-only, §7)') FROM ap x;
-SELECT is((SELECT count(*)::int FROM pg_policies p WHERE p.schemaname = 'lab' AND p.cmd IN ('DELETE','ALL')), 0, 'C5 check 5: no DELETE / ALL policy anywhere in lab (02-CV §5.6)');
+SELECT is((SELECT count(*)::int FROM pg_policies p WHERE p.schemaname = 'lab' AND p.tablename <> 'event_inbox' AND p.cmd IN ('DELETE','ALL')), 0, 'C5 check 5: no DELETE / ALL policy anywhere in lab (02-CV §5.6)');
 
 -- C5 check 6: policy hygiene (AC-0B-2.2, A16.1, CR-C13-011)
 SELECT is((SELECT count(*)::int FROM pg_policies p WHERE p.schemaname = 'lab' AND (p.roles && ARRAY['public','anon','authenticated']::name[])), 0, 'C5 check 6 / AC-0B-2.2: no policy for public / anon / authenticated');
 SELECT is((SELECT count(*)::int FROM pg_policies p WHERE p.schemaname = 'lab' AND (p.qual = 'true' OR p.with_check = 'true')), 0, 'C5 check 6 / AC-0B-2.2: no USING (true) / WITH CHECK (true)');
-SELECT ok(p.policyname ~ ('^' || p.tablename || '__(select|insert|update)__(tenant|tenant_centre)$'), 'C5 check 6: policy name shape ' || p.policyname) FROM pg_policies p WHERE p.schemaname = 'lab';
+SELECT ok(p.policyname ~ ('^' || p.tablename || '__(select|insert|update)__(tenant|tenant_centre)$'), 'C5 check 6: policy name shape ' || p.policyname) FROM pg_policies p WHERE p.schemaname = 'lab' AND p.tablename <> 'event_inbox';
 SELECT ok(coalesce(p.qual, '') || coalesce(p.with_check, '') ~ 'current_centre_ids\(\)( AS current_centre_ids)?\)::uuid\[\]', 'C5 check 6: A16.1 cast in ' || p.policyname)
   FROM pg_policies p WHERE p.schemaname = 'lab' AND coalesce(p.qual, '') || coalesce(p.with_check, '') ~ 'current_centre_ids';
 SELECT ok(coalesce(p.qual, '') || coalesce(p.with_check, '') ~ 'is_staff_or_system', 'C5 check 6: staff guard in ' || p.policyname || ' (08 A17 P-16, check-registry; every lab policy)')

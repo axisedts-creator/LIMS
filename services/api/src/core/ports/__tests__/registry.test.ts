@@ -176,6 +176,7 @@ describe('PORT_CONSUMERS enforcement (AC-0D-6.4, 08 A19 P-46)', () => {
     expect(got).toMatchObject({ kind: 'real', port: 'CatalogPort' });
     expect(l.events('port_consumer_not_listed')).toHaveLength(1);
     expect(m.counter('lims_core_port_consumer_not_listed_total')).toBe(1);
+    expect(m.labelsOf('lims_core_port_consumer_not_listed_total')).toEqual([{ module: 'instruments', port: 'CatalogPort' }]);
   });
 
   it('no implicit owner access: billing owns BillingCommandPort but only frontdesk is listed -> billing read throws', () => {

@@ -65,13 +65,15 @@ export function makeLog() {
 export function makeMetrics() {
   const gauges = new Map<string, number>();
   const counters = new Map<string, number>();
+  const calls: Array<{ name: string; labels?: Record<string, string>; by: number }> = [];
   return {
     metrics: {
       setGauge: (name: string, v: number) => { gauges.set(name, v); },
-      inc: (name: string, _labels?: Record<string, string>, by = 1) => { counters.set(name, (counters.get(name) ?? 0) + by); },
+      inc: (name: string, labels?: Record<string, string>, by = 1) => { calls.push({ name, labels, by }); counters.set(name, (counters.get(name) ?? 0) + by); },
     },
     gauge: (n: string) => gauges.get(n),
     counter: (n: string) => counters.get(n) ?? 0,
+    labelsOf: (n: string) => calls.filter((c) => c.name === n).map((c) => c.labels),
   };
 }
 

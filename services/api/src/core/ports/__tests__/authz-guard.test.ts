@@ -104,6 +104,7 @@ describe.each(['production'] as const)('%s', (env) => {
     expect(l.events('authz_not_asserted')).toHaveLength(1);
     expect(l.events('authz_not_asserted')[0]).toMatchObject({ operationId: 'createWidget' });
     expect(m.counter('lims_core_authz_not_asserted_total')).toBe(1);
+    expect(m.labelsOf('lims_core_authz_not_asserted_total')).toEqual([{ operation_id: 'createWidget' }]);
   });
 
   it('asserted request: no log, no metric', async () => {

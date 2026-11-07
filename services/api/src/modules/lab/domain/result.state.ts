@@ -34,7 +34,8 @@ export function resultTransition(
   const id = lookup(from, to);
   if (!id) throw new LimsError('lab.result_invalid_transition');
   if ((id === 'R4' || id === 'R6') && guards.onHold) throw new LimsError('lab.result_on_hold');
-  if (id === 'R6' && guards.verifiedBy !== undefined && guards.approvedBy === guards.verifiedBy) {
+  // S-02 fail closed: a missing verifier or approver id is treated as self-approval.
+  if (id === 'R6' && (!guards.verifiedBy || !guards.approvedBy || guards.approvedBy === guards.verifiedBy)) {
     throw new LimsError('lab.self_approval_forbidden');
   }
   return id;

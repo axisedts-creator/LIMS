@@ -31,21 +31,20 @@ const TABLE: Readonly<Record<SpecimenStatus, Readonly<Partial<Record<SpecimenSta
   discarded: { stored: 'S14', reported: 'S14', rejected: 'S14', recollection_ordered: 'S14' },
 };
 
-function lookup(from: SpecimenStatus | null, to: SpecimenStatus, isActive: boolean): SpecimenTransitionId | undefined {
-  const id = TABLE[to]?.[from ?? ABSENT];
-  // 03-APP-FLOW §1.1: an inactive specimen only accepts storage / disposal.
-  if (!isActive && id !== 'S13' && id !== 'S14') return undefined;
-  return id;
-}
+const lookup = (from: SpecimenStatus | null, to: SpecimenStatus): SpecimenTransitionId | undefined => TABLE[to]?.[from ?? ABSENT];
+// 03-APP-FLOW §1.1: an inactive specimen only accepts storage / disposal.
+const blockedWhenInactive = (id: SpecimenTransitionId, isActive: boolean): boolean => !isActive && id !== 'S13' && id !== 'S14';
 
 export function isSpecimenTransitionAllowed(from: SpecimenStatus | null, to: SpecimenStatus, opts: { isActive?: boolean } = {}): boolean {
-  return lookup(from, to, opts.isActive ?? true) !== undefined;
+  const id = lookup(from, to);
+  return id !== undefined && !blockedWhenInactive(id, opts.isActive ?? true);
 }
 
-/** Returns the 03-IC transition id; throws lab.specimen_invalid_transition (409) otherwise. */
+/** Table first (409 lab.specimen_invalid_transition), then activity (409 lab.specimen_inactive, CR-C5-005). */
 export function specimenTransition(from: SpecimenStatus | null, to: SpecimenStatus, opts: { isActive?: boolean } = {}): SpecimenTransitionId {
-  const id = lookup(from, to, opts.isActive ?? true);
+  const id = lookup(from, to);
   if (!id) throw new LimsError('lab.specimen_invalid_transition');
+  if (blockedWhenInactive(id, opts.isActive ?? true)) throw new LimsError('lab.specimen_inactive');
   return id;
 }
 

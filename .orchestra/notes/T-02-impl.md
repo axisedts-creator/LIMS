@@ -1,7 +1,8 @@
 # T-02 impl (C5 writer)
-- Files: `services/api/src/modules/lab/domain/{specimen.state,result.state,rollup}.ts` (pure, errors via core `LimsError`, codes already in contracts/errors.yaml).
-- Result: domain tests 98/98 pass (`T-02-verify.cmd` command); `tsc --noEmit` 0 errors. No lint script in services/api.
-- [CONV] Transitions as data tables keyed by (from,to); `null` from = absent (S1/R1). Inactive specimen: only S13/S14 pass.
-- [CONV] Roll-up = min over non-cancelled results; received/aliquoted + any value emits S6 first; reported and off-ladder statuses never roll; roll-down only via S15 (approved→verified→resulted).
-- [CONV] `assertResultValueEditable('verified')` throws result_invalid_transition (value change must go through R5 first). Not tested; spec silent.
-- Open: resulted + pending roll-down to in_process not done (spec silent, per tester note). Multi-step roll-up jumps (e.g. received + all approved) emit every intermediate status.
+- Files: `services/api/src/modules/lab/domain/{specimen.state,result.state,rollup}.ts` (pure, errors via core `LimsError`, codes in contracts/errors.yaml).
+- Result: domain tests 100/100 pass (`npx vitest run src/modules/lab/domain/__tests__`); `tsc --noEmit` 0 errors. No lint script in services/api.
+- Review fix 1: specimen table check first (`lab.specimen_invalid_transition`), then inactive non-S13/S14 → `lab.specimen_inactive` (409, CR-C5-005, 02-TRD §5).
+- Review fix 2: R6 fails closed — missing `verifiedBy`/`approvedBy` or equal ids → `lab.self_approval_forbidden` (S-02).
+- [CONV] Transitions as data tables keyed by (from,to); `null` from = absent (S1/R1). Roll-up = min over non-cancelled results; roll-down only via S15.
+- [CONV] `assertResultValueEditable('verified')` throws result_invalid_transition (value change via R5 first). Spec silent.
+- Open: resulted + pending roll-down to in_process not done (spec silent). T-02-ruling.md present but concerns C1 infra, not T-02 — ignored.

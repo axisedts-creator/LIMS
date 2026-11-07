@@ -6,4 +6,6 @@
 - Template `_meta` informational keys (tenant_catalog_revision, price_list_code, price_list_id) left blank; text cells pass shared-ts neutraliseFormula.
 - Results: T-20 verify (imports + probes) all pass; catalog suite 1023/1024; whole api 4359/4363. The 4 fails (catalog skeleton autoload, lab boot x2, core openapi O2) all come from modules/reporting config throwing on LIMS_CORE_ENV at autoload — pre-existing, not C3. tsc: only pre-existing shared-ts bsdate TS5097.
 - Re-run after ruling: C3 T-20 verify 158/158 pass, no impl change. C1 test_t20_bridge_agent_rules: 1 FAIL (InstrumentsAgentUpdateFailed label route != oncall-email) — C1-owned, route to C1 lane.
-- Open: core multipart shape + Idempotency-Key replay unverified (core); audit `data.export` for #96 not emitted.
+- Review round: imports.service.ts emits `ctx.audit.access({action:'data.export', entityType:'catalog_file', …, outcome:'allowed'})` on #96 (detail.kind) and #101 (entityId=report_file_id), after permission + success only. Handlers pass HandlerContext through, so `audit` needs no extra wiring. Verify 162/162; tsc only bsdate TS5097.
+- [CONV] audit port optional (`ctx.audit?.access`): a probe test calls #101 with no audit port, so fail-closed (500) broke it. Open: core must always supply `ctx.audit`, or a test should require it, then make it mandatory.
+- Open: core multipart shape + Idempotency-Key replay unverified (core).

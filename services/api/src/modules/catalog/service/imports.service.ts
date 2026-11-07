@@ -10,7 +10,10 @@ import { loadCatalogConfig, type CatalogConfig } from '../config.js';
 import { buildTemplate, IMPORT_KINDS, type ImportKind } from './importTemplates.js';
 
 interface Tx { query(text: string, values?: unknown[]): Promise<{ rows: any[] }> }
-export interface ImportsCtx { readonly tenantId: string; readonly actor: { readonly id: string }; readonly tx: unknown; now(): string }
+export interface ImportsCtx {
+  readonly tenantId: string; readonly actor: { readonly id: string }; readonly tx: unknown; now(): string;
+  readonly audit?: { access(entry: Record<string, unknown>): Promise<unknown> };   // 02-TRD §5.2 access log (#96, #101)
+}
 interface Identity { assertRole(ctx: unknown, requirement: { permission: string }): Promise<void> }
 type Row = Record<string, any>;
 
@@ -99,6 +102,11 @@ export function createImportsService(deps: { identity: Identity; config?: Catalo
     return row;
   }
 
+  /** 02-TRD §5.2 access-log table (:361-362): data.export on catalog_file. [CONV] skipped when the core supplies no audit port. */
+  async function accessLog(ctx: ImportsCtx, extra: Record<string, unknown>) {
+    await ctx.audit?.access({ action: 'data.export', entityType: 'catalog_file', ...extra, outcome: 'allowed' });
+  }
+
   return {
     /** #96. catalog_master needs only the floor (asserted by the core from x-permission). */
     async downloadTemplate(ctx: ImportsCtx, kind: unknown) {
@@ -106,6 +114,7 @@ export function createImportsService(deps: { identity: Identity; config?: Catalo
       const perm = TEMPLATE_PERM[kind as ImportKind];
       if (perm) await assert(ctx, perm);
       const t = buildTemplate(kind as ImportKind, ctx.now());
+      await accessLog(ctx, { detail: { kind } });
       return { fileName: t.fileName, contentType: XLSX, bytes: t.bytes };
     },
 
@@ -224,6 +233,7 @@ export function createImportsService(deps: { identity: Identity; config?: Catalo
       if (row.report_file_id == null) throw notReady();
       const { rows } = await tx.query("SELECT content FROM catalog.files WHERE tenant_id = $1 AND id = $2 AND purpose = 'import_report'", [tenantId, row.report_file_id]);
       if (!rows[0]) throw notReady();
+      await accessLog(ctx, { entityId: row.report_file_id });
       return { fileName: `import-report-${row.id}.xlsx`, contentType: XLSX, bytes: new Uint8Array(rows[0].content) };
     },
 

@@ -14,3 +14,6 @@
 ## Round 4
 - New failure (not the T0A-08 one): decimal.test.mjs:23 exact-pin test rejects `@lims/contracts: workspace:*` in shared-ts/package.json (T0A-08-owned, not a T0A-12 file).
 - Test contradicts spec: workspace link is not a version range; exact-pin rule (02-CONVENTIONS.md:13) covers external versions. No impl change. Wrote .orchestra/notes/T0A-12-dispute.md; stopped.
+
+## Round 5
+- Same failure as round 4: decimal.test.mjs:23 rejects `@lims/contracts: workspace:*` (T0A-08-owned package.json). Dispute already in T0A-12-dispute.md, no ruling yet for it (T0A-12-ruling.md covers the older `__PROTO__` dispute). No impl change; stopped.

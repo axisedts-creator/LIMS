@@ -6,3 +6,7 @@
 ## round 2
 - Same cause. /browse skill errored ("Execute skill: browse"), no ITU access. Fix still blocked on real E.164 lookup; no code changed, no fake evidence.
 - Needs web-enabled session: set SAFE_PHONE_PREFIX_SOURCE.checkedOn + note (contains "ITU", cites edition, no "UNVERIFIED"). If +999 assigned, change prefix.
+
+## round 3
+- Same cause. WebFetch (via web-fetch agent) denied: permission not granted. No ITU access, no code changed, no fake evidence.
+- Need: grant WebFetch (or run web-enabled session), then set SAFE_PHONE_PREFIX_SOURCE.checkedOn + note (contains "ITU", edition, no "UNVERIFIED"). If +999 assigned, change prefix.

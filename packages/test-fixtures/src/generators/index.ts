@@ -7,8 +7,9 @@ export const SAFE_PHONE_PREFIX = '+999';
 /** Where/when the prefix was checked against the ITU-T E.164 assigned-codes list (TRD §3.5). */
 export const SAFE_PHONE_PREFIX_SOURCE = {
   url: 'https://www.itu.int/pub/T-SP-E.164D',
-  checkedOn: '0000-00-00',
-  note: 'UNVERIFIED: candidate +999 from TRD §3.5 not yet checked against the ITU-T E.164 list (writer session had no web access); see .orchestra/notes/T0A-05-impl.md',
+  // LD-22 (2026-11-07): fetched https://www.itu.int/dms_pub/itu-t/opb/sp/T-SP-E.164D-2016-PDF-E.pdf on this date.
+  checkedOn: '2026-11-07',
+  note: 'ITU-T E.164 assigned country codes, Annex to ITU OB 1114 (position 15 Dec 2016), numerical list p.9: "999 Reserved for future global service" - not assigned to any country or operator, so no real subscriber. Edition is the latest found on the ITU page (2016); re-check if ITU publishes a newer list.',
 } as const;
 
 export const PATIENTS_PER_DAY = { '1x': 500, '10x': 5000 } as const;

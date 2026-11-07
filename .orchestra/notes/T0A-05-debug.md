@@ -10,3 +10,7 @@
 ## round 3
 - Same cause. WebFetch (via web-fetch agent) denied: permission not granted. No ITU access, no code changed, no fake evidence.
 - Need: grant WebFetch (or run web-enabled session), then set SAFE_PHONE_PREFIX_SOURCE.checkedOn + note (contains "ITU", edition, no "UNVERIFIED"). If +999 assigned, change prefix.
+
+## round 4 (LD-22: WebFetch allowed)
+- Cause: SAFE_PHONE_PREFIX_SOURCE was UNVERIFIED placeholder. Fetched ITU PDF (OB 1114, position 15 Dec 2016, p.9): "999 Reserved for future global service" = no country/operator holds it. Prefix kept.
+- Fix: generators/index.ts SAFE_PHONE_PREFIX_SOURCE checkedOn 2026-11-07 + note citing edition/wording. Verify cmd: 50/50 pass. Caveat: 2016 is the newest list found on the ITU page; newer bulletin amendments not checked.

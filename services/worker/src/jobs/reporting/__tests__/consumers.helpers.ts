@@ -161,6 +161,7 @@ export function makeDb(seed: Seed = {}, opts: DbOpts = {}) {
   const rowsOf = (t: string) => (store[t] ??= []);
   for (const [t, rows] of Object.entries(seed)) store[t] = rows.map((r) => ({ ...(DEFAULTS[t] ?? {}), ...r }));
   const stmts: Stmt[] = []; const jobs: JobRec[] = [];
+  const savepoints = new Map<string, { store: Record<string, Row[]>; jobs: number }>();
   const failures = (opts.failOn ?? []).map((f) => ({ ...f, left: f.times ?? Infinity }));
 
   const visible = (t: string) => rowsOf(t).filter((r) => !rls || r['tenant_id'] === undefined || r['tenant_id'] === tenant);
@@ -223,6 +224,19 @@ export function makeDb(seed: Seed = {}, opts: DbOpts = {}) {
     async query(text: string, values: unknown[] = []) {
       const verb = (/^\s*(select|insert|update|delete)/i.exec(text)?.[1] ?? 'other').toLowerCase();
       stmts.push({ text: norm(text), values: [...values], verb });
+      // Savepoints behave like Postgres: ROLLBACK TO restores rows + enqueued jobs in place (tests keep their `store` references). RELEASE is a no-op.
+      const sp = /^\s*savepoint\s+(\w+)/i.exec(text);
+      if (sp) { savepoints.set(sp[1]!.toLowerCase(), { store: structuredClone(store), jobs: jobs.length }); return { rows: [] }; }
+      const rb = /^\s*rollback\s+to\s+savepoint\s+(\w+)/i.exec(text);
+      if (rb) {
+        const snap = savepoints.get(rb[1]!.toLowerCase());
+        if (snap) {
+          for (const t of Object.keys(store)) store[t]!.length = 0;
+          for (const [t, rows] of Object.entries(snap.store)) (store[t] ??= []).push(...rows);
+          jobs.length = snap.jobs;
+        }
+        return { rows: [] };
+      }
       return { rows: exec(text, values) };
     },
     savepoint: async <T>(fn: (t: unknown) => Promise<T>): Promise<T> => fn(tx),

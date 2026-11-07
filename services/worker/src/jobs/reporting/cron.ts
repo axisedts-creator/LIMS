@@ -23,6 +23,27 @@ export const sweepAssembly: TaskHandler = async (payload, jobCtx) => {
   }
 };
 
+export const SWEEP_RENDERS = 'reporting.sweep_stuck_renders';
+const STUCK_RENDER_MS = 900_000;   // 15 min (02-TRD §9, E10)
+
+/** `rendering` for > 15 min without finishing (lost enqueue, dead worker) -> the same keyed render job the assembly / retry-render enqueue, so a live job collapses.
+ *  Age = rendering_started_at (set by retry-render), falling back to created_at when it is NULL. Only enqueues. */
+export const sweepStuckRenders: TaskHandler = async (payload, jobCtx) => {
+  const ctx = jobCtx as any;
+  const tenantId = ctx.tenantId;
+  if (typeof tenantId !== 'string' || payload?.tenant_id !== tenantId) {
+    ctx.log?.warn?.({ event: 'sweep_stuck_renders_skipped', reason: 'bad_payload' });
+    return;
+  }
+  const cutoff = new Date(Date.parse(ctx.now()) - STUCK_RENDER_MS).toISOString();
+  const select = (age: string) => ctx.tx.query(`SELECT id, report_id FROM reporting.report_versions WHERE tenant_id = $1 AND status = 'rendering' AND ${age} LIMIT ${BATCH}`, [tenantId, cutoff]);
+  const stuck = [...(await select('rendering_started_at < $2')).rows, ...(await select('rendering_started_at IS NULL AND created_at < $2')).rows] as { id: string; report_id: string }[];
+  for (const r of stuck.slice(0, BATCH)) {
+    await ctx.tx.query(ENQUEUE_SQL, ['reporting.render_report_version', JSON.stringify({ tenant_id: tenantId, report_id: r.report_id, report_version_id: r.id }), `render:${r.id}`, null, 5]);
+  }
+};
+
 export const crontab: readonly CronEntry[] = Object.freeze([
   Object.freeze({ identifier: SWEEP_ASSEMBLY, schedule: '*/5 * * * *', tenantScope: 'per_tenant' as const, maxAttempts: 5 }),
+  Object.freeze({ identifier: SWEEP_RENDERS, schedule: '*/10 * * * *', tenantScope: 'per_tenant' as const, maxAttempts: 5 }),
 ]);

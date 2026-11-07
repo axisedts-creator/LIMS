@@ -4,6 +4,6 @@
 - [CONV] lims_api auth via `auth_user = pgbouncer` + `auth_query` (upstream get_auth); auth_file = /etc/pgbouncer/userlist.txt holds only the pgbouncer role's credential.
 - LD-45: ini has no host names; data-1/prod-1/dev-1 render the same bytes.
 - Checks: `T-07-verify.cmd` 24/24 OK. Full static suite: 8 fail + 2 errors in T-01/T-02/T-09/T-20/T-21 (gitleaks/yamllint/env/promtool). Not caused by T-07: they hit the existing lines/files too. Live test (LIMS_T07_LIVE=1) was not run because there is no docker here.
-- OPEN: secrets_render (T-02/T-03 owner) has to render `/run/lims/secrets/pgbouncer/userlist.txt` (`"pgbouncer" "<SCRAM or POSTGRES_PASSWORD>"`). The schema has no entry for it yet, so this may need a CR.
+- BLOCKED (review item 1, option a): `/run/lims/secrets/pgbouncer/userlist.txt` is rendered by nothing; CR filed `.orchestra/cr/T-07.md` asking secrets_render (T-06 owner) to render it 0400 with plaintext `"pgbouncer" "<POSTGRES_PASSWORD>"` (SCRAM not enough for auth_user). Option b rejected: needs test edits. "lims_api authenticates" cannot hold on deploy until the CR lands.
 - OPEN: upstream env (`DB_PASSWORD=${POSTGRES_PASSWORD}`) stays in the pgbouncer container. It is unused once the ini is mounted. It could be `!reset` once the live test proves the entrypoint works without it.
 - OPEN: the ini is rendered next to the .j2 at deploy (same pattern as pg_hba.conf). AC-07.2 API URLs belong to T-14.

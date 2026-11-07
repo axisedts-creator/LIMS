@@ -3,6 +3,7 @@
 import { BFF_KINDS, type BffKeyFiles, type BffKind } from './auth/bff-key.js';
 import { createClientIpResolver } from './auth/client-ip.js';
 import { JWT_ALGS, type JwtAlg } from './auth/jwt.js';
+import { IDENTITY_AUTH_OPS, WITH_TENANT_SCOPE_OPS } from './db/allowlists.js';
 
 export const CORE_ENVS = ['dev', 'ci', 'staging', 'production'] as const;
 export type CoreEnv = (typeof CORE_ENVS)[number];
@@ -23,6 +24,27 @@ export interface CoreConfig {
   readonly bffKeyFiles: BffKeyFiles;
   /** LIMS_CORE_TRUSTED_PROXY_CIDRS, comma list; empty = no trusted peer (08 A25 P-61). */
   readonly trustedProxyCidrs: readonly string[];
+  /** LIMS_CORE_TX_RETRY_MAX (02-TRD §6.4): 40001/40P01 whole-request retries. */
+  readonly txRetryMax: number;
+  /** LIMS_CORE_IDENTITY_AUTH_OPS (D-212); unset = IDENTITY_AUTH_OPS. */
+  readonly identityAuthOps: readonly string[];
+  /** LIMS_CORE_WITH_TENANT_SCOPE_OPS (D-214); unset = WITH_TENANT_SCOPE_OPS. */
+  readonly withTenantScopeOps: readonly string[];
+}
+
+function intKey(env: Env, key: string, fallback: number): number {
+  const v = env[key];
+  if (v === undefined) return fallback;
+  if (!/^\d{1,4}$/.test(v)) throw new Error(`config: ${key} must be a non-negative integer`);
+  return Number(v);
+}
+
+function opList(env: Env, key: string, fallback: readonly string[]): readonly string[] {
+  const v = env[key];
+  if (v === undefined) return Object.freeze([...fallback]);
+  const list = v.split(',').map((s) => s.trim()).filter(Boolean);
+  for (const id of list) if (!/^[A-Za-z][A-Za-z0-9]*$/.test(id)) throw new Error(`config: ${key} has an invalid operationId`);
+  return Object.freeze(list);
 }
 
 const JWT_KEYS = ['LIMS_CORE_JWT_ALG', 'LIMS_CORE_JWT_ISSUER', 'LIMS_CORE_JWT_AUDIENCE', 'LIMS_CORE_JWT_KEY_FILE'] as const;
@@ -72,5 +94,8 @@ export function loadConfig(env: Env = process.env): CoreConfig {
       BFF_KINDS.filter((k) => env[BFF_KEY_ENV[k]]).map((k) => [k, [env[BFF_KEY_ENV[k]]!]]),
     ) as BffKeyFiles),
     trustedProxyCidrs: cidrs(env),
+    txRetryMax: intKey(env, 'LIMS_CORE_TX_RETRY_MAX', 3),
+    identityAuthOps: opList(env, 'LIMS_CORE_IDENTITY_AUTH_OPS', IDENTITY_AUTH_OPS),
+    withTenantScopeOps: opList(env, 'LIMS_CORE_WITH_TENANT_SCOPE_OPS', WITH_TENANT_SCOPE_OPS),
   });
 }

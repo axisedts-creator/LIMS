@@ -103,7 +103,7 @@ describe('R14 revokeReportQrToken (AC-10.3, AC-10.5)', () => {
     it.each([
       ['unknown reason code', { reason_code: 'because' }], ['missing reason_code', {}], ['empty reason_code', { reason_code: '' }], ['non-string reason_code', { reason_code: 5 }],
       ['other without text', { reason_code: 'other' }], ['other with blank text', { reason_code: 'other', reason_text: '   ' }], ['text > 500 chars', { reason_code: 'issued_in_error', reason_text: 'x'.repeat(501) }],
-      ['non-string text', { reason_code: 'issued_in_error', reason_text: 7 }], ['extra property', { reason_code: 'issued_in_error', extra: 1 }], ['no body', undefined], ['array body', []], ['string body', 'issued_in_error'],
+      ['non-string text', { reason_code: 'issued_in_error', reason_text: 7 }], ['extra property', { reason_code: 'issued_in_error', extra: 1 }], ['no body', null], ['array body', []], ['string body', 'issued_in_error'],
     ])('R14 %s', async (_n, body) => {
       const w = makeVerifyWorld(); expect(await codeOf(revoke14(w, VER_A1, body))).toBe('common.validation_failed');
       expect(w.qrRow(VER_A1)['revoked_at']).toBeNull(); expect(w.db.writes()).toEqual([]);
@@ -214,7 +214,7 @@ describe('R16 revokePortalLink', () => {
   describe('validation (common.validation_failed, nothing written)', () => {
     it.each([
       ['unknown reason code', { reason_code: 'because' }], ['missing reason_code', {}], ['other without text', { reason_code: 'other' }], ['text > 500', { reason_code: 'wrong_recipient', reason_text: 'x'.repeat(501) }],
-      ['extra property', { reason_code: 'wrong_recipient', revoked_at: NOW }], ['no body', undefined],
+      ['extra property', { reason_code: 'wrong_recipient', revoked_at: NOW }], ['no body', null],
     ])('R16 %s', async (_n, body) => {
       const w = makeVerifyWorld(); const l = w.mkLink(); const n = w.db.writes().length;
       expect(await codeOf(revoke16(w, l.row['id'], body))).toBe('common.validation_failed'); expect(w.linkRow(l.row['id'])['revoked_at']).toBeNull(); expect(w.db.writes().length).toBe(n);

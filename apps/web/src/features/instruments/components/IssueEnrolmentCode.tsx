@@ -1,7 +1,8 @@
 'use client';
 // SCR-03 (04-UI-UX §3, 03-APP-FLOW F-03): ConfirmDialog → E14 once → non-dismissable SecretRevealOnce.
 // The code lives only in component state; it is dropped on Done and never stored, logged or put in a URL (AC-01.3).
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { shortcuts } from '@/core/shortcuts/registry';
 import { Banner } from '@lims/ui/components/Banner';
 import { Button } from '@lims/ui/components/Button';
 import { ConfirmDialog } from '@lims/ui/components/ConfirmDialog';
@@ -17,6 +18,8 @@ export function IssueEnrolmentCode({ agentId, queueDepth = 0 }: { agentId: strin
   const [mfa, setMfa] = useState(false);
   const [issued, setIssued] = useState<EnrolmentCodeIssued | null>(null);
   const inFlight = useRef(false); // one POST per confirm: a second code would invalidate the first (E14)
+  // SCR-02 Alt+E (04-UI-UX §4). Rendered only for instruments.agent.manage, so READ never registers it. Opens the confirm only.
+  useEffect(() => shortcuts.register('staff.instruments.agent', { key: 'Alt+E', description: 'Issue enrolment code', run: () => setStep((s) => (s === 'closed' ? 'confirm' : s)) }), []);
 
   const close = () => {
     setIssued(null);

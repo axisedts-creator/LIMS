@@ -142,6 +142,8 @@ export interface AgentCommand {
   log_bundle_id?: string;
 }
 
+export interface AgentLogBundle { bundle_id: string; lines: string[]; from_at_agent: string; to_at_agent: string; created_at: string }
+
 export interface UpdateAgentInput { display_name?: string; update_channel?: UpdateChannel; backlog_threshold?: number }
 
 export interface ReasonInput { reason_code: string; reason_text?: string }

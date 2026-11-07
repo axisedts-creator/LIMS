@@ -366,14 +366,31 @@ describe('SCR-02 AgentDetail (AC-16.3)', () => {
     const rowsI = [{ ...instruments[0]!, link_state: 'error', last_link_error_code: 'firewall_rule_missing', silent_since: '2026-11-07T01:00:00.000Z' }];
     wrap(<AgentDetail agent={detail() as never} transitions={[]} instruments={rowsI as never} permissions={READ} />);
     await userEvent.click(screen.getByRole('tab', { name: 'Instruments' }));
-    for (const h of ['Instrument code', 'State', 'Link state', 'Last message', 'Last error code', 'Silence status']) expect(screen.getByRole('columnheader', { name: new RegExp(h, 'i') })).toBeTruthy();
+    for (const h of ['Instrument code', 'State', 'Link state', 'Last message', 'Last error code', 'Silence status']) expect(screen.getByRole('columnheader', { name: new RegExp(`^${h}$`, 'i') })).toBeTruthy();
     expect(screen.getByText('firewall_rule_missing')).toBeTruthy();
   });
 
   // review #6: SCR-02 actions must not ship as disabled stubs. Commands & logs tab lists E18 rows.
-  it('manage actions are enabled, not disabled stubs', async () => {
+  it('manage actions are enabled, not disabled stubs (Retire is gated separately, below)', async () => {
     await render1(MANAGE);
-    for (const n of [/request command/i, /revoke/i, /retire/i, /edit/i]) expect((screen.getByRole('button', { name: n }) as HTMLButtonElement).disabled, String(n)).toBe(false);
+    for (const n of [/request command/i, /revoke/i, /edit/i]) expect((screen.getByRole('button', { name: n }) as HTMLButtonElement).disabled, String(n)).toBe(false);
+  });
+
+  // 04-UI-UX.md:115 — Retire "disabled with tooltip when instruments are not retired".
+  it('Retire is disabled with a tooltip while any instrument is not retired', async () => {
+    await render1(MANAGE); // fixture instrument is state: 'live'
+    const retire = screen.getByRole('button', { name: /retire/i }) as HTMLButtonElement;
+    expect(retire.disabled).toBe(true);
+    expect(retire.getAttribute('title') || retire.getAttribute('aria-describedby')).toBeTruthy();
+  });
+
+  it('Retire is enabled when the agent has no instruments or all are retired', async () => {
+    const AgentDetail = await load();
+    const { unmount } = wrap(<AgentDetail agent={detail({ credentials }) as never} transitions={transitions as never} instruments={[]} permissions={MANAGE} />);
+    expect((screen.getByRole('button', { name: /retire/i }) as HTMLButtonElement).disabled).toBe(false);
+    unmount();
+    wrap(<AgentDetail agent={detail({ credentials }) as never} transitions={transitions as never} instruments={[{ ...instruments[0]!, state: 'retired' }] as never} permissions={MANAGE} />);
+    expect((screen.getByRole('button', { name: /retire/i }) as HTMLButtonElement).disabled).toBe(false);
   });
 
   it('Revoke opens a danger ConfirmDialog with the 04-UI-UX body and a reason field; nothing is sent until confirmed', async () => {
@@ -393,6 +410,71 @@ describe('SCR-02 AgentDetail (AC-16.3)', () => {
     await userEvent.click(screen.getByRole('tab', { name: 'Commands & logs' }));
     expect(await screen.findByText(/upload.?logs/i)).toBeTruthy();
     expect(listSeen.some((u) => u.pathname === `/v1/instruments/agents/${AGENT_ID}/commands`)).toBe(true);
+  });
+
+  // review round 2 #1 — 04-UI-UX.md:110, E20 getAgentLogBundle (02-TRD.md:698)
+  describe('View log (E20)', () => {
+    const BUNDLE = '01a1a98a-ac40-7000-8000-0000000b0001';
+    const cmd = (o: Record<string, unknown>) => ({ command_id: '01a1a98a-ac40-7000-8000-0000000f0001', agent_id: AGENT_ID, kind: 'upload_logs', params: {}, state: 'completed', requested_at: '2026-11-07T01:00:00.000Z', requested_by_display: 'Synthetic Manager', completed_at: '2026-11-07T01:01:00.000Z', result_code: 'ok_synthetic', expires_at: '2026-11-08T01:00:00.000Z', ...o });
+    const useCommands = (rows: unknown[]) => api.use(
+      http.get(`${ORIGIN}/v1/instruments/agents/:id/commands`, () => HttpResponse.json({ data: rows, page: { limit: 50 } })),
+      http.get(`${ORIGIN}/v1/instruments/agents/:id/log-bundles/:bundle`, ({ request }) => { listSeen.push(new URL(request.url)); return HttpResponse.json({ bundle_id: BUNDLE, lines: ['synthetic log line one', 'synthetic log line two'], from_at_agent: '2026-11-07T00:00:00.000Z', to_at_agent: '2026-11-07T01:00:00.000Z', created_at: '2026-11-07T01:01:00.000Z' }); }),
+    );
+    const openCommands = async (perm = MANAGE) => { await render1(perm); await userEvent.click(screen.getByRole('tab', { name: 'Commands & logs' })); };
+
+    it('completed upload_logs with log_bundle_id → "View log" calls E20 with agent_id/bundle_id and renders lines', async () => {
+      useCommands([cmd({ log_bundle_id: BUNDLE })]);
+      await openCommands();
+      await userEvent.click(await screen.findByRole('button', { name: /view log/i }));
+      expect(await screen.findByText(/synthetic log line one/)).toBeTruthy();
+      expect(screen.getByText(/synthetic log line two/)).toBeTruthy();
+      expect(listSeen.some((u) => u.pathname === `/v1/instruments/agents/${AGENT_ID}/log-bundles/${BUNDLE}`)).toBe(true);
+    });
+
+    it('no "View log" without log_bundle_id, for non-upload_logs, for non-completed, or without manage', async () => {
+      useCommands([cmd({}), cmd({ command_id: '01a1a98a-ac40-7000-8000-0000000f0002', kind: 'restart_service', log_bundle_id: BUNDLE }), cmd({ command_id: '01a1a98a-ac40-7000-8000-0000000f0003', state: 'queued', log_bundle_id: BUNDLE })]);
+      await openCommands();
+      await screen.findByText(/restart service/i);
+      expect(screen.queryByRole('button', { name: /view log/i })).toBeNull();
+    });
+
+    it('READ-only: no "View log" even with a log_bundle_id', async () => {
+      useCommands([cmd({ log_bundle_id: BUNDLE })]);
+      await openCommands(READ);
+      await screen.findByText(/upload.?logs/i);
+      expect(screen.queryByRole('button', { name: /view log/i })).toBeNull();
+    });
+  });
+
+  // review round 2 #2/#3 — 04-UI-UX.md:190-191
+  describe('shortcuts', () => {
+    const PAGE = 'staff.instruments.agent';
+    const altE = async () => (await import('@/core/shortcuts/registry')).shortcuts.list(PAGE).find((s) => /^alt\+e$/i.test(s.key));
+
+    it('Alt+E opens the "Issue enrolment code" ConfirmDialog for MANAGE', async () => {
+      const { act } = await import('@testing-library/react');
+      await render1(MANAGE);
+      const sc = await altE();
+      expect(sc?.description).toBe('Issue enrolment code');
+      act(() => sc!.run());
+      expect(within(await screen.findByRole('dialog')).getByText('Issue enrolment code')).toBeTruthy();
+      expect(calls).toHaveLength(0); // opening is not issuing
+    });
+
+    it('Alt+E is not registered for READ and is unregistered on unmount', async () => {
+      const { unmount } = await render1(READ);
+      expect(await altE()).toBeUndefined();
+      unmount();
+      await render1(MANAGE);
+      expect(await altE()).toBeTruthy();
+      cleanup();
+      expect(await altE()).toBeUndefined();
+    });
+
+    it('help for instruments.agents does not advertise Alt+N (global key; SCR-01 key is a CR)', async () => {
+      const help = (await import('../help/instruments.agents')).default;
+      expect(help.shortcuts.map((s: { keys: string }) => s.keys)).not.toContain('Alt+N');
+    });
   });
 
   it('axe: every tab', async () => {

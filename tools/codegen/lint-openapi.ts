@@ -214,8 +214,9 @@ export function lintOpenapi(files: { name: string; text: string }[], ctx: LintCo
         if (hasPerm && !permissions.has(op["x-permission"])) v("4", `${at}: x-permission ${op["x-permission"]} not in permissions.yaml`);
         if (hasPublic && !nonEmptyStr(op["x-public"])) v("4", `${at}: x-public needs a non-empty justification`);
         if (!IDEMPOTENCY.includes(op["x-idempotency"])) v("4", `${at}: x-idempotency must be one of ${IDEMPOTENCY.join("|")}`);
-        if (method === "post" && op["x-idempotency"] === "none" && !/^E[12] /.test(op["x-idempotency-justification"] ?? ""))
-          v("4", `${at}: POST with x-idempotency none needs x-idempotency-justification starting 'E1 ' or 'E2 ' (P-8)`);
+        if (method === "post" && op["x-idempotency"] === "none" && !/^E[1-4] /.test(op["x-idempotency-justification"] ?? ""))
+          // LD-10 (2026-11-07): E3 = read-only POST, E4 = identity pre-auth/session op (response not replayable)
+          v("4", `${at}: POST with x-idempotency none needs x-idempotency-justification starting 'E1 '..'E4 ' (P-8, LD-10)`);
         if (!TIERS.includes(op["x-rate-limit-tier"])) v("4", `${at}: x-rate-limit-tier must be one of ${TIERS.join("|")}`);
         if (!Array.isArray(op["x-error-codes"])) v("4", `${at}: x-error-codes required`);
         else for (const code of op["x-error-codes"]) {
@@ -237,7 +238,9 @@ export function lintOpenapi(files: { name: string; text: string }[], ctx: LintCo
           for (const m of Object.values(isObj(body.content) ? body.content : {})) {
             walkSchema(isObj(m) ? m.schema : undefined, `${at} requestBody`, (s, ptr) => {
               for (const f of Object.keys(isObj(s.properties) ? s.properties : {}))
-                if (SERVER_AUTHORITY_FIELDS.includes(f) || (f === "status" && !action)) v("7", `${ptr}: request body declares ${f}`);
+                // LD-11 (2026-11-07): tenant_id names the target tenant in x-context: platform bodies only
+                if ((SERVER_AUTHORITY_FIELDS.includes(f) && !(f === "tenant_id" && op["x-context"] === "platform"))
+                  || (f === "status" && !action)) v("7", `${ptr}: request body declares ${f}`);
             }, deref);
           }
         }

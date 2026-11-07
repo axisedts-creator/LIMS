@@ -62,7 +62,7 @@ paths:
       x-context: identity_auth
       x-edge-exposure: internal
       x-idempotency: none
-      x-idempotency-justification: MFA code check on the presented session; repeat is bounded by the login tier (no E1/E2 exception fits; see .orchestra/cr/T0C-10.C2.md)
+      x-idempotency-justification: "E4 pre-auth MFA code check on the presented session; the response must not be replayed from a store, repeats are bounded by the login tier (LD-10)."
       x-rate-limit-tier: login
       x-error-codes: [ auth.mfa_invalid, common.version_conflict ]
       requestBody:
@@ -141,7 +141,7 @@ paths:
       x-context: identity_auth
       x-edge-exposure: internal
       x-idempotency: none
-      x-idempotency-justification: MFA code check on the presented session; repeat is bounded by the login tier (no E1/E2 exception fits; see .orchestra/cr/T0C-10.C2.md)
+      x-idempotency-justification: "E4 pre-auth MFA code check on the presented session; the response must not be replayed from a store, repeats are bounded by the login tier (LD-10)."
       x-rate-limit-tier: login
       x-error-codes: [ auth.mfa_invalid ]
       parameters:
@@ -235,7 +235,7 @@ paths:
       x-context: identity_auth
       x-edge-exposure: internal
       x-idempotency: none
-      x-idempotency-justification: ending a session; a repeat is a no-op (no E1/E2 exception fits; see .orchestra/cr/T0C-10.C2.md)
+      x-idempotency-justification: "E4 session op: ends the presented session; a repeat is a no-op and the response must not be replayed from a store (LD-10)."
       x-rate-limit-tier: general
       x-error-codes: []
       responses:
@@ -254,7 +254,7 @@ paths:
       x-context: identity_auth
       x-edge-exposure: internal
       x-idempotency: none
-      x-idempotency-justification: constant 202 response; bounded by the login tier (no E1/E2 exception fits; see .orchestra/cr/T0C-10.C2.md)
+      x-idempotency-justification: "E4 pre-auth recovery request: constant 202 response, never replayed from a store; bounded by the login tier (LD-10)."
       x-rate-limit-tier: login
       x-error-codes: []
       requestBody:
@@ -332,7 +332,7 @@ paths:
       x-context: identity_auth
       x-edge-exposure: internal
       x-idempotency: none
-      x-idempotency-justification: password set on a password_setup session; the state moves on success (no E1/E2 exception fits; see .orchestra/cr/T0C-10.C2.md)
+      x-idempotency-justification: "E4 pre-auth op: password set on a password_setup session; the state moves on success and the response must not be replayed from a store (LD-10)."
       x-rate-limit-tier: login
       x-error-codes: [ auth.password_policy_violation, auth.password_breached ]
       requestBody:
@@ -468,7 +468,7 @@ paths:
       x-context: identity_auth
       x-edge-exposure: public
       x-idempotency: none
-      x-idempotency-justification: ending a session; a repeat is a no-op (no E1/E2 exception fits; see .orchestra/cr/T0C-10.C2.md)
+      x-idempotency-justification: "E4 session op: ends the presented session; a repeat is a no-op and the response must not be replayed from a store (LD-10)."
       x-rate-limit-tier: general
       x-error-codes: []
       parameters:
@@ -586,7 +586,7 @@ paths:
       x-context: identity_auth
       x-edge-exposure: public
       x-idempotency: none
-      x-idempotency-justification: ending a session; a repeat is a no-op (no E1/E2 exception fits; see .orchestra/cr/T0C-10.C2.md)
+      x-idempotency-justification: "E4 session op: ends the presented session; a repeat is a no-op and the response must not be replayed from a store (LD-10)."
       x-rate-limit-tier: general
       x-error-codes: []
       requestBody:
@@ -648,7 +648,7 @@ paths:
       x-permission: identity.self.manage
       x-context: tenant
       x-idempotency: none
-      x-idempotency-justification: password change; the old password stops working on success (no E1/E2 exception fits; see .orchestra/cr/T0C-10.C2.md)
+      x-idempotency-justification: "E4 session op: password change; the old password stops working on success and the response must not be replayed from a store (LD-10)."
       x-rate-limit-tier: login
       x-error-codes: [ auth.login_failed, auth.password_policy_violation, auth.password_breached ]
       requestBody:
@@ -928,7 +928,7 @@ paths:
       x-permission: identity.user.read
       x-context: tenant
       x-idempotency: none
-      x-idempotency-justification: read-only search; POST only to keep the query out of the URL (no E1/E2 exception fits; see .orchestra/cr/T0C-10.C2.md)
+      x-idempotency-justification: "E3 read-only search, no state written; POST only to keep the query out of the URL (LD-10)."
       x-rate-limit-tier: general
       x-error-codes: []
       requestBody:
@@ -5056,7 +5056,7 @@ paths:
       x-permission: platform.staff.manage
       x-context: platform
       x-idempotency: none
-      x-idempotency-justification: TRD 5.10 states idem none for this state action (no E1/E2 exception fits; see .orchestra/cr/T0C-10.C2.md)
+      x-idempotency-justification: "E4 session op: revokes a platform session (TRD 5.10 idem none); the response must not be replayed from a store (LD-10)."
       x-rate-limit-tier: general
       x-error-codes: [ identity.self_action_forbidden ]
       parameters:

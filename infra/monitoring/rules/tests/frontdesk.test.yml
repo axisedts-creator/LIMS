@@ -16,6 +16,7 @@ tests:
         eval_time: 72m
         exp_alerts:
           - exp_labels: {severity: "warn", team: "ops", outcome: "quarantined"}
+            exp_annotations: {summary: "More than 3 TRF scans quarantined in the last hour.", runbook_url: "infra/runbooks/frontdesk.md#frontdesktrfquarantineburst"}
 
   - interval: 1m
     name: "FrontdeskTrfQuarantineBurst quiet"

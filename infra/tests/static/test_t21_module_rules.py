@@ -397,6 +397,20 @@ class PromtoolFilesTest(unittest.TestCase):
                         self.assertEqual(lab.get("team"), r["labels"]["team"], "%s/%s team in expectation" % (s, n))
                         self.assertFalse(set(lab) & set(DROP_LABELS), "%s/%s" % (s, n))
 
+    def test_exp_annotations_equal_rule_annotations(self):
+        # promtool compares annotations exactly: a missing exp_annotations means "expected empty" and fails every firing
+        # case (review item 1). Rules here carry no $labels/$value templates, so a literal compare is valid.
+        for s in self.STEMS:
+            _, d = self.doc(s)
+            rules = _rules(_path(s))
+            for c in d["tests"]:
+                for e in c.get("alert_rule_test", []):
+                    for a in e.get("exp_alerts") or []:
+                        ann = rules[e["alertname"]]["annotations"]
+                        self.assertNotIn("{{", json.dumps(ann), "%s/%s: templated annotation, literal compare invalid" % (s, e["alertname"]))
+                        want = {k: " ".join(str(v).split()) for k, v in ann.items()}
+                        self.assertEqual(a.get("exp_annotations"), want, "%s/%s exp_annotations != rule annotations" % (s, e["alertname"]))
+
     def test_for_boundary_covered(self):  # not firing before `for`, firing at/after it
         for s in self.STEMS:
             _, d = self.doc(s)

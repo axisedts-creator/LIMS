@@ -21,6 +21,7 @@ tests:
         eval_time: 37m
         exp_alerts:
           - exp_labels: {severity: "warn", team: "ops"}
+            exp_annotations: {summary: "More than 5 % of smart report builds errored over 15 min.", runbook_url: "infra/runbooks/smartreport.md#smartbuilderrors"}
 
   - interval: 1m
     name: "SmartBuildErrors quiet"
@@ -47,6 +48,7 @@ tests:
         eval_time: 22m
         exp_alerts:
           - exp_labels: {severity: "warn", team: "ops", tenant_id: "t1"}
+            exp_annotations: {summary: "A smart report draft is older than 24 h.", runbook_url: "infra/runbooks/smartreport.md#smartdraftsstale"}
 
   - interval: 1m
     name: "SmartDraftsStale quiet"
@@ -68,6 +70,7 @@ tests:
         eval_time: 12m
         exp_alerts:
           - exp_labels: {severity: "page", team: "ops"}
+            exp_annotations: {summary: "An LLM call was made while the LLM feature is disabled.", runbook_url: "infra/runbooks/smartreport.md#smartllmcallwhiledisabled"}
 
   - interval: 1m
     name: "SmartLlmCallWhileDisabled quiet"
@@ -89,6 +92,7 @@ tests:
         eval_time: 12m
         exp_alerts:
           - exp_labels: {severity: "page", team: "ops"}
+            exp_annotations: {summary: "An LLM call to a non-allowlisted endpoint was refused.", runbook_url: "infra/runbooks/smartreport.md#smartllmendpointnotallowed"}
 
   - interval: 1m
     name: "SmartLlmEndpointNotAllowed quiet"
@@ -110,6 +114,7 @@ tests:
         eval_time: 12m
         exp_alerts:
           - exp_labels: {severity: "warn", team: "ops"}
+            exp_annotations: {summary: "The smart report LLM circuit breaker is open.", runbook_url: "infra/runbooks/smartreport.md#smartllmfailing"}
 
   - interval: 1m
     name: "SmartLlmFailing quiet"
@@ -134,6 +139,7 @@ tests:
         eval_time: 22m
         exp_alerts:
           - exp_labels: {severity: "warn", team: "ops"}
+            exp_annotations: {summary: "More than 1000 smart report events queued for 10 min.", runbook_url: "infra/runbooks/smartreport.md#smartconsumerlag"}
 
   - interval: 1m
     name: "SmartConsumerLag quiet"

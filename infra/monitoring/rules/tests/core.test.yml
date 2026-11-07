@@ -16,6 +16,7 @@ tests:
         eval_time: 12m
         exp_alerts:
           - exp_labels: {severity: "page", team: "ops"}
+            exp_annotations: {summary: "A job or event consumer dead-lettered (any task).", runbook_url: "infra/runbooks/core.md#coredeadletter"}
 
   - interval: 1m
     name: "CoreDeadLetter quiet"
@@ -37,6 +38,7 @@ tests:
         eval_time: 12m
         exp_alerts:
           - exp_labels: {severity: "page", team: "ops", env: "prod"}
+            exp_annotations: {summary: "A fake port implementation is active in staging or prod.", runbook_url: "infra/runbooks/core.md#corefakeportsactive"}
 
   - interval: 1m
     name: "CoreFakePortsActive quiet"
@@ -67,6 +69,7 @@ tests:
         eval_time: 17m
         exp_alerts:
           - exp_labels: {severity: "warn", team: "ops"}
+            exp_annotations: {summary: "Event fan-out lag p95 above 10 s for 5 min.", runbook_url: "infra/runbooks/core.md#corefanoutlaghigh"}
 
   - interval: 1m
     name: "CoreFanoutLagHigh quiet"
@@ -98,6 +101,7 @@ tests:
         eval_time: 630m
         exp_alerts:
           - exp_labels: {severity: "page", team: "ops"}
+            exp_annotations: {summary: "RLS denials above 5x the 7-day baseline for 10 min.", runbook_url: "infra/runbooks/core.md#corerlsdeniedspike"}
 
   - interval: 1m
     name: "CoreRlsDeniedSpike quiet"
@@ -119,6 +123,7 @@ tests:
         eval_time: 12m
         exp_alerts:
           - exp_labels: {severity: "page", team: "ops", reason: "alg"}
+            exp_annotations: {summary: "A token with a disallowed algorithm was presented.", runbook_url: "infra/runbooks/core.md#coreauthalgfailure"}
 
   - interval: 1m
     name: "CoreAuthAlgFailure quiet"
@@ -142,6 +147,7 @@ tests:
         eval_time: 12m
         exp_alerts:
           - exp_labels: {severity: "page", team: "ops"}
+            exp_annotations: {summary: "An operation returned without an authorization assertion.", runbook_url: "infra/runbooks/core.md#coreauthznotasserted"}
 
   - interval: 1m
     name: "CoreAuthzNotAsserted quiet"
@@ -166,6 +172,7 @@ tests:
         eval_time: 4502m
         exp_alerts:
           - exp_labels: {severity: "warn", team: "ops", table: "t_synth"}
+            exp_annotations: {summary: "Retention purge hit its cap three days in a row.", runbook_url: "infra/runbooks/core.md#coreretentionpurgecapped"}
 
   - interval: 1m
     name: "CoreRetentionPurgeCapped quiet"

@@ -19,6 +19,7 @@ tests:
         eval_time: 17m
         exp_alerts:
           - exp_labels: {severity: "warn", team: "ops", tenant_id: "t1"}
+            exp_annotations: {summary: "A rejected QC run has had no corrective action for over 4 h.", runbook_url: "infra/runbooks/quality.md#qualityrejectedrunwithoutaction"}
 
   - interval: 1m
     name: "QualityRejectedRunWithoutAction quiet"
@@ -40,6 +41,7 @@ tests:
         eval_time: 12m
         exp_alerts:
           - exp_labels: {severity: "page", team: "ops", task: "evt.quality.qc"}
+            exp_annotations: {summary: "A quality job or event consumer dead-lettered.", runbook_url: "infra/runbooks/quality.md#qualityconsumerdeadletter"}
 
   - interval: 1m
     name: "QualityConsumerDeadLetter quiet"
@@ -69,6 +71,7 @@ tests:
         eval_time: 15m
         exp_alerts:
           - exp_labels: {severity: "page", team: "ops", tenant_id: "t1"}
+            exp_annotations: {summary: "QC sync has not succeeded for a tenant for over 5 min.", runbook_url: "infra/runbooks/quality.md#qualityqcsyncstalled"}
 
   - interval: 1m
     name: "QualityQcSyncStalled quiet"
@@ -90,6 +93,7 @@ tests:
         eval_time: 27m
         exp_alerts:
           - exp_labels: {severity: "warn", team: "ops", status: "import_error"}
+            exp_annotations: {summary: "A QC observation failed to import in the last 15 min.", runbook_url: "infra/runbooks/quality.md#qualityqcimporterror"}
 
   - interval: 1m
     name: "QualityQcImportError quiet"
@@ -120,6 +124,7 @@ tests:
         eval_time: 27m
         exp_alerts:
           - exp_labels: {severity: "warn", team: "ops", method: "get"}
+            exp_annotations: {summary: "Quality port p95 latency above 10 ms for 15 min.", runbook_url: "infra/runbooks/quality.md#qualityportslow"}
 
   - interval: 1m
     name: "QualityPortSlow quiet"
@@ -152,6 +157,7 @@ tests:
         eval_time: 27m
         exp_alerts:
           - exp_labels: {severity: "warn", team: "ops"}
+            exp_annotations: {summary: "TAT sweep p95 above 10 s for 15 min.", runbook_url: "infra/runbooks/quality.md#qualitytatsweepslow"}
 
   - interval: 1m
     name: "QualityTatSweepSlow quiet"
@@ -177,6 +183,7 @@ tests:
         eval_time: 12m
         exp_alerts:
           - exp_labels: {severity: "page", team: "ops", decision: "allow", reason: "low_confidence"}
+            exp_annotations: {summary: "Autoverification allowed a result while a blocking reason was present.", runbook_url: "infra/runbooks/quality.md#qualityautoverifyallowwithreasons"}
 
   - interval: 1m
     name: "QualityAutoverifyAllowWithReasons quiet"

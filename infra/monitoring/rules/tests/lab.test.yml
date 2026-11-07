@@ -19,6 +19,7 @@ tests:
         eval_time: 3m
         exp_alerts:
           - exp_labels: {severity: "page", team: "ops", tenant_id: "t1"}
+            exp_annotations: {summary: "A critical value has been unnotified for more than 30 min.", runbook_url: "infra/runbooks/lab.md#labcriticalvalueunnotified"}
 
   - interval: 1m
     name: "LabCriticalValueUnnotified quiet"
@@ -43,6 +44,7 @@ tests:
         eval_time: 17m
         exp_alerts:
           - exp_labels: {severity: "warn", team: "ops", tenant_id: "t1", reason: "parse"}
+            exp_annotations: {summary: "An instrument ingest exception has been open for over 24 h.", runbook_url: "infra/runbooks/lab.md#labingestexceptionstale"}
 
   - interval: 1m
     name: "LabIngestExceptionStale quiet"
@@ -64,6 +66,7 @@ tests:
         eval_time: 12m
         exp_alerts:
           - exp_labels: {severity: "page", team: "ops", task: "evt.lab.result"}
+            exp_annotations: {summary: "A lab job or event consumer dead-lettered.", runbook_url: "infra/runbooks/lab.md#labconsumerdeadletter"}
 
   - interval: 1m
     name: "LabConsumerDeadLetter quiet"
@@ -94,6 +97,7 @@ tests:
         eval_time: 27m
         exp_alerts:
           - exp_labels: {severity: "warn", team: "ops"}
+            exp_annotations: {summary: "Instrument host query p95 above 300 ms for 15 min.", runbook_url: "infra/runbooks/lab.md#labhostqueryslow"}
 
   - interval: 1m
     name: "LabHostQuerySlow quiet"
@@ -119,6 +123,7 @@ tests:
         eval_time: 12m
         exp_alerts:
           - exp_labels: {severity: "page", team: "ops"}
+            exp_annotations: {summary: "Barcode allocation failed in the last 5 min.", runbook_url: "infra/runbooks/lab.md#labbarcodeallocationfailure"}
 
   - interval: 1m
     name: "LabBarcodeAllocationFailure quiet"

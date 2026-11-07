@@ -16,6 +16,7 @@ tests:
         eval_time: 27m
         exp_alerts:
           - exp_labels: {severity: "warn", team: "ops"}
+            exp_annotations: {summary: "More than 5 manifest line conversions failed (infra) in 15 min.", runbook_url: "infra/runbooks/partners.md#partnersconversionfailures"}
 
   - interval: 1m
     name: "PartnersConversionFailures quiet"
@@ -39,6 +40,7 @@ tests:
         eval_time: 27m
         exp_alerts:
           - exp_labels: {severity: "page", team: "ops"}
+            exp_annotations: {summary: "A partner event consumer saw a mismatch (possible wrong partner attribution).", runbook_url: "infra/runbooks/partners.md#partnersconsumermismatch"}
 
   - interval: 1m
     name: "PartnersConsumerMismatch quiet"
@@ -62,6 +64,7 @@ tests:
         eval_time: 22m
         exp_alerts:
           - exp_labels: {severity: "warn", team: "ops"}
+            exp_annotations: {summary: "More than 20 partner report downloads denied in 10 min (id guessing).", runbook_url: "infra/runbooks/partners.md#partnersdownloaddeniedspike"}
 
   - interval: 1m
     name: "PartnersDownloadDeniedSpike quiet"
@@ -85,6 +88,7 @@ tests:
         eval_time: 12m
         exp_alerts:
           - exp_labels: {severity: "warn", team: "ops"}
+            exp_annotations: {summary: "Partner statements projection lag above 3 h.", runbook_url: "infra/runbooks/partners.md#partnersstatementsprojectionstale"}
 
   - interval: 1m
     name: "PartnersStatementsProjectionStale quiet"
@@ -108,6 +112,7 @@ tests:
         eval_time: 12m
         exp_alerts:
           - exp_labels: {severity: "warn", team: "ops"}
+            exp_annotations: {summary: "Partner price list projection lag above 26 h.", runbook_url: "infra/runbooks/partners.md#partnerspricelistprojectionstale"}
 
   - interval: 1m
     name: "PartnersPriceListProjectionStale quiet"
@@ -131,6 +136,7 @@ tests:
         eval_time: 12m
         exp_alerts:
           - exp_labels: {severity: "warn", team: "ops", task: "evt.partners.statement"}
+            exp_annotations: {summary: "A partners job or event consumer dead-lettered.", runbook_url: "infra/runbooks/partners.md#partnersdeadletter"}
 
   - interval: 1m
     name: "PartnersDeadLetter quiet"

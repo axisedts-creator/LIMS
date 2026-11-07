@@ -19,6 +19,7 @@ tests:
         eval_time: 37m
         exp_alerts:
           - exp_labels: {severity: "page", team: "ops", event_type: "evt_a"}
+            exp_annotations: {summary: "An inventory event consumer has been failing for 15 min.", runbook_url: "infra/runbooks/inventory.md#inventoryconsumerfailing"}
 
   - interval: 1m
     name: "InventoryConsumerFailing quiet"
@@ -47,6 +48,7 @@ tests:
         eval_time: 27m
         exp_alerts:
           - exp_labels: {severity: "warn", team: "ops", event_type: "evt_a"}
+            exp_annotations: {summary: "Inventory consumption lag p95 above 5 min for 15 min.", runbook_url: "infra/runbooks/inventory.md#inventoryconsumptionlaghigh"}
 
   - interval: 1m
     name: "InventoryConsumptionLagHigh quiet"
@@ -72,6 +74,7 @@ tests:
         eval_time: 12m
         exp_alerts:
           - exp_labels: {severity: "page", team: "ops", tenant_id: "t1"}
+            exp_annotations: {summary: "Inventory balances drift from the movement ledger.", runbook_url: "infra/runbooks/inventory.md#inventorybalancedrift"}
 
   - interval: 1m
     name: "InventoryBalanceDrift quiet"
@@ -96,6 +99,7 @@ tests:
         eval_time: 17m
         exp_alerts:
           - exp_labels: {severity: "warn", team: "ops", tenant_id: "t1"}
+            exp_annotations: {summary: "An unresolved inventory consumption is older than 24 h.", runbook_url: "infra/runbooks/inventory.md#inventoryunresolvedbacklog"}
 
   - interval: 1m
     name: "InventoryUnresolvedBacklog quiet"

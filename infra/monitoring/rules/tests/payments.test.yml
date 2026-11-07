@@ -16,6 +16,7 @@ tests:
         eval_time: 27m
         exp_alerts:
           - exp_labels: {severity: "page", team: "ops"}
+            exp_annotations: {summary: "A payment was held or reconciled with an amount mismatch.", runbook_url: "infra/runbooks/payments.md#paymentsamountmismatch"}
 
   - interval: 1m
     name: "PaymentsAmountMismatch fires (variant 2)"
@@ -27,6 +28,7 @@ tests:
         eval_time: 27m
         exp_alerts:
           - exp_labels: {severity: "page", team: "ops"}
+            exp_annotations: {summary: "A payment was held or reconciled with an amount mismatch.", runbook_url: "infra/runbooks/payments.md#paymentsamountmismatch"}
 
   - interval: 1m
     name: "PaymentsAmountMismatch quiet"
@@ -52,6 +54,7 @@ tests:
         eval_time: 27m
         exp_alerts:
           - exp_labels: {severity: "page", team: "ops", kind: "ledger_entry_missing"}
+            exp_annotations: {summary: "Reconciliation found a critical payments finding.", runbook_url: "infra/runbooks/payments.md#paymentscriticalfinding"}
 
   - interval: 1m
     name: "PaymentsCriticalFinding fires (variant 2)"
@@ -63,6 +66,7 @@ tests:
         eval_time: 27m
         exp_alerts:
           - exp_labels: {severity: "page", team: "ops"}
+            exp_annotations: {summary: "Reconciliation found a critical payments finding.", runbook_url: "infra/runbooks/payments.md#paymentscriticalfinding"}
 
   - interval: 1m
     name: "PaymentsCriticalFinding quiet"
@@ -88,6 +92,7 @@ tests:
         eval_time: 27h
         exp_alerts:
           - exp_labels: {severity: "page", team: "ops", tenant_id: "t1"}
+            exp_annotations: {summary: "Payments reconciliation has not succeeded for a tenant in 26 h.", runbook_url: "infra/runbooks/payments.md#paymentsreconciliationmissing"}
 
   - interval: 1m
     name: "PaymentsReconciliationMissing quiet"
@@ -109,6 +114,7 @@ tests:
         eval_time: 12m
         exp_alerts:
           - exp_labels: {severity: "warn", team: "ops", tenant_id: "t1"}
+            exp_annotations: {summary: "A payments reconciliation run is stalled.", runbook_url: "infra/runbooks/payments.md#paymentsreconciliationstalled"}
 
   - interval: 1m
     name: "PaymentsReconciliationStalled quiet"
@@ -130,6 +136,7 @@ tests:
         eval_time: 12m
         exp_alerts:
           - exp_labels: {severity: "warn", team: "finance", tenant_id: "t1", kind: "late_payment"}
+            exp_annotations: {summary: "A payment held for review is older than 24 h.", runbook_url: "infra/runbooks/payments.md#paymentsheldforreviewstale"}
 
   - interval: 1m
     name: "PaymentsHeldForReviewStale quiet"
@@ -151,6 +158,7 @@ tests:
         eval_time: 27m
         exp_alerts:
           - exp_labels: {severity: "warn", team: "ops", gateway: "gw1"}
+            exp_annotations: {summary: "A gateway callback failed signature verification.", runbook_url: "infra/runbooks/payments.md#paymentscallbacksignatureinvalid"}
 
   - interval: 1m
     name: "PaymentsCallbackSignatureInvalid quiet"
@@ -179,6 +187,7 @@ tests:
         eval_time: 27m
         exp_alerts:
           - exp_labels: {severity: "warn", team: "ops", gateway: "gw1"}
+            exp_annotations: {summary: "More than 20 % of calls to one gateway failing for 10 min.", runbook_url: "infra/runbooks/payments.md#paymentsgatewayerrorratio"}
 
   - interval: 1m
     name: "PaymentsGatewayErrorRatio quiet"
@@ -202,6 +211,7 @@ tests:
         eval_time: 27m
         exp_alerts:
           - exp_labels: {severity: "warn", team: "ops", gateway: "gw1"}
+            exp_annotations: {summary: "A gateway rejected the tenant's credentials (auth_error).", runbook_url: "infra/runbooks/payments.md#paymentscredentialrejected"}
 
   - interval: 1m
     name: "PaymentsCredentialRejected quiet"
@@ -228,6 +238,7 @@ tests:
         eval_time: 42m
         exp_alerts:
           - exp_labels: {severity: "warn", team: "ops", gateway: "gw1"}
+            exp_annotations: {summary: "Open payment intents past deadline + 30 min.", runbook_url: "infra/runbooks/payments.md#paymentsopenintentspastdeadline"}
 
   - interval: 1m
     name: "PaymentsOpenIntentsPastDeadline quiet"

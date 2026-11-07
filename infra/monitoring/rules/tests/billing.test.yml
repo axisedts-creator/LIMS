@@ -16,6 +16,7 @@ tests:
         eval_time: 25h
         exp_alerts:
           - exp_labels: {severity: "page", team: "ops"}
+            exp_annotations: {summary: "A billing integrity violation was recorded in the last day.", runbook_url: "infra/runbooks/billing.md#billingintegrityviolation"}
 
   - interval: 1m
     name: "BillingIntegrityViolation quiet"
@@ -37,6 +38,7 @@ tests:
         eval_time: 12m
         exp_alerts:
           - exp_labels: {severity: "warn", team: "ops"}
+            exp_annotations: {summary: "Invoice number counter busy more than 5 times in 5 min.", runbook_url: "infra/runbooks/billing.md#billingcounterbusy"}
 
   - interval: 1m
     name: "BillingCounterBusy quiet"
@@ -58,6 +60,7 @@ tests:
         eval_time: 27m
         exp_alerts:
           - exp_labels: {severity: "warn", team: "ops"}
+            exp_annotations: {summary: "A tenant's invoice numbering pattern was rejected as invalid in the last 15 min.", runbook_url: "infra/runbooks/billing.md#billingnumberingpatterninvalid"}
 
   - interval: 1m
     name: "BillingNumberingPatternInvalid quiet"

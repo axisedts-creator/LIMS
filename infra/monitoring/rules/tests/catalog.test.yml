@@ -16,6 +16,7 @@ tests:
         eval_time: 12m
         exp_alerts:
           - exp_labels: {severity: "page", team: "ops", outcome: "quarantined"}
+            exp_annotations: {summary: "A catalog import file was quarantined (malware scan).", runbook_url: "infra/runbooks/catalog.md#catalogimportquarantined"}
 
   - interval: 1m
     name: "CatalogImportQuarantined quiet"
@@ -44,6 +45,7 @@ tests:
         eval_time: 37m
         exp_alerts:
           - exp_labels: {severity: "warn", team: "ops"}
+            exp_annotations: {summary: "More than 5 % of priceFor calls return no_price for 15 min.", runbook_url: "infra/runbooks/catalog.md#catalognopricespike"}
 
   - interval: 1m
     name: "CatalogNoPriceSpike quiet"
@@ -72,6 +74,7 @@ tests:
         eval_time: 37m
         exp_alerts:
           - exp_labels: {severity: "warn", team: "ops"}
+            exp_annotations: {summary: "More than 5 % of referenceRangeFor calls find no range for 15 min.", runbook_url: "infra/runbooks/catalog.md#catalognorangespike"}
 
   - interval: 1m
     name: "CatalogNoRangeSpike quiet"
@@ -102,6 +105,7 @@ tests:
         eval_time: 22m
         exp_alerts:
           - exp_labels: {severity: "warn", team: "ops"}
+            exp_annotations: {summary: "Catalog port p95 latency above 50 ms for 10 min.", runbook_url: "infra/runbooks/catalog.md#catalogportlatency"}
 
   - interval: 1m
     name: "CatalogPortLatency quiet"
@@ -130,6 +134,7 @@ tests:
         eval_time: 27m
         exp_alerts:
           - exp_labels: {severity: "warn", team: "ops"}
+            exp_annotations: {summary: "A catalog import task has been in flight for 15 min.", runbook_url: "infra/runbooks/catalog.md#catalogimportstuck"}
 
   - interval: 1m
     name: "CatalogImportStuck quiet"
@@ -151,6 +156,7 @@ tests:
         eval_time: 3070m
         exp_alerts:
           - exp_labels: {severity: "warn", team: "ops"}
+            exp_annotations: {summary: "Notification contact reads in the last hour above 10x the 7-day hourly median.", runbook_url: "infra/runbooks/catalog.md#catalogcontactreadsspike"}
 
   - interval: 1m
     name: "CatalogContactReadsSpike quiet"

@@ -16,6 +16,7 @@ tests:
         eval_time: 12m
         exp_alerts:
           - exp_labels: {severity: "warn", team: "ops", task: "evt.anatomic.case"}
+            exp_annotations: {summary: "An anatomic pathology event consumer dead-lettered.", runbook_url: "infra/runbooks/anatomic.md#anatomicconsumerdeadletter"}
 
   - interval: 1m
     name: "AnatomicConsumerDeadLetter quiet"
@@ -39,6 +40,7 @@ tests:
         eval_time: 72m
         exp_alerts:
           - exp_labels: {severity: "warn", team: "ops", tenant_id: "t1"}
+            exp_annotations: {summary: "More than 5 images quarantined for one tenant in 1 h (security).", runbook_url: "infra/runbooks/anatomic.md#anatomicimagequarantined"}
 
   - interval: 1m
     name: "AnatomicImageQuarantined quiet"
@@ -65,6 +67,7 @@ tests:
         eval_time: 22m
         exp_alerts:
           - exp_labels: {severity: "warn", team: "ops"}
+            exp_annotations: {summary: "Anatomic pathology submit failures above 0.1/min for 10 min.", runbook_url: "infra/runbooks/anatomic.md#anatomicsubmitfailures"}
 
   - interval: 1m
     name: "AnatomicSubmitFailures quiet"
@@ -86,6 +89,7 @@ tests:
         eval_time: 12m
         exp_alerts:
           - exp_labels: {severity: "warn", team: "ops"}
+            exp_annotations: {summary: "Case/block/slide lookups not found above 50/min (possible enumeration).", runbook_url: "infra/runbooks/anatomic.md#anatomiclookupnotfoundspike"}
 
   - interval: 1m
     name: "AnatomicLookupNotFoundSpike quiet"

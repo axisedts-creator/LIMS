@@ -21,6 +21,7 @@ tests:
         eval_time: 37m
         exp_alerts:
           - exp_labels: {severity: "warn", team: "ops"}
+            exp_annotations: {summary: "More than 5 % of report renders failed over 15 min.", runbook_url: "infra/runbooks/reporting.md#reportingrenderfailurerate"}
 
   - interval: 1m
     name: "ReportingRenderFailureRate quiet"
@@ -49,6 +50,7 @@ tests:
         eval_time: 72m
         exp_alerts:
           - exp_labels: {severity: "warn", team: "ops", channel: "ch1"}
+            exp_annotations: {summary: "More than 20 % of report deliveries failed on one channel over 1 h.", runbook_url: "infra/runbooks/reporting.md#reportingdeliveryfailurerate"}
 
   - interval: 1m
     name: "ReportingDeliveryFailureRate quiet"
@@ -72,6 +74,7 @@ tests:
         eval_time: 72m
         exp_alerts:
           - exp_labels: {severity: "warn", team: "ops", tenant_id: "t1"}
+            exp_annotations: {summary: "More than 50 OTP verify failures for one tenant in 1 h.", runbook_url: "infra/runbooks/reporting.md#reportingotpverifybruteforce"}
 
   - interval: 1m
     name: "ReportingOtpVerifyBruteForce quiet"
@@ -93,6 +96,7 @@ tests:
         eval_time: 72m
         exp_alerts:
           - exp_labels: {severity: "warn", team: "ops"}
+            exp_annotations: {summary: "More than 500 QR verify lookups not found in 1 h (enumeration).", runbook_url: "infra/runbooks/reporting.md#reportingqrenumeration"}
 
   - interval: 1m
     name: "ReportingQrEnumeration quiet"
@@ -116,6 +120,7 @@ tests:
         eval_time: 12m
         exp_alerts:
           - exp_labels: {severity: "page", team: "ops"}
+            exp_annotations: {summary: "The renderer blocked an outbound request (possible template injection).", runbook_url: "infra/runbooks/reporting.md#reportingrendererblockedrequest"}
 
   - interval: 1m
     name: "ReportingRendererBlockedRequest quiet"
@@ -137,6 +142,7 @@ tests:
         eval_time: 72m
         exp_alerts:
           - exp_labels: {severity: "warn", team: "ops"}
+            exp_annotations: {summary: "More than 20 PDF sandbox rejections in 1 h.", runbook_url: "infra/runbooks/reporting.md#reportingsandboxrejectionspike"}
 
   - interval: 1m
     name: "ReportingSandboxRejectionSpike quiet"
@@ -161,6 +167,7 @@ tests:
         eval_time: 14m
         exp_alerts:
           - exp_labels: {severity: "page", team: "ops", service: "renderer"}
+            exp_annotations: {summary: "Renderer or PDF sandbox container unhealthy for 2 min.", runbook_url: "infra/runbooks/reporting.md#reportingrendererdown"}
 
   - interval: 1m
     name: "ReportingRendererDown quiet"

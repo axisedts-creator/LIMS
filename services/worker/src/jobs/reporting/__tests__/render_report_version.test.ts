@@ -211,6 +211,42 @@ describe('AC-03.9 — failures: retry up to 5 attempts, then render_failed with 
   });
 });
 
+// Review C6-T09 #2: a failing SQL statement aborts the Postgres transaction; render_failed must be written after ROLLBACK TO SAVEPOINT or it never commits (AC-03.9, E11).
+describe('AC-03.9 — a SQL error inside the attempt must not block the render_failed write (savepoint)', () => {
+  const dbErr = () => Object.assign(new Error('check violation report_versions__hashes__ck'), { code: '23514' });
+  const idx = (s: RS, re: RegExp) => s.db.stmts.findIndex((x) => re.test(x.text));
+  it('final attempt, the `rendered` UPDATE rejects: SAVEPOINT render_attempt precedes it, ROLLBACK TO SAVEPOINT render_attempt precedes the render_failed UPDATE', async () => {
+    const s = renderSetup({ dbOpts: { failOn: [{ match: /set status = 'rendered'/i, error: dbErr }] } });
+    expect(await settle(s.run(5))).toBe('ok');
+    const sp = idx(s, /^savepoint render_attempt\b/i), upd = idx(s, /set status = 'rendered'/i), rb = idx(s, /^rollback to savepoint render_attempt\b/i), failed = idx(s, /set status = 'render_failed'/i);
+    expect(sp).toBeGreaterThanOrEqual(0); expect(sp).toBeLessThan(upd); expect(upd).toBeLessThan(rb); expect(rb).toBeLessThan(failed);
+    expect(s.version()).toMatchObject({ status: 'render_failed', render_attempts: 5 });
+    expect(s.metrics).toContainEqual({ name: 'lims_reporting_render_failures_total', labels: { error_code: 'reporting.render_unavailable' } });
+  });
+  it('final attempt, the release enqueue rejects: same order, render_failed committed, no release job recorded', async () => {
+    const s = renderSetup({ dbOpts: { failOn: [{ match: /app\.enqueue_job/i, error: dbErr }] } });
+    expect(await settle(s.run(5))).toBe('ok');
+    expect(idx(s, /^rollback to savepoint render_attempt\b/i)).toBeLessThan(idx(s, /set status = 'render_failed'/i)); expect(idx(s, /^rollback to savepoint render_attempt\b/i)).toBeGreaterThanOrEqual(0);
+    expect(s.version()['status']).toBe('render_failed'); expect(s.db.jobs.filter((j) => j.identifier === RELEASE)).toHaveLength(0);
+  });
+  it('a permanent failure (template_invalid) on attempt 1 also rolls back to the savepoint before render_failed', async () => {
+    const s = renderSetup({ rendererReply: templateInvalid() }); expect(await settle(s.run(1))).toBe('ok');
+    expect(idx(s, /^rollback to savepoint render_attempt\b/i)).toBeGreaterThanOrEqual(0); expect(idx(s, /^rollback to savepoint render_attempt\b/i)).toBeLessThan(idx(s, /set status = 'render_failed'/i));
+  });
+});
+
+// Review C6-T09 #1: app.enqueue_job raises EP0001:unknown_task_identifier for a task missing from core.g_task_registry (built from manifest.tasks).
+describe('manifest registers every task identifier the render task enqueues', () => {
+  it.each(['reporting.render_report_version', RELEASE])('%s is in manifest.tasks with maxAttempts', async (id) => {
+    const { manifest } = await import('../index.js');
+    expect(typeof (manifest.tasks as Record<string, unknown>)[id]).toBe('function'); expect((manifest.maxAttempts as Record<string, number>)[id]).toBeGreaterThan(0);
+  });
+  it('release_if_eligible has maxAttempts 10 (02-TRD §9) and the render task enqueues it with that value', async () => {
+    const { manifest } = await import('../index.js'); expect((manifest.maxAttempts as Record<string, number>)[RELEASE]).toBe(10);
+    const s = renderSetup(); await s.run(1); expect(s.db.jobs.find((j) => j.identifier === RELEASE)?.maxAttempts).toBe(10);
+  });
+});
+
 describe('guards: only a `rendering` version of this tenant is rendered', () => {
   it.each(['rendered', 'released', 'superseded', 'discarded', 'render_failed'])('status %s -> no-op (render_failed needs the retry-render endpoint first)', async (st) => {
     const s = renderSetup({ versionOver: { status: st } }); const before = allRows(s);

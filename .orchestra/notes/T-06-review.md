@@ -1,0 +1,14 @@
+CHANGES
+
+1. `infra/tests/static/test_t06_secrets.py:289-290` — the literals `"BEGIN PRIVATE KEY"` and `"ENC[AES256_GCM"` make the T-01 gate red (`test_t01_skeleton.Gitleaks.test_infra_has_zero_findings` and `test_no_decrypted_or_private_material_under_infra` both report `test_t06_secrets.py (private key material)` and `(ENC[] without sops metadata)`; verified by running `test_t01_*.py`). Fix: split the strings the same way `test_t01_skeleton.py:164` does, e.g. `"BEGIN " + "PRIVATE KEY"` and `"ENC" + "[AES256_GCM"`. Then rerun `test_t01_*.py` and confirm it no longer reports test_t06.
+
+2. `infra/ansible/roles/secrets_render/` (no generation step at all; T-06-impl.md says "value generation ... not scripted") — the plan row for T-06 asks for "Secrets generation ... upstream key generation", and done_when says "all secrets of 02-TRD §8.2 generated per env". Nothing generates them. Fix: add a generation entry point inside the role, e.g. `tasks/generate.yml`, run on ops-1 (localhost) with no_log. It must:
+   (a) create an empty temporary work dir and run the pinned snapshot's `infra/compose/supabase/upstream/docker/utils/generate-keys.sh` there (02-TRD §8.2);
+   (b) generate every other schema id that is not host-generated (`wireguard_private_keys` stays on its host) with random values that meet the schema/§8.2 length rules;
+   (c) pipe the result straight into `sops --encrypt` to `<env>.enc.yaml`, so plaintext never touches disk;
+   (d) run `infra/tests/internal/secrets_not_default.py --env <env> --values -` on the decrypted stream, plus `--other` for any envs that already exist, and fail on exit != 0;
+   (e) write one `ops_audit` line through `ops-note.sh`.
+
+3. `infra/ansible/roles/secrets_render/defaults/main.yml:35-101` and `tasks/main.yml` ("Placements on this host") — `reporting_channel_<secret_ref>` (02-TRD §8.2 table, consumers worker-a/b) is never placed. §8.3 says *each* secret is copied to `/run/lims/secrets/<service>/<id>`. Fix: add a prefix placement, e.g. `secrets_render_prefix_placement: {reporting_channel_: {hosts: [app], services: [worker-a, worker-b]}}`. In the "Placements on this host" set_fact, merge in every key of `secrets_render_values` that starts with that prefix. Add a static test asserting the prefix entry exists and targets only worker-a/b on `app`.
+
+Checked OK: names verbatim from the §8.2 table and the schema; `exposure: env` set = 22 upstream ids + `valkey_lims_api_password` (`LIMS_CORE_REDIS_URL`); decrypt only on the controller, stdout only, no_log; tmpfs asserted before the first write; files 0400 with owner = UID; env files root 0400; ops_audit carries no value; AC-05.3 fixed_env; payments_kek read-only; release/authenticode keys stay on ops only; no secrets in files; only C1 paths touched. T-06 static tests: 47/47 OK (run).

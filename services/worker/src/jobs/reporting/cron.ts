@@ -56,7 +56,7 @@ export const sweepHeldReleases: TaskHandler = async (payload, jobCtx) => {
   }
   const s = (await ctx.tx.query('SELECT auto_release FROM reporting.settings WHERE tenant_id = $1', [tenantId])).rows[0];
   if ((s?.auto_release ?? 'when_eligible') !== 'when_eligible') return;
-  const { rows } = await ctx.tx.query(`SELECT id, report_id FROM reporting.report_versions WHERE tenant_id = $1 AND status = 'rendered' AND held_basis IS NOT NULL LIMIT ${BATCH}`, [tenantId]);
+  const { rows } = await ctx.tx.query(`SELECT id, report_id FROM reporting.report_versions WHERE tenant_id = $1 AND status = 'rendered' AND held_basis IS NOT NULL ORDER BY held_checked_at ASC NULLS FIRST, id LIMIT ${BATCH}`, [tenantId]);
   for (const r of rows as { id: string; report_id: string }[]) {
     await ctx.tx.query(ENQUEUE_SQL, ['reporting.release_if_eligible', JSON.stringify({ tenant_id: tenantId, report_id: r.report_id, report_version_id: r.id }), `release:${r.id}`, null, 10]);
   }

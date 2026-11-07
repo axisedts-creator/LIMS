@@ -30,12 +30,14 @@ export type ReleaseOutcome =
 const iso = (v: unknown): string | null => (v == null ? null : new Date(v as string).toISOString());
 
 /** Asks BillingPort once and refuses any answer that is forged or self-contradictory (T13: release without payment). */
-async function eligibility(ctx: ReleaseCtx, orderId: string): Promise<{ eligible: boolean; basis: string; overrideId: string | null }> {
+async function eligibility(ctx: ReleaseCtx, orderId: string): Promise<{ eligible: boolean; basis: string; overrideId: string | null; balanceDuePaisa: number | null }> {
   const r = await ctx.ports.billing.getReleaseEligibility(ctx, { orderId });
+  const due = r?.balanceDue?.amount_paisa;
+  const balanceDuePaisa = Number.isSafeInteger(due) ? (due as number) : null;
   if (r?.orderId === orderId && r.eligible === true && ELIGIBLE_BASES.has(r.basis) && (r.basis !== 'override' || (typeof r.overrideId === 'string' && UUID.test(r.overrideId)))) {
-    return { eligible: true, basis: r.basis, overrideId: r.basis === 'override' ? r.overrideId : null };
+    return { eligible: true, basis: r.basis, overrideId: r.basis === 'override' ? r.overrideId : null, balanceDuePaisa };
   }
-  if (r?.orderId === orderId && r.eligible === false && HOLD_BASES.has(r.basis)) return { eligible: false, basis: r.basis, overrideId: null };
+  if (r?.orderId === orderId && r.eligible === false && HOLD_BASES.has(r.basis)) return { eligible: false, basis: r.basis, overrideId: null, balanceDuePaisa };
   throw new LimsError('common.internal');
 }
 
@@ -55,6 +57,7 @@ export async function releaseVersion(ctx: ReleaseCtx, versionId: string, o: Rele
   const { tx, tenantId } = ctx; const auto = o.mode === 'auto';
   const stop = (code: string): ReleaseOutcome => { if (auto) return { kind: 'skipped', reason: code }; throw new LimsError(code as any); };
   const now = iso(ctx.now ? ctx.now() : new Date().toISOString())!;
+  if (ctx.actor.type === 'user' && !ctx.audit) throw new LimsError('common.internal');   // CR-C6-008: report.release access log is mandatory for user actors (fail closed)
 
   const v = (await tx.query(`SELECT id, report_id, version_no, status, report_kind, completeness, order_item_ids, page_count, pdf_bytes, rendered_at, version
     FROM reporting.report_versions WHERE tenant_id = $1 AND id = $2`, [tenantId, versionId])).rows[0];
@@ -75,7 +78,8 @@ export async function releaseVersion(ctx: ReleaseCtx, versionId: string, o: Rele
 
   const el = await eligibility(ctx, r.order_id);
   if (!el.eligible) {
-    if (!auto) throw new LimsError('reporting.release_blocked_due');                 // [CONV] problem extension members release_basis / balance_due_paisa need core toProblem support (CR)
+    // 02-TRD §4.6 rule 2 extension members; core toProblem does not emit them yet (.orchestra/cr/C6-T13.md).
+    if (!auto) throw Object.assign(new LimsError('reporting.release_blocked_due'), { extensions: { release_basis: el.basis, balance_due_paisa: el.balanceDuePaisa } });
     // [CONV] the hold columns are system metadata: no `version` bump, so a user's If-Match from the worklist is not invalidated by every sweep.
     await tx.query(`UPDATE reporting.report_versions SET held_basis = $3, held_checked_at = $4, updated_by = $5, updated_at = now()
       WHERE tenant_id = $1 AND id = $2 AND status = 'rendered'`, [tenantId, versionId, el.basis, now, ctx.actor.id]);
@@ -121,8 +125,8 @@ export async function releaseVersion(ctx: ReleaseCtx, versionId: string, o: Rele
     },
   });
   await tx.query(ENQUEUE, [DISPATCH_TASK, JSON.stringify({ tenant_id: tenantId, report_version_id: versionId }), `dispatch:${versionId}`, null, DISPATCH_MAX_ATTEMPTS]);
-  if (ctx.actor.type === 'user' && ctx.audit) {                                      // CR-C6-008: access log for user actors only
-    await ctx.audit.access({ action: 'report.release', entityType: 'report_version', entityId: versionId, centreId: r.centre_id, outcome: 'allowed',
+  if (ctx.actor.type === 'user') {                                                   // CR-C6-008: access log for user actors only (presence checked up front)
+    await ctx.audit!.access({ action: 'report.release', entityType: 'report_version', entityId: versionId, centreId: r.centre_id, outcome: 'allowed',
       detail: { release_basis: el.basis, ...(el.overrideId ? { override_id: el.overrideId } : {}) } });
   }
   return { kind: 'released', id: versionId, versionNo: v.version_no, version: done.version, releasedAt: now, releaseBasis: el.basis, audiences, supersedesVersionNo: supersedes,

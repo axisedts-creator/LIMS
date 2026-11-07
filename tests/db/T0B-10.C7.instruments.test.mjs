@@ -157,7 +157,7 @@ function expectedPolicies() {
     out.push(...policies(parts.join(' ')));
   };
   for (const q of CENTRE_T) {
-    const t = q.split('.')[1], pred = `${T} AND ${CSP}`;
+    const t = q.split('.')[1], pred = `${T} AND (SELECT app.is_staff_or_system()) AND ${CSP}`;
     add(t, 'SELECT', pred); add(t, 'INSERT', null, pred); if (UPD_T.includes(q)) add(t, 'UPDATE', pred, pred);
   }
   return [...lit, ...out];
@@ -221,11 +221,11 @@ for (const q of ALLT) {
   });
 }
 test('exactly the 21 §7 tables are created in instruments (no event_inbox: C0 created it in T0B-05); no ENUM; no sequence / serial / identity; no DEFAULT on id / tenant_id (04 D9); credential material only as sha256', () => {
-  const sql = insSql();
+  const sql = insSql(), bare = sql.replace(/'(?:[^']|'')*'/g, "''"); // string literals blanked: 'serial' is the required transport CHECK value
   const made = [...sql.matchAll(/CREATE\s+TABLE\s+(?:IF\s+NOT\s+EXISTS\s+)?(\w+\.\w+)/gi)].map((m) => m[1]);
   assert.deepEqual(made.sort(), [...ALLT].sort());
   assert.doesNotMatch(sql, /CREATE\s+TYPE\b[\s\S]*?\bAS\s+ENUM\b/i, 'no ENUM (02-CV §5.5)');
-  assert.doesNotMatch(sql, /\bCREATE\s+SEQUENCE\b|\bbigserial\b|\bserial\b|\bsmallserial\b|GENERATED\s+(ALWAYS|BY\s+DEFAULT)\s+AS\s+IDENTITY/i);
+  assert.doesNotMatch(bare, /\bCREATE\s+SEQUENCE\b|\bbigserial\b|\bserial\b|\bsmallserial\b|GENERATED\s+(ALWAYS|BY\s+DEFAULT)\s+AS\s+IDENTITY/i);
   assert.doesNotMatch(sql, /event_inbox/i, 'C7 migrations do not touch event_inbox (T0B-05 owns it)');
   for (const q of ALLT) for (const c of ['id', 'tenant_id']) { const def = createTable(sql, q).colMap.get(c); if (def) assert.doesNotMatch(def, /\bdefault\b/, `${q}.${c} must have no DEFAULT (UUIDv7 in app code)`); }
   const cols = ALLT.flatMap((q) => createTable(sql, q).colNames.map((c) => `${q}.${c}`));
@@ -291,7 +291,7 @@ test('policies: db/policies/instruments.sql holds EXACTLY the expected 66 polici
   assert.deepEqual([...byKey.keys()].sort(), exp.map((e) => e.key).sort(), 'no policy beyond the spec (an extra policy widens access)');
   for (const p of policies(polSql()).filter((x) => /\.event_inbox$/.test(x.table))) assert.match(p.name, /^event_inbox__(select|insert|delete)__(tenant|owner_only)$/, `${p.key}: only the C0 inbox shapes may appear`);
 });
-test('policy shape: names <table>__<cmd>__<scope>; lims_app for tenant / tenant_centre, lims_owner for owner_only; ::uuid[] cast (A16.1); settings carry the staff guard, device-written centre tables do not; NO DELETE for lims_app; owner_only DELETE exactly on the 10 purge tables, bound to app.maintenance = purge_instruments_archive AND the claim tenant; resolver policies bound to app.pre_* / app.maintenance GUCs', () => {
+test('policy shape: names <table>__<cmd>__<scope>; lims_app for tenant / tenant_centre, lims_owner for owner_only; ::uuid[] cast (A16.1); settings and every tenant_centre policy carry the staff guard (02-CV §5.8, 08 A17 P-16; is_staff_or_system() is true for device); NO DELETE for lims_app; owner_only DELETE exactly on the 10 purge tables, bound to app.maintenance = purge_instruments_archive AND the claim tenant; resolver policies bound to app.pre_* / app.maintenance GUCs', () => {
   const ps = gotPolicies();
   assert.equal(ps.length, EXPECTED_POLICY_COUNT, `policies: ${ps.length}`);
   for (const p of ps) {
@@ -300,7 +300,7 @@ test('policy shape: names <table>__<cmd>__<scope>; lims_app for tenant / tenant_
     assert.equal(p.roles, m[1] === 'owner_only' ? 'lims_owner' : 'lims_app', `${p.key} roles (owner_only policies are TO lims_owner ONLY, 08 A12.7)`);
     const t = p.using + ' ' + p.check;
     if (/current_centre_ids/.test(t)) assert.match(t, /any\(\(select app\.current_centre_ids\(\)\)::uuid\[\]\)/, `${p.key}: A16.1 cast`);
-    if (m[1] === 'tenant_centre') { assert.match(t, /has_all_centres/, `${p.key}: all-centres escape`); assert.doesNotMatch(t, /is_staff_or_system/, `${p.key}: device actors write these tables, no staff guard (§1.1)`); }
+    if (m[1] === 'tenant_centre') { assert.match(t, /has_all_centres/, `${p.key}: all-centres escape`); for (const part of [p.using, p.check].filter(Boolean)) assert.match(part, /\(select app\.is_staff_or_system\(\)\)/, `${p.key}: staff guard in USING/WITH CHECK (02-CV §5.8; true for device, so §1.1 access unchanged)`); }
     if (m[1] === 'tenant') { assert.equal(p.table, 'instruments.settings'); assert.match(p.cmd === 'INSERT' ? p.check : p.using, /\(select app\.is_staff_or_system\(\)\)/, `${p.key} staff guard (review #15)`); }
     if (m[1] !== 'owner_only') assert.match(t, /tenant_id=\(select app\.current_tenant_id\(\)\)/, `${p.key}: tenant predicate`);
     if (m[1] === 'owner_only') assert.match(p.using, /current_setting\('app\.(pre_device_secret_sha256|pre_device_agent_id|maintenance)',true\)/, `${p.key}: bound to an app.* GUC (08 A12.1/A12.2)`);

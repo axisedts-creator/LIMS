@@ -141,6 +141,48 @@ describe('consumer wrapper: tenant tx, envelope, JobContext', () => {
   });
 });
 
+describe('consumer wrapper: x-extensible enums (CV §7.2; review T0D-09 item 1)', () => {
+  const CATALOG_CHANGED = 'catalog.changed.v1';
+  const catalogEnvelope = (payloadOver: Record<string, unknown> = {}) => ({
+    event_id: EVENT_ID, event_type: CATALOG_CHANGED, tenant_id: TENANT_A, occurred_at: '2026-11-07T12:00:00.000Z',
+    actor: { type: 'user', id: '0190a000-0000-7000-8000-00000000a001' }, idempotency_key: 'catalog-changed-1', producer: 'catalog',
+    aggregate: { type: 'catalog', id: '0190a000-0000-7000-8000-00000000ca01', seq: 1 },
+    request_id: '0190a000-0000-7000-8000-0000000000f1',
+    payload: { catalog_revision: 1, entity_type: 'test', entity_id: '0190a000-0000-7000-8000-00000000ca02', change_kind: 'updated',
+      effective_from: '2026-11-07T12:00:00.000Z', ...payloadOver },
+  });
+  const catalogSetup = async (handler: (e: any, ctx: any) => Promise<void>, payloadOver: Record<string, unknown>) => {
+    const s = await setup([{ module: 'lab', subscriptions: { [CATALOG_CHANGED]: handler } }]);
+    s.world.seedEvent(catalogEnvelope(payloadOver));
+    return s;
+  };
+  const payload = { event_id: EVENT_ID, tenant_id: TENANT_A, event_type: CATALOG_CHANGED };
+
+  it('a future value of an x-extensible enum (entity_type) still reaches the handler exactly once', async () => {
+    const seen: any[] = [];
+    const s = await catalogSetup(async (e) => { seen.push(e); }, { entity_type: 'some_future_kind' });
+    await s.run(evtId('lab', CATALOG_CHANGED), payload);
+    expect(seen).toHaveLength(1);
+    expect(seen[0].payload.entity_type).toBe('some_future_kind');
+    expect(s.world.inbox).toEqual([{ module: 'lab', tenant_id: TENANT_A, event_id: EVENT_ID }]);
+  });
+
+  it('control: a known entity_type is handled', async () => {
+    const handler = vi.fn(async () => undefined);
+    const s = await catalogSetup(handler, {});
+    await s.run(evtId('lab', CATALOG_CHANGED), payload);
+    expect(handler).toHaveBeenCalledTimes(1);
+  });
+
+  it('control: a NON-extensible enum (change_kind) with an unknown value is still rejected and its inbox row rolled back', async () => {
+    const handler = vi.fn(async () => undefined);
+    const s = await catalogSetup(handler, { change_kind: 'exploded' });
+    await rejects(s.run(evtId('lab', CATALOG_CHANGED), payload));
+    expect(handler).not.toHaveBeenCalled();
+    expect(s.world.inbox).toHaveLength(0);
+  });
+});
+
 describe('plain module tasks and manifest options', () => {
   const rescan = async (_p: any, _ctx: any) => undefined;
 

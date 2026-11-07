@@ -5,3 +5,4 @@
 - Review round (2026-11-07): `bash db/tests/run-suites.sh db/tests/core/T0B-05_platform.test.sql db/tests/core/T0B-05_queue.test.sql` on supabase/postgres:17.6.1.136 = platform file runs to completion, 0 `not ok` (sections 10-14 incl. 10,500-row purges); queue file fails #1 `schema "graphile_worker" does not exist` (expected). No impl change needed.
 - Review item 3: filed `.orchestra/cr/T0B-05.md` (blocking): graphile-worker@0.18.0 dev dep + SP-2 step-2 install in run-suites.sh. T0B-05 NOT done until it lands and T0B-05_queue passes.
 - Open: core.g_task_registry / g_system_actors seeds (§11) and db/policies/<m>.sql inbox mirrors not written (not in brief).
+- Round 2 (2026-11-07): CR `.orchestra/cr/T0B-05.md` still unresolved (graphile-worker not in package.json/node_modules), so run-suites.sh step (b) and fallback removal are deferred until it lands. `node --test tests/db/*.mjs` = 209/209 pass. BLOCKED, no impl change.

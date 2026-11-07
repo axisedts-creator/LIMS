@@ -1,0 +1,7 @@
+TESTS_WRONG — the test asserts something the spec does not require (say precisely what to change in the test)
+1. Disputed assertion (db/tests/core/T0B-05_queue.test.sql:49) intent is right: spec requires the job's max_attempts to default to the registry value — spec/chunks/C0-foundation-contracts/05-SCHEMA.md:1075 `max_attempts => coalesce(enqueue_job.max_attempts, v_reg.max_attempts)::smallint`; registry column is `max_attempts integer` (05-SCHEMA.md:804).
+2. The spec itself casts to smallint when calling graphile_worker (05-SCHEMA.md:1075), so a smallint column in graphile_worker.jobs is consistent with the spec; the spec does not require the jobs column to be integer (05-SCHEMA.md:1080 marks jobs column details UNVERIFIED for 0.18.0).
+3. The original `is(max_attempts, 5, ...)` compared smallint to integer, which pgTAP cannot resolve — a test type defect, not an implementation fault.
+4. Change: compare as `max_attempts::int` against `5` (or column vs `5::smallint`). Already applied in commit 7433883 (line 49 now `SELECT max_attempts::int ...`); keep it. Line 59 (`max_attempts || ':' || ...`) concatenates to text and needs no change.
+5. Implementation: no change required for this point. Tests 6-23 must now be run; any new failure there is a fresh finding, not covered by this ruling.
+6. Seed-010 RLS failure (T0B-09) is out of scope for this dispute; `--no-seeds` in run-suites.sh is a local-run aid only and must not be the CI default.

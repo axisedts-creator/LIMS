@@ -2,6 +2,7 @@
 import { join } from 'node:path';
 import Fastify, { type FastifyInstance } from 'fastify';
 import type { CoreConfig } from './config.js';
+import { genReqId, installErrorHandlers, sendProblem } from './errors.js';
 import { autoload, checkHandlers, DEFAULT_MODULES_DIR, loadSpec, REPO_ROOT } from './module.js';
 import { createBffKeyVerifier } from './auth/bff-key.js';
 import type { ClaimsResolver } from './auth/claims-resolver.js';
@@ -26,7 +27,10 @@ export async function bootstrap(opts: BootstrapOptions): Promise<FastifyInstance
     // stage 13 onResponse log is T0D-10 (route template only, no raw URL)
     logController: new Fastify.LogController({ disableRequestLogging: true }),
     schemaController,
+    genReqId, // stage 1
+    frameworkErrors: (err, req, reply) => { sendProblem(err, req, reply); },
   });
+  installErrorHandlers(app);
   try {
     const modules = await autoload(modulesDir, repoRoot);
     // 02-TRD §6.5: key files are read now, so a missing/garbage key or CIDR fails boot (no lazy / network fallback).

@@ -9,6 +9,7 @@ import { authenticateBearer, endpointFamilyOf, type ClaimsResolver } from './aut
 import type { DbClaims } from './auth/claims.js';
 import type { ClientIpResolver } from './auth/client-ip.js';
 import { AuthError } from './auth/errors.js';
+import { isRenderedProblem, LimsError } from './errors.js';
 import type { JwtVerifier } from './auth/jwt.js';
 import type { Handler, HandlerContext } from './module.js';
 
@@ -99,9 +100,7 @@ function withoutRequired(s: unknown): unknown {
   return out;
 }
 
-export class ResponseContractError extends Error {
-  readonly statusCode = 500;
-  readonly code = 'common.internal';
+export class ResponseContractError extends LimsError {
   constructor() {
     super('common.internal');
   }
@@ -133,11 +132,18 @@ export function installRouteHooks(app: FastifyInstance, opts: { responseValidati
     }
     // [CONV] The serializer only strips undeclared fields; it never 500s on a missing `required` field. Contract
     // checking is solely the toggle below, so "off" really means no check (SP-8 O4), and stripping stays on in production.
+    // problem+json bodies are built by errors.ts (always a valid Problem); a declared schema would make the serializer strip them.
+    for (const [status, s] of Object.entries<any>(schema.response ?? {})) {
+      if (!s?.content?.['application/problem+json']) continue;
+      delete s.content['application/problem+json'];
+      if (Object.keys(s.content).length === 0) delete schema.response[status];
+    }
     if (schema.response) schema.response = withoutRequired(schema.response);
     if (!opts.responseValidation) return;
     // Mismatch -> 500 common.internal + log response_contract_violation (02-TRD §6.2 stage 12).
     const operationId: string = schema.operationId;
     const hook = async (req: FastifyRequest, reply: FastifyReply, payload: unknown) => {
+      if (isRenderedProblem(payload)) return payload; // core-built Problem (errors.ts), valid by construction
       const v = validators.get(String(reply.statusCode)) ?? validators.get('default');
       if (v && v(payload)) return payload;
       // No data in the log: only the operation, status and failing schema paths.

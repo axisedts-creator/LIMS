@@ -1,25 +1,12 @@
-// Auth-path error carrying a registry code + its HTTP status from contracts/errors.yaml.
-// ponytail: T0D-04 (core/errors.ts LimsError + problem+json) supersedes this; then AuthError becomes a LimsError alias.
-import { readFileSync } from 'node:fs';
-import { join } from 'node:path';
-import { parse } from 'yaml';
-import { REPO_ROOT } from '../module.js';
+// Auth-path error: a LimsError (core/errors.ts) whose unregistered codes still carry 401 on the error object.
+import { LimsError } from '../errors.js';
 
-let statuses: ReadonlyMap<string, number> | undefined;
-function statusOf(code: string): number {
-  statuses ??= new Map(
-    (parse(readFileSync(join(REPO_ROOT, 'contracts', 'errors.yaml'), 'utf8')) as Array<{ code: string; http: number }>)
-      .map((e) => [e.code, e.http]),
-  );
-  // [CONV] a code missing from the registry on an auth path is still a 401, never a 2xx/500 leak.
-  return statuses.get(code) ?? 401;
-}
-
-export class AuthError extends Error {
-  readonly statusCode: number;
-  constructor(readonly code: string) {
+export class AuthError extends LimsError {
+  constructor(code: string) {
     super(code); // message = code only: never the token, claim values or which check failed
-    this.statusCode = statusOf(code);
+    this.name = 'AuthError';
+    // [CONV] a code missing from the registry on an auth path is still a 401, never a 2xx; toProblem renders it 500 common.internal.
+    if (this.statusCode === 500 && code !== 'common.internal') this.statusCode = 401;
   }
 }
 

@@ -31,6 +31,9 @@ Versions that 04/CV or a spike fixed are copied, not re-chosen: fastify (SP-8), 
 | Noto Sans | 5.3.0 | OFL-1.1 | UI font, woff2 bundled via `@fontsource/noto-sans`; T0D-12 pin | 2026-07-19 (npm time[5.3.0] of @fontsource/noto-sans) | Google Fonts CDN (banned, 04 §11), self-built woff2 |
 | Noto Sans Devanagari | 5.3.0 | OFL-1.1 | Devanagari font via `@fontsource/noto-sans-devanagari`; T0D-12 pin | 2026-07-19 (npm time[5.3.0] of @fontsource/noto-sans-devanagari) | Mukta, self-built woff2 |
 | Noto Sans Mono | 5.3.0 | OFL-1.1 | monospace font via `@fontsource/noto-sans-mono`; T0D-12 pin | 2026-07-19 (npm time[5.3.0] of @fontsource/noto-sans-mono) | JetBrains Mono, self-built woff2 |
+| @fontsource/noto-sans | 5.3.0 | OFL-1.1 | npm package delivering the Noto Sans row's woff2 (`@lims/ui` devDependency); T0D-12 pin | 2026-07-19 (npm time[5.3.0]) | Google Fonts CDN (banned, 04 §11), self-built woff2 |
+| @fontsource/noto-sans-devanagari | 5.3.0 | OFL-1.1 | npm package delivering the Noto Sans Devanagari row's woff2; T0D-12 pin | 2026-07-19 (npm time[5.3.0]) | self-built woff2 |
+| @fontsource/noto-sans-mono | 5.3.0 | OFL-1.1 | npm package delivering the Noto Sans Mono row's woff2; T0D-12 pin | 2026-07-19 (npm time[5.3.0]) | self-built woff2 |
 | @testing-library/react | 16.3.3 | MIT | component tests for `@lims/ui`; T0D-12 pin | 2026-08-27 (npm time[16.3.3]) | enzyme (unmaintained) |
 | @testing-library/user-event | 14.6.8 | MIT | user interaction simulation in tests; T0D-12 pin | 2026-10-13 (npm time[14.6.8]) | fireEvent only |
 | @types/react | 19.3.0 | MIT | React type definitions; T0D-12 pin | 2026-09-09 (npm time[19.3.0]) | none |

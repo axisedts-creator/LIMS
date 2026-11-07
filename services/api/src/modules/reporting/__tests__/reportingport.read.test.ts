@@ -184,12 +184,15 @@ describe('getReleasedReports: paging', () => {
     expect(new Set(seen).size).toBe(5); expect(seen.length).toBe(5);
   });
 
-  it('limit must be an integer >= 1; above 200 is refused or clamped, never more than 200 rows', async () => {
+  it('limit must be an integer 1..200; 201 and above is common.validation_failed (/limit), 200 is accepted (02-CV §4.3)', async () => {
     const w = await world(Array.from({ length: 205 }, (_, i) => ver(A, { reportId: id(0x1200 + i), orderId: id(0x2200 + i), releasedAt: new Date(Date.UTC(2026, 7, 1) + i * 60_000).toISOString() })));
     for (const limit of [0, -1, 1.5, Number.NaN, '5' as any]) expect((await rejection(list(w, { patientId: PAT }, 'A', { limit }))).code, String(limit)).toBe('common.validation_failed');
     expect((await list(w, { patientId: PAT }, 'A', { limit: 200 })).items.length).toBe(200);
-    const big: any = await list(w, { patientId: PAT }, 'A', { limit: 1000 }).then((p) => p, (e) => e);
-    if (big?.items) expect(big.items.length).toBeLessThanOrEqual(200); else expect(big.code).toBe('common.validation_failed');
+    for (const limit of [201, 1000]) {
+      const e = await rejection(list(w, { patientId: PAT }, 'A', { limit }));
+      expect(e.code, String(limit)).toBe('common.validation_failed');
+      expect(e.errors?.[0]?.path, String(limit)).toBe('/limit');
+    }
   });
 
   it('a malformed cursor is common.invalid_cursor (never a 500, never an empty success)', async () => {

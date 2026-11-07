@@ -178,7 +178,7 @@ export async function cancelOrder(ctx: ReportsCtx, tenantId: string, orderId: st
 const HINTS = new Set(['rejected', 'recollection_ordered']);
 
 /** Latest specimen status per item by aggregate.seq; a non-problem status clears the hint.
- *  ponytail: one seq per item, so two specimens of one item compare seqs of different aggregates; key by specimen if that matters. */
+ *  One seq per item (DDL has no per-specimen column) — TRD §8.2 wants seq per specimen; pending CR-C6-022 (.orchestra/cr/C6-T04.md). */
 export async function setSpecimenHint(ctx: ReportsCtx, tenantId: string, itemIds: readonly string[], toStatus: string, seq: number): Promise<void> {
   if (itemIds.length === 0) return;
   await ctx.tx.query(`UPDATE reporting.report_order_items SET specimen_hint = $3, specimen_hint_seq = $4, version = version + 1, updated_by = $5, updated_at = now()

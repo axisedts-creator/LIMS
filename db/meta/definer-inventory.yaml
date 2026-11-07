@@ -113,6 +113,21 @@
   "app.identity_notify_ip_throttle_hmacs": {
    "owner": "lims_owner", "execute": ["lims_worker"], "why": "tenant-less auth_events read for the throttle notice (08 A28.4)",
    "touches": ["identity.auth_events SELECT"], "policies": ["auth_events__select__owner_only (app.maintenance = 'identity_notify_ip_throttle')"], "reviewer": null
-  }
+  },
+  "app.enqueue_job": {"owner":"lims_queue","execute":["lims_app","lims_queue"],"why":"graphile_worker.add_job needs queue-owner rights; checks registry + tenant match (IC §12)","touches":[],"policies":[],"reviewer":null},
+  "app.queue_depth": {"owner":"lims_queue","execute":["lims_queue","lims_worker"],"why":"queue counts for lims_queue_depth{task}; never payloads or keys (review C0 m#37)","touches":[],"policies":[],"reviewer":null},
+  "app.ratelimit_hit": {"owner":"lims_owner","execute":["lims_api","lims_worker"],"why":"no table grants on counters (04 S11)","touches":[],"policies":[],"reviewer":null},
+  "app.purge_event_log": {"owner":"lims_owner","execute":["lims_worker"],"why":"retention purge, batched, 4-minute cap (CV §5.11; 08 A25 D-200)","touches":["core.event_log SELECT","core.event_log DELETE"],"policies":["event_log__select__owner_only","event_log__delete__owner_only"],"reviewer":null},
+  "app.purge_event_inboxes": {"owner":"lims_owner","execute":["lims_worker"],"why":"retention purge, batched, 4-minute cap (CV §5.11; 08 A25 D-200)","touches":["<m>.event_inbox SELECT","<m>.event_inbox DELETE"],"policies":["event_inbox__select__owner_only","event_inbox__delete__owner_only"],"reviewer":null},
+  "app.purge_idempotency_keys": {"owner":"lims_owner","execute":["lims_worker"],"why":"retention purge, batched, 4-minute cap (CV §5.11; 08 A25 D-200)","touches":["core.idempotency_keys SELECT","core.idempotency_keys DELETE"],"policies":["idempotency_keys__select__owner_only","idempotency_keys__delete__owner_only"],"reviewer":null},
+  "app.purge_dead_letters": {"owner":"lims_owner","execute":["lims_worker"],"why":"retention purge, batched, 4-minute cap (CV §5.11; 08 A25 D-200)","touches":["core.dead_letters SELECT","core.dead_letters DELETE"],"policies":["dead_letters__select__owner_only","dead_letters__delete__owner_only"],"reviewer":null},
+  "app.purge_ratelimit_counters": {"owner":"lims_owner","execute":["lims_worker"],"why":"retention purge, batched, 4-minute cap (CV §5.11; 08 A25 D-200)","touches":[],"policies":[],"reviewer":null},
+  "app.dl_insert_platform": {"owner":"lims_owner","execute":["lims_worker"],"why":"platform-task dead letter, tenant_id NULL (IC §12; 08 A9.4)","touches":["core.dead_letters INSERT"],"policies":["dead_letters__insert__owner_only"],"reviewer":null},
+  "app.dl_list_platform": {"owner":"lims_owner","execute":["lims_api"],"why":"platform dead-letter list/get, platform context only (08 A9.4)","touches":["core.dead_letters SELECT"],"policies":["dead_letters__select__owner_only"],"reviewer":null},
+  "app.dl_resolve": {"owner":"lims_owner","execute":["lims_api"],"why":"platform dead-letter replay/discard, version-guarded (08 A6.4, A9.4)","touches":["core.dead_letters UPDATE"],"policies":["dead_letters__update__owner_only","dead_letters__select__owner_only"],"reviewer":null},
+  "app.platform_list_tenants": {"owner":"lims_owner","execute":["lims_api"],"why":"platform tenant list, platform context only (CR-C0-004; 08 A12.3)","touches":["core.tenants SELECT","identity.platform_staff SELECT"],"policies":["tenants__select__owner_only (app.maintenance = 'platform_list_tenants')"],"reviewer":null},
+  "app.cron_tenant_ids": {"owner":"lims_owner","execute":["lims_worker"],"why":"per_tenant cron fan-out (08 A13 P-6, A23.1)","touches":["core.tenants SELECT"],"policies":["tenants__select__owner_only (app.maintenance = 'cron_tenant_ids')"],"reviewer":null},
+  "app.core_resolve_tenant_code": {"owner":"lims_owner","execute":["lims_api"],"why":"patient pre-auth tenant resolution (08 A19 D-121)","touches":["core.tenants SELECT"],"policies":["tenants__select__owner_only (app.pre_tenant_code)"],"reviewer":null},
+  "app.identity_tenants_for_email_hmacs": {"owner":"lims_owner","execute":["lims_worker"],"why":"tenants targeted by a throttled IP (08 A25 D-217)","touches":["core.users SELECT"],"policies":["users__select__owner_only (app.maintenance = 'identity_tenants_for_email_hmacs')"],"reviewer":null}
  }
 }

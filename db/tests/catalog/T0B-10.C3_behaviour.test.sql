@@ -58,7 +58,7 @@ CREATE FUNCTION pg_temp.cl(p_tenant uuid, p_type text DEFAULT 'user') RETURNS js
 -- staff of tenant A / tenant B as lims_app
 CREATE FUNCTION pg_temp.a(p_sql text, p_mode text DEFAULT 'w') RETURNS text LANGUAGE sql AS $$ SELECT pg_temp.x('lims_app', pg_temp.cl(pg_temp.ta()), p_sql, p_mode) $$;
 CREATE FUNCTION pg_temp.b(p_sql text, p_mode text DEFAULT 'w') RETURNS text LANGUAGE sql AS $$ SELECT pg_temp.x('lims_app', pg_temp.cl(pg_temp.tb()), p_sql, p_mode) $$;
-CREATE FUNCTION pg_temp.pub() RETURNS text LANGUAGE sql IMMUTABLE AS $$ SELECT ', status = ''published'', effective_from = now(), published_at = now(), change_reason = ''seed''' $$;
+CREATE FUNCTION pg_temp.pub() RETURNS text LANGUAGE sql IMMUTABLE AS $$ SELECT ', effective_from = now(), published_at = now(), change_reason = ''seed''' $$;
 
 -- ===================================================================================================================================== fixtures (superuser, system claims)
 SELECT pg_temp.ins('catalog.departments', jsonb_build_object('id', pg_temp.uid(1), 'tenant_id', pg_temp.ta(), 'code', 'HAEM', 'name', 'Haematology (SYNTHETIC)'));
@@ -152,7 +152,7 @@ SELECT is(pg_temp.x('lims_app', pg_temp.cl(pg_temp.ta(), 'partner'), 'SELECT 1 F
 -- §11 test 3: published analyte_versions are immutable; superseded -> published rejected; children of a published parent frozen
 SELECT is(pg_temp.a(format($$UPDATE catalog.analyte_versions SET unit_code = 'mg_dl' WHERE id = %L$$, pg_temp.uid(31))), 'EP0001', 'clinical column of a published analyte_versions row cannot change');
 SELECT is(pg_temp.a(format($$UPDATE catalog.analyte_versions SET decimals = 3 WHERE id = %L$$, pg_temp.uid(31))), 'EP0001', 'decimals of a published analyte_versions row cannot change');
-SELECT is(pg_temp.a(format($$UPDATE catalog.analyte_versions SET effective_to = now() + interval '1 day', change_reason = 'seed', version = version + 1 WHERE id = %L$$, pg_temp.uid(31))), 'EP0001',
+SELECT is(pg_temp.a(format($$UPDATE catalog.analyte_versions SET effective_to = now() + interval '1 day', change_reason = 'changed', version = version + 1 WHERE id = %L$$, pg_temp.uid(31))), 'EP0001',
   'change_reason is not on the mutable list of a published row');
 SELECT is(pg_temp.a(format($$UPDATE catalog.analyte_versions SET effective_to = now() + interval '1 day', updated_at = now(), updated_by = %L, version = version + 1 WHERE id = %L$$, pg_temp.sys(), pg_temp.uid(31))), 'n=1',
   'effective_to / updated_* / version stay mutable on a published row');

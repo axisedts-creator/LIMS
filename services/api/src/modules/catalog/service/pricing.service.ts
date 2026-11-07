@@ -105,7 +105,7 @@ function mapItemPg(e: unknown): never {
 
 // ---- T-18: surcharge rules #83–#85, tax types #86–#88, tax rules #89–#91 (02-TRD §5.1, §7.5, §7.6; PRD AC-14.5, AC-15.2, AC-15.5; 08 R18).
 // Every write: validate -> tenant-scoped existence checks -> lock catalog_state (serialises the overlap check, §7.5/§7.6) -> row lock -> write -> bumpRevision.
-// [CONV] events: surcharge rules entity_type `surcharge_rule`; tax types AND tax rules entity_type `tax_rule`; /end -> `updated`; a rate change -> `updated` with the new version's id + effective_from.
+// [CONV] events: surcharge rules entity_type `surcharge_rule`; tax types AND tax rules entity_type `tax_rule`; /end -> `deactivated` with effective_from = effective_to (02-TRD §8); a rate change -> `updated` with the new version's id + effective_from.
 const S_COLS = ['id', 'scope', 'department_id', 'orderable_id', 'price_list_id', 'amount_kind', 'amount_paisa', 'percent_bp', 'effective_from', 'effective_to', 'is_active', 'version'];
 const R_COLS = ['id', 'scope', 'department_id', 'orderable_id', 'vat_treatment', 'other_tax_code', 'hs_code', 'effective_from', 'effective_to', 'is_active', 'version'];
 const Y_COLS = ['id', 'code', 'display', 'rate_bp', 'effective_from', 'effective_to', 'sort_order', 'is_active', 'version'];
@@ -133,7 +133,7 @@ const taxTypeDto = (r: R): R => omitEmpty({
   id: r.id, code: r.code, display: r.display, rate_bp: r.rate_bp == null ? undefined : Number(r.rate_bp),
   effective_from: ts(r.effective_from), effective_to: ts(r.effective_to), scope: 'tenant', is_active: r.is_active === true, version: Number(r.version),
 });
-// [CONV] g_tax_types has no effective_from / version (spec gap): the VAT row reports created_at and version 1.
+// CR pending: .orchestra/cr/T-18.md — g_tax_types has no effective_from / version; the VAT row reports created_at and version 1 until ruled (08 A4.1 forbids created_at).
 const globalTypeDto = (r: R): R => omitEmpty({
   id: r.id, code: r.code, display: r.display, rate_bp: r.rate_bp == null ? undefined : Number(r.rate_bp), effective_from: ts(r.created_at) ?? new Date(0).toISOString(), scope: 'global', is_active: r.is_active === true, version: 1,
 });
@@ -267,7 +267,7 @@ export function createPricingService(deps: PricingDeps) {
     if (ms(to) < ms(row.effective_from)) fail([invalid('/effective_to')]);
     const after = await repo.updateRow(tx(ctx), table, cols, { tenantId: ctx.tenantId, id, expectedVersion: ev, actorId: ctx.actor.id }, { effective_to: to }).catch(mapPg);
     if (!after) throw new LimsError('common.version_conflict');
-    await revision.bumpRevision(ctx, { entityType, entityId: id, changeKind: 'updated', effectiveFrom: to });
+    await revision.bumpRevision(ctx, { entityType, entityId: id, changeKind: 'deactivated', effectiveFrom: to });
     return after;
   }
   /** Rows of one scope of a rule table, filtered in memory (single-table SQL, a few hundred rows per tenant). */

@@ -1,7 +1,8 @@
-# T-03 tests (tester)
-- File: `infra/tests/static/test_t03_host_baseline.py` (stdlib + PyYAML). Classes: Roles, Idempotence, Ssh, UsersAndPackages, Sysctl, Chrony, WireGuard, Nftables, LuksVolumes, DockerEngine, ContainerHardeningScript.
-- Run: `.orchestra\notes\T-03-verify.cmd` (= `python -B -m unittest discover -s infra/tests/static -p "test_t03_*.py"`). Now: 62 failures, all "role/file missing"; 1 skip (ansible-playbook --syntax-check, CI only, LD-17).
-- File lookup is by glob inside the role (`lims.conf*`, `90-lims.conf*`, `chrony.conf*`, `wg0.conf*`, `daemon.json*`, `lims-luks-unlock.service*`; nft rules = all files of role nftables). Networks = YAML mappings with `name`, subnet (literal or `docker_subnets.<key>`), `internal`.
-- ASSUMPTION (contract for container_hardening.py): `--daemon-json PATH` checks only that file, exit 0 if TRD s5.7 holds, else non-zero and output names the key; stdlib only.
-- Covers AC-01.4 (input drop, DOCKER-USER order), AC-29.1 (LUKS2, key in tmpfs, guarded format), AC-29.2 (chrony + node_timex_offset_seconds in role), AC-29.3 (sshd wg-only), REQ-SEC-125/130/132/137.
-- NOT provable here: converge-twice = 0 changes, real unlock/fallback, live `nft list ruleset`, live networks (need VM; Idempotence class is a static proxy).
+# T-03 tests (C5 tester) — NOTE: overwrites the C1 T-03 notes of the same name (id collision)
+- Files: `services/api/src/modules/lab/repository/__tests__/repository.static.test.ts` (no DB) and `repository.integration.test.ts` (live DB); fixtures `tests/db/c5-t03/fixtures.sql`; harness `tests/db/c5-t03/run.sh`.
+- Run: `.orchestra\notes\T-03-verify.cmd` (docker -> pinned supabase/postgres image -> migrations+seeds -> vitest with LIMS_TEST_DATABASE_URL=lims_api and LIMS_TEST_ADMIN_DATABASE_URL=superuser). `LIMS_PG_IMAGE` overrides the image for local smoke only.
+- Covers: explicit tenant filter proven with RLS bypassed (superuser), statement hygiene (bound tenant, no interpolation, lab-only, no DELETE), `version = version + 1` conflicts/not_found/race, patch-key allowlist, EXPLAIN uses the 05 s5 index (worklist, pending, history, queue, barcode, registration, recent, by-order, hot set, delta) and no Seq Scan, counter allocation.
+- SEAMS (spec silent; full list in header of the integration test): `RepoCtx {tx,tenantId,actorId}`; files specimens/orders/orderTests/results/labSettings/barcodeCounters/deltaRules `.repo.ts`; snake_case rows; `insertX/getX/updateX(rc,id,expectedVersion,patch)`; named list functions.
+- WRITER MUST add `pg` 8.23.1 (+ `@types/pg`) to services/api (in lockfile already); tests import `pg`.
+- Other lab tables: only static check (named in some *.repo.ts); no behaviour tests for them.
+- NOT run: no node_modules and pinned image absent here; syntax-checked only (node --check), fixtures.sql never executed against a DB. Expect fixture/EXPLAIN-planner tweaks on first live run.

@@ -14,6 +14,8 @@ type Doc = {
 const PLACEHOLDER = /^<(\w+) set>$/;
 // 08 A19 D-101: partner self-service; the only staff code allowed in a partner fixed set (partner_admin inherits).
 const PARTNER_EXCEPTION = "identity.self.manage";
+// LD-01 (2026-11-07): patient self-cancel shares the code with staff; centre scope applies to staff only.
+const PATIENT_EXCEPTION = "engagement.booking.cancel";
 
 // Fixed sets flattened to { actor, sub, codes } with `<x set>` placeholders expanded from a sibling set.
 // Non-list values (e.g. `system`, declared per worker manifest) carry no codes and are skipped.
@@ -50,7 +52,8 @@ export function checkPermissionRules(doc: object, extraGrants: { role: string; c
       const p = byCode.get(code);
       if (!p) { out.push({ rule: "UNKNOWN", code, message: `${where}: code not in permissions` }); continue; }
       const isStaff = (p.roles ?? []).length > 0;
-      const exempt = s.actor === "partner" && code === PARTNER_EXCEPTION;
+      // LD-01 / CR-C0-0C-001: patient self-cancel (E36) shares engagement.booking.cancel with staff S4.
+      const exempt = (s.actor === "partner" && code === PARTNER_EXCEPTION) || (s.actor === "patient" && code === PATIENT_EXCEPTION);
       if ((s.actor === "partner" || s.actor === "patient") && isStaff && !exempt)
         out.push({ rule: "R3", code, message: `${where}: staff code in a ${s.actor} fixed set` });
     }

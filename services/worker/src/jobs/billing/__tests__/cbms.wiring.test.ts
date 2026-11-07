@@ -7,7 +7,7 @@
 //                        (job_key `cbms:<kind>:<id>`); it never writes a document or cbms_submissions row.
 //   A payload whose tenant_id is missing / differs from ctx.tenantId, a document_kind outside the three kinds, or a document_id that is not a uuid runs NO statement and calls no client; it resolves
 //   (same rule as BL-T13/T17 tasks). All statements go through ctx.tx.
-//   alerts: services/worker/src/jobs/billing/alerts/cbms.rules.yml (Prometheus rule-file format, same as jobs/instruments/alerts/instruments.rules.yml; TRD §"Alert rules for C1" paths).
+//   alerts: services/worker/src/jobs/billing/alerts/cbms.rules.yaml (Prometheus rule-file format, same as jobs/instruments/alerts/instruments.rules.yml; TRD §"Alert rules for C1" paths).
 import { existsSync, readFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { join } from 'node:path';
@@ -21,15 +21,18 @@ const DOC_ID = '0190a000-0000-7000-8000-00000000d001';
 const manifest = async (): Promise<any> => (await import('../index.js')).manifest;
 const code = (rel: string) => readFileSync(join(DIR, rel), 'utf8').replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
 
-function ctxOf(tenantId: string | undefined) {
+function ctxOf(tenantId: string | undefined, gaugeRow?: Record<string, number>) {
   const stmts: Array<{ text: string; values: unknown[] }> = [];
-  const metrics: Array<{ kind: string; name: string; labels: unknown }> = [];
-  const tx = { async query(text: string, values: unknown[] = []) { stmts.push({ text, values }); return { rows: [], rowCount: 0 }; } };
+  const metrics: Array<{ kind: string; name: string; labels: any; value?: number }> = [];
+  const tx = { async query(text: string, values: unknown[] = []) {
+    stmts.push({ text, values });
+    return gaugeRow && /stale_1h/.test(text) ? { rows: [gaugeRow], rowCount: 1 } : { rows: [], rowCount: 0 };
+  } };
   const ctx: any = {
     tenantId, tx, actor: { type: 'system', id: '0190a000-0000-7000-8000-00000000a009' }, requestId: 'r', attempt: 1, maxAttempts: 10, jobId: '1',
     now: () => '2026-11-08T12:00:30.000Z', isNewer: () => true, events: {}, core: {}, storage: {}, files: {}, audit: {},
     log: { info() {}, warn() {}, error() {}, debug() {}, child() { return this; } },
-    metrics: { inc: (name: string, labels: unknown) => metrics.push({ kind: 'inc', name, labels }), set: (name: string, _v: number, labels: unknown) => metrics.push({ kind: 'set', name, labels }), observe() {} },
+    metrics: { inc: (name: string, labels: unknown) => metrics.push({ kind: 'inc', name, labels }), set: (name: string, value: number, labels: unknown) => metrics.push({ kind: 'set', name, value, labels }), observe() {} },
   };
   ctx.db = { tx: async (fn: any) => fn(ctx) };
   return { ctx, stmts, metrics };
@@ -106,6 +109,32 @@ describe('what the tasks do against an EMPTY database', () => {
   });
 });
 
+describe('stale_1h gauge feeds the page alert (TRD §"Alert rules for C1": live mode only; age from the document, not the last attempt)', () => {
+  const ROW = { pending: 1, stale_1h: 1, attempts_10_plus: 0 }; // what the DB would say for a doc older than 1 h
+  const stale = async (mode: string | undefined) => {
+    const prev = process.env['LIMS_BILLING_CBMS_MODE'];
+    if (mode === undefined) delete process.env['LIMS_BILLING_CBMS_MODE']; else process.env['LIMS_BILLING_CBMS_MODE'] = mode;
+    try {
+      const m = await manifest(); const { ctx, metrics, stmts } = ctxOf(TENANT_A, ROW);
+      await m.tasks[SWEEP]({ tenant_id: TENANT_A }, ctx);
+      const g = metrics.filter((x) => x.kind === 'set' && x.name === 'lims_billing_cbms_pending_documents');
+      return { value: g.find((x) => x.labels?.state === 'stale_1h')?.value, pending: g.find((x) => x.labels?.state === 'pending')?.value, stmts };
+    } finally { if (prev === undefined) delete process.env['LIMS_BILLING_CBMS_MODE']; else process.env['LIMS_BILLING_CBMS_MODE'] = prev; }
+  };
+  it('stub mode (also the default): stale_1h is 0 even with a pending document older than 1 h; pending stays truthful', async () => {
+    for (const mode of ['stub', undefined]) { const r = await stale(mode); expect(r.value, String(mode)).toBe(0); expect(r.pending, String(mode)).toBe(1); }
+  });
+  it('live mode: stale_1h carries the count', async () => { expect((await stale('live')).value).toBe(1); });
+  it('stale_1h ages the document from created_at / cancelled_at, never from the last attempt (a retry 5 min ago must not hide a 2 h old document)', async () => {
+    const { stmts } = await stale('live');
+    const g = stmts.find((s) => /stale_1h/.test(s.text))!; expect(g, 'gauge statement').toBeTruthy();
+    const filter = /FILTER\s*\(\s*WHERE((?:(?!FILTER).)*?)\)\s*AS\s+stale_1h/is.exec(g.text)?.[1] ?? '';
+    expect(filter, 'stale_1h FILTER clause').not.toBe('');
+    expect(filter).not.toMatch(/last_attempt_at/i);
+    expect(g.text).toMatch(/i\.created_at/); expect(g.text).toMatch(/n\.created_at/); expect(g.text).toMatch(/i\.cancelled_at/);
+  });
+});
+
 describe('static rules', () => {
   it('cbms_sweep covers all three document kinds on the right columns (invoice cbms_*, invoice_cancellation cbms_cancel_*, credit_note cbms_*) and uses the TRD job key', () => {
     const c = code('tasks/cbms_sweep.ts');
@@ -131,7 +160,7 @@ describe('static rules', () => {
 });
 
 describe('alert rules (02-TRD §"Alert rules for C1": CBMS pending > 1 h = page; attempts >= 10 and pending = warn)', () => {
-  const file = join(DIR, 'alerts', 'cbms.rules.yml');
+  const file = join(DIR, 'alerts', 'cbms.rules.yaml'); // TRD §"Alert rules for C1": C4 path is alerts/*.yaml (a .yml file is missed by that glob)
   const { parse } = createRequire(join(DIR, '../../../../api/package.json'))('yaml') as { parse(s: string): any };
   const rules = (): any[] => (existsSync(file) ? parse(readFileSync(file, 'utf8')).groups.flatMap((g: any) => g.rules) : []);
   it('the rule file exists and is a Prometheus rule file (groups -> rules with alert/expr/labels.severity)', () => {

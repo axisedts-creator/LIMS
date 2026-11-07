@@ -218,6 +218,23 @@ describe.skipIf(!SU)('billing.cbms_sync / billing.cbms_sweep over a real DB', ()
     });
   });
 
+  describe('stale_1h gauge (page alert): live mode only, aged from created_at not from the last attempt', () => {
+    const staleOf = async (mode: string) => {
+      const prev = process.env['LIMS_BILLING_CBMS_MODE']; process.env['LIMS_BILLING_CBMS_MODE'] = mode;
+      try { return (await sweep()).find((m) => m.kind === 'set' && m.name === 'lims_billing_cbms_pending_documents' && m.labels?.state === 'stale_1h')?.value; }
+      finally { if (prev === undefined) delete process.env['LIMS_BILLING_CBMS_MODE']; else process.env['LIMS_BILLING_CBMS_MODE'] = prev; }
+    };
+    it('doc created 2 h ago whose last attempt was 5 min ago: stub -> 0, live -> 1; a doc created 10 min ago is not stale', async () => {
+      await cleanup();
+      try {
+        await asSystem([...plantInvoice(I.pending, { created_at: ago(2 * H), issued_at: ago(2 * H), cbms_attempts: 3, cbms_last_attempt_at: ago(5 * MIN) }),
+          ...plantInvoice(I.fresh, { created_at: ago(10 * MIN), issued_at: ago(10 * MIN) })]);
+        expect(await staleOf('stub')).toBe(0);
+        expect(await staleOf('live')).toBe(1);
+      } finally { await plantAll(); }
+    });
+  });
+
   it('B31 end state the sync job must accept: a failed_permanent document moved back to pending by the DB guard is submitted again with the next attempt number', async () => {
     await asSystem([[`UPDATE billing.invoices SET cbms_state = 'pending' WHERE tenant_id = $1 AND id = $2`, [TENANT, invId(I.failed)]]]);
     await sync(new RecordingStub(), 'invoice', invId(I.failed));

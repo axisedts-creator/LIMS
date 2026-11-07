@@ -1,15 +1,8 @@
 -- T0B-05: D-201 window step 3 of 3: app.enqueue_job / app.queue_depth owned by lims_queue (05-SCHEMA §10 queue wrapper, verbatim),
 -- then the CREATE grants of step 1 are revoked (no standing CREATE; schema test 30).
 SET LOCAL ROLE lims_owner;
--- [CONV] graphile_worker is installed by the runner between step 1 and this file (SP-2). Where it is absent (a harness without the
--- runner step), the SQL body of queue_depth cannot be validated at CREATE time: skip body checks so the window still closes;
--- calls then fail at run time with "schema graphile_worker does not exist".
-DO $$ BEGIN
-  IF to_regnamespace('graphile_worker') IS NULL THEN
-    RAISE WARNING 'graphile_worker not installed: app.enqueue_job / app.queue_depth created without body validation (SP-2 runner step missing)';
-    PERFORM set_config('check_function_bodies', 'off', true);
-  END IF;
-END $$;
+-- graphile_worker is installed by the runner between step 1 and this file (SP-2 step b). LD-31 / CR T0B-05 item 3: no
+-- check_function_bodies fallback; a deploy without step (b) fails here at migrate time.
 RESET ROLE;
 SET LOCAL ROLE lims_queue;   -- this migration file switches to lims_queue for these objects only
 CREATE FUNCTION app.enqueue_job(identifier text, payload jsonb, job_key text DEFAULT NULL,

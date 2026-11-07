@@ -1,7 +1,7 @@
 'use client';
 // SCR-02 manage actions (04-UI-UX §3): Request command ▾ (E17), Revoke (E15), Retire (E16), Edit (E13).
 // Revoke/Retire/Edit send If-Match with the agent version; E17 sends one Idempotency-Key per user request.
-import { useState } from 'react';
+import { useId, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@lims/ui/components/Button';
 import { ConfirmDialog } from '@lims/ui/components/ConfirmDialog';
@@ -14,6 +14,7 @@ import { RadioGroup } from '@lims/ui/components/RadioGroup';
 import { TextField } from '@lims/ui/components/TextField';
 import { Tooltip } from '@lims/ui/components/Tooltip';
 import { useToast } from '@lims/ui/components/Toast';
+import { VisuallyHidden } from '@lims/ui/components/VisuallyHidden';
 import { requestAgentCommandAction, retireAgentAction, revokeAgentAction, updateAgentAction } from '../server/actions';
 import { COMMAND_KINDS, REVOKE_REASONS, type ActionResult, type Agent, type AgentCommandKind, type InstrumentSummary, type UpdateChannel } from '../server/types';
 
@@ -23,6 +24,7 @@ const COMMAND_ITEMS: readonly { id: AgentCommandKind; label: string }[] = [
   { id: 'restart_service', label: 'Restart service' },
   { id: 'reupload_since', label: 'Re-upload since…' },
 ];
+const RETIRE_BLOCKED = 'Retire every instrument on this agent first.'; // [CONV] tooltip text
 const REUPLOAD_WINDOW_MS = 72 * 3_600_000;
 const reason = { codedSet: 'instruments.g_cs_revoke_reasons', options: REVOKE_REASONS, freeText: { maxLength: 300, isRequired: false } };
 
@@ -34,6 +36,7 @@ export function AgentActions({ agent, instruments, onCommandRequested }: { agent
   const [open, setOpen] = useState<Open>('none');
   const close = () => setOpen('none');
   const activeInstruments = instruments.some((i) => i.state !== 'retired');
+  const retireHintId = useId();
 
   const after = (r: ActionResult<unknown>, success: string, failure: string) => {
     if (r.ok) {
@@ -65,9 +68,13 @@ export function AgentActions({ agent, instruments, onCommandRequested }: { agent
       <Button variant="danger" onPress={() => setOpen('revoke')}>Revoke</Button>
       {/* 04-UI-UX: Retire disabled with tooltip while instruments are not retired. [CONV] tooltip text */}
       {activeInstruments ? (
-        <Tooltip content="Retire every instrument on this agent first.">
-          <Button variant="danger" isDisabled>Retire</Button>
-        </Tooltip>
+        <>
+          {/* Disabled buttons get no hover/focus, so the tooltip text is also linked via aria-describedby (Button has no such prop). */}
+          <Tooltip content={RETIRE_BLOCKED}>
+            <Button variant="danger" isDisabled ref={(el) => el?.setAttribute('aria-describedby', retireHintId)}>Retire</Button>
+          </Tooltip>
+          <VisuallyHidden id={retireHintId}>{RETIRE_BLOCKED}</VisuallyHidden>
+        </>
       ) : (
         <Button variant="danger" onPress={() => setOpen('retire')}>Retire</Button>
       )}

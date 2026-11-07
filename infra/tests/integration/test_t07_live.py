@@ -163,6 +163,13 @@ class LiveRenderedUserlist(unittest.TestCase):
         self.assertEqual(self._psql("lims_api", "postgres", "SELECT 1").stdout.strip(), "1")
         self.assertNotEqual(self._psql("lims_api", "postgres", "SELECT 1", pw="wrong").returncode, 0)
 
+    def test_pgbouncer_image_uid_matches_secrets_render_uids(self):
+        # review C1.T-06 item 2: the 0400 userlist is owned by secrets_render_uids.pgbouncer; it must be the image user.
+        import test_t06_secrets as base  # noqa: E402
+        img = "edoburu/pgbouncer@" + re.search(r"sha256:[0-9a-f]{64}", (st.LOCK).read_text()).group(0)
+        r = sh("docker", "run", "--rm", "--entrypoint", "id", img, "-u")
+        self.assertEqual(int(r.stdout.strip()), base._defaults()["secrets_render_uids"]["pgbouncer"])
+
 
 if __name__ == "__main__":
     unittest.main()

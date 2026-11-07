@@ -207,7 +207,7 @@ describe('AC-05.2 / REQ-SEC-088 — saveNarrativeDraft sanitises server-side (XS
     expect(r.status).toBe(200); expect(allHtml(r)).not.toMatch(DANGEROUS);
     const stored = JSON.stringify(storedSections(versionsOf(t.db, NARR_1)[0]!)); expect(stored).not.toMatch(DANGEROUS);
     if (dirty.includes('KEEP-ME') && !/<(noscript|math)/i.test(dirty)) expect(allHtml(r)).toContain('KEEP-ME');
-    expect(stored).toBe(JSON.stringify(r.body.current_version.sections.map((s: any) => ({ key: s.key, html: s.html }))));   // what is shown is what is stored
+    expect(stored).toBe(JSON.stringify(r.body.current_version.sections.map((s: any) => ({ key: s.key, heading: s.heading, html: s.html }))));   // what is shown is what is stored
   });
   it('the sanitiser keeps the clinical formatting allowlist (p, strong, em, ul/ol/li, br, table)', async () => {
     const html = `${SAFE_HTML}<p>line<br>two</p><ol><li>x</li></ol><table><tbody><tr><td>cell</td></tr></tbody></table>`;
@@ -237,7 +237,7 @@ describe('N3 saveNarrativeDraft — contract, versioning, concurrency, isolation
   it('200: the narrative version moves 1 -> 2 (body, ETag and DB agree) and the draft row carries the sections in order; actor recorded', async () => {
     const t = e(N.save); const r = await save(t, full('<p>F</p>', '<p>I</p>'));
     expect(r.body.version).toBe(2); expect(r.headers?.etag).toBe('"2"'); expect(narrativeRow(t.db, NARR_1)['version']).toBe(2);
-    expect(storedSections(versionsOf(t.db, NARR_1)[0]!)).toEqual([{ key: 'findings', html: '<p>F</p>' }, { key: 'impression', html: '<p>I</p>' }]);
+    expect(storedSections(versionsOf(t.db, NARR_1)[0]!)).toEqual([{ key: 'findings', heading: 'Findings', html: '<p>F</p>' }, { key: 'impression', heading: 'Impression', html: '<p>I</p>' }]);
     expect(versionsOf(t.db, NARR_1)[0]!['updated_by']).toBe(USER);
   });
   it('missing If-Match -> 428; stale -> 409 version_conflict; malformed/overflowing -> 400 (never a 500 from the integer column); nothing written', async () => {

@@ -2942,7 +2942,7 @@ paths:
         - name: action
           in: query
           required: false
-          schema: { type: string, maxLength: 6, enum: [ insert, update ] }
+          schema: { type: string, maxLength: 6, enum: [ insert, update, delete ] }
         - name: row_id
           in: query
           required: false
@@ -5948,7 +5948,7 @@ components:
     AuditActor:
       type: object
       additionalProperties: false
-      required: [ type, id ]
+      required: [ type ]
       properties:
         type: { type: string, maxLength: 32 }
         id: { $ref: _common.yaml#/components/schemas/Uuid }
@@ -5962,7 +5962,7 @@ components:
         audit_id: { $ref: _common.yaml#/components/schemas/Uuid }
         occurred_at: { $ref: _common.yaml#/components/schemas/IsoUtc }
         table: { type: string, maxLength: 127 }
-        action: { type: string, maxLength: 6, enum: [ insert, update ] }
+        action: { type: string, maxLength: 6, enum: [ insert, update, delete ] }
         row_id: { $ref: _common.yaml#/components/schemas/Uuid }
         actor: { $ref: "#/components/schemas/AuditActor" }
         centre_id: { $ref: _common.yaml#/components/schemas/Uuid }
@@ -5990,7 +5990,7 @@ components:
         audit_id: { $ref: _common.yaml#/components/schemas/Uuid }
         occurred_at: { $ref: _common.yaml#/components/schemas/IsoUtc }
         table: { type: string, maxLength: 127 }
-        action: { type: string, maxLength: 6, enum: [ insert, update ] }
+        action: { type: string, maxLength: 6, enum: [ insert, update, delete ] }
         row_id: { $ref: _common.yaml#/components/schemas/Uuid }
         actor: { $ref: "#/components/schemas/AuditActor" }
         centre_id: { $ref: _common.yaml#/components/schemas/Uuid }

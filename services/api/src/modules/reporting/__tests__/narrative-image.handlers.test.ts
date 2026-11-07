@@ -139,7 +139,9 @@ describe('N6 validation + tenant isolation', () => {
     const t = env(N6); expect((await rejection(up(t.hctx, { file: png() }, NARR_B)))?.code).toBe('common.not_found'); nothingPersisted(t);
   });
   it.each([['unknown id', '00000000-0000-7000-8000-00000000dead'], ['not a uuid', "1' OR '1'='1"], ['number', 5], ['undefined', undefined]])('narrative_id %s -> 404/400, nothing persisted', async (_n, id) => {
-    const t = env(N6); expect(['common.not_found', 'common.validation_failed']).toContain((await rejection(up(t.hctx, { file: png() }, id)))?.code); nothingPersisted(t);
+    const t = env(N6);   // `up` has a default for narrativeId, so `undefined` must bypass it and call the handler directly
+    const call = id === undefined ? manifest.handlers[N6]({ params: { narrative_id: undefined }, query: {}, headers: {}, body: { file: png() } }, t.hctx) : up(t.hctx, { file: png() }, id);
+    expect(['common.not_found', 'common.validation_failed']).toContain((await rejection(call))?.code); nothingPersisted(t);
   });
   it('every reporting statement carries the tenant of the context', async () => {
     const t = env(N6); await up(t.hctx, { file: png() }); const st = t.db.reporting(); expect(st.length).toBeGreaterThan(1);

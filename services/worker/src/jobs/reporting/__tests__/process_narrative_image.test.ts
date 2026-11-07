@@ -12,9 +12,9 @@ import { SENTINEL_META, SVG, has, imagePath, imageRow, infectedPng, isPng, narra
 const CLEAN = new Uint8Array(reencodePng(pngBytes({ width: 5, height: 3 }), 40).bytes);   // what N6 leaves in quarantine
 const PDF_UNUSED = { sanitize: async () => { throw new Error('the PDF sandbox must not be used for images'); } };
 
-function setup(row: Row = imageRow(), bytes: Uint8Array | undefined = CLEAN, jobOver: Record<string, unknown> = {}, extra: Row[] = []) {
+function setup(row: Row = imageRow(), bytes: Uint8Array | null = CLEAN, jobOver: Record<string, unknown> = {}, extra: Row[] = []) {
   const db = makeDb({ ...world(), narrative_reports: narratives(), input_files: [row, ...extra] }); const storage = makeStorage();
-  if (bytes) storage.objects.set(`${BUCKET}::${row['quarantine_object_path']}`, bytes);
+  if (bytes !== null) storage.objects.set(`${BUCKET}::${row['quarantine_object_path']}`, bytes);
   let sandboxCalls = 0; const sandbox = { sanitize: async (b: Uint8Array) => { sandboxCalls++; return PDF_UNUSED.sanitize(); } };
   return { db, storage, ...makeJobCtx(db, storage, jobOver), row, sandbox, sandboxCalls: () => sandboxCalls };
 }
@@ -87,7 +87,7 @@ describe('infected / tampered quarantine objects never reach ready', () => {
     else expect(['rejected', 'quarantined']).toContain(f.state);
   });
   it('the quarantine object missing from storage -> not ready (retry), never a ready row', async () => {
-    const t = setup(imageRow(), undefined); const h = await build(t.sandbox); const r = await settle(run(h, t.ctx, t.row));
+    const t = setup(imageRow(), null); const h = await build(t.sandbox); const r = await settle(run(h, t.ctx, t.row));
     expect(t.db.file(t.row['id'])!.state).not.toBe('ready'); if (r !== 'ok') expect(r).toBeInstanceOf(Error);
   });
 });

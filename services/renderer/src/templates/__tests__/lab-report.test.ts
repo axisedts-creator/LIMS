@@ -310,7 +310,8 @@ describe('AC-03.6 / AC-03.7 / LD-27 signatories', () => {
       expect(p, `page ${i + 1}`).toContain('Authorized signatory nominated by Lab Director');
       expect(p, `page ${i + 1}`).toContain('NHPC No. NHPC-SYN-0002');
     }
-    expect(pages[0]).toContain('Approved by: Dr. Synthetic Signatory A');
+    expect(pages.at(-1)).toContain('Approved by: Dr. Synthetic Signatory A');
+    expect(pages.join('').split('Approved by: Dr. Synthetic Signatory A').length - 1).toBe(1);
   });
   it('prints at most 5 disclaimer lines', async () => {
     const d = Array.from({ length: 6 }, (_, i) => `Synthetic disclaimer ${i + 1}.`);

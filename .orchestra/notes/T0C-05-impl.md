@@ -1,4 +1,4 @@
-# T0C-05 impl (round 2: review items 1-2, LD-01, LD-03) — codegen 24/24 + all tools/codegen 176 pass; contracts 248/250 (see T0C-05-dispute.md)
+# T0C-05 impl (round 3: review items 1-2 test-only, fixed by tester 2463706; no impl change) — tools/codegen 176 pass/3 skip; contracts 250/250
 - Files: tools/codegen/{codegen.ts,gen-permissions.ts (LD-01 patient exception),gen-access-actions.ts}, lint-openapi.ts, package.json; generated outputs in contracts/ports/generated/, packages/api-client-{ts,dart}/, db/seeds/00{1,3}_*.sql, shared-ts routes, shared-dart .g.dart (02-TRD §5.3 hand-off paths).
 - Round 2: contracts/package.json "exports" for ./ports/common and ./ports/generated/error-codes (LD-03); contracts/ports/common.ts LimsError: no parameter properties, fields declared, assigned in the constructor (LD-03); ERROR_META already emitted.
 - [CONV] LimsError assigns safeDetail/fieldErrors only when defined (exactOptionalPropertyTypes).

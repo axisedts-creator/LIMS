@@ -8,6 +8,7 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@cantoo/pdf-lib": "2.11.1",
     "playwright": "1.65.0",
     "prom-client": "15.1.3"
   },

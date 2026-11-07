@@ -94,6 +94,10 @@ describe('units — handlers over the service, validated against the OpenAPI sch
     expect(g.body.data.every((u: any) => u.scope === 'global')).toBe(true);
     const a = await db.run((ctx) => H['listUnits']!(req({ query: { is_active: 'true' } }), ctx));
     expect(a.body.data.map((u: any) => u.code)).not.toContain('off');
+    const f = await db.run((ctx) => H['listUnits']!(req({ query: { is_active: 'false' } }), ctx));
+    expect(f.body.data.map((u: any) => u.code)).toEqual(['off']);
+    const all = await db.run((ctx) => H['listUnits']!(req({ query: { is_active: 'all' } }), ctx));
+    expect(all.body.data.map((u: any) => u.code)).toContain('off');
     expect((await rejection(db.run((ctx) => H['listUnits']!(req({ query: { scope: 'bogus' } }), ctx)))).statusCode).toBe(400);
   });
 

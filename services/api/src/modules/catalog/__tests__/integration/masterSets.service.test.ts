@@ -6,7 +6,7 @@
 // Real core `createEvents({producer:'catalog'})` over the SQL fake helpers/setsDb.ts; the revision bump is T-03's real service.
 // Interface expected from the writer (SEAM names; see .orchestra/notes/T-05-tests.md) — same factory as T-04, six more methods:
 //   service/masters.service.ts  createMastersService({events}) ->
-//     listUnits(ctx, {scope?, is_active?:'true'})            -> { data: Unit[] }        (no `page`: UnitList has none)
+//     listUnits(ctx, {scope?, is_active?:'true'|'false'|'all'}) -> { data: Unit[] }        (no `page`: UnitList has none)
 //     createUnit(ctx, {code, display})                        -> Unit (the 201 body)
 //     updateUnit(ctx, {id, expectedVersion, patch})           -> Unit
 //     listValueSets(ctx, {scope?})                            -> { data: ValueSet[] }
@@ -79,8 +79,9 @@ describe('listUnits (#17) — global ∪ tenant, tenant shadows global by code',
 
   it('shadowing by an INACTIVE tenant row still hides the global one (the lab switched that unit off)', { timeout: T }, async () => {
     const { db, svc } = setup({ ...GLOBALS, cs_units: [unit(1, TENANT_A, { code: 'pct', display: '%', is_active: false })] });
-    const out = await db.run((ctx) => svc['listUnits']!(ctx, {}));
+    const out = await db.run((ctx) => svc['listUnits']!(ctx, { is_active: 'all' }));
     expect(out.data.filter((u: any) => u.code === 'pct')).toMatchObject([{ scope: 'tenant', is_active: false }]);
+    expect(codesOf(await db.run((ctx) => svc['listUnits']!(ctx, {})))).not.toContain('pct');   // default = active only: neither the inactive tenant row nor the shadowed global one
   });
 
   it('scope filter: global -> only global rows, tenant -> only own tenant rows', { timeout: T }, async () => {
@@ -89,13 +90,22 @@ describe('listUnits (#17) — global ∪ tenant, tenant shadows global by code',
     expect(codesOf(await db.run((ctx) => svc['listUnits']!(ctx, { scope: 'tenant' })))).toEqual(['lab_x']);
   });
 
-  it('default lists inactive rows too (SCR-05 shows a Status column); is_active=true hides inactive global and tenant rows', { timeout: T }, async () => {
+  it('is_active (contract enum true|false|all, default true): default and "true" -> active only; "false" -> inactive only (global + tenant); "all" -> everything', { timeout: T }, async () => {
     const { db, svc } = setup({ g_units: [...G_UNITS, gUnit(4, { code: 'old_g', display: 'old', is_active: false })], cs_units: [unit(1, TENANT_A, { code: 'lab_off', is_active: false }), unit(2, TENANT_A, { code: 'lab_on' })] });
-    expect(codesOf(await db.run((ctx) => svc['listUnits']!(ctx, {})))).toEqual(['g_dl', 'g_l', 'lab_off', 'lab_on', 'old_g', 'pct']);
-    expect(codesOf(await db.run((ctx) => svc['listUnits']!(ctx, { is_active: 'true' })))).toEqual(['g_dl', 'g_l', 'lab_on', 'pct']);
+    const list = async (q: object) => codesOf(await db.run((ctx) => svc['listUnits']!(ctx, q)));
+    expect(await list({})).toEqual(['g_dl', 'g_l', 'lab_on', 'pct']);
+    expect(await list({ is_active: 'true' })).toEqual(['g_dl', 'g_l', 'lab_on', 'pct']);
+    expect(await list({ is_active: 'false' })).toEqual(['lab_off', 'old_g']);
+    expect(await list({ is_active: 'all' })).toEqual(['g_dl', 'g_l', 'lab_off', 'lab_on', 'old_g', 'pct']);
   });
 
-  it.each([['scope other', { scope: 'all' }], ['scope upper case', { scope: 'GLOBAL' }], ['is_active false (contract enum is only "true")', { is_active: 'false' }],
+  it('is_active=false keeps shadowing: an active tenant row hides the inactive global one, so the code is not listed as inactive', { timeout: T }, async () => {
+    const { db, svc } = setup({ g_units: [...G_UNITS, gUnit(4, { code: 'old_g', display: 'old', is_active: false })], cs_units: [unit(1, TENANT_A, { code: 'old_g', display: 'old (lab)' })] });
+    expect(codesOf(await db.run((ctx) => svc['listUnits']!(ctx, { is_active: 'false' })))).toEqual([]);
+    expect(codesOf(await db.run((ctx) => svc['listUnits']!(ctx, {})))).toContain('old_g');
+  });
+
+  it.each([['scope other', { scope: 'all' }], ['scope upper case', { scope: 'GLOBAL' }], ['is_active upper case', { is_active: 'TRUE' }], ['is_active yes', { is_active: 'yes' }],
     ['is_active boolean', { is_active: true }], ['unknown param', { sort: 'code' }], ['limit (lists are unpaged)', { limit: 5 }]])('invalid query (%s) -> 400, nothing read as a side effect', { timeout: T }, async (_n, q) => {
     const { db, svc } = setup(GLOBALS);
     validation400(await rejection(db.run((ctx) => svc['listUnits']!(ctx, q))));

@@ -43,8 +43,7 @@ export const handlers: Readonly<Record<string, Handler>> = Object.freeze({
   ...panelsHandlers, // T-12: #52–#56, #3
   ...referrersHandlers, // T-15: #60–#66 (doctors)
   ...creditPartiesHandlers, // T-16: #67–#70 (credit parties)
-  quotePrices: notImplemented,
-  ...pricingHandlers, // T-17: #71–#81 (price lists); T-18: #83–#91 (surcharge / tax)
+  ...pricingHandlers, // T-17: #71–#81 (price lists); T-19: #82 (quotePrices); T-18: #83–#91 (surcharge / tax)
   listInstrumentCodeMaps: notImplemented,
   createInstrumentCodeMap: notImplemented,
   updateInstrumentCodeMap: notImplemented,

@@ -19,7 +19,6 @@
   "previewReferenceRange",
   "publishCriticalLimitSet",
   "publishReferenceRangeSet",
-  "quotePrices",
   "replaceCriticalLimitSetBands",
   "replaceReferenceRangeSetBands",
   "retireCriticalLimitSet",

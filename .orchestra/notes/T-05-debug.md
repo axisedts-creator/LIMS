@@ -10,3 +10,4 @@
 - Next: orchestrator vendors upstream/ + UPSTREAM.lock or approves network, then re-run writer.
 - Round 4: network now allowed (LD-33). Cause: impl never written. Fix: vendored upstream @189adda (curl), UPSTREAM.lock, .gitattributes -text, override.data/app.yml, envoy/ trimmed lds+cds, DECISION.md (Decision: split).
 - Spike: TRD "depends_on: !reset {rest..}" clears the value, so storage uses !override. 40/41 tests pass; 1 test defect (yaml.safe_load cannot parse upstream "!reset") -> T-05-dispute.md. Live checks (GoTrue/Storage) need VMs, not run.
+- Round 5: re-ran suite, 40/41 pass. Sole failure = test defect (yaml.safe_load vs upstream "!reset"), already in T-05-dispute.md. Impl unchanged; upstream must stay byte-for-byte. Tests not touched. Next: tester adds !reset/!override constructor to SafeLoader.

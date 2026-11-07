@@ -7,6 +7,11 @@ import * as Q from '../repository/reports-read.repo.js';
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const ISO_TS = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}(\.\d+)?)?(Z|[+-]\d{2}:\d{2})$/;
+// V8 Date.parse accepts 2026-02-30 (Postgres raises 22008), so also check the day against the month length.
+const realStamp = (k: string): boolean => {
+  const [y, m, d] = k.slice(0, 10).split('-').map(Number) as [number, number, number];
+  return !Number.isNaN(Date.parse(k)) && m >= 1 && m <= 12 && d >= 1 && d <= new Date(Date.UTC(y, m, 0)).getUTCDate();
+};
 const STATUSES = new Set(['awaiting_content', 'assembling', 'rendering', 'render_failed', 'held', 'ready_to_release', 'released', 'cancelled']);
 const QUERY_KEYS = new Set(['display_status', 'family', 'centre_id', 'registered_at_from', 'registered_at_to', 'released_at_from', 'released_at_to', 'has_review_flag', 'sort', 'cursor', 'limit']);
 const SORTS = { '-updated_at': 'updated_at', registered_at: 'registered_at', '-released_at': 'first_released_at' } as const;
@@ -27,7 +32,7 @@ function staff(hctx: HandlerContext): Ctx {
 }
 const idOr404 = (v: unknown): string => { if (typeof v !== 'string' || !UUID.test(v)) throw new LimsError('common.not_found'); return v; };
 const str = (q: Record<string, any>, k: string): string | undefined => { const v = q[k]; if (v === undefined) return undefined; if (typeof v !== 'string') throw invalid(`/${k}`); return v; };
-const stamp = (q: Record<string, any>, k: string): string | undefined => { const v = str(q, k); if (v === undefined) return undefined; if (!ISO_TS.test(v) || Number.isNaN(Date.parse(v))) throw invalid(`/${k}`); return new Date(v).toISOString(); };
+const stamp = (q: Record<string, any>, k: string): string | undefined => { const v = str(q, k); if (v === undefined) return undefined; if (!ISO_TS.test(v) || !realStamp(v)) throw invalid(`/${k}`); return new Date(v).toISOString(); };
 const opt = (k: string, v: string | undefined) => (v === undefined ? {} : { [k]: v });
 const b64 = (o: unknown) => Buffer.from(JSON.stringify(o)).toString('base64url');
 
@@ -55,7 +60,7 @@ function parseList(raw: unknown) {
       const raw64 = q['cursor'];
       if (typeof raw64 !== 'string' || raw64.length > 512) throw new Error('bad');
       const c = JSON.parse(Buffer.from(raw64, 'base64url').toString('utf8'));
-      if (typeof c?.k !== 'string' || !ISO_TS.test(c.k) || typeof c?.i !== 'string' || !UUID.test(c.i) || c.s !== sortKey) throw new Error('bad');
+      if (typeof c?.k !== 'string' || !ISO_TS.test(c.k) || !realStamp(c.k) || typeof c?.i !== 'string' || !UUID.test(c.i) || c.s !== sortKey) throw new Error('bad');
       after = { k: c.k, i: c.i };
     } catch { throw new LimsError('common.invalid_cursor'); }
   }

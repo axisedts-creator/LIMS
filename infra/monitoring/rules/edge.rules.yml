@@ -1,0 +1,84 @@
+---
+# 02-TRD s11.3 edge family. Log-derived counters (lims_ops_edge_*) come from
+# Fluent Bit log-to-metrics (T-17); lims_ops_edge_not_found_max_per_ip_5m
+# from textfile/edge_metrics.sh. The client IP is never a metric label.
+groups:
+  - name: edge
+    rules:
+      - alert: TLSCertExpiringSoon
+        expr: probe_ssl_earliest_cert_expiry - time() < 21 * 86400
+        for: 10m
+        labels:
+          severity: warn
+          team: ops
+        annotations:
+          summary: "Certificate for {{ $labels.instance }} expires in under 21 days."
+          runbook_url: "infra/runbooks/edge.md#tlscertexpiringsoon"
+      - alert: TLSCertExpiryCritical
+        expr: probe_ssl_earliest_cert_expiry - time() < 7 * 86400
+        for: 5m
+        labels:
+          severity: page
+          team: ops
+        annotations:
+          summary: "Certificate for {{ $labels.instance }} expires in under 7 days."
+          runbook_url: "infra/runbooks/edge.md#tlscertexpirycritical"
+      - alert: Edge5xxRate
+        expr: >-
+          sum(rate(lims_ops_edge_requests_total{status_class="5xx"}[5m]))
+          / sum(rate(lims_ops_edge_requests_total[5m])) > 0.02
+        for: 2m
+        labels:
+          severity: page
+          team: ops
+        annotations:
+          summary: "More than 2 % of edge requests answered 5xx over 5 min."
+          runbook_url: "infra/runbooks/edge.md#edge5xxrate"
+      # 429s now vs 10x their 7-day average (REQ-SEC-133).
+      - alert: RateLimitSpike
+        expr: >-
+          rate(lims_ops_edge_rate_limited_total[5m])
+          > 10 * rate(lims_ops_edge_rate_limited_total[7d])
+        for: 10m
+        labels:
+          severity: warn
+          team: ops
+        annotations:
+          summary: "Edge rate-limit rejections are above 10x the 7-day baseline."
+          runbook_url: "infra/runbooks/edge.md#ratelimitspike"
+      - alert: ForbiddenPortOpen
+        expr: probe_success{job="blackbox_tcp_forbidden"} == 1
+        for: 2m
+        labels:
+          severity: page
+          team: ops
+        annotations:
+          summary: "Forbidden port {{ $labels.instance }} accepts connections."
+          runbook_url: "infra/runbooks/edge.md#forbiddenportopen"
+      - alert: Fail2banBanSpike
+        expr: sum(increase(lims_ops_fail2ban_bans_total[1h])) > 50
+        for: 5m
+        labels:
+          severity: warn
+          team: ops
+        annotations:
+          summary: "More than 50 fail2ban bans in the last hour."
+          runbook_url: "infra/runbooks/edge.md#fail2banbanspike"
+      # 08 A25 D-211: warn only, never a ban; find the IP in the edge logs.
+      - alert: EdgeNotFoundSpike
+        expr: lims_ops_edge_not_found_max_per_ip_5m > 30
+        for: 15m
+        labels:
+          severity: warn
+          team: ops
+        annotations:
+          summary: "One client produced more than 30 edge 404s in 5 min for 15 min."
+          runbook_url: "infra/runbooks/edge.md#edgenotfoundspike"
+      - alert: EgressDenied
+        expr: increase(lims_ops_egress_denied_total[15m]) > 0
+        labels:
+          severity: warn
+          team: ops
+        annotations:
+          summary: "Squid denied egress to destination class {{ $labels.dest_class }}."
+          runbook_url: "infra/runbooks/edge.md#egressdenied"

@@ -7,3 +7,4 @@ Review round: added pool 503 saturation test (contexts=1, bounded wait) and wate
 Not covered: worker 5-retry/`render_failed` (worker task), container egress (C1), real templates/registry (T06+), sandbox. Extractor untested against a real PDF until pool exists.
 Round-2 ruling applied: pdf-text.ts follows Form XObjects (watermark test now passes); devanagari "embeds" test skipped with logged reason when host fc-list lacks the font (run in Dockerfile.renderer image); pool saturation accepts 503|408.
 OPEN: saturation still fails - waiter RESOLVES (not rejects): long job is capped by the same timeoutMs=1000 so it frees the context at ~1000ms, before the waiter deadline (~1050ms); 503/408 unreachable in this setup. Needs arbiter: also accept success, or long job must outlive waiter deadline.
+Round-3 ruling applied: saturation waiter accepts PDF with WAIT-P1 or reject 503/408; still asserts <4000ms bound, contextsBusy 0, NEXT render.

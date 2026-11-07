@@ -107,6 +107,17 @@ describe('BarcodeInput: scanner vs keyboard (AC-0D-8.4, 04-UI-UX §2.4.1-3)', ()
     expect(input.value).toBe('');
   });
 
+  it('the gap between the last character and the submit key counts too: fast chars, 100 ms pause, Enter -> keyboard', async () => {
+    const { onScan } = setup();
+    const u = typist(FAST);
+    await u.keyboard('ab12');
+    idle(100);
+    await u.keyboard('{Enter}');
+    expect(onScan).toHaveBeenCalledTimes(1);
+    expect(onScan.mock.calls[0]![0]).toBe('AB12');
+    expect(onScan.mock.calls[0]![1].source).toBe('keyboard');
+  });
+
   it('idle time BEFORE the first key does not matter', async () => {
     const { onScan } = setup();
     idle(60_000);

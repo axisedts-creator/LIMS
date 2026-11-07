@@ -283,10 +283,12 @@ describe('adversarial input (pure function, DoS-guarded; never throws)', () => {
   });
   it('prototype-pollution-ish codes are inert: __proto__ / constructor as analyte codes', async () => {
     const { parseFormula, evaluateFormula } = await load();
-    for (const code of ['__PROTO__', 'CONSTRUCTOR', 'TOSTRING']) {
+    for (const code of ['PROTO__', 'CONSTRUCTOR', 'TOSTRING']) {
       const p = parseFormula(`${code} + 1`); assert.deepEqual(p.errors, []);
       assert.deepEqual(evaluateFormula(p.ast, {}, FEMALE), { ok: false, reason: `missing_input:${code}` });
     }
+    // analyteRef must start with an upper-case letter (C3 TRD:503): leading `_` is a syntax error
+    assert.ok(parseFormula('__PROTO__ + 1').errors.length > 0);
     const inputs = JSON.parse('{"__proto__":"5"}'); const p = parseFormula('A + 1');
     assert.equal(evaluateFormula(p.ast, inputs, FEMALE).ok, false);
   });

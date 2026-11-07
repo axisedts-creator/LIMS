@@ -99,3 +99,26 @@ secrets_render_placement:
   instruments_authenticode_cert: {hosts: [ops], services: [release]}
   tenant_ops_contacts: {hosts: [ops], services: [alertmanager]}
   alert_contacts: {hosts: [ops], services: [alertmanager]}
+
+# Schema ids `<prefix><secret_ref>` (one id per ref, s8.2 table): every
+# decrypted key with this prefix is placed like a fixed id.
+secrets_render_prefix_placement:
+  reporting_channel_: {hosts: [app], services: [worker-a, worker-b]}
+
+# --- tasks_from: generate (s8.2, once per env on ops-1) ---
+# Pinned snapshot key scripts (upstream docker/utils, see .env.example).
+secrets_render_upstream_dir: >-
+  {{ playbook_dir }}/../../compose/supabase/upstream
+secrets_render_keys_scripts:
+  - "{{ secrets_render_upstream_dir }}/utils/generate-keys.sh"
+  - "{{ secrets_render_upstream_dir }}/utils/add-new-auth-keys.sh"
+secrets_render_schema_dir: "{{ playbook_dir }}/../../secrets/schema"
+secrets_render_tests_dir: "{{ playbook_dir }}/../../tests/internal"
+# sops file of operator-supplied ids (certs, SSH/htpasswd, contacts, relay,
+# reporting_channel_*); "" = none. Decrypted to a pipe only.
+secrets_render_extra_enc_file: ""
+# Encrypted, unchecked output; .yaml so `sops -d` infers the format.
+secrets_render_gen_new: >-
+  {{ secrets_render_enc_file | dirname }}/{{ env }}.generating.yaml
+# Already-encrypted other envs for the cross-env check (AC-21.1).
+secrets_render_other_envs: {}

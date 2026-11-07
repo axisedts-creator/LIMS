@@ -64,7 +64,10 @@
     secrets_render_here: >-
       {% set h = {} %}{% for k, e in secrets_render_placement.items()
       if e.hosts | intersect(group_names) %}{% set _ = h.update({k: e})
-      %}{% endfor %}{{ h }}
+      %}{% endfor %}{% for p, e in secrets_render_prefix_placement.items()
+      if e.hosts | intersect(group_names) %}{% for k in secrets_render_values
+      if k is string and k.startswith(p) and k | length > p | length
+      %}{% set _ = h.update({k: e}) %}{% endfor %}{% endfor %}{{ h }}
 
 - name: File and env targets on this host
   ansible.builtin.set_fact:
@@ -81,6 +84,7 @@
 - name: Every placed id has a non-empty decrypted entry
   ansible.builtin.assert:
     that:
+      - item is match('^[A-Za-z0-9_]+$')
       - item in secrets_render_values
       - secrets_render_values[item] is not none
       - (secrets_render_values[item] | string | trim) | length > 0

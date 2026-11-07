@@ -1,7 +1,7 @@
-TESTS_WRONG — contracts/__tests__/ports.test.ts asserted the IC §4 parameter-property form of LimsError, which binding LD-03 overrides.
-- spec/program/03-INTERFACE-CATALOG.md:1146-1147 has `constructor(readonly code: ErrorCode, readonly safeDetail?: string, readonly fieldErrors?: readonly FieldError[])`.
-- LD-03 (2026-11-07, task brief, binding for T0C-05, overrides spec text): "LimsError must not use TS parameter properties ... declare fields explicitly and assign in the constructor." Test and LD-03 cannot both hold; LD-03 wins.
-- 08-CR-REGISTER.md has no addendum restoring the parameter-property form (grep LimsError: only lines 985, 2379, 2636, none about the constructor).
-- Required test change (already in HEAD 2463706, ports.test.ts:109-151): in the IC-equality check, swap the IC LimsError class for the LD-03 form (explicit `readonly code/safeDetail?/fieldErrors?` fields + `constructor(code: ErrorCode, safeDetail?: string, fieldErrors?: readonly FieldError[])`), and assert the replacement matched. The spot check asserts that constructor and `not.toMatch(/constructor\(readonly/)`.
-- Verified: `pnpm --dir contracts exec vitest run __tests__/ports.test.ts` gives 63/63 passed.
-- Implementation stays as is: explicit fields, optional fields assigned only when defined (exactOptionalPropertyTypes).
+TESTS_WRONG — tools/codegen/__tests__/codegen.test.ts:107 (and mocks.test.ts:99, same cause) forbids any ISO datetime in generated output, but the spec forbids only generation-time timestamps; fixed datetimes copied from spec examples are required content. Change the test: exempt `packages/fakes/src/msw/handlers.generated.ts` from the `/\d{4}-\d\d-\d\d[T ]\d\d:\d\d/` check (or apply it only to header/comment lines of that file), keep it for all other outputs; keep the double-run byte-equality test as the determinism proof.
+- spec/chunks/C0-foundation-contracts/02-TRD.md:362 "Codegen is deterministic (sorted keys, no timestamps). CI gate 8 reruns it and fails on any diff." — "no timestamps" is a determinism rule (no run-time clock values), proven by rerun equality, not a ban on example data.
+- spec/chunks/C0-foundation-contracts/01-PRD.md:183 AC-0C-4.2: MSW handler for every operationId "returns the spec example" — handlers must inline the examples verbatim.
+- spec/chunks/C0-foundation-contracts/02-TRD.md:397: responses come from the spec examples, which must be realistic synthetic data.
+- contracts/openapi/_common.yaml:46-48 `IsoUtc` is `format: date-time` (02-CV §4.8); required IsoUtc fields in examples necessarily contain `YYYY-MM-DDTHH:MM` strings.
+- Escaping dates or dropping required date-time fields to satisfy the regex would break AC-0C-4.2; writer correctly did neither.
+- Same ruling applies to the pending `.orchestra/notes/T0C-10.C2-dispute.md` (handler-file timestamp check).

@@ -6,3 +6,4 @@
 - Round 3 recheck: main (cfff0e2) still has no contracts "exports"; lane/C0-0C does. Same blocker, unmerged C0-0C. Not an impl bug; no C0-0A-owned change fixes it. Orchestrator must merge lane/C0-0C, `pnpm install --offline`, re-run verify.cmd.
 - Round 4 recheck: main (1841a84) still has no contracts "exports"; lane/C0-0C has it, unmerged. Same blocker, no C0-0A-owned fix. Orchestrator: merge lane/C0-0C, `pnpm install --offline`, re-run verify.cmd.
 - Round 5 recheck: main (1841a84) still lacks contracts "exports"; lane/C0-0C has it, unmerged. Same blocker, no C0-0A-owned fix. Orchestrator: merge lane/C0-0C, `pnpm install --offline`, re-run verify.cmd.
+- Round 6 recheck: main (1841a84) and lane/C0-0A still lack contracts "exports"; lane/C0-0C has it, unmerged. Same blocker, no C0-0A-owned fix. Orchestrator: merge lane/C0-0C, `pnpm install --offline`, re-run verify.cmd.

@@ -59,8 +59,9 @@ void main() {
     expect(pub, matches(RegExp(r'^name:\s*lims_ui\s*$', multiLine: true)));
     expect(pub, matches(RegExp(r'^publish_to:\s*none\s*$', multiLine: true)));
     expect(pub, matches(RegExp(r'^resolution:\s*workspace\s*$', multiLine: true)));
-    expect(pub, contains('sdk: 3.12.0'));
-    expect(pub, contains('flutter: 3.44.0'));
+    // LD-46: repo pin bumped to newest 3.47.x stable (3.47.9, bundled Dart 3.13.7).
+    expect(pub, contains('sdk: 3.13.7'));
+    expect(pub, contains('flutter: 3.47.9'));
     final root = File('${repoRoot().path}/pubspec.yaml').readAsStringSync();
     expect(root, contains('packages/ui-flutter'), reason: 'root workspace must list the package');
     expect(pub.contains('dependency_overrides'), isFalse);
@@ -121,7 +122,7 @@ void main() {
     for (final b in _banned) {
       expect({...deps, ...dev}.containsKey(b), isFalse, reason: b);
     }
-    final lock = File('${repoRoot().path}/pubspec.lock').readAsStringSync();
+    final lock = File('${repoRoot().path}/pubspec.lock').readAsStringSync().replaceAll('\r\n', '\n');
     for (final e in deps.entries.where((e) => !_internal.contains(e.key))) {
       final m = RegExp('^  ${e.key}:\\n(?:    .*\\n)*?    version: "([^"]+)"', multiLine: true).firstMatch(lock);
       expect(m, isNotNull, reason: '${e.key} not in committed pubspec.lock (run flutter pub get, commit the lock)');

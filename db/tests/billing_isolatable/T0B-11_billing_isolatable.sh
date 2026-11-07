@@ -136,7 +136,7 @@ cmp -s "$WORK/src_all.txt" "$WORK/src_after.txt" || { echo "FAIL: export changed
 
 # no silent data loss: billing tables are FORCE RLS; a role without BYPASSRLS must get an ERROR (row_security=off), never a quietly short export with exit 0.
 RPW="$(PW)"
-SU -c "CREATE ROLE t0b11_reader LOGIN PASSWORD '$RPW'; GRANT USAGE ON SCHEMA billing TO t0b11_reader; GRANT SELECT ON ALL TABLES IN SCHEMA billing TO t0b11_reader"
+SU -c "CREATE ROLE t0b11_reader LOGIN PASSWORD '$RPW'; GRANT CONNECT ON DATABASE $DB TO t0b11_reader; GRANT USAGE ON SCHEMA billing TO t0b11_reader; GRANT SELECT ON ALL TABLES IN SCHEMA billing TO t0b11_reader"
 if DATABASE_URL="postgres://t0b11_reader:$RPW@127.0.0.1:$PORT/$DB" node db/tools/export-tenant-billing.ts --tenant "$TA" --out "$WORK/export_reader.sql" 2>"$WORK/reader.err"; then
   cmp -s "$WORK/export_a.sql" "$WORK/export_reader.sql" || { echo "FAIL: exit 0 but the export is short for a role under RLS (silent data loss)"; exit 1; }
 else

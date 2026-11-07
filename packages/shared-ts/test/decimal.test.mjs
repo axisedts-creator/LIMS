@@ -21,7 +21,11 @@ describe('@lims/shared-ts/decimal', () => {
     assert.doesNotMatch(all, /from\s+['"](decimal\.js|big\.js|bignumber\.js|decimal\.js-light|mathjs)/, 'no direct decimal lib in formula/');
   });
   it('package.json: every dependency is an exact pin (no ^ ~ ranges, no tags) — pinned decimal lib included', () => {
-    for (const [name, v] of Object.entries({ ...pkg.dependencies, ...pkg.devDependencies })) assert.match(v, /^\d+\.\d+\.\d+$/, `${name}@${v}`);
+    // LD-40 (2026-11-07): internal pnpm `workspace:` links (LD-03) are not versions; PIN-C0 applies to external deps only.
+    for (const [name, v] of Object.entries({ ...pkg.dependencies, ...pkg.devDependencies })) {
+      if (v.startsWith('workspace:')) continue;
+      assert.match(v, /^\d+\.\d+\.\d+$/, `${name}@${v}`);
+    }
   });
   it('package.json: any decimal-capable dependency is a runtime dependency, not a dev one', () => {
     const dev = Object.keys(pkg.devDependencies ?? {});

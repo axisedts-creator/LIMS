@@ -4,6 +4,7 @@ import { LimsError } from '../../../core/errors.js';
 import type { Handler } from '../../../core/module.js';
 import { invoiceHandlers } from './invoice.handlers.js';
 import { ledgerHandlers } from './ledger.handlers.js';
+import { releaseHandlers } from './release.handlers.js';
 import { settingsHandlers } from './settings.handlers.js';
 
 const notYet: Handler = async () => { throw new LimsError('common.service_unavailable'); };
@@ -34,6 +35,8 @@ export const handlers: Readonly<Record<(typeof OPERATION_IDS)[number], Handler>>
   listCreditNoteTasks: invoiceHandlers['listCreditNoteTasks']!,
   cancelInvoice: invoiceHandlers['cancelInvoice']!,
   issuePartialCreditNote: invoiceHandlers['issuePartialCreditNote']!,
+  createReleaseOverride: releaseHandlers['createReleaseOverride']!,
+  getReleaseEligibility: releaseHandlers['getReleaseEligibility']!,
   recordPayment: ledgerHandlers['recordPayment']!,
   getMyCashSession: ledgerHandlers['getMyCashSession']!,
   closeCashSession: ledgerHandlers['closeCashSession']!,

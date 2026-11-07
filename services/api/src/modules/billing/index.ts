@@ -3,11 +3,12 @@
 import type { ModuleManifest } from '../../core/module.js';
 import { handlers } from './handlers/index.js';
 import { billingCommandPort } from './ports/BillingCommandPort.impl.js';
+import { billingPort } from './ports/BillingPort.impl.js';
 
 export const manifest: ModuleManifest = {
   name: 'billing',
   openapi: 'contracts/openapi/billing.yaml',
   handlers,
-  ports: { BillingCommandPort: billingCommandPort },
+  ports: { BillingPort: billingPort, BillingCommandPort: billingCommandPort },
   produces: ['billing.invoice.issued.v1', 'billing.invoice.cancelled.v1', 'billing.balance.changed.v1'],
 };

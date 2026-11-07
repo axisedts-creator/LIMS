@@ -6,3 +6,8 @@ audit.g_cs_access_actions   global coded set; no tenant data
 core.rate_limit_counters    UNLOGGED hashed counters; no grants to any app role; accessed only via app.ratelimit_hit (04 S11)
 identity.g_feature_flags      global feature-flag catalogue; no tenant data (CV §5.8)
 identity.g_breached_passwords global breached-password hash list; no tenant data (CV §5.8)
+catalog.g_units               global reference vocabulary, no tenant data (CV §5.8)
+catalog.g_value_sets          global reference vocabulary, no tenant data (CV §5.8)
+catalog.g_value_set_values    global reference vocabulary, no tenant data (CV §5.8)
+catalog.g_tax_types           global reference vocabulary, no tenant data (CV §5.8)
+catalog.g_reference_release   global reference vocabulary (release counter singleton), no tenant data (CV §5.8)

@@ -12,6 +12,7 @@ import { AuthError } from './auth/errors.js';
 import { isRenderedProblem, LimsError } from './errors.js';
 import type { JwtVerifier } from './auth/jwt.js';
 import type { Handler, HandlerContext } from './module.js';
+import { setErrorCode } from './observability/logging.js';
 
 /** Per-boot auth dependencies (02-TRD §6.5). */
 export interface CoreAuth {
@@ -160,11 +161,24 @@ export function installRouteHooks(app: FastifyInstance, opts: { responseValidati
   });
 }
 
+/** x-error-codes of one operation. */
+function errorCodesOf(spec: any, operationId: string): readonly string[] {
+  for (const item of Object.values<any>(spec?.paths ?? {})) {
+    for (const op of Object.values<any>(item ?? {})) if (op?.operationId === operationId) return op['x-error-codes'] ?? [];
+  }
+  return [];
+}
+
 /** Wrap a module handler: HandlerResult { status, body, headers } is applied to the reply (SP-8 O3). */
-function wrap(operationId: string, h: Handler) {
+function wrap(operationId: string, h: Handler, errorCodes: readonly string[]) {
   return async (req: FastifyRequest, reply: FastifyReply) => {
     const ctx: HandlerContext = { operationId, log: req.log, clientIp: requestAuth.get(req)?.clientIp ?? req.ip };
     const r = await h({ params: req.params, query: req.query, headers: req.headers, body: req.body }, ctx);
+    // A non-Problem error result (e.g. readiness 503) logs the declared x-error-codes entry for its status.
+    if (r.status >= 400) {
+      const code = errorCodes.find((c) => new LimsError(c).statusCode === r.status);
+      if (code) setErrorCode(req, code);
+    }
     if (r.headers) reply.headers(r.headers);
     reply.code(r.status);
     return reply.send(r.body);
@@ -186,13 +200,17 @@ export async function mountSpec(
   auth: CoreAuth,
 ): Promise<void> {
   if (!auth.verifier && usesScheme(spec, 'bearerJwt')) throw new Error(`module ${name}: bearerJwt operations need LIMS_CORE_JWT_* config`);
-  await app.register(openapiGlue, {
-    specification: spec,
-    securityHandlers: securityHandlers(auth),
-    operationResolver: (operationId: string) => {
-      const h = Object.hasOwn(handlers, operationId) ? handlers[operationId] : undefined;
-      if (typeof h !== 'function') throw new Error(`module ${name}: missing handler for operationId ${operationId}`);
-      return wrap(operationId, h);
-    },
+  await app.register(async (scope) => {
+    // route config.module labels the stage-13 log line and metrics (observability/logging.ts).
+    scope.addHook('onRoute', (route) => { route.config = { ...(route.config as object), module: name }; });
+    await scope.register(openapiGlue, {
+      specification: spec,
+      securityHandlers: securityHandlers(auth),
+      operationResolver: (operationId: string) => {
+        const h = Object.hasOwn(handlers, operationId) ? handlers[operationId] : undefined;
+        if (typeof h !== 'function') throw new Error(`module ${name}: missing handler for operationId ${operationId}`);
+        return wrap(operationId, h, errorCodesOf(spec, operationId));
+      },
+    });
   });
 }

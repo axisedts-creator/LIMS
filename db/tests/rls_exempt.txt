@@ -11,3 +11,6 @@ catalog.g_value_sets          global reference vocabulary, no tenant data (CV §
 catalog.g_value_set_values    global reference vocabulary, no tenant data (CV §5.8)
 catalog.g_tax_types           global reference vocabulary, no tenant data (CV §5.8)
 catalog.g_reference_release   global reference vocabulary (release counter singleton), no tenant data (CV §5.8)
+frontdesk.g_cs_reasons         global coded reason set; no tenant data (CV §5.8)
+billing.g_cs_payment_methods  global coded payment-method set; no tenant data (CV §5.8)
+billing.g_cs_reasons          global coded reason set; no tenant data (CV §5.8)

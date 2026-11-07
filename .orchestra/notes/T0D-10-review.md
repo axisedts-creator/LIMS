@@ -1,20 +1,12 @@
 CHANGES
 
-Scope note: the inbox range c184ba4..HEAD is empty (HEAD = c184ba4), so I reviewed the T0D-10 commits instead: 03419bb (tests), e6f622c (impl), 42d0edd (lead).
+Round 2. I reviewed c184ba4..HEAD, which contains 552e885 (the round-1 review) and 22f976d (the writer's fixes). Commit 22f976d changes only `.orchestra/notes/T0D-10-impl.md`. That note says "Round 2: pnpm-lock.yaml reverted to e6f622c~1", but the revert was never committed.
 
-1. pnpm-lock.yaml (whole file; e6f622c changed it +39/-6, e.g. :323, :1589, :2929 prom-client entries). This breaks the binding lead decision (AUTO 2026-11-07T10:18:35, CR-C0-0D-004 accepted) and LD-05: the lockfile belongs to C0-0A. Fix: `git checkout e6f622c~1 -- pnpm-lock.yaml` and commit. Keep `services/api/package.json` `"prom-client": "15.1.3"`, and leave the lockfile regeneration to C0-0A. After this revert, `pnpm install --frozen-lockfile` will fail until C0-0A lands it. That failure is expected and the CR covers it.
+1. pnpm-lock.yaml (whole file). `git diff e6f622c~1 HEAD -- pnpm-lock.yaml` still shows +39/-6, including the added `prom-client:` importer entry and two `prom-client@15.1.3:` package/snapshot blocks. This still breaks the binding lead decision (AUTO 2026-11-07T10:18:35, CR-C0-0D-004 accepted) and LD-05. Fix:
+   - Run `git checkout e6f622c~1 -- pnpm-lock.yaml`.
+   - Commit the result.
+   - Check that `git diff e6f622c~1 HEAD -- pnpm-lock.yaml` prints nothing.
+   - Keep `services/api/package.json` `"prom-client": "15.1.3"` unchanged.
+   - Leave the impl note's round-2 line as written; it becomes accurate once the revert is committed.
 
-Checked, no defect:
-- Metric names and label sets match 02-TRD §13 and CV §9.4. `tenant_id` appears only on events_published and ratelimit_rejections.
-- Routes, operationIds and response shapes match core.yaml.
-- 503 is mapped to `common.dependency_unavailable` through x-error-codes (errors.yaml http 503).
-- The log line has the CV §9.1 fields, uses the route template rather than the raw URL, and goes through the shared logger's scrubbers.
-- No secrets. Every other path is under services/api/src/core/** (owned by C0-0D).
-- No tenant tables or RLS are involved. Auth: `security: []` with `x-public` matches the spec.
-
-Verified: T0D-10-verify (vitest) 46/46 pass; `tsc --noEmit` clean.
-The tests cover metric presence, the PHI log scan, and health per TRD §8.
-Accepted [CONV] gaps (already noted by the writer):
-- `degraded` returns 200.
-- main.ts does not start the metrics listener yet.
-- Liveness does not return 503 during the SIGTERM drain.
+Everything else is unchanged since round 1, and the round-1 "Checked, no defect" items still hold: metric names and labels, routes and operationIds, 503 mapped to common.dependency_unavailable, PHI scrubbing, no secrets, owned paths only, and the tests covering metric presence, the PHI log scan and health.

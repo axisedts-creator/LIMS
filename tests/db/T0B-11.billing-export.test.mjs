@@ -105,6 +105,12 @@ describe("export-tenant-billing CLI: validate first, fail closed (AC-0B-6.4)", (
     assert.equal(r.stdout, "");
   });
 
+  it("psql runs read-only AND with row_security=off (FORCE RLS must error, not silently shorten the export)", () => {
+    const src = readFileSync(TOOL, "utf8");
+    assert.match(src, /PGOPTIONS[^\n]*default_transaction_read_only=on/);
+    assert.match(src, /PGOPTIONS[^\n]*row_security=off/);
+  });
+
   it("the tenant id never leaks the DATABASE_URL password into stderr", () => {
     const r = run(["--tenant", A], { DATABASE_URL: "postgres://u:S3cretPw@localhost:1/x" });
     assert.equal(r.status, 2, `tool must fail closed (exit 2): ${r.stderr}`);

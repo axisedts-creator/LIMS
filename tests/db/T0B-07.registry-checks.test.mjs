@@ -155,6 +155,16 @@ CREATE POLICY platform_staff__select__owner_only ON identity.platform_staff FOR 
     const meta = { tables: { "core.widgets": { ...TABLES().tables["core.widgets"], class: "C" } } };
     rejects("check-migrations", withMig(f, "SET LOCAL ROLE lims_owner;\nGRANT DELETE ON core.widgets TO lims_app;\n", { "db/meta/tables.yaml": meta }), [new RegExp(f), /delete/i], "delete on C");
   });
+  it("GRANT SELECT, DELETE ON ALL TABLES IN SCHEMA to lims_app with a class C table in that schema -> rejected", () => {
+    const f = "20261201000100_core__grant_delete_all.sql";
+    const meta = { tables: { "core.widgets": { ...TABLES().tables["core.widgets"], class: "C" } } };
+    rejects("check-migrations", withMig(f, "SET LOCAL ROLE lims_owner;\nGRANT SELECT, DELETE ON ALL TABLES IN SCHEMA core TO lims_app;\n", { "db/meta/tables.yaml": meta }), [new RegExp(f), /delete/i], "delete on all tables");
+  });
+  it("ALTER DEFAULT PRIVILEGES IN SCHEMA ... GRANT DELETE ON TABLES to lims_app with a class C table -> rejected", () => {
+    const f = "20261201000100_core__default_priv_delete.sql";
+    const meta = { tables: { "core.widgets": { ...TABLES().tables["core.widgets"], class: "C" } } };
+    rejects("check-migrations", withMig(f, "SET LOCAL ROLE lims_owner;\nALTER DEFAULT PRIVILEGES IN SCHEMA core GRANT DELETE ON TABLES TO lims_app;\n", { "db/meta/tables.yaml": meta }), [new RegExp(f), /delete/i], "default privileges delete");
+  });
   it("ALTER TABLE ... DISABLE ROW LEVEL SECURITY -> rejected", () => {
     const f = "20261201000100_core__disable_rls.sql";
     rejects("check-migrations", withMig(f, "SET LOCAL ROLE lims_owner;\nALTER TABLE core.widgets DISABLE ROW LEVEL SECURITY;\n"), [new RegExp(f), /row level security|rls/i], "disable rls");
@@ -261,6 +271,10 @@ describe("check-registry: staff guard, shared_with + actor policy, centre cast",
     rejects("check-registry", rootOf(sel("widgets__select__owner_only", "centre_id = ANY ((SELECT app.current_centre_ids()))")), [/widgets__select__owner_only/, /cast|centre/i], "uncast any policy"));
   it("whitespace/newline variants of the uncast form are still rejected", () =>
     rejects("check-registry", rootOf(sel("widgets__select__tenant_centre", `${TENANT}\n AND centre_id   =  ANY(\n (SELECT app.current_centre_ids())\n)`), TABLES({ centre_scoped: true })), [/widgets__select__tenant_centre/], "uncast variant"));
+  it("pg_policies-deparsed uncast centre predicate `( SELECT ... AS current_centre_ids)` -> rejected", () =>
+    rejects("check-registry", rootOf(sel("widgets__select__tenant_centre", `${TENANT} AND (centre_id = ANY ( SELECT app.current_centre_ids() AS current_centre_ids))`), TABLES({ centre_scoped: true })), [/widgets__select__tenant_centre/, /cast|centre/i], "deparsed uncast"));
+  it("pg_policies-deparsed cast centre predicate `(( SELECT ... AS current_centre_ids))::uuid[]` -> accepted", () =>
+    accepts("check-registry", rootOf(sel("widgets__select__tenant_centre", `${TENANT} AND (centre_id = ANY ((( SELECT app.current_centre_ids() AS current_centre_ids))::uuid[]))`), TABLES({ centre_scoped: true }))));
   it("REQ-SEC-004: column without phi_class in tables.yaml -> rejected", () =>
     rejects("check-registry", rootOf(sel("widgets__select__tenant", TENANT), TABLES({ columns: { id: "P0", tenant_id: "P0" } })), [/core\.widgets/, /phi|name/i], "missing phi"));
   it("table with policies but absent from tables.yaml -> rejected", () =>

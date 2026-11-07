@@ -164,10 +164,13 @@ export function createAssembleReport(o: { sandbox: SandboxClient }): TaskHandler
     // 5d. smart section (flag off -> port untouched). Approved only; smartreport.* errors omit the section (savepoint rolls back the port's writes).
     let smart: Row | undefined;
     if (settings.featureFlags?.smart_report === true) {
+      await tx.query('SAVEPOINT smart_summary');                                 // TRD §4.3 P-44: worker ctx.db.tx is no savepoint
       try {
-        const s = await ctx.db.tx((t: unknown) => ctx.ports.smartreport.buildSummary(t, { orderId: report.order_id, version: versionNo }));
+        const s = await ctx.ports.smartreport.buildSummary(ctx, { orderId: report.order_id, version: versionNo });
+        await tx.query('RELEASE SAVEPOINT smart_summary');
         if (s?.status === 'approved') smart = s;
       } catch (e) {
+        await tx.query('ROLLBACK TO SAVEPOINT smart_summary');
         if (!String((e as Row)?.code ?? '').startsWith('smartreport.')) throw e;
         ctx.log?.warn?.({ event: 'smart_section_omitted', report_id: reportId, code: (e as Row).code });
       }

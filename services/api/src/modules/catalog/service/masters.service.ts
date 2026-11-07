@@ -13,7 +13,7 @@ interface Def { R: string; table: repo.MasterTable; entity: string; fields: Reco
 
 const str = (min: number, max: number): Field => ({ t: 'str', min, max });
 const BOOL: Field = { t: 'bool' };
-const SORTS = ['code', 'name'];
+const SORTS = ['code', 'name'];   // [CR-pending] .orchestra/cr/T-04.md: catalog.yaml also lists report_order for specimen types/containers/methods (no such column) -> 400 until ruled
 const DEFS: readonly Def[] = [
   { R: 'Department', table: 'departments', entity: 'department', required: ['name', 'report_order'], sorts: [...SORTS, 'report_order'],
     fields: { name: str(1, 100), is_active: BOOL, report_order: { t: 'int', min: 0, max: 9999 }, report_heading: str(0, 100) } },

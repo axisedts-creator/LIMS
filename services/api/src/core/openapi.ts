@@ -65,7 +65,13 @@ function unwrapSecurity(pre: (req: FastifyRequest, reply: FastifyReply) => Promi
 }
 
 /** SP-8 O1 [CONV]. removeAdditional:false is mandatory (REQ-SEC-080). */
-export const AJV_OPTIONS = { removeAdditional: false, coerceTypes: 'array', allErrors: true } as const;
+/** x-coded-set is annotation-only (02-CONVENTIONS.md:573); registered per lead AUTO 2026-11-07T19:16:21 (T-01). */
+export const AJV_OPTIONS = {
+  removeAdditional: false,
+  coerceTypes: 'array',
+  allErrors: true,
+  keywords: ['x-coded-set'],
+} as const;
 /**
  * [CONV] coerceTypes 'array' is only for query/path/header strings (SP-8 O1); JSON bodies are typed, so a body
  * `{"name": 5}` against `type: string` is 400, not silently coerced to "5".

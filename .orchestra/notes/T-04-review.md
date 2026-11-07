@@ -1,10 +1,9 @@
 APPROVE
 
-Re-review of ca11d1e..HEAD after review fixes (26ee98e..5352f21).
-Prior items resolved:
-1. pg_hba.conf.j2:18,22,23 now use `hostvars[groups['app'][0]].wg_ip` / `hostvars[groups['dr'][0]].wg_ip`; dr lines guarded by `{% if groups['dr'] | length > 0 %}` (dev `dr: {}` -> empty group, renders no dr lines; dev app group = dev-1, resolves).
-2. test_t04_postgres_image.py `_ctx` uses groups/hostvars with scalar `wg_ip`; contract docstring updated; new `test_dev_without_dr_group_renders_no_dr_lines` asserts no dr lines, dr-1 denied, app-1 allowed, v4/v6 reject last.
-
-Ran: `python -B -m unittest discover -s infra/tests/static -p "test_t04_*.py"` -> Ran 31 tests, OK.
-Still checked OK: zz-lims.conf values per 02-TRD s7.7, log_parameter_max_length(_on_error)=0 (no PHI in logs), no trust/md5, no ops-1 entry, Dockerfile digest per SP-3, no secrets, owned paths only. RLS/permissions/idempotency/rate tier/error codes: n/a.
-Not proven: live test (infra/tests/integration/test_t04_live.py, LIMS_T04_LIVE=1) not run here; CI must run it before closing T-04. Known risk: archive_mode=on without archive_command until T-09.
+- Diff 0e4233e..HEAD: code only in `services/api/src/modules/lab/events/publish.ts` (owned) + its `__tests__`; rest are `.orchestra/notes` role files.
+- 7 event names and idempotency keys verbatim from 02-TRD §7.1 (lines 376–382); `approved_set_hash` per 03-IC §3.12 (SHA-256 hex, sorted `result_id:version_no`); `value_sha256_prefix16` per §7.1 [CONV].
+- Payloads passed through; core schema (additionalProperties false) enforces IC shape; critical value used only in key hash, never in payload/logs. No logging, no secrets, no PHI.
+- Tenant from ctx (test :231). No DB/RLS, routes, permissions, rate tier or new error codes in scope for this task.
+- Ran: `vitest run src/modules/lab/events/__tests__` = 57/57 pass; `tsc --noEmit` no errors in lab/events.
+- Tests cover done_when (all 7 IC examples validate, keys, dedupe), AC-01.1 (:243), AC-05.1 (:261, rollback fixed per T-04-ruling), AC-05.5, AC-16.5.
+- Note (not a defect): aggregate seq choice (specimenVersion / resultRowVersion / readinessSeq) is [CONV], spec silent; real PG insert not proven here.

@@ -14,7 +14,7 @@ const B32 = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
 interface User { id: string; email: string; confirmed: boolean; passwordHash?: string; salt: string; factors: Factor[] }
 interface Factor { id: string; secret: string; status: 'verified' | 'unverified'; friendlyName?: string }
 interface Session { id: string; userId: string; aal: 'aal1' | 'aal2'; current: string }
-interface Refresh { sessionId: string; revokedAt?: number }
+interface Refresh { sessionId: string; parent?: string; revokedAt?: number }
 interface Mail { email: string; type: 'invite' | 'recovery'; hash: string; at: number; used: boolean }
 
 export interface FakeGoTrueGateway extends GoTrueGateway {
@@ -55,9 +55,9 @@ export function createFakeGoTrueGateway(): FakeGoTrueGateway {
   const hashPw = (u: User, pw: string) => `$2a$10$${createHash('sha256').update(u.salt + pw).digest('base64url')}`;
   const reject = (method: string, status: number, code: string): never => { throw new GoTrueError(method, status, code); };
 
-  function issue(s: Session): GoTrueTokens {
+  function issue(s: Session, parent?: string): GoTrueTokens {
     const rt = randomBytes(12).toString('base64url');
-    refreshTokens.set(rt, { sessionId: s.id }); s.current = rt;
+    refreshTokens.set(rt, { sessionId: s.id, ...(parent ? { parent } : {}) }); s.current = rt;
     const iat = now(); const exp = iat + JWT_EXP_S;
     const accessToken = `${b64({ alg: 'none', typ: 'JWT' })}.${b64({ sub: s.userId, session_id: s.id, aal: s.aal, role: 'authenticated', aud: 'authenticated', iat, exp, jti: randomUUID() })}.fake`;
     return { accessToken, refreshToken: rt, expiresAt: exp, sessionId: s.id, userId: s.userId, aal: s.aal };
@@ -98,12 +98,17 @@ export function createFakeGoTrueGateway(): FakeGoTrueGateway {
       const s = sessions.get(t.sessionId);
       if (!s) return { ok: false, reason: 'revoked' };
       if (t.revokedAt !== undefined) {
-        if (now() - t.revokedAt <= REUSE_INTERVAL_S) return { ok: true, tokens: issue(s) };
-        sessions.delete(s.id);                                         // reuse detected: the session family dies
+        // Like v2.197.0: inside the reuse interval, or when this is the parent of the active token, rotate from the active token.
+        const active = refreshTokens.get(s.current);
+        if (now() - t.revokedAt <= REUSE_INTERVAL_S || active?.parent === refreshToken) {
+          if (active) active.revokedAt ??= now();
+          return { ok: true, tokens: issue(s, s.current) };
+        }
+        sessions.delete(s.id);                                         // older token reused: fake kills the family (stricter than GoTrue, allowed by T1-ruling 6)
         return { ok: false, reason: 'reused' };
       }
       t.revokedAt = now();
-      return { ok: true, tokens: issue(s) };
+      return { ok: true, tokens: issue(s, refreshToken) };
     },
 
     async signOut(accessToken, scope) {

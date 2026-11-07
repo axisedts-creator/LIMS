@@ -3,7 +3,7 @@
 Pinned version: GoTrue `v2.197.0` (`infra/compose/supabase/upstream/docker-compose.yml`, digest `sha256:1736a630…` in `override.app.yml`).
 Verified 2026-11-07 against source tag `v2.197.0` (routes in `internal/api/api.go`, handlers `admin.go`, `logout.go`) and live probes on a
 temporary container of the same image on `supabase_network_LIMS` (env of `supabase_auth_LIMS` plus min length 12, TOTP on, autoconfirm off).
-Live contract run: NOT PASSED 2026-11-07 — 3 contract-suite assumptions differ from the pinned container; see `.orchestra/notes/T1-dispute.md`.
+Live contract run: NOT YET RE-RUN after `.orchestra/notes/T1-ruling.md` (2026-11-07). Last live run 36/38; both fails were tests since revised per the ruling.
 
 Base URL: `LIMS_IDENTITY_GOTRUE_URL` (internal API-network URL; GoTrue routes at root, no `/auth/v1` prefix — that prefix is Kong's).
 Admin auth: `Authorization: Bearer <LIMS_IDENTITY_GOTRUE_SERVICE_KEY>` (service-role JWT; `GOTRUE_JWT_ADMIN_ROLES=service_role`). No key → 401, non-admin bearer → 403 (live).
@@ -13,7 +13,7 @@ Errors: JSON `{code, error_code, msg}`; the gateway keeps only HTTP status + `er
 Token response (all token-returning calls): `access_token`, `token_type` (`bearer`), `expires_in`, `expires_at`, `refresh_token`, `user{id,…}`, `weak_password`.
 Access-token claims used: `sub`, `session_id`, `aal` (`aal1`|`aal2`), `exp`, `iat`, `role` (`authenticated`), `aud` (`authenticated`). `expiresAt` = claim `exp`.
 
-GoTrue config the gateway relies on (C1 owns the values; see `.orchestra/cr/T1.md`):
+GoTrue config the gateway relies on (C1 owns the values; see `.orchestra/cr/T1.nonblocking.md`):
 - `GOTRUE_PASSWORD_MIN_LENGTH=12` (AU-T4) — `supabase/config.toml` today has `minimum_password_length = 6`.
 - `GOTRUE_MAILER_OTP_EXP=3600` — invite/recovery link TTL in seconds (≤ 60 min, D-219).
 - `GOTRUE_SECURITY_REFRESH_TOKEN_ROTATION_ENABLED=true`, `GOTRUE_SECURITY_REFRESH_TOKEN_REUSE_INTERVAL=10`.
@@ -139,15 +139,15 @@ GoTrue config the gateway relies on (C1 owns the values; see `.orchestra/cr/T1.m
 - AAL_CLAIM: CONFIRMED — `aal1` after password login, `aal2` after TOTP verify, kept across refresh, new login is `aal1` (live; also C0 SP-1).
 - SESSION_ID_CLAIM: CONFIRMED — `session_id` UUID claim on every access token, unchanged by refresh and TOTP verify (live).
 - REFRESH_ROTATION: CONFIRMED — every refresh returns a new `refresh_token`, same session (live).
-- REFRESH_REUSE: REFUTED — re-using the immediate parent of the active token after the 10 s interval is accepted (200, new token); re-using an older token gives 400 `refresh_token_already_used` but the session is NOT revoked (the newest token still refreshes). Redesign note 02-TRD s8 + CR `.orchestra/cr/T1.md`.
+- REFRESH_REUSE: REFUTED — re-using the immediate parent of the active token after the 10 s interval is accepted (200, new token); re-using an older token gives 400 `refresh_token_already_used` but the session is NOT revoked (the newest token still refreshes). Redesign note 02-TRD s8 + CR `.orchestra/cr/T1.nonblocking.md`.
 - TOKEN_HASH_VERIFY: CONFIRMED — `POST /verify {type, token_hash}` for `invite` and `recovery`, single-use, type-bound (live).
 - ADMIN_CREATE: CONFIRMED — `POST /admin/users`, duplicate (any case) = 422 `email_exists` (live).
 - ADMIN_FIND: CONFIRMED — no find-by-email route; `GET /admin/users?filter=` substring + exact match in the gateway (live).
-- ADMIN_SIGNOUT: REFUTED — no admin route revokes a user's sessions in v2.197.0; gateway uses the magic-link + `/logout?scope=global` workaround; redesign note 02-TRD s8 + CR `.orchestra/cr/T1.md`.
+- ADMIN_SIGNOUT: REFUTED — no admin route revokes a user's sessions in v2.197.0; gateway uses the magic-link + `/logout?scope=global` workaround; redesign note 02-TRD s8 + CR `.orchestra/cr/T1.nonblocking.md`.
 - FACTOR_DELETE: CONFIRMED — `DELETE /admin/users/{id}/factors/{fid}`; second delete 404 (live).
-- PASSWORD_MIN_LENGTH: CONFIRMED — `GOTRUE_PASSWORD_MIN_LENGTH=12` rejects 11 chars with 422 `weak_password` (live); C1 config still 6 → CR `.orchestra/cr/T1.md`.
+- PASSWORD_MIN_LENGTH: CONFIRMED — `GOTRUE_PASSWORD_MIN_LENGTH=12` rejects 11 chars with 422 `weak_password` (live); C1 config still 6 → CR `.orchestra/cr/T1.nonblocking.md`.
 - LINK_TTL_LE_60MIN: CONFIRMED — `GOTRUE_MAILER_OTP_EXP=3600`; a recovery link whose `users.recovery_sent_at` is 3601 s old → 403 `otp_expired` (live probe). Ageing only `auth.one_time_tokens.created_at` does not expire it.
 - D218_A_CREATE_WITHOUT_EMAIL: REFUTED — `POST /admin/users {}` → 400 `validation_failed` "Cannot create a user without either an email or phone" (source + live).
 - D218_B_CREDENTIALLESS_SESSION: REFUTED — no admin route issues a session for a user; the only admin path (`generate_link` → `/verify`) needs an e-mail.
 
-The patient session kind stays BLOCKED (D-218 a and b refuted); CR `.orchestra/cr/T1.md` to 08 R10 for lead and founder.
+The patient session kind stays BLOCKED (D-218 a and b refuted); CR `.orchestra/cr/T1.nonblocking.md` to 08 R10 for lead and founder.

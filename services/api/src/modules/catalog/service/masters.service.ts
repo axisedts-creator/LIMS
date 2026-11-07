@@ -11,8 +11,8 @@ import { createRevisionService } from './revision.service.js';
 type Field = { t: 'str'; min: number; max: number } | { t: 'int'; min: number; max: number } | { t: 'bool' } | { t: 'uuid' };
 interface Def { R: string; table: repo.MasterTable; entity: string; fields: Record<string, Field>; required: readonly string[]; sorts: readonly string[] }
 
-const str = (min: number, max: number): Field => ({ t: 'str', min, max });
-const BOOL: Field = { t: 'bool' };
+export const str = (min: number, max: number): Field => ({ t: 'str', min, max });
+export const BOOL: Field = { t: 'bool' };
 const SORTS = ['code', 'name'];   // [CR-pending] .orchestra/cr/T-04.md: catalog.yaml also lists report_order for specimen types/containers/methods (no such column) -> 400 until ruled
 const DEFS: readonly Def[] = [
   { R: 'Department', table: 'departments', entity: 'department', required: ['name', 'report_order'], sorts: [...SORTS, 'report_order'],
@@ -25,16 +25,16 @@ const DEFS: readonly Def[] = [
     fields: { name: str(1, 120), is_active: BOOL } },
 ];
 
-const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
+export const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 const CODE_IN = /^[A-Za-z0-9][A-Za-z0-9_]{0,31}$/;     // checked BEFORE upper-casing: no Unicode case-fold forgeries (ı -> I)
 const BASE_COLS = ['id', 'code', 'version', 'is_active', 'created_at', 'updated_at'];
 
 // Fixed messages only: never a submitted value (AB-20).
-const invalid = (path: string): FieldError => ({ path, code: 'common.field_invalid', message: 'Field invalid' });
-const required = (path: string): FieldError => ({ path, code: 'common.field_required', message: 'Field required' });
-const unknown = (path: string): FieldError => ({ path, code: 'common.unknown_field', message: 'Unknown field' });
-const fail = (errors: FieldError[]): never => { throw new LimsError('common.validation_failed', undefined, errors); };
-const isObj = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null && !Array.isArray(v);
+export const invalid = (path: string): FieldError => ({ path, code: 'common.field_invalid', message: 'Field invalid' });
+export const required = (path: string): FieldError => ({ path, code: 'common.field_required', message: 'Field required' });
+export const unknown = (path: string): FieldError => ({ path, code: 'common.unknown_field', message: 'Unknown field' });
+export const fail = (errors: FieldError[]): never => { throw new LimsError('common.validation_failed', undefined, errors); };
+export const isObj =(v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null && !Array.isArray(v);
 
 function okValue(f: Field, v: unknown): boolean {
   switch (f.t) {
@@ -44,9 +44,9 @@ function okValue(f: Field, v: unknown): boolean {
     case 'uuid': return typeof v === 'string' && UUID.test(v);
   }
 }
-const ptr = (k: string) => `/${k.replaceAll('~', '~0').replaceAll('/', '~1')}`;
+export const ptr = (k: string) => `/${k.replaceAll('~', '~0').replaceAll('/', '~1')}`;
 /** Declared fields only (S-5); undefined values are treated as absent. */
-function checkFields(def: Pick<Def, 'fields'>, input: unknown, extra: readonly string[], prefix = ''): Record<string, unknown> {
+export function checkFields(def: Pick<Def, 'fields'>, input: unknown, extra: readonly string[], prefix = ''): Record<string, unknown> {
   if (!isObj(input)) return fail([invalid(prefix)]);
   const errors: FieldError[] = [];
   const out: Record<string, unknown> = {};
@@ -63,13 +63,13 @@ function checkFields(def: Pick<Def, 'fields'>, input: unknown, extra: readonly s
   return out;
 }
 
-interface Tx { query(text: string, values?: unknown[]): Promise<{ rows: any[] }> }
-interface Ctx { readonly tenantId: string; readonly actor: { readonly id: string }; readonly requestId: string; readonly tx: unknown; readonly now?: () => string }
-interface Deps { events: { publish(ctx: unknown, type: string, input: object): Promise<unknown> } }
+export interface Tx { query(text: string, values?: unknown[]): Promise<{ rows: any[] }> }
+export interface Ctx { readonly tenantId: string; readonly actor: { readonly id: string }; readonly requestId: string; readonly tx: unknown; readonly now?: () => string }
+export interface Deps { events: { publish(ctx: unknown, type: string, input: object): Promise<unknown> } }
 
 const pgCode = (e: unknown): string | undefined => (typeof (e as { code?: unknown })?.code === 'string' ? (e as { code: string }).code : undefined);
 /** 23505 on these tables = UNIQUE(tenant_id, code); 23503 = default_specimen_type_id not in this tenant (S-1). */
-function mapPg(e: unknown): never {
+export function mapPg(e: unknown): never {
   const c = pgCode(e);
   if (c === '23505') throw new LimsError('catalog.code_duplicate');
   if (c === '23503') throw new LimsError('common.not_found');
@@ -77,20 +77,20 @@ function mapPg(e: unknown): never {
 }
 
 /** PATCH preconditions (02-TRD §5.0): id, If-Match present (428) and well-formed (400). */
-function checkUpdate(input: { id?: unknown; expectedVersion?: unknown }): { id: string; ev: number } {
+export function checkUpdate(input: { id?: unknown; expectedVersion?: unknown }): { id: string; ev: number } {
   if (typeof input.id !== 'string' || !UUID.test(input.id)) fail([invalid('/id')]);
   if (input.expectedVersion === undefined) throw new LimsError('common.precondition_required');
   const ev = input.expectedVersion;
   if (!Number.isInteger(ev) || (ev as number) < 1 || (ev as number) > 2147483647) fail([invalid('/if-match')]);
   return { id: input.id as string, ev: ev as number };
 }
-async function lockAt(ctx: Ctx, table: repo.MasterTable, cols: readonly string[], id: string, ev: number): Promise<any> {
+export async function lockAt(ctx: Ctx, table: repo.MasterTable, cols: readonly string[], id: string, ev: number): Promise<any> {
   const before = await repo.lockRow(ctx.tx as Tx, table, cols, ctx.tenantId, id);
   if (!before) throw new LimsError('common.not_found');
   if (Number(before.version) !== ev) throw new LimsError('common.version_conflict');
   return before;
 }
-const kindOf = (before: any, after: any) => (before.is_active === true && after.is_active === false ? 'deactivated' : 'updated');
+export const kindOf = (before: any, after: any) => (before.is_active === true && after.is_active === false ? 'deactivated' : 'updated');
 
 export function createMastersService(deps: Deps) {
   const revision = createRevisionService(deps);

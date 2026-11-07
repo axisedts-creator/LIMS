@@ -45,7 +45,8 @@ function uuidList(v: unknown, path: string, max: number): string[] {
 }
 function version(v: unknown): number {
   if (v === undefined || v === null) throw new LimsError('common.precondition_required');
-  if (!Number.isSafeInteger(v) || (v as number) < 1) fail('/If-Match');
+  // version is a Postgres `integer`: bound to int32 so oversized If-Match is 400, not 22003 -> 500.
+  if (!Number.isSafeInteger(v) || (v as number) < 1 || (v as number) > 2147483647) fail('/If-Match');
   return v as number;
 }
 
@@ -102,7 +103,7 @@ export function createSettingsService(deps: SettingsDeps) {
       const v = version(input?.expectedVersion);
       const patch = input?.patch;
       if (!isObj(patch)) return fail('/');
-      // [CONV] default_template_id_* are in the OpenAPI patch but have no 05-SCHEMA column: rejected until clarified (see impl notes).
+      // [CONV] default_template_id_* are in the OpenAPI patch but have no 05-SCHEMA column: rejected until CR-C6-021 resolves (.orchestra/cr/C6-T03.md).
       onlyKeys(patch, Object.keys(SETTINGS_RULES));
       for (const [k, val] of Object.entries(patch)) SETTINGS_RULES[k]!(val, `/${k}`);
       await ensureSettings(tx, tenantId, actorId);

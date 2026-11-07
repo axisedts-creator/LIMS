@@ -75,7 +75,8 @@ local function scrub_phones(s)
           break
         end
       end
-      if count == 10 and not string.find(string.sub(s, last + 1, last + 1), "^%d$") then
+      -- trailing char must not be alnum: keeps UUIDs intact (02-CONVENTIONS s9.2)
+      if count == 10 and not is_alnum_at(s, last + 1) then
         ok = true
       end
     end

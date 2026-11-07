@@ -1,11 +1,5 @@
-CHANGES
-
-Checked: tsc clean; `vitest run` in services/renderer 47/47 pass (run by reviewer). Names (env keys, routes, `lims_renderer_*` metrics), JS off, data:-only guard, bearer constant-time, 400/408/422/503 mapping, no logs/PHI, no secrets, Playwright 1.65.0 = apps/web pin, prom-client 15.1.3 = services/api pin: OK. RLS/tenant/idempotency/rate tier: n/a (no DB, internal service).
-
-1. services/renderer/src/pool.ts:48-66 and :142 — injecting the bundled fonts as `data:` `@font-face` contradicts 02-TRD §5.1 "Fonts" row ("system fonts installed in the image only; templates name the bundled families; no `@font-face` URLs"). It also prepends ~3 MB of base64 to every job (p95 ≤ 5 s target, §11). Fix: delete FONT_DIR/FONT_CSS/FONT_STYLE/withFonts and call `page.setContent(html, …)`; rely on the fontconfig install in Dockerfile.renderer; run the Devanagari/renderer tests where the fonts are installed (in the image, or install `fonts/` into the host font dir in test setup). If host-independent injection is truly needed, stop and write `.orchestra/cr/C6-T05.md` to amend §5.1 instead of deviating. Remove the matching bullet in DECISIONS.md "Fonts".
-
-2. services/renderer/Dockerfile.renderer:6 and :16 — `FROM node:26.13.0-bookworm-slim` is a tag; 02-CONVENTIONS.md:1178 (REQ-SEC-129) requires "Docker base images pinned by digest". Fix: `FROM node:26.13.0-bookworm-slim@sha256:<digest>` on both lines (digest taken from the registry, not invented).
-
-3. services/renderer/DECISIONS.md — 04-UI-UX.md:265 assigns this spike to confirm the watermark ("`position: fixed` centred, rotated −30° … confirmed per page by spike C6-T05"). DECISIONS.md does not mention it, and its own evidence shows `position:fixed` content missing on p1/p3. Fix: add the watermark to the spike run (3-page doc, fixed centred rotated element), record per-page result and the chosen watermark technique in DECISIONS.md, and add an assertion in src/__tests__/spike-assets.test.ts that the watermark text is extracted on every page.
-
-4. services/renderer/src/pool.ts:106-108 (+ :120 timer) — 02-TRD §5.1 lists "503 pool saturated (worker retries)", but `acquire` queues forever and the 30 s job timeout starts only after a context is acquired, so a saturated renderer never answers 503 and a job can exceed LIMS_RENDERER_TIMEOUT_MS end-to-end. Fix: bound the wait — if no context is free within `timeoutMs`, remove the waiter and throw `new RenderError(503, 'pool saturated')`; add a pool test (contexts=1, one long job, second job with short timeout → 503).
+APPROVE
+Scope: git diff ba4ec31..HEAD — only services/renderer/src/__tests__/pool.test.ts (saturation test) and .orchestra/notes; no implementation, DDL, routes, permissions, logs or secrets touched.
+Test change matches round-3 ruling items 3–4 exactly: waiter resolves with WAIT-P1 text or rejects 503/408; <4000 ms bound, `await long`, contextsBusy === 0 and NEXT no-leak render kept; title renamed. Status 503 is verbatim from 02-TRD.md:440.
+Checks run: vitest 49 pass / 1 skip (Devanagari embed, image-only per round-2 ruling); tsc --noEmit clean.
+Not verified: Docker image build/run (Devanagari embed + cgroup RSS cap), as stated in C6-T05-impl.md.

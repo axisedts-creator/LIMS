@@ -246,6 +246,12 @@ describe('AC-0D-5.11 list filters and paging', () => {
     expect(sql(s)).not.toMatch(/FROM\s+core\.dead_letters/i);
     expect(bound(s)).toEqual(expect.arrayContaining(['open', 'core.retention_purge', F.deadAtFrom, F.deadAtTo]));
   });
+  it('platformRows: true combined with tenantId matches nothing (platform rows have tenant_id IS NULL)', async () => {
+    const s = setup([dl({ tenant_id: TENANT_A }), dl({ tenant_id: null })]);
+    const r: any = await s.dls.list(s.ctx, { platformRows: true, tenantId: TENANT_A });
+    expect(r.items).toEqual([]);
+    expect(r.nextCursor).toBeUndefined();
+  });
   it('without platformRows the platform function is not used', async () => {
     const s = await run({ state: 'open' });
     expect(sql(s)).not.toMatch(/dl_list_platform/i);

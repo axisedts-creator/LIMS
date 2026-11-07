@@ -85,15 +85,22 @@ const DDL_DEFAULTS: Record<string, Row> = {
   narrative_reports: { status: 'draft', current_version_no: 1, signed_version_no: null, version: 1 },   // C6-T11
   narrative_versions: { status: 'draft', template_id: null, image_file_ids: [], signed_by_membership_id: null, signed_at: null, content_sha256: null, amendment_of_version_no: null, amendment_reason_code: null, amendment_reason_text: null, version: 1 },   // C6-T17
   narrative_templates: { test_id: null, is_active: true, version: 1 },   // C6-T17
+  report_templates: { current_version_id: null, is_default: false, version: 1, is_active: true },   // C6-T18
+  report_template_versions: { status: 'draft', published_at: null, published_by: null, version: 1, is_active: true },   // C6-T18
   g_cs_reasons: { is_active: true, sort_order: 0 }, cs_reasons: { is_active: true, sort_order: 0 },
 };
 const TABLES = Object.keys(DDL_DEFAULTS);
-const UNIQUE: Record<string, string[][]> = { input_files: [['tenant_id', 'id']], report_order_items: [['tenant_id', 'order_item_id', 'report_id']], reports: [['tenant_id', 'id']], report_versions: [['tenant_id', 'id']], narrative_reports: [['tenant_id', 'id']], narrative_versions: [['tenant_id', 'id'], ['tenant_id', 'narrative_report_id', 'version_no']], narrative_templates: [['tenant_id', 'id'], ['tenant_id', 'code']], g_cs_reasons: [], cs_reasons: [] };
+const UNIQUE: Record<string, string[][]> = { input_files: [['tenant_id', 'id']], report_order_items: [['tenant_id', 'order_item_id', 'report_id']], reports: [['tenant_id', 'id']], report_versions: [['tenant_id', 'id']], narrative_reports: [['tenant_id', 'id']], narrative_versions: [['tenant_id', 'id'], ['tenant_id', 'narrative_report_id', 'version_no']], narrative_templates: [['tenant_id', 'id'], ['tenant_id', 'code']],
+  report_templates: [['tenant_id', 'id']], report_template_versions: [['tenant_id', 'id'], ['tenant_id', 'template_id', 'version_no']], g_cs_reasons: [], cs_reasons: [] };
+/** report_template_versions partial unique indexes (05-SCHEMA §2.12): one draft and one published row per template. */
+const PARTIAL_UNIQUE_STATUS = ['draft', 'published'];
+/** app.enforce_mutable_columns trigger on non-draft report_template_versions rows. */
+const VERSION_MUTABLE_WHEN_FROZEN = ['status', 'updated_at', 'updated_by', 'version'];
 
 function topLevelGroups(s: string): string[] { const out: string[] = []; let d = 0; let cur = ''; for (const ch of s) { if (ch === '(') { if (d++ === 0) { cur = ''; continue; } } else if (ch === ')') { if (--d === 0) { out.push(cur); continue; } } if (d > 0) cur += ch; } return out; }
 function splitComma(s: string): string[] { const out: string[] = []; let d = 0; let q = false; let cur = ''; for (const ch of s) { if (ch === "'") q = !q; if (!q && ch === '(') d++; if (!q && ch === ')') d--; if (!q && d === 0 && ch === ',') { out.push(cur.trim()); cur = ''; } else cur += ch; } if (cur.trim()) out.push(cur.trim()); return out; }
 
-export interface Seed { input_files?: Row[]; report_order_items?: Row[]; reports?: Row[]; report_versions?: Row[]; narrative_reports?: Row[]; narrative_versions?: Row[]; narrative_templates?: Row[]; g_cs_reasons?: Row[]; cs_reasons?: Row[] }
+export interface Seed { input_files?: Row[]; report_order_items?: Row[]; reports?: Row[]; report_versions?: Row[]; narrative_reports?: Row[]; narrative_versions?: Row[]; narrative_templates?: Row[]; report_templates?: Row[]; report_template_versions?: Row[]; g_cs_reasons?: Row[]; cs_reasons?: Row[] }
 export interface Stmt { readonly text: string; readonly values: readonly unknown[]; readonly verb: string }
 
 export function makeDb(seed: Seed = {}, opts: { failOn?: Array<{ match: RegExp; error: () => Error }> } = {}) {
@@ -155,7 +162,14 @@ export function makeDb(seed: Seed = {}, opts: { failOn?: Array<{ match: RegExp; 
     if (verb === 'update') {
       const m = /\bset\b([\s\S]*?)\bwhere\b([\s\S]*)$/i.exec(text); if (!m) throw new Error('FAKE-UNSUPPORTED-SQL: UPDATE without WHERE');
       const f = eqFilters(m[2]!, values); const hit = rows.filter((r) => matches(r, f));
-      for (const r of hit) applySet(r, m[1]!, values);
+      for (const r of hit) {
+        if (table !== 'report_template_versions') { applySet(r, m[1]!, values); continue; }
+        const next: Row = { ...r }; applySet(next, m[1]!, values);
+        if (r['status'] !== 'draft' && Object.keys(next).some((c) => !VERSION_MUTABLE_WHEN_FROZEN.includes(c) && JSON.stringify(next[c]) !== JSON.stringify(r[c]))) throw pgError('P0001', 'not mutable');
+        if (PARTIAL_UNIQUE_STATUS.includes(next['status']) && next['status'] !== r['status']
+          && rows.some((o) => o !== r && o['template_id'] === r['template_id'] && o['tenant_id'] === r['tenant_id'] && o['status'] === next['status'])) throw pgError('23505', 'duplicate key');
+        Object.assign(r, next);
+      }
       return /\breturning\b/i.test(text) ? hit.map((r) => ({ ...r })) : [];
     }
     if (verb === 'insert') {
@@ -166,6 +180,8 @@ export function makeDb(seed: Seed = {}, opts: { failOn?: Array<{ match: RegExp; 
         const toks = splitComma(g); const row: Row = { ...DDL_DEFAULTS[table] };
         cols.forEach((c, i) => { const t = toks[i]!; if (/^default$/i.test(t)) return; row[c] = tokenValue(t, values); });
         if (row['tenant_id'] === undefined || row['tenant_id'] === null) throw pgError('23502', 'null tenant_id');
+        if (table === 'report_template_versions' && PARTIAL_UNIQUE_STATUS.includes(row['status'])
+          && rows.some((o) => o['tenant_id'] === row['tenant_id'] && o['template_id'] === row['template_id'] && o['status'] === row['status'])) throw pgError('23505', 'duplicate key');
         const dup = rows.find((e) => (UNIQUE[table] ?? []).some((u) => u.every((c) => e[c] === row[c])));
         if (dup) { if (!m[3]) throw pgError('23505', 'duplicate key'); if (/do\s+nothing/i.test(m[3])) continue; applySet(dup, /do\s+update\s+set([\s\S]*)$/i.exec(m[3])?.[1] ?? '', values, row); out.push({ ...dup }); }
         else { rows.push(row); out.push({ ...row }); }

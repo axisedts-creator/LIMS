@@ -76,7 +76,9 @@ describe('501 stubs in dev', () => {
     'uploadNarrativeImage', 'getNarrativeImageContent',
     // LEAD-VISIBLE TESTER EDIT (C6-T17): N1-N5 and N8-N10 leave the 501 list; covered by narrative.handlers.test.ts.
     'listNarrativeReports', 'getNarrativeReport', 'saveNarrativeDraft', 'signNarrativeReport', 'startNarrativeAmendment',
-    'listNarrativeTemplates', 'createNarrativeTemplate', 'updateNarrativeTemplate']);
+    'listNarrativeTemplates', 'createNarrativeTemplate', 'updateNarrativeTemplate',
+    // LEAD-VISIBLE TESTER EDIT (C6-T18): T1-T4 and T6 leave the 501 list (T5 previewReportTemplate stays a stub: C6-T16); covered by templates.handlers.test.ts.
+    'listReportTemplates', 'createReportTemplate', 'getReportTemplate', 'updateReportTemplateDraft', 'publishReportTemplate']);
   const stubOps = ops.filter((o: string) => !IMPLEMENTED.has(o));
   it('only already-implemented operations are excluded from the 501 list', () => expect(ops.length - stubOps.length).toBe(IMPLEMENTED.size));
   it.each(stubOps)('%s answers 501', async (op) => {

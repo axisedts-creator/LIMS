@@ -28,7 +28,7 @@ const invoice = (id: string, seq: number, orderId: string, over: Record<string, 
   invoice_kind: 'tax_invoice', purpose: 'registration', order_id: orderId, patient_id: PATIENT, buyer_name: 'Test Patient (SYNTHETIC)', seller_name: 'Synthetic Lab',
   issued_at: new Date(Date.now() - (10 - seq) * 60_000).toISOString(), invoice_date_bs: '2098-01-01', gross_paisa: 1000, discount_paisa: 0, exempt_paisa: 1000, taxable_paisa: 0,
   vat_paisa: 0, other_tax_paisa: 0, net_paisa: 1000, prices_include_tax: false, quote_fingerprint: 'c'.repeat(64), status: 'issued', is_active: true, print_count: 0,
-  cbms_state: 'pending', cbms_attempts: 0, created_by: SYS, updated_by: SYS, ...over,
+  cbms_state: 'pending', cbms_attempts: 0, version: 1, created_by: SYS, updated_by: SYS, ...over,
 });
 const creditNote = (id: string, seq: number, invoiceId: string, over: Record<string, unknown> = {}) => ({
   id, tenant_id: TENANT, branch_id: BRANCH, centre_id: CENTRE, series: 'CN:BLT09', fiscal_year_bs: FY, credit_note_seq: seq, credit_note_no: `CN-BLT09-${seq}`, kind: 'cancellation',
@@ -95,6 +95,8 @@ describe.skipIf(!SU || !APP)('print over a real DB (lims_app): parallel prints',
     expect(log.map((r: any) => r.is_copy)).toEqual(log.map((r: any) => r.print_no > 1));
     expect(log.every((r: any) => r.created_by === SYS)).toBe(true);
     expect((await one(`SELECT print_count, last_printed_at FROM billing.invoices WHERE tenant_id = $1 AND id = $2`, [TENANT, INV1]))[0]).toMatchObject({ print_count: N });
+    // 03-APP-FLOW §2.10 step 2: each print bumps version (fixture starts at 1), so optimistic concurrency sees prints.
+    expect((await one(`SELECT version FROM billing.invoices WHERE tenant_id = $1 AND id = $2`, [TENANT, INV1]))[0].version).toBe(1 + N);
     expect(await one(`SELECT 1 FROM billing.activity_log WHERE tenant_id = $1 AND document_id = $2 AND action = 'invoice_printed'`, [TENANT, INV1])).toHaveLength(N);
     expect(await one(`SELECT 1 FROM audit.access_log WHERE tenant_id = $1 AND action = 'invoice.print' AND entity_type = 'invoice' AND entity_id = $2 AND outcome = 'allowed'`, [TENANT, INV1])).toHaveLength(N);
   });

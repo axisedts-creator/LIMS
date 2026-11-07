@@ -8,11 +8,11 @@ import { decodeCursor, encodeCursor, toDto } from '../mappers/masters.mapper.js'
 import * as repo from '../repo/masters.repo.js';
 import { createRevisionService } from './revision.service.js';
 
-type Field = { t: 'str'; min: number; max: number } | { t: 'int'; min: number; max: number } | { t: 'bool' } | { t: 'uuid' };
+export type Field = { t: 'str'; min: number; max: number } | { t: 'int'; min: number; max: number } | { t: 'bool' } | { t: 'uuid' };
 interface Def { R: string; table: repo.MasterTable; entity: string; fields: Record<string, Field>; required: readonly string[]; sorts: readonly string[] }
 
-const str = (min: number, max: number): Field => ({ t: 'str', min, max });
-const BOOL: Field = { t: 'bool' };
+export const str = (min: number, max: number): Field => ({ t: 'str', min, max });
+export const BOOL: Field = { t: 'bool' };
 const SORTS = ['code', 'name'];   // [CR-pending] .orchestra/cr/T-04.md: catalog.yaml also lists report_order for specimen types/containers/methods (no such column) -> 400 until ruled
 const DEFS: readonly Def[] = [
   { R: 'Department', table: 'departments', entity: 'department', required: ['name', 'report_order'], sorts: [...SORTS, 'report_order'],
@@ -25,16 +25,16 @@ const DEFS: readonly Def[] = [
     fields: { name: str(1, 120), is_active: BOOL } },
 ];
 
-const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
+export const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 const CODE_IN = /^[A-Za-z0-9][A-Za-z0-9_]{0,31}$/;     // checked BEFORE upper-casing: no Unicode case-fold forgeries (ı -> I)
 const BASE_COLS = ['id', 'code', 'version', 'is_active', 'created_at', 'updated_at'];
 
 // Fixed messages only: never a submitted value (AB-20).
-const invalid = (path: string): FieldError => ({ path, code: 'common.field_invalid', message: 'Field invalid' });
-const required = (path: string): FieldError => ({ path, code: 'common.field_required', message: 'Field required' });
-const unknown = (path: string): FieldError => ({ path, code: 'common.unknown_field', message: 'Unknown field' });
-const fail = (errors: FieldError[]): never => { throw new LimsError('common.validation_failed', undefined, errors); };
-const isObj = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null && !Array.isArray(v);
+export const invalid = (path: string): FieldError => ({ path, code: 'common.field_invalid', message: 'Field invalid' });
+export const required = (path: string): FieldError => ({ path, code: 'common.field_required', message: 'Field required' });
+export const unknown = (path: string): FieldError => ({ path, code: 'common.unknown_field', message: 'Unknown field' });
+export const fail = (errors: FieldError[]): never => { throw new LimsError('common.validation_failed', undefined, errors); };
+export const isObj =(v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null && !Array.isArray(v);
 
 function okValue(f: Field, v: unknown): boolean {
   switch (f.t) {
@@ -45,7 +45,7 @@ function okValue(f: Field, v: unknown): boolean {
   }
 }
 /** Declared fields only (S-5); undefined values are treated as absent. */
-function checkFields(def: Def, input: unknown, extra: readonly string[]): Record<string, unknown> {
+export function checkFields(def: { fields: Record<string, Field> }, input: unknown, extra: readonly string[]): Record<string, unknown> {
   if (!isObj(input)) return fail([invalid('')]);
   const errors: FieldError[] = [];
   const out: Record<string, unknown> = {};
@@ -68,7 +68,7 @@ interface Deps { events: { publish(ctx: unknown, type: string, input: object): P
 
 const pgCode = (e: unknown): string | undefined => (typeof (e as { code?: unknown })?.code === 'string' ? (e as { code: string }).code : undefined);
 /** 23505 on these tables = UNIQUE(tenant_id, code); 23503 = default_specimen_type_id not in this tenant (S-1). */
-function mapPg(e: unknown): never {
+export function mapPg(e: unknown): never {
   const c = pgCode(e);
   if (c === '23505') throw new LimsError('catalog.code_duplicate');
   if (c === '23503') throw new LimsError('common.not_found');

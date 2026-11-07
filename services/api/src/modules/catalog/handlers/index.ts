@@ -5,6 +5,7 @@ import { LimsError } from '../../../core/errors.js';
 import type { Handler } from '../../../core/module.js';
 import { importsHandlers } from './imports.handlers.js';
 import { mastersHandlers } from './masters.handlers.js';
+import { testsHandlers } from './tests.handlers.js';
 
 /** 503 common.service_unavailable, detail not_implemented (06-PLAN T-01). Never echoes the request. */
 const notImplemented: Handler = async () => {
@@ -13,7 +14,6 @@ const notImplemented: Handler = async () => {
 
 export const handlers: Readonly<Record<string, Handler>> = Object.freeze({
   getCatalogRevision: notImplemented,
-  searchOrderables: notImplemented,
   resolveOrderablesPreview: notImplemented,
   getCatalogHealthReport: notImplemented,
   ...mastersHandlers, // T-04: #5–#16
@@ -23,11 +23,7 @@ export const handlers: Readonly<Record<string, Handler>> = Object.freeze({
   listValueSets: notImplemented,
   createValueSet: notImplemented,
   updateValueSet: notImplemented,
-  listTests: notImplemented,
-  createTest: notImplemented,
-  getTestDetail: notImplemented,
-  updateTest: notImplemented,
-  replaceTestSpecimenRequirements: notImplemented,
+  ...testsHandlers, // T-06: #2, #23–#27
   setTestTatTargets: notImplemented,
   createAnalyte: notImplemented,
   getAnalyte: notImplemented,

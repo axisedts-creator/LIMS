@@ -110,7 +110,6 @@ export function createRefundService(deps: { repo?: BillingRepo; events: BillingE
 
     const totals = await repo.readOrderTotals(tx, { tenantId, orderId: o });
     if (!totals || typeof totals.branch_id !== 'string' || typeof totals.centre_id !== 'string') throw new LimsError('common.not_found');
-    if (totals.billing_mode === 'credit') throw invalid({ path: '/orderId', code: 'common.field_invalid', message: 'Credit orders are paid by the credit party' });
     if (!(await repo.getPaymentMethod(tx, { tenantId, code: m }))) throw invalid({ path: '/methodCode', code: 'common.field_invalid', message: 'Field invalid' });
     if (a > refundable(totals)) throw new LimsError('billing.ledger_reversal_invalid');
 

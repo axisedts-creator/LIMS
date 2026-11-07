@@ -24,11 +24,13 @@ function bind(op: string, run: (call: (input: unknown) => Promise<any>, req: Han
   };
 }
 
-const entries: Array<[string, Handler]> = ['Department', 'SpecimenType', 'Container', 'Method'].flatMap((R) => [
+// #5–#16 use path param `id`; units / value sets (#17–#22, T-05) use `unit_id` / `value_set_id` (catalog.yaml).
+const RESOURCES: Array<[string, string]> = [['Department', 'id'], ['SpecimenType', 'id'], ['Container', 'id'], ['Method', 'id'], ['Unit', 'unit_id'], ['ValueSet', 'value_set_id']];
+const entries: Array<[string, Handler]> = RESOURCES.flatMap(([R, param]) => [
   [`list${R}s`, bind(`list${R}s`, async (call, req) => ({ status: 200, body: await call(req.query) }))],
   [`create${R}`, bind(`create${R}`, async (call, req) => ({ status: 201, body: await call(req.body) }))],
   [`update${R}`, bind(`update${R}`, async (call, req) => ({
-    status: 200, body: await call({ id: obj(req.params)['id'], expectedVersion: ifMatch(req), patch: req.body }),
+    status: 200, body: await call({ id: obj(req.params)[param], expectedVersion: ifMatch(req), patch: req.body }),
   }))],
 ] as Array<[string, Handler]>);
 

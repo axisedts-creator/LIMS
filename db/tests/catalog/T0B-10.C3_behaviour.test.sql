@@ -27,13 +27,16 @@ SELECT set_config('request.jwt.claims', jsonb_build_object('tenant_id', pg_temp.
 
 -- insert only the keys of p_row; created_by / updated_by are added when the table has them (omitted columns take their DEFAULT)
 CREATE FUNCTION pg_temp.ins(p_tbl regclass, p_row jsonb) RETURNS void LANGUAGE plpgsql AS $f$
-DECLARE r jsonb := p_row; a text; cols text;
+DECLARE r jsonb := p_row; a text; cols text; saved text := current_setting('request.jwt.claims', true);
 BEGIN
+  -- audit trigger (SECURITY DEFINER) writes FORCE-RLS audit.audit_log under the claims: use the row's own tenant (system actor), restore afterwards
+  IF r ? 'tenant_id' THEN PERFORM set_config('request.jwt.claims', jsonb_build_object('tenant_id', r->>'tenant_id', 'sub', pg_temp.sys(), 'actor_type', 'system')::text, true); END IF;
   FOREACH a IN ARRAY ARRAY['created_by', 'updated_by'] LOOP
     IF EXISTS (SELECT 1 FROM pg_attribute WHERE attrelid = p_tbl AND attname = a AND NOT attisdropped) AND NOT (r ? a) THEN r := r || jsonb_build_object(a, pg_temp.sys()); END IF;
   END LOOP;
   SELECT string_agg(quote_ident(k), ',') INTO cols FROM jsonb_object_keys(r) k;
   EXECUTE format('INSERT INTO %1$s (%2$s) SELECT %2$s FROM jsonb_populate_record(NULL::%1$s, %3$L::jsonb)', p_tbl, cols, r::text);
+  PERFORM set_config('request.jwt.claims', coalesce(saved, ''), true);
 END $f$;
 -- run p_sql as p_role with p_claims; mode n = count of a query, w = ROW_COUNT of a statement; errors -> 'E' || SQLSTATE
 CREATE FUNCTION pg_temp.x(p_role text, p_claims jsonb, p_sql text, p_mode text DEFAULT 'n') RETURNS text LANGUAGE plpgsql AS $f$

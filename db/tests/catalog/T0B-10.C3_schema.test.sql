@@ -72,14 +72,14 @@ SELECT is(has_table_privilege('lims_app', 'catalog.' || v.v, 'SELECT'), true, 'l
 SELECT is(has_table_privilege('lims_app', 'catalog.' || v.v, p), false, 'lims_app cannot ' || p || ' catalog.' || v.v) FROM vw v CROSS JOIN unnest(ARRAY['INSERT', 'UPDATE', 'DELETE']) p;
 SELECT is(has_table_privilege(r, 'catalog.' || v.v, 'SELECT'), false, r || ' cannot SELECT catalog.' || v.v) FROM vw v CROSS JOIN unnest(ARRAY['anon', 'authenticated']) r WHERE EXISTS (SELECT 1 FROM pg_roles WHERE rolname = r);
 -- IC §6.6 column contract (names + order); the node test compares the same lists with the spec
-SELECT results_eq($$SELECT a.attname::text FROM pg_attribute a WHERE a.attrelid = 'catalog.v_pub_department'::regclass AND a.attnum > 0 AND NOT a.attisdropped ORDER BY a.attnum$$,
+SELECT results_eq($$SELECT a.attname::text COLLATE "default" FROM pg_attribute a WHERE a.attrelid = 'catalog.v_pub_department'::regclass AND a.attnum > 0 AND NOT a.attisdropped ORDER BY a.attnum$$,
   $$VALUES ('tenant_id'),('department_id'),('code'),('name'),('is_active')$$, 'v_pub_department columns (IC §6.6)');
-SELECT results_eq($$SELECT a.attname::text FROM pg_attribute a WHERE a.attrelid = 'catalog.v_pub_test_directory'::regclass AND a.attnum > 0 AND NOT a.attisdropped ORDER BY a.attnum$$,
+SELECT results_eq($$SELECT a.attname::text COLLATE "default" FROM pg_attribute a WHERE a.attrelid = 'catalog.v_pub_test_directory'::regclass AND a.attnum > 0 AND NOT a.attisdropped ORDER BY a.attnum$$,
   $$VALUES ('tenant_id'),('test_id'),('code'),('name'),('department_id'),('workflow_type'),('is_active')$$, 'v_pub_test_directory columns (IC §6.6)');
-SELECT results_eq($$SELECT a.attname::text FROM pg_attribute a WHERE a.attrelid = 'catalog.v_pub_price_list_items'::regclass AND a.attnum > 0 AND NOT a.attisdropped ORDER BY a.attnum$$,
+SELECT results_eq($$SELECT a.attname::text COLLATE "default" FROM pg_attribute a WHERE a.attrelid = 'catalog.v_pub_price_list_items'::regclass AND a.attnum > 0 AND NOT a.attisdropped ORDER BY a.attnum$$,
   $$VALUES ('tenant_id'),('price_list_id'),('price_list_version'),('owner_kind'),('owner_id'),('orderable_id'),('unit_price_paisa'),('effective_from'),('effective_to'),('falls_through')$$,
   'v_pub_price_list_items columns (IC §6.6 + D-19 falls_through)');
-SELECT results_eq($$SELECT a.attname::text FROM pg_attribute a WHERE a.attrelid = 'catalog.v_pub_referrer_directory'::regclass AND a.attnum > 0 AND NOT a.attisdropped ORDER BY a.attnum$$,
+SELECT results_eq($$SELECT a.attname::text COLLATE "default" FROM pg_attribute a WHERE a.attrelid = 'catalog.v_pub_referrer_directory'::regclass AND a.attnum > 0 AND NOT a.attisdropped ORDER BY a.attnum$$,
   $$VALUES ('tenant_id'),('referrer_id'),('display_name'),('is_active'),('canonical_referrer_id')$$, 'v_pub_referrer_directory columns (IC §6.6 + CR-C3-004)');
 SELECT is(format_type(a.atttypid, a.atttypmod), 'boolean', 'v_pub_price_list_items.falls_through is boolean') FROM pg_attribute a WHERE a.attrelid = 'catalog.v_pub_price_list_items'::regclass AND a.attname = 'falls_through';
 SELECT is((SELECT count(*)::int FROM pg_attribute a WHERE a.attrelid = 'catalog.v_pub_referrer_directory'::regclass AND a.attnum > 0 AND a.attname ~ '(phone|email|registration|qualification|notes)'), 0,

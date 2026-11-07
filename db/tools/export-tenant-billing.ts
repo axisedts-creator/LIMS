@@ -2,9 +2,10 @@
 // Usage: DATABASE_URL=postgres://… node db/tools/export-tenant-billing.ts --tenant <uuid> [--out <file>]   (default out: stdout)
 // Output: a data-only SQL script with every row of <tenant> from every billing table that has a tenant_id column, nothing of any other tenant.
 //   Restore: psql -v ON_ERROR_STOP=1 -1 -f <file>  into a database whose `billing` tables exist and are empty (schema-qualified INSERTs;
-//   generated columns are left to the target). Read-only on the source (default_transaction_read_only=on).
+//   generated columns are left to the target). The script starts with SET session_replication_role = replica, so the restoring role must be
+//   superuser (or hold SET on that parameter), same as the test seed. Read-only on the source (default_transaction_read_only=on).
 // Needs `psql` on PATH. Exit codes: 0 ok, 1 usage/validation (checked before any connection or file), 2 environment/DB failure (no output written).
-// The connecting role must see the tenant's rows (owner/superuser or a role whose RLS admits the tenant), else the export is silently short.
+// row_security=off: a role subject to RLS gets an error (exit 2) instead of a silently short export; use a BYPASSRLS/superuser role.
 import { spawnSync } from "node:child_process";
 import { writeFileSync } from "node:fs";
 import { resolve } from "node:path";
@@ -27,8 +28,9 @@ if (!url) fail(2, "DATABASE_URL is not set; a migrated database is required");
 
 // Server-side generation: one INSERT per row via json_populate_record (exact types, no client-side quoting); tenant bound as a psql variable.
 // ponytail: whole export held in memory, stream per table if a tenant's billing data outgrows that.
+// First line: replica role skips FK checks and the immutability/numbering triggers on restore (rows go in table-name order; ledger self-refs).
 const q = String.raw`
-SELECT format(E'-- export-tenant-billing: tenant %s, %s billing tables\n', :'tenant', count(*)) FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace
+SELECT format(E'SET session_replication_role = replica;\n-- export-tenant-billing: tenant %s, %s billing tables\n', :'tenant', count(*)) FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace
   WHERE n.nspname = 'billing' AND c.relkind IN ('r', 'p') AND NOT c.relispartition
     AND EXISTS (SELECT 1 FROM pg_attribute a WHERE a.attrelid = c.oid AND a.attname = 'tenant_id' AND NOT a.attisdropped);
 SELECT format('SELECT format(%L, row_to_json(x.*)::text) FROM billing.%I x WHERE x.tenant_id = %L::uuid ORDER BY 1',
@@ -44,7 +46,7 @@ SELECT format('SELECT format(%L, row_to_json(x.*)::text) FROM billing.%I x WHERE
 `;
 const r = spawnSync("psql", [url!, "-X", "-q", "-A", "-t", "-v", "ON_ERROR_STOP=1", "-v", `tenant=${tenant}`], {
   input: q, encoding: "utf8", maxBuffer: 1 << 30,
-  env: { ...process.env, PGOPTIONS: `${process.env.PGOPTIONS ?? ""} -c default_transaction_read_only=on`.trim() },
+  env: { ...process.env, PGOPTIONS: `${process.env.PGOPTIONS ?? ""} -c default_transaction_read_only=on -c row_security=off`.trim() },
 });
 if (r.error || r.status !== 0) {
   const why = r.error ? (r.error as NodeJS.ErrnoException).code === "ENOENT" ? "psql is not on PATH" : r.error.message : r.stderr;

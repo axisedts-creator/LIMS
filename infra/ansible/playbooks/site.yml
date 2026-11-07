@@ -23,3 +23,12 @@
   become: true
   roles:
     - pgbackrest
+
+# 02-TRD s11, s8.2: monitoring core on ops-1 (site B). internal_ca first:
+# it issues the ops nginx (and registry) certificates the stack mounts.
+- name: Monitoring core
+  hosts: ops
+  become: true
+  roles:
+    - internal_ca
+    - monitoring

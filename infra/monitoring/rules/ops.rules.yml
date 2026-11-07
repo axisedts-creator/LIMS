@@ -1,0 +1,31 @@
+---
+# 02-TRD s11.3 / s11.4. Core ops rules owned by T-18 (Watchdog, TargetDown);
+# T-19 adds the rest of the catalogue. Every rule: summary + runbook_url +
+# team; no label from the s11.2 drop list.
+groups:
+  - name: ops
+    rules:
+      - alert: Watchdog
+        expr: vector(1)
+        labels:
+          severity: none
+          team: ops
+        annotations:
+          summary: >-
+            Always firing. If this mail stops arriving every 6 h,
+            alerting is broken.
+          runbook_url: "infra/runbooks/ops.md#watchdog"
+      # page for site A hosts (data/app), warn for the others (s11.3).
+      - alert: TargetDown
+        expr: up == 0
+        for: 2m
+        labels:
+          severity: >-
+            {{ if match "^(data|app)-" $labels.host }}page{{ else
+            }}warn{{ end }}
+          team: ops
+        annotations:
+          summary: >-
+            Target {{ $labels.job }} on {{ $labels.host }}
+            ({{ $labels.instance }}) is down.
+          runbook_url: "infra/runbooks/host.md#targetdown"

@@ -18,10 +18,10 @@ export function createRevisionService(deps: { events: { publish(ctx: unknown, ty
   return {
     async bumpRevision(ctx: Ctx, input: BumpInput): Promise<{ revision: number }> {
       const tx = ctx.tx as Tx;
-      let bumped = await repo.incrementRevision(tx);
+      let bumped = await repo.incrementRevision(tx, ctx.tenantId);
       if (!bumped) {
         await repo.ensureState(tx, ctx.tenantId, uuidv7(), ctx.actor.id);
-        bumped = await repo.incrementRevision(tx);
+        bumped = await repo.incrementRevision(tx, ctx.tenantId);
       }
       if (!bumped) throw new LimsError('common.internal');
       const { revision, rootId } = bumped;

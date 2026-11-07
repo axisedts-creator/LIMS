@@ -8,3 +8,8 @@
 - Cause unchanged: `docs/manual/instruments/spikes.md` still absent (ENOENT, all tests). No VM run results in repo.
 - No fix applied: only fix is measured S1/S2/S3 data from Win10/11/Server 2016 + 3 DECISION: lines; cannot be derived from code. Tests not touched, no dispute (tests match 06-PLAN:26).
 - Needs human: run spikes, supply PASS/FAIL/PARTIAL + one-line evidence per OS per spike.
+
+## Round 3
+- Cause unchanged: `docs/manual/instruments/spikes.md` absent, all tests ENOENT. Still no VM run evidence in repo.
+- No fix applied: fabricating S1/S2/S3 verdicts or DECISION: lines is not a code fix. Tests untouched, no dispute (match 06-PLAN:26).
+- Needs human with Win10/11/Server 2016 VMs.

@@ -2,6 +2,7 @@
 // Every operation runs PlatformAuthz.assertPlatform before any repo / upload call. Readiness (AC-E3.4, D-216) is SETTINGS_SQL in core-admin.repo.ts.
 // Annex 1 (platform-level) changes write platform_events 'annex_1_changed' with a non-PHI detail (no note / reference / free text).
 import { LimsError, type FieldError } from '../../../core/errors.js';
+import { contentDisposition } from '../../../core/storage/download.js';
 // [CONV] relative import until @lims/shared-ts is a services/api dependency (same as role.service).
 import { uuidv7 } from '../../../../../../packages/shared-ts/src/uuidv7/index.js';
 import { STATES, canTransition, type AnnexStatus } from '../domain/ird-annex.state.js';
@@ -33,7 +34,6 @@ export interface IrdCtx {
   readonly uploads: { accept(file: unknown, opts: unknown): Promise<any> };
   readonly files: { scan(bytes: Uint8Array): Promise<string> };
   readonly storage: { read(bucket: any, objectPath: string): Promise<Uint8Array>; delete(bucket: any, objectPath: string): Promise<void> };
-  readonly download: { stream(input: unknown): Promise<any> };
 }
 export interface Result { status: number; body: any; version?: number; headers?: Record<string, string> }
 
@@ -215,7 +215,7 @@ export function createIrdService(deps: { repo?: IrdRepo; newId?: () => string } 
       return { status: 201, body: docBody(d) };
     },
 
-    /** P-2 bytes via ctx.download.stream; P-19 pending re-scanned here (fail closed); EVERY call -> platform_events ird_document_downloaded. */
+    /** P-2 bytes via ctx.storage.read + P-2 headers (no access_log); P-19 pending re-scanned here (fail closed); EVERY call -> platform_events ird_document_downloaded. */
     async downloadIrdAnnexDocument(ctx: IrdCtx, input: Record<string, unknown> = {}): Promise<Result> {
       const s = guard(ctx, READ);
       const i = isObj(input) ? input : {};
@@ -239,12 +239,16 @@ export function createIrdService(deps: { repo?: IrdRepo; newId?: () => string } 
         ctx.commitOnError?.();                                        // keep the event + quarantined state across the 422
         throw new LimsError('common.upload_quarantined');
       }
-      const out = await ctx.download.stream({
-        bucket: d.bucket, objectPath: d.object_path, filename: d.original_filename, contentType: d.content_type, scanState: 'clean',
-        access: { action: 'ird_document.download', entityType: 'ird_annex_document', entityId: d.id, outcome: 'allowed' },
-      });
+      // [CONV] not ctx.download.stream: it always writes access_log (needs tenantId; 02-TRD §9 says platform_events only). Same P-2 headers.
+      const body = await ctx.storage.read(d.bucket, d.object_path);
       await event('allowed');
-      return out;
+      return {
+        status: 200, body,
+        headers: {
+          'content-type': d.content_type, 'content-disposition': contentDisposition('attachment', d.original_filename),
+          'x-content-type-options': 'nosniff', 'cache-control': 'no-store', 'content-length': String(body.length),
+        },
+      };
     },
   };
 }

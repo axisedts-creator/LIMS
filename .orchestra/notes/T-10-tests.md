@@ -1,0 +1,7 @@
+# T-10 tests (tester)
+- `infra/tests/static/test_t10_restore_drill.py` (54 tests: playbook static, restore.sh/objects_sample.sh/report.sh run with fakes, verify.sql static, README, RestoreDrillOverdue rules) + `infra/monitoring/rules/tests/restore_drill_overdue.test.yml` (promtool: 34 d quiet, 36 d warn, reset quiet).
+- Run: `.orchestra\notes\T-10-verify.cmd`. Now 49 fail (files missing), 2 skip (no promtool locally; CI hard-fails if absent), 3 pass (my promtool file). CONTRACTS (env names, stdout keys, file names) are in the module docstring.
+- Satisfiability: restore/objects/report tests proven against throwaway reference scripts (deleted); it also caught an unvalidated RTO echoed into the report (test is right).
+- Writer must also create `infra/monitoring/rules/backup.rules.yml` with `RestoreDrillOverdue` x2 (warn 35 d, page 40 d, team ops, no `for`; T-19 extends the file) and `infra/drill/README.md` (verified options, amcheck availability).
+- Judgement calls (dispute if wrong): target time needs explicit UTC offset; failed drill must not wipe the last-success metric (else Overdue never fires); rescue must re-fail the play; hosts are `ops` group only (LD-45).
+- NOT verified: real restore/LVM/LUKS, verify.sql against Postgres (no psql here; static checks only), the real PR, promtool run, absent-metric (never drilled) behaviour of Overdue (spec silent), staging drill (AC-13.3 is a process gate).

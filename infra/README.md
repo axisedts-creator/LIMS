@@ -17,7 +17,7 @@ bash infra/tests/run.sh      # TAP output; exit 0 = green
 
 `verify.yml` and the infra CI (02-TRD §12.4) use the same script.
 
-These tools must be on PATH: `bash`, `python3`, `gitleaks`, `yamllint` and `ansible-lint`. A missing tool fails the run; it is never skipped.
+These tools must be on PATH: `bash`, `python3`, `gitleaks`, `yamllint` and `ansible-lint`. A missing tool fails the run. Exception (LD-17): without `CI=true` a missing ansible-lint prints `SKIP ansible-lint (CI only)`; CI always runs it.
 
 ## Secrets boundary (REQ-SEC-128)
 

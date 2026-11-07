@@ -5,4 +5,4 @@ useDefault = true
 
 # Compiled test bytecode folds the runtime-built scanner fixtures into literals.
 [allowlist]
-paths = ['''__pycache__/''']
+paths = ['''infra/tests/static/__pycache__/''']

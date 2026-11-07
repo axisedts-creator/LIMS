@@ -1,6 +1,6 @@
 # T-01 impl (writer)
-- Files: infra/{README.md,THIRD-PARTY-OPS.md}, infra/ci/*.sh (12 stubs), infra/secrets/.sops.yaml, infra/secrets/schema/{dev,staging,prod}.secrets.schema.yaml, infra/tests/run.sh (LD-06).
-- This round: run.sh applies LD-17 (missing ansible-lint = `SKIP ansible-lint (CI only)` unless CI=true, then FAIL); yamllint falls back to `python -m yamllint` when script not on PATH (still FAIL if absent); wrapped 2 over-80 comment lines in dev/staging schema.
-- [CONV] .sops.yaml age recipients are placeholders (sops rejects = fail closed); real keys at key ceremony. Free-name ids as before (pgbackrest_repo{1,2}_cipher_pass, lims_<role>_password, ...).
-- Ran: `bash infra/tests/run.sh` = all ok (gitleaks ok, yamllint ok, ansible-lint SKIP, static 24 OK). Full unittest: 27 run, 1 skip, 1 FAIL test_yamllint_clean.
-- Open (env, not code): yamllint 1.38.0 pip-installed --user to %APPDATA%\Python\Python314\Scripts, not on PATH; shutil.which fails. Fix: add that dir to PATH. ansible-lint not verified (CI only).
+- Files: infra/{README.md,THIRD-PARTY-OPS.md,.gitleaks.toml,.gitignore}, infra/ci/*.sh (12 stubs), infra/secrets/.sops.yaml, infra/secrets/schema/{dev,staging,prod}.secrets.schema.yaml, infra/tests/run.sh (LD-06).
+- This round (review items 1-3): untracked committed .pyc (`git rm --cached`) + new infra/.gitignore `__pycache__/`; gitleaks allowlist narrowed to `infra/tests/static/__pycache__/` (checked: without allowlist a stale .pyc gives 2 leaks, with it 0); run.sh:3 and README:20 now state the LD-17 ansible-lint exception.
+- [CONV] .sops.yaml age recipients are placeholders (sops rejects = fail closed); real keys at key ceremony. Free-name ids as before.
+- Ran: `bash infra/tests/run.sh` = gitleaks ok, yamllint ok, ansible-lint SKIP (LD-17), static 24 OK. `python -m unittest discover -s infra/tests/static` = 27 run, OK (1 skip).
+- Open: ansible-lint / CI=true run on ops runner not verified locally.

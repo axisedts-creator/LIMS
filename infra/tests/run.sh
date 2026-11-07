@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # infra/tests/run.sh — T-01 gate: gitleaks, yamllint, ansible-lint, static tests.
-# LD-06 (2026-11-07): writer deliverable. Missing tool = FAIL (never skip).
+# LD-06 (2026-11-07): writer deliverable. Missing tool = FAIL, except ansible-lint off CI (LD-17).
 # The Lint class is excluded below: it calls this script (self-recursion).
 set -u
 cd "$(dirname "${BASH_SOURCE[0]}")/../.." || exit 2

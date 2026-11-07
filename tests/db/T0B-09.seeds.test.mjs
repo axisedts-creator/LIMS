@@ -65,10 +65,20 @@ describe("T0B-09 files and naming (02-TRD §4.6)", () => {
       assert.match(find(n) ?? "(missing)", re, `seed ${n}`);
     for (const f of files()) assert.match(f, /^\d{3}_[a-z0-9]+__[a-z0-9_]+\.sql$/, `bad seed name ${f}`);
   });
-  it("every seed is idempotent, owner-role scoped and destructive-free", () => {
+  it("every seed is idempotent, role-scoped (001-003 lims_owner, 010+ lims_app) and destructive-free", () => {
     for (const f of files()) {
       const sql = read(join(SEEDS, f)), code = stripComments(sql);
-      assert.match(code, /SET\s+LOCAL\s+ROLE\s+lims_owner/i, `${f}: must run SET LOCAL ROLE lims_owner`);
+      if (/^00[1-3]_/.test(f)) {
+        // class-G seeds keep lims_owner (LD-30)
+        assert.match(code, /SET\s+LOCAL\s+ROLE\s+lims_owner/i, `${f}: must run SET LOCAL ROLE lims_owner`);
+      } else if (/^(0[1-9]\d|[1-9]\d\d)_/.test(f)) {
+        // tenant-scoped seeds (LD-30): lims_app after claims so real <table>__insert__tenant WITH CHECK applies
+        const role = code.search(/SET\s+LOCAL\s+ROLE\s+lims_app/i);
+        const claims = code.search(/set_config\s*\(\s*'request\.jwt\.claims'[^;]*?,\s*true\s*\)/i);
+        assert.ok(role >= 0, `${f}: must run SET LOCAL ROLE lims_app (LD-30)`);
+        assert.ok(claims >= 0 && claims < role, `${f}: SET LOCAL ROLE lims_app must come after set_config('request.jwt.claims', ..., true)`);
+        assert.doesNotMatch(code, /SET\s+LOCAL\s+ROLE\s+lims_owner/i, `${f}: tenant-scoped seed must not use lims_owner (LD-30)`);
+      }
       for (const st of inserts(sql)) assert.match(st, /ON\s+CONFLICT[\s\S]*DO\s+NOTHING/i, `${f}: INSERT without ON CONFLICT ... DO NOTHING:\n${st.slice(0, 160)}`);
       assert.doesNotMatch(code, /\b(DELETE\s+FROM|TRUNCATE|DROP\s+(TABLE|SCHEMA|POLICY)|DISABLE\s+ROW\s+LEVEL|NO\s+FORCE\s+ROW|session_replication_role|ALTER\s+ROLE|CREATE\s+ROLE)\b/i, `${f}: destructive/RLS-bypass statement`);
       assert.doesNotMatch(code, /ON\s+CONFLICT[^;]*DO\s+UPDATE/i, `${f}: DO UPDATE would rewrite rows on re-run`);

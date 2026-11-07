@@ -2,10 +2,9 @@
 -- 02-TRD §3.5, §4.6; 05-SCHEMA §11. SYNTHETIC ONLY: dev, ci, staging; never production (REQ-SEC-041, REQ-SEC-136).
 -- Portal-link, bridge_agent, queue_display and system actors have no membership (claims come from their resolvers).
 -- memberships.is_active is GENERATED (08 A3.4): rows set status only. Idempotent: re-running inserts nothing new.
-SET LOCAL ROLE lims_owner;
-
 -- ---------- tenant_a: claims of the core system actor for this tenant (RLS WITH CHECK applies; audit rows carry the actor) ----------
 SELECT set_config('request.jwt.claims', '{"tenant_id":"01a1a98a-ac40-7000-8000-00000000a001","sub":"01a1b34e-1000-7eee-9d29-d7ca59a102b5","actor_type":"system"}', true);
+SET LOCAL ROLE lims_app; -- LD-30: after claims, so the real <table>__insert__tenant WITH CHECK applies (no owner bypass)
 
 INSERT INTO core.tenants (id, tenant_code, legal_name, display_name, status, created_by, updated_by) VALUES
   ('01a1a98a-ac40-7000-8000-00000000a001', 'tenant_a', 'Synthetic Lab Alpha', 'Synthetic Lab Alpha', 'active', '01a1b34e-1000-7eee-9d29-d7ca59a102b5', '01a1b34e-1000-7eee-9d29-d7ca59a102b5')
@@ -427,6 +426,7 @@ ON CONFLICT DO NOTHING;
 
 -- ---------- tenant_b: claims of the core system actor for this tenant (RLS WITH CHECK applies; audit rows carry the actor) ----------
 SELECT set_config('request.jwt.claims', '{"tenant_id":"01a1a98a-ac40-7000-8000-00000000b001","sub":"01a1b34e-1000-7eee-9d29-d7ca59a102b5","actor_type":"system"}', true);
+SET LOCAL ROLE lims_app; -- LD-30: after claims, so the real <table>__insert__tenant WITH CHECK applies (no owner bypass)
 
 INSERT INTO core.tenants (id, tenant_code, legal_name, display_name, status, created_by, updated_by) VALUES
   ('01a1a98a-ac40-7000-8000-00000000b001', 'tenant_b', 'Synthetic Lab Beta', 'Synthetic Lab Beta', 'active', '01a1b34e-1000-7eee-9d29-d7ca59a102b5', '01a1b34e-1000-7eee-9d29-d7ca59a102b5')

@@ -1,3 +1,4 @@
-- Cause 1: `__tests__/ci/{driver-registry-check,synthetic-scan,fixture-copy-check}.ts` were absent on disk (impl note claimed them) -> ci-scripts.test.ts import error. Fix: wrote the three scripts to the test's documented interface (30/30 pass, incl. REAL repo migrations + testdata checks).
-- Cause 2: "pathological 1 MiB" timeout (6.3s vs default 5s vitest limit) was CPU contention while 4 files ran with the verify's load; alone it takes ~1s, no quadratic path in delimited.ts. No code change; re-run of all 4 API-T07 files together: 126/126 pass.
-- Not verified: full-suite run under verify's exact load; the 5 pre-existing boot failures are untouched.
+- Cause: `__tests__/ci/{driver-registry-check,synthetic-scan,fixture-copy-check}.ts` were absent on disk (ci/ dir empty, git clean; earlier note/impl claim was wrong) -> ci-scripts.test.ts "Cannot find module '../ci/driver-registry-check.js'".
+- Fix: wrote the three scripts to the test's documented interface (CLI guarded on import.meta.url). Re-ran `vitest run src/modules/instruments/__tests__/unit`: 10 files / 468 tests pass, incl. REAL-repo migrations + testdata checks; tsc shows no errors in `__tests__/ci`.
+- Earlier 1 MiB "pathological" timeout was CPU contention (alone ~1s); no code change.
+- Not verified: verify's exact full-suite load; pre-existing boot.test.ts failures untouched.

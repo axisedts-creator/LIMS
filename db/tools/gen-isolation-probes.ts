@@ -11,7 +11,7 @@ import { readYaml, rootDir, type TableMeta } from "./sql-lib.ts";
 
 const TOOL = "gen-isolation-probes";
 const IDENT = /^[a-z_][a-z0-9_]*\.[a-z_][a-z0-9_]*$/;
-const CLASSES = new Set(["M", "C", "B", "A", "G"]); // CV §5.2 table classes
+const CLASSES = new Set(["M", "C", "B", "A", "E", "G"]); // CV §5.2 table classes
 const ACTORS = ["partner", "portal", "patient"] as const;
 const SUBS: Record<string, string> = { partner: "35", portal: "a3", patient: "34" }; // step-9 fixture actor ids (pg_temp.id keys)
 const GENERATED = /^[a-z_][a-z0-9_]*\.[a-z_][a-z0-9_]*\.test\.sql$/; // hand-written suites in the same dir (T0B-08_*.test.sql) never match
@@ -41,7 +41,7 @@ try {
 const errs: string[] = [];
 for (const [t, d] of Object.entries(tables)) {
   if (!IDENT.test(t)) { errs.push(`invalid table identifier ${JSON.stringify(t)} in tables.yaml (expected schema.table, [a-z0-9_])`); continue; }
-  if (!CLASSES.has(String(d.class))) errs.push(`${t}: unknown class ${JSON.stringify(d.class)} (expected M|C|B|A|G)`);
+  if (!CLASSES.has(String(d.class))) errs.push(`${t}: unknown class ${JSON.stringify(d.class)} (expected M|C|B|A|E|G)`);
   for (const a of d.shared_with ?? []) if (!(ACTORS as readonly string[]).includes(a)) errs.push(`${t}: shared_with value ${JSON.stringify(a)} not in partner|portal|patient`);
   for (const c of Object.keys(d.columns ?? {})) if (!/^[a-z_][a-z0-9_]*$/.test(c)) errs.push(`${t}: invalid column identifier ${JSON.stringify(c)}`);
 }
@@ -77,6 +77,8 @@ function registrySql(): string {
 // Shared preamble: helpers + step 1 fixtures (tenants A/B, centres A1/A2, staff and fixture actors of 02-TRD §3.5). Synthetic data only.
 const PREAMBLE = `SET search_path = extensions, public, pg_catalog;
 SELECT * FROM no_plan();
+-- C2 identity stand-ins (skipped once the real tables exist): app.is_platform_actor() in the __platform policies reads identity.platform_staff
+\\ir ../fixtures/T0B-06_identity_standin.sql
 
 CREATE FUNCTION pg_temp.id(k text) RETURNS uuid LANGUAGE sql IMMUTABLE AS $$ SELECT ('01900000-0000-7000-8000-0000000000' || lpad(k, 2, '0'))::uuid $$;
 CREATE FUNCTION pg_temp.cl(p_type text, p_sub text, p_mem text DEFAULT NULL) RETURNS text LANGUAGE sql AS $$
@@ -218,6 +220,30 @@ INSERT INTO audit.access_log (id, tenant_id, centre_id, actor_id, actor_type, ac
   (pg_temp.id('74'), pg_temp.id('01'), pg_temp.id('21'), pg_temp.id('a3'), 'portal',  'report.view', 'report', 'allowed', pg_temp.id('a3')),
   (pg_temp.id('75'), pg_temp.id('01'), pg_temp.id('21'), pg_temp.id('34'), 'patient', 'report.view', 'report', 'allowed', pg_temp.id('34')),
   (pg_temp.id('76'), pg_temp.id('02'), pg_temp.id('23'), pg_temp.id('33'), 'user',    'report.view', 'report', 'allowed', pg_temp.id('33')) ON CONFLICT DO NOTHING;
+-- T0B-05 platform tables: tenant A and B rows; event_log (owner column created_by) and idempotency_keys (actor_id) also one row per
+-- step-9 fixture actor (partner, portal, patient)
+INSERT INTO core.event_log (tenant_id, event_id, event_type, producer, idempotency_key, aggregate_type, aggregate_id, aggregate_seq, occurred_at, envelope, created_by) VALUES
+  (pg_temp.id('01'), pg_temp.id('e1'), 'probe.event', 'core', 'pk-e1', 'probe', pg_temp.id('31'), 1, now(), '{}', pg_temp.id('32')),
+  (pg_temp.id('01'), pg_temp.id('e2'), 'probe.event', 'core', 'pk-e2', 'probe', pg_temp.id('31'), 2, now(), '{}', pg_temp.id('35')),
+  (pg_temp.id('01'), pg_temp.id('e3'), 'probe.event', 'core', 'pk-e3', 'probe', pg_temp.id('31'), 3, now(), '{}', pg_temp.id('a3')),
+  (pg_temp.id('01'), pg_temp.id('e4'), 'probe.event', 'core', 'pk-e4', 'probe', pg_temp.id('31'), 4, now(), '{}', pg_temp.id('34')),
+  (pg_temp.id('02'), pg_temp.id('e5'), 'probe.event', 'core', 'pk-e5', 'probe', pg_temp.id('33'), 1, now(), '{}', pg_temp.id('33')) ON CONFLICT DO NOTHING;
+INSERT INTO core.idempotency_keys (tenant_id, actor_id, key, method, route, request_sha256, state, expires_at) VALUES
+  (pg_temp.id('01'), pg_temp.id('32'), 'probe-a', 'POST', '/v1/probe', decode(repeat('00', 32), 'hex'), 'in_progress', now() + interval '7 days'),
+  (pg_temp.id('01'), pg_temp.id('35'), 'probe-a', 'POST', '/v1/probe', decode(repeat('00', 32), 'hex'), 'in_progress', now() + interval '7 days'),
+  (pg_temp.id('01'), pg_temp.id('a3'), 'probe-a', 'POST', '/v1/probe', decode(repeat('00', 32), 'hex'), 'in_progress', now() + interval '7 days'),
+  (pg_temp.id('01'), pg_temp.id('34'), 'probe-a', 'POST', '/v1/probe', decode(repeat('00', 32), 'hex'), 'in_progress', now() + interval '7 days'),
+  (pg_temp.id('02'), pg_temp.id('33'), 'probe-b', 'POST', '/v1/probe', decode(repeat('00', 32), 'hex'), 'in_progress', now() + interval '7 days') ON CONFLICT DO NOTHING;
+INSERT INTO core.dead_letters (id, tenant_id, task_identifier, job_payload, last_error_code, last_error_message_redacted, attempts, first_failed_at, dead_at, created_by) VALUES
+  (pg_temp.id('d1'), pg_temp.id('01'), 'probe.task', '{}', 'E', 'm', 1, now(), now(), pg_temp.id('99')),
+  (pg_temp.id('d2'), pg_temp.id('02'), 'probe.task', '{}', 'E', 'm', 1, now(), now(), pg_temp.id('99')) ON CONFLICT DO NOTHING;
+DO $d$ DECLARE s text; BEGIN
+  FOREACH s IN ARRAY ARRAY['identity','frontdesk','billing','lab','instruments','reporting','analytics','quality',
+                           'micro','anatomic','inventory','partners','smartreport','payments','engagement','homecollection'] LOOP   -- 05-SCHEMA §3.9
+    EXECUTE format('INSERT INTO %I.event_inbox (tenant_id, event_id, event_type, created_by) VALUES ($1, $2, ''probe.event'', $3), ($4, $5, ''probe.event'', $6) ON CONFLICT DO NOTHING', s)
+      USING pg_temp.id('01'), pg_temp.id('e1'), pg_temp.id('99'), pg_temp.id('02'), pg_temp.id('e5'), pg_temp.id('99');
+  END LOOP;
+END $d$;
 SET LOCAL session_replication_role = origin;
 `;
 // ponytail: C0 fixtures are inline above; a table added by a later chunk without a row here fails its step-1 precondition until

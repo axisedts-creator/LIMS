@@ -60,7 +60,8 @@ def _render(pw):
     ctx["secrets_render_here"] = {"POSTGRES_PASSWORD": d["secrets_render_placement"]["POSTGRES_PASSWORD"]}
     ctx.update(t.get("vars") or {})
     jenv = jinja2.Environment(undefined=jinja2.Undefined, keep_trailing_newline=True)
-    jenv.filters.update(to_json=json.dumps, b64decode=lambda s: s)
+    jenv.filters.update(to_json=json.dumps, b64decode=lambda s: s,
+                       dirname=os.path.dirname, basename=os.path.basename)
     if "content" in args:
         src = str(args["content"])
     else:
@@ -98,7 +99,8 @@ class UserlistTaskTest(unittest.TestCase):
 
     def test_pgbouncer_dir_exists_before_write(self):
         tasks = base._tasks()
-        idx_w = next(i for i, t in enumerate(tasks) if t is _userlist_task()[0])
+        ut_name = _userlist_task()[0].get("name")
+        idx_w = next(i for i, t in enumerate(tasks) if t.get("name") == ut_name)
         dirs = [i for i, t in enumerate(tasks[:idx_w]) if base._module(t) == "file" and "pgbouncer" in base._txt(t)]
         general = [i for i, t in enumerate(tasks[:idx_w]) if base._module(t) == "file" and "secrets_render_files" in base._txt(t)]
         self.assertTrue(dirs or general, "no task creates <secrets_dir>/pgbouncer before the write")
@@ -176,9 +178,10 @@ class UserlistContentTest(unittest.TestCase):
         self.assertNotRegex(src, r'"pgbouncer"\s+"[A-Za-z0-9+/=_.-]{8,}"', "literal credential in source")
 
     def test_no_debug_or_log_of_userlist_content(self):
+        ut_name = _userlist_task()[0].get("name")
         for t in base._tasks():
             s = base._txt(t)
-            if "userlist" in s and t is not _userlist_task()[0]:
+            if "userlist" in s and t.get("name") != ut_name:
                 self.assertNotIn("debug", [k.split(".")[-1] for k in t], "debug of userlist content")
 
 

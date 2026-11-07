@@ -5,7 +5,7 @@
 // the task COMMITS `render_failed` + code and RESOLVES (a throw would roll the transaction back). template_invalid (422) is permanent: render_failed at once.
 import { describe, expect, it } from 'vitest';
 import {
-  FINAL_PDF, FOOTER, HEADER, INST_BYTES, LAB, LOGO, LOGO_ID, MAIN_PDF, NARR, OUT_BYTES, OUT_BUCKET, OUT_PATH, OUT_SHA, FULL_NAME, HEADER_ID, FOOTER_ID,
+  FINAL_PDF, FOOTER, HEADER, INST_BYTES, INST_SHA, LAB, LOGO, LOGO_ID, MAIN_PDF, NARR, OUT_BYTES, OUT_BUCKET, OUT_PATH, OUT_SHA, FULL_NAME, HEADER_ID, FOOTER_ID,
   SIG1_IMG, TENANT_A, VID, I, b64, baseStore, enc, idN, makeStore, partBytes, renderSetup, settle, sha256, snapshot, templateInvalid,
   unavailable, TEMPLATE_VERSION, type RS,
 } from './render.helpers.js';

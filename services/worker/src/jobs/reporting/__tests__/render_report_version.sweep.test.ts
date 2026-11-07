@@ -64,7 +64,7 @@ describe('sweep_stuck_renders', () => {
   });
   it('payload tenant different from the job tenant, or missing -> no query, no job', async () => {
     const s = renderSetup({ versionOver: { rendering_started_at: OLD } });
-    await sweep(s, { tenant_id: TENANT_B }); await sweep(s, {}); await sweep(s, undefined);
+    await sweep(s, { tenant_id: TENANT_B }); await sweep(s, {}); await sweep(s, null);
     expect(s.db.jobs).toHaveLength(0); expect(s.db.reportingStmts()).toHaveLength(0);
   });
   it('does not render anything itself (only enqueues): no renderer / storage call', async () => {

@@ -131,8 +131,8 @@ INSERT INTO core.tenants (id, tenant_code, legal_name, display_name, status, cre
   (pg_temp.id(4), 'lab_d', 'Lab D Pvt Ltd', 'Lab D', 'provisioning', pg_temp.id(99), pg_temp.id(99));
 SET LOCAL session_replication_role = origin;
 INSERT INTO identity.platform_staff (id, user_id, email_normalized, display_name, role_code, is_active, created_by, updated_by) VALUES
-  (pg_temp.id(61), pg_temp.id(81), 'a@example.test', 'Staff A', 'platform_admin', true, pg_temp.id(99), pg_temp.id(99)),
-  (pg_temp.id(62), pg_temp.id(82), 'b@example.test', 'Staff B', 'platform_admin', true, pg_temp.id(99), pg_temp.id(99)) ON CONFLICT DO NOTHING;
+  (pg_temp.id(61), pg_temp.id(81), 'a@example.test', 'Staff A', 'platform_superadmin', true, pg_temp.id(99), pg_temp.id(99)),
+  (pg_temp.id(62), pg_temp.id(82), 'b@example.test', 'Staff B', 'platform_superadmin', true, pg_temp.id(99), pg_temp.id(99)) ON CONFLICT DO NOTHING;
 INSERT INTO core.g_task_registry (identifier, module, kind, scope, max_attempts, is_active) VALUES
   ('plat.task',   'core',    'task', 'platform',   3, true),
   ('plat.other',  'core',    'task', 'platform',   3, true),

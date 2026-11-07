@@ -171,7 +171,9 @@ export function makeTestsDb(seed: TestsSeed = {}) {
       const where = m[4] ? parseExpr(m[4]) : () => true;
       let rows = visible(t).filter((r) => where({ row: r, values, now }) === true);
       if (m[5]) {
-        const keys = splitTop(m[5]).map((k) => { const mm = /^(.*?)(?:\s+(ASC|DESC))?$/i.exec(k.trim().replace(/\s+COLLATE\s+"C"/i, ''))!; // fake compares by code point == COLLATE "C" return { ev: parseExpr(mm[1]!), desc: /^DESC$/i.test(mm[2] ?? '') }; });
+        const keys = splitTop(m[5]).map((k) => { const mm = /^(.*?)(?:\s+(ASC|DESC))?$/i.exec(k.trim().replace(/\s+COLLATE\s+"C"/i, ''))!;
+          // fake compares by code point == COLLATE "C"
+          return { ev: parseExpr(mm[1]!), desc: /^DESC$/i.test(mm[2] ?? '') }; });
         const dec = rows.map((r) => ({ r, k: keys.map((k) => k.ev({ row: r, values, now })) }));
         dec.sort((a, b) => {
           for (let i = 0; i < keys.length; i++) {

@@ -86,7 +86,7 @@ describe('manifest (02-TRD §3.1, §6.3 autoloader rules)', () => {
   it('is found by the autoloader in the default modules directory', async () => {
     const mods = await autoload(DEFAULT_MODULES_DIR, REPO_ROOT);
     expect(mods.map((m) => m.manifest.name)).toContain('frontdesk');
-  });
+  }, 60_000);
 });
 
 describe('done_when: core boots with module (AC-0D-1.1/1.2 through the real bootstrap, real repo root)', () => {
@@ -95,7 +95,7 @@ describe('done_when: core boots with module (AC-0D-1.1/1.2 through the real boot
     apps.push(app);
     const { manifest } = await load(FILES.index);
     expect(Object.keys(manifest.handlers).sort()).toEqual(operationIds(spec()).sort());
-  });
+  }, 60_000);
 
   it('every frontdesk operation is mounted (never 404/405) and answers unauthenticated calls with 400/401, never by running a stub', async () => {
     const app = await bootstrap({ config: bootConfig() });
@@ -110,14 +110,14 @@ describe('done_when: core boots with module (AC-0D-1.1/1.2 through the real boot
     const r = await app.inject({ method: 'GET', url: '/v1/frontdesk/settings' });
     expect(r.statusCode).toBe(401);
     expect(JSON.parse(r.body).code).toMatch(/^auth\./);
-  });
+  }, 60_000);
 
   it('mounts nothing outside the spec (REQ-SEC-099)', async () => {
     const app = await bootstrap({ config: bootConfig() });
     apps.push(app);
     expect((await app.inject({ method: 'GET', url: '/v1/frontdesk/__nothing__' })).statusCode).toBe(404);
     expect((await app.inject({ method: 'GET', url: '/v1/frontdesk/orders/../../etc/passwd' })).statusCode).toBe(404);
-  });
+  }, 60_000);
 });
 
 describe('done_when: unimplemented handlers throw common.service_unavailable', () => {

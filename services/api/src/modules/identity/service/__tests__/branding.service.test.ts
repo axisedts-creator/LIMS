@@ -15,8 +15,9 @@ const make = (assets: ReturnType<typeof assetRow>[] = []) => {
   svc = createSettingsService({ repo: R.settingsRepo, flagsRepo: R.flagsRepo, port: { invalidateTenantSettings: (t: string) => { invalidated.push(t); } } } as any);
 };
 beforeEach(() => make());
-const upload = async (file: ReturnType<typeof incoming>, kind: unknown = 'logo', c?: Awaited<ReturnType<typeof makeCtx>>) => {
-  const k = c ?? (await makeCtx()); return { k, p: svc.uploadBrandingAsset(k.ctx, { file, kind } as any) as Promise<any> };
+// rest args, not default params: an explicit `undefined` kind must reach the service (a default would swap it for 'logo')
+const upload = async (file: ReturnType<typeof incoming>, ...a: [kind?: unknown, c?: Awaited<ReturnType<typeof makeCtx>>]) => {
+  const kind = a.length > 0 ? a[0] : 'logo'; const k = a[1] ?? (await makeCtx()); return { k, p: svc.uploadBrandingAsset(k.ctx, { file, kind } as any) as Promise<any> };
 };
 const nothingPersisted = (k: Awaited<ReturnType<typeof makeCtx>>) => {
   expect(R.st.assets).toHaveLength(0); expect(R.st.jobs).toHaveLength(0); expect(R.writes).toEqual([]); expect(k.storageKeys()).toEqual([]); expect(invalidated).toEqual([]);

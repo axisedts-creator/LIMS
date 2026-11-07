@@ -294,7 +294,9 @@ describe('setTenantFeatureFlag (AC-C5.2, AC-C5.4, 03-APP-FLOW 6.3)', () => {
     expect(R.writes).toEqual([]);
   });
   it('If-Match: missing -> 428, invalid -> 400, stale -> 409 common.version_conflict', async () => {
-    expect((await rejection((await put('smart_report', true, undefined)).p)).code).toBe('common.precondition_required');
+    const { ctx } = await makeCtx();   // direct call: put()'s default param would turn undefined into 1
+    expect((await rejection(svc.setTenantFeatureFlag(ctx, { flagCode: 'smart_report', isEnabled: true, expectedVersion: undefined } as any))).code).toBe('common.precondition_required');
+    expect(R.writes).toEqual([]); expect(invalidated).toEqual([]);
     expect((await rejection((await put('smart_report', true, 0)).p)).code).toBe('common.validation_failed');
     expect((await rejection((await put('smart_report', true, 7)).p)).code).toBe('common.version_conflict'); expect(R.writes).toEqual([]);
   });

@@ -1,4 +1,4 @@
-# T0A-10 impl (writer, review round 1)
+# T0A-10 impl (writer, review round 2: only item was a test gap; tester added check-deps.test.mjs; no impl change needed; verify.cmd 109 tests, 108 pass, 0 fail, 1 skip)
 - Files: .github/workflows/pr.yml (oasdiff, migrations, deps, c17-db-forensics), tools/lint/check-supabase-pin.ts (lock keyed by repoOf), NEW tools/lint/check-deps.ts + tools/lint/deps-triage.json.
 - Result: `node --test tools/lint/tests/ci-workflows.test.mjs` all pass (1 skip: repo compose+lock not landed). All tools/lint tests 254/256: 1 skip, 1 fail = build smoke `ERR_PNPM_IGNORED_BUILDS @scarf/scarf` (lockfile/approve-builds, not T0A-10).
 - [CONV] oasdiff: `--name-status --diff-filter=MDR`; D fails unless `cr-approved-breaking`; R diffs base old path vs new path. Migrations: policy diff = `db/tools/policy-dump.ts` + `git diff --exit-code db/policies`; upgrade = newest tag on origin/main (none yet = notice + skip), prev worktree `dev:up --ci`, then `pnpm db:migrate`; checklist = PR body (env) must contain "Gate-9 migration checklist".

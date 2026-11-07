@@ -3,7 +3,7 @@
 import { describe, expect, it } from 'vitest';
 import { TENANT_A, TENANT_B } from './catalogDb.js';
 import { dept, spec as specimen, cont } from './mastersDb.js';
-import { ID, ana, anv, makeTestsDb, pnl, tsr, tst, type Row } from './testsDb.js';
+import { ID, ana, anv, makeTestsDb, pnl, tat, tsr, tst, type Row } from './testsDb.js';
 
 const D1 = dept(1, TENANT_A); const S1 = specimen(1, TENANT_A); const S2 = specimen(2, TENANT_A); const C1 = cont(1, TENANT_A);
 const names = ['100% pure', 'Alpha_beta', 'AlphaXbeta', 'back\\slash', 'Plain'];
@@ -189,5 +189,47 @@ describe('T-07 additions: analytes / analyte_versions constraints + the two vers
     expect((await q(db, 'SELECT * FROM catalog.g_value_sets WHERE code = $1', ['G_SET'], TENANT_B)).rows).toHaveLength(1);
     expect((await q(db, 'SELECT * FROM catalog.cs_value_sets WHERE tenant_id = $1 AND code = $2', [TENANT_A, 'B_SET'])).rows).toHaveLength(0);
     expect((await rej(q(db, 'UPDATE catalog.g_value_sets SET display = $1 WHERE code = $2', ['x', 'G_SET']))).message).toMatch(/unsupported/);
+  });
+});
+
+describe('T-14 additions: tat_targets', () => {
+  const t = tst(1, TENANT_A, D1.id, { code: 'CBC' });
+  const tb = tst(2, TENANT_B, dept(9, TENANT_B).id, { code: 'CBC' });
+  const mk = () => makeTestsDb({ rows: { departments: [D1, dept(9, TENANT_B)] }, t6: { orderables: [t.orderable, tb.orderable], tests: [t.test, tb.test],
+    tat_targets: [tat(1, TENANT_A, t.test.id), tat(2, TENANT_B, tb.test.id)] } });
+  const INS = 'INSERT INTO catalog.tat_targets (id, tenant_id, test_id, priority, segment, target_seconds, effective_from, effective_to, created_by, updated_by) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $9)';
+  const ins = (db: ReturnType<typeof mk>, o: { id?: string; test?: string; priority?: string; segment?: string; sec?: unknown; from?: string; to?: string | null; tenant?: string } = {}) =>
+    q(db, INS, [o.id ?? ID(0xa001), o.tenant ?? TENANT_A, o.test ?? t.test.id, o.priority ?? 'urgent', o.segment ?? 'within_lab', o.sec ?? 3600, o.from ?? '2026-02-01T00:00:00.000Z', o.to ?? null, ID(1)]);
+
+  it('RLS reads, count(*), the seed row loads with its defaults (segment, version, is_active, audit columns)', async () => {
+    const db = mk();
+    expect((await q(db, 'SELECT * FROM catalog.tat_targets WHERE tenant_id = $1', [TENANT_A])).rows.map((r) => r.id)).toEqual([ID(0x9001)]);
+    expect((await q(db, 'SELECT count(*) FROM catalog.tat_targets', [], TENANT_B)).rows[0]!.count).toBe('1');
+    expect(db.rows('tat_targets', TENANT_A)[0]).toMatchObject({ priority: 'routine', segment: 'within_lab', target_seconds: 14400, effective_to: null, version: 1, is_active: true });
+  });
+
+  it('partial UNIQUE (tenant, test, priority) WHERE effective_to IS NULL: a second open row -> 23505; a closed row, another priority or another test is fine; ending first then inserting works', async () => {
+    const db = mk();
+    expect((await rej(ins(db, { priority: 'routine' }))).constraint).toBe('tat_targets__open__p_uq');
+    await ins(db, { priority: 'routine', id: ID(0xa002), from: '2025-01-01T00:00:00.000Z', to: '2025-06-01T00:00:00.000Z' });
+    await ins(db, { priority: 'urgent', id: ID(0xa003) });
+    await db.run(async (ctx) => {
+      await ctx.tx.query('UPDATE catalog.tat_targets SET effective_to = $1 WHERE tenant_id = $2 AND id = $3', ['2026-03-01T00:00:00.000Z', TENANT_A, ID(0x9001)]);
+      await ctx.tx.query(INS, [ID(0xa004), TENANT_A, t.test.id, 'routine', 'within_lab', 7200, '2026-03-01T00:00:00.000Z', null, ID(1)]);
+    });
+    expect(db.rows('tat_targets', TENANT_A).filter((r) => r.priority === 'routine' && r.effective_to == null).map((r) => r.id)).toEqual([ID(0xa004)]);
+  });
+
+  it('CHECKs 23514 (priority, segment, 60..2592000 integer seconds, window), FK test 23503 (also another tenant\'s test), RLS 42501, duplicate id 23505, DELETE 42501', async () => {
+    const db = mk();
+    for (const bad of [{ priority: 'normal' }, { segment: 'any' }, { sec: 59 }, { sec: 2592001 }, { sec: 1.5 }, { sec: '3600' }, { priority: 'routine', from: '2026-02-01T00:00:00.000Z', to: '2026-01-01T00:00:00.000Z' }]) {
+      expect((await rej(ins(db, bad as never))).code, JSON.stringify(bad)).toBe('23514');
+    }
+    await ins(db, { priority: 'routine', id: ID(0xa010), sec: 60, from: '2025-01-01T00:00:00.000Z', to: '2025-01-01T00:00:00.000Z' });          // zero-length window and 60 s are legal
+    expect((await rej(ins(db, { test: ID(0xdead) }))).code).toBe('23503');
+    expect((await rej(ins(db, { test: tb.test.id }))).code).toBe('23503');
+    expect((await rej(ins(db, { tenant: TENANT_B }))).code).toBe('42501');
+    expect((await rej(ins(db, { id: ID(0x9001), priority: 'urgent' }))).code).toBe('23505');
+    expect((await rej(q(db, 'DELETE FROM catalog.tat_targets WHERE tenant_id = $1', [TENANT_A]))).code).toBe('42501');
   });
 });

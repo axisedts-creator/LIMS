@@ -7,6 +7,10 @@
     ".": {
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
+    },
+    "./spreadsheet": {
+      "types": "./dist/spreadsheet/index.d.ts",
+      "default": "./dist/spreadsheet/index.js"
     }
   },
   "scripts": {

@@ -5,13 +5,15 @@ import { closeCashSession, findOpenCashSession, getCashSession, insertCashSessio
 import { enqueueCbmsSync } from './cbms.repo.js';
 import { getCreditAccount, listCreditAccounts, readCreditPartyStatement, sumOpenCreditExposure, updateCreditAccount, upsertCreditAccount } from './creditAccounts.repo.js';
 import { insertCreditCharges, listCreditChargesByOrder, listCreditChargesByParty, lockUninvoicedCreditCharges, markCreditChargesInvoiced, voidCreditChargesByIds } from './creditCharges.repo.js';
-import { insertCreditNote, insertCreditNoteLines, listCreditNoteLinesByInvoice } from './creditNotes.repo.js';
+import { getCreditNote, insertCreditNote, insertCreditNoteLines, listCreditNoteLines, listCreditNoteLinesByInvoice, markCreditNotePrinted } from './creditNotes.repo.js';
 import { getCreditNoteTask, insertCreditNoteTask, listOpenCreditNoteTasks, resolveCreditNoteTasks } from './creditNoteTasks.repo.js';
-import { addInvoiceCredit, findInvoiceForPayment, getInvoiceForUpdate, getPeriodicInvoiceForUpdate, insertInvoice, listInvoicesByOrder, markInvoiceCancelled } from './invoices.repo.js';
-import { insertInvoiceLines, listInvoiceLines, listInvoiceLinesByOrder } from './invoiceLines.repo.js';
-import { findLedgerByIdempotencyKey, insertLedgerEntry, listLedgerForDay, pageLedger, sumLedgerBySession, sumLedgerByInvoice } from './ledger.repo.js';
+import { addInvoiceCredit, findInvoiceForPayment, getInvoice, getInvoiceForUpdate, getPeriodicInvoiceForUpdate, insertInvoice, listInvoicesByOrder, markInvoiceCancelled, markInvoicePrinted } from './invoices.repo.js';
+import { insertInvoiceLines, listInvoiceLines, listInvoiceLinesByOrder, sumCreditedByLine } from './invoiceLines.repo.js';
+import { findLedgerByIdempotencyKey, findReversalOf, getLedgerEntry, insertLedgerEntry, listLedgerForDay, pageLedger, sumLedgerBySession, sumLedgerByInvoice } from './ledger.repo.js';
 import { findActiveOverride } from './overrides.repo.js';
 import { getPaymentMethod } from './paymentMethods.repo.js';
+import { insertPrintLog } from './printLog.repo.js';
+import { decideRefundRequest, getFinanceReviewItem, getRefundRequest, insertRefundRequest, pageFinanceReviewItems, pageRefundRequests, resolveFinanceReviewItem } from './refundRequests.repo.js';
 import { getBillingSettings } from './settings.repo.js';
 
 export const billingRepo = {
@@ -29,5 +31,10 @@ export const billingRepo = {
   // BL-T13
   listCreditAccounts, updateCreditAccount, readCreditPartyStatement, listCreditChargesByParty, lockUninvoicedCreditCharges, markCreditChargesInvoiced,
   getPeriodicInvoiceForUpdate, sumLedgerByInvoice,
+  // BL-T11
+  getLedgerEntry, findReversalOf, insertRefundRequest, getRefundRequest, decideRefundRequest, pageRefundRequests,
+  getFinanceReviewItem, pageFinanceReviewItems, resolveFinanceReviewItem,
+  // BL-T09
+  getInvoice, sumCreditedByLine, getCreditNote, listCreditNoteLines, markInvoicePrinted, markCreditNotePrinted, insertPrintLog,
 };
 export type BillingRepo = typeof billingRepo;

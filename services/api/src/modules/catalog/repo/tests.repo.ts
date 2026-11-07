@@ -6,7 +6,8 @@ export type RangeSetTable = 'reference_range_sets' | 'critical_limit_sets';
 export type RangeBandTable = 'reference_ranges' | 'critical_limits';
 export type Table = 'orderables' | 'tests' | 'panels' | 'panel_members' | 'test_specimen_types' | 'analytes' | 'analyte_versions' | 'departments' | 'specimen_types' | 'containers'
   | RangeSetTable | RangeBandTable   // T-08
-  | 'formula_dependencies';          // T-09 (insert only)
+  | 'formula_dependencies'           // T-09 (insert only)
+  | 'tat_targets';                   // T-14 (insert; rows are only ended, never deleted)
 
 export interface FindOpts {
   ids?: readonly string[];                          // id = ANY(...)
@@ -73,6 +74,24 @@ export async function analyteVersions(tx: Tx, cols: readonly string[], tenantId:
     [tenantId, analyteIds, asOf],
   );
   return rows;
+}
+
+/** TAT rows in force at `asOf` ([effective_from, effective_to)), routine before urgent (T-14). */
+export async function tatAt(tx: Tx, cols: readonly string[], tenantId: string, testId: string, asOf: Date): Promise<any[]> {
+  const { rows } = await tx.query(
+    `SELECT ${cols.join(', ')} FROM catalog.tat_targets WHERE tenant_id = $1 AND test_id = $2 AND effective_from <= $3 AND (effective_to IS NULL OR effective_to > $3)
+     ORDER BY priority`,
+    [tenantId, testId, asOf],
+  );
+  return rows;
+}
+
+/** End every open TAT row of a test at `at` (T-14). Only effective_to changes; run BEFORE inserting the new rows (the open-row unique index is not deferrable). */
+export async function endOpenTat(tx: Tx, tenantId: string, testId: string, actorId: string, at: Date): Promise<void> {
+  await tx.query(
+    'UPDATE catalog.tat_targets SET effective_to = $3, updated_at = now(), updated_by = $4, version = version + 1 WHERE tenant_id = $1 AND test_id = $2 AND effective_to IS NULL',
+    [tenantId, testId, at, actorId],
+  );
 }
 
 export async function hasPublishedVersion(tx: Tx, tenantId: string, testId: string): Promise<boolean> {

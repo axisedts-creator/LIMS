@@ -12,18 +12,33 @@ export interface NewLedgerEntry {
   readonly reversesEntryId?: string | null; readonly reasonCode?: string | null; readonly idempotencyKey?: string | null;
   readonly receiptNo?: string | null; readonly receiptSeq?: number | null; readonly cashSessionId?: string | null;
   readonly referenceText?: string | null; readonly capturedAtDevice?: string | null;
-  readonly creditPartyId?: string | null;   // B22: a payment of a credit party against its periodic bill (no order)
+  // BL-T11: reversal / refund / gateway columns. creditPartyId (B22, BL-T13): a payment of a credit party against its periodic bill (no order)
+  readonly reasonText?: string | null; readonly approvedByMembershipId?: string | null; readonly refundRequestId?: string | null; readonly creditPartyId?: string | null;
+  readonly gateway?: string | null; readonly gatewayTxnRef?: string | null; readonly intentId?: string | null;
 }
 
 export async function insertLedgerEntry(tx: Q, e: NewLedgerEntry): Promise<Record<string, unknown> | undefined> {
   const { rows } = await tx.query(
     `INSERT INTO billing.ledger_entries (id, tenant_id, branch_id, centre_id, order_id, invoice_id, entry_kind, capture_kind, method_code, amount_paisa,
        fiscal_year_bs, business_date, collected_by_membership_id, reverses_entry_id, reason_code, idempotency_key, created_by,
-       receipt_no, receipt_seq, cash_session_id, reference_text, captured_at_device, credit_party_id)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23) RETURNING *`,
+       receipt_no, receipt_seq, cash_session_id, reference_text, captured_at_device,
+       reason_text, approved_by_membership_id, refund_request_id, credit_party_id, gateway, gateway_txn_ref, intent_id)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29) RETURNING *`,
     [e.id, e.tenantId, e.branchId, e.centreId, e.orderId, e.invoiceId, e.entryKind, e.captureKind, e.methodCode, e.amountPaisa,
       e.fiscalYearBs, e.businessDate, e.collectedByMembershipId, e.reversesEntryId ?? null, e.reasonCode ?? null, e.idempotencyKey ?? null, e.userId,
-      e.receiptNo ?? null, e.receiptSeq ?? null, e.cashSessionId ?? null, e.referenceText ?? null, e.capturedAtDevice ?? null, e.creditPartyId ?? null]);
+      e.receiptNo ?? null, e.receiptSeq ?? null, e.cashSessionId ?? null, e.referenceText ?? null, e.capturedAtDevice ?? null,
+      e.reasonText ?? null, e.approvedByMembershipId ?? null, e.refundRequestId ?? null, e.creditPartyId ?? null, e.gateway ?? null, e.gatewayTxnRef ?? null, e.intentId ?? null]);
+  return rows[0];
+}
+
+export async function getLedgerEntry(tx: Q, a: { tenantId: string; entryId: string }): Promise<Record<string, unknown> | undefined> {
+  const { rows } = await tx.query('SELECT * FROM billing.ledger_entries WHERE tenant_id = $1 AND id = $2', [a.tenantId, a.entryId]);
+  return rows[0];
+}
+
+/** The reversal row of an entry (unique index ledger_entries__tenant_id_reverses__p_uq: at most one). */
+export async function findReversalOf(tx: Q, a: { tenantId: string; entryId: string }): Promise<Record<string, unknown> | undefined> {
+  const { rows } = await tx.query('SELECT * FROM billing.ledger_entries WHERE tenant_id = $1 AND reverses_entry_id = $2', [a.tenantId, a.entryId]);
   return rows[0];
 }
 

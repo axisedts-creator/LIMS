@@ -28,7 +28,8 @@ MAP = {  # module -> source glob (02-TRD s11.3 intake table); new rows arrive by
 }
 SEVS = ("page", "warn", "info")
 NAME = re.compile(r"[A-Za-z][A-Za-z0-9_]*")
-DROP = re.compile(r"\b(patient_id|order_id|specimen_id|barcode|user_id|membership_id|email|phone)\b")
+# (?<![-\w])/(?![-\w]): hyphen-joined receiver names (`oncall-email`, `ops-digest-email`, 02-TRD s11.3/s11.4) are not labels.
+DROP = re.compile(r"(?<![-\w])(patient_id|order_id|specimen_id|barcode|user_id|membership_id|email|phone)(?![-\w])")
 EMAIL = re.compile(r"[A-Za-z0-9._%+-]+@[A-Za-z0-9-]+(\.[A-Za-z0-9-]+)+")
 DEFAULT_SEV, DEFAULT_TEAM = "warn", "ops"  # [CONV] when the source carries none
 
@@ -70,6 +71,8 @@ def transform(module, rule, where):
     if not str(labels.get("team") or "").strip():
         labels["team"] = DEFAULT_TEAM
     ann = dict(rule.get("annotations") or {})
+    if not str(ann.get("summary") or "").strip():  # 02-TRD s11.3: every alert needs a summary; owner's wins when present
+        ann["summary"] = "%s is firing" % name
     ann["runbook_url"] = "infra/runbooks/%s.md#%s" % (module, name.lower())
     out = {}
     for k, v in rule.items():

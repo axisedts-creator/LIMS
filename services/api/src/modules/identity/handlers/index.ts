@@ -30,6 +30,16 @@ import { activateSupportSession } from './activateSupportSession.js';
 import { endSupportSession } from './endSupportSession.js';
 import { listPlatformSupportSessions } from './listPlatformSupportSessions.js';
 import { openSupportSession } from './openSupportSession.js';
+import { createPlatformIrdAnnex } from './createPlatformIrdAnnex.js';
+import { downloadIrdAnnexDocument } from './downloadIrdAnnexDocument.js';
+import { listPlatformIrdAnnexes } from './listPlatformIrdAnnexes.js';
+import { transitionIrdAnnex } from './transitionIrdAnnex.js';
+import { updateIrdAnnex } from './updateIrdAnnex.js';
+import { uploadIrdAnnexDocument } from './uploadIrdAnnexDocument.js';
+import { listDeadLetters } from './listDeadLetters.js';
+import { getDeadLetter } from './getDeadLetter.js';
+import { replayDeadLetter } from './replayDeadLetter.js';
+import { discardDeadLetter } from './discardDeadLetter.js';
 
 const OPERATION_IDS = [
   // auth (identity_auth)
@@ -70,6 +80,8 @@ const implemented: Partial<Record<IdentityOperationId, Handler>> = {
   listCentres, createCentre, updateCentre, deactivateCentre, reactivateCentre,                    // T15
   getSettings, updateSettings, uploadBrandingAsset, getBrandingAssetContent, listFeatureFlags, setTenantFeatureFlag, listOwnIrdAnnexes,   // T16
   openSupportSession, activateSupportSession, endSupportSession, listPlatformSupportSessions,                       // T21
+  listPlatformIrdAnnexes, createPlatformIrdAnnex, updateIrdAnnex, transitionIrdAnnex, uploadIrdAnnexDocument, downloadIrdAnnexDocument,   // T23
+  listDeadLetters, getDeadLetter, replayDeadLetter, discardDeadLetter,                                          // T24
 };
 
 export const handlers: Readonly<Record<IdentityOperationId, Handler>> = Object.freeze(

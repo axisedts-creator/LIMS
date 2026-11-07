@@ -1,5 +1,5 @@
 // Analytes + analyte versions #29–#35 (02-TRD §5.2, §3, §9.1; 05-SCHEMA §10.2; PRD AC-02.2/02.3/02.6, AC-03.1–03.5; 07-SECURITY S-1, S-5, AB-9, AB-20).
-// Formula validation is T-11; attaching reference-range / critical-limit sets at publish is T-08/T-09. Validates its own input.
+// Formula validation (T-11) lives in formulas.service.ts; attaching reference-range / critical-limit sets at publish is T-08/T-09. Validates its own input.
 // Permissions are the handler's. Bumps (created / updated / deactivated / versioned) stamp the OWNING test's orderable; draft writes bump nothing.
 // Lock order: owning test's orderable, analyte, analyte version(s), then catalog_state (via bumpRevision) — same prefix as tests.service
 // (orderables first), so analyte writes cannot deadlock with test writes. Draft-only writes skip the orderable lock.
@@ -9,6 +9,7 @@ import { LimsError, type FieldError } from '../../../core/errors.js';
 import * as arepo from '../repo/analytes.repo.js';
 import * as repo from '../repo/tests.repo.js';
 import { BOOL, checkFields, checkUpdate, fail, invalid, isObj, required, str, UUID, type Field } from './masters.service.js';
+import { checkFormula, formulaInvalid, lockFormulaGraph } from './formulas.service.js';
 import { createRangesService } from './ranges.service.js';
 import { createRevisionService } from './revision.service.js';
 
@@ -17,7 +18,7 @@ interface Ctx { readonly tenantId: string; readonly actor: { readonly id: string
 interface Deps { events: { publish(ctx: unknown, type: string, input: object): Promise<unknown> } }
 
 const AN_COLS = ['id', 'test_id', 'code', 'name', 'print_name', 'report_subheading', 'sort_order', 'is_reportable', 'is_active', 'version'];
-const AV_COLS = ['id', 'analyte_id', 'version_no', 'status', 'result_type', 'unit_code', 'decimals', 'method_id', 'value_set_code', 'formula_expression',
+const AV_COLS = ['id', 'analyte_id', 'version_no', 'status', 'result_type', 'unit_code', 'decimals', 'method_id', 'value_set_code', 'formula_expression', 'formula_inputs',
   'effective_from', 'effective_to', 'change_reason', 'version'];
 const CLINICAL = ['result_type', 'unit_code', 'decimals', 'method_id', 'value_set_code', 'formula_expression'] as const;
 const RESULT_TYPES = ['numeric', 'text', 'ordinal', 'coded', 'attachment', 'narrative'];
@@ -42,13 +43,6 @@ const iso = (v: unknown) => (v instanceof Date ? v : new Date(String(v))).toISOS
 /** A UTC-ms ISO string that round-trips (rejects 2026-13-01 and other overflowing dates). */
 const isIso = (v: unknown): v is string => typeof v === 'string' && ISO_UTC.test(v) && !Number.isNaN(Date.parse(v)) && new Date(v).toISOString() === v;
 
-/**
- * Analyte codes a formula reads (TRD §7.1 grammar): identifiers that are not function names (followed by `(`), `@variables`, string literals or number parts.
- * ponytail: lexical scan, not the T-11 parser; same result for every valid formula, upgrade when formula.ts lands.
- */
-const formulaRefs = (expr: unknown): string[] =>
-  typeof expr !== 'string' ? [] : [...new Set(expr.replace(/"[^"]*"/g, ' ').match(/(?<![\w.@])[A-Za-z_]\w*(?!\w*\s*\()/g) ?? [])];
-
 /** 23505 -> code clash (analytes) or a lost draft/numbering race (versions); 23503 -> not found in this tenant (S-1); P0001 -> immutable row (AB-9 DB backstop). */
 const pgCode = (e: unknown) => (e as { code?: unknown })?.code;
 const pgConstraint = (e: unknown) => String((e as { constraint?: unknown })?.constraint ?? '');
@@ -64,7 +58,6 @@ function mapPg(e: unknown): never {
 async function clinicalErrors(tx: Tx, tenantId: string, v: Record<string, any>, prefix: string): Promise<FieldError[]> {
   const errors: FieldError[] = [];
   if (v['result_type'] === 'numeric' && v['decimals'] == null) errors.push(required(`${prefix}/decimals`));
-  if (v['formula_expression'] != null && v['result_type'] !== 'numeric') errors.push(invalid(`${prefix}/formula_expression`));
   if (v['result_type'] === 'ordinal' || v['result_type'] === 'coded') {
     if (v['value_set_code'] == null) errors.push(required(`${prefix}/value_set_code`));
     else {
@@ -84,6 +77,8 @@ export function createAnalyteVersionsService(deps: Deps) {
 
   const versionDto = (v: any) => {
     const out = compact(Object.fromEntries(AV_COLS.map((c) => [c, v[c]])));
+    const inputs = out['formula_inputs']; delete out['formula_inputs'];
+    if (Array.isArray(inputs) && inputs.length) out['formula_input_codes'] = inputs;
     for (const k of ['effective_from', 'effective_to']) if (out[k] != null) out[k] = iso(out[k]);
     for (const k of ['version_no', 'decimals', 'version']) if (out[k] != null) out[k] = Number(out[k]);
     return out;
@@ -119,9 +114,9 @@ export function createAnalyteVersionsService(deps: Deps) {
   async function ownerOfVersion(ctx: Ctx, versionId: string) {
     const [v] = await repo.find(ctx.tx as Tx, 'analyte_versions', ['analyte_id'], ctx.tenantId, { id: versionId });
     if (!v) throw new LimsError('common.not_found');
-    const [a] = await repo.find(ctx.tx as Tx, 'analytes', ['id', 'test_id'], ctx.tenantId, { id: v.analyte_id });
+    const [a] = await repo.find(ctx.tx as Tx, 'analytes', ['id', 'test_id', 'code'], ctx.tenantId, { id: v.analyte_id });
     if (!a) throw new LimsError('common.not_found');
-    return a as { id: string; test_id: string };
+    return a as { id: string; test_id: string; code: string };
   }
   /** Row-locks a version and re-reads it; a draft only, at the expected version (state errors outrank the If-Match mismatch). */
   async function lockDraft(ctx: Ctx, id: string, expected: number) {
@@ -147,13 +142,15 @@ export function createAnalyteVersionsService(deps: Deps) {
     return v;
   }
 
-  /** One formula_dependencies edge per DISTINCT analyte the draft's formula reads (codes resolved tenant-wide; unknown codes are T-11's validation error, not an edge). */
-  async function writeFormulaEdges(ctx: Ctx, analyteId: string, draft: Record<string, any>) {
-    const codes = formulaRefs(draft['formula_expression']);
-    if (!codes.length) return;
-    const found = await repo.find(ctx.tx as Tx, 'analytes', ['id'], ctx.tenantId, {}, { anyOf: { col: 'code', values: codes } });
-    const inputs = [...new Set(found.map((r) => r.id as string))].filter((x) => x !== analyteId);
-    await repo.insert(ctx.tx as Tx, 'formula_dependencies', inputs.map((input) => ({ tenant_id: ctx.tenantId, analyte_version_id: draft['id'], analyte_id: analyteId, input_analyte_id: input, created_by: ctx.actor.id })), ['created_at']);
+  /** One formula_dependencies edge per input analyte of the validated formula (T-11 resolved them tenant-wide; TRD §7.2 step 6). */
+  const writeFormulaEdges = (ctx: Ctx, analyteId: string, versionId: string, inputIds: readonly string[]) =>
+    repo.insert(ctx.tx as Tx, 'formula_dependencies', inputIds.map((input) => ({ tenant_id: ctx.tenantId, analyte_version_id: versionId, analyte_id: analyteId, input_analyte_id: input, created_by: ctx.actor.id })), ['created_at']);
+
+  /** Validates the formula a version would store: 422 catalog.formula_invalid (paths under `prefix`), else the normalised expression, inputs and units. */
+  async function validated(ctx: Ctx, code: string, v: Record<string, any>, prefix: string) {
+    const f = await checkFormula(ctx, { expression: v['formula_expression'], code, targetType: v['result_type'] });
+    if (f.errors.length) throw formulaInvalid(f.errors.map((e) => ({ ...e, path: prefix + e.path })));
+    return f;
   }
 
   return {
@@ -173,6 +170,7 @@ export function createAnalyteVersionsService(deps: Deps) {
       const tx = ctx.tx as Tx, t = ctx.tenantId, actor = ctx.actor.id;
       const vErrors = await clinicalErrors(tx, t, iv, '/initial_version');
       if (vErrors.length) fail(vErrors);
+      const formula = iv['formula_expression'] != null ? await validated(ctx, code!, iv, '/initial_version') : undefined;
 
       await lockOwner(ctx, testId);
       const id = uuidv7(), who = { tenant_id: t, created_by: actor, updated_by: actor };
@@ -180,7 +178,7 @@ export function createAnalyteVersionsService(deps: Deps) {
         sort_order: b['sort_order'] ?? 100, is_reportable: b['is_reportable'] ?? true, is_active: true, version: 1 }], ['created_at', 'updated_at']).catch(mapPg);
       await repo.insert(tx, 'analyte_versions', [{ id: uuidv7(), ...who, analyte_id: id, version_no: 1, status: 'draft', result_type: iv['result_type'],
         unit_code: iv['unit_code'] ?? null, decimals: iv['decimals'] ?? null, method_id: iv['method_id'] ?? null, value_set_code: iv['value_set_code'] ?? null,
-        formula_expression: iv['formula_expression'] ?? null, version: 1 }], ['created_at', 'updated_at']).catch(mapPg);
+        formula_expression: formula?.normalised ?? null, formula_inputs: formula?.inputs ?? [], version: 1 }], ['created_at', 'updated_at']).catch(mapPg);
       await bump(ctx, { id, test_id: testId }, 'created');
       return summary(ctx, id);
     },
@@ -227,7 +225,7 @@ export function createAnalyteVersionsService(deps: Deps) {
           .concat(await repo.find(tx, 'analyte_versions', AV_COLS, t, { analyte_id: analyteId }, { order: 'version_no DESC', limit: 1 }));
       if (!source) throw new LimsError('common.not_found');
       const row = { id: uuidv7(), tenant_id: t, created_by: ctx.actor.id, updated_by: ctx.actor.id, analyte_id: analyteId, version_no: Number(last?.version_no ?? 0) + 1,
-        status: 'draft', ...Object.fromEntries(CLINICAL.map((c) => [c, source[c] ?? null])), version: 1 };
+        status: 'draft', ...Object.fromEntries(CLINICAL.map((c) => [c, source[c] ?? null])), formula_inputs: source.formula_inputs ?? [], version: 1 };
       await repo.insert(tx, 'analyte_versions', [row], ['created_at', 'updated_at']).catch(mapPg);
       return versionDto(row);
     },
@@ -241,12 +239,18 @@ export function createAnalyteVersionsService(deps: Deps) {
       const clear = (unset ?? []) as string[];
       if (clear.some((k) => patch[k] !== undefined)) fail([invalid('/unset')]);
       const tx = ctx.tx as Tx, t = ctx.tenantId;
-      await ownerOfVersion(ctx, id);                                   // the version's analyte must be visible to the tenant too (S-1)
+      const owner = await ownerOfVersion(ctx, id);                     // the version's analyte must be visible to the tenant too (S-1)
       const before = await lockDraft(ctx, id, ev);
       const next = { ...before, ...patch, ...Object.fromEntries(clear.map((k) => [k, null])) };
       const errors = await clinicalErrors(tx, t, next, '');
       if (errors.length) fail(errors);
-      return versionDto(await updateVersion(ctx, id, ev, { ...patch, ...Object.fromEntries(clear.map((k) => [k, null])) }));
+      const write: Record<string, unknown> = { ...patch, ...Object.fromEntries(clear.map((k) => [k, null])) };
+      if (next['formula_expression'] == null) { if (clear.includes('formula_expression')) write['formula_inputs'] = []; }
+      else if (patch['formula_expression'] !== undefined || patch['result_type'] !== undefined) {
+        const f = await validated(ctx, owner.code, next, '');
+        write['formula_expression'] = f.normalised; write['formula_inputs'] = f.inputs;
+      }
+      return versionDto(await updateVersion(ctx, id, ev, write));
     },
 
     /** #34 — V4 + V5: the published version ends the predecessor's window at its own effective_from; no back-dating (AC-03.3). */
@@ -283,10 +287,17 @@ export function createAnalyteVersionsService(deps: Deps) {
         }
       }
 
-      await writeFormulaEdges(ctx, owner.id, draft);                    // TRD §7.2 step 6: BEFORE the status UPDATE (tg_parent_is_draft)
+      // The formula is validated again at publish (a code may have gone inactive, a cycle may have appeared); the tenant lock makes two publishes see each other's edges (§7.2).
+      let formula: Awaited<ReturnType<typeof validated>> | undefined;
+      if (draft.formula_expression != null) {
+        await lockFormulaGraph(ctx);
+        formula = await validated({ ...ctx, now: () => now }, analyte.code, draft, '');
+        await writeFormulaEdges(ctx, owner.id, id, formula.inputIds);   // TRD §7.2 step 6: BEFORE the status UPDATE (tg_parent_is_draft)
+      }
       if (pred) await updateVersion(ctx, pred.id, Number(pred.version), { status: 'superseded', effective_to: new Date(effective) });
       const published = await updateVersion(ctx, id, ev, {
         status: 'published', effective_from: new Date(effective), published_at: new Date(now), published_by: ctx.actor.id, change_reason: b['change_reason'],
+        ...(formula ? { formula_inputs: formula.inputs, formula_input_units: formula.inputUnits } : {}),
       });
       await bump(ctx, owner, 'versioned', effective);
       // T-09 bundle: the sets are published after the version (their T-08 rules compare with it), in the same transaction; one event each.

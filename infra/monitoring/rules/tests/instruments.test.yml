@@ -331,7 +331,7 @@ tests:
               route: "oncall-email"
             exp_annotations:
               runbook_url: "infra/runbooks/instruments.md#instrumentsagentupdatefailed"
-              summary: "A bridge agent update failed in the last 15 min."
+              summary: "InstrumentsAgentUpdateFailed is firing"
       - alertname: InstrumentsAgentUpdateFailed
         eval_time: 40m
         exp_alerts: []
@@ -397,7 +397,7 @@ tests:
               route: "oncall-email"
             exp_annotations:
               runbook_url: "infra/runbooks/instruments.md#instrumentsdeviceauthfailurespike"
-              summary: "Device auth failures above 0.1/s for 5 min (security)."
+              summary: "InstrumentsDeviceAuthFailureSpike is firing"
 
   - interval: 1m
     name: "device auth failures 0.05/s: below 0.1/s threshold"
@@ -429,7 +429,7 @@ tests:
               route: "ops-digest-email"
             exp_annotations:
               runbook_url: "infra/runbooks/instruments.md#instrumentsquarantinerate"
-              summary: "More than 5 % of ingested instrument messages quarantined."
+              summary: "InstrumentsQuarantineRate is firing"
 
   - interval: 1m
     name: "1 % quarantined: below 5 %"
@@ -463,7 +463,7 @@ tests:
               route: "oncall-email"
             exp_annotations:
               runbook_url: "infra/runbooks/instruments.md#instrumentsattachmentquarantined"
-              summary: "An instrument attachment was quarantined (security)."
+              summary: "InstrumentsAttachmentQuarantined is firing"
       - alertname: InstrumentsAttachmentQuarantined
         eval_time: 40m
         exp_alerts: []
@@ -502,7 +502,7 @@ tests:
               route: "ops-digest-email"
             exp_annotations:
               runbook_url: "infra/runbooks/instruments.md#instrumentsingestslow"
-              summary: "Instrument ingest batch p95 above 3 s for 15 min."
+              summary: "InstrumentsIngestSlow is firing"
 
   - interval: 1m
     name: "ingest batches under 1 s (p95 0.95 s): not firing"

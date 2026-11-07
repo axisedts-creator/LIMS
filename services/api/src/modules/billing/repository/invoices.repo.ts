@@ -66,7 +66,7 @@ export async function findInvoiceForPayment(tx: Q, a: { tenantId: string; invoic
 export async function markInvoicePrinted(tx: Q, a: { tenantId: string; invoiceId: string; userId: string }): Promise<number | undefined> {
   try {
     const { rows } = await tx.query(
-      `UPDATE billing.invoices SET print_count = print_count + 1, last_printed_at = now(), updated_at = now(), updated_by = $3
+      `UPDATE billing.invoices SET print_count = print_count + 1, last_printed_at = now(), version = version + 1, updated_at = now(), updated_by = $3
        WHERE tenant_id = $1 AND id = $2 RETURNING print_count`, [a.tenantId, a.invoiceId, a.userId]);
     return rows[0]?.print_count;
   } catch (e) { throw mapImmutable(e); }

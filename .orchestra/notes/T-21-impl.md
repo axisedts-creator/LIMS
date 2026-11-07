@@ -1,7 +1,7 @@
-# T-21 impl (C3 writer)
-- Files: `services/worker/src/jobs/catalog/xlsx/{ZipInspector,XlsxReader,XlsxWriter}.ts`, `xlsx/templates/index.ts`. Tester seams adopted as-is (no dispute).
-- Result: in repo 55 tests fail (cannot resolve `@lims/shared-ts/spreadsheet`, libs not installed) → CR `.orchestra/cr/T-21.md` (C0-0A/C0-0D: worker package.json pins + shared-ts `./spreadsheet` export). With a gitignored scratch alias (node_modules/.t21scratch, real libs 9.3.14/4.1.1): 98/99 pass; only the package.json pin test fails. tsc strict clean (scratch tsconfig; worker has no tsconfig yet).
-- [CONV] 50 MB = 50·1024·1024; row cap = rows.length > 20,000 per sheet (header counted); `..` = substring match; part-name checks (vba/externalLinks/required) case-insensitive.
-- [CONV] extra hardening beyond §8.4: local headers must match central (name, encryption, sizes/ratio) and tile [0, cdOffset) — read-excel-file streams local headers (unzipper-esm), so a lying central dir could hide a part. Untested by T-21 suite (scratch probe only) → tester please add.
-- [CONV] parser errors rethrown unchanged (no `.code`); T-22 maps them. Writer: hidden sheets via write-excel-file `features` hook (state="hidden"); Date cells use dateFormat yyyy-mm-dd; non-primitive cells stringified + neutralised.
-- Open: timed-out parse keeps running (lib has no AbortSignal; ponytail note). Claimed-vs-real inflate size unverifiable without decompressing (spec forbids) — upload size cap is the backstop. Instructions tax line copied from 04-UI-UX:68.
+# T-21 impl (C3 writer, after LD-61)
+- Files: `services/worker/src/jobs/catalog/xlsx/{ZipInspector,XlsxReader,XlsxWriter}.ts`, `xlsx/templates/index.ts`; LD-61: `services/worker/{package.json,tsconfig.json}`, root `package.json` (worker:replay), `packages/shared-ts/package.json` ("./spreadsheet"), `pnpm-lock.yaml`.
+- Result: T-21 suite 99/99 pass; full worker suite 754 pass, 10 skipped, 0 fail. graphile-worker@0.18.0 confirmed on npm. shared-ts built, subpath resolves.
+- [CONV] LD-61: pins read-excel-file 9.3.14, write-excel-file 4.1.1 exact. [CONV] 50 MB = 50*1024*1024; row cap = rows.length > 20,000 per sheet; local headers must match central dir (extra hardening, untested by suite).
+- Open: `pnpm install --frozen-lockfile` resolves the lockfile OK but exits non-zero on "Ignored build scripts: @scarf/scarf@1.4.0" (prism dep, not mine; needs `pnpm approve-builds` decision).
+- Open: `pnpm --filter @lims/worker typecheck` = 15 TS2835/TS5097 errors, all in ../../contracts/ports and ../../packages/shared-ts/src (.ts imports under node16 resolution); none in worker src. Needs C0 owner decision.
+- Open: timed-out parse keeps running (lib has no AbortSignal).

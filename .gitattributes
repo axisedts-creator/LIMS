@@ -1,0 +1,2 @@
+# T-05: vendored Supabase snapshot must stay byte-for-byte (sha256 in UPSTREAM.lock); no EOL conversion.
+infra/compose/supabase/upstream/** -text

@@ -7,9 +7,9 @@
 # ---- builder: pgBackRest from the release tarball, checksum-verified (TRD s9.1)
 FROM supabase/postgres@sha256:f371b5f3f2ac0a05703f33d6e6134515fb2498cab708fb948a0aeb7481467c00 AS build
 ARG PGBACKREST_VERSION=2.60.0
-# sha256 of release/2.60.0.tar.gz. Required: the build fails closed while it is empty
-# (value not recorded yet: tarball not fetchable from the writer session, see .orchestra/notes/T-09-impl.md).
-ARG PGBACKREST_TARBALL_SHA256=
+# sha256 of release/2.60.0.tar.gz, computed with sha256sum on the tarball fetched by curl on 2026-11-07 (LD-34).
+# The build still fails closed if it is emptied.
+ARG PGBACKREST_TARBALL_SHA256=7409309d5b69365ecc21f3f9c377056a6a4cdc327ce062e41354a442989d22d0
 RUN apk add --no-cache build-base meson ninja pkgconf curl \
         openssl-dev libpq-dev libxml2-dev zlib-dev lz4-dev zstd-dev bzip2-dev yaml-dev libssh2-dev
 WORKDIR /src

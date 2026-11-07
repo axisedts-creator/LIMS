@@ -1,5 +1,6 @@
-# T-05 impl (writer) — BLOCKED, no product files changed
-- Blocker: T-05 needs the real upstream bytes of `supabase/supabase` `docker/` at one commit (docker-compose.yml, docker-compose.pgbouncer.yml, .env.example, volumes/api/envoy/lds.template.yaml), the 40-hex commit, and registry digests for api-gw/auth/rest/storage/imgproxy/pgbouncer. Tests check these byte-for-byte (sha256), so they cannot be written from memory or the TRD (CLAUDE.md: never invent a version/vendor API).
-- This session was not allowed network access: `git ls-remote https://github.com/supabase/supabase` and `curl raw.githubusercontent.com` were both refused ("requires approval"). Docker CLI is present (compose 5.1.4, so `!reset` is supported).
-- Not a test defect, so no dispute filed. Tests not run against an implementation (none exists); the 15 tool tests are unchanged.
-- To unblock: allow network for git/curl/`docker buildx imagetools inspect` in this lane, or have the orchestrator vendor `upstream/` + digests first; then re-run the writer.
+# T-05 impl (writer) — DONE, 41/41 static tests pass (after tester fix per LD-42)
+- Files: infra/compose/supabase/{upstream/** (vendored byte-for-byte @189adda99d1b56da55fc5a6ee3f849354aaea92a via curl, LD-33), upstream/UPSTREAM.lock, override.data.yml, override.app.yml, envoy/{lds.template.yaml,cds.yaml} (trimmed), DECISION.md}; .gitattributes `-text` for upstream/**.
+- [CONV] Decision: split (DECISION.md). Storage depends_on uses `!override` (TRD's `!reset {..}` clears the value; spike finding).
+- [CONV] UPSTREAM.lock = single digest source (repo, commit, files sha256, images digest); rendered images pinned `<image>@<digest>`.
+- Run: `python -B -m unittest discover -s infra/tests/static -p "test_t05_*.py"` -> Ran 41, OK. No impl change this round; vendored files unchanged.
+- Open: live checks (GoTrue healthy, egress_probe auth, Storage upload/download from app_net, no gateway port) = infra/tests/integration/test_t05_live.py with LIMS_T05_LIVE=1 on VMs/CI; NOT run here.

@@ -23,6 +23,8 @@ const noWork = (db: ValidateDb) => {
   expect(db.rows('files', TENANT_A).filter((f) => f.purpose === 'import_report')).toEqual([]);
 };
 
+const quarantineMetrics = (r: { metrics: Array<{ name: string; labels: any }> }) => r.metrics.filter((m) => m.name === 'lims_catalog_imports_total').map((m) => m.labels);
+
 async function setup(bytes: Uint8Array, scan: NonNullable<CtxOpts['scan']>) {
   const db = makeValidateDb();
   seedCatalog(db, TENANT_A, { orderables: CAT, versions: [V] });
@@ -43,6 +45,7 @@ describe.each(['staging', 'production'])('scan is mandatory in %s', (env) => {
     expect(imp(db).last_error_code).toBe('common.upload_quarantined');
     expect(r.scanCalls).toHaveLength(1);
     noWork(db);
+    expect(quarantineMetrics(r)).toEqual([{ kind: 'price_list', outcome: 'quarantined' }]);   // 02-TRD §12: CatalogImportQuarantined alert queries this series
     // a quarantined import is terminal: a duplicate delivery does not rescan or change it
     await go();
     expect(r.scanCalls).toHaveLength(1);
@@ -69,13 +72,15 @@ describe.each(['staging', 'production'])('scan is mandatory in %s', (env) => {
 
   it('unavailable on the final attempt → quarantined with common.upload_quarantined (fail closed), never validated', async () => {
     vi.stubEnv('LIMS_CORE_ENV', env);
-    const { db, go } = await setup(await priceWorkbook([prow('A1', 100)]), () => 'unavailable');
+    const { db, r, go } = await setup(await priceWorkbook([prow('A1', 100)]), () => 'unavailable');
     await go(1, 3).catch(() => undefined);
     await go(2, 3).catch(() => undefined);
+    expect(quarantineMetrics(r)).toEqual([]);                                   // not yet: retries remain
     await go(3, 3).catch(() => undefined);
     expect(imp(db).status).toBe('quarantined');
     expect(imp(db).last_error_code).toBe('common.upload_quarantined');
     noWork(db);
+    expect(quarantineMetrics(r)).toEqual([{ kind: 'price_list', outcome: 'quarantined' }]);
   });
 
   it('a scanner that throws or returns garbage is treated as unavailable, never as clean', async () => {

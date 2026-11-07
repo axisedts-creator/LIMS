@@ -6,13 +6,14 @@
 //   * import_issues.seq starts anywhere but is unique per import; `message` is template text — it never contains a cell value (05-SCHEMA §9: "no cell values stored").
 //   * summary = { rows, added, changed, removed, unchanged, errors, warnings } (AC-16.3), imports.error_count/warning_count mirror errors/warnings.
 //   * import.expires_at = ctx.now() + 168 h; upload file and report file expires_at = import.expires_at + 30 d; import_issues.expires_at = the same value (§8.3 step 6).
-//   * the report file (purpose 'import_report') is built for every parsed import, valid or not, and imports.report_file_id points to it.
+//   * the report file (purpose 'import_report') is built for every validated/invalid import (incl. file-level file.* rejections, which get an `Issues` sheet only), and imports.report_file_id points to it.
+//   * metric lims_catalog_imports_total{kind:'price_list', outcome} is incremented once per terminal outcome (02-TRD §12).
 //   * a duplicate row (same normalised code twice) is flagged on the second occurrence (the first may also be flagged).
 //   * every statement binds tenant_id (RLS alone is not enough); validation writes nothing outside imports/files/import_issues (the fake rejects it with 42501).
 import { beforeEach, afterEach, describe, expect, it, vi } from 'vitest';
 import { IMPORT_VALIDATE, importValidate } from '../../tasks/catalog.import_validate.js';
 import { IMPORT_ID, NOW, PRICE_LIST_ID, TENANT_A, TENANT_B, makeRunner, makeValidateDb, seedCatalog, seedImport, uid, type ValidateDb } from '../helpers/validateDb.js';
-import { HEADER, metaFor, priceWorkbook, prow } from '../helpers/workbooks.js';
+import { HEADER, metaFor, priceWorkbook, prow, readXlsx, sheetNamed } from '../helpers/workbooks.js';
 
 const CAT = [
   { id: uid(1), code: 'A1' }, { id: uid(2), code: 'A2' }, { id: uid(3), code: 'A3' }, { id: uid(4), code: 'A4' },
@@ -71,6 +72,13 @@ describe('AC-16.3 — upload → validated / invalid with counts, dry run', () =
     // exactly one scan, on the uploaded bytes, before anything else
     expect(r.scanCalls).toHaveLength(1);
     expect(Buffer.from(r.scanCalls[0]!).equals(Buffer.from(bytes))).toBe(true);
+    expect(r.metrics.filter((m) => m.name === 'lims_catalog_imports_total')).toEqual([{ kind: 'inc', name: 'lims_catalog_imports_total', labels: { kind: 'price_list', outcome: 'validated' } }]);
+  });
+
+  it('invalid import increments lims_catalog_imports_total{outcome:invalid} exactly once', async () => {
+    const { r, go } = await setup(await priceWorkbook([prow('ZZ9UNKNOWN', 5)]));
+    await go();
+    expect(r.metrics.filter((m) => m.name === 'lims_catalog_imports_total').map((m) => m.labels)).toEqual([{ kind: 'price_list', outcome: 'invalid' }]);
   });
 
   it('is a dry run: nothing published, no revision bump, no event; every statement binds tenant_id', async () => {
@@ -252,14 +260,25 @@ describe('AC-16.5 — stale base', () => {
 describe('crafted files are rejected as file.* issues (never parsed by the library; 07 AB-11/AB-12)', () => {
   it('macro workbook → invalid file.macro_present; random bytes → invalid file.not_xlsx', async () => {
     const { macroXlsx } = await import('../helpers/workbooks.js');
+    // AC-16.10: file-level rejections still get a report file with an `Issues` sheet carrying the file.* row (no `Prices` copy: nothing was parsed)
+    const reportIssues = async (db: ValidateDb) => {
+      const rep = db.rows('files', TENANT_A).find((f) => f.id === imp(db).report_file_id)!;
+      expect(rep).toBeTruthy();
+      expect(rep.purpose).toBe('import_report');
+      const list = sheetNamed(await readXlsx(rep.content), 'Issues')!;
+      expect(list).toBeTruthy();
+      return JSON.stringify(list.rows);
+    };
     const a = await setup(macroXlsx());
     await a.go();
     expect(imp(a.db).status).toBe('invalid');
     expect(find(a.db, 'file.macro_present').length).toBeGreaterThanOrEqual(1);
+    expect(await reportIssues(a.db)).toContain('file.macro_present');
     const b = await setup(new TextEncoder().encode('this is not a zip archive at all, just text'));
     await b.go();
     expect(imp(b.db).status).toBe('invalid');
     expect(find(b.db, 'file.not_xlsx').length).toBeGreaterThanOrEqual(1);
+    expect(await reportIssues(b.db)).toContain('file.not_xlsx');
   });
 });
 

@@ -1,14 +1,8 @@
 APPROVE
 
-Diff b15267f..HEAD: test-only changes (infra/tests/static/test_t02_providers.py) + T-02 notes. All 5 items of the previous CHANGES review are fixed:
-1. ENVS now covers dev, staging, prod, staging-lean, prod-lean; layout/parse/subnet/known_hosts/public_ip/ansible-inventory loops run over all; `test_no_inventory_dir_escapes_the_tests` locks the set.
-2. LD-48 role mapping: prod-lean = prod-1 in data/app/ops only, backup-1 in `backup` only, `dr` empty; staging-lean = one VM; every role group has a host in each profile.
-3. LD-45 memory budget: `mem_problems` + gate self-check; prod-lean/prod-1 pinned to 32 GiB, sum 25.375 <= 27.2.
-4. prod-lean named default in infra/README.md and DECISION.md; scale triggers (CPU > 60 %, RAM > 80 %, 7 days, DB > 150 GB, second lab group) asserted.
-5. `backup` in lean GROUPS/GVARS; group_vars/backup.yml required.
-Provider scan matches T-02-ruling.md items 1-4 (hosting-context regex, vendored upstream skipped, 169.254.169.254 allowed only under tests/, planted self-check extended).
-
-Ran: T-02 suite 33 tests OK, 1 skip (ansible-inventory off CI, LD-17). yamllint on infra/ansible/inventories + infra/providers clean.
-Not T-02: T-01 suite has 3 failures (gitleaks on infra/compose/supabase/upstream/.env.example, yamllint on compose/supabase/override.app.yml, run.sh line-length) — all T-05 paths, outside this diff.
-No secrets, no PHI, only owned paths, no invented names. RLS/permissions/error codes N/A (inventory task).
-Carry-over (not blocking): T-09/T-11 must target group `backup` (not `dr`) in lean; backup-1 has no mem budget in LD-45.
+T-02 review (C3 reviewer), diff 7213083..bee3f0c.
+- Names verbatim: statuses match 03-APP-FLOW §2.1/§2.2 and V1–V6; all ten code regexes match 02-TRD §5.1 (master, orderable, analyte, value set/value, comment, doctor, party, price list, tax type); error codes `catalog.version_in_use`, `common.version_conflict`, `catalog.import_not_committable`, `common.validation_failed`/`common.field_invalid` exist in contracts/errors.yaml and match 02-TRD §5.2 error columns (#33–#35, #41–#43, #80–#81, #103).
+- Transitions: V6 only for range/critical sets; import table = §2.2 diagram exactly; final-failure mapping = 02-TRD §10 (scan_unavailable -> quarantined, committing -> commit_failed, else failed); commit guard consistent with cron `expires_at < now`.
+- V4 window: tolerance 300 s (AC-03.3, path `/effective_from`), > sibling effective_from, ≥ retired sibling effective_to. Matches §2.1.
+- Pure domain: no DB/RLS/permissions/logging/secrets in scope; only C3-owned paths + role notes touched.
+- Tests: `vitest run src/modules/catalog/domain/__tests__` re-run by reviewer: 3 files, 763/763 pass. Exhaustive allowed+forbidden matrices cover the transition tables; branch coverage not instrument-measured (no coverage plugin) — accepted, noted by writer/tester.

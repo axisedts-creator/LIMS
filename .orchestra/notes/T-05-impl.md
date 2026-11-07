@@ -1,6 +1,7 @@
-# T-05 impl (writer) — DONE, 41/41 static tests pass (after tester fix per LD-42)
-- Files: infra/compose/supabase/{upstream/** (vendored byte-for-byte @189adda99d1b56da55fc5a6ee3f849354aaea92a via curl, LD-33), upstream/UPSTREAM.lock, override.data.yml, override.app.yml, envoy/{lds.template.yaml,cds.yaml} (trimmed), DECISION.md}; .gitattributes `-text` for upstream/**.
-- [CONV] Decision: split (DECISION.md). Storage depends_on uses `!override` (TRD's `!reset {..}` clears the value; spike finding).
-- [CONV] UPSTREAM.lock = single digest source (repo, commit, files sha256, images digest); rendered images pinned `<image>@<digest>`.
-- Run: `python -B -m unittest discover -s infra/tests/static -p "test_t05_*.py"` -> Ran 41, OK. No impl change this round; vendored files unchanged.
-- Open: live checks (GoTrue healthy, egress_probe auth, Storage upload/download from app_net, no gateway port) = infra/tests/integration/test_t05_live.py with LIMS_T05_LIVE=1 on VMs/CI; NOT run here.
+# C3 T-05 impl (writer) — units + value sets #17–#22
+- Files: service/masters.service.ts (+setsService: list/create/update Unit|ValueSet; shared checkUpdate/lockAt/kindOf now also used by T-04 masters), repo/masters.repo.ts (+selectRows equality/ANY helper, cs_* in MasterTable), mappers/masters.mapper.ts (+unitDto/setDto/global*), handlers/masters.handlers.ts (+Unit/ValueSet with `unit_id`/`value_set_id`), handlers/index.ts (stubs removed), __tests__/probes/pending.json (6 ids removed).
+- Tests: T-05-verify.cmd 208/208 pass; whole catalog module 1479/1479. `tsc` only error is pre-existing packages/shared-ts/src/bsdate (TS5097), not touched.
+- [CONV] value codes accept a-z and are upper-cased (like set/master codes); unit codes kept as sent. Missing value display -> its code; missing sort_order -> highest known + 10 (clamped 9999).
+- [CONV] global ∪ tenant = two SELECTs merged in code; tenant row shadows global by code even when inactive; scope=global returns the raw global list (no shadowing).
+- In-use check runs only when a PATCH changes an existing value's sort_order (removal is impossible: omitted codes are kept); reads analyte_versions status=published, tenant + code bound.
+- Open: concurrent publish (T-07) vs sort_order edit — T-07 publish should lock the cs_value_sets row (FOR UPDATE) before checking, else a narrow race remains. Case-insensitive unit look-alikes (G_DL vs g_dl) allowed (spec silent). Starter unit `none` display "" vs Unit.display minLength 1 (tester CR candidate).

@@ -1,7 +1,9 @@
-// catalog.departments / specimen_types / containers / methods (02-TRD §5 #5–#16). Every value is a bind parameter; table and
+// catalog.departments / specimen_types / containers / methods (02-TRD §5 #5–#16) and the coded sets cs_* / g_* (#17–#22, T-05). Every value is a bind parameter; table and
 // column names come only from the fixed definitions in service/masters.service.ts. RLS scopes rows; tenant_id is also explicit.
 interface Tx { query(text: string, values?: unknown[]): Promise<{ rows: any[] }> }
-export type MasterTable = 'departments' | 'specimen_types' | 'containers' | 'methods';
+export type MasterTable = 'departments' | 'specimen_types' | 'containers' | 'methods' | 'cs_units' | 'cs_value_sets' | 'cs_value_set_values';
+/** Global tables are SELECT-only for lims_app (05-SCHEMA); analyte_versions is read here for the in-use rule only. */
+export type ReadTable = MasterTable | 'g_units' | 'g_value_sets' | 'g_value_set_values' | 'analyte_versions';
 
 export async function insertRow(tx: Tx, table: MasterTable, cols: readonly string[], row: Record<string, unknown>): Promise<any> {
   const names = Object.keys(row);
@@ -46,6 +48,20 @@ export async function listRows(tx: Tx, table: MasterTable, cols: readonly string
   const dir = a.desc ? 'DESC' : 'ASC';
   const { rows } = await tx.query(
     `SELECT ${cols.join(', ')} FROM catalog.${table} WHERE ${where.join(' AND ')} ORDER BY ${a.sortCol} ${dir}, id ${dir} LIMIT ${bind(a.limit)}`,
+    values,
+  );
+  return rows;
+}
+
+/** Equality filters only (array value -> `= ANY($n)`); column names come from fixed service code, every value is bound. */
+export async function selectRows(
+  tx: Tx, table: ReadTable, cols: readonly string[], where: Record<string, unknown>, orderBy: string, limit?: number,
+): Promise<any[]> {
+  const values: unknown[] = [];
+  const bind = (v: unknown) => { values.push(v); return `$${values.length}`; };
+  const conds = Object.entries(where).map(([c, v]) => (Array.isArray(v) ? `${c} = ANY(${bind(v)})` : `${c} = ${bind(v)}`));
+  const { rows } = await tx.query(
+    `SELECT ${cols.join(', ')} FROM catalog.${table}${conds.length ? ` WHERE ${conds.join(' AND ')}` : ''} ORDER BY ${orderBy}${limit === undefined ? '' : ` LIMIT ${bind(limit)}`}`,
     values,
   );
   return rows;

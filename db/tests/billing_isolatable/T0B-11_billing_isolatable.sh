@@ -52,7 +52,7 @@ build_db "$DB"; build_db "$RDB"
 BR='99999999-9999-4999-8999-999999999999'; CEN='99999999-9999-4999-8999-999999999998'
 FPR='0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef'
 inv() { # tenant id seq order buyer
-  echo "('$1','$2','$BR','$CEN','INV','2082/83',$3,'INV-2082/83-00000$3','tax_invoice','registration','$4','dddddddd-dddd-4ddd-8ddd-0000000000f$3','$5','Synthetic Lab Seller','2082-04-01T10:00:00+05:45','2082-04-01',10000,0,0,10000,1300,0,11300,false,'$FPR','not_required','$ACTOR','$ACTOR')"; }
+  echo "('$2','$1','$BR','$CEN','INV','2082/83',$3,'INV-2082/83-00000$3','tax_invoice','registration','$4','dddddddd-dddd-4ddd-8ddd-0000000000f$3','$5','Synthetic Lab Seller','2082-04-01T10:00:00+05:45','2082-04-01',10000,0,0,10000,1300,0,11300,false,'$FPR','not_required','$ACTOR','$ACTOR')"; }
 line() { # tenant id invoice_id
   echo "('$2','$1','$3','$CEN',1,'orderable','T1','Synthetic Test',10000,10000,0,0,10000,'taxable',1300,1300,0,11300,'$ACTOR')"; }
 cnote() { # tenant id invoice_id seq

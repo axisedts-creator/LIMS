@@ -108,7 +108,7 @@ describe('AC-E4.2 an active read_only support session cannot invite', () => {
     await a.svc.openSupportSession(a.platformCtx(), { ...OPEN, tenantId: TA, scope: 'admin' });
     const { ctx, port } = await a.call();
     await expect(port.assertRole(ctx, { permission: inviteUserPermission })).resolves.toBeUndefined();
-    expect([...(await port.getActor(ctx)).permissions].sort()).toEqual(ADMIN);
+    expect([...(await port.getActor(ctx)).permissions].sort()).toEqual([...ADMIN].sort());
     expect(await codeOf(port.assertRole(ctx, { permission: 'audit.log.export' }))).toBe('auth.forbidden');
   });
 });

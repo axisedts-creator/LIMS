@@ -14,7 +14,7 @@ command -v psql >/dev/null || { echo "T0B-11: psql is not on PATH (the export to
 command -v docker >/dev/null || { echo "T0B-11: docker is required"; exit 2; }
 HOSTPWD="$(pwd -W 2>/dev/null || pwd)"
 NAME="lims_t0b11_$$"; DB="postgres"; RDB="lims_restore"
-WORK="$(mktemp -d)"
+WORK="$(cd "$(mktemp -d)" && (pwd -W 2>/dev/null || pwd))"
 cleanup() { docker rm -f "$NAME" >/dev/null 2>&1 || true; rm -rf "$WORK"; }
 trap cleanup EXIT
 PW() { head -c 18 /dev/urandom | base64 | tr -dc 'A-Za-z0-9' | head -c 20; }

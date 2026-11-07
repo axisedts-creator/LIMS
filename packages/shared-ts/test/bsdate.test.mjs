@@ -62,13 +62,18 @@ describe('golden fixture is self-consistent (independent of any library)', () =>
   });
 });
 
+// LD-08 / LD-20 (2026-11-07): no human review gate. Package-sourced entries (resolved_by 'LD-08')
+// are accepted when flagged `verify_before_golive: true`; any other resolver must be a named non-empty string.
 describe('review.json (done_when: zero unresolved entries)', () => {
-  it('exists, has an entries array, and every entry is resolved by a named human with all library values', () => {
+  it('exists, has an entries array, and every entry is resolved (LD-08 package value flagged verify_before_golive)', () => {
     const rv = readJson('review.json');
     assert.ok(Array.isArray(rv.entries), 'entries array');
     for (const e of rv.entries) {
       assert.equal(e.status, 'resolved', `unresolved: ${JSON.stringify(e.key)}`);
       assert.ok(typeof e.resolved_by === 'string' && e.resolved_by.trim().length > 0, 'resolved_by');
+      if (e.resolved_by === 'LD-08') {
+        assert.equal(e.verify_before_golive, true, `LD-08 entry missing verify_before_golive: ${JSON.stringify(e.key)}`);
+      }
       assert.ok(e.resolution !== undefined && e.resolution !== null && e.resolution !== '', 'resolution');
       assert.ok(e.key !== undefined, 'key');
       assert.ok(e.values && Object.keys(e.values).length >= 2, 'values from >= 2 libraries');

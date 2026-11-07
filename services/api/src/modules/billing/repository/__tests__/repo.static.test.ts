@@ -75,7 +75,7 @@ describe('gapless counter (BL-T04 depends on it; guard fiscal_counters_guard: la
   it('counters.repo.ts only ever sets last_no = last_no + 1', () => {
     const s = src('counters.repo.ts');
     expect(s).toMatch(/\bSET\b[^`;]*\blast_no\s*=\s*last_no\s*\+\s*1\b/is);
-    expect(s).not.toMatch(/\bSET\b[^`;]*?\blast_no\s*=\s*(?!last_no\s*\+\s*1\b)/is);
+    expect(s).not.toMatch(/\bSET\b[^`;]*?\blast_no\s*=(?!\s*last_no\s*\+\s*1\b)/is);
     expect(s).not.toMatch(/\bSET\b[^`;]*\blast_no\s*=\s*last_no\s*\+\s*([2-9]|\$)/is);
     expect(s).not.toMatch(/\bDELETE\b/i);
   });

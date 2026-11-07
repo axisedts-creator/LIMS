@@ -1,14 +1,19 @@
-// T0B-12 — Storage buckets (08 §4.8, R26) created PRIVATE; end-user storage policies only if SP-4 passed. REQ-SEC-034 (+035 no signed URL in the migration).
-// Spec: 08-CR-REGISTER §4.8 + R12b + R26; 05-SCHEMA §8; db/meta/decisions/SP-4.md (Outcome: api-proxied => NO policy on storage.objects, buckets only);
-//       07-SECURITY row REQ-SEC-034/035 and §7 (db/migrations/*_storage__*.sql is the one place that may name Supabase-served objects).
-// No database needed: static analysis of db/migrations + a check of the live pgTAP file. Live half: db/tests/storage/T0B-12_storage.test.sql (run-suites.sh).
+// T0B-12 — Storage buckets (08 §4.8, R26) private; no end-user storage policies (SP-4 api-proxied). REQ-SEC-034 (+035 no signed URL / key in files).
+// LD-54 (2026-11-07, CR-C0-T0B-12 option b): SQL never touches the Storage-owned schema `storage` (no GRANT, no policy, no INSERT into storage.buckets).
+//   Buckets are ensured by the idempotent script db/provisioning/create-storage-buckets.mjs through the Storage service HTTP API with the server credential.
+//   The live run against the real Storage service is NOT part of this task: first-deploy smoke test in db/provisioning/README.md
+//   (then db/tests/storage/T0B-12_storage.test.sql, which is a post-provisioning probe, not run by the DB harness).
+// Spec: 08-CR-REGISTER §4.8 + R12b + R26; 05-SCHEMA §8; db/meta/decisions/SP-4.md; 07-SECURITY REQ-SEC-034/035.
+//
+// STATUS: static checks + the "contract recorded" gate below. The stub-HTTP-server behaviour tests (idempotency, flip public -> private, auth header,
+//   failure paths) are NOT written: the Storage service URL env name and the bucket admin endpoints are not recorded in db/meta/decisions/SP-4.md or the
+//   C0/C1 TRD (only the credential file env LIMS_CORE_STORAGE_KEY_FILE is). LD-54 forbids guessing -> .orchestra/cr/T0B-12.provisioning-contract.md.
 //
 // CONTRACT for the implementation (tester-defined where the spec is silent; dispute via .orchestra/notes if wrong):
-//   * ONE migration  db/migrations/<14-digit ts>_storage__create_buckets.sql  (or ..._storage__create_policies.sql: the plan-row name; SP-4 says it holds
-//     buckets only). Stamped after the frontdesk, billing and reporting migrations.
-//   * It inserts the 11 buckets of 08 §4.8 (all except the reserved `reporting-legacy`) into storage.buckets with public = false, and the INSERT is
-//     `ON CONFLICT (id) DO UPDATE SET public = false` (a bucket pre-created public by the Storage service must be flipped private, not skipped).
-//   * No other bucket name. No CREATE/ALTER POLICY on storage.* or realtime.*, no GRANT on storage objects to anon/authenticated/PUBLIC, anywhere.
+//   * db/provisioning/create-storage-buckets.mjs (ES module, parses with `node --check`) names the 11 buckets of 08 §4.8 verbatim (not reporting-legacy),
+//     sends public:false for every bucket (never true), reads the credential only from the file named by LIMS_CORE_STORAGE_KEY_FILE, hard-codes no key/URL.
+//   * db/migrations/*_storage__*.sql: none, or comment-only (ledger placeholder). No SQL in db/{migrations,policies,seeds,bootstrap} references schema storage.
+//   * db/provisioning/README.md records the first-deploy smoke test and says it is not run by CI/the task.
 import { spawnSync } from "node:child_process";
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
@@ -19,6 +24,7 @@ import { fileURLToPath } from "node:url";
 const REPO = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 const read = (p) => readFileSync(join(REPO, p), "utf8");
 const stripSql = (s) => s.replace(/\/\*[\s\S]*?\*\//g, " ").replace(/--.*$/gm, "");
+const stripJs = (s) => s.replace(/\/\*[\s\S]*?\*\//g, " ").replace(/(^|[^:\\'"`])\/\/.*$/gm, "$1");
 const ls = (d, re) => (existsSync(join(REPO, d)) ? readdirSync(join(REPO, d)).filter((f) => re.test(f)).sort() : []);
 
 // ---- expected buckets, parsed from the spec table (not hard-coded): | `name` | owner (Cn) | ...
@@ -29,43 +35,38 @@ const RESERVED = "reporting-legacy";
 const EXPECTED = rows.filter((r) => r.name !== RESERVED);
 const NAMES = EXPECTED.map((r) => r.name).sort();
 
-// ---- detectors (self-tested below, then applied to the repo)
-function bucketStatement(sql) {
-  const m = stripSql(sql).match(/\bINSERT\s+INTO\s+storage\.buckets\b[\s\S]*?;/i);
-  return m ? m[0] : null;
-}
-function endUserStorageAccess(file, sql) {
+// ---- detector (self-tested below, then applied to the repo): SQL that touches the Storage-owned schema
+function touchesStorageSchema(file, sql) {
   const v = [];
-  for (const st of stripSql(sql).split(";")) {
-    if (/\b(CREATE|ALTER)\s+POLICY\b[\s\S]*?\bON\s+"?(storage|realtime)"?\./i.test(st)) v.push(`${file}: policy on storage/realtime object`);
-    if (/\bGRANT\b/i.test(st) && /\bstorage\b/i.test(st) && /\b(anon|authenticated|public)\b/i.test(st)) v.push(`${file}: GRANT on storage to an end-user role`);
-    if (/\bALTER\s+DEFAULT\s+PRIVILEGES\b[\s\S]*\bIN\s+SCHEMA\s+storage\b/i.test(st)) v.push(`${file}: default privileges in schema storage`);
-    if (/\bALTER\s+TABLE\b[\s\S]*\bstorage\.[\s\S]*\bDISABLE\s+ROW\s+LEVEL\s+SECURITY\b/i.test(st)) v.push(`${file}: RLS disabled on storage table`);
-    if (/\bUPDATE\s+storage\.buckets\b[\s\S]*\bpublic\s*=\s*true\b/i.test(st)) v.push(`${file}: bucket made public`);
-  }
+  const s = stripSql(sql).replace(/'(?:[^']|'')*'/g, "''"); // string literals do not count (e.g. a text value 'storage')
+  if (/\bstorage\s*\.\s*[a-z_"]/i.test(s)) v.push(`${file}: qualified storage.<object>`);
+  if (/"storage"\s*\./i.test(s)) v.push(`${file}: quoted "storage".<object>`);
+  if (/\b(SCHEMA|IN\s+SCHEMA)\s+"?storage\b/i.test(s)) v.push(`${file}: SCHEMA storage (GRANT/DEFAULT PRIVILEGES/CREATE/SET)`);
+  if (/\bsearch_path\b[^;]*\bstorage\b/i.test(s)) v.push(`${file}: storage on a search_path`);
+  if (/\b(CREATE|ALTER)\s+POLICY\b[\s\S]*?\bON\s+"?realtime"?\./i.test(s)) v.push(`${file}: policy on realtime object`);
   return v;
 }
 
-describe("detector self-tests — the checks must reject bad input before they are trusted on the repo", () => {
+describe("detector self-tests — the check must reject bad input before it is trusted on the repo", () => {
   const bad = {
-    policy: "CREATE POLICY reports__select__tenant ON storage.objects FOR SELECT TO authenticated USING (bucket_id = 'reports');",
-    realtime: "CREATE POLICY p ON realtime.messages FOR SELECT TO authenticated USING (true);",
-    grant: "GRANT SELECT ON storage.objects TO authenticated;",
-    grantAnon: "GRANT ALL ON ALL TABLES IN SCHEMA storage TO anon;",
+    insert: "INSERT INTO storage.buckets (id, name, public) VALUES ('reports','reports',false);",
+    policy: "CREATE POLICY p ON storage.objects FOR SELECT TO authenticated USING (true);",
+    grant: "GRANT USAGE ON SCHEMA storage TO lims_owner;",
+    grantTable: "GRANT SELECT, INSERT ON storage.buckets TO lims_owner;",
+    quoted: 'UPDATE "storage".buckets SET public = false;',
     defpriv: "ALTER DEFAULT PRIVILEGES IN SCHEMA storage GRANT SELECT ON TABLES TO authenticated;",
-    rls: "ALTER TABLE storage.objects DISABLE ROW LEVEL SECURITY;",
-    pub: "UPDATE storage.buckets SET public = true WHERE id = 'reports';",
+    path: "SET LOCAL search_path = app, storage;",
+    realtime: "CREATE POLICY p ON realtime.messages FOR SELECT TO authenticated USING (true);",
   };
-  for (const [k, sql] of Object.entries(bad)) it(`flags ${k}`, () => assert.ok(endUserStorageAccess("x.sql", sql).length >= 1, `not flagged: ${sql}`));
-  it("ignores a policy named only in a comment and a GRANT to a LIMS role", () => {
+  for (const [k, sql] of Object.entries(bad)) it(`flags ${k}`, () => assert.ok(touchesStorageSchema("x.sql", sql).length >= 1, `not flagged: ${sql}`));
+  it("ignores comments, string literals and a column storage clause", () => {
     assert.deepEqual(
-      endUserStorageAccess("x.sql", "-- CREATE POLICY a ON storage.objects FOR SELECT;\n/* GRANT SELECT ON storage.objects TO authenticated; */\nGRANT SELECT ON core.tenants TO lims_app;"),
+      touchesStorageSchema(
+        "x.sql",
+        "-- INSERT INTO storage.buckets (id) VALUES ('x');\n/* GRANT USAGE ON SCHEMA storage TO a; */\nALTER TABLE a.b ALTER COLUMN c SET STORAGE EXTERNAL;\nINSERT INTO a.b(k) VALUES ('storage.objects');",
+      ),
       [],
     );
-  });
-  it("bucketStatement ignores a commented INSERT and finds a real one", () => {
-    assert.equal(bucketStatement("-- INSERT INTO storage.buckets (id) VALUES ('x');"), null);
-    assert.match(bucketStatement("INSERT INTO storage.buckets (id, name, public) VALUES ('reports','reports',false);"), /VALUES/);
   });
 });
 
@@ -86,55 +87,13 @@ describe("SP-4 outcome gates what T0B-12 may create", () => {
   });
 });
 
-const files = ls("db/migrations", /_storage__.*\.sql$/);
-describe("REQ-SEC-034 — bucket migration", () => {
-  it("exactly one *_storage__create_(buckets|policies).sql exists, stamped after frontdesk, billing and reporting migrations", () => {
-    assert.equal(files.length, 1, `db/migrations/*_storage__*.sql: ${JSON.stringify(files)}`);
-    assert.match(files[0], /^\d{14}_storage__create_(buckets|policies)\.sql$/);
-    const deps = ls("db/migrations", /_(frontdesk|billing|reporting)__/);
-    assert.ok(deps.length >= 3);
-    for (const d of deps) assert.ok(files[0].slice(0, 14) > d.slice(0, 14), `${files[0]} must sort after ${d}`);
+describe("LD-54 — no SQL file references schema storage (REQ-SEC-034: SQL never touches the Storage-owned schema)", () => {
+  const storageFiles = ls("db/migrations", /_storage__.*\.sql$/);
+  it("no *_storage__*.sql migration holds any statement (deleted, or comment-only ledger placeholder)", () => {
+    for (const f of storageFiles) assert.equal(stripSql(read(`db/migrations/${f}`)).trim(), "", `db/migrations/${f} still has executable SQL`);
   });
-
-  const sql = () => (files.length ? read(`db/migrations/${files[0]}`) : "");
-  const stmt = () => {
-    const s = bucketStatement(sql());
-    assert.ok(s, "no INSERT INTO storage.buckets statement (outside comments)");
-    return s;
-  };
-
-  it("every 08 §4.8 bucket (except reserved reporting-legacy) is created, by its verbatim name", () => {
-    const s = stmt();
-    for (const n of NAMES) assert.ok(s.includes(`'${n}'`), `bucket '${n}' missing from the INSERT`);
-  });
-  it("creates no other bucket: no reporting-legacy, no analytics-exports/catalog-files, no legacy generic names", () => {
-    const s = stmt();
-    for (const m of s.matchAll(/'([a-z]+(?:-[a-z]+)+)'/g)) assert.ok(NAMES.includes(m[1]), `unexpected bucket literal '${m[1]}'`);
-    for (const g of [RESERVED, "exports", "trf", "tenant-assets", "report-inputs", "report-prints", "instrument-attachments", "analytics-exports", "catalog-files"])
-      assert.ok(!s.includes(`'${g}'`), `'${g}' must not be created`);
-  });
-  it("sets the public column and never to true (all buckets private)", () => {
-    const s = stmt();
-    assert.match(s, /\(\s*[^)]*\bpublic\b[^)]*\)\s*(VALUES|SELECT)/i, "column list must name public explicitly");
-    assert.doesNotMatch(s, /\btrue\b/i, "no `true` anywhere in the bucket INSERT");
-    assert.match(s, /\bfalse\b/i);
-    for (const n of NAMES) {
-      const t = s.match(new RegExp(`\\(\\s*'${n}'\\s*,[^)]*\\)`));
-      if (t) assert.match(t[0], /\bfalse\b/i, `tuple of '${n}' must set public false: ${t[0]}`);
-    }
-  });
-  it("re-run/pre-existing bucket is forced private: ON CONFLICT (id) DO UPDATE SET public = false (not DO NOTHING)", () => {
-    assert.match(stmt(), /ON\s+CONFLICT\s*\(\s*id\s*\)\s+DO\s+UPDATE\s+SET[\s\S]*\bpublic\s*=\s*(false|EXCLUDED\.public)\b/i);
-  });
-  it("no signed URL / key / token material in the migration (REQ-SEC-035, 07-SECURITY §7)", () => {
-    assert.ok(files.length, "migration missing");
-    assert.doesNotMatch(stripSql(sql()), /https?:\/\/|eyJ[A-Za-z0-9_-]{10,}|signedUrl|service_role|SUPABASE_[A-Z_]*KEY/);
-  });
-});
-
-describe("SP-4 api-proxied — no end-user access to Storage or Realtime objects is created anywhere", () => {
   for (const d of ["db/migrations", "db/policies", "db/seeds", "db/bootstrap"])
-    for (const f of ls(d, /\.sql$/)) it(`${d}/${f}`, () => assert.deepEqual(endUserStorageAccess(`${d}/${f}`, read(`${d}/${f}`)), []));
+    for (const f of ls(d, /\.sql$/)) it(`${d}/${f}`, () => assert.deepEqual(touchesStorageSchema(`${d}/${f}`, read(`${d}/${f}`)), []));
   it("the scan covered the migration set (not vacuous)", () => assert.ok(ls("db/migrations", /\.sql$/).length >= 20));
 });
 
@@ -145,7 +104,73 @@ describe("repo gate: check-migrations accepts the migration set", () => {
   });
 });
 
-describe("live pgTAP probe file exists and carries the REQ-SEC-034 probes (executed by db/tests/run-suites.sh; not run here)", () => {
+const SCRIPT = "db/provisioning/create-storage-buckets.mjs";
+describe("REQ-SEC-034 — provisioning script db/provisioning/create-storage-buckets.mjs (static)", () => {
+  const code = () => {
+    assert.ok(existsSync(join(REPO, SCRIPT)), `${SCRIPT} missing`);
+    return stripJs(read(SCRIPT));
+  };
+  it("exists and parses as an ES module (node --check)", () => {
+    assert.ok(existsSync(join(REPO, SCRIPT)), `${SCRIPT} missing`);
+    const r = spawnSync(process.execPath, ["--check", join(REPO, SCRIPT)], { encoding: "utf8" });
+    assert.equal(r.status, 0, r.stderr);
+  });
+  it("names every 08 §4.8 bucket (except reserved reporting-legacy) verbatim", () => {
+    const c = code();
+    for (const n of NAMES) assert.match(c, new RegExp(`(['"\`])${n}\\1`), `bucket '${n}' missing from the script`);
+  });
+  it("does not provision a legacy/generic/unlisted bucket name", () => {
+    const c = code();
+    for (const g of ["exports", "trf", "tenant-assets", "report-inputs", "report-prints", "instrument-attachments", "analytics-exports", "catalog-files"])
+      assert.doesNotMatch(c, new RegExp(`(['"\`])${g}\\1`), `'${g}' must not be created`);
+  });
+  it("every bucket is private: public:false is sent, public:true / 'public': true appears nowhere", () => {
+    const c = code();
+    assert.match(c, /["']?public["']?\s*:\s*false\b/, "no public:false");
+    assert.doesNotMatch(c, /["']?public["']?\s*:\s*true\b/, "public:true must never appear");
+  });
+  it("credential comes only from the file named by LIMS_CORE_STORAGE_KEY_FILE; no key/URL/token material in the file (REQ-SEC-035, 07-SECURITY §6-§7)", () => {
+    const raw = read(SCRIPT);
+    assert.match(stripJs(raw), /LIMS_CORE_STORAGE_KEY_FILE/);
+    assert.match(stripJs(raw), /readFile(Sync)?\s*\(/, "credential must be read from the file");
+    assert.doesNotMatch(raw, /eyJ[A-Za-z0-9_-]{10,}|sb_secret_|service_role|SERVICE_ROLE_KEY|SUPABASE_SECRET_KEY|signedUrl/i);
+    assert.doesNotMatch(stripJs(raw), /https?:\/\/(?!\$\{)[^\s'"`]+/, "no hard-coded service URL");
+    assert.doesNotMatch(stripJs(raw), /console\.[a-z]+\([^)]*\b(key|token|secret|credential|authorization)\b/i, "must not log the credential");
+  });
+  it("never opens the database: no pg client, no SQL on storage", () => {
+    const c = code();
+    assert.doesNotMatch(c, /from\s+["'](pg|postgres|pg-promise|@supabase\/[^"']+)["']|require\(\s*["']pg["']\s*\)|INSERT\s+INTO\s+storage|storage\.buckets/i);
+  });
+});
+
+describe("provisioning README records the first-deploy smoke test (LD-54: not executed in this task)", () => {
+  const p = "db/provisioning/README.md";
+  const body = () => {
+    assert.ok(existsSync(join(REPO, p)), `${p} missing`);
+    return read(p);
+  };
+  it("names the script, the credential file env, the live pgTAP probe and says it is a first-deploy smoke test", () => {
+    const b = body();
+    for (const re of [/create-storage-buckets\.mjs/, /LIMS_CORE_STORAGE_KEY_FILE/, /T0B-12_storage\.test\.sql/, /first[- ]deploy/i, /smoke/i, /CR-C0-T0B-12|LD-54/])
+      assert.match(b, re, `README lacks ${re}`);
+  });
+  it("contains no key, token or signed URL", () => assert.doesNotMatch(body(), /eyJ[A-Za-z0-9_-]{10,}|sb_secret_|[?&]token=/i));
+});
+
+describe("GATE — the provisioning contract the stub-server tests need is recorded in the spec/decision records (not guessed)", () => {
+  // LD-54: endpoints and env names "must come from db/meta/decisions/SP-4.md and the C0/C1 TRD; if they are not recorded there, raise a CR".
+  // Fails until the lead rules on .orchestra/cr/T0B-12.provisioning-contract.md and the record is updated; then the behaviour tests can be written.
+  const corpus = () =>
+    ["db/meta/decisions/SP-4.md", "spec/chunks/C0-foundation-contracts/02-TRD.md", "spec/chunks/C1-infrastructure-ops/02-TRD.md"].map(read).join("\n");
+  it("a Storage service base-URL env name for the provisioning script is recorded (LIMS_CORE_STORAGE_*URL*)", () => {
+    assert.ok(/LIMS_CORE_STORAGE_[A-Z_]*URL\b/.test(corpus()), "no LIMS_CORE_STORAGE_*URL env name recorded in SP-4.md / C0 TRD / C1 TRD");
+  });
+  it("the Storage bucket admin endpoints (list/create/update bucket) are recorded", () => {
+    assert.ok(/\/storage\/v1\/bucket\b|`\/bucket\b|(GET|POST|PUT)\s+\/bucket\b/.test(corpus()), "no bucket admin endpoint recorded in SP-4.md / C0 TRD / C1 TRD");
+  });
+});
+
+describe("live pgTAP probe file exists and carries the REQ-SEC-034 probes (post-provisioning smoke; not run by the DB harness, not run here)", () => {
   const p = "db/tests/storage/T0B-12_storage.test.sql";
   const body = () => {
     assert.ok(existsSync(join(REPO, p)), `${p} missing`);
@@ -157,6 +182,9 @@ describe("live pgTAP probe file exists and carries the REQ-SEC-034 probes (execu
       assert.match(b, re, `pgTAP file lacks ${re}`);
     assert.match(read(p), /REQ-SEC-034/);
     for (const n of NAMES) assert.ok(b.includes(n), `pgTAP file does not mention bucket ${n}`);
+  });
+  it("header says it runs only after db/provisioning/create-storage-buckets.mjs (LD-54)", () => {
+    assert.match(read(p).split("BEGIN;")[0], /create-storage-buckets\.mjs/);
   });
   it("never disables RLS or relaxes row_security (AC-0B-2.4)", () => {
     assert.doesNotMatch(body(), /DISABLE\s+ROW\s+LEVEL\s+SECURITY|row_security\s*(=|TO)\s*off|BYPASSRLS/i);

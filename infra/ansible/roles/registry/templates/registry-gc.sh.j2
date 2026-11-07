@@ -1,0 +1,26 @@
+#!/usr/bin/env bash
+# lims-registry-gc (role registry, 05-SCHEMA retention): keep the newest
+# {{ registry_keep_releases }} tags (registry_keep_releases) per repository,
+# then `registry garbage-collect --delete-untagged`. Registry is stopped
+# meanwhile (GC needs exclusive storage); pulls fail for that window.
+# ponytail: tag age = tag dir mtime on disk; switch to lock-file driven
+# retention (keep digests named in infra/releases) if tags get re-pushed.
+set -euo pipefail
+keep={{ registry_keep_releases }}
+repos={{ registry_storage }}/docker/registry/v2/repositories
+compose=(docker compose -f {{ registry_etc }}/compose.yml)
+
+"${compose[@]}" stop registry
+trap '"${compose[@]}" start registry' EXIT
+
+if [ -d "$repos" ]; then
+  find "$repos" -type d -name tags -path '*/_manifests/tags' -print0 |
+    while IFS= read -r -d '' d; do
+      ls -1t -- "$d" | tail -n +$((keep + 1)) |
+        while IFS= read -r t; do rm -rf -- "${d:?}/$t"; done
+    done
+fi
+
+# config path of the Distribution 3 image (UNVERIFIED until the dev run)
+"${compose[@]}" run --rm --no-deps registry \
+  garbage-collect --delete-untagged /etc/distribution/config.yml

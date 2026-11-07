@@ -85,6 +85,11 @@ describe('S2 updateSettings — partial update, optimistic lock, validation', ()
     const e = await rejection(svc().updateSettings(makeCtx(db), { expectedVersion: undefined, patch: { auto_release: 'manual' } }));
     expect(code(e)).toBe('common.precondition_required'); expect(db.writes()).toHaveLength(0);
   });
+  it('If-Match beyond int4 (2147483648) -> common.validation_failed, no write (not a 500)', async () => {
+    const db = makeDb({ settings: [SETTINGS_ROW] });
+    const e = await rejection(svc().updateSettings(makeCtx(db), { expectedVersion: 2147483648, patch: { auto_release: 'manual' } }));
+    expect(code(e)).toBe('common.validation_failed'); expect(db.writes()).toHaveLength(0);
+  });
   it('update before the first read still works (row created lazily, then patched)', async () => {
     const db = makeDb();
     const out = await svc().updateSettings(makeCtx(db), { expectedVersion: 1, patch: { print_critical_label: true } });
@@ -249,6 +254,11 @@ describe('S5 updateCentreContact', () => {
     expect(code(await rejection(s.updateCentreContact(makeCtx(db), { centreContactId: row.id, expectedVersion: 1, patch: { label: 'x' } })))).toBe('common.version_conflict');
     expect(code(await rejection(s.updateCentreContact(makeCtx(db), { centreContactId: row.id, expectedVersion: undefined, patch: { label: 'x' } })))).toBe('common.precondition_required');
     expect(db.store['centre_contacts']![0]).toMatchObject({ label: 'Desk 1', version: 2 });
+  });
+  it('If-Match beyond int4 (2147483648) -> common.validation_failed, no write (not a 500)', async () => {
+    const db = makeDb({ centre_contacts: [row] });
+    const e = await rejection(svc().updateCentreContact(makeCtx(db), { centreContactId: row.id, expectedVersion: 2147483648, patch: { label: 'x' } }));
+    expect(code(e)).toBe('common.validation_failed'); expect(db.writes()).toHaveLength(0);
   });
   it('BOLA: another tenant\'s contact id -> common.not_found, and it is not modified', async () => {
     const other = { ...row, id: idN(0x6009), tenant_id: TENANT_B, centre_id: CENTRE_B1, version: 1 };

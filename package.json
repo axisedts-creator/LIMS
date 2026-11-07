@@ -14,6 +14,7 @@
     "dev:reset": "node tools/devstack/reset.ts"
   },
   "devDependencies": {
+    "graphile-worker": "0.18.0",
     "turbo": "2.11.10",
     "typescript": "7.0.2",
     "vitest": "5.1.0"

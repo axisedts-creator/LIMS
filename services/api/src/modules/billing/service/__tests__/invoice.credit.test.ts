@@ -60,7 +60,7 @@ describe('US-BL-05.1 partial credit note for a removed item resolves the open ta
     const after = invOf(w, a.invoiceId);
     expect(after).toMatchObject({ status: 'issued', is_active: true, credited_total_paisa: 50000, version: before.version + 1, updated_by: USER, cancelled_at: null, credit_note_id: null, cbms_cancel_state: null });
     const changed = Object.keys(after).filter((k) => JSON.stringify(after[k]) !== JSON.stringify(before[k]));
-    expect(changed.sort()).toEqual(['credited_total_paisa', 'updated_by', 'version'].sort());
+    expect(changed.sort()).toEqual(['credited_total_paisa', 'version'].sort());
     for (const k of changed) expect(INVOICE_MUTABLE.has(k)).toBe(true);
   });
   it('the balance drops by the line net: ONE billing.balance.changed.v1 (cause credit_note_issued, version 2, credited 50000, balance_due 113000); no invoice.cancelled event', async () => {

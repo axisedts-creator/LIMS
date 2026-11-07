@@ -1,0 +1,4 @@
+- Cause: `__tests__/ci/{driver-registry-check,synthetic-scan,fixture-copy-check}.ts` were absent on disk (ci/ dir empty, git clean; earlier note/impl claim was wrong) -> ci-scripts.test.ts "Cannot find module '../ci/driver-registry-check.js'".
+- Fix: wrote the three scripts to the test's documented interface (CLI guarded on import.meta.url). Re-ran `vitest run src/modules/instruments/__tests__/unit`: 10 files / 468 tests pass, incl. REAL-repo migrations + testdata checks; tsc shows no errors in `__tests__/ci`.
+- Earlier 1 MiB "pathological" timeout was CPU contention (alone ~1s); no code change.
+- Not verified: verify's exact full-suite load; pre-existing boot.test.ts failures untouched.

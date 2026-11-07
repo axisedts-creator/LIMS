@@ -228,8 +228,12 @@ describe("rule 4 — operation metadata", () => {
       expectRule("4", [post({ "x-idempotency": "none", "x-idempotency-justification": "it is fine" })]));
     it("prefix without trailing space (E1x)", async () =>
       expectRule("4", [post({ "x-idempotency": "none", "x-idempotency-justification": "E1x secret" })]));
-    it.each(["E1 secret shown once", "E2 patient pre-auth OTP POST"])("accepts %j", async (j) =>
+    // LD-10 (2026-11-07): E3 = read-only POST, E4 = identity pre-auth/session op (not replayable)
+    it.each(["E1 secret shown once", "E2 patient pre-auth OTP POST", "E3 read-only search, no state written",
+      "E4 pre-auth session op, response not replayed"])("accepts %j", async (j) =>
       expect(await run([post({ "x-idempotency": "none", "x-idempotency-justification": j })])).toEqual([]));
+    it.each(["E5 whatever", "E3x read-only", "E4x session", "E0 nothing", "e3 lowercase", " E4 leading space"])("rejects %j", async (j) =>
+      expectRule("4", [post({ "x-idempotency": "none", "x-idempotency-justification": j })]));
     it("GET with x-idempotency none needs no justification", async () =>
       expect(await run([file("widgets", good())])).toEqual([]));
   });
@@ -299,6 +303,30 @@ describe("rule 7 — server-authority fields in request bodies (CV §4.7)", () =
     const s = itemSchema();
     s.properties.sub = { type: "object", additionalProperties: false, properties: { tenant_id: { type: "string", maxLength: 36 } } };
     await expectRule("7", [file("widgets", spec({ "/v1/widgets/items": { post: postOp({ requestBody: { required: true, ...json(s) } }) } }))]);
+  });
+  // LD-11 (2026-11-07): tenant_id in request bodies is allowed ONLY for x-context: platform operations
+  describe("LD-11 platform tenant_id exemption", () => {
+    const withCtx = (ctxVal: string | undefined, prop = "tenant_id") => {
+      const s = itemSchema();
+      s.properties[prop] = { type: "string", maxLength: 36 };
+      const o = postOp({ requestBody: { required: true, ...json(s) } });
+      if (ctxVal) o["x-context"] = ctxVal;
+      return file("widgets", spec({ "/v1/widgets/items": { post: o } }));
+    };
+    it("platform op: tenant_id in body accepted", async () => expect(await run([withCtx("platform")])).toEqual([]));
+    it.each(["tenant", "identity_auth", undefined])("x-context %s: tenant_id still rejected (rule 7)", async (c) =>
+      expectRule("7", [withCtx(c)]));
+    it.each(["created_by", "updated_by", "status"])("platform op: %s still rejected", async (p) =>
+      expectRule("7", [withCtx("platform", p)]));
+    it("platform op via $ref requestBody: tenant_id accepted", async () => {
+      const s = itemSchema();
+      s.properties.tenant_id = { type: "string", maxLength: 36 };
+      const o = postOp({ requestBody: { $ref: "#/components/requestBodies/ItemBody" }, "x-context": "platform" });
+      const f = file("widgets", spec({ "/v1/widgets/items": { post: o } }, { components: {
+        securitySchemes: { bffSession: { type: "apiKey", in: "cookie", name: "sid" } },
+        requestBodies: { ItemBody: { required: true, ...json(s) } } } }));
+      expect(rulesOf(await run([f]))).not.toContain("7");
+    });
   });
   it("PATCH body declaring status on a non-action path", async () => {
     const s = itemSchema();

@@ -1,0 +1,111 @@
+{
+  "reportKind": "amended",
+  "statusLabel": "Amended",
+  "sections": [
+    {
+      "kind": "department",
+      "departmentId": "01900000-0000-7000-8000-000000000010",
+      "departmentName": "Biochemistry",
+      "approvedBy": [
+        "Dr. Synthetic Signatory A"
+      ],
+      "blocks": [
+        {
+          "comments": [],
+          "packageName": "SYNTHETIC HEALTH PACKAGE (BASIC)",
+          "panelName": "GLUCOSE FASTING",
+          "subgroups": [
+            {
+              "lines": [
+                {
+                  "analyteId": "01900000-0000-7000-8000-000000000040",
+                  "resultId": "01900000-0000-7000-8000-000000001001",
+                  "versionNo": 1,
+                  "valueBold": false,
+                  "images": [],
+                  "name": "Glucose",
+                  "valueText": "92.0",
+                  "refRangeText": "70 – 100",
+                  "unitText": "mg/dL"
+                }
+              ]
+            }
+          ],
+          "specimenLine": "SERUM"
+        }
+      ]
+    },
+    {
+      "kind": "department",
+      "departmentId": "01900000-0000-7000-8000-000000000011",
+      "departmentName": "Haematology",
+      "approvedBy": [
+        "Dr. Synthetic Signatory B"
+      ],
+      "blocks": [
+        {
+          "comments": [],
+          "packageName": "SYNTHETIC HEALTH PACKAGE (BASIC)",
+          "panelName": "CBC",
+          "subgroups": [
+            {
+              "subheading": "RBC parameters",
+              "lines": [
+                {
+                  "analyteId": "01900000-0000-7000-8000-000000000041",
+                  "resultId": "01900000-0000-7000-8000-000000001002",
+                  "versionNo": 2,
+                  "valueBold": true,
+                  "images": [],
+                  "name": "Haemoglobin",
+                  "valueText": "17.9",
+                  "flagLabel": "High",
+                  "refRangeText": "13.0 – 17.0",
+                  "unitText": "g/dL",
+                  "methodLine": "METHOD : Synthetic Method X"
+                },
+                {
+                  "analyteId": "01900000-0000-7000-8000-000000000042",
+                  "resultId": "01900000-0000-7000-8000-000000001003",
+                  "versionNo": 1,
+                  "valueBold": false,
+                  "images": [],
+                  "name": "RBC Count",
+                  "valueText": "5.10",
+                  "refRangeText": "4.5 – 5.9",
+                  "unitText": "10^6/uL"
+                }
+              ]
+            },
+            {
+              "subheading": "WBC parameters",
+              "lines": [
+                {
+                  "analyteId": "01900000-0000-7000-8000-000000000043",
+                  "resultId": "01900000-0000-7000-8000-000000001004",
+                  "versionNo": 1,
+                  "valueBold": false,
+                  "images": [],
+                  "name": "WBC Count",
+                  "valueText": "7400",
+                  "refRangeText": "4000 - 11000",
+                  "unitText": "/uL"
+                }
+              ]
+            }
+          ],
+          "specimenLine": "EDTA WHOLE BLOOD"
+        }
+      ]
+    }
+  ],
+  "amendmentNotes": [
+    {
+      "analyteOrSection": "Haemoglobin",
+      "previousVersionNo": 1,
+      "reasonCode": "corrected_value",
+      "reasonText": "Synthetic correction",
+      "amendedAt": "2026-11-05T09:00:00.000Z"
+    }
+  ]
+}

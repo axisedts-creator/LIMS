@@ -1,0 +1,10 @@
+CHANGES
+
+1. infra/database/postgresql/pg_hba.conf.j2:18,21,22 — `wg_ip['app-1']` / `wg_ip['dr-1']` treat `wg_ip` as a host-keyed dict, but every inventory defines `wg_ip` as a per-host scalar (infra/ansible/inventories/*/hosts.yml:13 etc.), and other templates rely on that (hardening/templates/lims.conf.j2:2 `ListenAddress {{ wg_ip }}`, chrony `hostvars[h].wg_ip`). Rendering on data-1 fails ('str' has no attribute 'app-1'), and a dict named `wg_ip` cannot be supplied without clobbering the host var. Dev has no `app-1`/`dr-1` hosts at all (single `dev-1`, `dr: {}`).
+   Fix: use group lookups, guard the empty dr group:
+   `host all all {{ hostvars[groups['app'][0]].wg_ip }}/32 scram-sha-256`
+   `{% if groups['dr'] | length > 0 %}` … `{{ hostvars[groups['dr'][0]].wg_ip }}/32` … `{% endif %}` for the two dr-1 lines.
+2. infra/tests/static/test_t04_postgres_image.py:41-45 (`_ctx`) + docstring line 12-14 — the template contract forces the wrong `wg_ip` dict shape above. Fix (tester): give `_ctx` `groups={'data':['data-1'],'app':['app-1'],'dr':['dr-1'],'ops':['ops-1']}` and `hostvars={h:{'wg_ip':ip} for h,ip in WG.items()}`, drop the `wg_ip` dict from the contract, and add one render case with `groups['dr']=[]` (dev) asserting no dr lines and the default-reject tail still last.
+
+Checked, OK: zz-lims.conf values = 02-TRD §7.7 verbatim (archive_command → T-09, hot_standby_feedback → standby, documented); log_parameter_max_length(_on_error)=0, log_statement=none, auto_explain off (REQ-SEC-098, no PHI in logs); no trust/md5, no ops-1 entry, v4+v6 reject last; Dockerfile FROM digest matches db/meta/decisions/SP-3.md, no pgBackRest, config mounted at the TRD §7.2 paths; no secrets (live-test password is synthetic); only owned paths touched. RLS/permissions/idempotency/rate tier/error codes: n/a for this task.
+Not proven: live test (image start, four roles connect) never run — CI must run it with LIMS_T04_LIVE=1 before T-04 is closed. Known risk (already noted by writer): archive_mode=on with no archive_command keeps WAL in pg_wal until T-09.

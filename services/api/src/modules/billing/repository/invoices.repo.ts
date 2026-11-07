@@ -18,6 +18,37 @@ export async function getInvoice(tx: Q, a: { tenantId: string; invoiceId: string
   return rows[0];
 }
 
+/** SELECT … FOR UPDATE: serialises every cancel / credit on one invoice (TRD §12 lock order). Tenant-filtered: another tenant's id is simply absent. */
+export async function getInvoiceForUpdate(tx: Q, a: { tenantId: string; invoiceId: string }): Promise<InvoiceRow | undefined> {
+  const { rows } = await tx.query('SELECT * FROM billing.invoices WHERE tenant_id = $1 AND id = $2 FOR UPDATE', [a.tenantId, a.invoiceId]);
+  return rows[0];
+}
+
+/** issued -> cancelled, with the cancellation columns and cbms_cancel_state set together (the only transition the DB guard allows). */
+export async function markInvoiceCancelled(tx: Q, a: {
+  tenantId: string; invoiceId: string; cancelledAt: string; cancelledBy: string; reasonCode: string; reasonText?: string | null;
+  creditNoteId: string; creditedTotalPaisa: number; cbmsCancelState: 'not_required' | 'pending'; userId: string;
+}): Promise<InvoiceRow | undefined> {
+  try {
+    const { rows } = await tx.query(
+      `UPDATE billing.invoices SET status = 'cancelled', is_active = false, cancelled_at = $3::timestamptz, cancelled_by = $4, cancel_reason_code = $5, cancel_reason_text = $6,
+              credit_note_id = $7, credited_total_paisa = $8, cbms_cancel_state = $9, updated_at = now(), updated_by = $10, version = version + 1
+        WHERE tenant_id = $1 AND id = $2 AND status = 'issued' RETURNING *`,
+      [a.tenantId, a.invoiceId, a.cancelledAt, a.cancelledBy, a.reasonCode, a.reasonText ?? null, a.creditNoteId, a.creditedTotalPaisa, a.cbmsCancelState, a.userId]);
+    return rows[0];
+  } catch (e) { throw mapImmutable(e); }
+}
+
+/** Partial credit: only credited_total_paisa / version / updated_* move; the DB guard rejects a decrease. */
+export async function addInvoiceCredit(tx: Q, a: { tenantId: string; invoiceId: string; creditedTotalPaisa: number; userId: string }): Promise<InvoiceRow | undefined> {
+  try {
+    const { rows } = await tx.query(
+      `UPDATE billing.invoices SET credited_total_paisa = $3, updated_at = now(), updated_by = $4, version = version + 1
+        WHERE tenant_id = $1 AND id = $2 AND status = 'issued' RETURNING *`, [a.tenantId, a.invoiceId, a.creditedTotalPaisa, a.userId]);
+    return rows[0];
+  } catch (e) { throw mapImmutable(e); }
+}
+
 /** recordPayment: only the columns needed to check that an invoice belongs to the order being paid. */
 export async function findInvoiceForPayment(tx: Q, a: { tenantId: string; invoiceId: string }): Promise<{ id: string; order_id: string | null; status: string } | undefined> {
   const { rows } = await tx.query('SELECT id, order_id, status FROM billing.invoices WHERE tenant_id = $1 AND id = $2', [a.tenantId, a.invoiceId]);

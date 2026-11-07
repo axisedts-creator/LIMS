@@ -2,6 +2,9 @@
 // Assumed API (pure):
 //   validateSettingsPatch(patch: Record<string, unknown> /* API snake_case fields of PATCH /settings */)
 //     -> { ok: true } | { ok: false; errors: Array<{ pointer: string /* '/idle_timeout_minutes' */; code: 'identity.setting_out_of_range' }> }
+//   Format/length failures (05-SCHEMA §4.6 patterns, lengths, counts) -> code 'common.field_invalid' at '/<field>' (02-TRD §5.6);
+//   abbreviated_invoice_limit_paisa (a range) -> 'identity.setting_out_of_range'. Return type carries both codes.
+//   Nullable cols accept null. *_pattern columns are NOT checked here (numbering-pattern.ts / T16).
 //   Only keys present in `patch` are checked; keys this module does not range-check are ignored. Collects ALL errors.
 //   SETTING_RANGES: Record<field, { min?: number; max?: number }>
 import { describe, expect, it } from 'vitest';
@@ -97,5 +100,111 @@ describe('enum settings (05-SCHEMA §4.6)', () => {
     expect(check('letterhead_default', 'with')).toEqual({ ok: true });
     expect(check('letterhead_default', 'without')).toEqual({ ok: true });
     expect(check('letterhead_default', 'both')).toMatchObject({ ok: false });
+  });
+});
+
+// ---- §4.6 format / length / count rules (T2-review item 2) ----
+const FI = 'common.field_invalid';
+const bad = (field: string, v: unknown, code = FI) =>
+  expect(check(field, v), `${field}=${JSON.stringify(v)}`).toEqual({ ok: false, errors: [{ pointer: `/${field}`, code }] });
+const good = (field: string, v: unknown) => expect(check(field, v), `${field}=${JSON.stringify(v)}`).toEqual({ ok: true });
+const rep = (n: number, c = 'A') => c.repeat(n);
+
+describe('prefix patterns', () => {
+  // field, max length, nullable
+  const PREFIXES: ReadonlyArray<readonly [string, number, boolean]> = [
+    ['numbering_prefix', 8, false], ['barcode_prefix', 4, true],
+    ['accession_prefix_histology', 4, false], ['accession_prefix_cytology', 4, false],
+    ['accession_prefix_ihc', 4, false], ['accession_prefix_molecular', 4, false],
+  ];
+  describe.each(PREFIXES)('%s ^[A-Z0-9]{0,%i}$', (f, max, nullable) => {
+    it('accepts empty, 1 char, digits, max length', () => {
+      for (const v of ['', 'A', '9', 'A1', rep(max), rep(max - 1)]) good(f, v);
+    });
+    it('rejects max+1, lowercase, space, punctuation, non-ASCII, newline', () => {
+      for (const v of [rep(max + 1), 'a', 'Ab', 'A B', 'A-1', 'A_', 'क', 'A\n', '\nA']) bad(f, v);
+    });
+    it('rejects non-strings', () => { for (const v of [1, true, {}, []]) bad(f, v); });
+    it(nullable ? 'accepts null' : 'rejects null', () => (nullable ? good(f, null) : bad(f, null)));
+  });
+});
+
+describe('sms_sender_id ^[A-Za-z0-9]{1,11}$ (nullable)', () => {
+  it('accepts 1..11 alphanumerics and null', () => {
+    for (const v of ['a', 'Z', '1', 'LabSms01', rep(10), rep(11), 'aB3dE6gH9jK']) good('sms_sender_id', v);
+    good('sms_sender_id', null);
+  });
+  it('rejects empty, 12 chars, space, punctuation, non-ASCII, non-string', () => {
+    for (const v of ['', rep(12), 'Lab Sms', 'Lab-Sms', 'लैब', 'A\n', 5, true]) bad('sms_sender_id', v);
+  });
+});
+
+describe('accent_color ^#[0-9A-Fa-f]{6}$ (nullable)', () => {
+  it('accepts valid hex and null', () => {
+    for (const v of ['#000000', '#FFFFFF', '#abcdef', '#AbC123']) good('accent_color', v);
+    good('accent_color', null);
+  });
+  it('rejects short/long/no-hash/non-hex/alpha/named/trailing newline', () => {
+    for (const v of ['#FFF', '#FFFFF', '#FFFFFFF', 'FFFFFF', '#GGGGGG', '#FFFFFF80', 'red', '', ' #FFFFFF', '#FFFFFF\n', 5]) bad('accent_color', v);
+  });
+});
+
+describe('website ≤200 and ^https:// (nullable)', () => {
+  const pad = (n: number) => 'https://' + rep(n - 8, 'a');
+  it('accepts https, exactly 200 chars, null', () => {
+    good('website', 'https://example.org'); good('website', pad(200)); good('website', null);
+  });
+  it('rejects 201 chars, http, other schemes, no scheme, uppercase scheme, non-string', () => {
+    for (const v of [pad(201), 'http://example.org', 'ftp://x.org', 'javascript:alert(1)', 'example.org', ' https://x.org', 'HTTPS://x.org', '', 5]) bad('website', v);
+  });
+});
+
+describe('text length limits', () => {
+  it('display_name 1–120, not null', () => {
+    good('display_name', 'S'); good('display_name', rep(120));
+    bad('display_name', ''); bad('display_name', rep(121)); bad('display_name', null); bad('display_name', 5);
+  });
+  it('contact_email ≤254 (nullable)', () => {
+    const mail = (n: number) => rep(n - 4, 'a') + '@b.c';
+    good('contact_email', mail(254)); good('contact_email', 'lab@example.org'); good('contact_email', null);
+    bad('contact_email', mail(255)); bad('contact_email', 5);
+  });
+  it('receipt_footer_note ≤200 (nullable)', () => {
+    good('receipt_footer_note', rep(200)); good('receipt_footer_note', ''); good('receipt_footer_note', null);
+    bad('receipt_footer_note', rep(201)); bad('receipt_footer_note', 5);
+  });
+});
+
+describe('array limits', () => {
+  it('address_lines ≤4 items, each ≤120', () => {
+    good('address_lines', []); good('address_lines', ['a', 'b', 'c', 'd']); good('address_lines', [rep(120)]);
+    bad('address_lines', ['a', 'b', 'c', 'd', 'e']); bad('address_lines', [rep(121)]);
+    bad('address_lines', ['ok', rep(121)]); bad('address_lines', [5]); bad('address_lines', 'a'); bad('address_lines', null);
+  });
+  it('phones ≤3 items, each ≤40', () => {
+    good('phones', []); good('phones', ['1', '2', '3']); good('phones', [rep(40, '9')]);
+    bad('phones', ['1', '2', '3', '4']); bad('phones', [rep(41, '9')]);
+    bad('phones', ['1', rep(41, '9')]); bad('phones', [5]); bad('phones', '1'); bad('phones', null);
+  });
+});
+
+describe('abbreviated_invoice_limit_paisa ≥0 integer, NULL ok (identity.setting_out_of_range)', () => {
+  it('accepts null, 0, 1, large integer', () => {
+    for (const v of [null, 0, 1, 1_000_000_00]) good('abbreviated_invoice_limit_paisa', v);
+  });
+  it('rejects -1, fractions, NaN, Infinity, strings, booleans', () => {
+    for (const v of [-1, 0.5, NaN, Infinity, '100', true, {}]) bad('abbreviated_invoice_limit_paisa', v, OOR);
+  });
+});
+
+describe('mixed codes in one patch', () => {
+  it('reports each error with its own code and pointer', () => {
+    const r = validateSettingsPatch({ idle_timeout_minutes: 99, accent_color: 'red', abbreviated_invoice_limit_paisa: -1, display_name: 'ok' });
+    expect(r.ok).toBe(false);
+    if (!r.ok) {
+      expect(r.errors.map((e) => `${e.pointer}:${e.code}`).sort()).toEqual([
+        `/abbreviated_invoice_limit_paisa:${OOR}`, `/accent_color:${FI}`, `/idle_timeout_minutes:${OOR}`,
+      ]);
+    }
   });
 });

@@ -1,0 +1,118 @@
+# db/meta/tables.yaml — table registry (02-TRD §4.1, §4.3 item 3; 05-SCHEMA §3, §9 rule 4; REQ-SEC-004).
+# Format [CONV]: the JSON subset of YAML 1.2 plus full-line '#' comments, read by db/tools/*.ts without a YAML dependency.
+# Per table: class (CV §5.2), centre_scoped, audited, retention (05-SCHEMA §3.8), columns -> phi_class (IC §1: P0..P3),
+# shared_with [partner|portal|patient] (08 A17 P-16, A23.3), mandatory_column_exceptions (08 A17 P-18(b)), rls_exempt <reason>.
+# PHI of the CV §5.3 mandatory columns: P1 as in 05-SCHEMA §3.1 [CONV for tables where 05-SCHEMA §3 gives no per-column value].
+# Association tables (CV §5.6 master-data associations, DELETE allowed) carry no id/version/is_active/updated_* [CONV exception].
+{
+ "tables": {
+  "core.tenants": {
+   "class": "M", "centre_scoped": false, "audited": true, "retention": "never deleted (deactivate)",
+   "mandatory_column_exceptions": ["tenant_id"],
+   "mandatory_column_exceptions_reason": "root table, keyed by id (05-SCHEMA §3)",
+   "columns": {
+    "id": "P0", "tenant_code": "P0", "legal_name": "P0", "display_name": "P0", "status": "P0", "timezone": "P0",
+    "status_reason": "P0", "activated_at": "P0", "suspended_at": "P0", "offboarded_at": "P0", "billing_live_on": "P0",
+    "version": "P1", "is_active": "P1", "created_at": "P1", "created_by": "P1", "updated_at": "P1", "updated_by": "P1"
+   }
+  },
+  "core.branches": {
+   "class": "M", "centre_scoped": false, "audited": true, "retention": "never deleted (deactivate)",
+   "columns": {
+    "id": "P0", "tenant_id": "P0", "branch_code": "P0", "name": "P0", "address_text": "P0", "phone_display": "P0",
+    "is_processing_lab": "P0",
+    "version": "P1", "is_active": "P1", "created_at": "P1", "created_by": "P1", "updated_at": "P1", "updated_by": "P1"
+   }
+  },
+  "core.collection_centres": {
+   "class": "M", "centre_scoped": false, "audited": true, "retention": "never deleted (deactivate)",
+   "columns": {
+    "id": "P0", "tenant_id": "P0", "branch_id": "P0", "centre_code": "P0", "name": "P0", "centre_kind": "P0",
+    "address_text": "P0", "phone_display": "P0",
+    "version": "P1", "is_active": "P1", "created_at": "P1", "created_by": "P1", "updated_at": "P1", "updated_by": "P1"
+   }
+  },
+  "core.users": {
+   "class": "M", "centre_scoped": false, "audited": true, "retention": "never deleted (deactivate)",
+   "columns": {
+    "tenant_id": "P0", "id": "P1", "display_name": "P2", "staff_code": "P2", "email_normalized": "P2", "phone_e164": "P2",
+    "last_login_at": "P0", "email_hmac": "P1",
+    "version": "P1", "is_active": "P1", "created_at": "P1", "created_by": "P1", "updated_at": "P1", "updated_by": "P1"
+   }
+  },
+  "core.memberships": {
+   "class": "M", "centre_scoped": false, "audited": true, "retention": "never deleted (deactivate)",
+   "mandatory_column_exceptions": ["is_active"],
+   "mandatory_column_exceptions_reason": "is_active GENERATED ALWAYS AS (status = 'active') STORED (08 A3.4)",
+   "columns": {
+    "id": "P1", "tenant_id": "P0", "user_id": "P1", "actor_type": "P0", "all_centres": "P0", "status": "P0",
+    "invited_at": "P0", "accepted_at": "P0", "deactivated_at": "P0", "deactivated_by": "P1", "deactivation_reason_code": "P0",
+    "locked_at": "P0", "locked_by": "P1", "lock_reason_code": "P0", "lock_reason_text": "P2", "last_login_at": "P0",
+    "signatory_display_title": "P2", "signatory_registration_no": "P2", "signature_image_ref": "P2", "partner_role": "P0",
+    "is_active": "P0",
+    "version": "P1", "created_at": "P1", "created_by": "P1", "updated_at": "P1", "updated_by": "P1"
+   }
+  },
+  "core.membership_centres": {
+   "class": "M", "centre_scoped": false, "audited": true, "retention": "deleted with the association (CV §5.6)",
+   "mandatory_column_exceptions": ["id", "version", "is_active", "updated_at", "updated_by"],
+   "mandatory_column_exceptions_reason": "association table, PK (tenant_id, membership_id, centre_id)",
+   "columns": { "tenant_id": "P0", "membership_id": "P1", "centre_id": "P0", "created_at": "P1", "created_by": "P1" }
+  },
+  "core.membership_branches": {
+   "class": "M", "centre_scoped": false, "audited": true, "retention": "deleted with the association (CV §5.6)",
+   "mandatory_column_exceptions": ["id", "version", "is_active", "updated_at", "updated_by"],
+   "mandatory_column_exceptions_reason": "association table, PK (tenant_id, membership_id, branch_id)",
+   "columns": { "tenant_id": "P0", "membership_id": "P1", "branch_id": "P0", "created_at": "P1", "created_by": "P1" }
+  },
+  "core.g_permissions": {
+   "class": "G", "centre_scoped": false, "audited": false, "retention": "coded set (seeded)",
+   "rls_exempt": "class G global reference, no tenant data (CV §5.2)",
+   "columns": { "code": "P0", "module": "P0", "privileged": "P0", "phase": "P0", "description": "P0", "is_active": "P0", "created_at": "P0" }
+  },
+  "core.roles": {
+   "class": "M", "centre_scoped": false, "audited": true, "retention": "never deleted (deactivate)",
+   "columns": {
+    "id": "P0", "tenant_id": "P0", "role_code": "P0", "display_name": "P0", "description": "P0", "is_system_default": "P0",
+    "mfa_required": "P0",
+    "version": "P1", "is_active": "P1", "created_at": "P1", "created_by": "P1", "updated_at": "P1", "updated_by": "P1"
+   }
+  },
+  "core.role_permissions": {
+   "class": "M", "centre_scoped": false, "audited": true, "retention": "deleted with the association (CV §5.6)",
+   "mandatory_column_exceptions": ["id", "version", "is_active", "updated_at", "updated_by"],
+   "mandatory_column_exceptions_reason": "association table, PK (tenant_id, role_id, permission_code)",
+   "columns": { "tenant_id": "P0", "role_id": "P0", "permission_code": "P0", "created_at": "P1", "created_by": "P1" }
+  },
+  "core.membership_roles": {
+   "class": "M", "centre_scoped": false, "audited": true, "retention": "deleted with the association (CV §5.6)",
+   "mandatory_column_exceptions": ["id", "version", "is_active", "updated_at", "updated_by"],
+   "mandatory_column_exceptions_reason": "association table, PK (tenant_id, membership_id, role_id)",
+   "columns": { "tenant_id": "P0", "membership_id": "P1", "role_id": "P0", "created_at": "P1", "created_by": "P1" }
+  },
+  "audit.g_cs_access_actions": {
+   "class": "G", "centre_scoped": false, "audited": false, "retention": "coded set (seeded)",
+   "rls_exempt": "class G global reference, no tenant data (CV §5.2)",
+   "columns": { "code": "P0", "display": "P0", "system": "P0", "system_version": "P0", "sort_order": "P0", "is_active": "P0" }
+  },
+  "audit.audit_log": {
+   "class": "A", "centre_scoped": true, "audited": false, "retention": ">= 5 years; not purged by C0, shipped by C1 (05-SCHEMA §3.8)",
+   "columns": {
+    "id": "P1", "tenant_id": "P0", "centre_id": "P0", "schema_name": "P0", "table_name": "P0", "row_id": "P1", "action": "P0",
+    "changed_columns": "P0", "old_values": "P3", "new_values": "P3", "actor_id": "P1", "actor_type": "P0",
+    "membership_id": "P1", "support_session_id": "P1", "request_id": "P0", "client_ip": "P2", "user_agent": "P2",
+    "detail": "P0", "occurred_at": "P0", "created_at": "P0", "created_by": "P1"
+   }
+  },
+  "audit.access_log": {
+   "class": "A", "centre_scoped": true, "audited": false, "retention": ">= 5 years; not purged by C0, shipped by C1 (05-SCHEMA §3.8)",
+   "shared_with": ["partner", "portal", "patient"],
+   "columns": {
+    "id": "P1", "tenant_id": "P0", "centre_id": "P0", "actor_id": "P1", "actor_type": "P0", "membership_id": "P1",
+    "support_session_id": "P1", "action": "P0", "entity_type": "P0", "entity_id": "P1", "purpose_code": "P0", "outcome": "P0",
+    "detail": "P1", "request_id": "P0", "client_ip": "P2", "user_agent": "P2", "occurred_at": "P0", "created_at": "P0",
+    "created_by": "P1"
+   }
+  }
+ }
+}

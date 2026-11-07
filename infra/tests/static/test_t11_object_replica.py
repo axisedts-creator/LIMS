@@ -298,7 +298,7 @@ class RoleStaticTest(unittest.TestCase):
 FAKE_RSYNC = r"""#!/usr/bin/env bash
 # local-copy emulation of the rsync subset the replica uses. Logs one line per call to $FIX/rsync.log.
 echo "$*" >> "$FIX/rsync.log"
-dry=0; chk=0; ign=0; itemize=0; fmt=""; paths=()
+dry=0; chk=0; ign=0; itemize=0; fmt=""; paths=(); partial=""
 while [ $# -gt 0 ]; do
   case "$1" in
     -e) shift;;
@@ -308,6 +308,8 @@ while [ $# -gt 0 ]; do
     --itemize-changes) itemize=1;;
     --out-format=*) fmt="${1#--out-format=}";;
     --out-format) shift; fmt="$1";;
+    --partial) partial=bare;;
+    --partial-dir=*) partial=dir;;
     --delete*|--del|--remove-source-files) echo "FORBIDDEN $1" >> "$FIX/forbidden.log";;
     --*) ;;
     -?*) f="${1#-}"; case "$f" in *n*) dry=1;; esac; case "$f" in *c*) chk=1;; esac; case "$f" in *i*) itemize=1;; esac;;
@@ -328,6 +330,12 @@ while IFS= read -r -d '' f; do
   else [ "$(stat -c '%s %Y' "$f")" = "$(stat -c '%s %Y' "$d")" ] && continue; flags='>f.st......'; fi
   line="${fmt//%i/$flags}"; line="${line//%n/$rel}"
   if [ "$dry" = 1 ]; then printf '%s\n' "$line"
+  elif [ -n "$FAKE_RSYNC_INTERRUPT" ]; then
+    # transfer cut mid-file (rsync(1) --partial): bare --partial keeps the half file under its FINAL name,
+    # --partial-dir keeps it in a side dir. Either way the run fails with exit 30 (timeout in data send/receive).
+    if [ "$partial" = bare ]; then mkdir -p "$(dirname "$d")"; head -c 3 "$f" > "$d"
+    elif [ "$partial" = dir ]; then mkdir -p "$dst/.rsync-partial"; head -c 3 "$f" > "$dst/.rsync-partial/$(basename "$d")"; fi
+    echo "rsync error: timeout in data send/receive (code 30)" >&2; exit 30
   else mkdir -p "$(dirname "$d")"; cp -p "$f" "$d"; printf '%s\n' "$line"; fi
 done < <(find "$src" -type f -print0)
 exit 0
@@ -447,6 +455,23 @@ class ReplicaBehaviourTest(unittest.TestCase):
             self.assertIn(f, real[0])
         self.assertRegex(real[0], r"((?:^|\s)-[a-zA-Z]*a[a-zA-Z]*\b|--archive)")
         self.assertRegex(real[0], r"/\s+\S+\s*$", "src keeps its trailing slash (contents, not the dir): " + real[0])
+
+    # --- review T-11 items 1/2: an interrupted file must not sit under its final name (--ignore-existing would skip it forever)
+    def test_flags_use_partial_dir_not_bare_partial(self):  # 02-TRD s9.5, 03-APP-FLOW partial transfer
+        t = uncommented(need(SCRIPT))
+        self.assertRegex(t, r"--partial-dir=\S+")
+        self.assertNotRegex(t, r"--partial(?![-\w])", "bare --partial + --ignore-existing strands truncated objects on the replica")
+
+    def test_interrupted_transfer_is_completed_by_next_run_or_shown_as_lag(self):
+        self.put("reports/big.pdf", os.urandom(2048), age=600)
+        r1 = self.run_script(extra={"FAKE_RSYNC_INTERRUPT": "1"})
+        self.assertNotEqual(r1.returncode, 0, "interrupted rsync must fail the run")
+        self.assertGreater(self.metric("object_replica_lag_seconds") or 0, 0,
+                           "truncated copy hides the pending object: lag 0 (AC-14.2 reads green with a broken copy)")
+        r2 = self.run_script()
+        self.assertEqual(r2.returncode, 0, r2.stdout + r2.stderr)
+        self.assertEqual(_sha(self.dst / "reports/big.pdf"), _sha(self.src / "reports/big.pdf"),
+                         "second run left a truncated object on the replica (AC-14.3)")
 
     # --- lag metric when the transfer cannot complete
     def test_failed_transfer_fails_run_keeps_last_success_and_shows_growing_lag(self):  # ObjectReplicaStale inputs

@@ -3,6 +3,6 @@
 - [CONV] column allowlists copied from the lab DDL; mutable = enforce_mutable_columns list where a trigger exists, else all columns minus system/key/identity (results: lock-trigger tuple frozen); tables with no `version` column are append-only.
 - [CONV] bad patch/insert key, bad ctx or bad limit (1..1000) -> `common.internal` (programming error), nothing sent; non-uuid id -> null / [] / `common.not_found`.
 - [CONV] partial-index lists repeat the index predicate as a literal IN (...) so the planner can prove it; coded sets: tenant row shadows the global row with the same code.
-- Ran: typecheck clean; static tests 11/12 pass, the 12th's table count is wrong -> see T-03-dispute.md (spec has 32 tables, test expects >=34).
-- NOT run: integration suite. run.sh stops at migration `20261105002200_storage__create_buckets.sql: ERROR: permission denied for schema storage` (harness/C0 issue, before vitest starts; run.sh also exits 0 here because of my `| tail`). EXPLAIN/index plans are unverified.
-- Open: tester fixes the harness storage grant + the count in the static test; then run the live suite, expecting possible planner tweaks.
+- Ran (after ruling, 6894c99): static tests 12/12 pass. No impl change (ruling: none required).
+- NOT run: integration suite. `bash tests/db/c5-t03/run.sh` exits 3 at migration `20261105002200_storage__create_buckets.sql:20: ERROR: permission denied for schema storage` (before vitest; harness/C0 grant, cf. .orchestra/cr/T0B-12, not writer-owned). EXPLAIN/index plans are unverified.
+- Open: tester/C0 grant lims_owner USAGE on schema storage + INSERT/UPDATE on storage.buckets in harness; then rerun live suite, expect possible planner tweaks.

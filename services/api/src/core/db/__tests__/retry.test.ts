@@ -147,7 +147,8 @@ describe('AC-0D-2.7 ctx.noRetry()', () => {
 
   it('noRetry is per request: the next request retries normally', async () => {
     const { fake, db } = mk();
-    await rejection(db.requestTx(txInput(), async (_tx: any, ctl: any) => { ctl.noRetry(); }));
+    fake.inject(/UPDATE gw/, () => pgError('40001'), 1);
+    await rejection(db.requestTx(txInput(), async (tx: any, ctl: any) => { ctl.noRetry(); await tx.query('UPDATE gw SET x = 1'); }));
     fake.inject(/UPDATE hot/, () => pgError('40001'), 1);
     let runs = 0;
     await db.requestTx(txInput(), async (tx: any) => { runs += 1; await tx.query('UPDATE hot SET n = 1'); });

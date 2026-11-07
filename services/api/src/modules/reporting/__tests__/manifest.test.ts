@@ -84,7 +84,9 @@ describe('501 stubs in dev', () => {
     // LEAD-VISIBLE TESTER EDIT (C6-T13): R6 leaves the 501 list; covered by release.handlers.test.ts.
     'releaseReportVersion',
     // LEAD-VISIBLE TESTER EDIT (C6-T14): R7 leaves the 501 list; covered by bulk-release.test.ts.
-    'bulkReleaseReportVersions']);
+    'bulkReleaseReportVersions',
+    // LEAD-VISIBLE TESTER EDIT (C6-T15): R1-R5 leave the 501 list; covered by reports-read.handlers.test.ts.
+    'listReports', 'searchReports', 'getReport', 'getReportVersion', 'downloadReportVersionPdf']);
   const stubOps = ops.filter((o: string) => !IMPLEMENTED.has(o));
   it('only already-implemented operations are excluded from the 501 list', () => expect(ops.length - stubOps.length).toBe(IMPLEMENTED.size));
   it.each(stubOps)('%s answers 501', async (op) => {

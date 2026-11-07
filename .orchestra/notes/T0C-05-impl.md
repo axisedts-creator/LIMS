@@ -1,8 +1,8 @@
-# T0C-05 impl — 20/22 codegen tests pass; 2 blocked by CR `.orchestra/cr/T0C-05.md` (spec conflict, not code)
-- Files: tools/codegen/{codegen.ts,gen-permissions.ts,gen-access-actions.ts} (new), lint-openapi.ts (export MODULE_OWNERS/PORT_MODULES), package.json (codegen scripts, tsx 4.23.15); generated outputs under contracts/ports/generated/, packages/api-client-{ts,dart}/, db/seeds/00{1,3}_*.sql, packages/shared-ts/src/routes/generated.ts, packages/shared-dart/lib/src/{error_codes,routes}.g.dart (02-TRD §5.3 hand-off paths owned by 0A/0B).
-- Blocked: real permissions.yaml has `engagement.booking.cancel` (roles [front_desk]) in the patient fixed set; 08 §4.1 allows only `identity.self.manage` → R3. Fails "real yaml no violations" + "CLI --check exits 0". No exception invented.
-- [CONV] generateAll is sync (test API), so openapi-typescript / json-schema-to-typescript / openapi-generator dart-dio are not used: in-house schema→TS emitting openapi-typescript-shaped `paths`/`operations`; client.ts uses openapi-fetch 0.17.0 createClient (typechecked against a temp install); Dart client = dependency-free per-domain library over a `LimsTransport` typedef.
-- [CONV] C4 → modules frontdesk+billing in PORT_CONSUMERS/EVENT_CONSUMERS; "all" = every module except owner; C1 (metrics) omitted; access-action display = code; g_permissions.module = first code segment, phase default '1'.
-- CLI: rule violations print + exit 1 (write and --check); generation itself never throws on rules.
-- Open: packages/api-client-ts has no package.json (adding one needs a pnpm-lock entry, 0A); `pnpm codegen` root script (0A); lims_shared.dart export of the .g.dart files (0A); wire PORT_CONSUMERS into lint-openapi portConsumers; dart analyze not run (needed approval).
-- Pre-existing, not T0C-05: `pnpm install --frozen-lockfile` fails (no importer for packages/ui, CR T0D-12).
+# T0C-05 impl (round 2: review items 1-2, LD-01, LD-03) — codegen 24/24 + all tools/codegen 176 pass; contracts 248/250 (see T0C-05-dispute.md)
+- Files: tools/codegen/{codegen.ts,gen-permissions.ts (LD-01 patient exception),gen-access-actions.ts}, lint-openapi.ts, package.json; generated outputs in contracts/ports/generated/, packages/api-client-{ts,dart}/, db/seeds/00{1,3}_*.sql, shared-ts routes, shared-dart .g.dart (02-TRD §5.3 hand-off paths).
+- Round 2: contracts/package.json "exports" for ./ports/common and ./ports/generated/error-codes (LD-03); contracts/ports/common.ts LimsError: no parameter properties, fields declared, assigned in the constructor (LD-03); ERROR_META already emitted.
+- [CONV] LimsError assigns safeDetail/fieldErrors only when defined (exactOptionalPropertyTypes).
+- [CONV] generateAll is sync: in-house schema→TS (openapi-typescript-shaped), client.ts on openapi-fetch 0.17.0, Dart client dependency-free over `LimsTransport`.
+- [CONV] C4 → frontdesk+billing consumers; "all" = every module except owner; g_permissions.module = first code segment, phase '1'.
+- Dispute: 2 T0C-02 ports.test.ts assertions require the parameter-property form that LD-03 forbids.
+- Open (0A): api-client-ts package.json + lock, root `pnpm codegen`, lims_shared.dart exports, pnpm-workspace `- contracts`; dart analyze not run.

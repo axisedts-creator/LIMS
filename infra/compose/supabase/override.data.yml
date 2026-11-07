@@ -1,7 +1,7 @@
 # data-1: db + pgbouncer only (02-TRD s7.2). Layered over upstream/docker-compose.yml and
 # upstream/docker-compose.pgbouncer.yml:  up -d db pgbouncer   (project name `supabase`).
 # Needs Compose >= 2.24.4 (`!reset`, `!override`). Values come from env (WG_IP = data-1 wg address).
-# The pgbouncer.ini mount is left out on purpose: T-07 decides env vs ini (TRD s7.2 "UNVERIFIED").
+# T-07: PgBouncer config comes from the rendered ini (TRD s7.6), not the image's env generation.
 services:
   supavisor: !reset null
   db:
@@ -23,5 +23,10 @@ services:
     image: edoburu/pgbouncer@sha256:7d7a27d9e90985cab5cf42256f5c13a3120baa4b055b69df37beb272b89b2340
     ports: !override
       - "${WG_IP:?WG_IP (data-1 wg address) required}:6432:6432"
+    volumes:
+      # rendered from pgbouncer.ini.j2 (entrypoint skips env generation)
+      - ../../database/pgbouncer/pgbouncer.ini:/etc/pgbouncer/pgbouncer.ini:ro
+      # auth_file: `pgbouncer` credential only; lims_api via auth_query
+      - /run/lims/secrets/pgbouncer/userlist.txt:/etc/pgbouncer/userlist.txt:ro
     mem_limit: 256m
     pids_limit: 128

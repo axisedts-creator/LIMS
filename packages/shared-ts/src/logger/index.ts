@@ -32,7 +32,7 @@ const DENY = [
   'registration_no', 'barcode', 'sample_no', 'lab_no', 'accession', 'url', 'qr',
   'result_value', 'interpretation', 'diagnos', 'clinical', 'trf', 'report_content', 'report_text',
   'password', 'passwd', 'otp', 'jwt', 'token', 'cookie', 'authorization', 'secret', 'api_key', 'apikey',
-  'card', 'wallet',
+  'card', 'wallet', 'comment', 'critical', 'test_name', 'panel_name', 'smart_report',
 ];
 
 /** Value scrubbers (CV §9.2): keyword-labelled values in free text ("otp 482913", "barcode=BC-1"),
@@ -41,7 +41,7 @@ const SCRUB: [RegExp, string][] = [
   [/\b(barcode|sample_no|lab_no|otp|pin|password|passwd|token|phone|mobile)(\s*[:=]\s*|\s+)\S*\d\S*/gi, `$1$2${R}`],
   [/\b(Bearer|Basic)\s+\S+/gi, `$1 ${R}`],
   [/[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}/g, R],
-  [/(?<![0-9A-Za-z])(?:\+?977[-\s]?)?9[78]\d{8}(?![0-9A-Za-z])/g, R],
+  [/(?<![0-9A-Za-z])(?:\+?977[-\s]?)?9\d{9}(?![0-9A-Za-z])/g, R],
 ];
 
 /** Fields the logger owns; callers can never overwrite them. */
@@ -82,7 +82,12 @@ function wrap(p: pino.Logger): Logger {
     try { f = clean(fields); } catch { f = { log_fields_dropped: true }; } // logging never throws (e.g. throwing getters)
     p[lvl](f, scrubStr(String(msg)));
   };
-  return { child: (ctx) => wrap(p.child(clean(ctx))), debug: at('debug'), info: at('info'), warn: at('warn'), error: at('error') };
+  const child = (ctx: LogContext): Logger => {
+    let c: Record<string, unknown>;
+    try { c = clean(ctx); } catch { c = { log_fields_dropped: true }; } // child() never throws either
+    return wrap(p.child(c));
+  };
+  return { child, debug: at('debug'), info: at('info'), warn: at('warn'), error: at('error') };
 }
 
 export function createLogger(opts: LoggerOptions): Logger {

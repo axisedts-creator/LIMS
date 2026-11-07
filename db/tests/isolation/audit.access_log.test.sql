@@ -33,6 +33,9 @@ CREATE FUNCTION pg_temp.ucol(p_tbl regclass) RETURNS text LANGUAGE sql AS $$
   SELECT CASE WHEN EXISTS (SELECT 1 FROM pg_attribute WHERE attrelid = p_tbl AND attname = 'updated_at' AND NOT attisdropped) THEN 'updated_at' ELSE pg_temp.tcol(p_tbl) END $$;
 CREATE FUNCTION pg_temp.owncol(p_tbl regclass) RETURNS text LANGUAGE sql AS $$
   SELECT CASE WHEN EXISTS (SELECT 1 FROM pg_attribute WHERE attrelid = p_tbl AND attname = 'actor_id' AND NOT attisdropped) THEN 'actor_id' ELSE 'created_by' END $$;
+-- row count of a query as the calling (super)user: step-1 preconditions, so a probe fails instead of passing on an empty table
+CREATE FUNCTION pg_temp.n(p_sql text) RETURNS bigint LANGUAGE plpgsql AS $f$
+DECLARE n bigint; BEGIN EXECUTE 'SELECT count(*) FROM (' || p_sql || ') t' INTO n; RETURN n; END $f$;
 CREATE FUNCTION pg_temp.q(p_fmt text, p_tbl regclass) RETURNS text LANGUAGE sql AS $$
   SELECT format(p_fmt, p_tbl, pg_temp.tcol(p_tbl), pg_temp.ucol(p_tbl)) $$;
 -- step 6: one INSERT per composite FK that carries the tenant column: a copy of a tenant-A row of T whose other FK columns point at a
@@ -63,6 +66,32 @@ BEGIN
   END LOOP;
 END $f$;
 
+-- INSERT of a copy of the first row of p_tbl matching p_where (read as the superuser), so only RLS can refuse it (no NOT NULL noise)
+CREATE FUNCTION pg_temp.copy(p_tbl regclass, p_where text) RETURNS text LANGUAGE plpgsql AS $f$
+DECLARE r jsonb; cols text;
+BEGIN
+  EXECUTE format('SELECT to_jsonb(t) FROM %s t WHERE %s LIMIT 1', p_tbl, p_where) INTO r;
+  IF r ? 'id' THEN r := r || jsonb_build_object('id', gen_random_uuid()); END IF;   -- no PK collision with the source row
+  SELECT string_agg(quote_ident(attname), ', ' ORDER BY attnum) INTO cols FROM pg_attribute
+   WHERE attrelid = p_tbl AND attnum > 0 AND NOT attisdropped AND attgenerated = '' AND attidentity <> 'a';
+  RETURN format('INSERT INTO %s (%s) SELECT %s FROM jsonb_populate_record(NULL::%s, %L::jsonb)', p_tbl, cols, cols, p_tbl, r);
+END $f$;
+-- step 6 runner: the rows of p_tbl are removed first (superuser, replica mode, inside a rolled-back subtransaction) so a
+-- natural-key UNIQUE collision with the copied row cannot mask the composite-FK check; returns pg_temp.x's result.
+CREATE FUNCTION pg_temp.fk_try(p_tbl regclass, p_stmt text) RETURNS text LANGUAGE plpgsql AS $f$
+DECLARE r text;
+BEGIN
+  BEGIN
+    SET LOCAL session_replication_role = replica;
+    EXECUTE format('DELETE FROM %s', p_tbl);   -- both tenants: some natural keys are global (e.g. memberships__user_id__p_uq)
+    SET LOCAL session_replication_role = origin;
+    r := pg_temp.x('lims_api', pg_temp.cl('user', '32', '42'), p_stmt, 'w');
+    RAISE EXCEPTION USING ERRCODE = 'P0001', MESSAGE = 'probe_rollback';
+  EXCEPTION WHEN raise_exception THEN NULL;
+  END;
+  RETURN r;
+END $f$;
+
 -- probe step 1: fixtures. Rows of tenant A and B (+ centres A1/A2) for the core tables; module rows come from db/seeds.
 SET LOCAL session_replication_role = replica;
 INSERT INTO core.tenants (id, tenant_code, legal_name, display_name, status, created_by, updated_by) VALUES
@@ -88,20 +117,53 @@ INSERT INTO core.memberships (id, tenant_id, user_id, actor_type, all_centres, p
   (pg_temp.id('44'), pg_temp.id('01'), pg_temp.id('34'), 'patient', false, NULL,             pg_temp.id('99'), pg_temp.id('99')),
   (pg_temp.id('45'), pg_temp.id('01'), pg_temp.id('35'), 'partner', false, 'partner_member', pg_temp.id('99'), pg_temp.id('99')) ON CONFLICT DO NOTHING;
 INSERT INTO core.membership_centres (tenant_id, membership_id, centre_id, created_by) VALUES
-  (pg_temp.id('01'), pg_temp.id('41'), pg_temp.id('21'), pg_temp.id('99')) ON CONFLICT DO NOTHING;
+  (pg_temp.id('01'), pg_temp.id('41'), pg_temp.id('21'), pg_temp.id('99')),
+  (pg_temp.id('02'), pg_temp.id('43'), pg_temp.id('23'), pg_temp.id('99')) ON CONFLICT DO NOTHING;
+INSERT INTO core.roles (id, tenant_id, role_code, display_name, created_by, updated_by) VALUES
+  (pg_temp.id('51'), pg_temp.id('01'), 'probe_role_a', 'Probe role A', pg_temp.id('99'), pg_temp.id('99')),
+  (pg_temp.id('52'), pg_temp.id('02'), 'probe_role_b', 'Probe role B', pg_temp.id('99'), pg_temp.id('99')) ON CONFLICT DO NOTHING;
+INSERT INTO core.role_permissions (tenant_id, role_id, permission_code, created_by) VALUES
+  (pg_temp.id('01'), pg_temp.id('51'), 'probe.fixture.read', pg_temp.id('99')),
+  (pg_temp.id('02'), pg_temp.id('52'), 'probe.fixture.read', pg_temp.id('99')) ON CONFLICT DO NOTHING;
+INSERT INTO core.membership_roles (tenant_id, membership_id, role_id, created_by) VALUES
+  (pg_temp.id('01'), pg_temp.id('41'), pg_temp.id('51'), pg_temp.id('99')),
+  (pg_temp.id('02'), pg_temp.id('43'), pg_temp.id('52'), pg_temp.id('99')) ON CONFLICT DO NOTHING;
+INSERT INTO core.membership_branches (tenant_id, membership_id, branch_id, created_by) VALUES
+  (pg_temp.id('01'), pg_temp.id('41'), pg_temp.id('11'), pg_temp.id('99')),
+  (pg_temp.id('02'), pg_temp.id('43'), pg_temp.id('12'), pg_temp.id('99')) ON CONFLICT DO NOTHING;
+-- audit tables (centre-scoped): tenant A rows on centres A1 and A2, a tenant B row; access_log also one row per step-9 fixture actor
+INSERT INTO audit.audit_log (id, tenant_id, centre_id, schema_name, table_name, row_id, action, actor_id, actor_type, created_by) VALUES
+  (pg_temp.id('81'), pg_temp.id('01'), pg_temp.id('21'), 'core', 'users', pg_temp.id('31'), 'UPDATE', pg_temp.id('32'), 'user', pg_temp.id('32')),
+  (pg_temp.id('82'), pg_temp.id('01'), pg_temp.id('22'), 'core', 'users', pg_temp.id('32'), 'UPDATE', pg_temp.id('32'), 'user', pg_temp.id('32')),
+  (pg_temp.id('83'), pg_temp.id('02'), pg_temp.id('23'), 'core', 'users', pg_temp.id('33'), 'UPDATE', pg_temp.id('33'), 'user', pg_temp.id('33')) ON CONFLICT DO NOTHING;
+INSERT INTO audit.access_log (id, tenant_id, centre_id, actor_id, actor_type, action, entity_type, outcome, created_by) VALUES
+  (pg_temp.id('71'), pg_temp.id('01'), pg_temp.id('21'), pg_temp.id('32'), 'user',    'report.view', 'report', 'allowed', pg_temp.id('32')),
+  (pg_temp.id('72'), pg_temp.id('01'), pg_temp.id('22'), pg_temp.id('32'), 'user',    'report.view', 'report', 'allowed', pg_temp.id('32')),
+  (pg_temp.id('73'), pg_temp.id('01'), pg_temp.id('21'), pg_temp.id('35'), 'partner', 'report.view', 'report', 'allowed', pg_temp.id('35')),
+  (pg_temp.id('74'), pg_temp.id('01'), pg_temp.id('21'), pg_temp.id('a3'), 'portal',  'report.view', 'report', 'allowed', pg_temp.id('a3')),
+  (pg_temp.id('75'), pg_temp.id('01'), pg_temp.id('21'), pg_temp.id('34'), 'patient', 'report.view', 'report', 'allowed', pg_temp.id('34')),
+  (pg_temp.id('76'), pg_temp.id('02'), pg_temp.id('23'), pg_temp.id('33'), 'user',    'report.view', 'report', 'allowed', pg_temp.id('33')) ON CONFLICT DO NOTHING;
 SET LOCAL session_replication_role = origin;
 
+-- probe step 1: preconditions (as the superuser, before any SET ROLE): the rows the later steps filter really exist
+SELECT ok(pg_temp.n(pg_temp.q('SELECT 1 FROM %s WHERE %I = pg_temp.id(''01'')', 'audit.access_log'::regclass)) > 0, 'probe step 1: tenant A rows of audit.access_log seeded');
+SELECT ok(pg_temp.n(pg_temp.q('SELECT 1 FROM %s WHERE %I = pg_temp.id(''02'')', 'audit.access_log'::regclass)) > 0, 'probe step 1: tenant B rows of audit.access_log seeded');
+SELECT ok(pg_temp.n('SELECT 1 FROM audit.access_log WHERE tenant_id = pg_temp.id(''01'') AND centre_id = pg_temp.id(''21'')') > 0, 'probe step 1: centre A1 rows of audit.access_log seeded');
+SELECT ok(pg_temp.n('SELECT 1 FROM audit.access_log WHERE tenant_id = pg_temp.id(''01'') AND centre_id = pg_temp.id(''22'')') > 0, 'probe step 1: centre A2 rows of audit.access_log seeded');
+SELECT ok(pg_temp.n(format('SELECT 1 FROM audit.access_log WHERE %I = pg_temp.id(''35'')', pg_temp.owncol('audit.access_log'::regclass))) > 0, 'probe step 1: partner fixture actor rows of audit.access_log seeded');
+SELECT ok(pg_temp.n(format('SELECT 1 FROM audit.access_log WHERE %I = pg_temp.id(''a3'')', pg_temp.owncol('audit.access_log'::regclass))) > 0, 'probe step 1: portal fixture actor rows of audit.access_log seeded');
+SELECT ok(pg_temp.n(format('SELECT 1 FROM audit.access_log WHERE %I = pg_temp.id(''34'')', pg_temp.owncol('audit.access_log'::regclass))) > 0, 'probe step 1: patient fixture actor rows of audit.access_log seeded');
 -- probe step 2/3/4: lims_api, claims of tenant A (all-centres staff): no tenant B row visible, insertable or changeable (expect 0 rows / 42501)
 SELECT is(pg_temp.x('lims_api', pg_temp.cl('user', '32', '42'), pg_temp.q('SELECT 1 FROM %s WHERE %I = pg_temp.id(''02'')', 'audit.access_log'::regclass), 'n'), 'n=0', 'probe step 2: tenant A claims see 0 tenant B rows of audit.access_log');
 SELECT is(pg_temp.x('lims_api', pg_temp.cl('user', '32', '42'), pg_temp.q('INSERT INTO %s (%I) VALUES (pg_temp.id(''02''))', 'audit.access_log'::regclass), 'w'), 'E42501', 'probe step 3: INSERT of a tenant B row into audit.access_log -> 42501');
 SELECT is(pg_temp.x('lims_api', pg_temp.cl('user', '32', '42'), pg_temp.q('UPDATE %1$s SET %3$I = %3$I WHERE %2$I = pg_temp.id(''02'')', 'audit.access_log'::regclass), 'w'), pg_temp.want('lims_api', 'audit.access_log'::regclass, 'UPDATE', pg_temp.ucol('audit.access_log'::regclass)), 'probe step 4: UPDATE of tenant B rows of audit.access_log affects 0 rows');
 -- probe step 5: centre-A1 membership sees no centre A2 row and cannot insert one (42501)
 SELECT is(pg_temp.x('lims_api', pg_temp.cl('user', '31', '41'), 'SELECT 1 FROM audit.access_log WHERE centre_id = pg_temp.id(''22'')', 'n'), 'n=0', 'probe step 5: centre A1 claims see 0 centre A2 rows of audit.access_log');
-SELECT is(pg_temp.x('lims_api', pg_temp.cl('user', '31', '41'), 'INSERT INTO audit.access_log (tenant_id, centre_id) VALUES (pg_temp.id(''01''), pg_temp.id(''22''))', 'w'), 'E42501', 'probe step 5: centre A1 claims INSERT a centre A2 row into audit.access_log -> 42501');
+SELECT is(pg_temp.x('lims_api', pg_temp.cl('user', '31', '41'), pg_temp.copy('audit.access_log'::regclass, 'tenant_id = pg_temp.id(''01'') AND centre_id = pg_temp.id(''22'')'), 'w'), 'E42501', 'probe step 5: centre A1 claims INSERT a centre A2 row into audit.access_log -> 42501');
 -- probe step 6: every composite FK carrying the tenant column (pg_constraint): tenant A row referencing a tenant B parent -> 23503 or 42501
 SELECT CASE WHEN f.stmt IS NULL THEN skip('probe step 6: ' || f.conname || ' on audit.access_log: no tenant A row of the table or no tenant B parent row seeded', 1)
-            ELSE ok(pg_temp.x('lims_api', pg_temp.cl('user', '32', '42'), f.stmt, 'w') IN ('E23503', 'E42501'), 'probe step 6: ' || f.conname || ' on audit.access_log refuses a tenant B parent (23503/42501)') END
-  FROM pg_temp.fk_probes('audit.access_log'::regclass) f;
+            ELSE is(CASE WHEN r.v IN ('E23503', 'E42501') THEN 'refused' ELSE r.v END, 'refused', 'probe step 6: ' || f.conname || ' on audit.access_log refuses a tenant B parent (23503/42501)') END
+  FROM pg_temp.fk_probes('audit.access_log'::regclass) f CROSS JOIN LATERAL (SELECT CASE WHEN f.stmt IS NULL THEN NULL ELSE pg_temp.fk_try('audit.access_log'::regclass, f.stmt) END AS v) r;
 SELECT pass('probe step 6: audit.access_log has no composite tenant FK') WHERE NOT EXISTS (SELECT 1 FROM pg_temp.fk_probes('audit.access_log'::regclass));
 -- probe step 7: no claims -> fail closed (AC-0B-3.7)
 SELECT is(pg_temp.x('lims_api', '', 'SELECT 1 FROM audit.access_log', 'n'), 'n=0', 'probe step 7: lims_api without claims reads 0 rows of audit.access_log');

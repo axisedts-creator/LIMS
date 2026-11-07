@@ -1,8 +1,8 @@
-# T0B-08 impl (writer)
-- Files: new `db/tools/gen-isolation-probes.ts` (CLI per test header; reuses `sql-lib.ts` rootDir/readYaml); generated + committed `db/tests/isolation/_registry.sql` and 12 `<schema>.<table>.test.sql` probes (real registry). No test file edited.
-- [CONV] Probes are catalog-driven at run time (tenant column `tenant_id`/`id`, UPDATE column `updated_at`/tenant col, owner column `actor_id`/`created_by`, grants via has_*_privilege, composite FKs via pg_constraint) so the generator needs no column knowledge beyond tables.yaml.
-- [CONV] Step 4 expects `n=0` where the role holds the privilege, else `E42501`; DELETE probe emitted only for class M. Step 6 copies a tenant-A row and repoints FK cols at a tenant-B parent; explicit `skip()` when no such rows are seeded.
-- [CONV] Step 1 seeds core fixtures (tenants A/B, centres A1/A2, staff/partner/patient memberships) inline, same ids as T0B-03 tests; module rows rely on db/seeds. `probe_fixture:` (02-TRD §4.5 step 1) not yet supported.
-- `--check` also flags orphan generated files and a stale `_registry.sql`; write mode deletes orphans. Hand-written `T0B-08_*.test.sql` in the dir are ignored.
-- Ran: `node --test tests/db/T0B-08.suites.test.mjs` 41/41 pass; all `tests/db/*.test.mjs` 170/170 pass.
-- Open: live pgTAP (`bash db/tests/run-suites.sh`, image present locally) NOT run — command needed approval. Expect first-run shakeout of the generated probes and tester pgTAP suites.
+# T0B-08 impl (writer, review round)
+- Files: `db/tools/gen-isolation-probes.ts`; regenerated `db/tests/isolation/*` (12 probes + `_registry.sql`). No test file edited. CR: `.orchestra/cr/T0B-08.md`.
+- Review 1 [CONV]: step-1 seeds inline in the generator (writer may not add `db/tests/fixtures/**`): tenant A+B rows for all 12 tables, centres A1/A2 on audit tables, access_log rows per step-9 actor. `probe_fixture:` still unsupported (later chunks add seeds there).
+- Review 2: step-1 preconditions as superuser (tenant A/B rows, centre A1/A2 rows, fixture-actor rows) -> missing fixture fails, not passes.
+- [CONV] step 5 INSERT and step 6 use full-row copies; step 6 runs in a rolled-back subtxn with T emptied so UNIQUE keys (e.g. memberships__user_id__p_uq) cannot mask the FK; step 6 now prints `have`.
+- Review 3 live run (`bash db/tests/run-suites.sh`, supabase/postgres:17.6.1.136): elapsed 59 s (first cold run 169 s), <= 600 s. Probes: 10/12 files clean; 7 `not ok` = CR-C0-T0B-08 (scope trigger 23514 on membership_{centres,branches} steps 3/6/8; access_log INSERT has no centre clause, step 5 n=1 = real centre gap).
+- Non-probe `not ok` / aborts (tester or earlier-task files, not mine): T0B-02 #56 default ACL; T0B-03_isolation #39 (same 23514); T0B-04_audit + roles/00 collation error in results_eq; T0B-06 `like(text,unknown,unknown)`; contracts_platform needs core.event_log (T0B-05); policy_shape #1 rls_exempt; roles #42-48 SET ROLE.
+- Ran: `node --test tests/db/*.test.mjs` 170/170; `gen-isolation-probes.ts --check` ok.

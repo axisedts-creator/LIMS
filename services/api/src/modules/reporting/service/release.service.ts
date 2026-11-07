@@ -13,7 +13,7 @@ export const DISPATCH_MAX_ATTEMPTS = 10;
 const ELIGIBLE_BASES = new Set(['paid_in_full', 'zero_balance', 'credit_party', 'override', 'policy_not_enforced']);
 const HOLD_BASES = new Set(['due_outstanding', 'no_invoice']);
 
-interface Tx { query(sql: string, values?: unknown[]): Promise<{ rows: any[] }> }
+interface Tx { query(sql: string, values?: unknown[]): Promise<{ rows: any[] }>; savepoint?<T>(fn: (tx: any) => Promise<T>): Promise<T> }
 export interface ReleaseCtx {
   readonly tx: Tx;
   readonly tenantId: string;
@@ -23,7 +23,7 @@ export interface ReleaseCtx {
   readonly audit?: { access(entry: Record<string, unknown>): Promise<void> };
   now?(): string;
 }
-export interface ReleaseOpts { mode: 'manual' | 'auto'; expectedVersion?: number | undefined; audiences?: readonly string[] | undefined; suppressNotifications?: boolean | undefined }
+export interface ReleaseOpts { mode: 'manual' | 'auto' | 'bulk'; expectedVersion?: number | undefined; audiences?: readonly string[] | undefined; suppressNotifications?: boolean | undefined }
 export type ReleaseOutcome =
   | { kind: 'released'; id: string; versionNo: number; version: number; releasedAt: string; releaseBasis: string; audiences: string[]; supersedesVersionNo: number | null; row: Record<string, any> }
   | { kind: 'held'; basis: string }
@@ -56,8 +56,9 @@ async function computedAudiences(ctx: ReleaseCtx, report: Record<string, any>): 
 }
 
 export async function releaseVersion(ctx: ReleaseCtx, versionId: string, o: ReleaseOpts): Promise<ReleaseOutcome> {
-  const { tx, tenantId } = ctx; const auto = o.mode === 'auto';
-  const stop = (code: string): ReleaseOutcome => { if (auto) return { kind: 'skipped', reason: code }; throw new LimsError(code as any); };
+  const { tx, tenantId } = ctx; const auto = o.mode === 'auto'; const bulk = o.mode === 'bulk';
+  // auto and bulk report a skip instead of throwing (bulk maps the reason to a per-id outcome; R7 has no If-Match).
+  const stop = (code: string): ReleaseOutcome => { if (auto || bulk) return { kind: 'skipped', reason: code }; throw new LimsError(code as any); };
   const now = iso(ctx.now ? ctx.now() : new Date().toISOString())!;
   if (ctx.actor.type === 'user' && !ctx.audit) throw new LimsError('common.internal');   // CR-C6-008: report.release access log is mandatory for user actors (fail closed)
 
@@ -66,8 +67,8 @@ export async function releaseVersion(ctx: ReleaseCtx, versionId: string, o: Rele
   const r = await repo.lockReportForRelease(tx, tenantId, v.report_id);
   if (!r) return stop('common.not_found');
   if (r.state === 'cancelled') return stop('reporting.report_cancelled');
-  if (v.status !== 'rendered') return stop('reporting.release_not_ready');
-  if (!auto && v.version !== o.expectedVersion) throw new LimsError('common.version_conflict');
+  if (v.status !== 'rendered') return stop(bulk && v.status === 'released' ? 'already_released' : 'reporting.release_not_ready');
+  if (o.mode === 'manual' && v.version !== o.expectedVersion) throw new LimsError('common.version_conflict');
   if (await repo.hasNewerVersion(tx, tenantId, v.report_id, v.version_no)) return stop('reporting.version_not_latest');
   if (auto) {
     const s = await findSettings(tx, tenantId);
@@ -76,6 +77,7 @@ export async function releaseVersion(ctx: ReleaseCtx, versionId: string, o: Rele
 
   const el = await eligibility(ctx, r.order_id);
   if (!el.eligible) {
+    if (bulk) return { kind: 'held', basis: el.basis };                              // R7 answers blocked_due and writes nothing (no hold metadata, rows untouched)
     // 02-TRD §4.6 rule 2 extension members; core toProblem does not emit them yet (.orchestra/cr/C6-T13.md).
     if (!auto) throw Object.assign(new LimsError('reporting.release_blocked_due'), { extensions: { release_basis: el.basis, balance_due_paisa: el.balanceDuePaisa } });
     // [CONV] the hold columns are system metadata: no `version` bump, so a user's If-Match from the worklist is not invalidated by every sweep.
@@ -121,4 +123,35 @@ export async function releaseVersion(ctx: ReleaseCtx, versionId: string, o: Rele
   }
   return { kind: 'released', id: versionId, versionNo: v.version_no, version: done.version, releasedAt: now, releaseBasis: el.basis, audiences, supersedesVersionNo: supersedes,
     row: { report_kind: v.report_kind, completeness: v.completeness, page_count: v.page_count, pdf_bytes: v.pdf_bytes, rendered_at: v.rendered_at } };
+}
+
+// ---- R7 bulk release (02-TRD §4.6 rule 7, §6.3 R7; 03-APP-FLOW E5) ----
+export type BulkOutcome = 'released' | 'blocked_due' | 'not_ready' | 'not_latest' | 'already_released' | 'cancelled' | 'not_found';
+export interface BulkResult { id: string; outcome: BulkOutcome; release_basis?: string }
+const SKIP_OUTCOME: Readonly<Record<string, BulkOutcome>> = Object.freeze({
+  'common.not_found': 'not_found', 'reporting.report_cancelled': 'cancelled', 'reporting.version_not_latest': 'not_latest', already_released: 'already_released',
+  'reporting.release_not_ready': 'not_ready',
+});
+
+/** Tenant limit: settings.bulk_release_max (no row -> 200). Throws reporting.bulk_release_too_large before any id is read. */
+export async function assertBulkLimit(ctx: ReleaseCtx, count: number): Promise<void> {
+  const max = (await findSettings(ctx.tx, ctx.tenantId))?.bulk_release_max ?? 200;
+  if (count > max) throw new LimsError('reporting.bulk_release_too_large');
+}
+
+/** One savepoint per id: a failing id rolls back alone (rows, event, job, access log) and is answered not_ready [CONV: the R7 enum has no "error"]; the others go on. */
+export async function bulkRelease(ctx: ReleaseCtx, ids: readonly string[]): Promise<BulkResult[]> {
+  const out: BulkResult[] = [];
+  for (const id of ids) {
+    try {
+      const r = await (ctx.tx.savepoint ? ctx.tx.savepoint((t) => releaseVersion({ ...ctx, tx: t }, id, { mode: 'bulk' })) : releaseVersion(ctx, id, { mode: 'bulk' }));
+      if (r.kind === 'released') out.push({ id, outcome: 'released', release_basis: r.releaseBasis });
+      else if (r.kind === 'held') out.push({ id, outcome: 'blocked_due' });
+      else out.push({ id, outcome: SKIP_OUTCOME[r.reason] ?? 'not_ready' });
+    } catch (e) {
+      (ctx as any).log?.warn?.({ code: (e as any)?.code ?? 'unknown' }, 'bulk release: id rolled back');   // code only, never input or PHI
+      out.push({ id, outcome: 'not_ready' });
+    }
+  }
+  return out;
 }

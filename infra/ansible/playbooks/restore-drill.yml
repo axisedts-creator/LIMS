@@ -34,6 +34,10 @@
       {{ drill_repo_checkout | default('/srv/lims/drill-repo') }}
     drill_skip_pr: false
     drill_container: drill-pg
+    # [CONV] dedicated bridge for drill-pg; egress only to dr wg_ip:2222
+    # (02-TRD s9.6 step 1), enforced in DOCKER-USER
+    drill_net: drill-net
+    drill_net_subnet: "{{ drill_net_subnet_cidr | default('172.31.250.0/24') }}"
     # UNVERIFIED uid of postgres in the image; same value as role pgbackrest
     drill_pg_uid: "{{ pgbackrest_pg_uid | default(101) }}"
     drill_pg_superuser: supabase_admin  # pg1-user of pgbackrest.conf.j2
@@ -258,6 +262,33 @@
             mode: "0600"
           no_log: true
 
+        # 02-TRD s9.6 step 1: "no network except wg0 to dr-1:2222". The
+        # container holds PHI, so the default bridge (open egress) is not used.
+        - name: Dedicated network for drill-pg
+          ansible.builtin.command:
+            argv:
+              - docker
+              - network
+              - create
+              - --driver=bridge
+              - --subnet={{ drill_net_subnet }}
+              - "{{ drill_net }}"
+          changed_when: true
+
+        # -I puts each rule first: ACCEPT (inserted last) precedes DROP.
+        - name: DOCKER-USER - drop all other egress from the drill network
+          ansible.builtin.command:
+            argv: [iptables, -I, DOCKER-USER, -s, "{{ drill_net_subnet }}",
+                   -j, DROP]
+          changed_when: true
+
+        - name: DOCKER-USER - allow drill network to dr SFTP only
+          ansible.builtin.command:
+            argv: [iptables, -I, DOCKER-USER, -s, "{{ drill_net_subnet }}",
+                   -d, "{{ hostvars[groups['dr'][0]].wg_ip }}", -o, wg0,
+                   -p, tcp, --dport=2222, -j, ACCEPT]
+          changed_when: true
+
         # 03-APP-FLOW s4.3: no published port, no host network; Postgres
         # binds 127.0.0.1 in the container with archive_mode=off and
         # max_wal_senders=0 (restore.sh).
@@ -268,6 +299,7 @@
               - run
               - -d
               - --name={{ drill_container }}
+              - --network={{ drill_net }}
               - --user=postgres
               - --entrypoint=sleep
               - --volume={{ drill_mnt }}/pgdata:/var/lib/postgresql/data
@@ -405,34 +437,6 @@
               {{ drill_check_states | dict2items
               | selectattr('value', 'eq', 'FAIL') | list | length }}
 
-        - name: Report - metrics, Markdown drill log, PR (report.sh)
-          ansible.builtin.command:
-            argv: ["{{ drill_lib }}/report.sh"]
-          environment:
-            DRILL_STATE: >-
-              {{ 'succeeded' if drill_checks_failed | int == 0
-              else 'succeeded_with_failures' }}
-            DRILL_RTO_SECONDS: "{{ drill_rto }}"
-            DRILL_TARGET_TIME: "{{ drill_target_time }}"
-            DRILL_VERIFIED_LSN: "{{ drill_lsn }}"
-            DRILL_CHECKS_TOTAL: "{{ drill_checks_total }}"
-            DRILL_CHECKS_FAILED: "{{ drill_checks_failed }}"
-            DRILL_OBJECTS_SAMPLED: >-
-              {{ drill_objects.stdout_lines
-              | select('match', 'objects_sampled=') | first
-              | default('') | replace('objects_sampled=', '') }}
-            DRILL_OBJECTS_MISMATCHED: >-
-              {{ drill_objects.stdout_lines
-              | select('match', 'objects_mismatched=') | first
-              | default('') | replace('objects_mismatched=', '') }}
-            TEXTFILE_DIR: "{{ drill_textfile_dir }}"
-            DRILL_LOG_DIR: "{{ drill_repo_dir }}/infra/runbooks/drill-log"
-            DRILL_REPO_DIR: "{{ drill_repo_dir }}"
-            DRILL_SKIP_PR: "{{ '1' if drill_skip_pr | bool else '0' }}"
-          register: drill_report
-          changed_when: true
-          failed_when: drill_report.rc not in [0, 3]
-
       rescue:
         - name: Report the failed/aborted drill (report.sh; no success time)
           ansible.builtin.command:
@@ -479,6 +483,27 @@
           failed_when: >-
             drill_rm.rc != 0 and 'No such container' not in drill_rm.stderr
 
+        - name: DOCKER-USER - delete the drill network egress rules
+          ansible.builtin.command:
+            argv: "{{ ['iptables', '-D', 'DOCKER-USER'] + item }}"
+          loop:
+            - [-s, "{{ drill_net_subnet }}",
+               -d, "{{ hostvars[groups['dr'][0]].wg_ip }}", -o, wg0,
+               -p, tcp, --dport=2222, -j, ACCEPT]
+            - [-s, "{{ drill_net_subnet }}", -j, DROP]
+          register: drill_fw_del
+          changed_when: drill_fw_del.rc == 0
+          failed_when: >-
+            drill_fw_del.rc != 0
+            and 'does a matching rule exist' not in drill_fw_del.stderr
+
+        - name: Remove the drill network
+          ansible.builtin.command: "docker network rm {{ drill_net }}"
+          register: drill_net_rm
+          changed_when: drill_net_rm.rc == 0
+          failed_when: >-
+            drill_net_rm.rc != 0 and 'not found' not in drill_net_rm.stderr
+
         - name: Unmount the scratch LV
           ansible.builtin.command: "umount {{ drill_mnt }}"
           register: drill_umount
@@ -506,6 +531,37 @@
           ansible.builtin.file:
             path: /var/lock/lims-drill  # = drill_lock (literal, greppable)
             state: absent
+
+    # 03-APP-FLOW s4.1: cleaning -> succeeded only once the LV is discarded
+    # and removed; any_errors_fatal stops the play before this if `always`
+    # failed, so the success timestamp is never written with PHI left behind.
+    - name: Report - metrics, Markdown drill log, PR (report.sh)
+      ansible.builtin.command:
+        argv: ["{{ drill_lib }}/report.sh"]
+      environment:
+        DRILL_STATE: >-
+          {{ 'succeeded' if drill_checks_failed | int == 0
+          else 'succeeded_with_failures' }}
+        DRILL_RTO_SECONDS: "{{ drill_rto }}"
+        DRILL_TARGET_TIME: "{{ drill_target_time }}"
+        DRILL_VERIFIED_LSN: "{{ drill_lsn }}"
+        DRILL_CHECKS_TOTAL: "{{ drill_checks_total }}"
+        DRILL_CHECKS_FAILED: "{{ drill_checks_failed }}"
+        DRILL_OBJECTS_SAMPLED: >-
+          {{ drill_objects.stdout_lines
+          | select('match', 'objects_sampled=') | first
+          | default('') | replace('objects_sampled=', '') }}
+        DRILL_OBJECTS_MISMATCHED: >-
+          {{ drill_objects.stdout_lines
+          | select('match', 'objects_mismatched=') | first
+          | default('') | replace('objects_mismatched=', '') }}
+        TEXTFILE_DIR: "{{ drill_textfile_dir }}"
+        DRILL_LOG_DIR: "{{ drill_repo_dir }}/infra/runbooks/drill-log"
+        DRILL_REPO_DIR: "{{ drill_repo_dir }}"
+        DRILL_SKIP_PR: "{{ '1' if drill_skip_pr | bool else '0' }}"
+      register: drill_report
+      changed_when: true
+      failed_when: drill_report.rc not in [0, 3]
 
     - name: ops_audit - drill end
       ansible.builtin.command:

@@ -1,8 +1,8 @@
-# T-02 impl (C5 writer)
-- Files: `services/api/src/modules/lab/domain/{specimen.state,result.state,rollup}.ts` (pure, errors via core `LimsError`, codes in contracts/errors.yaml).
-- Result: domain tests 100/100 pass (`npx vitest run src/modules/lab/domain/__tests__`); `tsc --noEmit` 0 errors. No lint script in services/api.
-- Review fix 1: specimen table check first (`lab.specimen_invalid_transition`), then inactive non-S13/S14 → `lab.specimen_inactive` (409, CR-C5-005, 02-TRD §5).
-- Review fix 2: R6 fails closed — missing `verifiedBy`/`approvedBy` or equal ids → `lab.self_approval_forbidden` (S-02).
-- [CONV] Transitions as data tables keyed by (from,to); `null` from = absent (S1/R1). Roll-up = min over non-cancelled results; roll-down only via S15.
-- [CONV] `assertResultValueEditable('verified')` throws result_invalid_transition (value change via R5 first). Spec silent.
-- Open: resulted + pending roll-down to in_process not done (spec silent). T-02-ruling.md present but concerns C1 infra, not T-02 — ignored.
+# T-02 impl (writer, C3)
+- Files: `services/api/src/modules/catalog/domain/{codes,versioning.state,import.state}.ts` (pure, no DB).
+- [CONV] Transition tables are `Map`/`Set` keyed `from>to` (no prototype-key hits); unknown status/kind fails closed.
+- [CONV] codes: raw must be printable ASCII and ≤64 chars before trim+upper-case + §5.1 regex; errors = `common.validation_failed` / `common.field_invalid`.
+- [CONV] Forbidden version pair -> `catalog.version_in_use`; forbidden import pair -> `catalog.import_not_committable` (tester assumptions adopted).
+- Verify: T-02 suite 763/763 pass. Full api suite: 3 failures outside T-02 (lab boot x2, catalog skeleton autoload: `LIMS_CORE_ENV must be one of dev|ci|staging|production` — env, pre-existing).
+- Typecheck: fails in `packages/shared-ts/src/bsdate/index.ts` (TS5097, not C3-owned); 0 errors in modules/catalog.
+- Open: branch coverage argued by exhaustive matrices, not measured (no coverage plugin).

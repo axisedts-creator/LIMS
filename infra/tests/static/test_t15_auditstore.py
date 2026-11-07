@@ -559,6 +559,12 @@ class RoleStatic(unittest.TestCase):
         self.assertNotRegex(s, r"(?i)password=['\"]?[A-Za-z0-9]{4,}", "password must come from the secret, not a literal")
         self.assertRegex(s, r"(?i)user=lims_audit_ship")
 
+    def test_job_psql_wrapper_forces_tcp_loopback(self):  # review T-15 item 1: unix socket => peer map has no job roles
+        w = [t for n, t in self.files.items() if n.endswith("psql.j2")]
+        self.assertTrue(w, "psql.j2 wrapper template")
+        self.assertRegex(w[0], r"-e\s+PGHOST=127\.0\.0\.1(?!\d)", "job psql must connect over TCP loopback (scram), not the socket")
+        self.assertRegex(w[0], r"-e\s+PGPASSWORD(?![A-Za-z_])")
+
     def test_digest_timer_runs_0230_npt(self):
         timers = [t for n, t in self.files.items() if n.endswith(".timer.j2") and "digest" in n]
         self.assertTrue(timers, "digest timer template")

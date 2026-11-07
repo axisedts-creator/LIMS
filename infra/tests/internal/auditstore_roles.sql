@@ -27,6 +27,22 @@ BEGIN
     END IF;
   END LOOP;
 
+  -- 2b. review T-15 item 5: under LD-45 lean the store shares the cluster with every app / Supabase role. EVERY non-superuser
+  --     except the owner (lims_api, lims_worker, lims_migrator, lims_owner, authenticator, service_role ...) must lack
+  --     UPDATE/DELETE/TRUNCATE on the store, and only the four store roles may CONNECT (the app cannot use the store).
+  FOR r IN SELECT rolname FROM pg_roles WHERE NOT rolsuper AND rolname <> 'auditstore_owner' AND rolname !~ '^pg_' LOOP
+    FOREACH t IN ARRAY tables || meta LOOP
+      FOREACH p IN ARRAY ARRAY['UPDATE', 'DELETE', 'TRUNCATE'] LOOP
+        IF has_table_privilege(r, t, p) THEN
+          RAISE EXCEPTION 'AC-18.3: role % has % on %', r, p, t;
+        END IF;
+      END LOOP;
+    END LOOP;
+    IF has_database_privilege(r, current_database(), 'CONNECT') AND r <> ALL (people) THEN
+      RAISE EXCEPTION 'LD-45: role % can CONNECT to the audit store database (only % may)', r, people;
+    END IF;
+  END LOOP;
+
   -- 3. the subscription owner inserts into every replicated table
   FOREACH t IN ARRAY tables LOOP
     IF NOT has_table_privilege('audit_writer', t, 'INSERT') THEN

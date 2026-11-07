@@ -77,8 +77,10 @@ class LiveAuditStore(unittest.TestCase):
         assert cls.sh(["initdb", "-D", str(d), "-U", "postgres", "--auth=trust"]).returncode == 0
         (d / "postgresql.auto.conf").write_text(f"port={cls.port}\nlisten_addresses='127.0.0.1'\nunix_socket_directories='{sock}'\n"
                                                 "wal_level=logical\nmax_replication_slots=10\nmax_wal_senders=10\nfsync=off\n")
-        with open(d / "pg_hba.conf", "a") as f:
-            f.write("host all all 127.0.0.1/32 trust\nhost replication all 127.0.0.1/32 trust\n")
+        # review T-15 item 2: the shipping role authenticates with scram (password_required) like production; the scram
+        # line comes FIRST, trust stays for the harness superuser only.
+        (d / "pg_hba.conf").write_text("local all all trust\nhost app lims_audit_ship 127.0.0.1/32 scram-sha-256\n"
+                                       "host all all 127.0.0.1/32 trust\nhost replication all 127.0.0.1/32 trust\n")
         assert cls.sh(["pg_ctl", "-D", str(d), "-l", str(cls.tmp / "log"), "-w", "start"]).returncode == 0
         cls.d = d
         cls.psql("postgres", "CREATE DATABASE app; CREATE DATABASE lims_audit;")
@@ -86,8 +88,12 @@ class LiveAuditStore(unittest.TestCase):
         cls.psql_file("lims_audit", AS / "schema.sql", "-v", "audit_writer_pw=w", "-v", "audit_digest_pw=d", "-v", "audit_reader_pw=r",
                       "-v", "lims_monitor_pw=m")
         cls.psql("app", "SELECT pg_create_logical_replication_slot('audit_ship','pgoutput')")
-        cls.psql("lims_audit", f"CREATE SUBSCRIPTION audit_ship CONNECTION 'host=127.0.0.1 port={cls.port} dbname=app user=lims_audit_ship "
-                 "password=ship' PUBLICATION lims_audit_ship WITH (copy_data=false, streaming=on, create_slot=false, slot_name='audit_ship')")
+        # review T-15 item 2: exactly the role task (tasks/main.yml): owner audit_writer (INSERT-only), run_as_owner = true,
+        # pg_create_subscription, scram password in the conninfo (DECISION.md spike outcome).
+        r = cls.psql("lims_audit", f"SET ROLE audit_writer; CREATE SUBSCRIPTION audit_ship CONNECTION 'host=127.0.0.1 port={cls.port} "
+                     "dbname=app user=lims_audit_ship password=ship' PUBLICATION lims_audit_ship WITH (copy_data=false, streaming=on, "
+                     "create_slot=false, slot_name='audit_ship', run_as_owner=true); RESET ROLE")
+        assert r.returncode == 0, r.stderr
 
     @classmethod
     def tearDownClass(cls):
@@ -150,6 +156,21 @@ class LiveAuditStore(unittest.TestCase):
         self.psql("lims_audit", "UPDATE audit.audit_log SET action='tampered'")  # superuser tampering
         self.assertEqual(self.psql_file("lims_audit", AS / "digest.sql").returncode, 0)
         self.assertTrue(self.psql("lims_audit", q).stdout.startswith(before), "closed-day digests are never rewritten")
+
+    def test_missed_night_is_backfilled_into_the_chain(self):  # review T-15 item 3 / REQ-SEC-097: no silent hole in the chain
+        T2 = "00000000-0000-0000-0000-0000000000a2"
+        for ago in (3, 2, 1):  # 3 and 2 days ago = nights the job "missed"; 1 = tonight's "yesterday"
+            ts = f"(date_trunc('day', now() AT TIME ZONE 'Asia/Kathmandu') - interval '{ago} days' + interval '12 hours') AT TIME ZONE 'Asia/Kathmandu'"
+            self.psql("app", MAINT.replace(T1, T2).replace("now(),now()", f"{ts},{ts}", 1))
+        self.wait_store(f"SELECT count(*)=3 FROM audit.audit_log WHERE tenant_id='{T2}'", "t")
+        self.assertEqual(self.psql_file("lims_audit", AS / "digest.sql").returncode, 0)
+        q = (f"SELECT count(*) || ':' || count(prev_digest) FROM auditstore_meta.daily_digests WHERE tenant_id='{T2}' "
+             "AND source_table='audit.audit_log'")
+        self.assertEqual(self.psql("lims_audit", q).stdout.strip(), "3:2", "days 3 and 2 must be digested too, each chained to the day before")
+        chain = ("SELECT bool_and(d.prev_digest IS NOT DISTINCT FROM (SELECT p.chain_digest FROM auditstore_meta.daily_digests p WHERE "
+                 "p.tenant_id=d.tenant_id AND p.source_table=d.source_table AND p.business_date < d.business_date "
+                 f"ORDER BY p.business_date DESC LIMIT 1)) FROM auditstore_meta.daily_digests d WHERE d.tenant_id='{T2}'")
+        self.assertEqual(self.psql("lims_audit", chain).stdout.strip(), "t")
 
     def test_drift_job_on_live_catalogs(self):
         q = ("SELECT json_agg(c) FROM (SELECT table_schema,table_name,column_name,data_type,udt_name,is_nullable FROM information_schema.columns "

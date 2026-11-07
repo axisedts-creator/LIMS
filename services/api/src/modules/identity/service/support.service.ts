@@ -17,6 +17,7 @@ const NOTICE_TTL = '30 days';                      // 05-SCHEMA §9 admin_notice
 const LIST_DEFAULT = 50, LIST_MAX = 200;
 
 type Scope = 'read_only' | 'admin';
+// [CR-C2-T21] `aal` and `platformSessionId` are not yet on the core PlatformRequestContext (CR-C2-004); requested in .orchestra/cr/C2.T21.md.
 export interface PlatformCtx {
   readonly actor: { readonly type: string; readonly id: string; readonly supportSessionId?: string };
   readonly platformRole: string;

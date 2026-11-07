@@ -4,6 +4,7 @@
 import { LimsError } from '../../../core/errors.js';
 import { PRIVILEGED, ROLE_GRANTS } from '../../../../../../contracts/ports/generated/permissions.js';
 
+// [CR-C2-T21] `aal` is not yet on the core PlatformRequestContext (CR-C2-004); requested in .orchestra/cr/C2.T21.md.
 export interface PlatformAuthzCtx {
   readonly actor: { readonly type: string; readonly id: string; readonly supportSessionId?: string };
   readonly platformRole: string;

@@ -154,6 +154,7 @@ export function createCreditService(deps: { repo?: BillingRepo; counter: Counter
     if (period === undefined && !errors.includes('/period_month')) errors.push('/period_month');
     const branchId = i['branchId'];
     if (typeof branchId !== 'string' || !UUID.test(branchId)) errors.push('/branch_id');
+    // [CR-pending] CR-C4-BL13 (.orchestra/cr/BL-T13.md): 03-APP-FLOW §2.14 wants an ACTIVE branch; no 03-IC port exposes branch active-ness, so only the FK (branch of this tenant) is enforced
     const branchCode = i['branchCode']; // [CONV] interim, same as issue(): C0 has not named the {branch} source
     if (branchCode !== undefined && (typeof branchCode !== 'string' || !BRANCH_CODE.test(branchCode))) errors.push('/branch_code');
     if (errors.length) throw invalid(...errors);
@@ -161,6 +162,7 @@ export function createCreditService(deps: { repo?: BillingRepo; counter: Counter
     const acct = await account(ctx, id);
     const charges = await repo.lockUninvoicedCreditCharges(tx, { tenantId, creditPartyId: id, periodMonth: `${period}-01` }) as Row[];
     if (charges.length === 0) throw new LimsError('billing.credit_period_already_billed'); // also: month already billed, or nothing was ever charged
+    // [CR-pending] CR-C4-BL13 (.orchestra/cr/BL-T13.md): fail-closed interim; priceFor needs `priority`, which a credit_charges row does not carry
     if (charges.some((c) => c['vat_treatment'] !== 'exempt' || c['other_tax_code'] != null)) throw new LimsError('catalog.tax_config_missing');
 
     const idp = ctx.ports?.IdentityPort;
@@ -189,7 +191,7 @@ export function createCreditService(deps: { repo?: BillingRepo; counter: Counter
       const gross = toPaisa(c['gross_paisa']), discount = toPaisa(c['discount_paisa']);
       return {
         id: uuidv7(), tenant_id: tenantId, invoice_id: invoiceId, centre_id: null, line_no: n + 1, line_kind: 'credit_charge', order_item_id: null, orderable_id: c['orderable_id'] ?? null,
-        orderable_kind: null, credit_charge_id: c['id'], code: c['code'], name: c['name'], department_id: c['department_id'] ?? null, hs_code: null, quantity: 1,
+        orderable_kind: null, credit_charge_id: c['id'], code: c['code'], name: `${c['code']} — ${c['patient_display_name']}`, department_id: c['department_id'] ?? null, hs_code: null, quantity: 1,
         unit_price_paisa: toPaisa(c['unit_price_paisa']), gross_paisa: gross, discount_paisa: discount, exempt_paisa: gross - discount, taxable_paisa: 0, vat_treatment: 'exempt',
         vat_rate_bp: null, vat_paisa: 0, other_tax_code: null, other_tax_rate_bp: null, other_tax_paisa: 0, net_paisa: gross - discount, created_by: actorId,
       };

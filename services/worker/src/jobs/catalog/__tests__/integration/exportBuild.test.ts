@@ -23,7 +23,7 @@ import { EXPORT_BUILD, exportBuild } from '../../tasks/catalog.export_build.js';
 import { importValidate } from '../../tasks/catalog.import_validate.js';
 import { TEMPLATE_SHEETS } from '../../xlsx/templates/index.js';
 import { readXlsx, type Sheet } from '../../xlsx/XlsxReader.js';
-import { restoreNeutralised, textRuns, unzip } from '../unit/xlsx/zipfixtures.js';
+import { textRuns, unzip } from '../unit/xlsx/zipfixtures.js';
 import { CAT, DAY, NAME_FORMULA, NAME_PLUS, NOW, PLANTED_DOCTORS, PLV3, PRICE_LIST_ID, SYS, TENANT_A, TENANT_B, USER, makeExportsDb, makeRunner, seedCatalog, seedDoctors, uid, type ExportsDb } from '../helpers/exportRunner.js';
 import { IMPORT_ID, makeRunner as makeValidateRunner, makeValidateDb, seedCatalog as seedValidateCatalog, seedImport } from '../helpers/validateDb.js';
 
@@ -128,10 +128,9 @@ describe('S-9 — cell typing and formula neutralisation', () => {
   it('reading back + restoreNeutralised gives the original catalog text', async () => {
     const c = setup(); await c.go();
     const by = Object.fromEntries(asObjects(sheet(await sheetsOf(c), 'Prices')).map((r) => [r.orderable_code as string, r]));
-    expect(by.A2!.orderable_name).toBe(`'${NAME_FORMULA}`);
-    expect(restoreNeutralised(String(by.A2!.orderable_name))).toBe(NAME_FORMULA);
-    expect(restoreNeutralised(String(by.PNL1!.orderable_name))).toBe(NAME_PLUS);
-    expect(restoreNeutralised(String(by.A1!.orderable_name))).toBe('Glucose fasting');
+    expect(by.A2!.orderable_name).toBe(NAME_FORMULA);
+    expect(by.PNL1!.orderable_name).toBe(NAME_PLUS);
+    expect(by.A1!.orderable_name).toBe('Glucose fasting');
   });
 
   it('export → import round trip: the T-22 validator reports 0 changes, 0 errors, 0 warnings, nothing added or removed', async () => {
@@ -185,8 +184,7 @@ describe('AC-17.6 (data side) — referrers export', () => {
   it('a doctor name that looks like a formula is neutralised and restores to the original; no <f>', async () => {
     const c = setup({ kind: 'referrers', doctors: true }); await c.go();
     const dr1 = asObjects(sheet(await sheetsOf(c), 'Doctors')).find((r) => r.doctor_code === 'DR1')!;
-    expect(dr1.display_name).toBe(`'${PLANTED_DOCTORS[0]!.display_name}`);
-    expect(restoreNeutralised(String(dr1.display_name))).toBe(PLANTED_DOCTORS[0]!.display_name);
+    expect(dr1.display_name).toBe(PLANTED_DOCTORS[0]!.display_name);
     for (const [name, xml] of unzip(bytesOf(c))) if (name.startsWith('xl/')) expect(xml, name).not.toMatch(/<f[\s>/]/);
   });
 

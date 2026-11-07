@@ -68,7 +68,8 @@ function parseList(raw: unknown) {
 }
 
 const groupBy = (rows: any[], key: string) => { const m = new Map<string, any[]>(); for (const r of rows) { const l = m.get(r[key]); if (l) l.push(r); else m.set(r[key], [r]); } return m; };
-const keyOf = (r: any, col: string) => new Date(r[col]).toISOString();
+// µs-precision keyset key from SQL `to_char(...) AS sort_key` (timestamptz is µs; a ms ISO string would drop/repeat same-ms rows). Never mapped out.
+const keyOf = (r: any) => r['sort_key'] as string;
 
 /** Summaries for already-selected report rows (3 statements: reports done, versions, items). */
 async function summaries(c: Ctx, rows: any[]): Promise<any[]> {
@@ -92,12 +93,12 @@ export const reportsReadHandlers: Readonly<Record<string, Handler>> = Object.fre
         if (picked.length > limit) { more = true; cursorRow = picked[limit - 1]; break; }
       }
       if (more || rows.length < batch) break;
-      const last = rows[rows.length - 1]; after = { k: keyOf(last, filter.sortCol), i: last['id'] }; scanned += rows.length;
+      const last = rows[rows.length - 1]; after = { k: keyOf(last), i: last['id'] }; scanned += rows.length;
       if (scanned >= SCAN_MAX) { more = true; cursorRow = last; break; }
     }
     const data = await summaries(c, picked.slice(0, limit));
     const page: Record<string, unknown> = { limit };
-    if (more && cursorRow) page['next_cursor'] = b64({ k: keyOf(cursorRow, filter.sortCol), i: cursorRow['id'], s: sortKey });
+    if (more && cursorRow) page['next_cursor'] = b64({ k: keyOf(cursorRow), i: cursorRow['id'], s: sortKey });
     return { status: 200, body: { data, page } };
   },
 

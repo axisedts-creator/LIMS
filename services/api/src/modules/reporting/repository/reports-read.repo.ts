@@ -15,7 +15,7 @@ const SORT = {
   registered_at: { c: 'registered_at', le: '>=', lt: '>', dir: 'ASC', nn: '' },
   first_released_at: { c: 'first_released_at', le: '<=', lt: '<', dir: 'DESC', nn: 'AND first_released_at IS NOT NULL' },
 } as const;
-const PAGE = `SELECT {rc} FROM reporting.reports WHERE tenant_id = $1
+const PAGE = `SELECT {rc}, to_char({c} AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"') AS sort_key FROM reporting.reports WHERE tenant_id = $1
   AND ($2::text IS NULL OR family = $2::text)
   AND ($3::uuid IS NULL OR centre_id = $3::uuid)
   AND ($4::timestamptz IS NULL OR registered_at >= $4::timestamptz)

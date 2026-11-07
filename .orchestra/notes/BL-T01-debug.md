@@ -4,3 +4,5 @@ Fix: none in billing code. Needed change is in C0-0D-owned openapi.ts (register 
 Status: BLOCKED on CR .orchestra/cr/BL-T01.md (no resolved-* file yet; openapi.ts unchanged on main since e6f622c). Re-run boot test once CR lands.
 Round 2 recheck 2026-11-07: CR .orchestra/cr/BL-T01.md still unresolved; openapi.ts has no x-coded-set keyword (last change e6f622c). No billing-side fix exists. Still BLOCKED, no code edited.
 Round 3 recheck 2026-11-07: CR .orchestra/cr/BL-T01.md still unresolved (no resolved-* file); openapi.ts still lacks x-coded-set (last change e6f622c). Same failure in verify log. Still BLOCKED, no code edited.
+Round 4 2026-11-07: x-coded-set CR resolved; that error is gone. New cause: reporting/index.ts:9 loadReportingConfig(process.env) at import throws "LIMS_CORE_ENV must be one of ..." during autoload; lab boot test fails identically on main. Not billing code, not editable (C6-owned).
+Fix: none in billing. New CR .orchestra/cr/BL-T01.md (lazy reporting config or test env setup). BLOCKED, no code edited.

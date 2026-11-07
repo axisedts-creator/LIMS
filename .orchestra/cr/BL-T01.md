@@ -1,20 +1,10 @@
-Title: CR-C4-BL01: core ajv must accept the `x-coded-set` schema keyword
-From chunk: C4            To owner: C0-0D
+Title: CR-C4-BL01b: reporting module reads LIMS_REPORTING_*/LIMS_CORE_ENV from process.env at import, so any default-modulesDir boot test fails
+From chunk: C4            To owner: C6 (reporting)
 Type: bug
-Blocking? yes — BL-T01 (06-IMPLEMENTATION-PLAN row BL-T01, done-when "Core boots with module").
-Problem (what you cannot do today, with the user story / acceptance criterion it serves):
-  `bootstrap()` with the billing module throws
-  `FastifyError: Failed building the validation schema for POST: /v1/billing/invoices/:invoice_id/cancel, due to error strict mode: unknown keyword: "x-coded-set"`.
-  contracts/openapi/billing.yaml uses `x-coded-set` in request bodies, as mandated by spec/program/02-CONVENTIONS.md:573 and
-  spec/chunks/C0-foundation-contracts/02-TRD.md:341 (rule 6; also enforced by tools/codegen/lint-openapi.ts:183). The request-validator
-  ajv built in services/api/src/core/openapi.ts:80-88 (schemaController) runs in strict mode and registers no `x-coded-set` keyword, so any
-  module whose body schemas carry it cannot boot. billing is the first mounted module with it; frontdesk.yaml (8 uses) and others will hit the same.
-Proposed change (exact): in services/api/src/core/openapi.ts, register `x-coded-set` (and, for parity with core/events/publish.ts:22, `x-extensible`)
-  as annotation-only keywords on every ajv instance the schemaController/response validator builds, e.g. pass
-  `customOptions: { ...AJV_OPTIONS, keywords: [{ keyword: 'x-coded-set', schemaType: 'string' }, { keyword: 'x-extensible', schemaType: 'boolean' }] }`
-  (same for BODY_AJV_OPTIONS / RESPONSE_AJV_OPTIONS). No validation semantics; code-set membership stays a handler/service check.
-Backward compatible? yes — adds accepted annotation keywords only.
-Tenant/security impact: none; no RLS/PHI/public-surface change. REQ-SEC-080 (removeAdditional:false) unchanged.
-IRD/regulatory impact (billing changes only): none.
-Alternatives considered: stripping `x-coded-set` in the billing module before mount (rejected: billing cannot touch core schema compilation, and every module would repeat it); `strict: false` globally (rejected: hides real schema typos).
-Tests that will prove it: core unit test compiling a body schema with `x-coded-set` succeeds; services/api/src/modules/billing/__tests__/unit/boot.test.ts "bootstrap resolves and every billing operation is mounted" turns green.
+Blocking? yes — BL-T01 (done-when "Core boots with module"); also breaks services/api/src/modules/lab/__tests__/boot.test.ts (2 failures on main 3ffb58b, same cause).
+Problem: services/api/src/modules/reporting/index.ts:9 `export const config = loadReportingConfig(process.env)` runs at autoload. Boot tests that load the real modules dir and pass env only to core loadConfig() throw
+  `config: LIMS_CORE_ENV must be one of dev|ci|staging|production` (reporting/config.ts:46), then "module reporting: index.ts exports no manifest". Billing code is not involved; the billing boot assertion cannot pass while reporting throws at import.
+Proposed change (exact): either (a) make reporting config lazy (call loadReportingConfig on first use, not at import), or (b) C6 adds a vitest setup (services/api vitest config) setting LIMS_CORE_ENV=ci and LIMS_REPORTING_OTP_HMAC_KEY_FILE to a synthetic 32-byte temp file for all test runs.
+Backward compatible? yes. Tenant/security impact: none (REQ-SEC-128/136 checks unchanged in production).
+Alternatives considered: billing/lab tests setting process.env themselves (tests are frozen for the debugger role; each module test would repeat it).
+Tests that will prove it: billing boot.test.ts "bootstrap resolves and every billing operation is mounted" and lab boot.test.ts turn green.

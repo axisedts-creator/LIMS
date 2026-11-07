@@ -18,8 +18,10 @@ import type { ReactNode } from 'react';
 import { ToastProvider } from '@lims/ui/components/Toast';
 
 const push = vi.fn();
+const replace = vi.fn();
+const refresh = vi.fn();
 vi.mock('next/navigation', () => ({
-  useRouter: () => ({ push, replace: vi.fn(), refresh: vi.fn(), back: vi.fn() }),
+  useRouter: () => ({ push, replace, refresh, back: vi.fn() }),
   usePathname: () => '/instruments/agents',
   useSearchParams: () => new URLSearchParams(),
   notFound: () => { throw Object.assign(new Error('NEXT_NOT_FOUND'), { digest: 'NEXT_HTTP_ERROR_FALLBACK;404' }); },
@@ -49,9 +51,15 @@ const centres = [{ id: CENTRE, name: 'Synthetic Centre A1' }];
 const calls: { method: string; url: URL; headers: Headers; body?: any }[] = [];
 const rec = async (r: Request) => { calls.push({ method: r.method, url: new URL(r.url), headers: r.headers, body: r.method === 'POST' ? await r.clone().json().catch(() => undefined) : undefined }); };
 const issueOk = () => http.post(`${ORIGIN}/v1/instruments/agents/:id/enrolment-codes`, async ({ request }) => { await rec(request); return HttpResponse.json({ enrolment_code: SECRET, expires_at: '2026-11-08T04:05:00.000Z', credential_id: '01a1a98a-ac40-7000-8000-0000000a0002' }, { status: 201 }); });
-const api = setupServer(issueOk());
+const listSeen: URL[] = [];
+const api = setupServer(
+  issueOk(),
+  http.get(`${ORIGIN}/v1/instruments/agents`, ({ request }) => { listSeen.push(new URL(request.url)); return HttpResponse.json({ data: [summary()], page: { limit: 50 } }); }),
+  http.get(`${ORIGIN}/v1/instruments/agents/:id/health-transitions`, () => HttpResponse.json({ data: [], page: { limit: 50 } })),
+  http.get(`${ORIGIN}/v1/instruments/instruments`, ({ request }) => { listSeen.push(new URL(request.url)); return HttpResponse.json({ data: [], page: { limit: 50 } }); }),
+);
 beforeAll(() => api.listen({ onUnhandledRequest: 'error' }));
-afterEach(() => { cleanup(); api.resetHandlers(); calls.length = 0; push.mockReset(); localStorage.clear(); sessionStorage.clear(); session.permissions = MANAGE; });
+afterEach(() => { cleanup(); api.resetHandlers(); calls.length = 0; push.mockReset(); replace.mockReset(); refresh.mockReset(); listSeen.length = 0; vi.useRealTimers(); localStorage.clear(); sessionStorage.clear(); session.permissions = MANAGE; });
 afterAll(() => api.close());
 beforeEach(() => { Object.assign(navigator, { clipboard: { writeText: vi.fn(async () => {}) } }); });
 
@@ -112,6 +120,54 @@ describe('SCR-01 AgentsList (AC-16.1)', () => {
     await noAxeViolations();
   });
 
+  // review #2: 04-UI-UX SCR-01 FilterBar (Centre, Status multi, Health multi). ASSUMED: changing a filter navigates (router.push|replace) to a URL
+  // whose query uses the E10 names (centre_id, status, health_state); the page reads them from searchParams (see page tests below).
+  it('FilterBar: Centre, Status and Health filters are present; picking a Status chip navigates with status=', async () => {
+    const AgentsList = await load();
+    wrap(<AgentsList agents={rows as never} permissions={READ} centres={centres} />);
+    const bar = screen.getByRole('search');
+    for (const l of ['Centre', 'Status', 'Health']) expect(within(bar).getByText(l, { selector: 'label, .lims-label, span' })).toBeTruthy();
+    await userEvent.click(within(bar).getByRole('option', { name: /retired/i }));
+    const urls = [...push.mock.calls, ...replace.mock.calls].map((c) => String(c[0]));
+    expect(urls.some((u) => /status=[^&]*retired/.test(decodeURIComponent(u)))).toBe(true);
+  });
+
+  // review #8: 04-UI-UX SCR-01 auto-refresh: every 30 s via router.refresh(), paused while the tab is hidden. ASSUMED: poller lives in AgentsList.
+  describe('auto-refresh', () => {
+    const visibility = (v: 'visible' | 'hidden') => Object.defineProperty(document, 'visibilityState', { configurable: true, get: () => v });
+    afterEach(() => visibility('visible'));
+    it('refreshes every 30 s while visible, not before', async () => {
+      vi.useFakeTimers();
+      const AgentsList = await load();
+      wrap(<AgentsList agents={rows as never} permissions={READ} centres={centres} />);
+      vi.advanceTimersByTime(29_000);
+      expect(refresh).not.toHaveBeenCalled();
+      vi.advanceTimersByTime(1_000);
+      expect(refresh).toHaveBeenCalledTimes(1);
+      vi.advanceTimersByTime(30_000);
+      expect(refresh).toHaveBeenCalledTimes(2);
+    });
+    it('does not refresh while the tab is hidden; resumes when visible', async () => {
+      vi.useFakeTimers();
+      const AgentsList = await load();
+      wrap(<AgentsList agents={rows as never} permissions={READ} centres={centres} />);
+      visibility('hidden');
+      vi.advanceTimersByTime(90_000);
+      expect(refresh).not.toHaveBeenCalled();
+      visibility('visible');
+      vi.advanceTimersByTime(30_000);
+      expect(refresh).toHaveBeenCalled();
+    });
+    it('stops polling after unmount', async () => {
+      vi.useFakeTimers();
+      const AgentsList = await load();
+      const { unmount } = wrap(<AgentsList agents={rows as never} permissions={READ} centres={centres} />);
+      unmount();
+      vi.advanceTimersByTime(120_000);
+      expect(refresh).not.toHaveBeenCalled();
+    });
+  });
+
   describe('New agent dialog → E11', () => {
     const open = async (workingCentreId = CENTRE) => {
       const AgentsList = await load();
@@ -155,6 +211,57 @@ describe('SCR-01 AgentsList (AC-16.1)', () => {
       await userEvent.keyboard('{Control>}{Enter}{Enter}{/Control}');
       await waitFor(() => expect(push).toHaveBeenCalled());
       expect(calls).toHaveLength(1);
+    });
+
+    // review #7: one Idempotency-Key per dialog open; an in-flight submit blocks a second POST (02-CONVENTIONS §4.5).
+    it('two fast submits while the first is in flight → one POST; a retry after failure reuses the same Idempotency-Key', async () => {
+      let n = 0;
+      api.use(http.post(`${ORIGIN}/v1/instruments/agents`, async ({ request }) => {
+        await rec(request);
+        await new Promise((r) => setTimeout(r, 150));
+        return ++n === 1 ? HttpResponse.json({ type: 'urn:lims:error:common.internal', title: 'x', status: 500, code: 'common.internal' }, { status: 500 }) : HttpResponse.json(detail({ agent_code: 'HUB-PC-01' }), { status: 201 });
+      }));
+      const dlg = await open();
+      await userEvent.type(within(dlg).getByLabelText(/agent code/i), 'HUB-PC-01');
+      await userEvent.type(within(dlg).getByLabelText(/^name/i), 'Hub PC');
+      await userEvent.keyboard('{Control>}{Enter}{Enter}{Enter}{/Control}');
+      await screen.findByRole('alert'); // danger toast after the failed first attempt
+      expect(calls).toHaveLength(1);
+      await userEvent.keyboard('{Control>}{Enter}{/Control}');
+      await waitFor(() => expect(push).toHaveBeenCalled());
+      expect(calls).toHaveLength(2);
+      expect(calls[1]!.headers.get('idempotency-key')).toBe(calls[0]!.headers.get('idempotency-key'));
+    });
+
+    it('re-opening the dialog mints a NEW Idempotency-Key', async () => {
+      api.use(http.post(`${ORIGIN}/v1/instruments/agents`, async ({ request }) => { await rec(request); return HttpResponse.json({ type: 'urn:lims:error:common.internal', title: 'x', status: 500, code: 'common.internal' }, { status: 500 }); }));
+      const submitOnce = async () => {
+        const dlg = await open();
+        await userEvent.type(within(dlg).getByLabelText(/agent code/i), 'HUB-PC-01');
+        await userEvent.type(within(dlg).getByLabelText(/^name/i), 'Hub PC');
+        await userEvent.keyboard('{Control>}{Enter}{/Control}');
+        await waitFor(() => expect(calls.length).toBeGreaterThan(0));
+        cleanup();
+      };
+      await submitOnce();
+      const first = calls.length;
+      await submitOnce();
+      expect(calls).toHaveLength(first + 1);
+      expect(calls[first]!.headers.get('idempotency-key')).not.toBe(calls[0]!.headers.get('idempotency-key'));
+    });
+
+    // review #3: no centre chosen must be a visible field error, never a silent return.
+    it('no centre selected → field error shown, no API call', async () => {
+      const AgentsList = await load();
+      wrap(<AgentsList agents={[]} permissions={MANAGE} centres={centres} />); // no workingCentreId
+      await userEvent.click(screen.getAllByRole('button', { name: /new agent/i })[0]!);
+      const dlg = screen.getByRole('dialog');
+      await userEvent.type(within(dlg).getByLabelText(/agent code/i), 'HUB-PC-01');
+      await userEvent.type(within(dlg).getByLabelText(/^name/i), 'Hub PC');
+      await userEvent.keyboard('{Control>}{Enter}{/Control}');
+      await new Promise((r) => setTimeout(r, 100));
+      expect(calls).toHaveLength(0);
+      expect(within(dlg).getAllByRole('alert').length + dlg.querySelectorAll('[aria-invalid="true"]').length).toBeGreaterThan(0);
     });
 
     it('409 instruments.code_duplicate keeps the dialog open, no navigation', async () => {
@@ -241,6 +348,53 @@ describe('SCR-02 AgentDetail (AC-16.3)', () => {
     expect(screen.getByText("This agent's access was revoked. It keeps messages locally until it is re-enrolled.")).toBeTruthy();
   });
 
+  // review #5: 04-UI-UX SCR-02 Overview — Banner warning when update state ∈ {verify_failed, rolled_back}. (The |clock offset| > tenant-warn banner is
+  // NOT tested: the spec gives neither the tenant-warn source nor its text.)
+  it.each(['verify_failed', 'rolled_back'])('warning banner when update state is %s; none for idle', async (state) => {
+    const { unmount } = await render1(MANAGE, { health: health({ update_state: 'idle', config_state: 'ok' }) });
+    expect(document.querySelectorAll('[data-tone="warning"]')).toHaveLength(0);
+    unmount();
+    await render1(MANAGE, { health: health({ update_state: state, config_state: 'ok' }) });
+    const banners = [...document.querySelectorAll('[data-tone="warning"]')];
+    expect(banners).toHaveLength(1);
+    expect(banners[0]!.textContent).toMatch(/update/i);
+  });
+
+  // review #4: Instruments tab columns per 04-UI-UX: code, state, link state, last message, last error code, silence status.
+  it('Instruments tab also shows "Last error code" and "Silence status" columns with their values', async () => {
+    const AgentDetail = await load();
+    const rowsI = [{ ...instruments[0]!, link_state: 'error', last_link_error_code: 'firewall_rule_missing', silent_since: '2026-11-07T01:00:00.000Z' }];
+    wrap(<AgentDetail agent={detail() as never} transitions={[]} instruments={rowsI as never} permissions={READ} />);
+    await userEvent.click(screen.getByRole('tab', { name: 'Instruments' }));
+    for (const h of ['Instrument code', 'State', 'Link state', 'Last message', 'Last error code', 'Silence status']) expect(screen.getByRole('columnheader', { name: new RegExp(h, 'i') })).toBeTruthy();
+    expect(screen.getByText('firewall_rule_missing')).toBeTruthy();
+  });
+
+  // review #6: SCR-02 actions must not ship as disabled stubs. Commands & logs tab lists E18 rows.
+  it('manage actions are enabled, not disabled stubs', async () => {
+    await render1(MANAGE);
+    for (const n of [/request command/i, /revoke/i, /retire/i, /edit/i]) expect((screen.getByRole('button', { name: n }) as HTMLButtonElement).disabled, String(n)).toBe(false);
+  });
+
+  it('Revoke opens a danger ConfirmDialog with the 04-UI-UX body and a reason field; nothing is sent until confirmed', async () => {
+    await render1(MANAGE);
+    await userEvent.click(screen.getByRole('button', { name: /revoke/i }));
+    const dlg = screen.getByRole('dialog');
+    expect(dlg.textContent).toContain('The PC stops uploading immediately. Messages already on the PC stay there until it is re-enrolled.');
+    expect(calls).toHaveLength(0);
+  });
+
+  it('Commands & logs tab calls E18 for this agent and renders the commands', async () => {
+    api.use(http.get(`${ORIGIN}/v1/instruments/agents/:id/commands`, ({ request }) => {
+      listSeen.push(new URL(request.url));
+      return HttpResponse.json({ data: [{ id: '01a1a98a-ac40-7000-8000-0000000f0001', kind: 'upload_logs', state: 'completed', requested_at: '2026-11-07T01:00:00.000Z', completed_at: '2026-11-07T01:01:00.000Z', result_code: 'ok_synthetic' }], page: { limit: 50 } });
+    }));
+    await render1();
+    await userEvent.click(screen.getByRole('tab', { name: 'Commands & logs' }));
+    expect(await screen.findByText(/upload.?logs/i)).toBeTruthy();
+    expect(listSeen.some((u) => u.pathname === `/v1/instruments/agents/${AGENT_ID}/commands`)).toBe(true);
+  });
+
   it('axe: every tab', async () => {
     await render1();
     for (const t of ['Overview', 'Instruments', 'Health history', 'Credentials', 'Commands & logs']) {
@@ -259,6 +413,50 @@ describe('SCR-02 AgentDetail (AC-16.3)', () => {
     api.use(http.get(`${ORIGIN}/v1/instruments/agents/:id`, () => HttpResponse.json({ type: 'urn:lims:error:common.internal', title: 'x', status: 500, code: 'common.internal' }, { status: 500 })));
     const mod = await import('../../../app/(staff)/instruments/agents/[agent_id]/page');
     await expect(mod.default({ params: Promise.resolve({ agent_id: AGENT_ID }) } as never)).rejects.toMatchObject({ status: 500 });
+  });
+});
+
+describe('pages → BFF (review #2, #3, #4)', () => {
+  const listPage = async (sp: Record<string, string | string[] | undefined>) => {
+    const mod = await import('../../../app/(staff)/instruments/agents/page');
+    return (await mod.default({ searchParams: Promise.resolve(sp) } as never)) as { props: Record<string, any> };
+  };
+
+  it('agents page: no query → E10 with default status = all except retired and sort=agent_code', async () => {
+    await listPage({});
+    const u = listSeen.find((x) => x.pathname === '/v1/instruments/agents')!;
+    expect(u.searchParams.get('status')!.split(',').sort()).toEqual(['active', 'pending_enrolment', 'revoked']);
+    expect(u.searchParams.get('sort')).toBe('agent_code');
+    expect(u.searchParams.get('centre_id')).toBeNull();
+    expect(u.searchParams.get('health_state')).toBeNull();
+  });
+
+  it('agents page: searchParams centre_id / status / health_state / sort are forwarded to E10 (AC-16.1)', async () => {
+    await listPage({ centre_id: CENTRE, status: 'retired,active', health_state: 'offline,backlog', sort: '-last_heartbeat_at' });
+    const u = listSeen.find((x) => x.pathname === '/v1/instruments/agents')!;
+    expect(u.searchParams.get('centre_id')).toBe(CENTRE);
+    expect(u.searchParams.get('status')).toBe('retired,active');
+    expect(u.searchParams.get('health_state')).toBe('offline,backlog');
+    expect(u.searchParams.get('sort')).toBe('-last_heartbeat_at');
+  });
+
+  it('agents page: tampered query values never reach the API (enum-validated)', async () => {
+    await listPage({ status: "active,x'; drop", health_state: 'nope', sort: 'password', centre_id: 'not-a-uuid' }).catch(() => undefined);
+    for (const u of listSeen.filter((x) => x.pathname === '/v1/instruments/agents')) {
+      expect(u.search).not.toMatch(/drop|nope|password|not-a-uuid/);
+    }
+  });
+
+  it('agent page: Instruments tab is fed by E21 called with agent_id', async () => {
+    const row = { id: '01a1a98a-ac40-7000-8000-0000000e0001', instrument_code: 'SIM-CHEM-1', display_name: 'Sim chem', state: 'live', link_state: 'up', last_message_at: '2026-11-07T03:58:00.000Z' };
+    api.use(
+      http.get(`${ORIGIN}/v1/instruments/agents/:id`, () => HttpResponse.json(detail())),
+      http.get(`${ORIGIN}/v1/instruments/instruments`, ({ request }) => { listSeen.push(new URL(request.url)); return HttpResponse.json({ data: [row], page: { limit: 50 } }); }),
+    );
+    const mod = await import('../../../app/(staff)/instruments/agents/[agent_id]/page');
+    const el = (await mod.default({ params: Promise.resolve({ agent_id: AGENT_ID }) } as never)) as { props: Record<string, any> };
+    expect(listSeen.some((u) => u.pathname === '/v1/instruments/instruments' && u.searchParams.get('agent_id') === AGENT_ID)).toBe(true);
+    expect(el.props.instruments).toEqual([row]);
   });
 });
 
@@ -395,7 +593,7 @@ describe('static guards on the WEB-T02 files (REQ-SEC-068: browser holds no JWT/
     const WEB = join(import.meta.dirname, '..', '..', '..', '..');
     const dir = join(WEB, 'src/features/instruments/server');
     const files = readdirSync(dir).filter((f) => f.endsWith('.server.ts'));
-    for (const n of ['listAgents', 'getAgent', 'createAgent', 'issueEnrolmentCode', 'listAgentHealthTransitions']) expect(files, n).toContain(`${n}.server.ts`);
+    for (const n of ['listAgents', 'getAgent', 'createAgent', 'issueEnrolmentCode', 'listAgentHealthTransitions', 'listInstruments']) expect(files, n).toContain(`${n}.server.ts`);
     for (const f of files) expect(readFileSync(join(dir, f), 'utf8'), f).toMatch(/^(\s*\/\/[^\n]*\n|\s*'use server';?\s*\n)*\s*import ['"]server-only['"]/);
   });
 

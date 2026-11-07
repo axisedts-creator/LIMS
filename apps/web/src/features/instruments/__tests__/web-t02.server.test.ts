@@ -132,6 +132,42 @@ describe('WEB-T02 server functions', () => {
     expect(seen).toHaveLength(0);
   });
 
+  // review #7: one Idempotency-Key per dialog open, minted by the client and passed through. ASSUMED: createAgent(input, idempotencyKey?).
+  it('createAgent uses the caller-supplied Idempotency-Key (same key on a retry of the same dialog)', async () => {
+    const { createAgent } = await import('../server/createAgent.server');
+    const input = { agent_code: 'HUB-PC-01', display_name: 'Hub PC', centre_id: CENTRE_A1 };
+    await createAgent(input, 'dialog-key_0123');
+    await createAgent(input, 'dialog-key_0123');
+    expect(seen.map((s) => s.headers.get('idempotency-key'))).toEqual(['dialog-key_0123', 'dialog-key_0123']);
+  });
+
+  it('createAgent rejects a malformed Idempotency-Key (^[A-Za-z0-9_-]{1,64}$) before calling the API (header injection)', async () => {
+    const { createAgent } = await import('../server/createAgent.server');
+    const input = { agent_code: 'HUB-PC-01', display_name: 'Hub PC', centre_id: CENTRE_A1 };
+    for (const k of ['', 'a'.repeat(65), 'bad key', 'x\r\nX-Evil: 1']) await expect(createAgent(input, k), JSON.stringify(k)).rejects.toBeTruthy();
+    expect(seen).toHaveLength(0);
+  });
+
+  // review #4: SCR-02 Instruments tab is fed by E21. ASSUMED: server/listInstruments.server.ts → listInstruments({agentId, limit?, cursor?}) → {data, page}.
+  it('listInstruments → GET E21 /v1/instruments/instruments?agent_id= with the bearer', async () => {
+    server.use(http.get(`${ORIGIN}/v1/instruments/instruments`, ({ request }) => {
+      seen.push({ url: new URL(request.url), method: request.method, headers: request.headers });
+      return HttpResponse.json({ data: [{ id: '01a1a98a-ac40-7000-8000-0000000e0001', instrument_code: 'SIM-CHEM-1' }], page: { limit: 50 } });
+    }));
+    const { listInstruments } = await import('../server/listInstruments.server');
+    const res = await listInstruments({ agentId: AGENT_ID });
+    expect(res.data).toHaveLength(1);
+    expect(seen[0]!.url.pathname).toBe('/v1/instruments/instruments');
+    expect(seen[0]!.url.searchParams.get('agent_id')).toBe(AGENT_ID);
+    expect(seen[0]!.headers.get('authorization')).toBe('Bearer jwt-synthetic');
+  });
+
+  it('listInstruments rejects a non-uuid agent id without calling the API', async () => {
+    const { listInstruments } = await import('../server/listInstruments.server');
+    await expect(listInstruments({ agentId: '../../v1/admin' })).rejects.toBeTruthy();
+    expect(seen).toHaveLength(0);
+  });
+
   it('listAgentHealthTransitions → GET E19 for the agent, limit 50 by default (AC-16.3 "last 50")', async () => {
     const { listAgentHealthTransitions } = await import('../server/listAgentHealthTransitions.server');
     await listAgentHealthTransitions(AGENT_ID);

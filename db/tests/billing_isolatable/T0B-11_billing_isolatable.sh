@@ -36,7 +36,7 @@ SU -v lims_migrator_pw="$MIG_PW" -v lims_api_pw="$API_PW" -v lims_worker_pw="$WO
    -v lims_replicator_pw="$REPL_PW" -v lims_audit_ship_pw="$SHIP_PW" -v dbname="$DB" -f db/bootstrap/00_roles.sql
 build_db() { # $1 database: bootstrap + all migrations (same D-201 window as run-suites.sh)
   local d="$1" f STEP_C="20261105001200"
-  [ "$d" = "$DB" ] || SU -c "CREATE DATABASE $d"
+  [ "$d" = "$DB" ] || { SU -c "CREATE DATABASE $d"; SUD "$d" -c "CREATE SCHEMA IF NOT EXISTS extensions"; }  # fresh DB lacks the image's init-DB `extensions` schema (review round 4)
   SUD "$d" -c "CREATE EXTENSION IF NOT EXISTS pgtap WITH SCHEMA extensions"
   SUD "$d" -v dbname="$d" -f db/bootstrap/01_database.sql
   for f in $(ls db/migrations/*.sql | sort); do if [[ "$(basename "$f")" < "$STEP_C" ]]; then MIGD "$d" --single-transaction -f "/repo/$f"; fi; done
@@ -52,7 +52,7 @@ build_db "$DB"; build_db "$RDB"
 BR='99999999-9999-4999-8999-999999999999'; CEN='99999999-9999-4999-8999-999999999998'
 FPR='0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef'
 inv() { # tenant id seq order buyer
-  echo "('$1','$2','$BR','$CEN','INV','2082/83',$3,'INV-2082/83-00000$3','tax_invoice','registration','$4','dddddddd-dddd-4ddd-8ddd-0000000000f$3','$5','Synthetic Lab Seller','2082-04-01T10:00:00+05:45','2082-04-01',10000,0,0,10000,1300,0,11300,false,'$FPR','not_required','$ACTOR','$ACTOR')"; }
+  echo "('$2','$1','$BR','$CEN','INV','2082/83',$3,'INV-2082/83-00000$3','tax_invoice','registration','$4','dddddddd-dddd-4ddd-8ddd-0000000000f$3','$5','Synthetic Lab Seller','2082-04-01T10:00:00+05:45','2082-04-01',10000,0,0,10000,1300,0,11300,false,'$FPR','not_required','$ACTOR','$ACTOR')"; }
 line() { # tenant id invoice_id
   echo "('$2','$1','$3','$CEN',1,'orderable','T1','Synthetic Test',10000,10000,0,0,10000,'taxable',1300,1300,0,11300,'$ACTOR')"; }
 cnote() { # tenant id invoice_id seq

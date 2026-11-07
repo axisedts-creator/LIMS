@@ -10,6 +10,7 @@
     "verify": "turbo run build typecheck && node --test \"tools/lint/tests/*.test.mjs\"",
     "typecheck": "turbo run typecheck",
     "mock:core": "prism mock contracts/openapi/core.yaml --host 127.0.0.1 --port 4100",
+    "mock:identity": "prism mock contracts/openapi/identity.yaml --host 127.0.0.1 --port 4101",
     "mock:list": "node -p \"Object.entries(require('./package.json').scripts).filter(([k])=>k.startsWith('mock:')&&k!=='mock:list').map(([k,v])=>k.slice(5)+' http://127.0.0.1:'+v.split('--port ')[1]).join('\\n')\""
   },
   "devDependencies": {

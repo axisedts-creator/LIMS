@@ -288,6 +288,15 @@ export const PORT_MODULES: Record<string, string> = {
   QualityPort: "quality", BillingCommandPort: "billing", RenderPort: "reporting", EngagementPort: "engagement",
 };
 
+// PORT_CONSUMERS from the T0C-05 generated file (`  Port: ["mod", …],` lines); absent file = no port-propagated codes.
+function readPortConsumers(rootDir: string): Record<string, string[]> {
+  let t: string;
+  try { t = readFileSync(join(rootDir, "contracts/ports/generated/port-consumers.ts"), "utf8"); } catch { return {}; }
+  const body = t.split("PORT_CONSUMERS")[1] ?? "";
+  return Object.fromEntries([...body.matchAll(/^\s*([A-Za-z]+Port):\s*\[([^\]]*)\]/gm)]
+    .map(([, port, list]) => [port, [...list.matchAll(/"([a-z]+)"/g)].map((m) => m[1])]));
+}
+
 export async function lintRepo(rootDir: string): Promise<Violation[]> {
   const read = (p: string) => readFileSync(join(rootDir, p), "utf8");
   const perms = parse(read("contracts/permissions.yaml"));
@@ -297,8 +306,7 @@ export async function lintRepo(rootDir: string): Promise<Violation[]> {
     errors: errs.map((e: { code: string; owner: string }) => ({ code: e.code, owner: e.owner })),
     moduleOwners: MODULE_OWNERS,
     portOwners: Object.fromEntries(Object.entries(PORT_MODULES).map(([p, m]) => [p, MODULE_OWNERS[m]])),
-    // ponytail: empty until T0C-05 gen-port-consumers emits contracts/ports/generated/port-consumers.ts; wire it in then.
-    portConsumers: {},
+    portConsumers: readPortConsumers(rootDir),
   };
   const dir = join(rootDir, "contracts/openapi");
   const files = readdirSync(dir).filter((f) => f.endsWith(".yaml")).sort()

@@ -36,7 +36,11 @@ const EVENTS_PRODUCED = [
 const INGEST = ['instruments.ingest.config_read', 'instruments.ingest.enrol', 'instruments.ingest.heartbeat',
   'instruments.ingest.host_query', 'instruments.ingest.submit'];
 /** operationIds whose stub a later task has replaced; that task moves its ids here (tester-owned list). */
-const IMPLEMENTED: readonly string[] = [];
+const IMPLEMENTED: readonly string[] = [
+  'listAgents', 'createAgent', 'getAgent', 'updateAgent', 'issueEnrolmentCode', 'revokeAgent',
+  'retireAgent', 'requestAgentCommand', 'listAgentCommands', 'listAgentHealthTransitions',
+  'getAgentLogBundle', 'listAgentReleases',
+];
 
 const FAKE_REQ = { params: {}, query: {}, headers: {}, body: {} };
 const fakeCtx = (operationId: string) =>
@@ -229,8 +233,9 @@ describe('API-T01 boot against the real repo (default modulesDir, real instrumen
       expect(r.statusCode, `${url}: ${r.body}`).toBe(401);
       expect(JSON.parse(r.body).code).toMatch(/^auth\./);
     }
-    const enrol = await app.inject({ method: 'POST', url: '/v1/instruments/agent/enrolments', payload: {} });
+    const enrol = await app.inject({ method: 'POST', url: '/v1/instruments/agent/enrolments', payload: { host_fingerprint_sha256: '3f2a'.repeat(16), agent_version: '1.2.0', launcher_version: '1.0.1', os_version: 'Windows 10.0.19045' } });
     expect(enrol.statusCode, enrol.body).toBe(401);
+    expect(JSON.parse(enrol.body).code).toMatch(/^auth\./);
     expect((await app.inject({ method: 'GET', url: '/v1/instruments/not-in-spec' })).statusCode).toBe(404);
   }, 30_000);
 });

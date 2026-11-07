@@ -16,13 +16,7 @@ export const handlers: Readonly<Record<string, Handler>> = Object.freeze({
   getCatalogRevision: notImplemented,
   resolveOrderablesPreview: notImplemented,
   getCatalogHealthReport: notImplemented,
-  ...mastersHandlers, // T-04: #5–#16
-  listUnits: notImplemented,
-  createUnit: notImplemented,
-  updateUnit: notImplemented,
-  listValueSets: notImplemented,
-  createValueSet: notImplemented,
-  updateValueSet: notImplemented,
+  ...mastersHandlers, // T-04: #5–#16; T-05: #17–#22 (units, value sets); T-13: #57–#59 (comment codes)
   ...testsHandlers, // T-06: #2, #23–#27
   setTestTatTargets: notImplemented,
   createAnalyte: notImplemented,
@@ -53,9 +47,6 @@ export const handlers: Readonly<Record<string, Handler>> = Object.freeze({
   getPanelDetail: notImplemented,
   updatePanel: notImplemented,
   replacePanelMembers: notImplemented,
-  listCommentCodes: notImplemented,
-  createCommentCode: notImplemented,
-  updateCommentCode: notImplemented,
   searchDoctors: notImplemented,
   listDoctors: notImplemented,
   createDoctor: notImplemented,

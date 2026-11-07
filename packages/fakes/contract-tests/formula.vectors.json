@@ -1,0 +1,16 @@
+{
+  "source": "C3 02-TRD §7.1 golden vectors G1-G10 (SYNTHETIC; 08 R12a, CR-C3-002). X1 = log10 inexact case (C3 TRD §14). Inputs not given by the TRD table (G6 TC/HDL, G7 NEUT_ABS, G8 TP) are [CONV] synthetic fillers.",
+  "vectors": [
+    { "id": "G1", "expression": "MCV / RBC", "inputs": { "MCV": "70.0", "RBC": "5.60" }, "expect": { "ok": true, "value": "12.5" } },
+    { "id": "G2", "expression": "NEUT_ABS / LYMPH_ABS", "inputs": { "NEUT_ABS": "4.20", "LYMPH_ABS": "2.10" }, "expect": { "ok": true, "value": "2" } },
+    { "id": "G3", "expression": "PLT / LYMPH_ABS", "inputs": { "PLT": "250", "LYMPH_ABS": "2.00" }, "expect": { "ok": true, "value": "125" } },
+    { "id": "G4", "expression": "WBC * NEUT_PCT / 100", "inputs": { "WBC": "8.50", "NEUT_PCT": "60.0" }, "expect": { "ok": true, "value": "5.1" } },
+    { "id": "G5", "expression": "if(TG >= 400, invalid(\"tg_over_400\"), TC - HDL - TG / 5)", "inputs": { "TC": "200", "HDL": "50", "TG": "150" }, "expect": { "ok": true, "value": "120" } },
+    { "id": "G6", "expression": "if(TG >= 400, invalid(\"tg_over_400\"), TC - HDL - TG / 5)", "inputs": { "TC": "200", "HDL": "50", "TG": "450" }, "expect": { "ok": false, "reason": "tg_over_400" } },
+    { "id": "G7", "expression": "NEUT_ABS / LYMPH_ABS", "inputs": { "NEUT_ABS": "4.20", "LYMPH_ABS": "0" }, "expect": { "ok": false, "reason": "division_by_zero" } },
+    { "id": "G8", "expression": "TP - ALB", "inputs": { "TP": "7.0" }, "expect": { "ok": false, "reason": "missing_input:ALB" } },
+    { "id": "G9", "expression": "round(2 ^ 0.5, 3)", "inputs": {}, "expect": { "ok": true, "value": "1.414", "inexact": true } },
+    { "id": "G10", "expression": "if(@is_female == 1, A * 0.9, A)", "inputs": { "A": "10" }, "context": { "sex": "female" }, "expect": { "ok": true, "value": "9.0" } },
+    { "id": "X1", "expression": "log10(A)", "inputs": { "A": "50" }, "expect": { "ok": true, "value": "1.69897000433602", "inexact": true } }
+  ]
+}

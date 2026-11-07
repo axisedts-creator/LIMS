@@ -60,6 +60,15 @@
     - internal_ca
     - monitoring
 
+# 02-TRD s10.1 (T-17): Fluent Bit on every host (incl. lean backup); VictoriaLogs
+# on groups['ops'][0] of the active profile (LD-45). Shippers buffer to disk and
+# retry, so host order inside the play does not matter.
+- name: Logging
+  hosts: all
+  become: true
+  roles:
+    - logging
+
 # 02-TRD s12.2: Nepal registry. Server on ops-1 (uses the internal_ca
 # registry leaf above); client trust + name on every host that pulls.
 - name: Registry

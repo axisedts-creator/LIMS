@@ -32,7 +32,7 @@ function renderTable(props: TableProps = {}) {
 }
 const grid = () => screen.getByRole('grid', { name: 'Specimens' });
 const dataRows = () => within(grid()).getAllByRole('row').slice(1);
-const firstCell = (rowIdx: number, colIdx = 0) => within(dataRows()[rowIdx]!).getAllByRole(/gridcell|rowheader/)[colIdx]! as HTMLElement;
+const firstCell = (rowIdx: number, colIdx = 0) => Array.from(dataRows()[rowIdx]!.querySelectorAll('[role=gridcell],[role=rowheader]'))[colIdx]! as HTMLElement;
 const rowOf = (el: Element | null) => el?.closest('[role=row]') ?? null;
 
 describe('DataTable: structure and states (04-UI-UX §2.5)', () => {
@@ -399,7 +399,7 @@ describe('FilterBar (04-UI-UX §2.5)', () => {
     const u = user();
     const trigger = screen.queryByRole('button', { name: /Tags/ });
     if (trigger) await u.click(trigger);
-    const pick = async (n: string) => u.click(screen.getAllByRole(/^(option|checkbox|menuitemcheckbox)$/).find((e) => e.textContent?.includes(n) || e.getAttribute('aria-label') === n)!);
+    const pick = async (n: string) => u.click(Array.from(document.querySelectorAll('[role=option],[role=checkbox],[role=menuitemcheckbox]')).find((e) => e.textContent?.includes(n) || e.getAttribute('aria-label') === n)!);
     await pick('Urgent');
     await pick('STAT');
     expect([...lastVal(spy).tags].sort()).toEqual(['stat', 'urgent']);

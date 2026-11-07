@@ -307,6 +307,7 @@ describe('BarcodeInput: field contract and feedback', () => {
   });
 
   it('axe: idle, with error, disabled -> no critical/serious violation (AC-0D-8.6)', async () => {
+    vi.useRealTimers(); // fake setTimeout (file-wide) starves axe-core's internal timers
     const a = setup();
     expect(await seriousViolations()).toEqual([]);
     a.unmount();

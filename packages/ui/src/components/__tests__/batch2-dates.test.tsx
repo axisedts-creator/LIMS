@@ -7,6 +7,7 @@
 //   a button named /calendar/i opens a popover with role=grid; the field is committed on blur or Enter; A.D. hint text is rendered in the document (not in the input);
 //   the picker reads "today" from Date.now() in the tenant timezone Asia/Kathmandu (CV §4.8). The B.S. wrapper `@lims/shared-ts/bsdate` is the writer's to wire (not imported here).
 import { readFileSync } from 'node:fs';
+import { fileURLToPath, URL as NodeURL } from 'node:url'; // jsdom replaces the global URL
 import { useState } from 'react';
 import { describe, expect, it, vi, afterEach } from 'vitest';
 import { render, screen, within } from '@testing-library/react';
@@ -17,7 +18,7 @@ import { DateText } from '../DateText/DateText';
 import { seriousViolations, user } from './helpers';
 
 type Month = { bs_year: number; bs_month: number; days: number; ad_first_day: string };
-const golden = JSON.parse(readFileSync(new URL('../../../../test-fixtures/bsdate/golden-2000-2099.json', import.meta.url), 'utf8')) as {
+const golden = JSON.parse(readFileSync(fileURLToPath(new NodeURL('../../../../test-fixtures/bsdate/golden-2000-2099.json', import.meta.url)), 'utf8')) as {
   months: Month[];
   probes: { ad: string; bs: string }[];
 };

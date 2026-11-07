@@ -3,6 +3,7 @@
 // them from __tests__/probes/pending.json (CR-C3-008; the list must be empty at M6).
 import { LimsError } from '../../../core/errors.js';
 import type { Handler } from '../../../core/module.js';
+import { creditPartiesHandlers } from './creditParties.handlers.js';
 import { importsHandlers } from './imports.handlers.js';
 import { mastersHandlers } from './masters.handlers.js';
 import { referrersHandlers } from './referrers.handlers.js';
@@ -49,10 +50,7 @@ export const handlers: Readonly<Record<string, Handler>> = Object.freeze({
   updatePanel: notImplemented,
   replacePanelMembers: notImplemented,
   ...referrersHandlers, // T-15: #60–#66 (doctors)
-  listCreditParties: notImplemented,
-  createCreditParty: notImplemented,
-  getCreditParty: notImplemented,
-  updateCreditParty: notImplemented,
+  ...creditPartiesHandlers, // T-16: #67–#70 (credit parties)
   listPriceLists: notImplemented,
   createPriceList: notImplemented,
   getPriceListDetail: notImplemented,

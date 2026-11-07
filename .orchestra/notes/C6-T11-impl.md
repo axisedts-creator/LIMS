@@ -4,5 +4,5 @@ N6: caption/id validated -> narrative looked up (tenant, BOLA 404) BEFORE any by
 N7: kind=narrative_image + state ready + sanitized path + detected_mime png/jpeg, else 404 / reporting.input_file_not_ready; same security headers as O5; access log report.view / narrative_image.
 Worker: re-scan, then re-encode again with core reencodePng (no PDF sandbox), publish `{tenant}/narrative-images/{yyyy}/{mm}/{id}.png` ifAbsent (byte-identical retry ok), record sha/detected_mime/width/height.
 [CONV] worker image rejection code = common.upload_quarantined (N6 list); infected metric reuses lims_reporting_sandbox_rejections_total{reason=infected}; N6 infected keeps common.upload_quarantined (not remapped).
-Open: 2 test bugs -> C6-T11-dispute.md. JPEG refused 422 until core JPEG decoder (CR T0D-17). P-10 narrative.write on N7, signed-narrative + 12-image cap -> C6-T17.
-Checks: verify.cmd suites api 122/123, worker 24/25 (the 2 failures are disputed); tsc api: no errors in reporting (pre-existing shared-ts TS5097 only); worker has no tsconfig.
+Open: dispute resolved (ruling TESTS_WRONG, tests revised; no code change needed). JPEG refused 422 until core JPEG decoder (CR T0D-17). P-10 narrative.write on N7, signed-narrative + 12-image cap -> C6-T17.
+Checks: verify.cmd api 123/123, worker 25/25; full reporting api 618/618, worker 65/65; tsc api: no errors in reporting (pre-existing shared-ts TS5097 only); worker has no tsconfig.

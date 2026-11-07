@@ -51,24 +51,34 @@ export class SimDb {
   stuck = false;
   private chain = new Map<string, Promise<void>>();
   private held = new Set<string>();
+  private pending = new Map<string, { owner: object; done: Promise<void>; fin: () => void }>(); // rows INSERTed but not yet committed
   private t: number;
   constructor(startIso: string, readonly stepMs = 1) { this.t = Date.parse(startIso); }
   now() { const iso = new Date(this.t).toISOString(); this.t += this.stepMs; return iso; }
   begin() {
-    const undo: Array<() => void> = [], release: Array<() => void> = [], keys: string[] = [];
+    const undo: Array<() => void> = [], release: Array<() => void> = [], keys: string[] = [], created: string[] = [];
+    const me = {};
     let timeout = '0'; // a fresh pooled connection: no lock timeout
     let finished = false;
-    const done = () => { for (const r of release) r(); finished = true; };
+    // rows are only made visible (commit) or already removed (rollback, undo ran first) by the time waiters on an INSERT are woken
+    const done = () => { for (const r of release) r(); for (const k of created) { const p = this.pending.get(k); this.pending.delete(k); p?.fin(); } finished = true; };
     const tx = fakeTx(async (c) => {
       if (LOCK.test(c.sql)) { timeout = lockValue(c) ?? '0'; return { rows: [{ set_config: timeout }] }; }
       if (INS.test(c.sql)) {
         const k = keyOf(c.values);
-        if (!this.rows.has(k)) { this.rows.set(k, 0); undo.push(() => this.rows.delete(k)); }
+        // ON CONFLICT DO NOTHING: another tx's uncommitted row of this key makes us wait for its commit (→ conflict, no-op) or rollback (→ we insert it).
+        for (let p = this.pending.get(k); p && p.owner !== me; p = this.pending.get(k)) await p.done;
+        if (!this.rows.has(k)) {
+          this.rows.set(k, 0);
+          let fin!: () => void;
+          this.pending.set(k, { owner: me, done: new Promise<void>((r) => { fin = r; }), fin });
+          created.push(k); undo.push(() => this.rows.delete(k));
+        }
         return { rows: [] };
       }
       if (UPD.test(c.sql)) {
         const k = keyOf(c.values);
-        if (!this.rows.has(k)) return { rows: [] };
+        if (!this.rows.has(k) || (this.pending.has(k) && this.pending.get(k)!.owner !== me)) return { rows: [] }; // uncommitted rows of other txs are invisible
         if (!keys.includes(k)) {
           // `stuck` = the holder keeps the row longer than any timeout: a waiter with lock_timeout > 0 gets 55P03, one with 0 waits forever.
           if (this.held.has(k) && this.stuck && !/^0(ms)?$/.test(timeout)) throw pgError('55P03', 'canceling statement due to lock timeout');

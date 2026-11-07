@@ -61,7 +61,7 @@ Versions that 04/CV or a spike fixed are copied, not re-chosen: fastify (SP-8), 
 | mobile_scanner | 7.5.0 | BSD-3-Clause | camera barcode scanning for `LimsBarcodeScanner` (C17) | 2026-11-01 (pub.dev latest.published 7.5.0) | google_mlkit_barcode_scanning, qr_code_scanner (unmaintained) |
 | flutter_secure_storage | 11.2.0 | BSD-3-Clause | mobile secret storage (04 A15; REQ-SEC-102) | 2026-09-16 (pub.dev latest.published 11.2.0) | biometric_storage |
 | Atlas (community build) | 1.3.1 | Apache-2.0 | migration runner, image `arigaio/atlas:1.3.1-community@sha256:76cc66fb31f99d5d316676b8a9866ef4b6d6bf5aacc0639485d04848670839e4` (SP-5) | 2026-08-13 (Docker Hub tag 1.3.1-community last_pushed, same digest as SP-5) | sqitch 1.6.1 (fails owner role switch, SP-5) |
-| pgTAP | 1.3.3 | PostgreSQL License (OSI permissive; id not listed in CV §15.2 — see CR T0-03-licences); test/CI databases only, in-image | SQL unit tests in `db/tests` (SP-3) | 2024-04-08 (GitHub theory/pgtap release v1.3.3; v1.3.4 on 2025-10-04) | plain-SQL assertions |
+| pgTAP | 1.3.3 | PostgreSQL License (OSI permissive; allowed by LD-15 2026-11-07); test/CI databases only, in-image | SQL unit tests in `db/tests` (SP-3) | 2024-04-08 (GitHub theory/pgtap release v1.3.3; v1.3.4 on 2025-10-04) | plain-SQL assertions |
 | gitleaks | 8.30.1 | MIT | secret scan, CI gate 11 | 2026-03-21 (GitHub release v8.30.1) | trufflehog (AGPL-3.0) |
 | osv-scanner | 2.7.0 | Apache-2.0 | dependency vulnerability scan + `pnpm audit`, CI gate 12 | 2026-10-12 (GitHub release v2.7.0) | npm audit only, grype |
 | trivy | 0.76.2 | Apache-2.0 | container image scan, CI gate 14 | 2026-11-05 (GitHub release v0.76.2) | grype |

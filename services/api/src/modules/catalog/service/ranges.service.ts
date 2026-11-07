@@ -206,12 +206,18 @@ export function createRangesService(deps: Deps) {
         const [snap] = draftV ? [draftV] : await repo.find(tx, 'analyte_versions', vcols, t, { analyte_id: analyteId, status: 'published' }, { order: 'version_no DESC', limit: 1 });
 
         let rows = bands;
+        // V1: copy from `copy_from_set_id`, else (no bands given) from the latest published set; none -> empty draft.
+        let srcId: string | undefined;
         if (body['copy_from_set_id'] !== undefined) {
           const [src] = await repo.find(tx, f.set, ['id', 'analyte_id'], t, { id: body['copy_from_set_id'] });
           if (!src) throw new LimsError('common.not_found');
           if (src.analyte_id !== analyteId) fail([invalid('/copy_from_set_id')]);
-          rows = (await bandRows(ctx, f, [src.id])).map((r) => Object.fromEntries(bandCols(f).map((c) => [c, r[c] ?? null])));
+          srcId = src.id as string;
+        } else if (bands === undefined) {
+          const [pub] = await repo.find(tx, f.set, ['id'], t, { analyte_id: analyteId, status: 'published' }, { order: 'version_no DESC', limit: 1 });
+          srcId = pub?.id as string | undefined;
         }
+        if (srcId) rows = (await bandRows(ctx, f, [srcId])).map((r) => Object.fromEntries(bandCols(f).map((c) => [c, r[c] ?? null])));
         const id = uuidv7(), actor = ctx.actor.id;
         await repo.insert(tx, f.set, [{ id, tenant_id: t, created_by: actor, updated_by: actor, analyte_id: analyteId, version_no: Number(last?.version_no ?? 0) + 1, status: 'draft',
           unit_code: snap?.unit_code ?? null, method_id: snap?.method_id ?? null, version: 1 }], ['created_at', 'updated_at']).catch(mapPg);

@@ -7,7 +7,9 @@
 // example validates against its schema (what Prism serves/validates) and each operation has a 2xx example (or is 204/CSV).
 // Not testable here: Prism actually serving the file (prism not installed; mock wiring is T0C-08's mocks.test.ts).
 // Assumption (TRD silent): `revokePlatformSession` idem is "none" in the TRD row but it is a POST action (convention says
-// `optional`); its idem is NOT pinned here — lint then requires an `E1 `/`E2 ` justification if it stays `none`.
+// `optional`); its idem is NOT pinned here — lint then requires an `E4 ` justification (LD-10) if it stays `none`.
+// LD-10 / LD-11 (lead decisions 2026-11-07, binding): P-8 gains exemptions E3 (read-only POST) and E4 (pre-auth/session op,
+// not replayable); lint rule 7 exempts `tenant_id` in request bodies of `x-context: platform` operations only.
 import { cpSync, existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
@@ -328,6 +330,65 @@ describe.each(ROWS)("$id", (r) => {
     // versioned updates/actions on a resource id: If-Match (TRD §5 conventions); pre-auth, creates and non-resource ops excluded
     const versioned = ["PATCH", "PUT"].includes(r.method) && /\{[a-z_]+\}/.test(r.path) && !r.path.includes("/feature-flags/");
     if (versioned) expect(params).toMatch(/IfMatch/);
+  });
+});
+
+// LD-10 (2026-11-07): P-8 justification prefixes. Each idem:none POST carries the HONEST one — never E1/E2 falsely.
+// E1 = 2xx body carries a secret/token shown once; E3 = read-only POST; E4 = pre-auth/session op, response not replayable.
+const E1_OPS = ["loginStaff", "loginPartner", "confirmEmailToken", "openMobileSession", "refreshMobileSession", "resolveSession",
+  "resolvePatientSession", "startMfaEnrolment"];
+const E3_OPS = ["searchUsers"];
+const E4_OPS = ["verifyMfaChallenge", "completeMfaEnrolment", "logoutSession", "logoutPatientSession", "logoutMobileSession",
+  "requestPasswordRecovery", "setPasswordFromSetup", "changeOwnPassword"];
+describe("P-8 x-idempotency-justification prefixes (LD-10)", () => {
+  const just = (id: string) => String(ops[id]?.op?.["x-idempotency-justification"] ?? "");
+  it.each(E1_OPS)("%s: E1 (secret/token in response)", (id) => expect(just(id)).toMatch(/^E1 \S/));
+  it.each(E3_OPS)("%s: E3 (read-only POST)", (id) => expect(just(id)).toMatch(/^E3 \S/));
+  it.each(E4_OPS)("%s: E4 (pre-auth/session, not replayable)", (id) => expect(just(id)).toMatch(/^E4 \S/));
+  it("revokePlatformSession: if idem none then E4 (TRD/CV conflict; idem not pinned)", () => {
+    const o = ops.revokePlatformSession?.op;
+    expect(o, "revokePlatformSession missing").toBeDefined();
+    if (o["x-idempotency"] === "none") expect(just("revokePlatformSession")).toMatch(/^E4 \S/);
+  });
+  it("every POST with idem none has an E1/E3/E4 justification, and the three lists cover all of them", () => {
+    const noneIds = Object.entries(ops).filter(([, v]) => v.method === "POST" && v.op["x-idempotency"] === "none").map(([k]) => k);
+    const covered = new Set([...E1_OPS, ...E3_OPS, ...E4_OPS, "revokePlatformSession"]);
+    for (const id of noneIds) {
+      expect(covered.has(id), `${id}: idem none but not in LD-10 lists`).toBe(true);
+      expect(just(id), id).toMatch(/^E[134] \S/);
+    }
+  });
+  it("no E2 anywhere (no patient OTP request POST in C2)", () => {
+    for (const [id] of Object.entries(ops)) expect(just(id), id).not.toMatch(/^E2 /);
+  });
+  it("E1 claimed only for ops whose success response can carry a secret/token (not read-only / not logout)", () => {
+    for (const id of [...E3_OPS, ...E4_OPS]) expect(just(id), id).not.toMatch(/^E[12] /);
+  });
+});
+
+describe("rule 7 / LD-11 — tenant_id in request body only for x-context: platform", () => {
+  const props = (b: any): string[] => {
+    const s = b?.content?.["application/json"]?.schema;
+    const resolved = s?.$ref ? doc.components?.schemas?.[String(s.$ref).split("/").pop()!] : s;
+    return Object.keys(resolved?.properties ?? {});
+  };
+  it("openSupportSession (platform) takes tenant_id in its body", () => {
+    const o = ops.openSupportSession?.op;
+    expect(o["x-context"]).toBe("platform");
+    expect(props(o.requestBody)).toContain("tenant_id");
+  });
+  it("no non-platform operation declares tenant_id/created_by/updated_by in its request body", () => {
+    for (const [id, v] of Object.entries(ops)) {
+      if (v.op["x-context"] === "platform") continue;
+      const b = v.op.requestBody?.$ref ? doc.components?.requestBodies?.[String(v.op.requestBody.$ref).split("/").pop()!] : v.op.requestBody;
+      for (const f of ["tenant_id", "created_by", "updated_by"]) expect(props(b), `${id} body has ${f}`).not.toContain(f);
+    }
+  });
+  it("platform ops never take created_by/updated_by in bodies (exemption is tenant_id only)", () => {
+    for (const [id, v] of Object.entries(ops)) {
+      if (v.op["x-context"] !== "platform") continue;
+      for (const f of ["created_by", "updated_by"]) expect(props(v.op.requestBody), `${id} body has ${f}`).not.toContain(f);
+    }
   });
 });
 

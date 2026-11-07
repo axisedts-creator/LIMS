@@ -901,6 +901,10 @@ jobs:
         id: plan
         run: node tools/lint/ci-plan.ts --files "$RUNNER_TEMP/changed.txt" --job "$GITHUB_JOB" >> "$GITHUB_OUTPUT"
       - if: steps.plan.outputs.run == 'true'
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version-file: packages/ui-flutter/pubspec.yaml # C0 02-TRD §2.2 Flutter pin
+      - if: steps.plan.outputs.run == 'true'
         name: enable KVM for the emulator
         run: |
           echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules

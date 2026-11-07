@@ -398,13 +398,17 @@ test('audit triggers (app.tg_row_audit, AC-0B-5.x): <t>__audit on every audited 
 // ================================================================ registry (db/meta/tables.yaml)
 const tablesYaml = () => JSON.parse(readFileSync(root + 'db/meta/tables.yaml', 'utf8').split('\n').filter((l) => !/^\s*#/.test(l)).join('\n')).tables;
 const MANDATORY = ['id', 'tenant_id', 'version', 'is_active', 'created_at', 'created_by', 'updated_at', 'updated_by'];
-function specPhi(q) {   // single-column lines of the RAW spec table that carry a trailing "-- P<n>" comment
+function specPhi(q) {   // RAW spec table: a trailing "-- P<n>" comment applies to EVERY column declared on that line; "-- reason text P3-possible" -> P3 on the *_reason_text column (review T0B-10.C4 item 8)
   const raw = rawFd() + '\n' + rawBl(), m = new RegExp(`CREATE\\s+TABLE\\s+${q.replace('.', '\\.')}\\s*\\(`, 'i').exec(raw);
   const body = balanced(raw, m.index + m[0].length), out = {};
   for (const line of body.split('\n')) {
-    const pm = /--\s*(P[0-3])\b/.exec(line); if (!pm) continue;
-    const code = line.replace(/--.*$/, '').trim(); const segs = splitTop(code);
-    if (segs.length === 1 && !/^(CONSTRAINT|PRIMARY|UNIQUE|CHECK|FOREIGN)\b/i.test(code)) out[code.split(/\s+/)[0]] = pm[1];
+    const pm = /--\s*(P[0-3])\b/.exec(line), rt = /--\s*reason text (P3)-possible/.exec(line); if (!pm && !rt) continue;
+    const code = line.replace(/--.*$/, '').trim();
+    for (const seg of splitTop(code)) {
+      const s = seg.trim(); if (!s || /^(CONSTRAINT|PRIMARY|UNIQUE|CHECK|FOREIGN)\b/i.test(s)) continue;
+      const col = s.split(/\s+/)[0];
+      if (pm) out[col] = pm[1]; else if (/reason_text$/.test(col)) out[col] = rt[1];
+    }
   }
   return out;
 }
@@ -428,6 +432,11 @@ test('tables.yaml: all 37 C4 tables registered (class, centre_scoped from the §
 test('tables.yaml phi_class: every "-- P<n>" annotation of the spec DDL is honoured; patient demographics P2; order_items P3 snapshot columns; created_by / updated_by never above P1', () => {
   const y = tablesYaml();
   for (const q of ALLT) for (const [c, p] of Object.entries(specPhi(q))) assert.equal(y[q].columns[c], p, `${q}.${c} is ${p} per the spec DDL comment`);
+  const sp = (q, cs, p) => cs.forEach((c) => assert.equal(specPhi(q)[c], p, `spec extraction: ${q}.${c} ${p}`));   // multi-column comment lines are really parsed
+  sp('frontdesk.orders', ['age_years', 'age_months', 'age_days'], 'P2'); sp('frontdesk.orders', ['cancel_reason_text'], 'P3');
+  sp('billing.invoices', ['buyer_name', 'buyer_pan', 'buyer_address'], 'P2'); sp('billing.invoice_lines', ['order_item_id', 'orderable_id', 'orderable_kind', 'code', 'name'], 'P3');
+  sp('billing.credit_notes', ['buyer_name', 'buyer_pan'], 'P2'); sp('billing.ledger_entries', ['order_id', 'invoice_id', 'credit_party_id'], 'P1');
+  sp('billing.credit_charges', ['line_kind', 'orderable_id', 'code', 'name', 'department_id'], 'P3'); sp('billing.refund_requests', ['id', 'tenant_id', 'branch_id', 'centre_id', 'order_id'], 'P1');
   for (const c of ['patient_code', 'full_name', 'name_search', 'sex', 'birth_on', 'phone_e164', 'email', 'address_text']) assert.equal(y['frontdesk.patients'].columns[c], 'P2', `frontdesk.patients.${c}`);
   for (const c of ['orderable_id', 'code', 'name', 'test_ids']) assert.equal(y['frontdesk.order_items'].columns[c], 'P3', `frontdesk.order_items.${c}`);
   for (const q of ALLT) for (const c of ['created_by', 'updated_by']) if (y[q].columns[c]) assert.ok(['P0', 'P1'].includes(y[q].columns[c]), `${q}.${c}`);

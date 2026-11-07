@@ -16,6 +16,8 @@ import time
 import unittest
 from pathlib import Path
 
+import yaml
+
 ROOT = Path(__file__).resolve().parents[3]
 sys.path.insert(0, str(ROOT / "infra" / "tests" / "static"))
 sys.path.insert(0, str(ROOT / "infra" / "tests" / "integration"))
@@ -134,7 +136,7 @@ class LiveRenderedUserlist(unittest.TestCase):
         sh("docker", "run", "-d", "--name", cls.PGB2, "--network", cls.NET2, "--network-alias", PGB,
            "-v", "%s:/etc/pgbouncer/pgbouncer.ini:ro" % (d / "pgbouncer.ini"),
            "-v", "%s:%s:ro" % (d / "userlist.txt", auth_file),
-           "edoburu/pgbouncer@" + re.search(r"sha256:[0-9a-f]{64}", (st.LOCK).read_text()).group(0))
+           "edoburu/pgbouncer@" + yaml.safe_load(st.LOCK.read_text(encoding="utf-8"))["images"]["pgbouncer"]["digest"])
         time.sleep(5)
 
     @classmethod
@@ -166,7 +168,7 @@ class LiveRenderedUserlist(unittest.TestCase):
     def test_pgbouncer_image_uid_matches_secrets_render_uids(self):
         # review C1.T-06 item 2: the 0400 userlist is owned by secrets_render_uids.pgbouncer; it must be the image user.
         import test_t06_secrets as base  # noqa: E402
-        img = "edoburu/pgbouncer@" + re.search(r"sha256:[0-9a-f]{64}", (st.LOCK).read_text()).group(0)
+        img = "edoburu/pgbouncer@" + yaml.safe_load(st.LOCK.read_text(encoding="utf-8"))["images"]["pgbouncer"]["digest"]
         r = sh("docker", "run", "--rm", "--entrypoint", "id", img, "-u")
         self.assertEqual(int(r.stdout.strip()), base._defaults()["secrets_render_uids"]["pgbouncer"])
 

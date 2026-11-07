@@ -43,7 +43,27 @@ export const sweepStuckRenders: TaskHandler = async (payload, jobCtx) => {
   }
 };
 
+export const SWEEP_HELD = 'reporting.sweep_held_releases';
+
+/** Rendered versions held for dues (held_basis set by the release task) in auto mode -> the keyed release task, which asks BillingPort. Hints are not authoritative, so a
+ *  missed billing.balance.changed.v1 only delays a release by one tick. Only enqueues: no BillingPort call, no write. */
+export const sweepHeldReleases: TaskHandler = async (payload, jobCtx) => {
+  const ctx = jobCtx as any;
+  const tenantId = ctx.tenantId;
+  if (typeof tenantId !== 'string' || payload?.tenant_id !== tenantId) {
+    ctx.log?.warn?.({ event: 'sweep_held_releases_skipped', reason: 'bad_payload' });
+    return;
+  }
+  const s = (await ctx.tx.query('SELECT auto_release FROM reporting.settings WHERE tenant_id = $1', [tenantId])).rows[0];
+  if ((s?.auto_release ?? 'when_eligible') !== 'when_eligible') return;
+  const { rows } = await ctx.tx.query(`SELECT id, report_id FROM reporting.report_versions WHERE tenant_id = $1 AND status = 'rendered' AND held_basis IS NOT NULL ORDER BY held_checked_at ASC NULLS FIRST, id LIMIT ${BATCH}`, [tenantId]);
+  for (const r of rows as { id: string; report_id: string }[]) {
+    await ctx.tx.query(ENQUEUE_SQL, ['reporting.release_if_eligible', JSON.stringify({ tenant_id: tenantId, report_id: r.report_id, report_version_id: r.id }), `release:${r.id}`, null, 10]);
+  }
+};
+
 export const crontab: readonly CronEntry[] = Object.freeze([
   Object.freeze({ identifier: SWEEP_ASSEMBLY, schedule: '*/5 * * * *', tenantScope: 'per_tenant' as const, maxAttempts: 5 }),
   Object.freeze({ identifier: SWEEP_RENDERS, schedule: '*/10 * * * *', tenantScope: 'per_tenant' as const, maxAttempts: 5 }),
+  Object.freeze({ identifier: SWEEP_HELD, schedule: '*/15 * * * *', tenantScope: 'per_tenant' as const, maxAttempts: 5 }),
 ]);

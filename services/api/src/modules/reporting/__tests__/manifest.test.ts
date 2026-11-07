@@ -80,7 +80,9 @@ describe('501 stubs in dev', () => {
     // LEAD-VISIBLE TESTER EDIT (C6-T18): T1-T4 and T6 leave the 501 list (T5 previewReportTemplate stays a stub: C6-T16); covered by templates.handlers.test.ts.
     'listReportTemplates', 'createReportTemplate', 'getReportTemplate', 'updateReportTemplateDraft', 'publishReportTemplate',
     // LEAD-VISIBLE TESTER EDIT (C6-T09): R8 leaves the 501 list; covered by retry-render.test.ts.
-    'retryRenderReportVersion']);
+    'retryRenderReportVersion',
+    // LEAD-VISIBLE TESTER EDIT (C6-T13): R6 leaves the 501 list; covered by release.handlers.test.ts.
+    'releaseReportVersion']);
   const stubOps = ops.filter((o: string) => !IMPLEMENTED.has(o));
   it('only already-implemented operations are excluded from the 501 list', () => expect(ops.length - stubOps.length).toBe(IMPLEMENTED.size));
   it.each(stubOps)('%s answers 501', async (op) => {

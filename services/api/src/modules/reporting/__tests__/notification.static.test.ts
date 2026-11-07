@@ -73,6 +73,17 @@ describe('C6-T19 seed (D-34): templates live in db/seeds, not only in code', () 
     const a = rowOf('analytics.report_ready'); expect(a).toContain('scheduled_report_ready'); expect(a).toContain('label_text'); expect(a).toContain('staff_url');
     expect(rowOf('engagement.login_otp')).toMatch(/\botp\b/);
   });
+  // LD-59 (CR-C6-024): class-G seed range (lims_owner), prod subset; lims_app cannot insert into a class-G table, so no 010+ file may carry it.
+  it('LD-59: the seed is db/seeds/004_reporting__g_message_templates.sql (lims_owner, ON CONFLICT (code) DO NOTHING) and no 011 file exists', () => {
+    const files = readdirSync(seedDir).filter((f) => f.endsWith('.sql'));
+    expect(files).toContain('004_reporting__g_message_templates.sql');
+    expect(files.filter((f) => /^01\d_/.test(f) && /g_message_templates/.test(readFileSync(join(seedDir, f), 'utf8')))).toEqual([]);
+    expect(files.filter((f) => /^011_/.test(f))).toEqual([]);
+    const sql = readFileSync(join(seedDir, '004_reporting__g_message_templates.sql'), 'utf8').replace(/--.*$/gm, '');
+    expect(sql).toMatch(/SET\s+LOCAL\s+ROLE\s+lims_owner/i);
+    expect(sql).toMatch(/INSERT\s+INTO\s+reporting\.g_message_templates/i);
+    expect(sql).toMatch(/ON\s+CONFLICT\s*\(\s*code\s*\)\s+DO\s+NOTHING/i);
+  });
   it('every seeded code matches g_message_templates__code__ck', () => {
     for (const m of text().matchAll(/\(\s*'([a-z_]+\.[^']+)'\s*,/g)) expect(m[1], m[1]).toMatch(/^[a-z_]+\.[a-z0-9_]{1,60}$/);
   });

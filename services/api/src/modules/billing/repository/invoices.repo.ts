@@ -24,6 +24,13 @@ export async function getInvoiceForUpdate(tx: Q, a: { tenantId: string; invoiceI
   return rows[0];
 }
 
+/** B22: the periodic bill of THIS party only (any other invoice, party or tenant is simply absent), locked so payments on one bill serialise. */
+export async function getPeriodicInvoiceForUpdate(tx: Q, a: { tenantId: string; creditPartyId: string; invoiceId: string }): Promise<InvoiceRow | undefined> {
+  const { rows } = await tx.query(
+    'SELECT * FROM billing.invoices WHERE tenant_id = $1 AND id = $2 AND credit_party_id = $3 AND is_periodic_credit_bill FOR UPDATE', [a.tenantId, a.invoiceId, a.creditPartyId]);
+  return rows[0];
+}
+
 /** issued -> cancelled, with the cancellation columns and cbms_cancel_state set together (the only transition the DB guard allows). */
 export async function markInvoiceCancelled(tx: Q, a: {
   tenantId: string; invoiceId: string; cancelledAt: string; cancelledBy: string; reasonCode: string; reasonText?: string | null;

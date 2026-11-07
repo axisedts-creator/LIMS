@@ -12,18 +12,25 @@ export interface NewLedgerEntry {
   readonly reversesEntryId?: string | null; readonly reasonCode?: string | null; readonly idempotencyKey?: string | null;
   readonly receiptNo?: string | null; readonly receiptSeq?: number | null; readonly cashSessionId?: string | null;
   readonly referenceText?: string | null; readonly capturedAtDevice?: string | null;
+  readonly creditPartyId?: string | null;   // B22: a payment of a credit party against its periodic bill (no order)
 }
 
 export async function insertLedgerEntry(tx: Q, e: NewLedgerEntry): Promise<Record<string, unknown> | undefined> {
   const { rows } = await tx.query(
     `INSERT INTO billing.ledger_entries (id, tenant_id, branch_id, centre_id, order_id, invoice_id, entry_kind, capture_kind, method_code, amount_paisa,
        fiscal_year_bs, business_date, collected_by_membership_id, reverses_entry_id, reason_code, idempotency_key, created_by,
-       receipt_no, receipt_seq, cash_session_id, reference_text, captured_at_device)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22) RETURNING *`,
+       receipt_no, receipt_seq, cash_session_id, reference_text, captured_at_device, credit_party_id)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23) RETURNING *`,
     [e.id, e.tenantId, e.branchId, e.centreId, e.orderId, e.invoiceId, e.entryKind, e.captureKind, e.methodCode, e.amountPaisa,
       e.fiscalYearBs, e.businessDate, e.collectedByMembershipId, e.reversesEntryId ?? null, e.reasonCode ?? null, e.idempotencyKey ?? null, e.userId,
-      e.receiptNo ?? null, e.receiptSeq ?? null, e.cashSessionId ?? null, e.referenceText ?? null, e.capturedAtDevice ?? null]);
+      e.receiptNo ?? null, e.receiptSeq ?? null, e.cashSessionId ?? null, e.referenceText ?? null, e.capturedAtDevice ?? null, e.creditPartyId ?? null]);
   return rows[0];
+}
+
+/** Signed sum (payments, reversals, refunds) of every ledger row against one invoice, paisa as text. */
+export async function sumLedgerByInvoice(tx: Q, a: { tenantId: string; invoiceId: string }): Promise<string> {
+  const { rows } = await tx.query('SELECT COALESCE(SUM(amount_paisa), 0)::text AS total FROM billing.ledger_entries WHERE tenant_id = $1 AND invoice_id = $2', [a.tenantId, a.invoiceId]);
+  return rows[0]?.total ?? '0';
 }
 
 export async function listLedgerForInvoice(tx: Q, a: { tenantId: string; invoiceId: string }): Promise<Record<string, unknown>[]> {

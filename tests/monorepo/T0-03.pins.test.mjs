@@ -1,4 +1,4 @@
-// T0-03: pin all [PIN-C0] versions; fill 02-TRD §2.3 (CV §15.1-15.3, 02-TRD §2.1-2.3).
+// T0-03: pin all [PIN-C0] versions; fill the CV §15.1 dependencies table (table path per LD-04; titles saying §2.3 = that table).
 // Run: node --test tests/monorepo/T0-03.pins.test.mjs
 // Sources: spec/program/02-CONVENTIONS.md §15.1 (exact versions, lockfiles, table columns),
 //          §15.2 (licences), §15.3 (banned deps); spec/chunks/C0-foundation-contracts/02-TRD.md §2.1-2.3.
@@ -11,7 +11,8 @@ import { fileURLToPath } from 'node:url';
 const ROOT = fileURLToPath(new URL('../../', import.meta.url));
 const p = (...s) => join(ROOT, ...s);
 const read = (f) => readFileSync(f, 'utf8');
-const TRD = p('spec', 'chunks', 'C0-foundation-contracts', '02-TRD.md');
+// LD-04 (2026-11-07) T0-03 option B: the CV §15.1 table lives here, not in spec/ (read-only); 02-TRD §2.3 is not edited.
+const TRD = p('db', 'meta', 'decisions', 'T0-03-dependencies.md');
 
 // ---------- helpers ----------
 const EXACT_NPM = /^\d+\.\d+\.\d+(-[0-9A-Za-z.-]+)?(\+[0-9A-Za-z.-]+)?$/;
@@ -81,10 +82,10 @@ function section(md, startRe, endRe) {
 }
 
 function loadTable() {
-  assert.ok(existsSync(TRD), 'C0 02-TRD.md must exist');
-  const sec = section(read(TRD), /^### 2\.3 /m, /^(### |## )(?!2\.3)/m);
+  assert.ok(existsSync(TRD), 'db/meta/decisions/T0-03-dependencies.md must exist (LD-04)');
+  const sec = read(TRD); // whole file: the table is the only table in it
   const lines = sec.split(/\r?\n/).filter((l) => l.trim().startsWith('|'));
-  assert.ok(lines.length >= 3, '§2.3 must contain a markdown table (header, separator, rows)');
+  assert.ok(lines.length >= 3, 'dependencies file must contain a markdown table (header, separator, rows)');
   const cells = (l) => l.trim().replace(/^\||\|$/g, '').split('|').map((c) => c.trim());
   const header = cells(lines[0]).map((h) => h.toLowerCase());
   const rows = lines.slice(2).map(cells);
@@ -192,6 +193,29 @@ test('02-TRD §2.3 every row: exact version, allowed licence, dated release evid
       assert.ok(alt.length >= 2 && !/^(tbd|todo)$/i.test(alt), `${L}: alternatives considered empty`);
       for (const c of [name, ver, lic, purpose, rel, alt]) assert.ok(!/\b(TBD|TODO|FIXME)\b|\?\?/.test(c), `${L}: placeholder text`);
     } catch (e) { errs.push(e.message); }
+  }
+  assert.deepEqual(errs, []);
+});
+
+// LD-05 (2026-11-07) T0D-12 T0-03: pins from CR-C0-0D-001 (.orchestra/cr/T0D-12*.md) are recorded in the same table.
+const T0D12_PINS = {
+  'react-aria-components': '1.22.1', 'react': '19.3.1', 'react-dom': '19.3.1',
+  '@fontsource/noto-sans': '5.3.0', '@fontsource/noto-sans-devanagari': '5.3.0', '@fontsource/noto-sans-mono': '5.3.0',
+  '@testing-library/react': '16.3.3', '@testing-library/user-event': '14.6.8',
+  '@types/react': '19.3.0', '@types/react-dom': '19.3.0', 'axe-core': '4.14.0', 'jsdom': '31.0.0',
+  'typescript': '7.0.2', 'vitest': '5.1.0',
+};
+test('dependencies table (LD-05): T0D-12 pins are recorded with the exact CR versions', () => {
+  const { rows } = loadTable();
+  const byName = new Map(rows.map((r) => [clean(r[0]).toLowerCase(), clean(r[1])]));
+  const errs = [];
+  for (const [n, v] of Object.entries(T0D12_PINS)) {
+    // fonts may be listed as "Noto Sans" etc. or by package name; accept either
+    const alias = { '@fontsource/noto-sans': 'noto sans', '@fontsource/noto-sans-devanagari': 'noto sans devanagari',
+      '@fontsource/noto-sans-mono': 'noto sans mono' }[n];
+    const got = byName.get(n) ?? (alias && byName.get(alias));
+    if (got === undefined) errs.push(`${n}: no row`);
+    else if (got !== v) errs.push(`${n}: table ${got} != CR ${v}`);
   }
   assert.deepEqual(errs, []);
 });
@@ -334,15 +358,31 @@ function lockedNpmNames() {
   return names;
 }
 
+// CV §15.3 (02-CONVENTIONS.md:1195): `bikram-sambat` "may appear only as a test oracle, never imported by app code".
+// Exemption: devDependencies of packages/test-fixtures only (cross-library B.S. golden-table oracle, T0A-06).
+const isOracleUse = (d) => d.name === 'bikram-sambat' && d.g === 'devDependencies' &&
+  d.f.replace(/\\/g, '/').endsWith('/packages/test-fixtures/package.json');
+
 test('banned list: no banned package in any package.json (direct) — CV §15.3', () => {
-  const hit = allNpmDeps().filter((d) => BANNED_PKGS.includes(d.name));
+  const hit = allNpmDeps().filter((d) => BANNED_PKGS.includes(d.name) && !isOracleUse(d));
   assert.deepEqual(hit.map((d) => `${d.f.slice(ROOT.length)}: ${d.name}`), []);
 });
 
 test('banned list: no banned package anywhere in pnpm-lock.yaml (transitive) — CV §15.3', () => {
   const names = lockedNpmNames();
   assert.ok(names.size > 0, 'lockfile parser found package entries');
-  assert.deepEqual(BANNED_PKGS.filter((b) => names.has(b)), []);
+  const oracle = allNpmDeps().some(isOracleUse);
+  assert.deepEqual(BANNED_PKGS.filter((b) => names.has(b) && !(b === 'bikram-sambat' && oracle)), []);
+});
+
+test('banned list: bikram-sambat test oracle is never a runtime dependency or imported by non-test source', () => {
+  const bad = allNpmDeps().filter((d) => d.name === 'bikram-sambat' && !isOracleUse(d));
+  assert.deepEqual(bad.map((d) => `${d.f.slice(ROOT.length)} ${d.g}`), []);
+  const src = [...walk(p('apps'), (n) => /\.(ts|tsx|mjs|js|dart)$/.test(n)), ...walk(p('packages'), (n) => /\.(ts|tsx|mjs|js|dart)$/.test(n))]
+    .filter((f) => !/[\\/](__tests__|tests?|node_modules)[\\/]|\.(test|spec)\.|_test\.dart$/.test(f.slice(ROOT.length)) &&
+      !/[\\/]packages[\\/]test-fixtures[\\/]/.test(f))
+    .filter((f) => /['"]bikram-sambat['"]/.test(read(f)));
+  assert.deepEqual(src.map((f) => f.slice(ROOT.length)), []);
 });
 
 test('banned list: @supabase/supabase-js and @supabase/ssr not in browser-bundle packages (web, portal, partner, ui)', () => {

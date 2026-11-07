@@ -1,6 +1,6 @@
 # T0-03 — C0 dependencies table (CV §15.1 columns)
 
-LD-04 (2026-11-07) T0-03 option B: this file holds the 02-TRD §2.3 table (spec/ is read-only). LD-05 (2026-11-07): T0D-12 pins (CR-C0-0D-001) are recorded here too.
+LD-04 (2026-11-07) T0-03 option B: this file holds the 02-TRD §2.3 table (spec/ is read-only). LD-05 (2026-11-07): T0D-12 pins (CR-C0-0D-001) are recorded here too. LD-13 (2026-11-07): T0D-01 (CR-C0-0D-002, services/api) and T0D-14 (CR-C0-0D-003, apps/web) pins are recorded here; `services/*` and `apps/*` added to pnpm-workspace.yaml. LD-15 (2026-11-07): licence allow-list adds `PostgreSQL` (pgTAP, test-only) and `BlueOak-1.0.0` (lru-cache, dev-only via jsdom).
 Evidence fetched 2026-11-07 from the npm registry (`time[<version>]`, `license` of that version), pub.dev API (`latest.published`, licence tag), GitHub releases API (`published_at`, repo licence), Docker Hub tag API, nodejs.org `dist/index.json`, dart-archive `VERSION`, flutter_infra `releases_windows.json`.
 Versions that 04/CV or a spike fixed are copied, not re-chosen: fastify (SP-8), pg (SP-9), Atlas (SP-5), pgTAP (SP-3), write/read-excel-file (CV §15.1), T0D-12 pins (LD-05).
 
@@ -9,6 +9,9 @@ Versions that 04/CV or a spike fixed are copied, not re-chosen: fastify (SP-8), 
 | pnpm | 12.18.0 | MIT | package manager; root `packageManager` (CM §3) | 2026-11-05 (npm time[12.18.0]) | npm workspaces, yarn berry |
 | typescript | 7.0.2 | Apache-2.0 | TS compiler, root + packages (CV §1.1) | 2026-07-08 (npm time[7.0.2]) | typescript 5.9.x line (JS-based compiler) |
 | fastify | 5.12.8 | MIT | API HTTP server; major 5 verified with fastify-openapi-glue 4.12.0 (SP-8) | 2026-11-02 (npm time[5.12.8]) | express, hono |
+| fastify-openapi-glue | 4.12.0 | MIT | OpenAPI routes for `@lims/api`, verified with fastify 5.12.8 (SP-8); LD-13 pin (CR-C0-0D-002) | 2026-10-18 (npm time[4.12.0]) | @fastify/swagger + hand routes |
+| @fastify/ajv-compiler | 4.0.7 | MIT | per-part ajv options in `@lims/api` (SP-8 tree); LD-13 pin (CR-C0-0D-002) | 2026-10-10 (npm time[4.0.7]) | fastify default compiler only |
+| server-only | 0.0.1 | MIT | build-time guard keeping server modules out of client bundles in `@lims/web`; LD-13 pin (CR-C0-0D-003) | 2022-09-03 (npm time[0.0.1]; only release, stable marker package) | none (Next.js convention) |
 | next | 16.4.5 | MIT | staff web / portal / partner, App Router (CV §1.1; 04 S4); peer react ^19.0.0 | 2026-11-03 (npm time[16.4.5]) | remix, vite + react-router |
 | react | 19.3.1 | MIT | UI runtime; the version Next.js accepts (peer ^19.0.0); T0D-12 pin | 2026-10-14 (npm time[19.3.1]) | none (bound to Next.js) |
 | react-dom | 19.3.1 | MIT | React DOM renderer; T0D-12 pin | 2026-10-14 (npm time[19.3.1]) | none (bound to react) |

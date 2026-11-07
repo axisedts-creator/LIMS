@@ -19,6 +19,13 @@ import { reactivateBranch } from './reactivateBranch.js';
 import { reactivateCentre } from './reactivateCentre.js';
 import { updateBranch } from './updateBranch.js';
 import { updateCentre } from './updateCentre.js';
+import { getBrandingAssetContent } from './getBrandingAssetContent.js';
+import { getSettings } from './getSettings.js';
+import { listFeatureFlags } from './listFeatureFlags.js';
+import { listOwnIrdAnnexes } from './listOwnIrdAnnexes.js';
+import { setTenantFeatureFlag } from './setTenantFeatureFlag.js';
+import { updateSettings } from './updateSettings.js';
+import { uploadBrandingAsset } from './uploadBrandingAsset.js';
 
 const OPERATION_IDS = [
   // auth (identity_auth)
@@ -57,6 +64,7 @@ const implemented: Partial<Record<IdentityOperationId, Handler>> = {
   listPermissions, listRoles, createRole, getRole, updateRole, deactivateRole,   // T14
   listBranches, createBranch, updateBranch, deactivateBranch, reactivateBranch,                  // T15
   listCentres, createCentre, updateCentre, deactivateCentre, reactivateCentre,                    // T15
+  getSettings, updateSettings, uploadBrandingAsset, getBrandingAssetContent, listFeatureFlags, setTenantFeatureFlag, listOwnIrdAnnexes,   // T16
 };
 
 export const handlers: Readonly<Record<IdentityOperationId, Handler>> = Object.freeze(

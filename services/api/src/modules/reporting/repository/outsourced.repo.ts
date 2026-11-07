@@ -43,6 +43,14 @@ export async function confirmedFileIds(tx: Tx, tenantId: string, orderItemId: st
   return rows.map((r) => r.id);
 }
 
+/** O4 guard: the file is attached to a released/superseded report version (snapshot is immutable; 02-TRD O4, content_snapshot.outsourcedAttachments). */
+export async function inReleasedVersion(tx: Tx, tenantId: string, inputFileId: string): Promise<boolean> {
+  const { rows } = await tx.query(`SELECT 1 FROM reporting.report_versions WHERE tenant_id = $1 AND status IN ('released', 'superseded')
+      AND content_snapshot->'outsourcedAttachments' @> jsonb_build_array(jsonb_build_object('inputFileId', $2::text)) LIMIT 1`,
+  [tenantId, inputFileId]);
+  return rows.length > 0;
+}
+
 /** O3: ready -> confirmed, only at the expected version. undefined = lost the race / stale. */
 export async function confirmFile(tx: Tx, tenantId: string, id: string, expectedVersion: number, actorId: string, at: string): Promise<any | undefined> {
   const { rows } = await tx.query(`UPDATE reporting.input_files SET state = $5, confirmed_by = $6, confirmed_at = $7::timestamptz,

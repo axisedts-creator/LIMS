@@ -17,6 +17,7 @@ export interface OutsourcedCtx {
   readonly uploads?: { accept(file: IncomingFile, opts: Record<string, unknown>): Promise<{ sha256: string; byteSize: number; mime: string; objectPath: string }> };
   readonly storage?: { read(bucket: BucketName, path: string): Promise<Uint8Array> };
   readonly audit?: { access(entry: Record<string, unknown>): Promise<unknown> };
+  readonly metrics?: { inc(name: string, labels?: Record<string, string>): void };
 }
 
 export const INPUT_BUCKET: BucketName = 'reporting-inputs';
@@ -76,8 +77,9 @@ export function createOutsourcedService(deps: { newId?: () => string } = {}) {
     if (!row || row.tenant_id !== tenantId || row.kind !== 'outsourced_pdf') throw new LimsError('common.not_found');
     return row;
   }
-  /** Readiness changed on this item: flag its reports and queue (deduped) assembly. */
-  async function reassemble(tx: repo.Tx, tenantId: string, orderItemId: string, ready: boolean, actorId: string) {
+  /** Readiness changed on this item: outsourced_ready = exactly one confirmed file (02-TRD §3); flag its reports and queue (deduped) assembly. */
+  async function reassemble(tx: repo.Tx, tenantId: string, orderItemId: string, actorId: string) {
+    const ready = (await repo.confirmedFileIds(tx, tenantId, orderItemId)).length === 1;
     for (const reportId of await repo.setOutsourcedReady(tx, tenantId, orderItemId, ready, actorId)) {
       await repo.markNeedsAssembly(tx, tenantId, reportId, actorId);
       await repo.enqueue(tx, ASSEMBLE_TASK, { tenant_id: tenantId, report_id: reportId }, `assemble:${reportId}`);
@@ -105,7 +107,10 @@ export function createOutsourcedService(deps: { newId?: () => string } = {}) {
       try {
         accepted = await ctx.uploads.accept(file, { allow: ['application/pdf'], maxBytes: MAX_BYTES, bucket: INPUT_BUCKET, objectPath: quarantinePath, scan: 'required' });
       } catch (e) {
-        if (e instanceof LimsError && e.code === 'common.upload_quarantined') throw new LimsError('reporting.outsourced_pdf_rejected');
+        if (e instanceof LimsError && e.code === 'common.upload_quarantined') {
+          ctx.metrics?.inc('lims_reporting_sandbox_rejections_total', { reason: 'infected' });   // AC-04.2 alert metric, same as worker [CONV]
+          throw new LimsError('reporting.outsourced_pdf_rejected');
+        }
         throw e;
       }
       // scanState 'unavailable' is stored and stays pending_scan: the worker re-scans and never passes a file it could not scan.
@@ -140,11 +145,11 @@ export function createOutsourcedService(deps: { newId?: () => string } = {}) {
       if (row.state !== 'ready') throw new LimsError(isRejected(row) ? 'reporting.outsourced_pdf_rejected' : 'reporting.input_file_not_ready');
       const done = await repo.confirmFile(tx, tenantId, row.id, v, actorId, nowIso(ctx));
       if (!done) throw new LimsError('common.version_conflict');
-      await reassemble(tx, tenantId, row.order_item_id, true, actorId);
+      await reassemble(tx, tenantId, row.order_item_id, actorId);
       return body(done);
     },
 
-    /** O4: (ready | confirmed) -> withdrawn. [CONV] common.immutable_record (file in a released version) lands with assembly (snapshot lookup). */
+    /** O4: (ready | confirmed) -> withdrawn; common.immutable_record when the file is in a released/superseded version. */
     async withdraw(ctx: OutsourcedCtx, input: { fileId: unknown; expectedVersion: unknown; body: unknown }) {
       const { tx, tenantId, actorId } = scope(ctx);
       const b = input?.body;
@@ -160,12 +165,10 @@ export function createOutsourcedService(deps: { newId?: () => string } = {}) {
       const row = await ownFile(tx, tenantId, input.fileId);
       if (row.version !== v) throw new LimsError('common.version_conflict');
       if (row.state !== 'ready' && row.state !== 'confirmed') throw new LimsError('reporting.input_file_not_ready');
+      if (row.state === 'confirmed' && await repo.inReleasedVersion(tx, tenantId, row.id)) throw new LimsError('common.immutable_record');
       const done = await repo.withdrawFile(tx, tenantId, row.id, v, row.state, code as string, typeof text === 'string' ? text : null, actorId);
       if (!done) throw new LimsError('common.version_conflict');
-      if (row.state === 'confirmed') {
-        const stillConfirmed = (await repo.confirmedFileIds(tx, tenantId, row.order_item_id)).some((id) => id !== row.id);
-        await reassemble(tx, tenantId, row.order_item_id, stillConfirmed, actorId);
-      }
+      if (row.state === 'confirmed') await reassemble(tx, tenantId, row.order_item_id, actorId);
       return body(done);
     },
 

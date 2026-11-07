@@ -3,3 +3,4 @@
 - Fix needs devDependency `pg 8.23.1` in services/api/package.json + pnpm-lock.yaml: owned by C0-0D/C0-0A (01-CHUNK-MAP §3), not C4. Cannot fix in C4 impl code; no test/spec dispute.
 - Action: CR `.orchestra/cr/FD-T03.md` already filed; FD-T03 stays blocked until C0-0D lands it, then rerun verify.
 - Round 2: re-checked. Same cause: `pg` absent from services/api/package.json (grep: no match); pg@8.23.1 only in .pnpm store, not linked. No impl edit can fix. Still blocked on CR `.orchestra/cr/FD-T03.md` (C0-0D devDependency). No dispute.
+- Round 3: re-checked. `pg` still absent from services/api/package.json and node_modules; same cause. No impl edit can fix. Still blocked on CR `.orchestra/cr/FD-T03.md` (C0-0D). No dispute.

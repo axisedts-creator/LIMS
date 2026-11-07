@@ -1,5 +1,31 @@
 # Supabase compose decisions (C1)
 
+## T-05 - Supabase compose layering (02-TRD s7.1/s7.2)
+
+Decision: split
+
+Spike run 2026-11-07 with Docker Compose 5.1.4 (`docker compose config`, both hosts, no daemon needed):
+- Snapshot: supabase/supabase commit 189adda99d1b56da55fc5a6ee3f849354aaea92a, fetched with curl per LD-33,
+  tags equal TRD s2 (gotrue v2.197.0, postgrest v14.18, storage-api v1.89.12, envoy v1.39.6, imgproxy v4.0.21,
+  pgbouncer v1.25.2-p0). Digests via `docker buildx imagetools inspect`; all in `upstream/UPSTREAM.lock`.
+- `!reset null` on a whole service works (db, supavisor, studio, meta, functions, realtime vanish on app-1).
+- `depends_on: !reset {}` and `ports: !reset []` work. `depends_on: !reset { rest: ... }` (as TRD s7.2 sketches it)
+  does NOT keep the content: `!reset` clears the value. Storage uses `!override` instead.
+- `!override` is needed for `networks:` (otherwise upstream `default` stays attached), `ports:` (db, pgbouncer) and
+  storage `volumes:`.
+- Removed services leave no dangling `depends_on`: the app-1 closure of the five services is exactly those five.
+- Envoy trim: `functions`/`studio`/`meta`/`realtime` routes, their Lua/RBAC parts and cds clusters are deleted in
+  `envoy/lds.template.yaml` + `envoy/cds.yaml` (outside `upstream/`, mounted over the upstream targets).
+  Envoy runtime behaviour with the trimmed files is NOT yet run (no daemon in the writer session).
+- Added to the snapshot beyond the four files the TRD names: `volumes/api/envoy/{envoy.yaml,cds.yaml,docker-entrypoint.sh}`
+  (api-gw mounts them) and `volumes/db/*.sql` (db init scripts). All sha256-locked.
+
+Gaps (need data-1/app-1, not verifiable here): GoTrue health + reach to data-1 and the SMTP relay over db_net,
+Storage upload/download through api-gw from an app_net container (`infra/tests/integration/test_t05_live.py`),
+Compose behaviour with pre-created `app_net`/`auth_net`/`db_net` (`name:` set so the project attaches to the
+docker_engine networks; if Compose rejects the missing project label, declare them `external: true` and drop ipam).
+`DB_IMAGE_DIGEST` for the derived db image comes from the release lock (T-23); the all-zero default fails closed.
+
 ## T-09 - WAL archiving / backup tool (02-TRD s9.1)
 
 Decision: pgBackRest 2.60.0 (PROVISIONAL until the build spike passes on CI; fallback WAL-G per TRD s9.1).

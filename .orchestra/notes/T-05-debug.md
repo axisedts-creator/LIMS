@@ -8,3 +8,5 @@
 - Round 3: same state. infra/compose/supabase/ absent, 26/41 fail "missing file". Network (git ls-remote) still needs approval, not granted. CR .orchestra/cr/T-05.md already filed.
 - Fix: none. Upstream bytes/digests cannot be invented. No code or test changed.
 - Next: orchestrator vendors upstream/ + UPSTREAM.lock or approves network, then re-run writer.
+- Round 4: network now allowed (LD-33). Cause: impl never written. Fix: vendored upstream @189adda (curl), UPSTREAM.lock, .gitattributes -text, override.data/app.yml, envoy/ trimmed lds+cds, DECISION.md (Decision: split).
+- Spike: TRD "depends_on: !reset {rest..}" clears the value, so storage uses !override. 40/41 tests pass; 1 test defect (yaml.safe_load cannot parse upstream "!reset") -> T-05-dispute.md. Live checks (GoTrue/Storage) need VMs, not run.

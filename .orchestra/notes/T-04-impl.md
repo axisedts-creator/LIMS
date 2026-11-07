@@ -1,7 +1,7 @@
-# T-04 impl (writer)
-- Added `services/api/src/modules/lab/events/publish.ts`: `createLabEvents`, `approvedSetHash`, `valueSha256Prefix16` (test SEAM).
-- Keys verbatim from 02-TRD §7.1; payload passed through as-is, core schema (additionalProperties false) rejects non-IC keys (S-12).
-- [CONV] aggregate seq: specimenVersion / resultRowVersion / readinessSeq, as test header states (spec silent).
-- [CONV] `ready_for_report` publisher computes `approved_set_hash`; critical value only feeds key hash, never payload.
-- Tests: 57/57 pass after tester fix per T-04-ruling.md; publish.ts unchanged. tsc: no errors in lab/events.
-- Open: real PG insert / fan-out not proven (needs DB integration task).
+# C3 T-04 impl (writer)
+- Files: service/masters.service.ts (defs + self-validation + flows), repo/masters.repo.ts (bound SQL), mappers/masters.mapper.ts (DTO, cursor), handlers/masters.handlers.ts + handlers/index.ts (12 ids wired), probes/pending.json (12 ids removed, 107 -> 95).
+- [CONV] Update: SELECT … FOR UPDATE (masters row) -> 404 / 409, then UPDATE with `version = $3` predicate, then bumpRevision (state lock) — same lock order on create (INSERT then bump).
+- [CONV] Code regex checked on the trimmed raw value BEFORE upper-casing (blocks `ı` -> `I` forgery); 23505 -> catalog.code_duplicate, 23503 (FK) -> common.not_found.
+- [CONV] Cursor = base64url(JSON [sort, last value, last id]); sort mismatch / undecodable -> common.invalid_cursor. `?id=` without is_active returns inactive rows.
+- Open: catalog.yaml lets `sort=report_order` on specimen types/containers/methods (copy of the departments enum) but those tables have no such column -> service returns 400; CR filed `.orchestra/cr/T-04.md` (non-blocking), code comment marked [CR-pending]; code unchanged until ruled.
+- Checks: T-04-verify set 405/405 pass. Catalog suite 1270/1271: skeleton autoload test fails on reporting config (`LIMS_CORE_ENV` unset), not T-04. tsc: only pre-existing shared-ts bsdate TS5097.

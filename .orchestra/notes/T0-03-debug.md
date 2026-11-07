@@ -15,3 +15,7 @@
 - Only fail: pubspec.lock absent (flutter present, so LD-15 skip n/a). Fix = `flutter pub get` at root + commit pubspec.lock.
 - `flutter pub get` needs approval, not granted in this session; not bypassed. Human must run it and commit.
 - Cleaned stale CR T0-03-licences wording (nodemailer row) in db/meta/decisions/T0-03-dependencies.md; LD-15 supersedes CR.
+
+## Debugger pass 5 (2026-11-07)
+- Only fail: pubspec.lock absent; flutter present at /c/flutter/bin so LD-15 skip n/a. No code defect.
+- Fix = `flutter pub get` at repo root + commit pubspec.lock. Needs approval, not granted again; not bypassed. Human must run it.

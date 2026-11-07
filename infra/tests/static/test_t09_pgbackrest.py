@@ -115,7 +115,7 @@ class DockerfileTest(unittest.TestCase):
         t = self.text
         self.assertIn("2.60.0", t, "TRD s2: pgBackRest 2.60.0")
         self.assertRegex(t, r"release/2\.60\.0|2\.60\.0\.tar", "must fetch the 2.60.0 release tarball")
-        self.assertRegex(t, r"\b[0-9a-f]{64}\b", "tarball sha256 must be recorded (TRD s9.1)")
+        self.assertRegex(t, r"(?m)^ARG PGBACKREST_TARBALL_SHA256=[0-9a-f]{64}\s*$", "tarball sha256 must be recorded (TRD s9.1)")
         self.assertRegex(t, r"sha256sum\s+(-c|--check)", "tarball must be verified with sha256sum -c")
         self.assertNotRegex(t, r"(?i)pgbackrest.*(/master|/main|latest)", "no floating ref")
 
@@ -441,6 +441,28 @@ class MetricsScriptTest(unittest.TestCase):
         self.assertNotRegex(METRICS.read_text(encoding="utf-8"), r"(?i)cipher[-_]pass\s*=\s*\S+")
 
 
+# ---------------------------------------------------------------- check wrapper: counter behind WalArchiveFailing (AC-12.2)
+class CheckCounterTest(unittest.TestCase):
+    """Contract: lims-pgbackrest-check.sh honours $STATE_DIR (default /var/lib/lims/pgbackrest) and $PGBACKREST."""
+    SCRIPT = ROLE / "files" / "lims-pgbackrest-check.sh"
+
+    def test_counter_increments_on_failure_and_resets_on_ok(self):
+        self.assertTrue(self.SCRIPT.is_file(), "missing " + str(self.SCRIPT))
+        tmp = Path(tempfile.mkdtemp(prefix="t09chk-"))
+        self.addCleanup(shutil.rmtree, tmp, True)
+        fake = tmp / "pgbackrest"
+        fake.write_bytes(b'#!/bin/sh\n[ "$(cat "$FIX/mode")" = ok ]\n')
+        state = tmp / "state"
+        state.mkdir()
+        env = dict(os.environ, FIX=tmp.as_posix(), STATE_DIR=state.as_posix(), PGBACKREST=fake.as_posix())
+        got = []
+        for mode in ("fail", "fail", "ok"):
+            (tmp / "mode").write_text(mode)
+            r = subprocess.run([_bash(), self.SCRIPT.as_posix()], env=env, capture_output=True, text=True, timeout=60)
+            got.append((r.returncode, (state / "check_consecutive_failures").read_text().strip()))
+        self.assertEqual(got, [(1, "1"), (1, "2"), (0, "0")], got)
+
+
 # ---------------------------------------------------------------- DECISION.md (done_when: decision, multi-repo, WAL/day)
 class DecisionTest(unittest.TestCase):
     def setUp(self):
@@ -455,15 +477,20 @@ class DecisionTest(unittest.TestCase):
                          "line `Decision: pgBackRest` or `Decision: WAL-G` in the T-09 section")
 
     def test_records_multi_repo_failure_behaviour(self):  # 03-APP-FLOW s3.3, re-verified vs pgbackrest.org for 2.60
+        self.assertNotRegex(self.sec, r"(?i)\bNOT (yet run|measured|run)\b|still OPEN", "T-09 section says the work is not done")
         for needle in ("2.60", "pgbackrest.org", "archive-push", "repo1", "repo2"):
             self.assertIn(needle, self.sec, "multi-repo failure note must mention " + needle)
         self.assertRegex(self.sec, r"(?i)(error|fail).{0,200}(retr|keep)|(retr|keep).{0,200}(error|fail)")
 
     def test_records_wal_per_day_measured(self):  # R8
+        self.assertNotRegex(self.sec, r"(?i)\bNOT (yet run|measured|run)\b|still OPEN", "T-09 section says the work is not done")
         self.assertRegex(self.sec, r"(?i)\b\d+(\.\d+)?\s*(KiB|MiB|GiB|MB|GB)\s*(/|per)\s*day")
+        self.assertRegex(self.sec, r"(?im)^WAL volume per day \(measured[^)]*\):\s*\d+(\.\d+)?\s*(MiB|GiB)/day",
+                         "needs a line `WAL volume per day (measured ...): <n> MiB|GiB/day`")
         self.assertRegex(self.sec, r"(?i)R8|compress")
 
     def test_check_ok_both_repos_and_full_incr_recorded(self):
+        self.assertNotRegex(self.sec, r"(?i)\bNOT (yet run|measured|run)\b|still OPEN", "T-09 section says the work is not done")
         self.assertRegex(self.sec, r"(?i)check")
         self.assertRegex(self.sec, r"(?i)full")
         self.assertRegex(self.sec, r"(?i)incr")

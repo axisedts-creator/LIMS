@@ -5,3 +5,4 @@
 - Also changed T-04 `test_pgbackrest_not_installed_yet` to `test_no_pgbackrest_config_or_pass_baked`: the old assertion is false by design once T-09 installs pgBackRest (its own comment says T-09 owns it).
 - Metrics tests proven satisfiable against a throwaway reference script (deleted). NOT run: real build, `pgbackrest check`, backups, WAL/day (CI/hosts).
 - UNVERIFIED: `info`/`repo-ls --output=json` shapes in the fakes are from memory; consecutive-failure increment not tested (spec silent on which script runs `check`).
+- Review round: tarball sha256 now needs `ARG PGBACKREST_TARBALL_SHA256=<64hex>`; DecisionTest rejects "NOT yet run/measured" and needs `WAL volume per day (measured ...): <n> MiB|GiB/day`; new CheckCounterTest (needs $STATE_DIR/$PGBACKREST in lims-pgbackrest-check.sh). Now 5 fail (impl pending). Review item 4 (CR) is not a test item.

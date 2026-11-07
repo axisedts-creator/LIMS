@@ -38,10 +38,14 @@ host; `lean` (prod default) and dev = database `lims_audit` in the same cluster 
   insert < 60 s, publisher delete not propagated, role assertions, digest, drift). Requires PG 17 binaries
   (`LIMS_T15_LIVE=1`); it has NOT been run on the authoring machine. If it fails on the RLS case, switch to the 02-TRD
   §10.3 fallback (SECURITY DEFINER export function) with a CR to C0-0B in `.orchestra/cr/`.
-- Verdict: CONFIRMED (by documented PostgreSQL 17 behaviour; pending the first green live run in CI/staging).
+- Verdict: UNVERIFIED. Expected outcome from documented PostgreSQL 17 behaviour: CONFIRMED (owner `audit_writer`,
+  `run_as_owner = true`, scram). It may be marked CONFIRMED only after the first green run of the live test (Linux + PG 17;
+  not possible on the Windows authoring machine), with its output pasted in `.orchestra/notes/T-15-impl.md`. A red run
+  means FALLBACK + CR (see above).
 
 ## Scale triggers (LD-45)
 
 Move from `lean` to `full` (separate store instance on its own host) when any holds: sustained CPU > 60 % or RAM > 80 %
-at peak for 7 days, DB > 150 GB, or a second lab group signs. In `lean` the tamper evidence leaves the host through the
-nightly digests shipped to the backup host (LD-45).
+at peak for 7 days, DB > 150 GB, or a second lab group signs. In `lean` the tamper evidence must leave the host through
+the nightly digests shipped to the backup host (LD-45) and the `ops_audit` stream (02-TRD §10.3): NOT YET IMPLEMENTED —
+see `.orchestra/cr/T-15.md`.

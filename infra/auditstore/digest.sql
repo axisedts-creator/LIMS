@@ -1,7 +1,7 @@
 -- infra/auditstore/digest.sql (05-SCHEMA s3.4, REQ-SEC-097, 07-SEC AB-8). Nightly 02:30 Asia/Kathmandu [CONV], run as
 -- audit_digest (SELECT on the replicated tables; SELECT + INSERT on daily_digests/ops_audit; no UPDATE/DELETE), via
 -- psql -X -q -At -v ON_ERROR_STOP=1 -v env=<dev|staging|prod> (role auditstore, lims-auditstore-digest.sh).
--- 1. For business_date D = yesterday (NPT) and each (tenant_id, source_table) with rows that day:
+-- 1. For business_date D = yesterday (NPT), plus any missed night in D-6 .. D, and each (tenant_id, source_table) with rows that day:
 --      rows_sha256  = sha256(convert_to(string_agg(<row as jsonb text>, E'\n' ORDER BY occurred_at, id), 'UTF8'))
 --      chain_digest = sha256(coalesce(prev_digest, '\x'::bytea) || rows_sha256 || convert_to(row_count::text, 'UTF8'))
 --    prev_digest = chain_digest of the newest earlier day of the same chain (NULL on the first day). A day already
@@ -43,19 +43,32 @@ SELECT tenant_id, source_table, (occurred_at AT TIME ZONE 'Asia/Kathmandu')::dat
   FROM r
  GROUP BY tenant_id, source_table, (occurred_at AT TIME ZONE 'Asia/Kathmandu')::date;
 
--- 1. yesterday's links
-INSERT INTO auditstore_meta.daily_digests (tenant_id, source_table, business_date, row_count, rows_sha256, prev_digest, chain_digest)
-SELECT n.tenant_id, n.source_table, n.business_date, row_count, rows_sha256, prev_digest,
-       sha256(coalesce(prev_digest, '\x'::bytea) || rows_sha256 || convert_to(row_count::text, 'UTF8'))
-  FROM digest_now n
-  LEFT JOIN LATERAL (
-        SELECT d.chain_digest AS prev_digest
-          FROM auditstore_meta.daily_digests d
-         WHERE d.tenant_id = n.tenant_id AND d.source_table = n.source_table AND d.business_date < n.business_date
-         ORDER BY d.business_date DESC
-         LIMIT 1) p ON true
- WHERE n.business_date = :'digest_day'::date
-ON CONFLICT (tenant_id, source_table, business_date) DO NOTHING;
+-- 1. links for yesterday AND every missed night in D-6 .. D (review T-15 item 3, REQ-SEC-097: a missed run must not
+--    leave a silent hole in the chain). Per chain, only days newer than its latest stored day; one day at a time in
+--    ascending order so the LATERAL prev_digest lookup sees the link inserted for the previous day.
+DO $digest$
+DECLARE
+  day date;
+BEGIN
+  FOR day IN SELECT DISTINCT business_date FROM digest_now ORDER BY 1 LOOP
+    INSERT INTO auditstore_meta.daily_digests (tenant_id, source_table, business_date, row_count, rows_sha256, prev_digest, chain_digest)
+    SELECT n.tenant_id, n.source_table, n.business_date, n.row_count, n.rows_sha256, p.prev_digest,
+           sha256(coalesce(prev_digest, '\x'::bytea) || n.rows_sha256 || convert_to(row_count::text, 'UTF8'))
+      FROM digest_now n
+      LEFT JOIN LATERAL (
+            SELECT d.chain_digest AS prev_digest
+              FROM auditstore_meta.daily_digests d
+             WHERE d.tenant_id = n.tenant_id AND d.source_table = n.source_table AND d.business_date < n.business_date
+             ORDER BY d.business_date DESC
+             LIMIT 1) p ON true
+     WHERE n.business_date = day
+       AND NOT EXISTS (SELECT 1 FROM auditstore_meta.daily_digests l
+                        WHERE l.tenant_id = n.tenant_id AND l.source_table = n.source_table
+                          AND l.business_date >= n.business_date)
+    ON CONFLICT (tenant_id, source_table, business_date) DO NOTHING;
+  END LOOP;
+END
+$digest$;
 
 -- 2. re-verify the last 7 days; every mismatch is recorded (07-SEC AB-8)
 INSERT INTO auditstore_meta.ops_audit (id, occurred_at, operator, env, action, detail)

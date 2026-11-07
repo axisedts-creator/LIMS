@@ -200,6 +200,9 @@
       - "{{ auditstore_lib_dir }}/bin/psql-super"
       - -v
       - ON_ERROR_STOP=1
+      # single transaction: a partial failure must not leave roles
+      # without tables, so a rerun stays idempotent (review T-15 item 4)
+      - "-1"
       - -d
       - "{{ auditstore_db_name }}"
       - -f

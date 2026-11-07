@@ -8,7 +8,10 @@
   "scripts": {
     "build": "turbo run build",
     "verify": "turbo run build typecheck && node --test \"tools/lint/tests/*.test.mjs\" && node --test \"packages/shared-ts/test/*.test.mjs\"",
-    "typecheck": "turbo run typecheck"
+    "typecheck": "turbo run typecheck",
+    "dev:up": "node tools/devstack/up.ts",
+    "dev:down": "node tools/devstack/down.ts",
+    "dev:reset": "node tools/devstack/reset.ts"
   },
   "devDependencies": {
     "turbo": "2.11.10",

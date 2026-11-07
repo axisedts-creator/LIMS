@@ -3077,3 +3077,14 @@ Why: `openMobileSession`, `refreshMobileSession` and the patient routes are `x-e
 - **A31.2** C16 writes full DDL + RLS for `engagement.cs_reminder_reasons` and `engagement.cs_enquiry_categories` (same shape as its other `cs_*` tables).
 - **A31.3** C11 example `cases` policies include `(SELECT app.is_staff_or_system())` (P-16).
 - **A31.4** C0 §3.9 drops `catalog` from the `event_inbox` list (C3 consumes no events).
+
+## Addendum A33 — Production readiness gaps (2026-11-07)
+
+Source: production-readiness review against the Plan E checklist (LIMS Production Readiness Checklist doc). Binding wording per task lives in `C:\LIMS-state\lead-decisions-<chunk>.md` (LD-24…LD-29); summary:
+
+- **A33-1 Error tracking (C1 T-18, C0 T0D-14/T0D-15, C16 T-A1, C17 HC-T21):** self-hosted GlitchTip (Sentry-protocol) in Nepal; web + Flutter SDKs with the shared PHI scrubber in beforeSend; disabled when no DSN.
+- **A33-2 Downtime mode (C4 FD-T06/FD-T13/BL-T06, C5 T-07/T-14/T-20):** `entry_mode` live | downtime_backentry with `occurred_at` (≤ now, ≥ now − tenant `downtime_backentry_max_hours`, default 72) and `downtime_ref`; audited and labelled "Entered after downtime"; invoices issued at back-entry time; manual-bill tax treatment UNVERIFIED (accountant).
+- **A33-3 Training tenant (C2 T16/T22, C4 BL-T14, C6 C6-T07/C6-T19, C15 PG-T01):** `tenant.training_mode` set at provisioning only; no CBMS, `TRN-` invoice prefix, TRAINING watermark, recording notification adapter, sandbox gateways only.
+- **A33-4 Signatory council (C2 T16, C6 C6-T07/C6-T09):** signatory `council` NMC | NHPC + `registration_no`; footer prints "<council> No.".
+- **A33-5 App legal links (C16 T-A4/T-AC1/T-DOC1, C17 HC-T29):** privacy policy + terms links on first run and in about/account; URLs from platform config, required in production builds.
+- **A33-6 Contract acceptance (C2 T22):** append-only record of ToS and DPA versions accepted per tenant; provisioning requires both.

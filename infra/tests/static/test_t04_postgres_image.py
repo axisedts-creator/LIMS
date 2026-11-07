@@ -139,8 +139,10 @@ class DockerfileTest(unittest.TestCase):
             if l.upper().startswith("FROM "):
                 self.assertIn("@sha256:", l, "tag-only base is not allowed: " + l)
 
-    def test_pgbackrest_not_installed_yet(self):  # T-09 owns it (plan row T-04 "no pgBackRest yet")
-        self.assertNotRegex(self.text.lower(), r"pgbackrest", "pgBackRest belongs to T-09")
+    def test_no_pgbackrest_config_or_pass_baked(self):  # was "not installed yet"; T-09 now installs it (see T-09-tests.md)
+        self.assertNotRegex(self.text.lower(), r"cipher[-_]?pass", "cipher pass must never be baked")
+        for l in self.lines:
+            self.assertFalse(re.match(r"(?i)^(COPY|ADD)\b(?!.*--from=).*pgbackrest\.conf", l), "conf rendered by role: " + l)
 
     def test_no_secrets_baked(self):
         for l in self.lines:

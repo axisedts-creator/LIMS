@@ -14,3 +14,7 @@ catalog.g_reference_release   global reference vocabulary (release counter singl
 frontdesk.g_cs_reasons         global coded reason set; no tenant data (CV §5.8)
 billing.g_cs_payment_methods  global coded payment-method set; no tenant data (CV §5.8)
 billing.g_cs_reasons          global coded reason set; no tenant data (CV §5.8)
+lab.g_cs_rejection_reasons           global coded rejection-reason set; no tenant data (CV §5.8)
+lab.g_cs_return_reasons              global coded return-reason set; no tenant data (CV §5.8)
+lab.g_cs_amendment_reasons           global coded amendment-reason set; no tenant data (CV §5.8)
+lab.g_cs_exception_discard_reasons   global coded exception-discard-reason set; no tenant data (CV §5.8)

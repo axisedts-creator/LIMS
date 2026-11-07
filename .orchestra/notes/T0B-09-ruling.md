@@ -1,11 +1,8 @@
-TESTS_WRONG — the test asserts something the spec does not require (say precisely what to change in the test)
-
-Change: tests/db/T0B-09.seeds.test.mjs:71 must stop asserting `SET LOCAL ROLE lims_owner` for every seed. Replace with a per-file rule:
-- seeds 001–003 (class G, `/^00[1-3]_/`): assert `/SET\s+LOCAL\s+ROLE\s+lims_owner/i`.
-- seeds 010+ (tenant-scoped, `/^(0[1-9]\d|[1-9]\d\d)_/`): assert `/SET\s+LOCAL\s+ROLE\s+lims_app/i` AND that it appears after a `set_config('request.jwt.claims', …, true)` call; assert they do NOT `SET LOCAL ROLE lims_owner`.
-Rename the `it` title to "every seed is idempotent, role-scoped (001-003 lims_owner, 010+ lims_app) and destructive-free". Leave lines 72-76 unchanged.
+TESTS_WRONG — §5 setup DELETE (db/tests/seeds/T0B-09_seeds.test.sql:93) runs with no claims sub and no app.maintenance, so the audit trigger must raise before any seed re-runs.
 Reasons:
-1. Test's basis is spec/chunks/C0-foundation-contracts/02-TRD.md:307 ("run as lims_migrator → SET LOCAL ROLE lims_owner").
-2. LD-30 (2026-11-07, binding, overrides spec text for T0B-09; .orchestra/inbox/T0B-09-arbiter.md:29) accepts CR-C0-T0B-09 (.orchestra/cr/T0B-09.resolved-202611071058.md): 010+ run `SET LOCAL ROLE lims_app` after setting claims; 001-003 keep lims_owner.
-3. 02-TRD.md:307 intent ("so RLS WITH CHECK applies even to seeds") is preserved by lims_app + real `<table>__insert__tenant` policy; no owner-bypass policy added (LD-30).
-4. Writer then applies LD-30 to db/bootstrap/00_roles.sql (`GRANT lims_app TO lims_migrator WITH INHERIT FALSE, SET TRUE;`) and db/tools/gen-seeds.ts. The 001 failure (missing SET LOCAL ROLE) stays a valid test failure, blocked on .orchestra/cr/T0B-09-001-generator.md.
+1. spec/chunks/C0-foundation-contracts/05-SCHEMA.md:978-990 — app.tg_row_audit raises `audit_context_missing` when neither claims sub nor app.maintenance is set; spec/program/08-CR-REGISTER.md:3063 (A28.5) says the same. The live error matches exactly (core.role_permissions, tg_row_audit line 20).
+2. l.89 `pg_temp.rerun_done()` clears request.jwt.claims, so l.93 is a DELETE on an audited tenant row with no actor context. The implementation (seed 010) is never reached, so no seed change can fix it.
+3. No spec text asks a test to remove audit context. The idempotence/healing requirement (task brief tests, AC-0A-6.1) is about the seed re-run, not the test's own setup step.
+Change in the test (tester): right before l.93, set tenant-1 claims with the same system actor that seed 010 uses:
+`SELECT set_config('request.jwt.claims', json_build_object('tenant_id',(pg_temp.tenants())[1],'sub','01a1b34e-1000-7eee-9d29-d7ca59a102b5','actor_type','system')::text, true);`
+then the DELETE, then `SELECT pg_temp.rerun_done();` before l.95. Keep the l.98 assertion comparing only `core.role_permissions`, because the DELETE now writes one audit_log row on purpose. Do not set app.maintenance: that is only for maintenance DEFINERs (A28.5).

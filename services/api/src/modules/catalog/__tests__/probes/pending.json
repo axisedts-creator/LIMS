@@ -10,6 +10,5 @@
   "listInstrumentCodeMaps",
   "setTestTatTargets",
   "updateInstrumentCodeMap",
-  "upsertInstrumentCodeMaps",
-  "validateFormula"
+  "upsertInstrumentCodeMaps"
 ]

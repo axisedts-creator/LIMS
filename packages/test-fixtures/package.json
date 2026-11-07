@@ -5,8 +5,8 @@
   "type": "module",
   "exports": {
     ".": {
-      "types": "./dist/index.d.ts",
-      "default": "./dist/index.js"
+      "types": "./dist/test-fixtures/src/index.d.ts",
+      "default": "./dist/test-fixtures/src/index.js"
     }
   },
   "scripts": {
@@ -14,6 +14,8 @@
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "devDependencies": {
+    "@sbmdkl/nepali-date-converter": "2.0.5",
+    "bikram-sambat": "1.8.1",
     "typescript": "7.0.2"
   }
 }

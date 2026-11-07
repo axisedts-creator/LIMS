@@ -15,9 +15,10 @@ CREATE TEMP VIEW mod_policies AS
 -- ---------- AC-0B-2.1: tables lacking RLS or FORCE RLS == db/tests/rls_exempt.txt exactly; every entry has a reason ----------
 CREATE TEMP TABLE rls_exempt_raw(line text);
 \copy rls_exempt_raw FROM 'db/tests/rls_exempt.txt' WITH (FORMAT csv, DELIMITER '|', QUOTE '~')
+-- strip a trailing CR (Windows checkout): btrim() does not remove \r
 CREATE TEMP TABLE rls_exempt_file AS
-  SELECT (regexp_match(btrim(line), '^(\S+)\s+(.+)$'))[1] AS tbl, (regexp_match(btrim(line), '^(\S+)\s+(.+)$'))[2] AS reason
-    FROM rls_exempt_raw WHERE btrim(line) <> '' AND btrim(line) !~ '^#';
+  SELECT (regexp_match(l, '^(\S+)\s+(.+)$'))[1] AS tbl, (regexp_match(l, '^(\S+)\s+(.+)$'))[2] AS reason
+    FROM (SELECT btrim(regexp_replace(line, '\r$', '')) AS l FROM rls_exempt_raw) s WHERE l <> '' AND l !~ '^#';
 SELECT set_eq($$
   SELECT n.nspname || '.' || c.relname FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace
    WHERE c.relkind IN ('r','p') AND n.nspname IN (SELECT s FROM module_schemas) AND NOT (c.relrowsecurity AND c.relforcerowsecurity)

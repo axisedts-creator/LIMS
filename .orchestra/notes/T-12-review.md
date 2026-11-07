@@ -1,0 +1,7 @@
+APPROVE
+
+Round 2. Previous item 1 (fail-open `topology_profile`) fixed: defaults/main.yml:17-19 now `default('lean')` == 'full' (fail closed, LD-45); tasks/main.yml:7-15 asserts `topology_profile in ['full','lean']` whenever a dr host exists; test updated (43 tests).
+Re-checked, no defect: names verbatim (`lims_replicator`, `lims_monitor`, slot `dr1`, `primary_slot_name`, StandbyLagHigh > 60 s); primary bound `max_slot_wal_keep_size = 50GB` (zz-lims.conf.j2:24); standby capacity params == primary (200/10/10); hba replication line for lims_replicator from groups['dr'][0] only; seeding pg_receivewal --create-slot --if-not-exists + pg_basebackup -X stream --slot=dr1 once (creates guard); standby.signal ensured every run; `standby_promoted` no-op guard; passfile tmpfs 0600 no_log, libpq-escaped; no cipher/pgBackRest on dr-1 (AC-12.3); no PHI logging; no secrets; no host names; only owned paths (+ site.yml play, notes). No RLS/permission/error-code surface in this task.
+Ran: `python -B -m unittest discover -s infra/tests/static -p "test_t12_*.py"` -> Ran 43 tests, OK.
+Not verified (environment): live test (lag < 60 s under load, link-cut -> slot lost, pg_wal bounded) never run; compose.dr.yml standby container not in T-12 scope.
+For LEAD: staging/prod inventories have no `topology_profile` yet -> Standby play stops by design until `full`/`lean` is set (outside T-12 files). T-29: `archive_mode = off` in zz-standby.conf persists after promotion; tmpfs passfile must be re-rendered after a dr reboot before the standby can reconnect.

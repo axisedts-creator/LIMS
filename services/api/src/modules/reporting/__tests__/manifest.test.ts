@@ -73,7 +73,10 @@ describe('501 stubs in dev', () => {
     'replaceStaffAssignments', 'upsertReferrerPreference', 'listReportingCodes',
     'uploadOutsourcedReport', 'listOutsourcedReports', 'confirmOutsourcedReport', 'withdrawOutsourcedReport', 'downloadOutsourcedReport', 'listOutsourcedItems',
     // LEAD-VISIBLE TESTER EDIT (C6-T11): N6 + N7 leave the 501 list; covered by narrative-image.handlers.test.ts.
-    'uploadNarrativeImage', 'getNarrativeImageContent']);
+    'uploadNarrativeImage', 'getNarrativeImageContent',
+    // LEAD-VISIBLE TESTER EDIT (C6-T17): N1-N5 and N8-N10 leave the 501 list; covered by narrative.handlers.test.ts.
+    'listNarrativeReports', 'getNarrativeReport', 'saveNarrativeDraft', 'signNarrativeReport', 'startNarrativeAmendment',
+    'listNarrativeTemplates', 'createNarrativeTemplate', 'updateNarrativeTemplate']);
   const stubOps = ops.filter((o: string) => !IMPLEMENTED.has(o));
   it('only already-implemented operations are excluded from the 501 list', () => expect(ops.length - stubOps.length).toBe(IMPLEMENTED.size));
   it.each(stubOps)('%s answers 501', async (op) => {

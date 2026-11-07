@@ -83,15 +83,17 @@ const DDL_DEFAULTS: Record<string, Row> = {
   reports: { needs_assembly: false, needs_assembly_since: null },
   report_versions: { status: 'draft', content_snapshot: {} },
   narrative_reports: { status: 'draft', current_version_no: 1, signed_version_no: null, version: 1 },   // C6-T11
+  narrative_versions: { status: 'draft', template_id: null, image_file_ids: [], signed_by_membership_id: null, signed_at: null, content_sha256: null, amendment_of_version_no: null, amendment_reason_code: null, amendment_reason_text: null, version: 1 },   // C6-T17
+  narrative_templates: { test_id: null, is_active: true, version: 1 },   // C6-T17
   g_cs_reasons: { is_active: true, sort_order: 0 }, cs_reasons: { is_active: true, sort_order: 0 },
 };
 const TABLES = Object.keys(DDL_DEFAULTS);
-const UNIQUE: Record<string, string[][]> = { input_files: [['tenant_id', 'id']], report_order_items: [['tenant_id', 'order_item_id', 'report_id']], reports: [['tenant_id', 'id']], report_versions: [['tenant_id', 'id']], narrative_reports: [['tenant_id', 'id']], g_cs_reasons: [], cs_reasons: [] };
+const UNIQUE: Record<string, string[][]> = { input_files: [['tenant_id', 'id']], report_order_items: [['tenant_id', 'order_item_id', 'report_id']], reports: [['tenant_id', 'id']], report_versions: [['tenant_id', 'id']], narrative_reports: [['tenant_id', 'id']], narrative_versions: [['tenant_id', 'id'], ['tenant_id', 'narrative_report_id', 'version_no']], narrative_templates: [['tenant_id', 'id'], ['tenant_id', 'code']], g_cs_reasons: [], cs_reasons: [] };
 
 function topLevelGroups(s: string): string[] { const out: string[] = []; let d = 0; let cur = ''; for (const ch of s) { if (ch === '(') { if (d++ === 0) { cur = ''; continue; } } else if (ch === ')') { if (--d === 0) { out.push(cur); continue; } } if (d > 0) cur += ch; } return out; }
 function splitComma(s: string): string[] { const out: string[] = []; let d = 0; let q = false; let cur = ''; for (const ch of s) { if (ch === "'") q = !q; if (!q && ch === '(') d++; if (!q && ch === ')') d--; if (!q && d === 0 && ch === ',') { out.push(cur.trim()); cur = ''; } else cur += ch; } if (cur.trim()) out.push(cur.trim()); return out; }
 
-export interface Seed { input_files?: Row[]; report_order_items?: Row[]; reports?: Row[]; report_versions?: Row[]; narrative_reports?: Row[]; g_cs_reasons?: Row[]; cs_reasons?: Row[] }
+export interface Seed { input_files?: Row[]; report_order_items?: Row[]; reports?: Row[]; report_versions?: Row[]; narrative_reports?: Row[]; narrative_versions?: Row[]; narrative_templates?: Row[]; g_cs_reasons?: Row[]; cs_reasons?: Row[] }
 export interface Stmt { readonly text: string; readonly values: readonly unknown[]; readonly verb: string }
 
 export function makeDb(seed: Seed = {}, opts: { failOn?: Array<{ match: RegExp; error: () => Error }> } = {}) {

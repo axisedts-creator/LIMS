@@ -23,7 +23,9 @@ const noop = { info() {}, warn() {}, error() {} };
 function env(operationId: string, seed: Record<string, any[]> = {}, over: Record<string, unknown> = {}) {
   const db = makeDb({ ...world(), narrative_reports: narratives(), ...seed }); const storage = makeStorage();
   const identityCalls: unknown[] = [];
-  const c = makeApiCtx(db, storage, { ports: { identity: { assertRole: async (_c: unknown, req: unknown) => { identityCalls.push(req); } } }, ...over });
+  // LEAD-VISIBLE TESTER EDIT (C6-T17): N7 gained the P-10 conditional reporting.narrative.write check (ctx.ports.IdentityPort.assertRole); this allow-all port keeps the T11 cases about bytes/headers.
+  const allow = { assertRole: async (_c: unknown, req: unknown) => { identityCalls.push(req); } };
+  const c = makeApiCtx(db, storage, { ports: { identity: allow, IdentityPort: allow }, ...over });
   return { db, storage, identityCalls, ...c, hctx: { ...c.ctx, operationId, clientIp: '203.0.113.9', log: noop } };
 }
 const N6 = 'uploadNarrativeImage'; const N7 = 'getNarrativeImageContent';

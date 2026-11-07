@@ -135,23 +135,23 @@ SELECT is(pg_temp.a('SELECT 1 FROM ' || tt.q || ' WHERE tenant_id = ' || quote_l
 SELECT is(pg_temp.b('SELECT 1 FROM ' || tt.q || ' WHERE tenant_id = ' || quote_literal(pg_temp.ta()), 'n'), 'n=0', 'AC-0B-3.1: tenant B sees 0 tenant-A rows of ' || tt.q) FROM tt;
 SELECT is(pg_temp.b('SELECT 1 FROM billing.invoices', 'n'), 'n=1', 'tenant B sees exactly its own invoice');
 -- AC-0B-3.2: INSERT of a row carrying tenant B's id as tenant A -> 42501 (copies of real B rows with fresh keys)
-SELECT like(pg_temp.a(pg_temp.cpb('frontdesk.patients', 'id = ' || quote_literal(pg_temp.uid(2)), jsonb_build_object('id', pg_temp.uid(201), 'patient_code', 'P-X')), 'w'), 'E42501|%', 'AC-0B-3.2: A cannot insert a patient for B');
-SELECT like(pg_temp.a(pg_temp.cpb('frontdesk.orders', 'id = ' || quote_literal(pg_temp.uid(13)), jsonb_build_object('id', pg_temp.uid(202), 'registration_no', 'R-X')), 'w'), 'E42501|%', 'AC-0B-3.2: A cannot insert an order for B');
-SELECT like(pg_temp.a(pg_temp.cpb('billing.ledger_entries', 'id = ' || quote_literal(pg_temp.uid(52)), jsonb_build_object('id', pg_temp.uid(203))), 'w'), 'E42501|%', 'AC-0B-3.2: A cannot insert a ledger entry for B');
-SELECT like(pg_temp.a(pg_temp.cpb('billing.export_jobs', 'id = ' || quote_literal(pg_temp.uid(62)), jsonb_build_object('id', pg_temp.uid(204))), 'w'), 'E42501|%', 'AC-0B-3.2: A cannot insert an export job for B');
+SELECT alike(pg_temp.a(pg_temp.cpb('frontdesk.patients', 'id = ' || quote_literal(pg_temp.uid(2)), jsonb_build_object('id', pg_temp.uid(201), 'patient_code', 'P-X')), 'w'), 'E42501|%', 'AC-0B-3.2: A cannot insert a patient for B');
+SELECT alike(pg_temp.a(pg_temp.cpb('frontdesk.orders', 'id = ' || quote_literal(pg_temp.uid(13)), jsonb_build_object('id', pg_temp.uid(202), 'registration_no', 'R-X')), 'w'), 'E42501|%', 'AC-0B-3.2: A cannot insert an order for B');
+SELECT alike(pg_temp.a(pg_temp.cpb('billing.ledger_entries', 'id = ' || quote_literal(pg_temp.uid(52)), jsonb_build_object('id', pg_temp.uid(203))), 'w'), 'E42501|%', 'AC-0B-3.2: A cannot insert a ledger entry for B');
+SELECT alike(pg_temp.a(pg_temp.cpb('billing.export_jobs', 'id = ' || quote_literal(pg_temp.uid(62)), jsonb_build_object('id', pg_temp.uid(204))), 'w'), 'E42501|%', 'AC-0B-3.2: A cannot insert an export job for B');
 -- AC-0B-3.3: UPDATE / DELETE of B rows by A affect 0 rows
 SELECT is(pg_temp.a('UPDATE frontdesk.patients SET is_active = false WHERE id = ' || quote_literal(pg_temp.uid(2))), 'n=0', 'AC-0B-3.3: A updates 0 B patients');
 SELECT is(pg_temp.a('UPDATE billing.invoices SET print_count = print_count + 1 WHERE id = ' || quote_literal(pg_temp.uid(44))), 'n=0', 'AC-0B-3.3: A updates 0 B invoices');
 SELECT is(pg_temp.a('DELETE FROM billing.export_jobs WHERE id = ' || quote_literal(pg_temp.uid(62))), 'n=0', 'AC-0B-3.3: A deletes 0 B export jobs');
 SELECT is(pg_temp.a('DELETE FROM billing.export_jobs WHERE id = ' || quote_literal(pg_temp.uid(61))), 'n=1', 'A may DELETE its own export job (class E)');
-SELECT like(pg_temp.a('DELETE FROM billing.invoices WHERE id = ' || quote_literal(pg_temp.uid(41))), 'E42501|%', 'no DELETE grant on invoices (AC-0B-4.2)');
-SELECT like(pg_temp.a('DELETE FROM frontdesk.patients WHERE id = ' || quote_literal(pg_temp.uid(1))), 'E42501|%', 'no DELETE grant on patients (anonymise instead)');
-SELECT like(pg_temp.a('UPDATE billing.ledger_entries SET reason_text = ''x'' WHERE id = ' || quote_literal(pg_temp.uid(51))), 'E42501|%', 'no UPDATE grant on ledger_entries (REQ-SEC-057)');
+SELECT alike(pg_temp.a('DELETE FROM billing.invoices WHERE id = ' || quote_literal(pg_temp.uid(41))), 'E42501|%', 'no DELETE grant on invoices (AC-0B-4.2)');
+SELECT alike(pg_temp.a('DELETE FROM frontdesk.patients WHERE id = ' || quote_literal(pg_temp.uid(1))), 'E42501|%', 'no DELETE grant on patients (anonymise instead)');
+SELECT alike(pg_temp.a('UPDATE billing.ledger_entries SET reason_text = ''x'' WHERE id = ' || quote_literal(pg_temp.uid(51))), 'E42501|%', 'no UPDATE grant on ledger_entries (REQ-SEC-057)');
 -- AC-0B-3.5: a child referencing the other tenant's parent id fails (composite FK)
-SELECT like(pg_temp.a(format($$ INSERT INTO frontdesk.order_items (id, tenant_id, order_id, centre_id, orderable_id, orderable_kind, code, name, test_ids, priority, unit_price_paisa, price_list_id, price_list_version, price_source,
+SELECT alike(pg_temp.a(format($$ INSERT INTO frontdesk.order_items (id, tenant_id, order_id, centre_id, orderable_id, orderable_kind, code, name, test_ids, priority, unit_price_paisa, price_list_id, price_list_version, price_source,
   vat_treatment, added_in_items_version, created_by, updated_by) VALUES (%L, %L, %L, %L, %L, 'test', 'X', 'X', ARRAY[%L]::uuid[], 'routine', 1, %L, 1, 'tenant_default', 'exempt', 1, %L, %L) $$,
   pg_temp.uid(205), pg_temp.ta(), pg_temp.uid(13), pg_temp.id('00000000a201'), pg_temp.uid(99), pg_temp.uid(99), pg_temp.uid(98), pg_temp.sys(), pg_temp.sys())), 'E23503|%', 'AC-0B-3.5: order item of A referencing B''s order -> composite FK violation');
-SELECT like(pg_temp.a(format($$ INSERT INTO frontdesk.orders (id, tenant_id, branch_id, centre_id, patient_id, registration_no, status, visit_type, billing_mode, priority, collection_mode, source, is_first_order_of_patient, catalog_revision,
+SELECT alike(pg_temp.a(format($$ INSERT INTO frontdesk.orders (id, tenant_id, branch_id, centre_id, patient_id, registration_no, status, visit_type, billing_mode, priority, collection_mode, source, is_first_order_of_patient, catalog_revision,
   registered_at, created_by, updated_by) VALUES (%L, %L, %L, %L, %L, 'R-Y', 'registered', 'opd', 'cash', 'routine', 'walk_in', 'front_desk', true, 1, now(), %L, %L) $$,
   pg_temp.uid(206), pg_temp.ta(), pg_temp.id('00000000a101'), pg_temp.id('00000000a201'), pg_temp.uid(2), pg_temp.sys(), pg_temp.sys())), 'E23503|%', 'AC-0B-3.5: order of A for B''s patient -> composite FK violation');
 
@@ -166,12 +166,12 @@ SELECT is(pg_temp.dev(pg_temp.id('00000000a201'), 'SELECT 1 FROM frontdesk.patie
 SELECT is(pg_temp.dev(pg_temp.id('00000000a201'), 'SELECT 1 FROM billing.invoices WHERE centre_id IS NULL'), 'n=0', '§9 test 5: TCN NULL-centre invoice invisible to a centre-scoped actor');
 SELECT is(pg_temp.dev(pg_temp.id('00000000a201'), 'SELECT 1 FROM billing.invoices'), 'n=1', 'centre a201 actor sees only i1');
 SELECT is(pg_temp.a('SELECT 1 FROM billing.invoices WHERE centre_id IS NULL', 'n'), 'n=1', '§9 test 5: all-centres actor (system) sees the NULL-centre invoice');
-SELECT like(pg_temp.dev(pg_temp.id('00000000a201'), format($$ INSERT INTO billing.print_log SELECT * FROM jsonb_populate_record(NULL::billing.print_log, jsonb_build_object('tenant_id', %L, 'centre_id', NULL)) $$, pg_temp.ta()), 'w'),
+SELECT alike(pg_temp.dev(pg_temp.id('00000000a201'), format($$ INSERT INTO billing.print_log SELECT * FROM jsonb_populate_record(NULL::billing.print_log, jsonb_build_object('tenant_id', %L, 'centre_id', NULL)) $$, pg_temp.ta()), 'w'),
   'E%', 'a centre-scoped actor cannot write a NULL-centre TCN row (rejected: RLS 42501 or NOT NULL, never accepted)');
 SELECT is(pg_temp.dev(pg_temp.id('00000000a201'), 'SELECT 1 FROM billing.ledger_entries'), 'n=1', 'ledger entry of centre a201 visible to a201 actor');
 SELECT is(pg_temp.dev(pg_temp.id('00000000a202'), 'SELECT 1 FROM billing.ledger_entries'), 'n=0', 'ledger entry of centre a201 invisible to an a202 actor');
 -- §9 test 9: the ::uuid[] cast (08 A16.1): a centre-scoped SELECT on every TC / TCN table runs without "operator does not exist: uuid = uuid[]"
-SELECT unlike(pg_temp.dev(pg_temp.id('00000000a201'), 'SELECT 1 FROM ' || t.q), 'E%', '§9 test 9: centre-scoped SELECT on ' || t.q || ' raises no operator error')
+SELECT unalike(pg_temp.dev(pg_temp.id('00000000a201'), 'SELECT 1 FROM ' || t.q), 'E%', '§9 test 9: centre-scoped SELECT on ' || t.q || ' raises no operator error')
   FROM (VALUES ('frontdesk.orders'),('frontdesk.order_items'),('frontdesk.discounts'),('frontdesk.discount_approvals'),('frontdesk.trf_attachments'),('frontdesk.order_flags'),('billing.invoices'),('billing.invoice_lines'),
     ('billing.credit_notes'),('billing.credit_note_lines'),('billing.cash_sessions'),('billing.ledger_entries'),('billing.order_balances'),('billing.release_overrides'),('billing.credit_charges'),('billing.credit_note_tasks'),
     ('billing.finance_review_items'),('billing.refund_requests'),('billing.print_log')) t(q);
@@ -179,43 +179,43 @@ SELECT unlike(pg_temp.dev(pg_temp.id('00000000a201'), 'SELECT 1 FROM ' || t.q), 
 SELECT is(pg_temp.a(format($$ INSERT INTO billing.finance_review_items (id, tenant_id, centre_id, order_id, kind, ledger_entry_id, amount_paisa, created_by, updated_by)
   VALUES (%L, %L, %L, %L, 'home_payment_method_inactive', %L, 100, %L, %L) $$, pg_temp.uid(301), pg_temp.ta(), pg_temp.id('00000000a201'), pg_temp.uid(11), pg_temp.uid(51), pg_temp.sys(), pg_temp.sys())), 'n=1',
   '§9 test 9: kind = home_payment_method_inactive is accepted (D-128)');
-SELECT like(pg_temp.a(format($$ INSERT INTO billing.finance_review_items (id, tenant_id, centre_id, order_id, kind, ledger_entry_id, amount_paisa, created_by, updated_by)
+SELECT alike(pg_temp.a(format($$ INSERT INTO billing.finance_review_items (id, tenant_id, centre_id, order_id, kind, ledger_entry_id, amount_paisa, created_by, updated_by)
   VALUES (%L, %L, %L, %L, 'unknown_kind', %L, 100, %L, %L) $$, pg_temp.uid(302), pg_temp.ta(), pg_temp.id('00000000a201'), pg_temp.uid(11), pg_temp.uid(51), pg_temp.sys(), pg_temp.sys())),
   'E23514|%finance_review_items__kind__ck%', '§9 test 9: unknown kind -> CHECK violation finance_review_items__kind__ck');
 
 -- ===================================================================================================================================== §9 test 6 / AC-0B-4.1: immutability triggers
 -- §9 test 6: direct UPDATE billing.invoices SET net_paisa = ... as lims_app -> immutable_row; fiscal_counters last_no + 2 -> guard error; cancelled -> issued -> guard error
-SELECT like(pg_temp.a('UPDATE billing.invoices SET net_paisa = net_paisa + 1 WHERE id = ' || quote_literal(pg_temp.uid(41))), 'EP0001|immutable_row%', '§9 test 6 / AC-0B-4.1: UPDATE invoices.net_paisa -> P0001 immutable_row');
-SELECT like(pg_temp.a('UPDATE billing.invoices SET buyer_name = ''Someone Else'' WHERE id = ' || quote_literal(pg_temp.uid(41))), 'EP0001|immutable_row%', 'AC-0B-4.1: UPDATE invoices.buyer_name -> immutable_row');
-SELECT like(pg_temp.a('UPDATE billing.fiscal_counters SET last_no = last_no + 2 WHERE tenant_id = ' || quote_literal(pg_temp.ta())), 'EP0001|immutable_row%', '§9 test 6: fiscal_counters last_no + 2 -> guard error');
-SELECT like(pg_temp.a('UPDATE billing.fiscal_counters SET last_no = last_no - 1 WHERE tenant_id = ' || quote_literal(pg_temp.ta())), 'EP0001|immutable_row%', 'fiscal_counters cannot go backwards (gapless, 04 L7)');
-SELECT like(pg_temp.a('UPDATE billing.invoices SET status = ''issued'', is_active = true WHERE id = ' || quote_literal(pg_temp.uid(43))), 'EP0001|immutable_row%', '§9 test 6: cancelled invoice back to issued -> guard error');
-SELECT like(pg_temp.a('UPDATE billing.invoices SET cancel_reason_code = ''other'' WHERE id = ' || quote_literal(pg_temp.uid(43))), 'EP0001|immutable_row%', 'cancellation columns frozen after the transition');
-SELECT like(pg_temp.a('UPDATE billing.invoices SET print_count = print_count + 2 WHERE id = ' || quote_literal(pg_temp.uid(41))), 'EP0001|immutable_row%', 'print_count may only grow by 1');
+SELECT alike(pg_temp.a('UPDATE billing.invoices SET net_paisa = net_paisa + 1 WHERE id = ' || quote_literal(pg_temp.uid(41))), 'EP0001|immutable_row%', '§9 test 6 / AC-0B-4.1: UPDATE invoices.net_paisa -> P0001 immutable_row');
+SELECT alike(pg_temp.a('UPDATE billing.invoices SET buyer_name = ''Someone Else'' WHERE id = ' || quote_literal(pg_temp.uid(41))), 'EP0001|immutable_row%', 'AC-0B-4.1: UPDATE invoices.buyer_name -> immutable_row');
+SELECT alike(pg_temp.a('UPDATE billing.fiscal_counters SET last_no = last_no + 2 WHERE tenant_id = ' || quote_literal(pg_temp.ta())), 'EP0001|immutable_row%', '§9 test 6: fiscal_counters last_no + 2 -> guard error');
+SELECT alike(pg_temp.a('UPDATE billing.fiscal_counters SET last_no = last_no - 1 WHERE tenant_id = ' || quote_literal(pg_temp.ta())), 'EP0001|immutable_row%', 'fiscal_counters cannot go backwards (gapless, 04 L7)');
+SELECT alike(pg_temp.a('UPDATE billing.invoices SET status = ''issued'', is_active = true WHERE id = ' || quote_literal(pg_temp.uid(43))), 'EP0001|immutable_row%', '§9 test 6: cancelled invoice back to issued -> guard error');
+SELECT alike(pg_temp.a('UPDATE billing.invoices SET cancel_reason_code = ''other'' WHERE id = ' || quote_literal(pg_temp.uid(43))), 'EP0001|immutable_row%', 'cancellation columns frozen after the transition');
+SELECT alike(pg_temp.a('UPDATE billing.invoices SET print_count = print_count + 2 WHERE id = ' || quote_literal(pg_temp.uid(41))), 'EP0001|immutable_row%', 'print_count may only grow by 1');
 SELECT is(pg_temp.a('UPDATE billing.invoices SET print_count = print_count + 1, last_printed_at = now() WHERE id = ' || quote_literal(pg_temp.uid(41))), 'n=1', 'print_count + 1 is the allowed lifecycle update');
 SELECT is(pg_temp.a('UPDATE billing.invoices SET cbms_state = ''pending'' WHERE id = ' || quote_literal(pg_temp.uid(41))), 'n=1', 'cbms_state not_required -> pending allowed');
-SELECT like(pg_temp.a('UPDATE billing.invoices SET cbms_state = ''not_required'' WHERE id = ' || quote_literal(pg_temp.uid(41))), 'EP0001|immutable_row%', 'cbms_state pending -> not_required refused');
+SELECT alike(pg_temp.a('UPDATE billing.invoices SET cbms_state = ''not_required'' WHERE id = ' || quote_literal(pg_temp.uid(41))), 'EP0001|immutable_row%', 'cbms_state pending -> not_required refused');
 SELECT is(pg_temp.a('UPDATE billing.fiscal_counters SET last_no = last_no + 1 WHERE tenant_id = ' || quote_literal(pg_temp.ta())), 'n=1', 'fiscal_counters last_no + 1 is allowed');
 -- chronology guard (insert-time): a seq that is not the counter's value, or a lower issued_at, raises chronology_violation
 SELECT throws_ok(format($$ SELECT pg_temp.ins('billing.invoices', %L::jsonb) $$, pg_temp.inv(pg_temp.uid(45), pg_temp.ta(), pg_temp.id('00000000a101'), pg_temp.id('00000000a201'), 9,
   jsonb_build_object('order_id', pg_temp.uid(14), 'patient_id', pg_temp.uid(1)))::text), 'P0001', 'chronology_violation', 'invoice with a seq that differs from the counter -> chronology_violation');
 -- frontdesk.orders
-SELECT like(pg_temp.a('UPDATE frontdesk.orders SET status = ''registered'', registered_at = now() WHERE id = ' || quote_literal(pg_temp.uid(14))), 'EP0001|immutable_row%', 'AC-0B-4.1: cancelled order cannot be re-registered');
-SELECT like(pg_temp.a('UPDATE frontdesk.orders SET registration_no = ''R-HACK'' WHERE id = ' || quote_literal(pg_temp.uid(11))), 'EP0001|immutable_row%', 'AC-0B-4.1: registration_no is not a mutable column');
-SELECT like(pg_temp.a('UPDATE frontdesk.orders SET patient_id = ' || quote_literal(pg_temp.uid(1)) || ', branch_id = ' || quote_literal(pg_temp.id('00000000a102')) || ' WHERE id = ' || quote_literal(pg_temp.uid(11))), 'EP0001|immutable_row%', 'branch_id is immutable');
-SELECT like(pg_temp.a('UPDATE frontdesk.orders SET priority = ''urgent'' WHERE id = ' || quote_literal(pg_temp.uid(11))), 'EP0001|immutable_row%', 'priority frozen once registered');
+SELECT alike(pg_temp.a('UPDATE frontdesk.orders SET status = ''registered'', registered_at = now() WHERE id = ' || quote_literal(pg_temp.uid(14))), 'EP0001|immutable_row%', 'AC-0B-4.1: cancelled order cannot be re-registered');
+SELECT alike(pg_temp.a('UPDATE frontdesk.orders SET registration_no = ''R-HACK'' WHERE id = ' || quote_literal(pg_temp.uid(11))), 'EP0001|immutable_row%', 'AC-0B-4.1: registration_no is not a mutable column');
+SELECT alike(pg_temp.a('UPDATE frontdesk.orders SET patient_id = ' || quote_literal(pg_temp.uid(1)) || ', branch_id = ' || quote_literal(pg_temp.id('00000000a102')) || ' WHERE id = ' || quote_literal(pg_temp.uid(11))), 'EP0001|immutable_row%', 'branch_id is immutable');
+SELECT alike(pg_temp.a('UPDATE frontdesk.orders SET priority = ''urgent'' WHERE id = ' || quote_literal(pg_temp.uid(11))), 'EP0001|immutable_row%', 'priority frozen once registered');
 SELECT is(pg_temp.a('UPDATE frontdesk.orders SET priority = ''urgent'' WHERE id = ' || quote_literal(pg_temp.uid(15))), 'n=1', 'priority editable while pre_registered');
 SELECT is(pg_temp.a('UPDATE frontdesk.orders SET status = ''registered'', registered_at = now() WHERE id = ' || quote_literal(pg_temp.uid(15))), 'n=1', 'pre_registered -> registered allowed');
 SELECT is(pg_temp.a('UPDATE frontdesk.orders SET status = ''cancelled'', cancelled_at = now(), cancel_reason_code = ''patient_left'' WHERE id = ' || quote_literal(pg_temp.uid(12))), 'n=1', 'registered -> cancelled allowed');
-SELECT like(pg_temp.a('UPDATE frontdesk.orders SET cancel_reason_code = ''other'' WHERE id = ' || quote_literal(pg_temp.uid(12))), 'EP0001|immutable_row%', 'cancelled_* frozen after the transition');
+SELECT alike(pg_temp.a('UPDATE frontdesk.orders SET cancel_reason_code = ''other'' WHERE id = ' || quote_literal(pg_temp.uid(12))), 'EP0001|immutable_row%', 'cancelled_* frozen after the transition');
 -- order_items, trf_attachments
-SELECT like(pg_temp.a('UPDATE frontdesk.order_items SET status = ''active'', removed_at = NULL, removal_reason_code = NULL WHERE id = ' || quote_literal(pg_temp.uid(22))), 'EP0001|immutable_row%', 'order item removed -> active refused');
-SELECT like(pg_temp.a('UPDATE frontdesk.order_items SET unit_price_paisa = 1 WHERE id = ' || quote_literal(pg_temp.uid(21))), 'EP0001|immutable_row%', 'price snapshot frozen');
+SELECT alike(pg_temp.a('UPDATE frontdesk.order_items SET status = ''active'', removed_at = NULL, removal_reason_code = NULL WHERE id = ' || quote_literal(pg_temp.uid(22))), 'EP0001|immutable_row%', 'order item removed -> active refused');
+SELECT alike(pg_temp.a('UPDATE frontdesk.order_items SET unit_price_paisa = 1 WHERE id = ' || quote_literal(pg_temp.uid(21))), 'EP0001|immutable_row%', 'price snapshot frozen');
 SELECT is(pg_temp.a('UPDATE frontdesk.order_items SET status = ''removed'', removed_at = now(), removal_reason_code = ''wrong_test'' WHERE id = ' || quote_literal(pg_temp.uid(21))), 'n=1', 'order item active -> removed allowed');
-SELECT like(pg_temp.a('UPDATE frontdesk.trf_attachments SET order_id = NULL WHERE id = ' || quote_literal(pg_temp.uid(34))), 'EP0001|immutable_row%', 'trf: order_id set once, never cleared');
-SELECT like(pg_temp.a('UPDATE frontdesk.trf_attachments SET scan_state = ''clean'' WHERE id = ' || quote_literal(pg_temp.uid(35))), 'EP0001|immutable_row%', 'trf: quarantined is terminal');
-SELECT like(pg_temp.a('UPDATE frontdesk.trf_attachments SET scan_state = ''pending'' WHERE id = ' || quote_literal(pg_temp.uid(36))), 'EP0001|immutable_row%', 'trf: clean -> pending refused');
-SELECT like(pg_temp.a('UPDATE frontdesk.trf_attachments SET sha256 = repeat(''b'', 64) WHERE id = ' || quote_literal(pg_temp.uid(32))), 'EP0001|immutable_row%', 'trf: sha256 frozen');
+SELECT alike(pg_temp.a('UPDATE frontdesk.trf_attachments SET order_id = NULL WHERE id = ' || quote_literal(pg_temp.uid(34))), 'EP0001|immutable_row%', 'trf: order_id set once, never cleared');
+SELECT alike(pg_temp.a('UPDATE frontdesk.trf_attachments SET scan_state = ''clean'' WHERE id = ' || quote_literal(pg_temp.uid(35))), 'EP0001|immutable_row%', 'trf: quarantined is terminal');
+SELECT alike(pg_temp.a('UPDATE frontdesk.trf_attachments SET scan_state = ''pending'' WHERE id = ' || quote_literal(pg_temp.uid(36))), 'EP0001|immutable_row%', 'trf: clean -> pending refused');
+SELECT alike(pg_temp.a('UPDATE frontdesk.trf_attachments SET sha256 = repeat(''b'', 64) WHERE id = ' || quote_literal(pg_temp.uid(32))), 'EP0001|immutable_row%', 'trf: sha256 frozen');
 SELECT is(pg_temp.a('UPDATE frontdesk.trf_attachments SET scan_state = ''clean'', scanned_at = now() WHERE id = ' || quote_literal(pg_temp.uid(32))), 'n=1', 'trf: pending -> clean allowed');
 SELECT is(pg_temp.a('UPDATE frontdesk.trf_attachments SET order_id = ' || quote_literal(pg_temp.uid(11)) || ' WHERE id = ' || quote_literal(pg_temp.uid(37))), 'n=1', 'trf: draft linked to an order once');
 
@@ -255,12 +255,12 @@ SELECT is((SELECT count(*)::int FROM audit.audit_log WHERE schema_name = 'frontd
 SELECT is((SELECT count(*)::int FROM audit.audit_log WHERE schema_name = 'billing' AND table_name = 'print_log'), 0, 'class A print_log is not audited');
 SELECT cmp_ok((SELECT count(*)::int FROM audit.audit_log WHERE schema_name = 'billing' AND table_name = 'invoices'), '>=', 4, 'invoices are audited (class B)');
 -- AC-0B-5.3: lims_app cannot insert audit rows directly
-SELECT like(pg_temp.a(format($$ INSERT INTO audit.audit_log (id, tenant_id, schema_name, table_name, action, actor_type) VALUES (%L, %L, 'x', 'y', 'INSERT', 'user') $$, pg_temp.uid(401), pg_temp.ta())), 'E42501|%', 'AC-0B-5.3: lims_app INSERT INTO audit.audit_log fails');
+SELECT alike(pg_temp.a(format($$ INSERT INTO audit.audit_log (id, tenant_id, schema_name, table_name, action, actor_type) VALUES (%L, %L, 'x', 'y', 'INSERT', 'user') $$, pg_temp.uid(401), pg_temp.ta())), 'E42501|%', 'AC-0B-5.3: lims_app INSERT INTO audit.audit_log fails');
 
 -- ===================================================================================================================================== §9 test 3 / AC-0B-2.4: purge_trf_drafts under FORCE RLS (08 A10.5)
 SELECT is((SELECT relforcerowsecurity FROM pg_class WHERE oid = 'frontdesk.trf_attachments'::regclass), true, 'AC-0B-2.4: trf_attachments has relforcerowsecurity = true during the test');
 -- (b) a lims_app session that sets app.maintenance itself deletes / sees nothing through the owner policies
-SELECT like(pg_temp.a($$ SELECT set_config('app.maintenance', 'frontdesk_purge_trf_drafts', true); DELETE FROM frontdesk.trf_attachments WHERE order_id IS NULL $$, 'w'), 'E42501|%', '§9 test 3 (b): lims_app with app.maintenance set still cannot DELETE (no grant)');
+SELECT alike(pg_temp.a($$ SELECT set_config('app.maintenance', 'frontdesk_purge_trf_drafts', true); DELETE FROM frontdesk.trf_attachments WHERE order_id IS NULL $$, 'w'), 'E42501|%', '§9 test 3 (b): lims_app with app.maintenance set still cannot DELETE (no grant)');
 SELECT is((SELECT count(*)::int FROM frontdesk.trf_attachments WHERE order_id IS NULL AND tenant_id = pg_temp.ta()), 4, 'the 4 drafts of A (31, 32, 35, 36) are still there after the refused DELETE (superuser count)');
 -- lims_owner sees draft rows only with the flag set, only its claimed tenant, only order_id IS NULL
 SELECT is(pg_temp.x('lims_owner', pg_temp.cl(pg_temp.ta()), 'SELECT 1 FROM frontdesk.trf_attachments', 'n'), 'n=0', '§9 test 3: lims_owner without app.maintenance sees 0 rows (FORCE RLS applies to the owner)');
@@ -273,9 +273,9 @@ SELECT is(pg_temp.x('lims_owner', pg_temp.cl(pg_temp.tb()), 'SELECT 1 FROM front
 SELECT is(pg_temp.x('lims_owner', pg_temp.cl(pg_temp.ta()), 'SELECT 1 FROM frontdesk.trf_attachments', 'n', $$ SELECT set_config('app.maintenance', 'wrong_flag', true) $$), 'n=0', 'a different maintenance flag opens nothing');
 SELECT is(pg_temp.x('lims_owner', NULL, 'SELECT 1 FROM frontdesk.trf_attachments', 'n', $$ SELECT set_config('app.maintenance', 'frontdesk_purge_trf_drafts', true) $$), 'n=0', 'no tenant claim: the owner policy admits nothing even with the flag');
 -- invalid input
-SELECT like(pg_temp.x('lims_worker', pg_temp.cl(pg_temp.ta()), format($$ SELECT frontdesk.purge_trf_drafts(interval '5 minutes', ARRAY[%L]::uuid[]) $$, pg_temp.uid(31)), 'w'), 'E%purge_trf_drafts_invalid_input%', 'older_than < 1 hour -> purge_trf_drafts_invalid_input');
-SELECT like(pg_temp.x('lims_worker', pg_temp.cl(pg_temp.ta()), $$ SELECT frontdesk.purge_trf_drafts(interval '24 hours', NULL) $$, 'w'), 'E%purge_trf_drafts_invalid_input%', 'NULL id list -> purge_trf_drafts_invalid_input');
-SELECT like(pg_temp.x('lims_app', pg_temp.cl(pg_temp.ta()), format($$ SELECT frontdesk.purge_trf_drafts(interval '24 hours', ARRAY[%L]::uuid[]) $$, pg_temp.uid(31)), 'w'), 'E42501|%', 'lims_app may not EXECUTE purge_trf_drafts');
+SELECT alike(pg_temp.x('lims_worker', pg_temp.cl(pg_temp.ta()), format($$ SELECT frontdesk.purge_trf_drafts(interval '5 minutes', ARRAY[%L]::uuid[]) $$, pg_temp.uid(31)), 'w'), 'E%purge_trf_drafts_invalid_input%', 'older_than < 1 hour -> purge_trf_drafts_invalid_input');
+SELECT alike(pg_temp.x('lims_worker', pg_temp.cl(pg_temp.ta()), $$ SELECT frontdesk.purge_trf_drafts(interval '24 hours', NULL) $$, 'w'), 'E%purge_trf_drafts_invalid_input%', 'NULL id list -> purge_trf_drafts_invalid_input');
+SELECT alike(pg_temp.x('lims_app', pg_temp.cl(pg_temp.ta()), format($$ SELECT frontdesk.purge_trf_drafts(interval '24 hours', ARRAY[%L]::uuid[]) $$, pg_temp.uid(31)), 'w'), 'E42501|%', 'lims_app may not EXECUTE purge_trf_drafts');
 -- (a) the function deletes only EXPIRED DRAFTS of the CLAIMED tenant, even when handed other ids: 31 (old draft A) goes; 32 (clean, recent), 33 (old draft B), 34 (old linked A), 35, 36, 37 (linked now) stay
 SELECT is(pg_temp.x('lims_worker', pg_temp.cl(pg_temp.ta()), format($$ SELECT frontdesk.purge_trf_drafts(interval '24 hours', ARRAY[%L,%L,%L,%L,%L,%L,%L]::uuid[]) $$,
   pg_temp.uid(31), pg_temp.uid(32), pg_temp.uid(33), pg_temp.uid(34), pg_temp.uid(35), pg_temp.uid(36), pg_temp.uid(37)), 's'), '1',

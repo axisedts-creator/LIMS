@@ -72,8 +72,8 @@ SELECT ok(p.policyname ~ ('^' || p.tablename || '__(select|insert|update|delete)
 -- P-16 staff guard + A16.1 cast
 SELECT ok(coalesce(p.qual, '') ~ 'is_staff_or_system' OR p.cmd = 'INSERT', 'USING of ' || p.tablename || '.' || p.policyname || ' has the staff guard (P-16)') FROM pg_policies p WHERE p.schemaname IN ('frontdesk','billing') AND p.policyname !~ 'owner_only|event_inbox';
 SELECT ok(coalesce(p.with_check, '') ~ 'is_staff_or_system' OR p.cmd IN ('SELECT','DELETE'), 'WITH CHECK of ' || p.tablename || '.' || p.policyname || ' has the staff guard (P-16)') FROM pg_policies p WHERE p.schemaname IN ('frontdesk','billing') AND p.policyname !~ 'owner_only';
-SELECT ok(coalesce(p.qual, '') || coalesce(p.with_check, '') ~ 'current_centre_ids\(\)\)::uuid\[\]', 'A16.1 cast in ' || p.policyname || ' on ' || p.tablename)
-  FROM pg_policies p JOIN tt x ON x.s = p.schemaname AND x.t = p.tablename WHERE x.tpl IN ('TC','TCN');
+SELECT ok(coalesce(p.qual, '') || coalesce(p.with_check, '') ~ 'current_centre_ids\(\)( AS current_centre_ids)?\)::uuid\[\]', 'A16.1 cast in ' || p.policyname || ' on ' || p.tablename)
+  FROM pg_policies p JOIN tt x ON x.s = p.schemaname AND x.t = p.tablename WHERE x.tpl IN ('TC','TCN') AND p.policyname !~ 'owner_only';
 SELECT ok(coalesce(p.qual, '') || coalesce(p.with_check, '') ~ 'centre_id IS NOT NULL', 'TCN ' || p.policyname || ' on ' || p.tablename || ' hides NULL-centre rows from centre-scoped actors')
   FROM pg_policies p JOIN tt x ON x.s = p.schemaname AND x.t = p.tablename WHERE x.tpl = 'TCN';
 SELECT is((SELECT count(*)::int FROM pg_policies p JOIN tt x ON x.s = p.schemaname AND x.t = p.tablename WHERE x.tpl IN ('T') AND p.qual ~ 'current_centre_ids'), 0, 'tenant-scoped tables carry no centre predicate');

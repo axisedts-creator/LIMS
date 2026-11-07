@@ -18,3 +18,9 @@
    With one timeoutMs for both job and wait, the hold can never reliably exceed the wait. Options: (a) test accepts
    503 or a 408 for the waiter and keeps the "bounded, no leak" checks; (b) arbiter rules the queue wait has its own
    shorter bound — that needs a spec'd name (none in 02-TRD §5.1), so a CR.
+
+## Debugger confirmation (C6-T05-debug)
+Re-checked impl vs tests: all 3 failures are test/env; no impl defect found; impl unchanged.
+- Watermark: HTML lives in spike-assets.test.ts:135; helper skips Form XObjects. Same finding as ruling (TESTS_WRONG, helper only; 02-TRD:990 / 01-PRD:138 require a correct extractor).
+- Devanagari font name: 02-TRD:37,175 put fonts in the image's fontconfig; test must run in the image or install fonts/ on host.
+- Saturation: 02-TRD:440 only says "503 pool saturated"; test cannot deterministically meet it with one timeoutMs. Test should accept 503|408 for the waiter (writer option a), or a CR for a separate wait bound.

@@ -15,6 +15,9 @@ import {
   type Ctx, type Deps, type Tx,
 } from './masters.service.js';
 import { createRevisionService } from './revision.service.js';
+import * as stateRepo from '../repo/catalogState.repo.js';
+import { windowsOverlap } from '../domain/surcharge.js';
+import { isTaxTypeUsable } from '../domain/tax.js';
 
 const LIST_COLS = ['id', 'code', 'name', 'owner_kind', 'falls_through', 'version', 'is_active'];
 const VER_COLS = ['id', 'price_list_id', 'version_no', 'status', 'effective_from', 'effective_to', 'item_count', 'source_import_id', 'change_reason', 'version'];
@@ -100,6 +103,85 @@ function mapItemPg(e: unknown): never {
   return mapPg(e);
 }
 
+// ---- T-18: surcharge rules #83–#85, tax types #86–#88, tax rules #89–#91 (02-TRD §5.1, §7.5, §7.6; PRD AC-14.5, AC-15.2, AC-15.5; 08 R18).
+// Every write: validate -> tenant-scoped existence checks -> lock catalog_state (serialises the overlap check, §7.5/§7.6) -> row lock -> write -> bumpRevision.
+// [CONV] events: surcharge rules entity_type `surcharge_rule`; tax types AND tax rules entity_type `tax_rule`; /end -> `updated`; a rate change -> `updated` with the new version's id + effective_from.
+const S_COLS = ['id', 'scope', 'department_id', 'orderable_id', 'price_list_id', 'amount_kind', 'amount_paisa', 'percent_bp', 'effective_from', 'effective_to', 'is_active', 'version'];
+const R_COLS = ['id', 'scope', 'department_id', 'orderable_id', 'vat_treatment', 'other_tax_code', 'hs_code', 'effective_from', 'effective_to', 'is_active', 'version'];
+const Y_COLS = ['id', 'code', 'display', 'rate_bp', 'effective_from', 'effective_to', 'sort_order', 'is_active', 'version'];
+const TAX_CODE = /^[A-Z0-9_]{1,16}$/;
+const TAX_CODE_IN = /^[A-Za-z0-9_]{1,16}$/;              // checked BEFORE upper-casing (no Unicode case-fold forgeries)
+const HS = /^[0-9]{4,8}$/;
+const S_SCOPES = ['all', 'department', 'orderable'];
+const R_SCOPES = ['tenant_default', 'department', 'orderable'];
+
+const isoArg = (v: unknown): string | undefined => (typeof v === 'string' && ISO.test(v) && !Number.isNaN(Date.parse(v)) ? new Date(v).toISOString() : undefined);
+const nullOr = (v: unknown) => (v == null ? undefined : v);
+const omitEmpty = (o: R): R => Object.fromEntries(Object.entries(o).filter(([, v]) => v !== undefined));
+const inForce = (r: R, at: number) => r.is_active !== false && ms(r.effective_from) <= at && (r.effective_to == null || at < ms(r.effective_to));
+
+const surchargeDto = (r: R): R => omitEmpty({
+  id: r.id, scope: r.scope, department_id: nullOr(r.department_id), orderable_id: nullOr(r.orderable_id), price_list_id: nullOr(r.price_list_id), amount_kind: r.amount_kind,
+  amount: r.amount_paisa == null ? undefined : { amount_paisa: Number(r.amount_paisa), currency: 'NPR' }, percent_bp: r.percent_bp == null ? undefined : Number(r.percent_bp),
+  effective_from: ts(r.effective_from), effective_to: ts(r.effective_to), version: Number(r.version),
+});
+const taxRuleDto = (r: R): R => omitEmpty({
+  id: r.id, scope: r.scope, department_id: nullOr(r.department_id), orderable_id: nullOr(r.orderable_id), vat_treatment: r.vat_treatment,
+  other_tax_code: nullOr(r.other_tax_code), hs_code: nullOr(r.hs_code), effective_from: ts(r.effective_from), effective_to: ts(r.effective_to), version: Number(r.version),
+});
+const taxTypeDto = (r: R): R => omitEmpty({
+  id: r.id, code: r.code, display: r.display, rate_bp: r.rate_bp == null ? undefined : Number(r.rate_bp),
+  effective_from: ts(r.effective_from), effective_to: ts(r.effective_to), scope: 'tenant', is_active: r.is_active === true, version: Number(r.version),
+});
+// [CONV] g_tax_types has no effective_from / version (spec gap): the VAT row reports created_at and version 1.
+const globalTypeDto = (r: R): R => omitEmpty({
+  id: r.id, code: r.code, display: r.display, rate_bp: r.rate_bp == null ? undefined : Number(r.rate_bp), effective_from: ts(r.created_at) ?? new Date(0).toISOString(), scope: 'global', is_active: r.is_active === true, version: 1,
+});
+
+/** `{ scope?, active_at? }` list query; unknown keys -> 400. */
+function ruleQuery(raw: unknown, scopes: readonly string[]): { scope?: string; at?: number } {
+  const q = raw === undefined ? {} : raw;
+  if (!isObj(q)) return fail([invalid('')]);
+  const errors: FieldError[] = [];
+  const f: { scope?: string; at?: number } = {};
+  for (const [k, v] of Object.entries(q)) {
+    if (v === undefined) continue;
+    if (k === 'scope') { if (typeof v === 'string' && scopes.includes(v)) f.scope = v; else errors.push(invalid('/scope')); }
+    else if (k === 'active_at') { const a = isoArg(v); if (a) f.at = ms(a); else errors.push(invalid('/active_at')); }
+    else errors.push(unknown(''));
+  }
+  if (errors.length) fail(errors);
+  return f;
+}
+/** scope -> key columns: exactly the scope's key present (a uuid), every other key absent. */
+function scopeKey(b: R, scope: unknown, scopes: readonly string[], errors: FieldError[]): { department_id?: string; orderable_id?: string } {
+  if (scope === undefined) { errors.push(required('/scope')); return {}; }
+  if (typeof scope !== 'string' || !scopes.includes(scope)) { errors.push(invalid('/scope')); return {}; }
+  const out: { department_id?: string; orderable_id?: string } = {};
+  for (const k of ['department_id', 'orderable_id'] as const) {
+    const want = scope === k.slice(0, -3);
+    if (b[k] === undefined) { if (want) errors.push(required(`/${k}`)); }
+    else if (!want) errors.push(invalid(`/${k}`));
+    else if (typeof b[k] === 'string' && UUID.test(b[k])) out[k] = b[k];
+    else errors.push(invalid(`/${k}`));
+  }
+  return out;
+}
+/** effective_from required, effective_to optional and strictly after it. */
+function windowOf(b: R, errors: FieldError[]): { from: string; to: string | undefined } {
+  let from = '';
+  if (b['effective_from'] === undefined) errors.push(required('/effective_from'));
+  else { const f = isoArg(b['effective_from']); if (f) from = f; else errors.push(invalid('/effective_from')); }
+  let to: string | undefined;
+  if (b['effective_to'] !== undefined) {
+    to = isoArg(b['effective_to']);
+    if (!to) errors.push(invalid('/effective_to'));
+    else if (from && ms(to) <= ms(from)) errors.push(invalid('/effective_to'));
+  }
+  return { from, to };
+}
+const sameWin = (from: string, to: string | undefined) => ({ effective_from: from, effective_to: to ?? null });
+
 export interface PricingDeps extends Deps {
   /** IdentityPort subset, passed for symmetry with the other catalog services; no price-list field is role-restricted. */
   identity?: { getActor(ctx: unknown): Promise<{ permissions: readonly string[] }> };
@@ -157,6 +239,47 @@ export function createPricingService(deps: PricingDeps) {
     if (n !== Number(ver.item_count)) {
       await q(ctx, 'UPDATE catalog.price_list_versions SET item_count = $3, updated_at = now(), updated_by = $4 WHERE tenant_id = $1 AND id = $2', [ctx.tenantId, ver.id, n, ctx.actor.id]);
     }
+  }
+
+  /** Row-locks the tenant's catalog_state row (created lazily); held to COMMIT. Taken before any read of the rule tables on a T-18 write path. */
+  async function lockState(ctx: Ctx): Promise<void> {
+    await stateRepo.ensureState(tx(ctx), ctx.tenantId, uuidv7(), ctx.actor.id);
+    await q(ctx, 'SELECT catalog_revision FROM catalog.catalog_state WHERE tenant_id = $1 FOR UPDATE', [ctx.tenantId]);
+  }
+  /** Unknown and foreign ids look the same (AB-3): 404. */
+  async function mustExist(ctx: Ctx, table: 'departments' | 'orderables' | 'price_lists', id: string | undefined): Promise<void> {
+    if (id === undefined) return;
+    const rows = await repo.selectRows(tx(ctx), table, ['id'], { tenant_id: ctx.tenantId, id }, 'id');
+    if (rows.length === 0) throw new LimsError('common.not_found');
+  }
+  /** Shared /end (#85, #91): If-Match, effective_to (default = transaction clock) >= effective_from, open rules only; only effective_to + bookkeeping move. */
+  async function endRule(ctx: Ctx, table: 'surcharge_rules' | 'tax_rules', cols: readonly string[], entityType: string,
+    input: { id?: unknown; expectedVersion?: unknown; body?: unknown }, guard: (r: R) => void): Promise<R> {
+    const { id, ev } = checkUpdate(input);
+    const b = input.body === undefined || input.body === null ? {} : exact(input.body, ['effective_to']);
+    const at = nowOf(ctx);
+    let to = new Date(at).toISOString();
+    if (b['effective_to'] !== undefined) { const t = isoArg(b['effective_to']); if (!t) fail([invalid('/effective_to')]); to = t as string; }
+    await lockState(ctx);
+    const row = await lockAt(ctx, table, cols, id, ev);
+    guard(row);
+    if (row.effective_to != null) fail([invalid('/effective_to')]);                       // already ended: the history is not rewritten
+    if (ms(to) < ms(row.effective_from)) fail([invalid('/effective_to')]);
+    const after = await repo.updateRow(tx(ctx), table, cols, { tenantId: ctx.tenantId, id, expectedVersion: ev, actorId: ctx.actor.id }, { effective_to: to }).catch(mapPg);
+    if (!after) throw new LimsError('common.version_conflict');
+    await revision.bumpRevision(ctx, { entityType, entityId: id, changeKind: 'updated', effectiveFrom: to });
+    return after;
+  }
+  /** Rows of one scope of a rule table, filtered in memory (single-table SQL, a few hundred rows per tenant). */
+  const scopeRows = async (ctx: Ctx, table: 'surcharge_rules' | 'tax_rules', cols: readonly string[], scope: string) =>
+    (await q(ctx, `SELECT ${cols.join(', ')} FROM catalog.${table} WHERE tenant_id = $1 AND scope = $2 ORDER BY effective_from ASC, id ASC`, [ctx.tenantId, scope])).rows;
+  async function listRules(ctx: Ctx, table: 'surcharge_rules' | 'tax_rules', cols: readonly string[], scopes: readonly string[], query: unknown, dto: (r: R) => R) {
+    const f = ruleQuery(query, scopes);
+    const values: unknown[] = [ctx.tenantId];
+    let where = 'tenant_id = $1';
+    if (f.scope !== undefined) { values.push(f.scope); where += ' AND scope = $2'; }
+    const { rows } = await q(ctx, `SELECT ${cols.join(', ')} FROM catalog.${table} WHERE ${where} ORDER BY effective_from ASC, id ASC`, values);
+    return { data: rows.filter((r) => f.at === undefined || inForce(r, f.at)).map(dto) };
   }
 
   return {
@@ -449,6 +572,198 @@ export function createPricingService(deps: PricingDeps) {
       const after = await repo.updateRow(tx(ctx), 'price_list_versions', VER_COLS, { tenantId: ctx.tenantId, id, expectedVersion: ev, actorId: ctx.actor.id }, { status: 'discarded' }).catch(mapVersionPg);
       if (!after) throw new LimsError('common.version_conflict');
       return versionDto(after);
+    },
+
+    // ---------------------------------------------------------------------------------------------------- T-18 surcharge rules #83–#85
+    async listSurchargeRules(ctx: Ctx, query?: unknown) {
+      return listRules(ctx, 'surcharge_rules', S_COLS, S_SCOPES, query, surchargeDto);
+    },
+
+    /** AC-14.5: an active rule of the same (scope, key, price list) whose window overlaps -> 400 /effective_from, checked after the catalog_state lock. */
+    async createSurchargeRule(ctx: Ctx, body?: unknown) {
+      const b = exact(body, ['scope', 'department_id', 'orderable_id', 'price_list_id', 'amount_kind', 'amount', 'percent_bp', 'effective_from', 'effective_to']);
+      const errors: FieldError[] = [];
+      const key = scopeKey(b, b['scope'], S_SCOPES, errors);
+      let list: string | undefined;
+      if (b['price_list_id'] !== undefined) { if (typeof b['price_list_id'] === 'string' && UUID.test(b['price_list_id'])) list = b['price_list_id']; else errors.push(invalid('/price_list_id')); }
+      const kind = b['amount_kind'];
+      let amount: number | undefined; let bp: number | undefined;
+      if (kind === undefined) errors.push(required('/amount_kind'));
+      else if (kind !== 'flat' && kind !== 'percent') errors.push(invalid('/amount_kind'));
+      else if (kind === 'flat') {
+        if (b['percent_bp'] !== undefined) errors.push(invalid('/percent_bp'));
+        if (b['amount'] === undefined) errors.push(required('/amount'));
+        else { amount = paisa(b['amount']); if (amount === undefined || amount < 1) errors.push(invalid('/amount')); }
+      } else {
+        if (b['amount'] !== undefined) errors.push(invalid('/amount'));
+        const p = b['percent_bp'];
+        if (p === undefined) errors.push(required('/percent_bp'));
+        else if (Number.isInteger(p) && (p as number) >= 1 && (p as number) <= 100_000) bp = p as number;
+        else errors.push(invalid('/percent_bp'));
+      }
+      const { from, to } = windowOf(b, errors);
+      if (errors.length) fail(errors);
+      const scope = b['scope'] as string;
+      await mustExist(ctx, 'departments', key.department_id);
+      await mustExist(ctx, 'orderables', key.orderable_id);
+      await mustExist(ctx, 'price_lists', list);
+      await lockState(ctx);
+      const mine = sameWin(from, to);
+      const clash = (await scopeRows(ctx, 'surcharge_rules', S_COLS, scope)).some((r) => r.is_active !== false
+        && (r.department_id ?? undefined) === key.department_id && (r.orderable_id ?? undefined) === key.orderable_id && (r.price_list_id ?? undefined) === list && windowsOverlap(r, mine));
+      if (clash) fail([invalid('/effective_from')]);
+      const row = await repo.insertRow(tx(ctx), 'surcharge_rules', S_COLS, omitEmpty({
+        id: uuidv7(), tenant_id: ctx.tenantId, scope, ...key, price_list_id: list, amount_kind: kind, amount_paisa: amount, percent_bp: bp,
+        effective_from: from, effective_to: to, is_active: true, created_by: ctx.actor.id, updated_by: ctx.actor.id,
+      })).catch(mapPg);
+      await revision.bumpRevision(ctx, { entityType: 'surcharge_rule', entityId: row.id, changeKind: 'created', effectiveFrom: from });
+      return surchargeDto(row);
+    },
+
+    async endSurchargeRule(ctx: Ctx, input: { id?: unknown; expectedVersion?: unknown; body?: unknown } = {}) {
+      return surchargeDto(await endRule(ctx, 'surcharge_rules', S_COLS, 'surcharge_rule', input, () => undefined));
+    },
+
+    // ---------------------------------------------------------------------------------------------------- T-18 tax types #86–#88
+    /** The global VAT row + the tenant versions in force at `active_at` (default now); `all_versions` = the whole rate history. */
+    async listTaxTypes(ctx: Ctx, query?: unknown) {
+      const raw = query === undefined ? {} : query;
+      if (!isObj(raw)) fail([invalid('')]);
+      const errors: FieldError[] = [];
+      let at = ms(nowOf(ctx)); let all = false;
+      for (const [k, v] of Object.entries(raw as R)) {
+        if (v === undefined) continue;
+        if (k === 'active_at') { const a = isoArg(v); if (a) at = ms(a); else errors.push(invalid('/active_at')); }
+        else if (k === 'all_versions') { if (v === true || v === 'true') all = true; else if (v === false || v === 'false') all = false; else errors.push(invalid('/all_versions')); }
+        else errors.push(unknown(''));
+      }
+      if (errors.length) fail(errors);
+      const globals = (await repo.selectRows(tx(ctx), 'g_tax_types', ['id', 'code', 'display', 'rate_bp', 'is_active', 'created_at'], {}, 'code')).filter((r) => r.is_active === true);
+      const mine = (await q(ctx, `SELECT ${Y_COLS.join(', ')} FROM catalog.cs_tax_types WHERE tenant_id = $1 ORDER BY code ASC, effective_from ASC`, [ctx.tenantId])).rows;
+      const shown = all ? mine : mine.filter((r) => ms(r.effective_from) <= at && (r.effective_to == null || at < ms(r.effective_to)));
+      return { data: [...globals.map(globalTypeDto), ...shown.map(taxTypeDto)] };
+    },
+
+    async createTaxType(ctx: Ctx, body?: unknown) {
+      const b = exact(body, ['code', 'display', 'rate_bp', 'effective_from']);
+      const errors: FieldError[] = [];
+      let code = '';
+      if (b['code'] === undefined) errors.push(required('/code'));
+      else if (typeof b['code'] === 'string' && TAX_CODE_IN.test(b['code'].trim())) code = b['code'].trim().toUpperCase();
+      else errors.push(invalid('/code'));
+      if (code === 'VAT') errors.push(invalid('/code'));                                   // VAT is the global system type (read-only)
+      const display = typeof b['display'] === 'string' ? b['display'].trim() : '';
+      if (b['display'] === undefined) errors.push(required('/display'));
+      else if (display.length < 1 || display.length > 60) errors.push(invalid('/display'));
+      const rate = b['rate_bp'];
+      if (rate !== undefined && !(Number.isInteger(rate) && (rate as number) >= 0 && (rate as number) <= 10_000)) errors.push(invalid('/rate_bp'));
+      let from = new Date(nowOf(ctx)).toISOString();
+      if (b['effective_from'] !== undefined) { const f = isoArg(b['effective_from']); if (f) from = f; else errors.push(invalid('/effective_from')); }
+      if (errors.length) fail(errors);
+      await lockState(ctx);
+      const have = await repo.selectRows(tx(ctx), 'cs_tax_types', ['id'], { tenant_id: ctx.tenantId, code }, 'id');
+      if (have.length) throw new LimsError('catalog.code_duplicate');
+      const row = await repo.insertRow(tx(ctx), 'cs_tax_types', Y_COLS, omitEmpty({
+        id: uuidv7(), tenant_id: ctx.tenantId, code, display, rate_bp: rate, effective_from: from, is_active: true, created_by: ctx.actor.id, updated_by: ctx.actor.id,
+      })).catch(mapPg);
+      await revision.bumpRevision(ctx, { entityType: 'tax_rule', entityId: row.id, changeKind: 'created', effectiveFrom: from });
+      return taxTypeDto(row);
+    },
+
+    /** display / is_active edit the row in place; a rate change (needs effective_from >= now, after the version's start) ends this open version and inserts a new one (08 R18). */
+    async updateTaxType(ctx: Ctx, input: { id?: unknown; expectedVersion?: unknown; patch?: unknown } = {}) {
+      const { id, ev } = checkUpdate(input);
+      const b = exact(input.patch, ['display', 'rate_bp', 'effective_from', 'is_active']);
+      const errors: FieldError[] = [];
+      const patch: R = {};
+      if (b['display'] !== undefined) { const d = typeof b['display'] === 'string' ? b['display'].trim() : ''; if (d.length < 1 || d.length > 60) errors.push(invalid('/display')); else patch['display'] = d; }
+      if (b['is_active'] !== undefined) { if (typeof b['is_active'] === 'boolean') patch['is_active'] = b['is_active']; else errors.push(invalid('/is_active')); }
+      const rate = b['rate_bp'];
+      const rateChange = rate !== undefined;
+      if (rateChange && !(Number.isInteger(rate) && (rate as number) >= 0 && (rate as number) <= 10_000)) errors.push(invalid('/rate_bp'));
+      const at = nowOf(ctx);
+      let from: string | undefined;
+      if (b['effective_from'] !== undefined) { from = isoArg(b['effective_from']); if (!from) errors.push(invalid('/effective_from')); }
+      if (rateChange && b['effective_from'] === undefined) errors.push(required('/effective_from'));
+      if (!rateChange && b['effective_from'] !== undefined) errors.push(invalid('/effective_from'));   // a window is only ever opened by a new rate version
+      if (from && rateChange && ms(from) < ms(at) - SKEW_MS) errors.push(invalid('/effective_from'));
+      if (Object.keys(b).length === 0) errors.push(invalid(''));
+      if (errors.length) fail(errors);
+      await lockState(ctx);
+      const row = await lockAt(ctx, 'cs_tax_types', Y_COLS, id, ev);
+      if (!rateChange) {
+        const after = await repo.updateRow(tx(ctx), 'cs_tax_types', Y_COLS, { tenantId: ctx.tenantId, id, expectedVersion: ev, actorId: ctx.actor.id }, patch).catch(mapPg);
+        if (!after) throw new LimsError('common.version_conflict');
+        await revision.bumpRevision(ctx, { entityType: 'tax_rule', entityId: id, changeKind: kindOf(row, after), effectiveFrom: new Date(at).toISOString() });
+        return taxTypeDto(after);
+      }
+      if (row.effective_to != null || ms(from as string) <= ms(row.effective_from)) fail([invalid('/effective_from')]);   // only the open version gets a successor, strictly later
+      const ended = await repo.updateRow(tx(ctx), 'cs_tax_types', ['id'], { tenantId: ctx.tenantId, id, expectedVersion: ev, actorId: ctx.actor.id }, { effective_to: from }).catch(mapPg);
+      if (!ended) throw new LimsError('common.version_conflict');
+      const next = await repo.insertRow(tx(ctx), 'cs_tax_types', Y_COLS, {
+        id: uuidv7(), tenant_id: ctx.tenantId, code: row.code, display: patch['display'] ?? row.display, rate_bp: rate, effective_from: from, sort_order: Number(row.sort_order ?? 100),
+        is_active: patch['is_active'] ?? row.is_active, created_by: ctx.actor.id, updated_by: ctx.actor.id,
+      }).catch(mapPg);
+      await revision.bumpRevision(ctx, { entityType: 'tax_rule', entityId: next.id, changeKind: 'updated', effectiveFrom: from as string });
+      return taxTypeDto(next);
+    },
+
+    // ---------------------------------------------------------------------------------------------------- T-18 tax rules #89–#91
+    async listTaxRules(ctx: Ctx, query?: unknown) {
+      return listRules(ctx, 'tax_rules', R_COLS, R_SCOPES, query, taxRuleDto);
+    },
+
+    /** AC-15.5: a tenant-default successor ends the open default at its effective_from; any other overlap of the same key -> 400 /effective_from (after the catalog_state lock). */
+    async createTaxRule(ctx: Ctx, body?: unknown) {
+      const b = exact(body, ['scope', 'department_id', 'orderable_id', 'vat_treatment', 'other_tax_code', 'hs_code', 'effective_from', 'effective_to']);
+      const errors: FieldError[] = [];
+      const key = scopeKey(b, b['scope'], R_SCOPES, errors);
+      const vat = b['vat_treatment'];
+      if (vat === undefined) errors.push(required('/vat_treatment'));
+      else if (vat !== 'exempt' && vat !== 'taxable') errors.push(invalid('/vat_treatment'));
+      const other = b['other_tax_code'];
+      if (other !== undefined && (typeof other !== 'string' || !TAX_CODE.test(other) || other === 'VAT')) errors.push(invalid('/other_tax_code'));
+      const hs = b['hs_code'];
+      if (hs !== undefined && (typeof hs !== 'string' || !HS.test(hs))) errors.push(invalid('/hs_code'));
+      const { from, to } = windowOf(b, errors);
+      if (errors.length) fail(errors);
+      const scope = b['scope'] as string;
+      const mine = sameWin(from, to);
+      await mustExist(ctx, 'departments', key.department_id);
+      await mustExist(ctx, 'orderables', key.orderable_id);
+      if (other !== undefined) {
+        // AC-15.2 [CONV]: usable = an active version of this tenant's code WITH a rate (0 counts) whose window overlaps the rule's.
+        const vers = await repo.selectRows(tx(ctx), 'cs_tax_types', Y_COLS, { tenant_id: ctx.tenantId, code: other }, 'effective_from');
+        if (!vers.some((v) => isTaxTypeUsable(v) && windowsOverlap(v, mine))) fail([invalid('/other_tax_code')]);
+      }
+      await lockState(ctx);
+      const same = (await scopeRows(ctx, 'tax_rules', R_COLS, scope)).filter((r) => (r.department_id ?? undefined) === key.department_id && (r.orderable_id ?? undefined) === key.orderable_id);
+      const pred = scope === 'tenant_default' ? same.find((r) => r.is_active !== false && r.effective_to == null && ms(r.effective_from) < ms(from)) : undefined;
+      const clash = same.some((r) => r.is_active !== false && windowsOverlap(r === pred ? { effective_from: r.effective_from, effective_to: from } : r, mine));
+      if (clash) fail([invalid('/effective_from')]);
+      const close = async (r: R, end: string) => {
+        const ok = await repo.updateRow(tx(ctx), 'tax_rules', ['id'], { tenantId: ctx.tenantId, id: r.id, expectedVersion: Number(r.version), actorId: ctx.actor.id }, { effective_to: end }).catch(mapPg);
+        if (!ok) throw new LimsError('common.version_conflict');
+      };
+      if (pred) await close(pred, from);
+      // An inactive rule left open would hold the open-rule unique index; close it at its own start or the new start, whichever is later (it applied to nothing anyway).
+      if (to === undefined) for (const r of same.filter((x) => x.is_active === false && x.effective_to == null)) await close(r, ms(r.effective_from) > ms(from) ? ts(r.effective_from)! : from);
+      const row = await repo.insertRow(tx(ctx), 'tax_rules', R_COLS, omitEmpty({
+        id: uuidv7(), tenant_id: ctx.tenantId, scope, ...key, vat_treatment: vat, other_tax_code: other, hs_code: hs, effective_from: from, effective_to: to,
+        is_active: true, created_by: ctx.actor.id, updated_by: ctx.actor.id,
+      })).catch((e: unknown) => {
+        const pe = e as { code?: string; constraint?: string; message?: string };
+        if (pe?.code === '23503' && /other_type/.test(`${pe.constraint ?? ''} ${pe.message ?? ''}`)) fail([invalid('/other_tax_code')]);
+        if (pe?.code === '23505') fail([invalid('/effective_from')]);                        // open-rule unique index backstop
+        return mapPg(e);
+      });
+      await revision.bumpRevision(ctx, { entityType: 'tax_rule', entityId: row.id, changeKind: 'created', effectiveFrom: from });
+      return taxRuleDto(row);
+    },
+
+    /** The tenant default is only ever ended by its successor (AC-15.5): 400. */
+    async endTaxRule(ctx: Ctx, input: { id?: unknown; expectedVersion?: unknown; body?: unknown } = {}) {
+      return taxRuleDto(await endRule(ctx, 'tax_rules', R_COLS, 'tax_rule', input, (r) => { if (r.scope === 'tenant_default') fail([invalid('/scope')]); }));
     },
   };
 }

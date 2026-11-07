@@ -39,4 +39,20 @@ export const pricingHandlers: Readonly<Record<string, Handler>> = Object.freeze(
   discardPriceListVersionDraft: bind(async (s, ctx, req) => ({
     status: 200, body: await s.discardPriceListVersionDraft(ctx, { versionId: versionId(req), expectedVersion: ifMatch(req) }),
   })),
+  // T-18 #83–#91. Path params: surcharge_rule_id, tax_type_id, tax_rule_id.
+  listSurchargeRules: bind(async (s, ctx, req) => ({ status: 200, body: await s.listSurchargeRules(ctx, req.query) })),
+  createSurchargeRule: bind(async (s, ctx, req) => ({ status: 201, body: await s.createSurchargeRule(ctx, req.body) })),
+  endSurchargeRule: bind(async (s, ctx, req) => ({
+    status: 200, body: await s.endSurchargeRule(ctx, { id: obj(req.params)['surcharge_rule_id'], expectedVersion: ifMatch(req), body: req.body }),
+  })),
+  listTaxTypes: bind(async (s, ctx, req) => ({ status: 200, body: await s.listTaxTypes(ctx, req.query) })),
+  createTaxType: bind(async (s, ctx, req) => ({ status: 201, body: await s.createTaxType(ctx, req.body) })),
+  updateTaxType: bind(async (s, ctx, req) => ({
+    status: 200, body: await s.updateTaxType(ctx, { id: obj(req.params)['tax_type_id'], expectedVersion: ifMatch(req), patch: req.body }),
+  })),
+  listTaxRules: bind(async (s, ctx, req) => ({ status: 200, body: await s.listTaxRules(ctx, req.query) })),
+  createTaxRule: bind(async (s, ctx, req) => ({ status: 201, body: await s.createTaxRule(ctx, req.body) })),
+  endTaxRule: bind(async (s, ctx, req) => ({
+    status: 200, body: await s.endTaxRule(ctx, { id: obj(req.params)['tax_rule_id'], expectedVersion: ifMatch(req), body: req.body }),
+  })),
 });

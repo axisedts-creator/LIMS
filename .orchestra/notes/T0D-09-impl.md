@@ -1,0 +1,7 @@
+Files: services/worker/src/core/{manifest,tasklist,consumer,fanout,deadletter,cron,retention,registry-sync}.ts. Tests 67/67 (`T0D-09-verify.cmd`); tsc strict clean apart from ESM-format errors caused by the missing worker package.json; eslint not installed at root (not run).
+[CONV] ajv `removeAdditional: true` not 'all' (tested: 'all' strips envelope fields the per-event allOf branch omits); ajv loaded from @lims/shared-ts via createRequire (no worker package.json, LD-05).
+[CONV] per_tenant crontab: Graphile cron fires the task itself with `_cron` payload and no tenant_id; the wrapper routes that to cronTick (app.cron_tenant_ids under core claims, then one tx per tenant via withTenantScope). Failed tenants -> tick rethrows (key dedupe on retry).
+[CONV] logger scrubber not exported: dead-letter message is scrubbed by running it through a real shared-ts logger. first_failed_at = job.created_at (Graphile keeps no first-failure time). Module tasks default per_tenant, max_attempts 25.
+[CONV] JobContext.db.tx reuses the job's transaction; lims_queue_depth{task} = ready count. Tenant DL insert uses CURRENT_TIMESTAMP for dead_at.
+Open: bootstrap.ts/main.ts (Graphile run(), parseCronItems, pools, jobs autoloader), replay.ts CLI, storage/, uploads/, tenant-scope.ts not written — need a worker package.json (C0-0A lockfile CR) and untested here.
+Open: MODULE_NAMES imported from services/api/src/core/module.ts (cross-service relative import).

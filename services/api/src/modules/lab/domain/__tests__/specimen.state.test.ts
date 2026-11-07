@@ -5,7 +5,7 @@
 //   export const SPECIMEN_STATUSES: readonly SpecimenStatus[]      the 14 statuses of lab.specimens.status
 //   export function specimenTransition(from: SpecimenStatus | null, to: SpecimenStatus, opts?: { isActive?: boolean }): 'S1'|…|'S15'
 //        pure; returns the 03-IC transition id; throws LimsError('lab.specimen_invalid_transition') (409) when not in the table.
-//        `from === null` = absent (S1). opts.isActive defaults true; inactive specimens accept only S13/S14 (03-APP-FLOW §1.1 note).
+//        `from === null` = absent (S1). opts.isActive defaults true; inactive specimens accept only S13/S14 (03-APP-FLOW §1.1 note); other table-valid pairs → LimsError('lab.specimen_inactive') (409, 02-TRD §5).
 //   export function isSpecimenTransitionAllowed(from, to, opts?): boolean     same table, no throw
 //   export function assertSpecimenReceivable(status: SpecimenStatus): void    throws LimsError('lab.specimen_not_receivable') (409) for rejected/discarded
 import { describe, expect, it } from 'vitest';
@@ -114,10 +114,17 @@ describe('T-02 specimen forbidden transitions', () => {
 });
 
 describe('T-02 inactive specimens (03-APP-FLOW §1.1: only S13/S14 once received)', () => {
-  it('reject S2 / S4 / S11 when isActive = false', () => {
-    expectInvalid(() => specimenTransition('ordered', 'collected', { isActive: false }));
-    expectInvalid(() => specimenTransition('collected', 'received', { isActive: false }));
-    expectInvalid(() => specimenTransition('collected', 'rejected', { isActive: false }));
+  it('reject S2 / S4 / S11 when isActive = false → lab.specimen_inactive (409, 02-TRD §5, CR-C5-005)', () => {
+    for (const [from, to] of [['ordered', 'collected'], ['collected', 'received'], ['collected', 'rejected']] as Array<[S, S]>) {
+      let err: unknown;
+      try { specimenTransition(from, to, { isActive: false }); } catch (e) { err = e; }
+      expect(isLimsError(err, 'lab.specimen_inactive'), `${from}>${to}: got ${String(err)}`).toBe(true);
+      expect((err as { statusCode: number }).statusCode).toBe(409);
+      expect(isSpecimenTransitionAllowed(from, to, { isActive: false })).toBe(false);
+    }
+  });
+  it('an illegal pair stays invalid_transition even when inactive (table first)', () => {
+    expectInvalid(() => specimenTransition('received', 'collected', { isActive: false }));
   });
   it('still allow S13 and S14', () => {
     expect(specimenTransition('received', 'stored', { isActive: false })).toBe('S13');

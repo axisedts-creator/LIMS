@@ -6,7 +6,7 @@
 //        guards?: { onHold?: boolean; verifiedBy?: string; approvedBy?: string }): 'R1'|…|'R8'
 //        pure; `from === null` = absent (R1). Throws LimsError('lab.result_invalid_transition') (409) when not in the table (table is checked first).
 //        R4 and R6 with guards.onHold = true → LimsError('lab.result_on_hold') (409).
-//        R6 with guards.approvedBy === guards.verifiedBy (both given) → LimsError('lab.self_approval_forbidden') (403).
+//        R6 with verifiedBy or approvedBy missing, or approvedBy === verifiedBy →LimsError('lab.self_approval_forbidden') (403).
 //   export function isResultTransitionAllowed(from, to): boolean       table only (no guards), no throw
 //   export function assertResultValueEditable(status: ResultStatus): void    R2/R3 value change: approved → LimsError('lab.result_locked') (409);
 //        cancelled → 'lab.result_invalid_transition'; pending / resulted ok.
@@ -29,6 +29,7 @@ const TABLE: Array<[R | null, R, string]> = [
   ['resulted', 'cancelled', 'R8'],
   ['verified', 'cancelled', 'R8'],
 ];
+const R6_GUARDS = { verifiedBy: 'u1', approvedBy: 'u2' }; // R6 needs both ids, distinct (S-02, fail closed)
 const key = (f: R | null, t: R): string => `${f ?? '∅'}>${t}`;
 const ALLOWED = new Map(TABLE.map(([f, t, id]) => [key(f, t), id]));
 
@@ -51,7 +52,7 @@ describe('T-02 result status set', () => {
 
 describe('T-02 result allowed transitions R1–R8 (03-IC §10.2)', () => {
   it.each(TABLE)('%s → %s is allowed and is %s', (from, to, id) => {
-    expect(resultTransition(from, to)).toBe(id);
+    expect(resultTransition(from, to, R6_GUARDS)).toBe(id);
     expect(isResultTransitionAllowed(from, to)).toBe(true);
   });
   it('every R-number R1..R8 is exercised', () => {
@@ -83,7 +84,7 @@ describe('T-02 result forbidden transitions → lab.result_invalid_transition (4
       for (const to of ALL) {
         const ok = ALLOWED.has(key(from, to));
         expect(isResultTransitionAllowed(from, to), key(from, to)).toBe(ok);
-        if (ok) expect(resultTransition(from, to), key(from, to)).toBe(ALLOWED.get(key(from, to)));
+        if (ok) expect(resultTransition(from, to, R6_GUARDS), key(from, to)).toBe(ALLOWED.get(key(from, to)));
         else expectInvalid(() => resultTransition(from, to));
       }
     }
@@ -116,6 +117,12 @@ describe('T-02 guards in the table (02-TRD §3.3)', () => {
   });
   it('S-02: R6 with approver = verifier → lab.self_approval_forbidden (403)', () => {
     expectCode(() => resultTransition('verified', 'approved', { verifiedBy: 'u1', approvedBy: 'u1' }), 'lab.self_approval_forbidden', 403);
+  });
+  it('S-02 fail closed: R6 with verifiedBy or approvedBy missing → lab.self_approval_forbidden (403)', () => {
+    expectCode(() => resultTransition('verified', 'approved'), 'lab.self_approval_forbidden', 403);
+    expectCode(() => resultTransition('verified', 'approved', {}), 'lab.self_approval_forbidden', 403);
+    expectCode(() => resultTransition('verified', 'approved', { approvedBy: 'u2' }), 'lab.self_approval_forbidden', 403);
+    expectCode(() => resultTransition('verified', 'approved', { verifiedBy: 'u1' }), 'lab.self_approval_forbidden', 403);
   });
   it('R6 with approver ≠ verifier passes; R4 is not subject to the approver rule', () => {
     expect(resultTransition('verified', 'approved', { verifiedBy: 'u1', approvedBy: 'u2' })).toBe('R6');

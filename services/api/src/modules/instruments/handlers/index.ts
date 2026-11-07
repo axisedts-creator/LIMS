@@ -4,6 +4,7 @@
 // [CONV] stubs generated from one list (as lab T-01) instead of 41 placeholder files; each later task adds its own file.
 import type { Handler } from '../../../core/module.js';
 import { LimsError } from '../../../core/errors.js';
+import { agentsHandlers } from './agents.handlers.js';
 
 const OPERATION_IDS = [
   // agent (deviceToken)
@@ -29,6 +30,8 @@ const notImplemented = (operationId: string): Handler => async () => {
   throw new LimsError('common.internal', `instruments ${operationId} not implemented`);
 };
 
+const implemented: Partial<Record<InstrumentsOperationId, Handler>> = { ...agentsHandlers };   // API-T04: E10-E21
+
 export const handlers: Readonly<Record<InstrumentsOperationId, Handler>> = Object.freeze(
-  Object.fromEntries(OPERATION_IDS.map((op) => [op, notImplemented(op)])) as Record<InstrumentsOperationId, Handler>,
+  Object.fromEntries(OPERATION_IDS.map((op) => [op, implemented[op] ?? notImplemented(op)])) as Record<InstrumentsOperationId, Handler>,
 );

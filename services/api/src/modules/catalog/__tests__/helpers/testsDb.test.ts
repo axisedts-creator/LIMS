@@ -36,6 +36,11 @@ describe('expression additions', () => {
     const r = await q(db, `SELECT * FROM catalog.orderables WHERE tenant_id = $1 ORDER BY CASE WHEN code = 'C3' THEN 0 ELSE 1 END, length(name) DESC, code`, [TENANT_A]);
     expect(r.rows.map((x) => x.code)).toEqual(['C3', 'C2', 'C4', 'C1', 'C5']);   // C3 first; then name length DESC (10, 10, 9, 5), ties by code
   });
+  it('ORDER BY accepts `col COLLATE "C"` (code-point order, as the repo tie-break needs)', async () => {
+    const db = seed();
+    const r = await q(db, `SELECT * FROM catalog.orderables WHERE tenant_id = $1 ORDER BY LENGTH(code), code COLLATE "C" DESC`, [TENANT_A]);
+    expect(r.rows.map((x) => x.code)).toEqual(['C5', 'C4', 'C3', 'C2', 'C1']);
+  });
 });
 
 describe('tables, RLS and constraints', () => {

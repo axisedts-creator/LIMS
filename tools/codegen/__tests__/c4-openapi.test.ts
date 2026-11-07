@@ -106,8 +106,8 @@ const BILLING: Spec[] = [
   S("getMyCashSession", "GET", "/cash-sessions/current", PAY, "none", 200),
   S("closeCashSession", "POST", "/cash-sessions/{cash_session_id}/close", PAY, "required", 200, { im: true, err: [IMM, "auth.forbidden"] }),
   S("getDailyCash", "GET", "/daily-cash", CASH_R, "none", 200),
-  S("listCreditParties", "GET", "/credit-parties", CP_R, "none", 200),
-  S("getCreditParty", "GET", "/credit-parties/{credit_party_id}", CP_R, "none", 200),
+  S("listCreditAccounts", "GET", "/credit-parties", CP_R, "none", 200),
+  S("getCreditAccount", "GET", "/credit-parties/{credit_party_id}", CP_R, "none", 200),
   S("updateCreditAccount", "PUT", "/credit-parties/{credit_party_id}", CP_M, "optional", 200, { im: true, err: [VC] }),
   S("listCreditCharges", "GET", "/credit-parties/{credit_party_id}/charges", CP_R, "none", 200),
   S("issuePeriodicInvoice", "POST", "/credit-parties/{credit_party_id}/periodic-invoices", CP_M, "required", 201,
@@ -134,7 +134,7 @@ const BILLING: Spec[] = [
 // Which list operations take cursor + limit (TRD: "page of …" / `cursor&limit` in the path column)
 const PAGED: Record<string, string[]> = {
   frontdesk: ["listPatientOrders", "listOrders", "listDiscountApprovals", "listOrderFlags", "listPossibleDuplicatePatients"],
-  billing: ["listInvoices", "listInvoicePrints", "listCreditNotes", "listRefundRequests", "listLedgerEntries", "listCreditParties", "listCreditCharges",
+  billing: ["listInvoices", "listInvoicePrints", "listCreditNotes", "listRefundRequests", "listLedgerEntries", "listCreditAccounts", "listCreditCharges",
     "getSalesRegister", "getCancelledInvoiceRegister", "getCreditNoteRegister", "getAuditTrail", "listCbmsDocuments", "listDues",
     "listCreditNoteTasks", "listFinanceReviewItems"],
 };

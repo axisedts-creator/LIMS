@@ -6,3 +6,4 @@
 - Covers: double-run byte equality (+other cwd, no timestamps/abs paths/CRLF), committed==generated, content of error-codes/permissions(+FIXED_ACTOR_PERMISSIONS, placeholder expanded)/seed SQL/access-actions/port-consumers/events/Operations/routes, R1-R3 rules.
 - Not tested (spec-ambiguous): Dart client file layout (only "some .dart under api-client-dart/"), exact TS client type text, IC C-number→module mapping beyond 3 spot-checks, `routes.g.dart` location.
 - NOT run: implementation absent; tests only confirmed to fail on missing modules.
+- CR-C0-0C-004: `__tests__/c4-openapi.test.ts` lines 109-110,137 renamed listCreditParties->listCreditAccounts, getCreditParty->getCreditAccount. Inventory test fails until billing.yaml is renamed; other c4 failures (E3 idempotency justification, rule 4) are unrelated to this edit.

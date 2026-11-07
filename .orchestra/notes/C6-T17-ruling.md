@@ -1,6 +1,9 @@
-TESTS_WRONG — both disputed defects are mechanical test bugs; the behaviour they intend to check is spec-required and the implementation is not at fault.
-1. `services/api/src/modules/reporting/__tests__/narrative.static.test.ts:51`: `/new JSDOM(/` is a syntax error (unterminated group), so the file never loads. Change to `/new JSDOM\(/` (same as line 52). The check itself is legitimate: spec/chunks/C6-reporting-delivery/07-SECURITY.md:33 (REQ-SEC-088, server-side DOMPurify sanitise).
-2. `narrative.handlers.test.ts:34-36,119`: helpers `save`/`sign`/`amend`/`patch` declare `v: unknown = 1` (amend `= 3`). JS default params replace an explicit `undefined`, so the calls at :130, :243, :373, :455 send `If-Match` and the "missing header" branch (`v === undefined ? {}`) never runs.
-   Fix: use a sentinel for "no header", e.g. `const NO_IFM = Symbol('no-if-match')`, and check `v === NO_IFM ? {} : ifm(v)`; pass `NO_IFM` at :130, :243, :373, :455. Or remove the defaults and pass the version explicitly at every call site. Keep the expected codes unchanged.
-   The intent is spec-backed: spec/program/02-CONVENTIONS.md:349 (updates/actions send `If-Match`; version is enforced), :550 (`WHERE version = $expected`); spec/program/03-INTERFACE-CATALOG.md:2447 (`common.precondition_required`, 428, "Update/action requires If-Match").
-Do not weaken any assertion. Only the helper mechanics and the regex escape change.
+TESTS_WRONG — the stored-section assertions omit `heading`, which the spec requires in every stored narrative_versions section.
+Reasons:
+1. spec/chunks/C6-reporting-delivery/05-SCHEMA.md:175 — `narrative_versions.sections jsonb N (array ≤ 12 of {key, heading, html}; …)`. A stored section without `heading` breaks the schema, so the impl is right to store it.
+2. spec/chunks/C6-reporting-delivery/05-SCHEMA.md:180 — `narrative_templates.sections` carry `heading ≤ 80`; that is where the stored heading comes from (test header l.5 already says "heading copied from the template").
+3. The test file is inconsistent with itself: l.5 and l.165 already expect headings, but l.210 and l.240 still expect `{key, html}`.
+Changes to the test (nothing else changes; no assertion gets weaker):
+- narrative.handlers.test.ts:210 — map to `({ key: s.key, heading: s.heading, html: s.html })` so the "what is shown is what is stored" equality still holds in full.
+- narrative.handlers.test.ts:240 — expect `[{ key: 'findings', heading: 'Findings', html: '<p>F</p>' }, { key: 'impression', heading: 'Impression', html: '<p>I</p>' }]`, using the headings from the fixture template.
+- Keep the key order key, heading, html at l.210, because that assertion compares JSON strings (order matters). The impl must store keys in that order, or the test must compare parsed objects with toEqual.

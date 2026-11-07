@@ -1,8 +1,9 @@
-CHANGES
-# T0B-07 review (reviewer)
-Checked: `node --test tests/db/T0B-07.registry-checks.test.mjs` 58/58 pass; check-migrations / check-registry / check-fk-dag exit 0 on the lane's real db/. Names, paths, yaml registries OK. Two real defects:
+APPROVE
+# T0B-07 re-review (reviewer)
+Checked: `node --test tests/db/T0B-07.registry-checks.test.mjs` 62/62 pass; check-migrations, check-registry, check-fk-dag all `ok` (exit 0) on the lane's real db/.
 
-1. `db/tools/sql-lib.ts:117` — `UNCAST_CENTRE` only matches the hand-written form. `db/policies/*.sql` is meant to be regenerated from pg_policies (02-TRD §4.3 item 9; `policy-dump.ts`). pg_policies deparses the subquery as `( SELECT app.current_centre_ids() AS current_centre_ids)`, and the cast form as `(( SELECT app.current_centre_ids() AS current_centre_ids))::uuid[]`. Checked with node: the current regex returns false for the deparsed uncast form, so check-registry passes an uncast centre predicate in a dumped policy file. That breaks the done_when "fails … any uncast centre predicate". Fix: allow an optional alias and extra closing parens, e.g. `/\(\s*SELECT\s+app\.current_centre_ids\s*\(\s*\)(?:\s+AS\s+\w+)?\s*\)(?!\s*\)*\s*::\s*uuid\s*\[\s*\])/i`. Add two check-registry fixtures in `tests/db/T0B-07.registry-checks.test.mjs`: the deparsed uncast form must be rejected, and the deparsed cast form must be accepted.
-2. `db/tools/check-migrations.ts:75` — the "no GRANT DELETE to lims_app on C/B/A" check only resolves explicit table lists. Checked with a fixture: `GRANT SELECT, DELETE ON ALL TABLES IN SCHEMA x TO lims_app;` and `ALTER DEFAULT PRIVILEGES IN SCHEMA x GRANT DELETE ON TABLES TO lims_app;` both pass, and both give DELETE on class C tables (02-TRD §4.2 forbidden list; §4.3 item 6). Fix: when a GRANT or ALTER DEFAULT PRIVILEGES gives DELETE or ALL to lims_app `ON ALL TABLES IN SCHEMA` / `ON TABLES`, reject it whenever any C/B/A table exists in that schema in tables.yaml. A stricter option is to reject it outright. Add both statements as rejected fixtures.
+Prior defects resolved:
+1. `db/tools/sql-lib.ts:118` UNCAST_CENTRE now matches the pg_policies-deparsed form (`AS current_centre_ids`, extra parens). Checked with node: deparsed uncast is rejected; deparsed cast `((…))::uuid[]` and hand-written cast are accepted. Fixtures added for both.
+2. `db/tools/check-migrations.ts:75` now resolves `ON ALL TABLES IN SCHEMA` and `ALTER DEFAULT PRIVILEGES [IN SCHEMA] … ON TABLES` (no IN SCHEMA = every schema) against C/B/A tables in tables.yaml. Both rejected fixtures added.
 
-Not blocking (noted): AC-0B-2.3 diff and CI wiring of gate 9 are not exercised here (no DB, no workflow yet; impl note defers to T0A/T0B-08). The committed db/policies files are hand-copied by T0B-03, so they will differ textually from policy-dump output until they are regenerated.
+Not blocking (still open, as before): the AC-0B-2.3 live pg_policies diff and CI wiring of gate 9 need a DB/workflow (deferred to T0A/T0B-08). The committed db/policies files are hand-copied, so they will differ textually from policy-dump output until regenerated.

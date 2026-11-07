@@ -46,6 +46,7 @@
     - [/etc/lims/monitoring, root, "0755"]
     - [/etc/lims/monitoring/prometheus, root, "0755"]
     - [/etc/lims/monitoring/prometheus/rules, root, "0755"]
+    - [/etc/lims/monitoring/prometheus/rules/imported, root, "0755"]
     - [/etc/lims/monitoring/blackbox, root, "0755"]
     - [/etc/lims/monitoring/grafana/provisioning/datasources, root, "0755"]
     - [/etc/lims/monitoring/grafana/provisioning/dashboards, root, "0755"]
@@ -72,14 +73,32 @@
     mode: "0644"
   notify: Reload prometheus
 
-- name: Prometheus rule files (incl. rules/imported/)
+# instruments.rules.yml (rules/ and rules/imported/, T-20) ship only while
+# c7_metrics_live=true (02-TRD s12); removed again when the flag is off.
+- name: Prometheus rule files (rules/, rules/imported/; instruments gated)
   ansible.builtin.copy:
-    src: "{{ monitoring_src }}/rules/"
-    dest: /etc/lims/monitoring/prometheus/rules/
+    src: "{{ item }}"
+    dest: "/etc/lims/monitoring/prometheus/rules/{{ sub }}"
     owner: root
     group: root
     mode: "0644"
-    directory_mode: "0755"
+  vars:
+    sub: "{{ 'imported/' if '/imported/' in item else '' }}"
+  loop: >-
+    {{ query('ansible.builtin.fileglob', monitoring_src ~ '/rules/*.rules.yml')
+    + query('ansible.builtin.fileglob',
+    monitoring_src ~ '/rules/imported/*.rules.yml') }}
+  when: >-
+    c7_metrics_live | default(false) | bool
+    or item | basename != 'instruments.rules.yml'
+  notify: Reload prometheus
+
+- name: Instruments rules absent while c7_metrics_live=false
+  ansible.builtin.file:
+    path: "/etc/lims/monitoring/prometheus/rules/{{ item }}"
+    state: absent
+  loop: [instruments.rules.yml, imported/instruments.rules.yml]
+  when: not (c7_metrics_live | default(false) | bool)
   notify: Reload prometheus
 
 - name: Blackbox modules

@@ -44,7 +44,7 @@ export function createAuthzGuard({ env, log, metrics }: { env: string; log: Port
     if (op.status < 200 || op.status >= 400) return;
     if (state.get(req)?.asserted) return;
     log.error({ event: 'authz_not_asserted', operationId: op.operationId }, 'non-public operation returned without assertRole');
-    metrics.inc('lims_core_authz_not_asserted_total');
+    metrics.inc('lims_core_authz_not_asserted_total', { operation_id: op.operationId });
     if (env !== 'production') throw new LimsError('common.internal');
   }
 

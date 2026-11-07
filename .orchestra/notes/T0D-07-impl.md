@@ -1,5 +1,5 @@
 # T0D-07 impl (writer)
-- Files: `services/api/src/core/ports/{registry,phase-stubs,authz-guard}.ts`. Ports suite 135/135; `tsc --noEmit` clean.
+- Files: `services/api/src/core/ports/{registry,phase-stubs,authz-guard}.ts`. Ports suite 135/135; `tsc --noEmit` clean. Review fix: authz metric now carries `{operation_id}` label (02-TRD:1038).
 - [CONV] `resolvePorts` collects every boot error (unknown/foreign/duplicate export, bad or non-dev/ci `LIMS_CORE_FAKE_PORTS`, unresolvable port) and throws once, listing all.
 - [CONV] Order: dev/ci = forced fake > real > fake; staging/production = real > listed phase stub (needs both list entry and stub impl) > fail. Fakes never in staging/prod.
 - [CONV] `portsFor(module)` = frozen object of lazy getters; unlisted read logs `port_consumer_not_listed{module,port}` (error), then throws `LimsError('common.internal')` without detail, or in production returns impl + `lims_core_port_consumer_not_listed_total`.

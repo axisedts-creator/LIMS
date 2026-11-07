@@ -15,28 +15,28 @@ import { decideRelease, releasePolicyEnforced, type BalanceCtx } from './balance
 const repo = { ...cbmsRepo, ...creditNotesRepo, ...balancesRepo, ...invoiceLinesRepo, ...invoicesRepo, ...overridesRepo, ...printLogRepo };
 export type InvoiceReadRepo = typeof repo;
 
-const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-const UTC_INSTANT = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}(\.\d{1,3})?)?Z$/;
+export const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+export const UTC_INSTANT =/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}(\.\d{1,3})?)?Z$/;
 const FY = /^[0-9]{4}\/[0-9]{2}$/;
 const CURSOR = /^[A-Za-z0-9_-]{1,512}$/;
 /** [CONV] No source for the printer's/canceller's name exists in C4 (print_log and invoices hold only user ids; IdentityPort has no id->name call for these): a fixed label, never the raw id. */
-const STAFF_DISPLAY = 'Staff user';
+export const STAFF_DISPLAY = 'Staff user';
 
-const isRec = (v: unknown): v is Record<string, any> => typeof v === 'object' && v !== null && !Array.isArray(v);
-const bad = (path: string): LimsError => new LimsError('common.validation_failed', undefined, [{ path, code: 'common.field_invalid', message: 'Field invalid' } satisfies FieldError]);
-const iso = (v: unknown): string => {
+export const isRec = (v: unknown): v is Record<string, any> => typeof v === 'object' && v !== null && !Array.isArray(v);
+export const bad = (path: string): LimsError => new LimsError('common.validation_failed', undefined, [{ path, code: 'common.field_invalid', message: 'Field invalid' } satisfies FieldError]);
+export const iso = (v: unknown): string => {
   const d = v instanceof Date ? v : new Date(String(v));
   if (Number.isNaN(d.getTime())) throw new LimsError('common.internal');
   return d.toISOString();
 };
-const present = <T extends object>(o: T): T => Object.fromEntries(Object.entries(o).filter(([, v]) => v !== undefined && v !== null)) as T;
-const uuid = (v: unknown, path: string): string => { if (typeof v !== 'string' || !UUID.test(v)) throw bad(path); return v; };
+export const present = <T extends object>(o: T): T => Object.fromEntries(Object.entries(o).filter(([, v]) => v !== undefined && v !== null)) as T;
+export const uuid = (v: unknown, path: string): string => { if (typeof v !== 'string' || !UUID.test(v)) throw bad(path); return v; };
 
 function scope(ctx: BalanceCtx): { tx: never; tenantId: string } {
   if (typeof ctx?.tenantId !== 'string' || typeof ctx.actor?.id !== 'string' || !ctx.tx) throw new LimsError('auth.unauthenticated');
   return { tx: ctx.tx as never, tenantId: ctx.tenantId };
 }
-function limitOf(raw: unknown): number {
+export function limitOf(raw: unknown): number {
   if (raw === undefined) return 50;
   const n = typeof raw === 'string' && /^[0-9]{1,3}$/.test(raw) ? Number(raw) : raw;
   if (typeof n !== 'number' || !Number.isInteger(n) || n < 1 || n > 200) throw bad('/limit');
@@ -44,8 +44,8 @@ function limitOf(raw: unknown): number {
 }
 
 // ---- opaque keyset cursors: base64url(JSON [sort, value, id]) ----
-const encodeCursor = (sort: string, value: string | number, id: string): string => Buffer.from(JSON.stringify([sort, value, id]), 'utf8').toString('base64url');
-function decodeCursor(raw: unknown, sort: string, kind: 'time' | 'int'): { value: string | number; id: string } {
+export const encodeCursor = (sort: string, value: string | number, id: string): string => Buffer.from(JSON.stringify([sort, value, id]), 'utf8').toString('base64url');
+export function decodeCursor(raw: unknown, sort: string, kind: 'time' | 'int'): { value: string | number; id: string } {
   const invalidCursor = (): LimsError => new LimsError('common.invalid_cursor');
   if (typeof raw !== 'string' || !CURSOR.test(raw)) throw invalidCursor();
   let v: unknown;

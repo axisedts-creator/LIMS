@@ -2180,7 +2180,7 @@ paths:
       x-context: tenant
       x-idempotency: optional
       x-rate-limit-tier: general
-      x-error-codes: [ common.version_conflict, common.precondition_required ]
+      x-error-codes: [ identity.centre_inactive, common.version_conflict, common.precondition_required ]
       parameters:
         - name: centre_id
           in: path
@@ -2274,7 +2274,7 @@ paths:
       x-context: tenant
       x-idempotency: optional
       x-rate-limit-tier: general
-      x-error-codes: [ common.version_conflict, common.precondition_required ]
+      x-error-codes: [ identity.centre_inactive, common.version_conflict, common.precondition_required ]
       parameters:
         - name: centre_id
           in: path

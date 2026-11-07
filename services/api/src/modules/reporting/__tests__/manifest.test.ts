@@ -74,6 +74,11 @@ describe('501 stubs in dev', () => {
     'uploadOutsourcedReport', 'listOutsourcedReports', 'confirmOutsourcedReport', 'withdrawOutsourcedReport', 'downloadOutsourcedReport', 'listOutsourcedItems',
     // LEAD-VISIBLE TESTER EDIT (C6-T11): N6 + N7 leave the 501 list; covered by narrative-image.handlers.test.ts.
     'uploadNarrativeImage', 'getNarrativeImageContent',
+    // LEAD-VISIBLE TESTER EDIT (C6-T17): N1-N5 and N8-N10 leave the 501 list; covered by narrative.handlers.test.ts.
+    'listNarrativeReports', 'getNarrativeReport', 'saveNarrativeDraft', 'signNarrativeReport', 'startNarrativeAmendment',
+    'listNarrativeTemplates', 'createNarrativeTemplate', 'updateNarrativeTemplate',
+    // LEAD-VISIBLE TESTER EDIT (C6-T18): T1-T4 and T6 leave the 501 list (T5 previewReportTemplate stays a stub: C6-T16); covered by templates.handlers.test.ts.
+    'listReportTemplates', 'createReportTemplate', 'getReportTemplate', 'updateReportTemplateDraft', 'publishReportTemplate',
     // LEAD-VISIBLE TESTER EDIT (C6-T09): R8 leaves the 501 list; covered by retry-render.test.ts.
     'retryRenderReportVersion',
     // LEAD-VISIBLE TESTER EDIT (C6-T13): R6 leaves the 501 list; covered by release.handlers.test.ts.

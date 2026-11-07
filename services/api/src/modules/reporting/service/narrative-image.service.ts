@@ -1,11 +1,12 @@
 // Narrative images, API side: N6 upload, N7 content (02-TRD §6.4; 01-PRD AC-05.3; 07-SECURITY T9, REQ-SEC-083/084/085; 08 A13 P-2).
 // Bytes go through ctx.uploads.accept with re-encode + metadata strip (SVG and every non png/jpeg type -> 415) into quarantine; the worker
 // (reporting.process_input_file) re-scans and publishes. N7 serves only the sanitised object. Tenant and actor come from ctx only.
-// [CONV] P-10 conditional reporting.narrative.write on N7 and the signed-narrative / 12-image rules land with C6-T17 (plan row).
+// [CONV] P-10 conditional reporting.narrative.write on N7 (draft / unattached images) landed with C6-T17; attachment rules (12 images, ready only) are N3's.
 import { LimsError, type FieldError } from '../../../core/errors.js';
 import type { IncomingFile } from '../../../core/uploads/index.js';
 import { uuidv7 } from '../../../../../../packages/shared-ts/src/uuidv7/index.js';
 import * as repo from '../repository/narrative-image.repo.js';
+import { versionsOf } from '../repository/narrative.repo.js';
 import { findFile, enqueue, type Tx } from '../repository/outsourced.repo.js';
 import { INPUT_BUCKET, PROCESS_TASK, safeName, type OutsourcedCtx } from './outsourced.service.js';
 
@@ -21,6 +22,20 @@ function scope(ctx: OutsourcedCtx) {
   return { tx: ctx.tx as Tx, tenantId: ctx.tenantId, actorId: ctx.actor.id };
 }
 const nowIso = (ctx: OutsourcedCtx) => (typeof ctx.now === 'function' ? ctx.now() : new Date().toISOString());
+
+const idList = (v: unknown): string[] => (Array.isArray(v) ? v.map(String) : typeof v === 'string' ? v.replace(/^\{|\}$/g, '').split(',').filter(Boolean) : []);
+
+/** N7 + reporting.narrative.write (P-10, TRD N7) while the image belongs to a draft version, or to none yet (an upload awaiting attachment);
+ *  an image held only by signed / superseded versions needs report.read alone (the pipeline floor). Checked after loading the target. */
+async function assertDraftReadPermission(ctx: OutsourcedCtx, tx: Tx, tenantId: string, image: any) {
+  const idp = (ctx as { ports?: Record<string, any> }).ports?.['IdentityPort'];
+  if (!idp || typeof idp.assertRole !== 'function') throw new LimsError('common.internal');   // fail closed
+  const narrative = typeof image.narrative_report_id === 'string' ? await repo.findNarrative(tx, tenantId, image.narrative_report_id) : undefined;
+  if (!narrative || narrative.tenant_id !== tenantId) throw new LimsError('common.not_found');
+  const holders = (await versionsOf(tx, tenantId, narrative.id)).filter((v) => idList(v.image_file_ids).includes(image.id));
+  const frozenOnly = holders.length > 0 && holders.every((v) => v.status === 'signed' || v.status === 'superseded');
+  if (!frozenOnly) await idp.assertRole(ctx, { permission: 'reporting.narrative.write', centreId: narrative.centre_id });
+}
 
 export function createNarrativeImageService(deps: { newId?: () => string } = {}) {
   const newId = deps.newId ?? uuidv7;
@@ -62,6 +77,7 @@ export function createNarrativeImageService(deps: { newId?: () => string } = {})
       if (typeof imageId !== 'string' || !UUID.test(imageId)) throw new LimsError('common.not_found');
       const row = await findFile(tx, tenantId, imageId);
       if (!row || row.tenant_id !== tenantId || row.kind !== 'narrative_image') throw new LimsError('common.not_found');
+      await assertDraftReadPermission(ctx, tx, tenantId, row);
       if (row.state !== 'ready' || typeof row.sanitized_object_path !== 'string' || !row.sanitized_object_path || !SERVABLE.includes(row.detected_mime)) {
         throw new LimsError('reporting.input_file_not_ready');
       }

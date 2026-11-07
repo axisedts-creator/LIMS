@@ -18,7 +18,7 @@ function bind(fn: (s: Svc, ctx: OutsourcedCtx, req: HandlerRequest) => Promise<{
 }
 const obj = (v: unknown): Record<string, any> => (typeof v === 'object' && v !== null ? (v as Record<string, any>) : {});
 /** If-Match: "<version>" (02-CV §4.2). Absent -> undefined (428); malformed -> 0 (400). */
-function ifMatch(req: HandlerRequest): number | undefined {
+export function ifMatch(req: HandlerRequest): number | undefined {
   const h = obj(req.headers)['if-match'];
   if (h === undefined) return undefined;
   const m = typeof h === 'string' ? /^"([1-9][0-9]{0,9})"$/.exec(h) : null;

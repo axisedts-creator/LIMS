@@ -23,7 +23,7 @@ async function make(extra = {}) {
 // Synthetic corpus (no real people/numbers/tokens). jwt = base64url(header).base64url(payload).sig
 const b64u = (o) => Buffer.from(JSON.stringify(o)).toString('base64url');
 const JWT = `${b64u({ alg: 'ES256', typ: 'JWT' })}.${b64u({ sub: V7, session_id: V7B })}.c2lnbmF0dXJlLXN5bnRoZXRpYy1vbmx5X0FCQ0RFRkdISUo`;
-const PHONES = ['9801234567', '9712345678', '+9779801234567', '+977-9801234567', '+977 9801234567', '977-9712345678'];
+const PHONES = ['9801234567', '9712345678', '+9779801234567', '+977-9801234567', '+977 9801234567', '977-9712345678', '9612345678', '9621234567', '+977-9611234567'];
 const NAMED = /^(patient_name|phone|barcode|otp|authorization)$/i;
 
 describe('AC-0A-5.1 key denylist', () => {
@@ -49,6 +49,19 @@ describe('AC-0A-5.1 key denylist', () => {
     const { log, out } = await make();
     log.info('x', { password: 'PW-PLANT', email: 'syn@example.invalid', url: 'https://x.invalid/s?sig=SIGPLANT', cookie: 'CK-PLANT', refresh_token: 'RT-PLANT', jwt: 'JWT-PLANT' });
     for (const s of ['PW-PLANT', 'syn@example.invalid', 'SIGPLANT', 'CK-PLANT', 'RT-PLANT', 'JWT-PLANT']) assert.ok(!out().includes(s), s);
+  });
+  it('CV §9.2 health-data keys: comment, critical_value, test_name, panel_name, smart_report', async () => {
+    const { log, out } = await make();
+    log.info('x', { comment: 'CMT-PLANT', critical_value: 'CRIT-PLANT', test_name: 'TN-PLANT', panel_name: 'PN-PLANT', smart_report: 'SR-PLANT' });
+    for (const s of ['CMT-PLANT', 'CRIT-PLANT', 'TN-PLANT', 'PN-PLANT', 'SR-PLANT']) assert.ok(!out().includes(s), s);
+  });
+  it('child() never throws on a context with a throwing getter (logger never throws)', async () => {
+    const { log, out } = await make();
+    const ctx = { get boom() { throw new Error('getter'); } };
+    let c;
+    assert.doesNotThrow(() => { c = log.child(ctx); });
+    assert.doesNotThrow(() => c.info('after bad child'));
+    assert.ok(out().includes('after bad child'));
   });
   it('allowed fields survive: internal UUIDs, invoice_no, counts, durations, codes', async () => {
     const { log, parsed } = await make();
@@ -76,6 +89,11 @@ describe('AC-0A-5.2 value scrubbers (free text)', () => {
       assert.ok(out().includes('call back') && out().includes('tomorrow'), 'surrounding text must survive');
     });
   }
+  it('masks a 96x-range mobile (e.g. Smart Telecom) held in an integer field', async () => {
+    const { log, out } = await make();
+    log.info('x', { contact: 9612345678 });
+    assert.ok(!out().includes('9612345678'));
+  });
   it('masks a JWT-shaped string in message, fields, and bearer text', async () => {
     const { log, out } = await make();
     log.warn(`token was ${JWT} for user`, { detail: JWT, hdr: `Bearer ${JWT}` });

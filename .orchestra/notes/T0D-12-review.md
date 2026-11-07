@@ -1,21 +1,19 @@
 APPROVE
 
-Round 2 review. I checked the full diff 1712b2f..HEAD and the fixes in f0b661d..HEAD.
+Round 3 review of `git diff ee06d1c..HEAD` (single commit d4fb664).
 
-Checks I ran in packages/ui:
-- `npx vitest run`: 12 files, 343/343 pass.
-- `tsc -p tsconfig.json --noEmit`: clean.
+The diff contains:
+- `.orchestra/notes/T0D-12-verify.cmd`: one vitest command over the 9 T0D-12 test files.
+- 3 CR renames to `*.resolved-202611070700.md` (T0-03, T0B-03, T0D-12). These are content-identical renames.
+- No changes to `packages/ui/src/components/**` or other source. Nothing new to check for names, RLS, permissions, PHI or secrets.
 
-Prior items:
-1. Fixed. Tooltip, Popover, Spinner and Badge now exist, each with a story, and all four are in the axe `REQUIRED` list (stories-axe.test.tsx:16).
-   - Tooltip opens on focus and closes on Esc without moving focus.
-   - Popover traps Tab, Esc closes it, and focus returns to the trigger.
-   - Spinner has role=status and its label comes from msg.loading.
-   - Button.tsx now reuses Spinner.
-   - Tests are in tooltip-popover-spinner-badge.test.tsx.
-2. Fixed. Money is now `{ readonly amountPaisa; readonly currency: 'NPR' }` per 03:1103 and carries the ponytail marker. The stories and tests are updated, and no `amount_paisa` usage remains (fields.test.tsx:193 asserts it is absent).
-3. Fixed in commits. The lockfile is not in the diff. `.orchestra/cr/T0D-12.md` (CR-C0-0D-001 to C0-0A) lists pins that match packages/ui/package.json exactly.
+Checks I ran:
+- The verify command: 9 files, 350/350 pass. The jsdom canvas "Not implemented" warnings are noise.
+- `tsc -p tsconfig.json --noEmit` in @lims/ui: clean.
+- The file filters all match existing files in `packages/ui/src/components/__tests__/`.
 
-Note for orchestrator (not a defect in the diff): this worktree still has an uncommitted `M pnpm-lock.yaml` (+1202 lines). It must not be committed from lane C0-0D. Discard it (`git checkout -- pnpm-lock.yaml`) before merging.
+Notes for the orchestrator (not defects in this diff):
+- The worktree still has an uncommitted `M pnpm-lock.yaml` (+1202 lines). Per LD-05 the lockfile is committed by C0-0A. Discard it here (`git checkout -- pnpm-lock.yaml`) and do not commit it from C0-0D.
+- `db/meta/decisions/T0-03-dependencies.md` does not exist yet. LD-05 assigns recording the T0D-12 pins to C0-0A, so it is outside this lane.
 
-Not verified: real-browser keyboard walk-through, Devanagari rendering, colour contrast (off in jsdom; T0D-11 covers it), lint (root eslint ignores .tsx).
+Not verified: real-browser keyboard walk-through, Devanagari rendering, lint (root eslint ignores .tsx).

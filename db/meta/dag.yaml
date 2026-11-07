@@ -1,0 +1,31 @@
+# db/meta/dag.yaml — schema DAG for FK direction (CM §5 R3; 02-TRD §4.2 "Ordering = schema DAG"; 05-SCHEMA §4.5).
+# R3 chain: core -> catalog -> frontdesk/billing -> lab -> instruments -> reporting -> analytics; Wave-2/3 schemas may reference
+# these but not the reverse. allowed.<schema> = the schemas its FKs may reference (same-schema FKs are always allowed).
+# [CONV] each schema may reference every schema earlier in the 02-TRD §4.2 stage order (core, audit, identity, catalog, frontdesk,
+# billing, lab, instruments, reporting, analytics, Wave 2 in listed order, Wave 3, migration_staging). Independently of this file,
+# check-fk-dag.ts rejects every FK into billing from another schema (CV §5.4).
+# Format: JSON subset of YAML 1.2 (see tables.yaml).
+{
+ "allowed": {
+  "core": [],
+  "audit": ["core"],
+  "identity": ["core", "audit"],
+  "catalog": ["core", "audit", "identity"],
+  "frontdesk": ["core", "audit", "identity", "catalog"],
+  "billing": ["core", "audit", "identity", "catalog", "frontdesk"],
+  "lab": ["core", "audit", "identity", "catalog", "frontdesk", "billing"],
+  "instruments": ["core", "audit", "identity", "catalog", "frontdesk", "billing", "lab"],
+  "reporting": ["core", "audit", "identity", "catalog", "frontdesk", "billing", "lab", "instruments"],
+  "analytics": ["core", "audit", "identity", "catalog", "frontdesk", "billing", "lab", "instruments", "reporting"],
+  "quality": ["core", "audit", "identity", "catalog", "frontdesk", "billing", "lab", "instruments", "reporting", "analytics"],
+  "micro": ["core", "audit", "identity", "catalog", "frontdesk", "billing", "lab", "instruments", "reporting", "analytics", "quality"],
+  "anatomic": ["core", "audit", "identity", "catalog", "frontdesk", "billing", "lab", "instruments", "reporting", "analytics", "quality", "micro"],
+  "inventory": ["core", "audit", "identity", "catalog", "frontdesk", "billing", "lab", "instruments", "reporting", "analytics", "quality", "micro", "anatomic"],
+  "partners": ["core", "audit", "identity", "catalog", "frontdesk", "billing", "lab", "instruments", "reporting", "analytics", "quality", "micro", "anatomic", "inventory"],
+  "smartreport": ["core", "audit", "identity", "catalog", "frontdesk", "billing", "lab", "instruments", "reporting", "analytics", "quality", "micro", "anatomic", "inventory", "partners"],
+  "payments": ["core", "audit", "identity", "catalog", "frontdesk", "billing", "lab", "instruments", "reporting", "analytics", "quality", "micro", "anatomic", "inventory", "partners", "smartreport"],
+  "engagement": ["core", "audit", "identity", "catalog", "frontdesk", "billing", "lab", "instruments", "reporting", "analytics", "quality", "micro", "anatomic", "inventory", "partners", "smartreport", "payments"],
+  "homecollection": ["core", "audit", "identity", "catalog", "frontdesk", "billing", "lab", "instruments", "reporting", "analytics", "quality", "micro", "anatomic", "inventory", "partners", "smartreport", "payments", "engagement"],
+  "migration_staging": ["core", "audit", "identity", "catalog", "frontdesk", "billing", "lab", "instruments", "reporting", "analytics", "quality", "micro", "anatomic", "inventory", "partners", "smartreport", "payments", "engagement", "homecollection"]
+ }
+}

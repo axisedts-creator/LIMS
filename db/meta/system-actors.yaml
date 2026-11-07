@@ -1,0 +1,26 @@
+# db/meta/system-actors.yaml — module -> fixed UUIDv7 system actor id (02-TRD §4.1; 05-SCHEMA §3.5 core.g_system_actors, §11).
+# Generated once on 2026-11-07, then never changed. Seeded into core.g_system_actors.
+# [CONV] modules = core plus every module schema with event consumers (the <m>.event_inbox list of 05-SCHEMA §3.9); a module that
+# later gains worker tasks without consumers is added by CR.
+# Format: JSON subset of YAML 1.2 (see tables.yaml).
+{
+ "system_actors": {
+  "core": "01a1b34e-1000-7eee-9d29-d7ca59a102b5",
+  "identity": "01a1b34e-1001-7d79-a080-d6eff0dbe8c0",
+  "frontdesk": "01a1b34e-1002-707c-b774-48589527dd74",
+  "billing": "01a1b34e-1003-77d6-bc73-c6f18118ddd6",
+  "lab": "01a1b34e-1004-782c-a681-49b1ce74d717",
+  "instruments": "01a1b34e-1005-75b4-b520-db687e3b3914",
+  "reporting": "01a1b34e-1006-7735-8b04-9ddc84781442",
+  "analytics": "01a1b34e-1007-7a77-be69-ea12c39290f5",
+  "quality": "01a1b34e-1008-7f75-909e-ffe69faa71ad",
+  "micro": "01a1b34e-1009-7149-a8a8-be418216944e",
+  "anatomic": "01a1b34e-100a-78a6-b531-0057bf989a0e",
+  "inventory": "01a1b34e-100b-722f-bac0-c06754b81bf9",
+  "partners": "01a1b34e-100c-75c6-8d5f-8014192f37f3",
+  "smartreport": "01a1b34e-100d-7fc9-bded-822451f164dc",
+  "payments": "01a1b34e-100e-718d-b2a5-c5facf99c2d4",
+  "engagement": "01a1b34e-100f-7c15-ad38-b176e546c17c",
+  "homecollection": "01a1b34e-1010-7e51-84a6-bfdae715ddd9"
+ }
+}

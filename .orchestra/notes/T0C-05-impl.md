@@ -1,4 +1,4 @@
-# T0C-05 impl (round 7, 2026-11-07: codegen+mocks tests 392/392; `codegen.ts --check` exit 0)
+# T0C-05 impl (round 8, 2026-11-07: codegen+mocks+c4 913/917, 4 red = CR-C0-0C-002 lint/E1-E2; `--check` exit 0). Round 8 review item (c4 drift guard) tester-only, done 07ac537; no impl change.
 - Round 7 (review item 1): genMsw sorts by URL key with `:param`→U+FFFF, then operationId, so literal siblings (possible-duplicates) precede `:patient_id` (MSW first-match); handlers.generated.ts regenerated.
 - Flake risk: CLI --check test spawnSync ~15 s idle / ~50 s under host load; one run hit vitest "Timeout calling onTaskUpdate" (60 s worker RPC) though all tests passed. Rerun clean. Not a generator defect.
 - Round 5: billing.yaml B19 operationIds listCreditParties->listCreditAccounts, getCreditParty->getCreditAccount (CR-C0-0C-004 option 1); outputs regenerated. vitest testTimeout 120 s [CONV].

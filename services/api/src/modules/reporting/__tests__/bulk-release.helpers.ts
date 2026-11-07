@@ -19,13 +19,19 @@ export const VID = (i: number) => idN(0x40000 + i);     // version id of report 
 export const RID = (i: number) => idN(0x41000 + i);     // report id
 export const OID = (i: number) => idN(0x42000 + i);     // order id
 export const PID = (i: number) => idN(0x43000 + i);     // patient id
-export const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
+/** Precise ms delay (setTimeout alone is clamped to ~16-20 ms on Windows): coarse setTimeout only for the part above SLACK_MS, then spin on performance.now(). */
+const SLACK_MS = 20;
+export const sleep = async (ms: number): Promise<void> => {
+  const end = performance.now() + ms;
+  if (ms > SLACK_MS) await new Promise<void>((r) => setTimeout(r, ms - SLACK_MS));
+  while (performance.now() < end) { /* spin: accurate to sub-ms */ }
+};
 
 export interface Item { reportOver?: Row; versions?: Row[]; tenant?: string; centre?: string }
 export interface BulkOpts {
   items: Item[]; dues?: readonly number[]; maxSetting?: number | null; autoRelease?: 'when_eligible' | 'manual'; centres?: readonly string[] | null; rls?: boolean;
   billing?: (orderId: string, n: number) => Eligibility | Error; failOn?: Array<{ match: RegExp; error: () => Error; times?: number }>;
-  publishFails?: (reportId: string) => Error | undefined; deniedWith?: string; billingMs?: number; queryMs?: number; consent?: ConsentOpts;
+  publishFails?: (reportId: string) => Error | undefined; deniedWith?: string; fastSavepoints?: boolean; billingMs?: number; queryMs?: number; consent?: ConsentOpts;
 }
 
 export const V2 = (i: number) => idN(0x45000 + i);      // id of version 2 of report i (version 1 is VID(i))
@@ -60,7 +66,7 @@ export function bulkSetup(o: BulkOpts) {
   if (o.billingMs) { const g = billing.port.getReleaseEligibility; billing.port.getReleaseEligibility = async (c: any, i: any) => { await sleep(o.billingMs!); return g(c, i); }; }
   const frontdesk = makeFrontdesk(o.consent ?? {});
   const published: Array<{ type: string; input: any; ctxTxIsOurTx: boolean; ctxActor: any }> = []; const access: any[] = []; const au = makeAudit();
-  const base = ddlChecked(w.db);
+  const base = o.fastSavepoints ? w.db.tx : ddlChecked(w.db);   // load tests: skip the DDL re-check, it re-reads ALL versions after every write (O(N^2) host cost; correctness tests keep it)
   const marks = new Map<string, { p: number; a: number }>(); let seq = 0; const centres = o.centres ? new Set(o.centres) : null;
   const tx: any = {
     startedAt: base.startedAt, savepoints: 0, rollbacks: 0,
@@ -69,6 +75,7 @@ export function bulkSetup(o: BulkOpts) {
       const rb = /^\s*rollback\s+to\s+savepoint\s+(\w+)/i.exec(text);
       if (rb) { tx.rollbacks++; const m = marks.get(rb[1]!.toLowerCase()); if (m) { published.length = m.p; access.length = m.a; } }
       if (o.queryMs && /^\s*(update|insert)|enqueue_job/i.test(text)) await sleep(o.queryMs);   // write latency only (~5 writes per release)
+      if (o.fastSavepoints && (sp || rb)) return { rows: [] };   // load tests only: the fake's SAVEPOINT deep-clones the whole store (O(N) per id => O(N^2) host cost the spec's cost model lacks)
       const res = await base.query(text, values);
       if (centres && /^\s*select/i.test(text) && /\breporting\./i.test(text)) return { rows: res.rows.filter((r: Row) => r['centre_id'] === undefined || centres.has(r['centre_id'])) };
       return res;

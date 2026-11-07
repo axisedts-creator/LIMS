@@ -5,7 +5,7 @@ import { mkdtempSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { beforeAll, describe, expect, it } from 'vitest';
-import { bulkSetup, callBulk, countBy, idsOf, many } from './bulk-release.helpers.js';
+import { bulkSetup, callBulk, countBy, idsOf, many, sleep } from './bulk-release.helpers.js';
 
 let manifest: any;
 beforeAll(async () => {
@@ -18,11 +18,16 @@ const RUNS = 5; const BUDGET_MS = 8000;
 const p95 = (xs: number[]) => [...xs].sort((a, b) => a - b)[Math.ceil(0.95 * xs.length) - 1]!;
 
 describe('load: bulk release of 200 ids', () => {
+  it('self-check: injected latency is accurate (mean sleep(2) < 4 ms, mean sleep(15) < 17 ms)', async () => {
+    const mean = async (ms: number) => { const t0 = performance.now(); for (let k = 0; k < 50; k++) await sleep(ms); return (performance.now() - t0) / 50; };
+    expect(await mean(2)).toBeLessThan(4); expect(await mean(15)).toBeLessThan(17);
+  });
+
   it(`${RUNS} consecutive 200-id requests (20 with dues) each answer correctly and p95 latency <= ${BUDGET_MS} ms`, async () => {
     const times: number[] = [];
     for (let run = 0; run < RUNS; run++) {
       const dues = Array.from({ length: 20 }, (_, k) => k * 10 + 5);
-      const s = bulkSetup({ items: many(200), dues, billingMs: 15, queryMs: 2 });
+      const s = bulkSetup({ items: many(200), dues, billingMs: 15, queryMs: 2, fastSavepoints: true });
       const t0 = performance.now(); const r = await callBulk(manifest, s, { ids: idsOf(200) }); times.push(performance.now() - t0);
       expect(r.status).toBe(200); expect(r.body.results).toHaveLength(200); expect(countBy(r, 'released')).toBe(180); expect(countBy(r, 'blocked_due')).toBe(20);
       expect(s.billing.calls).toHaveLength(200);                    // exactly one eligibility call per id
@@ -39,7 +44,7 @@ describe('load: bulk release of 200 ids', () => {
   }, 60_000);
 
   it('the cost is linear: 200 ids take less than 6x the time of 50 ids (nothing quadratic such as a full re-scan per id)', async () => {
-    const time = async (n: number) => { const s = bulkSetup({ items: many(n), billingMs: 2, queryMs: 1 }); const t0 = performance.now(); const r = await callBulk(manifest, s, { ids: idsOf(n) }); const dt = performance.now() - t0; expect(countBy(r, 'released')).toBe(n); return dt; };
+    const time = async (n: number) => { const s = bulkSetup({ items: many(n), billingMs: 15, queryMs: 2, fastSavepoints: true }); const t0 = performance.now(); const r = await callBulk(manifest, s, { ids: idsOf(n) }); const dt = performance.now() - t0; expect(countBy(r, 'released')).toBe(n); return dt; };
     await time(10); const a = await time(50); const b = await time(200); expect(b).toBeLessThan(a * 6);
   }, 120_000);
 });

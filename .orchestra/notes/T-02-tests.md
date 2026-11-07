@@ -1,7 +1,6 @@
-# T-02 tests (tester)
-- File: `infra/tests/static/test_t02_providers.py` (stdlib + PyYAML). Classes: ProviderDocs, InventoryLayout, MemoryBudget, ProfileDocs, EnvSeparation, InventorySecurity, ProviderValueGrep, Tooling.
-- Run: `.orchestra\notes\T-02-verify.cmd` (= `python -B -m unittest discover -s infra/tests/static -p "test_t02_*.py"` from repo root). No `-I`: PyYAML is in user site, which -I hides.
-- Covers IS-01, TRD s3.4/s3.1/s4/s12.1, grep check for provider values (ruling-scoped), planted-value self-check.
-- LD-45/LD-48 (review round): all 5 inventories (dev, staging, prod, staging-lean, prod-lean) get layout/parse/subnet/known_hosts/public_ip checks; lean roles map (prod-1 in data+app+ops, backup-1 in `backup` only, dr empty, staging-lean = 1 VM); sum(mem_limit) <= 85 % RAM per host (+ gate self-check); prod-lean named default in infra/README.md + DECISION.md with scale triggers; `topology_profile` var.
-- Result: 33 run, OK, 1 skip (ansible-inventory off CI, LD-17; on CI it now loops all 5 inventories).
-- Assumption: backup-1 has no mem_limit_gib (LD-45 gives none); only prod-1 is pinned (32 GiB, Σ <= 27.2).
+# T-02 tests (C5 tester) — NOTE: overwrites the C1 T-02 notes of the same name (id collision, as with T-01)
+- Files: `services/api/src/modules/lab/domain/__tests__/` specimen.state.test.ts, result.state.test.ts, rollup.test.ts (vitest, pure, no DB).
+- Run (repo root): `.orchestra\notes\T-02-verify.cmd`. Fails now because `../specimen.state.js`, `../result.state.js`, `../rollup.js` do not exist (writer creates them).
+- Covers: every S1–S15 / R1–R8 allowed pair + EXHAUSTIVE forbidden matrix (03-IC §10.1/§10.2 as data), named forbidden examples, AC-03.4/04.3/05.4/06.3/15.3, S-02 self-approval, on_hold, value lock, roll-up (S6–S9, S15, reported never down, cancelled ignored, rejected/stored/discarded never roll).
+- SEAMS (spec silent on names; documented atop each test): `specimenTransition(from|null,to,{isActive})→'Sn'`, `isSpecimenTransitionAllowed`, `assertSpecimenReceivable`, `SPECIMEN_STATUSES`; `resultTransition(from|null,to,{onHold,verifiedBy,approvedBy})→'Rn'`, `isResultTransitionAllowed`, `assertResultValueEditable`, `RESULT_STATUSES`; `rollupSpecimen(current,resultStatuses)→SpecimenStatus[]` (statuses passed through, [] = none). Errors are `LimsError` (core/errors.js).
+- Assumptions: rejected→received = invalid_transition (03-IC) while the receive-scan check is the separate not_receivable (AC-04.3); approved→resulted etc. = result_invalid_transition, value edit on approved = result_locked; pending-min roll-down (resulted→in_process) and multi-level jumps NOT asserted (spec silent).

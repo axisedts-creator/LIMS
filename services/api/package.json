@@ -1,0 +1,21 @@
+{
+  "name": "@lims/api",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@fastify/ajv-compiler": "4.0.7",
+    "fastify": "5.12.8",
+    "fastify-openapi-glue": "4.12.0",
+    "yaml": "2.8.1"
+  },
+  "devDependencies": {
+    "@types/node": "26.6.6",
+    "typescript": "7.0.2",
+    "vitest": "5.1.0"
+  }
+}

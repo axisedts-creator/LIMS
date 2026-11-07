@@ -1,0 +1,83 @@
+# Test-only spec for T0D-01 boot tests (not a real contract). Public ops so no security handlers are needed.
+openapi: 3.0.3
+info: { title: fixture catalog, version: 1.0.0 }
+paths:
+  /v1/catalog/things:
+    get:
+      operationId: listThings
+      security: []
+      x-public: "fixture"
+      x-idempotency: none
+      x-rate-limit-tier: general
+      parameters:
+        - { name: limit, in: query, required: false, schema: { type: integer, minimum: 1, maximum: 200 } }
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Things' }
+    post:
+      operationId: createThing
+      security: []
+      x-public: "fixture"
+      x-idempotency: none
+      x-rate-limit-tier: general
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ThingInput' }
+      responses:
+        '201':
+          description: created
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Thing' }
+  /v1/catalog/things/{id}:
+    get:
+      operationId: getThing
+      security: []
+      x-public: "fixture"
+      x-idempotency: none
+      x-rate-limit-tier: general
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, maxLength: 36 } }
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Thing' }
+    delete:
+      operationId: deleteThing
+      security: []
+      x-public: "fixture"
+      x-idempotency: none
+      x-rate-limit-tier: general
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, maxLength: 36 } }
+      responses:
+        '204':
+          description: deleted
+components:
+  schemas:
+    Thing:
+      type: object
+      additionalProperties: false
+      required: [id, name]
+      properties:
+        id: { type: string, maxLength: 36 }
+        name: { type: string, maxLength: 100 }
+    ThingInput:
+      type: object
+      additionalProperties: false
+      required: [name]
+      properties:
+        name: { type: string, maxLength: 100 }
+    Things:
+      type: object
+      additionalProperties: false
+      required: [items]
+      properties:
+        items: { type: array, maxItems: 200, items: { $ref: '#/components/schemas/Thing' } }

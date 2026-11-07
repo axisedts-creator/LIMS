@@ -1,6 +1,6 @@
 # C6-T04 impl (writer)
 Files: services/api/src/modules/reporting/service/reports.service.ts (shell/items/narratives + all consumer state SQL); services/worker/src/jobs/reporting/consumers/{8 event types}.ts (thin handlers); jobs/reporting/index.ts (subscriptions).
-Verify: 90/91 pass; 1 fails on test seed data (see C6-T04-dispute.md). api tsc: only the existing shared-ts bsdate TS5097 error. The worker has no tsconfig, so it isn't type-checked.
+Verify: 91/91 pass after fixture fix per C6-T04-ruling.md; impl unchanged. api tsc: only the existing shared-ts bsdate TS5097 error. The worker has no tsconfig, so it isn't type-checked.
 [CONV] envelope tenant_id ≠ job tenant → reject; unknown workflowType → requires_lab; no narrative template → kind `other`, sections [], template_id null; specimen without order_item_ids → no-op.
 [CONV] summary-built shell (ready-before-created / unknown order) inserts summary items with their status (removed/cancelled kept) so a late order.created can't revive them; items_version null until the first items_changed.
 [CONV] assemble job: core ENQUEUE_SQL, run_at = ctx.now() + ASSEMBLY_DEBOUNCE_MS, max_attempts 10, key assemble:<report_id>.

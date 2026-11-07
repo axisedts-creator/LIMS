@@ -1,7 +1,7 @@
 // T-24 (C3) test helper: JobContext runner + synthetic catalog seed for the worker task catalog.export_build (02-TRD §8.7, §10).
 // DB fake: services/api/.../helpers/exportsDb.ts (dialect documented there). ctx.tx is the task transaction — COMMITTED when the handler
-// resolves, ROLLED BACK when it throws (as the worker core does). ctx.db.tx(fn) runs fn(ctx') in an INDEPENDENT transaction that commits
-// when fn resolves (so a task that rethrows must persist a `failed` state through it).
+// resolves, ROLLED BACK when it throws (as the worker core does). ctx.db.tx(fn) is fn(ctx): the SAME transaction (consumer.ts:58), so a write
+// made before a rethrow is rolled back too; a `failed` state can only persist if the handler RESOLVES (final-attempt hook = CR-pending).
 // Synthetic data only.
 import { makeExportsDb, NOW, TENANT_A, TENANT_B, USER, V7, type ExportsDb, type Row } from '../../../../../../api/src/modules/catalog/__tests__/helpers/exportsDb.js';
 
@@ -31,7 +31,8 @@ export function makeRunner(db: ExportsDb, handler: (payload: any, ctx: any) => P
       events: { publish: async (...a: unknown[]) => { events.push(a); } }, core: {}, storage: {}, audit: {}, files: {}, log: l.log,
       metrics: { inc: (name: string, labels: any = {}) => { metrics.push({ name, labels }); }, set() {}, observe() {} },
     };
-    ctx.db = { tx: async (fn: (c: any) => Promise<unknown>) => { const t2 = db.begin(tenantId, SYS); try { const r = await fn({ ...ctx, tx: t2.facade }); t2.commit(); return r; } catch (e) { t2.rollback(); throw e; } } };
+    // Like the real worker core (services/worker/src/core/consumer.ts:58): ctx.db.tx REUSES the job transaction — fn(ctx), no new tx, no isolation option.
+    ctx.db = { tx: async (fn: (c: any) => Promise<unknown>) => fn(ctx) };
     return ctx;
   };
   return {

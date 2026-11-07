@@ -11,11 +11,13 @@
 //     (catalog_state.catalog_revision), exported_at (= ctx.now()), and for price_list price_list_id, price_list_code, base_version_no (= the exported version_no).
 //   * catalog_master: every TEMPLATE_SHEETS.catalog_master sheet is present with its exact header row; rows are asserted here only for Departments
 //     (the other tables' columns are not fixed by this fixture).
-//   * the consistent snapshot is a REPEATABLE READ transaction opened with `SET TRANSACTION ISOLATION LEVEL REPEATABLE READ` as the FIRST statement of the
-//     transaction that does the data reads (either ctx.tx before any other statement, or ctx.db.tx).
+//   * the REPEATABLE READ snapshot (§8.7) cannot be opened mid-transaction (the core opens the job tx and runs set_config first; ctx.db.tx reuses it).
+//     Mechanism = CR (C3.T-24, reviewer item 1) — the snapshot test below is `it.todo` until the CR is ruled; assert the mechanism it defines then.
 //   * export completion: exports.status 'ready', file_id -> catalog.files(purpose 'export'), exports.expires_at = files.expires_at = ctx.now() + 30 d,
 //     files.sha256/byte_size match the bytes; no event, no revision bump, nothing written outside exports/files (§9.1).
-//   * final attempt (ctx.attempt >= ctx.maxAttempts) with a failing build leaves exports.status 'failed' + last_error_code (resolve, or persist through ctx.db.tx and throw).
+//   * final attempt (ctx.attempt >= ctx.maxAttempts) with a failing build leaves exports.status 'failed' + last_error_code. ctx.db.tx reuses the job tx, so a throw
+//     rolls the write back: it persists only if the handler resolves (a core final-failure hook is CR-pending, reviewer item 2).
+//   * catalog_master: Tests, Analytes, Panels, PanelMembers rows come from catalog.tests/analytes(+published analyte_versions)/panels/panel_members (05-SCHEMA §3).
 //   * metric lims_catalog_exports_total{kind, outcome} outcome ∈ {ready, failed} (02-TRD §12 gives the names, not the outcome values).
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createHash } from 'node:crypto';
@@ -149,19 +151,10 @@ describe('S-9 — cell typing and formula neutralisation', () => {
 });
 
 describe('REPEATABLE READ snapshot (§8.7)', () => {
-  it('a concurrent price + name change committed mid-export is invisible: the file is one consistent snapshot', async () => {
-    const c = setup();
-    c.db.onRead(({ n }) => {
-      if (n !== 1) return;
-      c.db.update('price_list_items', (r) => r.tenant_id === TENANT_A && r.orderable_id === CAT[0].id && r.price_list_version_id === PLV3, { unit_price_paisa: 99900 });
-      c.db.update('orderables', (r) => r.tenant_id === TENANT_A && r.id === CAT[0].id, { name: 'CHANGED-MID-EXPORT' });
-    });
-    await c.go();
-    const a1 = asObjects(sheet(await sheetsOf(c), 'Prices')).find((r) => r.orderable_code === 'A1')!;
-    expect(a1.unit_price_npr).toBe(100);
-    expect(a1.orderable_name).toBe('Glucose fasting');
-    expect(c.db.stmts.some((s) => /^\s*SET TRANSACTION ISOLATION LEVEL REPEATABLE READ\s*;?\s*$/i.test(s.text))).toBe(true);
-  });
+  // [CR-pending] C3.T-24 reviewer item 1: `SET TRANSACTION ISOLATION LEVEL` mid-tx is rejected by Postgres (25001); the core has no per-task isolation option.
+  // Intended assertion once the CR defines the mechanism: a price + name change committed by another session during the export (c.db.onRead, n === 1 →
+  // c.db.update('price_list_items'…{unit_price_paisa: 99900}) and c.db.update('orderables'…{name: 'CHANGED-MID-EXPORT'})) is invisible: A1 stays 100 / 'Glucose fasting'.
+  it.todo('a concurrent price + name change committed mid-export is invisible: the file is one consistent snapshot [CR-pending: isolation mechanism]');
 });
 
 describe('AC-17.6 (data side) — referrers export', () => {
@@ -208,6 +201,39 @@ describe('catalog_master export (D-22: P0 master data)', () => {
     expect(depts.find((d) => d.code === 'CHEM')).toMatchObject({ name: 'Chemistry', report_order: 10, report_heading: 'Clinical chemistry' });
     expect(blank(depts.find((d) => d.code === 'HAEM')!.report_heading)).toBe(true);
     expect(JSON.stringify(ss)).not.toContain('TENANT-B');
+    for (const [name, xml] of unzip(bytesOf(c))) if (name.startsWith('xl/')) expect(xml, name).not.toMatch(/<f[\s>/]/);
+  });
+});
+
+describe('catalog_master export — Tests, Analytes, Panels, PanelMembers are filled, not header-only (02-TRD §8.7 round-trip)', () => {
+  const AN = uid(31), ANV = uid(32), STAMP = { version: 1, is_active: true, created_at: new Date(NOW), created_by: USER, updated_at: new Date(NOW), updated_by: USER };
+  const seedMaster = (db: ExportsDb) => {
+    for (const t of [TENANT_A, TENANT_B]) {
+      const b = t === TENANT_B, id = (x: string) => (b ? x.replace('0190c322', '0190c3b2') : x);
+      db.seed.rows('tests', { id: id(CAT[0].id), tenant_id: t, kind: 'test', workflow_type: 'standard', report_order: 30, uses_existing_material: false, ...STAMP });
+      db.seed.rows('analytes', { id: id(AN), tenant_id: t, test_id: id(CAT[0].id), code: b ? 'B_GLU' : 'GLU', name: b ? 'TENANT-B analyte' : 'Glucose', print_name: null, report_subheading: null, sort_order: 10, is_reportable: true, ...STAMP });
+      db.seed.rows('analyte_versions', { id: id(ANV), tenant_id: t, analyte_id: id(AN), version_no: 1, status: 'published', result_type: 'numeric', unit_code: 'mg_dl', decimals: 1,
+        method_id: null, value_set_code: null, formula_expression: null, formula_inputs: [], formula_input_units: null, ...STAMP });
+      db.seed.rows('panels', { id: id(CAT[2].id), tenant_id: t, kind: 'panel', panel_kind: 'clinical', ...STAMP });
+      db.seed.rows('panel_members', { tenant_id: t, panel_id: id(CAT[2].id), member_orderable_id: id(CAT[0].id), sort_order: 1, created_at: new Date(NOW), created_by: USER });
+    }
+  };
+
+  it('a seeded Test, Analyte, Panel and PanelMember come back with their codes; tenant B absent; no <f>', async () => {
+    const c = setup({ kind: 'catalog_master' }); seedMaster(c.db); await c.go();
+    expect(exp(c).status).toBe('ready');
+    const ss = await sheetsOf(c);
+    const tests = asObjects(sheet(ss, 'Tests'));
+    expect(tests.find((r) => r.code === 'A1')).toMatchObject({ name: 'Glucose fasting', department_code: 'CHEM', workflow_type: 'standard', report_order: 30 });
+    const analytes = asObjects(sheet(ss, 'Analytes'));
+    expect(analytes).toHaveLength(1);
+    expect(analytes[0]).toMatchObject({ test_code: 'A1', analyte_code: 'GLU', name: 'Glucose', sort_order: 10, result_type: 'numeric', unit_code: 'mg_dl', decimals: 1 });
+    const panels = asObjects(sheet(ss, 'Panels'));
+    expect(panels).toHaveLength(1);
+    expect(panels[0]).toMatchObject({ code: 'PNL1', panel_kind: 'clinical', department_code: 'HAEM' });
+    expect(asObjects(sheet(ss, 'PanelMembers'))).toEqual([expect.objectContaining({ panel_code: 'PNL1', member_code: 'A1', sort_order: 1 })]);
+    expect(JSON.stringify(ss)).not.toContain('TENANT-B');
+    expect(JSON.stringify(ss)).not.toContain('B-A1');
     for (const [name, xml] of unzip(bytesOf(c))) if (name.startsWith('xl/')) expect(xml, name).not.toMatch(/<f[\s>/]/);
   });
 });
@@ -266,7 +292,7 @@ describe('state machine, idempotency, isolation', () => {
 
   it('every statement binds the tenant id; only exports/files are written; no event, no revision bump', async () => {
     const c = setup({ kind: 'referrers', doctors: true }); await c.go();
-    for (const s of c.db.stmts) if (!/^\s*SET TRANSACTION/i.test(s.text)) expect(s.values, s.text.slice(0, 80)).toContain(TENANT_A);
+    for (const s of c.db.stmts) expect(s.values, s.text.slice(0, 80)).toContain(TENANT_A);
     for (const s of c.db.stmts) if (/^\s*(INSERT|UPDATE)\b/i.test(s.text)) expect(s.text, s.text.slice(0, 80)).toMatch(/\bcatalog\.(exports|files)\b/);
     expect(c.db.stmts.some((s) => /enqueue_job/i.test(s.text))).toBe(false);
     expect(c.r.events).toHaveLength(0);

@@ -16,6 +16,7 @@
     "mock:billing": "prism mock contracts/openapi/billing.yaml --host 127.0.0.1 --port 4104",
     "mock:lab": "prism mock contracts/openapi/lab.yaml --host 127.0.0.1 --port 4105",
     "mock:reporting": "prism mock contracts/openapi/reporting.yaml --host 127.0.0.1 --port 4106",
+    "mock:instruments": "prism mock contracts/openapi/instruments.yaml --host 127.0.0.1 --port 4107",
     "mock:list": "node -p \"Object.entries(require('./package.json').scripts).filter(([k])=>k.startsWith('mock:')&&k!=='mock:list').map(([k,v])=>k.slice(5)+' http://127.0.0.1:'+v.split('--port ')[1]).join('\\n')\""
   },
   "devDependencies": {

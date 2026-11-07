@@ -5298,6 +5298,184 @@ export interface Operations {
       };
     };
   };
+  createAgent: {
+    params: Record<string, never>;
+    query: Record<string, never>;
+    headers: {
+      "Idempotency-Key": string;
+    };
+    body: {
+      agent_code: string;
+      display_name: string;
+      centre_id: string;
+      update_channel?: "stable" | "beta";
+      backlog_threshold?: number;
+    };
+    responses: {
+      201: ({
+        id: string;
+        agent_code: string;
+        display_name: string;
+        centre_id: string;
+        status: "pending_enrolment" | "active" | "revoked" | "retired";
+        update_channel: "stable" | "beta";
+        pinned_release_id?: string;
+        backlog_threshold: number;
+        enrolled_at?: string;
+        revoked_at?: string;
+        revoke_reason_code?: string;
+        retired_at?: string;
+        version: number;
+        health: {
+          state: "online" | "offline" | "backlog" | "degraded";
+          health_version: number;
+          last_heartbeat_at?: string;
+          agent_version?: string;
+          launcher_version?: string;
+          os_version?: string;
+          queue_depth: number;
+          oldest_pending_age_seconds: number;
+          queue_rejected: number;
+          queue_oversize: number;
+          disk_free_mb?: number;
+          clock_offset_seconds?: number;
+          clock_offset_ms?: number;
+          clock_offset_uncertainty_ms?: number;
+          config_version_applied?: number;
+          config_state?: "ok" | "signature_invalid" | "agent_mismatch" | "rollback_rejected" | "schema_invalid";
+          update_state?: "idle" | "downloading" | "verifying" | "staged" | "applying" | "rolled_back" | "verify_failed" | "failed";
+          update_target_version?: string;
+          auth_state?: "ok" | "rejected";
+          last_ip?: string;
+          last_ip_changed_at?: string;
+        };
+        latest_config_version: number;
+        credentials: ({
+          credential_id: string;
+          kind: "enrolment_code" | "device_token";
+          status: "active" | "used" | "expired" | "revoked";
+          issued_at: string;
+          issued_by_display: string;
+          expires_at?: string;
+          used_at?: string;
+          last_used_at?: string;
+          revoked_at?: string;
+        })[];
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      409: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      422: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
   createAliquots: {
     params: {
       specimen_id: string;
@@ -7864,6 +8042,354 @@ export interface Operations {
         }[];
       };
       415: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      422: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  createInstrument: {
+    params: Record<string, never>;
+    query: Record<string, never>;
+    headers: {
+      "Idempotency-Key": string;
+    };
+    body: {
+      instrument_code: string;
+      display_name: string;
+      agent_id: string;
+      vendor: string;
+      model: string;
+      serial_no?: string;
+      software_version?: string;
+      protocol: "astm" | "hl7v2" | "file_drop";
+      driver_code: string;
+      transport: ({
+        kind: "serial";
+        port_name: string;
+        baud_rate: 1200 | 2400 | 4800 | 9600 | 19200 | 38400 | 57600 | 115200;
+        data_bits: 7 | 8;
+        parity: "none" | "odd" | "even" | "mark" | "space";
+        stop_bits: "1" | "1.5" | "2";
+        dtr?: boolean;
+        rts?: boolean;
+      } | {
+        kind: "tcp_client";
+        host: string;
+        port: number;
+        connect_timeout_s?: number;
+        reconnect_max_backoff_s?: number;
+      } | {
+        kind: "tcp_server";
+        bind_address: string;
+        port: number;
+        allowed_peers: string[];
+      } | {
+        kind: "file_drop";
+        directory: string;
+        filename_pattern: string;
+        barcode_regex?: string;
+        allowed_types: ("pdf" | "png" | "jpg")[];
+        stable_seconds?: number;
+        move_after_capture?: boolean;
+        captured_subdirectory?: string;
+        attachment_instrument_code: string;
+      });
+      protocol_options?: {
+        astm?: {
+          establish_reply_s?: number;
+          nak_retry_delay_s?: number;
+          host_contention_defer_s?: number;
+          instrument_contention_retry_s?: number;
+          transfer_reply_s?: number;
+          receiver_frame_wait_s?: number;
+          receiver_interrupt_backoff_s?: number;
+          outbound_retry_cycle_s?: number;
+          max_frame_sends?: number;
+          max_establish_attempts?: number;
+          max_outbound_cycles?: number;
+          encoding?: string;
+        };
+        hl7v2?: {
+          ack_mode?: string;
+          ack_sending_app?: string;
+          ack_sending_facility?: string;
+          ack_timeout_s?: number;
+          send_retries?: number;
+          max_message_bytes?: number;
+        };
+      };
+      parser_options?: {
+        sample_id_field?: string;
+        test_code_field?: string;
+        value_field?: string;
+        unit_field?: string;
+        flags_field?: string;
+        result_status_field?: string;
+        rerun_values?: string[];
+        result_time_field?: string;
+        control_id_field?: string;
+        qc_marker?: {
+          field?: string;
+          values?: string[];
+        };
+        record_kind_default?: string;
+      };
+      file_drop?: {
+        directory: string;
+        filename_pattern: string;
+        barcode_regex?: string;
+        allowed_types: ("pdf" | "png" | "jpg")[];
+        stable_seconds?: number;
+        move_after_capture?: boolean;
+        captured_subdirectory?: string;
+        attachment_instrument_code: string;
+      };
+      capabilities: {
+        host_query: boolean;
+        worklist_download: boolean;
+      };
+      qc_sample_id_patterns?: string[];
+      timezone?: string;
+      silence_window_minutes?: number;
+      silence_active_from?: string;
+      silence_active_to?: string;
+    };
+    responses: {
+      201: ({
+        id: string;
+        centre_id: string;
+        instrument_code: string;
+        display_name: string;
+        agent_id: string;
+        vendor: string;
+        model: string;
+        serial_no?: string;
+        software_version?: string;
+        protocol: "astm" | "hl7v2" | "file_drop";
+        driver_code: string;
+        transport: ({
+          kind: "serial";
+          port_name: string;
+          baud_rate: 1200 | 2400 | 4800 | 9600 | 19200 | 38400 | 57600 | 115200;
+          data_bits: 7 | 8;
+          parity: "none" | "odd" | "even" | "mark" | "space";
+          stop_bits: "1" | "1.5" | "2";
+          dtr?: boolean;
+          rts?: boolean;
+        } | {
+          kind: "tcp_client";
+          host: string;
+          port: number;
+          connect_timeout_s?: number;
+          reconnect_max_backoff_s?: number;
+        } | {
+          kind: "tcp_server";
+          bind_address: string;
+          port: number;
+          allowed_peers: string[];
+        } | {
+          kind: "file_drop";
+          directory: string;
+          filename_pattern: string;
+          barcode_regex?: string;
+          allowed_types: ("pdf" | "png" | "jpg")[];
+          stable_seconds?: number;
+          move_after_capture?: boolean;
+          captured_subdirectory?: string;
+          attachment_instrument_code: string;
+        });
+        protocol_options?: {
+          astm?: {
+            establish_reply_s?: number;
+            nak_retry_delay_s?: number;
+            host_contention_defer_s?: number;
+            instrument_contention_retry_s?: number;
+            transfer_reply_s?: number;
+            receiver_frame_wait_s?: number;
+            receiver_interrupt_backoff_s?: number;
+            outbound_retry_cycle_s?: number;
+            max_frame_sends?: number;
+            max_establish_attempts?: number;
+            max_outbound_cycles?: number;
+            encoding?: string;
+          };
+          hl7v2?: {
+            ack_mode?: string;
+            ack_sending_app?: string;
+            ack_sending_facility?: string;
+            ack_timeout_s?: number;
+            send_retries?: number;
+            max_message_bytes?: number;
+          };
+        };
+        parser_options?: {
+          sample_id_field?: string;
+          test_code_field?: string;
+          value_field?: string;
+          unit_field?: string;
+          flags_field?: string;
+          result_status_field?: string;
+          rerun_values?: string[];
+          result_time_field?: string;
+          control_id_field?: string;
+          qc_marker?: {
+            field?: string;
+            values?: string[];
+          };
+          record_kind_default?: string;
+        };
+        file_drop?: {
+          directory: string;
+          filename_pattern: string;
+          barcode_regex?: string;
+          allowed_types: ("pdf" | "png" | "jpg")[];
+          stable_seconds?: number;
+          move_after_capture?: boolean;
+          captured_subdirectory?: string;
+          attachment_instrument_code: string;
+        };
+        capabilities: {
+          host_query: boolean;
+          worklist_download: boolean;
+        };
+        qc_sample_id_patterns?: string[];
+        timezone?: string;
+        silence_window_minutes?: number;
+        silence_active_from?: string;
+        silence_active_to?: string;
+        state: "draft" | "commissioning" | "live" | "suspended" | "retired";
+        driver_status: "generic" | "verified" | "sketch_blocked";
+        driver_version: string;
+        commissioned_at?: string;
+        live_at?: string;
+        live_by_display?: string;
+        go_live_checklist?: {
+          manual_reference_confirmed: boolean;
+          sample_comparison_done: boolean;
+          qc_comparison_done: boolean;
+          mappings_reviewed: boolean;
+        };
+        suspended_at?: string;
+        retired_at?: string;
+        version: number;
+        status: {
+          link_state?: "up" | "down" | "listening" | "connecting" | "error" | "disabled";
+          last_message_at?: string;
+          last_message_at_agent?: string;
+          last_link_error_code?: string;
+          instrument_clock_offset_seconds?: number;
+          silent_since?: string;
+        };
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      409: {
         type: string;
         title: string;
         status: number;
@@ -14045,6 +14571,87 @@ export interface Operations {
       };
     };
   };
+  downloadAgentRelease: {
+    params: {
+      release_id: string;
+    };
+    query: Record<string, never>;
+    headers: Record<string, never>;
+    body: never;
+    responses: {
+      200: string;
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
   downloadAuditExport: {
     params: {
       export_id: string;
@@ -14410,6 +15017,115 @@ export interface Operations {
         }[];
       };
       404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  downloadInstrumentAttachment: {
+    params: {
+      instrument_message_id: string;
+    };
+    query: Record<string, never>;
+    headers: Record<string, never>;
+    body: never;
+    responses: {
+      200: string | string | string;
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      422: {
         type: string;
         title: string;
         status: number;
@@ -15400,6 +16116,514 @@ export interface Operations {
         }[];
       };
       428: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  enrolAgent: {
+    params: Record<string, never>;
+    query: Record<string, never>;
+    headers: Record<string, never>;
+    body: {
+      host_fingerprint_sha256: string;
+      agent_version: string;
+      launcher_version: string;
+      os_version: string;
+    };
+    responses: {
+      201: {
+        agent_id: string;
+        centre_id: string;
+        device_token: string;
+        server_time: string;
+        config_version: number;
+      };
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  getAgent: {
+    params: {
+      agent_id: string;
+    };
+    query: Record<string, never>;
+    headers: Record<string, never>;
+    body: never;
+    responses: {
+      200: ({
+        id: string;
+        agent_code: string;
+        display_name: string;
+        centre_id: string;
+        status: "pending_enrolment" | "active" | "revoked" | "retired";
+        update_channel: "stable" | "beta";
+        pinned_release_id?: string;
+        backlog_threshold: number;
+        enrolled_at?: string;
+        revoked_at?: string;
+        revoke_reason_code?: string;
+        retired_at?: string;
+        version: number;
+        health: {
+          state: "online" | "offline" | "backlog" | "degraded";
+          health_version: number;
+          last_heartbeat_at?: string;
+          agent_version?: string;
+          launcher_version?: string;
+          os_version?: string;
+          queue_depth: number;
+          oldest_pending_age_seconds: number;
+          queue_rejected: number;
+          queue_oversize: number;
+          disk_free_mb?: number;
+          clock_offset_seconds?: number;
+          clock_offset_ms?: number;
+          clock_offset_uncertainty_ms?: number;
+          config_version_applied?: number;
+          config_state?: "ok" | "signature_invalid" | "agent_mismatch" | "rollback_rejected" | "schema_invalid";
+          update_state?: "idle" | "downloading" | "verifying" | "staged" | "applying" | "rolled_back" | "verify_failed" | "failed";
+          update_target_version?: string;
+          auth_state?: "ok" | "rejected";
+          last_ip?: string;
+          last_ip_changed_at?: string;
+        };
+        latest_config_version: number;
+        credentials: ({
+          credential_id: string;
+          kind: "enrolment_code" | "device_token";
+          status: "active" | "used" | "expired" | "revoked";
+          issued_at: string;
+          issued_by_display: string;
+          expires_at?: string;
+          used_at?: string;
+          last_used_at?: string;
+          revoked_at?: string;
+        })[];
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  getAgentConfig: {
+    params: Record<string, never>;
+    query: Record<string, never>;
+    headers: Record<string, never>;
+    body: never;
+    responses: {
+      200: ({
+        alg: "Ed25519";
+        key_id: string;
+        signature: string;
+        document: {
+          schema: "lims.bridge.config.v1";
+          agent_id: string;
+          centre_id: string;
+          config_version: number;
+          issued_at: string;
+          heartbeat_interval_seconds: number;
+          upload: {
+            max_batch_messages: number;
+            max_batch_bytes: number;
+            flush_interval_seconds: number;
+            uploaded_retention_hours: number;
+          };
+          rate_budget: {
+            requests_per_minute: number;
+            reserved_host_query_per_minute: number;
+            reserved_heartbeat_per_minute: number;
+          };
+          tls: {
+            spki_pins_sha256: string[];
+          };
+          log_level: string;
+          update: {
+            channel: "stable" | "beta";
+            target?: {
+              release_id: string;
+              version: string;
+              package_sha256: string;
+              package_size: number;
+              signature: string;
+              key_id: string;
+              authenticode_publisher: string;
+            };
+            allow_downgrade: boolean;
+            window?: {
+              from: string;
+              to: string;
+              timezone: string;
+            };
+          };
+          instruments: ({
+            instrument_id: string;
+            instrument_code: string;
+            state: "commissioning" | "live" | "suspended";
+            protocol: "astm" | "hl7v2" | "file_drop";
+            driver_code: string;
+            transport: ({
+              kind: "serial";
+              port_name: string;
+              baud_rate: 1200 | 2400 | 4800 | 9600 | 19200 | 38400 | 57600 | 115200;
+              data_bits: 7 | 8;
+              parity: "none" | "odd" | "even" | "mark" | "space";
+              stop_bits: "1" | "1.5" | "2";
+              dtr?: boolean;
+              rts?: boolean;
+            } | {
+              kind: "tcp_client";
+              host: string;
+              port: number;
+              connect_timeout_s?: number;
+              reconnect_max_backoff_s?: number;
+            } | {
+              kind: "tcp_server";
+              bind_address: string;
+              port: number;
+              allowed_peers: string[];
+            } | {
+              kind: "file_drop";
+              directory: string;
+              filename_pattern: string;
+              barcode_regex?: string;
+              allowed_types: ("pdf" | "png" | "jpg")[];
+              stable_seconds?: number;
+              move_after_capture?: boolean;
+              captured_subdirectory?: string;
+              attachment_instrument_code: string;
+            });
+            protocol_options?: {
+              astm?: {
+                establish_reply_s?: number;
+                nak_retry_delay_s?: number;
+                host_contention_defer_s?: number;
+                instrument_contention_retry_s?: number;
+                transfer_reply_s?: number;
+                receiver_frame_wait_s?: number;
+                receiver_interrupt_backoff_s?: number;
+                outbound_retry_cycle_s?: number;
+                max_frame_sends?: number;
+                max_establish_attempts?: number;
+                max_outbound_cycles?: number;
+                encoding?: string;
+              };
+              hl7v2?: {
+                ack_mode?: string;
+                ack_sending_app?: string;
+                ack_sending_facility?: string;
+                ack_timeout_s?: number;
+                send_retries?: number;
+                max_message_bytes?: number;
+              };
+            };
+            file_drop?: {
+              directory: string;
+              filename_pattern: string;
+              barcode_regex?: string;
+              allowed_types: ("pdf" | "png" | "jpg")[];
+              stable_seconds?: number;
+              move_after_capture?: boolean;
+              captured_subdirectory?: string;
+              attachment_instrument_code: string;
+            };
+            capabilities: {
+              host_query: boolean;
+              worklist_download: boolean;
+            };
+          })[];
+        };
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  getAgentLogBundle: {
+    params: {
+      agent_id: string;
+      bundle_id: string;
+    };
+    query: Record<string, never>;
+    headers: Record<string, never>;
+    body: never;
+    responses: {
+      200: {
+        bundle_id: string;
+        lines: string[];
+        from_at_agent: string;
+        to_at_agent: string;
+        created_at: string;
+      };
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
         type: string;
         title: string;
         status: number;
@@ -18632,6 +19856,604 @@ export interface Operations {
         raw_flags?: string[];
         unit_raw?: string;
       });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  getInstrument: {
+    params: {
+      instrument_id: string;
+    };
+    query: Record<string, never>;
+    headers: Record<string, never>;
+    body: never;
+    responses: {
+      200: ({
+        id: string;
+        centre_id: string;
+        instrument_code: string;
+        display_name: string;
+        agent_id: string;
+        vendor: string;
+        model: string;
+        serial_no?: string;
+        software_version?: string;
+        protocol: "astm" | "hl7v2" | "file_drop";
+        driver_code: string;
+        transport: ({
+          kind: "serial";
+          port_name: string;
+          baud_rate: 1200 | 2400 | 4800 | 9600 | 19200 | 38400 | 57600 | 115200;
+          data_bits: 7 | 8;
+          parity: "none" | "odd" | "even" | "mark" | "space";
+          stop_bits: "1" | "1.5" | "2";
+          dtr?: boolean;
+          rts?: boolean;
+        } | {
+          kind: "tcp_client";
+          host: string;
+          port: number;
+          connect_timeout_s?: number;
+          reconnect_max_backoff_s?: number;
+        } | {
+          kind: "tcp_server";
+          bind_address: string;
+          port: number;
+          allowed_peers: string[];
+        } | {
+          kind: "file_drop";
+          directory: string;
+          filename_pattern: string;
+          barcode_regex?: string;
+          allowed_types: ("pdf" | "png" | "jpg")[];
+          stable_seconds?: number;
+          move_after_capture?: boolean;
+          captured_subdirectory?: string;
+          attachment_instrument_code: string;
+        });
+        protocol_options?: {
+          astm?: {
+            establish_reply_s?: number;
+            nak_retry_delay_s?: number;
+            host_contention_defer_s?: number;
+            instrument_contention_retry_s?: number;
+            transfer_reply_s?: number;
+            receiver_frame_wait_s?: number;
+            receiver_interrupt_backoff_s?: number;
+            outbound_retry_cycle_s?: number;
+            max_frame_sends?: number;
+            max_establish_attempts?: number;
+            max_outbound_cycles?: number;
+            encoding?: string;
+          };
+          hl7v2?: {
+            ack_mode?: string;
+            ack_sending_app?: string;
+            ack_sending_facility?: string;
+            ack_timeout_s?: number;
+            send_retries?: number;
+            max_message_bytes?: number;
+          };
+        };
+        parser_options?: {
+          sample_id_field?: string;
+          test_code_field?: string;
+          value_field?: string;
+          unit_field?: string;
+          flags_field?: string;
+          result_status_field?: string;
+          rerun_values?: string[];
+          result_time_field?: string;
+          control_id_field?: string;
+          qc_marker?: {
+            field?: string;
+            values?: string[];
+          };
+          record_kind_default?: string;
+        };
+        file_drop?: {
+          directory: string;
+          filename_pattern: string;
+          barcode_regex?: string;
+          allowed_types: ("pdf" | "png" | "jpg")[];
+          stable_seconds?: number;
+          move_after_capture?: boolean;
+          captured_subdirectory?: string;
+          attachment_instrument_code: string;
+        };
+        capabilities: {
+          host_query: boolean;
+          worklist_download: boolean;
+        };
+        qc_sample_id_patterns?: string[];
+        timezone?: string;
+        silence_window_minutes?: number;
+        silence_active_from?: string;
+        silence_active_to?: string;
+        state: "draft" | "commissioning" | "live" | "suspended" | "retired";
+        driver_status: "generic" | "verified" | "sketch_blocked";
+        driver_version: string;
+        commissioned_at?: string;
+        live_at?: string;
+        live_by_display?: string;
+        go_live_checklist?: {
+          manual_reference_confirmed: boolean;
+          sample_comparison_done: boolean;
+          qc_comparison_done: boolean;
+          mappings_reviewed: boolean;
+        };
+        suspended_at?: string;
+        retired_at?: string;
+        version: number;
+        status: {
+          link_state?: "up" | "down" | "listening" | "connecting" | "error" | "disabled";
+          last_message_at?: string;
+          last_message_at_agent?: string;
+          last_link_error_code?: string;
+          instrument_clock_offset_seconds?: number;
+          silent_since?: string;
+        };
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  getInstrumentMessage: {
+    params: {
+      instrument_message_id: string;
+    };
+    query: {
+      preview_parse?: boolean;
+    };
+    headers: Record<string, never>;
+    body: never;
+    responses: {
+      200: ({
+        id: string;
+        instrument_id: string;
+        instrument_code: string;
+        agent_id: string;
+        centre_id: string;
+        protocol: "astm" | "hl7v2" | "file_drop";
+        message_kind: "data" | "incomplete" | "host_query" | "attachment";
+        received_at: string;
+        captured_at?: string;
+        size_bytes: number;
+        latest_run: {
+          run_no: number;
+          kind: "live" | "reprocess" | "rematch" | "attachment_scan";
+          outcome: "parsed" | "shadow" | "quarantined" | "rejected_capability";
+          patient_records: number;
+          qc_records: number;
+          calibrator_records: number;
+          unmapped_records: number;
+          emitted_events: number;
+        };
+        message_control_id?: string;
+        message_key_kind: "msh10" | "msh10_reused" | "sha256" | "sha256_repeat";
+        warnings: string[];
+        runs: ({
+          id: string;
+          run_no: number;
+          kind: "live" | "reprocess" | "rematch" | "attachment_scan";
+          driver_code: string;
+          driver_version: string;
+          outcome: "parsed" | "shadow" | "quarantined" | "rejected_capability";
+          error_code?: string;
+          error_reason?: string;
+          patient_records: number;
+          qc_records: number;
+          calibrator_records: number;
+          host_query_records: number;
+          unmapped_records: number;
+          skipped_no_barcode_records: number;
+          emitted_events: number;
+          skipped_records: number;
+          reason_code?: string;
+          reason_text?: string;
+          actor_type: "device" | "user" | "system";
+          actor_display?: string;
+          created_at: string;
+        })[];
+        records: ({
+          id: string;
+          run_no: number;
+          record_seq: number;
+          record_class: "patient" | "qc" | "calibrator" | "host_query" | "other";
+          sample_barcode?: string;
+          control_id_raw?: string;
+          record_kind?: "quantitative" | "qualitative" | "ordinal" | "text" | "organism_id" | "ast" | "attachment";
+          instrument_analyte_code?: string;
+          mapping_status?: "mapped" | "unmapped";
+          analyte_id?: string;
+          test_id?: string;
+          value_raw?: string;
+          unit_raw?: string;
+          instrument_flags: string[];
+          instrument_result_time?: string;
+          is_rerun?: boolean;
+          emit_status: "emitted" | "duplicate_event" | "shadow" | "skipped_no_barcode" | "skipped_invalid" | "not_applicable" | "pending_scan" | "quarantined_attachment";
+          event_id?: string;
+          port_outcome?: "applied" | "duplicate" | "unmatched" | "rejected_state" | "held";
+          port_reason_code?: string;
+          port_result_id?: string;
+          source_record_id?: string;
+          warnings: string[];
+        })[];
+        attachment?: {
+          attachment_id: string;
+          scan_state: "pending" | "clean" | "quarantined" | "failed";
+          mime_type: "application/pdf" | "image/png" | "image/jpeg";
+          size_bytes: number;
+          original_file_name: string;
+        };
+        records_expired: boolean;
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  getInstrumentMessageRaw: {
+    params: {
+      instrument_message_id: string;
+    };
+    query: Record<string, never>;
+    headers: Record<string, never>;
+    body: never;
+    responses: {
+      200: {
+        raw_base64: string;
+        raw_text_escaped: string;
+        raw_sha256: string;
+        size_bytes: number;
+      };
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  getInstrumentSettings: {
+    params: Record<string, never>;
+    query: Record<string, never>;
+    headers: Record<string, never>;
+    body: never;
+    responses: {
+      200: {
+        default_backlog_threshold: number;
+        backlog_max_oldest_pending_seconds: number;
+        clock_offset_warn_seconds: number;
+        agent_uploaded_retention_hours: number;
+        update_window_from?: string;
+        update_window_to?: string;
+        version: number;
+      };
       400: {
         type: string;
         title: string;
@@ -23521,6 +25343,279 @@ export interface Operations {
       };
     };
   };
+  goLiveInstrument: {
+    params: {
+      instrument_id: string;
+    };
+    query: Record<string, never>;
+    headers: {
+      "Idempotency-Key"?: string;
+      "If-Match": string;
+    };
+    body: {
+      checklist: {
+        manual_reference_confirmed: boolean;
+        sample_comparison_done: boolean;
+        qc_comparison_done: boolean;
+        mappings_reviewed: boolean;
+      };
+      evidence_note: string;
+    };
+    responses: {
+      200: ({
+        id: string;
+        centre_id: string;
+        instrument_code: string;
+        display_name: string;
+        agent_id: string;
+        vendor: string;
+        model: string;
+        serial_no?: string;
+        software_version?: string;
+        protocol: "astm" | "hl7v2" | "file_drop";
+        driver_code: string;
+        transport: ({
+          kind: "serial";
+          port_name: string;
+          baud_rate: 1200 | 2400 | 4800 | 9600 | 19200 | 38400 | 57600 | 115200;
+          data_bits: 7 | 8;
+          parity: "none" | "odd" | "even" | "mark" | "space";
+          stop_bits: "1" | "1.5" | "2";
+          dtr?: boolean;
+          rts?: boolean;
+        } | {
+          kind: "tcp_client";
+          host: string;
+          port: number;
+          connect_timeout_s?: number;
+          reconnect_max_backoff_s?: number;
+        } | {
+          kind: "tcp_server";
+          bind_address: string;
+          port: number;
+          allowed_peers: string[];
+        } | {
+          kind: "file_drop";
+          directory: string;
+          filename_pattern: string;
+          barcode_regex?: string;
+          allowed_types: ("pdf" | "png" | "jpg")[];
+          stable_seconds?: number;
+          move_after_capture?: boolean;
+          captured_subdirectory?: string;
+          attachment_instrument_code: string;
+        });
+        protocol_options?: {
+          astm?: {
+            establish_reply_s?: number;
+            nak_retry_delay_s?: number;
+            host_contention_defer_s?: number;
+            instrument_contention_retry_s?: number;
+            transfer_reply_s?: number;
+            receiver_frame_wait_s?: number;
+            receiver_interrupt_backoff_s?: number;
+            outbound_retry_cycle_s?: number;
+            max_frame_sends?: number;
+            max_establish_attempts?: number;
+            max_outbound_cycles?: number;
+            encoding?: string;
+          };
+          hl7v2?: {
+            ack_mode?: string;
+            ack_sending_app?: string;
+            ack_sending_facility?: string;
+            ack_timeout_s?: number;
+            send_retries?: number;
+            max_message_bytes?: number;
+          };
+        };
+        parser_options?: {
+          sample_id_field?: string;
+          test_code_field?: string;
+          value_field?: string;
+          unit_field?: string;
+          flags_field?: string;
+          result_status_field?: string;
+          rerun_values?: string[];
+          result_time_field?: string;
+          control_id_field?: string;
+          qc_marker?: {
+            field?: string;
+            values?: string[];
+          };
+          record_kind_default?: string;
+        };
+        file_drop?: {
+          directory: string;
+          filename_pattern: string;
+          barcode_regex?: string;
+          allowed_types: ("pdf" | "png" | "jpg")[];
+          stable_seconds?: number;
+          move_after_capture?: boolean;
+          captured_subdirectory?: string;
+          attachment_instrument_code: string;
+        };
+        capabilities: {
+          host_query: boolean;
+          worklist_download: boolean;
+        };
+        qc_sample_id_patterns?: string[];
+        timezone?: string;
+        silence_window_minutes?: number;
+        silence_active_from?: string;
+        silence_active_to?: string;
+        state: "draft" | "commissioning" | "live" | "suspended" | "retired";
+        driver_status: "generic" | "verified" | "sketch_blocked";
+        driver_version: string;
+        commissioned_at?: string;
+        live_at?: string;
+        live_by_display?: string;
+        go_live_checklist?: {
+          manual_reference_confirmed: boolean;
+          sample_comparison_done: boolean;
+          qc_comparison_done: boolean;
+          mappings_reviewed: boolean;
+        };
+        suspended_at?: string;
+        retired_at?: string;
+        version: number;
+        status: {
+          link_state?: "up" | "down" | "listening" | "connecting" | "error" | "disabled";
+          last_message_at?: string;
+          last_message_at_agent?: string;
+          last_link_error_code?: string;
+          instrument_clock_offset_seconds?: number;
+          silent_since?: string;
+        };
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      409: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      422: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      428: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
   invitePlatformStaff: {
     params: Record<string, never>;
     query: Record<string, never>;
@@ -23884,6 +25979,119 @@ export interface Operations {
         }[];
       };
       422: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  issueEnrolmentCode: {
+    params: {
+      agent_id: string;
+    };
+    query: Record<string, never>;
+    headers: Record<string, never>;
+    body: Record<string, never>;
+    responses: {
+      201: {
+        enrolment_code: string;
+        expires_at: string;
+        credential_id: string;
+      };
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      409: {
         type: string;
         title: string;
         status: number;
@@ -24644,6 +26852,471 @@ export interface Operations {
         }[];
       };
       403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  listAgentCommands: {
+    params: {
+      agent_id: string;
+    };
+    query: {
+      cursor?: string;
+      limit?: number;
+    };
+    headers: Record<string, never>;
+    body: never;
+    responses: {
+      200: ({
+        data: ({
+          command_id: string;
+          agent_id: string;
+          kind: "upload_logs" | "refresh_config" | "restart_service" | "reupload_since";
+          params: {
+            since?: string;
+          };
+          state: "queued" | "delivered" | "completed" | "failed" | "expired";
+          requested_at: string;
+          requested_by_display: string;
+          delivered_at?: string;
+          completed_at?: string;
+          result_code?: string;
+          expires_at: string;
+          log_bundle_id?: string;
+        })[];
+        page: {
+          next_cursor?: string;
+          limit: number;
+        };
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  listAgentHealthTransitions: {
+    params: {
+      agent_id: string;
+    };
+    query: {
+      changed_at_from?: string;
+      changed_at_to?: string;
+      cursor?: string;
+      limit?: number;
+    };
+    headers: Record<string, never>;
+    body: never;
+    responses: {
+      200: ({
+        data: ({
+          health_version: number;
+          from_state?: "online" | "offline" | "backlog" | "degraded";
+          to_state: "online" | "offline" | "backlog" | "degraded";
+          changed_at: string;
+          last_heartbeat_at?: string;
+          queue_depth: number;
+          clock_offset_seconds?: number;
+          silent_instrument_ids: string[];
+        })[];
+        page: {
+          next_cursor?: string;
+          limit: number;
+        };
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  listAgentReleases: {
+    params: Record<string, never>;
+    query: {
+      channel?: "stable" | "beta";
+    };
+    headers: Record<string, never>;
+    body: never;
+    responses: {
+      200: ({
+        data: ({
+          id: string;
+          version: string;
+          channel: "stable" | "beta";
+          released_at: string;
+          package_size: number;
+          min_windows_build?: number;
+          notes?: string;
+          is_active: boolean;
+        })[];
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  listAgents: {
+    params: Record<string, never>;
+    query: {
+      centre_id?: string;
+      status?: ("pending_enrolment" | "active" | "revoked" | "retired")[];
+      health_state?: ("online" | "offline" | "backlog" | "degraded")[];
+      sort?: "agent_code" | "-last_heartbeat_at";
+      cursor?: string;
+      limit?: number;
+    };
+    headers: Record<string, never>;
+    body: never;
+    responses: {
+      200: ({
+        data: ({
+          id: string;
+          agent_code: string;
+          display_name: string;
+          centre_id: string;
+          status: "pending_enrolment" | "active" | "revoked" | "retired";
+          update_channel: "stable" | "beta";
+          version: number;
+          latest_config_version: number;
+          health: {
+            state: "online" | "offline" | "backlog" | "degraded";
+            last_heartbeat_at?: string;
+            agent_version?: string;
+            queue_depth: number;
+            oldest_pending_age_seconds: number;
+            clock_offset_seconds?: number;
+            config_state?: "ok" | "signature_invalid" | "agent_mismatch" | "rollback_rejected" | "schema_invalid";
+            update_state?: "idle" | "downloading" | "verifying" | "staged" | "applying" | "rolled_back" | "verify_failed" | "failed";
+          };
+        })[];
+        page: {
+          next_cursor?: string;
+          limit: number;
+        };
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
         type: string;
         title: string;
         status: number;
@@ -27542,6 +30215,126 @@ export interface Operations {
       };
     };
   };
+  listDrivers: {
+    params: Record<string, never>;
+    query: {
+      protocol?: "astm" | "hl7v2" | "file_drop";
+      status?: "generic" | "verified" | "sketch_blocked";
+    };
+    headers: Record<string, never>;
+    body: never;
+    responses: {
+      200: ({
+        data: ({
+          code: string;
+          display_name: string;
+          protocol: "astm" | "hl7v2" | "file_drop";
+          vendor?: string;
+          model_pattern?: string;
+          status: "generic" | "verified" | "sketch_blocked";
+          driver_version: string;
+          capabilities: {
+            host_query: boolean;
+            worklist_download: boolean;
+            qc: boolean;
+            attachments: boolean;
+            calibration: boolean;
+          };
+          manual?: {
+            title: string;
+            document_id: string;
+            revision: string;
+            software_version?: string;
+          };
+          is_active: boolean;
+        })[];
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
   listDues: {
     params: Record<string, never>;
     query: {
@@ -28571,6 +31364,263 @@ export interface Operations {
       };
     };
   };
+  listInstrumentMessages: {
+    params: Record<string, never>;
+    query: {
+      received_at_from: string;
+      received_at_to: string;
+      instrument_id?: string;
+      agent_id?: string;
+      centre_id?: string;
+      message_kind?: ("data" | "incomplete" | "host_query" | "attachment")[];
+      latest_outcome?: ("parsed" | "shadow" | "quarantined" | "rejected_capability")[];
+      has_unmapped?: boolean;
+      has_qc?: boolean;
+      sort?: "-received_at";
+      cursor?: string;
+      limit?: number;
+    };
+    headers: Record<string, never>;
+    body: never;
+    responses: {
+      200: ({
+        data: ({
+          id: string;
+          instrument_id: string;
+          instrument_code: string;
+          agent_id: string;
+          centre_id: string;
+          protocol: "astm" | "hl7v2" | "file_drop";
+          message_kind: "data" | "incomplete" | "host_query" | "attachment";
+          received_at: string;
+          captured_at?: string;
+          size_bytes: number;
+          latest_run: {
+            run_no: number;
+            kind: "live" | "reprocess" | "rematch" | "attachment_scan";
+            outcome: "parsed" | "shadow" | "quarantined" | "rejected_capability";
+            patient_records: number;
+            qc_records: number;
+            calibrator_records: number;
+            unmapped_records: number;
+            emitted_events: number;
+          };
+        })[];
+        page: {
+          next_cursor?: string;
+          limit: number;
+        };
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  listInstruments: {
+    params: Record<string, never>;
+    query: {
+      centre_id?: string;
+      agent_id?: string;
+      state?: ("draft" | "commissioning" | "live" | "suspended" | "retired")[];
+      protocol?: "astm" | "hl7v2" | "file_drop";
+      sort?: "instrument_code" | "-last_message_at";
+      cursor?: string;
+      limit?: number;
+    };
+    headers: Record<string, never>;
+    body: never;
+    responses: {
+      200: ({
+        data: ({
+          id: string;
+          instrument_code: string;
+          display_name: string;
+          vendor: string;
+          model: string;
+          protocol: "astm" | "hl7v2" | "file_drop";
+          agent_id: string;
+          agent_code: string;
+          centre_id: string;
+          driver_code: string;
+          driver_status: "generic" | "verified" | "sketch_blocked";
+          state: "draft" | "commissioning" | "live" | "suspended" | "retired";
+          version: number;
+          link_state?: "up" | "down" | "listening" | "connecting" | "error" | "disabled";
+          last_message_at?: string;
+          unmapped_code_count: number;
+        })[];
+        page: {
+          next_cursor?: string;
+          limit: number;
+        };
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
   listInvoicePrints: {
     params: {
       invoice_id: string;
@@ -29043,6 +32093,121 @@ export interface Operations {
       };
     };
   };
+  listMessageRejections: {
+    params: Record<string, never>;
+    query: {
+      received_at_from: string;
+      received_at_to: string;
+      agent_id?: string;
+      reason?: "instruments.instrument_unknown" | "instruments.device_mismatch" | "instruments.message_too_large";
+      cursor?: string;
+      limit?: number;
+    };
+    headers: Record<string, never>;
+    body: never;
+    responses: {
+      200: ({
+        data: ({
+          id: string;
+          received_at: string;
+          agent_id: string;
+          claimed_instrument_id: string;
+          agent_message_id: string;
+          reason_code: "instruments.instrument_unknown" | "instruments.device_mismatch" | "instruments.message_too_large";
+          size_bytes: number;
+          raw_sha256: string;
+        })[];
+        page: {
+          next_cursor?: string;
+          limit: number;
+        };
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
   listMessageTemplates: {
     params: Record<string, never>;
     query: Record<string, never>;
@@ -29413,6 +32578,122 @@ export interface Operations {
           is_active: boolean;
           version: number;
         })[];
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  listObservedInstrumentCodes: {
+    params: {
+      instrument_id: string;
+    };
+    query: {
+      record_class?: "patient" | "qc" | "calibrator";
+      mapping_status?: "mapped" | "unmapped";
+      cursor?: string;
+      limit?: number;
+    };
+    headers: Record<string, never>;
+    body: never;
+    responses: {
+      200: ({
+        data: ({
+          instrument_id: string;
+          record_class: "patient" | "qc" | "calibrator";
+          instrument_analyte_code: string;
+          first_seen_at: string;
+          last_seen_at: string;
+          seen_count: number;
+          last_mapping_status: "mapped" | "unmapped";
+          last_analyte_id?: string;
+          last_mapping_checked_at: string;
+        })[];
+        page: {
+          next_cursor?: string;
+          limit: number;
+        };
       });
       400: {
         type: string;
@@ -40852,6 +44133,184 @@ export interface Operations {
       };
     };
   };
+  rematchInstrumentRecord: {
+    params: {
+      record_id: string;
+    };
+    query: Record<string, never>;
+    headers: {
+      "Idempotency-Key": string;
+    };
+    body: {
+      sample_barcode: string;
+      reason_code: string;
+      reason_text?: string;
+    };
+    responses: {
+      200: ({
+        run: {
+          id: string;
+          run_no: number;
+          kind: "live" | "reprocess" | "rematch" | "attachment_scan";
+          driver_code: string;
+          driver_version: string;
+          outcome: "parsed" | "shadow" | "quarantined" | "rejected_capability";
+          error_code?: string;
+          error_reason?: string;
+          patient_records: number;
+          qc_records: number;
+          calibrator_records: number;
+          host_query_records: number;
+          unmapped_records: number;
+          skipped_no_barcode_records: number;
+          emitted_events: number;
+          skipped_records: number;
+          reason_code?: string;
+          reason_text?: string;
+          actor_type: "device" | "user" | "system";
+          actor_display?: string;
+          created_at: string;
+        };
+        record: {
+          id: string;
+          run_no: number;
+          record_seq: number;
+          record_class: "patient" | "qc" | "calibrator" | "host_query" | "other";
+          sample_barcode?: string;
+          control_id_raw?: string;
+          record_kind?: "quantitative" | "qualitative" | "ordinal" | "text" | "organism_id" | "ast" | "attachment";
+          instrument_analyte_code?: string;
+          mapping_status?: "mapped" | "unmapped";
+          analyte_id?: string;
+          test_id?: string;
+          value_raw?: string;
+          unit_raw?: string;
+          instrument_flags: string[];
+          instrument_result_time?: string;
+          is_rerun?: boolean;
+          emit_status: "emitted" | "duplicate_event" | "shadow" | "skipped_no_barcode" | "skipped_invalid" | "not_applicable" | "pending_scan" | "quarantined_attachment";
+          event_id?: string;
+          port_outcome?: "applied" | "duplicate" | "unmatched" | "rejected_state" | "held";
+          port_reason_code?: string;
+          port_result_id?: string;
+          source_record_id?: string;
+          warnings: string[];
+        };
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      409: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      422: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
   removeOwnMfaFactor: {
     params: {
       factor_id: string;
@@ -42135,6 +45594,329 @@ export interface Operations {
         }[];
       };
       428: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  reprocessInstrumentMessage: {
+    params: {
+      instrument_message_id: string;
+    };
+    query: Record<string, never>;
+    headers: {
+      "Idempotency-Key": string;
+    };
+    body: {
+      reason_code: string;
+      reason_text?: string;
+    };
+    responses: {
+      200: ({
+        run: {
+          id: string;
+          run_no: number;
+          kind: "live" | "reprocess" | "rematch" | "attachment_scan";
+          driver_code: string;
+          driver_version: string;
+          outcome: "parsed" | "shadow" | "quarantined" | "rejected_capability";
+          error_code?: string;
+          error_reason?: string;
+          patient_records: number;
+          qc_records: number;
+          calibrator_records: number;
+          host_query_records: number;
+          unmapped_records: number;
+          skipped_no_barcode_records: number;
+          emitted_events: number;
+          skipped_records: number;
+          reason_code?: string;
+          reason_text?: string;
+          actor_type: "device" | "user" | "system";
+          actor_display?: string;
+          created_at: string;
+        };
+        records: ({
+          id: string;
+          run_no: number;
+          record_seq: number;
+          record_class: "patient" | "qc" | "calibrator" | "host_query" | "other";
+          sample_barcode?: string;
+          control_id_raw?: string;
+          record_kind?: "quantitative" | "qualitative" | "ordinal" | "text" | "organism_id" | "ast" | "attachment";
+          instrument_analyte_code?: string;
+          mapping_status?: "mapped" | "unmapped";
+          analyte_id?: string;
+          test_id?: string;
+          value_raw?: string;
+          unit_raw?: string;
+          instrument_flags: string[];
+          instrument_result_time?: string;
+          is_rerun?: boolean;
+          emit_status: "emitted" | "duplicate_event" | "shadow" | "skipped_no_barcode" | "skipped_invalid" | "not_applicable" | "pending_scan" | "quarantined_attachment";
+          event_id?: string;
+          port_outcome?: "applied" | "duplicate" | "unmatched" | "rejected_state" | "held";
+          port_reason_code?: string;
+          port_result_id?: string;
+          source_record_id?: string;
+          warnings: string[];
+        })[];
+        preview: boolean;
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      409: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      422: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  requestAgentCommand: {
+    params: {
+      agent_id: string;
+    };
+    query: Record<string, never>;
+    headers: {
+      "Idempotency-Key": string;
+    };
+    body: {
+      kind: "upload_logs" | "refresh_config" | "restart_service" | "reupload_since";
+      params?: {
+        since?: string;
+      };
+    };
+    responses: {
+      202: ({
+        command_id: string;
+        agent_id: string;
+        kind: "upload_logs" | "refresh_config" | "restart_service" | "reupload_since";
+        params: {
+          since?: string;
+        };
+        state: "queued" | "delivered" | "completed" | "failed" | "expired";
+        requested_at: string;
+        requested_by_display: string;
+        delivered_at?: string;
+        completed_at?: string;
+        result_code?: string;
+        expires_at: string;
+        log_bundle_id?: string;
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      409: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      422: {
         type: string;
         title: string;
         status: number;
@@ -44046,6 +47828,449 @@ export interface Operations {
       };
     };
   };
+  resumeInstrument: {
+    params: {
+      instrument_id: string;
+    };
+    query: Record<string, never>;
+    headers: {
+      "Idempotency-Key"?: string;
+      "If-Match": string;
+    };
+    body: Record<string, never>;
+    responses: {
+      200: ({
+        id: string;
+        centre_id: string;
+        instrument_code: string;
+        display_name: string;
+        agent_id: string;
+        vendor: string;
+        model: string;
+        serial_no?: string;
+        software_version?: string;
+        protocol: "astm" | "hl7v2" | "file_drop";
+        driver_code: string;
+        transport: ({
+          kind: "serial";
+          port_name: string;
+          baud_rate: 1200 | 2400 | 4800 | 9600 | 19200 | 38400 | 57600 | 115200;
+          data_bits: 7 | 8;
+          parity: "none" | "odd" | "even" | "mark" | "space";
+          stop_bits: "1" | "1.5" | "2";
+          dtr?: boolean;
+          rts?: boolean;
+        } | {
+          kind: "tcp_client";
+          host: string;
+          port: number;
+          connect_timeout_s?: number;
+          reconnect_max_backoff_s?: number;
+        } | {
+          kind: "tcp_server";
+          bind_address: string;
+          port: number;
+          allowed_peers: string[];
+        } | {
+          kind: "file_drop";
+          directory: string;
+          filename_pattern: string;
+          barcode_regex?: string;
+          allowed_types: ("pdf" | "png" | "jpg")[];
+          stable_seconds?: number;
+          move_after_capture?: boolean;
+          captured_subdirectory?: string;
+          attachment_instrument_code: string;
+        });
+        protocol_options?: {
+          astm?: {
+            establish_reply_s?: number;
+            nak_retry_delay_s?: number;
+            host_contention_defer_s?: number;
+            instrument_contention_retry_s?: number;
+            transfer_reply_s?: number;
+            receiver_frame_wait_s?: number;
+            receiver_interrupt_backoff_s?: number;
+            outbound_retry_cycle_s?: number;
+            max_frame_sends?: number;
+            max_establish_attempts?: number;
+            max_outbound_cycles?: number;
+            encoding?: string;
+          };
+          hl7v2?: {
+            ack_mode?: string;
+            ack_sending_app?: string;
+            ack_sending_facility?: string;
+            ack_timeout_s?: number;
+            send_retries?: number;
+            max_message_bytes?: number;
+          };
+        };
+        parser_options?: {
+          sample_id_field?: string;
+          test_code_field?: string;
+          value_field?: string;
+          unit_field?: string;
+          flags_field?: string;
+          result_status_field?: string;
+          rerun_values?: string[];
+          result_time_field?: string;
+          control_id_field?: string;
+          qc_marker?: {
+            field?: string;
+            values?: string[];
+          };
+          record_kind_default?: string;
+        };
+        file_drop?: {
+          directory: string;
+          filename_pattern: string;
+          barcode_regex?: string;
+          allowed_types: ("pdf" | "png" | "jpg")[];
+          stable_seconds?: number;
+          move_after_capture?: boolean;
+          captured_subdirectory?: string;
+          attachment_instrument_code: string;
+        };
+        capabilities: {
+          host_query: boolean;
+          worklist_download: boolean;
+        };
+        qc_sample_id_patterns?: string[];
+        timezone?: string;
+        silence_window_minutes?: number;
+        silence_active_from?: string;
+        silence_active_to?: string;
+        state: "draft" | "commissioning" | "live" | "suspended" | "retired";
+        driver_status: "generic" | "verified" | "sketch_blocked";
+        driver_version: string;
+        commissioned_at?: string;
+        live_at?: string;
+        live_by_display?: string;
+        go_live_checklist?: {
+          manual_reference_confirmed: boolean;
+          sample_comparison_done: boolean;
+          qc_comparison_done: boolean;
+          mappings_reviewed: boolean;
+        };
+        suspended_at?: string;
+        retired_at?: string;
+        version: number;
+        status: {
+          link_state?: "up" | "down" | "listening" | "connecting" | "error" | "disabled";
+          last_message_at?: string;
+          last_message_at_agent?: string;
+          last_link_error_code?: string;
+          instrument_clock_offset_seconds?: number;
+          silent_since?: string;
+        };
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      409: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      422: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      428: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  retireAgent: {
+    params: {
+      agent_id: string;
+    };
+    query: Record<string, never>;
+    headers: {
+      "Idempotency-Key"?: string;
+      "If-Match": string;
+    };
+    body: {
+      reason_code: string;
+      reason_text?: string;
+    };
+    responses: {
+      200: ({
+        id: string;
+        agent_code: string;
+        display_name: string;
+        centre_id: string;
+        status: "pending_enrolment" | "active" | "revoked" | "retired";
+        update_channel: "stable" | "beta";
+        pinned_release_id?: string;
+        backlog_threshold: number;
+        enrolled_at?: string;
+        revoked_at?: string;
+        revoke_reason_code?: string;
+        retired_at?: string;
+        version: number;
+        health: {
+          state: "online" | "offline" | "backlog" | "degraded";
+          health_version: number;
+          last_heartbeat_at?: string;
+          agent_version?: string;
+          launcher_version?: string;
+          os_version?: string;
+          queue_depth: number;
+          oldest_pending_age_seconds: number;
+          queue_rejected: number;
+          queue_oversize: number;
+          disk_free_mb?: number;
+          clock_offset_seconds?: number;
+          clock_offset_ms?: number;
+          clock_offset_uncertainty_ms?: number;
+          config_version_applied?: number;
+          config_state?: "ok" | "signature_invalid" | "agent_mismatch" | "rollback_rejected" | "schema_invalid";
+          update_state?: "idle" | "downloading" | "verifying" | "staged" | "applying" | "rolled_back" | "verify_failed" | "failed";
+          update_target_version?: string;
+          auth_state?: "ok" | "rejected";
+          last_ip?: string;
+          last_ip_changed_at?: string;
+        };
+        latest_config_version: number;
+        credentials: ({
+          credential_id: string;
+          kind: "enrolment_code" | "device_token";
+          status: "active" | "used" | "expired" | "revoked";
+          issued_at: string;
+          issued_by_display: string;
+          expires_at?: string;
+          used_at?: string;
+          last_used_at?: string;
+          revoked_at?: string;
+        })[];
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      409: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      428: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
   retireCriticalLimitSet: {
     params: {
       set_id: string;
@@ -44158,6 +48383,259 @@ export interface Operations {
         }[];
       };
       422: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      428: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  retireInstrument: {
+    params: {
+      instrument_id: string;
+    };
+    query: Record<string, never>;
+    headers: {
+      "Idempotency-Key"?: string;
+      "If-Match": string;
+    };
+    body: {
+      reason_text: string;
+    };
+    responses: {
+      200: ({
+        id: string;
+        centre_id: string;
+        instrument_code: string;
+        display_name: string;
+        agent_id: string;
+        vendor: string;
+        model: string;
+        serial_no?: string;
+        software_version?: string;
+        protocol: "astm" | "hl7v2" | "file_drop";
+        driver_code: string;
+        transport: ({
+          kind: "serial";
+          port_name: string;
+          baud_rate: 1200 | 2400 | 4800 | 9600 | 19200 | 38400 | 57600 | 115200;
+          data_bits: 7 | 8;
+          parity: "none" | "odd" | "even" | "mark" | "space";
+          stop_bits: "1" | "1.5" | "2";
+          dtr?: boolean;
+          rts?: boolean;
+        } | {
+          kind: "tcp_client";
+          host: string;
+          port: number;
+          connect_timeout_s?: number;
+          reconnect_max_backoff_s?: number;
+        } | {
+          kind: "tcp_server";
+          bind_address: string;
+          port: number;
+          allowed_peers: string[];
+        } | {
+          kind: "file_drop";
+          directory: string;
+          filename_pattern: string;
+          barcode_regex?: string;
+          allowed_types: ("pdf" | "png" | "jpg")[];
+          stable_seconds?: number;
+          move_after_capture?: boolean;
+          captured_subdirectory?: string;
+          attachment_instrument_code: string;
+        });
+        protocol_options?: {
+          astm?: {
+            establish_reply_s?: number;
+            nak_retry_delay_s?: number;
+            host_contention_defer_s?: number;
+            instrument_contention_retry_s?: number;
+            transfer_reply_s?: number;
+            receiver_frame_wait_s?: number;
+            receiver_interrupt_backoff_s?: number;
+            outbound_retry_cycle_s?: number;
+            max_frame_sends?: number;
+            max_establish_attempts?: number;
+            max_outbound_cycles?: number;
+            encoding?: string;
+          };
+          hl7v2?: {
+            ack_mode?: string;
+            ack_sending_app?: string;
+            ack_sending_facility?: string;
+            ack_timeout_s?: number;
+            send_retries?: number;
+            max_message_bytes?: number;
+          };
+        };
+        parser_options?: {
+          sample_id_field?: string;
+          test_code_field?: string;
+          value_field?: string;
+          unit_field?: string;
+          flags_field?: string;
+          result_status_field?: string;
+          rerun_values?: string[];
+          result_time_field?: string;
+          control_id_field?: string;
+          qc_marker?: {
+            field?: string;
+            values?: string[];
+          };
+          record_kind_default?: string;
+        };
+        file_drop?: {
+          directory: string;
+          filename_pattern: string;
+          barcode_regex?: string;
+          allowed_types: ("pdf" | "png" | "jpg")[];
+          stable_seconds?: number;
+          move_after_capture?: boolean;
+          captured_subdirectory?: string;
+          attachment_instrument_code: string;
+        };
+        capabilities: {
+          host_query: boolean;
+          worklist_download: boolean;
+        };
+        qc_sample_id_patterns?: string[];
+        timezone?: string;
+        silence_window_minutes?: number;
+        silence_active_from?: string;
+        silence_active_to?: string;
+        state: "draft" | "commissioning" | "live" | "suspended" | "retired";
+        driver_status: "generic" | "verified" | "sketch_blocked";
+        driver_version: string;
+        commissioned_at?: string;
+        live_at?: string;
+        live_by_display?: string;
+        go_live_checklist?: {
+          manual_reference_confirmed: boolean;
+          sample_comparison_done: boolean;
+          qc_comparison_done: boolean;
+          mappings_reviewed: boolean;
+        };
+        suspended_at?: string;
+        retired_at?: string;
+        version: number;
+        status: {
+          link_state?: "up" | "down" | "listening" | "connecting" | "error" | "disabled";
+          last_message_at?: string;
+          last_message_at_agent?: string;
+          last_link_error_code?: string;
+          instrument_clock_offset_seconds?: number;
+          silent_since?: string;
+        };
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      409: {
         type: string;
         title: string;
         status: number;
@@ -45118,6 +49596,184 @@ export interface Operations {
         }[];
       };
       422: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  revokeAgent: {
+    params: {
+      agent_id: string;
+    };
+    query: Record<string, never>;
+    headers: {
+      "Idempotency-Key"?: string;
+      "If-Match": string;
+    };
+    body: {
+      reason_code: string;
+      reason_text?: string;
+    };
+    responses: {
+      200: ({
+        id: string;
+        agent_code: string;
+        display_name: string;
+        centre_id: string;
+        status: "pending_enrolment" | "active" | "revoked" | "retired";
+        update_channel: "stable" | "beta";
+        pinned_release_id?: string;
+        backlog_threshold: number;
+        enrolled_at?: string;
+        revoked_at?: string;
+        revoke_reason_code?: string;
+        retired_at?: string;
+        version: number;
+        health: {
+          state: "online" | "offline" | "backlog" | "degraded";
+          health_version: number;
+          last_heartbeat_at?: string;
+          agent_version?: string;
+          launcher_version?: string;
+          os_version?: string;
+          queue_depth: number;
+          oldest_pending_age_seconds: number;
+          queue_rejected: number;
+          queue_oversize: number;
+          disk_free_mb?: number;
+          clock_offset_seconds?: number;
+          clock_offset_ms?: number;
+          clock_offset_uncertainty_ms?: number;
+          config_version_applied?: number;
+          config_state?: "ok" | "signature_invalid" | "agent_mismatch" | "rollback_rejected" | "schema_invalid";
+          update_state?: "idle" | "downloading" | "verifying" | "staged" | "applying" | "rolled_back" | "verify_failed" | "failed";
+          update_target_version?: string;
+          auth_state?: "ok" | "rejected";
+          last_ip?: string;
+          last_ip_changed_at?: string;
+        };
+        latest_config_version: number;
+        credentials: ({
+          credential_id: string;
+          kind: "enrolment_code" | "device_token";
+          status: "active" | "used" | "expired" | "revoked";
+          issued_at: string;
+          issued_by_display: string;
+          expires_at?: string;
+          used_at?: string;
+          last_used_at?: string;
+          revoked_at?: string;
+        })[];
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      409: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      428: {
         type: string;
         title: string;
         status: number;
@@ -46244,6 +50900,127 @@ export interface Operations {
           canonical_doctor_id?: string;
         }[];
       };
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  searchInstrumentMessages: {
+    params: Record<string, never>;
+    query: Record<string, never>;
+    headers: Record<string, never>;
+    body: {
+      sample_barcode: string;
+      received_at_from?: string;
+      received_at_to?: string;
+      instrument_id?: string;
+    };
+    responses: {
+      200: ({
+        data: ({
+          id: string;
+          instrument_id: string;
+          instrument_code: string;
+          agent_id: string;
+          centre_id: string;
+          protocol: "astm" | "hl7v2" | "file_drop";
+          message_kind: "data" | "incomplete" | "host_query" | "attachment";
+          received_at: string;
+          captured_at?: string;
+          size_bytes: number;
+          latest_run: {
+            run_no: number;
+            kind: "live" | "reprocess" | "rematch" | "attachment_scan";
+            outcome: "parsed" | "shadow" | "quarantined" | "rejected_capability";
+            patient_records: number;
+            qc_records: number;
+            calibrator_records: number;
+            unmapped_records: number;
+            emitted_events: number;
+          };
+        })[];
+      });
       400: {
         type: string;
         title: string;
@@ -47974,6 +52751,271 @@ export interface Operations {
       };
     };
   };
+  startInstrumentCommissioning: {
+    params: {
+      instrument_id: string;
+    };
+    query: Record<string, never>;
+    headers: {
+      "Idempotency-Key"?: string;
+      "If-Match": string;
+    };
+    body: Record<string, never>;
+    responses: {
+      200: ({
+        id: string;
+        centre_id: string;
+        instrument_code: string;
+        display_name: string;
+        agent_id: string;
+        vendor: string;
+        model: string;
+        serial_no?: string;
+        software_version?: string;
+        protocol: "astm" | "hl7v2" | "file_drop";
+        driver_code: string;
+        transport: ({
+          kind: "serial";
+          port_name: string;
+          baud_rate: 1200 | 2400 | 4800 | 9600 | 19200 | 38400 | 57600 | 115200;
+          data_bits: 7 | 8;
+          parity: "none" | "odd" | "even" | "mark" | "space";
+          stop_bits: "1" | "1.5" | "2";
+          dtr?: boolean;
+          rts?: boolean;
+        } | {
+          kind: "tcp_client";
+          host: string;
+          port: number;
+          connect_timeout_s?: number;
+          reconnect_max_backoff_s?: number;
+        } | {
+          kind: "tcp_server";
+          bind_address: string;
+          port: number;
+          allowed_peers: string[];
+        } | {
+          kind: "file_drop";
+          directory: string;
+          filename_pattern: string;
+          barcode_regex?: string;
+          allowed_types: ("pdf" | "png" | "jpg")[];
+          stable_seconds?: number;
+          move_after_capture?: boolean;
+          captured_subdirectory?: string;
+          attachment_instrument_code: string;
+        });
+        protocol_options?: {
+          astm?: {
+            establish_reply_s?: number;
+            nak_retry_delay_s?: number;
+            host_contention_defer_s?: number;
+            instrument_contention_retry_s?: number;
+            transfer_reply_s?: number;
+            receiver_frame_wait_s?: number;
+            receiver_interrupt_backoff_s?: number;
+            outbound_retry_cycle_s?: number;
+            max_frame_sends?: number;
+            max_establish_attempts?: number;
+            max_outbound_cycles?: number;
+            encoding?: string;
+          };
+          hl7v2?: {
+            ack_mode?: string;
+            ack_sending_app?: string;
+            ack_sending_facility?: string;
+            ack_timeout_s?: number;
+            send_retries?: number;
+            max_message_bytes?: number;
+          };
+        };
+        parser_options?: {
+          sample_id_field?: string;
+          test_code_field?: string;
+          value_field?: string;
+          unit_field?: string;
+          flags_field?: string;
+          result_status_field?: string;
+          rerun_values?: string[];
+          result_time_field?: string;
+          control_id_field?: string;
+          qc_marker?: {
+            field?: string;
+            values?: string[];
+          };
+          record_kind_default?: string;
+        };
+        file_drop?: {
+          directory: string;
+          filename_pattern: string;
+          barcode_regex?: string;
+          allowed_types: ("pdf" | "png" | "jpg")[];
+          stable_seconds?: number;
+          move_after_capture?: boolean;
+          captured_subdirectory?: string;
+          attachment_instrument_code: string;
+        };
+        capabilities: {
+          host_query: boolean;
+          worklist_download: boolean;
+        };
+        qc_sample_id_patterns?: string[];
+        timezone?: string;
+        silence_window_minutes?: number;
+        silence_active_from?: string;
+        silence_active_to?: string;
+        state: "draft" | "commissioning" | "live" | "suspended" | "retired";
+        driver_status: "generic" | "verified" | "sketch_blocked";
+        driver_version: string;
+        commissioned_at?: string;
+        live_at?: string;
+        live_by_display?: string;
+        go_live_checklist?: {
+          manual_reference_confirmed: boolean;
+          sample_comparison_done: boolean;
+          qc_comparison_done: boolean;
+          mappings_reviewed: boolean;
+        };
+        suspended_at?: string;
+        retired_at?: string;
+        version: number;
+        status: {
+          link_state?: "up" | "down" | "listening" | "connecting" | "error" | "disabled";
+          last_message_at?: string;
+          last_message_at_agent?: string;
+          last_link_error_code?: string;
+          instrument_clock_offset_seconds?: number;
+          silent_since?: string;
+        };
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      409: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      422: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      428: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
   startMfaEnrolment: {
     params: Record<string, never>;
     query: Record<string, never>;
@@ -48271,6 +53313,907 @@ export interface Operations {
           test_id: string;
           test_code: string;
         }[];
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      409: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      428: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  submitAgentHeartbeat: {
+    params: Record<string, never>;
+    query: Record<string, never>;
+    headers: {
+      "Idempotency-Key"?: string;
+    };
+    body: {
+      sent_at_agent: string;
+      agent_version: string;
+      launcher_version: string;
+      os_version: string;
+      queue: {
+        pending: number;
+        uploading: number;
+        rejected: number;
+        oversize: number;
+        uploaded_retained: number;
+        oldest_pending_age_seconds: number;
+      };
+      disk_free_mb: number;
+      clock_offset_ms: number;
+      clock_offset_uncertainty_ms: number;
+      config: {
+        applied_version: number;
+        state: "ok" | "signature_invalid" | "agent_mismatch" | "rollback_rejected" | "schema_invalid";
+      };
+      update: {
+        state: "idle" | "downloading" | "verifying" | "staged" | "applying" | "rolled_back" | "verify_failed" | "failed";
+        target_version?: string;
+        error_code?: string;
+      };
+      auth_state: "ok" | "rejected";
+      instruments: ({
+        instrument_id: string;
+        link_state: "up" | "down" | "listening" | "connecting" | "error" | "disabled";
+        last_message_at_agent?: string;
+        messages_last_interval: number;
+        errors_last_interval: number;
+        last_error_code?: string;
+      })[];
+      counters: {
+        astm_naks_sent: number;
+        astm_naks_received: number;
+        astm_incomplete_sessions: number;
+        mllp_discarded_bytes: number;
+        mllp_oversize: number;
+        host_query_unavailable: number;
+      };
+      command_results: ({
+        command_id: string;
+        state: "completed" | "failed";
+        result_code?: string;
+      })[];
+    };
+    responses: {
+      200: ({
+        server_time: string;
+        latest_config_version: number;
+        health_state: "online" | "offline" | "backlog" | "degraded";
+        commands: ({
+          command_id: string;
+          kind: "upload_logs" | "refresh_config" | "restart_service" | "reupload_since";
+          params: {
+            since?: string;
+          };
+          expires_at: string;
+        })[];
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  submitAgentLogBundle: {
+    params: Record<string, never>;
+    query: Record<string, never>;
+    headers: {
+      "Idempotency-Key": string;
+    };
+    body: {
+      command_id: string;
+      lines: string[];
+      from_at_agent: string;
+      to_at_agent: string;
+    };
+    responses: {
+      201: {
+        bundle_id: string;
+      };
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      409: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      422: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  submitAttachment: {
+    params: Record<string, never>;
+    query: Record<string, never>;
+    headers: {
+      "Idempotency-Key": string;
+    };
+    body: {
+      metadata: {
+        agent_message_id: string;
+        instrument_id: string;
+        file_name: string;
+        file_sha256: string;
+        file_size: number;
+        barcode?: string;
+        captured_at_agent: string;
+        clock_offset_ms: number;
+        file_mtime_agent: string;
+      };
+      file: string;
+    };
+    responses: {
+      202: ({
+        outcome: "accepted" | "duplicate";
+        instrument_message_id: string;
+        attachment_id: string;
+        scan_state: "pending" | "clean" | "quarantined" | "failed";
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      413: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      415: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      422: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  submitHostQuery: {
+    params: Record<string, never>;
+    query: Record<string, never>;
+    headers: {
+      "Idempotency-Key": string;
+    };
+    body: {
+      instrument_id: string;
+      agent_message_id: string;
+      protocol: "astm" | "hl7v2";
+      raw_base64: string;
+      raw_sha256: string;
+      captured_at_agent: string;
+      clock_offset_ms: number;
+    };
+    responses: {
+      200: {
+        server_time: string;
+        instrument_message_id: string;
+        reply_messages: {
+          raw_base64: string;
+        }[];
+        answer_summary: {
+          index: number;
+          status: string;
+          test_count: number;
+        }[];
+      };
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      422: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  submitMessageBatch: {
+    params: Record<string, never>;
+    query: Record<string, never>;
+    headers: {
+      "Idempotency-Key": string;
+    };
+    body: {
+      sent_at_agent: string;
+      clock_offset_ms: number;
+      messages: ({
+        agent_message_id: string;
+        instrument_id: string;
+        protocol: "astm" | "hl7v2";
+        kind: "data" | "incomplete" | "host_query";
+        raw_base64: string;
+        raw_sha256: string;
+        captured_at_agent: string;
+        clock_offset_ms: number;
+        link_meta?: {
+          frames?: number;
+          retransmits?: number;
+          naks_sent?: number;
+          mllp_discarded_bytes?: number;
+          incomplete_reason?: "frame_timeout" | "new_enq" | "new_start_block" | "msh_unparseable" | "process_restart";
+        };
+      })[];
+    };
+    responses: {
+      200: ({
+        server_time: string;
+        results: ({
+          agent_message_id: string;
+          outcome: "accepted" | "duplicate" | "rejected" | "quarantined" | "retry";
+          instrument_message_id?: string;
+          error_code?: string;
+        })[];
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      413: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      422: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  suspendInstrument: {
+    params: {
+      instrument_id: string;
+    };
+    query: Record<string, never>;
+    headers: {
+      "Idempotency-Key"?: string;
+      "If-Match": string;
+    };
+    body: {
+      reason_text: string;
+    };
+    responses: {
+      200: ({
+        id: string;
+        centre_id: string;
+        instrument_code: string;
+        display_name: string;
+        agent_id: string;
+        vendor: string;
+        model: string;
+        serial_no?: string;
+        software_version?: string;
+        protocol: "astm" | "hl7v2" | "file_drop";
+        driver_code: string;
+        transport: ({
+          kind: "serial";
+          port_name: string;
+          baud_rate: 1200 | 2400 | 4800 | 9600 | 19200 | 38400 | 57600 | 115200;
+          data_bits: 7 | 8;
+          parity: "none" | "odd" | "even" | "mark" | "space";
+          stop_bits: "1" | "1.5" | "2";
+          dtr?: boolean;
+          rts?: boolean;
+        } | {
+          kind: "tcp_client";
+          host: string;
+          port: number;
+          connect_timeout_s?: number;
+          reconnect_max_backoff_s?: number;
+        } | {
+          kind: "tcp_server";
+          bind_address: string;
+          port: number;
+          allowed_peers: string[];
+        } | {
+          kind: "file_drop";
+          directory: string;
+          filename_pattern: string;
+          barcode_regex?: string;
+          allowed_types: ("pdf" | "png" | "jpg")[];
+          stable_seconds?: number;
+          move_after_capture?: boolean;
+          captured_subdirectory?: string;
+          attachment_instrument_code: string;
+        });
+        protocol_options?: {
+          astm?: {
+            establish_reply_s?: number;
+            nak_retry_delay_s?: number;
+            host_contention_defer_s?: number;
+            instrument_contention_retry_s?: number;
+            transfer_reply_s?: number;
+            receiver_frame_wait_s?: number;
+            receiver_interrupt_backoff_s?: number;
+            outbound_retry_cycle_s?: number;
+            max_frame_sends?: number;
+            max_establish_attempts?: number;
+            max_outbound_cycles?: number;
+            encoding?: string;
+          };
+          hl7v2?: {
+            ack_mode?: string;
+            ack_sending_app?: string;
+            ack_sending_facility?: string;
+            ack_timeout_s?: number;
+            send_retries?: number;
+            max_message_bytes?: number;
+          };
+        };
+        parser_options?: {
+          sample_id_field?: string;
+          test_code_field?: string;
+          value_field?: string;
+          unit_field?: string;
+          flags_field?: string;
+          result_status_field?: string;
+          rerun_values?: string[];
+          result_time_field?: string;
+          control_id_field?: string;
+          qc_marker?: {
+            field?: string;
+            values?: string[];
+          };
+          record_kind_default?: string;
+        };
+        file_drop?: {
+          directory: string;
+          filename_pattern: string;
+          barcode_regex?: string;
+          allowed_types: ("pdf" | "png" | "jpg")[];
+          stable_seconds?: number;
+          move_after_capture?: boolean;
+          captured_subdirectory?: string;
+          attachment_instrument_code: string;
+        };
+        capabilities: {
+          host_query: boolean;
+          worklist_download: boolean;
+        };
+        qc_sample_id_patterns?: string[];
+        timezone?: string;
+        silence_window_minutes?: number;
+        silence_active_from?: string;
+        silence_active_to?: string;
+        state: "draft" | "commissioning" | "live" | "suspended" | "retired";
+        driver_status: "generic" | "verified" | "sketch_blocked";
+        driver_version: string;
+        commissioned_at?: string;
+        live_at?: string;
+        live_by_display?: string;
+        go_live_checklist?: {
+          manual_reference_confirmed: boolean;
+          sample_comparison_done: boolean;
+          qc_comparison_done: boolean;
+          mappings_reviewed: boolean;
+        };
+        suspended_at?: string;
+        retired_at?: string;
+        version: number;
+        status: {
+          link_state?: "up" | "down" | "listening" | "connecting" | "error" | "disabled";
+          last_message_at?: string;
+          last_message_at_agent?: string;
+          last_link_error_code?: string;
+          instrument_clock_offset_seconds?: number;
+          silent_since?: string;
+        };
       });
       400: {
         type: string;
@@ -48856,6 +54799,186 @@ export interface Operations {
           status: "pending" | "sent" | "accepted" | "expired" | "revoked" | "failed";
           expires_at: string;
         };
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      409: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      428: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  updateAgent: {
+    params: {
+      agent_id: string;
+    };
+    query: Record<string, never>;
+    headers: {
+      "If-Match": string;
+    };
+    body: {
+      display_name?: string;
+      update_channel?: "stable" | "beta";
+      pinned_release_id?: string;
+      backlog_threshold?: number;
+      unset?: "pinned_release_id"[];
+    };
+    responses: {
+      200: ({
+        id: string;
+        agent_code: string;
+        display_name: string;
+        centre_id: string;
+        status: "pending_enrolment" | "active" | "revoked" | "retired";
+        update_channel: "stable" | "beta";
+        pinned_release_id?: string;
+        backlog_threshold: number;
+        enrolled_at?: string;
+        revoked_at?: string;
+        revoke_reason_code?: string;
+        retired_at?: string;
+        version: number;
+        health: {
+          state: "online" | "offline" | "backlog" | "degraded";
+          health_version: number;
+          last_heartbeat_at?: string;
+          agent_version?: string;
+          launcher_version?: string;
+          os_version?: string;
+          queue_depth: number;
+          oldest_pending_age_seconds: number;
+          queue_rejected: number;
+          queue_oversize: number;
+          disk_free_mb?: number;
+          clock_offset_seconds?: number;
+          clock_offset_ms?: number;
+          clock_offset_uncertainty_ms?: number;
+          config_version_applied?: number;
+          config_state?: "ok" | "signature_invalid" | "agent_mismatch" | "rollback_rejected" | "schema_invalid";
+          update_state?: "idle" | "downloading" | "verifying" | "staged" | "applying" | "rolled_back" | "verify_failed" | "failed";
+          update_target_version?: string;
+          auth_state?: "ok" | "rejected";
+          last_ip?: string;
+          last_ip_changed_at?: string;
+        };
+        latest_config_version: number;
+        credentials: ({
+          credential_id: string;
+          kind: "enrolment_code" | "device_token";
+          status: "active" | "used" | "expired" | "revoked";
+          issued_at: string;
+          issued_by_display: string;
+          expires_at?: string;
+          used_at?: string;
+          last_used_at?: string;
+          revoked_at?: string;
+        })[];
       });
       400: {
         type: string;
@@ -50843,6 +56966,368 @@ export interface Operations {
       };
     };
   };
+  updateInstrument: {
+    params: {
+      instrument_id: string;
+    };
+    query: Record<string, never>;
+    headers: {
+      "If-Match": string;
+    };
+    body: {
+      display_name?: string;
+      vendor?: string;
+      model?: string;
+      serial_no?: string;
+      software_version?: string;
+      protocol?: "astm" | "hl7v2" | "file_drop";
+      driver_code?: string;
+      transport?: ({
+        kind: "serial";
+        port_name: string;
+        baud_rate: 1200 | 2400 | 4800 | 9600 | 19200 | 38400 | 57600 | 115200;
+        data_bits: 7 | 8;
+        parity: "none" | "odd" | "even" | "mark" | "space";
+        stop_bits: "1" | "1.5" | "2";
+        dtr?: boolean;
+        rts?: boolean;
+      } | {
+        kind: "tcp_client";
+        host: string;
+        port: number;
+        connect_timeout_s?: number;
+        reconnect_max_backoff_s?: number;
+      } | {
+        kind: "tcp_server";
+        bind_address: string;
+        port: number;
+        allowed_peers: string[];
+      } | {
+        kind: "file_drop";
+        directory: string;
+        filename_pattern: string;
+        barcode_regex?: string;
+        allowed_types: ("pdf" | "png" | "jpg")[];
+        stable_seconds?: number;
+        move_after_capture?: boolean;
+        captured_subdirectory?: string;
+        attachment_instrument_code: string;
+      });
+      protocol_options?: {
+        astm?: {
+          establish_reply_s?: number;
+          nak_retry_delay_s?: number;
+          host_contention_defer_s?: number;
+          instrument_contention_retry_s?: number;
+          transfer_reply_s?: number;
+          receiver_frame_wait_s?: number;
+          receiver_interrupt_backoff_s?: number;
+          outbound_retry_cycle_s?: number;
+          max_frame_sends?: number;
+          max_establish_attempts?: number;
+          max_outbound_cycles?: number;
+          encoding?: string;
+        };
+        hl7v2?: {
+          ack_mode?: string;
+          ack_sending_app?: string;
+          ack_sending_facility?: string;
+          ack_timeout_s?: number;
+          send_retries?: number;
+          max_message_bytes?: number;
+        };
+      };
+      parser_options?: {
+        sample_id_field?: string;
+        test_code_field?: string;
+        value_field?: string;
+        unit_field?: string;
+        flags_field?: string;
+        result_status_field?: string;
+        rerun_values?: string[];
+        result_time_field?: string;
+        control_id_field?: string;
+        qc_marker?: {
+          field?: string;
+          values?: string[];
+        };
+        record_kind_default?: string;
+      };
+      file_drop?: {
+        directory: string;
+        filename_pattern: string;
+        barcode_regex?: string;
+        allowed_types: ("pdf" | "png" | "jpg")[];
+        stable_seconds?: number;
+        move_after_capture?: boolean;
+        captured_subdirectory?: string;
+        attachment_instrument_code: string;
+      };
+      capabilities?: {
+        host_query: boolean;
+        worklist_download: boolean;
+      };
+      qc_sample_id_patterns?: string[];
+      timezone?: string;
+      silence_window_minutes?: number;
+      silence_active_from?: string;
+      silence_active_to?: string;
+    };
+    responses: {
+      200: ({
+        id: string;
+        centre_id: string;
+        instrument_code: string;
+        display_name: string;
+        agent_id: string;
+        vendor: string;
+        model: string;
+        serial_no?: string;
+        software_version?: string;
+        protocol: "astm" | "hl7v2" | "file_drop";
+        driver_code: string;
+        transport: ({
+          kind: "serial";
+          port_name: string;
+          baud_rate: 1200 | 2400 | 4800 | 9600 | 19200 | 38400 | 57600 | 115200;
+          data_bits: 7 | 8;
+          parity: "none" | "odd" | "even" | "mark" | "space";
+          stop_bits: "1" | "1.5" | "2";
+          dtr?: boolean;
+          rts?: boolean;
+        } | {
+          kind: "tcp_client";
+          host: string;
+          port: number;
+          connect_timeout_s?: number;
+          reconnect_max_backoff_s?: number;
+        } | {
+          kind: "tcp_server";
+          bind_address: string;
+          port: number;
+          allowed_peers: string[];
+        } | {
+          kind: "file_drop";
+          directory: string;
+          filename_pattern: string;
+          barcode_regex?: string;
+          allowed_types: ("pdf" | "png" | "jpg")[];
+          stable_seconds?: number;
+          move_after_capture?: boolean;
+          captured_subdirectory?: string;
+          attachment_instrument_code: string;
+        });
+        protocol_options?: {
+          astm?: {
+            establish_reply_s?: number;
+            nak_retry_delay_s?: number;
+            host_contention_defer_s?: number;
+            instrument_contention_retry_s?: number;
+            transfer_reply_s?: number;
+            receiver_frame_wait_s?: number;
+            receiver_interrupt_backoff_s?: number;
+            outbound_retry_cycle_s?: number;
+            max_frame_sends?: number;
+            max_establish_attempts?: number;
+            max_outbound_cycles?: number;
+            encoding?: string;
+          };
+          hl7v2?: {
+            ack_mode?: string;
+            ack_sending_app?: string;
+            ack_sending_facility?: string;
+            ack_timeout_s?: number;
+            send_retries?: number;
+            max_message_bytes?: number;
+          };
+        };
+        parser_options?: {
+          sample_id_field?: string;
+          test_code_field?: string;
+          value_field?: string;
+          unit_field?: string;
+          flags_field?: string;
+          result_status_field?: string;
+          rerun_values?: string[];
+          result_time_field?: string;
+          control_id_field?: string;
+          qc_marker?: {
+            field?: string;
+            values?: string[];
+          };
+          record_kind_default?: string;
+        };
+        file_drop?: {
+          directory: string;
+          filename_pattern: string;
+          barcode_regex?: string;
+          allowed_types: ("pdf" | "png" | "jpg")[];
+          stable_seconds?: number;
+          move_after_capture?: boolean;
+          captured_subdirectory?: string;
+          attachment_instrument_code: string;
+        };
+        capabilities: {
+          host_query: boolean;
+          worklist_download: boolean;
+        };
+        qc_sample_id_patterns?: string[];
+        timezone?: string;
+        silence_window_minutes?: number;
+        silence_active_from?: string;
+        silence_active_to?: string;
+        state: "draft" | "commissioning" | "live" | "suspended" | "retired";
+        driver_status: "generic" | "verified" | "sketch_blocked";
+        driver_version: string;
+        commissioned_at?: string;
+        live_at?: string;
+        live_by_display?: string;
+        go_live_checklist?: {
+          manual_reference_confirmed: boolean;
+          sample_comparison_done: boolean;
+          qc_comparison_done: boolean;
+          mappings_reviewed: boolean;
+        };
+        suspended_at?: string;
+        retired_at?: string;
+        version: number;
+        status: {
+          link_state?: "up" | "down" | "listening" | "connecting" | "error" | "disabled";
+          last_message_at?: string;
+          last_message_at_agent?: string;
+          last_link_error_code?: string;
+          instrument_clock_offset_seconds?: number;
+          silent_since?: string;
+        };
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      409: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      422: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      428: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
   updateInstrumentCodeMap: {
     params: {
       map_id: string;
@@ -50874,6 +57359,144 @@ export interface Operations {
         is_active: boolean;
         version: number;
       });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      409: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      428: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  updateInstrumentSettings: {
+    params: Record<string, never>;
+    query: Record<string, never>;
+    headers: {
+      "If-Match": string;
+    };
+    body: {
+      default_backlog_threshold: number;
+      backlog_max_oldest_pending_seconds: number;
+      clock_offset_warn_seconds: number;
+      agent_uploaded_retention_hours: number;
+      update_window_from?: string;
+      update_window_to?: string;
+    };
+    responses: {
+      200: {
+        default_backlog_threshold: number;
+        backlog_max_oldest_pending_seconds: number;
+        clock_offset_warn_seconds: number;
+        agent_uploaded_retention_hours: number;
+        update_window_from?: string;
+        update_window_to?: string;
+        version: number;
+      };
       400: {
         type: string;
         title: string;

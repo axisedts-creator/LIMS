@@ -15,3 +15,11 @@
     - chrony
     - luks_volumes
     - docker_engine
+
+# 02-TRD s9: pgBackRest config, tmpfs cipher passes, timers. `data` only:
+# dr-1 (repo2 host) never holds a cipher pass (AC-12.3).
+- name: pgBackRest
+  hosts: data
+  become: true
+  roles:
+    - pgbackrest

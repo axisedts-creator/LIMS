@@ -53,7 +53,7 @@ describe('A3 active -> active: moving to a new PC (AC-02.2)', () => {
     const before = f.agent(AGENT_X).enrolled_at;
     const r = await svc.enrolAgent(enrolCtx().ctx, enrolInput());
     const fresh = f.allCreds().find((c) => c.kind === 'device_token' && c.id !== OLD_TOKEN_ID)!;
-    expect(f.cred(OLD_TOKEN_ID)).toMatchObject({ status: 'revoked', replaced_by_credential_id: fresh.id, revoke_reason_code: 'replaced_pc' });
+    expect(f.cred(OLD_TOKEN_ID)).toMatchObject({ status: 'revoked', replaced_by_credential_id: fresh.id, revoke_reason_code: 'device_replaced' });
     expect(fresh.status).toBe('active');
     expect(f.agents).toHaveLength(1); expect(r.body.agent_id).toBe(AGENT_X);
     expect(f.agent(AGENT_X)).toMatchObject({ status: 'active', enrolled_at: before });
@@ -75,7 +75,7 @@ describe('A3 active -> active: moving to a new PC (AC-02.2)', () => {
 
 describe('A5 revoked -> active (AC-02.3)', () => {
   it('a code issued after revocation re-activates the same agent', async () => {
-    const { f, svc } = mk({ agents: [agentRow({ id: AGENT_X, status: 'revoked', revoked_at: NOW, revoke_reason_code: 'lost_device', credentials: [credRow({ id: OLD_TOKEN_ID, kind: 'device_token', status: 'revoked', agent_id: AGENT_X }), code()] })] });
+    const { f, svc } = mk({ agents: [agentRow({ id: AGENT_X, status: 'revoked', revoked_at: NOW, revoke_reason_code: 'device_lost_or_stolen', credentials: [credRow({ id: OLD_TOKEN_ID, kind: 'device_token', status: 'revoked', agent_id: AGENT_X }), code()] })] });
     const r = await svc.enrolAgent(enrolCtx().ctx, enrolInput());
     expect(r.status).toBe(201); expect(f.agent(AGENT_X).status).toBe('active'); expect(r.body.agent_id).toBe(AGENT_X);
     expect(f.cred(CODE_ID).status).toBe('used');

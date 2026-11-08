@@ -124,9 +124,9 @@ export function createAssembleReport(o: { sandbox: SandboxClient }): TaskHandler
         const out: Record<string, Row> = {};
         for (const ref of refs) {
           const view = VIEWS[ref.module];
-          const row = (await rows(`SELECT ${view.columns} FROM ${view.name} WHERE tenant_id = $1 AND entity_id = $2 AND version_no = $3`, [tenantId, ref.entityId, ref.versionNo]))[0];
+          const row: Row | undefined = (await rows(`SELECT ${view.columns} FROM ${view.name} WHERE tenant_id = $1 AND entity_id = $2 AND version_no = $3`, [tenantId, ref.entityId, ref.versionNo]))[0];
           if (!row || row['tenant_id'] !== tenantId) throw new LimsError('common.internal', `${view.name} has no row for the moduleRef`);   // never a silently shorter report
-          out[moduleKey(ref)] = Object.fromEntries(Object.entries(row).map(([k, v]) => [k, view.jsonb.includes(k) ? json(v) : v]));
+          out[moduleKey(ref)] = Object.fromEntries(Object.entries(row).map(([k, v]) => [k, (view.jsonb as readonly string[]).includes(k) ? json(v) : v]));
         }
         return out;
       } })) };

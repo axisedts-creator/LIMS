@@ -48,7 +48,7 @@ const detail = (o: Record<string, unknown> = {}) => ({
   credited_total: npr(0), print_count: 1, last_printed_at: '2026-11-07T04:05:00.000Z', cbms_state: 'not_required', version: 3, cbms_submissions: [], ...o,
 });
 const prints = [{ print_no: 1, is_copy: false, reason_code: 'first_print', printed_by_display: 'Synthetic Cashier', printed_at: '2026-11-07T04:05:00.000Z' }];
-const cancelled = detail({ status: 'cancelled', is_active: false, cancellation: { cancelled_at: '2026-11-08T05:00:00.000Z', cancelled_by_display: 'Synthetic Finance', reason_code: 'entered_in_error', reason_text: 'Wrong buyer', credit_note_id: CN, credit_note_no: 'CN/2083-84/000007' } });
+const cancelled = detail({ status: 'cancelled', is_active: false, cancellation: { cancelled_at: '2026-11-08T05:00:00.000Z', cancelled_by_display: 'Synthetic Finance', reason_code: 'billing_error', reason_text: 'Wrong buyer', credit_note_id: CN, credit_note_no: 'CN/2083-84/000007' } });
 const printDoc = (o: Record<string, unknown> = {}) => ({ ...detail(), branding: { legal_name: 'Synthetic Lab Pvt Ltd', address_lines: ['Synthetic Marg'], phones: ['01-5550000'], images: [] }, dates: { bs: '2083-07-21', ad: '07/11/2026' }, payment_block: { paid: npr(113000), balance_due: npr(0) }, print_no: 1, ...o });
 
 const calls: { method: string; url: URL; headers: Headers; body?: any }[] = [];
@@ -146,7 +146,7 @@ describe('§8.2 InvoiceDetailView', () => {
     view(I, cancelled, FINANCE);
     const banner = screen.getByText(/^CANCELLED on/);
     expect(banner.textContent).toMatch(/CANCELLED on .*\d{4}-\d{2}-\d{2}.*\/.*\d{2}\/\d{2}\/\d{4}/);
-    expect(banner.textContent).toMatch(/Wrong buyer|entered in error/i);
+    expect(banner.textContent).toMatch(/Wrong buyer|billing error/i);
     expect(banner.textContent).toMatch(/Credit note CN\/2083-84\/000007/);
     expect(screen.queryByRole('button', { name: /^cancel invoice|^cancel$/i })).toBeNull();
   });
@@ -163,13 +163,14 @@ describe('§8.2 InvoiceDetailView', () => {
     await userEvent.click(screen.getByRole('button', { name: /cancel invoice/i }));
     const dlg = screen.getByRole('dialog');
     expect(within(dlg).getByText(/A credit note for NPR 1,130\.00 will be issued/)).toBeTruthy();
-    const reason = within(dlg).getByRole('combobox', { name: /reason/i });
+    const reason = within(dlg).getByRole('button', { name: /reason/i });
     expect(within(dlg).getByRole('button', { name: /confirm|cancel invoice/i })).toBeTruthy();
-    await userEvent.selectOptions(reason, 'entered_in_error').catch(async () => { await userEvent.click(reason); await userEvent.click(within(dlg).getByRole('option', { name: /entered in error/i })); });
+    await userEvent.click(reason);
+    await userEvent.click(await screen.findByRole('option', { name: /billing error/i }));
     await userEvent.click(within(dlg).getByRole('button', { name: /confirm|cancel invoice/i }));
     await waitFor(() => expect(calls.length).toBe(1));
     expect(calls[0]!.url.pathname).toBe(`/v1/billing/invoices/${INV}/cancel`);
-    expect(calls[0]!.body.reason_code).toBe('entered_in_error');
+    expect(calls[0]!.body.reason_code).toBe('billing_error');
     expect(calls[0]!.headers.get('if-match')).toMatch(/3/);
     expect(calls[0]!.headers.get('idempotency-key')).toBeTruthy();
   });
@@ -187,7 +188,7 @@ describe('§8.2 InvoiceDetailView', () => {
     const I = await load();
     view(I, detail({ print_count: 1 }), FINANCE);
     await userEvent.click(screen.getByRole('button', { name: /^print/i }));
-    const reason = await screen.findByRole('combobox', { name: /reason/i });
+    const reason = await screen.findByRole('button', { name: /reason/i });
     expect(reason).toBeTruthy();
     expect(calls.length).toBe(0);
   });
@@ -304,8 +305,8 @@ describe('§8.6 CreditPartiesList', () => {
 
 describe('§8.7 RegistersView (statutory: always B.S. AND A.D. columns)', () => {
   const sales = [{ sn: 1, invoice_date_bs: '2083-07-21', invoice_date_ad: '2026-11-07', invoice_no: 'INV/2083-84/000042', buyer_name: 'Synthetic Buyer', buyer_pan: '123456789', total: npr(113000), exempt: npr(0), taxable: npr(100000), vat: npr(13000), other_tax: npr(0), status: 'issued' }];
-  const cns = [{ sn: 1, credit_note_date_bs: '2083-07-22', credit_note_date_ad: '2026-11-08', credit_note_no: 'CN/2083-84/000007', kind: 'cancellation', invoice_no: 'INV/2083-84/000042', buyer_name: 'Synthetic Buyer', buyer_pan: '123456789', reason_code: 'entered_in_error', exempt: npr(0), taxable: npr(100000), vat: npr(13000), other_tax: npr(0), net: npr(113000) }];
-  const canc = [{ sn: 1, cancelled_date_bs: '2083-07-22', cancelled_date_ad: '2026-11-08', invoice_no: 'INV/2083-84/000042', credit_note_no: 'CN/2083-84/000007', buyer_name: 'Synthetic Buyer', buyer_pan: '123456789', total: npr(113000), reason_code: 'entered_in_error' }];
+  const cns = [{ sn: 1, credit_note_date_bs: '2083-07-22', credit_note_date_ad: '2026-11-08', credit_note_no: 'CN/2083-84/000007', kind: 'cancellation', invoice_no: 'INV/2083-84/000042', buyer_name: 'Synthetic Buyer', buyer_pan: '123456789', reason_code: 'billing_error', exempt: npr(0), taxable: npr(100000), vat: npr(13000), other_tax: npr(0), net: npr(113000) }];
+  const canc = [{ sn: 1, cancelled_date_bs: '2083-07-22', cancelled_date_ad: '2026-11-08', invoice_no: 'INV/2083-84/000042', credit_note_no: 'CN/2083-84/000007', buyer_name: 'Synthetic Buyer', buyer_pan: '123456789', total: npr(113000), reason_code: 'billing_error' }];
   const load = async () => (await mod<{ RegistersView: any }>('RegistersView')).RegistersView;
   const view = (V: any, perms = ['billing.invoice.read', 'billing.data.export']) => wrap(<V sales={sales as never} cancelled={canc as never} creditNotes={cns as never} permissions={perms} />);
 

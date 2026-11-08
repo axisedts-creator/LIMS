@@ -27,6 +27,23 @@ export function isTaxTypeUsable(v: { rate_bp?: number | null; is_active?: boolea
   return v !== undefined && v.is_active !== false && v.rate_bp != null;
 }
 
+// ---- getTaxRate (02-TRD §7.6a). Any failure is `catalog.tax_config_missing` (no rate can exist for such input).
+const TAX_CODE = /^[A-Z0-9_]{1,16}$/;
+const ISO_DAY = /^(\d{4})-(\d{2})-(\d{2})$/;
+const NPT_OFFSET_MS = (5 * 60 + 45) * 60_000;       // Asia/Kathmandu, UTC+05:45, no DST (08 A13 P-15) [CONV]
+
+export const isTaxCode = (v: unknown): v is string => typeof v === 'string' && TAX_CODE.test(v);
+
+/** Instant of 00:00 of the ISO date `on` in the tenant timezone (v1: Asia/Kathmandu only); undefined if `on` is not a real YYYY-MM-DD date. */
+export function localMidnight(on: unknown): Date | undefined {
+  const m = typeof on === 'string' ? ISO_DAY.exec(on) : null;
+  if (!m) return undefined;
+  const [y, mo, d] = [Number(m[1]), Number(m[2]), Number(m[3])];
+  const utc = new Date(Date.UTC(y, mo - 1, d));
+  if (utc.getUTCFullYear() !== y || utc.getUTCMonth() !== mo - 1 || utc.getUTCDate() !== d) return undefined;
+  return new Date(+utc - NPT_OFFSET_MS);
+}
+
 /** taxable -> the global VAT row's rate; exempt -> undefined. */
 export function vatRateBp(treatment: 'exempt' | 'taxable', globalVatRateBp: number): number | undefined {
   if (treatment === 'taxable') return globalVatRateBp;

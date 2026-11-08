@@ -1,0 +1,1 @@
+cd /d "%~dp0..\.." && pnpm --dir services/api exec vitest run src/modules/reporting/__tests__/messaging-admin.handlers.test.ts src/modules/reporting/__tests__/messaging-admin.static.test.ts src/modules/reporting/__tests__/messaging-admin.fakedb.test.ts src/modules/reporting/__tests__/manifest.test.ts --testTimeout=60000 --hookTimeout=60000

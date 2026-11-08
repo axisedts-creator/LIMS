@@ -1,19 +1,24 @@
-// CatalogPort real implementation, non-price methods (T-28a): getTest, getPanel, resolveOrderables, referenceRangeFor, criticalLimitsFor.
+// CatalogPort real implementation: T-28a getTest, getPanel, resolveOrderables, referenceRangeFor, criticalLimitsFor; T-28b priceFor (03-IC §4.2 cases 6-8, 02-TRD §7.4-§7.6).
 // Spec: 03-IC §4.2, 02-TRD §6.1 (method table), §6.3 (cache), §7.3 (band selection), §7.7 (panel expansion); contracts/ports/CatalogPort.ts.
 // Read-only: every query runs on ctx.tx (no transaction control, no write, no lock). Tenant comes from ctx.tenantId only; every value is a bind parameter.
 // Cache: time-independent bundles keyed (tenant, catalog_revision, kind, id); the revision is read ONCE per ctx (memoised) and asOf / at are applied in memory.
 import type {
-  AnalyteDefinition, CatalogPortV1, CriticalLimitsMatch, InstrumentCodeMapping, PanelDefinition, ReferenceRangeMatch, ResolvedOrderables, TestDefinition,
+  AnalyteDefinition, CatalogPortV1, CriticalLimitsMatch, InstrumentCodeMapping, PanelDefinition, PriceQuote, ReferenceRangeMatch, ResolvedOrderables, TestDefinition,
 } from '../../../../../../contracts/ports/CatalogPort.js';
 import { LimsError } from '../../../core/errors.js';
 import type { CatalogCache } from '../cache/catalogCache.js';
 import { expandToTestIds, type PanelGraph } from '../domain/panelGraph.js';
-import { resolveCriticalLimits, resolveReferenceRange, selectSet, type RangeSet } from '../domain/rangeMatch.js';
+import { isTaxCode, isTaxTypeUsable, localMidnight, taxTypeVersionAt } from '../domain/tax.js';
+import { resolveCriticalLimits,resolveReferenceRange, selectSet, type RangeSet } from '../domain/rangeMatch.js';
 import { currentRevision } from '../repo/catalogState.repo.js';
+import { listStatus } from '../domain/priceMatch.js';
+import { createQuoteService } from '../service/quote.service.js';
 
 type Row = Record<string, any>;
 type Ctx = { tenantId: string; tx: { query(text: string, values?: unknown[]): Promise<{ rows: any[] }> }; now(): string | Date };
 export type CatalogPortNonPrice = Pick<CatalogPortV1, 'getTest' | 'getPanel' | 'resolveOrderables' | 'referenceRangeFor' | 'criticalLimitsFor' | 'mapInstrumentCode'>;
+export type CatalogPortImpl = CatalogPortNonPrice & Pick<CatalogPortV1, 'priceFor' | 'getTaxRate' | 'getPriceListStatus'>;
+const CONTEXT_KEYS = [['priceListId', 'price_list_id'], ['creditPartyId', 'credit_party_id'], ['referrerId', 'referrer_id'], ['centreId', 'centre_id']] as const;
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const ISO = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}(\.\d+)?)?(Z|[+-]\d{2}:\d{2})$/;
@@ -52,8 +57,9 @@ interface TestBundle {
 interface PanelNode { id: string; code: string; name: string; panelKind: PanelDefinition['panelKind']; sexRestriction?: 'male' | 'female'; isActive: boolean; revision: number; members: Array<{ kind: 'test' | 'panel'; id: string }> }
 interface RangeBundle { versions: Array<{ status: string; effective_from: Date; effective_to: Date | null; unit_code: string | null; method_id: string | null }>; ref: RangeSet[]; crit: RangeSet[]; specimenIds: Record<string, string> }
 
-export function createCatalogPort(deps: { cache: CatalogCache }): CatalogPortNonPrice {
+export function createCatalogPort(deps: { cache: CatalogCache }): CatalogPortImpl {
   const { cache } = deps;
+  const quotes = createQuoteService();
   const q = async (ctx: Ctx, text: string, values: unknown[]): Promise<Row[]> => (await ctx.tx.query(text, values)).rows;
 
   // The catalog_revision, read once per ctx (the cache-key revision, 02-TRD §6.3). A rejected read is not memoised.
@@ -310,6 +316,56 @@ export function createCatalogPort(deps: { cache: CatalogCache }): CatalogPortNon
         specimenRequirements: [...groups.values()].sort((a, b) => cmp(a.specimenTypeCode, b.specimenTypeCode) || cmp(a.containerCode ?? '', b.containerCode ?? '')),
         catalogRevision: rev,
       };
+    },
+
+    /** Same engine as quotePrices (one rule set); prices are never cached, so a revision bump is visible at once. Read-only, tenant from ctx. */
+    async priceFor(ctx, input): Promise<PriceQuote> {
+      if (!input || typeof input !== 'object' || Array.isArray(input)) throw invalid('input');
+      const orderableId = uuid(input.orderableId, 'orderableId');
+      if (input.priority !== 'routine' && input.priority !== 'urgent') throw invalid('priority');
+      const at = instant(input.at, 'at').toISOString();
+      const c = input.context as Record<string, unknown> | null | undefined;
+      if (!c || typeof c !== 'object' || Array.isArray(c)) throw invalid('context');
+      const context: Record<string, string> = {};
+      for (const [camel, snake] of CONTEXT_KEYS) if (c[camel] !== undefined) context[snake] = uuid(c[camel], `context.${camel}`);
+      const { quotes: [r] } = await quotes.quotePrices(ctx as never, { items: [{ orderable_id: orderableId, priority: input.priority }], context, at });
+      if (!r || r['error_code']) throw new LimsError(r?.['error_code'] ?? 'common.not_found');
+      const t = r['tax'];
+      return {
+        orderableId: r['orderable_id'], priceListId: r['price_list_id'], priceListVersion: r['price_list_version'], source: r['source'],
+        unitPrice: { amountPaisa: r['unit_price'].amount_paisa, currency: 'NPR' },
+        ...(r['urgent_surcharge'] ? { urgentSurcharge: { amountPaisa: r['urgent_surcharge'].amount_paisa, currency: 'NPR' as const } } : {}),
+        tax: { vat: t['vat'], ...opt('vatRateBp', t['vat_rate_bp']), ...opt('otherTaxCode', t['other_tax_code']), ...opt('otherTaxRateBp', t['other_tax_rate_bp']), ...opt('hsCode', t['hs_code']) },
+      } as PriceQuote;
+    },
+
+    /** §7.6a. Reads only C3 tax-type rows on ctx.tx (VAT: global g_tax_types; else cs_tax_types of ctx.tenantId); uncached, so a rate edit is visible at once. */
+    async getTaxRate(c, input): Promise<Awaited<ReturnType<CatalogPortV1['getTaxRate']>>> {
+      const ctx = c as Ctx;
+      const missing = () => new LimsError('catalog.tax_config_missing');
+      const i = input && typeof input === 'object' ? (input as Row) : {};
+      const taxCode: unknown = i['taxCode'];
+      const t = localMidnight(i['on']);
+      if (!isTaxCode(taxCode) || !t) throw missing();
+      if (taxCode === 'VAT') {
+        const [v] = await q(ctx, 'SELECT rate_bp, is_active FROM catalog.g_tax_types WHERE code = $1 AND is_active = $2', [taxCode, true]);
+        if (!isTaxTypeUsable(v)) throw missing();
+        return { taxCode, ratePercentBasisPoints: v!['rate_bp'], kind: 'vat', effectiveFrom: null };
+      }
+      const rows = await q(ctx, 'SELECT code, rate_bp, is_active, effective_from, effective_to FROM catalog.cs_tax_types WHERE tenant_id = $1 AND code = $2', [ctx.tenantId, taxCode]);
+      const v = taxTypeVersionAt(rows as Array<{ code: string; effective_from: Date; effective_to: Date | null; is_active: boolean; rate_bp: number | null }>, taxCode, t);
+      if (!isTaxTypeUsable(v)) throw missing();
+      return { taxCode, ratePercentBasisPoints: v!.rate_bp!, kind: 'other', effectiveFrom: new Date(v!.effective_from).toISOString() };
+    },
+
+    /** §7.4a (08 A24.1). Uncached (two indexed reads on ctx.tx, tenant bound from ctx) so a version change is visible at once; unknown / other-tenant id -> common.not_found, nothing disclosed. */
+    async getPriceListStatus(c, input) {
+      const ctx = c as Ctx;
+      const priceListId = uuid((input as Row | null | undefined)?.['priceListId'], 'priceListId');
+      const [list] = await q(ctx, 'SELECT id, is_active FROM catalog.price_lists WHERE tenant_id = $1 AND id = $2', [ctx.tenantId, priceListId]);
+      if (!list) throw notFound();
+      const vs = await q(ctx, 'SELECT status FROM catalog.price_list_versions WHERE tenant_id = $1 AND price_list_id = $2', [ctx.tenantId, priceListId]);
+      return { priceListId: list['id'], isActive: list['is_active'] === true, status: listStatus(vs.map((v) => v['status'])) };
     },
 
     async referenceRangeFor(ctx, input): Promise<ReferenceRangeMatch> {

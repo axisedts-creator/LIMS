@@ -70,6 +70,8 @@ const SCHEMA: Record<string, { cols: string[]; required: string[]; defaults: () 
     check: () => undefined,
   },
   price_lists: { cols: ['id', 'tenant_id', 'code', 'name'], required: ['id', 'tenant_id'], defaults: () => ({}), pk: ['id'], check: () => undefined },
+  // T-23 (read-only here: commitImport only reads the latest published version_no for the stale-base rule; seed.priceListVersion)
+  price_list_versions: { cols: ['id', 'tenant_id', 'price_list_id', 'version_no', 'status', 'effective_from', 'effective_to'], required: ['id', 'tenant_id', 'price_list_id', 'version_no', 'status'], defaults: () => ({}), pk: ['id'], check: () => undefined },
 };
 
 class Lock {
@@ -113,7 +115,7 @@ export interface JobRec { identifier: string; payload: any; jobKey: string; text
 export interface Stmt { readonly txId: number; readonly tenantId: string; readonly text: string; readonly values: readonly unknown[] }
 
 export function makeImportsDb() {
-  const committed: Record<string, Row[]> = { imports: [], files: [], import_issues: [], price_lists: [] };
+  const committed: Record<string, Row[]> = { imports: [], files: [], import_issues: [], price_lists: [], price_list_versions: [] };
   const jobs: JobRec[] = [];
   const stmts: Stmt[] = [];
   const failures: Array<{ match: RegExp; make: () => Error }> = [];
@@ -123,7 +125,7 @@ export function makeImportsDb() {
 
   function begin(tenantId: string, actorId = USER) {
     const id = nextTx++;
-    const ins: Record<string, Row[]> = { imports: [], files: [], import_issues: [], price_lists: [] };
+    const ins: Record<string, Row[]> = { imports: [], files: [], import_issues: [], price_lists: [], price_list_versions: [] };
     const patches = new Map<Row, Row>();
     const localJobs: JobRec[] = [];
     let held = false;
@@ -308,6 +310,11 @@ export function makeImportsDb() {
   const clone = (r: Row) => structuredClone({ ...r, content: undefined, ...(r.content ? { content: Buffer.from(r.content) } : {}) });
   const seed = {
     priceList(tenantId: string, id: string) { committed.price_lists!.push({ id, tenant_id: tenantId, code: 'PL', name: 'Synthetic list' }); return id; },
+    /** T-23: a version of a list (status draft | published | superseded | discarded). */
+    priceListVersion(tenantId: string, priceListId: string, versionNo: number, status: string): Row {
+      const row: Row = { id: uid(), tenant_id: tenantId, price_list_id: priceListId, version_no: versionNo, status, effective_from: new Date('2026-01-01T00:00:00Z'), effective_to: null };
+      committed.price_list_versions!.push(row); return row;
+    },
     import(tenantId: string, over: Row = {}): Row {
       const sc = SCHEMA.imports!;
       const row: Row = { id: uid(), tenant_id: tenantId, kind: 'catalog_master', target_price_list_id: null, base_version_no: null, upload_file_id: null, report_file_id: null, file_name: 'seed.xlsx', file_sha256: SHA('c'), created_by: USER, updated_by: USER, expires_at: new Date(Date.parse(NOW) + 168 * 3600_000), ...sc.defaults(), ...over };
@@ -328,7 +335,7 @@ export function makeImportsDb() {
   return {
     run, begin, ctxFor, stmts, seed,
     get jobs() { return jobs; },
-    rows: (table: 'imports' | 'files' | 'import_issues' | 'price_lists', tenantId: string = TENANT_A) => committed[table]!.filter((r) => r.tenant_id === tenantId).map(clone),
+    rows: (table: 'imports' | 'files' | 'import_issues' | 'price_lists' | 'price_list_versions', tenantId: string = TENANT_A) => committed[table]!.filter((r) => r.tenant_id === tenantId).map(clone),
     allRows: (table: 'imports' | 'files' | 'import_issues') => committed[table]!.map(clone),
     writes: () => stmts.filter((s) => /^\s*(INSERT|UPDATE|DELETE)\b/i.test(s.text) || /enqueue_job/i.test(s.text)),
     fail(match: RegExp, make: () => Error = () => new Error('injected')) { failures.push({ match, make }); },

@@ -38,8 +38,9 @@ describe.each([
   it(`with ${perm}: returns the Import (committing), stores the commit params, enqueues catalog.import_commit keyed by the import id`, async () => {
     const s = setup([perm]);
     const imp = s.seed(kind);
+    const v0 = imp.version;                                                // seed returns the live row the commit mutates (T-25 ruling #5)
     const out = await s.commit(imp, { change_reason: REASON, effective_from: '2026-12-01T00:00:00.000Z' });
-    expect(out).toMatchObject({ id: imp.id, kind, status: 'committing', version: imp.version + 1 });
+    expect(out).toMatchObject({ id: imp.id, kind, status: 'committing', version: v0 + 1 });
     expect(s.row(imp.id)).toMatchObject({ status: 'committing', commit_change_reason: REASON, committed_by: USER });
     expect(s.db.jobs).toHaveLength(1);
     expect(s.db.jobs[0]).toMatchObject({ identifier: 'catalog.import_commit', jobKey: imp.id });

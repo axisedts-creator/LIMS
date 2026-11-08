@@ -34,7 +34,7 @@ describe('catalog_master — AC-17.1 starter workbook validates into an empty te
     expect(errorsOf(issues)).toEqual([]);
     expect(imp).toMatchObject({ status: 'validated', error_count: 0 });
     expect(imp.summary).toMatchObject({ added: expect.any(Number), changed: 0, removed: 0, unchanged: 0, errors: 0 });
-    expect(imp.summary.rows).toBeGreaterThan(100);
+    expect(imp.summary.rows).toBe(95);                                      // generate.mjs data rows (T-25 ruling #1)
     expect(imp.summary.added).toBe(imp.summary.rows);
     expect(imp.summary).toMatchObject({ analyte_versions: 24, range_sets: 5, critical_sets: 1 });
     expect(new Date(imp.expires_at).getTime()).toBe(Date.parse(NOW) + 168 * 3600_000);
@@ -47,7 +47,7 @@ describe('catalog_master — AC-17.1 starter workbook validates into an empty te
     expect(domainEmpty(db)).toBe(true);
     expect(db.revision()).toBe(rev);
     expect(runner.events).toEqual([]);
-    expect(writtenTables(db)).toEqual(['files', 'import_issues', 'imports']);
+    expect(writtenTables(db)).toEqual(['files', 'imports']);                // 0 issues -> no import_issues row (T-25 ruling #2)
   }, T);
 
   it('stores an annotated report workbook (original rows + Issues sheet) for the import', async () => {
@@ -120,7 +120,7 @@ describe('catalog_master — AC-17.4 formula cycle and other invalid content (no
 
   it('a self-reference and a syntax error are row.formula_invalid too', async () => {
     const { issues, b } = await validateEdit((x) => { setCell(x, 'Analytes', 'MENTZER', 'formula', 'MENTZER + 1', 1); setCell(x, 'Analytes', 'NLR', 'formula', 'NEUT_ABS / / LYMPH_ABS', 1); });
-    expect(issue(issues, 'row.formula_invalid').map((i) => i.row_no).sort()).toEqual([rowNo(b, 'Analytes', 'MENTZER', 1), rowNo(b, 'Analytes', 'NLR', 1)].sort((a, c) => a - c));
+    expect(issue(issues, 'row.formula_invalid').map((i) => i.row_no).sort((a, c) => a - c)).toEqual([rowNo(b, 'Analytes', 'MENTZER', 1), rowNo(b, 'Analytes', 'NLR', 1)].sort((a, c) => a - c));
   }, T);
 
   it('a formula over an analyte that is not in the workbook or catalog -> row.formula_invalid', async () => {
@@ -223,7 +223,7 @@ describe('referrers (AC-17.6) — sheet Doctors', () => {
     expect(imp).toMatchObject({ status: 'validated' });
     expect(imp.summary).toMatchObject({ rows: 3, added: 3, changed: 0, removed: 0, unchanged: 0 });
     expect(db.doctorRows()).toEqual([]);                                   // dry run
-    expect(writtenTables(db)).toEqual(['files', 'import_issues', 'imports']);
+    expect(writtenTables(db)).toEqual(['files', 'imports']);               // 0 issues -> no import_issues row (T-25 ruling #2)
   }, T);
 
   it.each([

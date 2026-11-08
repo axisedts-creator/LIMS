@@ -289,8 +289,9 @@ describe('catalog_master — re-validation at commit, atomicity, redelivery', ()
     const r0 = makeKindsRunner(probe, importCommit);
     const { commitParams } = await import('../helpers/kindsDb.js');
     commitParams(probe);
+    const v0 = probe.writes().filter((w) => w.main).length;                // validation-run main-tx writes are not counted by crashAtWrite (T-25 ruling #4)
     await r0.run(payloadOf());
-    const total = probe.writes().filter((w) => w.main).length;
+    const total = probe.writes().filter((w) => w.main).length - v0;
     expect(total).toBeGreaterThan(50);
     const sample = [1, 2, 3, Math.floor(total / 3), Math.floor(total / 2), total - 3, total - 1, total];
     for (const n of sample) {
@@ -427,8 +428,9 @@ describe('referrers — commit (AC-17.6)', () => {
   it('crash at every write leaves nothing; code_counters roll back with it (no gap in auto codes after the retry)', async () => {
     const mk = async () => { const db = makeKindsDb('referrers'); await validateBytes(db, await referrersXlsx(rows())); const { commitParams } = await import('../helpers/kindsDb.js'); commitParams(db); return db; };
     const probe = await mk();
+    const v0 = probe.writes().filter((w) => w.main).length;                // see T-25 ruling #4
     await makeKindsRunner(probe, importCommit).run(payloadOf());
-    const total = probe.writes().filter((w) => w.main).length;
+    const total = probe.writes().filter((w) => w.main).length - v0;
     const wantedCode = probe.doctorRows().find((d) => d.display_name === 'Dr Synthetic Two')!.doctor_code;
     for (let n = 1; n <= total; n++) {
       const db = await mk();

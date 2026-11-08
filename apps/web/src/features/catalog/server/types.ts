@@ -29,8 +29,8 @@ export interface CatalogCounts { departments: number; tests: number; panels: num
 
 export interface PageInfo { limit: number; next_cursor?: string; prev_cursor?: string }
 export interface Page<T> { data: T[]; page: PageInfo }
-export interface ListQuery { isActive?: boolean; limit?: number; cursor?: string }
-export interface UnitsQuery { scope?: 'global' | 'tenant'; isActive?: boolean }
+export interface ListQuery { isActive?: boolean | 'all'; limit?: number; cursor?: string }
+export interface UnitsQuery { scope?: 'global' | 'tenant'; isActive?: boolean | 'all' }
 
 export interface DepartmentInput { code: string; name: string; report_order: number; report_heading?: string; is_active?: boolean }
 export interface SpecimenTypeInput { code: string; name: string; report_label: string; is_active?: boolean }

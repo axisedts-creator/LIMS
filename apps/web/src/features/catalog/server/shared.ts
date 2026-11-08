@@ -8,6 +8,16 @@ import { CODE_RE, IDEMPOTENCY_KEY_RE, UUID_RE, type ListQuery, type Page } from 
 
 export const bad = () => new ApiError(400, problem('common.validation_failed', 'Validation failed', 400));
 
+/** Pages: 403 → null (render the "no access" page); every other failure throws to error.tsx. */
+export async function orForbidden<T>(f: () => Promise<T>): Promise<T | null> {
+  try {
+    return await f();
+  } catch (e) {
+    if (e instanceof ApiError && e.status === 403) return null;
+    throw e;
+  }
+}
+
 export type V = (v: unknown) => unknown;
 export const str = (min: number, max: number): V => (v) => {
   if (typeof v !== 'string' || v.trim().length < min || v.length > max) throw bad();
@@ -61,7 +71,7 @@ export function listQs(q: ListQuery & { scope?: unknown }, scopes?: readonly str
     if (typeof q.scope !== 'string' || !scopes?.includes(q.scope)) throw bad();
     p.set('scope', q.scope);
   }
-  if (q.isActive !== undefined) p.set('is_active', String(bool(q.isActive)));
+  if (q.isActive !== undefined) p.set('is_active', q.isActive === 'all' ? 'all' : String(bool(q.isActive))); // 'all' = include inactive (API default is "true")
   if (q.limit !== undefined) p.set('limit', String(int(1, 200)(q.limit)));
   if (q.cursor !== undefined) p.set('cursor', String(str(1, 512)(q.cursor)));
   const s = p.toString();

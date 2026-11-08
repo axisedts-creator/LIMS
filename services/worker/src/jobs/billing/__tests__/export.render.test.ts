@@ -37,11 +37,14 @@ const act = (n: number) => ({ tenant_id: TENANT_A, id: `0190a000-0000-7000-8000-
 const jobRow = (over: Record<string, unknown> = {}) => ({ tenant_id: TENANT_A, id: JOB, kind: 'sales_register', format: 'xml', filters: {}, status: 'queued', row_count: null, bucket: null, object_path: null, sha256: null,
   error_code: null, requested_by_membership_id: '0190a000-0000-7000-8000-00000000a0b1', completed_at: null, expires_at: null, created_at: NOW, version: 1, is_active: true, ...over });
 
-function world(o: { job?: Record<string, unknown> | null; invoices?: any[]; creditNotes?: any[]; activity?: any[]; expired?: any[]; putFail?: Error; deleteFail?: (p: string) => Error | undefined; tenantId?: string | undefined; attempt?: number } = {}) {
+function world(o: { job?: Record<string, unknown> | null; invoices?: any[]; creditNotes?: any[]; activity?: any[]; expired?: any[]; putFail?: Error; deleteFail?: (p: string) => Error | undefined; tenantId?: string | undefined; attempt?: number;
+  objects?: Map<string, Buffer>; now?: string; failReadyOnce?: boolean } = {}) {
+  let readyFailed = false; const objects = o.objects ?? new Map<string, Buffer>();
   const stmts: Array<{ text: string; values: unknown[] }> = []; const puts: any[] = []; const dels: string[] = []; const renders: any[] = []; let urlCalls = 0;
   const job = o.job === null ? undefined : (o.job ?? jobRow());
   const tx = { async query(text: string, values: unknown[] = []) {
     stmts.push({ text, values });
+    if (o.failReadyOnce && !readyFailed && /UPDATE\s+billing\.export_jobs/i.test(text) && /ready/.test(`${text} ${JSON.stringify(values)}`)) { readyFailed = true; throw new Error('db: connection lost'); }
     const rows = (r: any[]) => ({ rows: r, rowCount: r.length });
     if (/^\s*(UPDATE|DELETE|INSERT)/i.test(text)) return { rows: [], rowCount: 1 };
     if (/count\(/i.test(text)) { const n = /credit_notes/.test(text) ? (o.creditNotes ?? []).length : /activity_log/.test(text) ? (o.activity ?? []).length : (o.invoices ?? []).length; return rows([{ count: String(n), n, c: n }]); }
@@ -53,12 +56,14 @@ function world(o: { job?: Record<string, unknown> | null; invoices?: any[]; cred
     return rows([]);
   } };
   const ctx: any = {
-    tenantId: 'tenantId' in o ? o.tenantId : TENANT_A, tx, actor: { type: 'system', id: '0190a000-0000-7000-8000-00000000a009' }, requestId: 'r', attempt: o.attempt ?? 1, maxAttempts: 5, jobId: '1', now: () => NOW,
+    tenantId: 'tenantId' in o ? o.tenantId : TENANT_A, tx, actor: { type: 'system', id: '0190a000-0000-7000-8000-00000000a009' }, requestId: 'r', attempt: o.attempt ?? 1, maxAttempts: 5, jobId: '1', now: () => o.now ?? NOW,
     log: { info() {}, warn() {}, error() {}, debug() {}, child() { return this; } }, metrics: { inc() {}, set() {}, observe() {} }, events: {}, core: {}, files: {}, audit: {},
     storage: {
-      async put(bucket: string, path: string, bytes: Uint8Array, opts: any) { if (o.putFail) throw o.putFail; puts.push({ bucket, path, bytes: Buffer.from(bytes), opts }); return { sha256: createHash('sha256').update(bytes).digest('hex'), byteSize: bytes.length }; },
+      async put(bucket: string, path: string, bytes: Uint8Array, opts: any) {
+        if (o.putFail) throw o.putFail; if (opts?.ifAbsent && objects.has(`${bucket}/${path}`)) throw new Error('storage: object exists (ifAbsent never overwrites)');
+        objects.set(`${bucket}/${path}`, Buffer.from(bytes)); puts.push({ bucket, path, bytes: Buffer.from(bytes), opts }); return { sha256: createHash('sha256').update(bytes).digest('hex'), byteSize: bytes.length }; },
       async delete(bucket: string, path: string) { const e = o.deleteFail?.(path); if (e) throw e; dels.push(`${bucket}/${path}`); },
-      async signedUrl() { urlCalls++; return 'https://storage.invalid/signed?token=SECRET'; }, async get() { throw new Error('worker must not read back'); },
+      async signedUrl() { urlCalls++; return 'https://storage.invalid/signed?token=SECRET'; }, async get(bucket: string, path: string) { const b = objects.get(`${bucket}/${path}`); if (!b) throw new Error('storage: no such object'); return new Uint8Array(b); },
     },
   };
   ctx.db = { tx: async (fn: any) => fn(ctx) };
@@ -164,8 +169,7 @@ describe('export_render PDF (US-BL-12.4, CR-C4-004): RenderPort as system actor,
     expect(w.renders).toHaveLength(0); expect(w.puts).toHaveLength(0);
     expect(w.updates().map(w.blob).some((b) => b.includes('failed') && b.includes('billing.export_too_large'))).toBe(true);
   });
-  it('exactly 5,000 rows still renders', async () => {
-    const w = world({ job: jobRow({ format: 'pdf' }), invoices: Array.from({ length: 5000 }, (_, i) => inv(i + 1)) }); await run(w, { port: w.port() });
+  it('exactly 5,000 rows still renders', async () => {    const w = world({ job: jobRow({ format: 'pdf' }), invoices: Array.from({ length: 5000 }, (_, i) => inv(i + 1)) }); await run(w, { port: w.port() });
     expect(w.renders).toHaveLength(1); expect(w.puts).toHaveLength(1);
   });
   it('reporting.render_unavailable -> the task throws (graphile retry, max 5); no object stored and the job is not marked ready', async () => {
@@ -198,6 +202,26 @@ describe('export_render guards (REQ-SEC-024) and replays', () => {
   it('a storage failure never marks the job ready', async () => {
     await render(); const w = world({ invoices: [inv(1)], putFail: new Error('storage down') }); await run(w).catch(() => undefined);
     expect(w.updates().map(w.blob).some((b) => /ready/.test(b))).toBe(false);
+  });
+});
+
+describe('export_render retries (BL-T15 review item 1) and credit-note order (item 4)', () => {
+  it('first attempt fails after the object was stored (DB error on the ready UPDATE); the retry — even in a later month — reaches ready with exactly ONE object at the original key', async () => {
+    const objects = new Map<string, Buffer>(); const invoices = [inv(1), inv(2)];
+    const first = world({ invoices, objects, failReadyOnce: true });
+    await expect(run(first)).rejects.toBeDefined();
+    expect(objects.size).toBe(1);
+    const second = world({ invoices, objects, attempt: 2, now: '2026-12-02T12:00:00.000Z' }); // job.created_at is 2026-11-08: the key must not move to 2026/12
+    await run(second);
+    expect(second.updates().map(second.blob).some((b) => b.includes('ready'))).toBe(true);
+    expect(second.updates().map(second.blob).some((b) => b.includes('failed'))).toBe(false);
+    expect([...objects.keys()]).toEqual([`${BUCKET}/${TENANT_A}/2026/11/${JOB}.xml`]);
+  });
+  it('credit-note SELECT orders by credit_note_seq (not issued_at) so the export is in sequence order', async () => {
+    const w = world({ job: jobRow({ kind: 'credit_notes' }), creditNotes: [cn(1), cn(2)] }); await run(w);
+    const sel = w.stmts.find((s) => /^\s*SELECT/i.test(s.text) && /billing\.credit_notes/.test(s.text) && !/count\(/i.test(s.text))!;
+    const order = /ORDER BY\s+([\s\S]*?)(?:\s+LIMIT|\s*$)/i.exec(sel.text)?.[1] ?? '';
+    expect(order, sel.text).toMatch(/credit_note_seq/); expect(order).not.toMatch(/issued_at/);
   });
 });
 

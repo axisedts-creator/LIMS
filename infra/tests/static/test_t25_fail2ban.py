@@ -76,7 +76,9 @@ LOGIN_ROUTES = ["/auth/login", "/auth/mfa", "/auth/mfa/enrol", "/auth/forgot", "
 AGENT_ROUTES = ["/v1/instruments/agent/", "/v1/instruments/agent/attachments", "/v1/instruments/agent/message-batches",
                 "/v1/instruments/agent/no-such-thing"]
 OTP_ROUTES = ["/v1/engagement/auth/otp-challenges", "/v1/engagement/auth/otp-challenges/abc/verify"]
-PSESSION_ROUTES = ["/v1/identity/auth/patient/session/resolve"]
+# psession routes come from the generated edge route table (zone field), so a new psession route can't be missed (review item 2)
+PSESSION_ROUTES = sorted(r["path"] for r in yaml.safe_load(
+    (ROOT / "infra" / "edge" / "public-routes.yaml").read_text(encoding="utf-8"))["routes"] if r["zone"] == "psession")
 EXEMPT_FROM_RATELIMIT = LOGIN_ROUTES + AGENT_ROUTES + OTP_ROUTES + PSESSION_ROUTES
 # Routes whose rejections come from perip / callback / payments / qrverify (the logged route is $uri or a template).
 COUNTED_BY_RATELIMIT = ["/v1/payments/result", "/v1/payments/launch/:token", "/v1/payments/callbacks/khalti/:token",
@@ -405,6 +407,14 @@ class ExemptZonesTest(unittest.TestCase):
     def test_ac_04_4a_all_exempt_zones_together(self):
         ev = rej(IP, "/v1/instruments/agent/x", 300, span=500) + rej(IP, OTP_ROUTES[0], 100, span=500) + \
              rej(IP, PSESSION_ROUTES[0], 100, span=500)
+        self.assertEqual(all_bans(ev), {"lims-ratelimit": set(), "lims-auth": set()})
+
+    def test_psession_routes_include_resolve_and_logout(self):
+        self.assertIn("/v1/identity/auth/patient/session/resolve", PSESSION_ROUTES)
+        self.assertIn("/v1/identity/auth/patient/session/logout", PSESSION_ROUTES)
+
+    def test_ac_04_4a_hundred_psession_logout_rejections_no_ban(self):
+        ev = rej(IP, "/v1/identity/auth/patient/session/logout", 100, span=60)
         self.assertEqual(all_bans(ev), {"lims-ratelimit": set(), "lims-auth": set()})
 
     def test_exempt_rejections_do_not_add_to_the_countable_ones(self):  # 19 countable + 300 agent stays at 19

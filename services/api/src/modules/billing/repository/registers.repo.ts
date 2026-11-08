@@ -4,7 +4,7 @@ import type { Tx } from '../../../core/db/tx.js';
 
 type Q = Pick<Tx, 'query'>;
 type Row = Record<string, unknown>;
-interface Range { tenantId: string; fiscalYearBs?: string; issuedAtFrom?: string; issuedAtTo?: string; centreId?: string; afterTime?: string; afterId?: string; limit: number }
+interface Range { tenantId: string; fiscalYearBs?: string; issuedAtFrom?: string; issuedAtTo?: string; centreId?: string; afterTime?: string; afterId?: string; afterKey?: string; afterFy?: string; limit: number }
 
 /** Builds `AND ...` conditions on the alias columns; `time` is the timestamptz column the range and keyset use. */
 function where(p: unknown[], a: Range, time: string, alias: string, fy: boolean): string {
@@ -39,12 +39,17 @@ export async function listCancelledInvoices(tx: Q, a: Range): Promise<Row[]> {
 
 export async function listCreditNoteRegister(tx: Q, a: Range): Promise<Row[]> {
   const p: unknown[] = [a.tenantId];
-  const w = where(p, a, 'c.issued_at', 'c', true);
+  const { afterTime: _t, afterId, afterKey, afterFy, ...range } = a;   // keyset is (fiscal_year_bs, credit_note_seq, id), not time: 02-TRD §5.2 "ordered by credit_note_seq"
+  let w = where(p, range, 'c.issued_at', 'c', true);
+  if (afterKey !== undefined && afterFy !== undefined && afterId !== undefined) {
+    const at = (v: unknown) => { p.push(v); return '$' + p.length; };
+    w += ` AND (c.fiscal_year_bs, c.credit_note_seq, c.id) > (${at(afterFy)}, ${at(afterKey)}::integer, ${at(afterId)}::uuid)`;
+  }
   p.push(a.limit);
   return (await tx.query(
-    'SELECT c.id, c.credit_note_seq, c.credit_note_no, c.issued_at, c.credit_note_date_bs, c.kind, c.invoice_no, c.buyer_name, c.buyer_pan, c.reason_code, ' +
+    'SELECT c.id, c.fiscal_year_bs, c.credit_note_seq, c.credit_note_no, c.issued_at, c.credit_note_date_bs, c.kind, c.invoice_no, c.buyer_name, c.buyer_pan, c.reason_code, ' +
     'c.exempt_paisa, c.taxable_paisa, c.vat_paisa, c.other_tax_paisa, c.net_paisa FROM billing.credit_notes c WHERE ' + w +
-    " ORDER BY date_trunc('milliseconds', c.issued_at), c.id LIMIT $" + p.length, p)).rows;
+    ' ORDER BY c.fiscal_year_bs, c.credit_note_seq, c.id LIMIT $' + p.length, p)).rows;
 }
 
 /** Newest first. `details` is deliberately not selected (non-PHI by contract, but it is never part of the trail DTO). */

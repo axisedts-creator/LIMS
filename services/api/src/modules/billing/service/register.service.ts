@@ -19,7 +19,7 @@ export const ACTIVITY_ACTIONS = ['invoice_issued', 'invoice_printed', 'invoice_c
   'refund_rejected', 'refund_recorded', 'receipt_printed', 'override_created', 'export_created', 'export_downloaded', 'cbms_submitted', 'credit_account_changed', 'periodic_invoice_issued',
   'settings_changed', 'cash_session_closed', 'finance_review_resolved'];
 
-interface Cursor { s: string; t: string; i: string; k: string; n: number }
+interface Cursor { s: string; t: string; i: string; k: string; n: number; f?: string }   // f = fiscal_year_bs of the last row (B26 keyset)
 const encode = (c: Cursor): string => Buffer.from(JSON.stringify(c), 'utf8').toString('base64url');
 function decode(raw: unknown, sort: string): Cursor {
   const invalid = () => new LimsError('common.invalid_cursor');
@@ -27,8 +27,9 @@ function decode(raw: unknown, sort: string): Cursor {
   let v: any;
   try { v = JSON.parse(Buffer.from(raw, 'base64url').toString('utf8')); } catch { throw invalid(); }
   if (!isRec(v) || v['s'] !== sort || typeof v['t'] !== 'string' || !UTC_INSTANT.test(v['t']) || typeof v['i'] !== 'string' || !UUID.test(v['i'])
-    || typeof v['k'] !== 'string' || v['k'].length < 1 || v['k'].length > 64 || !Number.isSafeInteger(v['n']) || v['n'] < 0) throw invalid();
-  return { s: sort, t: v['t'], i: v['i'], k: v['k'], n: v['n'] };
+    || typeof v['k'] !== 'string' || v['k'].length < 1 || v['k'].length > 64 || !Number.isSafeInteger(v['n']) || v['n'] < 0
+    || (v['f'] !== undefined && (typeof v['f'] !== 'string' || !FY.test(v['f'])))) throw invalid();
+  return { s: sort, t: v['t'], i: v['i'], k: v['k'], n: v['n'], ...(v['f'] === undefined ? {} : { f: v['f'] }) };
 }
 
 function scope(ctx: BalanceCtx): { tx: never; tenantId: string } {
@@ -55,7 +56,7 @@ export function createRegisterService(deps: { repo?: RegisterRepo } = {}) {
 
   /** Shared B24-B26 shape: validate, read limit+1 rows after the cursor, map, cut the page. */
   async function list(ctx: BalanceCtx, rawQuery: unknown, o: {
-    sort: string; read: (a: any) => Promise<Row[]>; timeOf: (r: Row) => unknown; keyOf: (r: Row) => string; dto: (r: Row, sn: number) => Row;
+    sort: string; read: (a: any) => Promise<Row[]>; timeOf: (r: Row) => unknown; keyOf: (r: Row) => string; dto: (r: Row, sn: number) => Row; fyKey?: boolean;
   }) {
     const { tx, tenantId } = scope(ctx);
     const q = isRec(rawQuery) ? rawQuery : {};
@@ -65,17 +66,19 @@ export function createRegisterService(deps: { repo?: RegisterRepo } = {}) {
     const centreId = q['centreId'] === undefined ? undefined : uuid(q['centreId'], '/centre_id');
     const r = range(q, 'issuedAtFrom', 'issuedAtTo');
     const after = q['cursor'] === undefined ? undefined : decode(q['cursor'], o.sort);
+    if (o.fyKey && after && (after.f === undefined || !/^[0-9]{1,9}$/.test(after.k))) throw new LimsError('common.invalid_cursor');
     const rows = await o.read({
       tx, tenantId, limit: limit + 1,
       ...(fy === undefined ? {} : { fiscalYearBs: fy }), ...(centreId === undefined ? {} : { centreId }),
       ...(r.from === undefined ? {} : { issuedAtFrom: r.from }), ...(r.to === undefined ? {} : { issuedAtTo: r.to }),
-      ...(after === undefined ? {} : { afterKey: after.k, afterTime: after.t, afterId: after.i }),
+      ...(after === undefined ? {} : { afterKey: after.k, afterTime: after.t, afterId: after.i }), ...(after?.f === undefined ? {} : { afterFy: after.f }),
     });
     const data = rows.slice(0, limit);
     const last = data[data.length - 1];
     const served = (after?.n ?? 0) + data.length;
     const page: { limit: number; next_cursor?: string } = { limit };
-    if (rows.length > limit && last) page.next_cursor = encode({ s: o.sort, t: iso(o.timeOf(last)), i: String(last['id']), k: o.keyOf(last), n: served });
+    if (rows.length > limit && last) page.next_cursor = encode({ s: o.sort, t: iso(o.timeOf(last)), i: String(last['id']), k: o.keyOf(last), n: served,
+      ...(o.fyKey && typeof last['fiscal_year_bs'] === 'string' ? { f: last['fiscal_year_bs'] } : {}) });
     return { data: data.map((x, i) => o.dto(x, (after?.n ?? 0) + i + 1)), page };
   }
 
@@ -96,7 +99,7 @@ export function createRegisterService(deps: { repo?: RegisterRepo } = {}) {
   });
 
   const creditNotes = (ctx: BalanceCtx, q: unknown) => list(ctx, q, {
-    sort: 'issued_at', read: ({ tx, ...a }) => db.listCreditNoteRegister(tx, a), timeOf: (r) => r['issued_at'], keyOf: (r) => String(r['credit_note_seq']),
+    sort: 'issued_at', read: ({ tx, ...a }) => db.listCreditNoteRegister(tx, a), timeOf: (r) => r['issued_at'], keyOf: (r) => String(r['credit_note_seq']), fyKey: true,   // ordered by (fiscal_year_bs, credit_note_seq): 02-TRD §5.2
     dto: (r, sn) => present({
       sn, credit_note_date_bs: r['credit_note_date_bs'], credit_note_date_ad: dateAd(r['issued_at']), credit_note_no: r['credit_note_no'], kind: r['kind'], invoice_no: r['invoice_no'],
       buyer_name: r['buyer_name'], buyer_pan: r['buyer_pan'], reason_code: r['reason_code'],
@@ -116,7 +119,7 @@ export function createRegisterService(deps: { repo?: RegisterRepo } = {}) {
     const rows = await db.listAuditTrail(tx, {
       tenantId, limit: limit + 1, ...(actor === undefined ? {} : { actorMembershipId: actor }), ...(action === undefined ? {} : { action }),
       ...(r.from === undefined ? {} : { occurredAtFrom: r.from }), ...(r.to === undefined ? {} : { occurredAtTo: r.to }),
-      ...(after === undefined ? {} : { afterKey: after.k, afterTime: after.t, afterId: after.i }),
+      ...(after === undefined ? {} : { afterKey: after.k, afterTime: after.t, afterId: after.i }), ...(after?.f === undefined ? {} : { afterFy: after.f }),
     });
     const data = rows.slice(0, limit);
     const last = data[data.length - 1];

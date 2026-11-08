@@ -1,6 +1,6 @@
 // billing.export_render (02-TRD §9/§10; PRD US-BL-12.1, 12.4, 12.5; 07-SECURITY REQ-SEC-024/034/035; 08 R12c, CR-C4-004). Enqueued by B28 in the creating transaction, payload {tenant_id, export_id}.
 // Builds the file (XML in-module against urn:lims:billing:export:v1, docs/manual/billing/exports.md; PDF: RenderPort.renderPdf as the billing system actor returns the bytes), stores it with
-// ctx.storage.put (ifAbsent) in the private bucket `billing-exports` at {tenant}/{yyyy}/{mm}/{export_id}.{ext}, then marks the job `ready` (expires_at = now + TTL). No Storage URL is ever created.
+// ctx.storage.put (ifAbsent) in the private bucket `billing-exports` at {tenant}/{yyyy}/{mm of created_at}/{export_id}.{ext}, then marks the job `ready` (expires_at = now + TTL). No Storage URL is ever created.
 // The job context is the tenant's: a payload that names another tenant, or no job, is skipped without a statement. Replays are no-ops (only a `queued` job is rendered).
 // Failure contract (as billing.cbms_sync): a retryable failure on a non-final attempt THROWS a sanitised error (queue retry, tx rolled back); on the final attempt, and at once for permanent
 // causes (row cap drift, xlsx before BL-T19, bad stored filter), the job is COMMITTED `failed` with a stable error_code and the task resolves.
@@ -69,7 +69,7 @@ function queryOf(kind: string, tenantId: string, f: Row, limit: number): Query {
   const common = () => { if (fy !== undefined) w += ' AND fiscal_year_bs = ' + add(fy); if (centre !== undefined) w += ' AND centre_id = ' + add(centre); };
   let select: string, order: string;
   switch (kind) {
-    case 'sales_register': case 'invoice_documents':
+    case 'sales_register':
       common(); range('issued_at');
       select = 'SELECT id, invoice_seq, invoice_no, issued_at, invoice_date_bs, buyer_name, buyer_pan, exempt_paisa, taxable_paisa, vat_paisa, other_tax_paisa, net_paisa, status FROM billing.invoices';
       order = 'issued_at, id'; break;
@@ -80,7 +80,7 @@ function queryOf(kind: string, tenantId: string, f: Row, limit: number): Query {
     case 'credit_notes':
       common(); range('issued_at');
       select = 'SELECT id, credit_note_seq, credit_note_no, issued_at, credit_note_date_bs, kind, invoice_no, buyer_name, buyer_pan, reason_code, exempt_paisa, taxable_paisa, vat_paisa, other_tax_paisa, net_paisa FROM billing.credit_notes';
-      order = 'issued_at, id'; break;
+      order = 'fiscal_year_bs, credit_note_seq, id'; break;   // 02-TRD §5.2: ordered by credit_note_seq
     case 'audit_trail':
       range('occurred_at'); if (actor !== undefined) w += ' AND actor_membership_id = ' + add(actor);
       select = 'SELECT id, action, document_kind, document_id, document_no, actor_membership_id, occurred_at FROM billing.activity_log';   // `details` is never read
@@ -95,7 +95,7 @@ function queryOf(kind: string, tenantId: string, f: Row, limit: number): Query {
 }
 
 // ---- row -> flat DTO (same fields as the B24-B27 register rows) ----
-const ROW_NAME: Record<string, string> = { sales_register: 'SalesRow', invoice_documents: 'SalesRow', cancelled_invoices: 'CancelledRow', credit_notes: 'CreditNoteRow', audit_trail: 'ActivityRow', daily_cash: 'CashRow' };
+const ROW_NAME: Record<string, string> = { sales_register: 'SalesRow', cancelled_invoices: 'CancelledRow', credit_notes: 'CreditNoteRow', audit_trail: 'ActivityRow', daily_cash: 'CashRow' };
 /** [xml element, dto key] in schema order; absent values are left out. */
 const FIELDS: Record<string, Array<[string, string]>> = {
   SalesRow: [['Sn', 'sn'], ['InvoiceDateBs', 'invoice_date_bs'], ['InvoiceDateAd', 'invoice_date_ad'], ['InvoiceNo', 'invoice_no'], ['BuyerName', 'buyer_name'], ['BuyerPan', 'buyer_pan'],
@@ -109,7 +109,7 @@ const FIELDS: Record<string, Array<[string, string]>> = {
 };
 function dtoOf(kind: string, r: Row, sn: number, creditNoteNo: (r: Row) => string | undefined): Dto {
   switch (kind) {
-    case 'sales_register': case 'invoice_documents':
+    case 'sales_register':
       return { sn, invoice_date_bs: r['invoice_date_bs'], invoice_date_ad: localDate(r['issued_at']), invoice_no: r['invoice_no'], buyer_name: r['buyer_name'], buyer_pan: text(r['buyer_pan']), total: money(r['net_paisa']),
         exempt: money(r['exempt_paisa']), taxable: money(r['taxable_paisa']), vat: money(r['vat_paisa']), other_tax: money(r['other_tax_paisa']), status: r['status'] };
     case 'cancelled_invoices': {
@@ -162,6 +162,8 @@ export function createExportRender(deps: { render?: RenderPort } = {}): TaskHand
       const kind: string = job['kind'], format: string = job['format'];
       if (format === 'xlsx') throw new Permanent('common.feature_disabled');                  // BL-T19
       if (format !== 'xml' && format !== 'pdf') throw new Permanent('common.validation_failed');
+      // 02-TRD §11: invoice_documents = template billing.invoice over InvoicePrint.document + branding; not built yet -> fail closed (.orchestra/cr/BL-T15.md)
+      if (kind === 'invoice_documents') throw new Permanent('common.feature_disabled');
       const filters = typeof job['filters'] === 'string' ? JSON.parse(job['filters']) : (job['filters'] ?? {});
       const cap = format === 'pdf' ? int('LIMS_BILLING_EXPORT_PDF_MAX_ROWS', 5000) : int('LIMS_BILLING_EXPORT_MAX_ROWS', 100000);
       const query = queryOf(kind, tenantId, filters, cap + 1);
@@ -187,10 +189,21 @@ export function createExportRender(deps: { render?: RenderPort } = {}): TaskHand
         contentType = 'application/pdf';
       }
 
+      // key from created_at (not now): a retry after a stored object hits the same key
+      const c = new Date(iso(job['created_at']));
+      const path = `${tenantId}/${c.getUTCFullYear()}/${String(c.getUTCMonth() + 1).padStart(2, '0')}/${exportId}.${format}`;
+      try {
+        await ctx.storage.put(EXPORT_BUCKET, path, bytes, { contentType, ifAbsent: true });
+      } catch (putErr) {
+        // ifAbsent refused: an earlier attempt stored the object and then failed. XML is byte-identical by design; a PDF of the same idempotencyKey is the earlier file.
+        const readBack = (ctx.storage.read ?? ctx.storage.get).bind(ctx.storage);   // StorageAdapter.read (core/storage); `get` = the test fake's shape
+        const prev: Uint8Array | undefined = await readBack(EXPORT_BUCKET, path).catch(() => undefined);
+        if (!prev) throw putErr;
+        if (format === 'xml' && sha256(prev) !== sha256(bytes)) throw putErr;
+        bytes = prev;
+      }
       const now: string = ctx.now();
       const d = new Date(now);
-      const path = `${tenantId}/${d.getUTCFullYear()}/${String(d.getUTCMonth() + 1).padStart(2, '0')}/${exportId}.${format}`;
-      await ctx.storage.put(EXPORT_BUCKET, path, bytes, { contentType, ifAbsent: true });
       const expires = new Date(d.getTime() + int('LIMS_BILLING_EXPORT_TTL_HOURS', 24) * 3_600_000).toISOString();
       await q("UPDATE billing.export_jobs SET status = 'ready', bucket = $3, object_path = $4, sha256 = $5, row_count = $6, completed_at = $7::timestamptz, expires_at = $8::timestamptz, error_code = NULL, " +
         "version = version + 1, updated_by = $9, updated_at = now() WHERE tenant_id = $1 AND id = $2 AND status = 'queued'", [tenantId, exportId, EXPORT_BUCKET, path, sha256(bytes), dtos.length, now, expires, actor]);

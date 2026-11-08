@@ -1,6 +1,10 @@
-TESTS_WRONG — the test asserts something the spec does not require (say precisely what to change in the test)
-- Spec requires only that "a family-range is replaced by one tx at a time (advisory lock `pg_advisory_xact_lock(hashtext('analytics:'||tenant||':'||family))` at the start of each family-range tx)" — spec/chunks/C8-analytics-mis/03-APP-FLOW.md:272 (X4); also 03-APP-FLOW.md:66. It does not require that a waiting tx issues no statement (incl. the lock request itself) before the holder ends.
-- refreshFake.ts:82 logs the `lock` entry (`log.push(entry)`) BEFORE the wait at refreshFake.ts:88, so a correctly blocked tx B always has `first` < `last` of holder A; refresh.service.test.ts:363 (`s[i].first > s[i-1].last`) therefore fails for any spec-conforming engine.
-- Change (tester): record lock acquisition — e.g. in refreshFake.ts `case 'lock'`, after the `while (held.has(key))` loop, set `entry.acquiredAt = log.length` (or push a second `lock_acquired` entry); in the test, build spans as `{ first: acquiredAt, last }` and assert `acquired(B) > last(A)` for txs sharing a lock key.
-- Keep unchanged: both fulfilled, no rolled_back tx, marks.size 0, daily_income 'new' (refresh.service.test.ts:351-353,365-366).
-- Implementation needs no change for this test (writer says other assertions hold); tests not run (no node_modules) — rerun after tester fix.
+TESTS_WRONG — refresh_tenant.test.ts:66 forbids every non-`readMarks`/`other` statement, including the `SELECT now()` (`dbNow`) read; the spec only requires that a nothing-dirty run does not write.
+Change in the test at services/worker/src/jobs/analytics/__tests__/refresh_tenant.test.ts:66: assert that no logged kind is one of the write kinds, e.g.
+`expect(f.log.some((l) => ['replaceDelete','insertRollup','deleteMarks','stateUpsert','runInsert','runUpdate'].includes(l.kind))).toBe(false);`
+(Allowing `dbNow` in the existing whitelist is also fine.) Keep the test name "nothing dirty -> resolves without writing".
+
+Reasons:
+- spec/chunks/C8-analytics-mis/02-TRD.md:532 — mark delete is guarded by `last_marked_at <= $run_started_at`, so the run must hold a run-start value.
+- 02-TRD.md:541 and 03-APP-FLOW.md:271 (X3) — marks arriving during the run (`last_marked_at > run_started_at`) must survive, so `run_started_at` has to be captured before the marks are read. That means it is captured even when no marks turn out to be dirty.
+- 03-APP-FLOW.md:272 (X4) — marks are deleted only when `last_marked_at <= run_started_at`, so run start must be DB time to compare with the DB-set `last_marked_at`.
+- No cited spec line forbids reads on an empty run. `SELECT now()` writes nothing, so the test's intent still holds. The implementation (DB_NOW before READ_MARKS) is correct and does not change.

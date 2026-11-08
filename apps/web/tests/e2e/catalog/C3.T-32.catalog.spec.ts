@@ -1,4 +1,5 @@
-// C3.T-32 nightly E2E — SCR-06…08 permission gating through the real BFF + stub C2 (tests/web-e2e/playwright.config.ts).
+// C3.T-32 nightly E2E — SCR-06…08 permission gating through the real BFF + stub C2.
+// C3-owned location + own config (./playwright.config.ts) so the C0 T0D-14 suite (tests/web-e2e) never matches it.
 // Not part of the per-task verify (needs `next dev` + browsers). Synthetic data only.
 // NEEDS (writer/lead): stub-c2.mjs sessions carrying catalog permissions — `sid-catalog-read` (catalog.test.read),
 // `sid-catalog-manage` (read+manage), `sid-catalog-publish` (read+manage+reference_range.publish) — and a stubbed

@@ -689,6 +689,25 @@ describe('SCR-08 ranges tab', () => {
     expect(s.body.bands[0]).toMatchObject({ sex: 'male', low: '13.0', high: '17.0' });
   });
 
+  it('critical Save: PUT /critical-limit-sets/{id}/bands bands carry NO sort_order (02-TRD §3 CriticalBand; API rejects unknown fields); reference bands do', async () => {
+    api.use(
+      http.put(`${ORIGIN}/v1/catalog/critical-limit-sets/:id/bands`, rec(() => HttpResponse.json(set({ id: CL2, version: 3 })))),
+      http.put(`${ORIGIN}/v1/catalog/reference-range-sets/:id/bands`, rec(() => HttpResponse.json(set({ version: 3 })))),
+    );
+    const { RangesTab } = await load('RangesTab');
+    wrap(<RangesTab {...p({ kind: 'critical', sets: [set({ id: CL2, bands: [{ sex: 'any', low: '5.0', high: '20.0' }] })] })} />);
+    await userEvent.click(screen.getByRole('button', { name: /^save/i }));
+    await waitFor(() => expect(calls('PUT', /critical-limit-sets\/.*\/bands$/)).toHaveLength(1));
+    const crit = calls('PUT', /critical-limit-sets\/.*\/bands$/)[0]!;
+    expect(crit.body.bands.length).toBeGreaterThan(0);
+    for (const b of crit.body.bands) expect(Object.keys(b)).not.toContain('sort_order');
+    cleanup();
+    wrap(<RangesTab {...p()} />);
+    await userEvent.click(screen.getByRole('button', { name: /^save/i }));
+    await waitFor(() => expect(calls('PUT', /reference-range-sets\/.*\/bands$/)).toHaveLength(1));
+    expect(calls('PUT', /reference-range-sets\/.*\/bands$/)[0]!.body.bands[0]).toHaveProperty('sort_order');
+  });
+
   it('client validation: Numeric band needs Low or High, Low ≤ High, Age to > Age from — error in the row, no request', async () => {
     const { RangesTab } = await load('RangesTab');
     wrap(<RangesTab {...p({ sets: [set({ bands: [band({ low: '17.0', high: '13.0' })] })] })} />);
@@ -782,6 +801,23 @@ describe('SCR-08 ranges tab', () => {
     const confirm = screen.queryByRole('button', { name: /^(discard|confirm)/i, hidden: false });
     if (confirm && confirm.textContent?.toLowerCase() !== 'discard draft') await userEvent.click(confirm);
     await waitFor(() => expect(calls('POST', /discard$/)).toHaveLength(1));
+    expect(calls('POST', /discard$/)[0]!.headers.get('if-match')).toBe('"2"'); // set.version; API answers 428 without it
+  });
+
+  it('Retire… on a published set → POST /reference-range-sets/{id}/retire with If-Match "<set version>", Idempotency-Key, change_reason', async () => {
+    api.use(http.post(`${ORIGIN}/v1/catalog/reference-range-sets/:id/retire`, rec(() => HttpResponse.json(set({ status: 'retired', version: 3 })))));
+    const { RangesTab } = await load('RangesTab');
+    wrap(<RangesTab {...p({ sets: [set({ status: 'published', version: 4 })] })} />);
+    await userEvent.click(screen.getByRole('button', { name: /^retire…$|^retire\.\.\.$/i }));
+    await userEvent.type(screen.getByLabelText(/change reason/i), 'Superseded by new method');
+    await userEvent.type(screen.getByLabelText(/type .*HB.* to confirm|confirm/i), 'HB');
+    await userEvent.click(screen.getByRole('button', { name: /^retire$/i }));
+    await waitFor(() => expect(calls('POST', /retire$/)).toHaveLength(1));
+    const s = calls('POST', /retire$/)[0]!;
+    expect(s.url.pathname).toBe(`/v1/catalog/reference-range-sets/${RS3}/retire`);
+    expect(s.headers.get('if-match')).toBe('"4"');
+    expect(s.headers.get('idempotency-key')).toBeTruthy();
+    expect(s.body.change_reason).toBe('Superseded by new method');
   });
 
   it('display text and codes render as text nodes (REQ-SEC-088)', async () => {

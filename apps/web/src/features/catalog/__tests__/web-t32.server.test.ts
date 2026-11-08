@@ -11,7 +11,9 @@
 //   server/publishAnalyteVersion.server.ts     publishAnalyteVersion(versionId, version, body, idempotencyKey)               POST #34 (If-Match, Idempotency-Key)
 //   server/publishRangeSet.server.ts           publishReferenceRangeSet / publishCriticalLimitSet(setId, version, {effective_from?, change_reason}, idempotencyKey)  #41/#48
 //   server/replaceBands.server.ts              replaceReferenceRangeBands / replaceCriticalLimitBands(setId, version, bands)  PUT #40/#47 (If-Match)
-//   server/previewReferenceRange.server.ts     previewReferenceRange({analyte_id, sex, age_days, birth_on?, specimen_type_code?, at?})  POST #51
+//   server/retireRangeSet.server.ts            retireReferenceRangeSet / retireCriticalLimitSet(setId, version, {change_reason, effective_at?}, idempotencyKey)  #42/#49 (If-Match, Idempotency-Key)
+//   server/discardRangeSet.server.ts           discardReferenceRangeSetDraft / discardCriticalLimitSetDraft(setId, version)     #43/#50 (If-Match)
+//   server/previewReferenceRange.server.ts    previewReferenceRange({analyte_id, sex, age_days, birth_on?, specimen_type_code?, at?})  POST #51
 //   errors: ApiError from '@/core/api/server-fetch' (status + problem.code), as in features/instruments/server.
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { http, HttpResponse } from 'msw';
@@ -167,6 +169,49 @@ describe('range / critical sets (#38–#51, AC-05.7/05.9)', () => {
     expect(seen[0]!.headers.get('if-match')).toBe('"2"');
     expect(seen[0]!.body).toEqual({ bands });
     expect(typeof seen[0]!.body.bands[0].low).toBe('string');
+  });
+
+  // 02-TRD §5: If-Match on every state-changing action on an existing resource; API answers 428 common.precondition_required without it.
+  it.each([
+    ['retireReferenceRangeSet', 'reference-range-sets', '#42'],
+    ['retireCriticalLimitSet', 'critical-limit-sets', '#49'],
+  ])('%s (%s, %s) → POST /{id}/retire with If-Match "<version>", Idempotency-Key, change_reason', async (fn, seg) => {
+    api.use(http.post(`${ORIGIN}/v1/catalog/${seg}/:id/retire`, rec(() => HttpResponse.json({ id: SET, status: 'retired', version: 3 }))));
+    const mod = await load('retireRangeSet');
+    await mod[fn](SET, 2, { change_reason: 'Synthetic retire reason' }, KEY);
+    expect(seen[0]!.url.pathname).toBe(`/v1/catalog/${seg}/${SET}/retire`);
+    expect(seen[0]!.headers.get('if-match')).toBe('"2"');
+    expect(seen[0]!.headers.get('idempotency-key')).toBe(KEY);
+    expect(seen[0]!.body).toEqual({ change_reason: 'Synthetic retire reason' });
+  });
+
+  it('retire refuses a blank change_reason, missing Idempotency-Key, non-integer version or non-UUID id before any request', async () => {
+    api.use(http.post(`${ORIGIN}/v1/catalog/reference-range-sets/:id/retire`, rec(() => HttpResponse.json({}))));
+    const mod = await load('retireRangeSet');
+    await expect(mod.retireReferenceRangeSet(SET, 2, { change_reason: '   ' }, KEY)).rejects.toMatchObject({ status: 400 });
+    await expect(mod.retireReferenceRangeSet(SET, 2, { change_reason: 'r' }, '')).rejects.toMatchObject({ status: 400 });
+    await expect(mod.retireReferenceRangeSet(SET, 1.5, { change_reason: 'r' }, KEY)).rejects.toMatchObject({ status: 400 });
+    await expect(mod.retireReferenceRangeSet('not-a-uuid', 2, { change_reason: 'r' }, KEY)).rejects.toMatchObject({ status: 400 });
+    expect(seen).toHaveLength(0);
+  });
+
+  it.each([
+    ['discardReferenceRangeSetDraft', 'reference-range-sets', '#43'],
+    ['discardCriticalLimitSetDraft', 'critical-limit-sets', '#50'],
+  ])('%s (%s, %s) → POST /{id}/discard with If-Match "<version>"', async (fn, seg) => {
+    api.use(http.post(`${ORIGIN}/v1/catalog/${seg}/:id/discard`, rec(() => HttpResponse.json({ id: SET, status: 'discarded', version: 3 }))));
+    const mod = await load('discardRangeSet');
+    await mod[fn](SET, 2);
+    expect(seen[0]!.url.pathname).toBe(`/v1/catalog/${seg}/${SET}/discard`);
+    expect(seen[0]!.headers.get('if-match')).toBe('"2"');
+  });
+
+  it('discard refuses a non-integer version or non-UUID id before any request', async () => {
+    api.use(http.post(`${ORIGIN}/v1/catalog/reference-range-sets/:id/discard`, rec(() => HttpResponse.json({}))));
+    const mod = await load('discardRangeSet');
+    await expect(mod.discardReferenceRangeSetDraft(SET, 1.5)).rejects.toMatchObject({ status: 400 });
+    await expect(mod.discardReferenceRangeSetDraft('not-a-uuid', 2)).rejects.toMatchObject({ status: 400 });
+    expect(seen).toHaveLength(0);
   });
 
   it('previewReferenceRange (#51) → POST with the profile; returns match, critical limits, no_reference_range', async () => {

@@ -15,7 +15,13 @@ const AXE = readFileSync(require.resolve('axe-core', { paths: [join(__dirname, '
 const apiLog = async (): Promise<any[]> => (await fetch(`${API}/__requests`)).json();
 const apiReset = () => fetch(`${API}/__requests`, { method: 'DELETE' });
 const apiControl = (mode: string) => fetch(`${API}/__control`, { method: 'POST', body: JSON.stringify({ mode }) });
-const norm = (s: string) => s.replace(/nonce-[A-Za-z0-9+/=_-]+/g, 'nonce-X').replace(/nonce="[^"]*"/g, 'nonce="X"');
+// Masks per-response randomness only (REQ-SEC-089 nonce CSP; Next.js __next_r render id) — ruling C6-T30-ruling.md. Applied to the raw body AND to the JSON.stringify'd form (escaped quotes).
+const norm = (s: string) =>
+  s.replace(/nonce-[A-Za-z0-9+/=_-]+/g, 'nonce-X')
+    .replace(/nonce="[^"]*"/g, 'nonce="X"')
+    .replace(/nonce=\\"[^"\\]*\\"/g, 'nonce=\\"X\\"')
+    .replace(/__next_r="[^"]*"/g, '__next_r="X"')
+    .replace(/__next_r=\\"[^"\\]*\\"/g, '__next_r=\\"X\\"');
 
 async function enterCode(page: Page, code: string) {
   await page.getByLabel('Digit 1 of 6').click();

@@ -3,7 +3,7 @@
 // access_log data.export (stage create). B29a streams the stored bytes (the handler uses the core download helper) and writes an access_log row on EVERY call BEFORE it reads storage
 // (fail closed); no Storage URL exists anywhere: ExportJob carries status only.
 // [CONV] filters.from/to are IsoDate in the contract (a Kathmandu calendar day) and UTC instants are accepted too; both are stored as UTC instants (date -> start / end of that day).
-// [CONV] xlsx -> common.feature_disabled until BL-T19. A ready job past expires_at is 404 even before the purge task has run.
+// [CONV] A ready job past expires_at is 404 even before the purge task has run.
 import { uuidv7 } from '../../../../../../packages/shared-ts/src/uuidv7/index.js';
 import { LimsError } from '../../../core/errors.js';
 import { loadBillingConfig, type BillingConfig } from '../config.js';
@@ -86,7 +86,6 @@ export function createExportService(deps: { repo?: ExportRepo; config?: Pick<Bil
     if (typeof kind !== 'string' || !KINDS.includes(kind)) throw bad('/kind');
     if (typeof format !== 'string' || !FORMATS.includes(format)) throw bad('/format');
     const filters = filtersOf(raw['filters']);
-    if (format === 'xlsx') throw new LimsError('common.feature_disabled');
     await requirePrivileged(ctx);
     const access = auditOf(ctx);
     if (typeof ctx.actor.membershipId !== 'string') throw new LimsError('auth.forbidden');

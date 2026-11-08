@@ -3,6 +3,8 @@
 // each later task replaces its own entries.
 // [CONV] §9.3 lists max_attempts 3 for sweeps/purge, the §9.4 literal omits it: literal followed.
 import type { ConsumerHandler, TaskHandler, WorkerManifest } from '../../core/manifest.js';
+import { consumers } from './consumers/index.js';
+import { refreshTenantTask } from './tasks/refresh_tenant.js';
 
 const task = (id: string): TaskHandler => async () => { throw new Error(`${id} not implemented`); };
 const consumer = (type: string): ConsumerHandler => async () => { throw new Error(`consumer ${type} not implemented`); };
@@ -21,8 +23,8 @@ const SUBSCRIPTIONS = [
 
 export const manifest: WorkerManifest = {
   module: 'analytics',
-  tasks: Object.fromEntries(TASKS.map((id) => [id, task(id)])),
-  subscriptions: Object.fromEntries(SUBSCRIPTIONS.map((type) => [type, consumer(type)])),
+  tasks: { ...Object.fromEntries(TASKS.map((id) => [id, task(id)])), 'analytics.refresh_tenant': refreshTenantTask }, // AN-T04: real; others still stubs
+  subscriptions: Object.fromEntries(SUBSCRIPTIONS.map((type) => [type, consumers[type] ?? consumer(type)])), // AN-T05: all 12 real
   crontab: [
     { identifier: 'analytics.sweep_recent', schedule: '*/10 * * * *', tenantScope: 'per_tenant' },
     { identifier: 'analytics.sweep_nightly', schedule: '45 20 * * *', tenantScope: 'per_tenant' },

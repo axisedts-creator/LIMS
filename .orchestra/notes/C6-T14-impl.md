@@ -4,4 +4,5 @@ Run: verify.cmd scope + release.handlers = 189/189 pass (4 files, 58 s). Load p9
 [CONV] bulk = release.service releaseVersion mode 'bulk': no If-Match, skips instead of throws, held writes nothing; one savepoint per id via ctx.tx.savepoint (fallback: none).
 [CONV] unexpected per-id failure -> savepoint rollback + outcome `not_ready`, code-only warn log (R7 enum has no "error"; CR candidate, not filed).
 [CONV] order: ctx check -> body (400) -> user actor -> IdentityPort.assertRole(bulk_release) -> bulk_release_max (422) -> ids.
-OPEN (test infra, not impl): full `vitest run src/modules/reporting` in parallel -> load test busy-spin sleep starves other files (8x "Hook timed out in 10000ms", p95 8.0-8.5 s). Fix: run load file alone / `fileParallelism:false` for it.
+LD-69 round: no code change. verify.cmd (2 processes) run 2026-11-08: bulk-release.test+manifest 103/103 pass; bulk-release.load alone 4/4 pass (p95 <= 8 s), so Ruling 3 not triggered.
+OPEN: running the whole reporting folder in one parallel vitest process still starves CPU; keep load file in its own process.

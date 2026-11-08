@@ -3,7 +3,7 @@
 // Read-only: every query runs on ctx.tx (no transaction control, no write, no lock). Tenant comes from ctx.tenantId only; every value is a bind parameter.
 // Cache: time-independent bundles keyed (tenant, catalog_revision, kind, id); the revision is read ONCE per ctx (memoised) and asOf / at are applied in memory.
 import type {
-  AnalyteDefinition, CatalogPortV1, CriticalLimitsMatch, PanelDefinition, ReferenceRangeMatch, ResolvedOrderables, TestDefinition,
+  AnalyteDefinition, CatalogPortV1, CriticalLimitsMatch, InstrumentCodeMapping, PanelDefinition, ReferenceRangeMatch, ResolvedOrderables, TestDefinition,
 } from '../../../../../../contracts/ports/CatalogPort.js';
 import { LimsError } from '../../../core/errors.js';
 import type { CatalogCache } from '../cache/catalogCache.js';
@@ -13,7 +13,7 @@ import { currentRevision } from '../repo/catalogState.repo.js';
 
 type Row = Record<string, any>;
 type Ctx = { tenantId: string; tx: { query(text: string, values?: unknown[]): Promise<{ rows: any[] }> }; now(): string | Date };
-export type CatalogPortNonPrice = Pick<CatalogPortV1, 'getTest' | 'getPanel' | 'resolveOrderables' | 'referenceRangeFor' | 'criticalLimitsFor'>;
+export type CatalogPortNonPrice = Pick<CatalogPortV1, 'getTest' | 'getPanel' | 'resolveOrderables' | 'referenceRangeFor' | 'criticalLimitsFor' | 'mapInstrumentCode'>;
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const ISO = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}(\.\d+)?)?(Z|[+-]\d{2}:\d{2})$/;
@@ -327,6 +327,36 @@ export function createCatalogPort(deps: { cache: CatalogCache }): CatalogPortNon
       const m = resolveCriticalLimits({ sets: b.crit, versions: b.versions, query });
       const codes = (m as { abnormalCodes?: readonly string[] } | undefined)?.abnormalCodes;
       return m && ({ ...m, ...(codes ? { abnormalCodes: [...codes] } : {}) } as CriticalLimitsMatch);
+    },
+
+    /** §7.8. Uncached on purpose: one indexed read (instrument_code_maps__inbound/outbound__p_uq), so an edit or deactivation is visible to the very next request. */
+    async mapInstrumentCode(c, input): Promise<InstrumentCodeMapping> {
+      const ctx = c as Ctx;
+      if (!input || typeof input !== 'object') throw invalid('input');
+      const instrumentId = uuid(input.instrumentId, 'instrumentId');
+      if (input.direction !== 'inbound' && input.direction !== 'outbound') throw invalid('direction');
+      if (input.instrumentCode !== undefined && typeof input.instrumentCode !== 'string') throw invalid('instrumentCode');
+      const analyteId = input.analyteId === undefined ? undefined : uuid(input.analyteId, 'analyteId');
+      const testId = input.testId === undefined ? undefined : uuid(input.testId, 'testId');
+      const unmapped = () => new LimsError('catalog.instrument_code_unmapped');
+      const base = 'SELECT id, instrument_id, instrument_code, analyte_id, test_id, unit_from_raw, unit_to_code, unit_factor, flag_map FROM catalog.instrument_code_maps WHERE tenant_id = $1 AND instrument_id = $2 AND is_active = $3 AND direction = ANY($4) AND ';
+      let rows: Row[];
+      if (input.direction === 'inbound') {
+        if (input.instrumentCode === undefined) throw unmapped();
+        rows = await q(ctx, `${base}instrument_code = $5 LIMIT 1`, [ctx.tenantId, instrumentId, true, ['inbound', 'both'], input.instrumentCode]);
+      } else if (analyteId !== undefined) {
+        rows = await q(ctx, `${base}analyte_id = $5 LIMIT 1`, [ctx.tenantId, instrumentId, true, ['outbound', 'both'], analyteId]);
+      } else if (testId !== undefined) {
+        rows = await q(ctx, `${base}test_id = $5 ORDER BY instrument_code COLLATE "C" ASC LIMIT 1`, [ctx.tenantId, instrumentId, true, ['outbound', 'both'], testId]);
+      } else throw unmapped();
+      const r = rows[0];
+      if (!r) throw unmapped();
+      const units = r.unit_from_raw != null && r.unit_to_code != null && r.unit_factor != null;
+      return {
+        mappingId: r.id, instrumentId: r.instrument_id, instrumentCode: r.instrument_code, analyteId: r.analyte_id, testId: r.test_id,
+        ...(units ? { unitConversion: { fromUnitRaw: r.unit_from_raw, toUnitCode: r.unit_to_code, factor: String(r.unit_factor) } } : {}),
+        ...(r.flag_map != null ? { flagMap: { ...r.flag_map } } : {}),
+      };
     },
   };
 }

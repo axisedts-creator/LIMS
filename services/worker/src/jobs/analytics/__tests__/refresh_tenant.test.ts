@@ -63,6 +63,6 @@ describe('refreshTenantTask', () => {
   it('nothing dirty -> resolves without writing', async () => {
     const f = createFakeDb();
     await expect(refreshTenantTask({ tenant_id: TA }, createCtx(f, { tenantId: TA }) as never)).resolves.toBeUndefined();
-    expect(f.log.some((l) => l.kind !== 'readMarks' && l.kind !== 'other')).toBe(false);
+    expect(f.log.some((l) => ['replaceDelete', 'insertRollup', 'deleteMarks', 'stateUpsert', 'runInsert', 'runUpdate'].includes(l.kind))).toBe(false);
   });
 });

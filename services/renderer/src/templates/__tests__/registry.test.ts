@@ -9,6 +9,7 @@
 //   ../../server.ts  startServer({ pool, token, registry? }) — with `registry`, POST /internal/render picks the shape by template_id: report ids -> TemplateModule
 //        (shape 1, unchanged), RenderTemplateKey values -> DataTemplateModule (shape 2 { template_id, data, assets }; module.render({data, assets, qr})).
 //        Unknown template_id -> 400; a module that throws -> 422.
+import { createHash } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { createPool } from '../../pool.js';
@@ -71,9 +72,18 @@ describe('POST /internal/render — second request shape { template_id, data, as
     const body = { template_id: 'billing.credit_note', data: { creditNoteNo: 'SYN-CN-9' }, assets: {} };
     const [x, y] = await Promise.all([post(body), post(body)]);
     const [bx, by] = [Buffer.from(await x.arrayBuffer()), Buffer.from(await y.arrayBuffer())];
-    // PDF /CreationDate may differ between runs; compare the extracted text and page count, and size within a small margin
+    // text + page count only; byte-level sha256 determinism is asserted in the next test
     expect(norm(pdfText(bx))).toBe(norm(pdfText(by)));
     expect(x.headers.get('x-page-count')).toBe(y.headers.get('x-page-count'));
+  });
+  it('same shape-2 body twice ≥1.1 s apart → identical sha256 of response bytes (contract case 4; 02-TRD §7.4 deterministic rendering)', async () => {
+    const body = { template_id: 'billing.credit_note', data: { creditNoteNo: 'SYN-CN-11' }, assets: {} };
+    const x = await post(body);
+    await new Promise((r) => setTimeout(r, 1_100));
+    const y = await post(body);
+    expect(x.status).toBe(200); expect(y.status).toBe(200);
+    const sha = async (r: Response) => createHash('sha256').update(Buffer.from(await r.arrayBuffer())).digest('hex');
+    expect(await sha(x)).toBe(await sha(y));
   });
   it('data templates get the same guard as report templates: script not run, external requests blocked (REQ-SEC-086)', async () => {
     const before = pool.stats().blockedRequests;

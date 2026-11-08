@@ -187,7 +187,7 @@ export function makeDb(seed: Seed = {}, opts: DbOpts = {}) {
     }
     const verb = (/^(select|insert|update|delete|with)\b/i.exec(text)?.[1] ?? 'other').toLowerCase();
     if (verb === 'with' || /\bjoin\b|\(\s*select\b|\bunnest\s*\(|\bcount\s*\(/i.test(text)) unsupported(text.slice(0, 90));
-    const table = /\b(?:from|into|update)\s+((?:reporting|core|catalog|frontdesk|lab|billing)\.\w+)/i.exec(text)?.[1];
+    const table = /\b(?:from|into|update)\s+((?:reporting|core|catalog|frontdesk|lab|billing|micro|anatomic)\.\w+)/i.exec(text)?.[1];
     if (!table) return [];
     if (verb === 'delete') throw pgError('42501', 'permission denied: no DELETE grant');
 

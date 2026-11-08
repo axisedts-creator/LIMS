@@ -108,6 +108,7 @@ describe('period: [from, to) on Asia/Kathmandu business dates (US-02.6, 03-APP-F
 
 describe('group_by (TRD §5 #2: day, ad_month, bs_month, branch, centre)', () => {
   it('ad_month: one row per A.D. month, key YYYY-MM, exact sums', async () => {
+    db.income = db.income.filter((f) => f.date !== D0); // window [10-30, D3) is half-open and would include seeded D0
     db.income.push(incFact('2026-10-31', A1, { issued: 7, taxable: 4000, vat: 520 }));
     const { ctx } = await makeCtx(ADMIN);
     const body = await ok('getIncomeReport', ctx, { business_date_from: '2026-10-30', business_date_to: D3, group_by: 'ad_month' });

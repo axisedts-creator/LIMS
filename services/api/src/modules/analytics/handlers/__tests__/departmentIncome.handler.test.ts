@@ -5,7 +5,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { LimsError } from '../../../../core/errors.js';
 import { ratioBp } from '../../domain/metrics.js';
 import {
-  A1, A2, TA, ADMIN, DEPT, DEPT_NAME, NO_PERM, OWNER_A1, PARTNER, D1, D2, D3, addDays, bsKey, call, contractErrors, db, deptFact, expectLims,
+  A1, A2, TA, ADMIN, DEPT, DEPT_NAME, NO_PERM, OWNER_A1, PARTNER, D0, D1, D2, D3, addDays, bsKey, call, contractErrors, db, deptFact, expectLims,
   golden, incFact, makeCtx, ok, seedStandard,
 } from './helpers.js';
 
@@ -179,6 +179,8 @@ describe('US-03.3 / US-04.3 — R2 reconciliation: Σ department net = M12', () 
 
 describe('group_by (TRD §5 #3: department, department_ad_month, department_bs_month)', () => {
   it('department_ad_month: one row per (A.D. month, department) with period_key YYYY-MM; sums exact; totals unchanged', async () => {
+    db.dept = db.dept.filter((f) => f.date !== D0); // window [10-30, D3) is half-open and would include seeded D0
+    db.income = db.income.filter((f) => f.date !== D0);
     db.dept.push(deptFact('2026-10-31', A1, DEPT.H, { lines: 2, gross: 400, net: 400 }));
     db.income.push(incFact('2026-10-31', A1, { taxable: 400 }));
     const { ctx } = await makeCtx(ADMIN);

@@ -31,7 +31,7 @@ afterEach(() => { server.resetHandlers(); seen.length = 0; });
 afterAll(() => server.close());
 
 const problem = (status: number, code: string, extra: Record<string, unknown> = {}) => HttpResponse.json({ type: `urn:lims:error:${code}`, title: 'x', status, code, ...extra }, { status });
-const mod = (op: string) => import(`../server/${op}.server`);
+const mod = (op: string) => import(`../server/${op}.server.ts`);
 
 // One row per master resource. `body` is a valid create payload; `patch` a valid update payload; `bad` creates that must be rejected before the network.
 const MASTERS = [

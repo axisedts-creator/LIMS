@@ -59,7 +59,8 @@ export const authRow = (n: number, o: Partial<AuthRow> = {}): AuthRow => {
 
 export interface EnqueueCall { identifier: string; payload: Record<string, unknown>; jobKey: string }
 /** In-memory PlatformStaffRepo. `locked` records every lockActiveSuperadmins call (before-write ordering is asserted through `order`). */
-export function makeRepo(seed: { staff?: StaffRow[]; sessions?: SessRow[]; auth?: AuthRow[] } = {}) {
+export function makeRepo(seed: { staff?: StaffRow[]; sessions?: SessRow[]; auth?: AuthRow[]; mfa?: Array<{ user_id: string; status: string }> } = {}) {
+  const mfa = (seed.mfa ?? []).map((r) => ({ ...r }));
   const staff = (seed.staff ?? [meRow()]).map((r) => ({ ...r, allowed_cidrs: [...r.allowed_cidrs] }));
   const sessions = (seed.sessions ?? []).map((r) => ({ ...r }));
   const auth = (seed.auth ?? []).map((r) => ({ ...r }));
@@ -98,6 +99,18 @@ export function makeRepo(seed: { staff?: StaffRow[]; sessions?: SessRow[]; auth?
     async listPlatformSessions(tx: unknown) { rec('listPlatformSessions', tx); return sessions.map((r) => ({ ...r })); },
     async findSession(tx: unknown, id: string) { rec('findSession', tx, id); const r = sessions.find((x) => x.id === id); return r && { ...r }; },
     async revokeSession(tx: unknown, id: string, o: { at: Date; actorId: string }) { rec('revokeSession', tx, id, o); const r = sessions.find((x) => x.id === id); if (r) r.state = 'revoked'; },
+    /** review item 1/2 seam: revokes every non-terminal kind='platform' session of the staff row (UPDATE identity.sessions ... state NOT IN ('revoked','expired')); returns the count. */
+    async revokeStaffSessions(tx: unknown, o: { platformStaffId: string; reason: string; at: Date; actorId: string }) {
+      rec('revokeStaffSessions', tx, o); let n = 0;
+      for (const r of sessions) if (r.kind === 'platform' && r.platform_staff_id === o.platformStaffId && !['revoked', 'expired'].includes(r.state)) { r.state = 'revoked'; n += 1; }
+      return n;
+    },
+    /** review item 2 seam: mirror rows -> status='removed', removal_reason='admin_reset' for the platform user (tenant_id IS NULL, status <> 'removed'); returns the count. */
+    async removeStaffMfaFactors(tx: unknown, o: { userId: string; actorId: string }) {
+      rec('removeStaffMfaFactors', tx, o); const n = mfa.filter((m) => m.user_id === o.userId && m.status !== 'removed').length;
+      for (const m of mfa) if (m.user_id === o.userId) m.status = 'removed';
+      return n;
+    },
     async listAuthEvents(tx: unknown, p: { from: string; to: string; after: { at: string; id: string }; limit: number; f: { tenant_id?: string; event_type?: string } }) {
       rec('listAuthEvents', tx, p);
       return auth.filter((r) => {
@@ -107,7 +120,7 @@ export function makeRepo(seed: { staff?: StaffRow[]; sessions?: SessRow[]; auth?
       }).sort((a, b) => (a.occurred_at.getTime() === b.occurred_at.getTime() ? (a.id < b.id ? 1 : -1) : b.occurred_at.getTime() - a.occurred_at.getTime())).slice(0, p.limit).map((r) => ({ ...r }));
     },
   };
-  return { repo, staff, sessions, auth, invitations, jobs, order, calls, state, by: (m: string) => calls.filter((c) => c.m === m), row: (id: string) => staff.find((r) => r.id === id)! };
+  return { repo, staff, sessions, auth, mfa, invitations, jobs, order, calls, state, by: (m: string) => calls.filter((c) => c.m === m), row: (id: string) => staff.find((r) => r.id === id)! };
 }
 export type FakeRepo = ReturnType<typeof makeRepo>;
 

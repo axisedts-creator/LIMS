@@ -216,6 +216,25 @@ describe('deactivatePlatformStaff', () => {
     for (const id of [idN(0xdead), 'zzz']) expect((await rejection(() => s.svc.deactivatePlatformStaff(s.ctx, { platformStaffId: id, expectedVersion: 1 }))).code).toBe('common.not_found');
     expect(s.f.row(S2.id).is_active).toBe(true); expect(s.f.jobs).toEqual([]);
   });
+  // review item 1 (03-APP-FLOW s1 SS9): deactivate revokes every non-terminal platform session of the member in the same tx, before the signout job.
+  it('revokes every non-terminal platform session of the member (reason deactivate) before the gotrue_signout job; other staff sessions untouched', async () => {
+    const s = setup({ staff: [meRow(), S2, staffRow(3)], sessions: [sessRow(2), sessRow(2, { id: idN(0x7102), state: 'revoked' }), sessRow(3)] });
+    await s.svc.deactivatePlatformStaff(s.ctx, { platformStaffId: S2.id, expectedVersion: 1 });
+    const c = s.f.by('revokeStaffSessions'); expect(c).toHaveLength(1);
+    expect(c[0]!.tx).toBe(s.tx); expect(c[0]!.args[0]).toEqual({ platformStaffId: S2.id, reason: 'deactivate', at: NOW, actorId: STAFF_USER });
+    expect(s.f.order.indexOf('revokeStaffSessions')).toBeGreaterThan(s.f.order.indexOf('updateStaff')); expect(s.f.order.indexOf('revokeStaffSessions')).toBeLessThan(s.f.order.indexOf('enqueue'));
+    expect(s.f.sessions.find((x) => x.id === idN(0x7002))!.state).toBe('revoked'); expect(s.f.sessions.find((x) => x.id === idN(0x7003))!.state).toBe('active');
+  });
+  it('no session revoke on the 403 / 409 / 428 / 404 paths', async () => {
+    const f = { staff: [meRow(), S2, S3], sessions: [sessRow(2)] };
+    const a = setup(f, SUPPORT); await rejection(() => a.svc.deactivatePlatformStaff(a.ctx, { platformStaffId: S2.id, expectedVersion: 1 }));
+    const b = setup({ staff: [meRow()], sessions: [sessRow(0)] }); await rejection(() => b.svc.deactivatePlatformStaff(b.ctx, { platformStaffId: STAFF_ID, expectedVersion: 1 }));
+    const c = setup({ staff: [meRow({ is_active: false }), S3], sessions: [sessRow(3)] }); await rejection(() => c.svc.deactivatePlatformStaff(c.ctx, { platformStaffId: S3.id, expectedVersion: 1 }));
+    const d = setup(f); await rejection(() => d.svc.deactivatePlatformStaff(d.ctx, { platformStaffId: S2.id, expectedVersion: 9 }));
+    await rejection(() => d.svc.deactivatePlatformStaff(d.ctx, { platformStaffId: S2.id, expectedVersion: undefined })); await rejection(() => d.svc.deactivatePlatformStaff(d.ctx, { platformStaffId: idN(0xdead), expectedVersion: 1 }));
+    for (const x of [a, b, c, d]) expect(x.f.by('revokeStaffSessions')).toEqual([]);
+    expect(c.f.sessions[0]!.state).toBe('active');
+  });
 });
 
 describe('resetPlatformStaffMfa', () => {
@@ -236,6 +255,24 @@ describe('resetPlatformStaffMfa', () => {
     expect((await rejection(() => s.svc.resetPlatformStaffMfa(s.ctx, { platformStaffId: STAFF_ID }))).code).toBe('identity.self_action_forbidden');
     for (const id of [idN(0xdead), 'zzz']) expect((await rejection(() => s.svc.resetPlatformStaffMfa(s.ctx, { platformStaffId: id }))).code).toBe('common.not_found');
     expect(s.f.jobs).toEqual([]); expect(s.events).toEqual([]);
+  });
+  // review item 2 (03-APP-FLOW s4.5, SS9): the mirror is authoritative - factors go to removed and sessions are revoked immediately, in the same tx, before the job.
+  it('marks the mirror factors removed (admin_reset) and revokes the member\'s sessions (reason mfa_reset) in the request tx, before the job and the event', async () => {
+    const s = setup({ staff: [meRow(), S2, staffRow(3)], sessions: [sessRow(2), sessRow(3)], mfa: [{ user_id: S2.user_id, status: 'verified' }, { user_id: S2.user_id, status: 'removed' }, { user_id: staffRow(3).user_id, status: 'verified' }] });
+    await s.svc.resetPlatformStaffMfa(s.ctx, { platformStaffId: S2.id });
+    const m = s.f.by('removeStaffMfaFactors'), r = s.f.by('revokeStaffSessions'); expect(m).toHaveLength(1); expect(r).toHaveLength(1);
+    expect(m[0]!.tx).toBe(s.tx); expect(m[0]!.args[0]).toEqual({ userId: S2.user_id, actorId: STAFF_USER });
+    expect(r[0]!.tx).toBe(s.tx); expect(r[0]!.args[0]).toEqual({ platformStaffId: S2.id, reason: 'mfa_reset', at: NOW, actorId: STAFF_USER });
+    expect(s.f.order.indexOf('removeStaffMfaFactors')).toBeLessThan(s.f.order.indexOf('enqueue')); expect(s.f.order.indexOf('revokeStaffSessions')).toBeLessThan(s.f.order.indexOf('enqueue'));
+    expect(s.f.mfa.map((x) => x.status)).toEqual(['removed', 'removed', 'verified']);
+    expect(s.f.sessions.map((x) => x.state)).toEqual(['revoked', 'active']);
+    expect(s.f.jobs).toHaveLength(1); expect(s.events).toHaveLength(1);
+  });
+  it('403 / self / unknown id: no mirror change, no session revoke', async () => {
+    const seed = { staff: [meRow(), S2], sessions: [sessRow(2), sessRow(0)], mfa: [{ user_id: S2.user_id, status: 'verified' }] };
+    const a = setup(seed, SUPPORT); await rejection(() => a.svc.resetPlatformStaffMfa(a.ctx, { platformStaffId: S2.id }));
+    const b = setup(seed); await rejection(() => b.svc.resetPlatformStaffMfa(b.ctx, { platformStaffId: STAFF_ID })); await rejection(() => b.svc.resetPlatformStaffMfa(b.ctx, { platformStaffId: idN(0xdead) }));
+    for (const x of [a, b]) { expect(x.f.by('removeStaffMfaFactors')).toEqual([]); expect(x.f.by('revokeStaffSessions')).toEqual([]); expect(x.f.mfa[0]!.status).toBe('verified'); }
   });
 });
 

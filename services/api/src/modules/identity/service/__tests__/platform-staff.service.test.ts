@@ -22,7 +22,7 @@ const INVITE = { email: 'New.Support@Example.test', displayName: 'New Support', 
 const S2 = staffRow(2), S3 = staffRow(3, { role_code: 'platform_superadmin' });
 const noSideEffects = (s: ReturnType<typeof setup>) => {
   expect(s.f.calls.filter((c) => !['listStaff', 'findStaff', 'findStaffByEmail', 'lockActiveSuperadmins', 'findSession', 'listPlatformSessions', 'listAuthEvents'].includes(c.m))).toEqual([]);
-  expect(s.events).toEqual([]); expect(s.gotrue).not.toHaveBeenCalled();
+  expect(s.events).toEqual([]); expect(s.gotrue.adminCreateUser).not.toHaveBeenCalled();
 };
 
 describe('authz: PlatformAuthz inside the service, before any repo / GoTrue call', () => {
@@ -38,7 +38,7 @@ describe('authz: PlatformAuthz inside the service, before any repo / GoTrue call
   it.each(OPS)('%s: platform_support -> auth.forbidden, nothing touched (platform.staff.manage is superadmin-only)', async (_n, run) => {
     const s = setup({ staff: [meRow(), S2] }, SUPPORT);
     expect((await rejection(() => run(s))).code).toBe('auth.forbidden');
-    expect(s.f.calls).toEqual([]); expect(s.events).toEqual([]); expect(s.gotrue).not.toHaveBeenCalled();
+    expect(s.f.calls).toEqual([]); expect(s.events).toEqual([]); expect(s.gotrue.adminCreateUser).not.toHaveBeenCalled();
   });
   it.each(OPS)('%s: a tenant actor / missing platform role -> auth.forbidden', async (_n, run) => {
     for (const o of [{ actor: { type: 'user', id: STAFF_USER }, platformRole: undefined }, { actor: { type: 'system', id: STAFF_USER } }]) {
@@ -141,7 +141,7 @@ describe('updatePlatformStaff', () => {
     expect((await rejection(() => s.svc.updatePlatformStaff(s.ctx, U({ expectedVersion: undefined, displayName: 'X' })))).code).toBe('common.precondition_required');
     expect((await rejection(() => s.svc.updatePlatformStaff(s.ctx, U({ expectedVersion: 7, displayName: 'X' })))).code).toBe('common.version_conflict');
     for (const v of [0, -1, 1.5, '1', NaN, 2 ** 31]) expect((await rejection(() => s.svc.updatePlatformStaff(s.ctx, U({ expectedVersion: v, displayName: 'X' })))).code).toBe('common.validation_failed');
-    expect(s.row(S2.id)).toMatchObject({ display_name: 'Demo Staff 2', version: 1 }); expect(s.events).toEqual([]);
+    expect(s.f.row(S2.id)).toMatchObject({ display_name: 'Demo Staff 2', version: 1 }); expect(s.events).toEqual([]);
   });
   it('unknown / non-uuid id -> 404 common.not_found; empty patch -> 400; invalid fields -> 400 with the row untouched', async () => {
     const s = setup({ staff: [meRow(), S2] });
@@ -153,7 +153,7 @@ describe('updatePlatformStaff', () => {
   it('mass assignment: is_active / version / user_id / email in the input are ignored (deactivation has its own operation)', async () => {
     const s = setup({ staff: [meRow(), S2] });
     await s.svc.updatePlatformStaff(s.ctx, U({ displayName: 'Ok', isActive: false, version: 99, userId: idN(1), emailNormalized: 'evil@example.test', email: 'evil@example.test' }));
-    expect(s.f.by('updateStaff')[0]!.args[2]).not.toHaveProperty('isActive'); expect(s.row(S2.id)).toMatchObject({ is_active: true, email_normalized: 'staff2@example.test', user_id: idN(0x6002) });
+    expect(s.f.by('updateStaff')[0]!.args[2]).not.toHaveProperty('isActive'); expect(s.f.row(S2.id)).toMatchObject({ is_active: true, email_normalized: 'staff2@example.test', user_id: idN(0x6002) });
   });
 });
 
@@ -161,7 +161,7 @@ describe('last active superadmin is protected (done_when; 02-TRD s5.10 identity.
   it('demoting the only active superadmin (self) -> 409 identity.last_admin_protected, row and events untouched', async () => {
     const s = setup({ staff: [meRow(), S2] });
     const e = await rejection(() => s.svc.updatePlatformStaff(s.ctx, { platformStaffId: STAFF_ID, expectedVersion: 1, roleCode: 'platform_support' }));
-    expect(e.code).toBe('identity.last_admin_protected'); expect(s.row(STAFF_ID)).toMatchObject({ role_code: 'platform_superadmin', version: 1 });
+    expect(e.code).toBe('identity.last_admin_protected'); expect(s.f.row(STAFF_ID)).toMatchObject({ role_code: 'platform_superadmin', version: 1 });
     expect(s.f.by('updateStaff')).toEqual([]); expect(s.events).toEqual([]);
   });
   it('with a second ACTIVE superadmin the demotion is allowed; an inactive superadmin does not count', async () => {
@@ -178,7 +178,7 @@ describe('last active superadmin is protected (done_when; 02-TRD s5.10 identity.
   it('deactivating the only active superadmin (stale actor, B already deactivated by A) -> 409 identity.last_admin_protected', async () => {
     const s = setup({ staff: [meRow({ is_active: false }), S3] });                        // ctx = a stale claims set of the already-deactivated me
     const e = await rejection(() => s.svc.deactivatePlatformStaff(s.ctx, { platformStaffId: S3.id, expectedVersion: 1 }));
-    expect(e.code).toBe('identity.last_admin_protected'); expect(s.row(S3.id).is_active).toBe(true); expect(s.events).toEqual([]); expect(s.f.jobs).toEqual([]);
+    expect(e.code).toBe('identity.last_admin_protected'); expect(s.f.row(S3.id).is_active).toBe(true); expect(s.events).toEqual([]); expect(s.f.jobs).toEqual([]);
   });
   it('race safety: the superadmin set is locked (FOR UPDATE) in the request tx BEFORE the write that could remove one', async () => {
     const s = setup({ staff: [meRow(), S3] });
@@ -214,7 +214,7 @@ describe('deactivatePlatformStaff', () => {
     expect((await rejection(() => s.svc.deactivatePlatformStaff(s.ctx, { platformStaffId: S2.id, expectedVersion: undefined }))).code).toBe('common.precondition_required');
     expect((await rejection(() => s.svc.deactivatePlatformStaff(s.ctx, { platformStaffId: S2.id, expectedVersion: 5 }))).code).toBe('common.version_conflict');
     for (const id of [idN(0xdead), 'zzz']) expect((await rejection(() => s.svc.deactivatePlatformStaff(s.ctx, { platformStaffId: id, expectedVersion: 1 }))).code).toBe('common.not_found');
-    expect(s.row(S2.id).is_active).toBe(true); expect(s.f.jobs).toEqual([]);
+    expect(s.f.row(S2.id).is_active).toBe(true); expect(s.f.jobs).toEqual([]);
   });
 });
 
@@ -326,7 +326,7 @@ describe('IP allowlist is enforced end to end (US-E6): what updatePlatformStaff 
   it('an invalid list never reaches storage, so the resolver never sees an unparsable entry (host bits set is refused up front)', async () => {
     const s = setup({ staff: [meRow(), S2] });
     await rejection(() => s.svc.updatePlatformStaff(s.ctx, { platformStaffId: S2.id, expectedVersion: 1, allowedCidrs: ['198.51.100.7/24'] }));
-    expect(s.row(S2.id).allowed_cidrs).toEqual([]);
+    expect(s.f.row(S2.id).allowed_cidrs).toEqual([]);
   });
 });
 

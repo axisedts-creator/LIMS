@@ -30,6 +30,8 @@ const TEMPLATE_PERM: Record<ImportKind, string | undefined> = {
 };
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const RETRY_AFTER_SECONDS = 30;
+const ISO = /^\d{4}-\d\d-\d\dT\d\d:\d\d(:\d\d(\.\d+)?)?(Z|[+-]\d\d:\d\d)$/;
+const COMMIT_KEYS = ['change_reason', 'effective_from', 'accept_stale_base', 'publish', 'replace_draft'];
 
 const bad = (): never => { throw new LimsError('common.validation_failed'); };
 const isKind = (k: unknown): k is ImportKind => typeof k === 'string' && (IMPORT_KINDS as readonly string[]).includes(k);
@@ -235,6 +237,42 @@ export function createImportsService(deps: { identity: Identity; config?: Catalo
       if (!rows[0]) throw notReady();
       await accessLog(ctx, { entityId: row.report_file_id });
       return { fileName: `import-report-${row.id}.xlsx`, contentType: XLSX, bytes: new Uint8Array(rows[0].content) };
+    },
+
+    /** #102 (02-TRD §8.5 API half): validated -> committing + enqueue, one transaction. The guarded UPDATE decides races (AB-16). */
+    async commitImport(ctx: ImportsCtx, importId: unknown, expectedVersion: number | undefined, body: unknown) {
+      const row = await loadOwned(ctx, importId);
+      const { tx, tenantId, actorId } = scope(ctx);
+      if (typeof body !== 'object' || body === null || Array.isArray(body)) bad();
+      const b = body as Row;
+      if (Object.keys(b).some((k) => !COMMIT_KEYS.includes(k))) bad();            // mass assignment: unknown fields are refused
+      const reason = typeof b['change_reason'] === 'string' ? b['change_reason'].trim() : '';
+      if (reason.length < 1 || reason.length > 500) bad();
+      let effectiveFrom: string | null = null;
+      if (b['effective_from'] !== undefined) {
+        const e = b['effective_from'];
+        if (typeof e !== 'string' || !ISO.test(e) || Number.isNaN(Date.parse(e))) bad();
+        effectiveFrom = new Date(e as string).toISOString();
+      }
+      for (const k of ['accept_stale_base', 'publish', 'replace_draft']) if (b[k] !== undefined && typeof b[k] !== 'boolean') bad();
+      const acceptStale = b['accept_stale_base'] === true, publish = b['publish'] !== false, replaceDraft = b['replace_draft'] === true;
+
+      if (expectedVersion !== undefined && expectedVersion !== Number(row.version)) throw new LimsError('common.version_conflict');
+      const now = ctx.now();
+      // ponytail: only price_list commits exist until the later import tasks; other kinds would sit in `committing` forever.
+      if (row.status !== 'validated' || row.kind !== 'price_list' || !(Date.parse(iso(row.expires_at)) > Date.parse(now))) throw new LimsError('catalog.import_not_committable');
+
+      const latest = (await tx.query(
+        "SELECT version_no FROM catalog.price_list_versions WHERE tenant_id = $1 AND price_list_id = $2 AND status IN ('published', 'superseded') ORDER BY version_no DESC LIMIT 1",
+        [tenantId, row.target_price_list_id])).rows[0];
+      if (!acceptStale && Number(row.base_version_no ?? 0) !== Number(latest?.version_no ?? 0)) throw new LimsError('catalog.import_stale_base');
+
+      const { rows } = await tx.query(
+        "UPDATE catalog.imports SET status = 'committing', commit_effective_from = $3::timestamptz, commit_change_reason = $4, commit_publish = $5, commit_accept_stale_base = $6, committed_by = $7, version = version + 1, updated_at = $8::timestamptz, updated_by = $7 WHERE tenant_id = $1 AND id = $2 AND status = 'validated' RETURNING *",
+        [tenantId, row.id, effectiveFrom, reason, publish, acceptStale, actorId, now]);
+      if (!rows[0]) throw new LimsError('catalog.import_not_committable');
+      await tx.query("SELECT app.enqueue_job('catalog.import_commit', $1::jsonb, $2)", [JSON.stringify({ tenant_id: tenantId, import_id: row.id, replace_draft: replaceDraft }), row.id]);
+      return toImport(rows[0]);
     },
 
     /** #103: validated | invalid -> discarded (03-APP-FLOW §2.2). The guarded UPDATE decides races. */

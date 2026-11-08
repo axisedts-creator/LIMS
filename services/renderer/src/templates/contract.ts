@@ -67,6 +67,14 @@ export interface TemplateConfig {
   narrative: { show_images_grid_columns: number };
 }
 
+/** 03-IC §4.16 (restated: the renderer cannot import the api). */
+export type RenderTemplateKey = 'billing.invoice' | 'billing.credit_note' | 'billing.register' | 'analytics.report' | 'partners.access_slip';
+/** RenderPort data templates (review fix #13): templates/billing (C4), templates/analytics (C8), ./access-slip (C6) export `DataTemplateModule[]`. */
+export interface DataTemplateModule {
+  readonly templateKey: RenderTemplateKey;
+  render(input: { data: Readonly<Record<string, unknown>>; assets: AssetResolver; qr?: (text: string) => string }): string;   // full HTML document
+}
+
 /** Implemented by C14 in templates/smart/index.ts. Optional: absent -> no smart section. */
 export interface SmartSectionRenderer {
   readonly libraryVersion: string;

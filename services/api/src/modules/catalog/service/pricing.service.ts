@@ -403,7 +403,7 @@ export function createPricingService(deps: PricingDeps) {
     },
 
     /** V1: one draft per list (409 common.version_conflict); version_no = max + 1; content copied from `copy_from_version_no` (default: the latest published). */
-    async createPriceListVersionDraft(ctx: Ctx, input: { id?: unknown; body?: unknown } = {}) {
+    async createPriceListVersionDraft(ctx: Ctx, input: { id?: unknown; body?: unknown; sourceImportId?: string } = {}) {   // sourceImportId: internal (import commit), never from HTTP
       const id = uuidArg(input.id, '/id');
       const b = input.body === undefined ? {} : exact(input.body, ['copy_from_version_no']);
       const copy = b['copy_from_version_no'];
@@ -416,7 +416,7 @@ export function createPricingService(deps: PricingDeps) {
       if (copy !== undefined && !src) throw new LimsError('common.not_found');
       const items = src ? (await q(ctx, 'SELECT orderable_id, unit_price_paisa FROM catalog.price_list_items WHERE tenant_id = $1 AND price_list_version_id = $2', [ctx.tenantId, src.id])).rows : [];
       const created = await repo.insertRow(tx(ctx), 'price_list_versions', VER_COLS, {
-        id: uuidv7(), tenant_id: ctx.tenantId, price_list_id: id, version_no: Number(vers[0]?.version_no ?? 0) + 1, status: 'draft', item_count: items.length,
+        id: uuidv7(), tenant_id: ctx.tenantId, price_list_id: id, version_no: Number(vers[0]?.version_no ?? 0) + 1, status: 'draft', item_count: items.length, ...(input.sourceImportId ? { source_import_id: input.sourceImportId } : {}),
         created_by: ctx.actor.id, updated_by: ctx.actor.id,
       }).catch(mapVersionPg);
       // ponytail: one INSERT per copied item (single-table SQL); fine for typical lists, switch to INSERT ... SELECT near the 100,000-item ceiling.

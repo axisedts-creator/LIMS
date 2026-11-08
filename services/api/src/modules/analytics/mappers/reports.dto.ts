@@ -1,7 +1,9 @@
 // Explicit field allow-lists for the report bodies (02-TRD §3.2 mappers, §5.1; 07-SECURITY REQ-SEC-081, P13).
-// Nothing is spread from a service/SQL row: a column that is not listed here cannot reach a response. No field is named "commission".
+// Nothing is spread from a service/SQL row: a column that is not listed here cannot reach a response. No payout or rate field exists (PRD US-07.3).
 import type { Period } from '../domain/period.js';
 import type { Scope } from '../domain/scope.js';
+import type { Freshness } from '../domain/freshness.js';
+import type { ReferralRow, ReferralTotals } from '../service/referral.service.js';
 import { RELEASE_COLS, DELIVERY_COLS, RESULT_COLS } from '../domain/columns.js';
 import {
   INCOME_MONEY, VOLUME_MONEY, type CollectionsOutRow, type CollectionsTotals, type DepartmentOutRow, type DepartmentTotals, type IncomeOutRow, type IncomeTotals,
@@ -101,6 +103,28 @@ export function toDepartmentIncomeReportDto(m: ReportMeta, out: { rows: readonly
     })),
     totals: { line_count: out.totals.line_count, gross_paisa: out.totals.gross_paisa, discount_paisa: out.totals.discount_paisa, net_paisa: out.totals.net_paisa },
     reconciles_with_income: out.reconcilesWithIncome,
+  };
+}
+
+/** AN-T10: the only body with net_billed_paisa (D-44). SELF rows carry no net_billed_paisa; no rate, share or payout field exists (US-07.3/.4). */
+export function toReferralIncentiveReportDto(
+  m: ReportMeta,
+  out: { rows: readonly ReferralRow[]; totals: ReferralTotals; freshness: readonly Freshness[]; limit: number; nextCursor?: string | undefined },
+) {
+  return {
+    ...envelope('referral_incentive', m),
+    freshness: out.freshness.map((f) => ({
+      family: f.family, ...(f.refreshed_at ? { refreshed_at: f.refreshed_at } : {}), is_stale: f.is_stale, ...(f.stale_reason ? { stale_reason: f.stale_reason } : {}), live: f.live,
+    })),
+    rows: out.rows.map((r) => ({
+      ...(r.referrer_id ? { referrer_id: r.referrer_id } : {}), label: r.label, is_self: r.is_self,
+      ...(r.period_key ? { period_key: r.period_key } : {}), ...(r.period_label ? { period_label: r.period_label } : {}),
+      orders: r.orders, patient_visits: r.patient_visits, tests_ordered: r.tests_ordered,
+      ...(r.is_self || r.net_billed_paisa === undefined ? {} : { net_billed_paisa: r.net_billed_paisa }),
+    })),
+    totals: { orders: out.totals.orders, patient_visits: out.totals.patient_visits, tests_ordered: out.totals.tests_ordered, net_billed_paisa: out.totals.net_billed_paisa },
+    billed_note_key: 'analytics.referrers.billed_note',
+    page: { limit: out.limit, ...(out.nextCursor ? { next_cursor: out.nextCursor } : {}) },
   };
 }
 

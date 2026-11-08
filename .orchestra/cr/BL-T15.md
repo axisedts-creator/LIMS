@@ -1,0 +1,15 @@
+Title: CR-C4-BL15: `cancelled_by` on CancelledInvoiceRow (B25) and the `invoice_documents` export (B28/export_render)
+From chunk: C4            To owner: C0-0C (OpenAPI contracts/openapi/billing.yaml); C4 lead / C6 for item B (RenderPort template + IdentityPort branding)
+Type: api | port
+Blocking? no. BL-T15 ships without A (field absent) and fail-closed for B: export_render marks a `invoice_documents` job `failed` with `common.feature_disabled`. Blocks US-BL-12.2 "cancelled by" and any real invoice_documents export.
+Problem (what you cannot do today, with the user story / acceptance criterion it serves):
+A. PRD US-BL-12.2 lists "cancelled by" on the cancelled-invoice report, but openapi `CancelledInvoiceRow` (additionalProperties:false) has no such field, so B25 cannot return it without breaking response validation.
+B. 02-TRD §11 RenderPort row: export_render renders `invoice_documents` with templateKey `billing.invoice` over InvoicePrint.document + branding (IdentityPort.readBrandingAsset, TRD §5.2). Neither the InvoicePrint.document assembly per row-set nor the branding read is in BL-T15's file list, and the XSD urn:lims:billing:export:v1 has no invoice-document element (XML format undefined for this kind). B28 accepts the kind per the TRD enum (export.service.test.ts:100 pins that).
+Proposed change (exact):
+A. billing.yaml `CancelledInvoiceRow.properties` add `cancelled_by: { type: object, additionalProperties: false, required: [membership_id, display_name], properties: { membership_id: { type: string, format: uuid }, display_name: { type: string, maxLength: 200 } } }` (optional, not in `required`). Source: billing.invoices.cancelled_by (membership) + IdentityPort display name.
+B. Rule one of: (b1) invoice_documents is PDF-only; B28 refuses xml/xlsx for it with `common.validation_failed /format`, export_render calls RenderPort.renderPdf({templateKey:'billing.invoice', data: InvoicePrint.document[] + branding}) under the 5000 cap — assign the task that builds it; (b2) drop invoice_documents from the B28 kind enum until that task; B28 returns `common.feature_disabled` (export.service.test.ts:100 must then change).
+Backward compatible? A yes (new optional field). B b1 yes; b2 no (removes an enum value; no consumer yet).
+Tenant/security impact: A adds a staff display name (not PHI) to a privileged register (billing.data.export / registers read); no RLS change. B: invoice documents carry buyer name/PAN (already in registers); no new public surface.
+IRD/regulatory impact (billing changes only): none on numbering or tax; B affects only the re-print export of already issued invoices.
+Alternatives considered: A — add the field now (breaks additionalProperties:false); B — render invoice_documents as a sales register (wrong file; reviewer item 2).
+Tests that will prove it: A — register.service test: cancelled row carries cancelled_by {membership_id, display_name} validated against CancelledInvoiceRow. B — export.render test: invoice_documents PDF calls renderPdf with templateKey billing.invoice and one InvoicePrint.document per invoice; replaces the interim fail-closed behaviour.

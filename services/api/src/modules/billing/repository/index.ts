@@ -15,6 +15,8 @@ import { getPaymentMethod } from './paymentMethods.repo.js';
 import { insertPrintLog } from './printLog.repo.js';
 import { decideRefundRequest, getFinanceReviewItem, getRefundRequest, insertFinanceReviewItem, insertRefundRequest, pageFinanceReviewItems, pageRefundRequests, resolveFinanceReviewItem } from './refundRequests.repo.js';
 import { getBillingSettings } from './settings.repo.js';
+import { getExportJob } from './exports.repo.js';
+import { countExportRows, enqueueExportRender, insertExportJob, listAuditTrail, listCancelledInvoices, listCreditNoteRegister, listSalesRegister } from './registers.repo.js';
 
 export const billingRepo = {
   getBillingSettings, insertInvoice, insertInvoiceLines, insertActivity, enqueueCbmsSync,
@@ -40,5 +42,7 @@ export const billingRepo = {
   getInvoice, sumCreditedByLine, getCreditNote, listCreditNoteLines, markInvoicePrinted, markCreditNotePrinted, insertPrintLog,
   // BL-T14
   getCbmsDocumentForUpdate, insertCbmsSubmission, recordCbmsAttempt, resetCbmsToPending, listCbmsDocuments,
+  // BL-T15
+  listSalesRegister, listCancelledInvoices, listCreditNoteRegister, listAuditTrail, countExportRows, insertExportJob, enqueueExportRender, getExportJob,
 };
 export type BillingRepo = typeof billingRepo;

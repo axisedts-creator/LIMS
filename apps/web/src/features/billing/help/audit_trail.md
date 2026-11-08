@@ -13,5 +13,3 @@ Read the record of billing actions: who issued, printed, cancelled, credited, re
 
 ## Shortcuts
 - `?` – list all shortcuts on this screen.
-- `/` – focus the filter bar.
-- `Page Down` / `Page Up` – move between pages of results.

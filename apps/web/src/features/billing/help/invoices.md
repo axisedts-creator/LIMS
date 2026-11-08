@@ -17,5 +17,3 @@ Invoices cannot be edited or deleted. To correct an invoice, cancel it with a re
 
 ## Shortcuts
 - `?` – list all shortcuts on this screen.
-- `/` – focus the search and filter bar.
-- `Enter` – open the highlighted invoice.

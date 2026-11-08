@@ -17,5 +17,3 @@ A registration with nothing left to collect does not appear here. A cancelled in
 
 ## Shortcuts
 - `?` – list all shortcuts on this screen.
-- `/` – focus the filter bar.
-- `Enter` – open the highlighted registration.

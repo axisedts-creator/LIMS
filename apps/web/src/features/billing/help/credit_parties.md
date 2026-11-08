@@ -15,5 +15,3 @@ Invoices raised against a credit party follow the same rule as every other invoi
 
 ## Shortcuts
 - `?` – list all shortcuts on this screen.
-- `/` – focus the filter bar.
-- `Enter` – open the highlighted party.

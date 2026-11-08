@@ -14,5 +14,5 @@ Every decision is saved with your name and time and shows in the audit trail.
 ## Shortcuts
 - `?` – list all shortcuts on this screen.
 - `Left` / `Right` – move between the three queues.
-- `Ctrl+Enter` – submit the open dialog (Approve, Reject or Resolve).
+- `Ctrl+Enter` – submit the Reject or Resolve dialog.
 - `Esc` – close the dialog without saving.

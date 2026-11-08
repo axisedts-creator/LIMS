@@ -14,4 +14,3 @@ View the sales register, the cancelled invoices register and the credit notes re
 ## Shortcuts
 - `?` – list all shortcuts on this screen.
 - `Left` / `Right` – move between the register tabs.
-- `/` – focus the filter bar.

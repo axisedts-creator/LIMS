@@ -19,5 +19,3 @@ This screen reports the lab's own sending status. It is not a statement by the I
 
 ## Shortcuts
 - `?` – list all shortcuts on this screen.
-- `/` – focus the filter bar.
-- `Enter` – activate Retry on the highlighted row.

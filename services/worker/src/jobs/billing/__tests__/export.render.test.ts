@@ -195,10 +195,7 @@ describe('export_render guards (REQ-SEC-024) and replays', () => {
     const a = world({ job: null }); await run(a); expect(a.puts).toEqual([]);
     for (const status of ['ready', 'expired', 'failed']) { const w = world({ job: jobRow({ status }), invoices: [inv(1)] }); await run(w); expect(w.puts, status).toEqual([]); }
   });
-  it('xlsx jobs are not rendered before BL-T19 (no object, no ready)', async () => {
-    await render(); const w = world({ job: jobRow({ format: 'xlsx' }), invoices: [inv(1)] }); await run(w).catch(() => undefined);
-    expect(w.puts).toEqual([]); expect(w.updates().map(w.blob).some((b) => /ready/.test(b))).toBe(false);
-  });
+  // BL-T19: the former 'xlsx jobs are not rendered before BL-T19' case is removed on purpose (its branch is BL-T19 done_when); xlsx rendering is covered by export.xlsx.test.ts.
   it('a storage failure never marks the job ready', async () => {
     await render(); const w = world({ invoices: [inv(1)], putFail: new Error('storage down') }); await run(w).catch(() => undefined);
     expect(w.updates().map(w.blob).some((b) => /ready/.test(b))).toBe(false);

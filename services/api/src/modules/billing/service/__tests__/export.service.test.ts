@@ -2,7 +2,7 @@
 // US-BL-12.5 (access_log data.export at creation and on EVERY download; content only by streaming B29a, never a Storage URL - 08 A13 P-2; privileged), 02-TRD §5 (B28-B29a, ExportJob, access-log table
 // entityType billing_export detail.stage create|download), §10 (billing.export_render), §11.1 (LIMS_BILLING_EXPORT_MAX_ROWS / _PDF_MAX_ROWS / _TTL_HOURS), 05-SCHEMA billing.export_jobs, 07-SECURITY abuse case A20.
 // Fails now: service/export.service.ts does not exist. Seams ASSUMED, see t15.helpers.ts header (writer: dispute if wrong). B28 body is the TRD body verbatim (snake_case).
-// xlsx: `common.feature_disabled` until BL-T19 (TRD B28 error list). BL-T19 removes that branch and must then change the xlsx-disabled test below on purpose.
+// xlsx: BL-T19 removed the `common.feature_disabled` branch; the former 'xlsx -> feature_disabled' test is replaced on purpose by the xlsx cases below (that branch removal is BL-T19 done_when).
 import { describe, expect, it } from 'vitest';
 import { LimsError } from '../../../../core/errors.js';
 import { loadBillingConfig } from '../../config.js';
@@ -84,8 +84,22 @@ describe('US-BL-12.4 export range limits', () => {
     await create(w, svc, { kind: 'credit_notes', filters: { from: '2026-11-01T00:00:00.000Z', to: '2026-11-30T00:00:00.000Z', centre_id: CENTRE } });
     expect(w.calls.find((c) => c.name === 'countExportRows')!.args).toMatchObject({ tenantId: TENANT_A, kind: 'credit_notes', filters: { from: '2026-11-01T00:00:00.000Z', to: '2026-11-30T00:00:00.000Z', centre_id: CENTRE } });
   });
-  it('xlsx -> common.feature_disabled until BL-T19 (nothing written)', async () => {
-    const { w, svc } = setup({ counts: 1 }); expect((await code(create(w, svc, { format: 'xlsx' }))).code).toBe('common.feature_disabled'); nothingWritten(w); expect(w.s.exports).toHaveLength(0);
+  it('xlsx is accepted (BL-T19): queued xlsx job + render task + access_log create row, exactly like xml; no feature_disabled', async () => {
+    const { w, svc } = setup({ counts: 1 }); const job = await create(w, svc, { format: 'xlsx' });
+    expect(job).toMatchObject({ kind: 'sales_register', format: 'xlsx', status: 'queued' });
+    expect(w.s.exports).toHaveLength(1); expect(w.s.exports[0]).toMatchObject({ tenant_id: TENANT_A, format: 'xlsx', status: 'queued' });
+    expect(w.s.enqueued).toEqual([{ tenantId: TENANT_A, exportId: w.s.exports[0]!.id }]);
+    expect(w.s.access).toHaveLength(1); expect(w.s.access[0]).toMatchObject({ action: 'data.export', entityType: 'billing_export', entityId: job.id, outcome: 'allowed', detail: { stage: 'create' } });
+  });
+  it.each(['sales_register', 'cancelled_invoices', 'credit_notes', 'audit_trail', 'daily_cash'])('xlsx %s is accepted', async (kind) => {
+    const { w, svc } = setup({ counts: 1 }); expect((await create(w, svc, { kind, format: 'xlsx' })).format).toBe('xlsx'); expect(w.s.exports).toHaveLength(1);
+  });
+  it('xlsx is privileged too (IdentityPort billing.data.export) and uses the general cap, not the PDF cap: 10 ok, 11 -> billing.export_too_large (nothing written)', async () => {
+    const a = setup({ counts: 1 }); await create(a.w, a.svc, { format: 'xlsx' }); expect(a.w.roleCalls.some((r) => r?.permission === 'billing.data.export')).toBe(true);
+    const deny = { ports: { IdentityPort: { async assertRole() { throw new LimsError('auth.forbidden'); } } } };
+    const d = setup({ counts: 1 }); expect((await code(create(d.w, d.svc, { format: 'xlsx' }, deny))).code).toBe('auth.forbidden'); nothingWritten(d.w);
+    const ok = setup({ counts: 10 }); await create(ok.w, ok.svc, { format: 'xlsx' }); expect(ok.w.s.exports).toHaveLength(1);
+    const big = setup({ counts: 11 }); expect((await code(create(big.w, big.svc, { format: 'xlsx' }))).code).toBe('billing.export_too_large'); nothingWritten(big.w);
   });
 });
 
@@ -144,6 +158,12 @@ describe('US-BL-12.5 B29a content: streamed bytes, access_log on EVERY download,
     const row = exportRow(2, { format: 'pdf', object_path: `${TENANT_A}/2026/11/${id(4002)}.pdf` });
     const { w, svc } = setup({ exports: [row], objects: { [`${BUCKET}/${row.object_path}`]: new TextEncoder().encode('%PDF-1.7') } });
     const r = await w.inTx((ctx) => svc.content(ctx, { exportId: id(4002) })); expect(r.contentType).toBe('application/pdf'); expect(r.fileName).toMatch(/\.pdf$/);
+  });
+  it('xlsx -> the spreadsheetml content type and .xlsx (BL-T19)', async () => {
+    const row = exportRow(3, { format: 'xlsx', object_path: `${TENANT_A}/2026/11/${id(4003)}.xlsx` });
+    const { w, svc } = setup({ exports: [row], objects: { [`${BUCKET}/${row.object_path}`]: new TextEncoder().encode('PK') } });
+    const r = await w.inTx((ctx) => svc.content(ctx, { exportId: id(4003) }));
+    expect(r.contentType).toBe('application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'); expect(r.fileName).toMatch(/^[A-Za-z0-9._-]+\.xlsx$/);
   });
   it('every call writes one access_log row (data.export, billing_export, entityId, detail.stage = download): 3 downloads -> 3 rows (+ a download activity row each)', async () => {
     const { w, svc } = ready();

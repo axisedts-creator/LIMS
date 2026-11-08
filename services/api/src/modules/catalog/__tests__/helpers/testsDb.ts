@@ -36,11 +36,17 @@ import { ID, RowLock, makeMastersDb, parseExpr, pgError, splitTop, tick, type Ma
 
 export { ID, type Row };
 export const T6_TABLES = ['orderables', 'tests', 'panels', 'panel_members', 'test_specimen_types', 'analytes', 'analyte_versions', 'g_value_sets', 'cs_value_sets', 'g_value_set_values', 'cs_value_set_values',
-  'reference_range_sets', 'reference_ranges', 'critical_limit_sets', 'critical_limits', 'formula_dependencies', 'tat_targets'] as const;
+  'reference_range_sets', 'reference_ranges', 'critical_limit_sets', 'critical_limits', 'formula_dependencies', 'tat_targets', 'instrument_code_maps'] as const;
 export type T6Table = (typeof T6_TABLES)[number];
 const TABLE_RE = new RegExp(`catalog\\.(${T6_TABLES.join('|')})\\b`, 'i');
 const WRITABLE = new Set<T6Table>(['orderables', 'tests', 'panels', 'panel_members', 'test_specimen_types', 'analytes', 'analyte_versions',
-  'reference_range_sets', 'reference_ranges', 'critical_limit_sets', 'critical_limits', 'formula_dependencies', 'tat_targets']);
+  'reference_range_sets', 'reference_ranges', 'critical_limit_sets', 'critical_limits', 'formula_dependencies', 'tat_targets', 'instrument_code_maps']);
+// T-27 (additive): catalog.instrument_code_maps (05-SCHEMA "Instrument code maps (X4)"): PK, UNIQUE(tenant_id, id), CHECKs -> 23514 (direction enum, code length 1..64, unit_from_raw <= 32,
+// unit_to_code ~ ^[A-Za-z0-9_]{1,32}$, unit_factor > 0, flag_map jsonb object, unit triple all-or-none), the COMPOSITE FK (tenant_id, analyte_id, test_id) -> analytes (tenant_id, id, test_id)
+// -> 23503 instrument_code_maps__analyte_test__fk, and the two PARTIAL UNIQUE indexes -> 23505: instrument_code_maps__inbound__p_uq (tenant, instrument_id, instrument_code) WHERE is_active AND
+// direction IN (inbound, both); instrument_code_maps__outbound__p_uq (tenant, instrument_id, analyte_id) WHERE is_active AND direction IN (outbound, both). instrument_id has NO FK (R3).
+// flag_map is jsonb: a bound JSON string is parsed (22P02 when invalid), an object is stored as is, and rows READ BACK as the parsed object (node-pg). unit_factor is numeric: read back as a string.
+// No casts (`::jsonb`) in the fake's dialect. No triggers, no DELETE grant (42501).
 // T-14 (additive): catalog.tat_targets (05-SCHEMA TAT targets): PK, priority / segment / target_seconds 60..2592000 / window CHECKs -> 23514, FK (tenant, test) -> 23503,
 // partial UNIQUE (tenant, test, priority) WHERE effective_to IS NULL -> 23505 (tat_targets__open__p_uq; NOT deferrable, so insert-before-end fails like real PG).
 // UPDATE is plain (no trigger in the schema); no DELETE grant (42501). The partial unique index is checked per statement on the tx's own view.
@@ -77,6 +83,8 @@ const COLUMNS: Record<T6Table, string[]> = {
   critical_limits: ['id', 'tenant_id', 'set_id', 'sex', ...BAND_AGE, 'specimen_type_id', 'low', 'high', 'abnormal_codes', 'sort_order', 'created_at', 'created_by'],
   formula_dependencies: ['tenant_id', 'analyte_version_id', 'analyte_id', 'input_analyte_id', 'created_at', 'created_by'],
   tat_targets: ['id', 'tenant_id', 'test_id', 'priority', 'segment', 'target_seconds', 'effective_from', 'effective_to', 'version', 'is_active', 'created_at', 'created_by', 'updated_at', 'updated_by'],
+  instrument_code_maps: ['id', 'tenant_id', 'instrument_id', 'direction', 'instrument_code', 'analyte_id', 'test_id', 'unit_from_raw', 'unit_to_code', 'unit_factor', 'flag_map', 'version', 'is_active',
+    'created_at', 'created_by', 'updated_at', 'updated_by'],
 };
 const NOT_NULL: Record<T6Table, string[]> = {
   orderables: ['id', 'tenant_id', 'kind', 'code', 'name', 'is_orderable', 'revision', 'created_by', 'updated_by'],
@@ -96,6 +104,7 @@ const NOT_NULL: Record<T6Table, string[]> = {
   critical_limits: ['id', 'tenant_id', 'set_id', 'sex', 'sort_order', 'created_by'],
   formula_dependencies: ['tenant_id', 'analyte_version_id', 'analyte_id', 'input_analyte_id', 'created_by'],
   tat_targets: ['id', 'tenant_id', 'test_id', 'priority', 'segment', 'target_seconds', 'effective_from', 'created_by', 'updated_by'],
+  instrument_code_maps: ['id', 'tenant_id', 'instrument_id', 'direction', 'instrument_code', 'analyte_id', 'test_id', 'created_by', 'updated_by'],
 };
 const WORKFLOWS = ['standard', 'narrative', 'microbiology', 'anatomic', 'molecular', 'attachment', 'outsourced'];
 const keyOf = (t: T6Table, r: Row): string => (t === 'test_specimen_types' ? `${r.test_id}:${r.specimen_type_id}` : t === 'panel_members' ? `${r.panel_id}:${r.member_orderable_id}`
@@ -182,6 +191,16 @@ function checks(t: T6Table, r: Row): void {
     if (!(Number.isInteger(r.target_seconds) && r.target_seconds >= 60 && r.target_seconds <= 2592000)) bad('tat_targets__seconds__ck');
     if (r.effective_to != null && +new Date(r.effective_to) < +new Date(r.effective_from)) bad('tat_targets__window__ck');
   }
+  if (t === 'instrument_code_maps') {
+    if (!['inbound', 'outbound', 'both'].includes(r.direction)) bad('icm__direction__ck');
+    if (!LEN(r.instrument_code, 1, 64)) bad('icm__code__ck');
+    if (r.unit_from_raw != null && !LEN(r.unit_from_raw, 0, 32)) bad('icm__unit_from__ck');
+    if (r.unit_to_code != null && !(typeof r.unit_to_code === 'string' && /^[A-Za-z0-9_]{1,32}$/.test(r.unit_to_code))) bad('icm__unit_to__ck');
+    if (r.unit_factor != null && !(Number.isFinite(Number(r.unit_factor)) && Number(r.unit_factor) > 0)) bad('icm__factor__ck');
+    if (r.flag_map != null && !(typeof r.flag_map === 'object' && !Array.isArray(r.flag_map))) bad('icm__flag_map__ck');
+    const set = [r.unit_from_raw, r.unit_to_code, r.unit_factor].filter((x) => x != null).length;
+    if (set !== 0 && set !== 3) bad('instrument_code_maps__unit_triple__ck');
+  }
   if (t === 'test_specimen_types' && r.min_volume_ul != null && !(Number.isInteger(r.min_volume_ul) && r.min_volume_ul >= 1 && r.min_volume_ul <= 100000)) bad('test_specimen_types__vol__ck');
 }
 
@@ -213,6 +232,10 @@ export function makeTestsDb(seed: TestsSeed = {}) {
     if (t in BAND_PARENT) o.sort_order = r.sort_order ?? 100;
     if (t === 'g_value_sets' || t === 'cs_value_sets' || t === 'g_value_set_values' || t === 'cs_value_set_values') o.is_active = r.is_active ?? true;
     if (t === 'tat_targets') o.segment = r.segment ?? 'within_lab';
+    if (t === 'instrument_code_maps') {
+      o.unit_factor = r.unit_factor == null ? null : String(r.unit_factor);
+      if (typeof r.flag_map === 'string') { try { o.flag_map = JSON.parse(r.flag_map); } catch { throw pgError('22P02', 'invalid input syntax for type json'); } }
+    }
     return o;
   }
   for (const t of T6_TABLES) for (const r of seed.t6?.[t] ?? []) committed.get(t)!.set(keyOf(t, r), fill(t, r));
@@ -281,6 +304,19 @@ export function makeTestsDb(seed: TestsSeed = {}) {
         }
         if (!visible('analytes').some((x) => x.id === r.analyte_id)) throw pgError('23503', 'violates foreign key constraint "analyte_versions__analyte__fk"', 'analyte_versions__analyte__fk');
         if (r.method_id != null && !master('methods', r.method_id)) throw pgError('23503', 'violates foreign key constraint "analyte_versions__method__fk"', 'analyte_versions__method__fk');
+      }
+      if (t === 'instrument_code_maps') {
+        if (!visible('analytes').some((x) => x.id === r.analyte_id && x.test_id === r.test_id)) {
+          throw pgError('23503', 'violates foreign key constraint "instrument_code_maps__analyte_test__fk"', 'instrument_code_maps__analyte_test__fk');
+        }
+        if (r.is_active && ['inbound', 'both'].includes(r.direction)
+          && others.some((x) => x.is_active && ['inbound', 'both'].includes(x.direction) && x.instrument_id === r.instrument_id && x.instrument_code === r.instrument_code)) {
+          throw pgError('23505', 'duplicate key value violates unique constraint "instrument_code_maps__inbound__p_uq"', 'instrument_code_maps__inbound__p_uq');
+        }
+        if (r.is_active && ['outbound', 'both'].includes(r.direction)
+          && others.some((x) => x.is_active && ['outbound', 'both'].includes(x.direction) && x.instrument_id === r.instrument_id && x.analyte_id === r.analyte_id)) {
+          throw pgError('23505', 'duplicate key value violates unique constraint "instrument_code_maps__outbound__p_uq"', 'instrument_code_maps__outbound__p_uq');
+        }
       }
       if (t === 'tests' && !visible('orderables').some((x) => x.id === r.id && x.kind === r.kind)) throw pgError('23503', 'violates foreign key constraint "tests__orderable__fk"', 'tests__orderable__fk');
       if (t === 'tat_targets') {
@@ -399,6 +435,10 @@ export function makeTestsDb(seed: TestsSeed = {}) {
       for (const r of hit) {
         const n: Row = { ...r };
         for (const s of sets) n[s.col] = s.ev({ row: r, values, now });
+        if (t === 'instrument_code_maps') {                  // jsonb / numeric input conversion (same as INSERT)
+          if (n.unit_factor != null) n.unit_factor = String(n.unit_factor);
+          if (typeof n.flag_map === 'string') { try { n.flag_map = JSON.parse(n.flag_map); } catch { throw pgError('22P02', 'invalid input syntax for type json'); } }
+        }
         if (n.tenant_id !== tenantId) throw pgError('42501', 'new row violates row-level security policy');
         if (t === 'analyte_versions' || SET_TABLES.has(t)) versionTriggers(r, n, t);
         parentDraft(t, r); parentDraft(t, n);
@@ -504,6 +544,9 @@ export const ana = (n: number, tenant: string, testId: string, o: Row = {}): Row
 export const anv = (n: number, tenant: string, analyteId: string, o: Row = {}): Row => ({ id: ID(0x4000 + n), tenant_id: tenant, analyte_id: analyteId, version_no: 1, status: 'published', result_type: 'numeric', decimals: 1,
   effective_from: new Date(Date.UTC(2026, 0, 1)), published_at: new Date(Date.UTC(2026, 0, 1)), change_reason: 'initial', ...o });
 
+// ------------------------------------------------------------------------------------------------ T-27 seed factory (synthetic)
+/** An instrument_code_maps row (default: active inbound map for instrument `instrumentId`, no units, no flag map). `n` makes the id unique (0xb000 range). */
+export const icm = (n: number, tenant: string, instrumentId: string, o: Row = {}): Row => ({ id: ID(0xb000 + n), tenant_id: tenant, instrument_id: instrumentId, direction: 'inbound', ...o });
 // ------------------------------------------------------------------------------------------------ T-08 seed factories (synthetic)
 // ------------------------------------------------------------------------------------------------ T-14 seed factory (synthetic)
 /** A tat_targets row (default: routine, within_lab, 4 h, open since 2026-01-01). `n` makes the id unique (0x9000 range). */

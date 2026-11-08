@@ -44,6 +44,14 @@ import { createAuditExport } from './createAuditExport.js';
 import { listAuditExports } from './listAuditExports.js';
 import { getAuditExport } from './getAuditExport.js';
 import { downloadAuditExport } from './downloadAuditExport.js';
+import { listPlatformStaff } from './listPlatformStaff.js';
+import { invitePlatformStaff } from './invitePlatformStaff.js';
+import { updatePlatformStaff } from './updatePlatformStaff.js';
+import { deactivatePlatformStaff } from './deactivatePlatformStaff.js';
+import { resetPlatformStaffMfa } from './resetPlatformStaffMfa.js';
+import { listPlatformSessions } from './listPlatformSessions.js';
+import { revokePlatformSession } from './revokePlatformSession.js';
+import { listPlatformAuthEvents } from './listPlatformAuthEvents.js';
 
 const OPERATION_IDS = [
   // auth (identity_auth)
@@ -87,6 +95,8 @@ const implemented: Partial<Record<IdentityOperationId, Handler>> = {
   listPlatformIrdAnnexes, createPlatformIrdAnnex, updateIrdAnnex, transitionIrdAnnex, uploadIrdAnnexDocument, downloadIrdAnnexDocument,   // T23
   listDeadLetters, getDeadLetter, replayDeadLetter, discardDeadLetter,                                          // T24
   createAuditExport, listAuditExports, getAuditExport, downloadAuditExport,                                    // T19
+  listPlatformStaff, invitePlatformStaff, updatePlatformStaff, deactivatePlatformStaff, resetPlatformStaffMfa,  // T25
+  listPlatformSessions, revokePlatformSession, listPlatformAuthEvents,                                          // T25
 };
 
 export const handlers: Readonly<Record<IdentityOperationId, Handler>> = Object.freeze(

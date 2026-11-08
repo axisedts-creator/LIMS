@@ -33,20 +33,21 @@ const iso = (v: unknown): string => (v instanceof Date ? v : new Date(String(v))
 /** Drop null / undefined fields (contract: absent, never null). */
 const compact = <T extends Record<string, unknown>>(o: T): T => Object.fromEntries(Object.entries(o).filter(([, v]) => v != null)) as T;
 
-function optUuid(q: Query, k: string): string | undefined {
+export function optUuid(q: Query, k: string): string | undefined {
   const v = q[k];
   if (v === undefined) return undefined;
   return typeof v === 'string' && UUID.test(v) ? v.toLowerCase() : fail(`/${k}`);
 }
-function optText(q: Query, k: string, ok: (s: string) => boolean): string | undefined {
+export function optText(q: Query, k: string, ok: (s: string) => boolean): string | undefined {
   const v = q[k];
   if (v === undefined) return undefined;
   return typeof v === 'string' && ok(v) ? v : fail(`/${k}`);
 }
 
-interface Page { from: string; to: string; limit: number; cursor?: repo.Keyset }
+// Exported for the platform auth-event list (T25, "date rule as §5.9").
+export interface Page { from: string; to: string; limit: number; cursor?: repo.Keyset }
 /** 03-APP-FLOW §7.1: range required, from <= to, span <= 31 days; limit 1..200 (default 50); opaque keyset cursor. */
-function page(q: Query): Page {
+export function page(q: Query): Page {
   const ts = (k: string): string => {
     const v = q[k];
     if (v === undefined || v === null || v === '') return fail(`/${k}`, 'common.field_required', 'Field required');
@@ -76,10 +77,10 @@ function decodeCursor(c: unknown): repo.Keyset {
 }
 
 /** Keyset start: the cursor, else a bound just outside the range (NIL / MAX are never row ids: not UUIDv7). */
-const after = (p: Page, asc: boolean): repo.Keyset => p.cursor ?? (asc ? { at: p.from, id: NIL } : { at: p.to, id: MAX });
+export const after = (p: Page, asc: boolean): repo.Keyset => p.cursor ?? (asc ? { at: p.from, id: NIL } : { at: p.to, id: MAX });
 
 /** Fetch limit+1, return {data, page}. */
-function paged<R>(rows: any[], limit: number, map: (r: any) => R) {
+export function paged<R>(rows: any[], limit: number, map: (r: any) => R) {
   const more = rows.length > limit;
   const kept = more ? rows.slice(0, limit) : rows;
   return { data: kept.map(map), page: { limit, ...(more ? { next_cursor: encodeCursor(kept[kept.length - 1]) } : {}) } };
@@ -90,6 +91,12 @@ const summary = (r: any) => compact({
   audit_id: r.id, occurred_at: iso(r.occurred_at), table: `${r.schema_name}.${r.table_name}`, action: String(r.action).toLowerCase(),
   row_id: r.row_id, actor: actor(r), centre_id: r.centre_id, request_id: r.request_id, changed_columns: r.changed_columns ?? [],
   support_session_id: r.support_session_id,
+});
+/** AuthEvent (whitelist; email_hmac never selected nor mapped). */
+export const authEvent = (r: any) => compact({
+  auth_event_id: r.id, tenant_id: r.tenant_id, user_id: r.user_id, membership_id: r.membership_id, platform_staff_id: r.platform_staff_id,
+  session_id: r.session_id, event_type: r.event_type, reason_code: r.reason_code, client_ip: r.client_ip, user_agent: r.user_agent,
+  request_id: r.request_id, occurred_at: iso(r.occurred_at),
 });
 const json = (v: unknown) => (v == null ? undefined : typeof v === 'string' ? v : JSON.stringify(v));
 
@@ -140,11 +147,7 @@ export function createAuditViewService(_deps: object = {}) {
       const p = page(q);
       const f = { event_type: optText(q, 'event_type', (s) => AUTH_EVENT_TYPES.has(s)), membership_id: optUuid(q, 'membership_id') };
       const rows = await repo.listAuth(ctx.tx, { tenantId: ctx.tenantId, from: p.from, to: p.to, after: after(p, false), limit: p.limit + 1, f });
-      return paged(rows, p.limit, (r) => compact({
-        auth_event_id: r.id, tenant_id: r.tenant_id, user_id: r.user_id, membership_id: r.membership_id, platform_staff_id: r.platform_staff_id,
-        session_id: r.session_id, event_type: r.event_type, reason_code: r.reason_code, client_ip: r.client_ip, user_agent: r.user_agent,
-        request_id: r.request_id, occurred_at: iso(r.occurred_at),
-      }));
+      return paged(rows, p.limit, authEvent);
     },
   };
 }

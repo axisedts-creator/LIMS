@@ -8,3 +8,4 @@
 - Action: restart Docker Desktop (or pre-export LIMS_TEST_APP_URL + LIMS_TEST_SUPER_URL to a migrated PG17), then rerun FD-T03-verify.cmd; expect 83/83.
 - Round 5: re-checked. `docker ps` still 500 on dockerDesktopLinuxEngine pipe. Same environmental cause; no impl/test defect, no code edit. Needs Docker Desktop restart (or pre-export LIMS_TEST_APP_URL + LIMS_TEST_SUPER_URL), then rerun FD-T03-verify.cmd.
 - Round 6: re-checked. `docker ps` still 500 on dockerDesktopLinuxEngine pipe; pg dep fine. Environmental, no impl/test defect, no code edit. Restart Docker Desktop (or pre-export LIMS_TEST_APP_URL + LIMS_TEST_SUPER_URL), rerun FD-T03-verify.cmd.
+- Round 7: re-checked. `docker version` still 500 on dockerDesktopLinuxEngine pipe; verify.log only shows `_ping` 500. Environmental, no impl/test defect, no code edit. Restart Docker Desktop (or pre-export LIMS_TEST_APP_URL + LIMS_TEST_SUPER_URL), rerun FD-T03-verify.cmd.

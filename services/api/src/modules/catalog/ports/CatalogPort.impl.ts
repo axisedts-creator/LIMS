@@ -8,14 +8,15 @@ import type {
 import { LimsError } from '../../../core/errors.js';
 import type { CatalogCache } from '../cache/catalogCache.js';
 import { expandToTestIds, type PanelGraph } from '../domain/panelGraph.js';
-import { resolveCriticalLimits, resolveReferenceRange, selectSet, type RangeSet } from '../domain/rangeMatch.js';
+import { isTaxCode, isTaxTypeUsable, localMidnight, taxTypeVersionAt } from '../domain/tax.js';
+import { resolveCriticalLimits,resolveReferenceRange, selectSet, type RangeSet } from '../domain/rangeMatch.js';
 import { currentRevision } from '../repo/catalogState.repo.js';
 import { createQuoteService } from '../service/quote.service.js';
 
 type Row = Record<string, any>;
 type Ctx = { tenantId: string; tx: { query(text: string, values?: unknown[]): Promise<{ rows: any[] }> }; now(): string | Date };
 export type CatalogPortNonPrice = Pick<CatalogPortV1, 'getTest' | 'getPanel' | 'resolveOrderables' | 'referenceRangeFor' | 'criticalLimitsFor' | 'mapInstrumentCode'>;
-export type CatalogPortImpl = CatalogPortNonPrice & Pick<CatalogPortV1, 'priceFor'>;
+export type CatalogPortImpl = CatalogPortNonPrice & Pick<CatalogPortV1, 'priceFor' | 'getTaxRate'>;
 const CONTEXT_KEYS = [['priceListId', 'price_list_id'], ['creditPartyId', 'credit_party_id'], ['referrerId', 'referrer_id'], ['centreId', 'centre_id']] as const;
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -335,6 +336,25 @@ export function createCatalogPort(deps: { cache: CatalogCache }): CatalogPortImp
         ...(r['urgent_surcharge'] ? { urgentSurcharge: { amountPaisa: r['urgent_surcharge'].amount_paisa, currency: 'NPR' as const } } : {}),
         tax: { vat: t['vat'], ...opt('vatRateBp', t['vat_rate_bp']), ...opt('otherTaxCode', t['other_tax_code']), ...opt('otherTaxRateBp', t['other_tax_rate_bp']), ...opt('hsCode', t['hs_code']) },
       } as PriceQuote;
+    },
+
+    /** §7.6a. Reads only C3 tax-type rows on ctx.tx (VAT: global g_tax_types; else cs_tax_types of ctx.tenantId); uncached, so a rate edit is visible at once. */
+    async getTaxRate(c, input): Promise<Awaited<ReturnType<CatalogPortV1['getTaxRate']>>> {
+      const ctx = c as Ctx;
+      const missing = () => new LimsError('catalog.tax_config_missing');
+      const i = input && typeof input === 'object' ? (input as Row) : {};
+      const taxCode: unknown = i['taxCode'];
+      const t = localMidnight(i['on']);
+      if (!isTaxCode(taxCode) || !t) throw missing();
+      if (taxCode === 'VAT') {
+        const [v] = await q(ctx, 'SELECT rate_bp, is_active FROM catalog.g_tax_types WHERE code = $1 AND is_active = $2', [taxCode, true]);
+        if (!isTaxTypeUsable(v)) throw missing();
+        return { taxCode, ratePercentBasisPoints: v!['rate_bp'], kind: 'vat', effectiveFrom: null };
+      }
+      const rows = await q(ctx, 'SELECT code, rate_bp, is_active, effective_from, effective_to FROM catalog.cs_tax_types WHERE tenant_id = $1 AND code = $2', [ctx.tenantId, taxCode]);
+      const v = taxTypeVersionAt(rows as Array<{ code: string; effective_from: Date; effective_to: Date | null; is_active: boolean; rate_bp: number | null }>, taxCode, t);
+      if (!isTaxTypeUsable(v)) throw missing();
+      return { taxCode, ratePercentBasisPoints: v!.rate_bp!, kind: 'other', effectiveFrom: new Date(v!.effective_from).toISOString() };
     },
 
     async referenceRangeFor(ctx, input): Promise<ReferenceRangeMatch> {

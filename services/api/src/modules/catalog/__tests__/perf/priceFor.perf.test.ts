@@ -21,6 +21,7 @@ function bulk(count: number) {
 
 describe.each([[1, 5_000], [10, 50_000]])('priceFor at %ix (%i orderables / items for the tenant + the same again for another tenant)', (factor, count) => {
   it('warm p95 within the 20 ms budget, constant statement count, correct price, no foreign data', { timeout: 180_000 }, async () => {
+    void factor;
     const b = bulk(count);
     const env = setup28b({ orderables: [...b.orderables, ...b.foreign], price_list_items: [...b.items, ...b.foreignItems] });
     const picks = Array.from({ length: 40 }, (_v, k) => Math.floor((k * count) / 40));      // spread over the whole list
@@ -29,6 +30,7 @@ describe.each([[1, 5_000], [10, 50_000]])('priceFor at %ix (%i orderables / item
     const service: number[] = []; const stmtCounts = new Set<number>();
     for (let round = 0; round < 2; round++) {
       for (const i of picks) {
+        (globalThis as { gc?: () => void }).gc?.();                                         // keep fake-heap GC pauses out of the sample when node runs with --expose-gc
         let inDb = 0;
         const before = env.db.stmts.length;
         const t0 = performance.now();
@@ -47,9 +49,8 @@ describe.each([[1, 5_000], [10, 50_000]])('priceFor at %ix (%i orderables / item
     }
     expect(Math.max(...stmtCounts) - Math.min(...stmtCounts), `statement counts ${[...stmtCounts]}`).toBeLessThanOrEqual(2);   // independent of the item and of the list size
     expect(Math.max(...stmtCounts), `statement counts ${[...stmtCounts]}`).toBeLessThanOrEqual(12);                              // bounded round trips (an N+1 over items would be >> 12)
-    // 10x: the fake holds ~200k rows, so GC pauses and the fake's own continuations leak into "service" time (measured 29-32 ms vs ~10 ms at 1x although the
-    // statement is the same targeted `orderable_id = ANY($3)` lookup). 2.5x headroom keeps the test about algorithmic growth; the 20 ms budget proper is the real-DB run.
-    const budget = factor === 1 ? 20 : 50;
+    // T-37 review item 1: 02-TRD §12 sets the same 20 ms warm p95 at 1x and 10x; no loosened 10x number. If unreachable in-process -> CR, not a looser budget.
+    const budget = 20;
     expect(p95(service), `service-only p95 ${p95(service).toFixed(1)} ms (budget ${budget})`).toBeLessThanOrEqual(budget);
   });
 });

@@ -91,6 +91,17 @@ describe('no earlier release / no regeneration -> unchanged T08 behaviour', () =
   });
 });
 
+describe('KNOWN GAP (review C6-T41 #1, CR pending): keyed job `assemble:<report_id>` is replaced by a later producer', () => {
+  // add_job job_key_mode=replace: a consumers/narrative-sign/sweep enqueue that lands before the worker runs overwrites the R9 payload.
+  // This pins TODAY's behaviour (reason lost, counter already bumped). Flip the expectations when the CR ruling (durable pending reason or merge) lands.
+  it('replaced payload (no `regeneration`) after a release: v2 is NOT amended, no "Report details" note, no stored reason', async () => {
+    const s = world({ versions: [released()] }); await go(s, { tenant_id: TENANT_A, report_id: LAB });
+    const v2 = s.versions()[1]!;
+    expect(v2['report_kind']).not.toBe('amended'); expect(v2['regeneration_reason_code'] ?? null).toBeNull();
+    expect((snapshotOf(v2).amendmentNotes as any[] | undefined ?? []).filter((n) => n.analyteOrSection === 'Report details')).toHaveLength(0);
+  });
+});
+
 describe('hostile payloads', () => {
   it.each([
     ['reason_code not a string', { reason_code: 7 }], ['reason_code too long', { reason_code: 'a'.repeat(65) }], ['reason_text too long', { reason_code: 'other', reason_text: 'x'.repeat(501) }],

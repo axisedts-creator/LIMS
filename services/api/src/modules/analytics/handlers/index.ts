@@ -3,6 +3,8 @@
 // Stub: LIMS_CORE_ENV=dev (and NODE_ENV != production) -> 501 with no body (never echoes request input); anything else -> common.internal (fail closed).
 import type { Handler } from '../../../core/module.js';
 import { LimsError } from '../../../core/errors.js';
+import { getIncomeReport } from './getIncomeReport.js';
+import { getDepartmentIncomeReport } from './getDepartmentIncomeReport.js';
 
 const OPERATION_IDS = [
   'getAnalyticsDashboard', 'getIncomeReport', 'getDepartmentIncomeReport', 'getCollectionsReport', 'getVolumeReport',
@@ -21,7 +23,7 @@ const stub = (operationId: string): Handler => async () => {
   throw new LimsError('common.internal', `analytics ${operationId} not implemented`);
 };
 
-const implemented: Partial<Record<AnalyticsOperationId, Handler>> = {};
+const implemented: Partial<Record<AnalyticsOperationId, Handler>> = { getIncomeReport, getDepartmentIncomeReport };
 
 export const handlers: Readonly<Record<AnalyticsOperationId, Handler>> = Object.freeze(
   Object.fromEntries(OPERATION_IDS.map((op) => [op, implemented[op] ?? stub(op)])) as Record<AnalyticsOperationId, Handler>,

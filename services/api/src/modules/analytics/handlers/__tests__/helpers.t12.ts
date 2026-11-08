@@ -125,7 +125,7 @@ export function seedT12(): void {
     SP(A1, BR1, 'serum', 'routine', D1, '15:00:00', { pre: 88_888, transport: -500, lab: 88_888 }, { parent: true }),   // s10 aliquot
     SP(A1, BR1, 'serum', 'routine', D1, '16:00:00', { pre: 5000 }, { notReceived: true }),                              // s11 never received: no stop event
     SP(null, BR1, 'serum', 'routine', D2, '12:00:00', { pre: 4000 }),                                                   // s16 NULL centre: all-centre users only
-    SP(A1, BR1, 'serum', 'routine', D0, '10:00:00', { pre: 77_777, transport: 77_777, lab: 77_777 }),                   // before the window
+    SP(A1, BR1, 'serum', 'routine', D0, '10:00:00', { pre: 77_777, transport: 77_777, lab: 40_404 }),                   // before the window
     SP(A1, BR1, 'serum', 'routine', D3, '10:00:00', { pre: 66_666, transport: 66_666, lab: 66_666 }),                   // after the window
     SP(B1, BRB, 'serum', 'routine', D1, '10:00:00', { pre: SENTINEL, transport: SENTINEL, lab: SENTINEL }, { tenantId: TB }),
   );

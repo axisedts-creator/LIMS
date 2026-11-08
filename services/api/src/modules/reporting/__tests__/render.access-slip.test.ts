@@ -79,6 +79,8 @@ describe('(8) portalUrl outside LIMS_ORIGIN_PORTAL + "/r/" → reporting.templat
     ['right origin, other path', 'https://portal.invalid/admin/tok0001'],
     ['right origin, path without /r/ segment', 'https://portal.invalid/rx/tok0001'],
     ['origin only', 'https://portal.invalid'],
+    ['dot-segment escape', 'https://portal.invalid/r/../admin'],
+    ['non-canonical (whitespace)', 'https://portal.invalid/r/tok 0001'],
     ['relative path', '/r/tok0001'],
     ['javascript: scheme', 'javascript:alert(1)'],
     ['data: scheme', 'data:text/html,<script>1</script>'],

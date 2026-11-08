@@ -784,7 +784,7 @@ describe('SCR-12 CreditPartiesScreen (AC-12.1…12.4)', () => {
     await show();
     for (const h of ['Code', 'Name', 'Kind', 'Credit allowed', 'Price list', 'Status']) expect(screen.getByRole('columnheader', { name: new RegExp(`^${h}`, 'i') })).toBeTruthy();
     expect(within(rowOf('CP00001')).getByText('Yes')).toBeTruthy();
-    expect(within(rowOf('CP00001')).getByText(/Hospital/)).toBeTruthy();
+    expect(within(rowOf('CP00001')).getByText('Hospital')).toBeTruthy();
     expect(within(rowOf('CP00002')).getByText('No')).toBeTruthy();
     expect(within(rowOf('CP00003')).getByText('Inactive')).toBeTruthy();
   });

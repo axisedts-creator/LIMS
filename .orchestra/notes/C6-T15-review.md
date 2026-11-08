@@ -1,7 +1,17 @@
-CHANGES
-Round 2 #1 is fixed: `realStamp` (Date.parse plus a day-in-month check) guards both the cursor `k` and the date filters. The 99-99 cursor test asserts 400 with no query issued. Verify cmd + settings test: 282/282 pass. Checked in node: V8 returns NaN for hour 25, minute 60, second 60 and offset +99:99, so those inputs are already rejected. 24:00 is accepted, and PG accepts it too.
+APPROVE
+Round 3 #1 is fixed per LD-74. `realStamp` (reports-read.handlers.ts:11-30) now works like this:
+- A regex checks the shape.
+- The instant is rebuilt with setUTCFullYear/setUTCHours, which avoids the Date.UTC 0-99 year remap, and every part is compared with the parsed parts.
+- Year must be 1..9999, offset hours <= 23 and offset minutes <= 59.
+- 24:00:00 is handled explicitly.
+- The final instant must also fall in year 1..9999.
 
-1. `services/api/src/modules/reporting/handlers/reports-read.handlers.ts:13`: `realStamp` accepts year `0000`. `Date.parse('0000-01-01T00:00Z')` = -62167219200000, not NaN. PG rejects year 0 with 22008 "date/time field value out of range". So a tampered cursor `{"k":"0000-01-01T00:00Z",...}` or `registered_at_from=0000-01-01T00:00Z` still gets a 500, not 400. This is the same class as round 2 #1.
-   Fix: in `realStamp`, add `y >= 1 &&` before `m >= 1`. In `reports-read.handlers.test.ts`, add two cursors to the malformed-cursor loop: `{k:'0000-01-01T00:00Z',...}` and `{k:'2026-02-30T00:00Z',...}`. The Feb-30 case is the one the impl notes call untested. Also add `['registered_at_from','2026-02-30T00:00Z']` to the 400 `it.each`.
+The same check guards the cursor `k` (lines 81 and 207) and all date filters (`stamp`, line 53).
 
-Checked, no new defect: the round-2 diff touches only owned paths (handlers + tests). It adds no new names, logging or SQL text.
+I checked it in node against these inputs:
+- Rejected: 0000-01-01, 2025-02-29, 2026-04-31, month 13, day 00, 24:00:01, hour 25, minute 60, second 60, +24:00, 9999-12-31T24:00Z.
+- Accepted: 2024-02-29, 0001-01-01, 0050-06-01, 2026-12-31T24:00Z, 9999-12-31T23:59Z.
+
+The tests add the round-3 cursors (year 0000, Feb 30, month 13, day 00), and the same four values on both registered_at_from and registered_at_to give 400. reports-read.handlers.test.ts: 124/124 pass.
+
+No new defect. The diff touches only owned paths (handlers + tests) plus impl notes. It adds no new names, logging or SQL, and does not touch vitest.config.ts.

@@ -2,14 +2,14 @@
 // Integration against an in-process dev SMTP sink (helpers). Tests fail now because delivery/adapters/email.smtp-relay.ts does not exist.
 // ASSUMED adapter API (no spec text pins it; the writer must match or raise a CR):
 //   export const smtpRelayTransport: Transport   (providerKind 'email_smtp_relay'; named like `recordingTransport`)
-//   creds (ResolvedSecret) = { host, port, from, security: 'none'|'starttls'|'tls' (default 'starttls'), username?, password?, timeoutMs? (default 10000) }
+//   creds (ResolvedSecret) = { host, port, from, security: 'none'|'starttls'|'tls' (default 'starttls'), username?, password?, timeoutMs? (default 10000), ca? (PEM, dev/test trust anchor passed to TLS options) }
 //   security 'none' is for the dev sink only; the default must refuse to send in clear text.
 // Failure codes not fixed by 02-TRD §5.4 are only checked for shape (/^[a-z][a-z0-9_]*$/) and retryable flag; 'provider_rejected' | 'invalid_destination' are the TRD examples.
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 import { TransportError } from '../delivery/transport.js';
-import { creds, decodeWords, LINK, msg, rejection, startSink, type Sink } from './email-smtp.helpers.js';
+import { creds, decodeWords, LINK, msg, rejection, startSink, testCert, type Sink } from './email-smtp.helpers.js';
 
 const SRC = join(__dirname, '..', 'delivery', 'adapters', 'email.smtp-relay.ts');
 const load = async () => ((await import('../delivery/adapters/email.smtp-relay.js')) as any).smtpRelayTransport;
@@ -99,6 +99,34 @@ describe('credentials and transport security', () => {
     const e = await rejection((await load()).send(msg(), creds(s, { security: 'starttls', username: 'u', password: 'p' })));
     expect(e).toBeInstanceOf(TransportError); expect(e.retryable).toBe(false);
     expect(s.cap.auth).toHaveLength(0); expect(s.cap.rcpts).toHaveLength(0);
+  });
+
+  // Real TLS against the sink's test-time self-signed cert (helpers testCert, in memory, nothing committed). `ca` = dev/test trust anchor.
+  it('security "starttls" (the production default) upgrades first: AUTH and the message travel only over TLS', async () => {
+    const s = await up({ tls: 'starttls', advertiseAuth: true });
+    const out = await (await load()).send(msg(), creds(s, { security: 'starttls', ca: testCert().cert, username: 'relay-user', password: 'relay-pass-synthetic' }));
+    expect(s.cap.tlsHandshakes).toBe(1);
+    expect(s.cap.auth).toHaveLength(1); expect(s.cap.authSecure).toEqual([true]);
+    expect(s.cap.rcpts).toHaveLength(1); expect(s.message().text).toContain(LINK);
+    expect(Number.isNaN(Date.parse(out.acceptedAt))).toBe(false);
+  });
+
+  it('security "tls" (implicit TLS) delivers the message over the encrypted connection', async () => {
+    const s = await up({ tls: 'implicit', advertiseAuth: true });
+    await (await load()).send(msg(), creds(s, { security: 'tls', ca: testCert().cert, username: 'relay-user', password: 'relay-pass-synthetic' }));
+    expect(s.cap.tlsHandshakes).toBe(1); expect(s.cap.authSecure).toEqual([true]);
+    expect(s.cap.rcpts).toHaveLength(1); expect(s.message().text).toContain(LINK);
+  });
+
+  it('untrusted relay certificate (no ca) fails closed: non-retryable tls_failed, no AUTH, sender, recipient or body sent', async () => {
+    for (const [mode, security] of [['starttls', 'starttls'], ['implicit', 'tls']] as const) {
+      const s = await up({ tls: mode, advertiseAuth: true });
+      const e = await rejection((await load()).send(msg(), creds(s, { security, username: 'relay-user', password: 'relay-pass-synthetic' })));
+      expect(e).toBeInstanceOf(TransportError); expect(e.retryable).toBe(false); expect(e.failureCode).toBe('tls_failed');
+      expect(s.cap.auth).toHaveLength(0); expect(s.cap.mailFrom).toBeUndefined(); expect(s.cap.rcpts).toHaveLength(0); expect(s.cap.data).toBeUndefined();
+      expect(JSON.stringify({ m: e.message, s: e.stack })).not.toContain('relay-pass-synthetic');
+      await s.close(); sink = undefined;
+    }
   });
 });
 

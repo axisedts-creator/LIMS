@@ -30,7 +30,7 @@ export function moduleSetup(o: ModuleOpts = {}): Setup {
   const withMicro = o.micro ?? true; const withAnat = o.anatomic ?? true;
   const store = s.db.store;
   const item = (n: number, orderItem: string, test: string): Row => ({ ...ctxBase, id: idN(0xb100 + n), report_id: idN(0xa101), order_id: I.order, order_item_id: orderItem, orderable_id: test, orderable_kind: 'test',
-    test_ids: [test], priority: 'routine', requires_lab: true, requires_narrative: false, requires_outsourced: false, lab_ready: true, narrative_ready: false, outsourced_ready: false, items_version: 1 });
+    test_ids: [test], narrative_test_ids: [], item_status: 'active', approved_results: 1, amendment_pending: false, version: 1, priority: 'routine', requires_lab: true, requires_narrative: false, requires_outsourced: false, lab_ready: true, narrative_ready: false, outsourced_ready: false, items_version: 1 });
   (store['reporting.report_order_items'] ??= []).push(...(withMicro ? [item(11, ITEM_MICRO, T_MICRO)] : []), ...(withAnat ? [item(12, ITEM_ANAT, T_ANAT)] : []));
   store['micro.v_pub_report_content'] = o.microRows ?? [microRow({ version_no: 1, culture_summary_text: 'SYNTH-CULT-V1 STALE', report_phase: 'preliminary' }), microRow({ report_phase: o.microPhase ?? 'final' })];
   store['anatomic.v_pub_report_content'] = o.anatRows ?? [anatRow()];

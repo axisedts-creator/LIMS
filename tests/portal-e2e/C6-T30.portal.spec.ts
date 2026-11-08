@@ -20,6 +20,7 @@ const norm = (s: string) =>
   s.replace(/nonce-[A-Za-z0-9+/=_-]+/g, 'nonce-X')
     .replace(/nonce="[^"]*"/g, 'nonce="X"')
     .replace(/nonce=\\"[^"\\]*\\"/g, 'nonce=\\"X\\"')
+    .replace(/nonce(\\*)":(\\*)"[^"\\]*\\*"/g, 'nonce$1":$2"X$2"') // RSC flight payload {"nonce":"…"} (self.__next_f.push), raw + escaped at any depth
     .replace(/__next_r="[^"]*"/g, '__next_r="X"')
     .replace(/__next_r=\\"[^"\\]*\\"/g, '__next_r=\\"X\\"');
 
@@ -322,7 +323,7 @@ test.describe('AC-10.1 / 10.2 / 10.3 QR verify', () => {
       shots.push(norm(JSON.stringify({ s: r.status(), h, b: (await r.text()).split(tok).join('TOKEN') })));
     }
     expect(new Set(shots).size).toBe(1);
-    expect(JSON.parse(shots[0]).s).toBeLessThan(500);
+    expect(JSON.parse(shots[0]).s).toBe(404); // AC-10.3: 404 reporting.verify_not_found
   });
   test('not-found copy; rate limit copy; API 500 -> generic error with reference id', async ({ page }) => {
     await page.goto(`/v/${T('qrunk')}`);

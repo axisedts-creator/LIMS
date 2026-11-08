@@ -1,8 +1,9 @@
-TESTS_WRONG — fix the normaliser in tests/portal-e2e/C6-T30.portal.spec.ts:18/316 so per-request randomness is masked: also replace the JSON-escaped form `nonce=\"...\"` (e.g. normalise header/body before JSON.stringify, or add `/nonce=\\"[^"\\]*\\"/g`) and mask `self.__next_r="<id>"` (`/__next_r="[^"]*"/g` on the raw body). Keep every other byte compared (status, all other headers, body).
+TESTS_WRONG — in tests/portal-e2e/C6-T30.portal.spec.ts norm() (:19-24) also mask the JSON key/value nonce form emitted in the RSC flight payload (`self.__next_f.push`), raw and escaped at any depth, e.g. `.replace(/nonce(\\*)":(\\*)"[^"\\]*\\*"/g, 'nonce$1":$2"X$2"')`. Mask only the nonce value; keep every other byte compared (status, all other headers, body).
 
-Reasons:
-1. AC-10.3 (spec/chunks/C6-reporting-delivery/01-PRD.md:208) requires body, status and headers identical across unknown/revoked/unreleased/malformed; its purpose is no token-derived signal (07-SECURITY.md:36 REQ-SEC-093, :68 T1, :97 A2).
-2. REQ-SEC-089 (07-SECURITY.md:34; AC-11.9 01-PRD.md:222) mandates a nonce CSP on /v/ pages, so a fresh nonce per response is required; a literal byte-identical reading would contradict it. The test author already accepts this (norm() masks `nonce-…` and `nonce="…"`), but the regex misses the escaped form produced by JSON.stringify — a test defect, not an implementation one.
-3. `__next_r` is per-render framework randomness, same class as the nonce, independent of the token; the spec skeleton requires a server-rendered Next page (`v/[token]/page.tsx`), so the app cannot remove it.
-4. Writer evidence: all other bytes match across 4 tokens. Not a spec gap, so no CR.
-Note (not disputed): AC-10.3 fixes status 404 `reporting.verify_not_found`; test line 319 only checks `< 500` — tester may tighten to 404.
+Reasons (round 2; round-1 reasons still stand):
+1. AC-10.3 (spec/chunks/C6-reporting-delivery/01-PRD.md:208) requires identical body/status/headers across unknown/revoked/unreleased/malformed — purpose: no token-derived signal (07-SECURITY.md:36 REQ-SEC-093).
+2. REQ-SEC-089 (07-SECURITY.md:34; AC-11.9 01-PRD.md:222) mandates a nonce CSP on /v/ pages, so a fresh per-response nonce is required. Next.js echoes that same nonce as `{"nonce":"…"}` in the flight data for the CSS preload hint; it is the same value already masked as `nonce-…`/`nonce="…"` and is token-independent. Not masking it makes the test contradict REQ-SEC-089.
+3. The previous ruling's intent was "mask the per-request nonce"; the regex list was incomplete, not the implementation. Writer reports all other bytes identical across 4 tokens.
+4. Writer's change forwarding malformed tokens to Q1 is consistent with AC-10.3 (same 404 path for all four cases); no objection.
+5. Not a spec gap — no CR.
+Note (repeat, not disputed): AC-10.3 fixes 404 `reporting.verify_not_found`; test :325 checks only `< 500` — tester should tighten to `toBe(404)`.

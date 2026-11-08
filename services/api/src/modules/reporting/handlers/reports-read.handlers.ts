@@ -4,6 +4,7 @@ import { LimsError, type FieldError } from '../../../core/errors.js';
 import type { Handler, HandlerContext, HandlerRequest } from '../../../core/module.js';
 import { displayStatus, toDetail, toSummary, toVersionSummary } from '../mappers/report.mapper.js';
 import * as Q from '../repository/reports-read.repo.js';
+import { findReportRefs, listCriticalAlertDeliveries } from '../repository/delivery.repo.js';
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const ISO_TS = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}(\.\d+)?)?(Z|[+-]\d{2}:\d{2})$/;
@@ -18,6 +19,8 @@ const SORTS = { '-updated_at': 'updated_at', registered_at: 'registered_at', '-r
 const SEARCH_KEYS = ['registration_no', 'order_id', 'patient_id', 'barcode'];
 const SCAN_BATCH = 200; const SCAN_MAX = 5000;        // ponytail: display_status is derived (latest version), so a status filter scans keyset batches in memory; a materialised column would remove this
 const SEARCH_MAX = 50;
+const CA_KEYS = new Set(['centre_id', 'since', 'cursor', 'limit']);
+const DAY_MS = 86_400_000;
 
 type Ctx = { tenantId: string; actor: { id: string; type?: string }; tx: { query(sql: string, v: unknown[]): Promise<{ rows: any[] }> }; ports?: Record<string, any>;
   storage?: { read(bucket: 'reports', path: string): Promise<Uint8Array> }; audit?: { access(e: Record<string, unknown>): Promise<unknown> } };
@@ -169,5 +172,50 @@ export const reportsReadHandlers: Readonly<Record<string, Handler>> = Object.fre
         'x-content-type-options': 'nosniff', 'cache-control': 'no-store', 'content-security-policy': 'sandbox', 'content-length': String(bytes.length),
       },
     };
+  },
+  // R18 — critical alerts panel (02-TRD §6.1 CriticalAlert; AC-14.3; review fix #16). Grouped from critical_value_alert deliveries by critical_event_id; no value / name / destination.
+  // ponytail: the whole window (<= 7 days) is grouped and paged in memory; a GROUP BY statement if the panel ever holds thousands of alerts.
+  listCriticalAlerts: async (req: HandlerRequest, hctx: HandlerContext) => {
+    const c = staff(hctx); const q = obj(req.query);
+    for (const k of Object.keys(q)) if (!CA_KEYS.has(k)) throw invalid('/');
+    const centreId = str(q, 'centre_id'); if (centreId !== undefined && !UUID.test(centreId)) throw invalid('/centre_id');
+    const now = Date.parse(String((hctx as any).now?.() ?? new Date().toISOString()));
+    const since = stamp(q, 'since') ?? new Date(now - DAY_MS).toISOString();
+    if (Date.parse(since) < now - 7 * DAY_MS) throw invalid('/since');
+    const lim = q['limit'] === undefined ? 50 : typeof q['limit'] === 'string' && /^\d{1,3}$/.test(q['limit']) ? Number(q['limit']) : NaN;
+    if (!Number.isInteger(lim) || lim < 1 || lim > 200) throw invalid('/limit');
+    let after: { k: string; i: string } | undefined;
+    if (q['cursor'] !== undefined) {
+      try {
+        const raw = q['cursor']; if (typeof raw !== 'string' || raw.length > 512) throw new Error('bad');
+        const cur = JSON.parse(Buffer.from(raw, 'base64url').toString('utf8'));
+        if (typeof cur?.k !== 'string' || !ISO_TS.test(cur.k) || !realStamp(cur.k) || typeof cur?.i !== 'string' || !UUID.test(cur.i)) throw new Error('bad');
+        after = { k: cur.k, i: cur.i };
+      } catch { throw new LimsError('common.invalid_cursor'); }
+    }
+    const iso = (v: unknown) => new Date(v as string).toISOString();
+    const groups = new Map<string, any[]>();
+    for (const d of await listCriticalAlertDeliveries(c.tx, c.tenantId, since, centreId ?? null)) {
+      const g = groups.get(d['related_entity_id']); if (g) g.push(d); else groups.set(d['related_entity_id'], [d]);
+    }
+    const all = [...groups].map(([id, rows]) => {
+      rows.sort((a, b) => iso(a['created_at']).localeCompare(iso(b['created_at'])) || String(a['id']).localeCompare(String(b['id'])));
+      return { id, k: iso(rows[0]['created_at']), rows };
+    }).sort((a, b) => b.k.localeCompare(a.k) || b.id.localeCompare(a.id))
+      .filter((a) => !after || a.k < after.k || (a.k === after.k && a.id < after.i));
+    const pageRows = all.slice(0, lim);
+    const reportIds = [...new Set(pageRows.map((a) => a.rows.find((r) => r['report_id'])?.['report_id']).filter(Boolean))] as string[];
+    const refs = new Map((reportIds.length ? await findReportRefs(c.tx, c.tenantId, reportIds) : []).map((r) => [r.id, r]));
+    const data = pageRows.map((a) => {
+      const ref = refs.get(a.rows.find((r) => r['report_id'])?.['report_id']);
+      return {
+        critical_event_id: a.id, ...(ref ? { report_id: ref.id, order_id: ref.order_id, registration_no: ref.registration_no } : {}), centre_id: a.rows[0]['centre_id'], alerted_at: a.k,
+        recipients: a.rows.map((r) => ({ recipient_kind: r['recipient_kind'], ...(r['recipient_kind'] === 'staff' && r['recipient_id'] ? { membership_id: r['recipient_id'] } : {}),
+          status: r['status'], ...(r['failure_code'] ? { failure_code: r['failure_code'] } : {}) })),
+      };
+    });
+    const page: Record<string, unknown> = { limit: lim };
+    if (all.length > lim) { const last = pageRows[lim - 1]!; page['next_cursor'] = b64({ k: last.k, i: last.id }); }
+    return { status: 200, body: { data, page } };
   },
 });

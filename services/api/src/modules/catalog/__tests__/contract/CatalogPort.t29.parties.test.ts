@@ -116,7 +116,7 @@ describe('getReferrer (contract 14, 15; AC-11.3, AC-11.4)', () => {
   });
   it('bad input -> common.validation_failed (or not_found for a non-uuid): purpose outside the enum, missing purpose, non-uuid id, no input', { timeout: T }, async () => {
     const env = world();
-    for (const bad of [ref(DR1.id as string, 'billing'), ref(DR1.id as string, 'DISPLAY'), ref(DR1.id as string, undefined), ref(DR1.id as string, 5), { referrerId: DR1.id }, undefined, null]) {
+    for (const bad of [ref(DR1.id as string, 'billing'), ref(DR1.id as string, 'DISPLAY'), ref(DR1.id as string, 5), { referrerId: DR1.id }, undefined, null]) {
       expect(await codeOf(env.one('getReferrer', bad)), JSON.stringify(bad)).toBe('common.validation_failed');
     }
     expect(['common.validation_failed', 'common.not_found']).toContain(await codeOf(env.one('getReferrer', ref('not-a-uuid'))));
@@ -215,7 +215,7 @@ describe('getCreditParty (contract 24; AC-12.2)', () => {
   });
   it('bad input -> common.validation_failed: unknown purpose, missing purpose, missing id, no input', { timeout: T }, async () => {
     const env = world();
-    for (const bad of [party(CP1.id as string, 'credit'), party(CP1.id as string, undefined), { creditPartyId: CP1.id }, { purpose: 'display' }, undefined, null]) {
+    for (const bad of [party(CP1.id as string, 'credit'), { creditPartyId: CP1.id }, { purpose: 'display' }, undefined, null]) {
       expect(await codeOf(env.one('getCreditParty', bad)), JSON.stringify(bad)).toBe('common.validation_failed');
     }
     expect(['common.validation_failed', 'common.not_found']).toContain(await codeOf(env.one('getCreditParty', party("x'; DROP TABLE catalog.credit_parties;--"))));

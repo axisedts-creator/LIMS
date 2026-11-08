@@ -1,4 +1,4 @@
-# AN-T06 impl (writer) — 83/85 pass; 2 disputed (see AN-T06-dispute.md)
+# AN-T06 impl (writer) — all pass after ruling (jobs/analytics 348 pass, 3 skipped); no code change needed. tsc: 20 errors, none in jobs/analytics (other chunks)
 - Files: `services/worker/src/jobs/analytics/tasks/{sweep_recent,sweep_nightly,self_check,purge,backfill,shared}.ts` (shared = payload trust, Kathmandu "today" from ctx.now(), markAll); `jobs/analytics/index.ts` wires the 5 tasks (cron + 120 s taskOptions were already there).
 - [CONV] Config from `loadAnalyticsConfig()` (nightlyDays 40, chunk 7, yesterdayUntilLocal 06:00, backlog 30, tatRetentionFy 3). self_check enqueues a debounced `refresh_tenant` (job_key per tenant) after re-marking; nightly enqueues `self_check` (job_key `analytics.self_check:<tenant>`, max_attempts 2) after the refresh.
 - [CONV] purge: `retentionYears` must be an integer 1..100 or the task rejects before any DELETE; report_backlog never purged (no business_date column; TRD §9.5 slip — needs a CR/TRD fix); export_files uses a `downloads_used >= downloads_allowed` subselect on exports (those columns live on `exports`).

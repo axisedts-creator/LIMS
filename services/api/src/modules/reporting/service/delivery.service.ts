@@ -17,6 +17,7 @@ export interface NewDelivery {
   params: Record<string, string>; idempotencyKey: string; relatedType: string | null; relatedId: string | null;
   reportId?: string | null; reportVersionNo?: number | null;
   status: 'queued' | 'suppressed' | 'sent'; failureCode: string | null;
+  deferredLink?: Record<string, unknown> | null; fallbackOfDeliveryId?: string | null;
 }
 
 const tx = (ctx: DeliveryCtx) => ctx.tx as Tx;
@@ -40,6 +41,7 @@ export async function insertDelivery(ctx: DeliveryCtx, d: NewDelivery): Promise<
   const now = at(ctx);
   const row = await insertDeliveryRow(tx(ctx), {
     ...d, tenantId: ctx.tenantId, reportId: d.reportId ?? null, reportVersionNo: d.reportVersionNo ?? null, actorId: ctx.actor.id,
+    deferredLink: d.deferredLink ?? null, fallbackOfDeliveryId: d.fallbackOfDeliveryId ?? null,
     queuedAt: d.status === 'queued' ? now : null, sentAt: d.status === 'sent' ? now : null, suppressedAt: d.status === 'suppressed' ? now : null,
   });
   if (!row) {
@@ -54,6 +56,7 @@ export async function insertDelivery(ctx: DeliveryCtx, d: NewDelivery): Promise<
       delivery_id: d.id, channel: d.channel, purpose: d.purpose, recipient_kind: d.recipientKind, to_status: d.status,
       ...(d.failureCode ? { failure_code: d.failureCode } : {}),
       ...(d.reportId ? { report_id: d.reportId } : {}), ...(d.reportVersionNo ? { report_version_no: d.reportVersionNo } : {}),
+      ...(d.fallbackOfDeliveryId ? { fallback_of_delivery_id: d.fallbackOfDeliveryId } : {}),
       changed_at: now.toISOString(), delivery_created_at: now.toISOString(), attempt_no: 1,
     },
   });
@@ -61,6 +64,22 @@ export async function insertDelivery(ctx: DeliveryCtx, d: NewDelivery): Promise<
     await tx(ctx).query('SELECT app.enqueue_job($1, $2::jsonb, $3)', ['reporting.send_delivery', JSON.stringify({ delivery_id: d.id }), d.id]);
   }
   return { row, inserted: true };
+}
+
+/** reporting.delivery.status_changed.v1 for a transition of an existing row (seq = the row version after the update). */
+export async function publishTransition(ctx: DeliveryCtx, row: Record<string, any>, to: string, o: { seq: number; at: string; attemptNo: number; failureCode?: string | null }): Promise<void> {
+  const iso = (v: unknown) => (v instanceof Date ? v.toISOString() : String(v));
+  await ctx.events.publish(ctx, 'reporting.delivery.status_changed.v1', {
+    aggregate: { type: 'delivery', id: row['id'], seq: o.seq },
+    idempotencyKey: `${row['id']}:${to}`,
+    payload: {
+      delivery_id: row['id'], channel: row['channel'], purpose: row['purpose'], recipient_kind: row['recipient_kind'], from_status: row['status'], to_status: to,
+      ...(o.failureCode ? { failure_code: o.failureCode } : {}),
+      ...(row['report_id'] ? { report_id: row['report_id'] } : {}), ...(row['report_version_no'] ? { report_version_no: row['report_version_no'] } : {}),
+      ...(row['fallback_of_delivery_id'] ? { fallback_of_delivery_id: row['fallback_of_delivery_id'] } : {}),
+      changed_at: o.at, delivery_created_at: iso(row['created_at']), attempt_no: o.attemptNo,
+    },
+  });
 }
 
 /** Print delivery (AC-12.1, review fix #5; 05-SCHEMA §2.8): channel print, template NULL, created directly in `sent`, key `<print_job_id>:print`. */

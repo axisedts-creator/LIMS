@@ -157,7 +157,11 @@ export function RangesTab({ analyte, kind, sets, valueSet, specimenTypes, permis
   const done = (title: string) => { setFail(undefined); setDialog(null); toast.show({ tone: 'success', title }); router.refresh(); };
   const save = async () => {
     if (!set || !validate()) return;
-    const r = await replaceBandsAction(kind, set.id, set.version, bands.map((b, i) => ({ ...b, sort_order: i })));
+    const r = await replaceBandsAction(kind, set.id, set.version, bands.map((b, i) => {
+      if (!critical) return { ...b, sort_order: i };
+      const { sort_order: _drop, ...rest } = b; // 02-TRD §3 CriticalBand has no sort_order; the API rejects unknown fields
+      return rest;
+    }));
     if (r.ok) done('Bands saved.');
     else { placeServerErrors(r.errors); setFail(r); }
   };
@@ -167,10 +171,10 @@ export function RangesTab({ analyte, kind, sets, valueSet, specimenTypes, permis
   };
   const discard = async () => {
     if (!draftSet) return;
-    const r = await discardRangeSetAction(kind, draftSet.id);
+    const r = await discardRangeSetAction(kind, draftSet.id, draftSet.version);
     if (r.ok) done('Draft discarded.'); else { setDialog(null); setFail(r); }
   };
-  const addBand = () => setBands([...bands, { sex: 'any', ...(critical ? {} : { kind: 'numeric' }), sort_order: bands.length }]);
+  const addBand = () => setBands([...bands, { sex: 'any', ...(critical ? {} : { kind: 'numeric', sort_order: bands.length }) }]);
 
   return (
     <div className="lims-stack" style={{ gap: 'var(--lims-space-3)' }}>
@@ -256,7 +260,7 @@ function SetActionDialog({ mode, kind, set, analyteCode, onClose, onDone, onFail
     setBusy(true);
     try {
       const body = { change_reason: reason };
-      const r = mode === 'publish' ? await publishRangeSetAction(kind, set.id, set.version, body, key) : await retireRangeSetAction(kind, set.id, body, key);
+      const r = mode === 'publish' ? await publishRangeSetAction(kind, set.id, set.version, body, key) : await retireRangeSetAction(kind, set.id, set.version, body, key);
       if (r.ok) onDone(`${analyteCode} ${kind === 'ranges' ? 'reference range' : 'critical limit'} version ${set.version_no} ${mode === 'publish' ? 'published' : 'retired'}.`);
       else if (onFail(r)) setStay(r);
     } finally {

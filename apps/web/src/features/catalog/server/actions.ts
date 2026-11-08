@@ -65,9 +65,9 @@ export async function replaceBandsAction(kind: RangeKind, setId: string, version
 export async function publishRangeSetAction(kind: RangeKind, setId: string, version: number, body: { effective_from?: string; change_reason: string }, idempotencyKey: string): Promise<ActionResult<RangeSet>> {
   return run(() => (kind === 'ranges' ? publishReferenceRangeSet : publishCriticalLimitSet)(setId, version, body, idempotencyKey));
 }
-export async function retireRangeSetAction(kind: RangeKind, setId: string, body: { change_reason: string; effective_at?: string }, idempotencyKey: string): Promise<ActionResult<RangeSet>> {
-  return run(() => (kind === 'ranges' ? retireReferenceRangeSet : retireCriticalLimitSet)(setId, body, idempotencyKey));
+export async function retireRangeSetAction(kind: RangeKind, setId: string, version: number, body: { change_reason: string; effective_at?: string }, idempotencyKey: string): Promise<ActionResult<RangeSet>> {
+  return run(() => (kind === 'ranges' ? retireReferenceRangeSet : retireCriticalLimitSet)(setId, version, body, idempotencyKey));
 }
-export async function discardRangeSetAction(kind: RangeKind, setId: string): Promise<ActionResult<RangeSet>> {
-  return run(() => (kind === 'ranges' ? discardReferenceRangeSetDraft : discardCriticalLimitSetDraft)(setId));
+export async function discardRangeSetAction(kind: RangeKind, setId: string, version: number): Promise<ActionResult<RangeSet>> {
+  return run(() => (kind === 'ranges' ? discardReferenceRangeSetDraft : discardCriticalLimitSetDraft)(setId, version));
 }

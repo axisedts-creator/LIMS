@@ -71,7 +71,7 @@ describe('E41 updateInstrumentSettings — validation, If-Match, privilege', () 
   });
   it('missing If-Match -> 428 common.precondition_required; stale -> 409 common.version_conflict; neither writes nor publishes', async () => {
     const w = world({ settings: [withWindow()] });
-    expect(code(await rejection(put(w, { ...BODY }, undefined)))).toBe('common.precondition_required');
+    expect(code(await rejection(w.svc.updateInstrumentSettings(w.ctx, { expectedVersion: undefined, body: { ...BODY } })))).toBe('common.precondition_required');
     expect(code(await rejection(put(w, { ...BODY, update_window_from: '02:00', update_window_to: '05:00' }, 9)))).toBe('common.version_conflict');
     expect(w.pub.calls).toHaveLength(0); expect(w.callsOf('listNonRetiredAgentIds')).toHaveLength(0);
   });

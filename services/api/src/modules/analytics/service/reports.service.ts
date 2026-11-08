@@ -3,12 +3,13 @@
 // always ctx.tenantId. Money is integer paisa: every sum is checked to stay a safe integer (never rounded).
 import { adToBs, formatAd, formatBs, type IsoDate } from '../../../../../../packages/shared-ts/src/bsdate/index.js';
 import { LimsError } from '../../../core/errors.js';
-import { DELIVERY_COLS, MESSAGE_COLS, RELEASE_COLS, RESULT_COLS } from '../domain/columns.js';
+import { DELIVERY_COLS, MESSAGE_COLS, RELEASE_COLS, RESULT_COLS, TAT_SEGMENTS } from '../domain/columns.js';
 import { groupByBsMonth, ratioBp } from '../domain/metrics.js';
 import type { Period } from '../domain/period.js';
 import type { Scope } from '../domain/scope.js';
 import * as rollups from '../repository/rollups.repo.js';
 import * as sourceViews from '../repository/sourceViews.repo.js';
+import * as tatRepo from '../repository/tat.repo.js';
 import { MAX_FILTER_IDS } from './context.service.js';
 import { branchLabels, centreLabels, departmentLabels, instrumentLabels, testLabels, type LabelsContext } from './labels.service.js';
 
@@ -318,4 +319,98 @@ export async function interfaces(ctx: ReportsContext, a: { period: Period; scope
   const counts = new Map<string, number>();
   for (const x of agents) counts.set(x.state, (counts.get(x.state) ?? 0) + 1);
   return { instruments, agents: { by_state: [...counts].sort(([x], [y]) => x.localeCompare(y)).map(([state, count]) => ({ state, count })), agents } };
+}
+
+// ------------------------------------------------------------------ AN-T12: TAT (M60–M64; TRD §6.6, PRD US-11.x)
+export const TAT_GROUP_BY = ['none', 'centre', 'processing_branch', 'priority', 'specimen_type', 'day', 'ad_month', 'bs_month'] as const;
+export type TatSegment = (typeof TAT_SEGMENTS)[number];
+export interface TatFilters {
+  segments: TatSegment[]; priority?: 'routine' | 'urgent'; specimenTypeCodes: string[]; processingBranchIds: string[];
+}
+export interface TatOutRow { segment: TatSegment; key?: string; label?: string; n: number; median_seconds?: number; p90_seconds?: number; max_seconds?: number; anomalies: number }
+
+const bad = (path: string): LimsError => new LimsError('common.validation_failed', 'Invalid filter', [{ path, code: 'common.field_invalid', message: 'Field invalid' }]);
+const CODE = /^[A-Za-z0-9][A-Za-z0-9_.:-]{0,99}$/; // _common.yaml Code
+
+/** Pure validation of the TAT filters (limits and allow-lists), run before any lookup or read. Segments come back deduplicated in canonical order. */
+export function tatFilters(q: { segment?: unknown; priority?: unknown; specimen_type_code?: unknown; processing_branch_id?: unknown }): TatFilters {
+  let segments: TatSegment[] = [...TAT_SEGMENTS];
+  if (q.segment !== undefined) {
+    if (!Array.isArray(q.segment) || q.segment.length > TAT_SEGMENTS.length || q.segment.some((s) => !(TAT_SEGMENTS as readonly unknown[]).includes(s))) throw bad('segment');
+    if (q.segment.length) segments = TAT_SEGMENTS.filter((s) => (q.segment as unknown[]).includes(s));
+  }
+  if (q.priority !== undefined && q.priority !== 'routine' && q.priority !== 'urgent') throw bad('priority');
+  const codes = q.specimen_type_code === undefined ? [] : q.specimen_type_code;
+  if (!Array.isArray(codes) || codes.length > MAX_FILTER_IDS || codes.some((c) => typeof c !== 'string' || !CODE.test(c))) throw bad('specimen_type_code');
+  const branchIds = q.processing_branch_id === undefined ? [] : q.processing_branch_id;
+  if (!Array.isArray(branchIds) || branchIds.length > MAX_FILTER_IDS || branchIds.some((b) => typeof b !== 'string')) throw bad('processing_branch_id');
+  return {
+    segments, ...(q.priority === undefined ? {} : { priority: q.priority }),
+    specimenTypeCodes: [...new Set(codes as string[])], processingBranchIds: [...new Set(branchIds as string[])],
+  };
+}
+
+const nextDay = (d: string): string => new Date(Date.parse(`${d}T00:00:00Z`) + 86_400_000).toISOString().slice(0, 10);
+/** [from, to) cut at B.S. month boundaries: a median is never merged from smaller groups, so each month is asked of the repo on its own. */
+function bsMonthRanges(from: string, to: string): { key: string; from: string; to: string }[] {
+  const out: { key: string; from: string; to: string }[] = [];
+  for (let d = from; d < to; d = nextDay(d)) {
+    const key = bsMonthOf(d);
+    const last = out.at(-1);
+    if (last?.key === key) last.to = nextDay(d); else out.push({ key, from: d, to: nextDay(d) });
+  }
+  return out;
+}
+
+/** Half-up to whole seconds (TRD §6.6); durations are never negative here (negatives are anomalies and carry no stats). */
+const wholeSeconds = (v: number | null): number | undefined => {
+  if (v === null) return undefined;
+  const r = Math.floor(v + 0.5);
+  if (!Number.isSafeInteger(r)) throw new RangeError('tat: seconds is not a safe integer');
+  return r;
+};
+
+export async function tat(ctx: ReportsContext, a: { period: Period; scope: Scope; groupBy: (typeof TAT_GROUP_BY)[number]; filters: TatFilters }): Promise<{ rows: TatOutRow[]; segments: TatSegment[] }> {
+  const { filters: f, groupBy: g } = a;
+  if (f.processingBranchIds.length) {
+    const known = await branchLabels(ctx);
+    if (f.processingBranchIds.some((id) => !known.has(id))) throw new LimsError('common.not_found'); // foreign/unknown: one shape, id never echoed (07 P1)
+  }
+  const base = { ...baseOf(ctx, a), segments: f.segments, priority: f.priority, specimenTypeCodes: f.specimenTypeCodes, processingBranchIds: f.processingBranchIds };
+  let raw: tatRepo.TatRow[] = [];
+  if (g === 'bs_month') {
+    for (const r of bsMonthRanges(a.period.from, a.period.to)) {
+      for (const x of await tatRepo.tatRows(ctx.tx, { ...base, from: r.from, to: r.to, groupBy: 'none' })) raw.push({ ...x, key: r.key });
+    }
+  } else {
+    raw = await tatRepo.tatRows(ctx.tx, { ...base, groupBy: g });
+  }
+  if (g === 'none') { // [CONV] ungrouped: one row per requested segment, n 0 when it has no sample
+    for (const s of f.segments) if (!raw.some((x) => x.segment === s)) raw.push({ segment: s, key: null, n: 0, median_seconds: null, p90_seconds: null, max_seconds: null, anomalies: 0 });
+  }
+  raw.sort((x, y) => TAT_SEGMENTS.indexOf(x.segment) - TAT_SEGMENTS.indexOf(y.segment)); // stable: the repo's key order is kept inside a segment
+
+  const centres = g === 'centre' ? await centreLabels(ctx) : undefined;
+  const branches = g === 'processing_branch' ? await branchLabels(ctx) : undefined;
+  const head = (k: string | null): { key?: string; label?: string } => {
+    switch (g) {
+      case 'none': return {};
+      case 'day': return { key: k!, label: formatAd(k as IsoDate) };
+      case 'ad_month': return { key: k!.slice(0, 7), label: k!.slice(0, 7) };
+      case 'bs_month': return { key: k!, label: `${k} B.S.` };
+      case 'centre': return k === null ? { key: 'none', label: 'No centre' } : named(k, centres!.get(k)?.name, 'Centre');
+      case 'processing_branch': return k === null ? { key: 'none', label: 'No branch' } : named(k, branches!.get(k)?.name, 'Branch');
+      case 'priority': return k === null ? { key: 'none', label: 'No priority' } : { key: k.slice(0, 64), label: k };
+      case 'specimen_type': return k === null ? { key: 'none', label: 'No specimen type' } : { key: k.slice(0, 64), label: k.slice(0, 200) };
+    }
+  };
+  const rows = raw.filter((r) => g === 'none' || r.n > 0 || r.anomalies > 0).map((r): TatOutRow => {
+    const median = wholeSeconds(r.median_seconds), p90 = wholeSeconds(r.p90_seconds), max = wholeSeconds(r.max_seconds);
+    return {
+      segment: r.segment, ...head(r.key), n: r.n,
+      ...(median === undefined ? {} : { median_seconds: median }), ...(p90 === undefined ? {} : { p90_seconds: p90 }), ...(max === undefined ? {} : { max_seconds: max }),
+      anomalies: r.anomalies,
+    };
+  });
+  return { rows, segments: f.segments };
 }

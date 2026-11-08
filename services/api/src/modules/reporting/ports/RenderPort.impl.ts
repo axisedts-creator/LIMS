@@ -6,7 +6,7 @@ import { createRequire } from 'node:module';
 import { join } from 'node:path';
 import { LimsError } from '../../../core/errors.js';
 import { REPO_ROOT } from '../../../core/module.js';
-import { IDEMPOTENCY_KEY_RE } from '../domain/messages.js';
+import { IDEMPOTENCY_KEY_RE, portalReportUrlOk } from '../domain/messages.js';
 
 // [CONV] ajv is not a direct services/api dependency (lockfile is C0-0A's, LD-05): load the ajv that @fastify/ajv-compiler ships (same as core/events/publish.ts).
 const requireAjv = createRequire(createRequire(import.meta.url).resolve('@fastify/ajv-compiler'));
@@ -56,7 +56,7 @@ export function createRenderPort(o: { url: string; token: string; timeoutMs?: nu
       if (key === 'partners.access_slip') {   // 02-TRD §7.4 case 8: portalUrl starts with LIMS_ORIGIN_PORTAL + '/r/' (as the `url` message param); unset origin fails closed
         const origin = (o.env ?? process.env)['LIMS_ORIGIN_PORTAL']?.replace(/\/+$/, '');
         const url = data['portalUrl'];
-        if (!origin || typeof url !== 'string' || !url.startsWith(`${origin}/r/`) || url.length === origin.length + 3) throw invalidData();
+        if (typeof url !== 'string' || !portalReportUrlOk(url, origin)) throw invalidData();
       }
       if (key === 'analytics.report' && (!Array.isArray(data['rows']) || data['rows'].length > MAX_ANALYTICS_ROWS)) throw invalidData();
 

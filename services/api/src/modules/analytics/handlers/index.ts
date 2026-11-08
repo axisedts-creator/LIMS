@@ -5,6 +5,10 @@ import type { Handler } from '../../../core/module.js';
 import { LimsError } from '../../../core/errors.js';
 import { getIncomeReport } from './getIncomeReport.js';
 import { getDepartmentIncomeReport } from './getDepartmentIncomeReport.js';
+import { getTestsDoneReport } from './getTestsDoneReport.js';
+import { getQualityIndicatorsReport } from './getQualityIndicatorsReport.js';
+import { getDeliveryReport } from './getDeliveryReport.js';
+import { getInterfacesReport } from './getInterfacesReport.js';
 
 const OPERATION_IDS = [
   'getAnalyticsDashboard', 'getIncomeReport', 'getDepartmentIncomeReport', 'getCollectionsReport', 'getVolumeReport',
@@ -23,7 +27,9 @@ const stub = (operationId: string): Handler => async () => {
   throw new LimsError('common.internal', `analytics ${operationId} not implemented`);
 };
 
-const implemented: Partial<Record<AnalyticsOperationId, Handler>> = { getIncomeReport, getDepartmentIncomeReport };
+const implemented: Partial<Record<AnalyticsOperationId, Handler>> = {
+  getIncomeReport, getDepartmentIncomeReport, getTestsDoneReport, getQualityIndicatorsReport, getDeliveryReport, getInterfacesReport,
+};
 
 export const handlers: Readonly<Record<AnalyticsOperationId, Handler>> = Object.freeze(
   Object.fromEntries(OPERATION_IDS.map((op) => [op, implemented[op] ?? stub(op)])) as Record<AnalyticsOperationId, Handler>,

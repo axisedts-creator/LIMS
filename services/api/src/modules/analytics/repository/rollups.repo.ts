@@ -3,6 +3,8 @@
 // part of the statement text — group keys and grains come from a closed allow-list. Scope is mandatory.
 // bigint columns arrive from pg as strings: returned as safe integers, anything beyond 2^53 is refused (never rounded).
 
+import { DELIVERY_COLS, MESSAGE_COLS, RELEASE_COLS, RESULT_COLS } from '../domain/columns.js';
+
 export interface RollupsTx { query(text: string, values?: unknown[]): Promise<{ rows: any[] }> }
 export interface RollupScope { readonly all: boolean; readonly centreIds: readonly string[] }
 interface Base { readonly tenantId: string; readonly from: string; readonly to: string; readonly scope: RollupScope }
@@ -27,7 +29,7 @@ const KEY_SQL: Readonly<Record<IncomeGroupBy, string>> = {
 };
 const SCOPE_SQL = 'AND ($4 OR (centre_id IS NOT NULL AND centre_id = ANY ($5)))';
 
-function checkScope(scope: unknown): RollupScope {
+export function checkScope(scope: unknown): RollupScope {
   const s = scope as RollupScope | null | undefined;
   if (!s || typeof s.all !== 'boolean' || !Array.isArray(s.centreIds)) throw new TypeError('rollups: scope is mandatory ({ all: boolean, centreIds: string[] })');
   return s;
@@ -91,4 +93,103 @@ GROUP BY ${day ? 'business_date, ' : ''}department_id ORDER BY ${day ? 'business
     line_count: int(r.line_count, 'line_count'), gross_paisa: int(r.gross_paisa, 'gross_paisa'),
     discount_paisa: int(r.discount_paisa, 'discount_paisa'), net_paisa: int(r.net_paisa, 'net_paisa'),
   }));
+}
+
+// ------------------------------------------------------------------ AN-T11: results, rejections, specimens, critical values, deliveries, releases, interface messages
+// (02-TRD §6.5, §6.8). Same contract as above: one bound SELECT, $1 tenant, $2/$3 [from, to), $4/$5 scope, extra filters after $5.
+const DATE_KEYS = { day: 'business_date', ad_month: "date_trunc('month', business_date)::date" } as const;
+const RESULT_KEYS = { department: 'department_id', test: 'test_id', processing_branch: 'processing_branch_id', ...DATE_KEYS } as const;
+const REJECTION_KEYS = { reason: 'reason_code', centre: 'centre_id', specimen_type: 'specimen_type_code', ...DATE_KEYS } as const;
+const SPECIMEN_KEYS = { total: '', centre: 'centre_id', specimen_type: 'specimen_type_code', ...DATE_KEYS } as const;
+const DELIVERY_KEYS = { channel: 'channel', ...DATE_KEYS } as const;
+const RELEASE_KEYS = { total: '', ...DATE_KEYS } as const;
+
+/** The grouping expression for `groupBy`, chosen from a closed list only ('' = one total row). */
+function keyOf(map: Readonly<Record<string, string>>, groupBy: unknown): string {
+  if (typeof groupBy !== 'string' || !Object.hasOwn(map, groupBy)) throw new TypeError('rollups: groupBy outside the allow-list');
+  return map[groupBy]!;
+}
+
+async function read(
+  tx: RollupsTx, a: Base, table: string, key: string, sel: string, measures: string, extra: { sql: string; values: unknown[] } = { sql: '', values: [] },
+): Promise<any[]> {
+  const scope = checkScope(a.scope);
+  if (!scope.all && scope.centreIds.length === 0) return [];
+  const tail = key ? `GROUP BY ${key} ORDER BY ${key}` : 'HAVING count(*) > 0'; // total: one row, none for an empty window
+  const sql = `SELECT ${sel}, ${measures}
+FROM ${table}
+WHERE tenant_id = $1 AND business_date >= $2 AND business_date < $3 ${SCOPE_SQL}${extra.sql}
+${tail}`;
+  return (await tx.query(sql, [a.tenantId, a.from, a.to, scope.all, [...scope.centreIds], ...extra.values])).rows;
+}
+const keySel = (key: string): string => (key ? `${key}::text AS key` : 'NULL::text AS key');
+const col = (c: string): string => (c === 'read' ? '"read"' : c);
+const sumCols = (cols: readonly string[]): string => cols.map((c) => `sum(${col(c)})::bigint AS ${col(c)}`).join(', ');
+const nullable = (v: unknown): string | null => (v === null || v === undefined ? null : String(v));
+const nint = (v: unknown, name: string): number | null => (v === null || v === undefined ? null : int(v, name));
+const ints = <C extends string>(r: Record<string, unknown>, cols: readonly C[]): Record<C, number> =>
+  Object.fromEntries(cols.map((c) => [c, int(r[c], c)])) as Record<C, number>;
+
+export type ResultsRow = { key: string | null } & Record<(typeof RESULT_COLS)[number], number>;
+export type RejectionRow = { key: string | null; rejections: number; recollections_ordered: number };
+export type SpecimenRow = { key: string | null; received: number };
+export type CriticalValueRow = { business_date: string; detected: number; notified: number; median_notify_seconds: number | null; max_notify_seconds: number | null };
+export type DeliveryRow = { key: string | null } & Record<(typeof DELIVERY_COLS)[number], number>;
+export type ReleaseRow = { key: string | null } & Record<(typeof RELEASE_COLS)[number], number>;
+export type InterfaceMessageRow = { instrument_id: string; centre_id: string } & Record<(typeof MESSAGE_COLS)[number], number>;
+
+export async function resultsRows(
+  tx: RollupsTx,
+  a: Base & { readonly groupBy: keyof typeof RESULT_KEYS; readonly departmentIds?: readonly string[] | undefined; readonly processingBranchIds?: readonly string[] | undefined },
+): Promise<ResultsRow[]> {
+  const key = keyOf(RESULT_KEYS, a.groupBy);
+  const extra = { sql: '', values: [] as unknown[] };
+  if (a.departmentIds?.length) { extra.values.push([...a.departmentIds]); extra.sql += ` AND department_id = ANY ($${5 + extra.values.length})`; }
+  if (a.processingBranchIds?.length) { extra.values.push([...a.processingBranchIds]); extra.sql += ` AND processing_branch_id = ANY ($${5 + extra.values.length})`; }
+  const rows = await read(tx, a, 'analytics.daily_results', key, keySel(key), sumCols(RESULT_COLS), extra);
+  return rows.map((r) => ({ key: nullable(r.key), ...ints(r, RESULT_COLS) }));
+}
+
+export async function rejectionRows(tx: RollupsTx, a: Base & { readonly groupBy: keyof typeof REJECTION_KEYS }): Promise<RejectionRow[]> {
+  const key = keyOf(REJECTION_KEYS, a.groupBy);
+  const rows = await read(tx, a, 'analytics.daily_rejections', key, keySel(key), sumCols(['rejections', 'recollections_ordered']));
+  return rows.map((r) => ({ key: nullable(r.key), ...ints(r, ['rejections', 'recollections_ordered'] as const) }));
+}
+
+/** Received specimens (aliquots are excluded upstream). */
+export async function specimenRows(tx: RollupsTx, a: Base & { readonly groupBy: keyof typeof SPECIMEN_KEYS }): Promise<SpecimenRow[]> {
+  const key = keyOf(SPECIMEN_KEYS, a.groupBy);
+  const rows = await read(tx, a, 'analytics.daily_specimens', key, keySel(key), sumCols(['received']));
+  return rows.map((r) => ({ key: nullable(r.key), received: int(r.received, 'received') }));
+}
+
+/** One row per business date. The median is not additive: only a day backed by a single source row keeps it. */
+export async function criticalValueRows(tx: RollupsTx, a: Base): Promise<CriticalValueRow[]> {
+  const rows = await read(tx, a, 'analytics.daily_critical_values', 'business_date', 'business_date::text AS business_date',
+    `${sumCols(['detected', 'notified'])}, (CASE WHEN count(*) = 1 THEN max(median_notify_seconds) END)::bigint AS median_notify_seconds, max(max_notify_seconds)::bigint AS max_notify_seconds`);
+  return rows.map((r) => ({
+    business_date: String(r.business_date), ...ints(r, ['detected', 'notified'] as const),
+    median_notify_seconds: nint(r.median_notify_seconds, 'median_notify_seconds'), max_notify_seconds: nint(r.max_notify_seconds, 'max_notify_seconds'),
+  }));
+}
+
+export async function deliveryRows(tx: RollupsTx, a: Base & { readonly groupBy: keyof typeof DELIVERY_KEYS }): Promise<DeliveryRow[]> {
+  const key = keyOf(DELIVERY_KEYS, a.groupBy);
+  const rows = await read(tx, a, 'analytics.daily_deliveries', key, keySel(key), sumCols(DELIVERY_COLS));
+  return rows.map((r) => ({ key: nullable(r.key), ...ints(r, DELIVERY_COLS) }));
+}
+
+/** released = every published version (addenda included); amended = report_kind 'amended' only; overrides = release_basis 'override'. */
+export async function releaseRows(tx: RollupsTx, a: Base & { readonly groupBy: keyof typeof RELEASE_KEYS }): Promise<ReleaseRow[]> {
+  const key = keyOf(RELEASE_KEYS, a.groupBy);
+  const kind = (k: string) => `coalesce(sum(released) FILTER (WHERE report_kind = '${k}'), 0)::bigint AS ${k}`;
+  const measures = ['sum(released)::bigint AS released', kind('final'), kind('partial'), kind('preliminary'), kind('amended'),
+    "coalesce(sum(released) FILTER (WHERE release_basis = 'override'), 0)::bigint AS overrides"].join(', ');
+  const rows = await read(tx, a, 'analytics.daily_releases', key, keySel(key), measures);
+  return rows.map((r) => ({ key: nullable(r.key), ...ints(r, RELEASE_COLS) }));
+}
+
+export async function interfaceMessageRows(tx: RollupsTx, a: Base): Promise<InterfaceMessageRow[]> {
+  const rows = await read(tx, a, 'analytics.daily_interface_messages', 'instrument_id, centre_id', 'instrument_id, centre_id', sumCols(MESSAGE_COLS));
+  return rows.map((r) => ({ instrument_id: String(r.instrument_id), centre_id: String(r.centre_id), ...ints(r, MESSAGE_COLS) }));
 }

@@ -25,11 +25,15 @@ const STAFF_ROUTES: readonly RegExp[] = Object.values(ROUTES as Record<string, {
 function parsed(v: string): URL | undefined {
   try { const u = new URL(v); return u.href === v && !u.username && !u.password ? u : undefined; } catch { return undefined; }
 }
+/** A canonical https `${origin}/r/<token>` URL (§7.2 `url` param; §7.4 access-slip portalUrl). Unset origin fails closed. */
+export function portalReportUrlOk(v: string, origin: string | undefined): boolean {
+  const u = origin ? parsed(v) : undefined;
+  return !!u && u.protocol === 'https:' && u.origin === origin && v.startsWith(`${origin}/r/`) && v.length > origin.length + 3;
+}
 function portalUrlOk(v: string, origin: string | undefined): boolean {
   if (!origin) return false;
   if (v === origin) return true;                                           // OTP e-mails pass LIMS_ORIGIN_PORTAL (review fix #29)
-  const u = parsed(v);
-  return !!u && u.protocol === 'https:' && u.origin === origin && v.startsWith(`${origin}/r/`);
+  return portalReportUrlOk(v, origin);
 }
 function staffUrlOk(v: string, origin: string | undefined): boolean {
   const u = origin ? parsed(v) : undefined;

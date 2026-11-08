@@ -81,11 +81,15 @@ export async function deadUrl(): Promise<string> {
 export const touched: string[] = [];
 const tripwire = (name: string) => new Proxy({}, { get: (_t, p) => { touched.push(`${name}.${String(p)}`); throw new Error(`RenderPort touched ctx.${name}`); } });
 
-export async function makeRenderWorld(over: { timeoutMs?: number } = {}) {
+/** C6-T40: partners.access_slip checks portalUrl against LIMS_ORIGIN_PORTAL + '/r/' (02-TRD §7.4 case 8). ASSUMED: createRenderPort({ env }) reads it at call time
+ *  (same as createNotificationPort({ env })). SLIP.portalUrl (and the C0 contract suite's SLIP) is under this origin. */
+export const SLIP_ORIGIN = 'https://portal.invalid';
+
+export async function makeRenderWorld(over: { timeoutMs?: number; env?: Record<string, string | undefined> } = {}) {
   const stub = await startRendererStub();
   const ctxFor = makeCtxFor();
   let url = stub.url;
-  const build = () => createRenderPort({ url, token: TOKEN, schemas: SCHEMAS, ...over } as any);
+  const build = () => createRenderPort({ url, token: TOKEN, schemas: SCHEMAS, env: { LIMS_ORIGIN_PORTAL: SLIP_ORIGIN }, ...over } as any);
   let real = build();
   const harness: ContractHarness = {
     impl: { renderPdf: (ctx: any, input: any) => real.renderPdf(ctx, input) },

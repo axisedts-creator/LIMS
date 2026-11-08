@@ -109,7 +109,13 @@ export function createAssembleReport(o: { sandbox: SandboxClient }): TaskHandler
     if (!origin) throw new LimsError('common.internal', 'LIMS_ORIGIN_PORTAL is not configured');
     const c = await ctx.core.centre(ctx, { centreId: report.centre_id });
     const versionNo = Math.max(report.latest_version_no ?? 0, versions[0]?.version_no ?? 0) + 1;
-    const earlierReleased = versions.some((v) => v.released_at != null || v.status === 'released' || v.status === 'superseded');
+    const releasedBefore = versions.filter((v) => v.released_at != null || v.status === 'released' || v.status === 'superseded');
+    const earlierReleased = releasedBefore.length > 0;
+    // R9 (C6-T41): the handler passes the reason in the job payload; a malformed value is ignored (the counter already forced this assembly).
+    const rg = payload?.['regeneration'] as Row | undefined;
+    const regen = rg && typeof rg === 'object' && typeof rg['reason_code'] === 'string' && rg['reason_code'].length >= 1 && rg['reason_code'].length <= 64
+      && (rg['reason_text'] === undefined || rg['reason_text'] === null || (typeof rg['reason_text'] === 'string' && rg['reason_text'].length <= 500))
+      ? { reasonCode: rg['reason_code'] as string, ...(typeof rg['reason_text'] === 'string' ? { reasonText: rg['reason_text'] } : {}) } : undefined;
     const { token, tokenSha256 } = issueToken('qr');
 
     // 5. document from the ports (T06). The LabPort output is captured so attachments are taken from the very same read (P-13).
@@ -119,6 +125,7 @@ export function createAssembleReport(o: { sandbox: SandboxClient }): TaskHandler
       orderId: report.order_id, includeOrderItemIds: ready.filter((r) => r.item.requires_lab).map((r) => r.item.order_item_id),
       config: signatoryConfig(tv.config), centre: { code: c.centreCode, name: c.name, ...(c.addressText ? { addressText: c.addressText } : {}) },
       qrVerifyUrl: `${origin}/v/${token}`, reportedAt: now, complete, earlierReleased, printCriticalLabel,
+      ...(regen ? { regeneration: { ...regen, previousVersionNo: Math.max(0, ...releasedBefore.map((v) => v.version_no)), amendedAt: now } } : {}),
       // micro / anatomic: read-only single-table SELECT on the published view, by (tenant_id, entity_id, version_no) of the moduleRef (TRD §4.3, CR-C6-006)
       async loadModuleContent(refs) {
         const out: Record<string, Row> = {};
@@ -212,7 +219,7 @@ export function createAssembleReport(o: { sandbox: SandboxClient }): TaskHandler
       ['order_item_ids', ready.map((r) => r.item.order_item_id), 'uuid[]'], ['content_fingerprint', fp],
       ['approved_set_hash', ready.some((r) => r.item.requires_lab) ? report.lab_approved_set_hash ?? null : null], ['content_snapshot', snapshotJson, 'jsonb'], ['content_sha256', sha(snapshotJson)],
       ['template_version_id', tv.id], ['reported_at', now], ['smart_summary_json', smart ? JSON.stringify(smart) : null, 'jsonb'], ['smart_summary_id', smart?.['summaryId'] ?? null],
-      ['smart_summary_version', smart?.['templateLibraryVersion'] ?? null], ['created_by', actor], ['updated_by', actor]]);
+      ['smart_summary_version', smart?.['templateLibraryVersion'] ?? null], ['regeneration_reason_code', regen?.reasonCode ?? null], ['regeneration_reason_text', regen?.reasonText ?? null], ['created_by', actor], ['updated_by', actor]]);
     const panels = [...new Set(sections.flatMap((s) => (s.kind === 'department' ? s.blocks.map((b) => b.panelName) : [])))].slice(0, 20);
     await insert('reporting.qr_tokens', [
       ['id', uuidv7()], ['tenant_id', tenantId], ['centre_id', report.centre_id], ['report_id', reportId], ['report_version_id', versionId], ['token_sha256', Buffer.from(hashToken(token))],

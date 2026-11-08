@@ -6,7 +6,7 @@ import { createRequire } from 'node:module';
 import { join } from 'node:path';
 import { LimsError } from '../../../core/errors.js';
 import { REPO_ROOT } from '../../../core/module.js';
-import { IDEMPOTENCY_KEY_RE } from '../domain/messages.js';
+import { IDEMPOTENCY_KEY_RE, portalReportUrlOk } from '../domain/messages.js';
 
 // [CONV] ajv is not a direct services/api dependency (lockfile is C0-0A's, LD-05): load the ajv that @fastify/ajv-compiler ships (same as core/events/publish.ts).
 const requireAjv = createRequire(createRequire(import.meta.url).resolve('@fastify/ajv-compiler'));
@@ -27,7 +27,7 @@ const MAX_ANALYTICS_ROWS = 5_000;                // IC §4.16
 const unavailable = () => new LimsError('reporting.render_unavailable');
 const invalidData = () => new LimsError('reporting.template_invalid');
 
-export function createRenderPort(o: { url: string; token: string; timeoutMs?: number; schemas?: Record<string, object> }): RenderPort {
+export function createRenderPort(o: { url: string; token: string; timeoutMs?: number; schemas?: Record<string, object>; env?: Record<string, string | undefined> }): RenderPort {
   if (typeof o?.token !== 'string' || o.token.length === 0) throw new Error('RenderPort: renderer token is required');
   const endpoint = `${String(o.url).replace(/\/+$/, '')}/internal/render`;
   const timeoutMs = o.timeoutMs ?? DEFAULT_TIMEOUT_MS;
@@ -53,6 +53,11 @@ export function createRenderPort(o: { url: string; token: string; timeoutMs?: nu
       if (typeof key !== 'string' || !KEYS.has(key)) throw new LimsError('common.validation_failed', 'template_key_unknown');
       const { data } = input;
       if (typeof data !== 'object' || data === null || Array.isArray(data) || !validatorFor(key)(data)) throw invalidData();
+      if (key === 'partners.access_slip') {   // 02-TRD §7.4 case 8: portalUrl starts with LIMS_ORIGIN_PORTAL + '/r/' (as the `url` message param); unset origin fails closed
+        const origin = (o.env ?? process.env)['LIMS_ORIGIN_PORTAL']?.replace(/\/+$/, '');
+        const url = data['portalUrl'];
+        if (typeof url !== 'string' || !portalReportUrlOk(url, origin)) throw invalidData();
+      }
       if (key === 'analytics.report' && (!Array.isArray(data['rows']) || data['rows'].length > MAX_ANALYTICS_ROWS)) throw invalidData();
 
       let res: Response; let bytes: Buffer;

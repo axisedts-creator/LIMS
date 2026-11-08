@@ -3,10 +3,12 @@
 // ctx.storage.put (ifAbsent) in the private bucket `billing-exports` at {tenant}/{yyyy}/{mm of created_at}/{export_id}.{ext}, then marks the job `ready` (expires_at = now + TTL). No Storage URL is ever created.
 // The job context is the tenant's: a payload that names another tenant, or no job, is skipped without a statement. Replays are no-ops (only a `queued` job is rendered).
 // Failure contract (as billing.cbms_sync): a retryable failure on a non-final attempt THROWS a sanitised error (queue retry, tx rolled back); on the final attempt, and at once for permanent
-// causes (row cap drift, xlsx before BL-T19, bad stored filter), the job is COMMITTED `failed` with a stable error_code and the task resolves.
+// causes (row cap drift, bad stored filter), the job is COMMITTED `failed` with a stable error_code and the task resolves.
 // [CONV] generated_at in the file = the job's created_at, so a retry produces identical bytes. [CONV] amounts are integer paisa. [CONV] PDF/XML row cap is checked again here (count may drift after B28).
 import { createHash } from 'node:crypto';
 import { adToBs, formatBs, type IsoDate } from '../../../../../../packages/shared-ts/src/bsdate/index.js';
+import writeXlsxFile from 'write-excel-file/node';
+import { neutraliseFormula } from '../../../../../../packages/shared-ts/src/spreadsheet/index.js';
 import type { TaskHandler } from '../../../core/manifest.js';
 
 export const EXPORT_RENDER = 'billing.export_render';
@@ -136,6 +138,21 @@ export function buildXml(kind: string, rows: Dto[], generatedAt: string): string
   return '<?xml version="1.0" encoding="UTF-8"?>\n<Export xmlns="urn:lims:billing:export:v1" kind="' + kind + '" generated_at="' + generatedAt + '" row_count="' + rows.length + '">\n' + body + '</Export>\n';
 }
 
+// ---- XLSX (BL-T19; US-BL-12.1/12.6; write-excel-file 4.1.1): one sheet, row 1 = header (the XML element names), then one row per DTO in the same order and column set as the XML row ----
+// Every text cell (header included) = XML-illegal chars dropped -> neutraliseFormula (the shared guard, A13 P-9) -> capped at the 32,767-char cell limit. SN and money are number cells (integer paisa); absent = empty cell.
+const NUMERIC = new Set(['sn', 'total', 'exempt', 'taxable', 'vat', 'other_tax', 'net', 'amount']);
+const CELL_MAX = 32767;
+const textCell = (s: string) => ({ value: Array.from(neutraliseFormula(Array.from(s).filter((ch) => isXmlChar(ch.codePointAt(0)!)).join(''))).slice(0, CELL_MAX).join('') });
+function numCell(v: string | number) { const n = Number(v); if (!Number.isSafeInteger(n)) throw new Permanent('common.validation_failed'); return { value: n }; }
+export async function buildXlsx(kind: string, rows: Dto[]): Promise<Uint8Array> {
+  const cols = FIELDS[ROW_NAME[kind]!]!;
+  const sheet = [cols.map(([el]) => textCell(el)), ...rows.map((r) => cols.map(([, k]) => {
+    const v = r[k];
+    return v === undefined ? null : NUMERIC.has(k) ? numCell(v) : textCell(String(v));
+  }))];
+  return new Uint8Array(await writeXlsxFile(sheet as never).toBuffer());
+}
+
 const sha256 = (b: Uint8Array) => createHash('sha256').update(b).digest('hex');
 
 export function createExportRender(deps: { render?: RenderPort } = {}): TaskHandler {
@@ -160,8 +177,7 @@ export function createExportRender(deps: { render?: RenderPort } = {}): TaskHand
       [tenantId, exportId, code, actor]);
     try {
       const kind: string = job['kind'], format: string = job['format'];
-      if (format === 'xlsx') throw new Permanent('common.feature_disabled');                  // BL-T19
-      if (format !== 'xml' && format !== 'pdf') throw new Permanent('common.validation_failed');
+      if (format !== 'xml' && format !== 'pdf' && format !== 'xlsx') throw new Permanent('common.validation_failed');
       // 02-TRD §11: invoice_documents = template billing.invoice over InvoicePrint.document + branding; not built yet -> fail closed (.orchestra/cr/BL-T15.md)
       if (kind === 'invoice_documents') throw new Permanent('common.feature_disabled');
       const filters = typeof job['filters'] === 'string' ? JSON.parse(job['filters']) : (job['filters'] ?? {});
@@ -182,6 +198,9 @@ export function createExportRender(deps: { render?: RenderPort } = {}): TaskHand
       if (format === 'xml') {
         bytes = new TextEncoder().encode(buildXml(kind, dtos, iso(job['created_at'])));
         contentType = 'application/xml';
+      } else if (format === 'xlsx') {
+        bytes = await buildXlsx(kind, dtos);
+        contentType = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
       } else {
         const out = await port.renderPdf(ctx, { templateKey: 'billing.register', idempotencyKey: `billing-export:${exportId}`, data: { kind, generated_at: iso(job['created_at']), row_count: dtos.length, rows: dtos } });
         bytes = new Uint8Array(Buffer.from(out.contentBase64, 'base64'));
@@ -195,7 +214,7 @@ export function createExportRender(deps: { render?: RenderPort } = {}): TaskHand
       try {
         await ctx.storage.put(EXPORT_BUCKET, path, bytes, { contentType, ifAbsent: true });
       } catch (putErr) {
-        // ifAbsent refused: an earlier attempt stored the object and then failed. XML is byte-identical by design; a PDF of the same idempotencyKey is the earlier file.
+        // ifAbsent refused: an earlier attempt stored the object and then failed. XML is byte-identical by design; a PDF of the same idempotencyKey is the earlier file; an xlsx zip is not byte-stable, so the stored one wins.
         const readBack = (ctx.storage.read ?? ctx.storage.get).bind(ctx.storage);   // StorageAdapter.read (core/storage); `get` = the test fake's shape
         const prev: Uint8Array | undefined = await readBack(EXPORT_BUCKET, path).catch(() => undefined);
         if (!prev) throw putErr;

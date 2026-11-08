@@ -8,7 +8,7 @@ import type { TaskHandler } from '../../../core/manifest.js';
 import { ENQUEUE_SQL } from '../../../core/fanout.js';
 import { uuidv7 } from '../../../../../../packages/shared-ts/src/uuidv7/index.js';
 import { LimsError } from '../../../../../api/src/core/errors.js';
-import type { Section, Signatory } from '../../../../../api/src/modules/reporting/domain/document.js';
+import { moduleKey, type Section, type Signatory } from '../../../../../api/src/modules/reporting/domain/document.js';
 import { fingerprint, isItemReady, outsourcedReady, shouldAssemble, type ReadyItem } from '../../../../../api/src/modules/reporting/domain/readiness.js';
 import { hashToken, issueToken } from '../../../../../api/src/modules/reporting/domain/tokens.js';
 import { assembleDocument } from '../../../../../api/src/modules/reporting/service/assembly.service.js';
@@ -19,6 +19,15 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const BUCKET = 'reporting-inputs';
 const sha = (b: string | Uint8Array) => createHash('sha256').update(b).digest('hex');
 const json = (v: unknown) => (typeof v === 'string' ? JSON.parse(v) : v);
+
+/** Published views, columns exactly as 03-IC §6.8 (the only micro./anatomic. objects C6 reads). */
+const VIEWS = {
+  micro: { name: 'micro.v_pub_report_content', jsonb: ['isolates', 'ast'],
+    columns: 'tenant_id, entity_id, version_no, order_item_id, report_phase, culture_summary_text, isolates, ast, comments_text, signed_by_membership_id, signed_at' },
+  anatomic: { name: 'anatomic.v_pub_report_content', jsonb: ['synoptic', 'images', 'specimen_parts', 'slides', 'ancillary', 'molecular', 'addenda', 'diagnosis_codes'],
+    columns: 'tenant_id, entity_id, version_no, order_item_id, accession_no, case_kind, gross_text, microscopy_text, impression_text, synoptic, images, signed_by_membership_id, signed_at, '
+      + 'version_kind, scope, change_reason_code, clinical_history_text, comment_text, specimen_parts, slides, ancillary, molecular, addenda, diagnosis_codes' },
+} as const;
 
 /** [CONV] test fixtures store the flat keys, templates.ts stores `signatories.{mode,max}`; both are read. */
 function signatoryConfig(raw: unknown) {
@@ -109,7 +118,18 @@ export function createAssembleReport(o: { sandbox: SandboxClient }): TaskHandler
     const doc: Row = { ...(await assembleDocument(wrapped as any, {
       orderId: report.order_id, includeOrderItemIds: ready.filter((r) => r.item.requires_lab).map((r) => r.item.order_item_id),
       config: signatoryConfig(tv.config), centre: { code: c.centreCode, name: c.name, ...(c.addressText ? { addressText: c.addressText } : {}) },
-      qrVerifyUrl: `${origin}/v/${token}`, reportedAt: now, complete, earlierReleased, printCriticalLabel })) };
+      qrVerifyUrl: `${origin}/v/${token}`, reportedAt: now, complete, earlierReleased, printCriticalLabel,
+      // micro / anatomic: read-only single-table SELECT on the published view, by (tenant_id, entity_id, version_no) of the moduleRef (TRD §4.3, CR-C6-006)
+      async loadModuleContent(refs) {
+        const out: Record<string, Row> = {};
+        for (const ref of refs) {
+          const view = VIEWS[ref.module];
+          const row: Row | undefined = (await rows(`SELECT ${view.columns} FROM ${view.name} WHERE tenant_id = $1 AND entity_id = $2 AND version_no = $3`, [tenantId, ref.entityId, ref.versionNo]))[0];
+          if (!row || row['tenant_id'] !== tenantId) throw new LimsError('common.internal', `${view.name} has no row for the moduleRef`);   // never a silently shorter report
+          out[moduleKey(ref)] = Object.fromEntries(Object.entries(row).map(([k, v]) => [k, (view.jsonb as readonly string[]).includes(k) ? json(v) : v]));
+        }
+        return out;
+      } })) };
 
     // 5a. narrative sections (signed versions only)
     const catalog = ctx.ports.catalog;

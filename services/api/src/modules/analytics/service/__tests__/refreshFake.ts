@@ -7,7 +7,7 @@ import { FAMILIES, FAMILY_TABLE, type Family } from '../../domain/families.js';
 
 export type Kind = 'lock' | 'readMarks' | 'replaceDelete' | 'insertRollup' | 'deleteMarks' | 'stateUpsert' | 'runInsert' | 'runUpdate' | 'other';
 export interface Mark { tenant: string; family: string; date: string; first: string; last: string }
-export interface Logged { tx: number; i: number; kind: Kind; text: string; values: unknown[]; table?: string }
+export interface Logged { tx: number; i: number; kind: Kind; text: string; values: unknown[]; table?: string; acquiredAt?: number }
 export interface Ev { tx: number; type: 'replace' | 'state_success' | 'state_failure' | 'run'; family?: string; table?: string; from?: string | null; to?: string | null; text: string; values: unknown[] }
 export interface HookArg { kind: Kind; text: string; values: unknown[]; table?: string; family?: string; model: Model }
 export interface Model { marks: Map<string, Mark>; partitions: Map<string, string>; clock: { now: string } }
@@ -86,6 +86,7 @@ export function createFakeDb(opts: { marks?: readonly { tenant: string; family: 
         case 'lock': {
           const key = text + JSON.stringify(values);
           while (held.has(key)) await held.get(key);
+          entry.acquiredAt = log.length;   // log position at which the lock was actually granted
           let release!: () => void;
           held.set(key, new Promise<void>((r) => { release = () => { held.delete(key); r(); }; }));
           releases.push(release);

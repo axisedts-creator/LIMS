@@ -352,11 +352,13 @@ describe('refreshTenant: concurrent runs (advisory lock per family-range tx)', (
     expect(b.status).toBe('fulfilled');
     expect(f.txs.filter((t) => t.status === 'rolled_back')).toEqual([]);
     const byKey = new Map<string, { tx: number; first: number; last: number }[]>();
-    const lockOf = new Map<number, string>();
-    for (const l of f.log) if (l.kind === 'lock') lockOf.set(l.tx, l.text + JSON.stringify(l.values));
-    for (const [tx, key] of lockOf) {
+    const lockOf = new Map<number, { key: string; acquiredAt: number }>();
+    for (const l of f.log) if (l.kind === 'lock') lockOf.set(l.tx, { key: l.text + JSON.stringify(l.values), acquiredAt: l.acquiredAt! });
+    for (const [tx, { key, acquiredAt }] of lockOf) {
+      expect(acquiredAt).toBeTypeOf('number');
       const idxs = f.log.map((l, i) => (l.tx === tx ? i : -1)).filter((i) => i >= 0);
-      (byKey.get(key) ?? byKey.set(key, []).get(key)!).push({ tx, first: idxs[0]!, last: idxs[idxs.length - 1]! });
+      // span starts at lock *acquisition* (a waiting tx may already have issued the lock request itself)
+      (byKey.get(key) ?? byKey.set(key, []).get(key)!).push({ tx, first: acquiredAt, last: idxs[idxs.length - 1]! });
     }
     for (const spans of byKey.values()) {
       const s = [...spans].sort((x, y) => x.first - y.first);

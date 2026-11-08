@@ -38,7 +38,9 @@ const EXPECTED_OPS = [
 /** operationIds whose stub a later task has replaced; that task moves its ids here (tester-owned list). */
 const IMPLEMENTED: readonly string[] = [
   'getIncomeReport', 'getDepartmentIncomeReport', // AN-T08
+  'getVolumeReport', 'getTopCentresReport', 'getTopReferrersReport', 'getCollectionsReport', 'searchAnalyticsReferrers', 'getAnalyticsFilterOptions', 'getCollectionsFilterOptions', // AN-T09
   'getTestsDoneReport', 'getQualityIndicatorsReport', 'getDeliveryReport', 'getInterfacesReport', // AN-T11
+  'getTatReport', // AN-T12
 ];
 
 const FAKE_REQ = { params: {}, query: {}, headers: {}, body: {} };

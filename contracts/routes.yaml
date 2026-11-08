@@ -151,3 +151,9 @@ routes:
   - { id: staff.homecollection.handovers, origin: staff_web, path: /homecollection/handovers, owner: C17, permission: homecollection.handover.receive }
   - { id: staff.homecollection.devices, origin: staff_web, path: /homecollection/devices, owner: C17, permission: homecollection.device.manage }
   - { id: staff.homecollection.settings, origin: staff_web, path: /homecollection/settings, owner: C17, permission: homecollection.settings.manage }
+  # --- C3 T-31 (04-UI-UX §1: SCR-01…05 list routes)
+  - { id: staff.catalog.home, origin: staff_web, path: /catalog, owner: C3, permission: catalog.test.read }
+  - { id: staff.catalog.departments, origin: staff_web, path: /catalog/departments, owner: C3, permission: catalog.test.read }
+  - { id: staff.catalog.specimens, origin: staff_web, path: /catalog/specimens, owner: C3, permission: catalog.test.read }
+  - { id: staff.catalog.methods, origin: staff_web, path: /catalog/methods, owner: C3, permission: catalog.test.read }
+  - { id: staff.catalog.units, origin: staff_web, path: /catalog/units, owner: C3, permission: catalog.test.read }

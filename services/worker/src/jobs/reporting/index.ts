@@ -5,15 +5,19 @@ import { handle as catalogChanged } from './consumers/catalog.changed.v1.js';
 import { handle as orderCancelled } from './consumers/frontdesk.order.cancelled.v1.js';
 import { handle as orderCreated } from './consumers/frontdesk.order.created.v1.js';
 import { handle as itemsChanged } from './consumers/frontdesk.order.items_changed.v1.js';
+import { handle as criticalValue } from './consumers/lab.critical_value.detected.v1.js';
 import { handle as readyForReport } from './consumers/lab.order.ready_for_report.v1.js';
 import { handle as resultAmended } from './consumers/lab.result.amended.v1.js';
 import { handle as resultApproved } from './consumers/lab.result.approved.v1.js';
 import { handle as specimenStatus } from './consumers/lab.specimen.status_changed.v1.js';
 import { crontab, SWEEP_ASSEMBLY, SWEEP_HELD, SWEEP_RENDERS, sweepAssembly, sweepHeldReleases, sweepStuckRenders } from './cron.js';
 import { createAssembleReport } from './tasks/assemble_report.js';
+import { checkWhatsappFallback } from './tasks/check_whatsapp_fallback.js';
+import { dispatchReleaseDeliveries } from './tasks/dispatch_release_deliveries.js';
 import { createProcessInputFile } from './tasks/process_input_file.js';
 import { releaseIfEligible } from './tasks/release_if_eligible.js';
 import { createRenderReportVersion } from './tasks/render_report_version.js';
+import { createSendDelivery } from './tasks/send_delivery.js';
 import { createSendPortalOtp } from './tasks/send_portal_otp.js';
 
 /** [CONV] the /internal/sanitize client is C6-T12; until it is wired every sanitise attempt throws (queue retry, file never ready). */
@@ -23,10 +27,6 @@ const unwiredSandbox = { sanitize: async (): Promise<never> => { throw new Error
  *  the spec; open point in C6-T09-impl.md): every render attempt fails retryable -> render_failed after 5, never a silent success. */
 const unwiredRenderer = { render: async (): Promise<never> => { throw Object.assign(new Error('renderer_not_configured'), { code: 'reporting.render_unavailable' }); } };
 const unwiredAssembler = { assemble: async (): Promise<never> => { throw Object.assign(new Error('pdf_sandbox_not_configured'), { code: 'reporting.render_unavailable' }); } };
-
-/** [CONV] app.enqueue_job rejects identifiers missing from core.g_task_registry (built from manifest.tasks), so the release transaction's dispatch job needs a registered
- *  handler. The real reporting.dispatch_release_deliveries is T14/T19; until then it FAILS LOUDLY (retry, then dead-letter, replayable) instead of silently dropping notifications. */
-const dispatchReleaseDeliveriesStub: TaskHandler = async () => { throw new Error('dispatch_release_deliveries_not_implemented'); };
 
 /** [CONV] C6-T20 registers the name P5 enqueues (app.enqueue_job rejects unregistered tasks); the body (new link + delivery, 02-TRD §9) is not part of T20 and is a logged no-op until its task. */
 const reissuePortalLinkStub: TaskHandler = async (payload, ctx) => {
@@ -40,14 +40,16 @@ export const manifest: WorkerManifest = Object.freeze({
     'reporting.assemble_report': createAssembleReport({ sandbox: unwiredSandbox }),
     'reporting.render_report_version': createRenderReportVersion({ renderer: unwiredRenderer, sandbox: unwiredAssembler }),
     'reporting.release_if_eligible': releaseIfEligible,
-    'reporting.dispatch_release_deliveries': dispatchReleaseDeliveriesStub,
+    'reporting.dispatch_release_deliveries': dispatchReleaseDeliveries,
+    'reporting.send_delivery': createSendDelivery(),
+    'reporting.check_whatsapp_fallback': checkWhatsappFallback,
     'reporting.send_portal_otp': createSendPortalOtp(),
     'reporting.reissue_portal_link': reissuePortalLinkStub,
     [SWEEP_HELD]: sweepHeldReleases,
     [SWEEP_ASSEMBLY]: sweepAssembly,
     [SWEEP_RENDERS]: sweepStuckRenders,
   }),
-  maxAttempts: Object.freeze({ 'reporting.process_input_file': 5, 'reporting.assemble_report': 10, 'reporting.render_report_version': 5, 'reporting.release_if_eligible': 10, 'reporting.dispatch_release_deliveries': 10, 'reporting.send_portal_otp': 8, 'reporting.reissue_portal_link': 8, [SWEEP_ASSEMBLY]: 5, [SWEEP_RENDERS]: 5, [SWEEP_HELD]: 5 }),
+  maxAttempts: Object.freeze({ 'reporting.process_input_file': 5, 'reporting.assemble_report': 10, 'reporting.render_report_version': 5, 'reporting.release_if_eligible': 10, 'reporting.dispatch_release_deliveries': 10, 'reporting.send_delivery': 8, 'reporting.check_whatsapp_fallback': 8, 'reporting.send_portal_otp': 8, 'reporting.reissue_portal_link': 8, [SWEEP_ASSEMBLY]: 5, [SWEEP_RENDERS]: 5, [SWEEP_HELD]: 5 }),
   subscriptions: Object.freeze({
     'frontdesk.order.created.v1': orderCreated,
     'frontdesk.order.items_changed.v1': itemsChanged,
@@ -56,6 +58,7 @@ export const manifest: WorkerManifest = Object.freeze({
     'lab.result.approved.v1': resultApproved,
     'lab.result.amended.v1': resultAmended,
     'lab.order.ready_for_report.v1': readyForReport,
+    'lab.critical_value.detected.v1': criticalValue,
     'catalog.changed.v1': catalogChanged,
     'billing.balance.changed.v1': balanceChanged,
   }),

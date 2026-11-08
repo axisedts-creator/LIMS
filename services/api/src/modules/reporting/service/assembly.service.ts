@@ -1,7 +1,7 @@
 // Reads the port outputs listed in 02-TRD §4.3 "Sources" and builds the frozen ReportDocument (domain/document.ts).
 // Runs as the reporting system actor inside the assembly task; ctx is passed through to every port. Any port failure rejects (the task retries).
 // Centre lookup, QR minting, smart section, instrument-PDF sanitising and the version insert belong to the assembly task (C6-T08).
-import { buildReportDocument, type ReportDocument, type Regeneration, type SignatoryConfig } from '../domain/document.js';
+import { buildReportDocument, moduleKey, type ReportDocument, type Regeneration, type SignatoryConfig } from '../domain/document.js';
 
 export interface AssemblyCtx {
   readonly ports: {
@@ -34,6 +34,8 @@ export interface AssemblyInput {
   earlierReleased: boolean;
   printCriticalLabel: boolean;   // reporting.settings.print_critical_label
   regeneration?: Regeneration;
+  /** Reads micro./anatomic.v_pub_report_content rows for the moduleRefs of the approved results; returns `moduleKey(ref)` -> row. Absent -> the builder rejects a module result. */
+  loadModuleContent?(refs: readonly { module: 'micro' | 'anatomic'; entityId: string; versionNo: number }[]): Promise<Record<string, Record<string, unknown>>>;
 }
 
 const SIGNATORY_BATCH = 20;    // IdentityPort.getSignatories accepts ≤ 20 ids per call
@@ -81,11 +83,16 @@ export async function assembleDocument(ctx: AssemblyCtx, input: AssemblyInput): 
   const sigIds = [...new Set([...nominees, ...approverIds])];
   const signatoriesP = Promise.all(chunks(sigIds, SIGNATORY_BATCH).map((ids) => identity.getSignatories(ctx, { membershipIds: ids })));
 
-  const [tests, panels, commentRes, sigRes, demographics, referrer, settings] = await Promise.all([
+  const refs = new Map<string, { module: 'micro' | 'anatomic'; entityId: string; versionNo: number }>();
+  for (const { r } of approved) if (r.moduleRef?.module === 'micro' || r.moduleRef?.module === 'anatomic') refs.set(moduleKey(r.moduleRef), r.moduleRef);
+  const moduleContentP = refs.size && input.loadModuleContent ? input.loadModuleContent([...refs.values()]) : Promise.resolve(undefined);
+
+  const [tests, panels, commentRes, sigRes, demographics, referrer, settings, moduleContent] = await Promise.all([
     testsP, panelsP, commentsP, signatoriesP,
     frontdesk.getPatientDemographics(ctx, { patientId: orderSummary.patientId, purpose: 'report_render' }),
     orderSummary.referrerId ? catalog.getReferrer(ctx, { referrerId: orderSummary.referrerId, purpose: 'display' }) : Promise.resolve(undefined),
     identity.getTenantSettings(ctx, { keys: ['branding', 'calendarDisplay', 'timezone'] }),
+    moduleContentP,
   ]);
 
   const commentTexts: Record<string, string> = {};
@@ -96,7 +103,7 @@ export async function assembleDocument(ctx: AssemblyCtx, input: AssemblyInput): 
     tests: tests.filter(Boolean), panels, demographics, ...(referrer ? { referrer } : {}),
     centre: input.centre, settings, signatories: sigRes.flat(), config: input.config, commentTexts,
     qrVerifyUrl: input.qrVerifyUrl, reportedAt: input.reportedAt, complete: input.complete, earlierReleased: input.earlierReleased,
-    printCriticalLabel: input.printCriticalLabel,
+    printCriticalLabel: input.printCriticalLabel, ...(moduleContent ? { moduleContent } : {}),
     ...(input.regeneration ? { regeneration: input.regeneration } : {}),
   });
 }

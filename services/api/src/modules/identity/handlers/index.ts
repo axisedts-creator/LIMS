@@ -40,6 +40,10 @@ import { listDeadLetters } from './listDeadLetters.js';
 import { getDeadLetter } from './getDeadLetter.js';
 import { replayDeadLetter } from './replayDeadLetter.js';
 import { discardDeadLetter } from './discardDeadLetter.js';
+import { createAuditExport } from './createAuditExport.js';
+import { listAuditExports } from './listAuditExports.js';
+import { getAuditExport } from './getAuditExport.js';
+import { downloadAuditExport } from './downloadAuditExport.js';
 
 const OPERATION_IDS = [
   // auth (identity_auth)
@@ -82,6 +86,7 @@ const implemented: Partial<Record<IdentityOperationId, Handler>> = {
   openSupportSession, activateSupportSession, endSupportSession, listPlatformSupportSessions,                       // T21
   listPlatformIrdAnnexes, createPlatformIrdAnnex, updateIrdAnnex, transitionIrdAnnex, uploadIrdAnnexDocument, downloadIrdAnnexDocument,   // T23
   listDeadLetters, getDeadLetter, replayDeadLetter, discardDeadLetter,                                          // T24
+  createAuditExport, listAuditExports, getAuditExport, downloadAuditExport,                                    // T19
 };
 
 export const handlers: Readonly<Record<IdentityOperationId, Handler>> = Object.freeze(

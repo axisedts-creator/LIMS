@@ -4,9 +4,11 @@
 //        { createAuditExport(ctx, body), listAuditExports(ctx, query), getAuditExport(ctx, {exportId}), downloadAuditExport(ctx, {exportId}) }, each returning
 //        `{ status, body, headers? }` (same convention as role/ird services). DEFAULT repo = repository/exports.repo.ts (SQL on ctx.tx, explicit tenant_id on every
 //        statement); tests inject the FakeRepo below. `body` for create = the RAW snake_case JSON body (the service validates it again, like audit-view.service).
-//   ctx (tenant request ctx) = { tenantId, actor{type,id,membershipId}, requestId, tx, now(), centreScope{all,centreIds}, audit{access(entry)},
-//        ports{IdentityPort{assertRole(ctx,{permission})}}, download{stream(input)}, metrics?{inc(name,labels)}, log }.  Tenant/actor/membership come ONLY from ctx.
-//   Permission audit.log.export is the pipeline's x-permission floor (contract test). In the service: createAuditExport also requires ctx.centreScope.all === true (CONV).
+//   ctx (tenant request ctx) = { tenantId, actor{type,id,membershipId}, requestId, tx, now() (Date or IsoUtc string), audit{access(entry)},
+//        ports{IdentityPort{getActor(ctx)->ActorProfile{centreScope{all,centreIds}}, assertRole(ctx,{permission})}}, download{stream(input)}, metrics?{inc(name,labels)}, log }.
+//        Tenant/actor/membership come ONLY from ctx. There is NO ctx.centreScope (IC RequestContext has none).
+//   Permission audit.log.export is the pipeline's x-permission floor (contract test). In the service: createAuditExport FIRST requires
+//        (await ctx.ports.IdentityPort.getActor(ctx)).centreScope.all === true (CONV); getActor rejection propagates.
 //   listAuditExports/getAuditExport P-10 branch: `ctx.ports.IdentityPort.assertRole(ctx, { permission: 'audit.log.read' })` resolves -> other requesters' rows are
 //        visible; rejects with LimsError auth.forbidden -> own rows only (NOT an error); any other rejection propagates.
 //   Download = `ctx.download.stream({ bucket:'identity-exports', objectPath, filename, contentType:'text/csv', scanState:'clean', access:{ action:'audit_export.download',
@@ -126,6 +128,7 @@ const tenantId_ = (tx: any) => (tx && typeof tx === 'object' && typeof tx.tenant
 export interface EnvOpts {
   tenantId?: string; membershipId?: string; actorId?: string; centreAll?: boolean; readGrant?: 'yes' | 'no' | Error;
   files?: Record<string, Uint8Array>; failAccess?: boolean; metrics?: boolean;
+  isoClock?: boolean;   // ctx.now() returns an ISO string (IC shape) instead of a Date
 }
 export function makeEnv(rows: ExRow[] = [], o: EnvOpts = {}) {
   const repo = new FakeRepo();
@@ -152,14 +155,22 @@ export function makeEnv(rows: ExRow[] = [], o: EnvOpts = {}) {
       return b;
     },
   };
+  const getActorState: { profile: any; error?: Error } = {
+    profile: { centreScope: { all: o.centreAll ?? true, centreIds: o.centreAll === false ? [CENTRE_A1] : [] } },
+  };
   const grant = o.readGrant ?? 'no';
   const ctx: any = {
     operationId: 'x', tenantId, requestId: REQ_ID, clientIp: '203.0.113.9', tx,
     actor: { type: 'user', id: o.actorId ?? USER, membershipId: o.membershipId ?? MEM },
-    now: () => new Date(NOW), centreScope: { all: o.centreAll ?? true, centreIds: o.centreAll === false ? [CENTRE_A1] : [] },
+    now: o.isoClock ? () => NOW.toISOString() : () => new Date(NOW),   // IC RequestContext.now is () => IsoUtc (string); the Date shape is tolerated too
     audit, storage, download: createDownload({ storage, audit }),
     ports: {
       IdentityPort: {
+        // IC IdentityPort.getActor(ctx) -> ActorProfile; centreScope lives ONLY here, never on ctx. Tests mutate `profile` / set `getActorError`.
+        getActor: vi.fn(async () => {
+          if (getActorState.error) throw getActorState.error;
+          return getActorState.profile;
+        }),
         assertRole: vi.fn(async (_c: unknown, req: any) => {
           asserted.push(req);
           if (grant instanceof Error) throw grant;
@@ -172,7 +183,7 @@ export function makeEnv(rows: ExRow[] = [], o: EnvOpts = {}) {
   };
   let n = 0x7000;
   const newId = () => idN(n++);
-  return { ctx, repo, tx, accessWrites, asserted, metricCalls, reads, files, newId, deps: { repo, newId } };
+  return { ctx, actor: getActorState, repo, tx, accessWrites, asserted, metricCalls, reads, files, newId, deps: { repo, newId } };
 }
 
 export const readIdentitySpec = async (): Promise<any> => {

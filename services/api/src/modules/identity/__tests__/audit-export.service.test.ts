@@ -78,10 +78,25 @@ describe('createAuditExport - centre scope [CONV] (D-T22)', () => {
     for (const b of [validBody({ occurred_at_to: '2027-01-01T00:00:00.000Z' }), validBody({ format: 'xlsx' })]) expect((await rejection(svcOf(e).createAuditExport(e.ctx, b))).code).toBe('auth.forbidden');
   });
   it('only an explicit true counts: a missing / non-boolean flag is refused', async () => {
-    const e = makeEnv(); e.ctx.centreScope = { all: 'true' as any, centreIds: [] };
+    const e = makeEnv(); e.actor.profile = { centreScope: { all: 'true' as any, centreIds: [] } };
     expect((await rejection(svcOf(e).createAuditExport(e.ctx, validBody()))).code).toBe('auth.forbidden');
-    e.ctx.centreScope = undefined;
+    e.actor.profile = {};
     expect((await rejection(svcOf(e).createAuditExport(e.ctx, validBody()))).code).toBe('auth.forbidden');
+    e.actor.profile = undefined;
+    expect((await rejection(svcOf(e).createAuditExport(e.ctx, validBody()))).code).toBe('auth.forbidden');
+    expect(e.repo.rows).toHaveLength(0);
+  });
+  it('scope comes from IdentityPort.getActor, not ctx; a getActor failure propagates and nothing reaches the repo', async () => {
+    const e = makeEnv(); e.actor.error = new Error('identity port down');
+    expect((await rejection(svcOf(e).createAuditExport(e.ctx, validBody()))).message).toBe('identity port down');
+    expect(e.ctx.ports.IdentityPort.getActor).toHaveBeenCalledWith(e.ctx);
+    expect(e.repo.calls).toHaveLength(0);
+    expect(e.accessWrites).toHaveLength(0);
+  });
+  it('IC clock shape: ctx.now() returning an ISO string works (202, 24 h window anchored on that instant)', async () => {
+    const e = makeEnv([], { isoClock: true });
+    expect((await svcOf(e).createAuditExport(e.ctx, validBody())).status).toBe(202);
+    expect(e.repo.rows).toHaveLength(1);
   });
 });
 

@@ -5,15 +5,17 @@
 // so two un-serialised transactions would interleave. A statement hook may throw (failure injection) or mutate the model (marks arriving mid-run).
 import { FAMILIES, FAMILY_TABLE, type Family } from '../../domain/families.js';
 
-export type Kind = 'lock' | 'readMarks' | 'replaceDelete' | 'insertRollup' | 'deleteMarks' | 'stateUpsert' | 'runInsert' | 'runUpdate' | 'other';
+export type Kind = 'lock' | 'readMarks' | 'replaceDelete' | 'insertRollup' | 'deleteMarks' | 'stateUpsert' | 'runInsert' | 'runUpdate' | 'dbNow' | 'other';
 export interface Mark { tenant: string; family: string; date: string; first: string; last: string }
 export interface Logged { tx: number; i: number; kind: Kind; text: string; values: unknown[]; table?: string; acquiredAt?: number }
 export interface Ev { tx: number; type: 'replace' | 'state_success' | 'state_failure' | 'run'; family?: string; table?: string; from?: string | null; to?: string | null; text: string; values: unknown[] }
 export interface HookArg { kind: Kind; text: string; values: unknown[]; table?: string; family?: string; model: Model }
-export interface Model { marks: Map<string, Mark>; partitions: Map<string, string>; clock: { now: string } }
+// clock = the DATABASE clock (`now()`: marks' last_marked_at, run_started_at). hostClock = the worker host clock (`ctx.now()`), deliberately AHEAD of the DB (review AN-T04 #3).
+export interface Model { marks: Map<string, Mark>; partitions: Map<string, string>; clock: { now: string }; hostClock: { now: string } }
 
 export const T0 = '2026-11-08T06:00:00.000Z';
 export const SNAPSHOT = '1970-01-01';
+export const HOST_AHEAD = '2026-11-08T06:01:00.000Z';
 const tables = new Set<string>(Object.values(FAMILY_TABLE));
 const markKey = (t: string, f: string, d: string) => `${t}|${f}|${d}`;
 
@@ -28,6 +30,7 @@ export function classify(text: string): { kind: Kind; table?: string } {
   if (m && m[1] === 'refresh_state') return { kind: 'stateUpsert' };
   if (m && m[1] === 'refresh_runs') return { kind: 'runInsert' };
   if (/^\s*UPDATE\s+analytics\.refresh_runs\b/i.test(text)) return { kind: 'runUpdate' };
+  if (/^\s*SELECT\s+now\s*\(\s*\)/i.test(text)) return { kind: 'dbNow' };
   return { kind: 'other' };
 }
 
@@ -55,7 +58,7 @@ export function familyOfStatement(text: string, values: unknown[]): string | und
 export const addDay = (iso: string, n: number) => new Date(Date.parse(`${iso}T00:00:00Z`) + n * 86_400_000).toISOString().slice(0, 10);
 
 export function createFakeDb(opts: { marks?: readonly { tenant: string; family: Family; date: string; last?: string }[]; hook?: (a: HookArg) => void | Promise<void>; rowCount?: number } = {}) {
-  const model: Model = { marks: new Map(), partitions: new Map(), clock: { now: T0 } };
+  const model: Model = { marks: new Map(), partitions: new Map(), clock: { now: T0 }, hostClock: { now: HOST_AHEAD } };
   for (const m of opts.marks ?? []) {
     const last = m.last ?? '2026-11-08T05:00:00.000Z';
     model.marks.set(markKey(m.tenant, m.family, m.date), { tenant: m.tenant, family: m.family, date: m.date, first: last, last });
@@ -66,7 +69,11 @@ export function createFakeDb(opts: { marks?: readonly { tenant: string; family: 
   const held = new Map<string, Promise<void>>();
   const sleep = () => new Promise<void>((r) => setImmediate(r));
 
-  async function tx<T>(fn: (c: any) => Promise<T>): Promise<T> {
+  // Job scope = the real worker runtime (C0 02-TRD:602): the whole task is ONE job tx, every nested `db.tx` is a SAVEPOINT.
+  // A statement error aborts the job tx until the failing savepoint is rolled back; any statement issued while aborted fails with 25P02;
+  // locks are held to the end of the job; the job's effects (events) become visible only when the job commits.
+  interface Scope { undo: (() => void)[]; pending: Ev[]; releases: (() => void)[]; aborted: boolean; abortedStmts: string[] }
+  async function tx<T>(fn: (c: any) => Promise<T>, scope?: Scope): Promise<T> {
     const id = txs.length;
     const rec = { id, status: 'open' as 'open' | 'committed' | 'rolled_back' };
     txs.push(rec);
@@ -80,9 +87,16 @@ export function createFakeDb(opts: { marks?: readonly { tenant: string; family: 
       const { kind, table } = classify(text);
       const entry: Logged = { tx: id, i: i++, kind, text, values, ...(table ? { table } : {}) };
       log.push(entry);
+      if (scope?.aborted) {
+        scope.abortedStmts.push(text);
+        throw Object.assign(new Error('current transaction is aborted, commands ignored until end of transaction block'), { code: '25P02' });
+      }
       const family = familyOfStatement(text, values);
-      if (opts.hook) await opts.hook({ kind, text, values, ...(table ? { table } : {}), ...(family ? { family } : {}), model });
+      try {
+        if (opts.hook) await opts.hook({ kind, text, values, ...(table ? { table } : {}), ...(family ? { family } : {}), model });
+      } catch (e) { if (scope) scope.aborted = true; throw e; }
       switch (kind) {
+        case 'dbNow': return { rows: [{ run_started_at: model.clock.now }], rowCount: 1 };
         case 'lock': {
           const key = text + JSON.stringify(values);
           while (held.has(key)) await held.get(key);
@@ -139,26 +153,42 @@ export function createFakeDb(opts: { marks?: readonly { tenant: string; family: 
     };
     try {
       const out = await fn({ tx: { query } });
+      if (scope?.aborted) throw Object.assign(new Error('RELEASE SAVEPOINT on an aborted transaction'), { code: '25P02' });
       rec.status = 'committed';
-      events.push(...pending);
+      if (scope) { scope.undo.push(...undo); scope.pending.push(...pending); scope.releases.push(...releases); releases.length = 0; }
+      else events.push(...pending);
       return out;
     } catch (e) {
       undo.reverse().forEach((u) => u());
       rec.status = 'rolled_back';
+      if (scope) scope.aborted = false;   // ROLLBACK TO SAVEPOINT revives the job tx (and frees locks taken inside the savepoint)
       throw e;
     } finally { releases.forEach((r) => r()); }
   }
-  return { model, log, events, txs, db: { tx }, committed: (type?: Ev['type']) => events.filter((e) => (!type || e.type === type)) };
+  /** One worker job: `ctx.db.tx` = savepoint inside a single job tx. `end(err?)` commits the job (effects become `events`) or rolls everything back. */
+  function job() {
+    const scope: Scope = { undo: [], pending: [], releases: [], aborted: false, abortedStmts: [] };
+    return {
+      scope,
+      db: { tx: <T>(fn: (c: any) => Promise<T>) => tx(fn, scope) },
+      end(err?: unknown) {
+        if (err === undefined && !scope.aborted) events.push(...scope.pending);
+        else scope.undo.reverse().forEach((u) => u());
+        scope.releases.forEach((r) => r());
+      },
+    };
+  }
+  return { model, log, events, txs, db: { tx }, job, committed: (type?: Ev['type']) => events.filter((e) => (!type || e.type === type)) };
 }
 
 /** JobContext subset the refresh engine may use (services/worker core/manifest.ts JobContext). `now()` returns the model clock. */
-export function createCtx(fake: ReturnType<typeof createFakeDb>, over: { tenantId?: string | undefined; actorId?: string } = {}) {
+export function createCtx(fake: ReturnType<typeof createFakeDb>, over: { tenantId?: string | undefined; actorId?: string; db?: { tx: <T>(fn: (c: any) => Promise<T>) => Promise<T> } } = {}) {
   return {
     tenantId: 'tenantId' in over ? over.tenantId : undefined,
     actor: { type: 'system' as const, id: over.actorId ?? ACTOR },
     requestId: 'req-an-t04', jobId: '1', attempt: 1, maxAttempts: 5,
-    db: fake.db,
-    now: () => fake.model.clock.now,
+    db: over.db ?? fake.db,
+    now: () => fake.model.hostClock.now,   // worker HOST clock (ahead of the DB clock by default)
     log: { info() {}, warn() {}, error() {}, debug() {} },
   };
 }

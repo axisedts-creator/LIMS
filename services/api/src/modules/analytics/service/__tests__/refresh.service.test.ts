@@ -225,19 +225,40 @@ describe('refreshTenant: marks that arrive during the run survive (US-20.2, §9.
     expect([...f.model.marks.keys()]).toEqual([`${TA}|income|2026-11-02`]);
   });
 
-  it('the guard value is the run start: ctx.now() read before the marks, the same bound value in every mark delete of the run', async () => {
+  it('the guard value is the DB run start (SELECT now() before the marks are read), the same bound value in every mark delete; NOT the worker host clock (review #3)', async () => {
     const f = createFakeDb({
       marks: [mark('income', D), mark('results', D)],
       hook: (a) => { if (a.kind === 'insertRollup') a.model.clock.now = '2026-11-08T06:09:09.000Z'; },
     });
+    expect(f.model.hostClock.now).not.toBe(T0);                    // host clock is ahead of the DB clock in this model
     await run(f);
+    const iNow = f.log.findIndex((l) => l.kind === 'dbNow');
+    const iRead = f.log.findIndex((l) => l.kind === 'readMarks');
+    expect(iNow).toBeGreaterThanOrEqual(0);
+    expect(iNow).toBeLessThan(iRead);
+    expect(f.log[iNow]!.text).toMatch(/now\s*\(\s*\)(\s*::\s*text)?\s+AS\s+run_started_at/i);
     const dels = f.log.filter((l) => l.kind === 'deleteMarks');
     expect(dels).toHaveLength(2);
     for (const d of dels) {
       expect(d.text).toMatch(/last_marked_at\s*<=\s*\$\d+/i);
-      expect(d.values).toContain(T0);
+      expect(d.values).toContain(T0);                              // DB now() at run start
+      expect(d.values).not.toContain(f.model.hostClock.now);       // never ctx.now()
       expect(d.values).not.toContain('2026-11-08T06:09:09.000Z');
     }
+  });
+
+  it('host clock ahead of the DB: a mark made mid-run (DB now() > run_started_at, but < host time) still survives the delete', async () => {
+    const f = createFakeDb({
+      marks: [mark('income', '2026-11-01')],
+      hook: (a) => {
+        if (a.kind === 'insertRollup') {
+          a.model.clock.now = '2026-11-08T06:00:02.000Z';          // 58 s before the host clock reads
+          a.model.marks.set(`${TA}|income|2026-11-01`, { ...a.model.marks.get(`${TA}|income|2026-11-01`)!, last: a.model.clock.now });
+        }
+      },
+    });
+    await run(f);
+    expect(f.model.marks.size).toBe(1);
   });
 
   it('the mark delete is scoped by tenant, family and the range: other families / dates / tenants are untouched', async () => {
@@ -342,6 +363,64 @@ describe('refreshTenant: failure mid-run (US-20.4)', () => {
     expect(f.committed('state_success')).toHaveLength(1);
     expect(f.model.partitions.get('daily_income')).toBe('new');
   });
+});
+
+// Real worker runtime (C0 02-TRD:602, review #1/#2): the task runs in ONE job tx and every `ctx.db.tx` is a SAVEPOINT inside it.
+// A statement error aborts the job tx (25P02 for anything issued next) until the failing savepoint is rolled back.
+describe('refreshTenant: inside one worker job tx (nested db.tx = savepoint)', () => {
+  const marks = [mark('income', '2026-11-01'), mark('results', '2026-11-01')];
+  const inJob = async (f: ReturnType<typeof createFakeDb>, input: Record<string, unknown> = {}) => {
+    const j = f.job();
+    try { await run(f, input, createCtx(f, { db: j.db })); } catch (e) { j.end(e); return { j, err: e }; }
+    j.end();
+    return { j, err: undefined };
+  };
+
+  it('happy path: both family-ranges are savepoints of one job; their effects appear only when the job commits', async () => {
+    const f = createFakeDb({ marks });
+    const j = f.job();
+    await run(f, {}, createCtx(f, { db: j.db }));
+    expect(f.committed('replace')).toEqual([]);                    // job not committed yet
+    j.end();
+    expect(f.committed('replace').map((e) => e.family).sort()).toEqual(['income', 'results']);
+    expect(j.scope.abortedStmts).toEqual([]);
+    expect(f.model.marks.size).toBe(0);
+  });
+
+  it('a failing family-range is rolled back as its own savepoint; the failure is recorded only AFTER that rollback (no statement ever hits an aborted tx, no 25P02)', async () => {
+    const f = createFakeDb({ marks, hook: failOn((a) => a.kind === 'insertRollup' && a.table === 'daily_income', boom('57014')) });
+    const { j, err } = await inJob(f);
+    expect(err).toMatchObject({ code: '57014' });                  // the ORIGINAL error, not 25P02
+    expect(j.scope.abortedStmts).toEqual([]);
+    const failedTx = f.log.find((l) => l.kind === 'insertRollup' && l.table === 'daily_income')!.tx;
+    expect(f.txs[failedTx]!.status).toBe('rolled_back');
+    const rec = f.log.filter((l) => l.kind === 'stateUpsert' && /consecutive_failures\s*=\s*analytics\.refresh_state\.consecutive_failures\s*\+\s*1/i.test(l.text));
+    expect(rec).toHaveLength(1);                                   // the failure record was actually issued, and accepted (not 25P02)
+    expect(rec[0]!.tx).not.toBe(failedTx);
+    expect(rec[0]!.values).toContain('57014');
+  });
+
+  it('the failing range leaves its own partition and marks untouched at the moment of the rollback (savepoint undo), not just at job end', async () => {
+    const f = createFakeDb({ marks: [mark('income', '2026-11-01')], hook: failOn((a) => a.kind === 'deleteMarks', boom()) });
+    const { err } = await inJob(f);
+    expect(err).toBeTruthy();
+    expect(f.model.partitions.get('daily_income') ?? 'old').toBe('old');
+    expect(f.model.marks.size).toBe(1);
+  });
+
+  it('advisory locks of a range that was rolled back are free again: a later job for the same family-range gets the lock and succeeds', async () => {
+    let fail = true;
+    const f = createFakeDb({ marks: [mark('income', '2026-11-01')], hook: (a) => { if (fail && a.kind === 'insertRollup') throw boom(); } });
+    const first = await inJob(f);
+    expect(first.err).toBeTruthy();
+    fail = false;
+    const second = await inJob(f);
+    expect(second.err).toBeUndefined();
+    expect(f.committed('replace')).toHaveLength(1);
+    expect(f.model.marks.size).toBe(0);
+  });
+  // NOT asserted here: that the failure record survives the rethrow (refresh_state.last_error_code persisted). In one job tx the rethrow rolls
+  // the whole job back; persistence needs an independent tx from C0 — see the CR the reviewer asked the writer to raise (review #1). Re-test after it is ruled.
 });
 
 describe('refreshTenant: concurrent runs (advisory lock per family-range tx)', () => {

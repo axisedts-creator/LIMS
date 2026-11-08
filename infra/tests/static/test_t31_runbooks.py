@@ -104,7 +104,11 @@ def alerts():
                 if "alert" not in r:
                     continue
                 a = out.setdefault(r["alert"], {"sev": set(), "url": set(), "files": set()})
-                a["sev"].add((r.get("labels") or {}).get("severity"))
+                lab = (r.get("labels") or {}).get("severity")
+                if isinstance(lab, str) and "{{" in lab:  # templated label (T-19, LD-45 lean routing): take its literals
+                    a["sev"].update(re.findall(r"page|warn|info", lab))
+                else:
+                    a["sev"].add(lab)
                 a["url"].add((r.get("annotations") or {}).get("runbook_url"))
                 a["files"].add(f.name)
     return out
@@ -138,7 +142,8 @@ class RunbookLinkLint(unittest.TestCase):  # done_when 1, tests "runbook-link li
             if miss:
                 bad.append("%s: %s section lacks %s" % (name, path.name, miss))
             sev = re.search(r"Severity:\s*(page|warn|info)", body)
-            if not sev or sev.group(1) not in a["sev"]:
+            # ruling: rules with no page|warn|info label (Watchdog, routed by its dead-man rule) skip the membership check
+            if not sev or (a["sev"] & {"page", "warn", "info"} and sev.group(1) not in a["sev"]):
                 bad.append("%s: runbook Severity %r not in rule severities %s" % (name, sev and sev.group(1), sorted(a["sev"])))
             lt = re.search(r"Last tested:\s*(\d{4}-\d{2}-\d{2}|never)", body)
             if not lt:

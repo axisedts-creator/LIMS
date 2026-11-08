@@ -3,8 +3,8 @@
 Owner C1. Alerts in `monitoring/rules/ops.rules.yml` (anchors = lower-case alert names, 02-TRD s11.3; template 04-UI-UX s4.2). `TargetDown` is in `host.md#targetdown`. Procedures for a dead monitoring stack are in `monitoring.md`.
 
 ## Watchdog
-Severity: none   Owner: C1   Last tested: never
-Always firing by design (`vector(1)`); it has no page or warn level, it is the heartbeat of alerting.
+Severity: info   Owner: C1   Last tested: never
+Always firing by design (`vector(1)`); informational heartbeat of alerting (04-UI-UX s4 SEV4; T-31 ruling), routed by its own dead-man rule, not by severity.
 **Means:** the alerting pipeline works while the alert is received every 6 h. If the mail stops arriving, alerting is broken.  **Impact:** when it stops, other alerts may not reach anyone.
 **Check first:** `amtool --alertmanager.url=http://127.0.0.1:9093 alert query alertname=Watchdog` on ops-1 (expect one active alert); the external heartbeat check at site B (LD-45).
 **Fix:** 1. Alert absent in Alertmanager: `monitoring.md#prometheus-down`. 2. Alert present but mail missing: `monitoring.md#alertmanager-down` (relay and receiver). 3. Do not silence Watchdog.

@@ -83,7 +83,10 @@ export function statusOfRow(r: { status: string; failure_code: string | null }):
   return hit?.[0] ?? 'suppressed_no_contact';
 }
 
-export const sha256 = (s: string): Buffer => createHash('sha256').update(s).digest();
+/** The templates' lab_name param is short_text (<= 40 of [A-Za-z0-9 .,:/()-]): strip, clip, never fail a send on a fancy name. */
+export const labParam = (name: unknown): string => (typeof name === 'string' ? name.replace(/[^A-Za-z0-9 .,:/()-]/g, '').trim().slice(0, 40) : '') || 'Laboratory';
+
+export const sha256 =(s: string): Buffer => createHash('sha256').update(s).digest();
 /** ≤ 40 chars, never the full address (deliveries__dest__ck). */
 export function maskAddress(a: string): string {
   const at = a.indexOf('@');

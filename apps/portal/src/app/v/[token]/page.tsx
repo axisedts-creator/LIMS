@@ -3,7 +3,7 @@ import { Notice } from '@/features/portal/Notice';
 import { DescriptionList } from '@lims/ui/components/DescriptionList';
 import { Card } from '@lims/ui/components/Card';
 import { ErrorNotice, RateNotice, fmtDate } from '@/features/portal/notices';
-import { callApi, retryMinutes, token22, type ApiResult, type QrResult } from '@/server/api';
+import { callApi, retryMinutes, type ApiResult, type QrResult } from '@/server/api';
 
 export const metadata = { title: 'Verify a lab report' };
 
@@ -11,7 +11,9 @@ export const metadata = { title: 'Verify a lab report' };
 // malformed tokens all render the same "not found" page (no oracle).
 export default async function Verify() {
   const token = (await headers()).get('x-qr-token') ?? ''; // set by middleware (token-independent payload)
-  const r: ApiResult<QrResult> = token22(token) ? await callApi<QrResult>('POST', '/verifications', { json: { qr_token: token } }) : { status: 404 };
+  // Every token, malformed included, goes to Q1: the API answers malformed with the same 404 (AC-10.3), so the
+  // portal has one code path and one timing profile for all four not-found cases.
+  const r: ApiResult<QrResult> = await callApi<QrResult>('POST', '/verifications', { json: { qr_token: token } });
   const q = r.body;
   let content;
   if (r.status === 429) content = <RateNotice minutes={retryMinutes(r)} />;

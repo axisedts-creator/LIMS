@@ -66,6 +66,7 @@ export interface BuildDocumentInput {
   signatories: readonly any[];    // IdentityPort.Signatory[]
   config: SignatoryConfig;
   commentTexts?: Readonly<Record<string, string>>;   // `${departmentId}|${code}` -> resolved text
+  moduleContent?: Readonly<Record<string, Record<string, unknown>>>;   // moduleKey(ref) -> row of micro./anatomic.v_pub_report_content (TRD §3.2, CR-C6-006)
   qrVerifyUrl: string;
   reportedAt: IsoUtc;
   complete: boolean;
@@ -76,6 +77,9 @@ export interface BuildDocumentInput {
 const STATUS: Record<ReportKind, StatusLabel> = { final: 'Final', partial: 'Partial', preliminary: 'Preliminary', amended: 'Amended', addendum: 'Addendum' };
 
 const fail = (msg: string): never => { throw new LimsError('common.internal', msg); };
+
+/** Key of a `ResultView.moduleRef` (LabPort) in `BuildDocumentInput.moduleContent`. */
+export const moduleKey = (r: { module: string; entityId: string; versionNo: number }): string => `${r.module}|${r.entityId}|${r.versionNo}`;
 
 /** DecimalString to `decimals` places, string arithmetic only (no float). Extra places round half-up. */
 export function formatDecimal(v: string, decimals: number | undefined): string {
@@ -197,6 +201,23 @@ export function buildReportDocument(input: BuildDocumentInput): ReportDocument {
   const sections: Section[] = [...departments.values()].map(({ approvals: ap, ...s }) => ({
     ...s, approvedBy: byTime(ap).map((id) => sigById.get(id)?.displayName).filter((n): n is string => !!n),
   }));
+
+  // micro / anatomic: one section per distinct moduleRef of an approved result, content = the view row (never a silently shorter report if it is missing).
+  const seenRefs = new Set<string>();
+  for (const item of items) for (const g of (orderResults.items as any[]).filter((x) => x.orderItemId === item.orderItemId)) {
+    for (const r of (g.results as any[]).filter((x) => x.status === 'approved' && (x.moduleRef?.module === 'micro' || x.moduleRef?.module === 'anatomic'))) {
+      const key = moduleKey(r.moduleRef);
+      if (seenRefs.has(key)) continue;
+      seenRefs.add(key);
+      const content = input.moduleContent?.[key] ?? fail('module view row missing for an included result');
+      const testName = (testById.get(g.testId) ?? fail('test definition missing for an included module result')).name;
+      if (r.moduleRef.module === 'micro') {
+        const phase = content['report_phase'] === 'preliminary' ? 'preliminary' : 'final';
+        sections.push({ kind: 'micro', orderItemId: item.orderItemId, testName, phase, content });
+        kindSections.push({ kind: 'micro', phase });
+      } else sections.push({ kind: 'anatomic', orderItemId: item.orderItemId, testName, content });
+    }
+  }
 
   const reportKind = versionKind({ ...(input.regeneration ? { regeneration: input.regeneration } : {}), earlierReleased: input.earlierReleased, sections: kindSections, complete: input.complete });
   const amendmentNotes: AmendmentNote[] = [];

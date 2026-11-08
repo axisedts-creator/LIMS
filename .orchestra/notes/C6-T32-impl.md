@@ -1,0 +1,5 @@
+# C6-T32 impl (writer) — BLOCKED on 1 test-fixture defect, see C6-T32-dispute.md
+Files: api domain/document.ts (moduleKey, `moduleContent` input, micro/anatomic sections + KindSection phase), api service/assembly.service.ts (loadModuleContent hook), worker tasks/assemble_report.ts (VIEWS, single-table SELECT by tenant_id+entity_id+version_no, jsonb parse, missing/other-tenant row -> reject), renderer templates/lab/modules.ts (new) + lab/index.ts.
+[CONV] content = view row with 03-IC column names (explicit column list per §6.8); AST unit by method (mic µg/mL, zone_diameter mm), category + standard/version per row; images via assets.dataUri({source:'module_image', id=sha256, sha256}).
+Results: renderer modules-smart 20/20 pass. Worker assemble_modules 13/27 pass; the 14 failing all trace to the fixture rows lacking item_status (dispute). With a temporary `?? 'active'` probe: 27/27 (reverted).
+Open: render task does not yet collect module_image bytes (P-13, render task); full suite/lint/tsc not run yet (stopped at dispute).

@@ -8,6 +8,7 @@ import { creditPartiesHandlers } from './creditParties.handlers.js';
 import { formulasHandlers } from './formulas.handlers.js';
 import { healthHandlers } from './health.handlers.js';
 import { importsHandlers } from './imports.handlers.js';
+import { instrumentMapsHandlers } from './instrumentMaps.handlers.js';
 import { mastersHandlers } from './masters.handlers.js';
 import { panelsHandlers } from './panels.handlers.js';
 import { pricingHandlers } from './pricing.handlers.js';
@@ -33,10 +34,7 @@ export const handlers: Readonly<Record<string, Handler>> = Object.freeze({
   ...referrersHandlers, // T-15: #60–#66 (doctors)
   ...creditPartiesHandlers, // T-16: #67–#70 (credit parties)
   ...pricingHandlers, // T-17: #71–#81 (price lists); T-19: #82 (quotePrices); T-18: #83–#91 (surcharge / tax)
-  listInstrumentCodeMaps: notImplemented,
-  createInstrumentCodeMap: notImplemented,
-  updateInstrumentCodeMap: notImplemented,
-  upsertInstrumentCodeMaps: notImplemented,
+  ...instrumentMapsHandlers, // T-27: #92–#95 (instrument code maps)
   ...importsHandlers,
   createExport: notImplemented,
   listExports: notImplemented,

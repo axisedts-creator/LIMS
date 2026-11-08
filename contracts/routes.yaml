@@ -25,7 +25,13 @@ routes:
   - { id: staff.reporting.delivery,         origin: staff_web, path: "/reporting/deliveries/{delivery_id}",       owner: C6,  permission: reporting.delivery.read }
   - { id: staff.catalog.test,               origin: staff_web, path: "/catalog/tests/{test_id}",                  owner: C3,  permission: catalog.test.read }
   - { id: staff.catalog.price_list,         origin: staff_web, path: "/catalog/price-lists/{price_list_id}",      owner: C3,  permission: catalog.price_list.read }
-  - { id: staff.instruments.agent,          origin: staff_web, path: "/instruments/agents/{agent_id}",            owner: C7,  permission: instruments.agent.read }
+  # LD-71 / CR-C3-031-a: SCR-01…05 (04-UI-UX §1); permission as nav.manifest.ts
+  - { id: staff.catalog.home,               origin: staff_web, path: /catalog,                                  owner: C3,  permission: catalog.test.read }
+  - { id: staff.catalog.departments,        origin: staff_web, path: /catalog/departments,                      owner: C3,  permission: catalog.test.read }
+  - { id: staff.catalog.specimens,          origin: staff_web, path: /catalog/specimens,                        owner: C3,  permission: catalog.test.read }
+  - { id: staff.catalog.methods,            origin: staff_web, path: /catalog/methods,                          owner: C3,  permission: catalog.test.read }
+  - { id: staff.catalog.units,              origin: staff_web, path: /catalog/units,                            owner: C3,  permission: catalog.test.read }
+  - { id: staff.instruments.agent,         origin: staff_web, path: "/instruments/agents/{agent_id}",            owner: C7,  permission: instruments.agent.read }
   - { id: staff.instruments.message,        origin: staff_web, path: "/instruments/messages/{instrument_message_id}", owner: C7, permission: instruments.message.read }
   - { id: staff.analytics.dashboard,        origin: staff_web, path: /analytics,                                owner: C8,  permission: analytics.dashboard.read }
   - { id: staff.admin.user,                 origin: staff_web, path: "/admin/users/{membership_id}",              owner: C2,  permission: identity.user.read }

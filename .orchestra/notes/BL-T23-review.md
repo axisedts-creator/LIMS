@@ -1,14 +1,8 @@
 CHANGES
 
-Scope OK: only owned paths (help/*.md, docs/manual/billing/*.md, tester files). Every PageHeader helpKey has help; §11 neutral sentence, CBMS stub string (04-UI-UX L10 / TRD L546), `urn:lims:billing:export:v1` "not an IRD schema" are all present; no banned/overclaim wording; no PHI/secrets. bl-t23 vitest 25/25 passes (re-run by reviewer).
+Re-review after 92be2a04. All 7 earlier fixes applied correctly (audit_trail, cbms, credit_parties, dues, invoices, registers, worklist). bl-t23 vitest 25/25 passes (re-run by reviewer). Remaining Ctrl+Enter lines checked against code: invoice.md (InvoiceDetailView.tsx:190,225), daily_cash.md + cash-shift.md (DailyCashView.tsx:111), settings.md (BillingSettingsForm.tsx:65), worklist.md (FinanceWorklist.tsx:124,153) are all real. Scope, IRD neutrality, no PHI/secrets: still OK.
 
-Defect: the help documents keyboard shortcuts that the billing screens do not have (writer's note admits they were not checked). §11 says help explains the screen's real "shortcuts", and the brief says "nothing invented". In code, only global `?` (core/shortcuts/registry.ts:3), button `Ctrl+Enter`, dialog `Esc` and react-aria tab arrow keys exist. No billing component passes `onRowAction` to DataTable, has a `/` filter-focus handler, or handles Page Up/Down.
+One invented shortcut is left (missed in the first pass):
 
-1. apps/web/src/features/billing/help/audit_trail.md:16-17 – delete the `/` line and the `Page Down`/`Page Up` line.
-2. apps/web/src/features/billing/help/cbms.md:22-23 – delete the `/` line and the "`Enter` – activate Retry on the highlighted row" line.
-3. apps/web/src/features/billing/help/credit_parties.md:18-19 – delete the `/` line and the "`Enter` – open the highlighted party" line.
-4. apps/web/src/features/billing/help/dues.md:20-21 – delete the `/` line and the "`Enter` – open the highlighted registration" line.
-5. apps/web/src/features/billing/help/invoices.md:20-21 – delete the `/` line and the "`Enter` – open the highlighted invoice" line.
-6. apps/web/src/features/billing/help/registers.md:17 – delete the `/` line.
-7. apps/web/src/features/billing/help/worklist.md:17 – change to "`Ctrl+Enter` – submit the Reject or Resolve dialog." Approve opens a ConfirmDialog (FinanceWorklist.tsx:90-92) with no Ctrl+Enter button. Only Reject (L124) and Resolve (L153) have one.
-(If BL-T20 later adds these bindings, the lines can come back in that task.)
+1. apps/web/src/features/billing/help/credit_party.md:21 – delete the line "`Ctrl+Enter` – save a form on the Terms tab." CreditPartyDetail.tsx:2 says the Terms tab is a read view; it has no form and no Ctrl+Enter button (no `shortcut=` in that file). For the same reason, on line 7 change "Changes to the terms are recorded in the audit trail." so it does not suggest the terms can be edited here, for example: "Changes to the terms, made elsewhere, are recorded in the audit trail." Or drop the sentence.
+(If a later task adds terms editing, the line can come back in that task.)

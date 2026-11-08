@@ -1,4 +1,5 @@
 import { headers } from 'next/headers';
+import { notFound } from 'next/navigation';
 import { Notice } from '@/features/portal/Notice';
 import { DescriptionList } from '@lims/ui/components/DescriptionList';
 import { Card } from '@lims/ui/components/Card';
@@ -17,13 +18,8 @@ export default async function Verify() {
   const q = r.body;
   let content;
   if (r.status === 429) content = <RateNotice minutes={retryMinutes(r)} />;
-  else if (r.status === 404) {
-    content = (
-      <Notice tone="neutral" title="We couldn't verify this report.">
-        Check that you scanned the QR code on the report, or contact the laboratory.
-      </Notice>
-    );
-  } else if (r.status === 200 && q) {
+  else if (r.status === 404) notFound(); // AC-10.3: HTTP 404, rendered by ./not-found.tsx
+  else if (r.status === 200 && q) {
     const superseded = q.status === 'superseded';
     content = (
       <>

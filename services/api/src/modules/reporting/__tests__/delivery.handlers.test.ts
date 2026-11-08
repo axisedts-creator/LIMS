@@ -173,6 +173,12 @@ describe('D3 sendReportDelivery (resend)', () => {
     const r = await send(call, { recipient_kind: 'centre', channel: 'sms', centre_contact_id: CONTACT(1) }); expect(r.status).toBe(201);
     expect(w.delivery(r.body.id)).toMatchObject({ recipient_kind: 'centre', recipient_id: CONTACT(1), channel: 'sms' }); expect(JSON.stringify(r.body)).not.toContain(CENTRE_PHONE);
   });
+  it('review C6-T23 #1: an ACTIVE contact of ANOTHER centre of the same tenant -> common.not_found, no delivery row, no job (no cross-centre disclosure)', async () => {
+    const other = { id: CONTACT(4), tenant_id: TENANT_A, centre_id: idN(0xce77), channel: 'sms', address: '+9779800000055', is_active: true };
+    const { w, call } = setup({ rls: false, centreContacts: [other], settings: { centre_delivery_enabled: true } });
+    expect(await code(send(call, { recipient_kind: 'centre', channel: 'sms', centre_contact_id: CONTACT(4) }))).toBe('common.not_found');
+    expect(w.deliveries()).toEqual([]); expect(w.sendJobs()).toEqual([]);
+  });
   it('a referrer without a phone/e-mail on record -> 201 suppressed / no_contact', async () => {
     const { call } = setup({ referrer: { phoneE164: null } }); const r = await send(call, { recipient_kind: 'referrer', channel: 'sms' }); expect(r.status).toBe(201); expect(r.body).toMatchObject({ recipient_kind: 'referrer', status: 'suppressed', failure_code: 'no_contact' });
   });

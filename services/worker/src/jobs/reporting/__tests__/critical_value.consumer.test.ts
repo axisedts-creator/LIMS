@@ -6,12 +6,12 @@
 //   idempotency key `<critical_event_id>:<recipient_kind>:<recipient_id>`. Referrer: queued only if settings.critical_alert_referrer_enabled AND patient consent shareWithReferrer AND a phone exists
 //   (a recipient that cannot be reached may be either NOT written or written `suppressed` — both accepted; never `queued`). Staff: one row per `critical_alert_recipient` assignment, status
 //   `suppressed` / failure_code `no_contact` (Phase 1). Ports: ctx.ports.{FrontdeskPort,IdentityPort,CatalogPort} (system actor), single-table SQL only (fake limits).
-// SPEC GAP: where lab_name / lab_phone come from (IdentityPort branding? centre contact?) is unspecified: tests only require both present, valid for their kinds (short_text / phone).
+// lab_name / lab_phone (ruling): IdentityPort.getTenantSettings(ctx, { keys: ['branding'] }) -> branding.displayName / branding.phones[0] (IC 03:1619-1622, 02-TRD:342).
 import '../../../../../api/src/__tests__/setup-env.js';
 import { describe, expect, it } from 'vitest';
 import { eventValidators } from '../../../../../api/src/core/events/publish.js';
 import { envelope } from './consumers.helpers.js';
-import { deliveryWorld, I, idN, LAB, makeTransport, PHONE, EMAIL, FULL_NAME, REG_NO, REFERRER_PHONE, sha256buf, SYSTEM_ACTOR, TENANT_A, TENANT_B, type DW, type DWorldOpts, type Row } from './delivery.helpers.js';
+import { deliveryWorld, I, idN, LAB, LAB_NAME, LAB_PHONE, makeTransport, PHONE, EMAIL, FULL_NAME, REG_NO, REFERRER_PHONE, sha256buf, SYSTEM_ACTOR, TENANT_A, TENANT_B, type DW, type DWorldOpts, type Row } from './delivery.helpers.js';
 
 const EVENT = 'lab.critical_value.detected.v1';
 const TEMPLATE = 'reporting.critical_value_alert';
@@ -67,7 +67,8 @@ describe('AC-14.1 referrer alert', () => {
     const { w, go } = await setup(); ok(await go()); const p = ofKind(w, 'referrer')[0]!['params'];
     expect(Object.keys(p).sort()).toEqual(['lab_name', 'lab_phone', 'ref']);
     expect(p.ref).toBe(CE(1).slice(0, 8));
-    expect(p.lab_name).toMatch(/^[A-Za-z0-9 .,:/()-]{1,40}$/); expect(String(p.lab_phone).length).toBeGreaterThan(0); expect(String(p.lab_phone).length).toBeLessThanOrEqual(40);
+    expect(p.lab_name).toBe(LAB_NAME); expect(p.lab_phone).toBe(LAB_PHONE);                       // IdentityPort.getTenantSettings({keys:['branding']}): displayName, phones[0] (IC 03:1619-1622)
+    expect(p.lab_name).toMatch(/^[A-Za-z0-9 .,:/()-]{1,40}$/); expect(String(p.lab_phone).length).toBeLessThanOrEqual(40);
     expect(JSON.stringify(p)).not.toMatch(/https?:|www\./i);
   });
   it('the SMS the provider receives is EXACTLY "{lab_name}: critical result for your patient. Please call {lab_phone} now. Ref {ref}." to the referrer phone (via send_delivery, recording transport)', async () => {

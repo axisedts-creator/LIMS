@@ -21,6 +21,7 @@ export { released, rendered, V, USER, MEMBERSHIP, TENANT_A, TENANT_B, idN, I, LA
 export type { Row };
 
 export const LAB_NAME = 'Synthetic Lab';
+export const LAB_PHONE = '+97714000000';
 export const REFERRER_PHONE = '+9779800000077';
 export const CENTRE_PHONE = '+9779800000088';
 export const sha256buf = (s: string) => createHash('sha256').update(s, 'utf8').digest();
@@ -100,7 +101,8 @@ export function makePorts(o: PortOpts = {}) {
       },
     },
     IdentityPort: {
-      async getTenantSettings(ctx: any, i: { keys: unknown }) { calls.identity.push({ keys: i?.keys, actorType: ctx?.actor?.type }); return { channels: { ...mutable.channels }, reportLinkTtlDays: 30, labName: LAB_NAME }; },
+      async getTenantSettings(ctx: any, i: { keys: unknown }) { calls.identity.push({ keys: i?.keys, actorType: ctx?.actor?.type }); return { channels: { ...mutable.channels }, reportLinkTtlDays: 30, labName: LAB_NAME,
+        branding: { legalName: 'Synthetic Laboratory Pvt Ltd', displayName: LAB_NAME, addressLines: [], phones: [LAB_PHONE] } }; },   // IC 03 §IdentityPort.getTenantSettings branding (phones <= 3, each <= 40)
     },
     CatalogPort: {
       async getReferrer(ctx: any, i: { referrerId: string; purpose: string }) {

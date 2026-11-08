@@ -469,7 +469,14 @@ class Override(unittest.TestCase):
 
     def test_override_text_has_no_wildcard_or_wg_publish(self):
         t = read(OVERRIDE)
-        self.assertNotIn("0.0.0.0", t)
+        # ruling C1.T-26: only host port publishing is constrained; container-internal listen addrs (HOSTNAME: 0.0.0.0) are fine
+        self.assertNotRegex(t, r"(?m)^\s*-?\s*[\"']?0\.0\.0\.0:\d+")
+        for n, s in compose(BG)["services"].items():
+            for p in s.get("ports") or []:
+                if isinstance(p, dict):
+                    self.assertNotIn(p.get("host_ip"), (None, "", "0.0.0.0"), "%s publishes on wildcard: %s" % (n, p))
+                else:
+                    self.assertFalse(str(p).startswith("0.0.0.0:"), "%s publishes on wildcard: %s" % (n, p))
         self.assertNotRegex(t, r"\$\{WG_IP\}:8000")
         self.assertIn("breakglass_net", t)
 

@@ -62,10 +62,13 @@ const TEMPLATES: Row[] = [
   { code: 'reporting.dues_due', purpose: 'dues_reminder', channels: ['sms', 'whatsapp'], params: [{ name: 'lab_name', kind: 'short_text' }, { name: 'amount_text', kind: 'short_text' }, { name: 'url', kind: 'url' }], is_active: true, default_texts: {} },
   { code: 'reporting.portal_otp', purpose: 'otp', channels: ['sms', 'email'], params: [{ name: 'otp_code', kind: 'otp_code' }, { name: 'lab_name', kind: 'short_text' }, { name: 'minutes', kind: 'minutes' }], is_active: true, default_texts: {} },
   { code: 'engagement.login_otp', purpose: 'otp', channels: ['sms'], params: [{ name: 'otp_code', kind: 'otp_code' }, { name: 'lab_name', kind: 'short_text' }, { name: 'minutes', kind: 'minutes' }], is_active: true, default_texts: {} },
+  // C6-T24 (appended last: text-row ids derive from the index): 04-UI-UX §7, no url param (08 A13 D-35)
+  { code: 'reporting.critical_value_alert', purpose: 'critical_value_alert', channels: ['sms', 'whatsapp'], params: [{ name: 'lab_name', kind: 'short_text' }, { name: 'lab_phone', kind: 'phone' }, { name: 'ref', kind: 'short_text' }], is_active: true, default_texts: {} },
 ];
 const BODY: Record<string, string> = {
   'reporting.report_ready': 'Report ready from {lab_name}: {url}', 'reporting.dues_due': '{lab_name}: NPR due {amount_text}. Pay: {url}',
   'reporting.portal_otp': 'Your code {otp_code} for {lab_name} is valid {minutes} minutes.', 'engagement.login_otp': 'Your code {otp_code} for {lab_name} is valid {minutes} minutes.',
+  'reporting.critical_value_alert': '{lab_name}: critical result for your patient. Please call {lab_phone} now. Ref {ref}.',
 };
 const textRows = (): Row[] => TEMPLATES.flatMap((t) => (t['channels'] as string[]).map((ch, i) => ({
   ...base, id: idN(0x7e00 + TEMPLATES.indexOf(t) * 10 + i), template_code: t['code'], channel: ch, language: 'en', body_text: BODY[t['code']], subject_text: ch === 'email' ? 'Your report from {lab_name}' : null,

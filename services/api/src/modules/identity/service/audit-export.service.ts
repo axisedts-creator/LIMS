@@ -14,10 +14,12 @@ export interface AuditExportCtx {
   readonly tenantId: string;
   readonly tx: unknown;
   readonly actor: { readonly id: string; readonly membershipId?: string };
-  readonly now: () => Date;
-  readonly centreScope?: { readonly all?: unknown };
+  readonly now: () => string | Date;              // IC RequestContext.now: () => IsoUtc; a Date is tolerated
   readonly audit: { access(e: AccessEntry): Promise<unknown> };
-  readonly ports: { readonly IdentityPort: { assertRole(ctx: unknown, req: { permission: string }): Promise<unknown> } };
+  readonly ports: { readonly IdentityPort: {
+    getActor(ctx: unknown): Promise<{ readonly centreScope?: { readonly all?: unknown } } | null | undefined>;
+    assertRole(ctx: unknown, req: { permission: string }): Promise<unknown>;
+  } };
   readonly download: { stream(input: any): Promise<{ status: number; headers: Record<string, string>; body: Uint8Array }> };
   readonly metrics?: { inc(name: string, labels: Record<string, string>): void };
 }
@@ -104,6 +106,8 @@ function decodeCursor(c: unknown): Keyset {
 const exportId = (input: { exportId?: unknown }) =>
   (typeof input?.exportId === 'string' && UUID.test(input.exportId) ? input.exportId.toLowerCase() : fail('/export_id'));
 
+const nowMs = (ctx: AuditExportCtx) => new Date(ctx.now()).getTime();
+
 const membership = (ctx: AuditExportCtx) => {
   const m = ctx.actor?.membershipId;
   if (typeof m !== 'string') throw new LimsError('auth.forbidden');
@@ -126,13 +130,14 @@ export function createAuditExportService(deps: { repo?: Repo; newId?: () => stri
   const newId = deps.newId ?? uuidv7;
   return {
     async createAuditExport(ctx: AuditExportCtx, body: unknown) {
-      if (ctx.centreScope?.all !== true) throw new LimsError('auth.forbidden');       // D-T22 [CONV]: before any other check
+      const prof = await ctx.ports.IdentityPort.getActor(ctx);                        // centre scope lives on ActorProfile, not ctx
+      if (prof?.centreScope?.all !== true) throw new LimsError('auth.forbidden');      // D-T22 [CONV]: before any other check
       const mem = membership(ctx);
       const b = parseBody(body);
       if (Date.parse(b.to) - Date.parse(b.from) > MAX_SPAN_MS) throw new LimsError('identity.export_too_large');
       const { tx, tenantId } = ctx;
       await repo.lockQuota(tx, tenantId, mem);
-      const since = new Date(ctx.now().getTime() - DAY_MS);
+      const since = new Date(nowMs(ctx) - DAY_MS);
       if ((await repo.countSince(tx, tenantId, { membershipId: mem, since })) >= USER_PER_DAY
         || (await repo.countSince(tx, tenantId, { since })) >= TENANT_PER_DAY) {
         const e = new LimsError('common.rate_limited'); e.retryAfterSeconds = 3600; throw e;   // [CONV] coarse Retry-After
@@ -180,7 +185,7 @@ export function createAuditExportService(deps: { repo?: Repo; newId?: () => stri
       const mem = membership(ctx);
       const r = await repo.find(ctx.tx, ctx.tenantId, id);
       if (!r || r.requested_by_membership_id !== mem) throw new LimsError('common.not_found');
-      const left = await repo.consumeDownload(ctx.tx, ctx.tenantId, id, { now: ctx.now(), actorId: ctx.actor.id });
+      const left = await repo.consumeDownload(ctx.tx, ctx.tenantId, id, { now: new Date(nowMs(ctx)), actorId: ctx.actor.id });
       if (!left || typeof left.object_path !== 'string') throw new LimsError('common.not_found');
       return ctx.download.stream({
         bucket: BUCKET, objectPath: left.object_path, filename: `audit-export-${id}.csv`, contentType: 'text/csv', scanState: 'clean',

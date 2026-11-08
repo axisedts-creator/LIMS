@@ -1,5 +1,4 @@
 [
-  "commitImport",
   "createExport",
   "downloadExportFile",
   "getCatalogHealthReport",

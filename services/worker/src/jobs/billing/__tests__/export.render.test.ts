@@ -72,7 +72,7 @@ function world(o: { job?: Record<string, unknown> | null; invoices?: any[]; cred
 }
 const run = async (w: ReturnType<typeof world>, o: { port?: unknown; payload?: unknown } = {}) => {
   const m = await render(); const task = o.port ? m.createExportRender({ render: o.port }) : m.exportRender;
-  return task(o.payload ?? { tenant_id: TENANT_A, export_id: JOB }, w.ctx);
+  return task('payload' in o ? o.payload : { tenant_id: TENANT_A, export_id: JOB }, w.ctx);
 };
 
 describe('manifest + crontab (02-TRD §10)', () => {
@@ -203,7 +203,7 @@ describe('export_render guards (REQ-SEC-024) and replays', () => {
 
 describe('export_purge: expired objects deleted, row -> expired (TRD §10; 05-SCHEMA retention)', () => {
   const exp = (n: number, over: Record<string, unknown> = {}) => ({ tenant_id: TENANT_A, id: `0190a000-0000-7000-8000-00000000500${n}`, status: 'ready', bucket: BUCKET, object_path: `${TENANT_A}/2026/11/0190a000-0000-7000-8000-00000000500${n}.xml`, expires_at: '2026-11-07T12:00:00.000Z', ...over });
-  const go = async (w: ReturnType<typeof world>, payload: unknown = { tenant_id: TENANT_A }) => { const m = await purge(); return m.exportPurge(payload, w.ctx); };
+  const go = async (w: ReturnType<typeof world>, ...a: unknown[]) => { const m = await purge(); return m.exportPurge(a.length ? a[0] : { tenant_id: TENANT_A }, w.ctx); };
   it('deletes each expired object from billing-exports and marks its row expired; selects only ready rows past expires_at for this tenant', async () => {
     const w = world({ expired: [exp(1), exp(2)] }); await go(w);
     expect(w.dels).toEqual(expect.arrayContaining(exp(1).object_path ? [`${BUCKET}/${exp(1).object_path}`, `${BUCKET}/${exp(2).object_path}`] : []));

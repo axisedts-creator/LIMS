@@ -211,11 +211,20 @@ export function buildReportDocument(input: BuildDocumentInput): ReportDocument {
       seenRefs.add(key);
       const content = input.moduleContent?.[key] ?? fail('module view row missing for an included result');
       const testName = (testById.get(g.testId) ?? fail('test definition missing for an included module result')).name;
+      const amended = r.amendment ? { amendmentReason: r.amendment.reasonCode as string } : {};
       if (r.moduleRef.module === 'micro') {
         const phase = content['report_phase'] === 'preliminary' ? 'preliminary' : 'final';
         sections.push({ kind: 'micro', orderItemId: item.orderItemId, testName, phase, content });
-        kindSections.push({ kind: 'micro', phase });
-      } else sections.push({ kind: 'anatomic', orderItemId: item.orderItemId, testName, content });
+        kindSections.push({ kind: 'micro', phase, ...amended });
+      } else {
+        sections.push({ kind: 'anatomic', orderItemId: item.orderItemId, testName, content });
+        kindSections.push({ kind: 'anatomic', ...amended });
+      }
+      // 02-TRD §4.5 rule 1: a module section amended for a non-excluded reason carries an amendment note.
+      if (r.amendment && !EXCLUDED_AMENDMENT_REASONS.has(r.amendment.reasonCode)) {
+        lineNotes.push({ analyteOrSection: testName, previousVersionNo: r.amendment.previousVersionNo, reasonCode: r.amendment.reasonCode,
+          ...(r.amendment.reasonText !== undefined ? { reasonText: r.amendment.reasonText } : {}), amendedAt: r.amendment.amendedAt });
+      }
     }
   }
 

@@ -1,0 +1,6 @@
+TESTS_WRONG — the test asserts something the spec does not require (say precisely what to change in the test)
+- Spec requires only that "a family-range is replaced by one tx at a time (advisory lock `pg_advisory_xact_lock(hashtext('analytics:'||tenant||':'||family))` at the start of each family-range tx)" — spec/chunks/C8-analytics-mis/03-APP-FLOW.md:272 (X4); also 03-APP-FLOW.md:66. It does not require that a waiting tx issues no statement (incl. the lock request itself) before the holder ends.
+- refreshFake.ts:82 logs the `lock` entry (`log.push(entry)`) BEFORE the wait at refreshFake.ts:88, so a correctly blocked tx B always has `first` < `last` of holder A; refresh.service.test.ts:363 (`s[i].first > s[i-1].last`) therefore fails for any spec-conforming engine.
+- Change (tester): record lock acquisition — e.g. in refreshFake.ts `case 'lock'`, after the `while (held.has(key))` loop, set `entry.acquiredAt = log.length` (or push a second `lock_acquired` entry); in the test, build spans as `{ first: acquiredAt, last }` and assert `acquired(B) > last(A)` for txs sharing a lock key.
+- Keep unchanged: both fulfilled, no rolled_back tx, marks.size 0, daily_income 'new' (refresh.service.test.ts:351-353,365-366).
+- Implementation needs no change for this test (writer says other assertions hold); tests not run (no node_modules) — rerun after tester fix.

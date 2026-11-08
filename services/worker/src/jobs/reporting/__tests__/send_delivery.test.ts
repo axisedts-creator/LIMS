@@ -212,8 +212,8 @@ describe('retryable errors, attempts and exhaustion (AC-09.1, 02-TRD §5.4 failu
     const { w, go } = await setup({}, { transports: { recording: rec } });
     const r1 = await go(); expect(retried(r1, w)).toBe(true); expect(row(w)['status']).toBe('queued'); expect(w.attempts(D(1))).toHaveLength(1);
     expect(w.attempts(D(1))[0]).toMatchObject({ attempt_no: 1, outcome: 'retryable_error', error_code: 'provider_timeout' }); expect(w.attempts(D(1))[0]!['finished_at']).not.toBeNull();
-    const r2 = await go({ attempt: 2 }); expect(retried(r2, w)).toBe(true); expect(w.attempts(D(1)).map((a) => a['attempt_no'])).toEqual([1, 2]);
-    ok(await go({ attempt: 3 })); expect(row(w)['status']).toBe('sent'); expect(w.attempts(D(1)).map((a) => `${a['attempt_no']}:${a['outcome']}`)).toEqual(['1:retryable_error', '2:retryable_error', '3:accepted']);
+    const r2 = await go(D(1), { attempt: 2 }); expect(retried(r2, w)).toBe(true); expect(w.attempts(D(1)).map((a) => a['attempt_no'])).toEqual([1, 2]);
+    ok(await go(D(1), { attempt: 3 })); expect(row(w)['status']).toBe('sent'); expect(w.attempts(D(1)).map((a) => `${a['attempt_no']}:${a['outcome']}`)).toEqual(['1:retryable_error', '2:retryable_error', '3:accepted']);
     expect(rec.calls).toBe(3);
   });
   it('a retryable failure does not mark the delivery failed, does not set failed_at, and publishes no status event', async () => {

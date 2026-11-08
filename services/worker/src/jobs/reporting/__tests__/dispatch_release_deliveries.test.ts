@@ -185,7 +185,7 @@ describe('events, atomicity, PHI', () => {
 
 describe('worker manifest wiring', () => {
   it('reporting.dispatch_release_deliveries is the real task (no longer the fail-loud stub) with maxAttempts 10; end to end through the manifest', async () => {
-    const { manifest } = await import('../index.js'); const w = deliveryWorld({ audiences: ['patient'] });
+    const { manifest } = await import('../index.js'); const w = deliveryWorld({ audiences: ['patient'], consent: { email: false } });
     expect(manifest.maxAttempts![DISPATCH]).toBe(10);
     const r = await w.run(manifest.tasks![DISPATCH]! as Task, { tenant_id: TENANT_A, report_version_id: V(1) });
     expect(r).toBe('ok'); expect(queued(w)).toHaveLength(1);

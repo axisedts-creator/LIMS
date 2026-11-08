@@ -15,6 +15,7 @@ import { createHash } from 'node:crypto';
 import { releaseSetup, released, rendered, V, USER, MEMBERSHIP, TENANT_A, TENANT_B, idN, I, LAB, PHONE, EMAIL, FULL_NAME, REG_NO, NOW, SYSTEM_ACTOR, rejection, settle, type Row } from './release.helpers.js';
 import { pgError } from './consumers.helpers.js';
 import { PORTAL_ORIGIN } from './assemble.helpers.js';
+import { TransportError } from '../../../../../api/src/modules/reporting/delivery/transport.js';
 
 export { released, rendered, V, USER, MEMBERSHIP, TENANT_A, TENANT_B, idN, I, LAB, PHONE, EMAIL, FULL_NAME, REG_NO, NOW, SYSTEM_ACTOR, rejection, settle, PORTAL_ORIGIN };
 export type { Row };
@@ -131,10 +132,9 @@ export function makeTransport(providerKind: string, behaviour: (n: number, msg: 
     },
   };
 }
-/** The real TransportError of delivery/transport.ts (02-TRD §5.4); imported lazily so the tests that never fail a send do not need the module. */
+/** The real TransportError of delivery/transport.ts (02-TRD §5.4). */
 export async function transportError(retryable: boolean, failureCode: string): Promise<Error> {
-  const m: any = await import('../../../../../api/src/modules/reporting/delivery/transport.js');
-  return new m.TransportError(retryable, failureCode);
+  return new TransportError(retryable, failureCode);
 }
 
 // ------------------------------------------------------------------------------------------------ DDL rules + tx wrapper

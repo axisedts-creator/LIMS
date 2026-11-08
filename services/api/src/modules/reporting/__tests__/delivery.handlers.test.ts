@@ -18,6 +18,7 @@ import {
   ACC, CENTRE_PHONE, CONTACT, D, deliveryWorld, dRow, EMAIL, FULL_NAME, I, idN, LAB, LAB_NAME, LINK, linkRow, minutesAgo, NOW, PHONE, rendered, REG_NO, rejection, sentRow, sha256hex, TENANT_A, TENANT_B, USER,
   MEMBERSHIP, V, type DW, type DWorldOpts, type Row,
 } from '../../../../../worker/src/jobs/reporting/__tests__/delivery.helpers.js';
+import * as sendMod from '../../../../../worker/src/jobs/reporting/tasks/send_delivery.js';
 
 let manifest: any;
 beforeAll(async () => {
@@ -187,7 +188,7 @@ describe('D3 sendReportDelivery (resend)', () => {
 });
 
 describe('D4 retryDelivery (AC-09.7)', () => {
-  const retry = (call: any, id: string = D(1), ifMatch: string | undefined = '"3"', over: Row = {}) => call(OPS.retry, { params: { delivery_id: id }, headers: { 'idempotency-key': 'idem-2', ...(ifMatch === undefined ? {} : { 'if-match': ifMatch }) } }, over);
+  const retry = (call: any, id: string = D(1), ifMatch: string | null = '"3"', over: Row = {}) => call(OPS.retry, { params: { delivery_id: id }, headers: { 'idempotency-key': 'idem-2', ...(ifMatch === null ? {} : { 'if-match': ifMatch }) } }, over);
   const world = (o: DWorldOpts = {}) => setup({ deliveries: [failedRow(1)], links: [linkRow(1, { delivery_id: D(1) })], ...o });
   it('201: a NEW queued delivery cloned from the failed one (not a fallback), the failed original kept as it was', async () => {
     const { w, call } = world(); const before = JSON.stringify(w.delivery(D(1))); const r = await retry(call); expect(r.status).toBe(201);
@@ -201,7 +202,7 @@ describe('D4 retryDelivery (AC-09.7)', () => {
   it('AC-09.7: the old link is revoked; once the send task runs the new delivery has its own NEW link (exactly one live link left)', async () => {
     const { w, call } = world(); const r = await retry(call);
     const old = w.portalLinks().find((l) => l['id'] === LINK(1))!; expect(old['revoked_at']).not.toBeNull(); expect(typeof old['revoke_reason_code']).toBe('string');
-    const m: any = await import('../../../../../worker/src/jobs/reporting/tasks/send_delivery.js'); const task = m.createSendDelivery ? m.createSendDelivery({ env: w.env, transports: {} }) : m.sendDelivery;
+    const m: any = sendMod; const task = m.createSendDelivery ? m.createSendDelivery({ env: w.env, transports: {} }) : m.sendDelivery;
     expect(await w.run(task, { delivery_id: r.body.id })).toBe('ok');
     const live = w.portalLinks().filter((l) => l['revoked_at'] == null); expect(live).toHaveLength(1); expect(live[0]!['id']).not.toBe(LINK(1)); expect(live[0]!['delivery_id']).toBe(r.body.id); expect(w.delivery(r.body.id)['status']).toBe('sent');
   });
@@ -212,7 +213,7 @@ describe('D4 retryDelivery (AC-09.7)', () => {
     }
   });
   it('If-Match: missing -> common.precondition_required; stale -> common.version_conflict; malformed -> common.validation_failed', async () => {
-    const { w, call } = world(); expect(await code(retry(call, D(1), undefined))).toBe('common.precondition_required'); expect(await code(retry(call, D(1), '"2"'))).toBe('common.version_conflict');
+    const { w, call } = world(); expect(await code(retry(call, D(1), null))).toBe('common.precondition_required'); expect(await code(retry(call, D(1), '"2"'))).toBe('common.version_conflict');
     for (const bad of ['3', '"x"', '"0"', '"3" OR 1=1', 'W/"3"']) expect(await code(retry(call, D(1), bad)), bad).toBe('common.validation_failed');
     expect(w.deliveries()).toHaveLength(1);
   });

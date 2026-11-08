@@ -44,6 +44,10 @@ export interface PlatformStaffRepo {
   listPlatformSessions(tx: unknown): Promise<SessionRow[]>;
   findSession(tx: unknown, id: string): Promise<SessionRow | undefined>;
   revokeSession(tx: unknown, id: string, o: { at: Date; actorId: string }): Promise<void>;
+  /** Revokes every non-terminal kind='platform' session of the staff row; returns the count. */
+  revokeStaffSessions(tx: unknown, o: { platformStaffId: string; reason: 'deactivate' | 'mfa_reset'; at: Date; actorId: string }): Promise<number>;
+  /** Mirror rows of the platform user (tenant_id IS NULL) -> removed / admin_reset; returns the count. */
+  removeStaffMfaFactors(tx: unknown, o: { userId: string; actorId: string }): Promise<number>;
   listAuthEvents(tx: unknown, p: { from: string; to: string; after: { at: string; id: string }; limit: number; f: { tenant_id?: string | undefined; event_type?: string | undefined } }): Promise<any[]>;
 }
 export interface PlatformEvent {
@@ -227,6 +231,8 @@ export function createPlatformStaffService(deps: {
       await keepOneSuperadmin(s, row);
       const up = await s.repo.updateStaff(s.tx, id, v, { isActive: false, actorId: s.actorId });
       if (!up) throw new LimsError('common.version_conflict');
+      // 03-APP-FLOW §1 SS9: deactivate revokes every non-terminal session in the request tx.
+      await s.repo.revokeStaffSessions(s.tx, { platformStaffId: id, reason: 'deactivate', at: s.now, actorId: s.actorId });
       // 02-TRD §10: platform kind -> payload {user_id} only; job_key signout:<user_id>:<reason>.
       await s.repo.enqueue(s.tx, 'identity.gotrue_signout', { user_id: up.user_id }, `signout:${up.user_id}:deactivate`);
       await emit(ctx, { eventType: 'platform_staff_deactivated', targetType: 'platform_staff', targetId: id, detail: {} });
@@ -240,6 +246,9 @@ export function createPlatformStaffService(deps: {
       await found(s, id);
       const up = await s.repo.touchStaff(s.tx, id, s.actorId);   // moves the version, so each reset gets its own job_key
       if (!up) throw new LimsError('common.not_found');
+      // 03-APP-FLOW §4.5 / SS9: the mirror is authoritative - factors removed and sessions revoked now; the job syncs GoTrue.
+      await s.repo.removeStaffMfaFactors(s.tx, { userId: up.user_id, actorId: s.actorId });
+      await s.repo.revokeStaffSessions(s.tx, { platformStaffId: id, reason: 'mfa_reset', at: s.now, actorId: s.actorId });
       await s.repo.enqueue(s.tx, 'identity.remove_mfa_factors', { user_id: up.user_id, platform_staff_id: id }, `mfa_reset:${id}:${up.version}`);
       await emit(ctx, { eventType: 'platform_mfa_reset', targetType: 'platform_staff', targetId: id, detail: {} });
       return { status: 200, body: toStaff(up), version: up.version };

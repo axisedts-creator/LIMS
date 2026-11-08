@@ -73,6 +73,17 @@ export function createPlatformStaffRepo(): PlatformStaffRepo & { insertPlatformE
           version = version + 1, updated_at = now(), updated_by = $3
         WHERE id = $1 AND kind = 'platform' AND state NOT IN ('revoked', 'expired')`, [id, o.at, o.actorId]);
     },
+    async revokeStaffSessions(tx, o) {
+      return (await q(tx, `UPDATE identity.sessions SET state = 'revoked', revoked_at = $3, revoked_by = $4, revoke_reason = $2,
+          version = version + 1, updated_at = now(), updated_by = $4
+        WHERE kind = 'platform' AND platform_staff_id = $1 AND state NOT IN ('revoked', 'expired') RETURNING id`,
+      [o.platformStaffId, o.reason, o.at, o.actorId])).length;
+    },
+    async removeStaffMfaFactors(tx, o) {
+      return (await q(tx, `UPDATE identity.mfa_factors SET status = 'removed', removal_reason = 'admin_reset', removed_at = now(), removed_by = $2,
+          version = version + 1, updated_at = now(), updated_by = $2
+        WHERE tenant_id IS NULL AND user_id = $1 AND status <> 'removed' RETURNING id`, [o.userId, o.actorId])).length;
+    },
     async listAuthEvents(tx, p) {
       return q(tx, `SELECT id, occurred_at, occurred_at::text AS cursor_at, tenant_id, user_id, membership_id, platform_staff_id, session_id,
           event_type, reason_code, client_ip, user_agent, request_id

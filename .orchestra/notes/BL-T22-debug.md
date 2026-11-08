@@ -1,3 +1,8 @@
 BL-T22 debug: 47 fails = 46 handler stubs of unbuilt tasks (FD-T05..T15, BL-T13..T19 -> common.service_unavailable) + 1 recordPayment probe (404 vs spec 409 order_not_invoiced).
 Cause of the 1: C4 cannot tell an uninvoiced own order from an unknown/other-tenant one (no frontdesk table reads); spec conflict, see BL-T22-dispute.md.
 Fix: none in impl; tried 404 for null totals, broke ledger.payment.test.ts:120 + BillingCommandPort.contract.test.ts:120, reverted (ledger.service.ts unchanged).
+
+Round 2 (after ruling): recordPayment fix already in HEAD (bc4c8ba3); crossTenant recordPayment probe passes. No impl change needed.
+Remaining 46 fails = 45 handler stubs of unbuilt tasks (FD-T05..T15, BL-T13..T19 -> common.service_unavailable; probes pass once those land) + 1 alerts.rules test needing `.orchestra/cr/BL-T22.md`.
+CR exists as `.orchestra/cr/BL-T22.nonblocking.md` (orchestra rename 8d2437c0). Not impl code and outside debugger-writable paths; orchestra must restore the name or accept the test as pending. Not recreated.
+Open: ruling's assertRole(centreId) not in service (t08 ctx lacks IdentityPort.assertRole); core pipeline gates permission.

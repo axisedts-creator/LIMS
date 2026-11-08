@@ -10,10 +10,12 @@ import type { CatalogCache } from '../cache/catalogCache.js';
 import { expandToTestIds, type PanelGraph } from '../domain/panelGraph.js';
 import { resolveCriticalLimits, resolveReferenceRange, selectSet, type RangeSet } from '../domain/rangeMatch.js';
 import { currentRevision } from '../repo/catalogState.repo.js';
+import { createQuoteService } from '../service/quote.service.js';
 
 type Row = Record<string, any>;
 type Ctx = { tenantId: string; tx: { query(text: string, values?: unknown[]): Promise<{ rows: any[] }> }; now(): string | Date };
-export type CatalogPortNonPrice = Pick<CatalogPortV1, 'getTest' | 'getPanel' | 'resolveOrderables' | 'referenceRangeFor' | 'criticalLimitsFor' | 'mapInstrumentCode'>;
+export type CatalogPortNonPrice = Pick<CatalogPortV1, 'getTest' | 'getPanel' | 'resolveOrderables' | 'referenceRangeFor' | 'criticalLimitsFor' | 'mapInstrumentCode'
+  | 'getReferrer' | 'getCreditParty' | 'resolveCommentCodes' | 'priceFor'>;
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const ISO = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}(\.\d+)?)?(Z|[+-]\d{2}:\d{2})$/;
@@ -29,6 +31,13 @@ function instant(v: unknown, what: string): Date {
   if (Number.isNaN(+d)) throw invalid(what);
   return d;
 }
+const validDate = (s: unknown): s is string => typeof s === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(s) && new Date(`${s}T00:00:00.000Z`).toJSON()?.startsWith(s) === true;   // toJSON() = null for an impossible date
+const STAFF = ['user', 'system'];                                // actor types that may read contact / billing data (AB-19)
+const staffOnly = (ctx: any) => { if (!STAFF.includes(ctx?.actor?.type)) throw new LimsError('auth.forbidden'); };
+const upper = (s: string) => s.replace(/[a-z]/g, (c) => c.toUpperCase());   // ASCII only: no Unicode case-fold forgeries (ı -> I)
+const camel = (k: string) => k.replace(/_([a-z])/g, (_, c) => c.toUpperCase());
+const snake = (k: string) => k.replace(/[A-Z]/g, (c) => `_${c.toLowerCase()}`);
+const MAX_HOPS = 10;                                             // merged-referrer chain bound (a cycle can never loop)
 const nowOf = (ctx: Ctx): string => { const n = ctx.now(); return typeof n === 'string' ? n : n.toISOString(); };
 const asOfOf = (ctx: Ctx, v: unknown) => instant(v ?? nowOf(ctx), 'asOf');
 
@@ -54,6 +63,7 @@ interface RangeBundle { versions: Array<{ status: string; effective_from: Date; 
 
 export function createCatalogPort(deps: { cache: CatalogCache }): CatalogPortNonPrice {
   const { cache } = deps;
+  const quote = createQuoteService();
   const q = async (ctx: Ctx, text: string, values: unknown[]): Promise<Row[]> => (await ctx.tx.query(text, values)).rows;
 
   // The catalog_revision, read once per ctx (the cache-key revision, 02-TRD §6.3). A rejected read is not memoised.
@@ -197,20 +207,21 @@ export function createCatalogPort(deps: { cache: CatalogCache }): CatalogPortNon
     return deepFreeze({ versions: versions.map((v) => ({ status: v.status, effective_from: v.effective_from, effective_to: v.effective_to, unit_code: v.unit_code, method_id: v.method_id })), ref, crit, specimenIds: Object.fromEntries(sts.map((s) => [s.code, s.id])) });
   }
 
-  interface RangeIn { analyteId: string; sex: string; ageDays?: number; specimenTypeCode?: string; at: Date }
+  interface RangeIn { analyteId: string; sex: string; ageDays?: number; specimenTypeCode?: string; birthOn?: string; at: Date }
   function rangeInput(input: any): RangeIn {
     if (!input || typeof input !== 'object') throw invalid('input');
     const analyteId = uuid(input.analyteId, 'analyteId');
     if (typeof input.sex !== 'string') throw invalid('sex');
     if (input.ageDays !== undefined && !(Number.isInteger(input.ageDays) && input.ageDays >= 0)) throw invalid('ageDays');
     if (input.specimenTypeCode !== undefined && typeof input.specimenTypeCode !== 'string') throw invalid('specimenTypeCode');
-    return { analyteId, sex: input.sex, ...opt('ageDays', input.ageDays), ...opt('specimenTypeCode', input.specimenTypeCode), at: instant(input.at, 'at') };
+    if (input.birthOn !== undefined && !validDate(input.birthOn)) throw invalid('birthOn');
+    return { analyteId, sex: input.sex, ...opt('ageDays', input.ageDays), ...opt('specimenTypeCode', input.specimenTypeCode), ...opt('birthOn', input.birthOn), at: instant(input.at, 'at') };
   }
   async function rangesFor(ctx: Ctx, i: RangeIn): Promise<{ b: RangeBundle; query: Parameters<typeof resolveReferenceRange>[0]['query'] }> {
     const rev = await revisionOf(ctx);
     const b = await cache.getOrLoad(ctx.tenantId, rev, 'ranges', i.analyteId, () => loadRanges(ctx, i.analyteId));
     const specimenTypeId = i.specimenTypeCode === undefined ? undefined : Object.hasOwn(b.specimenIds, i.specimenTypeCode) ? b.specimenIds[i.specimenTypeCode] : undefined;
-    return { b, query: { sex: i.sex, at: i.at, ...opt('ageDays', i.ageDays), ...opt('specimenTypeId', specimenTypeId) } };
+    return { b, query: { sex: i.sex, at: i.at, ...opt('ageDays', i.ageDays), ...opt('birthOn', i.birthOn), ...opt('specimenTypeId', specimenTypeId) } };
   }
 
   // ---- cached entity access
@@ -327,6 +338,96 @@ export function createCatalogPort(deps: { cache: CatalogCache }): CatalogPortNon
       const m = resolveCriticalLimits({ sets: b.crit, versions: b.versions, query });
       const codes = (m as { abnormalCodes?: readonly string[] } | undefined)?.abnormalCodes;
       return m && ({ ...m, ...(codes ? { abnormalCodes: [...codes] } : {}) } as CriticalLimitsMatch);
+    },
+
+    /** CR-C3-001. Uncached, read-only. 'notification' (contact data) only for user|system actors (AB-19); a merged doctor reports its canonical id. */
+    async getReferrer(c, input) {
+      const ctx = c as Ctx;
+      if (!input || typeof input !== 'object') throw invalid('input');
+      if (input.purpose !== 'display' && input.purpose !== 'notification') throw invalid('purpose');
+      const id = uuid(input.referrerId, 'referrerId');
+      if (input.purpose === 'notification') staffOnly(ctx);
+      const cols = `id, doctor_code, display_name, qualification, registration_no, is_verified, is_active, merged_into_id${input.purpose === 'notification' ? ', phone_e164, email' : ''}`;
+      const r = (await q(ctx, `SELECT ${cols} FROM catalog.doctors WHERE tenant_id = $1 AND id = $2`, [ctx.tenantId, id]))[0];
+      if (!r) throw notFound();
+      let canonical: string = r.id, next: string | null = r.merged_into_id;
+      for (let hop = 0; next != null; hop++) {
+        if (hop >= MAX_HOPS) throw notFound();
+        const d = (await q(ctx, 'SELECT id, merged_into_id FROM catalog.doctors WHERE tenant_id = $1 AND id = $2', [ctx.tenantId, next]))[0];
+        if (!d) throw notFound();
+        canonical = d.id; next = d.merged_into_id;
+      }
+      const contact = { ...opt('phoneE164', r.phone_e164), ...opt('email', r.email) };
+      return {
+        referrerId: r.id, canonicalReferrerId: canonical, code: r.doctor_code, displayName: r.display_name,
+        ...opt('qualification', r.qualification), ...opt('registrationNo', r.registration_no),
+        isVerified: r.is_verified === true, isActive: r.is_active === true,
+        ...(input.purpose === 'notification' && Object.keys(contact).length ? { contact } : {}),
+      };
+    },
+
+    /** CR-C3-001. 'billing' (pan, address) and 'notification' (contact) only for user|system actors (AB-19). priceListId = the assigned list when it is active. */
+    async getCreditParty(c, input) {
+      const ctx = c as Ctx;
+      if (!input || typeof input !== 'object') throw invalid('input');
+      const purpose = input.purpose;
+      if (purpose !== 'display' && purpose !== 'notification' && purpose !== 'billing') throw invalid('purpose');
+      const id = uuid(input.creditPartyId, 'creditPartyId');
+      if (purpose !== 'display') staffOnly(ctx);
+      const extra = purpose === 'billing' ? ', pan, billing_address' : purpose === 'notification' ? ', contact_phone_e164, contact_email' : '';
+      const T = ctx.tenantId;
+      const r = (await q(ctx, `SELECT id, party_code, name, kind, allows_credit, is_active${extra} FROM catalog.credit_parties WHERE tenant_id = $1 AND id = $2`, [T, id]))[0];
+      if (!r) throw notFound();
+      const listId = (await q(ctx, 'SELECT price_list_id FROM catalog.price_list_assignments WHERE tenant_id = $1 AND credit_party_id = $2', [T, id]))[0]?.price_list_id;
+      const list = listId == null ? undefined : (await q(ctx, 'SELECT id, is_active FROM catalog.price_lists WHERE tenant_id = $1 AND id = $2', [T, listId]))[0];
+      const contact = { ...opt('phoneE164', r.contact_phone_e164), ...opt('email', r.contact_email) };
+      return {
+        creditPartyId: r.id, code: r.party_code, name: r.name, kind: r.kind, allowsCredit: r.allows_credit === true, isActive: r.is_active === true,
+        ...(list?.is_active === true ? { priceListId: list.id } : {}),
+        ...(purpose === 'billing' ? { ...opt('pan', r.pan), ...opt('billingAddressText', r.billing_address) } : {}),
+        ...(purpose === 'notification' && Object.keys(contact).length ? { contact } : {}),
+      };
+    },
+
+    /** CR-C3-001 (§4.14). Department entry wins over tenant-wide; inactive / unknown codes -> `unknown`; asOf = the text version effective then, [from, to). Two bulk reads. */
+    async resolveCommentCodes(c, input) {
+      const ctx = c as Ctx;
+      if (!input || typeof input !== 'object' || !Array.isArray(input.codes) || input.codes.length > 50) throw invalid('codes');
+      if (input.codes.some((x: unknown) => typeof x !== 'string')) throw invalid('codes');
+      const dept = input.departmentId === undefined ? undefined : uuid(input.departmentId, 'departmentId');
+      const asOf = input.asOf === undefined ? undefined : instant(input.asOf, 'asOf');
+      const codes = uniq<string>(input.codes.map(upper));
+      const T = ctx.tenantId;
+      const rows = codes.length ? await q(ctx, 'SELECT id, code, department_id, text, version FROM catalog.comment_codes WHERE tenant_id = $1 AND is_active = $2 AND code = ANY($3)', [T, true, codes]) : [];
+      const pick = (code: string) => rows.find((r) => r.code === code && dept !== undefined && r.department_id === dept) ?? rows.find((r) => r.code === code && r.department_id == null);
+      const texts = asOf && rows.length
+        ? await q(ctx, 'SELECT comment_code_id, text_version, text, effective_from, effective_to FROM catalog.comment_code_texts WHERE tenant_id = $1 AND comment_code_id = ANY($2)', [T, rows.map((r) => r.id)])
+        : [];
+      const resolved: Array<Record<string, unknown>> = [], unknown: string[] = [];
+      for (const code of codes) {
+        const r = pick(code);
+        const t = !r ? undefined : !asOf ? { text: r.text, text_version: r.version }
+          : texts.find((x) => x.comment_code_id === r.id && +x.effective_from <= +asOf && (x.effective_to == null || +asOf < +x.effective_to));
+        if (!r || !t) { unknown.push(code); continue; }
+        resolved.push({ code, commentCodeId: r.id, version: Number(t.text_version), ...opt('departmentId', r.department_id), text: t.text });
+      }
+      return { resolved, unknown } as never;
+    },
+
+    /** CR-C3-001. The quote engine (quote.service) for one orderable; per-item error codes are thrown (TRD §6.1: no_price, tax_config_missing, not_found). */
+    async priceFor(c, input) {
+      if (!input || typeof input !== 'object') throw invalid('input');
+      const { orderableId, context, priority, at } = input as unknown as Record<string, any>;
+      const ctxIds = context && typeof context === 'object' && !Array.isArray(context) ? Object.fromEntries(Object.entries(context).map(([k, v]) => [snake(k), v])) : context;
+      const { quotes } = await quote.quotePrices(c as never, { items: [{ orderable_id: orderableId, priority }], context: ctxIds, at });
+      const r = quotes[0]!;
+      if (r['error_code']) throw new LimsError(r['error_code']);
+      const money = (m: { amount_paisa: number; currency: string }) => ({ amountPaisa: m.amount_paisa, currency: m.currency });
+      const tax = Object.fromEntries(Object.entries(r['tax']).map(([k, v]) => [camel(k), v]));
+      return {
+        orderableId: r['orderable_id'], priceListId: r['price_list_id'], priceListVersion: r['price_list_version'], source: r['source'], unitPrice: money(r['unit_price']),
+        ...(r['urgent_surcharge'] ? { urgentSurcharge: money(r['urgent_surcharge']) } : {}), tax,
+      } as never;
     },
 
     /** §7.8. Uncached on purpose: one indexed read (instrument_code_maps__inbound/outbound__p_uq), so an edit or deactivation is visible to the very next request. */

@@ -116,7 +116,7 @@ describe('R9 happy path (02-TRD R9; 08 P-13 fingerprint)', () => {
 describe('validation (400): reason_code / reason_text', () => {
   it('`other` without reason_text -> common.validation_failed pointing at /reason_text, nothing written', async () => {
     const s = setup(); const e = await rejection(s.call({ reason_code: 'other' }));
-    expect(e?.code).toBe('common.validation_failed'); expect(JSON.stringify(e?.details ?? e?.fields ?? [])).toContain('reason_text'); untouched(s);
+    expect(e?.code).toBe('common.validation_failed'); expect(JSON.stringify(e?.errors ?? [])).toContain('/reason_text'); untouched(s);
   });
   it.each(['', '   ', '\n\t'])('`other` with blank reason_text %j -> common.validation_failed', async (t) => {
     const s = setup(); expect((await rejection(s.call({ reason_code: 'other', reason_text: t })))?.code).toBe('common.validation_failed'); untouched(s);

@@ -11,12 +11,13 @@ import { expandToTestIds, type PanelGraph } from '../domain/panelGraph.js';
 import { isTaxCode, isTaxTypeUsable, localMidnight, taxTypeVersionAt } from '../domain/tax.js';
 import { resolveCriticalLimits,resolveReferenceRange, selectSet, type RangeSet } from '../domain/rangeMatch.js';
 import { currentRevision } from '../repo/catalogState.repo.js';
+import { listStatus } from '../domain/priceMatch.js';
 import { createQuoteService } from '../service/quote.service.js';
 
 type Row = Record<string, any>;
 type Ctx = { tenantId: string; tx: { query(text: string, values?: unknown[]): Promise<{ rows: any[] }> }; now(): string | Date };
 export type CatalogPortNonPrice = Pick<CatalogPortV1, 'getTest' | 'getPanel' | 'resolveOrderables' | 'referenceRangeFor' | 'criticalLimitsFor' | 'mapInstrumentCode'>;
-export type CatalogPortImpl = CatalogPortNonPrice & Pick<CatalogPortV1, 'priceFor' | 'getTaxRate'>;
+export type CatalogPortImpl = CatalogPortNonPrice & Pick<CatalogPortV1, 'priceFor' | 'getTaxRate' | 'getPriceListStatus'>;
 const CONTEXT_KEYS = [['priceListId', 'price_list_id'], ['creditPartyId', 'credit_party_id'], ['referrerId', 'referrer_id'], ['centreId', 'centre_id']] as const;
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -355,6 +356,16 @@ export function createCatalogPort(deps: { cache: CatalogCache }): CatalogPortImp
       const v = taxTypeVersionAt(rows as Array<{ code: string; effective_from: Date; effective_to: Date | null; is_active: boolean; rate_bp: number | null }>, taxCode, t);
       if (!isTaxTypeUsable(v)) throw missing();
       return { taxCode, ratePercentBasisPoints: v!.rate_bp!, kind: 'other', effectiveFrom: new Date(v!.effective_from).toISOString() };
+    },
+
+    /** §7.4a (08 A24.1). Uncached (two indexed reads on ctx.tx, tenant bound from ctx) so a version change is visible at once; unknown / other-tenant id -> common.not_found, nothing disclosed. */
+    async getPriceListStatus(c, input) {
+      const ctx = c as Ctx;
+      const priceListId = uuid((input as Row | null | undefined)?.['priceListId'], 'priceListId');
+      const [list] = await q(ctx, 'SELECT id, is_active FROM catalog.price_lists WHERE tenant_id = $1 AND id = $2', [ctx.tenantId, priceListId]);
+      if (!list) throw notFound();
+      const vs = await q(ctx, 'SELECT status FROM catalog.price_list_versions WHERE tenant_id = $1 AND price_list_id = $2', [ctx.tenantId, priceListId]);
+      return { priceListId: list['id'], isActive: list['is_active'] === true, status: listStatus(vs.map((v) => v['status'])) };
     },
 
     async referenceRangeFor(ctx, input): Promise<ReferenceRangeMatch> {

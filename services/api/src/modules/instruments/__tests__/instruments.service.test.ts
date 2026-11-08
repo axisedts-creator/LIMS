@@ -252,6 +252,12 @@ describe('E26 updateInstrument — If-Match, immutability, AC-03.5 version-bump 
     expect(code(e)).toBe('common.validation_failed'); expect(e.errors?.[0]?.path).toBe(`/${f}`);
     expect(w.mutations()).toHaveLength(0);
   });
+  it.each([['does not compile', '('], ['lookahead (not RE2)', '(?=a)'], ['backreference (not RE2)', '(a)\\1']])('qc_sample_id_patterns item that %s -> 400 at /qc_sample_id_patterns/1, nothing written', async (_n, bad) => {
+    const w = world({ instruments: [at('live', { driver_code: 'syn_verified_astm' })] });
+    const e = await rejection(upd(w, { qc_sample_id_patterns: ['^QC-', bad] }));
+    expect(code(e)).toBe('common.validation_failed'); expect(e.errors?.[0]?.path).toBe('/qc_sample_id_patterns/1');
+    expect(w.mutations()).toHaveLength(0); expect(w.pub.calls).toHaveLength(0);
+  });
   it('empty patch -> 400 (nothing to change)', async () => {
     const w = world({ instruments: [at('draft')] });
     expect(code(await rejection(upd(w, {})))).toBe('common.validation_failed');
@@ -405,6 +411,12 @@ describe('E27-E31 transitions — AC-04.1..04.5, version bump (I2-I6)', () => {
         expect(code(await rejection(call(w, 'goLiveInstrument', { body: { ...LIVE_BODY, checklist } })))).toBe('instruments.go_live_checklist_incomplete');
         expect(w.mutations()).toHaveLength(0); expect(w.pub.calls).toHaveLength(0);
       }
+    });
+    it('evidence_note shorter than 10 chars (9) -> 400 common.validation_failed at /evidence_note (openapi minLength 10), nothing written, no publish', async () => {
+      const w = world({ instruments: [verified()] });
+      const e = await rejection(call(w, 'goLiveInstrument', { body: { checklist: GOOD_CHECKLIST, evidence_note: 'x'.repeat(9) } }));
+      expect(code(e)).toBe('common.validation_failed'); expect(e.errors?.[0]?.path).toBe('/evidence_note');
+      expect(w.mutations()).toHaveLength(0); expect(w.pub.calls).toHaveLength(0);
     });
     it.each([['empty', ''], ['blank', '   '], ['missing', undefined]])('AC-04.3 %s evidence_note -> rejected (checklist_incomplete or validation_failed), nothing written', async (_n, evidence_note) => {
       const w = world({ instruments: [verified()] });

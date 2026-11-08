@@ -1,7 +1,8 @@
 // `email_smtp_relay` transport (02-TRD §5.4; 06-PLAN C6-T26; AC-08.5; REQ-SEC-007, REQ-SEC-101): link-only e-mail over a tenant SMTP relay.
 // The message is one single-part text/plain body (the link text the caller rendered); there is no other content path.
-// Protocol-level client on node:net / node:tls, so no SMTP library is needed (CR-C6-019 only pins one if C0 prefers it).
-// Creds (the resolved channel_accounts.secret_ref): { host, port, from, security?, username?, password?, timeoutMs? }.
+// INTERIM: protocol-level client on node:net / node:tls. CR-C6-019 + db/meta/decisions/T0-03-dependencies.md:54 pin nodemailer 10.3.1;
+// task stays pending-cr (.orchestra/cr/C6-T26.md) until C0-0D adds it, then this file is rewritten on nodemailer.
+// Creds (the resolved channel_accounts.secret_ref): { host, port, from, security?, username?, password?, timeoutMs?, ca? }; ca = PEM dev/test trust anchor.
 // security: 'starttls' (default) | 'tls' | 'none'; 'none' is for a loopback dev sink only. Errors carry only a failureCode (no PHI, no relay text).
 // No environment access, no logging.
 import net from 'node:net';
@@ -9,7 +10,7 @@ import tls from 'node:tls';
 import { TransportError } from '../transport.js';
 import type { OutboundMessage, ResolvedSecret, SendOutcome, Transport } from '../transport.js';
 
-interface Cfg { host: string; port: number; from: string; security: 'none' | 'starttls' | 'tls'; username?: string | undefined; password?: string | undefined; timeoutMs: number }
+interface Cfg { host: string; port: number; from: string; security: 'none' | 'starttls' | 'tls'; username?: string | undefined; password?: string | undefined; timeoutMs: number; ca?: string | undefined }
 interface Reply { code: number; lines: string[] }
 
 const ADDR = /^[A-Za-z0-9.!#$%&'*+/=?^_`{|}~-]{1,64}@[A-Za-z0-9](?:[A-Za-z0-9.-]{0,251}[A-Za-z0-9])?$/;
@@ -29,8 +30,9 @@ function parseCfg(c: unknown): Cfg {
   if (security === 'none' && !(host === 'localhost' || host === '::1' || /^127\./.test(host))) throw fail(false, 'invalid_config');
   if (!Number.isInteger(timeoutMs) || (timeoutMs as number) < 100 || (timeoutMs as number) > 120000) throw fail(false, 'invalid_config');
   if ((username === undefined) !== (password === undefined)) throw fail(false, 'invalid_config');
+  if (o.ca !== undefined && (typeof o.ca !== 'string' || !o.ca.includes('-----BEGIN CERTIFICATE-----'))) throw fail(false, 'invalid_config');
   if (username !== undefined && (typeof username !== 'string' || typeof password !== 'string' || !username || !password)) throw fail(false, 'invalid_config');
-  return { host, port: port as number, from: address(o.from, 'invalid_config'), security, username: username as string | undefined, password: password as string | undefined, timeoutMs: timeoutMs as number };
+  return { host, port: port as number, from: address(o.from, 'invalid_config'), security, username: username as string | undefined, password: password as string | undefined, timeoutMs: timeoutMs as number, ca: o.ca as string | undefined };
 }
 
 /** Subject header value: plain when short printable ASCII, else RFC 2047 UTF-8 B-words (<= 75 chars each), folded. */
@@ -108,10 +110,10 @@ class Wire {
 
   send(line: string) { this.sock.write(`${line}\r\n`); }
 
-  async upgrade(host: string) {
+  async upgrade(host: string, ca?: string) {
     if (this.buf || this.lines.length) throw fail(false, 'protocol_error');   // data buffered before the handshake would be unauthenticated
     const raw = this.sock; raw.removeListener('data', this.onData);
-    this.bind(tls.connect({ socket: raw, servername: net.isIP(host) ? undefined : host }), 'secureConnect');
+    this.bind(tls.connect({ socket: raw, host, ca, servername: net.isIP(host) ? undefined : host }), 'secureConnect');
     await this.opened();
   }
 
@@ -137,7 +139,7 @@ export const smtpRelayTransport: Transport = {
     const helo = `EHLO ${cfg.from.slice(cfg.from.indexOf('@') + 1)}`;
 
     const w = new Wire(cfg.timeoutMs);
-    w.bind(cfg.security === 'tls' ? tls.connect({ host: cfg.host, port: cfg.port, servername: net.isIP(cfg.host) ? undefined : cfg.host }) : net.connect({ host: cfg.host, port: cfg.port }),
+    w.bind(cfg.security === 'tls' ? tls.connect({ host: cfg.host, port: cfg.port, ca: cfg.ca, servername: net.isIP(cfg.host) ? undefined : cfg.host }) : net.connect({ host: cfg.host, port: cfg.port }),
       cfg.security === 'tls' ? 'secureConnect' : 'connect');
     try {
       await w.opened();
@@ -148,7 +150,7 @@ export const smtpRelayTransport: Transport = {
         if (!ext.includes('STARTTLS')) throw fail(false, 'tls_unavailable');
         w.send('STARTTLS');
         expect(await w.reply(), 2, 'tls_unavailable');
-        await w.upgrade(cfg.host);
+        await w.upgrade(cfg.host, cfg.ca);
         w.send(helo);
         ext = exts(expect(await w.reply(), 2));
       }

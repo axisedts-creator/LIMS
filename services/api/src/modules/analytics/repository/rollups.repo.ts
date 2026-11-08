@@ -36,7 +36,7 @@ export function checkScope(scope: unknown): RollupScope {
 }
 
 /** pg bigint (string) or number -> safe integer; anything else, or beyond 2^53, throws. */
-function int(v: unknown, col: string): number {
+export function int(v: unknown, col: string): number {
   const n = typeof v === 'number' ? v : typeof v === 'string' && /^-?[0-9]{1,20}$/.test(v) ? Number(v) : NaN;
   if (!Number.isSafeInteger(n) || (typeof v === 'string' && BigInt(v) !== BigInt(n))) throw new RangeError(`rollups: ${col} is not a safe integer`);
   return n;

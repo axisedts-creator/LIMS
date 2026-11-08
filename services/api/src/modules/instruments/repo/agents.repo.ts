@@ -56,7 +56,7 @@ const COMMAND_SELECT = `SELECT c.id, c.tenant_id, c.agent_id, c.kind, c.params, 
 const PATCH_COLS = ['display_name', 'update_channel', 'pinned_release_id', 'backlog_threshold'];
 
 // ponytail: offset cursor (opaque base64url); rows shifting between pages can repeat/skip one — keyset when lists get long.
-function paging(q: Row): { limit: number; offset: number } {
+export function paging(q: Row): { limit: number; offset: number } {
   const limit = Number(q['limit'] ?? 50);
   let offset = 0;
   if (q['cursor'] !== undefined) {
@@ -68,7 +68,7 @@ function paging(q: Row): { limit: number; offset: number } {
   }
   return { limit, offset };
 }
-function paged(rows: Row[], p: { limit: number; offset: number }): Page {
+export function paged(rows: Row[], p: { limit: number; offset: number }): Page {
   if (rows.length <= p.limit) return { rows };
   return { rows: rows.slice(0, p.limit), nextCursor: Buffer.from(JSON.stringify({ o: p.offset + p.limit })).toString('base64url') };
 }

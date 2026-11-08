@@ -8,7 +8,7 @@ import { RELEASE_COLS, DELIVERY_COLS, RESULT_COLS } from '../domain/columns.js';
 import {
   INCOME_MONEY, VOLUME_MONEY, type CollectionsOutRow, type CollectionsTotals, type DepartmentOutRow, type DepartmentTotals, type IncomeOutRow, type IncomeTotals,
   type TopCentreOutRow, type TopReferrerOutRow, type VolumeOutRow, type VolumeTotals,
-  type DeliveryOutRow, type DeliveryTotals, type InstrumentOutRow, type QualityOut, type ReleaseOutRow, type ReleaseTotals, type TestsDoneRow, type TestsDoneTotals,
+  type DeliveryOutRow, type DeliveryTotals, type InstrumentOutRow, type QualityOut, type ReleaseOutRow, type ReleaseTotals, type TatOutRow, type TestsDoneRow, type TestsDoneTotals,
 } from '../service/reports.service.js';
 
 export interface ReportMeta { readonly period: Period; readonly scope: Scope; readonly generatedAt: string }
@@ -178,6 +178,22 @@ export function toDeliveryReportDto(
     ...envelope('delivery', m),
     deliveries: { rows: out.deliveries.rows.map((r) => ({ ...head(r), ...pickOf(r, dKeys) })), totals: pickOf(out.deliveries.totals, dKeys) },
     releases: { rows: out.releases.rows.map((r) => ({ ...head(r), ...pickOf(r, RELEASE_COLS) })), totals: pickOf(out.releases.totals, RELEASE_COLS) },
+  };
+}
+
+export function toTatReportDto(m: ReportMeta, out: { rows: readonly TatOutRow[]; segments: readonly string[] }) {
+  return {
+    ...envelope('tat', m),
+    rows: out.rows.map((r) => ({
+      segment: r.segment,
+      ...(r.key === undefined ? {} : { key: r.key }), ...(r.label === undefined ? {} : { label: r.label }),
+      n: r.n,
+      ...(r.median_seconds === undefined ? {} : { median_seconds: r.median_seconds }),
+      ...(r.p90_seconds === undefined ? {} : { p90_seconds: r.p90_seconds }),
+      ...(r.max_seconds === undefined ? {} : { max_seconds: r.max_seconds }),
+      anomalies: r.anomalies,
+    })),
+    segment_definitions: out.segments.map((s) => ({ segment: s, start_label_key: `analytics.tat.${s}.start`, stop_label_key: `analytics.tat.${s}.stop` })),
   };
 }
 

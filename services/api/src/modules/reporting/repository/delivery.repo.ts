@@ -84,6 +84,22 @@ export async function listDeliveries(tx: Tx, tenantId: string, f: DeliveryFilter
   return rows;
 }
 
+/** R18: critical_value_alert rows of the window (index deliveries__tenant_id_purpose_created_at__idx). No params / destination columns. Centre scope = RLS. */
+export async function listCriticalAlertDeliveries(tx: Tx, tenantId: string, since: string, centreId: string | null): Promise<Array<Record<string, any>>> {
+  const { rows } = await tx.query(
+    `SELECT id, centre_id, recipient_kind, recipient_id, status, failure_code, related_entity_id, report_id, created_at
+     FROM reporting.deliveries
+     WHERE tenant_id = $1 AND purpose = 'critical_value_alert' AND related_entity_type = 'critical_event' AND created_at >= $2 AND ($3::uuid IS NULL OR centre_id = $3)`,
+    [tenantId, since, centreId]);
+  return rows;
+}
+
+/** R18: order id + registration no. of the alerts' reports (snapshot columns only). */
+export async function findReportRefs(tx: Tx, tenantId: string, ids: string[]): Promise<Array<{ id: string; order_id: string; registration_no: string }>> {
+  const { rows } = await tx.query(`SELECT id, order_id, registration_no FROM reporting.reports WHERE tenant_id = $1 AND id = ANY($2::uuid[])`, [tenantId, ids]);
+  return rows;
+}
+
 export async function listAttempts(tx: Tx, tenantId: string, deliveryId: string): Promise<Array<Record<string, any>>> {
   const { rows } = await tx.query(
     `SELECT attempt_no, started_at, finished_at, outcome, error_code FROM reporting.delivery_attempts WHERE tenant_id = $1 AND delivery_id = $2 ORDER BY attempt_no`, [tenantId, deliveryId]);
@@ -104,6 +120,12 @@ export async function findFallbackOf(tx: Tx, tenantId: string, deliveryId: strin
 // ------------------------------------------------------------------------------------------------ report context
 export async function findReportMeta(tx: Tx, tenantId: string, reportId: string): Promise<{ id: string; centre_id: string; patient_id: string; referrer_id: string | null } | undefined> {
   const { rows } = await tx.query(`SELECT id, centre_id, patient_id, referrer_id FROM reporting.reports WHERE tenant_id = $1 AND id = $2`, [tenantId, reportId]);
+  return rows[0];
+}
+
+/** The order's `laboratory` report (UNIQUE tenant_id, order_id, family). */
+export async function findLabReportOfOrder(tx: Tx, tenantId: string, orderId: string): Promise<{ id: string } | undefined> {
+  const { rows } = await tx.query(`SELECT id FROM reporting.reports WHERE tenant_id = $1 AND order_id = $2 AND family = 'laboratory'`, [tenantId, orderId]);
   return rows[0];
 }
 

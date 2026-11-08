@@ -1,6 +1,7 @@
 // lab-report template (04-UI-UX §3.1/§3.2, Metro layout; AC-03.1–03.3, 03.5–03.7, AC-12.2). Pure: same input -> same HTML.
 import type { Block, RenderInput, TemplateModule } from '../contract.js';
 import { sanitizeHtml } from '../narrative/sanitize.js';
+import { anatomicRows, microRows } from './modules.js';
 import { esc, footerBlock, shell, statusBox } from './shared.js';
 
 function body(input: RenderInput, span: number, units: boolean): string {
@@ -42,8 +43,9 @@ function body(input: RenderInput, span: number, units: boolean): string {
     } else if (s.kind === 'outsourced_index' && s.items.length) {
       out += row('dept hd', 'Tests performed by external laboratories');
       for (const it of s.items) out += row('keep', `${it.testName} — ${it.externalLabName} — attached report follows`);
-    }
-    // micro / anatomic / narrative sections are not drawn by lab-report (their layouts belong to later tasks / narrative-report).
+    } else if (s.kind === 'micro') out += microRows(s, span);
+    else if (s.kind === 'anatomic') out += anatomicRows(s, span, input.assets);
+    // narrative sections are not drawn by lab-report (narrative-report draws them).
   }
   if (input.smart && d.smart) {
     const frag = input.smart.renderSections({ summary: d.smart.payload, calendarDisplay: d.calendarDisplay, timezone: d.timezone });

@@ -1,0 +1,6 @@
+# BL-T15 impl (writer)
+Files: api `service/register.service.ts`, `service/export.service.ts`, `repository/registers.repo.ts` (+ `repository/index.ts`); worker `tasks/export_render.ts`, `tasks/export_purge.ts` (+ `index.ts`, `cron.ts`); `docs/manual/billing/exports.md` (XSD urn:lims:billing:export:v1).
+Review round: (1) object key from job created_at; ifAbsent clash -> read back (StorageAdapter.read, fake `get`), XML must hash-equal else rethrow, PDF reuses stored bytes. (2) invoice_documents -> export_render Permanent `common.feature_disabled` (B28 still accepts per TRD enum/test:100). (3)+(2) CR `.orchestra/cr/BL-T15.md`. (4) B26 + credit_notes export ORDER BY fiscal_year_bs, credit_note_seq, id; keyset (fy, seq, id) with fy carried in cursor `f`.
+Run: verify.cmd suites api 83 pass / 6 skipped, worker 49 pass; full billing api 1397 pass / 55 skipped, worker 126 pass / 31 skipped; tsc clean for touched files.
+[CONV] sn = running position; A.D. dates = Asia/Kathmandu; generated_at = job created_at; access_log before storage read in B29a; credit-note cursor without `f` or non-integer k -> common.invalid_cursor.
+Open: real SQL never run (no LIMS_TEST_DATABASE_URL); RenderPort stub (CR-C4-004); `cancelled_by` + invoice_documents pending CR-C4-BL15; XSD checked only by in-repo subset validator.

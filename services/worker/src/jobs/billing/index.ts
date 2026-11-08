@@ -9,14 +9,18 @@ import { INTEGRITY_CHECK, integrityCheck } from './tasks/integrity_check.js';
 import { EXPORT_TENANT, exportTenant } from './tasks/export_tenant.js';
 import { CBMS_SYNC, cbmsSync } from './tasks/cbms_sync.js';
 import { CBMS_SWEEP, cbmsSweep } from './tasks/cbms_sweep.js';
+import { EXPORT_RENDER, exportRender } from './tasks/export_render.js';
+import { EXPORT_PURGE, exportPurge } from './tasks/export_purge.js';
 
 export const manifest: WorkerManifest = Object.freeze({
   module: 'billing',
   tasks: Object.freeze({
     [FISCAL_COUNTER_PREPARE]: fiscalCounterPrepare, [CREDIT_DAYS_CHECK]: creditDaysCheck, [INTEGRITY_CHECK]: integrityCheck, [EXPORT_TENANT]: exportTenant,
-    [CBMS_SYNC]: cbmsSync, [CBMS_SWEEP]: cbmsSweep,
+    [CBMS_SYNC]: cbmsSync, [CBMS_SWEEP]: cbmsSweep, [EXPORT_RENDER]: exportRender, [EXPORT_PURGE]: exportPurge,
   }),
-  maxAttempts: Object.freeze({ [FISCAL_COUNTER_PREPARE]: 5, [CREDIT_DAYS_CHECK]: 3, [INTEGRITY_CHECK]: 1, [EXPORT_TENANT]: 1, [CBMS_SYNC]: 10, [CBMS_SWEEP]: 3 }),
+  maxAttempts: Object.freeze({
+    [FISCAL_COUNTER_PREPARE]: 5, [CREDIT_DAYS_CHECK]: 3, [INTEGRITY_CHECK]: 1, [EXPORT_TENANT]: 1, [CBMS_SYNC]: 10, [CBMS_SWEEP]: 3, [EXPORT_RENDER]: 5, [EXPORT_PURGE]: 3,
+  }),
   subscriptions: Object.freeze({ [INTENT_SETTLED]: onIntentSettled, [COLLECTION_SYNCED]: onCollectionSynced }),
   crontab,
 });

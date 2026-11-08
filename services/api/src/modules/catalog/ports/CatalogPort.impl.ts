@@ -1,19 +1,22 @@
-// CatalogPort real implementation, non-price methods (T-28a): getTest, getPanel, resolveOrderables, referenceRangeFor, criticalLimitsFor.
+// CatalogPort real implementation: T-28a getTest, getPanel, resolveOrderables, referenceRangeFor, criticalLimitsFor; T-28b priceFor (03-IC §4.2 cases 6-8, 02-TRD §7.4-§7.6).
 // Spec: 03-IC §4.2, 02-TRD §6.1 (method table), §6.3 (cache), §7.3 (band selection), §7.7 (panel expansion); contracts/ports/CatalogPort.ts.
 // Read-only: every query runs on ctx.tx (no transaction control, no write, no lock). Tenant comes from ctx.tenantId only; every value is a bind parameter.
 // Cache: time-independent bundles keyed (tenant, catalog_revision, kind, id); the revision is read ONCE per ctx (memoised) and asOf / at are applied in memory.
 import type {
-  AnalyteDefinition, CatalogPortV1, CriticalLimitsMatch, PanelDefinition, ReferenceRangeMatch, ResolvedOrderables, TestDefinition,
+  AnalyteDefinition, CatalogPortV1, CriticalLimitsMatch, InstrumentCodeMapping, PanelDefinition, PriceQuote, ReferenceRangeMatch, ResolvedOrderables, TestDefinition,
 } from '../../../../../../contracts/ports/CatalogPort.js';
 import { LimsError } from '../../../core/errors.js';
 import type { CatalogCache } from '../cache/catalogCache.js';
 import { expandToTestIds, type PanelGraph } from '../domain/panelGraph.js';
 import { resolveCriticalLimits, resolveReferenceRange, selectSet, type RangeSet } from '../domain/rangeMatch.js';
 import { currentRevision } from '../repo/catalogState.repo.js';
+import { createQuoteService } from '../service/quote.service.js';
 
 type Row = Record<string, any>;
 type Ctx = { tenantId: string; tx: { query(text: string, values?: unknown[]): Promise<{ rows: any[] }> }; now(): string | Date };
-export type CatalogPortNonPrice = Pick<CatalogPortV1, 'getTest' | 'getPanel' | 'resolveOrderables' | 'referenceRangeFor' | 'criticalLimitsFor'>;
+export type CatalogPortNonPrice = Pick<CatalogPortV1, 'getTest' | 'getPanel' | 'resolveOrderables' | 'referenceRangeFor' | 'criticalLimitsFor' | 'mapInstrumentCode'>;
+export type CatalogPortImpl = CatalogPortNonPrice & Pick<CatalogPortV1, 'priceFor'>;
+const CONTEXT_KEYS = [['priceListId', 'price_list_id'], ['creditPartyId', 'credit_party_id'], ['referrerId', 'referrer_id'], ['centreId', 'centre_id']] as const;
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const ISO = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}(\.\d+)?)?(Z|[+-]\d{2}:\d{2})$/;
@@ -52,8 +55,9 @@ interface TestBundle {
 interface PanelNode { id: string; code: string; name: string; panelKind: PanelDefinition['panelKind']; sexRestriction?: 'male' | 'female'; isActive: boolean; revision: number; members: Array<{ kind: 'test' | 'panel'; id: string }> }
 interface RangeBundle { versions: Array<{ status: string; effective_from: Date; effective_to: Date | null; unit_code: string | null; method_id: string | null }>; ref: RangeSet[]; crit: RangeSet[]; specimenIds: Record<string, string> }
 
-export function createCatalogPort(deps: { cache: CatalogCache }): CatalogPortNonPrice {
+export function createCatalogPort(deps: { cache: CatalogCache }): CatalogPortImpl {
   const { cache } = deps;
+  const quotes = createQuoteService();
   const q = async (ctx: Ctx, text: string, values: unknown[]): Promise<Row[]> => (await ctx.tx.query(text, values)).rows;
 
   // The catalog_revision, read once per ctx (the cache-key revision, 02-TRD §6.3). A rejected read is not memoised.
@@ -312,6 +316,27 @@ export function createCatalogPort(deps: { cache: CatalogCache }): CatalogPortNon
       };
     },
 
+    /** Same engine as quotePrices (one rule set); prices are never cached, so a revision bump is visible at once. Read-only, tenant from ctx. */
+    async priceFor(ctx, input): Promise<PriceQuote> {
+      if (!input || typeof input !== 'object' || Array.isArray(input)) throw invalid('input');
+      const orderableId = uuid(input.orderableId, 'orderableId');
+      if (input.priority !== 'routine' && input.priority !== 'urgent') throw invalid('priority');
+      const at = instant(input.at, 'at').toISOString();
+      const c = input.context as Record<string, unknown> | null | undefined;
+      if (!c || typeof c !== 'object' || Array.isArray(c)) throw invalid('context');
+      const context: Record<string, string> = {};
+      for (const [camel, snake] of CONTEXT_KEYS) if (c[camel] !== undefined) context[snake] = uuid(c[camel], `context.${camel}`);
+      const { quotes: [r] } = await quotes.quotePrices(ctx as never, { items: [{ orderable_id: orderableId, priority: input.priority }], context, at });
+      if (!r || r['error_code']) throw new LimsError(r?.['error_code'] ?? 'common.not_found');
+      const t = r['tax'];
+      return {
+        orderableId: r['orderable_id'], priceListId: r['price_list_id'], priceListVersion: r['price_list_version'], source: r['source'],
+        unitPrice: { amountPaisa: r['unit_price'].amount_paisa, currency: 'NPR' },
+        ...(r['urgent_surcharge'] ? { urgentSurcharge: { amountPaisa: r['urgent_surcharge'].amount_paisa, currency: 'NPR' as const } } : {}),
+        tax: { vat: t['vat'], ...opt('vatRateBp', t['vat_rate_bp']), ...opt('otherTaxCode', t['other_tax_code']), ...opt('otherTaxRateBp', t['other_tax_rate_bp']), ...opt('hsCode', t['hs_code']) },
+      } as PriceQuote;
+    },
+
     async referenceRangeFor(ctx, input): Promise<ReferenceRangeMatch> {
       const i = rangeInput(input);
       const { b, query } = await rangesFor(ctx as Ctx, i);
@@ -327,6 +352,36 @@ export function createCatalogPort(deps: { cache: CatalogCache }): CatalogPortNon
       const m = resolveCriticalLimits({ sets: b.crit, versions: b.versions, query });
       const codes = (m as { abnormalCodes?: readonly string[] } | undefined)?.abnormalCodes;
       return m && ({ ...m, ...(codes ? { abnormalCodes: [...codes] } : {}) } as CriticalLimitsMatch);
+    },
+
+    /** §7.8. Uncached on purpose: one indexed read (instrument_code_maps__inbound/outbound__p_uq), so an edit or deactivation is visible to the very next request. */
+    async mapInstrumentCode(c, input): Promise<InstrumentCodeMapping> {
+      const ctx = c as Ctx;
+      if (!input || typeof input !== 'object') throw invalid('input');
+      const instrumentId = uuid(input.instrumentId, 'instrumentId');
+      if (input.direction !== 'inbound' && input.direction !== 'outbound') throw invalid('direction');
+      if (input.instrumentCode !== undefined && typeof input.instrumentCode !== 'string') throw invalid('instrumentCode');
+      const analyteId = input.analyteId === undefined ? undefined : uuid(input.analyteId, 'analyteId');
+      const testId = input.testId === undefined ? undefined : uuid(input.testId, 'testId');
+      const unmapped = () => new LimsError('catalog.instrument_code_unmapped');
+      const base = 'SELECT id, instrument_id, instrument_code, analyte_id, test_id, unit_from_raw, unit_to_code, unit_factor, flag_map FROM catalog.instrument_code_maps WHERE tenant_id = $1 AND instrument_id = $2 AND is_active = $3 AND direction = ANY($4) AND ';
+      let rows: Row[];
+      if (input.direction === 'inbound') {
+        if (input.instrumentCode === undefined) throw unmapped();
+        rows = await q(ctx, `${base}instrument_code = $5 LIMIT 1`, [ctx.tenantId, instrumentId, true, ['inbound', 'both'], input.instrumentCode]);
+      } else if (analyteId !== undefined) {
+        rows = await q(ctx, `${base}analyte_id = $5 LIMIT 1`, [ctx.tenantId, instrumentId, true, ['outbound', 'both'], analyteId]);
+      } else if (testId !== undefined) {
+        rows = await q(ctx, `${base}test_id = $5 ORDER BY instrument_code COLLATE "C" ASC LIMIT 1`, [ctx.tenantId, instrumentId, true, ['outbound', 'both'], testId]);
+      } else throw unmapped();
+      const r = rows[0];
+      if (!r) throw unmapped();
+      const units = r.unit_from_raw != null && r.unit_to_code != null && r.unit_factor != null;
+      return {
+        mappingId: r.id, instrumentId: r.instrument_id, instrumentCode: r.instrument_code, analyteId: r.analyte_id, testId: r.test_id,
+        ...(units ? { unitConversion: { fromUnitRaw: r.unit_from_raw, toUnitCode: r.unit_to_code, factor: String(r.unit_factor) } } : {}),
+        ...(r.flag_map != null ? { flagMap: { ...r.flag_map } } : {}),
+      };
     },
   };
 }

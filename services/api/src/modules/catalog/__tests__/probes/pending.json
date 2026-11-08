@@ -1,13 +1,9 @@
 [
   "commitImport",
   "createExport",
-  "createInstrumentCodeMap",
   "downloadExportFile",
   "getCatalogHealthReport",
   "getCatalogRevision",
   "getExport",
-  "listExports",
-  "listInstrumentCodeMaps",
-  "updateInstrumentCodeMap",
-  "upsertInstrumentCodeMaps"
+  "listExports"
 ]

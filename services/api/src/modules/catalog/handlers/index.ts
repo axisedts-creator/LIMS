@@ -6,7 +6,9 @@ import type { Handler } from '../../../core/module.js';
 import { analyteVersionsHandlers } from './analyteVersions.handlers.js';
 import { creditPartiesHandlers } from './creditParties.handlers.js';
 import { formulasHandlers } from './formulas.handlers.js';
+import { healthHandlers } from './health.handlers.js';
 import { importsHandlers } from './imports.handlers.js';
+import { instrumentMapsHandlers } from './instrumentMaps.handlers.js';
 import { mastersHandlers } from './masters.handlers.js';
 import { panelsHandlers } from './panels.handlers.js';
 import { pricingHandlers } from './pricing.handlers.js';
@@ -21,8 +23,7 @@ const notImplemented: Handler = async () => {
 };
 
 export const handlers: Readonly<Record<string, Handler>> = Object.freeze({
-  getCatalogRevision: notImplemented,
-  getCatalogHealthReport: notImplemented,
+  ...healthHandlers, // T-30: #1 (revision), #4 (health report)
   ...mastersHandlers, // T-04: #5–#16; T-05: #17–#22 (units, value sets); T-13: #57–#59 (comment codes)
   ...testsHandlers, // T-06: #2, #23–#27; T-14: #28
   ...analyteVersionsHandlers, // T-07: #29–#35
@@ -33,12 +34,8 @@ export const handlers: Readonly<Record<string, Handler>> = Object.freeze({
   ...referrersHandlers, // T-15: #60–#66 (doctors)
   ...creditPartiesHandlers, // T-16: #67–#70 (credit parties)
   ...pricingHandlers, // T-17: #71–#81 (price lists); T-19: #82 (quotePrices); T-18: #83–#91 (surcharge / tax)
-  listInstrumentCodeMaps: notImplemented,
-  createInstrumentCodeMap: notImplemented,
-  updateInstrumentCodeMap: notImplemented,
-  upsertInstrumentCodeMaps: notImplemented,
+  ...instrumentMapsHandlers, // T-27: #92–#95 (instrument code maps)
   ...importsHandlers,
-  commitImport: notImplemented,
   createExport: notImplemented,
   listExports: notImplemented,
   getExport: notImplemented,

@@ -6,8 +6,9 @@ import { LimsError } from '../../../core/errors.js';
 import { groupByBsMonth, ratioBp } from '../domain/metrics.js';
 import type { Period } from '../domain/period.js';
 import type { Scope } from '../domain/scope.js';
+import * as labelsRepo from '../repository/labels.repo.js';
 import * as rollups from '../repository/rollups.repo.js';
-import { branchLabels, centreLabels, departmentLabels, type LabelsContext } from './labels.service.js';
+import { branchLabels, centreLabels, departmentLabels, referrerLabels, staffLabels, type LabelsContext } from './labels.service.js';
 
 export interface ReportsContext extends LabelsContext {
   readonly metrics: { inc(name: string, labels?: Record<string, string>): void };
@@ -33,11 +34,12 @@ export interface DepartmentOutRow extends DepartmentTotals {
   key: string; label: string; is_inactive?: true; department_id?: string; is_multiple: boolean; period_key?: string; share_bp: number;
 }
 
-const FILTER_MSG = [{ path: 'group_by', code: 'common.field_invalid', message: 'Field invalid' }];
-/** Allow-list check: the value picks an SQL fragment / grouping only through this list (07 injection; abuse case 1). */
-export function checkGroupBy<T extends string>(allowed: readonly T[], v: unknown, dflt: T): T {
+export const invalidField = (path: string): LimsError =>
+  new LimsError('common.validation_failed', `Invalid ${path}`, [{ path, code: 'common.field_invalid', message: 'Field invalid' }]);
+/** Allow-list check: the value picks an SQL fragment / grouping / sort only through this list (07 injection; abuse case 1). */
+export function checkGroupBy<T extends string>(allowed: readonly T[], v: unknown, dflt: T, path = 'group_by'): T {
   if (v === undefined) return dflt;
-  if (typeof v !== 'string' || !(allowed as readonly string[]).includes(v)) throw new LimsError('common.validation_failed', 'Invalid group_by', FILTER_MSG);
+  if (typeof v !== 'string' || !(allowed as readonly string[]).includes(v)) throw invalidField(path);
   return v as T;
 }
 
@@ -150,4 +152,223 @@ export async function departmentIncome(
     ctx.log.warn({ event: 'reconciliation_mismatch', rule: 'R2', family: 'department_income', tenantId: ctx.tenantId, from: a.period.from, to: a.period.to, departmentNetPaisa: deptNetAll, incomeNetPaisa: incomeNet }, 'reconciliation_mismatch');
   }
   return { rows, totals, reconcilesWithIncome };
+}
+
+// ------------------------------------------------------------------ AN-T09: volume (M01–M08), top centres (M35–M38), top referrers (M30–M32), collections (M25–M29)
+export const VOLUME_GROUP_BY = INCOME_GROUP_BY;
+export const COLLECTIONS_GROUP_BY = ['method', 'staff', 'staff_method', 'centre', 'day', 'ad_month', 'bs_month'] as const;
+export type CollectionsGroupBy = (typeof COLLECTIONS_GROUP_BY)[number];
+export const TOP_CENTRES_SORT = ['-orders', '-net_sales_paisa', '-patient_visits', '-tests_ordered'] as const;
+export const TOP_REFERRERS_SORT = ['-orders', '-patient_visits', '-tests_ordered'] as const;
+export const MAX_PAYMENT_METHOD_CODES = 20;
+export const MAX_REFERRER_IDS = 20;
+
+const VOLUME_BASE = ['orders_registered', 'orders_cancelled', 'patient_visits', 'new_patients', 'urgent_orders', 'opd_orders', 'ipd_orders', 'tests_ordered'] as const;
+export const VOLUME_MONEY = ['orders_registered', 'orders_cancelled', 'net_orders', 'patient_visits', 'new_patients', 'urgent_orders', 'opd_orders', 'ipd_orders', 'tests_ordered'] as const;
+export type VolumeTotals = Record<(typeof VOLUME_MONEY)[number], number>;
+export interface VolumeOutRow extends VolumeTotals { key: string; label: string; label_bs?: string; is_inactive?: true }
+const withNet = (r: Record<(typeof VOLUME_BASE)[number], number>): VolumeTotals => ({ ...r, net_orders: r.orders_registered - r.orders_cancelled }); // M03, never clamped
+const pickBase = (r: Record<string, any>) => Object.fromEntries(VOLUME_BASE.map((k) => [k, r[k]])) as Record<(typeof VOLUME_BASE)[number], number>;
+
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+/** Integer query value in [min, max]; numeric strings accepted (query strings), anything else -> 400. */
+export function checkInt(v: unknown, path: string, min: number, max: number, dflt: number): number {
+  if (v === undefined) return dflt;
+  const n = typeof v === 'string' && /^-?[0-9]{1,6}$/.test(v) ? Number(v) : v;
+  if (typeof n !== 'number' || !Number.isInteger(n) || n < min || n > max) throw invalidField(path);
+  return n;
+}
+export function checkUuidList(v: unknown, path: string, max: number): string[] {
+  if (v === undefined) return [];
+  if (!Array.isArray(v) || v.length > max || v.some((x) => typeof x !== 'string' || !UUID.test(x))) throw invalidField(path);
+  return v as string[];
+}
+export function checkCodeList(v: unknown, path: string, max: number): string[] {
+  if (v === undefined) return [];
+  if (!Array.isArray(v) || v.length > max || v.some((x) => typeof x !== 'string' || x.length < 1 || x.length > 100)) throw invalidField(path);
+  return v as string[];
+}
+
+const labelOf = (names: Map<string, { name: string; isActive: boolean }>, id: string | null, none: string) => {
+  const l = id === null ? undefined : names.get(id);
+  return { label: l?.name ?? (id === null ? none : shortId(id)), ...(l && !l.isActive ? { is_inactive: true as const } : {}) };
+};
+
+export async function volume(ctx: ReportsContext, a: { period: Period; scope: Scope; groupBy: IncomeGroupBy }): Promise<{ rows: VolumeOutRow[]; totals: VolumeTotals }> {
+  const raw = await rollups.volumeRows(ctx.tx, { tenantId: ctx.tenantId, from: a.period.from, to: a.period.to, scope: a.scope, groupBy: a.groupBy === 'bs_month' ? 'day' : a.groupBy });
+  const rows: VolumeOutRow[] = [];
+  switch (a.groupBy) {
+    case 'day':
+      for (const r of raw) rows.push({ ...withNet(pickBase(r)), key: r.key, label: formatAd(r.key as IsoDate), label_bs: formatBs(adToBs(r.key as IsoDate), 'display') });
+      break;
+    case 'ad_month':
+      for (const r of raw) { const k = r.key.slice(0, 7); rows.push({ ...withNet(pickBase(r)), key: k, label: k }); }
+      break;
+    case 'bs_month':
+      for (const g of groupByBsMonth(raw.map((r) => ({ businessDate: r.key as IsoDate, ...pickBase(r) })), VOLUME_BASE)) {
+        rows.push({ ...withNet(pickBase(g)), key: g.key, label: `${g.key} B.S.` });
+      }
+      break;
+    case 'branch': {
+      const names = await branchLabels(ctx);
+      for (const r of raw) rows.push({ ...withNet(pickBase(r)), key: r.key, ...labelOf(names, r.key, 'No branch') });
+      break;
+    }
+    case 'centre': {
+      const names = await centreLabels(ctx);
+      for (const r of raw) rows.push({ ...withNet(pickBase(r)), key: r.key, ...labelOf(names, r.key, 'No centre') });
+      break;
+    }
+  }
+  return { rows, totals: sumOf(rows, VOLUME_MONEY) };
+}
+
+// ------------------------------------------------------------------ top centres
+export interface TopCentreOutRow {
+  rank: number; centre_id: string; label: string; branch_id: string; orders: number; patient_visits: number; tests_ordered: number; net_sales_paisa: number;
+  by_mode: { walk_in: number; home: number; centre: number; partner: number };
+}
+const TC_TOTALS = ['orders', 'patient_visits', 'tests_ordered', 'net_sales_paisa'] as const;
+
+export async function topCentres(
+  ctx: ReportsContext, a: { period: Period; scope: Scope; sort: (typeof TOP_CENTRES_SORT)[number]; limit: number },
+): Promise<{ rows: TopCentreOutRow[]; totals: Record<(typeof TC_TOTALS)[number], number> }> {
+  const raw = await rollups.topCentresRows(ctx.tx, { tenantId: ctx.tenantId, from: a.period.from, to: a.period.to, scope: a.scope });
+  const names = await centreLabels(ctx);
+  const field = a.sort.slice(1) as (typeof TC_TOTALS)[number];
+  const all = raw.map((r) => ({
+    centre_id: r.centre_id, label: names.get(r.centre_id)?.name ?? shortId(r.centre_id), branch_id: r.branch_id, orders: r.orders, patient_visits: r.patient_visits,
+    tests_ordered: r.tests_ordered, net_sales_paisa: r.net_sales_paisa,
+    by_mode: { walk_in: r.orders_walk_in, home: r.orders_home, centre: r.orders_centre, partner: r.orders_partner },
+  })).sort((x, y) => y[field] - x[field] || x.label.localeCompare(y.label) || x.centre_id.localeCompare(y.centre_id));
+  // [CONV] totals cover every centre in scope, not only the truncated top-N; rank is within the caller's scope (no hidden centre is ranked).
+  return { rows: all.slice(0, a.limit).map((r, i) => ({ rank: i + 1, ...r })), totals: sumOf(all, TC_TOTALS) };
+}
+
+// ------------------------------------------------------------------ top referrers (volume only, D-44)
+export interface TopReferrerOutRow { rank: number; referrer_id?: string; label: string; is_self: boolean; is_inactive: boolean; orders: number; patient_visits: number; tests_ordered: number }
+const REF_TOTALS = ['orders', 'patient_visits', 'tests_ordered'] as const;
+
+export async function topReferrers(
+  ctx: ReportsContext,
+  a: { period: Period; scope: Scope; sort: (typeof TOP_REFERRERS_SORT)[number]; limit: number; rollup: 'canonical' | 'none'; referrerIds: readonly string[] },
+): Promise<{ rows: TopReferrerOutRow[]; totals: Record<(typeof REF_TOTALS)[number], number> }> {
+  const raw = await rollups.referrerVolumeRows(ctx.tx, { tenantId: ctx.tenantId, from: a.period.from, to: a.period.to, scope: a.scope });
+  const rawIds = [...new Set(raw.flatMap((r) => (r.referrer_id ? [r.referrer_id] : [])))];
+  let names = await referrerLabels(ctx, rawIds);
+  const canonOf = (id: string) => (a.rollup === 'canonical' ? (names.get(id)?.canonicalId ?? id) : id);
+  const missing = [...new Set(rawIds.map(canonOf))].filter((id) => !names.has(id)); // canonical target with no volume of its own
+  if (missing.length) names = new Map([...names, ...(await referrerLabels(ctx, missing))]);
+
+  const groups = new Map<string, { id: string | null; orders: number; patient_visits: number; tests_ordered: number }>();
+  for (const r of raw) {
+    const id = r.referrer_id === null ? null : canonOf(r.referrer_id);
+    const g = groups.get(id ?? '') ?? { id, orders: 0, patient_visits: 0, tests_ordered: 0 };
+    groups.set(id ?? '', { id, ...sumOf([g, r], REF_TOTALS) });
+  }
+  const wanted = new Set(a.referrerIds); // canonical id under rollup=canonical, raw id under none; SELF never matches a filter
+  const rows = [...groups.values()].filter((g) => wanted.size === 0 || (g.id !== null && wanted.has(g.id))).map((g) => {
+    const l = g.id === null ? undefined : names.get(g.id);
+    return {
+      ...(g.id === null ? {} : { referrer_id: g.id }), label: g.id === null ? 'SELF' : (l?.displayName ?? shortId(g.id)),
+      is_self: g.id === null, is_inactive: l ? !l.isActive : false, orders: g.orders, patient_visits: g.patient_visits, tests_ordered: g.tests_ordered,
+    };
+  });
+  const field = a.sort.slice(1) as (typeof REF_TOTALS)[number];
+  rows.sort((x, y) => y[field] - x[field] || x.label.localeCompare(y.label) || (x.referrer_id ?? '').localeCompare(y.referrer_id ?? ''));
+  return { rows: rows.slice(0, a.limit).map((r, i) => ({ rank: i + 1, ...r })), totals: sumOf(rows, REF_TOTALS) }; // [CONV] totals before limit
+}
+
+export async function searchReferrers(ctx: ReportsContext, query: unknown): Promise<{ referrer_id: string; label: string; is_active: boolean }[]> {
+  const q = typeof query === 'string' ? query.trim() : '';
+  if (q.length < 2 || q.length > 60) throw invalidField('query');
+  const rows = await labelsRepo.searchReferrers(ctx.tx, { tenantId: ctx.tenantId, query: q, limit: 20 });
+  return rows.slice(0, 20).map((r) => ({ referrer_id: r.referrer_id, label: r.display_name, is_active: r.is_active }));
+}
+
+// ------------------------------------------------------------------ collections
+const COLL_MONEY = ['entries', 'reversals', 'gross_collected_paisa', 'reversed_paisa', 'net_collected_paisa'] as const;
+export type CollectionsTotals = Record<(typeof COLL_MONEY)[number], number>;
+export interface CollectionsOutRow extends CollectionsTotals { key: string; label: string; label_bs?: string; is_inactive?: true }
+const GATEWAY = { key: 'gateway', label: 'Online gateway' } as const;
+
+export async function collections(
+  ctx: ReportsContext, a: { period: Period; scope: Scope; groupBy: CollectionsGroupBy; paymentMethodCodes: readonly string[] },
+): Promise<{ rows: CollectionsOutRow[]; totals: CollectionsTotals }> {
+  const raw = await rollups.collectionRows(ctx.tx, {
+    tenantId: ctx.tenantId, from: a.period.from, to: a.period.to, scope: a.scope, groupBy: a.groupBy === 'bs_month' ? 'day' : a.groupBy, paymentMethodCodes: a.paymentMethodCodes,
+  });
+  const m = (r: Record<string, any>): CollectionsTotals => Object.fromEntries(COLL_MONEY.map((k) => [k, r[k]])) as CollectionsTotals;
+  const staffIds = [...new Set(raw.flatMap((r) => (r.staff_id ? [r.staff_id] : [])))];
+  const staff = a.groupBy === 'staff' || a.groupBy === 'staff_method' ? await staffLabels(ctx, staffIds) : new Map<string, { displayName: string; isActive: boolean }>();
+  const staffPart = (id: string | null | undefined) => {
+    if (!id) return { key: GATEWAY.key as string, label: GATEWAY.label as string };
+    const s = staff.get(id);
+    return { key: id, label: s?.displayName ?? shortId(id), ...(s && !s.isActive ? { is_inactive: true as const } : {}) };
+  };
+  const rows: CollectionsOutRow[] = [];
+  switch (a.groupBy) {
+    case 'method':
+      for (const r of raw) rows.push({ ...m(r), key: r.method_code!, label: r.method_code! }); // [CONV] no message-catalog entry yet: label = code
+      break;
+    case 'staff':
+      for (const r of raw) rows.push({ ...m(r), ...staffPart(r.staff_id) });
+      break;
+    case 'staff_method':
+      for (const r of raw) { const s = staffPart(r.staff_id); rows.push({ ...m(r), ...s, key: `${s.key}|${r.method_code}`, label: `${s.label} · ${r.method_code}` }); }
+      break;
+    case 'centre': {
+      const names = await centreLabels(ctx);
+      for (const r of raw) rows.push({ ...m(r), key: r.centre_id ?? 'none', ...labelOf(names, r.centre_id ?? null, 'No centre') });
+      break;
+    }
+    case 'day':
+      for (const r of raw) rows.push({ ...m(r), key: r.period!, label: formatAd(r.period as IsoDate), label_bs: formatBs(adToBs(r.period as IsoDate), 'display') });
+      break;
+    case 'ad_month':
+      for (const r of raw) { const k = r.period!.slice(0, 7); rows.push({ ...m(r), key: k, label: k }); }
+      break;
+    case 'bs_month':
+      for (const g of groupByBsMonth(raw.map((r) => ({ businessDate: r.period as IsoDate, ...m(r) })), COLL_MONEY)) rows.push({ ...m(g), key: g.key, label: `${g.key} B.S.` });
+      break;
+  }
+  return { rows, totals: sumOf(rows, COLL_MONEY) };
+}
+
+// ------------------------------------------------------------------ filter options (#16, #30)
+/** Centres, branches and payment methods the caller may see: only own-scope centres, their branches, codes seen in scope (P4/P5). */
+export async function scopedOptions(ctx: ReportsContext, scope: Scope) {
+  const centres = (await ctx.core.centres(ctx as never, { activeOnly: false })).filter((c) => scope.all || scope.centreIds.includes(c.id));
+  const branchIds = new Set(centres.map((c) => c.branchId));
+  const branches = (await ctx.core.branches(ctx as never, { activeOnly: false })).filter((b) => scope.all || branchIds.has(b.id));
+  const codes = await rollups.paymentMethodCodes(ctx.tx, { tenantId: ctx.tenantId, scope });
+  const byLabel = (x: { label: string; id: string }, y: { label: string; id: string }) => x.label.localeCompare(y.label) || x.id.localeCompare(y.id);
+  return {
+    centres: centres.map((c) => ({ id: c.id, label: c.name, branch_id: c.branchId, is_active: c.isActive })).sort(byLabel),
+    branches: branches.map((b) => ({ id: b.id, label: b.name, is_active: b.isActive })).sort(byLabel),
+    payment_methods: codes.map((code) => ({ code, display: code })), // [CONV] display = code until the message catalog has payment-method names
+  };
+}
+
+export async function analyticsOptions(ctx: ReportsContext, scope: Scope) {
+  const base = await scopedOptions(ctx, scope);
+  const depts = await departmentLabels(ctx);
+  return {
+    ...base,
+    departments: [...depts].map(([id, d]) => ({ id, label: d.name, is_active: d.isActive })).sort((x, y) => x.label.localeCompare(y.label) || x.id.localeCompare(y.id)),
+    specimen_types: (await rollups.specimenTypeCodes(ctx.tx, { tenantId: ctx.tenantId, scope })).map((code) => ({ code })),
+  };
+}
+
+// recipients (D-47): active memberships holding dashboard.read; memoised per request (= per ctx), failures not memoised.
+const recipientsMemo = new WeakMap<object, Promise<{ membership_id: string; display_name: string }[]>>();
+export function recipients(ctx: ReportsContext) {
+  let p = recipientsMemo.get(ctx);
+  if (!p) {
+    const mine = (p = ctx.core.memberships.list(ctx as never, { permission: 'analytics.dashboard.read', activeOnly: true })
+      .then((rows) => rows.slice(0, 200).map((r) => ({ membership_id: r.membershipId, display_name: r.displayName })))); // explicit pick: no roles/scope leak
+    recipientsMemo.set(ctx, mine);
+    mine.catch(() => { if (recipientsMemo.get(ctx) === mine) recipientsMemo.delete(ctx); });
+  }
+  return p;
 }

@@ -2,7 +2,10 @@
 // Nothing is spread from a service/SQL row: a column that is not listed here cannot reach a response. No field is named "commission".
 import type { Period } from '../domain/period.js';
 import type { Scope } from '../domain/scope.js';
-import { INCOME_MONEY, type DepartmentOutRow, type DepartmentTotals, type IncomeOutRow, type IncomeTotals } from '../service/reports.service.js';
+import {
+  INCOME_MONEY, VOLUME_MONEY, type CollectionsOutRow, type CollectionsTotals, type DepartmentOutRow, type DepartmentTotals, type IncomeOutRow, type IncomeTotals,
+  type TopCentreOutRow, type TopReferrerOutRow, type VolumeOutRow, type VolumeTotals,
+} from '../service/reports.service.js';
 
 export interface ReportMeta { readonly period: Period; readonly scope: Scope; readonly generatedAt: string }
 
@@ -34,6 +37,52 @@ export function toIncomeReportDto(m: ReportMeta, out: { rows: readonly IncomeOut
     })),
     totals: incomeMoney(out.totals),
     basis_note_key: 'analytics.income.basis_note',
+  };
+}
+
+const pickKeys = <K extends string>(o: Record<K, number>, keys: readonly K[]) => Object.fromEntries(keys.map((k) => [k, o[k]])) as Record<K, number>;
+const rowHead = (r: { key: string; label: string; label_bs?: string | undefined; is_inactive?: true | undefined }) =>
+  ({ key: r.key, label: r.label, ...(r.label_bs ? { label_bs: r.label_bs } : {}), ...(r.is_inactive ? { is_inactive: true } : {}) });
+
+export function toVolumeReportDto(m: ReportMeta, out: { rows: readonly VolumeOutRow[]; totals: VolumeTotals }) {
+  return {
+    ...envelope('volume', m),
+    rows: out.rows.map((r) => ({ ...rowHead(r), ...pickKeys(r, VOLUME_MONEY) })),
+    totals: pickKeys(out.totals, VOLUME_MONEY),
+  };
+}
+
+export function toTopCentresReportDto(m: ReportMeta, out: { rows: readonly TopCentreOutRow[]; totals: Record<'orders' | 'patient_visits' | 'tests_ordered' | 'net_sales_paisa', number> }) {
+  return {
+    ...envelope('top_centres', m),
+    rows: out.rows.map((r) => ({
+      rank: r.rank, centre_id: r.centre_id, label: r.label, branch_id: r.branch_id, orders: r.orders, patient_visits: r.patient_visits,
+      tests_ordered: r.tests_ordered, net_sales_paisa: r.net_sales_paisa,
+      by_mode: { walk_in: r.by_mode.walk_in, home: r.by_mode.home, centre: r.by_mode.centre, partner: r.by_mode.partner },
+    })),
+    totals: { orders: out.totals.orders, patient_visits: out.totals.patient_visits, tests_ordered: out.totals.tests_ordered, net_sales_paisa: out.totals.net_sales_paisa },
+  };
+}
+
+/** Volume only (D-44): the allow-list below has no money field. */
+export function toTopReferrersReportDto(m: ReportMeta, out: { rows: readonly TopReferrerOutRow[]; totals: Record<'orders' | 'patient_visits' | 'tests_ordered', number> }) {
+  return {
+    ...envelope('top_referrers', m),
+    rows: out.rows.map((r) => ({
+      rank: r.rank, ...(r.referrer_id ? { referrer_id: r.referrer_id } : {}), label: r.label, is_self: r.is_self, is_inactive: r.is_inactive,
+      orders: r.orders, patient_visits: r.patient_visits, tests_ordered: r.tests_ordered,
+    })),
+    totals: { orders: out.totals.orders, patient_visits: out.totals.patient_visits, tests_ordered: out.totals.tests_ordered },
+  };
+}
+
+const COLL = ['entries', 'reversals', 'gross_collected_paisa', 'reversed_paisa', 'net_collected_paisa'] as const;
+export function toCollectionsReportDto(m: ReportMeta, out: { rows: readonly CollectionsOutRow[]; totals: CollectionsTotals; dailyCashRouteId?: 'staff.billing.daily_cash' | undefined }) {
+  return {
+    ...envelope('collections', m),
+    rows: out.rows.map((r) => ({ ...rowHead(r), ...pickKeys(r, COLL) })),
+    totals: pickKeys(out.totals, COLL),
+    ...(out.dailyCashRouteId ? { daily_cash_route_id: out.dailyCashRouteId } : {}),
   };
 }
 

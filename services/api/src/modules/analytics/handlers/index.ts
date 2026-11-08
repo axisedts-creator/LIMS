@@ -5,6 +5,9 @@ import type { Handler } from '../../../core/module.js';
 import { LimsError } from '../../../core/errors.js';
 import { getIncomeReport } from './getIncomeReport.js';
 import { getDepartmentIncomeReport } from './getDepartmentIncomeReport.js';
+import { getTopCentresReport, getVolumeReport } from './getVolumeReport.js';
+import { getTopReferrersReport, searchAnalyticsReferrers } from './getTopReferrersReport.js';
+import { getAnalyticsFilterOptions, getCollectionsFilterOptions, getCollectionsReport } from './getCollectionsReport.js';
 
 const OPERATION_IDS = [
   'getAnalyticsDashboard', 'getIncomeReport', 'getDepartmentIncomeReport', 'getCollectionsReport', 'getVolumeReport',
@@ -23,7 +26,10 @@ const stub = (operationId: string): Handler => async () => {
   throw new LimsError('common.internal', `analytics ${operationId} not implemented`);
 };
 
-const implemented: Partial<Record<AnalyticsOperationId, Handler>> = { getIncomeReport, getDepartmentIncomeReport };
+const implemented: Partial<Record<AnalyticsOperationId, Handler>> = {
+  getIncomeReport, getDepartmentIncomeReport, getVolumeReport, getTopCentresReport, getTopReferrersReport, searchAnalyticsReferrers,
+  getCollectionsReport, getAnalyticsFilterOptions, getCollectionsFilterOptions,
+};
 
 export const handlers: Readonly<Record<AnalyticsOperationId, Handler>> = Object.freeze(
   Object.fromEntries(OPERATION_IDS.map((op) => [op, implemented[op] ?? stub(op)])) as Record<AnalyticsOperationId, Handler>,

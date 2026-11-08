@@ -1,5 +1,5 @@
 // Refresh engine (02-TRD §9.2 partition replace, §9.3 `analytics.refresh_tenant`; PRD US-20.2-4; 08 A17 P-22).
-// run_started_at = ctx.now() read ONCE, before the marks are read; it is the `last_marked_at <=` guard of every mark delete of the run, so a mark made
+// run_started_at = DB `now()` read ONCE, in the marks-read tx before the marks (never the worker host clock: marks' last_marked_at is DB time); it is the `last_marked_at <=` guard of every mark delete of the run, so a mark made
 // during the run survives. Marks are read in their own write-free tx (no row locks: consumers' ON CONFLICT never waits). Each contiguous <= chunkDays range of
 // one family is ONE tx: advisory xact lock, §9.2 replace, guarded mark delete, refresh_runs row, lazy refresh_state upsert. A failed range rolls back as a
 // whole; a SEPARATE tx records the failure (error CODE only - messages can carry PHI). Other ranges still run; the first error is rethrown (Graphile backoff).
@@ -23,11 +23,12 @@ const DEFAULT_CHUNK_DAYS = 7;
 const DAY_MS = 86_400_000;
 const addDay = (iso: string, n: number) => new Date(Date.parse(`${iso}T00:00:00Z`) + n * DAY_MS).toISOString().slice(0, 10);
 
+const DB_NOW = `SELECT now()::text AS run_started_at`;
 const READ_MARKS = `SELECT family, business_date::text AS business_date FROM analytics.dirty_partitions WHERE tenant_id = $1 ORDER BY family, business_date`;
 const LOCK = `SELECT pg_advisory_xact_lock(hashtext('analytics:' || $1::text || ':' || $2::text))`; // [CONV] per tenant+family, released at tx end
 const DEL_MARKS_RANGE = `DELETE FROM analytics.dirty_partitions
- WHERE tenant_id = $1 AND family = $2 AND business_date >= $3 AND business_date < $4 AND last_marked_at <= $5`;
-const DEL_MARKS_SNAPSHOT = `DELETE FROM analytics.dirty_partitions WHERE tenant_id = $1 AND family = $2 AND last_marked_at <= $3`; // only the sentinel date exists (CHECK)
+ WHERE tenant_id = $1 AND family = $2 AND business_date >= $3 AND business_date < $4 AND last_marked_at <= $5::timestamptz`;
+const DEL_MARKS_SNAPSHOT = `DELETE FROM analytics.dirty_partitions WHERE tenant_id = $1 AND family = $2 AND last_marked_at <= $3::timestamptz`; // only the sentinel date exists (CHECK)
 const RUN_OK = `INSERT INTO analytics.refresh_runs (id, tenant_id, family, trigger, date_from, date_to, started_at, finished_at, status, rows_written, created_by, expires_at)
 VALUES ($1, $2, $3, $4, $5, $6, now(), clock_timestamp(), 'succeeded', $7, $8, now() + interval '90 days')`;
 const RUN_FAILED = `INSERT INTO analytics.refresh_runs (id, tenant_id, family, trigger, date_from, date_to, started_at, finished_at, status, error_code, created_by, expires_at)
@@ -103,8 +104,10 @@ export async function refreshTenant(ctx: RefreshCtx, input: RefreshInput): Promi
   const chunkDays = input.chunkDays ?? DEFAULT_CHUNK_DAYS;
   if (!Number.isInteger(chunkDays) || chunkDays < 1) throw new TypeError('chunkDays: positive integer expected');
 
-  const runStartedAt = ctx.now(); // before the marks are read
-  const marks = await ctx.db.tx(async ({ tx }) => (await tx.query(READ_MARKS, [input.tenantId])).rows as { family: string; business_date: string }[]);
+  const { runStartedAt, marks } = await ctx.db.tx(async ({ tx }) => {
+    const runStartedAt = ((await tx.query(DB_NOW, [])).rows[0] as { run_started_at: string }).run_started_at; // before the marks are read
+    return { runStartedAt, marks: (await tx.query(READ_MARKS, [input.tenantId])).rows as { family: string; business_date: string }[] };
+  });
   const ranges = toRanges(marks, chunkDays);
 
   let firstError: unknown, failed = false;

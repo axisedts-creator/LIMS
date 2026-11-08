@@ -18,4 +18,5 @@ export const IMPLEMENTED = new Set([
   'listCriticalAlerts',                                                                                       // C6-T24 (R18)
   'regenerateReport',                                                                                         // C6-T41 (R9)
   'listMessageTemplates', 'upsertMessageTemplateText', 'listChannelAccounts', 'upsertChannelAccount', 'rotateChannelCallbackToken', // C6-T25 (M1, M2, C1-C3)
+  'receiveProviderCallback', 'verifyProviderCallback',                                                        // C6-T29 (CB1, CB2)
 ]);

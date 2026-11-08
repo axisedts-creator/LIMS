@@ -1,6 +1,6 @@
 # C6-T23 impl (writer)
 Files: worker tasks/{dispatch_release_deliveries,send_delivery,check_whatsapp_fallback}.ts + index.ts wiring (send/fallback maxAttempts 8); api handlers/delivery.handlers.ts (D1-D4), service/{delivery.flow,delivery.staff}.service.ts, delivery/{transport,adapters/recording}.ts, repository/delivery.repo.ts, delivery.service.ts (deferred_link, fallback_of), domain/messages.ts (labParam).
-Status: 111/113 worker + 56/57 api C6-T23 tests green; remaining reds are test defects -> C6-T23-dispute.md (dynamic-import paths, go() misuse, e-mail consent default, If-Match default param, stale 501 list).
+Status (after ruling + revised tests, no code change needed): 113/113 worker + delivery.handlers/static all green. manifest.test.ts: 5 reds = C6-T22 ops (verifyReportQr, revokeReportQrToken, listPortalLinks, revokePortalLink) not in IMPLEMENTED set — T22 tester scope per ruling.
 [CONV] idempotency keys: dispatch `<version id>:report_ready:<kind>:<channel>[:<contact id>]`, fallback `<delivery id>:fallback:sms`, D3 `<report id>:resend:<new id>`, D4 `<old id>:retry:<new id>`.
 [CONV] retryable error: attempt row kept by RESOLVING + re-enqueue (`<id>:retry:<n>`, backoff 30s*2^(n-1) <= 1h); worker JobContext has no commitOnError. Exhausted after 8 -> failed / retries_exhausted. Circuit breaker is per worker process.
 [CONV] D4 revokes the old link at request time with reason `superseded_attempt` (no retry_of column). Dispatch writes no suppressed rows (unreachable recipient = nothing created).

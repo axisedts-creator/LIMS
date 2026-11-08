@@ -7,6 +7,7 @@ import type { AddressInfo } from 'node:net';
 import { pathToFileURL } from 'node:url';
 import { createPool, RenderError, type Pool } from './pool.js';
 import { render, type Assets } from './render.js';
+import type { Registry } from './templates/registry.js';
 
 const MAX_BODY = 20 * 1024 * 1024; // 02-TRD §5.1 "≤ 20 MB [CONV]"
 const TEMPLATE_ID = /^[a-z][a-z0-9_.-]{0,63}$/;
@@ -15,7 +16,7 @@ const BASE64 = /^[A-Za-z0-9+/]*={0,2}$/;
 
 const digest = (s: string) => createHash('sha256').update(s).digest();
 
-function parseBundle(raw: string): { templateId: string; data: unknown; assets: Assets } | undefined {
+function parseBundle(raw: string): { templateId: string; data: unknown; hasData: boolean; assets: Assets } | undefined {
   let b: unknown;
   try {
     b = JSON.parse(raw);
@@ -32,11 +33,13 @@ function parseBundle(raw: string): { templateId: string; data: unknown; assets: 
     if (typeof base64 !== 'string' || !BASE64.test(base64)) return undefined;
   }
   // Report shape carries document/config/variant; data-template shape carries data (§5.1). The template reads its part.
-  const data = 'data' in rest ? rest.data : rest;
-  return { templateId: template_id, data, assets: assets as Assets };
+  const hasData = 'data' in rest;
+  const data = hasData ? rest.data : rest;
+  return { templateId: template_id, data, hasData, assets: assets as Assets };
 }
 
-export async function startServer(o: { pool: Pool; token: string; port?: number; host?: string }) {
+/** `registry` (optional): ids it knows as DataTemplateModule use the second request shape (`data`); everything else is unchanged. */
+export async function startServer(o: { pool: Pool; token: string; port?: number; host?: string; registry?: Registry }) {
   if (!o.token) throw new Error('renderer token is empty');
   const want = digest(o.token);
   const authed = (req: http.IncomingMessage) => {
@@ -81,8 +84,11 @@ export async function startServer(o: { pool: Pool; token: string; port?: number;
       if (raw === undefined) return tooBig();
       const bundle = parseBundle(raw);
       if (!bundle) return send(res, 400);
+      // Second shape needs an explicit `data` object (else the whole bundle would be mistaken for the data).
+      const isData = typeof (o.registry?.get(bundle.templateId) as { templateKey?: unknown } | undefined)?.templateKey === 'string';
+      if (isData && !bundle.hasData) return send(res, 400);
       const t0 = Date.now();
-      const { pdf, pageCount } = await render(bundle.templateId, bundle.data, bundle.assets, o.pool);
+      const { pdf, pageCount } = await render(bundle.templateId, bundle.data, bundle.assets, o.pool, o.registry);
       res.writeHead(200, { 'content-type': 'application/pdf', 'x-page-count': String(pageCount), 'x-render-ms': String(Date.now() - t0) });
       res.end(pdf);
     } catch (e) {

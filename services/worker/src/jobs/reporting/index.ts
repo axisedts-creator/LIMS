@@ -5,6 +5,7 @@ import { handle as catalogChanged } from './consumers/catalog.changed.v1.js';
 import { handle as orderCancelled } from './consumers/frontdesk.order.cancelled.v1.js';
 import { handle as orderCreated } from './consumers/frontdesk.order.created.v1.js';
 import { handle as itemsChanged } from './consumers/frontdesk.order.items_changed.v1.js';
+import { handle as criticalValue } from './consumers/lab.critical_value.detected.v1.js';
 import { handle as readyForReport } from './consumers/lab.order.ready_for_report.v1.js';
 import { handle as resultAmended } from './consumers/lab.result.amended.v1.js';
 import { handle as resultApproved } from './consumers/lab.result.approved.v1.js';
@@ -57,6 +58,7 @@ export const manifest: WorkerManifest = Object.freeze({
     'lab.result.approved.v1': resultApproved,
     'lab.result.amended.v1': resultAmended,
     'lab.order.ready_for_report.v1': readyForReport,
+    'lab.critical_value.detected.v1': criticalValue,
     'catalog.changed.v1': catalogChanged,
     'billing.balance.changed.v1': balanceChanged,
   }),

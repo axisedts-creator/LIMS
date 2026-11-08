@@ -5,7 +5,10 @@
 import { uuidv7 } from '../../../../../../packages/shared-ts/src/uuidv7/index.js';
 import { LimsError } from '../../../core/errors.js';
 import { requirementsFor } from '../domain/readiness.js';
+import { enqueue as enqueueJob } from '../repository/outsourced.repo.js';
+import * as regenRepo from '../repository/regenerate.repo.js';
 import { Q } from '../repository/reports.repo.js';
+import { ASSEMBLE_TASK } from './outsourced.service.js';
 import type { Tx } from '../repository/settings.repo.js';
 
 export interface ReportsCtx {
@@ -26,6 +29,23 @@ interface OrderSnap {
 interface ItemIn {
   orderItemId: string; orderableId: string; orderableKind: string; testIds: string[]; priority: string; outsourced: boolean;
   status: 'active' | 'removed' | 'cancelled';
+}
+
+// ------------------------------------------------------------------------------------------------ R9 regenerateReport
+
+const bad = (path: string): LimsError => new LimsError('common.validation_failed', undefined, [{ path, code: 'common.field_invalid', message: 'Field invalid' }]);
+
+/** R9 (02-TRD §6.3): lock, validate the reason against the merged active `regeneration_reasons`, counter + 1, needs_assembly, keyed assemble job carrying the reason.
+ *  The version kind (rule 0) and the stored reason are decided by the assembly task, not here. Errors never echo input. */
+export async function regenerateReport(ctx: { tx: Tx; tenantId: string; actor: { id: string } }, reportId: string, reason: { code: string; text?: string }): Promise<void> {
+  const { tx, tenantId } = ctx;
+  const r = await regenRepo.lockReport(tx, tenantId, reportId);                      // other tenants' rows are invisible: same answer
+  if (!r) throw new LimsError('common.not_found');
+  if (r.state === 'cancelled') throw new LimsError('reporting.report_cancelled');
+  const own = await regenRepo.tenantReason(tx, tenantId, 'regeneration_reasons', reason.code);
+  if (!(own ?? await regenRepo.globalReason(tx, 'regeneration_reasons', reason.code))?.is_active) throw bad('/reason_code');
+  await regenRepo.bumpRegeneration(tx, tenantId, reportId, ctx.actor.id);
+  await enqueueJob(tx, ASSEMBLE_TASK, { tenant_id: tenantId, report_id: reportId, regeneration: { reason_code: reason.code, ...(reason.text !== undefined ? { reason_text: reason.text } : {}) } }, `assemble:${reportId}`);
 }
 
 /** The job tenant is the only tenant used; an envelope naming another tenant is refused (REQ-SEC-024). */

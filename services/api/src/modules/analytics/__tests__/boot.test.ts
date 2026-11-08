@@ -36,7 +36,7 @@ const EXPECTED_OPS = [
   'getCollectionsFilterOptions',
 ];
 /** operationIds whose stub a later task has replaced; that task moves its ids here (tester-owned list). */
-const IMPLEMENTED: readonly string[] = [];
+const IMPLEMENTED: readonly string[] = ['getIncomeReport', 'getDepartmentIncomeReport']; // AN-T08
 
 const FAKE_REQ = { params: {}, query: {}, headers: {}, body: {} };
 const noop = () => undefined;

@@ -1,9 +1,6 @@
 [
-  "commitImport",
   "createExport",
   "downloadExportFile",
-  "getCatalogHealthReport",
-  "getCatalogRevision",
   "getExport",
   "listExports"
 ]

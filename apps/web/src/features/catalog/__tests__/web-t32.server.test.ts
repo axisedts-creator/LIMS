@@ -191,7 +191,8 @@ describe('range / critical sets (#38–#51, AC-05.7/05.9)', () => {
     await expect(mod.retireReferenceRangeSet(SET, 2, { change_reason: '   ' }, KEY)).rejects.toMatchObject({ status: 400 });
     await expect(mod.retireReferenceRangeSet(SET, 2, { change_reason: 'r' }, '')).rejects.toMatchObject({ status: 400 });
     await expect(mod.retireReferenceRangeSet(SET, 1.5, { change_reason: 'r' }, KEY)).rejects.toMatchObject({ status: 400 });
-    await expect(mod.retireReferenceRangeSet('not-a-uuid', 2, { change_reason: 'r' }, KEY)).rejects.toMatchObject({ status: 400 });
+    // ruling C3.T-32: no spec line fixes a status for a malformed id; BFF convention is 404 (see publishAnalyteVersion / getTest).
+    await expect(mod.retireReferenceRangeSet('not-a-uuid', 2, { change_reason: 'r' }, KEY)).rejects.toMatchObject({ status: 404 });
     expect(seen).toHaveLength(0);
   });
 
@@ -210,7 +211,8 @@ describe('range / critical sets (#38–#51, AC-05.7/05.9)', () => {
     api.use(http.post(`${ORIGIN}/v1/catalog/reference-range-sets/:id/discard`, rec(() => HttpResponse.json({}))));
     const mod = await load('discardRangeSet');
     await expect(mod.discardReferenceRangeSetDraft(SET, 1.5)).rejects.toMatchObject({ status: 400 });
-    await expect(mod.discardReferenceRangeSetDraft('not-a-uuid', 2)).rejects.toMatchObject({ status: 400 });
+    // ruling C3.T-32: 404 for malformed id (BFF convention).
+    await expect(mod.discardReferenceRangeSetDraft('not-a-uuid', 2)).rejects.toMatchObject({ status: 404 });
     expect(seen).toHaveLength(0);
   });
 

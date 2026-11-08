@@ -59,6 +59,29 @@ export async function findLedgerByIdempotencyKey(tx: Q, a: { tenantId: string; i
   return rows[0];
 }
 
+/** BL-T12 replay lookup: unique index ledger_entries__tenant_id_gateway_txn__p_uq is (tenant_id, gateway, gateway_txn_ref) WHERE gateway payment. */
+export async function findGatewayPayment(tx: Q, a: { tenantId: string; gateway: string; gatewayTxnRef: string }): Promise<Record<string, unknown> | undefined> {
+  const { rows } = await tx.query(
+    `SELECT * FROM billing.ledger_entries WHERE tenant_id = $1 AND capture_kind = 'gateway' AND entry_kind = 'payment' AND gateway = $2 AND gateway_txn_ref = $3`,
+    [a.tenantId, a.gateway, a.gatewayTxnRef]);
+  return rows[0];
+}
+
+/** billing.payment_intent_refs row written by B12 (intents created by C16 have none). */
+export async function getPaymentIntentRef(tx: Q, a: { tenantId: string; intentId: string }): Promise<Record<string, unknown> | undefined> {
+  const { rows } = await tx.query('SELECT intent_id, order_id, gateway, amount_paisa::text AS amount_paisa FROM billing.payment_intent_refs WHERE tenant_id = $1 AND intent_id = $2', [a.tenantId, a.intentId]);
+  return rows[0];
+}
+
+/** Gateway payments of one intent and the positive sum of its earlier gateway refunds: refundable = payments - refunds. */
+export async function sumGatewayByIntent(tx: Q, a: { tenantId: string; intentId: string }): Promise<{ payments_paisa: string; refunds_paisa: string }> {
+  const { rows } = await tx.query(
+    `SELECT COALESCE(SUM(amount_paisa) FILTER (WHERE entry_kind = 'payment'), 0)::text AS payments_paisa,
+            COALESCE(-SUM(amount_paisa) FILTER (WHERE entry_kind = 'refund'), 0)::text AS refunds_paisa
+       FROM billing.ledger_entries WHERE tenant_id = $1 AND capture_kind = 'gateway' AND intent_id = $2`, [a.tenantId, a.intentId]);
+  return rows[0] as { payments_paisa: string; refunds_paisa: string };
+}
+
 /** Signed sum per method of one cash session (payments, reversals, refunds): the session's `expected`. */
 export async function sumLedgerBySession(tx: Q, a: { tenantId: string; sessionId: string }): Promise<Array<{ method_code: string; amount_paisa: string }>> {
   const { rows } = await tx.query(

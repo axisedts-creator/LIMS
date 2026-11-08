@@ -6,6 +6,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { beforeAll, describe, expect, it } from 'vitest';
 import { REPO_ROOT, loadSpec, operationIds, validateManifest } from '../../../core/module.js';
+import { IMPLEMENTED } from './implemented-ops.js';
 
 const spec = loadSpec(join(REPO_ROOT, 'contracts/openapi/reporting.yaml'));
 const ops = operationIds(spec);
@@ -66,27 +67,8 @@ describe('501 stubs in dev', () => {
 
   it('the spec has operations (guards against an empty parametrisation)', () => expect(ops.length).toBeGreaterThan(50));
   it('handler keys == spec operationIds', () => expect(Object.keys(manifest.handlers).sort()).toEqual([...ops].sort()));
-  // LEAD-VISIBLE TESTER EDIT (C6-T03): the eight operations implemented by C6-T03 (S1-S7, R17) leave the 501 list; they are covered by settings.handlers.test.ts.
-  // Each later task must add its operationIds here the same way. Nothing else is weakened: all other operations still must answer 501.
-  // LEAD-VISIBLE TESTER EDIT (C6-T10): the six O1-O6 operations leave the 501 list; covered by outsourced.handlers.test.ts.
-  const IMPLEMENTED = new Set(['getReportingSettings', 'updateReportingSettings', 'listCentreContacts', 'createCentreContact', 'updateCentreContact',
-    'replaceStaffAssignments', 'upsertReferrerPreference', 'listReportingCodes',
-    'uploadOutsourcedReport', 'listOutsourcedReports', 'confirmOutsourcedReport', 'withdrawOutsourcedReport', 'downloadOutsourcedReport', 'listOutsourcedItems',
-    // LEAD-VISIBLE TESTER EDIT (C6-T11): N6 + N7 leave the 501 list; covered by narrative-image.handlers.test.ts.
-    'uploadNarrativeImage', 'getNarrativeImageContent',
-    // LEAD-VISIBLE TESTER EDIT (C6-T17): N1-N5 and N8-N10 leave the 501 list; covered by narrative.handlers.test.ts.
-    'listNarrativeReports', 'getNarrativeReport', 'saveNarrativeDraft', 'signNarrativeReport', 'startNarrativeAmendment',
-    'listNarrativeTemplates', 'createNarrativeTemplate', 'updateNarrativeTemplate',
-    // LEAD-VISIBLE TESTER EDIT (C6-T18): T1-T4 and T6 leave the 501 list (T5 previewReportTemplate stays a stub: C6-T16); covered by templates.handlers.test.ts.
-    'listReportTemplates', 'createReportTemplate', 'getReportTemplate', 'updateReportTemplateDraft', 'publishReportTemplate',
-    // LEAD-VISIBLE TESTER EDIT (C6-T09): R8 leaves the 501 list; covered by retry-render.test.ts.
-    'retryRenderReportVersion',
-    // LEAD-VISIBLE TESTER EDIT (C6-T13): R6 leaves the 501 list; covered by release.handlers.test.ts.
-    'releaseReportVersion',
-    // LEAD-VISIBLE TESTER EDIT (C6-T20): P1-P6 leave the 501 list; covered by the C6-T20 portal handler tests.
-    'createPortalOtpChallenge', 'verifyPortalOtp', 'getPortalReport', 'downloadPortalReportPdf', 'requestPortalLinkReissue', 'endPortalSession',
-    // LEAD-VISIBLE TESTER EDIT (C6-T23): D1-D4 leave the 501 list; covered by delivery.handlers.test.ts.
-    'listDeliveries', 'getDelivery', 'sendReportDelivery', 'retryDelivery']);
+  // The set of already-implemented operations (they leave the 501 list) lives in implemented-ops.ts, shared with settings.handlers.test.ts.
+  // Each later task must add its operationIds there. Nothing else is weakened: all other operations still must answer 501.
   const stubOps = ops.filter((o: string) => !IMPLEMENTED.has(o));
   it('only already-implemented operations are excluded from the 501 list', () => expect(ops.length - stubOps.length).toBe(IMPLEMENTED.size));
   it.each(stubOps)('%s answers 501', async (op) => {

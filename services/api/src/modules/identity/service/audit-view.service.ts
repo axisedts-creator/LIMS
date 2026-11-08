@@ -17,7 +17,7 @@ const ISO_UTC = /^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d(\.\d{1,6})?Z$/;
 const PG_TS = /^\d{4}-\d\d-\d\d[ T]\d\d:\d\d:\d\d(\.\d{1,6})?(Z|[+-]\d\d(:?\d\d)?)$/;
 const CURSOR = /^[A-Za-z0-9_-]{1,512}$/;
 const MAX_SPAN_MS = 31 * 86_400_000;
-const AUTH_EVENT_TYPES = new Set(['login_failed', 'login_password_ok', 'login_succeeded', 'login_step_up_required', 'login_rate_limited',
+export const AUTH_EVENT_TYPES: ReadonlySet<string> = new Set(['login_failed', 'login_password_ok', 'login_succeeded', 'login_step_up_required', 'login_rate_limited',
   'login_blocked_locked', 'login_blocked_inactive', 'login_blocked_tenant_suspended', 'login_blocked_ip', 'mfa_verified', 'mfa_challenge_failed',
   'mfa_enrolled', 'mfa_factor_removed', 'mfa_reset', 'password_changed', 'password_reset_requested', 'recovery_link_opened',
   'password_reset_completed', 'invite_sent', 'invite_link_opened', 'invite_accepted', 'session_revoked', 'session_expired_idle',

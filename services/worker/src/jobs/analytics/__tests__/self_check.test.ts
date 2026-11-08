@@ -133,7 +133,12 @@ describe('self_check - mismatch injection (R3/R2/R4)', () => {
 
 describe('self_check - failure and trust', () => {
   it('a failing comparison rejects the task (Graphile retries, max 2); nothing is half-marked silently', async () => {
-    const w = createWorld({ now: NOW, hook: (a) => { if (a.kind === 'other' && /analytics\.daily_results/.test(a.text)) throw Object.assign(new Error('boom'), { code: '57014' }); } });
+    const w = createWorld({ now: NOW });
+    const boom = (t: string) => /^\s*(SELECT|WITH)\b/i.test(t) && /analytics\.daily_results/.test(t);
+    const orig = w.ctx.tx.query;
+    w.ctx.tx.query = async (t: string, v?: unknown[]) => { if (boom(t)) throw Object.assign(new Error('boom'), { code: '57014' }); return orig(t, v); };
+    const od = w.ctx.db.tx;
+    w.ctx.db.tx = (fn: (c: any) => Promise<unknown>) => od((c: any) => fn({ tx: { query: (t: string, v?: unknown[]) => (boom(t) ? Promise.reject(Object.assign(new Error('boom'), { code: '57014' })) : c.tx.query(t, v)) } }));
     w.mismatches.set('R3|income', ['2026-11-05']);
     await expect(run(w)).rejects.toMatchObject({ code: '57014' });
   });

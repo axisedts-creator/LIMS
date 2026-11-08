@@ -131,7 +131,7 @@ describe('stepping, marks, refresh', () => {
 
   it('a failure in step 2 rejects (retry), step 1 stays done, and the retry finishes idempotently', async () => {
     let fail = true;
-    const w = createWorld({ now: NOW, hook: (a) => { if (fail && a.kind === 'insertRollup' && a.table === 'daily_income' && a.values.includes('2026-11-08')) throw Object.assign(new Error('boom'), { code: '57014' }); } });
+    const w = createWorld({ now: NOW, hook: (a) => { if (fail && a.kind === 'insertRollup' && a.table === 'daily_income' && a.values[1] === '2026-11-08') throw Object.assign(new Error('boom'), { code: '57014' }); } });
     w.viewOrders.push({ tenant: TA, order_id: 'o1', centre_id: C1, registered_at: '2026-11-03T05:00:00.000Z' });
     await expect(run(w, { to: '2026-11-15' })).rejects.toMatchObject({ code: '57014' });
     expect(tableEvents(w, 'daily_income').map((e) => e.from)).toContain('2026-11-01');

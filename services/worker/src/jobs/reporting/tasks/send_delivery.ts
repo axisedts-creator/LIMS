@@ -5,7 +5,8 @@
 // LIMS_REPORTING_ALLOW_REAL_PROVIDERS), never `recording`. A retryable error keeps its attempt row because the task RESOLVES and re-enqueues itself (the worker JobContext has no
 // commitOnError and a throw rolls the attempt log back); port / DB failures throw for the queue retry. Max 8 attempts, then `failed` / retries_exhausted.
 // [CONV] circuit breaker (10 consecutive retryable failures per channel account, open 60 s) is per worker process. Secret resolution for real providers lands with T27/T28:
-// creds = { secretRef }. Staff / partner recipients are re-resolved as `no_contact` (open point in C6-T23-impl.md).
+// creds = { secretRef }. [CONV] failure codes channel_not_configured, provider_not_permitted, provider_unavailable, template_text_missing, link_unavailable
+// are not in 02-TRD §5.4 / 04-UI-UX §2.5 (CR-C6-027, .orchestra/cr/C6-T23.md). Staff / partner recipients are re-resolved as `no_contact` (open point in C6-T23-impl.md).
 import { uuidv7 } from '../../../../../../packages/shared-ts/src/uuidv7/index.js';
 import type { TaskHandler } from '../../../core/manifest.js';
 import { recordingTransport } from '../../../../../api/src/modules/reporting/delivery/adapters/recording.js';
@@ -59,7 +60,7 @@ export function createSendDelivery(deps: SendDeps = {}): TaskHandler {
 
     // 1. consent / channel / contact re-check (AC-09.4, REQ-ARCH-085)
     const report = d['report_id'] ? await findReportMeta(tx, tenantId, d['report_id']) : undefined;
-    const r = await resolveRecipient(ctx, { channel: d['channel'], purpose: d['purpose'], kind: d['recipient_kind'], recipientId: d['recipient_id'], patientId: report?.patient_id ?? null, e164: d['destination_e164'] });
+    const r = await resolveRecipient(ctx, { channel: d['channel'], purpose: d['purpose'], kind: d['recipient_kind'], recipientId: d['recipient_id'], patientId: report?.patient_id ?? null, e164: d['destination_e164'], centreId: d['centre_id'] ?? report?.centre_id ?? null });
     if (!r.ok) {
       await record('suppressed', r.failure);
       await finish('suppressed', r.failure);

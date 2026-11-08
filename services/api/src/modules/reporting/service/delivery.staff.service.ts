@@ -104,7 +104,7 @@ export async function send(ctx: FlowCtx, reportId: unknown, b: { recipientKind: 
   if (b.recipientKind === 'referrer') recipientId = report.referrer_id;
   if (b.recipientKind === 'centre') {
     const c = await findCentreContact(tx(ctx), ctx.tenantId, b.centreContactId!);
-    if (!c || !c.is_active) throw new LimsError('common.not_found');
+    if (!c || !c.is_active || c.centre_id !== report.centre_id) throw new LimsError('common.not_found');   // no cross-centre disclosure (05-SCHEMA §2.8)
     recipientId = c.id;
   }
   const id = uuidv7() as string;

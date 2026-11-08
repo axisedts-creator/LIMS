@@ -20,6 +20,7 @@ export interface Recipient {
   channel: MessageChannel; purpose: string; kind: string; recipientId: string | null;
   patientId?: string | null;          // owner of the consents (referrer deliveries need shareWithReferrer of this patient)
   e164?: string | null;               // phone_otp destination
+  centreId?: string | null;           // centre contacts must belong to the delivery's centre (05-SCHEMA §2.8)
 }
 
 export async function resolveRecipient(ctx: FlowCtx, r: Recipient): Promise<Resolved> {
@@ -52,7 +53,7 @@ export async function resolveRecipient(ctx: FlowCtx, r: Recipient): Promise<Reso
     }
     case 'centre': {
       const c = r.recipientId ? await findCentreContact(tx(ctx), ctx.tenantId, r.recipientId) : undefined;
-      return c && c.is_active && c.channel === r.channel && c.address ? { ok: true, address: c.address, recipientId: c.id } : { ok: false, failure: 'no_contact' };
+      return c && c.is_active && c.channel === r.channel && c.address && (!r.centreId || c.centre_id === r.centreId) ? { ok: true, address: c.address, recipientId: c.id } : { ok: false, failure: 'no_contact' };
     }
     case 'phone_otp':
       return r.e164 ? { ok: true, address: r.e164, recipientId: null } : { ok: false, failure: 'no_contact' };
@@ -68,7 +69,7 @@ export interface Start {
 }
 /** Resolves and inserts. `onlyIfOk`: a recipient that cannot be reached creates nothing (dispatch / fallback). Otherwise a suppressed row is written (D3 / D4). */
 export async function startDelivery(ctx: FlowCtx, s: Start, onlyIfOk = false): Promise<{ id: string; status: string; inserted: boolean } | undefined> {
-  const r = await resolveRecipient(ctx, { channel: s.channel, purpose: s.purpose, kind: s.kind, recipientId: s.recipientId, patientId: s.patientId ?? null });
+  const r = await resolveRecipient(ctx, { channel: s.channel, purpose: s.purpose, kind: s.kind, recipientId: s.recipientId, patientId: s.patientId ?? null, centreId: s.centreId });
   if (!r.ok && onlyIfOk) return undefined;
   const id = s.id ?? (uuidv7() as string);
   const address = r.ok ? r.address : null;

@@ -33,8 +33,8 @@ export async function oldestActiveCentreContact(tx: Tx, tenantId: string, centre
   return rows[0];
 }
 
-export async function findCentreContact(tx: Tx, tenantId: string, id: string): Promise<{ id: string; channel: string; address: string; is_active: boolean } | undefined> {
-  const { rows } = await tx.query(`SELECT id, channel, address, is_active FROM reporting.centre_contacts WHERE tenant_id = $1 AND id = $2`, [tenantId, id]);
+export async function findCentreContact(tx: Tx, tenantId: string, id: string): Promise<{ id: string; centre_id: string; channel: string; address: string; is_active: boolean } | undefined> {
+  const { rows } = await tx.query(`SELECT id, centre_id, channel, address, is_active FROM reporting.centre_contacts WHERE tenant_id = $1 AND id = $2`, [tenantId, id]);
   return rows[0];
 }
 

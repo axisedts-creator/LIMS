@@ -29,7 +29,7 @@ describe('CatalogPort real impl: priceFor shape (AC-19.1, 03-IC §4.2)', () => {
   });
   it('no snake_case keys, no null, no internal columns leak (tenant_id, id, status, effective_*)', { timeout: T }, async () => {
     const env = setup28b({ surcharge_rules: [pct(1, 5_000)], tax_rules: [trule(2, A, { scope: 'orderable', orderable_id: O1.id, vat_treatment: 'taxable', other_tax_code: 'HST', hs_code: '9018' })], cs_tax_types: [ttype(1, A, 'HST', { rate_bp: 500 })] });
-    const q = await pf(env, O1, { credit_party_id: P1.id }, 'urgent');
+    const q = await pf(env, O1, { creditPartyId: P1.id }, 'urgent');
     for (const k of keysOf(q)) expect(k, k).toMatch(/^[a-z][A-Za-z]*$/);
     expect(JSON.stringify(q)).not.toMatch(/null|tenant|"id"|status|effective|_paisa|created|updated/);
     expect(q).toEqual({

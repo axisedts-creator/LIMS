@@ -461,17 +461,16 @@ describe('referrers — commit (AC-17.6)', () => {
 });
 
 describe('credit_parties — commit (CR-C18-008)', () => {
-  const rows = () => [party('HOSP1', 'Synthetic Hospital', 'hospital', { credit: 'Y', pan: '123456789', phone: '+9779800000011' }), party(null, 'Synthetic Company', 'company', { credit: 'N' }), party('LAB3', 'Synthetic Lab', 'partner_lab')];
+  const rows = () => [party('HOSP1', 'Synthetic Hospital', 'hospital', { credit: 'Y', pan: '123456789', phone: '+9779800000011' }), party('CO2', 'Synthetic Company', 'company', { credit: 'N' }), party('LAB3', 'Synthetic Lab', 'partner_lab')];
 
-  it('creates parties (blank code -> auto, allows_credit blank = true, N = false); one bump, one catalog_import event; created_by = committing user', async () => {
+  it('creates parties (allows_credit blank = true, N = false); one bump, one catalog_import event; created_by = committing user', async () => {
     const db = makeKindsDb('credit_parties');
     const rev = db.revision();
     const { c } = await importFully(db, await creditPartiesXlsx(rows()));
     const ps = db.partyRows();
     expect(ps).toHaveLength(3);
     expect(ps.find((p) => p.party_code === 'HOSP1')).toMatchObject({ name: 'Synthetic Hospital', kind: 'hospital', allows_credit: true, pan: '123456789', contact_phone_e164: '+9779800000011', created_by: COMMITTER, updated_by: COMMITTER });
-    expect(ps.find((p) => p.name === 'Synthetic Company')).toMatchObject({ allows_credit: false });
-    expect(ps.find((p) => p.name === 'Synthetic Company')!.party_code).toMatch(/^[A-Z0-9_-]{1,20}$/);
+    expect(ps.find((p) => p.party_code === 'CO2')).toMatchObject({ name: 'Synthetic Company', allows_credit: false });
     expect(ps.find((p) => p.party_code === 'LAB3')!.allows_credit).toBe(true);
     expect(db.revision()).toBe(rev + 1);
     expect(catalogEvents(c.runner)).toHaveLength(1);

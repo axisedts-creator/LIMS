@@ -99,7 +99,7 @@ export function makeMsgDb(seed: Record<string, Row[]> = seedAll()) {
       else if (!/\(/.test(rhs) || /^\$\d+/.test(rhs) || /^now\(\)$/i.test(rhs)) r[col] = parse(col, tokenValue(rhs, values));
     }
   }
-  function checks(table: string, row: Row) {
+  function checks(table: string, row: Row, orig?: Row) {
     const bad = (m: string) => { throw pgError('23514', `${table} check violated: ${m}`); };
     if (table === 'message_template_texts') {
       for (const c of ['tenant_id', 'template_code', 'channel', 'language', 'body_text', 'created_by', 'updated_by']) if (row[c] == null) throw pgError('23502', `null ${c}`);
@@ -116,7 +116,7 @@ export function makeMsgDb(seed: Record<string, Row[]> = seedAll()) {
       if (!['recording', 'whatsapp_cloud_api', 'sms_sparrow', 'sms_aakash', 'email_smtp_relay'].includes(row['provider_kind'])) bad('provider_kind');
       if (row['sender_id'] != null && String(row['sender_id']).length > 64) bad('sender_id'); if (!/^[a-z0-9_./-]{1,128}$/.test(String(row['secret_ref']))) bad('secret_ref');
       const h = row['callback_token_sha256']; if (h != null && !(Buffer.isBuffer(h) || h instanceof Uint8Array)) bad('callback_token_sha256 must be bytea'); if (h != null && Buffer.from(h).length !== 32) bad('callback_token_sha256 must be 32 bytes');
-      if (h != null && store['channel_accounts']!.some((o) => o !== row && o['callback_token_sha256'] != null && same(o['callback_token_sha256'], h))) throw pgError('23505', 'duplicate callback_token_sha256 (global unique)');
+      if (h != null && store['channel_accounts']!.some((o) => o !== orig &&o['callback_token_sha256'] != null && same(o['callback_token_sha256'], h))) throw pgError('23505', 'duplicate callback_token_sha256 (global unique)');
     }
   }
   function exec(text: string, values: readonly unknown[]): Row[] {
@@ -137,7 +137,7 @@ export function makeMsgDb(seed: Record<string, Row[]> = seedAll()) {
       const m = /\bset\b([\s\S]*?)\bwhere\b([\s\S]*?)(?:\breturning\b|$)/i.exec(text); if (!m) throw new Error('FAKE-UNSUPPORTED-SQL: UPDATE without WHERE');
       const hit = rows.filter((r) => matches(r, eqFilters(m[2]!, values)));
       const done: Row[] = [];
-      for (const r of hit) { const next: Row = { ...r }; applySet(next, m[1]!, values); checks(table, next); Object.assign(r, next); done.push(r); }
+      for (const r of hit) { const next: Row = { ...r }; applySet(next, m[1]!, values); checks(table, next, r); Object.assign(r, next); done.push(r); }
       return /\breturning\b/i.test(text) ? done.map((r) => ({ ...r })) : [];
     }
     if (verb === 'insert') {
@@ -155,7 +155,7 @@ export function makeMsgDb(seed: Record<string, Row[]> = seedAll()) {
           if (/do\s+nothing/i.test(m[3])) continue;
           const upd = /do\s+update\s+set([\s\S]*)$/i.exec(m[3])?.[1] ?? ''; const w = /\bwhere\b([\s\S]*)$/i.exec(upd)?.[1];
           if (w && !matches(dup, eqFilters(w, values))) continue;           // DO UPDATE ... WHERE false -> no row returned (optimistic-lock miss)
-          const next: Row = { ...dup }; applySet(next, upd.replace(/\bwhere\b[\s\S]*$/i, ''), values, row); checks(table, next); Object.assign(dup, next); out.push({ ...dup });
+          const next: Row = { ...dup }; applySet(next, upd.replace(/\bwhere\b[\s\S]*$/i, ''), values, row); checks(table, next, dup); Object.assign(dup, next); out.push({ ...dup });
         } else { checks(table, row); rows.push(row); out.push({ ...row }); }
       }
       return /\breturning\b/i.test(text) ? out : [];

@@ -42,7 +42,11 @@ const putAcct = (t: MsgWorld, channel: string, body: unknown, over: Record<strin
 const rotate = (t: MsgWorld, channel: string, headers: unknown = {}) => t.run(OP.rotate, { params: { channel }, headers });
 const okAcct = (o: Record<string, unknown> = {}) => ({ provider_kind: 'sms_sparrow', sender_id: 'SYNLAB', secret_ref: 'secrets/sms-synthetic', is_active: true, ...o });
 const nothingWritten = (t: MsgWorld) => expect(t.db.writes()).toHaveLength(0);
-const snap = (v: unknown) => structuredClone(v);
+const snap = <T>(v: T): T => {
+  const c = (x: any): any => Buffer.isBuffer(x) ? Buffer.from(x) : x instanceof Date ? new Date(x) : Array.isArray(x) ? x.map(c)
+    : x && typeof x === 'object' ? Object.fromEntries(Object.entries(x).map(([k, y]) => [k, c(y)])) : x;
+  return c(v);
+};
 const TEXT_KEYS = ['channel', 'language', 'body_text', 'subject_text', 'provider_template_name', 'provider_template_language', 'provider_variable_order', 'approval_status', 'is_active', 'version'];
 const ACCT_KEYS = ['id', 'channel', 'provider_kind', 'sender_id', 'secret_ref', 'callback_url_configured', 'is_active', 'version'];
 const TOKEN_URL = /\/v1\/reporting\/provider-callbacks\/([A-Za-z0-9_-]{43})$/;
@@ -352,7 +356,7 @@ describe('C2 upsertChannelAccount', () => {
     const t = w(); await putAcct(t, 'whatsapp', okAcct({ provider_kind: 'whatsapp_cloud_api' }));
     for (const s of t.db.writes().filter((x) => /channel_accounts/.test(x.text))) { expect(s.text).toMatch(/\btenant_id\b/); expect(s.values).toContain(TENANT_A); }
     for (const s of t.db.writes().filter((x) => x.verb === 'update')) expect(s.text.replace(/\bwhere\b[\s\S]*$/i, '')).not.toMatch(/callback_token_sha256/i);
-    for (const s of t.db.writes().filter((x) => /do\s+update\s+set/i.test(x.text))) expect(/do\s+update\s+set([\s\S]*)$/i.exec(s.text)![1]).not.toMatch(/callback_token_sha256/i);
+    for (const s of t.db.writes().filter((x) => /do\s+update\s+set/i.test(x.text))) expect(/do\s+update\s+set([\s\S]*?)(?:\breturning\b|$)/i.exec(s.text)![1]).not.toMatch(/callback_token_sha256/i);
   });
 });
 

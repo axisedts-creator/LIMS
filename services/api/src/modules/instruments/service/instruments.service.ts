@@ -57,6 +57,11 @@ function validZone(tz: unknown): boolean {
   if (typeof tz !== 'string' || tz.length < 1 || tz.length > 64) return false;
   try { new Intl.DateTimeFormat('en', { timeZone: tz }); return true; } catch { return false; }
 }
+/** 02-TRD.md:728 — QC patterns are RE2: must compile, no lookaround / backreference. ponytail: syntactic screen, not a full RE2 parser. */
+function re2ish(x: string): boolean {
+  if (/\(\?<?[=!]|\\[1-9]|\\k</.test(x)) return false;
+  try { new RegExp(x); return true; } catch { return false; }
+}
 
 const CHECK: Record<string, (v: unknown) => void> = {
   instrument_code: (v) => { if (typeof v !== 'string' || !CODE.test(v)) fail('/instrument_code'); },
@@ -76,7 +81,8 @@ const CHECK: Record<string, (v: unknown) => void> = {
     if (!isObj(v) || Object.keys(v).some((k) => k !== 'host_query' && k !== 'worklist_download') || typeof v['host_query'] !== 'boolean' || typeof v['worklist_download'] !== 'boolean') fail('/capabilities');
   },
   qc_sample_id_patterns: (v) => {
-    if (!Array.isArray(v) || v.length > 10 || v.some((x) => typeof x !== 'string' || x.length < 1 || x.length > 100)) fail('/qc_sample_id_patterns');
+    if (!Array.isArray(v) || v.length > 10) fail('/qc_sample_id_patterns');
+    (v as unknown[]).forEach((x, i) => { if (typeof x !== 'string' || x.length < 1 || x.length > 100 || !re2ish(x)) fail(`/qc_sample_id_patterns/${i}`); });
   },
   timezone: (v) => { if (!validZone(v)) fail('/timezone'); },
   silence_window_minutes: (v) => { if (!isInt(v, 15, 1440)) fail('/silence_window_minutes'); },
@@ -279,7 +285,8 @@ export function createInstrumentsService(deps: InstrumentsDeps = {}) {
       const b = body as Row;
       for (const k of Object.keys(b)) if (k !== 'checklist' && k !== 'evidence_note') fail(keyPath(k));
       for (const k of Object.keys(b['checklist'])) if (!CHECKLIST_KEYS.includes(k)) fail('/checklist');
-      if (b['evidence_note'] !== undefined && (typeof b['evidence_note'] !== 'string' || b['evidence_note'].length > 2000)) fail('/evidence_note');
+      if (b['evidence_note'] !== undefined && (typeof b['evidence_note'] !== 'string' || b['evidence_note'].length > 2000
+        || (b['evidence_note'].trim().length > 0 && b['evidence_note'].length < 10))) fail('/evidence_note');   // 10–2000 (02-TRD.md:706); blank -> checklist_incomplete below
       return { checklist: b['checklist'], evidenceNote: b['evidence_note'] };
     }, (row, drivers, p) => {
       live(row, drivers);

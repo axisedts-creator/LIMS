@@ -332,3 +332,24 @@ export async function interfaceMessageRows(tx: RollupsTx, a: Base): Promise<Inte
   const rows = await read(tx, a, 'analytics.daily_interface_messages', 'instrument_id, centre_id', 'instrument_id, centre_id', sumCols(MESSAGE_COLS));
   return rows.map((r) => ({ instrument_id: String(r.instrument_id), centre_id: String(r.centre_id), ...ints(r, MESSAGE_COLS) }));
 }
+
+// ------------------------------------------------------------------ AN-T13: backlog snapshot (TRD §6.7 "Backlog", §8.2)
+export interface BacklogRow { centre_id: string; stage: 'awaiting_results' | 'ready_unreleased'; orders: number; oldest_registered_at: string | null }
+
+/** analytics.report_backlog under the standard scope predicate; one row per (centre, stage). The snapshot follows the SCOPE, not the live RLS. */
+export async function backlogRows(tx: RollupsTx, a: { readonly tenantId: string; readonly scope: RollupScope }): Promise<BacklogRow[]> {
+  const scope = checkScope(a.scope);
+  if (!scope.all && scope.centreIds.length === 0) return []; // empty restricted scope sees nothing
+  const { rows } = await tx.query(
+    `SELECT centre_id, stage, sum(orders)::bigint AS orders, min(oldest_registered_at) AS oldest_registered_at
+FROM analytics.report_backlog
+WHERE tenant_id = $1 AND ($2 OR (centre_id IS NOT NULL AND centre_id = ANY ($3)))
+GROUP BY centre_id, stage ORDER BY centre_id, stage`,
+    [a.tenantId, scope.all, [...scope.centreIds]],
+  );
+  return rows.map((r) => ({
+    centre_id: String(r.centre_id), stage: r.stage as BacklogRow['stage'], orders: int(r.orders, 'orders'),
+    oldest_registered_at: r.oldest_registered_at === null || r.oldest_registered_at === undefined ? null
+      : r.oldest_registered_at instanceof Date ? r.oldest_registered_at.toISOString() : String(r.oldest_registered_at),
+  }));
+}

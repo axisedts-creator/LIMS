@@ -3,6 +3,7 @@
 import type { Period } from '../domain/period.js';
 import type { Scope } from '../domain/scope.js';
 import { RELEASE_COLS, DELIVERY_COLS, RESULT_COLS } from '../domain/columns.js';
+import type { PendingItemOut, PendingSummaryOut } from '../service/pending.service.js';
 import {
   INCOME_MONEY, VOLUME_MONEY, type CollectionsOutRow, type CollectionsTotals, type DepartmentOutRow, type DepartmentTotals, type IncomeOutRow, type IncomeTotals,
   type TopCentreOutRow, type TopReferrerOutRow, type VolumeOutRow, type VolumeTotals,
@@ -170,6 +171,41 @@ export function toTatReportDto(m: ReportMeta, out: { rows: readonly TatOutRow[];
       anomalies: r.anomalies,
     })),
     segment_definitions: out.segments.map((s) => ({ segment: s, start_label_key: `analytics.tat.${s}.start`, stop_label_key: `analytics.tat.${s}.stop` })),
+  };
+}
+
+// ------------------------------------------------------------------ AN-T13 (no period: live + snapshot)
+export function toPendingSummaryDto(m: { scope: Scope; generatedAt: string }, o: PendingSummaryOut) {
+  const b = o.backlog;
+  return {
+    report_code: 'pending_tests',
+    scope: { all_centres: m.scope.all, centre_ids: m.scope.all ? [] : [...m.scope.centreIds], tenant_wide_sections_hidden: [] as string[] },
+    freshness: [{ family: 'pending_items', refreshed_at: m.generatedAt, is_stale: false, live: true }], // US-16.3; [CONV] report_backlog freshness joins with the freshness service
+    generated_at: m.generatedAt,
+    total: o.total, overdue: o.overdue, no_target: o.no_target,
+    by_status: o.by_status.map((s) => ({ item_status: s.item_status, count: s.count })),
+    by_priority: o.by_priority.map((s) => ({ priority: s.priority, count: s.count })),
+    by_department: o.by_department.map((d) => ({ department_id: d.department_id, label: d.label, count: d.count, overdue: d.overdue })),
+    by_age_bucket: o.by_age_bucket.map((s) => ({ bucket: s.bucket, count: s.count })),
+    backlog: {
+      reports_pending: b.reports_pending, awaiting_results: b.awaiting_results, ready_unreleased: b.ready_unreleased,
+      ...(b.oldest_registered_at === undefined ? {} : { oldest_registered_at: b.oldest_registered_at }),
+      by_centre: b.by_centre.map((c) => ({ centre_id: c.centre_id, label: c.label, reports_pending: c.reports_pending, awaiting_results: c.awaiting_results, ready_unreleased: c.ready_unreleased })),
+    },
+    age_anchor_note_key: 'analytics.pending.age_anchor',
+  };
+}
+
+export function toPendingItemsDto(out: { rows: readonly PendingItemOut[]; limit: number; nextCursor?: string | undefined; openRouteId?: 'staff.lab.order_results' | undefined }) {
+  return {
+    data: out.rows.map((r) => ({
+      order_item_id: r.order_item_id, order_id: r.order_id, centre_id: r.centre_id,
+      ...(r.processing_branch_id === undefined ? {} : { processing_branch_id: r.processing_branch_id }),
+      department_id: r.department_id, test_id: r.test_id, test_code: r.test_code, test_label: r.test_label, priority: r.priority, item_status: r.item_status,
+      age_seconds: r.age_seconds, ...(r.tat_target_seconds === undefined ? {} : { tat_target_seconds: r.tat_target_seconds }), is_overdue: r.is_overdue,
+      ...(out.openRouteId ? { open_route_id: out.openRouteId } : {}), // only for a holder of lab.result.read
+    })),
+    page: { limit: out.limit, ...(out.nextCursor ? { next_cursor: out.nextCursor } : {}) },
   };
 }
 

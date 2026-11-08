@@ -6,7 +6,7 @@
 //   its 03-IC column names; a moduleRef without a view row is an integrity error (assembly rejects, no version) — same rule as "never a silently shorter report" in document.ts.
 // The smart tests pin behaviour that already exists in assemble_report.ts (regression guards); the micro/anatomic tests fail until the sections are assembled.
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { PORTAL_ORIGIN, build, settle, snapshotOf, type Setup } from './assemble.helpers.js';
+import { HASH_2, PORTAL_ORIGIN, build, settle, snapshotOf, versionRow, type Setup } from './assemble.helpers.js';
 import { ANAT_ENTITY, ITEM_ANAT, ITEM_MICRO, MICRO_ENTITY, TENANT_A, TENANT_B, anatRow, idN, microRow, moduleSetup, viewStmts } from './assemble.modules.helpers.js';
 
 beforeEach(() => { vi.stubEnv('LIMS_ORIGIN_PORTAL', PORTAL_ORIGIN); });
@@ -59,6 +59,36 @@ describe('IS-21 — anatomic section from anatomic.v_pub_report_content', () => 
   });
   it('anatomic does not turn the version into preliminary/amended: a normal complete report stays final', async () => {
     const s = moduleSetup({ micro: false }); await go(s); expect(s.versions()[0]!['report_kind']).toBe('final');
+  });
+});
+
+describe('IS-21 — module amendment reasons reach the version kind (02-TRD §4.5 rules 1-2; review C6-T32 item 1)', () => {
+  const released = () => [versionRow(1, { status: 'released', released_at: '2026-11-07T08:00:00.000Z', release_basis: 'zero_balance', release_mode: 'auto', audiences: ['patient'] })];
+  const snapOf = (s: Setup) => { const v = s.versions().at(-1)!; return { v, snap: snapshotOf(v) }; };
+  it('(a) anatomic result amended with supplementary_report over an earlier release -> addendum / "Addendum", no amendment box (excluded reason)', async () => {
+    const s = moduleSetup({ micro: false, anatAmend: 'supplementary_report', world: { versions: released(), hash: HASH_2 } }); await go(s);
+    const { v, snap } = snapOf(s); expect(s.versions()).toHaveLength(2);
+    expect(v['report_kind']).toBe('addendum'); expect(snap).toMatchObject({ reportKind: 'addendum', statusLabel: 'Addendum', amendmentNotes: [] });
+  });
+  it('(a) the same without an earlier release is still addendum (rule 2 does not need a release)', async () => {
+    const s = moduleSetup({ micro: false, anatAmend: 'supplementary_report' }); await go(s); expect(s.versions()[0]!['report_kind']).toBe('addendum');
+  });
+  it('(b) micro final with module_phase_progression over a released preliminary -> final, no amendment box', async () => {
+    const s = moduleSetup({ anatomic: false, microAmend: 'module_phase_progression', world: { versions: [versionRow(1, { status: 'released', released_at: '2026-11-07T08:00:00.000Z', report_kind: 'preliminary', release_basis: 'zero_balance', release_mode: 'auto', audiences: ['patient'] })], hash: HASH_2 } });
+    await go(s); const { v, snap } = snapOf(s);
+    expect(v['report_kind']).toBe('final'); expect(snap).toMatchObject({ reportKind: 'final', statusLabel: 'Final', amendmentNotes: [] });
+  });
+  it.each([
+    ['micro', 'corrected_value', 'Synthetic urine culture'], ['anatomic', 'corrected_value', 'Synthetic skin biopsy'], ['micro', 'wrong_patient_sample', 'Synthetic urine culture'],
+  ])('(c) %s result amended with %s after a release -> amended, the amendment box names the test', async (mod, reason, testName) => {
+    const s = moduleSetup({ micro: mod === 'micro', anatomic: mod === 'anatomic', ...(mod === 'micro' ? { microAmend: reason } : { anatAmend: reason }), world: { versions: released(), hash: HASH_2 } });
+    await go(s); const { v, snap } = snapOf(s);
+    expect(v['report_kind']).toBe('amended'); expect(snap).toMatchObject({ reportKind: 'amended', statusLabel: 'Amended' });
+    const n = snap.amendmentNotes.find((x: any) => x.analyteOrSection === testName);
+    expect(n).toMatchObject({ analyteOrSection: testName, previousVersionNo: 1, reasonCode: reason, reasonText: 'Synthetic module amendment', amendedAt: '2026-11-07T09:45:00.000Z' });
+  });
+  it('(c) the same module amendment with NO earlier release is just final (amended needs a release)', async () => {
+    const s = moduleSetup({ anatomic: false, microAmend: 'corrected_value' }); await go(s); expect(s.versions()[0]!['report_kind']).toBe('final');
   });
 });
 

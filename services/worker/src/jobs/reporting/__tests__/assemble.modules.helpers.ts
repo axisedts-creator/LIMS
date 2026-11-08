@@ -1,7 +1,7 @@
 // C6-T32 test helpers (not a test file). Synthetic data only. Adds a micro item and an anatomic item (lab-ready, approved, ResultView.moduleRef set) to the T08 world
 // WITHOUT touching its helpers: report_order_items rows go straight into the fake store, the three ports are wrapped after setup() (same technique as assemble_report.test.ts).
 import { SYSTEM_ACTOR, type Row } from './consumers.helpers.js';
-import { TENANT_A, TENANT_B, I, idN, setup, type Setup } from './assemble.helpers.js';
+import { TENANT_A, TENANT_B, I, idN, setup, type Setup, type WorldOpts } from './assemble.helpers.js';
 
 export { TENANT_A, TENANT_B, I, idN };
 export const ITEM_MICRO = idN(0x3a02); export const T_MICRO = idN(0x3a01); export const MICRO_ENTITY = idN(0x3b01);
@@ -23,10 +23,12 @@ export const anatRow = (over: Row = {}): Row => ({
   version_kind: 'original', scope: 'full', change_reason_code: null, signed_by_membership_id: I.m1, signed_at: '2026-11-07T09:10:00.000Z', ...over,
 });
 
-export interface ModuleOpts { micro?: boolean; anatomic?: boolean; microRows?: Row[]; anatRows?: Row[]; rls?: boolean; smartFlag?: boolean; microPhase?: 'preliminary' | 'final' }
+export interface ModuleOpts { micro?: boolean; anatomic?: boolean; microRows?: Row[]; anatRows?: Row[]; rls?: boolean; smartFlag?: boolean; microPhase?: 'preliminary' | 'final'
+  /** reason code of ResultView.amendment on the module result (03-IC ResultView) */ microAmend?: string; anatAmend?: string; /** extra world options, e.g. an earlier released version */ world?: Partial<WorldOpts> }
+export const amendOf = (reasonCode: string): Row => ({ previousVersionNo: 1, reasonCode, reasonText: 'Synthetic module amendment', amendedAt: '2026-11-07T09:45:00.000Z' });
 /** setup() + module items. Defaults: both items present, one view row each (micro version 2 with a stale version 1 beside it). */
 export function moduleSetup(o: ModuleOpts = {}): Setup {
-  const s = setup({ ...(o.rls === undefined ? {} : { rls: o.rls }), ...(o.smartFlag ? { smartFlag: true } : {}) });
+  const s = setup({ ...(o.world ?? {}), ...(o.rls === undefined ? {} : { rls: o.rls }), ...(o.smartFlag ? { smartFlag: true } : {}) });
   const withMicro = o.micro ?? true; const withAnat = o.anatomic ?? true;
   const store = s.db.store;
   const item = (n: number, orderItem: string, test: string): Row => ({ ...ctxBase, id: idN(0xb100 + n), report_id: idN(0xa101), order_id: I.order, order_item_id: orderItem, orderable_id: test, orderable_kind: 'test',
@@ -42,12 +44,12 @@ export function moduleSetup(o: ModuleOpts = {}): Setup {
   const def = (id: string, code: string, name: string, deptId: string, deptName: string, wf: string) => ({ id, code, name, departmentId: deptId, departmentName: deptName, departmentCode: code, specimenTypeCodes: ['URINE'], workflowType: wf, analytes: [], isActive: true, revision: 1 });
   p.catalog.getTest = async (c: unknown, i: any) => i.testId === T_MICRO ? def(T_MICRO, 'CULT', 'Synthetic urine culture', DEPT_MICRO, 'Microbiology', 'microbiology')
     : i.testId === T_ANAT ? def(T_ANAT, 'HISTO', 'Synthetic skin biopsy', idN(0x3a21), 'Histopathology', 'anatomic') : test0(c, i);
-  const rv = (n: number, orderItemId: string, testId: string, moduleRef: Row): Row => ({ resultId: idN(0x3c00 + n), orderItemId, testId, analyteId: idN(0x3d00 + n), versionNo: 1, status: 'approved', origin: 'module',
-    commentCodes: [], attachments: [], onHold: false, qcReviewRequired: false, approvedAt: '2026-11-07T09:30:00.000Z', approvedByMembershipId: I.m1, moduleRef });
+  const rv = (n: number, orderItemId: string, testId: string, moduleRef: Row, amendment?: Row): Row => ({ resultId: idN(0x3c00 + n), orderItemId, testId, analyteId: idN(0x3d00 + n), versionNo: 1, status: 'approved', origin: 'module',
+    commentCodes: [], attachments: [], onHold: false, qcReviewRequired: false, approvedAt: '2026-11-07T09:30:00.000Z', approvedByMembershipId: I.m1, moduleRef, ...(amendment ? { amendment } : {}) });
   p.lab.getOrderResults = async (c: unknown, i: unknown) => {
     const r = await lab0(c, i);
-    if (withMicro) r.items.push({ orderItemId: ITEM_MICRO, testId: T_MICRO, departmentId: DEPT_MICRO, results: [rv(1, ITEM_MICRO, T_MICRO, { module: 'micro', entityId: MICRO_ENTITY, versionNo: 2 })] });
-    if (withAnat) r.items.push({ orderItemId: ITEM_ANAT, testId: T_ANAT, departmentId: idN(0x3a21), results: [rv(2, ITEM_ANAT, T_ANAT, { module: 'anatomic', entityId: ANAT_ENTITY, versionNo: 1 })] });
+    if (withMicro) r.items.push({ orderItemId: ITEM_MICRO, testId: T_MICRO, departmentId: DEPT_MICRO, results: [rv(1, ITEM_MICRO, T_MICRO, { module: 'micro', entityId: MICRO_ENTITY, versionNo: 2 }, o.microAmend ? amendOf(o.microAmend) : undefined)] });
+    if (withAnat) r.items.push({ orderItemId: ITEM_ANAT, testId: T_ANAT, departmentId: idN(0x3a21), results: [rv(2, ITEM_ANAT, T_ANAT, { module: 'anatomic', entityId: ANAT_ENTITY, versionNo: 1 }, o.anatAmend ? amendOf(o.anatAmend) : undefined)] });
     return r;
   };
   return s;

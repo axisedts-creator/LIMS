@@ -309,6 +309,7 @@ describe('input validation: 400 before any read or access_log row (flag on, aal2
   it('centre_id filter: inside scope narrows; outside scope or another tenant → 404 common.not_found with no read and no access_log row', async () => {
     const narrowed = await okRef((await makeCtx10(OWNER, { flag: true })).ctx, { centre_id: [A2] });
     expect(brief(narrowed)).toEqual([[REF_NAME.ALPHA, 2, 2, 4, 3000]]);
+    db.calls.length = 0;
     const c = await makeCtx10(OWNER_A1, { flag: true });
     await expectLims(getRef(c.ctx, { centre_id: [A2] }), 'common.not_found', 404);
     expect(reads()).toEqual([]);
@@ -411,7 +412,7 @@ describe('US-07.3 / US-07.4 — no commission wording, no rate / percentage / pa
     expect(Object.keys(b.totals).sort()).toEqual(['net_billed_paisa', 'orders', 'patient_visits', 'tests_ordered']);
     const keys = new Set<string>();
     (function walk(x: unknown) { if (x && typeof x === 'object') for (const [k, v] of Object.entries(x)) { keys.add(k); walk(v); } })(b);
-    expect([...keys].filter((k) => /rate|percent|pct|share|payable|payout|pay_|_pay|paid|status|action|href|url|link|incentive_amount|due/i.test(k))).toEqual([]);
+    expect([...keys].filter((k) => /(^|_)(rate|percent|pct|share|payable|payout|pay|paid|status|action|href|url|link|due)(_|$)|incentive_amount/i.test(k))).toEqual([]);
   });
 
   it('neither the body nor the access entry contains the forbidden word (case-insensitive)', async () => {

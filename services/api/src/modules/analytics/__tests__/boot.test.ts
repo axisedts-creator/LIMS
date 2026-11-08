@@ -39,6 +39,7 @@ const EXPECTED_OPS = [
 const IMPLEMENTED: readonly string[] = [
   'getIncomeReport', 'getDepartmentIncomeReport', // AN-T08
   'getVolumeReport', 'getTopCentresReport', 'getTopReferrersReport', 'getCollectionsReport', 'searchAnalyticsReferrers', 'getAnalyticsFilterOptions', 'getCollectionsFilterOptions', // AN-T09
+  'getReferralIncentiveReport', // AN-T10
   'getTestsDoneReport', 'getQualityIndicatorsReport', 'getDeliveryReport', 'getInterfacesReport', // AN-T11
 ];
 

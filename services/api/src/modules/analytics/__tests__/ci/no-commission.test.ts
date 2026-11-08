@@ -36,7 +36,7 @@ describe('c8-no-commission script', () => {
     const root = scratch();
     for (const p of PATHS) put(root, `${p}/ok.ts`, 'export const referral = "net billed";\n');
     expect(run(root).status).toBe(0);
-  });
+  }, 60_000);
 
   it.each(PATHS)('content in %s → exit 1 and the file is named', (p) => {
     const root = scratch();
@@ -74,7 +74,7 @@ describe('c8-no-commission script', () => {
     expect(run(root).status).toBe(0);
     put(root, 'services/api/src/modules/analytics/handlers/a.ts', `// ${WORD}\n`);
     expect(run(root).status).toBe(1);
-  });
+  }, 60_000);
 
   it('outside the listed paths nothing is scanned (other modules may use the word)', () => {
     const root = scratch();

@@ -8,10 +8,25 @@ import { findReportRefs, listCriticalAlertDeliveries } from '../repository/deliv
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const ISO_TS = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}(\.\d+)?)?(Z|[+-]\d{2}:\d{2})$/;
-// V8 Date.parse accepts 2026-02-30 (Postgres raises 22008), so also check the day against the month length.
+// LD-74: strict round-trip check so nothing Postgres rejects (22008: year 0, 2026-02-30, month 13, day 00, ...) reaches SQL.
+// Shape by regex, rebuild with Date.UTC and compare every part; 24:00:00 is accepted (PG accepts it) and handled explicitly.
+const STAMP_PARTS = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})(?::(\d{2})(?:\.\d+)?)?(?:Z|[+-](\d{2}):(\d{2}))$/;
 const realStamp = (k: string): boolean => {
-  const [y, m, d] = k.slice(0, 10).split('-').map(Number) as [number, number, number];
-  return !Number.isNaN(Date.parse(k)) && m >= 1 && m <= 12 && d >= 1 && d <= new Date(Date.UTC(y, m, 0)).getUTCDate();
+  const p = STAMP_PARTS.exec(k);
+  if (!p) return false;
+  const [y, mo, d, h, mi, s, oh, om] = p.slice(1).map((x) => (x === undefined ? 0 : Number(x))) as number[];
+  if (y! < 1 || y! > 9999 || oh! > 23 || om! > 59) return false;
+  const midnight24 = h === 24;
+  if (midnight24 && (mi !== 0 || s !== 0)) return false;
+  const t = new Date(Date.UTC(2000, 0, 1));
+  t.setUTCFullYear(y!, mo! - 1, d!);                    // setUTCFullYear: Date.UTC alone maps years 0-99 to 1900+
+  t.setUTCHours(midnight24 ? 0 : h!, mi!, s!);
+  if (t.getUTCFullYear() !== y || t.getUTCMonth() !== mo! - 1 || t.getUTCDate() !== d
+    || t.getUTCHours() !== (midnight24 ? 0 : h) || t.getUTCMinutes() !== mi || t.getUTCSeconds() !== s) return false;
+  const instant = Date.parse(k);                        // offset / 24:00 can still shift the real instant out of PG's 1..9999 range
+  if (Number.isNaN(instant)) return false;
+  const iy = new Date(instant).getUTCFullYear();
+  return iy >= 1 && iy <= 9999;
 };
 const STATUSES = new Set(['awaiting_content', 'assembling', 'rendering', 'render_failed', 'held', 'ready_to_release', 'released', 'cancelled']);
 const QUERY_KEYS = new Set(['display_status', 'family', 'centre_id', 'registered_at_from', 'registered_at_to', 'released_at_from', 'released_at_to', 'has_review_flag', 'sort', 'cursor', 'limit']);

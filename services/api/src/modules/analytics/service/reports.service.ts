@@ -3,12 +3,15 @@
 // always ctx.tenantId. Money is integer paisa: every sum is checked to stay a safe integer (never rounded).
 import { adToBs, formatAd, formatBs, type IsoDate } from '../../../../../../packages/shared-ts/src/bsdate/index.js';
 import { LimsError } from '../../../core/errors.js';
+import { DELIVERY_COLS, MESSAGE_COLS, RELEASE_COLS, RESULT_COLS } from '../domain/columns.js';
 import { groupByBsMonth, ratioBp } from '../domain/metrics.js';
 import type { Period } from '../domain/period.js';
 import type { Scope } from '../domain/scope.js';
 import * as labelsRepo from '../repository/labels.repo.js';
 import * as rollups from '../repository/rollups.repo.js';
-import { branchLabels, centreLabels, departmentLabels, referrerLabels, staffLabels, type LabelsContext } from './labels.service.js';
+import * as sourceViews from '../repository/sourceViews.repo.js';
+import { MAX_FILTER_IDS } from './context.service.js';
+import { branchLabels, centreLabels, departmentLabels, instrumentLabels, referrerLabels, staffLabels, testLabels, type LabelsContext } from './labels.service.js';
 
 export interface ReportsContext extends LabelsContext {
   readonly metrics: { inc(name: string, labels?: Record<string, string>): void };
@@ -371,4 +374,169 @@ export function recipients(ctx: ReportsContext) {
     mine.catch(() => { if (recipientsMemo.get(ctx) === mine) recipientsMemo.delete(ctx); });
   }
   return p;
+}
+
+// ------------------------------------------------------------------ AN-T11: tests done, quality indicators, delivery, interfaces (M40–M47, M70–M78, M80–M87, M90–M91)
+export const TESTS_DONE_GROUP_BY = ['department', 'test', 'processing_branch', 'day', 'ad_month', 'bs_month'] as const;
+export const QUALITY_GROUP_BY = ['reason', 'centre', 'specimen_type', 'day', 'ad_month', 'bs_month'] as const;
+export const DELIVERY_GROUP_BY = ['channel', 'day', 'ad_month', 'bs_month'] as const;
+type Base = { tenantId: string; from: string; to: string; scope: Scope };
+const baseOf = (ctx: ReportsContext, a: { period: Period; scope: Scope }): Base => ({ tenantId: ctx.tenantId, from: a.period.from, to: a.period.to, scope: a.scope });
+
+// [CONV] Bp is 0..1,000,000; a zero denominator shows 0 (the contract has no null Bp).
+const bpOf = (n: number, d: number): number => Math.min(1_000_000, Math.max(0, ratioBp(n, d) ?? 0));
+/** bs_month is grouped here from days (as income); everything else is grouped by the repo. */
+const repoTime = <G extends string>(g: G): Exclude<G, 'bs_month'> | 'day' => (g === 'bs_month' ? 'day' : g) as Exclude<G, 'bs_month'> | 'day';
+
+interface Head { key: string; label: string; label_bs?: string; is_inactive?: true }
+type Keyed = { key: string | null };
+const named = (key: string, name: string | undefined, prefix: string, active?: boolean): Head =>
+  ({ key, label: (name ?? `${prefix} ${shortId(key)}`).slice(0, 200), ...(name !== undefined && active === false ? { is_inactive: true as const } : {}) });
+
+function idList(ids: unknown, path: string, max: number): string[] {
+  if (ids === undefined) return [];
+  if (!Array.isArray(ids) || ids.length > max) throw new LimsError('common.validation_failed', 'Too many ids', [{ path, code: 'common.field_invalid', message: 'Field invalid' }]);
+  return [...new Set(ids as string[])];
+}
+
+/** Row header (key, label, label_bs, is_inactive) for one group_by; labels come from catalog/core views only. */
+async function headOf(ctx: ReportsContext, g: string, keys: readonly (string | null)[]): Promise<(k: string | null) => Head> {
+  switch (g) {
+    case 'day': return (k) => ({ key: k!, label: formatAd(k as IsoDate), label_bs: formatBs(adToBs(k as IsoDate), 'display') });
+    case 'ad_month': return (k) => ({ key: k!.slice(0, 7), label: k!.slice(0, 7) });
+    case 'bs_month': return (k) => ({ key: k!, label: `${k} B.S.` });
+    case 'department': { const m = await departmentLabels(ctx); return (k) => (k === null ? { key: 'none', label: 'No department' } : named(k, m.get(k)?.name, 'Department', m.get(k)?.isActive)); }
+    case 'test': {
+      const m = await testLabels(ctx, keys.filter((k): k is string => k !== null));
+      return (k) => (k === null ? { key: 'none', label: 'No test' } : named(k, m.get(k)?.name, 'Test', m.get(k)?.isActive));
+    }
+    case 'processing_branch': { const m = await branchLabels(ctx); return (k) => (k === null ? { key: 'none', label: 'No branch' } : named(k, m.get(k)?.name, 'Branch', m.get(k)?.isActive)); }
+    case 'centre': { const m = await centreLabels(ctx); return (k) => (k === null ? { key: 'none', label: 'No centre' } : named(k, m.get(k)?.name, 'Centre', m.get(k)?.isActive)); }
+    case 'reason': return (k) => (k === null ? { key: 'unspecified', label: 'Unspecified' } : { key: k.slice(0, 64), label: k.slice(0, 200) });
+    default: return (k) => (k === null ? { key: 'total', label: 'Total' } : { key: k.slice(0, 64), label: k.slice(0, 200) }); // specimen_type, channel codes as-is; 'total'
+  }
+}
+
+/** Repo rows -> labelled rows carrying exactly `fields`. */
+async function rowsOf<F extends string>(ctx: ReportsContext, g: string, raw: readonly (Keyed & Record<F, number>)[], fields: readonly F[]): Promise<Array<Head & Record<F, number>>> {
+  const only = (r: Record<F, number>): Record<F, number> => Object.fromEntries(fields.map((f) => [f, r[f]])) as unknown as Record<F, number>;
+  const rows: Array<Keyed & Record<F, number>> = g === 'bs_month'
+    ? groupByBsMonth(raw.map((r) => ({ businessDate: r.key as IsoDate, ...only(r) })), fields)
+    : [...raw];
+  const head = await headOf(ctx, g, rows.map((r) => r.key));
+  return rows.map((r) => ({ ...head(r.key), ...only(r) }));
+}
+
+// ---- tests done (M40–M47; CR-C8-004: scoped on daily_results.centre_id)
+type Measure<C extends readonly string[]> = Record<C[number], number>;
+export type TestsDoneTotals = Measure<typeof RESULT_COLS>;
+export type TestsDoneRow = Head & TestsDoneTotals;
+
+export async function testsDone(
+  ctx: ReportsContext,
+  a: { period: Period; scope: Scope; groupBy: (typeof TESTS_DONE_GROUP_BY)[number]; departmentIds?: unknown; processingBranchIds?: unknown },
+): Promise<{ rows: TestsDoneRow[]; totals: TestsDoneTotals }> {
+  const departmentIds = idList(a.departmentIds, 'department_id', MAX_DEPARTMENT_IDS);
+  const branchIds = idList(a.processingBranchIds, 'processing_branch_id', MAX_FILTER_IDS);
+  if (departmentIds.length) {
+    const known = await departmentLabels(ctx);
+    if (departmentIds.some((id) => !known.has(id))) throw new LimsError('common.not_found'); // foreign/unknown: one shape, id never echoed (07 P1)
+  }
+  if (branchIds.length) {
+    const known = await branchLabels(ctx);
+    if (branchIds.some((id) => !known.has(id))) throw new LimsError('common.not_found');
+  }
+  const raw = await rollups.resultsRows(ctx.tx, { ...baseOf(ctx, a), groupBy: repoTime(a.groupBy), departmentIds, processingBranchIds: branchIds });
+  const rows = await rowsOf(ctx, a.groupBy, raw, RESULT_COLS);
+  return { rows, totals: sumOf(rows, RESULT_COLS) };
+}
+
+// ---- quality indicators (M70–M73 rejections, M75–M78 critical values; CR-C8-004)
+const REJECTION_COLS = ['rejections', 'recollections_ordered'] as const;
+export interface RejectionOutRow extends Head { rejections: number; recollections_ordered: number; specimens_received: number; per_100_received_bp: number }
+export interface CriticalValueOutRow { business_date: string; detected: number; notified: number; notified_bp: number; median_notify_seconds?: number; max_notify_seconds?: number }
+export interface QualityOut {
+  rejections: { rows: RejectionOutRow[]; totals: { rejections: number; recollections_ordered: number; specimens_received: number; per_100_received_bp: number } };
+  criticalValues: { rows: CriticalValueOutRow[]; totals: { detected: number; notified: number; notified_bp: number; max_notify_seconds?: number } };
+}
+
+export async function qualityIndicators(ctx: ReportsContext, a: { period: Period; scope: Scope; groupBy: (typeof QUALITY_GROUP_BY)[number] }): Promise<QualityOut> {
+  const base = baseOf(ctx, a);
+  const g = a.groupBy;
+  const rejRaw = await rollups.rejectionRows(ctx.tx, { ...base, groupBy: repoTime(g) });
+  const spcRaw = await rollups.specimenRows(ctx.tx, { ...base, groupBy: g === 'reason' ? 'total' : repoTime(g) });
+  const rejRows = await rowsOf(ctx, g, rejRaw, REJECTION_COLS);
+  const spcRows = g === 'reason' ? [] : await rowsOf(ctx, g, spcRaw, ['received'] as const);
+  const received = sumOf(spcRaw, ['received']).received;
+
+  // Numerator and denominator share one key space; a key with specimens but no rejection shows 0 (period denominator for reason rows).
+  const byKey = new Map<string, RejectionOutRow>();
+  const blank = (h: Head): RejectionOutRow => ({ key: h.key, label: h.label, ...(h.label_bs ? { label_bs: h.label_bs } : {}), ...(h.is_inactive ? { is_inactive: true as const } : {}),
+    rejections: 0, recollections_ordered: 0, specimens_received: g === 'reason' ? received : 0, per_100_received_bp: 0 });
+  for (const r of rejRows) byKey.set(r.key, { ...blank(r), rejections: r.rejections, recollections_ordered: r.recollections_ordered });
+  for (const s of spcRows) byKey.set(s.key, { ...(byKey.get(s.key) ?? blank(s)), specimens_received: s.received });
+  const timeGroup = g === 'day' || g === 'ad_month' || g === 'bs_month';
+  const rows = [...byKey.values()].map((r) => ({ ...r, per_100_received_bp: bpOf(r.rejections, r.specimens_received) }))
+    .sort((x, y) => (timeGroup ? 0 : y.rejections - x.rejections) || x.key.localeCompare(y.key));
+  const rej = sumOf(rejRows, REJECTION_COLS);
+
+  const cv = await rollups.criticalValueRows(ctx.tx, base);
+  const cvRows: CriticalValueOutRow[] = cv.map((r) => ({
+    business_date: r.business_date, detected: r.detected, notified: r.notified, notified_bp: bpOf(r.notified, r.detected),
+    ...(r.median_notify_seconds === null ? {} : { median_notify_seconds: r.median_notify_seconds }), // medians are not additive: kept per day only
+    ...(r.max_notify_seconds === null ? {} : { max_notify_seconds: r.max_notify_seconds }),
+  }));
+  const cvSum = sumOf(cv, ['detected', 'notified']);
+  const maxes = cv.map((r) => r.max_notify_seconds).filter((m): m is number => m !== null);
+  return {
+    rejections: { rows, totals: { ...rej, specimens_received: received, per_100_received_bp: bpOf(rej.rejections, received) } },
+    criticalValues: { rows: cvRows, totals: { ...cvSum, notified_bp: bpOf(cvSum.notified, cvSum.detected), ...(maxes.length ? { max_notify_seconds: Math.max(...maxes) } : {}) } }, // Σ, Σ, max of max
+  };
+}
+
+// ---- delivery (M80, M85–M87; CR-C8-005: NULL-centre deliveries match the all-centres branch of the scope predicate only)
+export type DeliveryOutRow = Head & Measure<typeof DELIVERY_COLS> & { failure_share_bp: number };
+export type DeliveryTotals = Measure<typeof DELIVERY_COLS> & { failure_share_bp: number };
+export type ReleaseOutRow = Head & Measure<typeof RELEASE_COLS>;
+export type ReleaseTotals = Measure<typeof RELEASE_COLS>;
+const failureShare = (r: Measure<typeof DELIVERY_COLS>): number => bpOf(r.failed, r.sent + r.failed + r.suppressed);
+
+export async function delivery(ctx: ReportsContext, a: { period: Period; scope: Scope; groupBy: (typeof DELIVERY_GROUP_BY)[number] }): Promise<{
+  deliveries: { rows: DeliveryOutRow[]; totals: DeliveryTotals }; releases: { rows: ReleaseOutRow[]; totals: ReleaseTotals };
+}> {
+  const base = baseOf(ctx, a);
+  const g = a.groupBy;
+  const dRaw = await rollups.deliveryRows(ctx.tx, { ...base, groupBy: repoTime(g) });
+  const rRaw = await rollups.releaseRows(ctx.tx, { ...base, groupBy: g === 'channel' ? 'total' : repoTime(g) });
+  const dRows = (await rowsOf(ctx, g, dRaw, DELIVERY_COLS)).map((r) => ({ ...r, failure_share_bp: failureShare(r) }));
+  const rRows = await rowsOf(ctx, g === 'channel' ? 'total' : g, rRaw, RELEASE_COLS);
+  const dSum = sumOf(dRows, DELIVERY_COLS);
+  return {
+    deliveries: { rows: dRows, totals: { ...dSum, failure_share_bp: failureShare(dSum) } },
+    releases: { rows: rRows, totals: sumOf(rRows, RELEASE_COLS) },
+  };
+}
+
+// ---- interfaces (M90 messages per instrument over the period, M91 agents by state — live, not period-bound)
+export interface InstrumentOutRow extends Measure<typeof MESSAGE_COLS> { instrument_id: string; instrument_code?: string; label?: string; is_active?: boolean; centre_id: string }
+
+export async function interfaces(ctx: ReportsContext, a: { period: Period; scope: Scope }): Promise<{
+  instruments: InstrumentOutRow[]; agents: { by_state: { state: string; count: number }[]; agents: sourceViews.AgentStatusRow[] };
+}> {
+  const base = baseOf(ctx, a);
+  const raw = await rollups.interfaceMessageRows(ctx.tx, base);
+  const labels = await instrumentLabels(ctx, raw.map((r) => r.instrument_id));
+  const instruments = raw.map((r): InstrumentOutRow => {
+    const l = labels.get(r.instrument_id); // no directory row: code/label/is_active omitted (never a guess)
+    return {
+      instrument_id: r.instrument_id, ...(l ? { instrument_code: l.instrumentCode, label: l.label.slice(0, 200), is_active: l.isActive } : {}), centre_id: r.centre_id,
+      ...(Object.fromEntries(MESSAGE_COLS.map((k) => [k, r[k]])) as Measure<typeof MESSAGE_COLS>),
+    };
+  });
+  const agents = (await sourceViews.listAgentStatus(ctx.tx, { tenantId: ctx.tenantId, scope: a.scope })).map((x) => ({
+    agent_id: x.agent_id, centre_id: x.centre_id, state: x.state, last_heartbeat_at: x.last_heartbeat_at, agent_version: x.agent_version, queue_depth: x.queue_depth,
+  }));
+  const counts = new Map<string, number>();
+  for (const x of agents) counts.set(x.state, (counts.get(x.state) ?? 0) + 1);
+  return { instruments, agents: { by_state: [...counts].sort(([x], [y]) => x.localeCompare(y)).map(([state, count]) => ({ state, count })), agents } };
 }

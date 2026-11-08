@@ -18,7 +18,17 @@ export async function orForbidden<T>(f: () => Promise<T>): Promise<T | null> {
   }
 }
 
-export type V = (v: unknown) => unknown;
+/** Detail pages: unknown / malformed id (404, 400) → undefined (the page calls notFound()). */
+export async function orMissing<T>(f: () => Promise<T>): Promise<T | undefined> {
+  try {
+    return await f();
+  } catch (e) {
+    if (e instanceof ApiError && (e.status === 404 || e.status === 400)) return undefined;
+    throw e;
+  }
+}
+
+export type V =(v: unknown) => unknown;
 export const str = (min: number, max: number): V => (v) => {
   if (typeof v !== 'string' || v.trim().length < min || v.length > max) throw bad();
   return v;
@@ -43,6 +53,10 @@ export const upperCode = (re: RegExp = CODE_RE): V => (v) => {
 };
 export const exactCode = (re: RegExp): V => (v) => {
   if (typeof v !== 'string' || !re.test(v)) throw bad();
+  return v;
+};
+export const oneOf = (...vals: readonly string[]): V => (v) => {
+  if (typeof v !== 'string' || !vals.includes(v)) throw bad();
   return v;
 };
 export const list = (max: number, item: (v: unknown) => unknown): V => (v) => {
@@ -78,7 +92,25 @@ export function listQs(q: ListQuery & { scope?: unknown }, scopes?: readonly str
   return s ? `?${s}` : '';
 }
 
-export const listOf = <T>(seg: string) => async (q: ListQuery = {}) => serverFetch<Page<T>>(`/v1/catalog/${seg}${listQs(q)}`);
+/** `listQs` plus extra, already-validated params (undefined skipped). */
+export function qsOf(q: ListQuery, extra: Record<string, unknown> = {}): string {
+  const p = new URLSearchParams(listQs(q).slice(1));
+  for (const [k, v] of Object.entries(extra)) if (v !== undefined) p.set(k, String(v));
+  const s = p.toString();
+  return s ? `?${s}` : '';
+}
+export const opt = (check: V, v: unknown) => (v === undefined ? undefined : check(v));
+
+/** Same as `createOf`, but a blank optional string field (e.g. the auto-assigned code) is dropped instead of validated. */
+export function dropBlank(input: unknown, key: string): unknown {
+  if (typeof input !== 'object' || input === null) return input;
+  const o = input as Record<string, unknown>;
+  if (typeof o[key] !== 'string' || (o[key] as string).trim() !== '') return input;
+  const { [key]: _, ...rest } = o;
+  return rest;
+}
+
+export const listOf =<T>(seg: string) => async (q: ListQuery = {}) => serverFetch<Page<T>>(`/v1/catalog/${seg}${listQs(q)}`);
 
 export function createOf<T>(seg: string, spec: Record<string, V>, required: readonly string[]) {
   return async (input: unknown, idempotencyKey?: string): Promise<T> => {

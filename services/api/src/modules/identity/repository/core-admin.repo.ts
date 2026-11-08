@@ -88,7 +88,7 @@ SELECT ts.*,
        ((SELECT count(DISTINCT a.annex_code) FROM identity.ird_annex_records a
          WHERE a.tenant_id = $1 AND a.is_active AND a.status = 'completed' AND a.annex_code IN ('annex_2','annex_3','annex_7')) = 3
         AND EXISTS (SELECT 1 FROM identity.ird_annex_records p
-                    WHERE p.tenant_id IS NULL AND p.id = ts.ird_annex_1_record_id AND p.status = 'completed')) AS annex_complete
+                    WHERE p.tenant_id IS NULL AND p.annex_code = 'annex_1' AND p.id = ts.ird_annex_1_record_id AND p.status = 'completed')) AS annex_complete
 FROM identity.tenant_settings ts
 WHERE ts.tenant_id = $1`;
 

@@ -336,9 +336,12 @@ class RuleLintTest(unittest.TestCase):
             text = _path(s).read_text(encoding="utf-8")
             self.assertIsNone(EMAIL_RE.search(text), "%s: e-mail address" % s)
             for n, r in _rules(_path(s)).items():
-                blob = json.dumps(r)
+                # arbiter ruling C1.T-21-ruling.md: drop list bans label NAMES (02-TRD s11.2 item 2, :912), not values
+                # such as the receiver `oncall-email`.
+                self.assertFalse(set(r.get("labels", {})) & set(DROP_LABELS), "%s/%s drop-list label key" % (s, n))
+                tmpl = json.dumps([r.get("expr"), r.get("annotations", {})])
                 for lbl in DROP_LABELS:
-                    self.assertNotRegex(blob, r"\b%s\b" % lbl, "%s/%s uses drop-list label %s" % (s, n, lbl))
+                    self.assertNotRegex(tmpl, r"\$labels\.%s\b" % lbl, "%s/%s templates drop-list label %s" % (s, n, lbl))
 
     def test_routing_page_oncall_warn_digest_finance(self):  # s11.4 against the real T-18 Alertmanager template
         cfg = yaml.safe_load(_render(AM_J2))
@@ -394,6 +397,26 @@ class PromtoolFilesTest(unittest.TestCase):
                         self.assertEqual(lab.get("team"), r["labels"]["team"], "%s/%s team in expectation" % (s, n))
                         self.assertFalse(set(lab) & set(DROP_LABELS), "%s/%s" % (s, n))
 
+    def test_exp_annotations_equal_rule_annotations(self):
+        # promtool compares annotations exactly: a missing exp_annotations means "expected empty" and fails every firing
+        # case (review item 1). Also covers `instruments` (review round 3, item 2): the imported summaries are generic
+        # ("<Alert> is firing"); T-20's hand-written BridgeAgent* rules (rules/instruments.rules.yml) are merged in.
+        # Annotation values containing `{{` are templated (promtool expands them) so only those keys are skipped.
+        for s in ALL_STEMS:
+            _, d = self.doc(s)
+            rules = dict(_rules(_path(s)))
+            if s == "instruments":
+                rules.update(_rules(RULES / "instruments.rules.yml"))
+            for c in d["tests"]:
+                for e in c.get("alert_rule_test", []):
+                    for a in e.get("exp_alerts") or []:
+                        ann = rules[e["alertname"]]["annotations"]
+                        want = {k: " ".join(str(v).split()) for k, v in ann.items() if "{{" not in str(v)}
+                        got = a.get("exp_annotations") or {}
+                        self.assertEqual({k: got.get(k) for k in want}, want,
+                                         "%s/%s exp_annotations != rule annotations" % (s, e["alertname"]))
+                        self.assertTrue(set(got) >= set(ann), "%s/%s exp_annotations missing keys" % (s, e["alertname"]))
+
     def test_for_boundary_covered(self):  # not firing before `for`, firing at/after it
         for s in self.STEMS:
             _, d = self.doc(s)
@@ -412,8 +435,8 @@ class PromtoolFilesTest(unittest.TestCase):
         for s in self.STEMS:
             blob = (PT / ("%s.test.yml" % s)).read_text(encoding="utf-8")
             self.assertIsNone(EMAIL_RE.search(blob), s)
-            for lbl in DROP_LABELS:
-                self.assertNotRegex(blob, r"\b%s\b" % lbl, "%s: %s" % (s, lbl))
+            for lbl in DROP_LABELS:  # ruling: series label KEYS only (`lbl=` / `lbl:`), not bare words
+                self.assertNotRegex(blob, r"\b%s\s*[=:]" % lbl, "%s: %s" % (s, lbl))
 
     def test_promtool_test_rules(self):
         if not shutil.which("promtool"):

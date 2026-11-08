@@ -244,43 +244,26 @@ export function createRangesService(deps: Deps) {
         if (b['change_reason'] === undefined) errors.push(required('/change_reason'));
         if (b['effective_from'] !== undefined && !isIso(b['effective_from'])) errors.push(invalid('/effective_from'));
         if (errors.length) fail(errors);
-        const tx = ctx.tx as Tx, t = ctx.tenantId, now = nowIso(ctx);
+        const now = nowIso(ctx);
         const effective = (b['effective_from'] as string | undefined) ?? now;
 
         const { set, testId } = await open(ctx, f, id, ev, 'draft', true);
         if (Date.parse(effective) < Date.parse(now) - BACKDATE_TOLERANCE_MS) fail([invalid('/effective_from')]);
-        // V4: strictly after every effective sibling's start, and not before a retired sibling's end (a retired set is never superseded, but its window is taken).
-        const siblings = (await repo.find(tx, f.set, SET_COLS, t, { analyte_id: set.analyte_id }, { lock: true })).filter((s) => s.id !== id && ['published', 'superseded', 'retired'].includes(s.status));
-        const e = Date.parse(effective);
-        if (siblings.some((s) => e <= +new Date(s.effective_from) || (s.status === 'retired' && s.effective_to != null && e < +new Date(s.effective_to)))) fail([invalid('/effective_from')]);
-
-        const bands = await bandRows(ctx, f, [id]);
-        const [av] = await repo.find(tx, 'analyte_versions', ['unit_code', 'method_id', 'decimals', 'value_set_code'], t, { analyte_id: set.analyte_id, status: 'published' }, { order: 'version_no DESC', limit: 1 });
-        const bad = new Map<string, FieldError>();
-        const flag = (path: string) => bad.set(path, invalid(path));
-        if (!bands.length) bad.set('/bands', required('/bands'));
-        // AC-05.10 data side. ponytail: an analyte without a published version has nothing to compare with (nothing resolves for it either), so the snapshot check is skipped.
-        if (av && (set.unit_code ?? null) !== (av.unit_code ?? null)) flag('/unit_code');
-        if (av && (set.method_id ?? null) !== (av.method_id ?? null)) flag('/method_id');
-        const known = new Map<string, Set<string> | undefined>();
-        for (const [i, r] of bands.entries()) {
-          if (av?.decimals != null) for (const k of ['low', 'high']) if (r[k] != null && places(String(r[k])) > Number(av.decimals) + 2) flag(`/bands/${i}/${k}`);
-          const codes = r[f.codes] as string[] | null;
-          if (codes?.length) {
-            const vs = av?.value_set_code as string | undefined;
-            if (vs && !known.has(vs)) known.set(vs, await arepo.valueSetCodes(tx, t, vs));
-            const allowed = vs ? known.get(vs) : undefined;
-            if (!allowed || codes.some((c) => !allowed.has(c))) flag(`/bands/${i}/${f.codes}`);
-          }
-        }
-        for (const [i, j] of findOverlaps(bands)) { flag(`/bands/${i}`); flag(`/bands/${j}`); }
-        if (bad.size) fail([...bad.values()].sort((x, y) => (x.path < y.path ? -1 : 1)).slice(0, 50));
-
-        const pred = siblings.find((s) => s.status === 'published');
-        if (pred) await updateSet(ctx, f, pred.id, Number(pred.version), { status: 'superseded', effective_to: new Date(effective) });
-        await updateSet(ctx, f, id, ev, { status: 'published', effective_from: new Date(effective), published_at: new Date(now), published_by: ctx.actor.id, change_reason: b['change_reason'] });
-        await bump(ctx, f, id, testId, effective);
+        await publishDraft(ctx, f, set, ev, effective, now, b['change_reason'] as string, testId);
         return view(ctx, f, id);
+      },
+
+      /**
+       * T-09 — one member of the publish bundle (analyteVersions.service #34): the caller holds the owner / analyte locks and has already published the analyte version,
+       * so the T-08 rules below compare against it. A set that is not a draft of THIS analyte, or whose unit / method differ from the version, is refused at `path`.
+       */
+      async publishInBundle(ctx: Ctx, id: string, a: { path: string; analyteId: string; unit_code: unknown; method_id: unknown; effective: string; now: string; reason: string; testId: string }) {
+        const [set] = await repo.find(ctx.tx as Tx, f.set, SET_COLS, ctx.tenantId, { id }, { lock: true });
+        if (!set) throw new LimsError('common.not_found');
+        if (set.analyte_id !== a.analyteId) fail([invalid(a.path)]);
+        if (set.status !== 'draft') throw new LimsError('catalog.version_in_use');
+        if ((set.unit_code ?? null) !== (a.unit_code ?? null) || (set.method_id ?? null) !== (a.method_id ?? null)) fail([invalid(a.path)]);
+        await publishDraft(ctx, f, set, Number(set.version), a.effective, a.now, a.reason, a.testId);
       },
 
       /** V6 — ends a published set at effective_at (default now). change_reason is required, but the published row's own change_reason is immutable (DB trigger) and stays. */
@@ -310,8 +293,47 @@ export function createRangesService(deps: Deps) {
     };
   }
 
+  /** V4 + V5 body shared by publish and the bundle: validates the locked draft `set` (TRD §7.3 step 6), ends the predecessor's window, bumps once. */
+  async function publishDraft(ctx: Ctx, f: Fam, set: any, ev: number, effective: string, now: string, reason: string, testId: string) {
+    const tx = ctx.tx as Tx, t = ctx.tenantId, id = set.id as string;
+    {
+        // V4: strictly after every effective sibling's start, and not before a retired sibling's end (a retired set is never superseded, but its window is taken).
+        const siblings = (await repo.find(tx, f.set, SET_COLS, t, { analyte_id: set.analyte_id }, { lock: true })).filter((s) => s.id !== id && ['published', 'superseded', 'retired'].includes(s.status));
+        const e = Date.parse(effective);
+        if (siblings.some((s) => e <= +new Date(s.effective_from) || (s.status === 'retired' && s.effective_to != null && e < +new Date(s.effective_to)))) fail([invalid('/effective_from')]);
+
+        const bands = await bandRows(ctx, f, [id]);
+        const [av] = await repo.find(tx, 'analyte_versions', ['unit_code', 'method_id', 'decimals', 'value_set_code'], t, { analyte_id: set.analyte_id, status: 'published' }, { order: 'version_no DESC', limit: 1 });
+        const bad = new Map<string, FieldError>();
+        const flag = (path: string) => bad.set(path, invalid(path));
+        if (!bands.length) bad.set('/bands', required('/bands'));
+        // AC-05.10 data side. ponytail: an analyte without a published version has nothing to compare with (nothing resolves for it either), so the snapshot check is skipped.
+        if (av && (set.unit_code ?? null) !== (av.unit_code ?? null)) flag('/unit_code');
+        if (av && (set.method_id ?? null) !== (av.method_id ?? null)) flag('/method_id');
+        const known = new Map<string, Set<string> | undefined>();
+        for (const [i, r] of bands.entries()) {
+          if (av?.decimals != null) for (const k of ['low', 'high']) if (r[k] != null && places(String(r[k])) > Number(av.decimals) + 2) flag(`/bands/${i}/${k}`);
+          const codes = r[f.codes] as string[] | null;
+          if (codes?.length) {
+            const vs = av?.value_set_code as string | undefined;
+            if (vs && !known.has(vs)) known.set(vs, await arepo.valueSetCodes(tx, t, vs));
+            const allowed = vs ? known.get(vs) : undefined;
+            if (!allowed || codes.some((c) => !allowed.has(c))) flag(`/bands/${i}/${f.codes}`);
+          }
+        }
+        for (const [i, j] of findOverlaps(bands)) { flag(`/bands/${i}`); flag(`/bands/${j}`); }
+        if (bad.size) fail([...bad.values()].sort((x, y) => (x.path < y.path ? -1 : 1)).slice(0, 50));
+
+        const pred = siblings.find((s) => s.status === 'published');
+        if (pred) await updateSet(ctx, f, pred.id, Number(pred.version), { status: 'superseded', effective_to: new Date(effective) });
+        await updateSet(ctx, f, id, ev, { status: 'published', effective_from: new Date(effective), published_at: new Date(now), published_by: ctx.actor.id, change_reason: reason });
+        await bump(ctx, f, id, testId, effective);
+    }
+  }
+
   const r = family(REF), c = family(CRIT);
   return {
+    publishReferenceRangeSetInBundle: r.publishInBundle, publishCriticalLimitSetInBundle: c.publishInBundle,   // T-09, called by analyteVersions.service only
     listReferenceRangeSets: r.list, createReferenceRangeSetDraft: r.create, getReferenceRangeSet: r.get, replaceReferenceRangeSetBands: r.replace,
     publishReferenceRangeSet: r.publish, retireReferenceRangeSet: r.retire, discardReferenceRangeSetDraft: r.discard,
     listCriticalLimitSets: c.list, createCriticalLimitSetDraft: c.create, getCriticalLimitSet: c.get, replaceCriticalLimitSetBands: c.replace,

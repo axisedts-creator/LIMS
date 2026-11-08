@@ -14,6 +14,7 @@ import { createAssembleReport } from './tasks/assemble_report.js';
 import { createProcessInputFile } from './tasks/process_input_file.js';
 import { releaseIfEligible } from './tasks/release_if_eligible.js';
 import { createRenderReportVersion } from './tasks/render_report_version.js';
+import { createSendPortalOtp } from './tasks/send_portal_otp.js';
 
 /** [CONV] the /internal/sanitize client is C6-T12; until it is wired every sanitise attempt throws (queue retry, file never ready). */
 const unwiredSandbox = { sanitize: async (): Promise<never> => { throw new Error('pdf_sandbox_not_configured'); } };
@@ -27,6 +28,11 @@ const unwiredAssembler = { assemble: async (): Promise<never> => { throw Object.
  *  handler. The real reporting.dispatch_release_deliveries is T14/T19; until then it FAILS LOUDLY (retry, then dead-letter, replayable) instead of silently dropping notifications. */
 const dispatchReleaseDeliveriesStub: TaskHandler = async () => { throw new Error('dispatch_release_deliveries_not_implemented'); };
 
+/** [CONV] C6-T20 registers the name P5 enqueues (app.enqueue_job rejects unregistered tasks); the body (new link + delivery, 02-TRD §9) is not part of T20 and is a logged no-op until its task. */
+const reissuePortalLinkStub: TaskHandler = async (payload, ctx) => {
+  (ctx as any).log?.info?.({ event: 'reissue_portal_link_stub', link_id: payload?.['link_id'] });
+};
+
 export const manifest: WorkerManifest = Object.freeze({
   module: 'reporting',
   tasks: Object.freeze({
@@ -35,11 +41,13 @@ export const manifest: WorkerManifest = Object.freeze({
     'reporting.render_report_version': createRenderReportVersion({ renderer: unwiredRenderer, sandbox: unwiredAssembler }),
     'reporting.release_if_eligible': releaseIfEligible,
     'reporting.dispatch_release_deliveries': dispatchReleaseDeliveriesStub,
+    'reporting.send_portal_otp': createSendPortalOtp(),
+    'reporting.reissue_portal_link': reissuePortalLinkStub,
     [SWEEP_HELD]: sweepHeldReleases,
     [SWEEP_ASSEMBLY]: sweepAssembly,
     [SWEEP_RENDERS]: sweepStuckRenders,
   }),
-  maxAttempts: Object.freeze({ 'reporting.process_input_file': 5, 'reporting.assemble_report': 10, 'reporting.render_report_version': 5, 'reporting.release_if_eligible': 10, 'reporting.dispatch_release_deliveries': 10, [SWEEP_ASSEMBLY]: 5, [SWEEP_RENDERS]: 5, [SWEEP_HELD]: 5 }),
+  maxAttempts: Object.freeze({ 'reporting.process_input_file': 5, 'reporting.assemble_report': 10, 'reporting.render_report_version': 5, 'reporting.release_if_eligible': 10, 'reporting.dispatch_release_deliveries': 10, 'reporting.send_portal_otp': 8, 'reporting.reissue_portal_link': 8, [SWEEP_ASSEMBLY]: 5, [SWEEP_RENDERS]: 5, [SWEEP_HELD]: 5 }),
   subscriptions: Object.freeze({
     'frontdesk.order.created.v1': orderCreated,
     'frontdesk.order.items_changed.v1': itemsChanged,

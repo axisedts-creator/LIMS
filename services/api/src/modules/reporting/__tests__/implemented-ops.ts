@@ -12,4 +12,6 @@ export const IMPLEMENTED = new Set([
   'releaseReportVersion',                                                                                      // C6-T13
   'bulkReleaseReportVersions',                                                                                 // C6-T14
   'listReports', 'searchReports', 'getReport', 'getReportVersion', 'downloadReportVersionPdf',                // C6-T15 (R1-R5)
+  'createPortalOtpChallenge', 'verifyPortalOtp', 'getPortalReport', 'downloadPortalReportPdf', 'requestPortalLinkReissue', 'endPortalSession', // C6-T20 (P1-P6)
+  'verifyReportQr', 'revokeReportQrToken', 'listPortalLinks', 'revokePortalLink',                            // C6-T22 (verifyHandlers)
 ]);

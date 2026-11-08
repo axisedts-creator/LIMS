@@ -12,18 +12,40 @@ export interface NewLedgerEntry {
   readonly reversesEntryId?: string | null; readonly reasonCode?: string | null; readonly idempotencyKey?: string | null;
   readonly receiptNo?: string | null; readonly receiptSeq?: number | null; readonly cashSessionId?: string | null;
   readonly referenceText?: string | null; readonly capturedAtDevice?: string | null;
+  // BL-T11: reversal / refund / gateway columns. creditPartyId (B22, BL-T13): a payment of a credit party against its periodic bill (no order)
+  readonly reasonText?: string | null; readonly approvedByMembershipId?: string | null; readonly refundRequestId?: string | null; readonly creditPartyId?: string | null;
+  readonly gateway?: string | null; readonly gatewayTxnRef?: string | null; readonly intentId?: string | null;
 }
 
 export async function insertLedgerEntry(tx: Q, e: NewLedgerEntry): Promise<Record<string, unknown> | undefined> {
   const { rows } = await tx.query(
     `INSERT INTO billing.ledger_entries (id, tenant_id, branch_id, centre_id, order_id, invoice_id, entry_kind, capture_kind, method_code, amount_paisa,
        fiscal_year_bs, business_date, collected_by_membership_id, reverses_entry_id, reason_code, idempotency_key, created_by,
-       receipt_no, receipt_seq, cash_session_id, reference_text, captured_at_device)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22) RETURNING *`,
+       receipt_no, receipt_seq, cash_session_id, reference_text, captured_at_device,
+       reason_text, approved_by_membership_id, refund_request_id, credit_party_id, gateway, gateway_txn_ref, intent_id)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29) RETURNING *`,
     [e.id, e.tenantId, e.branchId, e.centreId, e.orderId, e.invoiceId, e.entryKind, e.captureKind, e.methodCode, e.amountPaisa,
       e.fiscalYearBs, e.businessDate, e.collectedByMembershipId, e.reversesEntryId ?? null, e.reasonCode ?? null, e.idempotencyKey ?? null, e.userId,
-      e.receiptNo ?? null, e.receiptSeq ?? null, e.cashSessionId ?? null, e.referenceText ?? null, e.capturedAtDevice ?? null]);
+      e.receiptNo ?? null, e.receiptSeq ?? null, e.cashSessionId ?? null, e.referenceText ?? null, e.capturedAtDevice ?? null,
+      e.reasonText ?? null, e.approvedByMembershipId ?? null, e.refundRequestId ?? null, e.creditPartyId ?? null, e.gateway ?? null, e.gatewayTxnRef ?? null, e.intentId ?? null]);
   return rows[0];
+}
+
+export async function getLedgerEntry(tx: Q, a: { tenantId: string; entryId: string }): Promise<Record<string, unknown> | undefined> {
+  const { rows } = await tx.query('SELECT * FROM billing.ledger_entries WHERE tenant_id = $1 AND id = $2', [a.tenantId, a.entryId]);
+  return rows[0];
+}
+
+/** The reversal row of an entry (unique index ledger_entries__tenant_id_reverses__p_uq: at most one). */
+export async function findReversalOf(tx: Q, a: { tenantId: string; entryId: string }): Promise<Record<string, unknown> | undefined> {
+  const { rows } = await tx.query('SELECT * FROM billing.ledger_entries WHERE tenant_id = $1 AND reverses_entry_id = $2', [a.tenantId, a.entryId]);
+  return rows[0];
+}
+
+/** Signed sum (payments, reversals, refunds) of every ledger row against one invoice, paisa as text. */
+export async function sumLedgerByInvoice(tx: Q, a: { tenantId: string; invoiceId: string }): Promise<string> {
+  const { rows } = await tx.query('SELECT COALESCE(SUM(amount_paisa), 0)::text AS total FROM billing.ledger_entries WHERE tenant_id = $1 AND invoice_id = $2', [a.tenantId, a.invoiceId]);
+  return rows[0]?.total ?? '0';
 }
 
 export async function listLedgerForInvoice(tx: Q, a: { tenantId: string; invoiceId: string }): Promise<Record<string, unknown>[]> {
@@ -35,6 +57,29 @@ export async function listLedgerForInvoice(tx: Q, a: { tenantId: string; invoice
 export async function findLedgerByIdempotencyKey(tx: Q, a: { tenantId: string; idempotencyKey: string }): Promise<Record<string, unknown> | undefined> {
   const { rows } = await tx.query('SELECT * FROM billing.ledger_entries WHERE tenant_id = $1 AND idempotency_key = $2', [a.tenantId, a.idempotencyKey]);
   return rows[0];
+}
+
+/** BL-T12 replay lookup: unique index ledger_entries__tenant_id_gateway_txn__p_uq is (tenant_id, gateway, gateway_txn_ref) WHERE gateway payment. */
+export async function findGatewayPayment(tx: Q, a: { tenantId: string; gateway: string; gatewayTxnRef: string }): Promise<Record<string, unknown> | undefined> {
+  const { rows } = await tx.query(
+    `SELECT * FROM billing.ledger_entries WHERE tenant_id = $1 AND capture_kind = 'gateway' AND entry_kind = 'payment' AND gateway = $2 AND gateway_txn_ref = $3`,
+    [a.tenantId, a.gateway, a.gatewayTxnRef]);
+  return rows[0];
+}
+
+/** billing.payment_intent_refs row written by B12 (intents created by C16 have none). */
+export async function getPaymentIntentRef(tx: Q, a: { tenantId: string; intentId: string }): Promise<Record<string, unknown> | undefined> {
+  const { rows } = await tx.query('SELECT intent_id, order_id, gateway, amount_paisa::text AS amount_paisa FROM billing.payment_intent_refs WHERE tenant_id = $1 AND intent_id = $2', [a.tenantId, a.intentId]);
+  return rows[0];
+}
+
+/** Gateway payments of one intent and the positive sum of its earlier gateway refunds: refundable = payments - refunds. */
+export async function sumGatewayByIntent(tx: Q, a: { tenantId: string; intentId: string }): Promise<{ payments_paisa: string; refunds_paisa: string }> {
+  const { rows } = await tx.query(
+    `SELECT COALESCE(SUM(amount_paisa) FILTER (WHERE entry_kind = 'payment'), 0)::text AS payments_paisa,
+            COALESCE(-SUM(amount_paisa) FILTER (WHERE entry_kind = 'refund'), 0)::text AS refunds_paisa
+       FROM billing.ledger_entries WHERE tenant_id = $1 AND capture_kind = 'gateway' AND intent_id = $2`, [a.tenantId, a.intentId]);
+  return rows[0] as { payments_paisa: string; refunds_paisa: string };
 }
 
 /** Signed sum per method of one cash session (payments, reversals, refunds): the session's `expected`. */

@@ -1,0 +1,132 @@
+# T-21 (tester, LD-39): promtool tests for ../imported/analytics.rules.yml. Synthetic series only (no real tenant or patient data).
+# Per alert one firing case (labels carry the rule's severity and team), one not-firing case, and for rules with a
+# `for` clause a pending-before-`for` + firing-after-`for` check. Thresholds are the owner's (02-TRD s11.3).
+rule_files:
+  - ../imported/analytics.rules.yml
+evaluation_interval: 1m
+tests:
+
+  - interval: 1m
+    name: "AnalyticsFamilyStale fires"
+    input_series:
+      - series: 'lims_analytics_family_stale{tenant_id="t1",family="f1"}'
+        values: "1x75"
+    alert_rule_test:
+      - alertname: AnalyticsFamilyStale
+        eval_time: 59m
+        exp_alerts: []
+      - alertname: AnalyticsFamilyStale
+        eval_time: 72m
+        exp_alerts:
+          - exp_labels: {severity: "warn", team: "ops", tenant_id: "t1", family: "f1"}
+            exp_annotations: {summary: "An analytics family has been stale for 60 min.", runbook_url: "infra/runbooks/analytics.md#analyticsfamilystale"}
+
+  - interval: 1m
+    name: "AnalyticsFamilyStale quiet"
+    input_series:
+      - series: 'lims_analytics_family_stale{tenant_id="t1",family="f1"}'
+        values: "0x75"
+    alert_rule_test:
+      - alertname: AnalyticsFamilyStale
+        eval_time: 72m
+        exp_alerts: []
+
+  - interval: 1m
+    name: "AnalyticsRefreshFailing fires"
+    input_series:
+      - series: 'lims_analytics_refresh_failures_total{family="f1"}'
+        values: "0+1x45"
+    alert_rule_test:
+      - alertname: AnalyticsRefreshFailing
+        eval_time: 42m
+        exp_alerts:
+          - exp_labels: {severity: "page", team: "ops", family: "f1"}
+            exp_annotations: {summary: "An analytics family refresh failed 3 or more times in 30 min.", runbook_url: "infra/runbooks/analytics.md#analyticsrefreshfailing"}
+
+  - interval: 1m
+    name: "AnalyticsRefreshFailing quiet"
+    input_series:
+      - series: 'lims_analytics_refresh_failures_total{family="f1"}'
+        values: "0+0x45"
+    alert_rule_test:
+      - alertname: AnalyticsRefreshFailing
+        eval_time: 42m
+        exp_alerts: []
+
+  - interval: 1m
+    name: "AnalyticsReconciliationMismatch fires"
+    input_series:
+      - series: 'lims_analytics_reconciliation_mismatch_total{rule="r1",family="f1"}'
+        values: "0+1x30"
+    alert_rule_test:
+      - alertname: AnalyticsReconciliationMismatch
+        eval_time: 27m
+        exp_alerts:
+          - exp_labels: {severity: "page", team: "ops", rule: "r1", family: "f1"}
+            exp_annotations: {summary: "Analytics reconciliation found a mismatch against the source module.", runbook_url: "infra/runbooks/analytics.md#analyticsreconciliationmismatch"}
+
+  - interval: 1m
+    name: "AnalyticsReconciliationMismatch quiet"
+    input_series:
+      - series: 'lims_analytics_reconciliation_mismatch_total{rule="r1",family="f1"}'
+        values: "0+0x30"
+    alert_rule_test:
+      - alertname: AnalyticsReconciliationMismatch
+        eval_time: 27m
+        exp_alerts: []
+
+  - interval: 1h
+    name: "AnalyticsExportSpike fires"
+    input_series:
+      - series: 'lims_analytics_exports_total{tenant_id="t1"}'
+        values: "0x335 100+100x24"
+    alert_rule_test:
+      - alertname: AnalyticsExportSpike
+        eval_time: 360h
+        exp_alerts:
+          - exp_labels: {severity: "page", team: "ops", tenant_id: "t1"}
+            exp_annotations: {summary: "A tenant's analytics exports in 24 h exceed 3x the 14-day daily mean.", runbook_url: "infra/runbooks/analytics.md#analyticsexportspike"}
+
+  - interval: 1h
+    name: "AnalyticsExportSpike quiet (variant 1)"
+    input_series:
+      - series: 'lims_analytics_exports_total{tenant_id="t1"}'
+        values: "0+60x360"
+    alert_rule_test:
+      - alertname: AnalyticsExportSpike
+        eval_time: 360h
+        exp_alerts: []
+
+  - interval: 1h
+    name: "AnalyticsExportSpike quiet (variant 2)"
+    input_series:
+      - series: 'lims_analytics_exports_total{tenant_id="t1"}'
+        values: "0x360"
+    alert_rule_test:
+      - alertname: AnalyticsExportSpike
+        eval_time: 360h
+        exp_alerts: []
+
+  - interval: 1m
+    name: "AnalyticsConsumerDeadLetter fires"
+    input_series:
+      - series: 'lims_core_dead_letters_total{task="evt.analytics.refresh"}'
+        values: "0+1x15"
+    alert_rule_test:
+      - alertname: AnalyticsConsumerDeadLetter
+        eval_time: 12m
+        exp_alerts:
+          - exp_labels: {severity: "warn", team: "ops", task: "evt.analytics.refresh"}
+            exp_annotations: {summary: "An analytics event consumer dead-lettered.", runbook_url: "infra/runbooks/analytics.md#analyticsconsumerdeadletter"}
+
+  - interval: 1m
+    name: "AnalyticsConsumerDeadLetter quiet"
+    input_series:
+      - series: 'lims_core_dead_letters_total{task="evt.analytics.refresh"}'
+        values: "0+0x15"
+      - series: 'lims_core_dead_letters_total{task="evt.lab.result"}'
+        values: "0+1x15"
+    alert_rule_test:
+      - alertname: AnalyticsConsumerDeadLetter
+        eval_time: 12m
+        exp_alerts: []

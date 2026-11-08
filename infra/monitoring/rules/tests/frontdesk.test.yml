@@ -1,0 +1,31 @@
+# T-21 (tester, LD-39): promtool tests for ../imported/frontdesk.rules.yml. Synthetic series only (no real tenant or patient data).
+# Per alert one firing case (labels carry the rule's severity and team), one not-firing case, and for rules with a
+# `for` clause a pending-before-`for` + firing-after-`for` check. Thresholds are the owner's (02-TRD s11.3).
+rule_files:
+  - ../imported/frontdesk.rules.yml
+evaluation_interval: 1m
+tests:
+
+  - interval: 1m
+    name: "FrontdeskTrfQuarantineBurst fires"
+    input_series:
+      - series: 'lims_frontdesk_trf_scans_total{outcome="quarantined"}'
+        values: "0+1x75"
+    alert_rule_test:
+      - alertname: FrontdeskTrfQuarantineBurst
+        eval_time: 72m
+        exp_alerts:
+          - exp_labels: {severity: "warn", team: "ops", outcome: "quarantined"}
+            exp_annotations: {summary: "More than 3 TRF scans quarantined in the last hour.", runbook_url: "infra/runbooks/frontdesk.md#frontdesktrfquarantineburst"}
+
+  - interval: 1m
+    name: "FrontdeskTrfQuarantineBurst quiet"
+    input_series:
+      - series: 'lims_frontdesk_trf_scans_total{outcome="quarantined"}'
+        values: "0+0x75"
+      - series: 'lims_frontdesk_trf_scans_total{outcome="ok"}'
+        values: "0+5x75"
+    alert_rule_test:
+      - alertname: FrontdeskTrfQuarantineBurst
+        eval_time: 72m
+        exp_alerts: []

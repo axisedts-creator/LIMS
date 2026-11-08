@@ -11,3 +11,7 @@ Fix: none in C6 paths; blocked on CR-C6-019 (.orchestra/cr/C6-T17.md). Rerun ver
 ## round 3
 Cause unchanged: `Cannot find module 'dompurify'` (sanitise.ts:24). dompurify/jsdom still not in services/api/package.json or node_modules. Not a T18 defect.
 Fix: none in C6 paths; blocked on CR-C6-019 (.orchestra/cr/C6-T17.md). Rerun verify after C0-0D adds deps + lockfile and clean install. No test/impl edits.
+
+## round 4
+Cause changed: dompurify now loads. 7 fails in manifest.test.ts 501 list: C6-T20 portal P1-P6 handlers (index.ts:22) answer `auth.unauthenticated`, test IMPLEMENTED set lacks them. Stale test, not T18 code.
+Fix: none in impl (would undo T20). Wrote `.orchestra/notes/C6-T18-dispute.md`; tester must add P1-P6 ids to IMPLEMENTED. No test/impl edits.

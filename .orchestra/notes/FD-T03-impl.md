@@ -5,5 +5,5 @@
 - [CONV] Counters: single INSERT ... ON CONFLICT DO UPDATE last_value+1 (row lock serialises; gaps on rollback allowed, 03-IC §9.3).
 - Search: LIKE on name_search with %,_,\ escaped, NFC/lowercase/space-collapsed query, anonymised rows excluded, LIMIT bound.
 - Ran: tests/frontdesk/FD-T03.pg.sh (docker PG17) = 83/83 pass. Unit suite: 14 failures, all outside frontdesk (instruments ci-scripts/signing, reporting repository.static). tsc: 1 error in packages/shared-ts/bsdate (not frontdesk).
-- Re-run after LD-60: NOT done, Docker engine returns 500 on _ping (FD-T03.pg.sh cannot boot PG17). Earlier 83/83 predates the pg add; rerun needed once Docker is up.
+- Re-run after LD-60 (Docker back up): tests/frontdesk/FD-T03.pg.sh = 83/83 pass on PG17. No frontdesk probes/pending.json exists, so nothing to prune (LD-70).
 - Open: no update/state-transition repo functions yet (later tasks add them with version/If-Match); centre-scope probes need memberships (handler tests).

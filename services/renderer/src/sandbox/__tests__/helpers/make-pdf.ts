@@ -10,6 +10,8 @@ export type PdfOpts = {
   /** one entry per page: the text drawn on it */
   pages: string[];
   title?: string;
+  /** replaces the default `[0 0 595 842]` MediaBox of every page */
+  mediaBox?: string;
   /** called with the first free object number; extra objects are numbered from there */
   hook?: (firstFree: number) => Hook;
 };
@@ -29,7 +31,7 @@ export function buildPdf(o: PdfOpts): Buffer {
   o.pages.forEach((text, i) => {
     const content = `BT /F1 12 Tf 72 720 Td (${text.replace(/([()\\])/g, '\\$1')}) Tj ET`;
     bodies[5 + 2 * i] =
-      `<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 4 0 R >> >> /Contents ${6 + 2 * i} 0 R ${h.page ?? ''} >>`;
+      `<< /Type /Page /Parent 2 0 R /MediaBox ${o.mediaBox ?? '[0 0 595 842]'} /Resources << /Font << /F1 4 0 R >> >> /Contents ${6 + 2 * i} 0 R ${h.page ?? ''} >>`;
     bodies[6 + 2 * i] = `<< /Length ${content.length} >>\nstream\n${content}\nendstream`;
   });
   (h.objects ?? []).forEach((b, i) => (bodies[firstFree + i] = b));
@@ -115,6 +117,36 @@ export const embeddedFile = () =>
       ],
     }),
   });
+
+const stream = (data: string) => `<< /Length ${data.length} >>\nstream\n${data}\nendstream`;
+
+/** AcroForm whose /XFA array carries a script-bearing template packet (no /JS or /JavaScript name anywhere). 07-SECURITY A12. */
+export const xfaForm = () =>
+  buildPdf({
+    pages: ['XFA-1'],
+    hook: (f) => ({
+      catalog: `/AcroForm << /Fields [] /XFA [(template) ${f} 0 R] >>`,
+      objects: [stream('<template><script contentType="application/x-javascript">x</script></template>')],
+    }),
+  });
+
+/** Same, with /XFA as a single stream reference instead of an array. */
+export const xfaFormSingleStream = () =>
+  buildPdf({
+    pages: ['XFA-2'],
+    hook: (f) => ({
+      catalog: `/AcroForm << /Fields [] /XFA ${f} 0 R >>`,
+      objects: [stream('<xdp:xdp>xfa-payload</xdp:xdp>')],
+    }),
+  });
+
+/** One-page PDF whose MediaBox does not start at the origin (outsourced / scanned files do this). */
+export const offsetBox = (label: string, mediaBox = '[100 100 712 892]', pageExtra = '') =>
+  buildPdf({ pages: [label], mediaBox, hook: () => ({ page: pageExtra }) });
+
+/** One-page PDF with /Rotate (and optionally an offset box). */
+export const rotated = (label: string, angle: 90 | 180 | 270, mediaBox = '[0 0 595 842]') =>
+  buildPdf({ pages: [label], mediaBox, hook: () => ({ page: `/Rotate ${angle}` }) });
 
 /** /OpenAction URI + a Link annotation URI, both pointing at the canary URL. */
 export const uriCanary = (url: string) =>

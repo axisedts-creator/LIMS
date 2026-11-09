@@ -15,6 +15,7 @@ import { IMPORT_COMMIT, importCommit } from '../../tasks/catalog.import_commit.j
 import {
   COMMITTER, DRAFT_ID, IMPORT_ID, NOW, PRICE_LIST_ID, TENANT_A, TENANT_B, VER3_ID, eventsOf, makeCommitDb, makeCommitRunner, seedCommitting, type CommitDb, type WorldOpts,
 } from '../helpers/commitDb.js';
+import { makeKindsDb, makeKindsRunner, seedKindImport } from '../helpers/kindsDb.js';
 import { priceWorkbook, prow } from '../helpers/workbooks.js';
 
 const T = 20_000;
@@ -296,13 +297,18 @@ describe('tenancy and hostile payloads (S-1, AB-5)', () => {
     expect(db.writes()).toHaveLength(0);
   }, T);
 
-  it('an import of another kind is left untouched by this task (price_list only in T-23)', async () => {
-    const { db, run } = await setup();
-    db.v.committed['imports']![0]!.kind = 'catalog_master';
-    db.v.committed['imports']![0]!.target_price_list_id = null;
-    const before = db.snapshot();
-    await run();
-    expect(db.snapshot()).toEqual(before);
+  // T-25 ruling (C3.T-25-ruling.md #6): superseded the T-23 "other kind untouched" test. 02-TRD.md:661 gives ONE commit job for all kinds (re-validates in one tx,
+  // a new error -> commit_failed); T-25 extends it to catalog_master. A catalog_master import holding a price-list workbook therefore fails re-validation.
+  it('a catalog_master import holding a price-list workbook -> commit_failed; no domain row, no revision change', async () => {
+    // the price-list composite fake has no catalog_master tables, so this one runs over the kinds composite (same runner, same task)
+    const db = makeKindsDb('catalog_master');
+    seedKindImport(db, await sheet(), { status: 'committing' });
+    const before = { ...db.snapshot(), imports: undefined, import_issues: undefined, files: undefined }, rev = db.revision();
+    await makeKindsRunner(db, importCommit).run(payload());
+    expect(db.imp()).toMatchObject({ status: 'commit_failed' });
+    expect(db.imp().committed_at ?? null).toBeNull();
+    expect({ ...db.snapshot(), imports: undefined, import_issues: undefined, files: undefined }).toEqual(before);
+    expect(db.revision()).toBe(rev);
   }, T);
 
   it('mass assignment: payload fields other than tenant_id/import_id/replace_draft (status, committed_by, effective_from) are ignored', async () => {

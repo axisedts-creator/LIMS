@@ -220,3 +220,22 @@ export function toInterfacesReportDto(
     },
   };
 }
+
+// ------------------------------------------------------------------ AN-T14 (TRD §5.1 DashboardDto, Freshness): explicit picks, no spread of service rows.
+export const toFreshnessDto = (f: Freshness) => ({
+  family: f.family, ...(f.refreshed_at ? { refreshed_at: f.refreshed_at } : {}), is_stale: f.is_stale, ...(f.stale_reason ? { stale_reason: f.stale_reason } : {}), live: f.live,
+});
+
+export function toDashboardDto(m: ReportMeta, out: import('../service/dashboard.service.js').DashboardOut) {
+  return {
+    ...envelope('dashboard', m),
+    freshness: out.freshness.map(toFreshnessDto),
+    tiles: Object.fromEntries(Object.entries(out.tiles).map(([k, t]) => [k, {
+      value: t.value, ...(t.previous === undefined ? {} : { previous: t.previous, delta: t.delta }), ...(t.delta_bp === undefined ? {} : { delta_bp: t.delta_bp }), unit: t.unit,
+    }])),
+    series: { days: out.series.map((d) => ({ business_date: d.business_date, net_sales_paisa: d.net_sales_paisa, patient_visits: d.patient_visits, net_orders: d.net_orders })) },
+    department_top: out.departmentTop.map((r) => ({
+      ...(r.department_id ? { department_id: r.department_id } : {}), label: r.label, is_multiple: r.is_multiple, net_paisa: r.net_paisa, share_bp: r.share_bp,
+    })),
+  };
+}

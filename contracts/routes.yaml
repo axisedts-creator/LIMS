@@ -31,6 +31,15 @@ routes:
   - { id: staff.catalog.specimens,          origin: staff_web, path: /catalog/specimens,                        owner: C3,  permission: catalog.test.read }
   - { id: staff.catalog.methods,            origin: staff_web, path: /catalog/methods,                          owner: C3,  permission: catalog.test.read }
   - { id: staff.catalog.units,              origin: staff_web, path: /catalog/units,                            owner: C3,  permission: catalog.test.read }
+  # LD-76 / CR-C3-033-a: SCR-09…12 (04-UI-UX §1)
+  - { id: staff.catalog.panels,              origin: staff_web, path: /catalog/panels,                            owner: C3,  permission: catalog.test.read }
+  - { id: staff.catalog.panel,               origin: staff_web, path: "/catalog/panels/{panel_id}",               owner: C3,  permission: catalog.test.read }
+  - { id: staff.catalog.comment_codes,       origin: staff_web, path: /catalog/comment-codes,                     owner: C3,  permission: catalog.test.read }
+  - { id: staff.catalog.doctors,             origin: staff_web, path: /catalog/doctors,                           owner: C3,  permission: catalog.referrer.read }
+  - { id: staff.catalog.doctor_verify,       origin: staff_web, path: /catalog/doctors/verify,                    owner: C3,  permission: catalog.referrer.read }
+  - { id: staff.catalog.doctor,              origin: staff_web, path: "/catalog/doctors/{doctor_id}",             owner: C3,  permission: catalog.referrer.read }
+  - { id: staff.catalog.credit_parties,      origin: staff_web, path: /catalog/credit-parties,                    owner: C3,  permission: catalog.price_list.read }
+  - { id: staff.catalog.credit_party,        origin: staff_web, path: "/catalog/credit-parties/{credit_party_id}", owner: C3,  permission: catalog.price_list.read }
   - { id: staff.instruments.agent,         origin: staff_web, path: "/instruments/agents/{agent_id}",            owner: C7,  permission: instruments.agent.read }
   - { id: staff.instruments.message,        origin: staff_web, path: "/instruments/messages/{instrument_message_id}", owner: C7, permission: instruments.message.read }
   - { id: staff.analytics.dashboard,        origin: staff_web, path: /analytics,                                owner: C8,  permission: analytics.dashboard.read }

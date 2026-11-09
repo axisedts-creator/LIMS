@@ -38,7 +38,7 @@ export const configDoc = (agentId: string, centreId: string, version: number, ta
   schema: 'lims.bridge.config.v1', agent_id: agentId, centre_id: centreId, config_version: version, issued_at: '2026-11-06T04:00:00.000Z', heartbeat_interval_seconds: 60,
   upload: { max_batch_messages: 100, max_batch_bytes: 3145728, flush_interval_seconds: 2, uploaded_retention_hours: 24 },
   rate_budget: { requests_per_minute: 60, reserved_host_query_per_minute: 20, reserved_heartbeat_per_minute: 2 }, tls: { spki_pins_sha256: [] }, log_level: 'info',
-  update: { channel: 'stable', target: targetReleaseId ? { release_id: targetReleaseId, version: '1.2.3' } : null, allow_downgrade: false, window: null }, instruments: [],
+  update: { channel: 'stable', target: targetReleaseId ? { release_id: targetReleaseId, version: '1.2.3', package_sha256: 'a'.repeat(64), package_size: 1024, signature: 'c2lnbmF0dXJl', key_id: 'rel-test-1', authenticode_publisher: 'Synthetic Publisher Ltd' } : null, allow_downgrade: false, window: null }, instruments: [], // LD-78: full Target (TRD 5.10); null target/window legal in the opaque document
 });
 export function configRow(agentId: string, centreId: string, version: number, o: { tenant?: string; targetReleaseId?: string | null; document?: Row } = {}): Row {
   const document = o.document ?? configDoc(agentId, centreId, version, o.targetReleaseId ?? null);

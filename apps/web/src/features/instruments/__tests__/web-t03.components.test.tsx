@@ -9,7 +9,7 @@
 //   app/(staff)/instruments/instruments/page.tsx                      default async Page({searchParams: Promise<…>}) → element with props {instruments, agents, drivers}
 //   app/(staff)/instruments/instruments/[instrument_id]/page.tsx      default async Page({params: Promise<{instrument_id}>}); getInstrument 404 → notFound(); props {instrument, agents, drivers}
 //   permissions: readonly string[] (session.actor.permissions); manage = instruments.instrument.manage; navigation via next/navigation useRouter().push.
-//   Shortcut page ids: staff.instruments.instruments (Alt+N "New instrument"), staff.instruments.instrument (Alt+P "Open mappings").
+//   Shortcut page ids: staff.instruments.instruments (Alt+I "New instrument", LD-79), staff.instruments.instrument (Alt+P "Open mappings").
 // NOT tested (spec gap, see notes): parser-options fields from the driver optionsSchema (E22 Driver has no schema field in contracts), timezone list.
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { act, cleanup, render, screen, waitFor, within } from '@testing-library/react';
@@ -103,15 +103,16 @@ describe('SCR-05 InstrumentsList', () => {
     summary(),
     summary({ id: '01a1a98a-ac40-7000-8000-0000000e0002', instrument_code: 'SIM-CHEM-2', display_name: 'Verified chem', driver_status: 'verified', state: 'live', unmapped_code_count: 0 }),
     summary({ id: '01a1a98a-ac40-7000-8000-0000000e0003', instrument_code: 'SIM-HEM-1', display_name: 'Sketchy', driver_status: 'sketch_blocked', state: 'commissioning', unmapped_code_count: 12 }),
-    summary({ id: '01a1a98a-ac40-7000-8000-0000000e0004', instrument_code: 'SIM-OLD-1', display_name: 'Old one', state: 'retired' }),
-    summary({ id: '01a1a98a-ac40-7000-8000-0000000e0005', instrument_code: 'SIM-SUS-1', display_name: 'Paused', state: 'suspended' }),
+    summary({ id: '01a1a98a-ac40-7000-8000-0000000e0004', instrument_code: 'SIM-OLD-1', display_name: 'Old one', state: 'retired', unmapped_code_count: 0 }),
+    summary({ id: '01a1a98a-ac40-7000-8000-0000000e0005', instrument_code: 'SIM-SUS-1', display_name: 'Paused', state: 'suspended', unmapped_code_count: 0 }),
   ];
   const props = (o: Record<string, unknown> = {}) => ({ instruments: rows, permissions: READ, centres, agents, drivers: DRIVERS, ...o }) as never;
 
   it('renders the 04-UI-UX columns; instrument code is a row header linking to SCR-07', async () => {
     const InstrumentsList = await load();
     wrap(<InstrumentsList {...props()} />);
-    for (const h of ['Code', 'Name', 'Vendor', 'Protocol', 'Agent', 'Driver', 'State', 'Link state', 'Last message', 'Unmapped']) expect(screen.getByRole('columnheader', { name: new RegExp(h, 'i') })).toBeTruthy();
+    // anchored: "State chip" and "Link state" are both headers (04-UI-UX.md:122), see WEB-T02-ruling item 2.
+    for (const h of ['Code', 'Name', 'Vendor', 'Protocol', 'Agent', 'Driver', 'State', 'Link state', 'Last message', 'Unmapped']) expect(screen.getByRole('columnheader', { name: new RegExp(`^${h}$`, 'i') })).toBeTruthy();
     const link = screen.getByRole('link', { name: 'SIM-CHEM-1' });
     expect(link.getAttribute('href')).toBe(`/instruments/instruments/${INST}`);
     expect(link.closest('[role="rowheader"], th')).toBeTruthy();
@@ -164,19 +165,30 @@ describe('SCR-05 InstrumentsList', () => {
     expect(calls).toHaveLength(0);
   });
 
-  it('page-level Alt+N "New instrument" is registered for manage only and unregistered on unmount', async () => {
+  // LD-79: global keys are Alt+N/Alt+M/Alt+H, so SCR-05 "New instrument" is Alt+I (CR-C7-WEB-T03-a).
+  it('page-level Alt+I "New instrument" is registered for manage only and unregistered on unmount; Alt+N is never registered (LD-79)', async () => {
     const InstrumentsList = await load();
-    const altN = async () => (await import('@/core/shortcuts/registry')).shortcuts.list('staff.instruments.instruments').find((s) => /^alt\+n$/i.test(s.key));
+    const key = async (re: RegExp) => (await import('@/core/shortcuts/registry')).shortcuts.list('staff.instruments.instruments').find((s) => re.test(s.key));
+    const altI = () => key(/^alt\+i$/i);
     const a = wrap(<InstrumentsList {...props({ permissions: READ })} />);
-    expect(await altN()).toBeUndefined();
+    expect(await altI()).toBeUndefined();
     a.unmount();
     wrap(<InstrumentsList {...props({ permissions: MANAGE })} />);
-    const sc = await altN();
+    const sc = await altI();
     expect(sc?.description).toBe('New instrument');
+    expect(await key(/^alt\+n$/i)).toBeUndefined();
     act(() => sc!.run());
     expect(within(await screen.findByRole('dialog')).getByLabelText(/^code/i)).toBeTruthy();
     cleanup();
-    expect(await altN()).toBeUndefined();
+    expect(await altI()).toBeUndefined();
+  });
+
+  it('help for instruments.instruments advertises Alt+I "New instrument" and not the global Alt+N (LD-79)', async () => {
+    const help = (await import('../help/instruments.instruments')).default;
+    const keys = help.shortcuts.map((s: { keys: string }) => s.keys);
+    expect(keys).toContain('Alt+I');
+    expect(keys).not.toContain('Alt+N');
+    expect(help.shortcuts.find((s: { keys: string }) => s.keys === 'Alt+I').action).toBe('New instrument');
   });
 
   it('SECURITY: display names are rendered as text, never HTML', async () => {
@@ -211,7 +223,7 @@ describe('SCR-06 InstrumentForm — create (AC-03.1, AC-03.2, AC-03.6)', () => {
     await userEvent.type(within(b).getByLabelText(/^name/i), 'Sim chem');
     await userEvent.type(within(b).getByLabelText(/^vendor/i), 'Synthetic Vendor');
     await userEvent.type(within(b).getByLabelText(/^model/i), 'SV-100');
-    await choose(b, /^agent/i, /SYN-AGENT-1/);
+    await choose(b, /agent/i, /SYN-AGENT-1/);
     await userEvent.click(within(b).getByRole('radio', { name: /astm/i }));
     await choose(b, /transport kind/i, /serial/i);
     await userEvent.type(within(b).getByLabelText(/^port/i), 'COM3');
@@ -219,7 +231,7 @@ describe('SCR-06 InstrumentForm — create (AC-03.1, AC-03.2, AC-03.6)', () => {
     await choose(b, /data bits/i, '8');
     await choose(b, /parity/i, /^none$/i);
     await choose(b, /stop bits/i, '1');
-    await choose(b, /^driver/i, /Generic ASTM/);
+    await choose(b, /driver/i, /Generic ASTM/);
   };
 
   it('has the six 04-UI-UX sections; "Advanced link settings" is collapsed by default', async () => {
@@ -290,7 +302,7 @@ describe('SCR-06 InstrumentForm — create (AC-03.1, AC-03.2, AC-03.6)', () => {
     for (const l of [/^port/i, /baud/i, /data bits/i, /parity/i, /stop bits/i, /dtr/i, /rts/i]) expect(within(b).getByLabelText(l), String(l)).toBeTruthy();
     expect(b.textContent).toContain("Use the values from the instrument's LIS/host interface manual.");
     await choose(b, /transport kind/i, /tcp client/i);
-    for (const l of [/^host/i, /^port/i, /connect timeout/i, /reconnect max back-off/i]) expect(within(b).getByLabelText(l), String(l)).toBeTruthy();
+    for (const l of [/^host$/i, /^port/i, /connect timeout/i, /reconnect max back-off/i]) expect(within(b).getByLabelText(l), String(l)).toBeTruthy();
     expect(within(b).queryByLabelText(/baud/i)).toBeNull();
     await choose(b, /transport kind/i, /tcp server/i);
     for (const l of [/listen address/i, /^port/i, /allowed instrument addresses/i]) expect(within(b).getByLabelText(l), String(l)).toBeTruthy();
@@ -307,7 +319,7 @@ describe('SCR-06 InstrumentForm — create (AC-03.1, AC-03.2, AC-03.6)', () => {
 
   it('Driver select shows each driver with its status (Generic / Verified / Sketch)', async () => {
     const b = await open();
-    await userEvent.click(within(b).getByRole('button', { name: /^driver/i }));
+    await userEvent.click(within(b).getByRole('button', { name: /driver/i }));
     const opts = await screen.findAllByRole('option');
     const text = opts.map((o) => o.textContent).join('|');
     expect(text).toMatch(/Generic ASTM E1394.*Generic/);
@@ -353,7 +365,7 @@ describe('SCR-06 InstrumentForm — create (AC-03.1, AC-03.2, AC-03.6)', () => {
     const b = await open();
     await fill(b);
     await choose(b, /transport kind/i, /tcp client/i);
-    await userEvent.type(within(b).getByLabelText(/^host/i), '10.0.0.7');
+    await userEvent.type(within(b).getByLabelText(/^host$/i), '10.0.0.7');
     const port = within(b).getByLabelText(/^port/i);
     await userEvent.clear(port);
     await userEvent.type(port, '70000');
@@ -386,7 +398,7 @@ describe('SCR-06 InstrumentForm — edit (AC-03.2..03.5)', () => {
     const code = within(b).getByLabelText(/^code/i) as HTMLInputElement;
     expect(code.value).toBe('SIM-CHEM-1');
     expect(code.disabled || code.readOnly).toBe(true);
-    const agent = within(b).getByRole('button', { name: /^agent/i });
+    const agent = within(b).getByRole('button', { name: /agent/i });
     expect(agent.hasAttribute('disabled') || agent.getAttribute('aria-disabled') === 'true').toBe(true);
   });
 
@@ -440,7 +452,7 @@ describe('SCR-06 InstrumentForm — edit (AC-03.2..03.5)', () => {
   });
 
   it('AC-03.3: 422 instruments.capability_not_supported for host_query is shown at the Host query switch; no success toast', async () => {
-    api.use(http.patch(`${IM}/:id`, () => problem(422, 'instruments.capability_not_supported', { errors: [{ path: '/capabilities/host_query', code: 'instruments.capability_not_supported', message: 'The driver does not support host query.' }] })));
+    api.use(http.patch(`${IM}/:id`, async ({ request }) => { await rec(request); return problem(422, 'instruments.capability_not_supported', { errors: [{ path: '/capabilities/host_query', code: 'instruments.capability_not_supported', message: 'The driver does not support host query.' }] }); }));
     const b = await form({ instrument: full({ driver_code: 'astm_verified_x', driver_status: 'verified' }) as never });
     await userEvent.click(within(b).getByRole('switch', { name: /host query/i }));
     await submit();
@@ -793,8 +805,9 @@ describe('SCR-07 commissioning actions (AC-04.1..04.5)', () => {
       await userEvent.paste('x'.repeat(301));
       await dlgConfirm(dlg, /suspend/i);
       await new Promise((r) => setTimeout(r, 100));
+      // 04-UI-UX.md:113/:143 only require 3–300 chars; a maxLength=300 textarea truncates the paste, so a valid request is fine.
+      expect(reason.value.length).toBeLessThanOrEqual(300);
       expect(calls.every((c) => (c.body?.reason_text ?? '').length <= 300)).toBe(true);
-      expect(calls).toHaveLength(0);
     });
 
     it('Resume → POST E30 with If-Match (no dialog needed)', async () => {

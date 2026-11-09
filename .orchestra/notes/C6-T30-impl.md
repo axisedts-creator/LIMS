@@ -5,3 +5,4 @@ Checks: static 12/12; tsc clean; Playwright 47/48 full run (AC-11.3 "can no long
 [CONV] CSP enforced in production, report-only under next dev. Banner/Button of @lims/ui are client-only (react-aria) -> server-safe Notice with kit CSS classes.
 Open: assetlinks/AASA empty stubs (ids from C16/C17); dues pages ship with C15; footer lab phone not in API; "{n} tries left" omitted (API gives no count).
 Side effects: tracked root test-results/ churns on every run (not mine); pnpm-lock.yaml has new workspace member.
+Re-run 2026-11-09 16:30: static 12/12; Playwright 47/48 full run; AC-11.3 (attempts) fails only under full-run load (test has fixed 150ms wait; CodeForm drops input while a verify is in flight, by design), 3/3 pass in isolation. No impl change this round.

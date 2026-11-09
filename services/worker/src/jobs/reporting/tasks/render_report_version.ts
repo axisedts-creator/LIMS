@@ -55,11 +55,11 @@ export function createRenderReportVersion(o: RenderPorts): TaskHandler {
     if (!v || (typeof payload['report_id'] === 'string' && payload['report_id'] !== v['report_id'])) { ctx.log?.warn?.({ event: 'render_report_version_skipped', reason: 'unknown_version' }); return; }
     if (v['status'] !== 'rendering') { ctx.log?.info?.({ event: 'render_report_version_noop', report_version_id: versionId, status: v['status'] }); return; }
 
-    const fail = async (code: string) => {
+    const fail = async (errorCode: string) => {
       await tx.query(`UPDATE reporting.report_versions SET status = 'render_failed', last_render_error_code = $3, render_attempts = $4, version = version + 1,
-        updated_by = $5, updated_at = now() WHERE tenant_id = $1 AND id = $2 AND status = 'rendering'`, [tenantId, versionId, code, ctx.attempt, actor]);
-      ctx.metrics?.inc?.(FAILURES, { error_code: code });
-      ctx.log?.error?.({ event: 'render_failed', report_version_id: versionId, error_code: code, attempt: ctx.attempt });   // critical alert (E11)
+        updated_by = $5, updated_at = now() WHERE tenant_id = $1 AND id = $2 AND status = 'rendering'`, [tenantId, versionId, errorCode, ctx.attempt, actor]);
+      ctx.metrics?.inc?.(FAILURES, { error_code: errorCode });
+      ctx.log?.error?.({ event: 'render_failed', report_version_id: versionId, error_code: errorCode, attempt: ctx.attempt });   // critical alert (E11)
     };
 
     // Review C6-T09 #2: a failing SQL statement aborts the tx; rolling back to this savepoint lets render_failed still commit (AC-03.9, E11).

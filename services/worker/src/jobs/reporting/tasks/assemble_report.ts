@@ -199,7 +199,7 @@ export function createAssembleReport(o: { sandbox: SandboxClient }): TaskHandler
       } catch (e) {
         await tx.query('ROLLBACK TO SAVEPOINT smart_summary');
         if (!String((e as Row)?.code ?? '').startsWith('smartreport.')) throw e;
-        ctx.log?.warn?.({ event: 'smart_section_omitted', report_id: reportId, code: (e as Row).code });
+        ctx.log?.warn?.({ event: 'smart_section_omitted', report_id: reportId, error_code: (e as Row).code });
       }
     }
 
@@ -229,6 +229,7 @@ export function createAssembleReport(o: { sandbox: SandboxClient }): TaskHandler
         version = version + 1, updated_by = $6, updated_at = now() WHERE tenant_id = $1 AND id = $2`,
     [tenantId, reportId, versionNo, doc['header'].patientName, report.referrer_id ? doc['header'].referredBy : null, actor]);
     await tx.query(ENQUEUE_SQL, ['reporting.render_report_version', JSON.stringify({ tenant_id: tenantId, report_id: reportId, report_version_id: versionId }), `render:${versionId}`, null, 5]);
+    ctx.metrics?.inc?.('lims_reporting_versions_total', { report_kind: doc['reportKind'], family: report.family });   // T33
     done('report_version_assembled', { version_no: versionNo, report_kind: doc['reportKind'] });
   };
 }

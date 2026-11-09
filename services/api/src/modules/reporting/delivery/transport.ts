@@ -26,7 +26,17 @@ export class TransportError extends Error {
   }
 }
 
+/** One provider status event as the adapter parsed it from a callback (C6-T29, CR-C6-001). */
+export interface CallbackEvent {
+  readonly providerMessageId: string;
+  readonly statusRaw: string;
+  readonly mappedStatus: 'sent' | 'delivered' | 'read' | 'failed';
+  readonly occurredAt?: string;
+}
+
 export interface Transport {
   readonly providerKind: ProviderKind;
   send(msg: OutboundMessage, creds: ResolvedSecret): Promise<SendOutcome>;   // throws TransportError
+  /** Verifies the provider signature over the RAW body bytes (req.rawBody) and parses the events. Throws on a bad signature or an unparsable body. */
+  parseCallback?(rawBody: Uint8Array, headers: Readonly<Record<string, string | undefined>>): readonly CallbackEvent[];
 }

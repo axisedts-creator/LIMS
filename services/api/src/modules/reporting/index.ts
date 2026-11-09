@@ -2,6 +2,7 @@
 import { join } from 'node:path';
 import { loadSpec, operationIds, REPO_ROOT, type Handler, type ModuleManifest } from '../../core/module.js';
 import { loadReportingConfig } from './config.js';
+import { callbackHandlers } from './handlers/callbacks.handlers.js';
 import { deliveryHandlers } from './handlers/delivery.handlers.js';
 import { messagingAdminHandlers } from './handlers/messaging-admin.handlers.js';
 import { narrativeHandlers } from './handlers/narrative.handlers.js';
@@ -25,7 +26,7 @@ export const config = loadReportingConfig(process.env);
 const notImplemented: Handler = async () => ({ status: 501 });
 
 const OPENAPI = 'contracts/openapi/reporting.yaml';
-const implemented: Readonly<Record<string, Handler>> = { ...settingsHandlers, ...outsourcedHandlers, ...narrativeImageHandlers, ...narrativeHandlers, ...templatesHandlers, ...retryRenderHandlers, ...regenerateHandlers, ...releaseHandlers, ...reportsReadHandlers, ...portalHandlers, ...verifyHandlers, ...deliveryHandlers, ...messagingAdminHandlers };
+const implemented: Readonly<Record<string, Handler>> = { ...settingsHandlers, ...outsourcedHandlers, ...narrativeImageHandlers, ...narrativeHandlers, ...templatesHandlers, ...retryRenderHandlers, ...regenerateHandlers, ...releaseHandlers, ...reportsReadHandlers, ...portalHandlers, ...verifyHandlers, ...deliveryHandlers, ...messagingAdminHandlers, ...callbackHandlers };
 
 export const manifest: ModuleManifest = Object.freeze({
   name: 'reporting',

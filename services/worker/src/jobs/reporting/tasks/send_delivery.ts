@@ -40,6 +40,7 @@ export function createSendDelivery(deps: SendDeps = {}): TaskHandler {
     if (typeof tenantId !== 'string' || typeof id !== 'string' || !UUID.test(id)) return;
     const tx = ctx.tx as any;
     const now = ctx.now(); const nowMs = Date.parse(now);
+    const metrics = (ctx as any).metrics as { inc?(n: string, l?: Record<string, unknown>): void; set?(n: string, v: number, l?: Record<string, unknown>): void } | undefined;
 
     const d: Row | undefined = await findDelivery(tx, tenantId, id, true);
     if (!d || d['status'] !== 'queued') return;                      // already handled / unknown: silent no-op
@@ -53,6 +54,7 @@ export function createSendDelivery(deps: SendDeps = {}): TaskHandler {
     const finish = async (to: 'sent' | 'failed' | 'suppressed', failureCode: string | null, extra: Row = {}) => {
       const v = await transitionDelivery(tx, tenantId, id, { status: to, failureCode, at: now, actorId: actor, ...extra });
       if (v === undefined) return false;
+      metrics?.inc?.('lims_reporting_deliveries_total', { channel: d['channel'], purpose: d['purpose'], status: to });   // T33; bounded labels, no destination / id
       await publishTransition(ctx, d, to, { seq: v, at: now, attemptNo, failureCode });
       return true;
     };
@@ -91,11 +93,12 @@ export function createSendDelivery(deps: SendDeps = {}): TaskHandler {
     // 3. circuit breaker per channel account
     const bk = account?.id ?? d['channel']; const b = breaker.get(bk) ?? { fails: 0, openUntil: 0 };
     if (b.openUntil > nowMs) {
+      metrics?.set?.('lims_reporting_transport_circuit_open', 1);   // T33 alert gauge; per worker process like the breaker
       await record('circuit_open', 'circuit_open');
       await enqueue(SEND, `${id}:retry:${attemptNo}`, new Date(b.openUntil).toISOString());
       return;
     }
-    if (b.openUntil !== 0) { b.fails = 0; b.openUntil = 0; }
+    if (b.openUntil !== 0) { b.fails = 0; b.openUntil = 0; metrics?.set?.('lims_reporting_transport_circuit_open', 0); }
 
     // 4. message: tenant text + deferred link (the plaintext URL exists only in memory)
     const text = await findTemplateText(tx, tenantId, d['template_code'], d['channel'], d['language']);
@@ -134,6 +137,7 @@ export function createSendDelivery(deps: SendDeps = {}): TaskHandler {
     try {
       out = await transport.send(msg, { secretRef: account?.secret_ref });
     } catch (e) {
+      metrics?.inc?.('lims_reporting_transport_errors_total', { provider_kind: kind, retryable: e instanceof TransportError ? e.retryable : true });
       if (e instanceof TransportError && !e.retryable) { b.fails = 0; breaker.set(bk, b); return permanent(e.failureCode.slice(0, 64)); }
       const code = (e instanceof TransportError ? e.failureCode : 'unexpected_error').slice(0, 64);
       b.fails += 1; if (b.fails >= CIRCUIT_FAILS) b.openUntil = nowMs + CIRCUIT_OPEN_MS; breaker.set(bk, b);

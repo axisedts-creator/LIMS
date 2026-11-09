@@ -1,0 +1,6 @@
+# C6-T33 impl
+- New: api `modules/reporting/observability.ts` (REPORTING_LOG_DENY, createReportingLogger = shared logger + exact case-insensitive 12 keys, nested, no mutation); worker `alerts/reporting.rules.yaml` (10 TRD rows, expr/for verbatim; severity/route [CONV]).
+- Metrics: portal.service verifyChallenge (otp_verify_failures_total{tenant_id}); worker assemble_report (versions_total), send_delivery (deliveries_total, transport_errors_total, circuit_open gauge), cron sweepStuckRenders / sweepHeldReleases (3 gauges, computed in JS from plain SELECTs).
+- Log-scan fixes: `code:` -> `error_code:` (release.service, assemble_report); locals `to`/`code` renamed in process_input_file / render_report_version (scan matches shorthand values) [CONV].
+- Ran: T33 tests green (api 24, worker 25); worker reporting 631/631; api reporting green except repository.static.test (portal.service.ts has 26 inline SQL literals; not touched by T33) — handler suites time out under parallel load, pass with --no-file-parallelism + long timeouts (264/264).
+- Open: createReportingLogger not wired into core logger (core not owned; C0/C1 CR); gauges are per-worker-process; otp_sent/qr_verify/releases counters not added (not in T33 tests). tsc: only pre-existing send_delivery `ctx.attempt` errors.

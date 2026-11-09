@@ -18,21 +18,25 @@ export interface IngestRepo {
   upsertObservedCodes(tx: any, tenantId: string, rows: Row[]): Promise<void>;
   recordInstrumentActivity(tx: any, tenantId: string, instrumentId: string, o: { lastMessageAt: string; lastMessageAtAgent: string; instrumentClockOffsetSeconds?: number | null; actorId: string }): Promise<void>;
 }
+/** E05 adds one read: the stored query bytes, to rebuild the reply on an agent-key duplicate (02-TRD §6.6). */
+export interface HostQueryRepo extends IngestRepo {
+  findMessageRaw(tx: any, tenantId: string, messageId: string): Promise<{ raw_bytes: Buffer; raw_sha256: string } | undefined>;
+}
 
 const RUN_COUNTERS = ['patient_records', 'qc_records', 'calibrator_records', 'host_query_records', 'unmapped_records', 'skipped_no_barcode_records', 'emitted_events', 'skipped_records'] as const;
 // message_records columns after (id, tenant_id); the order is the order of $n placeholders
 const REC_COLS = ['centre_id', 'message_id', 'run_id', 'instrument_id', 'record_seq', 'record_class', 'sample_barcode', 'control_id_raw', 'control_lot_raw', 'control_level',
   'record_kind', 'instrument_analyte_code', 'mapping_status', 'analyte_id', 'test_id', 'value_raw', 'value_numeric', 'unit_raw', 'instrument_flags', 'instrument_result_time',
-  'instrument_clock_offset_seconds', 'is_rerun', 'organism', 'ast', 'result_key_sha256', 'emit_status', 'event_id', 'warnings', 'created_by'] as const;
-const JSONB = new Set(['organism', 'ast']);
+  'instrument_clock_offset_seconds', 'is_rerun', 'organism', 'ast', 'result_key_sha256', 'emit_status', 'event_id', 'detail', 'warnings', 'created_by'] as const;
+const JSONB = new Set(['organism', 'ast', 'detail']);
 const REC_CHUNK = 500;                                   // 31 params per row, well below the 65,535 bind limit
 const n = (v: unknown) => (v === undefined ? null : v);
 
-export function createIngestRepo(): IngestRepo {
+export function createIngestRepo(): HostQueryRepo {
   return {
     async findInstrument(tx, tenantId, instrumentId) {
       return (await tx.query(
-        `SELECT id, tenant_id, centre_id, agent_id, protocol, driver_code, state, timezone, parser_options, qc_sample_id_patterns
+        `SELECT id, tenant_id, centre_id, agent_id, protocol, driver_code, state, cap_host_query, timezone, parser_options, qc_sample_id_patterns
            FROM instruments.instruments WHERE tenant_id = $1 AND id = $2`, [tenantId, instrumentId])).rows[0];
     },
     async findMessageByAgentKey(tx, tenantId, agentId, agentMessageId) {
@@ -40,6 +44,9 @@ export function createIngestRepo(): IngestRepo {
     },
     async findMessageByKey(tx, tenantId, instrumentId, messageKey) {
       return (await tx.query('SELECT id, raw_sha256 FROM instruments.messages WHERE tenant_id = $1 AND instrument_id = $2 AND message_key = $3', [tenantId, instrumentId, messageKey])).rows[0];
+    },
+    async findMessageRaw(tx, tenantId, messageId) {
+      return (await tx.query('SELECT raw_bytes, raw_sha256 FROM instruments.messages WHERE tenant_id = $1 AND id = $2', [tenantId, messageId])).rows[0];
     },
     async insertMessage(tx, tenantId, r) {
       const id = uuidv7();
@@ -81,7 +88,7 @@ export function createIngestRepo(): IngestRepo {
         const values: unknown[] = [];
         const tuples = chunk.map((r) => {
           const base = values.length;
-          values.push(uuidv7(), tenantId, ...REC_COLS.map((c) => (JSONB.has(c) ? (r[c] === undefined ? null : JSON.stringify(r[c])) : c === 'instrument_flags' || c === 'warnings' ? (r[c] ?? []) : n(r[c]))));
+          values.push(uuidv7(), tenantId, ...REC_COLS.map((c) => (JSONB.has(c) ? (r[c] === undefined ? (c === 'detail' ? '{}' : null) : JSON.stringify(r[c])) : c === 'instrument_flags' || c === 'warnings' ? (r[c] ?? []) : n(r[c]))));
           return `(${[...Array(REC_COLS.length + 2).keys()].map((k) => `$${base + k + 1}${REC_COLS[k - 2] && JSONB.has(REC_COLS[k - 2]!) ? '::jsonb' : ''}`).join(',')})`;
         });
         await tx.query(`INSERT INTO instruments.message_records (id, tenant_id, ${REC_COLS.join(', ')}) VALUES ${tuples.join(',')}`, values);

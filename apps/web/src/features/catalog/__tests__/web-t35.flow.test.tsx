@@ -68,7 +68,9 @@ describe('export → edit → import → commit (AC-16.2, 16.3, 16.5, 16.6, 16.7
 
     // 3. SCR-19 renders the new import (uploaded) and polls until validated (stale-base warning loaded from #100).
     render(<ToastProvider><ImportDetail importRow={state.imp as never} issues={[]} priceList={PL as never} permissions={PERM} /></ToastProvider>);
-    await waitFor(() => expect(screen.getAllByText('Ready to commit').length).toBeGreaterThan(0), { timeout: 8000 });
+    // Ruling C3.T-35-ruling.md: StepStepper shows every label at all times (04-UI-UX.md:208), so wait on the poll outcome, then on the *current* step.
+    await waitFor(() => expect(state.importPolls).toBeGreaterThanOrEqual(2), { timeout: 8000 });
+    await waitFor(() => expect(document.querySelector('[aria-current="step"],[aria-current="true"]')?.textContent).toMatch(/Ready to commit/), { timeout: 8000 });
     expect(state.importPolls).toBeGreaterThanOrEqual(2);
 
     // 4. Commit: stale-base box required, then typed code.

@@ -18,8 +18,9 @@ import { retireInstrument } from './retireInstrument.server';
 import { startInstrumentCommissioning } from './startInstrumentCommissioning.server';
 import { suspendInstrument } from './suspendInstrument.server';
 import { updateInstrument } from './updateInstrument.server';
+import { updateInstrumentSettings } from './updateInstrumentSettings.server';
 import type { InstrumentBody } from '../forms/instrument';
-import type { ActionResult, Agent, AgentCommand, AgentLogBundle,AgentCommandKind, CreateAgentInput, EnrolmentCodeIssued, FieldProblemDto, GoLiveChecklist, ReasonInput, UpdateAgentInput } from './types';
+import type { ActionResult, Agent, AgentCommand, AgentLogBundle,AgentCommandKind, CreateAgentInput, EnrolmentCodeIssued, FieldProblemDto, GoLiveChecklist, InstrumentSettings, InstrumentSettingsBody, ReasonInput, UpdateAgentInput } from './types';
 
 async function run<T>(f: () => Promise<T>): Promise<ActionResult<T>> {
   try {
@@ -105,6 +106,11 @@ export async function suspendInstrumentAction(instrumentId: string, version: num
 
 export async function resumeInstrumentAction(instrumentId: string, version: number): Promise<ActionResult<{ version: number }>> {
   return run(async () => versionOf(await resumeInstrument(instrumentId, version)));
+}
+
+// ── WEB-T06 SCR-11 settings (E41). Returns the new DTO; the form keeps its version for the next If-Match. ──
+export async function updateInstrumentSettingsAction(version: number, body: InstrumentSettingsBody): Promise<ActionResult<InstrumentSettings>> {
+  return run(() => updateInstrumentSettings(version, body));
 }
 
 export async function retireInstrumentAction(instrumentId: string, version: number, reason: string): Promise<ActionResult<{ version: number }>> {

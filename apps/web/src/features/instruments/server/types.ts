@@ -252,3 +252,14 @@ export interface Instrument extends InstrumentBody {
   retired_at?: string;
   status?: { link_state?: string; last_message_at?: string; last_message_at_agent?: string; last_link_error_code?: string; instrument_clock_offset_seconds?: number; silent_since?: string };
 }
+
+/** E40/E41 InstrumentSettings (02-TRD §7.4). `version` is read-only: it travels as If-Match only. update_window_* are both set or both absent. */
+export interface InstrumentSettingsBody {
+  default_backlog_threshold: number;
+  backlog_max_oldest_pending_seconds: number;
+  clock_offset_warn_seconds: number;
+  agent_uploaded_retention_hours: number;
+  update_window_from?: string;
+  update_window_to?: string;
+}
+export interface InstrumentSettings extends InstrumentSettingsBody { version: number }

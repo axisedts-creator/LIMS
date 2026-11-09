@@ -1,9 +1,0 @@
-
- RUN  v5.1.0 C:/LIMS-lanes/C7/apps/web
-
-
- Test Files  2 passed (2)
-      Tests  85 passed (85)
-   Start at  09:46:57
-   Duration  53.58s (tests 50%, import 27%, environment 22%, transform 1%)
-

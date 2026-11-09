@@ -57,8 +57,8 @@ describe('request -> service mapping and responses', () => {
     expect(r.status).toBe(201); expect(r.headers?.etag).toBeUndefined(); expect(r.headers?.['cache-control']).toMatch(/no-store/);
   });
   it.each([['revokeAgent'], ['retireAgent']])('E15/E16 %s: If-Match + {reason_code, reason_text} -> service; 200 + ETag', async (op) => {
-    const r = await h(op)(req({ params: { agent_id: AID }, headers: ifm(4), body: { reason_code: 'lost_device', reason_text: 'x' } }), hctx(op));
-    expect(svc[op]).toHaveBeenCalledWith(expect.anything(), { agentId: AID, expectedVersion: 4, reasonCode: 'lost_device', reasonText: 'x' });
+    const r = await h(op)(req({ params: { agent_id: AID }, headers: ifm(4), body: { reason_code: 'device_lost_or_stolen', reason_text: 'x' } }), hctx(op));
+    expect(svc[op]).toHaveBeenCalledWith(expect.anything(), { agentId: AID, expectedVersion: 4, reasonCode: 'device_lost_or_stolen', reasonText: 'x' });
     expect(r.status).toBe(200); expect(r.headers?.etag).toBe('"3"');
   });
   it('E17 requestAgentCommand: body -> {kind, params}; 202 passthrough', async () => {

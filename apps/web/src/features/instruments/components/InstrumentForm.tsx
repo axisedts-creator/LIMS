@@ -283,7 +283,17 @@ export function InstrumentForm({ mode, agents, drivers, instrument, permissions 
   const section = (title: string, children: ReactNode) => <Card title={title}>{children}</Card>;
 
   return (
-    <section aria-label={edit ? 'Instrument configuration' : 'New instrument form'}>
+    // Ctrl/Cmd+Enter submits from any control: react-aria buttons (Select triggers) swallow Enter before the Form's own handler sees it.
+    <section
+      aria-label={edit ? 'Instrument configuration' : 'New instrument form'}
+      onKeyDownCapture={(e) => {
+        if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+          e.preventDefault();
+          e.stopPropagation();
+          void submit();
+        }
+      }}
+    >
     <Form onSubmit={submit}>
       {mfa ? <Banner tone="warning" title="Confirm with your authenticator to continue" /> : null}
       {alerts.length ? (

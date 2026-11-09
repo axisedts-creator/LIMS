@@ -41,6 +41,7 @@ const IMPLEMENTED: readonly string[] = [
   'retireAgent', 'requestAgentCommand', 'listAgentCommands', 'listAgentHealthTransitions',
   'getAgentLogBundle', 'listAgentReleases',
   'enrolAgent', 'getAgentConfig', 'submitAgentHeartbeat', 'submitAgentLogBundle', 'downloadAgentRelease', // API-T06
+  'submitAttachment', 'downloadInstrumentAttachment', // API-T11
 ];
 
 const FAKE_REQ = { params: {}, query: {}, headers: {}, body: {} };

@@ -157,7 +157,7 @@ export function createPortalService(deps: { env: Env; newId?: () => string }) {
         const exhausted = !!upd && upd['attempts'] >= OTP_MAX_ATTEMPTS;
         if (exhausted) await tx.query(`UPDATE reporting.otp_challenges SET status = 'exhausted' WHERE tenant_id = $1 AND id = $2 AND status = 'pending'`, [tenantId, challengeId]);
         await audit(ctx).access({ action: 'auth.otp_failure', entityType: 'otp_challenge', entityId: challengeId, outcome: 'denied', detail: { attempts: Number(upd?.['attempts'] ?? OTP_MAX_ATTEMPTS) } });
-        ctx.commitOnError?.();                                                         // the counter must survive this 4xx (P-42)
+        ctx.commitOnError?.();                                                     // the counter must survive this 4xx (P-42)
         ctx.metrics?.inc('lims_reporting_otp_verify_failures_total', { tenant_id: tenantId });   // T33: brute-force alert (REQ-SEC-133); tenant_id only, never challenge/link id
         throw new LimsError(exhausted ? 'auth.otp_attempts_exhausted' : 'auth.otp_invalid');
       }

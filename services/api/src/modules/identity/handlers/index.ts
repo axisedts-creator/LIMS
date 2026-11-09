@@ -3,6 +3,55 @@
 // replaces it with handlers/<operationId>.ts. [CONV] same one-list stub pattern as modules/lab/handlers/index.ts.
 import type { Handler } from '../../../core/module.js';
 import { LimsError } from '../../../core/errors.js';
+import { createRole } from './createRole.js';
+import { deactivateRole } from './deactivateRole.js';
+import { getRole } from './getRole.js';
+import { listPermissions } from './listPermissions.js';
+import { listRoles } from './listRoles.js';
+import { updateRole } from './updateRole.js';
+import { createBranch } from './createBranch.js';
+import { createCentre } from './createCentre.js';
+import { deactivateBranch } from './deactivateBranch.js';
+import { deactivateCentre } from './deactivateCentre.js';
+import { listBranches } from './listBranches.js';
+import { listCentres } from './listCentres.js';
+import { reactivateBranch } from './reactivateBranch.js';
+import { reactivateCentre } from './reactivateCentre.js';
+import { updateBranch } from './updateBranch.js';
+import { updateCentre } from './updateCentre.js';
+import { getBrandingAssetContent } from './getBrandingAssetContent.js';
+import { getSettings } from './getSettings.js';
+import { listFeatureFlags } from './listFeatureFlags.js';
+import { listOwnIrdAnnexes } from './listOwnIrdAnnexes.js';
+import { setTenantFeatureFlag } from './setTenantFeatureFlag.js';
+import { updateSettings } from './updateSettings.js';
+import { uploadBrandingAsset } from './uploadBrandingAsset.js';
+import { activateSupportSession } from './activateSupportSession.js';
+import { endSupportSession } from './endSupportSession.js';
+import { listPlatformSupportSessions } from './listPlatformSupportSessions.js';
+import { openSupportSession } from './openSupportSession.js';
+import { createPlatformIrdAnnex } from './createPlatformIrdAnnex.js';
+import { downloadIrdAnnexDocument } from './downloadIrdAnnexDocument.js';
+import { listPlatformIrdAnnexes } from './listPlatformIrdAnnexes.js';
+import { transitionIrdAnnex } from './transitionIrdAnnex.js';
+import { updateIrdAnnex } from './updateIrdAnnex.js';
+import { uploadIrdAnnexDocument } from './uploadIrdAnnexDocument.js';
+import { listDeadLetters } from './listDeadLetters.js';
+import { getDeadLetter } from './getDeadLetter.js';
+import { replayDeadLetter } from './replayDeadLetter.js';
+import { discardDeadLetter } from './discardDeadLetter.js';
+import { createAuditExport } from './createAuditExport.js';
+import { listAuditExports } from './listAuditExports.js';
+import { getAuditExport } from './getAuditExport.js';
+import { downloadAuditExport } from './downloadAuditExport.js';
+import { listPlatformStaff } from './listPlatformStaff.js';
+import { invitePlatformStaff } from './invitePlatformStaff.js';
+import { updatePlatformStaff } from './updatePlatformStaff.js';
+import { deactivatePlatformStaff } from './deactivatePlatformStaff.js';
+import { resetPlatformStaffMfa } from './resetPlatformStaffMfa.js';
+import { listPlatformSessions } from './listPlatformSessions.js';
+import { revokePlatformSession } from './revokePlatformSession.js';
+import { listPlatformAuthEvents } from './listPlatformAuthEvents.js';
 
 const OPERATION_IDS = [
   // auth (identity_auth)
@@ -37,6 +86,19 @@ const notImplemented = (operationId: string): Handler => async () => {
   throw new LimsError('common.internal', `identity ${operationId} not implemented`);
 };
 
+const implemented: Partial<Record<IdentityOperationId, Handler>> = {
+  listPermissions, listRoles, createRole, getRole, updateRole, deactivateRole,   // T14
+  listBranches, createBranch, updateBranch, deactivateBranch, reactivateBranch,                  // T15
+  listCentres, createCentre, updateCentre, deactivateCentre, reactivateCentre,                    // T15
+  getSettings, updateSettings, uploadBrandingAsset, getBrandingAssetContent, listFeatureFlags, setTenantFeatureFlag, listOwnIrdAnnexes,   // T16
+  openSupportSession, activateSupportSession, endSupportSession, listPlatformSupportSessions,                       // T21
+  listPlatformIrdAnnexes, createPlatformIrdAnnex, updateIrdAnnex, transitionIrdAnnex, uploadIrdAnnexDocument, downloadIrdAnnexDocument,   // T23
+  listDeadLetters, getDeadLetter, replayDeadLetter, discardDeadLetter,                                          // T24
+  createAuditExport, listAuditExports, getAuditExport, downloadAuditExport,                                    // T19
+  listPlatformStaff, invitePlatformStaff, updatePlatformStaff, deactivatePlatformStaff, resetPlatformStaffMfa,  // T25
+  listPlatformSessions, revokePlatformSession, listPlatformAuthEvents,                                          // T25
+};
+
 export const handlers: Readonly<Record<IdentityOperationId, Handler>> = Object.freeze(
-  Object.fromEntries(OPERATION_IDS.map((op) => [op, notImplemented(op)])) as Record<IdentityOperationId, Handler>,
+  Object.fromEntries(OPERATION_IDS.map((op) => [op, implemented[op] ?? notImplemented(op)])) as Record<IdentityOperationId, Handler>,
 );

@@ -7,6 +7,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { beforeAll, describe, expect, it } from 'vitest';
 import { REPO_ROOT, loadSpec, operationIds } from '../../../core/module.js';
+import { IMPLEMENTED } from './implemented-ops.js';
 
 export const T03_OPS = [
   'getReportingSettings', 'updateReportingSettings', 'listCentreContacts', 'createCentreContact', 'updateCentreContact',
@@ -43,9 +44,9 @@ describe('C6-T03 handlers', () => {
     expect(JSON.stringify(out ?? {})).not.toContain(planted);   // and never reflects input
     if (threw !== undefined) expect(String((threw as Error)?.message ?? threw)).not.toContain(planted);
   });
-  it('the other reporting operations are still 501 stubs (scope of T03 is exactly these eight)', async () => {
-    const others = operationIds(spec).filter((o: string) => !(T03_OPS as readonly string[]).includes(o));
-    expect(others.length).toBeGreaterThan(50);
+  it('the other reporting operations are still 501 stubs (T03 ops and every already-implemented op excluded)', async () => {
+    const others = operationIds(spec).filter((o: string) => !(T03_OPS as readonly string[]).includes(o) && !IMPLEMENTED.has(o));
+    expect(others.length).toBeGreaterThanOrEqual(5);   // floor was >50 while few ops were implemented; 31 remain stubs after T15; keep >=5 so the first-5 loop is never vacuous
     for (const op of others.slice(0, 5)) expect((await manifest.handlers[op]({ params: {}, query: {}, headers: {}, body: undefined }, ctx(op))).status).toBe(501);
   });
   it('permissions in the contract: S1-S7 require reporting.settings.manage, R17 reporting.report.read (spec 02-TRD §6.5)', () => {

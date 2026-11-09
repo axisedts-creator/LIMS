@@ -2,7 +2,7 @@
 // 07-SECURITY S-1, S-5, S-11, AB-15, AB-20, REQ-SEC-081/082. Validates its own input (import commits call it directly).
 // Every write bumps the catalog revision (entity `doctor`) in the caller's transaction. Lock order: counter row, doctor rows (id order), catalog_state.
 // Contacts (phone_e164, email) leave only for holders of catalog.referrer.manage, decided by IdentityPort.getActor (fail closed) — summaries never carry them.
-// Merge: source -> target, merged_into_id stays ONE hop (doctors already pointing at the source are re-pointed). Price-list reassignment is T-17's.
+// Merge: source -> target, merged_into_id stays ONE hop (doctors already pointing at the source are re-pointed). The source's price-list assignment moves to the target (or is dropped if the target has one) in the same transaction (T-17).
 // [CONV] auto code DR{seq:5} from code_counters (`next_value` = next to hand out); a merged doctor can be neither verified nor reactivated (409 catalog.version_in_use).
 import { uuidv7 } from '../../../../../../packages/shared-ts/src/uuidv7/index.js';   // [CONV] relative import (same as masters.service.ts)
 import { LimsError, type FieldError } from '../../../core/errors.js';
@@ -272,6 +272,17 @@ export function createReferrersService(deps: ReferrersDeps) {
       await q(ctx, // chain flattening: whoever pointed at the source now points at the survivor
         'UPDATE catalog.doctors SET merged_into_id = $3, version = version + 1, updated_at = now(), updated_by = $4 WHERE tenant_id = $1 AND merged_into_id = $2',
         [ctx.tenantId, id, into, ctx.actor.id]);
+      // 03-APP-FLOW §2.4 [CONV]: the merged doctor's price-list assignment is removed; if the survivor has none, the same list is re-assigned to it.
+      // DELETE + INSERT (associations carry no UPDATE contract). Both doctor rows are locked above, so concurrent merges into one survivor serialise.
+      const asg = (await q(ctx, 'SELECT id, price_list_id, doctor_id FROM catalog.price_list_assignments WHERE tenant_id = $1 AND doctor_id = ANY($2) FOR UPDATE', [ctx.tenantId, [id, into]])).rows;
+      const moved = asg.find((a) => a.doctor_id === id);
+      if (moved) {
+        await q(ctx, 'DELETE FROM catalog.price_list_assignments WHERE tenant_id = $1 AND id = $2', [ctx.tenantId, moved.id]);
+        if (!asg.some((a) => a.doctor_id === into)) {
+          await q(ctx, 'INSERT INTO catalog.price_list_assignments (id, tenant_id, price_list_id, owner_kind, doctor_id, created_by) VALUES ($1, $2, $3, $4, $5, $6)',
+            [uuidv7(), ctx.tenantId, moved.price_list_id, 'referrer', into, ctx.actor.id]);
+        }
+      }
       await bump(ctx, id, 'deactivated', at);
       return doctorDto(after, true);
     },

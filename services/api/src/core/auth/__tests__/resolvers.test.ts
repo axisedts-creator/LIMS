@@ -91,6 +91,38 @@ describe('authenticate()', () => {
   });
 });
 
+// LD-66 / CR-C6-021: a registration may declare invalidError; core pre-resolver rejections for THAT key throw it; every other key keeps auth.unauthenticated; 4096 cap stays.
+describe('invalidError: per-registration error for pre-resolver credential rejections (LD-66, CR-C6-021)', () => {
+  const portal = () => {
+    const rr = { ...res(undefined), invalidError: 'reporting.link_invalid' };
+    return { rr, reg: createAuthResolverRegistry([{ name: 'reporting', authResolvers: { portalSession: rr } }]) };
+  };
+  it.each([['empty', ''], ['5000 characters', 'a'.repeat(5000)], ['4097 characters', 'a'.repeat(4097)], ['non-string', 42 as unknown as string]])(
+    'portalSession credential %s -> reporting.link_invalid, resolver not called', async (_n, cred) => {
+      const { rr, reg } = portal();
+      await expect(reg.authenticate('portalSession', cred, TX)).rejects.toMatchObject({ code: 'reporting.link_invalid' });
+      expect(rr.calls).toEqual([]);
+    });
+  it('the 4096 cap is kept: exactly 4096 characters reaches the resolver', async () => {
+    const { rr, reg } = portal();
+    await expect(reg.authenticate('portalSession', 'a'.repeat(4096), TX)).rejects.toBeTruthy();
+    expect(rr.calls).toHaveLength(1);
+  });
+  it.each([['instruments', 'deviceToken'], ['payments', 'paymentCallback'], ['engagement', 'patientPreAuth'], ['engagement', 'queueDisplayToken']])(
+    '%s/%s without invalidError: empty or 5000-char credential -> 401 auth.unauthenticated', async (name, key) => {
+      const reg = createAuthResolverRegistry([{ name, authResolvers: { [key]: res(undefined) } }]);
+      for (const cred of ['', 'a'.repeat(5000), 7 as unknown as string]) await expectAuthError(reg.authenticate(key, cred, TX), 'auth.unauthenticated');
+    });
+  it('a reporting/portalSession registration WITHOUT invalidError still gives auth.unauthenticated (opt-in only)', async () => {
+    const reg = createAuthResolverRegistry([{ name: 'reporting', authResolvers: { portalSession: res(undefined) } }]);
+    await expectAuthError(reg.authenticate('portalSession', 'a'.repeat(5000), TX), 'auth.unauthenticated');
+  });
+  it('resolver returning undefined for a well-formed credential still gives auth.unauthenticated (only pre-resolver rejections change)', async () => {
+    const { reg } = portal();
+    await expectAuthError(reg.authenticate('portalSession', 'link.x', TX), 'auth.unauthenticated');
+  });
+});
+
 describe('buildAuthResolverClaims: extraClaims allowlist per module (02-TRD §6.3)', () => {
   const claimsFor = (mod: string, extra: Record<string, string>, type = 'device') =>
     buildAuthResolverClaims(mod as any, ok({ actor: { type, id: ID }, extraClaims: extra }) as any);

@@ -19,7 +19,7 @@ const BUCKET = 'reporting-inputs';
 const REJECTED = 'reporting.outsourced_pdf_rejected';
 const IMAGE_REJECTED = 'common.upload_quarantined';            // [CONV] N6 error code (02-TRD §6.4) reused for worker-side image rejection
 const KINDS = ['outsourced_pdf', 'narrative_image'];
-const METRIC = 'lims_reporting_sandbox_rejections_total';    // 02-TRD §11 {reason}; [CONV] scanner hits counted with reason 'infected'
+export const METRIC = 'lims_reporting_sandbox_rejections_total';    // 02-TRD §11 {reason}; [CONV] scanner hits counted with reason 'infected'
 const REASONS = ['encrypted', 'malformed', 'too_many_pages', 'timeout', 'not_pdf'];
 const DEFAULT_TIMEOUT_MS = 60_000;                           // [CONV] no sanitise timeout value in 02-TRD §5.2
 const MAX_BYTES = 15 * 1024 * 1024;
@@ -32,7 +32,7 @@ class SandboxTimeout extends Error { constructor() { super('sandbox_timeout'); t
 const sha = (b: Uint8Array) => createHash('sha256').update(b).digest('hex');
 
 /** Validated sanitised output, or the rejection reason label. */
-function checkReply(reply: SanitizeReply | undefined): { bytes: Uint8Array; pages: number; sha256: string } | { reason: string } {
+export function checkReply(reply: SanitizeReply | undefined): { bytes: Uint8Array; pages: number; sha256: string } | { reason: string } {
   if (!reply || typeof reply !== 'object') return { reason: 'invalid_output' };
   if (reply.ok !== true) return { reason: REASONS.includes(String((reply as { reason?: unknown }).reason)) ? String((reply as { reason?: unknown }).reason) : 'malformed' };
   const { page_count: pages, sha256: digest, pdf_base64: b64 } = reply;
@@ -77,10 +77,10 @@ export function createProcessInputFile(o: { sandbox: SandboxClient; timeoutMs?: 
     const row = await repo.findFile(tx, tenantId, fileId);
     if (!row || row.tenant_id !== tenantId || !KINDS.includes(row.kind) || !ACTIVE.includes(row.state)) return;   // idempotent: terminal / unknown
     let state: string = row.state;
-    const reject = async (to: 'quarantined' | 'rejected', reason: string) => {
-      await repo.failFile(tx, tenantId, fileId, state, to, row.kind === 'narrative_image' ? IMAGE_REJECTED : REJECTED, actorId);
+    const reject = async (toState: 'quarantined' | 'rejected', reason: string) => {
+      await repo.failFile(tx, tenantId, fileId, state, toState, row.kind === 'narrative_image' ? IMAGE_REJECTED : REJECTED, actorId);
       metrics?.inc(METRIC, { reason });
-      ctx.log?.warn?.({ event: 'input_file_rejected', input_file_id: fileId, state: to, reason });
+      ctx.log?.warn?.({ event: 'input_file_rejected', input_file_id: fileId, state: toState, reason });
     };
 
     const original = await storage.read(BUCKET, row.quarantine_object_path);

@@ -3,8 +3,17 @@
 // them from __tests__/probes/pending.json (CR-C3-008; the list must be empty at M6).
 import { LimsError } from '../../../core/errors.js';
 import type { Handler } from '../../../core/module.js';
+import { analyteVersionsHandlers } from './analyteVersions.handlers.js';
+import { creditPartiesHandlers } from './creditParties.handlers.js';
+import { formulasHandlers } from './formulas.handlers.js';
+import { healthHandlers } from './health.handlers.js';
 import { importsHandlers } from './imports.handlers.js';
+import { instrumentMapsHandlers } from './instrumentMaps.handlers.js';
 import { mastersHandlers } from './masters.handlers.js';
+import { panelsHandlers } from './panels.handlers.js';
+import { pricingHandlers } from './pricing.handlers.js';
+import { rangePreviewHandlers } from './rangePreview.handlers.js';
+import { rangesHandlers } from './ranges.handlers.js';
 import { referrersHandlers } from './referrers.handlers.js';
 import { testsHandlers } from './tests.handlers.js';
 
@@ -14,72 +23,19 @@ const notImplemented: Handler = async () => {
 };
 
 export const handlers: Readonly<Record<string, Handler>> = Object.freeze({
-  getCatalogRevision: notImplemented,
-  resolveOrderablesPreview: notImplemented,
-  getCatalogHealthReport: notImplemented,
+  ...healthHandlers, // T-30: #1 (revision), #4 (health report)
   ...mastersHandlers, // T-04: #5–#16; T-05: #17–#22 (units, value sets); T-13: #57–#59 (comment codes)
-  ...testsHandlers, // T-06: #2, #23–#27
-  setTestTatTargets: notImplemented,
-  createAnalyte: notImplemented,
-  getAnalyte: notImplemented,
-  updateAnalyte: notImplemented,
-  createAnalyteVersionDraft: notImplemented,
-  updateAnalyteVersionDraft: notImplemented,
-  publishAnalyteVersion: notImplemented,
-  discardAnalyteVersionDraft: notImplemented,
-  validateFormula: notImplemented,
-  listReferenceRangeSets: notImplemented,
-  createReferenceRangeSetDraft: notImplemented,
-  getReferenceRangeSet: notImplemented,
-  replaceReferenceRangeSetBands: notImplemented,
-  publishReferenceRangeSet: notImplemented,
-  retireReferenceRangeSet: notImplemented,
-  discardReferenceRangeSetDraft: notImplemented,
-  listCriticalLimitSets: notImplemented,
-  createCriticalLimitSetDraft: notImplemented,
-  getCriticalLimitSet: notImplemented,
-  replaceCriticalLimitSetBands: notImplemented,
-  publishCriticalLimitSet: notImplemented,
-  retireCriticalLimitSet: notImplemented,
-  discardCriticalLimitSetDraft: notImplemented,
-  previewReferenceRange: notImplemented,
-  listPanels: notImplemented,
-  createPanel: notImplemented,
-  getPanelDetail: notImplemented,
-  updatePanel: notImplemented,
-  replacePanelMembers: notImplemented,
+  ...testsHandlers, // T-06: #2, #23–#27; T-14: #28
+  ...analyteVersionsHandlers, // T-07: #29–#35
+  ...formulasHandlers, // T-11: #36
+  ...rangesHandlers, // T-08: #37–#50 (reference-range + critical-limit sets)
+  ...rangePreviewHandlers, // T-10: #51
+  ...panelsHandlers, // T-12: #52–#56, #3
   ...referrersHandlers, // T-15: #60–#66 (doctors)
-  listCreditParties: notImplemented,
-  createCreditParty: notImplemented,
-  getCreditParty: notImplemented,
-  updateCreditParty: notImplemented,
-  listPriceLists: notImplemented,
-  createPriceList: notImplemented,
-  getPriceListDetail: notImplemented,
-  updatePriceList: notImplemented,
-  replacePriceListAssignments: notImplemented,
-  createPriceListVersionDraft: notImplemented,
-  listPriceListItems: notImplemented,
-  upsertPriceListItems: notImplemented,
-  removePriceListItems: notImplemented,
-  publishPriceListVersion: notImplemented,
-  discardPriceListVersionDraft: notImplemented,
-  quotePrices: notImplemented,
-  listSurchargeRules: notImplemented,
-  createSurchargeRule: notImplemented,
-  endSurchargeRule: notImplemented,
-  listTaxTypes: notImplemented,
-  createTaxType: notImplemented,
-  updateTaxType: notImplemented,
-  listTaxRules: notImplemented,
-  createTaxRule: notImplemented,
-  endTaxRule: notImplemented,
-  listInstrumentCodeMaps: notImplemented,
-  createInstrumentCodeMap: notImplemented,
-  updateInstrumentCodeMap: notImplemented,
-  upsertInstrumentCodeMaps: notImplemented,
+  ...creditPartiesHandlers, // T-16: #67–#70 (credit parties)
+  ...pricingHandlers, // T-17: #71–#81 (price lists); T-19: #82 (quotePrices); T-18: #83–#91 (surcharge / tax)
+  ...instrumentMapsHandlers, // T-27: #92–#95 (instrument code maps)
   ...importsHandlers,
-  commitImport: notImplemented,
   createExport: notImplemented,
   listExports: notImplemented,
   getExport: notImplemented,

@@ -26,4 +26,5 @@ export const testsHandlers: Readonly<Record<string, Handler>> = Object.freeze({
   updateTest: bind(async (s, c, r) => ok(await s.updateTest(c, { id: obj(r.params)['test_id'], expectedVersion: ifMatch(r), patch: r.body }))),
   replaceTestSpecimenRequirements: bind(async (s, c, r) =>
     ok(await s.replaceTestSpecimenRequirements(c, { id: obj(r.params)['test_id'], expectedVersion: ifMatch(r), body: r.body }))),
+  setTestTatTargets: bind(async (s, c, r) => ok(await s.setTestTatTargets(c, { id: obj(r.params)['test_id'], expectedVersion: ifMatch(r), body: r.body }))),
 });

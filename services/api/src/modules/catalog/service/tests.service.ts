@@ -23,6 +23,38 @@ const AN_COLS = ['id', 'test_id', 'code', 'name', 'print_name', 'report_subheadi
 const AV_COLS = ['id', 'analyte_id', 'version_no', 'status', 'result_type', 'unit_code', 'decimals', 'method_id', 'value_set_code', 'formula_expression',
   'effective_from', 'effective_to', 'change_reason', 'version'];
 
+const TAT_COLS = ['priority', 'segment', 'target_seconds', 'effective_from', 'effective_to'];
+const TAT_KEYS = new Set(['priority', 'segment', 'target_seconds']);
+const PRIORITIES = new Set(['routine', 'urgent']);
+const SEGMENTS = new Set(['within_lab', 'total']);
+
+type Tat = { priority: string; segment: string; target_seconds: number };
+/** TRD #28: 1..2 targets, one per priority, one segment for the whole set, target_seconds 60..2592000; TatTargetInput is strict. */
+function checkTat(v: unknown): Tat[] {
+  if (!Array.isArray(v)) return fail([invalid('/targets')]);
+  if (v.length < 1 || v.length > 2) return fail([invalid('/targets')]);   // [] rejected [CONV]: a set needs a new row to carry the revision event
+  const errors: FieldError[] = [];
+  const out = v.map((item, i): Tat => {
+    const p = `/targets/${i}`;
+    if (!isObj(item)) { errors.push(invalid(p)); return undefined as never; }
+    for (const k of Object.keys(item)) if (!TAT_KEYS.has(k) && item[k] !== undefined) errors.push(unknown(`${p}${ptr(k)}`));
+    const { priority: pr, segment: sg, target_seconds: ts } = item;
+    if (pr === undefined) errors.push(required(`${p}/priority`));
+    else if (typeof pr !== 'string' || !PRIORITIES.has(pr)) errors.push(invalid(`${p}/priority`));
+    if (sg === undefined) errors.push(required(`${p}/segment`));
+    else if (typeof sg !== 'string' || !SEGMENTS.has(sg)) errors.push(invalid(`${p}/segment`));
+    if (ts === undefined) errors.push(required(`${p}/target_seconds`));
+    else if (!(Number.isInteger(ts) && (ts as number) >= 60 && (ts as number) <= 2592000)) errors.push(invalid(`${p}/target_seconds`));
+    return { priority: pr as string, segment: sg as string, target_seconds: ts as number };
+  });
+  if (!errors.length) {
+    if (out.length === 2 && out[0]!.priority === out[1]!.priority) errors.push(invalid('/targets/1/priority'));
+    if (out.length === 2 && out[0]!.segment !== out[1]!.segment) errors.push(invalid('/targets/1/segment'));   // AC-10.1: one segment per test
+  }
+  if (errors.length) fail(errors);
+  return out;
+}
+
 const INT = (min: number, max: number): Field => ({ t: 'int', min, max });
 const UUID_F: Field = { t: 'uuid' };
 const CREATE_FIELDS = { name: str(1, 200), department_id: UUID_F, report_order: INT(0, 9999), is_orderable: BOOL, uses_existing_material: BOOL };
@@ -32,8 +64,8 @@ const ISO_UTC = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/;
 const SORTS = new Set(['code', '-code', 'name', '-name', 'report_order', '-report_order']);
 const ptr = (k: string) => `/${k.replaceAll('~', '~0').replaceAll('/', '~1')}`;
 const isUuid = (v: unknown): v is string => typeof v === 'string' && UUID.test(v);
-const pick = (o: Record<string, unknown>, keys: readonly string[]) => Object.fromEntries(keys.filter((k) => o[k] !== undefined).map((k) => [k, o[k]]));
-const compact = (o: Record<string, unknown>) => Object.fromEntries(Object.entries(o).filter(([, v]) => v != null));
+export const pick = (o: Record<string, unknown>, keys: readonly string[]) => Object.fromEntries(keys.filter((k) => o[k] !== undefined).map((k) => [k, o[k]]));
+export const compact = (o: Record<string, unknown>) => Object.fromEntries(Object.entries(o).filter(([, v]) => v != null));
 const iso = (v: unknown) => (v instanceof Date ? v : new Date(String(v))).toISOString();
 
 type Spec = { specimen_type_id: string; container_id: string | null; is_preferred: boolean; min_volume_ul: number | null };
@@ -72,21 +104,21 @@ function checkIfMatch(v: unknown): number {
 const workflowErr = (v: unknown, errors: FieldError[]) => { if (v !== undefined && !isWorkflowType(v)) errors.push(invalid('/workflow_type')); };
 
 /** Query object: declared keys only; `undefined` = absent. */
-function checkQuery(query: unknown, allowed: readonly string[]): Record<string, unknown> {
+export function checkQuery(query: unknown, allowed: readonly string[]): Record<string, unknown> {
   const q = query === undefined ? {} : query;
   if (!isObj(q)) return fail([invalid('')]);
   const bad = Object.keys(q).filter((k) => q[k] !== undefined && !allowed.includes(k));
   if (bad.length) fail(bad.map((k) => unknown(ptr(k))));
   return q;
 }
-const isActiveOf = (v: unknown, errors: FieldError[]): boolean | undefined => {
+export const isActiveOf = (v: unknown, errors: FieldError[]): boolean | undefined => {
   if (v === undefined || v === 'true') return true;
   if (v === 'false') return false;
   if (v === 'all') return undefined;
   errors.push(invalid('/is_active'));
   return undefined;
 };
-const limitOf = (v: unknown, dflt: number, max: number, errors: FieldError[]): number => {
+export const limitOf = (v: unknown, dflt: number, max: number, errors: FieldError[]): number => {
   const n = v === undefined ? dflt : typeof v === 'string' && /^[0-9]{1,3}$/.test(v) ? Number(v) : v;
   if (Number.isInteger(n) && (n as number) >= 1 && (n as number) <= max) return n as number;
   errors.push(invalid('/limit'));
@@ -127,6 +159,7 @@ export function createTestsService(deps: Deps) {
     const dept = await deptCodes(tx, t, [o.department_id]);
     const specs = await repo.find(tx, 'test_specimen_types', SPEC_COLS, t, { test_id: id }, { order: 'is_preferred DESC, specimen_type_id' });
     const analytes = await repo.find(tx, 'analytes', AN_COLS, t, { test_id: id }, { order: 'sort_order, code' });
+    const tat = await repo.tatAt(tx, TAT_COLS, t, id, asOf);
     const versions = analytes.length ? await repo.analyteVersions(tx, AV_COLS, t, analytes.map((a) => a.id), asOf) : [];
     const current = new Map<string, any>(), draft = new Map<string, string>();
     for (const v of versions) {
@@ -142,7 +175,8 @@ export function createTestsService(deps: Deps) {
         ...pick(a, AN_COLS), sort_order: Number(a.sort_order), version: Number(a.version), is_reportable: a.is_reportable === true, is_active: a.is_active === true,
         current_version: current.has(a.id) ? versionDto(current.get(a.id)) : undefined, draft_version_id: draft.get(a.id),
       })),
-      tat_targets: [],                                   // [CONV] setTestTatTargets (#28) is a later task
+      tat_targets: tat.map((r) => compact({ priority: r.priority, segment: r.segment, target_seconds: Number(r.target_seconds), effective_from: iso(r.effective_from),
+        effective_to: r.effective_to == null ? undefined : iso(r.effective_to) })),
       version: Number(row.version),
     };
   }
@@ -298,6 +332,31 @@ export function createTestsService(deps: Deps) {
       const after = await repo.update(tx, 'tests', ['id'], { tenantId: t, id, actorId: actor, expectedVersion: expected }, {});
       if (!after) throw new LimsError('common.version_conflict');
       await bump(ctx, id, 'updated');
+      return detail(ctx, id, new Date(nowIso(ctx)));
+    },
+
+    /** #28 — replaces the target set: ends every open row at effective_from, then inserts the new rows (history stays; the open-row unique index is not deferrable,
+     *  so end first). Bumps tests.version and the catalog revision once (entity tat_target, `created`, stamping the owning test's orderable). */
+    async setTestTatTargets(ctx: Ctx, input: { id?: unknown; expectedVersion?: unknown; body?: unknown } = {}) {
+      const id = checkId(input.id);
+      const expected = checkIfMatch(input.expectedVersion);
+      const tx = ctx.tx as Tx, t = ctx.tenantId, actor = ctx.actor.id;
+      await lockTest(ctx, id, expected);               // [CONV] preconditions (404 / 409) are judged before the body (RFC 9110 §13.2.2)
+      const b = checkQuery(isObj(input.body) ? input.body : fail([invalid('')]), ['targets', 'effective_from']);
+      if (b['targets'] === undefined) fail([required('/targets')]);
+      const targets = checkTat(b['targets']);
+      const fromIso = b['effective_from'] === undefined ? nowIso(ctx) : b['effective_from'];
+      if (typeof fromIso !== 'string' || !ISO_UTC.test(fromIso) || Number.isNaN(Date.parse(fromIso))) fail([invalid('/effective_from')]);
+      const from = new Date(fromIso as string);
+      // ponytail: no back-dating into recorded history (a window would overlap or be negative); a history rewrite needs its own endpoint.
+      const history = await repo.find(tx, 'tat_targets', ['effective_from', 'effective_to'], t, { test_id: id });
+      if (history.some((r) => (r.effective_to == null ? r.effective_from : r.effective_to) > from)) fail([invalid('/effective_from')]);
+      await repo.endOpenTat(tx, t, id, actor, from);
+      const rows = targets.map((x) => ({ id: uuidv7(), tenant_id: t, test_id: id, ...x, effective_from: from, created_by: actor, updated_by: actor }));
+      await repo.insert(tx, 'tat_targets', rows, ['created_at', 'updated_at']).catch(mapPg);
+      const after = await repo.update(tx, 'tests', ['id'], { tenantId: t, id, actorId: actor, expectedVersion: expected }, {});
+      if (!after) throw new LimsError('common.version_conflict');
+      await revision.bumpRevision(ctx, { entityType: 'tat_target', entityId: rows[0]!.id, changeKind: 'created', effectiveFrom: from.toISOString(), stampOrderableId: id });
       return detail(ctx, id, new Date(nowIso(ctx)));
     },
   };

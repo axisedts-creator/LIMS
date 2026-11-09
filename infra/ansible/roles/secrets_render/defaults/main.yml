@@ -13,7 +13,10 @@ secrets_render_ops_note: "{{ playbook_dir }}/../../ci/ops-note.sh"
 
 # Container UID per file-exposure service (s8.3 "owner = container UID").
 # Required for every service placed on the host; no guessed default.
-secrets_render_uids: {}
+# LD-67: pgbouncer = UID of the pinned edoburu/pgbouncer image's user (userlist.txt owner).
+# [CONV] 70 is unverified against the digest: check `docker run --rm --entrypoint id <digest>`.
+secrets_render_uids:
+  pgbouncer: 70
 
 # Upstream Supabase compose reads ${VAR} from one env file per host:
 # docker compose --env-file /run/lims/env/supabase.env ... [CONV]

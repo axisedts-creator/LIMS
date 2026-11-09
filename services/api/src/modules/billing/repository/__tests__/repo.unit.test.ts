@@ -63,6 +63,11 @@ describe('invoices.repo', () => {
     expect(calls[0]!.text).not.toMatch(/\b(net_paisa|gross_paisa|vat_paisa|invoice_no|buyer_name)\s*=/i);
     expect(calls[0]!.values).toEqual(expect.arrayContaining([TENANT, INV]));
   });
+  it('markInvoicePrinted: also bumps version (03-APP-FLOW §2.10 step 2) so optimistic concurrency notices a print', async () => {
+    const { tx, calls } = fakeTx([{ print_count: 2 }]);
+    await markInvoicePrinted(tx as never, { tenantId: TENANT, invoiceId: INV, userId: USER });
+    expect(calls[0]!.text).toMatch(/\bversion\s*=\s*version\s*\+\s*1\b/i);
+  });
   it('markInvoicePrinted on an unknown invoice -> undefined', async () => {
     expect(await markInvoicePrinted(fakeTx([]).tx as never, { tenantId: TENANT, invoiceId: INV, userId: USER })).toBeUndefined();
   });

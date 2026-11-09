@@ -72,7 +72,13 @@ export interface JobRec { identifier: string; payload: any; jobKey: string | nul
 // ------------------------------------------------------------------------------------------------ tiny SQL helpers
 const unsupported = (what: string): never => { throw new Error(`FAKE-UNSUPPORTED-SQL: ${what} (single-table statements with $n parameters only)`); };
 const norm = (s: string) => s.replace(/\s+/g, ' ').trim();
-function splitTop(s: string, sep: RegExp): string[] {   // split on a separator word/char at paren depth 0 and outside quotes
+const splitMemo = new Map<string, string[]>();   // pure function of (s, sep): evalWhere re-splits the same WHERE text once per ROW per statement (O(rows x len^2)); cache it (C6-T14 load host cost)
+function splitTop(s: string, sep: RegExp): string[] {
+  const key = `${sep.source}/${sep.flags}|${s}`; const hit = splitMemo.get(key);
+  if (hit) return [...hit];
+  const r = splitTopRaw(s, sep); if (splitMemo.size > 5000) splitMemo.clear(); splitMemo.set(key, r); return [...r];
+}
+function splitTopRaw(s: string, sep: RegExp): string[] {   // split on a separator word/char at paren depth 0 and outside quotes
   const out: string[] = []; let d = 0; let q = false; let cur = '';
   for (let i = 0; i < s.length; i++) {
     const ch = s[i]!;
@@ -146,9 +152,12 @@ function evalAtom(row: Row, atomRaw: string, values: readonly unknown[]): boolea
   }
   return unsupported(`WHERE atom \`${atom}\``);
 }
+const whereMemo = new Map<string, string[][]>();   // WHERE text -> AND-list of OR-lists of atoms (parsed once, not once per row)
 function evalWhere(row: Row, where: string, values: readonly unknown[]): boolean {
   if (!where.trim()) return true;
-  return splitTop(where, /^\s+and\s+/i).every((conj) => splitTop(stripParens(conj), /^\s+or\s+/i).some((a) => evalAtom(row, a, values)));
+  let c = whereMemo.get(where);
+  if (!c) { c = splitTop(where, /^\s+and\s+/i).map((conj) => splitTop(stripParens(conj), /^\s+or\s+/i)); if (whereMemo.size > 5000) whereMemo.clear(); whereMemo.set(where, c); }
+  return c.every((ors) => ors.some((a) => evalAtom(row, a, values)));
 }
 
 // ------------------------------------------------------------------------------------------------ the database
@@ -161,6 +170,7 @@ export function makeDb(seed: Seed = {}, opts: DbOpts = {}) {
   const rowsOf = (t: string) => (store[t] ??= []);
   for (const [t, rows] of Object.entries(seed)) store[t] = rows.map((r) => ({ ...(DEFAULTS[t] ?? {}), ...r }));
   const stmts: Stmt[] = []; const jobs: JobRec[] = [];
+  const savepoints = new Map<string, { store: Record<string, Row[]>; jobs: number }>();
   const failures = (opts.failOn ?? []).map((f) => ({ ...f, left: f.times ?? Infinity }));
 
   const visible = (t: string) => rowsOf(t).filter((r) => !rls || r['tenant_id'] === undefined || r['tenant_id'] === tenant);
@@ -177,7 +187,7 @@ export function makeDb(seed: Seed = {}, opts: DbOpts = {}) {
     }
     const verb = (/^(select|insert|update|delete|with)\b/i.exec(text)?.[1] ?? 'other').toLowerCase();
     if (verb === 'with' || /\bjoin\b|\(\s*select\b|\bunnest\s*\(|\bcount\s*\(/i.test(text)) unsupported(text.slice(0, 90));
-    const table = /\b(?:from|into|update)\s+((?:reporting|core|catalog|frontdesk|lab|billing)\.\w+)/i.exec(text)?.[1];
+    const table = /\b(?:from|into|update)\s+((?:reporting|core|catalog|frontdesk|lab|billing|micro|anatomic)\.\w+)/i.exec(text)?.[1];
     if (!table) return [];
     if (verb === 'delete') throw pgError('42501', 'permission denied: no DELETE grant');
 
@@ -223,6 +233,19 @@ export function makeDb(seed: Seed = {}, opts: DbOpts = {}) {
     async query(text: string, values: unknown[] = []) {
       const verb = (/^\s*(select|insert|update|delete)/i.exec(text)?.[1] ?? 'other').toLowerCase();
       stmts.push({ text: norm(text), values: [...values], verb });
+      // Savepoints behave like Postgres: ROLLBACK TO restores rows + enqueued jobs in place (tests keep their `store` references). RELEASE is a no-op.
+      const sp = /^\s*savepoint\s+(\w+)/i.exec(text);
+      if (sp) { savepoints.set(sp[1]!.toLowerCase(), { store: structuredClone(store), jobs: jobs.length }); return { rows: [] }; }
+      const rb = /^\s*rollback\s+to\s+savepoint\s+(\w+)/i.exec(text);
+      if (rb) {
+        const snap = savepoints.get(rb[1]!.toLowerCase());
+        if (snap) {
+          for (const t of Object.keys(store)) store[t]!.length = 0;
+          for (const [t, rows] of Object.entries(snap.store)) (store[t] ??= []).push(...rows);
+          jobs.length = snap.jobs;
+        }
+        return { rows: [] };
+      }
       return { rows: exec(text, values) };
     },
     savepoint: async <T>(fn: (t: unknown) => Promise<T>): Promise<T> => fn(tx),

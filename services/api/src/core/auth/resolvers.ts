@@ -5,6 +5,8 @@ import { AuthError, internal } from './errors.js';
 
 export interface AuthResolver {
   resolve(credential: string, tx: unknown): Promise<unknown>;
+  // LD-66 / CR-C6-021: optional ErrorCode thrown instead of auth.unauthenticated for pre-resolver credential rejections (empty, non-string, > 4096).
+  readonly invalidError?: string;
 }
 export interface AuthResolverRegistry {
   has(key: string): boolean;
@@ -33,7 +35,9 @@ export function createAuthResolverRegistry(
     async authenticate(key, credential, tx) {
       const e = map.get(key);
       if (!e) throw unauthenticated(); // fail closed
-      if (typeof credential !== 'string' || credential.length === 0 || credential.length > MAX_CREDENTIAL) throw unauthenticated();
+      if (typeof credential !== 'string' || credential.length === 0 || credential.length > MAX_CREDENTIAL) {
+        throw e.resolver.invalidError ? new AuthError(e.resolver.invalidError) : unauthenticated();
+      }
       const r = await e.resolver.resolve(credential, tx);
       if (r === undefined) throw unauthenticated();
       if (r && typeof r === 'object' && 'error' in r) {

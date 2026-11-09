@@ -1,0 +1,5 @@
+APPROVE
+Re-review after ce8a99c / e1956b0. Both earlier CHANGES items are fixed:
+1. invoice.service.ts:355 — cancel with nothing left to credit now throws `common.validation_failed` (/invoice_id), which cancelInvoice declares (billing.yaml L542). Non-blocking CR `.orchestra/cr/BL-T10.nonblocking.md` (CR-C4-BL10a) asks for a better code. The test stays generic. Nit, not a defect: the code comment points to `.orchestra/cr/BL-T10.md`, but the file is named `BL-T10.nonblocking.md`.
+2. invoice.service.ts:277,282 — a missing or broken CN pattern now throws `common.internal`, which both operations declare. The dry-run still runs before allocate. Tests for both routes check that no number is allocated and nothing is written (invoice.cancel.test.ts:171, invoice.credit.test.ts:245).
+Everything checked OK in the first review still holds; no other service code changed. Reviewer ran the billing suite: 663 passed / 45 skipped / 0 failed. tsc: 0 errors under src/modules/billing (the errors in contracts/ports were there before this change).

@@ -42,6 +42,7 @@ const IMPLEMENTED: readonly string[] = [
   'getReferralIncentiveReport', // AN-T10
   'getTestsDoneReport', 'getQualityIndicatorsReport', 'getDeliveryReport', 'getInterfacesReport', // AN-T11
   'getTatReport', // AN-T12
+  'getPendingTestsSummary', 'listPendingTests', // AN-T13
   'getAnalyticsDashboard', 'getAnalyticsFreshness', 'requestAnalyticsRefresh', // AN-T14
 ];
 

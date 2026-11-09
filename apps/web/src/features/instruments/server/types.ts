@@ -1,7 +1,10 @@
 // DTOs mirrored from contracts/openapi/instruments.yaml (AgentSummary, Agent, AgentHealth, AgentCredential, HealthTransition,
 // InstrumentSummary). [CONV] hand-mirrored: apps/web has no generated client yet — replace with generated types when it lands.
 // Type-only + pure validators: safe to import from client components (no server-only, no secrets).
-export const AGENT_STATUSES = ['pending_enrolment', 'active', 'revoked', 'retired'] as const;
+import { PROTOCOLS, type Protocol } from '../forms/transport';
+import type { InstrumentBody } from '../forms/instrument';
+
+export const AGENT_STATUSES =['pending_enrolment', 'active', 'revoked', 'retired'] as const;
 export const HEALTH_STATES = ['online', 'offline', 'backlog', 'degraded'] as const;
 export const AGENT_SORTS = ['agent_code', '-last_heartbeat_at'] as const;
 export const UPDATE_CHANNELS = ['stable', 'beta'] as const;
@@ -115,11 +118,48 @@ export interface HealthTransition {
   silent_instrument_ids: string[];
 }
 
+export const INSTRUMENT_STATES = ['draft', 'commissioning', 'live', 'suspended', 'retired'] as const;
+export type InstrumentState = (typeof INSTRUMENT_STATES)[number];
+export const DRIVER_STATUSES = ['generic', 'verified', 'sketch_blocked'] as const;
+export type DriverStatus = (typeof DRIVER_STATUSES)[number];
+export const INSTRUMENT_SORTS = ['instrument_code', '-last_message_at'] as const;
+export type InstrumentSort = (typeof INSTRUMENT_SORTS)[number];
+export { PROTOCOLS };
+export type { Protocol };
+
+// 04-UI-UX SCR-05: default State filter = all except retired; default sort instrument code.
+export const DEFAULT_INSTRUMENT_STATES: readonly InstrumentState[] = ['draft', 'commissioning', 'live', 'suspended'];
+
+/** SCR-05 URL query → E23 filters. Unknown values are dropped, so tampered input never reaches the API. */
+export function parseInstrumentQuery(sp: Sp): { centreId?: string; agentId?: string; state: InstrumentState[]; protocol?: Protocol; sort: InstrumentSort } {
+  const state = pick(sp.state, INSTRUMENT_STATES);
+  const centre = csv(sp.centre_id)[0];
+  const agent = csv(sp.agent_id)[0];
+  const protocol = pick(sp.protocol, PROTOCOLS)[0];
+  return {
+    ...(centre && UUID_RE.test(centre) ? { centreId: centre } : {}),
+    ...(agent && UUID_RE.test(agent) ? { agentId: agent } : {}),
+    state: state.length ? state : [...DEFAULT_INSTRUMENT_STATES],
+    ...(protocol ? { protocol } : {}),
+    sort: pick(sp.sort, INSTRUMENT_SORTS)[0] ?? 'instrument_code',
+  };
+}
+
 export interface InstrumentSummary {
   id: string;
   instrument_code: string;
   display_name: string;
   state: string;
+  vendor?: string;
+  model?: string;
+  protocol?: Protocol;
+  agent_id?: string;
+  agent_code?: string;
+  centre_id?: string;
+  driver_code?: string;
+  driver_status?: DriverStatus;
+  version?: number;
+  unmapped_code_count?: number;
   link_state?: string;
   last_message_at?: string;
   // Not in contracts InstrumentSummary yet (only Instrument.status has them) — CR in .orchestra/cr/WEB-T02.md.
@@ -169,5 +209,57 @@ export interface CreateAgentInput {
 
 export interface EnrolmentCodeIssued { enrolment_code: string; expires_at: string; credential_id: string }
 
-/** Server-action result: ApiError cannot cross the action boundary (Next strips messages), so the code travels as data. */
-export type ActionResult<T> = { ok: true; data: T } | { ok: false; status: number; code: string };
+export interface FieldProblemDto { path?: string; code?: string; message?: string }
+
+/** Server-action result: ApiError cannot cross the action boundary (Next strips messages), so the code travels as data.
+ *  `errors` carries the problem+json errors[] (JSON Pointer paths) for field mapping (WEB-T03). */
+export type ActionResult<T> = { ok: true; data: T } | { ok: false; status: number; code: string; errors?: FieldProblemDto[] };
+
+export interface Driver {
+  code: string;
+  display_name: string;
+  protocol: Protocol;
+  vendor?: string;
+  model_pattern?: string;
+  status: DriverStatus;
+  driver_version: string;
+  manual?: { title: string; document_id?: string; version?: string };
+  is_active: boolean;
+  capabilities: { host_query: boolean; worklist_download: boolean; qc: boolean; attachments: boolean; calibration: boolean };
+}
+
+export interface GoLiveChecklist { manual_reference_confirmed: boolean; sample_comparison_done: boolean; qc_comparison_done: boolean; mappings_reviewed: boolean }
+export const GO_LIVE_CHECKLIST_KEYS = ['manual_reference_confirmed', 'sample_comparison_done', 'qc_comparison_done', 'mappings_reviewed'] as const;
+
+/** E25 Instrument (contracts `Instrument`). */
+export interface Instrument extends InstrumentBody {
+  id: string;
+  centre_id: string;
+  instrument_code: string;
+  display_name: string;
+  agent_id: string;
+  vendor: string;
+  model: string;
+  state: InstrumentState;
+  driver_status: DriverStatus;
+  driver_version: string;
+  version: number;
+  commissioned_at?: string;
+  live_at?: string;
+  live_by_display?: string;
+  go_live_checklist?: GoLiveChecklist;
+  suspended_at?: string;
+  retired_at?: string;
+  status?: { link_state?: string; last_message_at?: string; last_message_at_agent?: string; last_link_error_code?: string; instrument_clock_offset_seconds?: number; silent_since?: string };
+}
+
+/** E40/E41 InstrumentSettings (02-TRD §7.4). `version` is read-only: it travels as If-Match only. update_window_* are both set or both absent. */
+export interface InstrumentSettingsBody {
+  default_backlog_threshold: number;
+  backlog_max_oldest_pending_seconds: number;
+  clock_offset_warn_seconds: number;
+  agent_uploaded_retention_hours: number;
+  update_window_from?: string;
+  update_window_to?: string;
+}
+export interface InstrumentSettings extends InstrumentSettingsBody { version: number }

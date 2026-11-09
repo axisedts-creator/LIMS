@@ -11,13 +11,25 @@ import { requestAgentCommand } from './requestAgentCommand.server';
 import { retireAgent } from './retireAgent.server';
 import { revokeAgent } from './revokeAgent.server';
 import { updateAgent } from './updateAgent.server';
-import type { ActionResult, Agent, AgentCommand, AgentLogBundle,AgentCommandKind, CreateAgentInput, EnrolmentCodeIssued, ReasonInput, UpdateAgentInput } from './types';
+import { createInstrument } from './createInstrument.server';
+import { goLiveInstrument } from './goLiveInstrument.server';
+import { resumeInstrument } from './resumeInstrument.server';
+import { retireInstrument } from './retireInstrument.server';
+import { startInstrumentCommissioning } from './startInstrumentCommissioning.server';
+import { suspendInstrument } from './suspendInstrument.server';
+import { updateInstrument } from './updateInstrument.server';
+import { updateInstrumentSettings } from './updateInstrumentSettings.server';
+import type { InstrumentBody } from '../forms/instrument';
+import type { ActionResult, Agent, AgentCommand, AgentLogBundle,AgentCommandKind, CreateAgentInput, EnrolmentCodeIssued, FieldProblemDto, GoLiveChecklist, InstrumentSettings, InstrumentSettingsBody, ReasonInput, UpdateAgentInput } from './types';
 
 async function run<T>(f: () => Promise<T>): Promise<ActionResult<T>> {
   try {
     return { ok: true, data: await f() };
   } catch (e) {
-    if (e instanceof ApiError) return { ok: false, status: e.status, code: e.problem.code };
+    if (e instanceof ApiError) {
+      const errors = e.problem['errors'];
+      return { ok: false, status: e.status, code: e.problem.code, ...(Array.isArray(errors) ? { errors: errors.slice(0, 50) as FieldProblemDto[] } : {}) };
+    }
     throw e;
   }
 }
@@ -64,4 +76,43 @@ export async function getAgentLogBundleAction(agentId: string, bundleId: string)
     const b = await getAgentLogBundle(agentId, bundleId);
     return { bundle_id: b.bundle_id, lines: b.lines };
   });
+}
+
+// ── WEB-T03 instruments (E24–E31). Data is { version } only; the page re-reads through router.refresh(). ──
+const versionOf = (i: { version: number }) => ({ version: i.version });
+
+export async function createInstrumentAction(input: InstrumentBody, idempotencyKey: string): Promise<ActionResult<{ id: string; instrument_code: string }>> {
+  return run(async () => {
+    const i = await createInstrument(input, idempotencyKey);
+    return { id: i.id, instrument_code: i.instrument_code };
+  });
+}
+
+export async function updateInstrumentAction(instrumentId: string, version: number, patch: Partial<InstrumentBody>): Promise<ActionResult<{ version: number }>> {
+  return run(async () => versionOf(await updateInstrument(instrumentId, version, patch)));
+}
+
+export async function startInstrumentCommissioningAction(instrumentId: string, version: number): Promise<ActionResult<{ version: number }>> {
+  return run(async () => versionOf(await startInstrumentCommissioning(instrumentId, version)));
+}
+
+export async function goLiveInstrumentAction(instrumentId: string, version: number, input: { checklist: GoLiveChecklist; evidence_note: string }): Promise<ActionResult<{ version: number }>> {
+  return run(async () => versionOf(await goLiveInstrument(instrumentId, version, input)));
+}
+
+export async function suspendInstrumentAction(instrumentId: string, version: number, reason: string): Promise<ActionResult<{ version: number }>> {
+  return run(async () => versionOf(await suspendInstrument(instrumentId, version, reason)));
+}
+
+export async function resumeInstrumentAction(instrumentId: string, version: number): Promise<ActionResult<{ version: number }>> {
+  return run(async () => versionOf(await resumeInstrument(instrumentId, version)));
+}
+
+// ── WEB-T06 SCR-11 settings (E41). Returns the new DTO; the form keeps its version for the next If-Match. ──
+export async function updateInstrumentSettingsAction(version: number, body: InstrumentSettingsBody): Promise<ActionResult<InstrumentSettings>> {
+  return run(() => updateInstrumentSettings(version, body));
+}
+
+export async function retireInstrumentAction(instrumentId: string, version: number, reason: string): Promise<ActionResult<{ version: number }>> {
+  return run(async () => versionOf(await retireInstrument(instrumentId, version, reason)));
 }

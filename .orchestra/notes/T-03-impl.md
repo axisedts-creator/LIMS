@@ -5,4 +5,5 @@
 - [CONV] partial-index lists repeat the index predicate as a literal IN (...) so the planner can prove it; coded sets: tenant row shadows the global row with the same code.
 - Ran (after ruling, 6894c99): static tests 12/12 pass. No impl change (ruling: none required).
 - NOT run: integration suite. `bash tests/db/c5-t03/run.sh` exits 3 at migration `20261105002200_storage__create_buckets.sql:20: ERROR: permission denied for schema storage` (before vitest; harness/C0 grant, cf. .orchestra/cr/T0B-12, not writer-owned). EXPLAIN/index plans are unverified.
+- Re-run 2026-11-09 (Docker back): static 12/12 pass; `run.sh` again dies at the same storage_create_buckets.sql:20 grant error before vitest. No impl change.
 - Open: tester/C0 grant lims_owner USAGE on schema storage + INSERT/UPDATE on storage.buckets in harness; then rerun live suite, expect possible planner tweaks.

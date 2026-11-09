@@ -15,5 +15,7 @@ export const navManifest: NavManifest = {
     { id: 'catalog.comment_codes', label: 'catalog.nav.comment_codes', routeId: 'staff.catalog.comment_codes', permission: 'catalog.test.read', group: 'catalog', order: 70 },
     { id: 'catalog.doctors', label: 'catalog.nav.doctors', routeId: 'staff.catalog.doctors', permission: 'catalog.referrer.read', group: 'catalog', order: 80 },
     { id: 'catalog.credit_parties', label: 'catalog.nav.credit_parties', routeId: 'staff.catalog.credit_parties', permission: 'catalog.price_list.read', group: 'catalog', order: 90 },
+    // SCR-18 (T-35): path spec-fixed; permission = the API floor of every import/export operation (kind-dependent ones are checked in the page/BFF).
+    { id: 'catalog.imports', label: 'catalog.nav.imports', routeId: 'staff.catalog.imports', permission: 'catalog.test.read', group: 'catalog', order: 100 },
   ],
 };

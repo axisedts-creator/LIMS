@@ -158,7 +158,8 @@ export function InstrumentForm({ mode, agents, drivers, instrument, permissions 
     return b;
   };
 
-  const clientErr = fieldErrorsByPointer(validateInstrument(build(), mode));
+  const vmode = mode === 'edit' ? 'update' : 'create';
+  const clientErr =fieldErrorsByPointer(validateInstrument(build(), vmode));
   const E = (ptr: string, value: unknown = 'x') => {
     seen.current.add(ptr);
     const e = serverErr[ptr] ?? (show || nz(value) ? clientErr[ptr] : undefined);
@@ -231,7 +232,7 @@ export function InstrumentForm({ mode, agents, drivers, instrument, permissions 
     setMfa(false);
     setAlerts([]);
     const body = build();
-    const issues = validateInstrument(body, mode);
+    const issues = validateInstrument(body, vmode);
     if (issues.length) {
       setAlerts(issues.filter((i) => !seen.current.has(i.path)).map((i) => i.message));
       return;

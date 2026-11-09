@@ -1,6 +1,6 @@
 'use client';
 // SCR-05 Instruments (04-UI-UX §3). "New instrument" opens the SCR-06 form in a Dialog lg. Manage affordances are a UI hint; the API enforces.
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { Button } from '@lims/ui/components/Button';
 import { DataTable, type ColumnDef } from '@lims/ui/components/DataTable';
@@ -8,6 +8,7 @@ import { DateText } from '@lims/ui/components/DateText';
 import { Dialog } from '@lims/ui/components/Dialog';
 import { FilterBar, type FilterValue } from '@lims/ui/components/FilterBar';
 import { PageHeader } from '@lims/ui/components/PageHeader';
+import { shortcuts } from '@/core/shortcuts/registry';
 import { parseInstrumentQuery, type AgentSummary, type Driver, type InstrumentSummary } from '../server/types';
 import { DriverStatusBadge, INSTRUMENT_STATE_OPTIONS, InstrumentStatePill, PROTOCOL_LABEL, PROTOCOL_OPTIONS, hasPerm } from './labels';
 import type { Centre } from './AgentsList';
@@ -20,6 +21,8 @@ export function InstrumentsList({ instruments, permissions, centres, agents, dri
   const [creating, setCreating] = useState(false);
   const canManage = hasPerm(permissions, 'instruments.instrument.manage');
   const driverName = new Map(drivers.map((d) => [d.code, d.display_name]));
+  // LD-79 (CR-C7-WEB-T03-a): SCR-05 "New instrument" is Alt+I; global Alt+N is never registered by a page.
+  useEffect(() => (canManage ? shortcuts.register('staff.instruments.instruments', { key: 'Alt+I', description: 'New instrument', run: () => setCreating(true) }) : undefined), [canManage]);
   const q = parseInstrumentQuery(Object.fromEntries(searchParams.entries()));
 
   const navigate = (next: Record<string, string | readonly string[] | undefined>) => {

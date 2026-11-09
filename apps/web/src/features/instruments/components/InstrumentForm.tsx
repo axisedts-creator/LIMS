@@ -158,7 +158,8 @@ export function InstrumentForm({ mode, agents, drivers, instrument, permissions 
     return b;
   };
 
-  const clientErr = fieldErrorsByPointer(validateInstrument(build(), mode));
+  const vmode = mode === 'edit' ? 'update' : 'create';
+  const clientErr =fieldErrorsByPointer(validateInstrument(build(), vmode));
   const E = (ptr: string, value: unknown = 'x') => {
     seen.current.add(ptr);
     const e = serverErr[ptr] ?? (show || nz(value) ? clientErr[ptr] : undefined);
@@ -231,7 +232,7 @@ export function InstrumentForm({ mode, agents, drivers, instrument, permissions 
     setMfa(false);
     setAlerts([]);
     const body = build();
-    const issues = validateInstrument(body, mode);
+    const issues = validateInstrument(body, vmode);
     if (issues.length) {
       setAlerts(issues.filter((i) => !seen.current.has(i.path)).map((i) => i.message));
       return;
@@ -283,7 +284,17 @@ export function InstrumentForm({ mode, agents, drivers, instrument, permissions 
   const section = (title: string, children: ReactNode) => <Card title={title}>{children}</Card>;
 
   return (
-    <section aria-label={edit ? 'Instrument configuration' : 'New instrument form'}>
+    // Ctrl/Cmd+Enter submits from any control: react-aria buttons (Select triggers) swallow Enter before the Form's own handler sees it.
+    <section
+      aria-label={edit ? 'Instrument configuration' : 'New instrument form'}
+      onKeyDownCapture={(e) => {
+        if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+          e.preventDefault();
+          e.stopPropagation();
+          void submit();
+        }
+      }}
+    >
     <Form onSubmit={submit}>
       {mfa ? <Banner tone="warning" title="Confirm with your authenticator to continue" /> : null}
       {alerts.length ? (

@@ -11,7 +11,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { promisify } from 'node:util';
-import { PDFArray, PDFDict, PDFDocument, PDFName, PDFStream, rgb, StandardFonts, type PDFObject } from '@cantoo/pdf-lib';
+import { degrees, PDFArray, PDFDict, PDFDocument, PDFName, PDFStream, rgb, StandardFonts, type PDFObject } from '@cantoo/pdf-lib';
 
 const run = promisify(execFile);
 
@@ -31,12 +31,16 @@ const ASCII_LABEL = /^[\x20-\x7e]{1,64}$/;
 const ACTIVE_NAMES = new Set([
   '/JavaScript', '/JS', '/Launch', '/EmbeddedFile', '/EmbeddedFiles', '/EF', '/RichMedia', '/OpenAction', '/URI',
   '/GoToR', '/GoToE', '/SubmitForm', '/ImportData', '/Rendition', '/Movie', '/Sound',
+  '/XFA', // review C6-T12 item 3: XFA forms carry scripts with no /JS name
 ]);
 
 type Reason = 'encrypted' | 'malformed' | 'too_many_pages' | 'timeout' | 'not_pdf';
+// Erasable TypeScript only (no parameter properties): the image runs this file with Node's built-in type stripping.
 class Reject extends Error {
-  constructor(readonly reason: Reason) {
+  readonly reason: Reason;
+  constructor(reason: Reason) {
     super(reason);
+    this.reason = reason;
   }
 }
 class BadRequest extends Error {}
@@ -166,10 +170,20 @@ async function assemble(job: Job, parts: { kind: string; pdf: Buffer }[], stamp:
   const pages = doc.getPages();
   pages.forEach((page, i) => {
     const label = stamp.fmt.replaceAll('{n}', String(i + 1)).replaceAll('{m}', String(pages.length));
-    const { width } = page.getSize();
-    const w = font.widthOfTextAtSize(label, stamp.size);
-    page.drawText(label, { x: Math.max(MARGIN_PT, width - MARGIN_PT - w), y: MARGIN_PT, size: stamp.size, font });
-    if (stamp.notReleased) page.drawText('NOT RELEASED', { x: MARGIN_PT, y: MARGIN_PT, size: stamp.size, font: bold, color: rgb(0.75, 0, 0) });
+    // Review C6-T12 item 2: anchor to the visible box (CropBox, else MediaBox) and its /Rotate, so the stamp sits upright at
+    // the bottom of the page as displayed, whatever the box origin.
+    const { x: x0, y: y0, width: w, height: h } = page.getCropBox();
+    const r = (((page.getRotation().angle % 360) + 360) % 360) as 0 | 90 | 180 | 270;
+    const W = r === 90 || r === 270 ? h : w;
+    // display point (sx, sy; origin bottom-left as shown) → user space; text rotated by r keeps it upright on screen
+    const at = (sx: number, sy: number) =>
+      r === 90 ? { x: x0 + w - sy, y: y0 + sx }
+      : r === 180 ? { x: x0 + w - sx, y: y0 + h - sy }
+      : r === 270 ? { x: x0 + sy, y: y0 + h - sx }
+      : { x: x0 + sx, y: y0 + sy };
+    const tw = font.widthOfTextAtSize(label, stamp.size);
+    page.drawText(label, { ...at(Math.max(MARGIN_PT, W - MARGIN_PT - tw), MARGIN_PT), rotate: degrees(r), size: stamp.size, font });
+    if (stamp.notReleased) page.drawText('NOT RELEASED', { ...at(MARGIN_PT, MARGIN_PT), rotate: degrees(r), size: stamp.size, font: bold, color: rgb(0.75, 0, 0) });
   });
   // classic xref: the shared test extractor does not read object streams
   return { pdf: await doc.save({ useObjectStreams: false }), pages: pages.length };

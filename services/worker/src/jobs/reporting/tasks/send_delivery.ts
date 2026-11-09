@@ -137,7 +137,7 @@ export function createSendDelivery(deps: SendDeps = {}): TaskHandler {
     try {
       out = await transport.send(msg, { secretRef: account?.secret_ref });
     } catch (e) {
-      metrics?.inc?.('lims_reporting_transport_errors_total', { provider_kind: kind, retryable: e instanceof TransportError ? e.retryable : true });
+      metrics?.inc?.('lims_reporting_transport_errors_total', { provider_kind: kind, retryable: String(e instanceof TransportError ? e.retryable : true) });
       if (e instanceof TransportError && !e.retryable) { b.fails = 0; breaker.set(bk, b); return permanent(e.failureCode.slice(0, 64)); }
       const code = (e instanceof TransportError ? e.failureCode : 'unexpected_error').slice(0, 64);
       b.fails += 1; if (b.fails >= CIRCUIT_FAILS) b.openUntil = nowMs + CIRCUIT_OPEN_MS; breaker.set(bk, b);

@@ -1,4 +1,5 @@
 // C6-T33 — reporting log denylist (02-TRD §12 "Logs", 02-CV §9.2, REQ-SEC-098).
+// Runtime wiring into the api/worker core loggers is owned by C0-0D/C0-0A: see .orchestra/cr/C6-T33.md (CR-C6-T33).
 // [CONV] relative import until @lims/shared-ts is a services/api dependency (same as analytics/billing/catalog).
 import { createLogger, type LogContext, type Logger, type LoggerOptions } from '../../../../../packages/shared-ts/src/logger/index.js';
 

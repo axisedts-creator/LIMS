@@ -95,7 +95,7 @@ export function hqSetup(o: HqOpts = {}) {
   const c = makeIngestCtx(world);
   const commitOnError = vi.fn();
   Object.assign(c.ctx, { commitOnError, ports: { CatalogPort: { mapInstrumentCode: catalog.mapInstrumentCode }, LabPort: lab.port } });
-  return { world, driver, lab, catalog, commitOnError, ...c, repo: hqRepo(world) };
+  return { world, driver, lab, ...c, catalog, commitOnError, repo: hqRepo(world) };
 }
 /** INS 1 live ASTM (agent A1) with host query on; INS 2 live HL7; INS 3 other centre; INS 4 other agent of A1; INS 5 draft; INS 6 commissioning; INS 7 suspended; INS 8 tenant B. */
 export function defaultInstruments(): Row[] {

@@ -112,7 +112,9 @@ describe('SCR-05 InstrumentsList', () => {
     const InstrumentsList = await load();
     wrap(<InstrumentsList {...props()} />);
     // anchored: "State chip" and "Link state" are both headers (04-UI-UX.md:122), see WEB-T02-ruling item 2.
-    for (const h of ['Code', 'Name', 'Vendor', 'Protocol', 'Agent', 'Driver', 'State', 'Link state', 'Last message', 'Unmapped']) expect(screen.getByRole('columnheader', { name: new RegExp(`^${h}$`, 'i') })).toBeTruthy();
+    // Ruling r2: spec col is "Vendor/Model" and "Unmapped codes" (04-UI-UX.md:122); other headers stay anchored.
+    const cols: RegExp[] = [...['Code', 'Name', 'Protocol', 'Agent', 'Driver', 'State', 'Link state', 'Last message'].map((h) => new RegExp(`^${h}$`, 'i')), /^Vendor\s*\/\s*Model$/i, /^Unmapped( codes)?$/i];
+    for (const re of cols) expect(screen.getByRole('columnheader', { name: re }), String(re)).toBeTruthy();
     const link = screen.getByRole('link', { name: 'SIM-CHEM-1' });
     expect(link.getAttribute('href')).toBe(`/instruments/instruments/${INST}`);
     expect(link.closest('[role="rowheader"], th')).toBeTruthy();

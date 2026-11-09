@@ -1,10 +1,15 @@
-CHANGES
+APPROVE
 
-1. services/worker/src/jobs/reporting/cron.ts:42 and :65 — gauges `lims_reporting_versions_rendering_oldest_seconds` and `lims_reporting_held_oldest_seconds` are set once per tenant sweep with NO labels, so every tenant writes the same series and the last tenant swept wins. A tenant stuck for 20 min gets overwritten by the next tenant's `0`, so the `> 900 for 5m` / `> 604800 for 1h` alerts (02-TRD §12) flap or never fire. Fix: pass `{ tenant_id: tenantId }` as the labels argument to both `ctx.metrics?.set?.(...)` calls (same as `lims_reporting_held_versions` on the next line). The alert exprs need no change; they evaluate per series.
-2. services/api/src/modules/reporting/observability.ts:39 — `createReportingLogger` / `REPORTING_LOG_DENY` are only used by the test. No API handler or worker task logs through them, so the 02-TRD §12 module denylist protects nothing at runtime. impl notes say "C0/C1 CR", but there is no `.orchestra/cr/C6-T33*.md`. Fix: write `.orchestra/cr/C6-T33.md` (template in spec/program/04-CHANGE-REQUESTS.md) asking the core-logger owner to apply `REPORTING_LOG_DENY` to the API and worker loggers for module `reporting`, and cite it in a comment at observability.ts:1. Or wrap `ctx.log` with this redactor at the module's handler/task entry, which is inside owned paths.
-3. services/worker/src/jobs/reporting/tasks/send_delivery.ts:140 — the label `retryable` is passed as a boolean. `JobCtx.metrics.inc` takes `Record<string, string | number>` (core/tasklist.ts:19), and the `as any` cast at :43 hides the mismatch from tsc. Fix: `retryable: String(e instanceof TransportError ? e.retryable : true)`. The test already compares labels with String().
+Round 2 re-review of `1cb43ff4..HEAD` (C6-T33). Round-1 findings resolved:
+1. cron.ts: `lims_reporting_versions_rendering_oldest_seconds` and `lims_reporting_held_oldest_seconds` now carry `{ tenant_id }`. Fixed.
+2. Logger denylist runtime wiring: CR filed `.orchestra/cr/C6-T33.md` (template followed, owner C0-0D/C0-0A) and cited at observability.ts:2. Fixed.
+3. send_delivery.ts: `retryable` label is now `String(...)`. Fixed.
 
-Non-blocking notes (no change required for T33):
-- verify.cmd: running both api files in one vitest run makes the first portal test time out on cold start (51 s against the 30 s limit). Each file passes alone (4/4). portal.service.test.ts has the same pre-existing cold-start timeout, so this is the environment, not T33 code. Worker: 25/25 green.
-- Worker reporting log calls pass the fields object as the first argument (`warn({...})`), but the signature is `(m: string, f?: object)` (pre-existing, module-wide). If core's logger only key-redacts `f`, the shared denylist never sees these fields. The log-scan keeps sensitive keys out of them today. Worth a follow-up.
-- Checked and OK: TRD metric and gauge names are verbatim. All 10 alert rows match `expr`/`for` verbatim. Severity and route are marked [CONV]. The OTP failure label is exactly `{tenant_id}`. No PHI or ids in metric labels. No secrets. Only C6-owned paths are touched. The `code`→`error_code` renames match CV §9.1.
+Checks run (2026-11-09 09:49, warm cache):
+- api: observability.log.test.ts + observability.metrics.test.ts: 2 files, 24/24 pass.
+- worker: observability.rules.test.ts + observability.metrics.test.ts: 2 files, 25/25 pass. done_when ("log-scan test green") met.
+- Metric names and labels match 02-TRD §12 verbatim (versions_total {report_kind,family}, deliveries_total {channel,purpose,status}, transport_errors_total {provider_kind,retryable}, held_versions {tenant_id}). All 10 alert rows match expr/for verbatim. No PHI, ids or secrets in labels, logs or rules. Only C6-owned paths, plus notes/cr. No new tables, routes or permissions, so RLS, idempotency and rate tier do not apply.
+
+Non-blocking (no change for T33):
+- `lims_reporting_transport_circuit_open` is one unlabelled series per worker process, but the breaker is keyed per channel account. If one account's breaker closes and sets 0 while another stays open, the alert can flap until the open account's next send. TRD §12 names no labels for this gauge, so adding one would be an invention. Raise it with C1 or a TRD CR if that matters.
+- Cold jsdom load can exceed the hard-coded 30 s testTimeout in observability.metrics.test.ts (environment issue, see the debug notes). Warm runs pass.

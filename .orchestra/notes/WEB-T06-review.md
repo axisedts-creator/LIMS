@@ -1,4 +1,5 @@
-CHANGES
-1. t06.out:1 — stray vitest output committed at repo root; path not owned by C7 (01-CHUNK-MAP §3). Fix: `git rm t06.out` (keep run output in `.orchestra/notes/` only if the role allows, otherwise drop it).
+APPROVE
+Re-review after 8a1acaad: prior item 1 fixed (`t06.out` removed, no longer tracked).
 
-Checked, no defect: E40/E41 routes, operationIds, permission `instruments.instrument.manage`, `If-Match "<version>"`, `409 common.version_conflict` → banner text verbatim (04-UI-UX SCR-11), toast text verbatim, field names/ranges/HH:MM regex verbatim from 02-TRD §7.4, no retention field (help text only, verbatim), body whitelist excludes `version`/unknown keys, `server-only` on BFF fns, no PHI/secrets, read-only without manage. No DB/RLS in this task. Tests cover banner, If-Match, no-retention, read-only, window toast (AC-15.5 window part, UI side).
+Checked, no defect: E40/E41 routes, `instruments.instrument.manage`, `If-Match "<version>"`, `409 common.version_conflict` -> conflict banner text verbatim (04-UI-UX SCR-11), toast texts, field names/ranges/HH:MM regex from 02-TRD §7.4, no retention field (help text only), body whitelist drops `version`/unknown keys, `server-only` on BFF fns, read-only without manage, no PHI/secrets, no DB/RLS in this task.
+Tests: WEB-T06-verify.cmd suite re-run 2026-11-09 -> 2 files, 85/85 passed. Cover banner, If-Match, no-retention, read-only, window toast (AC-15.5 UI side).

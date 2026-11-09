@@ -6,7 +6,7 @@ export default {
     { heading: 'States', body: 'Draft and Commissioning instruments send no results to the laboratory. Only a Live instrument with a verified driver sends results.' },
     { heading: 'Unmapped codes', body: 'Codes the instrument sent that have no test mapping. Map them before going live.' },
   ],
-  shortcuts: [{ keys: 'Alt+N', action: 'New instrument' }],
+  shortcuts: [{ keys: 'Alt+I', action: 'New instrument' }],
   links: [
     { routeId: 'staff.instruments.agents', label: 'Agents' },
     { routeId: 'staff.instruments.messages', label: 'Messages' },

@@ -151,16 +151,16 @@ describe('E15 revokeAgent — AC-02.1', () => {
   const two = () => [agentRow({ id: AID, credentials: [ACTIVE_CRED(0x5001), ACTIVE_CRED(0x5002, 'enrolment_code'), credRow({ id: idN(0x5003), status: 'used', kind: 'enrolment_code' })] })];
   it('status -> revoked, ALL active credentials -> revoked with the reason, 200 Agent with ETag version', async () => {
     const w = world({ agents: two() });
-    const r = await w.svc.revokeAgent(w.ctx, { agentId: AID, expectedVersion: 1, reasonCode: 'lost_device', reasonText: 'laptop stolen' });
+    const r = await w.svc.revokeAgent(w.ctx, { agentId: AID, expectedVersion: 1, reasonCode: 'device_lost_or_stolen', reasonText: 'laptop stolen' });
     expect(r.status).toBe(200); expect(r.version).toBe(2);
-    expect(r.body).toMatchObject({ status: 'revoked', revoke_reason_code: 'lost_device', version: 2 });
+    expect(r.body).toMatchObject({ status: 'revoked', revoke_reason_code: 'device_lost_or_stolen', version: 2 });
     expect(w.credentials().map((c: any) => [c.id, c.status])).toEqual([[idN(0x5001), 'revoked'], [idN(0x5002), 'revoked'], [idN(0x5003), 'used']]);
-    expect(w.callsOf('revokeCredentials')[0]!.args[1]).toMatchObject({ kinds: expect.arrayContaining(['device_token', 'enrolment_code']), reasonCode: 'lost_device', actorId: USER });
+    expect(w.callsOf('revokeCredentials')[0]!.args[1]).toMatchObject({ kinds: expect.arrayContaining(['device_token', 'enrolment_code']), reasonCode: 'device_lost_or_stolen', actorId: USER });
     noSecrets(r.body);
   });
   it('writes one access_log row device_credential.revoke per revoked credential (entity = that credential), none for the already-used one', async () => {
     const w = world({ agents: two() });
-    await w.svc.revokeAgent(w.ctx, { agentId: AID, expectedVersion: 1, reasonCode: 'lost_device' });
+    await w.svc.revokeAgent(w.ctx, { agentId: AID, expectedVersion: 1, reasonCode: 'device_lost_or_stolen' });
     const rows = w.accessRows();
     expect(rows.map((x: any) => x.entityId).sort()).toEqual([idN(0x5001), idN(0x5002)]);
     for (const x of rows) expect(x).toMatchObject({ action: 'device_credential.revoke', entityType: 'agent_credential', outcome: 'allowed', centreId: CENTRE_A1, tenantId: TENANT_A });
@@ -189,7 +189,7 @@ describe('E15 revokeAgent — AC-02.1', () => {
   });
   it('two managers revoking at the same version concurrently: exactly one wins, the other gets 409, access rows are not duplicated', async () => {
     const w = world({ agents: two() });
-    const res = await Promise.allSettled([1, 2].map(() => w.svc.revokeAgent(w.ctx, { agentId: AID, expectedVersion: 1, reasonCode: 'lost_device' })));
+    const res = await Promise.allSettled([1, 2].map(() => w.svc.revokeAgent(w.ctx, { agentId: AID, expectedVersion: 1, reasonCode: 'device_lost_or_stolen' })));
     expect(res.filter((x) => x.status === 'fulfilled')).toHaveLength(1);
     const lost: any = res.find((x) => x.status === 'rejected'); expect(['common.version_conflict', 'instruments.invalid_transition']).toContain(lost.reason.code);
     expect(w.accessRows()).toHaveLength(2);

@@ -3,6 +3,7 @@
 import { LimsError } from '../../../core/errors.js';
 import type { Handler, HandlerContext, HandlerRequest } from '../../../core/module.js';
 import { createPricingService, type PricingDeps } from '../service/pricing.service.js';
+import { createQuoteService } from '../service/quote.service.js';
 import type { Ctx } from '../service/masters.service.js';
 import { ifMatch } from './masters.handlers.js';
 
@@ -38,5 +39,27 @@ export const pricingHandlers: Readonly<Record<string, Handler>> = Object.freeze(
   })),
   discardPriceListVersionDraft: bind(async (s, ctx, req) => ({
     status: 200, body: await s.discardPriceListVersionDraft(ctx, { versionId: versionId(req), expectedVersion: ifMatch(req) }),
+  })),
+  // T-19 #82: read-only POST, 200 with per-item errors in the body; needs no events port.
+  quotePrices: async (req: HandlerRequest, hctx: HandlerContext) => {
+    const c = hctx as unknown as Partial<RCtx>;
+    if (typeof c.tenantId !== 'string' || typeof c.actor?.id !== 'string' || !c.tx) throw new LimsError('auth.unauthenticated');
+    return { status: 200, body: await createQuoteService().quotePrices(c as Ctx, req.body) };
+  },
+  // T-18 #83–#91. Path params: surcharge_rule_id, tax_type_id, tax_rule_id.
+  listSurchargeRules: bind(async (s, ctx, req) => ({ status: 200, body: await s.listSurchargeRules(ctx, req.query) })),
+  createSurchargeRule: bind(async (s, ctx, req) => ({ status: 201, body: await s.createSurchargeRule(ctx, req.body) })),
+  endSurchargeRule: bind(async (s, ctx, req) => ({
+    status: 200, body: await s.endSurchargeRule(ctx, { id: obj(req.params)['surcharge_rule_id'], expectedVersion: ifMatch(req), body: req.body }),
+  })),
+  listTaxTypes: bind(async (s, ctx, req) => ({ status: 200, body: await s.listTaxTypes(ctx, req.query) })),
+  createTaxType: bind(async (s, ctx, req) => ({ status: 201, body: await s.createTaxType(ctx, req.body) })),
+  updateTaxType: bind(async (s, ctx, req) => ({
+    status: 200, body: await s.updateTaxType(ctx, { id: obj(req.params)['tax_type_id'], expectedVersion: ifMatch(req), patch: req.body }),
+  })),
+  listTaxRules: bind(async (s, ctx, req) => ({ status: 200, body: await s.listTaxRules(ctx, req.query) })),
+  createTaxRule: bind(async (s, ctx, req) => ({ status: 201, body: await s.createTaxRule(ctx, req.body) })),
+  endTaxRule: bind(async (s, ctx, req) => ({
+    status: 200, body: await s.endTaxRule(ctx, { id: obj(req.params)['tax_rule_id'], expectedVersion: ifMatch(req), body: req.body }),
   })),
 });

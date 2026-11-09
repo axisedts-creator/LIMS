@@ -101,7 +101,7 @@ export function makeRepo(seed: FakeSeed = {}) {
   const transitions = seed.transitions ?? [];
   const bundles = seed.bundles ?? [];
   const instruments = seed.instruments ?? [];
-  const reasons = seed.revokeReasons ?? ['lost_device', 'compromised', 'decommissioned', 'replaced_pc', 'investigation', 'other'];
+  const reasons = seed.revokeReasons ?? ['device_replaced', 'device_lost_or_stolen', 'suspected_compromise', 'decommissioned', 'staff_error', 'other'];
   const credentials = () => agents.flatMap((a) => a.credentials as Row[]);
   const calls: Array<{ op: string; tenantId?: string; args: unknown[] }> = [];
   const rec = <T>(op: string, tenantId: string | undefined, args: unknown[], fn: () => T): T => { calls.push({ op, tenantId, args }); return fn(); };

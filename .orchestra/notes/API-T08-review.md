@@ -1,4 +1,10 @@
-CHANGES
-1. services/api/src/modules/instruments/__tests__/fixtures/config/test-key.pkcs8.pem and test-key.spki.pem are STILL not committed (round 3). `git ls-files .../fixtures/config` lists only README.md, canonical.expected.bin, canonical.sha256.txt, canonical.vector.json, signature.b64url.txt; latest fix commit ca5b1b5 only edits `.orchestra/notes/API-T08-impl.md` (writer's `git add -f` blocked by permission prompt again). Root `.gitignore:10` (`*.pem`) still ignores them, so a clean checkout/CI fails signing.test.ts (fixture-exists, golden signature, loadSigningKey, envelope tests) and AG-T11 cannot copy the vector byte-identically. Fix (needs orchestrator/human — writer cannot do it): `git add -f services/api/src/modules/instruments/__tests__/fixtures/config/test-key.pkcs8.pem services/api/src/modules/instruments/__tests__/fixtures/config/test-key.spki.pem` and commit. Synthetic test key `cfg-test-1` only; do not edit root `.gitignore` (not C7-owned). ESCALATE: re-looping writer will not resolve this.
+APPROVE
 
-Checked, OK (unchanged since round 1): signing.ts unchanged; canonical rules match 02-TRD §5.10; envelope `{alg,key_id,signature,document}`, `LIMS_INSTRUMENTS_CONFIG_SIGNING_KEY_FILE`, key_id ≤32 match spec; key errors never echo key material; only owned paths; no PHI/real secrets. Go parity not run (AG-T11).
+Range 6f077eda..HEAD (cddf5740 tester, cc91d896 writer). Checked against LD-58 / LD-73:
+- Both PEMs tracked (`git ls-files` lists test-key.pkcs8.pem + test-key.spki.pem); added via the scoped `.gitignore` negation `!services/api/src/modules/instruments/__tests__/fixtures/config/*.pem` directly after `*.pem` (already on base; no further .gitignore change in range).
+- Key = deterministic Ed25519 from seed SHA-256("cfg-test-1"): re-derived independently; PKCS8 and SPKI PEMs match byte-for-byte. Synthetic test key only.
+- signature.b64url.txt = Ed25519(base64url, no padding) over canonical.expected.bin: recomputed, matches. canonical.sha256.txt still matches canonical.expected.bin; vector/bin/sha unchanged.
+- README documents seed rule + node regeneration one-liner (LD-73 step 3).
+- No implementation change (service/signing.ts untouched in range); only owned test paths + .orchestra/notes touched. No PHI, no real secrets.
+- `npx vitest run src/modules/instruments/__tests__/unit/signing.test.ts`: 54/54 pass.
+- Go interop (done_when) remains for AG-T11 to copy fixtures byte-identically, per LD-73.

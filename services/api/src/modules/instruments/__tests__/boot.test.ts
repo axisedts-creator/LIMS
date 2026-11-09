@@ -40,6 +40,7 @@ const IMPLEMENTED: readonly string[] = [
   'listAgents', 'createAgent', 'getAgent', 'updateAgent', 'issueEnrolmentCode', 'revokeAgent',
   'retireAgent', 'requestAgentCommand', 'listAgentCommands', 'listAgentHealthTransitions',
   'getAgentLogBundle', 'listAgentReleases',
+  'enrolAgent', 'getAgentConfig', 'submitAgentHeartbeat', 'submitAgentLogBundle', 'downloadAgentRelease', // API-T06
 ];
 
 const FAKE_REQ = { params: {}, query: {}, headers: {}, body: {} };

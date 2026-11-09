@@ -533,7 +533,8 @@ class RoleStatic(unittest.TestCase):
 
     def test_no_literal_hosts_ips_or_secrets_and_cites_decisions(self):
         self.assertIsNone(HOSTNAME_RE.search(self.code), HOSTNAME_RE.search(self.code))
-        self.assertNotRegex(self.code, r"\b\d{1,3}(\.\d{1,3}){3}\b")
+        # LD-63: 127.0.0.1 is the loopback psql.j2 must force (not an LD-45 host address); every other IPv4 literal still fails
+        self.assertNotRegex(re.sub(r"(?<![\d.])127\.0\.0\.1(?![\d.])", "", self.code), r"\b\d{1,3}(\.\d{1,3}){3}\b")
         self.assertIn("LD-45", self.code)
         self.assertRegex(self.code, r"CR-C1-002|AC-18")
         self.assertNotRegex(self.code, r"(?i)password\s*[:=]\s*['\"]?[A-Za-z0-9]{6,}")

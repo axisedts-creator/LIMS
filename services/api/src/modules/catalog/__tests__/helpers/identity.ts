@@ -4,7 +4,7 @@
 // requires aal2, else auth.mfa_required. Every call is recorded so tests can check WHICH permission was asserted.
 import { LimsError } from '../../../../core/errors.js';
 
-export const PRIVILEGED = new Set(['catalog.price_list.manage', 'catalog.referrer.export', 'catalog.reference_range.publish']);
+export const PRIVILEGED = new Set(['catalog.price_list.manage', 'catalog.referrer.export', 'catalog.reference_range.publish', 'catalog.instrument_code_map.manage']);   // last: 08 A13 D-18 (T-27)
 
 export interface AssertCall { readonly ctx: unknown; readonly permission: string }
 

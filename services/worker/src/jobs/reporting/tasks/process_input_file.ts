@@ -77,10 +77,10 @@ export function createProcessInputFile(o: { sandbox: SandboxClient; timeoutMs?: 
     const row = await repo.findFile(tx, tenantId, fileId);
     if (!row || row.tenant_id !== tenantId || !KINDS.includes(row.kind) || !ACTIVE.includes(row.state)) return;   // idempotent: terminal / unknown
     let state: string = row.state;
-    const reject = async (to: 'quarantined' | 'rejected', reason: string) => {
-      await repo.failFile(tx, tenantId, fileId, state, to, row.kind === 'narrative_image' ? IMAGE_REJECTED : REJECTED, actorId);
+    const reject = async (toState: 'quarantined' | 'rejected', reason: string) => {
+      await repo.failFile(tx, tenantId, fileId, state, toState, row.kind === 'narrative_image' ? IMAGE_REJECTED : REJECTED, actorId);
       metrics?.inc(METRIC, { reason });
-      ctx.log?.warn?.({ event: 'input_file_rejected', input_file_id: fileId, state: to, reason });
+      ctx.log?.warn?.({ event: 'input_file_rejected', input_file_id: fileId, state: toState, reason });
     };
 
     const original = await storage.read(BUCKET, row.quarantine_object_path);

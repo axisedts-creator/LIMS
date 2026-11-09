@@ -3078,6 +3078,10 @@ Why: `openMobileSession`, `refreshMobileSession` and the patient routes are `x-e
 - **A31.3** C11 example `cases` policies include `(SELECT app.is_staff_or_system())` (P-16).
 - **A31.4** C0 §3.9 drops `catalog` from the `event_inbox` list (C3 consumes no events).
 
+## Addendum A32 — reserved: universal patient app (client answer C-06)
+
+One patient app for all labs, sold as a package (no referral commissions; patient-to-patient referral not in v1). The C16 change pass is written here once the client confirms U-1…U-4; until then C16 builds as specified.
+
 ## Addendum A33 — Production readiness gaps (2026-11-07)
 
 Source: production-readiness review against the Plan E checklist (LIMS Production Readiness Checklist doc). Binding wording per task lives in `C:\LIMS-state\lead-decisions-<chunk>.md` (LD-24…LD-29); summary:
@@ -3088,3 +3092,18 @@ Source: production-readiness review against the Plan E checklist (LIMS Productio
 - **A33-4 Signatory council (C2 T16, C6 C6-T07/C6-T09):** signatory `council` NMC | NHPC + `registration_no`; footer prints "<council> No.".
 - **A33-5 App legal links (C16 T-A4/T-AC1/T-DOC1, C17 HC-T29):** privacy policy + terms links on first run and in about/account; URLs from platform config, required in production builds.
 - **A33-6 Contract acceptance (C2 T22):** append-only record of ToS and DPA versions accepted per tenant; provisioning requires both.
+
+## Addendum A34 — Lean hosting profile for launch (2026-11-07, owner decision)
+
+Owner: the 4-VM production topology (~NPR 60k/month) is too costly before revenue. C1 builds two inventory profiles: `lean` (default until a scale trigger) and `full` (02-TRD §3.1 as written). `lean` = prod-1 (16 vCPU / 32 GB / ~640 GB NVMe, site A, all app/data/ops roles) + backup-1 (4 vCPU / 8 GB / >=160 GB, site B, different provider: WAL archive + base backups (RPO <= 15 min), object replica, audit digests, external uptime check + alert relay). No hot standby: DR = restore to a new VM, RTO <= 4 h, rehearsed monthly. Audit store = separate `lims_audit` database in the same cluster with off-host digests. Scale to `full` when: peak CPU > 60 % or RAM > 80 % for 7 days, DB > 150 GB, or a second lab group signs. Encryption, off-site WAL and the restore drill are never cut. Binding wording: `C:\LIMS-state\lead-decisions-C1-infrastructure-ops.md` LD-45.
+
+## Addendum A35 — Patient session access token is issued by LIMS, not GoTrue (2026-11-09, founder decision; resolves D-218)
+
+Source: C2 T1 live probes against GoTrue v2.197.0 (`services/api/src/modules/identity/gotrue/mapping.md`, CR-C2-T1-a): `POST /admin/users` with no email or phone returns 400, and no admin route issues a session or access JWT for a user, so both D-218 routes (A: create a user without email, B: credential-less session) are refuted. This addendum is the CR to R10 that D-218 reserved for the lead and the founder. Binding wording per task: `C:\LIMS-state\lead-decisions.md` LD-80.
+
+- **A35-1 Decision.** For session kind `patient` (R10 item 3) the short access JWT (≤ 1 h, 04 A5) is issued by the LIMS core, not by GoTrue; patient sessions no longer depend on a GoTrue user or session. Staff, platform, partner and `staff_mobile` sessions are unchanged. The app keeps the opaque 256-bit LIMS session token; `POST …/refresh` rotates it, a reused old token revokes the session (R10 item 3), and every refresh issues a new access JWT. There are no GoTrue refresh tokens for patient sessions.
+- **A35-2 Signing and verification.** EdDSA (Ed25519). The private key is a file-mounted secret from the C1 secret store, handled like the BFF keys (R10 item 1, A19 P-45): never in the repository, an environment value, a log or a browser. The patient token has its own issuer and its own audience, different from GoTrue's. The core verifier applies 04 A7 unchanged (pinned algorithm, reject `none` and substitution, check exp, aud and iss, 0 s leeway, no grace) per issuer: the patient endpoint family accepts only the patient issuer and every other family accepts only GoTrue's, so a patient token can never pass the staff verifier and the reverse. A token of one issuer presented on the other family → `401 auth.session_expired` (R10 item 3).
+- **A35-3 Claims.** As R10 item 2: the core trusts only `sub`, `session_id`, `aal`, `exp` and `iat` from the token (plus `iss` and `aud` for verification) and ignores every other claim. Claims reach `request.jwt.claims` only through the identity `claimsResolver`, resolved as for `patient` in R10 item 3 (`{sub, tenant_id, membership_id, actor_type:'patient', aal:'aal1', lims_session_id, session_state:'active'}`).
+- **A35-4 Email.** A patient email is not part of this design. It is added later as an additional contact channel and changes nothing above.
+- **A35-5 Open — decided before any patient-session code is written; agents must not invent these.** (a) How the resolver finds the `identity.sessions` row for a patient token: `gotrue_session_id` is `uuid NOT NULL UNIQUE` (C2 05-SCHEMA §4.1) and `app.identity_resolve_session(gotrue_session_id, sub)` is keyed on it, but a patient session has no GoTrue session; also what `sub` identifies for a patient. (b) The exact `iss` and `aud` values. (c) `kid` handling, the secret name and the rotation overlap procedure (C1 runbook). (d) The names of the issuing function and the verifier hook. C2 proposes (a) and (d), C0 owns the verifier, C1 owns the secret and the runbook; the founder confirms. C2 T1 itself is not unblocked by this: its remaining item is the live GoTrue contract run.
+- **A35-6 Effect on older text.** For the `patient` kind only, this supersedes D-218's "patient session kind blocked until T1 confirms", the GoTrue-JWT credential in the R10 item 1 row `bearerJwt`, and the GoTrue-refresh-token sentence in R10 item 3. D-219 is unchanged.

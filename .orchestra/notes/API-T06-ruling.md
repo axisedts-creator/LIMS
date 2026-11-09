@@ -1,12 +1,11 @@
-TESTS_WRONG — the test asserts revoke_reason_code 'replaced_pc', a code that does not exist in the spec; change it to 'device_replaced'.
+CR_NEEDED — the spec itself is contradictory/missing (CR text in `.orchestra/cr/API-T06.md`)
 
 Reasons:
-- A3 (spec/chunks/C7-instrument-integration/03-APP-FLOW.md:53) and AC-02.2 (01-PRD.md:118) require: previous active token -> `revoked`, `replaced_by_credential_id` = new token, same transaction. Neither names a reason code.
-- `agent_credentials.revoke_reason_code` is FK to `instruments.g_cs_revoke_reasons` (05-SCHEMA.md:54, :636). Seed = `device_replaced`, `device_lost_or_stolen`, `suspected_compromise`, `decommissioned`, `staff_error`, `other` (05-SCHEMA.md:169, :962). `replaced_pc` would violate the FK (23503) on a real DB.
-- The only seeded code matching A3 semantics is `device_replaced`, also used in contracts/openapi/instruments.yaml:1564, :1614.
-- CLAUDE.md forbids invented names; the tester flagged `replaced_pc` as an "assumption beyond spec text" (.orchestra/notes/API-T06-tests.md:5).
-
-Required test changes (tester):
-1. services/api/src/modules/instruments/__tests__/enrolment.service.test.ts:56 — expect `revoke_reason_code: 'device_replaced'`.
-2. services/api/src/modules/instruments/__tests__/agents.helpers.ts:104 — default fake reasons = the spec seed list above (replace `lost_device`, `compromised`, `replaced_pc`, `investigation`); re-run API-T04 tests that depend on it.
-3. .orchestra/notes/API-T06-tests.md:5 — replace the `replaced_pc` assumption with `device_replaced` (05-SCHEMA.md:169).
+1. Item 1 (E02 fixture nulls): `spec/chunks/C7-instrument-integration/02-TRD.md:403` shows the signed document with `"target": null` and `"window": null`; `02-TRD.md:416` says `null` is allowed inside the document and that it is declared `type: object, additionalProperties: true`; `02-TRD.md:418,420,422` define `target: Target | null` and `window: Window | null` ("No active release → `target: null`", "`null` when unset").
+2. `contracts/openapi/instruments.yaml:6755-6765` (ConfigDocument.update) types `target` as `$ref ConfigUpdateTarget` and `window` as `type: object`, neither nullable, so a TRD-conformant document fails E02 response validation. The contract also contradicts TRD:416's "opaque payload" declaration.
+3. The producers already follow the TRD: `services/worker/src/jobs/instruments/configs.ts:77` and the golden vector `__tests__/fixtures/config/canonical.vector.json:2` emit `null`. Omitting the keys in the test fixture (writer's fix) would make the test pass while real stored documents still fail E02. That would hide the defect, and the signed bytes cannot be changed by the service.
+4. Precedence (CLAUDE.md): neither 08-CR-REGISTER nor 03-INTERFACE-CATALOG settles this (grep finds no `ConfigDocument` or `update.target` entry). C0-0C must decide between "contract allows null" and "TRD omits the keys, and the producer plus golden vector change".
+5. Until the CR is decided, `releases.service.test.ts:25` stays red. Do not change the fixture or the implementation for item 1.
+6. Item 2 (`boot.test.ts:39-43` `IMPLEMENTED`) is a separate TESTS_WRONG and is not blocked by the CR. Per the comment at `boot.test.ts:38`, the tester adds `enrolAgent`, `getAgentConfig`, `submitAgentHeartbeat`, `submitAgentLogBundle` and `downloadAgentRelease` (the API-T06 stubs replaced per the task brief).
+7. The fixture's `target` (`device.helpers.ts:41`) also lacks the fields that ConfigUpdateTarget requires (`package_sha256`, `package_size`, `signature`, `key_id`, `authenticode_publisher`; `instruments.yaml:6565-6572`, TRD:419). The tester should fill them in whatever way the CR is decided.
+8. The `boot.test.ts` real-repo timeout and the `drivers-generic.test.ts:298` timing failures come from outside API-T06. No ruling.

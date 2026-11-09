@@ -5,6 +5,7 @@
 # - [CONV] IM rows list common.version_conflict + common.precondition_required; required-idem rows list common.idempotency_key_reused; paged rows common.invalid_cursor.
 # - [CONV] optional-idem rows declare an optional Idempotency-Key header. P-8 / LD-10: E01/E14 = E1 (secret in response), E34 = E3 (read-only POST).
 # - [CONV] ConfigDocument and ParserOptions are closed (02-CV rule 3); enums not in 02-TRD §7.4 come from 05-SCHEMA CHECK constraints.
+# - [EXCEPTION LD-78, API-T06] getAgentConfig (E02) response `document` is `type: object, additionalProperties: true`: explicit exception to 02-CV rule 3 (closed schemas) and the omit-null rule (X10). The signed bytes are opaque (02-TRD §7.4) and carry null for update.target/window.
 openapi: 3.0.3
 info:
   title: LIMS instruments (C7)
@@ -158,7 +159,9 @@ paths:
                     maxLength: 128
                     pattern: ^[A-Za-z0-9_-]+$
                   document:
-                    $ref: "#/components/schemas/ConfigDocument"
+                    type: object
+                    additionalProperties: true
+                    description: "Signed canonical JSON, schema lims.bridge.config.v1; opaque payload per 02-TRD §7.4 (null allowed inside, e.g. update.target and update.window; bytes returned exactly as stored). LD-78."
               examples:
                 synthetic:
                   value:

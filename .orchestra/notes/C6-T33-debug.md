@@ -9,3 +9,7 @@
 - Re-measured `node -e "require('jsdom')"` alone = 23.7s on this box today. Cold jsdom + index.js import land in test 1; no T33 code on that path. Assertions never ran/failed.
 - No implementation change: only fixes are lazy jsdom (moves cost to first sanitise, reverses C6-T17) or editing the test timeout (forbidden). Not a spec dispute.
 - Orchestrator: verify needs warm FS cache/idle box (run `node -e "require('jsdom')"` first) or a tester-owned timeout bump; T33 code itself: api 23/24 real, 24/24 when warm.
+
+# C6-T33 debug (round 3)
+- Full verify command rerun 09:45 with warm FS cache: api 2 files/24 tests pass (8.6s), worker 2 files/25 tests pass. Earlier failure = cold `require('jsdom')` (16-66s) vs hard-coded 30s test timeout; no assertion ever failed.
+- No code change (same reasoning as rounds 1-2: lazy jsdom reverses C6-T17; test timeout not editable). Not a spec dispute. Re-run verify now.

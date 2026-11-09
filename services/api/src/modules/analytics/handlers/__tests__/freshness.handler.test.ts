@@ -1,6 +1,6 @@
 // C8 AN-T14 — getAnalyticsFreshness (GET /v1/analytics/freshness, TRD §5 #18 → {data: Freshness[]}). PRD US-16.1–3; TRD §9.2 (no refresh_state row = never_refreshed).
 // Repos are in-memory emulators (./helpers.t14.ts); handler + service are real.
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ADMIN, FAMILIES, FINANCE, LAB_MANAGER, NO_PERM, OWNER_A109, PARTNER, SENTINEL, TA, TB, call14, contractErrors, db, expectLims, makeCtx14, ok14, seedFreshness, seedT14, w14, NOW } from './helpers.t14.js';
 
 vi.mock('../../repository/rollups.repo.js', async () => (await import('./helpers.t14.js')).rollupsMock14);
@@ -11,6 +11,8 @@ const at = (min: number) => new Date(Date.parse(NOW) - min * 60_000).toISOString
 const get = async (actor = ADMIN) => { const { ctx } = await makeCtx14(actor); return (await ok14(OP, ctx)).data as any[]; };
 const byFamily = (rows: any[]) => Object.fromEntries(rows.map((r) => [r.family, r]));
 
+// Warm-up (ruling): cold import of handlers + first Ajv compile are not part of any test's budget.
+beforeAll(async () => { await import('../index.js'); contractErrors('DashboardDto', {}); }, 30_000);
 beforeEach(() => { seedT14(); vi.clearAllMocks(); });
 
 describe('US-16.1 / US-16.2 — one Freshness per rollup family', () => {

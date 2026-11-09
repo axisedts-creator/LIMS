@@ -1,6 +1,6 @@
 // C8 AN-T14 — getAnalyticsDashboard (GET /v1/analytics/dashboard). PRD US-01.1–6, US-16.1–3; 02-TRD §5 #1 / §5.1 DashboardDto / §6.7; 07-SECURITY P1, P3, P4, X1.
 // Repos are in-memory emulators (./helpers.t14.ts); handler + service + mapper are real. Clock: 2026-11-06 11:45 Asia/Kathmandu → "Today" = 2026-11-06, previous = 2026-11-05.
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   A1, A2, ADMIN, B1, BR1, D1, D2, DEPT, FINANCE, LAB_MANAGER, NO_PERM, OWNER_A109, OWNER_ALL09, PARTNER, SENTINEL, TA, WINDOW,
   call14, contractErrors, dash, db, expectLims, makeCtx14, seedFreshness, seedT14, w14, NOW,
@@ -15,6 +15,8 @@ const TILE_KEYS = ['patient_visits', 'new_patients', 'net_orders', 'tests_ordere
 const SNAPSHOT_TILES = ['reports_pending', 'reports_ready_unreleased', 'pending_tests', 'pending_overdue'];
 const t = (value: number, previous: number, delta: number, delta_bp: number | undefined, unit: string) => ({ value, previous, delta, ...(delta_bp === undefined ? {} : { delta_bp }), unit });
 
+// Warm-up (ruling): cold import of handlers + first Ajv compile are not part of any test's budget.
+beforeAll(async () => { await import('../index.js'); contractErrors('DashboardDto', {}); }, 30_000);
 beforeEach(() => { seedT14(); vi.clearAllMocks(); });
 
 describe('US-01.1 — default period = Today (Asia/Kathmandu); tiles M04 M12 M42 M08 M52 M50 M27', () => {

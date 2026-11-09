@@ -12,6 +12,7 @@
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import { http, HttpResponse } from 'msw';
 import { setupServer } from 'msw/node';
+import { parseMultipart, type ParsedForm } from './web-t35.multipart'; // ruling C3.T-35 #4
 
 vi.mock('server-only', () => ({}));
 const tok = vi.hoisted(() => ({ value: 'jwt-synthetic' as string | undefined }));
@@ -24,13 +25,13 @@ const PL = '01a1a98a-ac40-7000-8000-0000000d0502';
 const XLSX = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
 const MB15 = 15 * 1024 * 1024;
 
-const seen: { url: URL; method: string; headers: Headers; body?: any; form?: FormData }[] = [];
+const seen: { url: URL; method: string; headers: Headers; body?: any; form?: ParsedForm }[] = [];
 const rec = async (r: Request) => {
   const ct = r.headers.get('content-type') ?? '';
   seen.push({
     url: new URL(r.url), method: r.method, headers: r.headers,
     body: ct.includes('json') ? await r.clone().json().catch(() => undefined) : undefined,
-    form: ct.startsWith('multipart/form-data') ? await r.clone().formData().catch(() => undefined) : undefined,
+    form: ct.startsWith('multipart/form-data') ? parseMultipart(ct, await r.clone().text()) : undefined,
   });
 };
 const imp = { id: ID, kind: 'price_list', target_price_list_id: PL, base_version_no: 3, status: 'uploaded', file_name: 'prices.xlsx', file_sha256: 'ab'.repeat(32), summary: { rows: 0, added: 0, changed: 0, removed: 0, unchanged: 0, errors: 0, warnings: 0 }, deduplicated: false, expires_at: '2026-11-15T00:00:00.000Z', created_at: '2026-11-08T00:00:00.000Z', created_by: ID, version: 2 };
@@ -68,7 +69,7 @@ describe('createImport (AC-16.3, AC-16.8, AC-16.9, AC-16.11)', () => {
     expect(c.headers.get('content-type')).toMatch(/^multipart\/form-data; boundary=/);
     expect(c.form!.get('kind')).toBe('price_list');
     expect(c.form!.get('target_price_list_id')).toBe(PL);
-    expect((c.form!.get('file') as File).name).toBe('prices.xlsx');
+    expect((c.form!.get('file') as { name: string }).name).toBe('prices.xlsx');
   });
 
   it('generates an Idempotency-Key when none is passed; only declared form fields are forwarded (mass-assignment)', async () => {
@@ -235,7 +236,13 @@ describe('commitImport / discardImport (AC-16.5, 16.6, 16.7, AB-16)', () => {
 
 // ---- download proxies (REQ-SEC-085: API → BFF stream; attachment; nosniff; no-store; no storage URL) -------------------------------------------
 describe('download route handlers (AC-16.1, AC-16.10, REQ-SEC-085, AB-5, 08 A13 D-20)', () => {
-  const route = async (rel: string) => (await import(`../../../app/(staff)/catalog/${rel}/route.ts`)).GET as (req: Request, ctx: { params: Promise<Record<string, string>> }) => Promise<Response>;
+  // ruling C3.T-35 #1: Vite rejects variable dynamic imports through (staff)/[param] dirs → one literal import() per fixed route path.
+  const routes: Record<string, () => Promise<{ GET: unknown }>> = {
+    'import-templates/[kind]': () => import('../../../app/(staff)/catalog/import-templates/[kind]/route'),
+    'imports/[import_id]/report': () => import('../../../app/(staff)/catalog/imports/[import_id]/report/route'),
+    'exports/[export_id]/file': () => import('../../../app/(staff)/catalog/exports/[export_id]/file/route'),
+  };
+  const route = async (rel: string) => (await routes[rel]!()).GET as (req: Request, ctx: { params: Promise<Record<string, string>> }) => Promise<Response>;
   const targets = [
     { rel: 'import-templates/[kind]', param: { kind: 'price_list' }, api: '/v1/catalog/import-templates/price_list' },
     { rel: 'imports/[import_id]/report', param: { import_id: ID }, api: `/v1/catalog/imports/${ID}/report-file` },

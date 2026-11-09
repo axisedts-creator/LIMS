@@ -28,6 +28,7 @@ import { http, HttpResponse } from 'msw';
 import { setupServer } from 'msw/node';
 import type { ReactNode } from 'react';
 import { ToastProvider } from '@lims/ui/components/Toast';
+import { parseMultipart, type ParsedForm } from './web-t35.multipart'; // ruling C3.T-35 #4: jsdom File/FormData break undici formData()
 
 const push = vi.fn();
 const replace = vi.fn();
@@ -61,11 +62,11 @@ const exp = (n: number, o: Record<string, unknown> = {}) => ({ id: ID(n), kind: 
 const issue = (seq: number, o: Record<string, unknown> = {}) => ({ seq, severity: 'error', sheet: 'Prices', row_no: 4, column: 'unit_price_npr', issue_code: 'row.price_decimals', message: 'Synthetic API text', ...o });
 
 // ---- MSW --------------------------------------------------------------------------------------------------------------------------------
-type Call = { method: string; url: URL; headers: Headers; body?: any; form?: FormData };
+type Call = { method: string; url: URL; headers: Headers; body?: any; form?: ParsedForm };
 const calls: Call[] = [];
 const rec = async (r: Request) => {
   const ct = r.headers.get('content-type') ?? '';
-  calls.push({ method: r.method, url: new URL(r.url), headers: r.headers, body: ct.includes('json') ? await r.clone().json().catch(() => undefined) : undefined, form: ct.startsWith('multipart/form-data') ? await r.clone().formData().catch(() => undefined) : undefined });
+  calls.push({ method: r.method, url: new URL(r.url), headers: r.headers, body: ct.includes('json') ? await r.clone().json().catch(() => undefined) : undefined, form: ct.startsWith('multipart/form-data') ? parseMultipart(ct, await r.clone().text()) : undefined });
 };
 const prob = (status: number, code: string, extra: Record<string, unknown> = {}) => HttpResponse.json({ type: `urn:lims:error:${code}`, title: 'x', status, code, ...extra }, { status });
 const writes = () => calls.filter((c) => c.method !== 'GET');
@@ -158,14 +159,14 @@ describe('SCR-18 ImportsScreen', () => {
     expect(button(/^upload/i).disabled).toBe(true);
     await pickFile(xlsx());
     expect(button(/^upload/i).disabled, 'no price list chosen yet').toBe(true);
-    await choose(document.body, /price list/i, /PL-DRX/);
+    await choose(document.body, /^price list$/i, /PL-DRX/);
     await waitFor(() => expect(button(/^upload/i).disabled).toBe(false));
   });
 
   it('price_list upload: multipart {kind, target_price_list_id, file} + Idempotency-Key, then navigates to SCR-19 (AC-16.3)', async () => {
     await show();
     await userEvent.click(screen.getByRole('radio', { name: /price list prices/i }));
-    await choose(document.body, /price list/i, /PL-DRX/);
+    await choose(document.body, /^price list$/i, /PL-DRX/);
     await pickFile(xlsx('prices-q4.xlsx'));
     await press(/^upload/i);
     await waitFor(() => expect(push).toHaveBeenCalledWith(`/catalog/imports/${ID(80)}`));
@@ -174,7 +175,7 @@ describe('SCR-18 ImportsScreen', () => {
     expect(c.headers.get('idempotency-key')).toMatch(/^[A-Za-z0-9_-]{16,}$/);
     expect(c.form!.get('kind')).toBe('price_list');
     expect(c.form!.get('target_price_list_id')).toBe(ID(60));
-    expect((c.form!.get('file') as File).name).toBe('prices-q4.xlsx');
+    expect((c.form!.get('file') as { name: string }).name).toBe('prices-q4.xlsx');
     expect(writes()).toHaveLength(1);
   });
 
@@ -223,7 +224,7 @@ describe('SCR-18 ImportsScreen', () => {
   it('"Download current data" = export: price_list → POST /exports {kind, price_list_version_id = the list\'s current version} (F-16); referrers needs catalog.referrer.export', async () => {
     const v = await show();
     await userEvent.click(screen.getByRole('radio', { name: /price list prices/i }));
-    await choose(document.body, /price list/i, /PL-CLINIC/);
+    await choose(document.body, /^price list$/i, /PL-CLINIC/);
     await press(/download current data/i);
     await waitFor(() => expect(writes()).toHaveLength(1));
     expect(writes()[0]!.url.pathname).toBe('/v1/catalog/exports');
@@ -385,7 +386,7 @@ describe('SCR-19 ImportDetail', () => {
   it('Commit dialog fields + defaults: Effective from, Change reason (required), "Publish immediately" ON, "Replace open drafts" OFF, typed confirmation (price lists)', async () => {
     await show();
     const d = await openCommit();
-    expect(within(d).getByLabelText(/effective from/i)).toBeTruthy();
+    expect(within(d).getByLabelText(/^effective from$/i)).toBeTruthy();
     expect((within(d).getByRole('switch', { name: /publish immediately/i }) as HTMLInputElement).getAttribute('aria-checked') ?? (within(d).getByRole('switch', { name: /publish immediately/i }) as HTMLInputElement).checked).toMatch(/true/);
     expect(within(d).getByRole('switch', { name: /replace open drafts/i }).getAttribute('aria-checked') ?? 'false').toBe('false');
     expect(d.textContent).toContain('Open drafts of these items are discarded before the import is applied.');

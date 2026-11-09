@@ -10,6 +10,7 @@ import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
 import { setupServer } from 'msw/node';
 import { ToastProvider } from '@lims/ui/components/Toast';
+import { parseMultipart } from './web-t35.multipart'; // ruling C3.T-35 #4
 
 const push = vi.fn();
 vi.mock('next/navigation', () => ({
@@ -35,7 +36,7 @@ const importRow = (o: Record<string, unknown>) => ({ id: ID(80), kind: 'price_li
 const api = setupServer(
   http.post(`${ORIGIN}/v1/catalog/exports`, async ({ request }) => { log.push(`POST exports ${JSON.stringify(await request.json())}`); return HttpResponse.json({ id: ID(90), kind: 'price_list', status: 'queued', version: 1 }, { status: 202 }); }),
   http.get(`${ORIGIN}/v1/catalog/exports/:id`, () => { state.exportPolls += 1; return HttpResponse.json({ id: ID(90), kind: 'price_list', status: state.exportPolls < 2 ? 'building' : 'ready', file_name: 'price-list-pl-drx-v3.xlsx', byte_size: 2048, expires_at: '2026-11-15T00:00:00.000Z', version: 2 }); }),
-  http.post(`${ORIGIN}/v1/catalog/imports`, async ({ request }) => { const f = await request.formData(); log.push(`POST imports ${f.get('kind')} ${f.get('target_price_list_id')} ${(f.get('file') as File).name}`); state.imp = importRow({ status: 'uploaded' }); return HttpResponse.json(state.imp, { status: 201 }); }),
+  http.post(`${ORIGIN}/v1/catalog/imports`, async ({ request }) => { const f = parseMultipart(request.headers.get('content-type') ?? '', await request.text()); log.push(`POST imports ${f.get('kind')} ${f.get('target_price_list_id')} ${(f.get('file') as { name: string }).name}`); state.imp = importRow({ status: 'uploaded' }); return HttpResponse.json(state.imp, { status: 201 }); }),
   http.get(`${ORIGIN}/v1/catalog/imports/:id`, () => { state.importPolls += 1; state.imp = importRow(state.commitBody ? { status: 'committing', version: 4 } : state.importPolls < 2 ? { status: 'validating', version: 2 } : { status: 'validated', version: 3 }); return HttpResponse.json(state.imp); }),
   http.get(`${ORIGIN}/v1/catalog/imports/:id/issues`, () => HttpResponse.json({ data: [{ seq: 1, severity: 'warning', sheet: '_meta', issue_code: 'file.stale_base', message: 'x' }], page: { limit: 50 } })),
   http.post(`${ORIGIN}/v1/catalog/imports/:id/commit`, async ({ request }) => { state.commitBody = await request.json(); state.commitIfMatch = request.headers.get('if-match') ?? ''; log.push('POST commit'); return HttpResponse.json(importRow({ status: 'committing', version: 4 }), { status: 202 }); }),
@@ -53,7 +54,7 @@ describe('export → edit → import → commit (AC-16.2, 16.3, 16.5, 16.6, 16.7
     // 1. SCR-18 — export the current price list.
     const a = render(<ToastProvider><ImportsScreen imports={[]} exports={[]} priceLists={[PL as never]} permissions={PERM} /></ToastProvider>);
     await userEvent.click(screen.getByRole('radio', { name: /price list prices/i }));
-    await userEvent.click(screen.getByLabelText(/price list/i));
+    await userEvent.click(screen.getByLabelText(/^price list$/i));
     await userEvent.click(await screen.findByRole('option', { name: /PL-DRX/ }));
     await userEvent.click(screen.getByRole('button', { name: /download current data/i }));
     await waitFor(() => expect(log).toContain(`POST exports ${JSON.stringify({ kind: 'price_list', price_list_version_id: ID(61) })}`));

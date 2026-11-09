@@ -13,6 +13,6 @@ export default defineConfig({
     include: ['src/features/catalog/__tests__/web-t35.*.test.{ts,tsx}'],
     environment: 'node', // component files opt in with `// @vitest-environment jsdom`
     restoreMocks: true,
-    testTimeout: 20000,
+    testTimeout: 60000 // ruling C3.T-35 #5: error-copy test is slow under jsdom,
   },
 });

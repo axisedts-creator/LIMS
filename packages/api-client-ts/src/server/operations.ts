@@ -18054,11 +18054,11 @@ export interface Operations {
         audit_id: string;
         occurred_at: string;
         table: string;
-        action: "insert" | "update" | "delete";
+        action: "insert" | "update";
         row_id?: string;
         actor: {
           type: string;
-          id?: string;
+          id: string;
           membership_id?: string;
           display_name?: string;
         };
@@ -31155,7 +31155,7 @@ export interface Operations {
       occurred_at_from: string;
       occurred_at_to: string;
       table?: string;
-      action?: "insert" | "update" | "delete";
+      action?: "insert" | "update";
       row_id?: string;
       actor_id?: string;
       membership_id?: string;

@@ -41,6 +41,7 @@ const IMPLEMENTED: readonly string[] = [
   'getVolumeReport', 'getTopCentresReport', 'getTopReferrersReport', 'getCollectionsReport', 'searchAnalyticsReferrers', 'getAnalyticsFilterOptions', 'getCollectionsFilterOptions', // AN-T09
   'getTestsDoneReport', 'getQualityIndicatorsReport', 'getDeliveryReport', 'getInterfacesReport', // AN-T11
   'getTatReport', // AN-T12
+  'getPendingTestsSummary', 'listPendingTests', // AN-T13
 ];
 
 const FAKE_REQ = { params: {}, query: {}, headers: {}, body: {} };

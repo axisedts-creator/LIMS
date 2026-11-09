@@ -72,9 +72,13 @@ export function createHostQueryService(deps: HostQueryDeps = {}) {
     }));
   }
 
-  function parseQuery(driver: InstrumentDriver, ins: Row, raw: Buffer, tx: any, captured: string): { parsed: ParseOk; barcodes: string[] } | undefined {
-    const dctx: DriverContext = { receivedAt: new Date(tx.startedAt).toISOString() as DriverContext['receivedAt'], capturedAt: captured as DriverContext['capturedAt'], instrumentTimezone: ins['timezone'],
+  function driverCtx(ins: Row, tx: any, captured: string): DriverContext {
+    return { receivedAt: new Date(tx.startedAt).toISOString() as DriverContext['receivedAt'], capturedAt: captured as DriverContext['capturedAt'], instrumentTimezone: ins['timezone'],
       qcSampleIdPatterns: [], options: obj(ins['parser_options']) };
+  }
+
+  function parseQuery(driver: InstrumentDriver, ins: Row, raw: Buffer, tx: any, captured: string): { parsed: ParseOk; barcodes: string[] } | undefined {
+    const dctx = driverCtx(ins, tx, captured);
     try {
       const pr = driver.parse(raw, dctx);
       if (!pr.ok || pr.messageKind !== 'host_query') return undefined;
@@ -130,7 +134,7 @@ export function createHostQueryService(deps: HostQueryDeps = {}) {
         const q = parseQuery(driver, ins, stored.raw_bytes, tx, captured);
         if (!q) { keep(); throw new LimsError('instruments.message_malformed'); }
         const answers = await answerAll(ctx, ins['id'], q.barcodes);
-        return reply(l1.id, answers, driver.buildHostQueryReply!({ query: q.parsed, answers, ctx: { receivedAt: new Date(tx.startedAt).toISOString(), capturedAt: captured, instrumentTimezone: ins['timezone'], qcSampleIdPatterns: [], options: obj(ins['parser_options']) } as DriverContext }));
+        return reply(l1.id, answers, driver.buildHostQueryReply!({ query: q.parsed, answers, ctx: driverCtx(ins, tx, captured) }));
       }
       if (String(b['raw_sha256']).toLowerCase() !== sha) throw new LimsError('common.validation_failed');
 
@@ -167,7 +171,7 @@ export function createHostQueryService(deps: HostQueryDeps = {}) {
         keep(); throw new LimsError('instruments.message_malformed');
       }
       const answers = await answerAll(ctx, ins['id'], q.barcodes);       // a failure here rolls everything back: the agent retries cleanly
-      const buffers = driver.buildHostQueryReply!({ query: q.parsed, answers, ctx: { receivedAt: new Date(tx.startedAt).toISOString(), capturedAt: captured, instrumentTimezone: ins['timezone'], qcSampleIdPatterns: [], options: obj(ins['parser_options']) } as DriverContext });
+      const buffers = driver.buildHostQueryReply!({ query: q.parsed, answers, ctx: driverCtx(ins, tx, captured) });
       const stored = await archive(await keyFor(q.parsed));
       const r = await run(stored.id, 'parsed', null, answers.length);
       await repo.insertRecords(tx, tenantId, answers.map((a, i) => ({ centre_id: ins['centre_id'], message_id: stored.id, run_id: r.id, instrument_id: ins['id'], record_seq: i + 1, record_class: 'host_query',

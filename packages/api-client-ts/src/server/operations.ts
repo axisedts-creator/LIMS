@@ -17011,128 +17011,12 @@ export interface Operations {
     headers: Record<string, never>;
     body: never;
     responses: {
-      200: ({
+      200: {
         alg: "Ed25519";
         key_id: string;
         signature: string;
-        document: {
-          schema: "lims.bridge.config.v1";
-          agent_id: string;
-          centre_id: string;
-          config_version: number;
-          issued_at: string;
-          heartbeat_interval_seconds: number;
-          upload: {
-            max_batch_messages: number;
-            max_batch_bytes: number;
-            flush_interval_seconds: number;
-            uploaded_retention_hours: number;
-          };
-          rate_budget: {
-            requests_per_minute: number;
-            reserved_host_query_per_minute: number;
-            reserved_heartbeat_per_minute: number;
-          };
-          tls: {
-            spki_pins_sha256: string[];
-          };
-          log_level: string;
-          update: {
-            channel: "stable" | "beta";
-            target?: {
-              release_id: string;
-              version: string;
-              package_sha256: string;
-              package_size: number;
-              signature: string;
-              key_id: string;
-              authenticode_publisher: string;
-            };
-            allow_downgrade: boolean;
-            window?: {
-              from: string;
-              to: string;
-              timezone: string;
-            };
-          };
-          instruments: ({
-            instrument_id: string;
-            instrument_code: string;
-            state: "commissioning" | "live" | "suspended";
-            protocol: "astm" | "hl7v2" | "file_drop";
-            driver_code: string;
-            transport: ({
-              kind: "serial";
-              port_name: string;
-              baud_rate: 1200 | 2400 | 4800 | 9600 | 19200 | 38400 | 57600 | 115200;
-              data_bits: 7 | 8;
-              parity: "none" | "odd" | "even" | "mark" | "space";
-              stop_bits: "1" | "1.5" | "2";
-              dtr?: boolean;
-              rts?: boolean;
-            } | {
-              kind: "tcp_client";
-              host: string;
-              port: number;
-              connect_timeout_s?: number;
-              reconnect_max_backoff_s?: number;
-            } | {
-              kind: "tcp_server";
-              bind_address: string;
-              port: number;
-              allowed_peers: string[];
-            } | {
-              kind: "file_drop";
-              directory: string;
-              filename_pattern: string;
-              barcode_regex?: string;
-              allowed_types: ("pdf" | "png" | "jpg")[];
-              stable_seconds?: number;
-              move_after_capture?: boolean;
-              captured_subdirectory?: string;
-              attachment_instrument_code: string;
-            });
-            protocol_options?: {
-              astm?: {
-                establish_reply_s?: number;
-                nak_retry_delay_s?: number;
-                host_contention_defer_s?: number;
-                instrument_contention_retry_s?: number;
-                transfer_reply_s?: number;
-                receiver_frame_wait_s?: number;
-                receiver_interrupt_backoff_s?: number;
-                outbound_retry_cycle_s?: number;
-                max_frame_sends?: number;
-                max_establish_attempts?: number;
-                max_outbound_cycles?: number;
-                encoding?: string;
-              };
-              hl7v2?: {
-                ack_mode?: string;
-                ack_sending_app?: string;
-                ack_sending_facility?: string;
-                ack_timeout_s?: number;
-                send_retries?: number;
-                max_message_bytes?: number;
-              };
-            };
-            file_drop?: {
-              directory: string;
-              filename_pattern: string;
-              barcode_regex?: string;
-              allowed_types: ("pdf" | "png" | "jpg")[];
-              stable_seconds?: number;
-              move_after_capture?: boolean;
-              captured_subdirectory?: string;
-              attachment_instrument_code: string;
-            };
-            capabilities: {
-              host_query: boolean;
-              worklist_download: boolean;
-            };
-          })[];
-        };
-      });
+        document: Record<string, unknown>;
+      };
       400: {
         type: string;
         title: string;
@@ -18170,11 +18054,11 @@ export interface Operations {
         audit_id: string;
         occurred_at: string;
         table: string;
-        action: "insert" | "update";
+        action: "insert" | "update" | "delete";
         row_id?: string;
         actor: {
           type: string;
-          id: string;
+          id?: string;
           membership_id?: string;
           display_name?: string;
         };
@@ -31271,7 +31155,7 @@ export interface Operations {
       occurred_at_from: string;
       occurred_at_to: string;
       table?: string;
-      action?: "insert" | "update";
+      action?: "insert" | "update" | "delete";
       row_id?: string;
       actor_id?: string;
       membership_id?: string;

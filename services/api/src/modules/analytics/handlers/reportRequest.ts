@@ -19,7 +19,13 @@ export async function authorise(ctx: HandlerContext, permission: AnalyticsPermis
   return c;
 }
 
-export const queryOf = (req: HandlerRequest): Query => (req.query && typeof req.query === 'object' ? (req.query as Query) : {});
+/** Non-throwing permission probe for conditional response parts (P-10): the actor profile's permission list, after authorise(). */
+export async function holds(c: ReportCtx, permission: string): Promise<boolean> {
+  const actor = (await c.ports.IdentityPort.getActor(c as never).catch(asApiError)) as { permissions?: readonly string[] };
+  return Array.isArray(actor?.permissions) && actor.permissions.includes(permission);
+}
+
+export const queryOf =(req: HandlerRequest): Query => (req.query && typeof req.query === 'object' ? (req.query as Query) : {});
 
 export async function periodAndScope(c: ReportCtx, q: Query) {
   const period = resolvePeriod(q, businessDateOf(c.now() as never), loadAnalyticsConfig().maxRangeDays);

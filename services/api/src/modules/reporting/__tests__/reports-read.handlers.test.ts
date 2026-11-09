@@ -167,13 +167,19 @@ describe('R1 filters, sort, paging', () => {
     const planted = "PLANTED';DROP TABLE reporting.reports;--";
     // review C6-T15 round 2 #1: well-formed ISO shape but not a real date (would reach `$10::timestamptz` -> Postgres 22008 -> 500)
     const impossibleDate = Buffer.from(JSON.stringify({ k: '2026-99-99T00:00Z', i: RID(1), s: '-updated_at' })).toString('base64url');
-    for (const c of ['not-a-cursor', planted, Buffer.from('{"k":"x","i":1}').toString('base64url'), 'A'.repeat(600), impossibleDate]) {
+    // LD-74 / review round 3: realStamp is a strict round-trip check; year 0, Feb 30, month 13, day 00 must be 400, never a PG 22008 500
+    const badStamps = ['0000-01-01T00:00Z', '2026-02-30T00:00Z', '2026-13-01T00:00Z', '2026-01-00T00:00Z']
+      .map((k) => Buffer.from(JSON.stringify({ k, i: RID(1), s: '-updated_at' })).toString('base64url'));
+    for (const c of ['not-a-cursor', planted, Buffer.from('{"k":"x","i":1}').toString('base64url'), 'A'.repeat(600), impossibleDate, ...badStamps]) {
       const s = readSetup(fleet(2)); const e = await rejection(list(s, { cursor: c }));
       expect(e?.code).toBe('common.invalid_cursor'); expect(JSON.stringify({ m: e?.message, d: e?.details })).not.toContain('PLANTED');
       expect(s.stmtText()).not.toMatch(/from\s+reporting\.reports/i);
     }
   });
-  it.each([['limit', '0'], ['limit', '201'], ['limit', 'abc'], ['family', 'other'], ['sort', 'patient_name'], ['display_status', 'bogus'], ['has_review_flag', 'maybe'], ['registered_at_from', 'yesterday'], ['centre_id', 'not-a-uuid']])
+  it.each([['limit', '0'], ['limit', '201'], ['limit', 'abc'], ['family', 'other'], ['sort', 'patient_name'], ['display_status', 'bogus'], ['has_review_flag', 'maybe'], ['registered_at_from', 'yesterday'], ['centre_id', 'not-a-uuid'],
+    // LD-74: impossible calendar values pass Date.parse/shape but fail PG -> must be 400 for both date filters
+    ['registered_at_from', '2026-02-30T00:00Z'], ['registered_at_to', '2026-02-30T00:00Z'], ['registered_at_from', '0000-01-01T00:00Z'], ['registered_at_to', '0000-01-01T00:00Z'],
+    ['registered_at_from', '2026-13-01T00:00Z'], ['registered_at_to', '2026-13-01T00:00Z'], ['registered_at_from', '2026-01-00T00:00Z'], ['registered_at_to', '2026-01-00T00:00Z']])
   ('invalid %s=%s -> 400 common.validation_failed', async (k, v) => expect((await rejection(list(readSetup(fleet(2)), { [k]: v })))?.code).toBe('common.validation_failed'));
   it('patient_display_name / registration_no are never accepted as list query params (PHI in params, 02-CV §4.1)', async () => {
     for (const k of ['patient_display_name', 'registration_no', 'patient_id', 'barcode', 'q'])

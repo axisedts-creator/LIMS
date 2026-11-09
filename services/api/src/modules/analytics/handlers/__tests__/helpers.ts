@@ -263,7 +263,7 @@ function deref(node: any, doc: DocName): any {
 const compile = AjvCompiler() as unknown as (ext: object, o: { customOptions: object }) => (c: { schema: object }) => any;
 const compiler = compile({}, { customOptions: { ...AJV_OPTIONS, coerceTypes: false, useDefaults: false } });
 /** Validates `body` against the named schema of analytics.yaml; returns the ajv error list ([] = valid). */
-export function contractErrors(schemaName: 'IncomeReport' | 'DepartmentIncomeReport', body: unknown): string[] {
+export function contractErrors(schemaName: string, body: unknown): string[] {
   const validate = compiler({ schema: deref(DOCS.analytics.components.schemas[schemaName], 'analytics') });
   return validate(body) ? [] : (validate.errors ?? []).map((e: any) => `${e.instancePath || '/'} ${e.message}`);
 }

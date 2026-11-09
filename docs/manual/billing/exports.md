@@ -1,5 +1,7 @@
 # Billing register exports (XML / PDF)
 
+Exports are created from the Export button on `/billing/registers` (sales register, cancelled invoices, credit notes), `/billing/audit-trail` and `/billing/daily-cash`. The XML schema below is defined by this system (`urn:lims:billing:export:v1`). It is not an IRD schema, and the system does not submit exports to the IRD. Use the files for your own records or to give to your accountant.
+
 Task `billing.export_render` (enqueued by B28 `createBillingExport`, maxAttempts 5) builds the file and stores it in the private bucket `billing-exports` at `{tenant_id}/{yyyy}/{mm}/{export_id}.{xml|pdf}` (write-once). `billing.export_purge` (cron `30 19 * * *`, per tenant) deletes the objects 24 h after completion and marks the row `expired`; expired / failed rows are removed after 90 days. The only way to read a file is B29a `getBillingExportContent` (streamed, `attachment`, `nosniff`, `no-store`); there is no Storage URL. Every create and every download writes an `audit.access_log` row (`data.export`, `billing_export`, `detail.stage` = `create` | `download`).
 
 ## XML format `urn:lims:billing:export:v1`

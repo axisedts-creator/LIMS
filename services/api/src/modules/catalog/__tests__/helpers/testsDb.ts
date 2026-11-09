@@ -253,7 +253,8 @@ export function makeTestsDb(seed: TestsSeed = {}) {
     };
     const take = async (t: T6Table) => { const k = `${t}:${tenantId}`; await lockOf(k).acquire(mtx.id); held.add(k); };
     const releaseAll = () => { for (const k of held) lockOf(k).release(mtx.id); held.clear(); };
-    const master = (tbl: 'departments' | 'specimen_types' | 'containers' | 'methods', id: unknown) => id != null && masters.row(tbl, String(id))?.tenant_id === tenantId;
+    // T-25 (additive): the masters tx's OWN uncommitted rows count too (one Postgres transaction sees its own writes: a catalog_master commit creates a department and a test in it).
+    const master = (tbl: 'departments' | 'specimen_types' | 'containers' | 'methods', id: unknown) => id != null && ((mtx as any).visibleRow(tbl, String(id)) ?? masters.row(tbl, String(id)))?.tenant_id === tenantId;
     const out = (rows: Row[], returning: string | undefined) => (returning ? { rows: rows.map((r) => ({ ...r })) } : { rows: [] as Row[] });
 
     /** All constraints for a row about to be written; `self` = the key of the row being replaced (UPDATE) so it does not conflict with itself. */

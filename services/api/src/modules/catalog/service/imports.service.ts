@@ -66,6 +66,7 @@ function decCursor(c: unknown, shape: RegExp): string | undefined {
 }
 
 const SUMMARY_KEYS = ['rows', 'added', 'changed', 'removed', 'unchanged', 'errors', 'warnings'] as const;
+const CLINICAL_KEYS = ['analyte_versions', 'range_sets', 'critical_sets'] as const;
 /** Row -> Import schema (internal columns never leave; null optionals omitted). */
 function toImport(r: Row, deduplicated?: boolean): Row {
   const s = (r.summary ?? {}) as Row;
@@ -259,13 +260,18 @@ export function createImportsService(deps: { identity: Identity; config?: Catalo
 
       if (expectedVersion !== undefined && expectedVersion !== Number(row.version)) throw new LimsError('common.version_conflict');
       const now = ctx.now();
-      // ponytail: only price_list commits exist until the later import tasks; other kinds would sit in `committing` forever.
-      if (row.status !== 'validated' || row.kind !== 'price_list' || !(Date.parse(iso(row.expires_at)) > Date.parse(now))) throw new LimsError('catalog.import_not_committable');
+      if (row.status !== 'validated' || !isKind(row.kind) || !(Date.parse(iso(row.expires_at)) > Date.parse(now))) throw new LimsError('catalog.import_not_committable');
 
-      const latest = (await tx.query(
-        "SELECT version_no FROM catalog.price_list_versions WHERE tenant_id = $1 AND price_list_id = $2 AND status IN ('published', 'superseded') ORDER BY version_no DESC LIMIT 1",
-        [tenantId, row.target_price_list_id])).rows[0];
-      if (!acceptStale && Number(row.base_version_no ?? 0) !== Number(latest?.version_no ?? 0)) throw new LimsError('catalog.import_stale_base');
+      if (row.kind === 'price_list') {                                          // the stale-base rule is a price_list notion (02-TRD §8.5)
+        const latest = (await tx.query(
+          "SELECT version_no FROM catalog.price_list_versions WHERE tenant_id = $1 AND price_list_id = $2 AND status IN ('published', 'superseded') ORDER BY version_no DESC LIMIT 1",
+          [tenantId, row.target_price_list_id])).rows[0];
+        if (!acceptStale && Number(row.base_version_no ?? 0) !== Number(latest?.version_no ?? 0)) throw new LimsError('catalog.import_stale_base');
+      }
+      // 08 A13 D-18 / AC-17.5: clinical versions or sets in a catalog_master commit also need the privileged publish permission.
+      // [CONV] the validation job stores the counts as summary.analyte_versions / range_sets / critical_sets.
+      const s = (row.summary ?? {}) as Row;
+      if (row.kind === 'catalog_master' && CLINICAL_KEYS.some((k) => Number(s[k] ?? 0) > 0)) await assert(ctx, 'catalog.reference_range.publish');
 
       const { rows } = await tx.query(
         "UPDATE catalog.imports SET status = 'committing', commit_effective_from = $3::timestamptz, commit_change_reason = $4, commit_publish = $5, commit_accept_stale_base = $6, committed_by = $7, version = version + 1, updated_at = $8::timestamptz, updated_by = $7 WHERE tenant_id = $1 AND id = $2 AND status = 'validated' RETURNING *",

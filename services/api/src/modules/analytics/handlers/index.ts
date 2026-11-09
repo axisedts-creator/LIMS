@@ -12,6 +12,7 @@ import { getTestsDoneReport } from './getTestsDoneReport.js';
 import { getQualityIndicatorsReport } from './getQualityIndicatorsReport.js';
 import { getDeliveryReport } from './getDeliveryReport.js';
 import { getInterfacesReport } from './getInterfacesReport.js';
+import { getReferralIncentiveReport } from './getReferralIncentiveReport.js';
 import { getTatReport } from './getTatReport.js';
 
 const OPERATION_IDS = [
@@ -34,7 +35,8 @@ const stub = (operationId: string): Handler => async () => {
 const implemented: Partial<Record<AnalyticsOperationId, Handler>> = {
   getIncomeReport, getDepartmentIncomeReport, getVolumeReport, getTopCentresReport, getTopReferrersReport, searchAnalyticsReferrers,
   getCollectionsReport, getAnalyticsFilterOptions, getCollectionsFilterOptions,
-  getTestsDoneReport, getQualityIndicatorsReport, getDeliveryReport, getInterfacesReport, getTatReport,
+  getTestsDoneReport, getQualityIndicatorsReport, getDeliveryReport, getInterfacesReport, getReferralIncentiveReport,
+  getTatReport,
 };
 
 export const handlers: Readonly<Record<AnalyticsOperationId, Handler>> = Object.freeze(

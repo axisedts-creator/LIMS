@@ -80,7 +80,8 @@ export interface TopCentreRow {
   centre_id: string; branch_id: string; orders: number; patient_visits: number; tests_ordered: number; net_sales_paisa: number;
   orders_walk_in: number; orders_home: number; orders_centre: number; orders_partner: number;
 }
-export interface ReferrerVolumeRow { referrer_id: string | null; orders: number; patient_visits: number; tests_ordered: number }
+export interface ReferrerVolumeRow { business_date?: string | null; referrer_id: string | null; orders: number; patient_visits: number; tests_ordered: number }
+export interface ReferrerBillingRow { business_date?: string | null; referrer_id: string; net_billed_paisa: number }
 export type CollectionGroupBy = 'method' | 'staff' | 'staff_method' | 'centre' | 'day' | 'ad_month';
 export interface CollectionRow {
   method_code?: string; staff_id?: string | null; centre_id?: string | null; period?: string;
@@ -143,14 +144,30 @@ FROM v LEFT JOIN n ON n.centre_id = v.centre_id ORDER BY v.centre_id`;
 }
 
 /** Volume only (D-44): reads daily_referrer_volume and nothing else. Grouped by the RAW referrer id; the canonical merge is the service's. */
-export async function referrerVolumeRows(tx: RollupsTx, a: Base): Promise<ReferrerVolumeRow[]> {
+export async function referrerVolumeRows(tx: RollupsTx, a: Base & { readonly grain?: DepartmentGrain }): Promise<ReferrerVolumeRow[]> {
   const scope = checkScope(a.scope);
   if (!scope.all && scope.centreIds.length === 0) return [];
-  const sql = `SELECT referrer_id::text AS referrer_id, sum(orders)::bigint AS orders, sum(patients_distinct)::bigint AS patient_visits, sum(order_items)::bigint AS tests_ordered
-FROM analytics.daily_referrer_volume ${WHERE} ${SCOPE_SQL} GROUP BY referrer_id ORDER BY referrer_id`;
+  const day = a.grain === 'day'; // AN-T10: per-day rows for the *_month group_bys (the service groups months, incl. B.S.)
+  const sql = `SELECT ${day ? 'business_date::text AS business_date, ' : ''}referrer_id::text AS referrer_id, sum(orders)::bigint AS orders, sum(patients_distinct)::bigint AS patient_visits, sum(order_items)::bigint AS tests_ordered
+FROM analytics.daily_referrer_volume ${WHERE} ${SCOPE_SQL} GROUP BY ${day ? 'business_date, ' : ''}referrer_id ORDER BY ${day ? 'business_date, ' : ''}referrer_id`;
   const { rows } = await tx.query(sql, [a.tenantId, a.from, a.to, scope.all, [...scope.centreIds]]);
   return rows.map((r) => ({
+    ...(day ? { business_date: String(r.business_date) } : {}),
     referrer_id: strOrNull(r.referrer_id), orders: int(r.orders, 'orders'), patient_visits: int(r.patient_visits, 'patient_visits'), tests_ordered: int(r.tests_ordered, 'tests_ordered'),
+  }));
+}
+
+/** AN-T10 (US-07.2): net billed per referrer from daily_referrer_billing ONLY (signed paisa). Raw referrer id; rows always carry a referrer (no SELF row). */
+export async function referrerBillingRows(tx: RollupsTx, a: Base & { readonly grain?: DepartmentGrain }): Promise<ReferrerBillingRow[]> {
+  const scope = checkScope(a.scope);
+  if (!scope.all && scope.centreIds.length === 0) return [];
+  const day = a.grain === 'day';
+  const sql = `SELECT ${day ? 'business_date::text AS business_date, ' : ''}referrer_id::text AS referrer_id, sum(net_billed_paisa)::bigint AS net_billed_paisa
+FROM analytics.daily_referrer_billing ${WHERE} AND referrer_id IS NOT NULL ${SCOPE_SQL} GROUP BY ${day ? 'business_date, ' : ''}referrer_id ORDER BY ${day ? 'business_date, ' : ''}referrer_id`;
+  const { rows } = await tx.query(sql, [a.tenantId, a.from, a.to, scope.all, [...scope.centreIds]]);
+  return rows.map((r) => ({
+    ...(day ? { business_date: String(r.business_date) } : {}),
+    referrer_id: String(r.referrer_id), net_billed_paisa: int(r.net_billed_paisa, 'net_billed_paisa'),
   }));
 }
 

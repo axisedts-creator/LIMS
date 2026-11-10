@@ -22,3 +22,8 @@
 - Unchanged from round 4: gate fails because `frontdesk/service/registration.service.ts` (FD-T06, a90cbe8f) is absent; `git merge-base --is-ancestor a90cbe8f HEAD` = NOT_IN. main already has it (Merge lane/C4, 124b0e5f).
 - Not an impl bug in J-T01 paths, not a spec dispute. Re-implementing FD-T06 here would collide with main. No code change.
 - Needed: ORCHESTRATOR merges main into lane/C4b, then TESTER writes the real rollback suite (US-FD-03.5). Stop re-routing to debugger until then.
+
+## J-T01 debug round 6
+- Unchanged: gate fails, `frontdesk/service/registration.service.ts` (FD-T06, a90cbe8f) absent; a90cbe8f NOT_IN HEAD. main has it (124b0e5f).
+- Not impl bug in J-T01 paths, not spec dispute. Merging main / re-implementing FD-T06 is outside owned paths. No code change.
+- Needed: ORCHESTRATOR merges main into lane/C4b, then TESTER writes real rollback suite (US-FD-03.5). Stop routing to debugger until then.

@@ -21,6 +21,7 @@ import { insertOrder, patientHasOrder } from '../repository/orders.repo.js';
 import { getPatientById } from '../repository/patients.repo.js';
 import { getSettings } from '../repository/settings.repo.js';
 import { FRONTDESK_PERMISSIONS as P } from '../permissions.js';
+import { lockApprovalForRegistration, markConsumed, toApiDiscount } from './discount.service.js';
 import { bad, createPatient, isObj, patientCtx, todayIn, type PatientCtx, type Result } from './patient.service.js';
 
 type QuoteCtx = PatientCtx & { readonly ports: { readonly CatalogPort: CatalogPortV1; readonly BillingCommandPort: BillingCommandPortV1 } };
@@ -176,7 +177,7 @@ async function priceDraft(c: QuoteCtx, d: Draft, settings: any): Promise<Priced>
 
 interface PaymentIn { methodCode: string; amountPaisa: number; reference?: string }
 interface Downtime { occurredAt: string; downtimeRef: string }
-interface CreateIn { draft: Draft; fingerprint: string; payments: PaymentIn[]; trfCount: number; buyerPan?: string; downtime?: Downtime }
+interface CreateIn { draft: Draft; fingerprint: string; payments: PaymentIn[]; trfCount: number; approvalId?: string; buyerPan?: string; downtime?: Downtime }
 
 // LD-25 (2026-11-07, A33-2 downtime mode): back-entry window default. ponytail: constant, not the tenant setting `downtime_backentry_max_hours`
 // (TenantSettings has no such key yet, see .orchestra/cr/FD-T06-ld25-gaps.md); switch to the setting when C2 adds it.
@@ -221,10 +222,10 @@ function parseCreate(b: unknown, now: Date): CreateIn {
   const trf = o['trf_attachment_ids'];
   if (trf !== undefined && (!Array.isArray(trf) || trf.length > 5)) throw bad('/trf_attachment_ids');
   (trf as unknown[] | undefined)?.forEach((t, i) => uuid(t, `/trf_attachment_ids/${i}`));
-  if (o['discount_approval_id'] !== undefined) uuid(o['discount_approval_id'], '/discount_approval_id');
+  const approvalId = o['discount_approval_id'] === undefined ? undefined : uuid(o['discount_approval_id'], '/discount_approval_id');
   if (o['buyer_pan'] !== undefined && (typeof o['buyer_pan'] !== 'string' || o['buyer_pan'].length > 32)) throw bad('/buyer_pan');
   const downtime = parseDowntime(o, now);
-  return { draft, fingerprint: fp, payments, trfCount: (trf as unknown[] | undefined)?.length ?? 0, ...(typeof o['buyer_pan'] === 'string' ? { buyerPan: o['buyer_pan'] } : {}), ...(downtime ? { downtime } : {}) };
+  return { draft, fingerprint: fp, payments, trfCount: (trf as unknown[] | undefined)?.length ?? 0, ...(approvalId ? { approvalId } : {}), ...(typeof o['buyer_pan'] === 'string' ? { buyerPan: o['buyer_pan'] } : {}), ...(downtime ? { downtime } : {}) };
 }
 
 function createCtx(c: unknown): CreateCtx {
@@ -305,8 +306,16 @@ async function createInTx(hctx: unknown, body: unknown): Promise<Result> {
   if (p.q.fingerprint !== r.fingerprint) throw new LimsError('common.version_conflict', 'Prices changed');     // fresh `quote` problem extension (03-APP-FLOW.md:86) missing: LimsError has no extension field -> CR .orchestra/cr/FD-T06-retry-quote-ext.md
   // 3a. credit (net is known only now)
   if (d.billingMode === 'credit') await billing.assertCreditAllowed(pc, { creditPartyId: d.creditPartyId as never, additional: p.q.totals.net });
-  // 4. discount authority: above the self limit needs an approval; consuming one is FD-T07 (US-FD-07), so until then it is refused
-  if (p.verdict === 'approval_required') throw new LimsError('frontdesk.discount_approval_required');
+  // 4. discount authority: above the self limit needs an approved, unexpired, unconsumed approval bound to THIS base fingerprint + patient + centre + discounts (FD-T07, US-FD-07.1/07.5).
+  //    The row is locked here (a racing registration waits, then sees it consumed); it is marked consumed once the order exists (step 5), all in this one tx.
+  let approval: Record<string, any> | undefined;
+  if (p.verdict === 'approval_required') {
+    if (!r.approvalId) throw new LimsError('frontdesk.discount_approval_required');
+    approval = await lockApprovalForRegistration(c, {
+      approvalId: r.approvalId, baseFingerprint: p.q.baseFingerprint, patientId: isObj((body as Record<string, any>)['patient']?.new_patient) ? undefined : patient['id'],
+      centreId: d.centreId, discounts: d.discounts.map(toApiDiscount),
+    });
+  }
 
   // 5. order: registration_no counter (per branch) first, invoice counter (inside billing) last: short lock window
   const tenant = (await identity.getTenantSettings(c, { keys: ['numbering', 'timezone', 'branding', 'channels'] })) ?? {};
@@ -344,9 +353,12 @@ async function createInTx(hctx: unknown, body: unknown): Promise<Result> {
     discountRows.push(await insertDiscount(c.tx, c.tenantId, {
       id: uuidv7(), order_id: orderId, centre_id: d.centreId, scope: x.scope, order_item_id: x.orderableId ? itemOf.get(x.orderableId) : undefined, kind: x.kind,
       amount_paisa: x.amountPaisa, percent_bp: x.percentBp, computed_paisa: p.computed[i], reason_code: x.reasonCode, reason_text: x.reasonText,
-      approval_mode: 'within_limit', applied_by_membership_id: membership, approved_by_membership_id: membership, applied_at: registeredAt,   // within the self limit: self-approved
+      ...(approval ? { approval_mode: 'approved', approval_id: approval['id'], approved_by_membership_id: approval['decided_by_membership_id'] }
+        : { approval_mode: 'within_limit', approved_by_membership_id: membership }),   // within the self limit: self-approved
+      applied_by_membership_id: membership, applied_at: registeredAt,
     }));
   }
+  if (approval) await markConsumed(c, approval['id'], orderId);
 
   // 6. billing, same tx (the lines are exactly the ones the fingerprint was computed over)
   const nowIso = registeredAt.toISOString();

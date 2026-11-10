@@ -1,0 +1,9 @@
+CHANGES
+
+Checked: diff 22813c3b..HEAD touches only owned paths (help/**, docs/manual/analytics/**) plus tester/notes files; no code, no RLS/routes/permissions/error codes added; no PHI, no secrets, no banned word; screenshots are synthetic ("Demo Lab (synthetic)", watermark). `an-t24.help.test.ts` 84/84 pass (re-run by reviewer).
+
+1. apps/web/src/features/analytics/help/exports.md:18 and docs/manual/analytics/exports.md:15 — wrong MFA rule. `analytics.data.export` is privileged (PRD §2 line 33: "aal2 TOTP required"; 07-SECURITY E1: `createAnalyticsExport` at aal1 → `403 auth.mfa_required`), so EVERY export needs MFA, not "some reports, such as the Referral business report". Fix help: "Exporting always needs MFA: verify with your authenticator app when asked (a verification code)." Fix manual: "Every export asks for MFA (a verification code) first if you have not verified yet." (Referral report additionally needs MFA to open — keep that in referral-incentive.md.)
+
+2. apps/web/src/features/analytics/help/dashboard.md:7 — invented/false: "Net orders (M03) … It is the order count behind the Patient visits tile." Per 04-UI-UX §3 the dashboard tiles are M04/M05, M12/M10/M11, M42/M08, M52/M54, M50/M51, M27; M03 is not shown on S1. Fix: delete that bullet, and in the test change `__tests__/an-t24.help.test.ts:31` `dashboard: ['M03', 'M04', 'M12', 'M27']` to `dashboard: ['M04', 'M12', 'M27']` (tester to apply; the M03 requirement is what forced the invented line).
+
+Non-blocking (no change required): screenshots are Pillow wireframes, not captures of the running UI; spec 04-UI-UX §12 says "screenshots from synthetic tenants" — replace with real captures once a seeded synthetic tenant exists (already noted as open in AN-T24-impl.md). PageHeader help loader not wired yet (outside owned paths).

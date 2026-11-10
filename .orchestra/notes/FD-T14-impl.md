@@ -1,6 +1,6 @@
 # FD-T14 impl (writer)
 - Files: app/(staff)/frontdesk/{orders/[order_id],patients/[patient_id],worklist,discount-approvals}/ (page, loading, error; not-found for orders+patients); features/frontdesk/components/{OrderView,PatientView,FrontdeskWorklist,DiscountApprovalsInbox,FrontdeskError,format}.tsx; features/frontdesk/server/{types,read.server,write.server,actions}.ts.
-- Result: 91/93 pass. 2 fail = test bugs (missing `ME` import; ambiguous `/Requested/i` header) → FD-T14-dispute.md. Not run: tsc, lint, full suite.
+- Result (2026-11-11, after tester revision per FD-T14-ruling): 93/93 pass via FD-T14-verify.cmd; no impl change needed. Not run: tsc, lint, full suite.
 - [CONV] Writes = server actions, `{ok,status,code}` results, one Idempotency-Key per dialog open, If-Match `"<version>"`; failures close the dialog and show one banner with mapped text (no raw codes). Inbox polls via router.refresh() every 10 s.
 - Open: order-page "Confirm & bill" posts `{payments: []}` (F12 needs quote_fingerprint+payments from the registration panel, FD-T13) → API 400 until then. Order-page Upload posts uploadTrf with centre_id only (no order link in the API). Anonymise button is disabled (POST is FD-T15). MFA link `/profile` is a placeholder (C2 route unnamed). Add-tests offers first 200 catalog tests, one test per dialog.
 - Not covered by UI: consent history table (no list op), Call notes, slot time, `removable` tooltip. probes/pending.json untouched (no stub ops converted).

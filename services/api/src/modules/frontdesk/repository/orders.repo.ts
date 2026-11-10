@@ -8,6 +8,29 @@ const COLS = ['id', 'branch_id', 'centre_id', 'patient_id', 'registration_no', '
 export const insertOrder = (tx: Tx, tenantId: string, row: Record<string, unknown>) => insertRow(tx, 'frontdesk.orders', COLS, tenantId, row);
 export const getOrderById = (tx: Tx, tenantId: string, id: string) => getRow(tx, 'frontdesk.orders', tenantId, id);
 
+/** FD-T09: the order row locked FOR UPDATE (a racing F13/F14 on the same order waits here, then sees the moved version). */
+export async function lockOrderById(tx: Tx, tenantId: string, id: string): Promise<any | null> {
+  const { rows } = await tx.query('SELECT * FROM frontdesk.orders WHERE tenant_id = $1 AND id = $2 FOR UPDATE', [tenantId, id]);
+  return rows[0] ?? null;
+}
+
+/** FD-T09 F13: items_version + 1 and version + 1 (optimistic: null when the version moved); requires_credit_note only ever goes false -> true here. */
+export async function bumpOrderItemsVersion(tx: Tx, tenantId: string, id: string, expectedVersion: number, requiresCreditNote: boolean): Promise<any | null> {
+  const { rows } = await tx.query(`UPDATE frontdesk.orders SET items_version = items_version + 1, requires_credit_note = requires_credit_note OR $4::boolean,
+      version = version + 1, updated_at = now(), updated_by = (SELECT app.current_actor_id())
+    WHERE tenant_id = $1 AND id = $2 AND version = $3 RETURNING *`, [tenantId, id, expectedVersion, requiresCreditNote]);
+  return rows[0] ?? null;
+}
+
+/** FD-T09 F14: pre_registered | registered -> cancelled (the DB guard allows no other source status). null when the version moved. */
+export async function cancelOrderRow(tx: Tx, tenantId: string, id: string, expectedVersion: number,
+  c: { at: Date; by: string; reasonCode: string; reasonText?: string; requiresCreditNote: boolean }): Promise<any | null> {
+  const { rows } = await tx.query(`UPDATE frontdesk.orders SET status = 'cancelled', cancelled_at = $4, cancelled_by = $5, cancel_reason_code = $6, cancel_reason_text = $7,
+      requires_credit_note = $8, version = version + 1, updated_at = now(), updated_by = (SELECT app.current_actor_id())
+    WHERE tenant_id = $1 AND id = $2 AND version = $3 RETURNING *`, [tenantId, id, expectedVersion, c.at, c.by, c.reasonCode, c.reasonText ?? null, c.requiresCreditNote]);
+  return rows[0] ?? null;
+}
+
 /** is_first_order_of_patient = NOT this (any status counts: a cancelled order is still a prior visit). */
 export async function patientHasOrder(tx: Tx, tenantId: string, patientId: string): Promise<boolean> {
   const { rows } = await tx.query('SELECT 1 FROM frontdesk.orders WHERE tenant_id = $1 AND patient_id = $2 LIMIT 1', [tenantId, patientId]);

@@ -17,6 +17,20 @@ export function createFrontdeskEvents(events: Events) {
         aggregate: { type: 'order', id: p['order_id'] as string, seq: orderVersion }, idempotencyKey: `${String(p['order_id'])}:created`, payload: p,
       });
     },
+    /** FD-T09: key `<order_id>:items:<order_version>`, seq = orders.version after the F13 write. `added`/`removed` are never both empty (the caller guarantees it). */
+    itemsChanged: async (ctx: Ctx, p: Payload, orderVersion: number) => {
+      if (!Number.isSafeInteger(orderVersion) || orderVersion < 1) throw new LimsError('common.internal');
+      return events.publish(ctx, 'frontdesk.order.items_changed.v1', {
+        aggregate: { type: 'order', id: p['order_id'] as string, seq: orderVersion }, idempotencyKey: `${String(p['order_id'])}:items:${orderVersion}`, payload: p,
+      });
+    },
+    /** FD-T09: key `<order_id>:cancelled`, seq = orders.version after the F14 write. Payload carries no reason text (P3). */
+    cancelled: async (ctx: Ctx, p: Payload, orderVersion: number) => {
+      if (!Number.isSafeInteger(orderVersion) || orderVersion < 1) throw new LimsError('common.internal');
+      return events.publish(ctx, 'frontdesk.order.cancelled.v1', {
+        aggregate: { type: 'order', id: p['order_id'] as string, seq: orderVersion }, idempotencyKey: `${String(p['order_id'])}:cancelled`, payload: p,
+      });
+    },
   };
 }
 export type FrontdeskEvents = ReturnType<typeof createFrontdeskEvents>;

@@ -71,7 +71,7 @@ describe('price precedence (C3 AC-13.1: credit_party > referrer > centre > tenan
   const all = { centreList: true, referrerList: true, creditList: true };
 
   it('none -> tenant_default 500.00', async () => {
-    expect(await cbc({}, world(all))).toMatchObject({ price_source: 'tenant_default', unit_price: money(50000), price_list_id: PRICE_LIST.a.td });
+    expect(await cbc({}, world())).toMatchObject({ price_source: 'tenant_default', unit_price: money(50000), price_list_id: PRICE_LIST.a.td });
   }, T);
   it('centre list -> centre 480.00 (draft centre)', async () => {
     expect(await cbc({}, world({ centreList: true }))).toMatchObject({ price_source: 'centre', unit_price: money(48000), price_list_id: PRICE_LIST.a.centre });

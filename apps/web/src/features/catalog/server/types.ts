@@ -118,3 +118,58 @@ export interface ContainerInput { code: string; name: string; additive?: string;
 export interface MethodInput { code: string; name: string; is_active?: boolean }
 export interface UnitInput { code: string; display: string }
 export interface ValueSetInput { code: string; display: string; is_ordered: boolean; values?: { code: string; display: string; sort_order?: number; is_active?: boolean }[] }
+
+// ---- Pricing (SCR-13…17; contracts/openapi/catalog.yaml PriceList…TaxRule, identity.yaml Centre) ----
+export const PRICE_LIST_CODE_RE = /^[A-Z0-9][A-Z0-9_\-]{0,31}$/;
+export const TAX_CODE_RE = /^[A-Z0-9_]{1,16}$/;
+export const HS_CODE_RE = /^[0-9]{4,8}$/;
+export const MAX_PRICE_PAISA = 999_999_999;
+/** Rows per bulk-upsert / bulk-remove request (REQ-SEC-100). */
+export const BULK_MAX = 200;
+export const TAX_DISCLAIMER = 'Tax treatment of lab services is pending confirmation by your auditor.';
+
+export type PriceOwnerKind = 'default' | 'credit_party' | 'referrer' | 'centre';
+export interface Money { amount_paisa: number; currency: 'NPR' }
+export interface PriceListVersionRef { id: string; version_no: number; effective_from: string }
+export interface PriceList {
+  id: string; code: string; name: string; owner_kind: PriceOwnerKind; falls_through: boolean; assignments: { owner_id: string }[];
+  current_version?: PriceListVersionRef; scheduled_version?: PriceListVersionRef; draft_version_id?: string; is_active: boolean; version: number;
+}
+export interface PriceListVersion {
+  id: string; price_list_id: string; version_no: number; status: 'draft' | 'published' | 'superseded' | 'retired' | 'discarded';
+  effective_from?: string; effective_to?: string; item_count: number; source_import_id?: string; change_reason?: string; version: number;
+}
+export interface PriceListDetail extends PriceList { versions: PriceListVersion[] }
+export interface PriceItem { orderable_id: string; orderable_code?: string; orderable_kind?: 'test' | 'panel'; unit_price: Money }
+export interface PriceItemResult { orderable_id: string; outcome: 'created' | 'updated' | 'unchanged' | 'error'; error_code?: string }
+export interface PriceQuoteLine {
+  orderable_id: string; price_list_id: string; price_list_version: number; source: 'explicit' | 'credit_party' | 'referrer' | 'centre' | 'tenant_default';
+  unit_price: Money; urgent_surcharge?: Money;
+  tax: { vat: 'exempt' | 'taxable'; other_tax_code?: string; vat_rate_bp?: number; other_tax_rate_bp?: number; hs_code?: string };
+}
+export interface PriceQuoteError { orderable_id: string; error_code: string }
+export type PriceQuoteResult = PriceQuoteLine | PriceQuoteError;
+export interface SurchargeRule {
+  id: string; scope: 'all' | 'department' | 'orderable'; department_id?: string; orderable_id?: string; price_list_id?: string;
+  amount_kind: 'flat' | 'percent'; amount?: Money; percent_bp?: number; effective_from: string; effective_to?: string; version: number;
+}
+export interface TaxType { id: string; code: string; display: string; rate_bp?: number; effective_from: string; effective_to?: string; scope: 'global' | 'tenant'; is_active: boolean; version: number }
+export interface TaxRule {
+  id: string; scope: 'tenant_default' | 'department' | 'orderable'; department_id?: string; orderable_id?: string; vat_treatment: 'exempt' | 'taxable';
+  other_tax_code?: string; hs_code?: string; effective_from: string; effective_to?: string; version: number;
+}
+export interface Centre { centre_id: string; code: string; name: string; branch_id: string; kind: string; is_active: boolean; version: number }
+/** Orderable as the version editor shows it (catalog list rows carry department_id). */
+export type PricedOrderable = OrderableSummary & { department_id?: string };
+
+/** "1500.50" → 150050; undefined unless a plain decimal with ≤ 2 places in 0…9,999,999.99 (AC-13.8). Integer maths, no float. */
+export function parseNpr(text: string): number | undefined {
+  const m = /^(\d{1,7})(?:\.(\d{1,2}))?$/.exec(text.trim());
+  return m ? Number(m[1]) * 100 + Number((m[2] ?? '').padEnd(2, '0')) : undefined;
+}
+export const formatNpr = (paisa: number) => `${Math.floor(paisa / 100)}.${String(paisa % 100).padStart(2, '0')}`;
+/** Percent text with ≤ 2 decimals → basis points (50 → 5000, 13.5 → 1350); undefined when malformed. */
+export function parsePercentBp(text: string): number | undefined {
+  const m = /^(\d{1,4})(?:\.(\d{1,2}))?$/.exec(text.trim());
+  return m ? Number(m[1]) * 100 + Number((m[2] ?? '').padEnd(2, '0')) : undefined;
+}

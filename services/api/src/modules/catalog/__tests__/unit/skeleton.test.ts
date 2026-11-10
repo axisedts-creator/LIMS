@@ -57,7 +57,7 @@ describe('manifest + autoload (02-TRD §3, §6.3 of core)', () => {
   it('is found by the core autoloader with no central list', async () => {
     const mods = await autoload(DEFAULT_MODULES_DIR, REPO_ROOT);
     expect(mods.map((m) => m.manifest.name)).toContain('catalog');
-  });
+  }, 120000); // ruling C3.T-30: cold autoload exceeds the 5000ms default (5.8s per ruling; 18-30s+ measured when run alongside the health tests)
 
   it('has exactly one function handler per catalog.yaml operationId; manifest.handlers is handlers/index', () => {
     expect(Object.keys(handlers).sort()).toEqual([...OPS].sort());
@@ -149,8 +149,9 @@ describe('stub inventory (CR-C3-008, 06-PLAN T-01)', () => {
     expect(seen).toBe((pending as string[]).length);
   });
 
-  it('a stub renders as a 503 problem and leaks nothing about the request', async () => {
-    const err = await handlers[OPS[0]!]!({ ...REQ, body: { secret: 'S3CR3T' } }, CTX).catch((e: unknown) => e);
+  // Ruling C3.T-30: pick a handler that is still a stub (pending.json), not a fixed OPS[0] that a later task makes real.
+  it.skipIf((pending as string[]).length === 0)('a stub renders as a 503 problem and leaks nothing about the request', async () => {
+    const err = await handlers[(pending as string[])[0]!]!({ ...REQ, body: { secret: 'S3CR3T' } }, CTX).catch((e: unknown) => e);
     const p = toProblem(err, '/v1/catalog/x', '0190a1b2-c3d4-7e5f-8a9b-0c1d2e3f4a5b');
     expect(p).toMatchObject({ status: 503, code: 'common.service_unavailable' });
     expect(JSON.stringify(p)).not.toContain('S3CR3T');

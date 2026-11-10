@@ -190,7 +190,7 @@ export function createReprocessService(deps: ReprocessDeps = {}) {
   }
 
   /** port + event per record, then the run and its records (final values), then the access_log row. All on ctx.tx. */
-  async function execute(ctx: ReprocessCtx, s: ReturnType<typeof scope>, msg: Row, o: { kind: Kind; runNo: number; body: Row; driver: InstrumentDriver; outcome: string; errorCode?: string;
+  async function execute(ctx: ReprocessCtx, s: ReturnType<typeof scope>, msg: Row, o: { kind: Kind; runNo: number; body: Row; driver: { code: string; version: string }; outcome: string; errorCode?: string;
     items: Item[]; counters: Row; rawSha?: string; detail?: Record<string, string> }) {
     const events = createInstrumentEvents(ctx.events);
     const tx = ctx.tx as { savepoint<T>(fn: (t: unknown) => Promise<T>): Promise<T> };
@@ -248,7 +248,7 @@ export function createReprocessService(deps: ReprocessDeps = {}) {
       const r = await itemsFromParse(ctx, msg, driver, Buffer.from(raw['raw_bytes']), raw['raw_sha256'], live, s.actorId);
       const res = await execute(ctx, s, msg, { kind: 'reprocess', runNo: Number(latest['run_no']) + 1, body, driver, outcome: r.quarantined ? 'quarantined' : live ? 'parsed' : 'shadow',
         ...(r.quarantined ? { errorCode: 'instruments.message_malformed' } : {}), items: r.items, counters: r.counters, rawSha: raw['raw_sha256'] });
-      return { status: 200, body: res };
+      return { status: 200, body: { ...res, preview: !live } };                      // TRD E38: true when not live and nothing was sent
     },
 
     /** E39 — AC-19.2, AC-19.3, AC-19.5 */
@@ -263,7 +263,7 @@ export function createReprocessService(deps: ReprocessDeps = {}) {
         || !src['instrument_analyte_code'] || !src['record_kind']) throw notAllowed();          // ponytail: attachment-record re-match needs the attachments repo, 409 until then
       const body = parseBody(input?.body, true);
       if (body['sample_barcode'] === src['sample_barcode']) fail('/sample_barcode');           // AC-19.5: must differ (the error never echoes it)
-      const driver = driverOf(msg);
+      const driver = { code: String(src['run_driver_code']), version: String(src['run_driver_version']) };   // re-match parses nothing: the source run's driver
       const live = msg['instrument_state'] === 'live';
       const r = itemFromRecord(msg, src, body['sample_barcode'], live, s.actorId);
       const res = await execute(ctx, s, msg, { kind: 'rematch', runNo: Number(latest['run_no']) + 1, body, driver, outcome: live ? 'parsed' : 'shadow', items: r.items, counters: r.counters,

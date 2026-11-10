@@ -38,7 +38,7 @@ export function createReprocessRepo(): ReprocessRepo {
     getMessageRawBytes: messages.getMessageRawBytes,
     async findRecord(tx, tenantId, recordId) {
       return (await tx.query(
-        `SELECT mr.*, r.run_no FROM instruments.message_records mr JOIN instruments.processing_runs r ON r.tenant_id = mr.tenant_id AND r.id = mr.run_id
+        `SELECT mr.*, r.run_no, r.driver_code AS run_driver_code, r.driver_version AS run_driver_version FROM instruments.message_records mr JOIN instruments.processing_runs r ON r.tenant_id = mr.tenant_id AND r.id = mr.run_id
           WHERE mr.tenant_id = $1 AND mr.id = $2`, [tenantId, recordId])).rows[0];
     },
     async insertRun(tx, tenantId, r) {

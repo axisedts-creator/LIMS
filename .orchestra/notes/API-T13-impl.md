@@ -1,7 +1,7 @@
-# API-T13 impl (writer) — implemented; 62/62 reprocess tests pass after ruling (tests revised, no impl change needed)
-Files: service/reprocess.service.ts (E38/E39), repo/reprocess.repo.ts (INSERT-only), handlers/reprocess.handlers.ts + handlers/index.ts; `export` added to within/fit/qcPatterns/mapOrganism/mapAst (ingest.service.ts) and toRun/toRecord (messages.service.ts).
+# API-T13 impl (writer) — review CHANGES 1+2 applied; reprocess tests 63/63 pass
+Files: service/reprocess.service.ts (E38/E39), repo/reprocess.repo.ts (INSERT-only; findRecord now also selects run driver_code/driver_version), handlers/reprocess.handlers.ts + handlers/index.ts; exports added in ingest.service.ts / messages.service.ts.
+Review fixes: E38 200 body adds `preview: !live`; E39 no longer needs a registered driver — rematch run carries the source run's driver_code/driver_version (`execute` takes `{ code, version }`); driverOf is E38-only.
 [CONV] order 404 -> assertRole(instruments.message.rematch, message centre) -> 409 -> 400 -> 422 -> raw read -> work; one savepoint per patient record: port, then event; access_log last, same tx.
-[CONV] port LimsError: record row gets port_reason_code=code, emit_status `not_applicable`, no event; metric port_outcome label `error`. Non-live instrument = run.outcome `shadow`, no port/event; parse failure = run `quarantined` + instruments.message_malformed, 200.
-Open: attachment-record re-match -> 409 until attachments repo exists; no observed_codes upsert on reprocess; calibration event is API-T16; concurrent reprocess of one message hits (message_id, run_no) unique violation.
-Checks: verify.cmd -> reprocess.service + handlers all pass (100/104 incl. boot). boot.test: 3 fail at default timeouts; with --testTimeout=180000 only "boots and mounts…" fails on its hardcoded 30 s (pre-existing since API-T11, cold bootstrap ~37 s).
-tsc: no errors under src/modules/instruments; pre-existing TS2835/TS5097 errors in contracts/ports and packages/shared-ts (not owned). No lint script in services/api.
+[CONV] port LimsError: port_reason_code=code, emit_status `not_applicable`, no event; metric port_outcome `error`. Non-live = run `shadow`, nothing sent; parse failure = run `quarantined` + instruments.message_malformed, 200.
+Open: attachment-record re-match -> 409; no observed_codes upsert on reprocess; concurrent reprocess of one message -> (message_id, run_no) unique violation -> 500 not 409.
+Checks: instruments suite 1511/1513; 2 fails outside T13 files: boot.test "boots and mounts…" (pre-existing hardcoded 30 s timeout, ~44 s cold boot), signing.test Go-fixture copy (AG-T11 owns). tsc: no errors under src/modules/instruments.

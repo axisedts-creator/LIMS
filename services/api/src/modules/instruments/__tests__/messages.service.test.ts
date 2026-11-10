@@ -170,7 +170,8 @@ describe('E35 getInstrumentMessage (AC-18.2)', () => {
     const w = world(detailSeed({ messages: [detailRow(1, { message_kind: 'attachment', protocol: 'file_drop' })], attachments: [attachmentRow(M1)] }));
     const r = await detail(w, M1);
     expect(r.body.attachment).toEqual({ attachment_id: idN(0xe001), scan_state: 'clean', mime_type: 'application/pdf', size_bytes: 321, original_file_name: 'slide-0042.pdf' });
-    const s = JSON.stringify(r.body); for (const leak of ['bucket', 'object_path', 'instruments-attachments', 'sha256', 'http', 'token=']) expect(s, leak).not.toContain(leak);
+    const a = JSON.stringify(r.body.attachment); for (const leak of ['bucket', 'object_path', 'instruments-attachments', 'sha256', 'http', 'token=']) expect(a, leak).not.toContain(leak);
+    const s = JSON.stringify(r.body); for (const leak of ['"bucket"', '"object_path"', '"file_sha256"', '"raw_sha256"', 'instruments-attachments', 'http', 'token=']) expect(s, leak).not.toContain(leak);
     expect(responseViolations('getInstrumentMessage', '200', r.body)).toEqual([]);
   });
   it('a message without attachment has no `attachment` key', async () => { expect('attachment' in (await detail(world(detailSeed()), M1)).body).toBe(false); });

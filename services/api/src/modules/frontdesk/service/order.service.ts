@@ -176,7 +176,7 @@ export async function listOrders(hctx: unknown, query: unknown): Promise<Result>
 }
 
 // ======================= FD-T09: F8b quoteOrderItemsChange / F13 changeOrderItems / F14 cancelOrder =======================
-// One request = ONE tx (ctx.tx). The order row is locked FOR UPDATE first, so a racing F13/F14 waits, then sees the moved version (409) before any billing call is made.
+// One request = ONE tx (ctx.tx). The order row is row-locked first (lockOrderById), so a racing F13/F14 waits, then sees the moved version (409) before any billing call is made.
 // Retry-once in a NEW tx on billing.counter_busy / 40P01 (03-APP-FLOW §2.3 step 9, D-25) is NOT done: the handler ctx has no tx opener (same CR as F9: .orchestra/cr/FD-T06-retry-quote-ext.md);
 // the error surfaces (409 billing.counter_busy) and the whole request is rolled back, never half-written.
 // No log line is written here at all: names, registration no and cancel reason text never reach the logs (07-SECURITY §5).
@@ -255,7 +255,7 @@ function parseChange(body: unknown): ChangeIn {
   return { add, remove, ...(typeof fp === 'string' ? { fingerprint: fp } : {}), payments };
 }
 
-/** The order of the path, tenant-filtered; outside the actor's centre scope = 404 (never 403). `lock` = FOR UPDATE (F13/F14). */
+/** The order of the path, tenant-filtered; outside the actor's centre scope = 404 (never 403). `lock` = row lock (F13/F14). */
 async function loadOrder(c: ChangeCtx, params: unknown, lock: boolean): Promise<Obj> {
   const id = isObj(params) ? params['order_id'] : undefined;
   const o = typeof id === 'string' && UUID.test(id) ? await (lock ? lockOrderById : getOrderById)(c.tx, c.tenantId, id) : null;
@@ -345,7 +345,8 @@ export function changeItems(hctx: unknown, params: unknown, headers: unknown, bo
         if (it['status'] !== 'active') throw new LimsError('frontdesk.order_not_editable');
       }
       const states = new Map((await lab.getOrderItemProcessingState(pc, { orderId: orderId as never })).map((s) => [s.orderItemId as string, s]));
-      if (r.remove.some((x) => states.get(x.itemId)?.removable === false)) throw new LimsError('frontdesk.order_not_editable');
+      // fails CLOSED (03-IC §3.2, TRD:482): an item LabPort does not report is not removable.
+      if (r.remove.some((x) => states.get(x.itemId)?.removable !== true)) throw new LimsError('frontdesk.order_not_editable');
     }
 
     // stale-quote guard: the fingerprint must equal the F8b quote over exactly `add`, re-priced now inside this tx (nothing is written and no counter touched before this)

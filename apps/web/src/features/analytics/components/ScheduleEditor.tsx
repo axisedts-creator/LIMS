@@ -1,7 +1,7 @@
 'use client';
 // S6 schedule editor (04-UI-UX §8): create + edit. Server rules are mirrored (name, 1-10 reports, 1-20 recipients, <= 20 centres) but the API stays the authority.
 // Create sends an Idempotency-Key (one per distinct body, reused on a retry of the same body); edit sends If-Match "<version>" and never retries a 409.
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Banner } from '@lims/ui/components/Banner';
 import { Button } from '@lims/ui/components/Button';
@@ -86,6 +86,20 @@ export function ScheduleEditor({ init, reports, recipients, centres, id, version
   ];
   const left = recipients.filter((r) => !people.includes(r.id));
 
+  // Ctrl+Enter submits from anywhere on the page (the button advertises it; native implicit submit only works from a text input).
+  const formBox = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== 'Enter' || !(e.ctrlKey || e.metaKey)) return;
+      const form = formBox.current?.querySelector('form');
+      if (!form) return;
+      e.preventDefault();
+      form.requestSubmit();
+    };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, []);
+
   return (
     <>
       <PageHeader title={id ? 'Edit scheduled report' : 'New scheduled report'} helpKey="analytics.schedules" breadcrumbs={[{ label: 'Scheduled reports', href: '/analytics/schedules' }, { label: id ? 'Edit' : 'New' }]} />
@@ -94,6 +108,7 @@ export function ScheduleEditor({ init, reports, recipients, centres, id, version
           <Banner tone="danger" title={failure.text} {...(failure.conflict ? { action: { label: 'Reload latest version', onPress: () => router.refresh() } } : {})} />
         </div>
       ) : null}
+      <div ref={formBox}>
       <Form onSubmit={submit}>
         <TextField label="Name" name="name" maxLength={80} isRequired value={name} onChange={(v) => { setName(v); setErrors((x) => ({ ...x, name: undefined })); }} {...(errors.name ? { error: errors.name } : {})} />
 
@@ -152,6 +167,7 @@ export function ScheduleEditor({ init, reports, recipients, centres, id, version
           <Button variant="ghost" onPress={() => router.push('/analytics/schedules')}>Cancel</Button>
         </div>
       </Form>
+      </div>
 
       {runs ? (
         <DataTable<RunVM>

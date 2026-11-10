@@ -2,6 +2,7 @@ import 'server-only';
 // S5 My exports (04-UI-UX §7): permission -> whitelisted query -> API list -> plain-JSON view model for the client table.
 // Download eligibility is decided here (status ready, not past expires_at, downloads left); the file itself is only reachable through the BFF route.
 import { ExportsView, type ExportRowVM } from '../components/ExportsView';
+import { addDays } from '../components/period';
 import { reportLabel } from '../report-codes';
 import { exportsQuery, listAnalyticsExports, type ExportRow } from './exports.server';
 import { requirePermission } from './reports.server';
@@ -15,6 +16,7 @@ const FAIL: Record<string, string> = {
 const STATUS_LABEL: Record<string, string> = { queued: 'Queued', building: 'Building', ready: 'Ready', failed: 'Failed', expired: 'Expired' };
 const FORMAT_LABEL: Record<string, string> = { xlsx: 'Excel (.xlsx)', csv: 'CSV (.csv)', pdf: 'PDF' };
 const str = (v: unknown) => (typeof v === 'string' ? v : '');
+const ISO = /^\d{4}-\d{2}-\d{2}$/;
 const nn = (v: unknown) => (typeof v === 'number' && Number.isFinite(v) ? v : undefined);
 
 /** Period as the user chose it, exactly as stored in params (no B.S.<->A.D. conversion). */
@@ -22,7 +24,10 @@ function periodOf(p: Record<string, unknown> | undefined): string {
   const d = p ?? {};
   if (str(d['bs_month'])) return str(d['bs_month']);
   if (str(d['fiscal_year_bs'])) return str(d['fiscal_year_bs']);
-  if (str(d['business_date_from']) && str(d['business_date_to'])) return `${str(d['business_date_from'])} – ${str(d['business_date_to'])}`;
+  const from = str(d['business_date_from']);
+  const to = str(d['business_date_to']);
+  if (ISO.test(from) && ISO.test(to)) return `${from} – ${addDays(to, -1)}`; // stored `to` is exclusive (01-PRD:246); show the inclusive last day
+  if (from && to) return `${from} – ${to}`;
   return '—';
 }
 

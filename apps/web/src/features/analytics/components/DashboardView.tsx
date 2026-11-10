@@ -32,7 +32,8 @@ function delta(t: Tile): { value: string; direction: 'up' | 'down' | 'flat'; isG
 const val = (d: DashboardDto, k: string) => d.tiles[k];
 const sub = (d: DashboardDto, k: string) => { const t = val(d, k); return t ? fmt(t) : '0'; };
 
-export function DashboardView({ dto, query }: { dto: DashboardDto; query: string }) {
+/** readOnly = embedded in a report run card (04-UI-UX §9): no page header, auto-refresh, refresh or "show yesterday" actions. */
+export function DashboardView({ dto, query, readOnly = false }: { dto: DashboardDto; query: string; readOnly?: boolean }) {
   const { period, freshness } = dto;
   const stale = freshness.filter((f) => f.is_stale);
   const times = freshness.map((f) => f.refreshed_at).filter((x): x is string => !!x).sort();
@@ -54,21 +55,23 @@ export function DashboardView({ dto, query }: { dto: DashboardDto; query: string
   const empty = Object.values(dto.tiles).every((t) => !t || t.value === 0);
   const days = dto.series.days;
   const depts = dto.department_top;
+  const status = (
+    <>
+      <FreshnessBadge isStale={stale.length > 0} {...(oldest ? { refreshedAt: oldest } : {})} {...(reason ? { reason } : {})} />
+      {stale.length > 0 && oldest ? <span> Updated {WHEN.format(Date.parse(oldest))}</span> : null}
+    </>
+  );
 
   return (
     <>
-      <AutoRefresh />
-      <PageHeader
-        title="Dashboard"
-        helpKey="analytics.dashboard"
-        status={
-          <>
-            <FreshnessBadge isStale={stale.length > 0} {...(oldest ? { refreshedAt: oldest } : {})} {...(reason ? { reason } : {})} />
-            {stale.length > 0 && oldest ? <span> Updated {WHEN.format(Date.parse(oldest))}</span> : null}
-          </>
-        }
-        actions={<RefreshButton />}
-      />
+      {readOnly ? (
+        <div>{status}</div>
+      ) : (
+        <>
+          <AutoRefresh />
+          <PageHeader title="Dashboard" helpKey="analytics.dashboard" status={status} actions={<RefreshButton />} />
+        </>
+      )}
       <p>
         {period.label_ad} · {period.label_bs} B.S.
       </p>
@@ -96,7 +99,7 @@ export function DashboardView({ dto, query }: { dto: DashboardDto; query: string
       {empty ? (
         <>
           <EmptyState title="No activity in this period" />
-          <ShowYesterday from={period.business_date_from} query={query} />
+          {readOnly ? null : <ShowYesterday from={period.business_date_from} query={query} />}
         </>
       ) : (
         <Grid columns={2}>

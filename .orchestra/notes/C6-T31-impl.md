@@ -1,0 +1,7 @@
+# C6-T31 impl (writer)
+Files: app/(staff)/reporting/{page,loading,error}.tsx + 9 sub-pages + 3 PDF proxy route.ts; features/reporting/{components/* (11 new), help/*.md (10), nav.manifest.ts, server/pdf.server.ts}; read/write.server.ts typing + previewTemplate now sends the required {variant}.
+Result: 197/200 pass (`.orchestra\notes\C6-T31-verify.cmd`); tsc clean for non-test files. The 3 failures are test defects → `.orchestra/notes/C6-T31-dispute.md` (ADMIN fixture lacks reporting.token.revoke; `{lab_name}` typed through user-event; callback-token MSW path ≠ contract). ESLint is not installed in this checkout (no lint script) — not run.
+[CONV] native `<select>` (ReasonDialog/NativeSelect) instead of kit ConfirmDialog's react-aria Select for reason dialogs; NumberInput/SimpleTable (native table + caption) as noted in their headers; Timeline replaced by a plain ordered list.
+[CONV] PDF links go through same-origin proxy routes (browser never holds the token); outsourced link maps to GET /outsourced-files/{id}/content.
+LD-70: no API stubs became real handlers in this task (web only) → pending.json untouched.
+Open: bulk release needs report-VERSION ids but ReportSummary has no latest_version_id (falls back to report id; CR .orchestra/cr/C6-T31.md); next.config serverActions.bodySizeLimit must allow 15 MB PDF uploads (outside owned paths); centre-contacts table is read-only (no write actions in the BFF); template-preview/print polling (5 s/2 min) and E2E not covered by tests.

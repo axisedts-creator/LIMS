@@ -1,11 +1,12 @@
 // TRF F20 uploadTrf / F21 getTrfAttachment / F21a getTrfAttachmentContent (02-TRD §2, §5.1, §6.3; 03-APP-FLOW §1.4; PRD US-FD-09.1-5; 07-SECURITY REQ-SEC-034/035/083-085, A11, A20; 08 R12b, A13 P-2).
-// F20: the ONLY writer of the object is ctx.uploads.accept (magic bytes, 413/415, PNG re-encode without metadata, scan). The row stays `pending` under the quarantine key {tenant}/q/{yyyy}/{mm}/{id}.{ext};
+// F20: the ONLY writer of the object is ctx.uploads.accept (magic bytes, 413/415, PNG re-encode without metadata, scan). The row stays `pending` under the quarantine key {tenant}/q/{yyyy}/{mm}/{id} (05-SCHEMA trf_attachments.object_path);
 // the worker frontdesk.trf_scan is the only one that may set `clean` and move the object. A scanner outage never blocks the upload (the worker decides later).
 // F21a: bytes go through the API (ctx.download.stream: scan gate, P-2 headers, trf.view access-log row); no Storage URL is ever produced. Not found / other tenant / out of centre scope = 404.
 // Logs: this service logs nothing (file names are P2). Time is ctx.now(). Ctx shape ASSUMED as in the reporting upload handlers: uploads, storage, download (+ the PatientCtx basics).
 import { uuidv7 } from '../../../../../../packages/shared-ts/src/uuidv7/index.js';
 import { LimsError } from '../../../core/errors.js';
 import { contentDisposition } from '../../../core/storage/download.js';
+import { loadFrontdeskConfig } from '../config.js';
 import type { IncomingFile, UploadAcceptOptions } from '../../../core/uploads/index.js';
 import { isoUtc } from '../mappers/patient.dto.js';
 import { getOrderById } from '../repository/orders.repo.js';
@@ -24,9 +25,8 @@ type Row = Record<string, any>;
 const UPLOAD: typeof P.trfUpload = 'frontdesk.trf.upload';
 const READ: typeof P.orderRead = 'frontdesk.order.read';
 const BUCKET = 'frontdesk-trf' as const;
-const MAX_BYTES = 15 * 1024 * 1024;                                     // 15728640 = DB trf_attachments__size__ck
+const SIZE_CAP = 15728640;                                               // DB trf_attachments__size__ck; LIMS_FRONTDESK_TRF_MAX_BYTES may only lower it
 const ALLOW = ['application/pdf', 'image/jpeg', 'image/png'] as const;
-const EXT: Readonly<Record<string, string>> = { pdf: 'pdf', png: 'png', jpg: 'jpg', jpeg: 'jpg' };
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 const HEADER_MAX = 255;                                                  // frontdesk.yaml F21a Content-Disposition maxLength
 
@@ -93,10 +93,9 @@ export async function uploadTrf(hctx: unknown, body: unknown): Promise<{ status:
   }
 
   const id = uuidv7(); const now = c.now();
-  const ext = EXT[(name.split('.').pop() ?? '').toLowerCase()] ?? 'bin';                // an unknown extension is refused by accept() (415)
-  const objectPath = `${c.tenantId}/q/${now.getUTCFullYear()}/${String(now.getUTCMonth() + 1).padStart(2, '0')}/${id}.${ext}`;   // server-generated: the client name never reaches the key
+  const objectPath = `${c.tenantId}/q/${now.getUTCFullYear()}/${String(now.getUTCMonth() + 1).padStart(2, '0')}/${id}`;   // server-generated: the client name never reaches the key
   const up = await c.uploads.accept({ filename: name, mimeType: f['mimeType'], bytes: f['bytes'] },
-    { allow: ALLOW, maxBytes: MAX_BYTES, bucket: BUCKET, objectPath, images: { reencode: true, stripMetadata: true }, scan: 'required' });
+    { allow: ALLOW, maxBytes: Math.min(loadFrontdeskConfig().trfMaxBytes, SIZE_CAP), bucket: BUCKET, objectPath, images: { reencode: true, stripMetadata: true }, scan: 'required' });
   try {
     const by = c.actor.membershipId ?? c.actor.id;                                       // [CONV] created_by holds the membership id (as orders / flags)
     const row = await insertTrfAttachment(c.tx, c.tenantId, { id, centre_id: centreId, order_id: orderId ?? null, object_path: up.objectPath, original_filename: name,

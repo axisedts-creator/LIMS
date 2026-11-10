@@ -1,5 +1,5 @@
 // frontdesk.trf_scan (02-TRD §10, 5 attempts; 07-SECURITY REQ-SEC-024/083-085; 08 A13 P-2). Enqueued by uploadTrf with job_key = attachment_id, tenant scope.
-// Scans the STORED quarantine object (fail closed): clean -> move to {tenant}/{yyyy}/{mm}/{id}[.ext], row `clean` (the only place that may set it); hit -> `quarantined` (never moved, deleted or served);
+// Scans the STORED quarantine object (fail closed): clean -> move to {tenant}/{yyyy}/{mm}/{id} (05-SCHEMA object_path), row `clean` (the only place that may set it); hit -> `quarantined` (never moved, deleted or served);
 // scanner / store unavailable -> throw (graphile retries), on the last attempt `failed` (the UI offers a re-upload). Final states stay final: a redelivery is a no-op.
 // ponytail: no qpdf sanitise step (needs the sandbox helper), so `sanitized` stays false; sha256 is immutable (mutable-columns trigger) and already that of the stored bytes (F20 hashes what accept() stored).
 // Logs and metrics carry ids and codes only: never a file name or content (P2). REQ-SEC-024: acts only on the tenant of the job claims; every statement binds tenant_id.
@@ -38,8 +38,7 @@ export const trfScan: TaskHandler = async (payload, jobCtx) => {
   const from = String(a.object_path);
   try { assertBucket(a.bucket); assertTenantPath(tenantId, from); } catch { return fail('object_path_invalid', false); }   // a corrupt row never reads outside the tenant
   const created = new Date(a.created_at);
-  const ext = from.includes('.') ? `.${from.split('.').pop()}` : '';
-  const to = `${tenantId}/${created.getUTCFullYear()}/${String(created.getUTCMonth() + 1).padStart(2, '0')}/${id}${ext}`;
+  const to = `${tenantId}/${created.getUTCFullYear()}/${String(created.getUTCMonth() + 1).padStart(2, '0')}/${id}`;
 
   let bytes: Uint8Array; let src = from;
   try { bytes = await ctx.storage.read(a.bucket, from); } catch {

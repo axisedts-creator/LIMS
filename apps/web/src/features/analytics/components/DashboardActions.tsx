@@ -1,0 +1,63 @@
+'use client';
+// S1 header actions (04-UI-UX §2 Refresh; §3 empty-state "Show yesterday"). Refresh goes through a server action -> BFF.
+import { useRef, useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { Button } from '@lims/ui/components/Button';
+import { useToast } from '@lims/ui/components/Toast';
+import { refreshAction } from '../server/actions';
+
+const COOLDOWN_MS = 5 * 60_000; // ponytail: 5 min per 04-UI-UX; the API's next_allowed_at wins when present
+const TIME = new Intl.DateTimeFormat('en-GB', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Kathmandu' });
+const at = (iso: string | undefined) => {
+  const t = iso ? Date.parse(iso) : NaN;
+  return TIME.format(Number.isFinite(t) ? t : Date.now() + COOLDOWN_MS);
+};
+
+export function RefreshButton() {
+  const toast = useToast();
+  const [busy, setBusy] = useState(false);
+  const [until, setUntil] = useState<string>();
+  const inflight = useRef(false);
+
+  const press = async () => {
+    if (inflight.current) return;
+    inflight.current = true;
+    setBusy(true);
+    try {
+      const r = await refreshAction();
+      const text = `Refresh available at ${at(r.ok ? r.data.nextAllowedAt : undefined)}`;
+      if (r.ok || r.status === 429) {
+        setUntil(text);
+        if (!r.ok) toast.show({ tone: 'warning', title: text });
+      } else {
+        toast.show({ tone: 'danger', title: 'Refresh failed. Try again.' });
+      }
+    } catch {
+      toast.show({ tone: 'danger', title: 'Refresh failed. Try again.' });
+    } finally {
+      inflight.current = false;
+      setBusy(false);
+    }
+  };
+
+  return (
+    <>
+      <Button variant="secondary" iconStart="refresh" isLoading={busy} isDisabled={!!until} onPress={press}>
+        Refresh
+      </Button>
+      {until ? <span role="status">{until}</span> : null}
+    </>
+  );
+}
+
+/** `query` = already-whitelisted non-period params (centre/branch), "a=b&c=d" or "". */
+export function ShowYesterday({ from, query }: { from: string; query: string }) {
+  const router = useRouter();
+  const go = () => {
+    const d = new Date(`${from}T00:00:00Z`);
+    d.setUTCDate(d.getUTCDate() - 1);
+    const prev = d.toISOString().slice(0, 10);
+    router.push(`/analytics?business_date_from=${prev}&business_date_to=${from}${query ? `&${query}` : ''}`);
+  };
+  return <Button variant="primary" onPress={go}>Show yesterday</Button>;
+}

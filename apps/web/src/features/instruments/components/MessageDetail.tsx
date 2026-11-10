@@ -56,7 +56,13 @@ export function MessageDetail({ message: m, permissions }: { message: MessageDet
   const columns: ColumnDef<MessageRecord>[] = [
     { id: 'seq', header: '#', align: 'end', cell: (r) => r.record_seq },
     { id: 'class', header: 'Class', cell: (r) => r.record_class },
-    { id: 'barcode', header: 'Barcode', isRowHeader: true, cell: (r) => (r.sample_barcode ? <span className="lims-mono">{r.sample_barcode}</span> : '—') },
+    { id: 'barcode', header: 'Barcode', isRowHeader: true, cell: (r) => (
+      <>
+        {r.sample_barcode ? <span className="lims-mono">{r.sample_barcode}</span> : '—'}
+        {/* react-aria names a row by its row-header cell only: add the analyte code so QC rows (no barcode) are identifiable */}
+        <span className="lims-visually-hidden"> {r.instrument_analyte_code}</span>
+      </>
+    ) },
     { id: 'code', header: 'Code', cell: (r) => r.instrument_analyte_code ?? '—' },
     { id: 'value', header: 'Value', cell: (r) => r.value_raw ?? '—' },
     { id: 'unit', header: 'Unit', cell: (r) => r.unit_raw ?? '—' },

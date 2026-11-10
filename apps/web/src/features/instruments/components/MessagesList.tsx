@@ -80,8 +80,8 @@ export function MessagesList({ messages, rejections, instruments, agents }: {
   const reset = { received_at_from: undefined, received_at_to: undefined, instrument_id: undefined, agent_id: undefined, message_kind: undefined, latest_outcome: undefined, has_qc: undefined, has_unmapped: undefined };
 
   const columns: ColumnDef<MessageSummary>[] = [
-    { id: 'received', header: 'Received', isRowHeader: true, cell: (m) => <a className="lims-link" href={`/instruments/messages/${m.id}`}><DateText value={m.received_at as never} withTime /></a> },
-    { id: 'instrument', header: 'Instrument', cell: (m) => m.instrument_code },
+    { id: 'received', header: 'Received', cell: (m) => <a className="lims-link" href={`/instruments/messages/${m.id}`}><DateText value={m.received_at as never} withTime /></a> },
+    { id: 'instrument', header: 'Instrument', isRowHeader: true, cell: (m) => m.instrument_code },
     { id: 'kind', header: 'Kind', cell: (m) => KIND_LABEL[m.message_kind] ?? m.message_kind },
     { id: 'records', header: 'Records (patient / QC)', align: 'end', cell: (m) => (m.latest_run ? `${m.latest_run.patient_records} / ${m.latest_run.qc_records}` : '—') },
     { id: 'unmapped', header: 'Unmapped', align: 'end', cell: (m) => m.latest_run?.unmapped_records ?? '—' },
@@ -92,10 +92,10 @@ export function MessagesList({ messages, rejections, instruments, agents }: {
   const agentCode = new Map(agents.map((a) => [a.id, a.agent_code]));
   const instrumentCode = new Map(instruments.map((i) => [i.id, i.instrument_code]));
   const rejectionColumns: ColumnDef<MessageRejection>[] = [
-    { id: 'received', header: 'Received', isRowHeader: true, cell: (r) => <DateText value={r.received_at as never} withTime /> },
+    { id: 'received', header: 'Received', cell: (r) => <DateText value={r.received_at as never} withTime /> },
     { id: 'agent', header: 'Agent', cell: (r) => agentCode.get(r.agent_id) ?? <IdText value={r.agent_id} /> },
     { id: 'instrument', header: 'Claimed instrument', cell: (r) => instrumentCode.get(r.claimed_instrument_id) ?? <IdText value={r.claimed_instrument_id} /> },
-    { id: 'reason', header: 'Reason', cell: (r) => r.reason_code },
+    { id: 'reason', header: 'Reason', isRowHeader: true, cell: (r) => r.reason_code },
     { id: 'size', header: 'Size', align: 'end', cell: (r) => sizeText(r.size_bytes) },
   ];
 

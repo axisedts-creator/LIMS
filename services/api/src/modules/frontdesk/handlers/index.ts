@@ -3,6 +3,12 @@
 // Stubs never read the request, so no request data can reach the error.
 import { LimsError } from '../../../core/errors.js';
 import type { Handler } from '../../../core/module.js';
+import { handler as createPatient } from './createPatient.js';
+import { handler as getPatient } from './getPatient.js';
+import { handler as listPatientOrders } from './listPatientOrders.js';
+import { handler as recordPatientConsent } from './recordPatientConsent.js';
+import { handler as searchPatients } from './searchPatients.js';
+import { handler as updatePatient } from './updatePatient.js';
 
 const OPERATION_IDS = [
   'searchPatients', 'createPatient', 'listPossibleDuplicatePatients', 'getPatient', 'updatePatient', 'recordPatientConsent',
@@ -18,6 +24,11 @@ const notImplemented: Handler = async () => {
   throw new LimsError('common.service_unavailable');
 };
 
+// FD-T04: F1-F6 are real handlers; the rest stay stubs until their task.
+const real: Partial<Record<OperationId, Handler>> = {
+  searchPatients, createPatient, getPatient, updatePatient, recordPatientConsent, listPatientOrders,
+};
+
 export const handlers: Readonly<Record<OperationId, Handler>> = Object.freeze(
-  Object.fromEntries(OPERATION_IDS.map((op) => [op, notImplemented])) as Record<OperationId, Handler>,
+  Object.fromEntries(OPERATION_IDS.map((op) => [op, real[op] ?? notImplemented])) as Record<OperationId, Handler>,
 );

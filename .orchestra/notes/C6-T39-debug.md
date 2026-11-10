@@ -10,3 +10,7 @@ Fix: none possible in C6 files. Needs lead: `testTimeout: 60000` in services/api
 Cause: same cold-start 5000ms default testTimeout (3 files import in parallel; first test pays the cold path). Not a T39 logic fault.
 Re-run of the same 3 files with --testTimeout=60000 --hookTimeout=60000: 97/97 pass (36 s). No impl/test edits.
 Fix needed from lead: `testTimeout`/`hookTimeout` 60000 in services/api/vitest.config.ts (C0-owned, LD-53) or the flags in C6-T39-verify.cmd. No dispute.
+
+## round 4 (verify.log 23:17: api 97/97 pass after LD-87 config; worker 2-3 timeouts at 5000ms)
+Cause: LD-87 testTimeout/hookTimeout 60000 is already in services/api/vitest.config.ts (api part green). The worker package (services/worker) has NO vitest config, so t39.a4.first_assembly.test.ts runs at the 5000ms default and its first tests pay the cold start. Rerun alone with --testTimeout=60000 --hookTimeout=60000: worker 11/11 pass (26 s). Not a T39 logic fault; tests untouched, no dispute.
+Fix NOT applied: LD-87 authorises only services/api/vitest.config.ts. Needs lead: LD covering a services/worker/vitest.config.ts (testTimeout/hookTimeout 60000, C0-owned) or the flags on the worker line of C6-T39-verify.cmd.

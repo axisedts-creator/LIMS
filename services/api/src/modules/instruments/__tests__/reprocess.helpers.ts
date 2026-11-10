@@ -53,7 +53,7 @@ export const msgRow = (n: number, o: Row = {}): Row => ({
 });
 /** a stored patient record of run 1 (what the live run archived). value_numeric is a decimal STRING (numeric column). */
 export const recordRow = (n: number, messageId: string, o: Row = {}): Row => ({
-  id: recId(n), tenant_id: TENANT_A, centre_id: CENTRE_A1, message_id: messageId, run_id: idN(0xe201), run_no: 1, record_seq: n, record_class: 'patient', sample_barcode: PLANT.barcode, control_id_raw: null,
+  id: recId(n), tenant_id: TENANT_A, centre_id: CENTRE_A1, message_id: messageId, run_id: idN(0xe201), run_no: 1, run_driver_code: 'astm_generic_e1394', run_driver_version: '1.0.0', record_seq: n, record_class: 'patient', sample_barcode: PLANT.barcode, control_id_raw: null,
   record_kind: 'quantitative', instrument_analyte_code: 'GLU', mapping_status: 'mapped', analyte_id: GLU_MAP.analyteId, test_id: GLU_MAP.testId, value_raw: '5.4', value_numeric: '5.4', unit_raw: 'mmol/L',
   instrument_flags: ['N'], instrument_result_time: '2026-11-07T04:00:00.000Z', instrument_clock_offset_seconds: 0, is_rerun: false, emit_status: 'emitted', event_id: idN(0xe300 + n), port_outcome: null,
   port_reason_code: null, port_result_id: null, source_record_id: null, warnings: [], created_by: AGENT_A1, ...o,

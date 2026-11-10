@@ -44,6 +44,7 @@ describe('E38 reprocess — AC-19.1', () => {
       reason_code: 'driver_fixed', reason_text: REASON_TEXT_PLANT, actor_type: 'user', patient_records: 2, qc_records: 1, calibrator_records: 0, unmapped_records: 1, emitted_events: 3 });
     expect(run[0]!.tx).toBe(s.w.tx);
     expect(r.body.run).toMatchObject({ run_no: 2, kind: 'reprocess', outcome: 'parsed', reason_code: 'driver_fixed', actor_type: 'user' });
+    expect(r.body.preview).toBe(false);                                           // live instrument: openapi E38 requires `preview`
     expect(r.body.records).toHaveLength(3);
     expect(r.body.records.map((x: Row) => x['record_class'])).toEqual(['patient', 'patient', 'qc']);
     expect(s.w.callsOf('insertRecords')).toHaveLength(1);                         // class A: one batched insert, no update anywhere
@@ -123,6 +124,7 @@ describe('E38 reprocess — AC-19.1', () => {
     const s = await setup({ msg: { instrument_state: state, latest_run: { run_no: 1, kind: 'live', outcome: 'shadow' } } });
     const r = await s.reprocess();
     expect(r.status).toBe(200); expect(r.body.run).toMatchObject({ kind: 'reprocess', outcome: 'shadow', run_no: 2 });
+    expect(r.body.preview).toBe(true);                                            // not live, nothing sent: says so in the response
     expect(s.port.calls).toEqual([]); expect(s.w.events).toEqual([]);
     for (const x of r.body.records) { expect(x['emit_status']).not.toBe('emitted'); expect(x['port_outcome'] ?? null).toBeNull(); }
     expect(s.w.accessRows()).toHaveLength(1);
@@ -202,6 +204,14 @@ describe('E38 eligibility — AC-19.4 and the 422', () => {
 
 describe('E39 re-match — AC-19.2, AC-19.5', () => {
   const rows = () => [recordRow(1, MSG), recordRow(2, MSG, { instrument_analyte_code: 'NA', value_raw: '141', value_numeric: '141' })];
+  it('re-match parses nothing: no registered driver is needed (200); the run carries the SOURCE run\'s driver_code/driver_version', async () => {
+    const d = spyDriver([GLU]); d.getDriver = () => undefined;
+    const s = await setup({ records: rows(), driver: d });
+    const r = await s.rematch();
+    expect(r.status).toBe(200);
+    expect(r.body.run).toMatchObject({ kind: 'rematch', driver_code: 'astm_generic_e1394', driver_version: '1.0.0' });
+    expect(s.w.callsOf('insertRun')[0]!.args[0]).toMatchObject({ driver_code: 'astm_generic_e1394', driver_version: '1.0.0' });
+  });
   it('a derived record (source_record_id, new barcode) in a rematch run; port + event carry processing_kind=rematch and source_record_id; original record unchanged; 200 { run, record }', async () => {
     const s = await setup({ records: rows() });
     const before = structuredClone(s.w.records);

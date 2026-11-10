@@ -2,3 +2,8 @@
 - Cause: verify fails "No test files found" — dir services/api/src/modules/frontdesk/__tests__/integration/ does not exist. Tester commit 5f59c49f "J-T01 tests" only renamed .orchestra/cr/C3.T-31.md; no test files written.
 - Not an implementation defect; no impl code change can fix it. Debugger may not author/edit tests. No fix applied.
 - Next: re-route to TESTER to write FD integration tests (real BillingCommandPort, registration rollback proves counter rollback, US-FD-03.5). Deps FD-T06, BL-T07 should be confirmed done first.
+
+## J-T01 debug round 2
+- Same state as round 1: `services/api/src/modules/frontdesk/__tests__/integration/` still absent, vitest "No test files found". Tester has written no integration tests.
+- Not an implementation bug; debugger may not author tests. No code change. Not a spec dispute either (nothing to cite).
+- Needed: route to TESTER to write the FD integration suite (real BillingCommandPort, registration rollback proves counter rollback, US-FD-03.5).

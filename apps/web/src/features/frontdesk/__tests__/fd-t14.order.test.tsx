@@ -316,20 +316,39 @@ describe('Billing tab (B7 data) and Attachments tab', () => {
     await userEvent.click(screen.getByRole('tab', { name: 'Attachments' }));
     expect(screen.getByRole('button', { name: /upload/i })).toBeTruthy();
   });
+
+  // Review item 2: TrfUploadForm (frontdesk.yaml ~L5289) has an optional order_id; without it the file is orphaned and never lands in this order's trf_attachments.
+  it('Attachments: upload from the order page posts multipart F21 with centre_id AND this order\'s order_id + Idempotency-Key', async () => {
+    // jsdom's FormData/File are not undici's, so a real multipart round-trip through MSW is not possible here: capture the outgoing fetch() instead.
+    let form: FormData | undefined; let key: string | null = null; let hits = 0;
+    const real = globalThis.fetch;
+    vi.spyOn(globalThis, 'fetch').mockImplementation(async (input: any, init?: any) => {
+      const u = new URL(typeof input === 'string' ? input : input.url ?? String(input));
+      if (u.pathname !== '/v1/frontdesk/trf-attachments') return real(input, init);
+      hits++; key = new Headers(init?.headers).get('idempotency-key'); form = init?.body as FormData;
+      return new Response(JSON.stringify(attachment({ id: U(43), scan_state: 'pending' })), { status: 201, headers: { 'content-type': 'application/json' } });
+    });
+    const V = await load();
+    view(V);
+    await userEvent.click(screen.getByRole('tab', { name: 'Attachments' }));
+    await userEvent.upload(screen.getByLabelText('TRF file'), new File([new Uint8Array([0x25, 0x50, 0x44, 0x46])], 'trf-new.pdf', { type: 'application/pdf' }));
+    await waitFor(() => expect(hits).toBe(1));
+    expect(form!.get('order_id')).toBe(ORDER);
+    expect(form!.get('centre_id')).toBe(order().centre_id);
+    expect((form!.get('file') as File).name).toBe('trf-new.pdf');
+    expect(key).toBeTruthy();
+  });
 });
 
 describe('pre-registered orders (US-FD-12.2 entry point on the order page)', () => {
-  it('banner "Booked — confirm on arrival" + "Confirm & bill" (needs frontdesk.registration.create); confirm posts F12 with If-Match + Idempotency-Key', async () => {
+  // Review item 3: ConfirmOrderRequest requires quote_fingerprint (frontdesk.yaml ~L5057), so a bare "Confirm & bill" can never succeed.
+  // Until FD-T13's payment panel is shared the banner stays, but there is no inline confirm control and nothing is POSTed to /confirm.
+  it('banner "Booked — confirm on arrival" stays; no "Confirm & bill" button; nothing posts to F12 /confirm', async () => {
     const V = await load();
     view(V, order({ status: 'pre_registered', source: 'engagement_booking' }));
     expect(screen.getByText(/Booked — confirm on arrival/)).toBeTruthy();
-    await userEvent.click(screen.getByRole('button', { name: /confirm & bill/i }));
-    const dlg = screen.queryByRole('dialog');
-    if (dlg) await userEvent.click(within(dlg).getByRole('button', { name: /confirm/i }));
-    await waitFor(() => expect(calls.length).toBe(1));
-    expect(calls[0]!.url.pathname).toBe(`/v1/frontdesk/orders/${ORDER}/confirm`);
-    expect(calls[0]!.headers.get('if-match')).toBe('"5"');
-    expect(calls[0]!.headers.get('idempotency-key')).toBeTruthy();
+    expect(screen.queryByRole('button', { name: /confirm & bill/i })).toBeNull();
+    expect(calls.filter((c) => c.url.pathname.endsWith('/confirm'))).toEqual([]);
   });
 
   it('a registered order has no banner/confirm button; without registration.create the confirm button is absent', async () => {

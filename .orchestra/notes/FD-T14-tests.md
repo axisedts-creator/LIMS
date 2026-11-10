@@ -1,7 +1,8 @@
-# FD-T14 tests (order, patient, worklist F26, approvals pages; US-FD-07.2-.5, 10, 11, 13.1 + 07-SECURITY UI rows)
-- Files (apps/web/src/features/frontdesk/__tests__/): `fd-t14.order.test.tsx`, `fd-t14.screens.test.tsx` (patient + worklist + approvals inbox), `fd-t14.pages.test.tsx` (page-level 404/403/MFA/5xx), `fd-t14.static.test.ts` (routes, loading/error/not-found, no storage/HTML/Storage-URL/PHI-title, copy scan), `fd-t14.fixtures.ts`, `vitest.fd-t14.config.ts`. jsdom + MSW + axe, BL-T20 style.
-- Run: `.orchestra\notes\FD-T14-verify.cmd` (root vitest, config above; no docker/DB).
-- ASSUMED seams (headers of order/screens/pages tests): components/{OrderView,PatientView,FrontdeskWorklist,DiscountApprovalsInbox}.tsx with the props listed there; `server/actions.ts` ('use server') + `server/*.server.ts` readers; pages `orders/[order_id]` (+not-found.tsx "Order not found"), `patients/[patient_id]` (+not-found.tsx), `worklist`, `discount-approvals`, each with loading/error. Writes: Idempotency-Key + If-Match `"<version>"`. Dispute if wrong.
-- Ran: 80 tests, 75 fail (components/pages/server files missing: "Cannot find module", as intended), 5 pass (vacuous storage/HTML guards; they bite once files exist). Not type-checked against the real impl.
-- Not covered: Alt/R/A shortcut hints dialog, "Retry-After" polling of approval wait (registration page, FD-T13), US-FD-07.1 "Request approval" (registration page), US-FD-13.2/.3 dedupe (consumer side, FD-T12), consent history table (no list operation in OpenAPI), item `removable` tooltip (no field in OrderDto; refusal arrives as 409), slot time on pre-registered rows (no field), anonymise POST (FD-T15), routes.yaml entries for worklist/discount-approvals (CR-C4-013).
-- LD-70: probes/pending.json untouched.
+# FD-T14 tests (apps/web/src/features/frontdesk/__tests__/)
+Files: fd-t14.order / .screens / .pages (.tsx), fd-t14.static.test.ts, fd-t14.route.test.ts (new), fd-t14.fixtures.ts, vitest.fd-t14.config.ts.
+Run: `.orchestra\notes\FD-T14-verify.cmd` (one line, repo root; vitest via the tester config).
+Review round: ruling items (ME import, header regex) already applied earlier. Added for review items:
+- #1 fd-t14.route.test.ts: needs apps/web/src/app/(staff)/frontdesk/trf-attachments/[attachment_id]/content/route.ts (GET; UUID check, bearer, attachment+nosniff+no-store, 404/422 non-200).
+- #2 order.test: upload posts `order_id` + `centre_id` (fetch captured; jsdom FormData is not undici's).
+- #3 order.test: "Confirm & bill" button gone, banner kept, no POST /confirm.
+Expected now: 6 failing (4 route, upload order_id, confirm button) until writer fixes; 92 pass.

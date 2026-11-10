@@ -9,9 +9,9 @@ import { refreshAction } from '../server/actions';
 
 const COOLDOWN_MS = 5 * 60_000; // ponytail: 5 min per 04-UI-UX; the API's next_allowed_at wins when present
 const TIME = new Intl.DateTimeFormat('en-GB', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Kathmandu' });
-const at = (iso: string | undefined) => {
+const endOf = (iso: string | undefined) => {
   const t = iso ? Date.parse(iso) : NaN;
-  return TIME.format(Number.isFinite(t) ? t : Date.now() + COOLDOWN_MS);
+  return Number.isFinite(t) ? t : Date.now() + COOLDOWN_MS;
 };
 
 /** 03-APP-FLOW §2 step 5: re-run the server component every 5 min, only while the tab is visible. */
@@ -32,6 +32,8 @@ export function RefreshButton() {
   const [until, setUntil] = useState<string>();
   const inflight = useRef(false);
   const cooling = useRef(false); // Alt+R honours the same disabled state as the button
+  const timer = useRef<ReturnType<typeof setTimeout>>(undefined);
+  useEffect(() => () => clearTimeout(timer.current), []);
 
   const press = async () => {
     if (inflight.current || cooling.current) return;
@@ -39,10 +41,16 @@ export function RefreshButton() {
     setBusy(true);
     try {
       const r = await refreshAction();
-      const text = `Refresh available at ${at(r.ok ? r.data.nextAllowedAt : undefined)}`;
+      const end = endOf(r.ok ? r.data.nextAllowedAt : undefined);
+      const text = `Refresh available at ${TIME.format(end)}`;
       if (r.ok || r.status === 429) {
         cooling.current = true;
         setUntil(text);
+        clearTimeout(timer.current);
+        timer.current = setTimeout(() => {
+          cooling.current = false;
+          setUntil(undefined);
+        }, Math.max(0, end - Date.now()));
         if (!r.ok) toast.show({ tone: 'warning', title: text });
       } else {
         toast.show({ tone: 'danger', title: 'Refresh failed. Try again.' });

@@ -31,6 +31,41 @@ export async function pageOrdersByPatient(tx: Tx, tenantId: string, patientId: s
   return rows;
 }
 
+export interface OrderFilter {
+  status?: string; centreId?: string; source?: string; hasOpenFlag?: boolean; from?: string; to?: string;
+  /** Caller's centre scope: undefined = all centres; otherwise only these (fail closed on []). */
+  scopeCentreIds?: readonly string[];
+}
+
+/**
+ * F10 keyset page (same sort key / cursor shape as pageOrdersByPatient). Values are always bound parameters; the SQL text only ever gets fixed fragments.
+ * Rows carry the patient's display name (null for anonymised patients), the active item_count and has_open_flag.
+ */
+export async function pageOrders(tx: Tx, tenantId: string, f: OrderFilter, o: { asc: boolean; limit: number; after?: readonly [string, string] }): Promise<any[]> {
+  const K = 'COALESCE(o.registered_at, o.created_at)';
+  const FLAG = `EXISTS (SELECT 1 FROM frontdesk.order_flags f WHERE f.tenant_id = o.tenant_id AND f.order_id = o.id AND f.status = 'open')`;
+  const v: unknown[] = [tenantId, o.limit + 1];
+  const p = (x: unknown): string => `$${v.push(x)}`;
+  const w = ['o.tenant_id = $1'];
+  if (f.scopeCentreIds) w.push(`o.centre_id = ANY(${p(f.scopeCentreIds)}::uuid[])`);
+  if (f.status) w.push(`o.status = ${p(f.status)}`);
+  if (f.centreId) w.push(`o.centre_id = ${p(f.centreId)}::uuid`);
+  if (f.source) w.push(`o.source = ${p(f.source)}`);
+  if (f.from) w.push(`o.registered_at >= ${p(f.from)}::timestamptz`);
+  if (f.to) w.push(`o.registered_at <= ${p(f.to)}::timestamptz`);
+  if (f.hasOpenFlag !== undefined) w.push(`${FLAG} = ${p(f.hasOpenFlag)}::boolean`);
+  if (o.after) w.push(`(${K}, o.id) ${o.asc ? '>' : '<'} (${p(o.after[0])}::timestamptz, ${p(o.after[1])}::uuid)`);
+  const dir = o.asc ? 'ASC' : 'DESC';
+  const { rows } = await tx.query(`SELECT o.*, CASE WHEN p.anonymised_at IS NULL THEN p.full_name ELSE '' END AS patient_display,
+      to_char(${K} AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"') AS sort_key,
+      (SELECT count(*)::int FROM frontdesk.order_items i WHERE i.tenant_id = o.tenant_id AND i.order_id = o.id AND i.status = 'active') AS item_count,
+      ${FLAG} AS has_open_flag
+    FROM frontdesk.orders o JOIN frontdesk.patients p ON p.tenant_id = o.tenant_id AND p.id = o.patient_id
+    WHERE ${w.join(' AND ')}
+    ORDER BY ${K} ${dir}, o.id ${dir} LIMIT $2`, v);
+  return rows;
+}
+
 export async function listOrdersByPatient(tx: Tx, tenantId: string, patientId: string, limit = 100): Promise<any[]> {
   const { rows } = await tx.query(`SELECT * FROM frontdesk.orders WHERE tenant_id = $1 AND patient_id = $2
     ORDER BY registered_at DESC NULLS FIRST, id LIMIT $3`, [tenantId, patientId, limit]);

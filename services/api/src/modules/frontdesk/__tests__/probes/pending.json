@@ -1,0 +1,16 @@
+[
+  "listPossibleDuplicatePatients",
+  "anonymisePatient",
+  "quoteOrderItemsChange",
+  "confirmPreRegisteredOrder",
+  "changeOrderItems",
+  "cancelOrder",
+  "uploadTrf",
+  "getTrfAttachment",
+  "getTrfAttachmentContent",
+  "listOrderFlags",
+  "resolveOrderFlag",
+  "getFrontdeskSettings",
+  "updateFrontdeskSettings",
+  "listFrontdeskCodes"
+]

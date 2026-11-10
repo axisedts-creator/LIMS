@@ -7,8 +7,10 @@ import { handler as approveDiscount } from './approveDiscount.js';
 import { handler as createPatient } from './createPatient.js';
 import { handler as createRegistration } from './createRegistration.js';
 import { handler as getDiscountApproval } from './getDiscountApproval.js';
+import { handler as getOrder } from './getOrder.js';
 import { handler as getPatient } from './getPatient.js';
 import { handler as listDiscountApprovals } from './listDiscountApprovals.js';
+import { handler as listOrders } from './listOrders.js';
 import { handler as listPatientOrders } from './listPatientOrders.js';
 import { handler as quoteRegistration } from './quoteRegistration.js';
 import { handler as recordPatientConsent } from './recordPatientConsent.js';
@@ -31,10 +33,10 @@ const notImplemented: Handler = async () => {
   throw new LimsError('common.service_unavailable');
 };
 
-// FD-T04: F1-F6, FD-T05: F8, FD-T06: F9, FD-T07: F15-F19 are real handlers; the rest stay stubs until their task.
+// FD-T04: F1-F6, FD-T05: F8, FD-T06: F9, FD-T07: F15-F19, FD-T08: F10-F11 are real handlers; the rest stay stubs until their task.
 const real: Partial<Record<OperationId, Handler>> = {
   searchPatients, createPatient, getPatient, updatePatient, recordPatientConsent, listPatientOrders, quoteRegistration, createRegistration,
-  requestDiscountApproval, listDiscountApprovals, getDiscountApproval, approveDiscount, rejectDiscount,
+  requestDiscountApproval, listDiscountApprovals, getDiscountApproval, approveDiscount, rejectDiscount, listOrders, getOrder,
 };
 
 export const handlers: Readonly<Record<OperationId, Handler>> = Object.freeze(

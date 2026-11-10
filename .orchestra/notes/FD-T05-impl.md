@@ -1,0 +1,6 @@
+# FD-T05 impl (Quote F8)
+- Files: service/registration.service.ts (`quote`), handlers/quoteRegistration.ts, handlers/index.ts (wired), service/patient.service.ts (only `export` added to `bad`, `isObj`).
+- Result: quote.static 8/8; DB suite 63/64. Failing: "none -> tenant_default" is a test defect (world(all) has a centre list for the draft's own centre) -> FD-T05-dispute.md. tsc clean. boot.test nav failure is pre-existing (not FD-T05).
+- [CONV] fiscal_year_bs = shared-ts fiscalYearBs(tenant-local date).long (no port gives it). Unknown request keys ignored (core schema rejects them). One line per orderable (duplicate -> 400 /items/N/orderable_id); line_ref = `<orderableId>:<priority>`.
+- [CONV] settings row missing -> defaults 0/0/10000. exceeds_limit (>absolute max, or discount > line/gross) -> 422 before/after computeQuote; credit state via assertCreditAllowed caught by `.code` (port LimsError class differs from core's).
+- Open: reason_code not checked against coded set frontdesk.discount_reasons (pipeline x-coded-set); static test slices registration.service.ts from `quote` to EOF, so later tasks must add INSERT/UPDATE code above `quote` or it fails; no pending.json exists in this tree.

@@ -430,7 +430,7 @@ describe('editor — edit and version conflict (US-18; task "schedule create/edi
 describe('recipient names are plain text (REQ-SEC-088)', () => {
   it('a hostile display name never becomes markup', async () => {
     const H = '<img src=x onerror=alert(1)>';
-    routes['GET /v1/analytics/filter-options'] = json({ ...FILTER_OPTIONS, recipients: [{ membership_id: OWNER_M, display_name: H }] });
+    routes['GET /v1/analytics/filter-options'] = json({ ...FILTER_OPTIONS, recipients: [{ membership_id: OWNER_M, display_name: 'Synthetic Owner' }, { membership_id: MEMBER_2, display_name: H }] });
     const { container } = await show(NEW_PAGE);
     // LD-89: pick the recipient explicitly; do not rely on the creator chip (membershipId is optional on the session).
     await userEvent.type(screen.getByRole('combobox', { name: /recipients/i }), '<img');

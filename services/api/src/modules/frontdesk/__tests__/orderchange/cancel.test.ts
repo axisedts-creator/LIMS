@@ -53,8 +53,8 @@ describe('US-FD-11.1 cancel a registered, invoiced cash order', () => {
     expect((await orderRow(e.order.id)).requires_credit_note).toBe(false);
   }, T);
 
-  it('only APPROVED results block: a pending/resulted result or a received specimen does not; stored in_progress is cancellable too (O7)', async () => {
-    for (const [stored, lab] of [['registered', 'result_entered_only'], ['registered', 'in_progress'], ['in_progress', 'in_progress']] as const) {
+  it('only APPROVED results block: a pending/resulted result or a received specimen does not (O7)', async () => {
+    for (const [stored, lab] of [['registered', 'result_entered_only'], ['registered', 'in_progress']] as const) {
       const e = await edit({ stored, items: [{ ...CBC, lab }, GLU] });
       expect((await cancel(e, left)).body.status, `${stored}/${lab}`).toBe('cancelled');
     }

@@ -17,6 +17,7 @@ import { handlers } from '../../handlers/index.js';
 import { CENTRE_A2, scenario, type ItemSpec, type LabState, type Scenario } from '../orders/helpers.js';
 import { CENTRE, NOW, SYS_ACTOR, TENANT_A, TENANT_B, appTx, makeIdentity, ownerRows, rejection, req, schemaErrors, seedSettings, superTx, uid } from '../patients/helpers.js';
 import { CP, O, REFERRER, T, world, type WorldOpts } from '../quote/helpers.js';
+import { ensureTaskRegistry } from '../registration/helpers.js';
 
 export { CENTRE, CENTRE_A2, CP, NOW, O, REFERRER, T, TENANT_A, TENANT_B, ownerRows, rejection, req, schemaErrors, seedSettings, superTx, uid };
 export const EDIT = 'frontdesk.order.edit';
@@ -41,6 +42,7 @@ export interface E extends Scenario { tenant: string; centre: string; w: ReturnT
 /** A committed order (+items) with the LabPort / BillingCommandPort fakes seeded to match; the CatalogPort world is the FD-T05 one. */
 export async function edit(o: EditOpts = {}): Promise<E> {
   await seedSettings();
+  await ensureTaskRegistry(); // ruling FD-T09 #1: app.enqueue_job needs core.g_task_registry rows
   const side = o.side ?? 'a';
   const tenant = side === 'a' ? TENANT_A : TENANT_B;
   const mode = o.mode ?? 'cash';

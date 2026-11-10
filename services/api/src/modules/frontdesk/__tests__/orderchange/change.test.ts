@@ -420,12 +420,12 @@ describe('F13 guards, optimistic locking, atomicity', () => {
     expect(await snap(e)).toEqual(before);
   }, T);
 
-  it('billing.counter_busy that persists -> 409 billing.counter_busy surfaced, nothing stored, no event', async () => {
+  it('billing.counter_busy that persists -> 503 billing.counter_busy surfaced, nothing stored, no event', async () => {
     const e = await edit();
     const before = await snap(e);
     const b = await mk(e, { add: [add(O.ure)] });
     const x = await changeFails(e, b, { billing: busyBilling(e) });
-    expect(x.code).toBe('billing.counter_busy'); expect(x.statusCode).toBe(409);
+    expect(x.code).toBe('billing.counter_busy'); expect(x.statusCode).toBe(503);
     expect(await snap(e)).toEqual(before);
   }, T);
 

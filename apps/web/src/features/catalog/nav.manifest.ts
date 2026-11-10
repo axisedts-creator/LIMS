@@ -15,5 +15,10 @@ export const navManifest: NavManifest = {
     { id: 'catalog.comment_codes', label: 'catalog.nav.comment_codes', routeId: 'staff.catalog.comment_codes', permission: 'catalog.test.read', group: 'catalog', order: 70 },
     { id: 'catalog.doctors', label: 'catalog.nav.doctors', routeId: 'staff.catalog.doctors', permission: 'catalog.referrer.read', group: 'catalog', order: 80 },
     { id: 'catalog.credit_parties', label: 'catalog.nav.credit_parties', routeId: 'staff.catalog.credit_parties', permission: 'catalog.price_list.read', group: 'catalog', order: 90 },
+    // SCR-13/15/16/17 (T-34): paths + permissions are spec-fixed (04-UI-UX §1); ids/labels/orders are [CONV]. SCR-13 detail reuses staff.catalog.price_list.
+    { id: 'catalog.price_lists', label: 'catalog.nav.price_lists', routeId: 'staff.catalog.price_lists', permission: 'catalog.price_list.read', group: 'catalog', order: 100 },
+    { id: 'catalog.price_simulator', label: 'catalog.nav.price_simulator', routeId: 'staff.catalog.price_simulator', permission: 'catalog.price_list.read', group: 'catalog', order: 110 },
+    { id: 'catalog.surcharges', label: 'catalog.nav.surcharges', routeId: 'staff.catalog.surcharges', permission: 'catalog.price_list.read', group: 'catalog', order: 120 },
+    { id: 'catalog.tax', label: 'catalog.nav.tax', routeId: 'staff.catalog.tax', permission: 'catalog.price_list.read', group: 'catalog', order: 130 },
   ],
 };

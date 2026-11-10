@@ -72,7 +72,10 @@ export const sweepHeldReleases: TaskHandler = async (payload, jobCtx) => {
   }
 };
 
+export const PURGE_EPHEMERAL = 'reporting.purge_ephemeral';   // body: tasks/purge_ephemeral.ts (C6-T16: print_jobs part)
+
 export const crontab: readonly CronEntry[] = Object.freeze([
+  Object.freeze({ identifier: PURGE_EPHEMERAL, schedule: '17 20 * * *', tenantScope: 'per_tenant' as const, maxAttempts: 5 }),
   Object.freeze({ identifier: SWEEP_ASSEMBLY, schedule: '*/5 * * * *', tenantScope: 'per_tenant' as const, maxAttempts: 5 }),
   Object.freeze({ identifier: SWEEP_RENDERS, schedule: '*/10 * * * *', tenantScope: 'per_tenant' as const, maxAttempts: 5 }),
   Object.freeze({ identifier: SWEEP_HELD, schedule: '*/15 * * * *', tenantScope: 'per_tenant' as const, maxAttempts: 5 }),

@@ -79,7 +79,7 @@ const api = setupServer(
   http.post(`${R}/report-templates/:id/previews`, async ({ request }) => { await rec(request); return HttpResponse.json({ id: U(19), state: 'rendering' }, { status: 201 }); }),
   http.put(`${R}/message-templates/:code/texts/:channel`, async ({ request }) => { await rec(request); return HttpResponse.json(msgTemplate().texts[0]); }),
   http.put(`${R}/channel-accounts/:channel`, async ({ request }) => { await rec(request); return HttpResponse.json(channelAccount({ version: 3 })); }),
-  http.post(`${R}/channel-accounts/:channel`, async ({ request }) => { await rec(request); return HttpResponse.json({ callback_url: 'https://api.test/v1/reporting/callbacks/sms/SYN-ONCE-TOKEN' }); }),
+  http.post(`${R}/channel-accounts/:channel/callback-token`, async ({ request }) => { await rec(request); return HttpResponse.json({ callback_url: 'https://api.test/v1/reporting/callbacks/sms/SYN-ONCE-TOKEN' }); }),
   http.patch(`${R}/settings`, async ({ request }) => { await rec(request); return HttpResponse.json(settings({ version: 7 })); }),
 );
 beforeAll(() => api.listen({ onUnhandledRequest: 'error' }));
@@ -869,7 +869,7 @@ describe('§2.7 MessagesChannels', () => {
     expect(within(dlg).getByRole('button', { name: 'Insert {lab_name}' })).toBeTruthy();
     expect(within(dlg).queryByRole('button', { name: 'Insert {undeclared}' })).toBeNull();
     await u.clear(body);
-    await u.type(body, 'Synthetic body for {lab_name}');
+    await u.type(body, 'Synthetic body for {{lab_name}'); // `{{` = literal `{` in user-event (ruling C6-T31)
     await u.click(within(dlg).getByRole('button', { name: /save/i }));
     await waitFor(() => expect(calls.some((c) => c.method === 'PUT')).toBe(true));
     expect(last().url.pathname).toMatch(/\/message-templates\/REPORT_READY\/texts\/(sms|whatsapp|email)$/);

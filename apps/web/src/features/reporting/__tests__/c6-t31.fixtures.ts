@@ -6,7 +6,7 @@ export const REPORT = U(1), ORDER = U(2), CENTRE = U(3), V1 = U(11), V2 = U(12),
 export const READ = ['reporting.report.read'];
 export const RELEASE = [...READ, 'reporting.report.release', 'reporting.report.print'];
 export const BULK = [...READ, 'reporting.report.release', 'reporting.report.bulk_release'];
-export const ADMIN = [...RELEASE, ...BULK, 'reporting.report.regenerate', 'billing.release.override', 'reporting.delivery.read', 'reporting.delivery.resend', 'lab.specimen.read'];
+export const ADMIN = [...RELEASE, ...BULK, 'reporting.report.regenerate', 'reporting.token.revoke', 'billing.release.override', 'reporting.delivery.read', 'reporting.delivery.resend', 'lab.specimen.read'];
 
 export const summary = (o: Record<string, unknown> = {}) => ({
   id: REPORT, order_id: ORDER, family: 'laboratory', centre_id: CENTRE, state: 'open', display_status: 'ready_to_release', registration_no: 'R2611050001',

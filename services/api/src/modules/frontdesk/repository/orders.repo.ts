@@ -31,6 +31,17 @@ export async function cancelOrderRow(tx: Tx, tenantId: string, id: string, expec
   return rows[0] ?? null;
 }
 
+/** FD-T11 ageAtOrder: per patient, the age snapshot of the most recent order that carries one. */
+export async function latestAgeByPatients(tx: Tx, tenantId: string, patientIds: readonly string[]): Promise<Map<string, { years: number; months: number; days: number }>> {
+  const out = new Map<string, { years: number; months: number; days: number }>();
+  if (patientIds.length === 0) return out;
+  const { rows } = await tx.query(`SELECT DISTINCT ON (patient_id) patient_id, age_years, age_months, age_days FROM frontdesk.orders
+    WHERE tenant_id = $1 AND patient_id = ANY($2::uuid[]) AND age_years IS NOT NULL
+    ORDER BY patient_id, COALESCE(registered_at, created_at) DESC, id DESC`, [tenantId, patientIds]);
+  for (const r of rows) out.set(r.patient_id, { years: Number(r.age_years), months: Number(r.age_months ?? 0), days: Number(r.age_days ?? 0) });
+  return out;
+}
+
 /** is_first_order_of_patient = NOT this (any status counts: a cancelled order is still a prior visit). */
 export async function patientHasOrder(tx: Tx, tenantId: string, patientId: string): Promise<boolean> {
   const { rows } = await tx.query('SELECT 1 FROM frontdesk.orders WHERE tenant_id = $1 AND patient_id = $2 LIMIT 1', [tenantId, patientId]);

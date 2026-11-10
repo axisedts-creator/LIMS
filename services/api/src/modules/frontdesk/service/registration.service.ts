@@ -239,7 +239,7 @@ const portCtx = (c: CreateCtx): CreateCtx => Object.assign(Object.create(c), { n
 
 const daysInMonth = (y: number, m: number): number => new Date(Date.UTC(y, m, 0)).getUTCDate();
 /** Whole years/months/days from birth to `today` (both YYYY-MM-DD). */
-function ageParts(birth: string, today: string): { years: number; months: number; days: number } {
+export function ageParts(birth: string, today: string): { years: number; months: number; days: number } {
   const [by, bm, bd] = birth.split('-').map(Number) as [number, number, number];
   const [ty, tm, td] = today.split('-').map(Number) as [number, number, number];
   let years = ty - by, months = tm - bm, days = td - bd;

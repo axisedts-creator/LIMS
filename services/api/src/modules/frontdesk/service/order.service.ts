@@ -51,7 +51,7 @@ const portMoney = (m: Money) => ({ amount_paisa: m.amountPaisa, currency: m.curr
 /** { orderId } is the whole lab input. Iterate over the ACTIVE C4 items (03-IC §10.4 / 08 A13 D-5: "every active item"):
  *  a removed item must neither block `completed` nor start the order, and an active item LabPort does not yet know
  *  (e.g. added by changeOrderItems, not consumed by C5 yet) counts as `not_started` so `completed` is never early. */
-async function derivedStatus(c: OrderCtx, row: Obj, activeIds: ReadonlySet<string>): Promise<OrderStatus> {
+export async function derivedStatus(c: OrderCtx, row: Obj, activeIds: ReadonlySet<string>): Promise<OrderStatus> {
   const stored = row['status'] as OrderStatus;
   if (stored !== 'registered' && stored !== 'in_progress') return stored;
   const pc = portCtx(c);

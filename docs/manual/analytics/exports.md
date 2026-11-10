@@ -12,7 +12,7 @@ Use Export on any report page to get an Excel or CSV file (PDF may not be availa
 2. Tick "I will keep this file inside the lab and delete it when no longer needed."
 3. Press Export. You see "Export queued" and can open My exports.
 
-The period can be at most 366 days. Some reports, such as the referral report, ask for MFA (a verification code) first.
+The period can be at most 366 days. Every export asks for MFA (a verification code) first if you have not verified yet.
 
 ## The list
 

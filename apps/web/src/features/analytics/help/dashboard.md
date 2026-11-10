@@ -4,7 +4,6 @@
 One page that shows how the lab is doing for the chosen period (default: Today). Each tile links to the report behind it.
 
 ## Metrics
-- **Net orders (M03)**: orders registered minus orders cancelled. It is the order count behind the Patient visits tile.
 - **Patient visits (M04)**: each patient is counted once per centre per day. Over several days the same person can be counted more than once, so this is a count of patient-days, not distinct persons. Sub-value: new patients (M05).
 - **Income, net sales (M12)**: invoices issued (M10) minus credit notes (M11). Cash collected is shown separately.
 - **Results approved (M42)**: analyte results approved in the period. Sub-value: tests ordered (M08).

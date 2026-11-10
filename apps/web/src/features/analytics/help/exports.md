@@ -15,7 +15,7 @@ Lists the files you asked for with Export on any report page, and lets you downl
 The list refreshes every 3 seconds while a file is being built. If it takes longer than 2 minutes, use the refresh button.
 
 ## Rules
-Some reports, such as the Referral business report, need MFA first: verify with your authenticator app when asked (a verification code). Before exporting you confirm that you will keep the file inside the lab and delete it when no longer needed. The limit is 366 days per export.
+Exporting always needs MFA: verify with your authenticator app when asked (a verification code). Before exporting you confirm that you will keep the file inside the lab and delete it when no longer needed. The limit is 366 days per export.
 
 If an export fails: "Too much data" means choose a shorter period or fewer centres; "You no longer have access to this data" means your access changed.
 

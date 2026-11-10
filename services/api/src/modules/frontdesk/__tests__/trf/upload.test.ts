@@ -21,7 +21,8 @@ describe('F20 happy path (US-FD-09.1)', () => {
     expect(r.body.uploaded_by.membership_id).toBe(r.probe.membershipId);
     expect(r.body.original_filename).toBeTypeOf('string');
     const row = await trfRow(r.body.id);
-    expect(row).toMatchObject({ tenant_id: TENANT_A, centre_id: CENTRE.a, bucket: BUCKET, scan_state: 'pending', mime_type: 'application/pdf', size_bytes: bytes.length });
+    expect(row).toMatchObject({ tenant_id: TENANT_A, centre_id: CENTRE.a, bucket: BUCKET, scan_state: 'pending', mime_type: 'application/pdf' });
+    expect(Number(row.size_bytes), 'bigint column: node-pg returns a string').toBe(bytes.length);
     expect(row.order_id).toBeNull();
     expect(row.object_path.startsWith(`${TENANT_A}/`), 'tenant is the first path segment').toBe(true);
     expect(row.object_path, 'server-generated name: the client file name never reaches the key').not.toContain(NAME_SENTINEL);
@@ -202,7 +203,8 @@ describe('F20 security probes (07-SECURITY F20 + A11/A20)', () => {
     expect(w.storage.callsOf('signedUrl')).toEqual([]);
     expect(all).not.toContain(URL_SENTINEL);
     expect(all).not.toMatch(/https?:\/\/|token=|signature=|object_path|"bucket"|sha256/i);
-    expect(all, 'file name is P2: never logged').not.toContain(NAME_SENTINEL);
+    // P2 (02-CONVENTIONS §9.2) is barred from logs/headers, not from the response body (original_filename is required in TrfAttachment): FD-T10-ruling.
+    expect(JSON.stringify([r.headers ?? {}, r.probe.logs]), 'file name is P2: never logged').not.toContain(NAME_SENTINEL);
     expect(r.probe.logs.join('\n')).not.toContain(TENANT_A + '/');
     expect(Object.keys(r.headers ?? {}).map((k) => k.toLowerCase())).not.toContain('location');
   }, T);

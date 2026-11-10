@@ -1,0 +1,7 @@
+# FD-T11 impl (writer)
+- New: ports/FrontdeskPort.impl.ts (reads, demographics, batch), service/booking.service.ts (createOrderFromBooking, createSelfRegisteredPatient, onBookingConfirmed/Cancelled). Edited: index.ts (manifest.ports), repo `getPatientsByIds`, `latestAgeByPatients`, `export` on `ageParts` / `derivedStatus`.
+- Results: static 4/4, boot 30/30; DB contract 46/50, the 4 failures are test defects (3 LabPort-fake grants for user actors, 1 cross-file count race): see FD-T11-dispute.md. Booking file alone 26/26.
+- [CONV] idempotency: bookings serialise on pg_advisory_xact_lock(tenant+source+ref) then read booking_links; self-registration has no key table, so patientId = deterministic UUIDv7-shaped hash(tenant, key) (replay = PK read; duplicateSuspected recomputed over earlier patients).
+- [CONV] actor kinds: staff-facing methods refuse non-user/system before validation; device/portal/partner only for instrument_host_query/portal_display/partner_display. `notification` for a USER needs frontdesk.patient.read (spec silent). System actors always pass (module identity not modelled).
+- [CONV] booking newPatient with a suspected duplicate throws frontdesk.patient_duplicate_suspected (IC @throws); self-registration only flags. pending.json untouched: the port methods are not HTTP operationIds (LD-70).
+- Open: priceDraft receives the Date-clock ctx (as F9), not the ISO ctx; booking_links.last_seq = 0 for port-created links; centre_visit cancel and consumer inbox/seq are FD-T12.

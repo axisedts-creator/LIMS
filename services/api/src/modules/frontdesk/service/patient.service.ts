@@ -41,7 +41,7 @@ export function patientCtx(c: unknown): PatientCtx {
 export const bad = (...paths: string[]): LimsError => new LimsError('common.validation_failed', undefined,
   paths.map((path): FieldError => ({ path, code: 'common.field_invalid', message: 'Field invalid' })));
 export const isObj =(v: unknown): v is Obj => typeof v === 'object' && v !== null && !Array.isArray(v);
-function strict(v: unknown, allowed: readonly string[], path = ''): Obj {
+export function strict(v: unknown, allowed: readonly string[], path = ''): Obj {
   if (!isObj(v)) throw bad(path);
   for (const k of Object.keys(v)) if (!allowed.includes(k)) throw new LimsError('common.validation_failed', undefined, [{ path: `${path}/${k}`, code: 'common.unknown_field', message: 'Unknown field' }]);
   return v;
@@ -231,7 +231,7 @@ export async function getPatient(hctx: unknown, params: unknown): Promise<Result
 
 // ---- F4 updatePatient ----
 /** If-Match: "<version>" (02-CV §4.2). Absent -> 428; malformed -> 400. */
-function expectedVersion(headers: unknown): number {
+export function expectedVersion(headers: unknown): number {
   const h = isObj(headers) ? headers['if-match'] : undefined;
   if (h === undefined) throw new LimsError('common.precondition_required');
   const m = typeof h === 'string' ? /^"([1-9][0-9]{0,9})"$/.exec(h) : null;

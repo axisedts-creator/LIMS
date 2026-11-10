@@ -17,6 +17,12 @@ export const resultIdempotencyKey = (p: Payload): string =>
 export const qcIdempotencyKey = (p: Payload, rawSha256: string): string =>
   `${p['instrument_id']}:qc:${p['control_id_raw']}:${p['instrument_analyte_code']}:${p['instrument_result_time'] ?? rawSha256}`;
 
+export const CALIBRATION_EVENT = 'instruments.calibration.received.v1';
+
+/** `<instrument_id>:cal:<instrument_analyte_code>:<instrument_result_time or raw_sha256>` (02-TRD §6.5; 03-IC §3.26). */
+export const calibrationIdempotencyKey = (p: Payload, rawSha256: string): string =>
+  `${p['instrument_id']}:cal:${p['instrument_analyte_code']}:${p['instrument_result_time'] ?? rawSha256}`;
+
 export function createInstrumentEvents(events: EventsPort) {
   const aggregate = (p: Payload) => ({ type: 'instrument_message', id: p['instrument_message_id'] as string, seq: 1 });
   return {
@@ -24,6 +30,8 @@ export function createInstrumentEvents(events: EventsPort) {
       events.publish(ctx, RESULT_EVENT, { aggregate: aggregate(payload), idempotencyKey: resultIdempotencyKey(payload), payload }),
     qcReceived: (ctx: unknown, payload: Payload, o: { rawSha256: string }): Promise<PublishResult> =>
       events.publish(ctx, QC_EVENT, { aggregate: aggregate(payload), idempotencyKey: qcIdempotencyKey(payload, o.rawSha256), payload }),
+    calibrationReceived: (ctx: unknown, payload: Payload, o: { rawSha256: string }): Promise<PublishResult> =>
+      events.publish(ctx, CALIBRATION_EVENT, { aggregate: aggregate(payload), idempotencyKey: calibrationIdempotencyKey(payload, o.rawSha256), payload }),
   };
 }
 export type InstrumentEvents = ReturnType<typeof createInstrumentEvents>;

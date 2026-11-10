@@ -53,6 +53,8 @@ export function world(o: WorldOpts = {}) {
     catalogRevision: o.catalogRevision ?? 1,
     tests: [testRow(O.taxMissing, TENANT_A, 'TCM', 610), testRow(O.tenantBOnly, TENANT_B, 'TBX', 611)] as any,
     priceLists,
+    // F9 getReferrer is required (03-APP-FLOW §2.3): the fake's default id(900) belongs to the FAKE tenant, so seed one for the DB tenant A (ruling FD-T06 #2)
+    referrers: [{ id: REFERRER, tenantId: TENANT_A, code: 'DR900', displayName: 'Dr. Synthetic Referrer', isVerified: true, isActive: true }] as any,
     taxRules: [{ id: ID(812), tenantId: null, orderableId: O.glu, vat: 'taxable' }, { id: ID(813), tenantId: null, orderableId: O.ure, vat: 'exempt', otherTaxCode: 'SC' },
       { id: ID(814), tenantId: null, orderableId: O.taxMissing, vat: 'exempt', otherTaxCode: 'NO_RATE_CONFIGURED' }] as any,
     taxRates: [{ id: ID(821), tenantId: null, taxCode: 'SC', kind: 'other', ratePercentBasisPoints: 200, effectiveFrom: null }] as any,

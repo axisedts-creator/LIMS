@@ -7,7 +7,7 @@ lims_runtime_compose_src: >-
 lims_runtime_tests_src: "{{ playbook_dir }}/../../tests/internal"
 lims_runtime_tests_dir: /usr/local/lib/lims/tests
 # Digests from the release lock (T-23), every value `<repo>@sha256:<hex>`:
-# api (api + worker + migrate), web, portal, renderer, pdf_sandbox, valkey,
+# api (api + migrate), worker, web, portal, renderer, pdf_sandbox, valkey,
 # squid; partner only when partner_enabled. No default: fail closed.
 lims_runtime_images: {}
 # AC-30.1: Sum mem_limit <= this % of host RAM (D-207, LD-45)

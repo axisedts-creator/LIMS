@@ -52,7 +52,8 @@ x-api: &api
 
 x-worker: &worker
   <<: *hardening
-  image: ${LIMS_API_IMAGE:?LIMS_API_IMAGE (C0 api image digest) required}
+  # C0 builds /services/worker separately (C0 02-TRD); never the API image
+  image: ${LIMS_WORKER_IMAGE:?LIMS_WORKER_IMAGE (C0 services/worker image digest) required}
   environment: &worker-env
     <<: *core-env
     LIMS_CORE_WORKER_CONCURRENCY: "10"
@@ -124,11 +125,13 @@ services:
       - /run/lims/secrets/api-a/bff_key_staff_web:/run/secrets/bff/staff_web:ro
       - /run/lims/secrets/api-a/bff_key_partner:/run/secrets/bff/partner:ro
       - /run/lims/secrets/api-a/bff_key_portal:/run/secrets/bff/portal:ro
-    networks: &api-nets
+    networks:
       edge_net: {}
       app_net: {aliases: [api]}
       auth_net: {}
-      render_net: {}
+      # fixed, outside nftables_render_worker_ips/sandbox: no dynamic IPAM
+      # on render_net, so no member can drift onto .11/.21/.22 [CONV]
+      render_net: {ipv4_address: 172.30.40.31}
       db_net: {}
 
   api-b:
@@ -140,7 +143,12 @@ services:
       - /run/lims/secrets/api-b/bff_key_staff_web:/run/secrets/bff/staff_web:ro
       - /run/lims/secrets/api-b/bff_key_partner:/run/secrets/bff/partner:ro
       - /run/lims/secrets/api-b/bff_key_portal:/run/secrets/bff/portal:ro
-    networks: *api-nets
+    networks:
+      edge_net: {}
+      app_net: {aliases: [api]}
+      auth_net: {}
+      render_net: {ipv4_address: 172.30.40.32}  # [CONV] see api-a
+      db_net: {}
 
   # Fixed render_net IPs: nftables_render_worker_ips (s5.5 rule 6) [CONV]
   worker-a:
@@ -211,7 +219,8 @@ services:
       LIMS_RENDERER_TOKEN_FILE: /run/secrets/renderer_inbound_token
     volumes:
       - /run/lims/secrets/renderer/renderer_inbound_token:/run/secrets/renderer_inbound_token:ro
-    networks: [render_net]
+    networks:
+      render_net: {ipv4_address: 172.30.40.41}  # [CONV] fixed, see api-a
     mem_limit: 1536m
     cpus: 2
     pids_limit: 512

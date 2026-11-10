@@ -5,3 +5,8 @@ Fix: none in impl. T39's diff (messages.ts 1 line, send_delivery.ts) cannot cost
 ## round 2 (verify.log 20:40: same 2 timeouts, 95/97 pass)
 Cause confirmed: first-test cold start (ajv compile of all contracts/events schemas in core/events/publish.ts eventValidators(), C0-owned) exceeds the default 5000ms testTimeout. Re-run alone with --testTimeout=60000: t39.a4.test.ts 36/36 pass (~13 s for the cold test). No T39 logic fault.
 Fix: none possible in C6 files. Needs lead: `testTimeout: 60000` in services/api/vitest.config.ts (C0-owned, LD-53) or `--testTimeout=60000` in C6-T39-verify.cmd. Not a test dispute.
+
+## round 3 (verify.log 20:47: 4 timeouts, first test of each of 3 files, 93/97 pass)
+Cause: same cold-start 5000ms default testTimeout (3 files import in parallel; first test pays the cold path). Not a T39 logic fault.
+Re-run of the same 3 files with --testTimeout=60000 --hookTimeout=60000: 97/97 pass (36 s). No impl/test edits.
+Fix needed from lead: `testTimeout`/`hookTimeout` 60000 in services/api/vitest.config.ts (C0-owned, LD-53) or the flags in C6-T39-verify.cmd. No dispute.

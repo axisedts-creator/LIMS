@@ -1,6 +1,7 @@
 // `analytics.build_export` (02-TRD §10.2 steps 1-9; max_attempts 3). System actor: RLS is tenant-wide, so the explicit effective scope handed to
-// the report services is the enforcement (P8). Terminal failures write status 'failed' and RESOLVE; retryable ones reset to 'queued' (E6) and REJECT;
-// on the final attempt 'failed'/common.internal is written in a separate tx before the error is rethrown (step 8a).
+// the report services is the enforcement (P8). The job runs in ONE tx (ctx.db.tx reuses it), so the build runs behind a savepoint: any failure first rolls
+// back to it (also clears an aborted tx). Terminal failures and the final attempt commit 'failed' and RESOLVE (step 8a); retryable ones REJECT, the job tx
+// rolls back and the committed row stays 'queued' (E6).
 import { createHash } from 'node:crypto';
 import { adToBs, formatBs, type IsoDate } from '../../../../../../packages/shared-ts/src/bsdate/index.js';
 import { loadAnalyticsConfig } from '../../../../../api/src/modules/analytics/config.js';
@@ -40,9 +41,11 @@ export const buildExportTask: TaskHandler = async (payload, jctx) => {
   const row = await repo.loadForBuild(ctx.tx, { tenantId, id: exportId }); // step 1 (FOR UPDATE)
   if (!row || (row.status !== 'queued' && row.status !== 'building')) return;
 
+  await ctx.tx.query('SAVEPOINT build_export', []);
   try {
     await build(ctx, row, key);
   } catch (e) {
+    await ctx.tx.query('ROLLBACK TO SAVEPOINT build_export', []);
     if (e instanceof Terminal) {
       if (e.alert) { ctx.log.error({ event: 'export_build_failed', exportId, failure: e.failure }, 'export_build_failed'); ctx.metrics.inc('lims_analytics_export_failed_total', { code: e.failure }); }
       await repo.markFailed(ctx.tx, { ...key, code: e.failure });
@@ -50,9 +53,8 @@ export const buildExportTask: TaskHandler = async (payload, jctx) => {
     }
     if (ctx.attempt >= ctx.maxAttempts) {
       ctx.log.error({ event: 'export_build_failed', exportId, failure: 'common.internal' }, 'export_build_failed');
-      await ctx.db.tx((c: any) => repo.markFailed(c.tx, { ...key, code: 'common.internal' })); // separate tx: survives the rollback of ctx.tx
-    } else {
-      await repo.markQueued(ctx.tx, key); // E6
+      await repo.markFailed(ctx.tx, { ...key, code: 'common.internal' });
+      return; // resolve so the committed 'failed' survives
     }
     throw e;
   }

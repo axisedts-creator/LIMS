@@ -45,6 +45,10 @@ const IMPLEMENTED: readonly string[] = [
   'submitAttachment', 'downloadInstrumentAttachment', // API-T11
   'listInstrumentMessages', 'searchInstrumentMessages', 'getInstrumentMessage', 'getInstrumentMessageRaw', 'listMessageRejections', // API-T12
   'reprocessInstrumentMessage', 'rematchInstrumentRecord', // API-T13
+  // INT-T03 (wiring of API-T05 E22-E32/E40/E41, API-T10 E05)
+  'submitHostQuery', 'listDrivers', 'listInstruments', 'createInstrument', 'getInstrument', 'updateInstrument',
+  'startInstrumentCommissioning', 'goLiveInstrument', 'suspendInstrument', 'resumeInstrument', 'retireInstrument',
+  'listObservedInstrumentCodes', 'getInstrumentSettings', 'updateInstrumentSettings',
 ];
 
 const FAKE_REQ = { params: {}, query: {}, headers: {}, body: {} };

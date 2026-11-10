@@ -38,9 +38,9 @@ export function patientCtx(c: unknown): PatientCtx {
 }
 
 // ---- validation helpers (messages are fixed text: no submitted value is ever echoed) ----
-const bad = (...paths: string[]): LimsError => new LimsError('common.validation_failed', undefined,
+export const bad = (...paths: string[]): LimsError => new LimsError('common.validation_failed', undefined,
   paths.map((path): FieldError => ({ path, code: 'common.field_invalid', message: 'Field invalid' })));
-const isObj = (v: unknown): v is Obj => typeof v === 'object' && v !== null && !Array.isArray(v);
+export const isObj =(v: unknown): v is Obj => typeof v === 'object' && v !== null && !Array.isArray(v);
 function strict(v: unknown, allowed: readonly string[], path = ''): Obj {
   if (!isObj(v)) throw bad(path);
   for (const k of Object.keys(v)) if (!allowed.includes(k)) throw new LimsError('common.validation_failed', undefined, [{ path: `${path}/${k}`, code: 'common.unknown_field', message: 'Unknown field' }]);

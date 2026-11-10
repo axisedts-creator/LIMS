@@ -1,7 +1,7 @@
 // FD-T04 F1 searchPatients — US-FD-01.1..6 (01-PRD §8), 03-APP-FLOW §2.1, 02-TRD §5.1 F1 + access-log table (patient.search, detail {mode, result_count}, no query text).
 // Query modes: auto -> phone (digits>=10 or '+', +977 default) | code (patientCodePattern prefix; fake tenant pattern 'MP{seq:8}') | registration_no ('R{seq:6}') | name.
 import { beforeAll, describe, expect, it } from 'vitest';
-import { PERM, T, TENANT_A, TENANT_B, accessRows, call, countPatients, fails, ownerRows, uid, national, norm, phone, req, schemaErrors, seedOrder, seedPatient, seedSettings, tag } from './helpers.js';
+import { PERM, T, TENANT_A, TENANT_B, accessRows, call, fails, ownerRows, uid, national, norm, phone, req, schemaErrors, seedOrder, seedPatient, seedSettings, tag } from './helpers.js';
 
 const search = (body: object, o: Parameters<typeof call>[2] = {}) => call('searchPatients', req({ body }), o);
 beforeAll(async () => { await seedSettings(); }, T);
@@ -163,12 +163,13 @@ describe('probes: hostile query strings', () => {
   it.each([
     `'; DROP TABLE frontdesk.patients; --`, `' OR '1'='1`, `%%%`, `___`, `\\\\\\`, `a%b`, `"; select pg_sleep(5); --`, '\u0000nul', '<script>alert(1)</script>',
   ])('%j is treated as data: 200, no rows from other patients, table intact', { timeout: T }, async (q) => {
-    await seedPatient('a');
-    const before = await countPatients(TENANT_A);
+    const p = await seedPatient('a');
     const r = await call('searchPatients', req({ body: { query: q, mode: 'name' } })).then((x) => x, (e) => e);
     if (r instanceof Error || (r as any).code) expect((r as any).code).toBe('common.validation_failed');   // a NUL byte may be refused as invalid
     else { expect(r.status).toBe(200); expect(r.body.data.length).toBeLessThanOrEqual(20); for (const x of r.body.data) expect(x.is_anonymised).toBe(false); }
-    expect(await countPatients(TENANT_A)).toBe(before);
+    // table intact (arbiter ruling: no tenant-wide count, other suites insert in parallel)
+    expect(await ownerRows('frontdesk.patients', 'id = $1', [p.id])).toHaveLength(1);
+    expect(await ownerRows('pg_catalog.pg_class', "oid = to_regclass('frontdesk.patients')")).toHaveLength(1);
   });
   it('LIKE wildcards in a name query do not match everything', { timeout: T }, async () => {
     const p = await seedPatient('a', { full_name: `Wild ${tag()}` });

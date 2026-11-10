@@ -28,7 +28,8 @@ export type LabState =
   | 'rejected_recollection_pending'     // rejected specimen + replacement not yet received -> not_started
   | 'rejected_recollection_received';   // rejected specimen + replacement received -> in_progress
 
-export interface ItemSpec { lab: LabState; status?: 'active' | 'removed' | 'cancelled'; row?: Record<string, unknown> }
+/** `labOmit`: C4 item exists (active) but the lab fake has no row for it (e.g. items_changed.v1 not yet consumed by C5). */
+export interface ItemSpec { lab: LabState; status?: 'active' | 'removed' | 'cancelled'; row?: Record<string, unknown>; labOmit?: boolean }
 export interface Scenario { side: 'a' | 'b'; patient: any; order: any; items: any[]; lab: any; billing: any; labPortCalls: () => { input: any; ctx: any }[] }
 
 const D = '2026-11-05T03:00:00.000Z';
@@ -54,6 +55,7 @@ export async function scenario(o: { side?: 'a' | 'b'; stored?: string; items?: r
     const item = rows.item(side, order.id, { centre_id: centre, status, code: `FD${++seq}`, ...removed, ...(s.row ?? {}) });
     await seed('frontdesk.order_items', item);
     items.push(item);
+    if (s.labOmit) continue;
     const base = { id: uid(), tenantId: tenant, orderId: order.id, barcode: `FDT08-${uid().slice(-12)}`, specimenTypeCode: 'BLOOD', itemIds: [item.id], isActive: true, version: 1 };
     fx.items.push({ id: item.id, tenantId: tenant, orderId: order.id, testId: item.test_ids[0], departmentId: uid(), workflowType: 'standard',
       ...(s.lab === 'cancelled' ? { cancelled: true } : {}), ...(s.lab === 'reported' ? { reportedAt: '2026-11-06T04:00:00.000Z' } : {}) });

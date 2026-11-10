@@ -48,6 +48,19 @@ describe('derived status via F11 getOrder (D-5)', () => {
     expect(r.body.status).toBe(expected);
   });
 
+  // review item 1: derivation runs over ACTIVE C4 items; an active item with no lab row counts as not_started.
+  it.each([
+    [['reported', { lab: 'not_started', labOmit: true }], 'in_progress', 'one reported, active item missing from lab (not_started) -> in_progress'],
+    [[{ lab: 'reported', labOmit: true }, 'reported'], 'in_progress', 'sanity: omitted item is not_started, never skipped'],
+  ] as [(LabState | ItemSpec)[], string, string][])('active item absent from LabPort is treated as not_started: %j -> %s (%s)', { timeout: T }, async (items, expected) => {
+    const s = await scenario({ items });
+    expect((await getOrder(s.order.id, { s })).body.status).toBe(expected);
+  });
+  it('two active items both absent from LabPort -> stays registered',{ timeout: T }, async () => {
+    const s = await scenario({ items: [{ lab: 'not_started', labOmit: true }, { lab: 'not_started', labOmit: true }] });
+    expect((await getOrder(s.order.id, { s })).body.status).toBe('registered');
+  });
+
   it('calls LabPort.getOrderItemProcessingState exactly once, with only {orderId}, in the caller tenant (no PHI to C5)', { timeout: T }, async () => {
     const s = await scenario({ items: ['reported', 'in_progress'] });
     await getOrder(s.order.id, { s });

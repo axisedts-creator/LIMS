@@ -10,3 +10,7 @@ Fix: none in implementation (no smallest-change lever; test timeout is test-owne
 ## Round 3 (2026-11-10)
 Latest verify log: 122/123 pass; only boot.test "boots and mounts" fails, 30 s timeout (took 49 s under load; sibling boot test 28 s). Same cause as round 2: cold `bootstrap()` of all modules, no T11 import in the path. No implementation lever, test timeout (boot.test.ts:229) is test-owned.
 Fix: none. Needs ruling: raise that test's timeout (or vitest testTimeout for boot.test). T11 suites (handlers, service, contract, worker scan) pass.
+
+## Round 4 (2026-11-10)
+Verify log: 121/123. (1) boot "boots and mounts" 30 s timeout (40 s run), same cold `bootstrap()` cause as rounds 2-3. (2) "fails closed" test: `module reporting: index.ts exports no manifest`, but reporting/index.ts:31 exports `manifest` and T11 never touched it (last change C6-T37). Cascade from the still-running timed-out import, not a code defect.
+Fix: none in implementation; T11 files are in neither path. Needs ruling: raise boot.test timeouts (test-owned) or run it serially.

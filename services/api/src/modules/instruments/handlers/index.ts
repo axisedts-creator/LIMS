@@ -8,6 +8,7 @@ import { agentsHandlers } from './agents.handlers.js';
 import { attachmentsHandlers } from './attachments.handlers.js';
 import { deviceHandlers } from './device.handlers.js';
 import { ingestHandlers } from './ingest.handlers.js';
+import { instrumentsHandlers } from './instruments.handlers.js';
 import { messagesHandlers } from './messages.handlers.js';
 import { reprocessHandlers } from './reprocess.handlers.js';
 
@@ -35,7 +36,7 @@ const notImplemented = (operationId: string): Handler => async () => {
   throw new LimsError('common.internal', `instruments ${operationId} not implemented`);
 };
 
-const implemented: Partial<Record<InstrumentsOperationId, Handler>> = { ...agentsHandlers, ...deviceHandlers, ...ingestHandlers, ...attachmentsHandlers, ...messagesHandlers, ...reprocessHandlers };   // API-T04: E10-E21, API-T06: E01-E03/E07/E08, API-T09: E04, API-T11: E06/E37, API-T12: E33-E36/E42, API-T13: E38/E39
+const implemented: Partial<Record<InstrumentsOperationId, Handler>> = { ...agentsHandlers, ...deviceHandlers, ...ingestHandlers, ...attachmentsHandlers, ...messagesHandlers, ...reprocessHandlers, ...instrumentsHandlers };   // API-T04: E10-E21, API-T06: E01-E03/E07/E08, API-T09: E04, API-T11: E06/E37, API-T12: E33-E36/E42, API-T13: E38/E39, INT-T03: E05/E22-E32/E40/E41 wired
 
 export const handlers: Readonly<Record<InstrumentsOperationId, Handler>> = Object.freeze(
   Object.fromEntries(OPERATION_IDS.map((op) => [op, implemented[op] ?? notImplemented(op)])) as Record<InstrumentsOperationId, Handler>,

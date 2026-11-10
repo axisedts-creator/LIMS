@@ -114,7 +114,10 @@ FAKE_LOGGER = '''#!/usr/bin/env bash
 %s
 '''
 FAKES = {
-    "ansible-playbook": 'exit "${FAKE_ANSIBLE_RC:-0}"',
+    # logs SOPS_AGE_KEY_FILE to "$FAKE_LOG.sops"; FAKE_TOUCH_MARKER=1 -> touches the `-e deploy_roll_marker=<path>` file (rolling update began)
+    "ansible-playbook": '''printf '%s\\n' "${SOPS_AGE_KEY_FILE-UNSET}" >> "$FAKE_LOG.sops"
+if [ -n "${FAKE_TOUCH_MARKER:-}" ]; then for a in "$@"; do case "$a" in deploy_roll_marker=*) : > "${a#deploy_roll_marker=}";; esac; done; fi
+exit "${FAKE_ANSIBLE_RC:-0}"''',
     "docker": '''case "$1" in
   build|buildx) [ "${FAKE_BUILD_RC:-0}" = 0 ] || exit "$FAKE_BUILD_RC" ;;
   push) h=$(printf %s "$2" | sha256sum | cut -c1-64); echo "x: digest: sha256:$h size: 1" ;;
@@ -131,7 +134,10 @@ esac
 if [ -n "$out" ]; then printf '%s' "$body" > "$out"; else printf '%s' "$body"; fi
 exit 0''',
 }
-STUB_SMOKE = '#!/usr/bin/env bash\necho "--call smoke.sh" >> "$FAKE_LOG"; for a in "$@"; do echo "A:$a" >> "$FAKE_LOG"; done\nexit "${SMOKE_RC:-0}"\n'
+# Git-for-Windows bash has no flock(1): the fake logs to FAKE_FLOCK_LOG (NOT FAKE_LOG, so call-sequence asserts stay as they are)
+# and exits FAKE_FLOCK_RC (1 = what `flock -w N` returns when the lock stays held). Real mutual exclusion is NOT provable here.
+FAKE_FLOCK = '#!/usr/bin/env bash\n{ echo "--call flock"; for a in "$@"; do echo "A:$a"; done; } >> "$FAKE_FLOCK_LOG"\nexit "${FAKE_FLOCK_RC:-0}"\n'
+STUB_SMOKE ='#!/usr/bin/env bash\necho "--call smoke.sh" >> "$FAKE_LOG"; for a in "$@"; do echo "A:$a" >> "$FAKE_LOG"; done\nexit "${SMOKE_RC:-0}"\n'
 STUB_ROLLBACK = '#!/usr/bin/env bash\necho "--call rollback.sh" >> "$FAKE_LOG"; for a in "$@"; do echo "A:$a" >> "$FAKE_LOG"; done\nexit "${ROLLBACK_RC:-0}"\n'
 
 
@@ -159,6 +165,13 @@ class Rig:
             shutil.copy(DEPLOY, self.root / "infra" / "ansible" / "playbooks" / "deploy.yml")
         if (ROOT / "infra" / "tests" / "external").is_dir():
             shutil.copytree(ROOT / "infra" / "tests" / "external", self.root / "infra" / "tests" / "external")
+        self.flock_log = self.tmp / "flock.log"
+        self.locks = self.tmp / "locks"
+        self.locks.mkdir()
+        self.key = self.tmp / "ci-prod-age.key"  # stands in for the key lims-prod-decrypt@<release> releases (never a real key)
+        self.key.write_text("synthetic placeholder, not a key\n", encoding="utf-8")
+        (self.bin / "flock").write_text(FAKE_FLOCK, encoding="utf-8", newline="\n")
+        self.flock_log.write_text("", encoding="utf-8")
         for n, body in FAKES.items():
             (self.bin / n).write_text(FAKE_LOGGER % body, encoding="utf-8", newline="\n")
         if stub_siblings:
@@ -178,8 +191,11 @@ class Rig:
             raise AssertionError("missing file infra/ci/%s.sh" % script)
         e = dict(os.environ, FAKE_LOG=self.log.as_posix(), RELEASES_DIR=self.rel.as_posix(), TEXTFILE_DIR=self.tf.as_posix(),
                  LIMS_DRILL_LOCK=self.drill.as_posix(), SBOM_DIR=(self.tmp / "sbom").as_posix(),
+                 FAKE_FLOCK_LOG=self.flock_log.as_posix(), LIMS_DEPLOY_LOCK_DIR=self.locks.as_posix(),
+                 LIMS_PROD_KEY_FILE=self.key.as_posix(),
                  PATH=self.bin.as_posix() + os.pathsep + os.environ.get("PATH", ""))
-        for k in ("LIMS_APPROVED_RELEASE", "LIMS_INVENTORY", "SMOKE_INDUCE_FAILURE", "TRIAGE_FILE"):
+        for k in ("LIMS_APPROVED_RELEASE", "LIMS_INVENTORY", "SMOKE_INDUCE_FAILURE", "TRIAGE_FILE", "LIMS_ENV_LOCK_HELD",
+                  "SOPS_AGE_KEY_FILE", "FAKE_FLOCK_RC", "FAKE_TOUCH_MARKER"):
             e.pop(k, None)
         e.update(env or {})
         r = subprocess.run([_bash(), p.as_posix(), *args], env=e, capture_output=True, text=True, timeout=120, cwd=self.root.as_posix())
@@ -201,6 +217,19 @@ class Rig:
 
     def names(self):
         return [c["name"] for c in self.calls()]
+
+    def flock_calls(self):
+        out = []
+        for line in self.flock_log.read_text(encoding="utf-8").splitlines():
+            if line.startswith("--call "):
+                out.append([])
+            elif line.startswith("A:") and out:
+                out[-1].append(line[2:])
+        return out
+
+    def sops_keys(self):  # SOPS_AGE_KEY_FILE seen by each ansible-playbook run ("UNSET" when absent)
+        p = Path(self.log.as_posix() + ".sops")
+        return p.read_text(encoding="utf-8").splitlines() if p.exists() else []
 
     @staticmethod
     def text(call):
@@ -242,6 +271,13 @@ class ScriptStaticTest(unittest.TestCase):
         for n in SCRIPTS:
             c = _code(CI / (n + ".sh"))
             self.assertNotRegex(c, r"(?i)age-keygen|SOPS_AGE_KEY|keys\.txt|AGE-SECRET", n)
+
+    def test_lib_deploy_uses_only_the_released_key_file(self):  # review item 4; 02-TRD s12.2: no key material of its own on the runner
+        c = _code(CI / "lib-deploy.sh")
+        self.assertNotRegex(c, r"(?i)age-keygen|keys\.txt|AGE-SECRET|SOPS_AGE_KEY(?!_FILE)")
+        self.assertIn("LIMS_PROD_KEY_FILE", c)
+        self.assertIn("/run/lims/ci-prod/age.key", c)
+        self.assertIn("SOPS_AGE_KEY_FILE", c)
 
     def test_only_nepal_registry_in_scripts(self):
         for n in SCRIPTS:
@@ -624,6 +660,156 @@ class ChainTest(Base):
         self.assertIn("deploy_api_image=" + pushed, a, "deploy must use the digest push.sh locked")
 
 
+# =============================================================== review round 1 (C1.T-24-review.md items 2-4)
+def _seed(rig, env, rel_deployed=None):
+    rig.put_lock(env, NEW)
+    (rig.rel / ("%s.deployed.lock.yaml" % env)).write_text(lock_text(env, rel_deployed or OLD), encoding="utf-8", newline="\n")
+
+
+class EnvLockTest(Base):
+    """03-APP-FLOW s2.1: flock on <LIMS_DEPLOY_LOCK_DIR|/var/lock>/lims-deploy-<env>, wait <= 10 min, then fail.
+    Needs fake flock (none on Git-for-Windows bash): proves the script asks for the lock and refuses when it is not granted."""
+    stub = True
+
+    def test_deploy_takes_a_per_env_lock_with_a_bounded_wait(self):
+        self.rig.put_lock("dev", NEW)
+        r = self.rig.run("deploy", "dev", "dev-1")
+        self.assertEqual(r.returncode, 0, r.stderr)
+        calls = self.rig.flock_calls()
+        self.assertEqual(len(calls), 1, "exactly one flock per deploy: %r" % calls)
+        a = calls[0]
+        self.assertTrue(any(x in ("-w", "--wait", "--timeout") for x in a), "flock without a wait bound: %r" % a)
+        n = int(a[[i for i, x in enumerate(a) if x in ("-w", "--wait", "--timeout")][0] + 1])
+        self.assertTrue(0 < n <= 600, "second deploy waits <= 10 min, got %s s" % n)
+        self.assertTrue((self.rig.locks / "lims-deploy-dev").is_file(), "lock file lims-deploy-dev not opened")
+        self.assertEqual(sorted(p.name for p in self.rig.locks.iterdir()), ["lims-deploy-dev"], "lock must be per env")
+
+    def test_held_lock_refuses_deploy_before_anything_runs(self):
+        self.rig.put_lock("dev", NEW)
+        r = self.rig.run("deploy", "dev", "dev-1", env={"FAKE_FLOCK_RC": "1"})
+        self.assertNotEqual(r.returncode, 0)
+        self.assertRegex(r.stderr, r"(?i)lock")
+        self.assertEqual(self.rig.calls(), [], "ansible/smoke ran while another deploy held the env lock")
+        self.assertFalse((self.rig.rel / "dev.deployed.lock.yaml").exists())
+
+    def test_lock_is_taken_for_each_env_name(self):
+        self.rig.put_lock("staging", NEW)
+        self.assertEqual(self.rig.run("deploy", "staging", "v1.0.0-rc.1").returncode, 0)
+        self.assertEqual([p.name for p in self.rig.locks.iterdir()], ["lims-deploy-staging"])
+
+    def test_standalone_rollback_takes_the_lock_and_refuses_when_held(self):
+        _seed(self.rig, "dev")
+        r = self.rig.run("rollback", "dev")
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertEqual(len(self.rig.flock_calls()), 1)
+        self.assertTrue((self.rig.locks / "lims-deploy-dev").is_file())
+        self.rig.log.write_text("", encoding="utf-8")
+        before = list(self.rig.tf.glob("*.prom"))[0].read_text(encoding="utf-8")
+        r = self.rig.run("rollback", "dev", env={"FAKE_FLOCK_RC": "1"})
+        self.assertNotEqual(r.returncode, 0)
+        self.assertEqual(self.rig.calls("ansible-playbook"), [], "rollback raced a running deploy")
+        self.assertEqual(list(self.rig.tf.glob("*.prom"))[0].read_text(encoding="utf-8"), before, "counter moved without a rollback")
+
+    def test_rollback_called_by_deploy_does_not_take_the_lock_again(self):  # would deadlock on a second open of the same file
+        _seed(self.rig, "dev")
+        shutil.copy(CI / "rollback.sh", self.rig.ci / "rollback.sh")  # the REAL rollback; smoke stays the stub
+        r = self.rig.run("deploy", "dev", "dev-1", env={"SMOKE_RC": "1"})
+        self.assertEqual(r.returncode, 1, r.stderr)
+        self.assertEqual(self.rig.names(), ["ansible-playbook", "smoke.sh", "ansible-playbook"], "rollback must redeploy the old digests")
+        self.assertEqual(len(self.rig.flock_calls()), 1, "deploy.sh holds the lock; rollback.sh it calls must reuse it")
+        self.assertTrue(list(self.rig.tf.glob("*.prom")), "rollback did not finish (counter missing)")
+
+
+class RollingFailureTest(Base):
+    """03-APP-FLOW s2.1 line 100: health timeout during the rolling update -> rolling_back; errors BEFORE it -> failed (no rollback).
+    Seam: deploy.sh passes `-e deploy_roll_marker=<RELEASES_DIR>/.<env>.rolling` and removes that file first; deploy.yml touches it
+    right before the first roll task; the fake ansible-playbook touches it when FAKE_TOUCH_MARKER=1."""
+    stub = True
+    ENVS = (("prod", "v1.0.0", {"LIMS_APPROVED_RELEASE": "v1.0.0"}), ("staging", "v1.0.0-rc.1", {}), ("dev", "dev-1", {}))
+
+    def test_marker_path_is_passed_and_a_stale_marker_is_removed_first(self):
+        for env, rel, extra in self.ENVS:
+            self.rig.log.write_text("", encoding="utf-8")
+            self.rig.put_lock(env, NEW)
+            marker = self.rig.rel / (".%s.rolling" % env)
+            marker.write_text("stale", encoding="utf-8")
+            r = self.rig.run("deploy", env, rel, env=dict(extra))
+            self.assertEqual(r.returncode, 0, env + r.stderr)
+            a = [x for x in self.rig.calls("ansible-playbook")[0]["args"] if x.startswith("deploy_roll_marker=")]
+            self.assertEqual(len(a), 1, env + ": -e deploy_roll_marker=<path> missing")
+            self.assertTrue(a[0].endswith("/.%s.rolling" % env), a[0])
+            self.assertFalse(marker.exists(), env + ": stale marker survived into a new deploy (it would trigger a false rollback)")
+
+    def test_failure_after_the_roll_started_rolls_back_and_fails(self):
+        for env, rel, extra in self.ENVS:
+            self.rig.log.write_text("", encoding="utf-8")
+            _seed(self.rig, env)
+            r = self.rig.run("deploy", env, rel, env=dict(extra, FAKE_ANSIBLE_RC="2", FAKE_TOUCH_MARKER="1"))
+            self.assertEqual(r.returncode, 1, env + r.stderr)
+            self.assertRegex(r.stderr, r"(?i)rolling back")
+            self.assertEqual(self.rig.names(), ["ansible-playbook", "rollback.sh"], env + ": mixed release left in place")
+            self.assertEqual(self.rig.calls("rollback.sh")[0]["args"], [env])
+            kg = yaml.safe_load((self.rig.rel / ("%s.deployed.lock.yaml" % env)).read_text(encoding="utf-8"))["images"]
+            self.assertEqual(kg, {"lims/%s" % n: OLD[n] for n in NAMES}, env + ": known-good lock must stay the OLD digests")
+
+    def test_failure_before_the_roll_does_not_roll_back(self):
+        for env, rel, extra in self.ENVS:
+            self.rig.log.write_text("", encoding="utf-8")
+            _seed(self.rig, env)
+            (self.rig.rel / (".%s.rolling" % env)).write_text("stale", encoding="utf-8")
+            r = self.rig.run("deploy", env, rel, env=dict(extra, FAKE_ANSIBLE_RC="2"))
+            self.assertNotEqual(r.returncode, 0, env)
+            self.assertEqual(self.rig.names(), ["ansible-playbook"], env + ": rollback/smoke after a pre-roll failure")
+
+    def test_failed_rollback_after_a_roll_failure_is_still_nonzero(self):
+        _seed(self.rig, "dev")
+        r = self.rig.run("deploy", "dev", "dev-1", env={"FAKE_ANSIBLE_RC": "2", "FAKE_TOUCH_MARKER": "1", "ROLLBACK_RC": "1"})
+        self.assertNotEqual(r.returncode, 0)
+        self.assertEqual(self.rig.names(), ["ansible-playbook", "rollback.sh"])
+
+
+class ProdKeyTest(Base):
+    """02-TRD s12.2: the runner holds no prod key; lims-prod-decrypt@<release> releases it (default /run/lims/ci-prod/age.key,
+    seam LIMS_PROD_KEY_FILE) and deploy/rollback hand it to ansible-playbook as SOPS_AGE_KEY_FILE for prod ONLY."""
+    stub = True
+    NOKEY = {"LIMS_PROD_KEY_FILE": "/nonexistent/lims-ci-prod/age.key"}
+
+    def test_prod_deploy_without_a_released_key_is_refused_before_ansible(self):
+        _seed(self.rig, "prod")
+        r = self.rig.run("deploy", "prod", "v1.0.0", env=dict(self.NOKEY, LIMS_APPROVED_RELEASE="v1.0.0"))
+        self.assertNotEqual(r.returncode, 0)
+        self.assertIn("lims-prod-decrypt@v1.0.0", r.stderr, "message must say which unit to start")
+        self.assertEqual(self.rig.calls(), [], "ansible/smoke/rollback ran without the prod key")
+
+    def test_prod_deploy_hands_the_released_key_to_ansible(self):
+        self.rig.put_lock("prod", NEW)
+        r = self.rig.run("deploy", "prod", "v1.0.0", env={"LIMS_APPROVED_RELEASE": "v1.0.0"})
+        self.assertEqual(r.returncode, 0, r.stderr)
+        keys = self.rig.sops_keys()
+        self.assertEqual(len(keys), 1)
+        self.assertEqual(Path(keys[0]).name, self.rig.key.name, "SOPS_AGE_KEY_FILE must point at the released key: %r" % keys)
+
+    def test_prod_key_never_reaches_dev_or_staging(self):  # AC-21.1 / A9
+        for env, rel in (("dev", "dev-1"), ("staging", "v1.0.0-rc.1")):
+            self.rig.put_lock(env, NEW)
+            r = self.rig.run("deploy", env, rel, env=dict(self.NOKEY))
+            self.assertEqual(r.returncode, 0, "%s must not need the prod key: %s" % (env, r.stderr))
+        r = self.rig.run("deploy", "dev", "dev-2")  # key file present on the box, still not used below prod
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertEqual(self.rig.sops_keys(), ["UNSET"] * 3, "prod key leaked into a non-prod ansible run")
+
+    def test_prod_rollback_needs_and_uses_the_released_key(self):
+        _seed(self.rig, "prod")
+        r = self.rig.run("rollback", "prod", env=dict(self.NOKEY))
+        self.assertNotEqual(r.returncode, 0)
+        self.assertEqual(self.rig.calls("ansible-playbook"), [])
+        self.assertEqual(list(self.rig.tf.glob("*.prom")), [], "counter moved without a rollback")
+        self.assertNotIn("lims-prod-decrypt@rollback", r.stderr, "`rollback` is not a release id; there is no such instance")
+        r = self.rig.run("rollback", "prod")
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertEqual([Path(k).name for k in self.rig.sops_keys()], [self.rig.key.name])
+
+
 # =============================================================== deploy.yml (app part)
 SERVICE_ORDER = ["api-a", "api-b", "worker-a", "worker-b", "web-a", "web-b", "portal", "renderer", "pdf-sandbox"]
 SVC_RX = re.compile(r"(?<![\w-])(%s)(?![\w-])" % "|".join(SERVICE_ORDER))
@@ -704,6 +890,51 @@ class DeployPlaybookTest(unittest.TestCase):
                         seq += SVC_RX.findall(cmd)
             want = SERVICE_ORDER if profile == "full" else [s for s in SERVICE_ORDER if s not in ("worker-b", "web-b")]
             self.assertEqual(seq, want, "profile %s: rolling order/set" % profile)
+
+    @staticmethod
+    def _envs(item):
+        return [json.dumps(s["environment"], default=str) for s in list(item["parents"]) + [item["task"]] if "environment" in s]
+
+    def test_every_compose_task_carries_the_whole_compose_env(self):  # review item 1: compose interpolates the WHOLE file (${X:?})
+        seen = 0
+        for i in self.items:
+            if "docker compose" in t08.cmd_of(i["task"]):
+                seen += 1
+                self.assertTrue(any("deploy_compose_env" in e for e in self._envs(i)),
+                                "`docker compose` task without deploy_compose_env in its environment: %s" % i["task"].get("name"))
+        self.assertGreaterEqual(seen, 12, "migrate x3 + 9 roll tasks expected")
+        mig = self.mig()
+        e = " ".join(self._envs(mig))
+        self.assertIn("PGPASSWORD", e)
+        self.assertIn("deploy_migrator_secret", e, "migrator credential must still reach the migrate tasks")
+        self.assertNotRegex(t08.cmd_of(mig["task"]), r"(?i)PGPASSWORD=\S")
+
+    def test_every_roll_waits_five_minutes_for_health(self):  # review item 3a: 5 min [CONV]
+        rolls = [i for i in self.items if re.search(r"docker compose[^\n]*\bup\b", t08.cmd_of(i["task"]))]
+        self.assertGreaterEqual(len(rolls), 9)
+        for i in rolls:
+            self.assertRegex(t08.cmd_of(i["task"]), r"--wait\b[^\n]*--wait-timeout\s+300\b|--wait-timeout\s+300\b[^\n]*--wait\b", i["task"].get("name"))
+
+    def test_roll_marker_is_touched_once_right_before_the_first_roll(self):  # review item 3b
+        mk = [i for i in self.items if "deploy_roll_marker" in t08.blob(i["task"])]
+        self.assertEqual(len(mk), 1, "exactly one task may reference deploy_roll_marker")
+        m = mk[0]
+        t = m["task"]
+        self.assertEqual(t08.short(t08.module_of(t)), "file")
+        body = t[t08.module_of(t)]
+        self.assertEqual(body.get("state"), "touch")
+        self.assertIn("deploy_roll_marker", str(body.get("path")))
+        self.assertEqual(t.get("delegate_to"), "localhost")
+        self.assertIs(t.get("run_once"), True)
+        first_roll = min(i["idx"] for i in self.items if re.search(r"docker compose[^\n]*\bup\b", t08.cmd_of(i["task"])))
+        self.assertLess(m["idx"], first_roll)
+        self.assertGreater(m["idx"], self.seeds()["idx"], "a migration/seed failure is a pre-roll error: no rollback")
+        between = [i for i in self.items if m["idx"] < i["idx"] < first_roll]
+        self.assertEqual(between, [], "marker must be the last task before Roll api-a")
+        c = pctx("dev", "lean")
+        self.assertFalse(t08.active(m, c), "task must be skipped when deploy_roll_marker is not passed")
+        c["deploy_roll_marker"] = "/x/.dev.rolling"
+        self.assertTrue(t08.active(m, c))
 
     def test_roll_uses_digest_images_and_no_latest(self):
         for v in ("LIMS_API_IMAGE", "LIMS_WORKER_IMAGE", "LIMS_WEB_IMAGE", "LIMS_PORTAL_IMAGE", "LIMS_RENDERER_IMAGE", "LIMS_PDF_SANDBOX_IMAGE"):

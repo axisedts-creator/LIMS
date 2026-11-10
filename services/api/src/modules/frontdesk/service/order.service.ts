@@ -40,13 +40,16 @@ const omitNull = (o: Obj): Obj => Object.fromEntries(Object.entries(o).filter(([
 const money = (v: unknown) => ({ amount_paisa: Number(v), currency: 'NPR' });
 const portMoney = (m: Money) => ({ amount_paisa: m.amountPaisa, currency: m.currency });
 
-/** { orderId } is the whole lab input. Only ACTIVE C4 items count (a removed item must neither block `completed` nor start the order). */
+/** { orderId } is the whole lab input. Iterate over the ACTIVE C4 items (03-IC §10.4 / 08 A13 D-5: "every active item"):
+ *  a removed item must neither block `completed` nor start the order, and an active item LabPort does not yet know
+ *  (e.g. added by changeOrderItems, not consumed by C5 yet) counts as `not_started` so `completed` is never early. */
 async function derivedStatus(c: OrderCtx, row: Obj, activeIds: ReadonlySet<string>): Promise<OrderStatus> {
   const stored = row['status'] as OrderStatus;
   if (stored !== 'registered' && stored !== 'in_progress') return stored;
   const pc = portCtx(c);
   const states = await c.ports.LabPort.getOrderItemProcessingState(pc, { orderId: row['id'] });
-  return deriveOrderStatus(stored, states.filter((s) => activeIds.has(s.orderItemId)).map((s) => s.processingStatus));
+  const by = new Map(states.map((s) => [s.orderItemId, s.processingStatus]));
+  return deriveOrderStatus(stored, [...activeIds].map((id) => by.get(id) ?? 'not_started'));
 }
 
 async function scopeOf(c: OrderCtx): Promise<{ all: boolean; centreIds: readonly string[] }> {

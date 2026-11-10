@@ -44,7 +44,7 @@ export async function verifyCode(token: string, prev: CodeState, formData: FormD
     { stage: 'link', credential: token, json: { code } },
   );
   if (r.status === 200 && r.body?.session_token) {
-    await setSession(r.body.session_token, r.body.absolute_expires_at);
+    await setSession(r.body.session_token, r.body.absolute_expires_at, token);
     await clearChallenge();
     redirect(`/r/${token}/report`); // ponytail: dues-purpose links (C15) go to the report page until /dues ships
   }

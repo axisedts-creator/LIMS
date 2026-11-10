@@ -22,9 +22,10 @@ function key(): string {
 export async function callApi<T = unknown>(
   method: 'GET' | 'POST',
   path: string,
-  opts: { stage?: Stage; credential?: string; json?: unknown; raw?: boolean }, // no credential = public endpoint (Q1)
+  opts: { stage?: Stage; credential?: string; json?: unknown; raw?: boolean; headers?: Record<string, string> }, // no credential = public endpoint (Q1)
 ): Promise<ApiResult<T>> {
   const h: Record<string, string> = {
+    ...opts.headers,
     'X-Lims-Bff-Key': key(),
     accept: opts.raw ? 'application/pdf' : 'application/json',
   };
@@ -82,7 +83,19 @@ export interface PortalReport {
   };
   download: { report_version_id: string };
   smart_summary?: SmartSummary | null;
+  dues?: { balance_due_paisa: number; online_gateways: ('esewa' | 'khalti')[]; open_request?: { id: string; status: string } };
 }
+/** PP1 / PP2 (08 A11.1). `action_url` only while ready and not under review. */
+export interface PortalPayment {
+  id: string;
+  status: 'queued' | 'ready' | 'completed' | 'failed' | 'expired';
+  gateway: 'esewa' | 'khalti';
+  review: boolean;
+  action_url?: string;
+  failure_code?: string;
+}
+export const GATEWAY_LABEL = { esewa: 'eSewa', khalti: 'Khalti' } as const;
+export const PAYMENT_ID = /^[A-Za-z0-9-]{1,64}$/;
 export interface QrResult {
   lab_name: string;
   patient_display: string;

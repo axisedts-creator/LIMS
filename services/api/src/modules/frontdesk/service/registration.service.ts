@@ -263,6 +263,7 @@ async function resolvePatient(c: CreateCtx, ref: unknown, centreId: string): Pro
 type SmsState = 'queued' | 'suppressed_no_consent' | 'suppressed_no_contact' | 'suppressed_channel_disabled' | 'not_attempted';
 
 /** A port may carry its own error class (the contracts' LimsError has no HTTP status): re-raise by code as the core LimsError (08 R18: code and detail unchanged). */
+// Retry steps 1-9 once in a new tx on billing.counter_busy / 40P01 (03-APP-FLOW.md:97) is NOT done: handler ctx has no tx opener -> CR .orchestra/cr/FD-T06-retry-quote-ext.md
 export async function create(hctx: unknown, body: unknown): Promise<Result> {
   try { return await createInTx(hctx, body); } catch (e) {
     const x = e as { code?: unknown; detail?: unknown } | null;
@@ -301,7 +302,7 @@ async function createInTx(hctx: unknown, body: unknown): Promise<Result> {
   // 3. re-quote inside the tx: a changed price list / catalog / discount set is a stale quote (409), before any counter is touched
   const pc = portCtx(c);
   const p = await priceDraft(c, d, settings);
-  if (p.q.fingerprint !== r.fingerprint) throw new LimsError('common.version_conflict', 'Prices changed');     // fresh quote extension: LimsError has no extension field yet
+  if (p.q.fingerprint !== r.fingerprint) throw new LimsError('common.version_conflict', 'Prices changed');     // fresh `quote` problem extension (03-APP-FLOW.md:86) missing: LimsError has no extension field -> CR .orchestra/cr/FD-T06-retry-quote-ext.md
   // 3a. credit (net is known only now)
   if (d.billingMode === 'credit') await billing.assertCreditAllowed(pc, { creditPartyId: d.creditPartyId as never, additional: p.q.totals.net });
   // 4. discount authority: above the self limit needs an approval; consuming one is FD-T07 (US-FD-07), so until then it is refused
@@ -377,8 +378,10 @@ async function createInTx(hctx: unknown, body: unknown): Promise<Result> {
       orderId: orderId as never, creditPartyId: d.creditPartyId as never, branchId: branchId as never, centreId: d.centreId as never, ...refPart,
       patientDisplayName: String(patient['full_name']), lines: p.priced, discounts: p.discounts, expectedFingerprint: r.fingerprint,
     });
-    // [CONV] the port returns ids only: amount = the computed line net at the same index (fallback: order net), period = B.S. month of today, status 'open' (UNVERIFIED, see impl note).
-    creditCharges = out.chargeIds.map((id, i) => ({ id, credit_party_id: d.creditPartyId, order_id: orderId, amount: money((p.q.lines[i]?.net ?? p.q.totals.net)), period_month: bsDate.slice(0, 7), status: 'open', created_at: nowIso }));
+    // [CONV] the port returns ids only: amount = the computed line net at the same index (no fallback: a count mismatch is an internal error),
+    // period_month = A.D. month in tenant tz (05-SCHEMA.md:1049, 03-IC:2192), status = column default 'uninvoiced' (05-SCHEMA.md:1050).
+    if (out.chargeIds.length !== p.q.lines.length) throw new LimsError('common.internal');
+    creditCharges = out.chargeIds.map((id, i) => ({ id, credit_party_id: d.creditPartyId, order_id: orderId, amount: money(p.q.lines[i]!.net), period_month: today.slice(0, 7), status: 'uninvoiced', created_at: nowIso }));
   }
   if (!balance) balance = (await billing.getOrderBillingSummary(pc, { orderId: orderId as never })).balance;
 

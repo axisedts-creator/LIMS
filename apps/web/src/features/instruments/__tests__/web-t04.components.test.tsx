@@ -163,7 +163,9 @@ describe('AC-17.1 — manager sees observed codes and C3 maps', () => {
   it('AC-17.3 (UI side): the status shown is E32 last_mapping_status — the component does not recompute it from the loaded maps', async () => {
     // GLU is in the C3 maps list but E32 still says unmapped (refresh task not run yet) → shown as Unmapped
     await show({ observed: [oc({ instrument_analyte_code: 'GLU' })] });
-    expect(text(rowOf(/\bGLU\b/))).toMatch(/Unmapped/);
+    // scoped to the Observed codes table: the Mappings table also has a GLU row (04-UI-UX.md:148 "Instrument code")
+    const observedTable = screen.getByRole('table', { name: /observed codes/i });
+    expect(text(within(observedTable).getByRole('row', { name: /\bGLU\b/ }))).toMatch(/Unmapped/);
   });
 
   it('empty observed list → the verbatim empty state', async () => {
@@ -293,7 +295,7 @@ describe('AC-17.2 — create a map (Map… from an observed code, or Add mapping
     const c = creates()[0]!;
     expect(c.body).toEqual({ instrument_id: INST, direction: 'both', instrument_code: 'HGB', analyte_id: A_HGB, test_id: T_HGB });
     expect(c.headers.get('idempotency-key')).toBeTruthy();
-    expect(c.headers.get('authorization')).toBeNull(); // the browser never talks to C3 itself — the BFF adds the JWT
+    expect(c.headers.get('authorization')).toBe('Bearer jwt-synthetic'); // recorded request is BFF→C3 (REQ-SEC-068), which carries the JWT
     await waitFor(() => expect(refresh).toHaveBeenCalled()); // AC-17.3 UI side: observed status re-read after C3 changed
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
   });

@@ -45,6 +45,7 @@ const IMPLEMENTED: readonly string[] = [
   'getPendingTestsSummary', 'listPendingTests', // AN-T13
   'getAnalyticsDashboard', 'getAnalyticsFreshness', 'requestAnalyticsRefresh', // AN-T14
   'createAnalyticsExport', 'listAnalyticsExports', 'getAnalyticsExport', 'downloadAnalyticsExport', // AN-T15
+  'listReportSchedules', 'createReportSchedule', 'getReportSchedule', 'updateReportSchedule', 'deactivateReportSchedule', 'getReportRun', // AN-T16
 ];
 
 const FAKE_REQ = { params: {}, query: {}, headers: {}, body: {} };

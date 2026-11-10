@@ -131,7 +131,7 @@ describe('createReportSchedule — body validation (ScheduleInput)', () => {
 
   it.each([undefined, null, 'x', [], 7])('body %j -> 400', async (body) => {
     const c = await makeCtx16(OWNER);
-    await expectLims(create(c.ctx, body), 'common.validation_failed', 400);
+    await expectLims(callSch('createReportSchedule', c.ctx, { body }), 'common.validation_failed', 400);   // not via create(): its default param would turn undefined into a valid body
     untouched();
   });
 

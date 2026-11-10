@@ -1,0 +1,5 @@
+# API-T12 dispute (writer)
+Test: `messages.service.test.ts:173` — "attachment summary has id/scan_state/mime/size/name only", leak list contains the bare substring `'sha256'`, checked against `JSON.stringify(r.body)` of the WHOLE E35 body.
+Why wrong: `MessageDetail.message_key_kind` is REQUIRED by contracts/openapi/instruments.yaml with enum `msh10|msh10_reused|sha256|sha256_repeat`; the fixture (`detailRow`) uses `'sha256'`, and the same file asserts `message_key_kind: 'sha256'` at line 151. So every valid E35 body contains the substring `sha256`; the check cannot pass for any contract-conformant implementation. The attachment object itself is exactly `{attachment_id, scan_state, mime_type, size_bytes, original_file_name}` (line 172 passes).
+Suggested fix (tester): check `r.body.attachment` only for `sha256|bucket|object_path|http|token=`, or look for the key `"sha256":` / `"object_path"` in the whole body instead of the bare word.
+Impact: 1 test (of 174 run). All other API-T12 tests pass.

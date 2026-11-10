@@ -32,9 +32,11 @@ const failOf = (status: number, code: string): Fail =>
   : status === 403 ? 'forbidden'
   : 'other';
 
-export function ExportDialog({ isOpen, onClose, reportCode, params, summary, pdfEnabled = false, onVerify }: {
+export function ExportDialog({ isOpen, onClose, reportCode, params, summary, pdfEnabled = false, onVerify, initialFormat = 'xlsx' }: {
   isOpen: boolean;
   onClose: () => void;
+  /** Preselected format (the report page's Export menu choice). */
+  initialFormat?: Format;
   reportCode: string;
   params: Record<string, unknown>;
   summary: ExportSummary;
@@ -42,7 +44,7 @@ export function ExportDialog({ isOpen, onClose, reportCode, params, summary, pdf
   onVerify?: () => void;
 }) {
   const toast = useToast();
-  const [format, setFormat] = useState<Format>('xlsx');
+  const [format, setFormat] = useState<Format>(initialFormat);
   const [ack, setAck] = useState(false);
   const [busy, setBusy] = useState(false);
   const [fail, setFail] = useState<Fail>();

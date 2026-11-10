@@ -11,7 +11,7 @@ import { toDecimalString } from '../domain/decimal.js';
 import { capturedAt as correctedTime, instrumentClockOffsetSeconds, localToUtc } from '../domain/instrumentTime.js';
 import { getDriver as registryGetDriver } from '../drivers/registry.js';
 import type { DriverContext, InstrumentDriver, ParsedRecord, ParseOk } from '../drivers/types.js';
-import { createInstrumentEvents, qcIdempotencyKey, resultIdempotencyKey, type EventsPort, type InstrumentEvents } from '../events/publish.js';
+import { calibrationIdempotencyKey, createInstrumentEvents, qcIdempotencyKey, resultIdempotencyKey, type EventsPort, type InstrumentEvents } from '../events/publish.js';
 import { createIngestRepo, type IngestRepo } from '../repo/ingest.repo.js';
 import { isUuid } from './agents.service.js';
 import { deviceScope, type DeviceCtx, type DeviceResult } from './enrolment.service.js';
@@ -37,8 +37,8 @@ const META_INTS = ['frames', 'retransmits', 'naks_sent', 'mllp_discarded_bytes']
 const META_REASONS = ['frame_timeout', 'new_enq', 'new_start_block', 'msh_unparseable', 'process_restart'];
 const sha256 = (b: Uint8Array | string) => createHash('sha256').update(b).digest('hex');
 const iso = (v: unknown) => new Date(v as string).toISOString();
-const within = (v: unknown, min: number, max: number): v is string => typeof v === 'string' && v.length >= min && v.length <= max;
-const fit = (v: string | undefined, max: number) => (typeof v === 'string' && v.length <= max ? v : undefined);   // never store a value that breaks a column CHECK
+export const within = (v: unknown, min: number, max: number): v is string => typeof v === 'string' && v.length >= min && v.length <= max;
+export const fit = (v: string | undefined, max: number) => (typeof v === 'string' && v.length <= max ? v : undefined);   // never store a value that breaks a column CHECK
 const obj = (v: unknown): Row => (typeof v === 'object' && v !== null && !Array.isArray(v) ? (v as Row) : {});
 
 function cleanMeta(v: unknown): Row {
@@ -47,13 +47,13 @@ function cleanMeta(v: unknown): Row {
   if (META_REASONS.includes(m['incomplete_reason'])) out['incomplete_reason'] = m['incomplete_reason'];
   return out;
 }
-function qcPatterns(v: unknown): RegExp[] {
+export function qcPatterns(v: unknown): RegExp[] {
   const out: RegExp[] = [];
   for (const p of Array.isArray(v) ? v : []) { try { out.push(new RegExp(String(p))); } catch { /* a stored bad pattern never matches */ } }
   return out;
 }
-const mapOrganism = (o: NonNullable<ParsedRecord['organism']>) => ({ organism_code_raw: o.organismCodeRaw, ...(o.isolateSeq === undefined ? {} : { isolate_seq: o.isolateSeq }) });
-const mapAst = (a: NonNullable<ParsedRecord['ast']>) => ({ antibiotic_code_raw: a.antibioticCodeRaw, ...(a.isolateSeq === undefined ? {} : { isolate_seq: a.isolateSeq }), method: a.method, raw_value: a.rawValue,
+export const mapOrganism = (o: NonNullable<ParsedRecord['organism']>) => ({ organism_code_raw: o.organismCodeRaw, ...(o.isolateSeq === undefined ? {} : { isolate_seq: o.isolateSeq }) });
+export const mapAst = (a: NonNullable<ParsedRecord['ast']>) => ({ antibiotic_code_raw: a.antibioticCodeRaw, ...(a.isolateSeq === undefined ? {} : { isolate_seq: a.isolateSeq }), method: a.method, raw_value: a.rawValue,
   ...(a.interpretationRaw === undefined ? {} : { interpretation_raw: a.interpretationRaw }), ...(a.standard === undefined ? {} : { standard: a.standard }), ...(a.standardVersion === undefined ? {} : { standard_version: a.standardVersion }) });
 
 export function createIngestService(deps: IngestDeps = {}) {
@@ -177,7 +177,34 @@ export function createIngestService(deps: IngestDeps = {}) {
         records.push(row);
         const bad: string[] = [];
         if (cls === 'host_query') { counters.host_query_records++; row['emit_status'] = 'not_applicable'; continue; }
-        if (cls === 'calibrator') { counters.calibrator_records++; row['emit_status'] = 'not_applicable'; continue; }   // ponytail: calibration event is API-T16; archived only until then
+        if (cls === 'calibrator') {
+          counters.calibrator_records++;
+          if (!driver.capabilities.calibration) { row['emit_status'] = 'not_applicable'; continue; }   // B2: generic drivers never emit calibration
+          const code = r.instrumentAnalyteCode; const codeOk = within(code, 1, 64);
+          if (!codeOk) bad.push('instrument_analyte_code');
+          if (r.calibratorIdRaw !== undefined && !within(r.calibratorIdRaw, 1, 64)) bad.push('calibrator_id_raw');
+          if (r.calibratorLotRaw !== undefined && !within(r.calibratorLotRaw, 1, 64)) bad.push('calibrator_lot_raw');
+          const resultUtc = utc(r.instrumentResultTimeLocal);
+          if (r.instrumentResultTimeLocal && !resultUtc) bad.push('instrument_result_time');
+          const mapping = codeOk ? await mapCode(B, ins['id'], code) : undefined;
+          let status = bad.length ? 'skipped_invalid' : outcome === 'parsed' ? 'emit' : 'shadow'; let eventId: string | undefined; let resultKey: string | undefined;
+          if (status !== 'skipped_invalid') {
+            const payload: Row = { instrument_message_id: messageId, instrument_id: ins['id'], centre_id: ins['centre_id'], instrument_analyte_code: code, mapping_status: mapping!.status,
+              ...(mapping!.analyteId ? { analyte_id: mapping!.analyteId } : {}), ...(mapping!.testId ? { test_id: mapping!.testId } : {}),
+              ...(r.calibratorIdRaw !== undefined ? { calibrator_id_raw: r.calibratorIdRaw } : {}), ...(r.calibratorLotRaw !== undefined ? { calibrator_lot_raw: r.calibratorLotRaw } : {}),
+              ...(resultUtc ? { instrument_result_time: resultUtc } : {}), received_at: receivedAt };
+            resultKey = calibrationIdempotencyKey(payload, sha);
+            if (status === 'emit') {
+              const out = await B.events.calibrationReceived(ctx, payload, { rawSha256: sha });
+              eventId = out.eventId; status = out.duplicate ? 'duplicate_event' : 'emitted';
+              if (status === 'emitted') counters.emitted_events++;
+            }
+          } else counters.skipped_records++;
+          Object.assign(row, { instrument_analyte_code: codeOk ? code : null, mapping_status: mapping?.status ?? null, analyte_id: mapping?.analyteId ?? null, test_id: mapping?.testId ?? null,
+            instrument_result_time: resultUtc ?? null, result_key_sha256: resultKey ? sha256(resultKey) : null, emit_status: status, event_id: eventId ?? null,
+            warnings: [...bad.map((f) => `invalid_field:${f}`), ...r.warnings.filter((w) => SAFE_WARNING.test(w))].slice(0, 20) });
+          continue;
+        }
         if (cls !== 'patient' && cls !== 'qc') { row['emit_status'] = 'not_applicable'; continue; }
         if (cls === 'patient') counters.patient_records++; else counters.qc_records++;
 

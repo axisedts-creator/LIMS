@@ -5,7 +5,7 @@
 // ASSUMED module/prop contract (spec fixes folders + kit components only; writer may dispute a name via the ruling flow). Types = contracts/openapi/catalog.yaml schemas.
 //   components/PriceListsList.tsx      PriceListsList({priceLists: PriceList[], permissions})                                         SCR-13 list (+ "New price list" dialog)
 //   components/PriceListDetail.tsx     PriceListDetail({priceList: PriceListDetail, ownerLabels: Record<id,string>, permissions})    SCR-13 detail: General form, Assignments, Versions, header actions
-//   components/PriceVersionEditor.tsx  PriceVersionEditor({priceList:{id,code,name}, version: PriceListVersion, items: PriceItem[], currentItems: PriceItem[], orderables: OrderableSummary[], permissions})
+//   components/PriceVersionEditor.tsx  PriceVersionEditor({priceList:{id,code,name}, version: PriceListVersion, items: PriceItem[], currentItems: PriceItem[], orderables: OrderableSummary[], departments: Department[], permissions})
 //                                      SCR-14: EditableGrid (columns Code · Name · Kind · Department · Price (NPR) · Current published price · Change · Status), toolbar Save / Add orderable / Publish…
 //   components/PriceSimulator.tsx      PriceSimulator({permissions})                                                                  SCR-15 (button "Get price"; Orderables/Centre/Credit party/Doctor/Price list comboboxes)
 //   components/SurchargeRulesScreen.tsx SurchargeRulesScreen({rules: SurchargeRule[], departments, orderables, priceLists, permissions})  SCR-16 ("New rule", row action "End rule")
@@ -108,6 +108,9 @@ const dialog = () => screen.getByRole('dialog');
 const press = async (name: RegExp, root: HTMLElement = document.body) => userEvent.click(within(root).getByRole('button', { name }));
 const choose = async (root: HTMLElement, label: RegExp, option: string | RegExp) => { await userEvent.click(within(root).getByLabelText(label)); await userEvent.click(await screen.findByRole('option', { name: option })); };
 const pick = async (root: HTMLElement, label: RegExp, query: string, option: string | RegExp) => { await userEvent.type(within(root).getByLabelText(label), query); await userEvent.click(await screen.findByRole('option', { name: option })); };
+// ruling C3.T-34 D2: pick fields by role, not label (a label starting with "Department"/"Percent" also matches the radio of the same name; kit DateTimePicker adds "Open calendar for Effective from").
+const chooseDept = async (root: HTMLElement, option: string | RegExp) => { await userEvent.click(within(root).getByRole('button', { name: /department/i, expanded: false })); await userEvent.click(await screen.findByRole('option', { name: option })); };
+const percentField = (root: HTMLElement) => (within(root).queryByRole('spinbutton', { name: /^percent/i }) ?? within(root).getByRole('textbox', { name: /^percent/i })) as HTMLInputElement;
 const text = (root: HTMLElement = document.body) => root.textContent ?? '';
 const load = async (name: string) => (await import(`../components/${name}`))[name];
 const PRICE_COL = 4; // Code · Name · Kind · Department · Price (NPR) · Current published price · Change · Status
@@ -275,7 +278,7 @@ describe('SCR-14 PriceVersionEditor (grid, batching ≤ 200, unsaved guard, publ
   const current = [item(CBC, 90000), item(HB, 80000), item(FBS, 20000)];
   const editor = async (o: Record<string, unknown> = {}, permissions: string[] = MANAGE) => {
     const C = await load('PriceVersionEditor');
-    return wrap(<C priceList={PLREF} version={ver(73, 3, 'draft')} items={baseItems} currentItems={current} orderables={ORDERABLES} permissions={permissions} {...o} />);
+    return wrap(<C priceList={PLREF} version={ver(73, 3, 'draft')} items={baseItems} currentItems={current} orderables={ORDERABLES} departments={DEPTS} permissions={permissions} {...o} />);
   };
   const editPrice = (row: HTMLElement, value: string) => {
     fireEvent.doubleClick(within(row).getAllByRole('gridcell')[PRICE_COL]!);
@@ -331,7 +334,7 @@ describe('SCR-14 PriceVersionEditor (grid, batching ≤ 200, unsaved guard, publ
     await editor({ items: many.map((o) => item(o, 10000)), currentItems: many.map((o) => item(o, 10000)), orderables: many });
     const rows = screen.getAllByRole('row').slice(1);
     expect(rows).toHaveLength(201);
-    rows.forEach((r, i) => editPrice(r, `${100 + i}.00`));
+    rows.forEach((r, i) => editPrice(r, `${101 + i}.00`)); // base price is 100.00: 101+ so every edit is a real change
     await press(/^save$/i);
     await waitFor(() => expect(sent('POST', /bulk-upsert$/)).toHaveLength(2), { timeout: 15000 });
     const sizes = sent('POST', /bulk-upsert$/).map((c) => c.body.items.length).sort((a, b) => a - b);
@@ -340,16 +343,16 @@ describe('SCR-14 PriceVersionEditor (grid, batching ≤ 200, unsaved guard, publ
     expect(new Set(keys).size).toBe(2);
     const ids = sent('POST', /bulk-upsert$/).flatMap((c) => c.body.items.map((i: any) => i.orderable_id));
     expect(new Set(ids).size).toBe(201); // no row lost or duplicated
-  }, 90000);
+  }, 420000); // ruling D4: ~1.1 s per kit EditableGrid edit × 201 edits
 
   it('exactly 200 changed rows → a single request', async () => {
     const many = bulk(200);
     await editor({ items: many.map((o) => item(o, 10000)), currentItems: many.map((o) => item(o, 10000)), orderables: many });
-    screen.getAllByRole('row').slice(1).forEach((r, i) => editPrice(r, `${100 + i}.00`));
+    screen.getAllByRole('row').slice(1).forEach((r, i) => editPrice(r, `${101 + i}.00`));
     await press(/^save$/i);
     await waitFor(() => expect(sent('POST', /bulk-upsert$/)).toHaveLength(1), { timeout: 15000 });
     expect(sent('POST', /bulk-upsert$/)[0]!.body.items).toHaveLength(200);
-  }, 90000);
+  }, 420000); // ruling D4
 
   it('per-row error_code from the API is shown in that row only; the other rows are saved; the failed row stays unsaved', async () => {
     api.use(http.post(`${ORIGIN}/v1/catalog/price-list-versions/:id/items/bulk-upsert`, async ({ request }) => {
@@ -715,9 +718,9 @@ describe('SCR-16 SurchargeRulesScreen (AC-14.1…14.5, 03-APP-FLOW §5)', () => 
     await press(/new rule/i);
     const d = dialog();
     await userEvent.click(within(d).getByRole('radio', { name: /^department$/i }));
-    await choose(d, /^department/i, /Hematology/);
+    await chooseDept(d, /Hematology/);
     await userEvent.click(within(d).getByRole('radio', { name: /^percent$/i }));
-    await userEvent.type(within(d).getByLabelText(/^percent/i), '50');
+    await userEvent.type(percentField(d), '50');
     await choose(d, /price list/i, /HOSP_A|Synthetic General Hospital list/);
     await press(/^save$/i, d);
     await waitFor(() => expect(sent('POST', /surcharge-rules$/)).toHaveLength(1));
@@ -733,7 +736,7 @@ describe('SCR-16 SurchargeRulesScreen (AC-14.1…14.5, 03-APP-FLOW §5)', () => 
     await userEvent.click(within(d).getByRole('radio', { name: /all tests/i }));
     await userEvent.click(within(d).getByRole('radio', { name: /^percent$/i }));
     for (const bad of ['0', '0.005', '1000.01', '-5']) {
-      const f = within(d).getByLabelText(/^percent/i);
+      const f = percentField(d);
       await userEvent.clear(f);
       await userEvent.type(f, bad);
       await press(/^save$/i, d);
@@ -749,7 +752,7 @@ describe('SCR-16 SurchargeRulesScreen (AC-14.1…14.5, 03-APP-FLOW §5)', () => 
     const d = dialog();
     await userEvent.click(within(d).getByRole('radio', { name: /all tests/i }));
     await userEvent.click(within(d).getByRole('radio', { name: /^percent$/i }));
-    await userEvent.type(within(d).getByLabelText(/^percent/i), '10');
+    await userEvent.type(percentField(d), '10');
     await press(/^save$/i, d);
     expect(await within(dialog()).findByText(/overlap/i)).toBeTruthy();
     expect(text(dialog())).not.toMatch(/urn:lims|common\.validation_failed/);
@@ -958,7 +961,7 @@ describe('SCR-17 TaxScreen (AC-15.2, AC-15.4, D-C3-04, 03-APP-FLOW §5)', () => 
     await userEvent.click(screen.getByRole('tab', { name: /tax types/i }));
     await press(/edit/i, rowOf('CESS'));
     const d = dialog();
-    expect(within(d).getByLabelText(/effective from/i)).toBeTruthy();
+    expect(within(d).getByRole('textbox', { name: /effective from/i })).toBeTruthy();
     expect(within(d).getAllByText(DISCLAIMER).length).toBeGreaterThan(0);
     const rate = within(d).getByLabelText(/^rate/i);
     await userEvent.clear(rate);
@@ -1001,7 +1004,7 @@ describe('wording + safety guards across SCR-13…17', () => {
     const d = dialog();
     await userEvent.click(within(d).getByRole('radio', { name: /all tests/i }));
     await userEvent.click(within(d).getByRole('radio', { name: /^percent$/i }));
-    await userEvent.type(within(d).getByLabelText(/^percent/i), '10');
+    await userEvent.type(percentField(d), '10');
     await press(/^save$/i, d);
     await waitFor(() => expect(sent('POST', /surcharge-rules$/)).toHaveLength(1));
     expect(text()).not.toMatch(/commission/i);

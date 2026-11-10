@@ -4,7 +4,7 @@
 //   LIMS_TEST_SUPER_URL superuser (bypasses RLS)                                           -> fixtures + "no RLS" explicit-filter proof + owner checks
 // Missing env or missing `pg` module is a hard failure (never a skip). `pg` must be a devDependency of services/api (FD-T03 writer).
 // Repo contract assumed by these tests: see .orchestra/notes/FD-T03-tests.md.
-import { randomUUID } from 'node:crypto';
+import { uuidv7 } from '../../../../../../../packages/shared-ts/src/uuidv7/index.js';
 export const TENANT_A ='01a1a98a-ac40-7000-8000-00000000a001';
 export const TENANT_B = '01a1a98a-ac40-7000-8000-00000000b001';
 export const SYS_ACTOR = '01a1b34e-1000-7eee-9d29-d7ca59a102b5';
@@ -26,7 +26,8 @@ const app = new pg.Pool({ connectionString: need('LIMS_TEST_APP_URL'), max: 40 }
 const sup = new pg.Pool({ connectionString: need('LIMS_TEST_SUPER_URL'), max: 4 });
 export const closePools = async () => { await app.end(); await sup.end(); };
 
-export const uid = (): string => randomUUID();
+// Ruling FD-T04 #1: internal ids are UUIDv7 (02-CONVENTIONS:452/525; core/audit/access.ts enforces it on entityId).
+export const uid = (): string => uuidv7();
 export const hex64 = (): string => (uid() + uid()).replace(/-/g, '').slice(0, 64);
 
 const claims = (tenantId: string) => JSON.stringify({ tenant_id: tenantId, sub: SYS_ACTOR, actor_type: 'system' });

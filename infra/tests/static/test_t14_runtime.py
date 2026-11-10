@@ -301,6 +301,30 @@ class ComposeShape(unittest.TestCase):
             self.assertNotIn(ip, (SANDBOX_IP, "172.30.40.1", "172.30.40.0"))
         self.assertEqual(len(set(ips)), 2)
 
+    def test_every_render_net_member_has_static_ip(self):  # review T-14 #2: no dynamic IPAM on render_net
+        # A dynamic member could be handed a worker/sandbox address after redeploys and pass nft rule 6 (AC-10.1).
+        owner = {"pdf-sandbox": SANDBOX_IP}
+        taken = {SANDBOX_IP, *(net_cfg(svc(w), "render_net").get("ipv4_address") for w in WORKERS)}
+        taken |= {"172.30.40.21", "172.30.40.22"}  # nftables_render_worker_ips defaults (lean/full)
+        seen = {}
+        for n in ALL:
+            if "render_net" not in nets_of(svc(n)):
+                continue
+            ip = net_cfg(svc(n), "render_net").get("ipv4_address")
+            self.assertRegex(str(ip), r"^172\.30\.40\.\d+$", "%s needs a fixed render_net ipv4_address" % n)
+            self.assertNotIn(ip, seen, "%s duplicates %s" % (n, seen.get(ip)))
+            seen[ip] = n
+            if n not in owner and n not in WORKERS:
+                self.assertNotIn(ip, taken, "%s must not use an allowed worker/sandbox address" % n)
+
+    def test_worker_uses_worker_image_not_api_image(self):  # review T-14 #1: C0 builds services/worker separately
+        for n in WORKERS:
+            self.assertNotEqual(svc(n).get("image"), svc("api-a").get("image"), "%s runs the API image" % n)
+            self.assertRegex(str(svc(n).get("image")), r"^\$\{LIMS_WORKER_IMAGE:\?", n)
+        tasks = need(ROLES / "lims_runtime" / "tasks" / "main.yml")
+        self.assertIn("'worker'", tasks, "precondition loop must require the worker image digest")
+        self.assertRegex(tasks, r"'LIMS_WORKER_IMAGE':\s*lims_runtime_images\.worker")
+
     def test_nftables_default_worker_ips_match_compose(self):  # rule 6 "only from worker-a/b" must actually render
         d = yaml.safe_load(need(ROLES / "nftables" / "defaults" / "main.yml"))
         want = {net_cfg(svc(w), "render_net").get("ipv4_address") for w in WORKERS}

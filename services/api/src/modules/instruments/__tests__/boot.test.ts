@@ -41,6 +41,7 @@ const IMPLEMENTED: readonly string[] = [
   'retireAgent', 'requestAgentCommand', 'listAgentCommands', 'listAgentHealthTransitions',
   'getAgentLogBundle', 'listAgentReleases',
   'enrolAgent', 'getAgentConfig', 'submitAgentHeartbeat', 'submitAgentLogBundle', 'downloadAgentRelease', // API-T06
+  'submitMessageBatch', // API-T09
   'submitAttachment', 'downloadInstrumentAttachment', // API-T11
 ];
 

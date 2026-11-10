@@ -29,7 +29,7 @@ psql:/repo/db/migrations/20261105001900_reporting__create_reporting_schema.sql:6
 
 
  Test Files  3 passed (3)
-      Tests  50 passed (50)
-   Start at  01:44:58
-   Duration  5.03s (tests 63%, import 27%, transform 8%, setup 1%)
+      Tests  51 passed (51)
+   Start at  01:50:32
+   Duration  4.66s (tests 67%, import 25%, transform 7%, setup 1%)
 

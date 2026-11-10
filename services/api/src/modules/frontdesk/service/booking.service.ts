@@ -193,7 +193,11 @@ export async function createOrderFromBooking(ctx: unknown, input: unknown): Prom
     await c.ports.IdentityPort.assertRole(c, { permission });
   }
   const b = parseBooking(input as Obj, source);
-  const hc = dateCtx(c) as unknown as QuoteCtx;
+  if (c.actor.type === 'user') {          // 03-IC §4.3 "centre scope applies" (review FD-T11 #1): checked before any write; 404, not 403, as F9
+    const s = (await c.ports.IdentityPort.getActor(c)).centreScope as { all?: boolean; centreIds?: readonly string[] } | undefined;
+    if (s?.all !== true && !(s?.centreIds ?? []).includes(b.centreId)) throw new LimsError('common.not_found');
+  }
+  const hc =dateCtx(c) as unknown as QuoteCtx;
   const { catalog, billing } = { catalog: c.ports['CatalogPort'], billing: c.ports['BillingCommandPort'] };
   if (!catalog || !billing) throw new LimsError('common.service_unavailable');
 

@@ -27,7 +27,7 @@ interface PurposeRule {
 const RULES = {
   report_render: { fields: ['fullName', 'sex', 'ageAtOrder', 'birthOn', 'patientCode'], users: ['reporting.report.read'] },
   label_print: { fields: ['fullName', 'sex', 'ageAtOrder', 'patientCode'], users: ['lab.specimen.label_print'] },
-  // [CONV] TRD §6.1 says "system only" yet IC/08 case (15) has a user caller: such a user needs frontdesk.patient.read (to be confirmed with C6).
+  // [CONV] TRD §6.1 says "system only" yet IC/08 case (15) has a user caller: such a user needs frontdesk.patient.read, fail closed until CR-C4-FD-T11-001 (.orchestra/cr/FD-T11.md) is ruled.
   notification: { fields: ['phoneE164', 'email', 'consents'], users: [P.patientRead] },
   instrument_host_query: { fields: ['sex', 'ageAtOrder'], users: null, extra: 'device' },
   portal_display: { fields: ['fullName', 'sex', 'ageAtOrder'], users: null, extra: 'portal', mask: true },

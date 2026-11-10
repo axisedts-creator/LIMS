@@ -5,6 +5,7 @@ import 'server-only';
 import { ApiError } from '@/core/api/server-fetch';
 import { createAnalyticsExport, type AnalyticsExportFormat } from './exports.server';
 import { requestRefresh } from './dashboard.server';
+import { searchReferrers } from './reports.server';
 
 export type ActionResult<T> = { ok: true; data: T } | { ok: false; status: number; code: string };
 
@@ -27,4 +28,12 @@ export async function refreshAction(): Promise<ActionResult<{ nextAllowedAt?: st
     if (e instanceof ApiError) return { ok: false, status: e.status, code: e.problem.code };
     throw e;
   }
+}
+
+/** #17 searchAnalyticsReferrers. 2..60 chars (analytics.yaml); anything else returns no rows without an API call. Max 20 rows. */
+export async function searchReferrersAction(query: string): Promise<{ id: string; label: string; isActive: boolean }[]> {
+  const q = typeof query === 'string' ? query.trim() : '';
+  if (q.length < 2 || q.length > 60) return [];
+  const r = await searchReferrers(q);
+  return (Array.isArray(r?.data) ? r.data : []).slice(0, 20).map((x) => ({ id: String(x.referrer_id), label: String(x.label), isActive: x.is_active === true }));
 }

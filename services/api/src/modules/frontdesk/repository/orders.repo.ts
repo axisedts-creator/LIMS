@@ -8,6 +8,12 @@ const COLS = ['id', 'branch_id', 'centre_id', 'patient_id', 'registration_no', '
 export const insertOrder = (tx: Tx, tenantId: string, row: Record<string, unknown>) => insertRow(tx, 'frontdesk.orders', COLS, tenantId, row);
 export const getOrderById = (tx: Tx, tenantId: string, id: string) => getRow(tx, 'frontdesk.orders', tenantId, id);
 
+/** is_first_order_of_patient = NOT this (any status counts: a cancelled order is still a prior visit). */
+export async function patientHasOrder(tx: Tx, tenantId: string, patientId: string): Promise<boolean> {
+  const { rows } = await tx.query('SELECT 1 FROM frontdesk.orders WHERE tenant_id = $1 AND patient_id = $2 LIMIT 1', [tenantId, patientId]);
+  return rows.length > 0;
+}
+
 /**
  * F6 keyset page, newest first unless asc. Sort key = COALESCE(registered_at, created_at) so pre-registered orders (NULL registered_at) page deterministically
  * [CONV]; it is returned as microsecond-exact text (`sort_key`) for the cursor. `after` = [sort_key text, id].

@@ -4,6 +4,7 @@
 import { LimsError } from '../../../core/errors.js';
 import type { Handler } from '../../../core/module.js';
 import { handler as createPatient } from './createPatient.js';
+import { handler as createRegistration } from './createRegistration.js';
 import { handler as getPatient } from './getPatient.js';
 import { handler as listPatientOrders } from './listPatientOrders.js';
 import { handler as quoteRegistration } from './quoteRegistration.js';
@@ -25,9 +26,9 @@ const notImplemented: Handler = async () => {
   throw new LimsError('common.service_unavailable');
 };
 
-// FD-T04: F1-F6, FD-T05: F8 are real handlers; the rest stay stubs until their task.
+// FD-T04: F1-F6, FD-T05: F8, FD-T06: F9 are real handlers; the rest stay stubs until their task.
 const real: Partial<Record<OperationId, Handler>> = {
-  searchPatients, createPatient, getPatient, updatePatient, recordPatientConsent, listPatientOrders, quoteRegistration,
+  searchPatients, createPatient, getPatient, updatePatient, recordPatientConsent, listPatientOrders, quoteRegistration, createRegistration,
 };
 
 export const handlers: Readonly<Record<OperationId, Handler>> = Object.freeze(

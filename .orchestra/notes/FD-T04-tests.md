@@ -5,3 +5,5 @@
 - ASSUMED: access.ts detail values are scalar, so detail.changed_fields is a comma-separated column-name string. LimsError has no problem-extension field, so `candidates` is checked only if the handler exposes `e.candidates`/`e.extensions.candidates` (writer: CR to C0 if the 409 body must carry it).
 - Ran: static file = 15 fail / 22 pass (8 missing files, 6 stubs still answer service_unavailable, index.ts not rewired). tsc: no errors in the new files. DB suites parse and stop at "LIMS_TEST_APP_URL is not set"; the docker verify.cmd was NOT run (command needs approval), so they have not been seen failing against stubs.
 - Not covered: Idempotency-Key replay (core pipeline), concurrent duplicate creates (TOCTOU on dedupe), F7 anonymise, F26 possible-duplicates, UI text, DB-level audit trigger content beyond the override-reason check (needs C0 trigger present).
+
+- Ruling applied (boot.test.ts): 503-stub loop + no-echo test now cover only still-stub ops (probes/pending.json if present, else all minus the six FD-T04 ops); no-echo calls a stub, not searchPatients. Ran "unimplemented" group: 4/4 pass.

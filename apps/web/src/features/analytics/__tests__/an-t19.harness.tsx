@@ -313,7 +313,7 @@ export function resetApi() {
 export const api = setupServer(
   http.all(`${ORIGIN}/v1/analytics/*`, async ({ request }) => {
     const url = new URL(request.url);
-    calls.push({ url, headers: request.headers, method: request.method, body: request.method === 'POST' ? await request.clone().text() : undefined });
+    calls.push({ url, headers: request.headers, method: request.method, ...(request.method === 'POST' ? { body: await request.clone().text() } : {}) });
     const h = respond[url.pathname];
     if (h) return h();
     const b = bodies[url.pathname];

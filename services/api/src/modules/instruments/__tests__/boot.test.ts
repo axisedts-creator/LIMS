@@ -44,6 +44,7 @@ const IMPLEMENTED: readonly string[] = [
   'submitMessageBatch', // API-T09
   'submitAttachment', 'downloadInstrumentAttachment', // API-T11
   'listInstrumentMessages', 'searchInstrumentMessages', 'getInstrumentMessage', 'getInstrumentMessageRaw', 'listMessageRejections', // API-T12
+  'reprocessInstrumentMessage', 'rematchInstrumentRecord', // API-T13
 ];
 
 const FAKE_REQ = { params: {}, query: {}, headers: {}, body: {} };

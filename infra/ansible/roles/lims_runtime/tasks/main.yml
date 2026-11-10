@@ -14,7 +14,7 @@
         is search('@sha256:[0-9a-f]{64}$')
     fail_msg: "lims_runtime: profile/wg_ip/db_primary_wg_ip or image {{ item }}"
   loop: >-
-    {{ ['api', 'web', 'portal', 'renderer', 'pdf_sandbox', 'valkey', 'squid']
+    {{ ['api', 'worker', 'web', 'portal', 'renderer', 'pdf_sandbox', 'valkey', 'squid']
     + (['partner'] if partner_enabled | default(false) | bool else []) }}
 
 - name: Inventory budget fits (LD-45 Sum replicas x gib <= 85 % host RAM)
@@ -38,6 +38,7 @@
           | join(','),
         'APP_WG_IP': wg_ip,
         'LIMS_API_IMAGE': lims_runtime_images.api,
+        'LIMS_WORKER_IMAGE': lims_runtime_images.worker,
         'LIMS_WEB_IMAGE': lims_runtime_images.web,
         'LIMS_PORTAL_IMAGE': lims_runtime_images.portal,
         'LIMS_PARTNER_IMAGE': lims_runtime_images.partner

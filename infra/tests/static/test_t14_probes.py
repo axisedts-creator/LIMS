@@ -150,7 +150,7 @@ class Fake:
         self.state_file = d / "state.json"
         self.dir = d
 
-    def run(self, script, args, state, env=None, timeout=60):
+    def run(self, script, args, state, env=None, timeout=300):  # Git Bash on Windows spawns slowly; 60 s flaked (timeout only, no assertion changed)
         self.state_file.write_text(json.dumps(state), encoding="utf-8")
         e = dict(os.environ, PATH=str(self.dir) + os.pathsep + os.environ["PATH"], SHIM_STATE=str(self.state_file))
         e.pop("PROBE_IMAGE", None)

@@ -1,0 +1,30 @@
+// 04-UI-UX §3.5 shortcut table (registration) as KeyboardShortcutsDialog groups.
+export const SHORTCUT_GROUPS = [
+  {
+    id: 'registration', title: 'Registration',
+    shortcuts: [
+      { keys: 'F2', description: 'Focus patient search' },
+      { keys: 'Alt+N', description: 'New patient form' },
+      { keys: 'F3', description: 'Focus referrer' },
+      { keys: 'Alt+D', description: 'Quick-add doctor' },
+      { keys: 'F4', description: 'Focus test search' },
+      { keys: 'Del', description: 'Remove the focused item' },
+      { keys: 'U', description: 'Toggle urgent on the focused item' },
+      { keys: 'Alt+R', description: 'Urgent for the whole order' },
+      { keys: 'Alt+O', description: 'Visit type OPD' },
+      { keys: 'Alt+I', description: 'Visit type IPD' },
+      { keys: 'Alt+C', description: 'Toggle cash / credit' },
+      { keys: 'F6', description: 'Discount dialog' },
+      { keys: 'Alt+A', description: 'Request discount approval' },
+      { keys: 'F8', description: 'Focus payment amount' },
+      { keys: 'Alt+P', description: 'Add a payment method row' },
+      { keys: 'Alt+U', description: 'TRF upload' },
+      { keys: 'Ctrl+Enter', description: 'Register & print' },
+      { keys: 'Ctrl+Shift+N', description: 'New registration (after success, or discard)' },
+      { keys: 'Alt+L', description: 'Retry label print' },
+      { keys: 'Alt+G', description: 'Open the order (after success)' },
+      { keys: 'Esc', description: 'Close dialog / clear search' },
+      { keys: '?', description: 'This shortcut list' },
+    ],
+  },
+] as const;

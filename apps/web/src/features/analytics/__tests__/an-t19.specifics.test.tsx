@@ -27,7 +27,7 @@ describe('Income (§4.1, US-03)', () => {
   it('Group by RadioGroup [Day, A.D. month, B.S. month, Branch, Centre], Day selected by default', async () => {
     await show('income');
     const rg = screen.getByRole('radiogroup', { name: /group by/i });
-    expect(within(rg).getAllByRole('radio').map((r) => norm(r.parentElement?.textContent))).toEqual(['Day', 'A.D. month', 'B.S. month', 'Branch', 'Centre']);
+    expect(within(rg).getAllByRole('radio').map((r) => norm(r.closest('label')?.textContent))).toEqual(['Day', 'A.D. month', 'B.S. month', 'Branch', 'Centre']);
     expect((within(rg).getByRole('radio', { name: 'Day' }) as HTMLInputElement).checked).toBe(true);
   });
 
@@ -125,7 +125,7 @@ describe('Referrers (§4.5, US-05) — volume only, no money', () => {
     expect(screen.getByRole('button', { name: /sort/i })).toBeTruthy();
     expect(screen.getByRole('button', { name: /limit/i })).toBeTruthy();
     await userEvent.click(screen.getByRole('button', { name: /limit/i }));
-    expect(screen.getAllByRole('option').map((o) => norm(o.textContent))).toEqual(['10', '20', '50', '100']);
+    expect(within(screen.getByRole('listbox', { name: /limit/i })).getAllByRole('option').map((o) => norm(o.textContent))).toEqual(['10', '20', '50', '100']);
   });
 });
 
@@ -133,7 +133,7 @@ describe('Centres (§4.6, US-06)', () => {
   it('limit options stop at 50 (API max)', async () => {
     await show('top-centres');
     await userEvent.click(screen.getByRole('button', { name: /limit/i }));
-    expect(screen.getAllByRole('option').map((o) => norm(o.textContent))).toEqual(['10', '20', '50']);
+    expect(within(screen.getByRole('listbox', { name: /limit/i })).getAllByRole('option').map((o) => norm(o.textContent))).toEqual(['10', '20', '50']);
   });
 });
 

@@ -180,7 +180,7 @@ describe('Collections history page (S2b, US-08, D-46)', () => {
     session.permissions = FINANCE;
     await show('collections');
     const rg = screen.getByRole('radiogroup', { name: /group by/i });
-    expect(within(rg).getAllByRole('radio').map((r) => norm(r.parentElement?.textContent))).toEqual(['Method', 'Staff', 'Staff × method', 'Centre', 'Day', 'A.D. month', 'B.S. month']);
+    expect(within(rg).getAllByRole('radio').map((r) => norm(r.closest('label')?.textContent))).toEqual(['Method', 'Staff', 'Staff × method', 'Centre', 'Day', 'A.D. month', 'B.S. month']);
   });
 
   it('reads with the session Bearer token and only whitelisted params (group_by enum, payment_method_code list)', async () => {

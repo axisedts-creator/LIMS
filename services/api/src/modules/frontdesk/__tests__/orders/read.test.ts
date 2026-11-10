@@ -189,7 +189,7 @@ describe('F10 listOrders', () => {
     const reg = await mk({}, 1);
     const pre = await mk({ stored: 'pre_registered' }, 2);   // registered_at set on purpose: whether a NULL registered_at matches a window is unspecified (not asserted)
     const can = await mk({ stored: 'cancelled' }, 3);
-    const hb = await mk({ order: { source: 'home_collection' } }, 4);
+    const hb = await mk({ order: { source: 'home_collection', source_ref_id: uid() } }, 4);
     const a2 = await mk({ centre: CENTRE_A2 }, 5);
     const flagged = await mk({}, 6);
     await seed('frontdesk.order_flags', rows.flag('a', flagged.order.id));

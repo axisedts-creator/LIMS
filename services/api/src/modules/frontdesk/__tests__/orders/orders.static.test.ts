@@ -17,9 +17,12 @@ describe('FD-T08 files and wiring', () => {
     const m = await import('../../service/order.service.js');
     expect(m.getOrder).toBeTypeOf('function');
     expect(m.listOrders).toBeTypeOf('function');
-  });
-  it.each(['getOrder', 'listOrders'])('handlers/%s.ts exports `handler` and index.ts wires it as the real operation (LD-70: the writer removes the stub from pending.json)', async (name) => {
-    const m = await import(`../../handlers/${name}.js`);
+  }, 60_000);
+  it.each([
+    ['getOrder', () => import('../../handlers/getOrder.js')],
+    ['listOrders', () => import('../../handlers/listOrders.js')],
+  ])('handlers/%s.ts exports `handler` and index.ts wires it as the real operation (LD-70: the writer removes the stub from pending.json)', async (name, load) => {
+    const m = await load();
     expect(m.handler).toBeTypeOf('function');
     const idx = await import('../../handlers/index.js');
     expect((idx.handlers as any)[name]).toBe(m.handler);

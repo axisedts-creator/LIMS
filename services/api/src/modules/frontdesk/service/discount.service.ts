@@ -3,6 +3,7 @@
 // Never logs reasons, notes or discounts (07-SECURITY §6.2). Errors carry fixed text: no submitted value is echoed.
 // [CONV] gross is NOT part of F15 (base_fingerprint + discounts only): gross_paisa is stored as 0, computed_discount = the sum of amount-kind discounts (percent-kind count 0),
 //   percent_of_gross_bp = the summed percent-kind bp (cap 10000). Informational for the approver; the binding is base_fingerprint/discounts/patient/centre (.orchestra/notes/FD-T07-impl.md).
+//   No F15 absolute-max 422 until CR-C4-FD-T07-001 (.orchestra/cr/FD-T07-approval-gaps.md) is decided.
 import { uuidv7 } from '../../../../../../packages/shared-ts/src/uuidv7/index.js';
 import { LimsError } from '../../../core/errors.js';
 import { loadFrontdeskConfig } from '../config.js';
@@ -215,7 +216,7 @@ export const toApiDiscount = (d: { scope: 'bill' | 'line'; orderableId?: string;
 /**
  * US-FD-07.1/07.5: lock the approval row (a concurrent registration waits and then sees it consumed) and check it is approved, unexpired and bound to exactly this
  * base_fingerprint + patient + centre + discounts. Anything else -> 403 frontdesk.discount_approval_required (an unknown / other tenant's id looks the same).
- * `patientId` undefined = a new patient (no draft_hash normalisation is specified: refuse, fail closed). Returns the locked row; `markConsumed` follows once the order exists.
+ * `patientId` undefined = a new patient (no draft_hash normalisation is specified: refuse, fail closed; CR-C4-FD-T07-002 in .orchestra/cr/FD-T07-approval-gaps.md). Returns the locked row; `markConsumed` follows once the order exists.
  */
 export async function lockApprovalForRegistration(c: { tx: PatientCtx['tx']; tenantId: string; now(): Date },
   i: { approvalId: string; baseFingerprint: string; patientId: string | undefined; centreId: string; discounts: readonly ApiDiscount[] }): Promise<Obj> {

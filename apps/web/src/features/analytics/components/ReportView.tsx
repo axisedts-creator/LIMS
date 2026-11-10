@@ -10,6 +10,7 @@ import { BarChart } from '@lims/ui/components/BarChart';
 import { Button } from '@lims/ui/components/Button';
 import { Card } from '@lims/ui/components/Card';
 import { Checkbox } from '@lims/ui/components/Checkbox';
+import { Combobox } from '@lims/ui/components/Combobox';
 import { DataTable, type ColumnDef } from '@lims/ui/components/DataTable';
 import { DescriptionList } from '@lims/ui/components/DescriptionList';
 import { DurationText } from '@lims/ui/components/DurationText';
@@ -27,6 +28,8 @@ import { StatTile } from '@lims/ui/components/StatTile';
 import { Switch } from '@lims/ui/components/Switch';
 import { Tabs } from '@lims/ui/components/Tabs';
 import { shortcuts, type Shortcut } from '@/core/shortcuts/registry';
+import { searchReferrersAction } from '../server/actions';
+import { RefreshButton } from './DashboardActions';
 import { ExportDialog } from './ExportDialog';
 import { PRESETS, addDays, nepalToday, presetOf, presetRange } from './period';
 import type { Cell, Control, PageVM, Section, TableVM } from './report-types';
@@ -126,7 +129,25 @@ function ControlView({ c, q, go }: { c: Control; q: URLSearchParams; go: (p: Rec
       );
     case 'multi':
       return null; // rendered by the FilterBar
+    case 'referrers':
+      return <ReferrerFilter c={c} go={go} />;
   }
+}
+
+type Ref = { id: string; label: string; isActive: boolean };
+/** 04-UI-UX §4.5 Referrer: Combobox (multi) over searchAnalyticsReferrers — POST body, >= 2 chars, 150 ms debounce, <= 20 rows. Each pick adds to `referrer_id`. */
+function ReferrerFilter({ c, go }: { c: Extract<Control, { type: 'referrers' }>; go: (p: Record<string, string | undefined>) => void }) {
+  return (
+    <div>
+      <Combobox<Ref>
+        label={c.label} name={c.id} minChars={2} debounceMs={150}
+        loadOptions={(query) => searchReferrersAction(query)}
+        getKey={(r) => r.id} renderValue={(r) => r.label} renderOption={(r) => (r.isActive ? r.label : `${r.label} (inactive)`)}
+        onChange={(r) => { if (r && !c.value.includes(r.id) && c.value.length < 20) go({ [c.id]: [...c.value, r.id].join(',') }); }}
+      />
+      {c.value.length > 0 ? <Button variant="secondary" onPress={() => go({ [c.id]: undefined })}>{`Clear referrers (${c.value.length})`}</Button> : null}
+    </div>
+  );
 }
 
 export function ReportView({ vm }: { vm: PageVM }) {
@@ -240,12 +261,17 @@ export function ReportView({ vm }: { vm: PageVM }) {
           ) : null
         }
         actions={
-          vm.export ? (
-            <Menu
-              trigger={<Button ref={exportRef} variant="secondary">Export</Button>}
-              items={[{ id: 'xlsx', label: 'Excel (.xlsx)' }, { id: 'csv', label: 'CSV (.csv)' }, { id: 'pdf', label: 'PDF', isDisabled: !vm.export.pdfEnabled }]}
-              onAction={(id) => setFormat(id as 'xlsx' | 'csv' | 'pdf')}
-            />
+          vm.canRefresh || vm.export ? (
+            <>
+              {vm.canRefresh ? <RefreshButton pageId={vm.pageId} /> : null}
+              {vm.export ? (
+                <Menu
+                  trigger={<Button ref={exportRef} variant="secondary">Export</Button>}
+                  items={[{ id: 'xlsx', label: 'Excel (.xlsx)' }, { id: 'csv', label: 'CSV (.csv)' }, { id: 'pdf', label: 'PDF', isDisabled: !vm.export.pdfEnabled }]}
+                  onAction={(id) => setFormat(id as 'xlsx' | 'csv' | 'pdf')}
+                />
+              ) : null}
+            </>
           ) : null
         }
       />

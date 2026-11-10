@@ -133,6 +133,7 @@ function topReferrers(b: Json, { q }: Ctx): Built {
     title: 'Top referrers',
     controls: [select(q, 'sort', 'Sort', opts(['-orders', 'Orders'], ['-patient_visits', 'Patient visits'], ['-tests_ordered', 'Tests ordered']), '-orders'),
       select(q, 'limit', 'Limit', opts(['10', '10'], ['20', '20'], ['50', '50'], ['100', '100']), '20'),
+      { type: 'referrers', id: 'referrer_id', label: 'Referrer', value: list(q, 'referrer_id') },
       { type: 'switch', id: 'rollup', label: 'Combine merged doctors', on: q.get('rollup') !== 'none', offValue: 'none' }],
     sections: [T(rankTable({ id: 'top-referrers', caption: 'Top referrers', who: 'Referrer', specs, rows: arr(b.rows), totals: obj(b.totals), head }))],
   };
@@ -325,8 +326,9 @@ export function buildPage(a: PageArgs): PageVM {
   const p = obj(env.period);
   const scope = obj(env.scope);
   const to = str(p.business_date_to);
-  const centreOptions = (a.options?.centres ?? []).length > 1 ? (a.options!.centres!).map((x) => ({ value: x.id, label: x.label })) : [];
-  const branchOptions = (a.options?.branches ?? []).map((x) => ({ value: x.id, label: x.label }));
+  const scoped = a.def.scoped !== false; // tests-done: no Centre/Branch filters (the API takes neither)
+  const centreOptions = scoped && (a.options?.centres ?? []).length > 1 ? (a.options!.centres!).map((x) => ({ value: x.id, label: x.label })) : [];
+  const branchOptions = !scoped ? [] : (a.options?.branches ?? []).map((x) => ({ value: x.id, label: x.label }));
   const fresh: FreshnessVM[] = arr(env.freshness).map((f) => ({
     family: str(f.family), is_stale: f.is_stale === true, live: f.live === true,
     ...(str(f.refreshed_at) ? { refreshed_at: str(f.refreshed_at) } : {}),
@@ -337,7 +339,7 @@ export function buildPage(a: PageArgs): PageVM {
     ...(a.def.period && str(p.label_ad) ? { period: { labelAd: str(p.label_ad), labelBs: str(p.label_bs), timezone: str(p.timezone), from: str(p.business_date_from), to } } : {}),
     freshness: fresh, ...(str(env.generated_at) ? { generatedAt: str(env.generated_at) } : {}),
     scope: { all_centres: scope.all_centres !== false, centre_ids: [], tenant_wide_sections_hidden: Array.isArray(scope.tenant_wide_sections_hidden) ? scope.tenant_wide_sections_hidden.filter((x: unknown) => typeof x === 'string') : [] },
-    controls: built.controls, centreOptions, branchOptions,
+    controls: built.controls, centreOptions, branchOptions, canRefresh: a.perms.includes('analytics.dashboard.read'),
     ...(a.perms.includes('analytics.data.export') ? { export: { reportCode: a.def.code, pdfEnabled: a.pdfEnabled, ...(built.groupLabel ? { groupLabel: built.groupLabel } : {}) } } : {}),
     ...(a.def.slug === 'collections' && a.perms.includes('billing.cash_report.read') ? { link: { href: '/billing/daily-cash', label: "Today's cash report and session close" } } : {}),
     sections: built.sections,

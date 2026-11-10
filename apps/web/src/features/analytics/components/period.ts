@@ -1,5 +1,5 @@
 // Period presets resolved to A.D. calendar dates in Nepal time (UTC+05:45). B.S. month / fiscal-year presets are NOT offered:
-// the API takes no preset and the UI must not convert B.S.<->A.D. (see .orchestra/notes/AN-T19-impl.md, open points).
+// the API names no current B.S. month / fiscal year and the UI must not convert B.S.<->A.D. (CR: .orchestra/cr/AN-T19.md).
 import type { PeriodPreset } from '@lims/ui/components/PeriodPicker';
 
 export const PRESETS: readonly PeriodPreset[] = ['today', 'yesterday', 'this_ad_month', 'last_ad_month', 'custom'];

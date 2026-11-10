@@ -32,7 +32,9 @@ export type Control =
   | { type: 'select'; id: string; label: string; options: Opt[]; value: string }
   | { type: 'multi'; id: string; label: string; options: Opt[]; value: string[] }
   | { type: 'switch'; id: string; label: string; on: boolean; onValue?: string; offValue?: string }
-  | { type: 'checks'; id: string; label: string; options: Opt[]; value: string[] };
+  | { type: 'checks'; id: string; label: string; options: Opt[]; value: string[] }
+  /** Referrer multi filter: Combobox over searchAnalyticsReferrers; `value` = chosen ids (labels are not in the URL). */
+  | { type: 'referrers'; id: string; label: string; value: string[] };
 
 export type Section =
   | { t: 'table'; vm: TableVM }
@@ -65,6 +67,8 @@ export interface PageVM {
   /** Centre / branch filters, already capped to the caller's scope by the API. Centre is absent with <= 1 centre. */
   centreOptions: Opt[];
   branchOptions: Opt[];
+  /** Session holds analytics.dashboard.read (requestAnalyticsRefresh); false for a finance-only user. */
+  canRefresh: boolean;
   export?: { reportCode: string; pdfEnabled: boolean; groupLabel?: string };
   link?: { href: string; label: string };
   sections: Section[];

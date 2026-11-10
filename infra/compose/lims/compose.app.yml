@@ -282,6 +282,30 @@ services:
       timeout: 3s
       retries: 3
 
+  # 02-TRD s7.4 (08 A25 D-209), T-22: INSTREAM on tcp://clamd:3310, app_net only,
+  # no published port, no route out. Signatures: role clamav copies them to
+  # /srv/lims/clamav-db (ro here), the image's own freshclam stays off.
+  clamd:
+    <<: *hardening
+    image: ${LIMS_CLAMD_IMAGE:?LIMS_CLAMD_IMAGE (ClamAV 1.5.4 digest) required}
+    user: "100:101"  # image's clamav user (UNVERIFIED until pinned)
+    environment:
+      CLAMAV_NO_FRESHCLAMD: "true"
+    volumes:
+      - /srv/lims/clamav-db:/var/lib/clamav:ro
+      - /srv/lims/clamav/clamd.conf:/etc/clamav/clamd.conf:ro
+    networks: [app_net]
+    mem_limit: 3g
+    cpus: 1
+    pids_limit: 256
+    tmpfs: [/tmp, /run/clamav]
+    healthcheck:
+      test: [CMD, clamdscan, --ping, "3:1"]
+      interval: 15s
+      timeout: 10s
+      retries: 3
+      start_period: 120s  # loading the signatures takes a while
+
   # 02-TRD s3.2: the only container on egress_net; FQDN allowlist from
   # infra/edge/egress-allowlist.yaml (role egress_proxy renders squid.conf).
   squid:

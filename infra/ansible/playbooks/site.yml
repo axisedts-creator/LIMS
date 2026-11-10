@@ -88,6 +88,15 @@
     - fail2ban
     - acme
 
+# 02-TRD s7.4 (T-22): ClamAV. freshclam on the ops host via Squid, copy over wg0
+# to /srv/lims/clamav-db on the app host (lean: the same host). Before the runtime
+# play: clamd needs the populated signature directory when compose starts.
+- name: ClamAV
+  hosts: ops:app
+  become: true
+  roles:
+    - clamav
+
 # 02-TRD s7.4 (T-14): LIMS runtime on the app host. secrets_render first
 # (tmpfs secret files + the valkey password), then the inputs the stack
 # mounts (Valkey ACL, squid.conf + SMTP relay set, envelope probes), then

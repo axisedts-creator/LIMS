@@ -46,10 +46,13 @@ describe.each(GENERIC)('report page $slug', (r) => {
     it('forwards well-formed period/centre/branch params (comma-joined) and drops everything else', async () => {
       await show(r.slug, { bs_month: '2083-07', centre_id: '01a1a98a-ac40-7000-8000-000000000002,01a1a98a-ac40-7000-8000-000000000003', branch_id: ['01a1a98a-ac40-7000-8000-000000000004'], evil: '1', tenant_id: 'other' });
       const u = mainCalls(r)[0]!.url;
-      // 04-UI-UX §4 / analytics.yaml: pending-tests has no period params; tests-done defines no centre_id/branch_id (not asserted either way).
+      // 04-UI-UX §4 / analytics.yaml: pending-tests has no period params; tests-done (getTestsDoneReport, :1304-1349) defines no centre_id/branch_id.
       if (r.slug === 'pending-tests') expect(u.searchParams.has('bs_month')).toBe(false);
       else expect(u.searchParams.get('bs_month')).toBe('2083-07');
-      if (r.slug !== 'tests-done') {
+      if (r.slug === 'tests-done') {
+        expect(u.searchParams.has('centre_id')).toBe(false);
+        expect(u.searchParams.has('branch_id')).toBe(false);
+      } else {
         expect(u.searchParams.get('centre_id')).toBe('01a1a98a-ac40-7000-8000-000000000002,01a1a98a-ac40-7000-8000-000000000003');
         expect(u.searchParams.get('branch_id')).toBe('01a1a98a-ac40-7000-8000-000000000004');
       }

@@ -6,8 +6,9 @@
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { HttpResponse } from 'msw';
 import {
-  AGENT, INST_3, ORDER, api, bodies, bySlug, calls, gridNamed, headersOf, lastRow, norm, pageText, resetApi, router, rowTexts, session, show,
+  AGENT, INST_3, ORDER, REF_ID, api, respond, bodies, bySlug, calls, gridNamed, headersOf, lastRow, norm, pageText, resetApi, router, rowTexts, session, show,
 } from './an-t19.harness';
 
 vi.mock('next/navigation', async () => (await import('./an-t19.harness')).navigationMock);
@@ -126,6 +127,22 @@ describe('Referrers (§4.5, US-05) — volume only, no money', () => {
     expect(screen.getByRole('button', { name: /limit/i })).toBeTruthy();
     await userEvent.click(screen.getByRole('button', { name: /limit/i }));
     expect(within(screen.getByRole('listbox', { name: /limit/i })).getAllByRole('option').map((o) => norm(o.textContent))).toEqual(['10', '20', '50', '100']);
+  });
+
+  it('Referrer filter is a multi Combobox: searchAnalyticsReferrers POST {query} only from 2 chars, and picking one writes referrer_id (04-UI-UX §4.5, US-05.3)', async () => {
+    respond['/v1/analytics/referrers/search'] = () => HttpResponse.json({ data: [{ referrer_id: REF_ID, label: 'Dr Synthetic One', is_active: true }] });
+    await show('top-referrers');
+    const search = () => calls.filter((c) => c.method === 'POST' && c.url.pathname === '/v1/analytics/referrers/search');
+    const cb = screen.getByRole('combobox', { name: /referrer/i });
+    await userEvent.type(cb, 'S');
+    await new Promise((r) => setTimeout(r, 400));
+    expect(search()).toHaveLength(0);
+    await userEvent.type(cb, 'y');
+    await waitFor(() => expect(search()).toHaveLength(1));
+    expect(JSON.parse(search()[0]!.body!)).toEqual({ query: 'Sy' });
+    expect(search()[0]!.url.search).toBe(''); // no search text in the URL (REQ-SEC-098)
+    await userEvent.click(await screen.findByRole('option', { name: /Dr Synthetic One/ }));
+    await waitFor(() => expect(navigated().some((u) => u.includes('/analytics/reports/top-referrers') && u.includes(`referrer_id=${REF_ID}`))).toBe(true));
   });
 });
 

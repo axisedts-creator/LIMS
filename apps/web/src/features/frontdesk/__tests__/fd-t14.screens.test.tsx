@@ -282,7 +282,7 @@ describe('§7 DiscountApprovalsInbox', () => {
   it('columns per §7; row shows requester, gross, discount amount + %, reason, status as text, centre name', async () => {
     const I = await load();
     view(I);
-    for (const h of ['Requested', 'Centre', 'Requested by', 'Gross', 'Discount', 'Reason', 'Status']) expect(screen.getByRole('columnheader', { name: new RegExp(h, 'i') })).toBeTruthy();
+    for (const h of ['Requested', 'Centre', 'Requested by', 'Gross', 'Discount', 'Reason', 'Status']) expect(screen.getByRole('columnheader', { name: new RegExp('^' + h + '$', 'i') })).toBeTruthy();
     const r = rowOf('Synthetic Receptionist');
     expect(within(r).getByText('NPR 1,500.00')).toBeTruthy();
     expect(r.textContent).toMatch(/NPR 450\.00/);

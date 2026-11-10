@@ -47,6 +47,9 @@ export async function run<T>(o: Opts, fn: (p: any, ctx: any) => Promise<T>): Pro
   const side = sideOf(tenant);
   const w = o.w ?? rworld({ creditList: true });
   const lab = o.lab ?? unknownLab();
+  // FD-T11 ruling: C4 forwards the caller's ctx to LabPort.getOrderItemProcessingState (C5 06-PLAN:76), and the LabPort fake grants user actors only via fixtures.grants[actor.id];
+  // seed it with the same grants IdentityPort gets, so auth.forbidden can only come from the impl.
+  if ((o.actor ?? 'user') === 'user' && typeof lab.__seed === 'function') lab.__seed({ grants: { [o.actorId ?? SYS_ACTOR]: [...(o.grants ?? [])] } });
   const identity: any = makeIdentity(o.grants ?? [], { centreIds: o.centreIds ?? [CENTRE[side]] });
   const settings = { ...TENANT_SETTINGS, numbering: { ...TENANT_SETTINGS.numbering, registrationNoPattern: REG_PATTERN } };
   identity.getTenantSettings = async () => settings;
@@ -111,6 +114,19 @@ export const countRows = async (table: string, tenant: string) => Number((await 
 /** Everything a booking may write, for "nothing happened" assertions. */
 export const writes = async (tenant: string) => ({ orders: await countRows('frontdesk.orders', tenant), items: await countRows('frontdesk.order_items', tenant), links: await countRows('frontdesk.booking_links', tenant),
   patients: await countRows('frontdesk.patients', tenant), consents: await countRows('frontdesk.patient_consents', tenant), flags: await countRows('frontdesk.order_flags', tenant) });
+
+/** FD-T11 ruling: "nothing is written" is asserted on rows THIS test could create (its patient ids, source refs / keys, phones), not on tenant-wide counts that parallel test files change. */
+export interface WriteScope { patientIds?: string[]; refs?: string[]; keys?: string[]; phones?: string[] }
+export async function scopedWrites(tenant: string, s: WriteScope) {
+  const pids = s.patientIds ?? [], refs = s.refs ?? [], keys = s.keys ?? [], phones = s.phones ?? [];
+  const patients = await ownerRows('frontdesk.patients', 'tenant_id = $1 AND (id = ANY($2::uuid[]) OR phone_e164 = ANY($3::text[]))', [tenant, pids, phones]);
+  const allPids = [...new Set([...pids, ...patients.map((p: any) => p.id as string)])];
+  const orders = await ownerRows('frontdesk.orders', 'tenant_id = $1 AND (patient_id = ANY($2::uuid[]) OR source_ref_id = ANY($3::uuid[]))', [tenant, allPids, refs]);
+  const links = await ownerRows('frontdesk.booking_links', 'tenant_id = $1 AND (source_ref_id = ANY($2::uuid[]) OR idempotency_key = ANY($3::text[]) OR order_id = ANY($4::uuid[]))', [tenant, refs, keys, orders.map((o: any) => o.id)]);
+  const oids = [...new Set([...orders.map((o: any) => o.id as string), ...links.map((l: any) => l.order_id as string).filter(Boolean)])];
+  return { orders: orders.length, links: links.length, patients: patients.length, items: (await ownerRows('frontdesk.order_items', 'order_id = ANY($1::uuid[])', [oids])).length,
+    consents: (await ownerRows('frontdesk.patient_consents', 'tenant_id = $1 AND patient_id = ANY($2::uuid[])', [tenant, allPids])).length, flags: (await ownerRows('frontdesk.order_flags', 'order_id = ANY($1::uuid[])', [oids])).length };
+}
 
 // ---- booking events (contracts/events/engagement.booking.{confirmed,cancelled}.v1.schema.json payloads) ----
 export const confirmedEvent = (patientId: string, o: Record<string, unknown> = {}) => ({ booking_id: uid(), patient_id: patientId, branch_id: BRANCH.a, centre_id: CENTRE.a, booking_kind: 'centre_visit',

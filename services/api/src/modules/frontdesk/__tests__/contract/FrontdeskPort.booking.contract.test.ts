@@ -6,7 +6,7 @@ import { onBookingCancelled, onBookingConfirmed } from '../../service/booking.se
 import { REFERRER } from '../quote/helpers.js';
 import { ALL_USER_PERMS, BRANCH, CENTRE, CONSENT_VERSION, CP, NON_STAFF, NOW, O, PARTNER, PERMS, SOURCES, T, TENANT_A, TENANT_B, accessLogRows, allEventRows, asSystem, asUser, booking, cancelledEvent,
   confirmedEvent, consentInput, consentRows, create, createFails, creator, eventRows, fails, flagRows, fullPatient, itemRows, linkRows, newPatientInput, orderRow, ordersBySource, patientRow, patientsByPhone,
-  run, rworld, seedPatient, uid, without, writes, type Source } from './helpers.js';
+  run, rworld, seedPatient, scopedWrites, uid, without, type Source } from './helpers.js';
 
 beforeAll(async () => { await run(asSystem(), async () => undefined); }, T);
 const COLLECTION: Record<Source, string> = { engagement_booking: 'centre', home_collection: 'home', partner_manifest: 'partner' };
@@ -76,18 +76,22 @@ describe('createOrderFromBooking: cases (5)-(10), US-FD-12.5', () => {
 
   it('(9) inactive orderable -> catalog.test_inactive; orderable without a price -> catalog.no_price; nothing is written', async () => {
     const pt = await fullPatient();
-    const before = await writes(TENANT_A);
-    expect((await createFails(booking('home_collection', { patientId: pt.id }, { orderableIds: [O.cbc, O.lft] }), creator('home_collection'))).code).toBe('catalog.test_inactive');
-    expect((await createFails(booking('home_collection', { patientId: pt.id }, { orderableIds: [O.cul] }), creator('home_collection'))).code).toBe('catalog.no_price');
-    expect(await writes(TENANT_A)).toEqual(before);
+    const refs = [uid(), uid()];
+    const scope = { patientIds: [pt.id], refs };   // FD-T11 ruling: scoped to rows this test could create
+    const before = await scopedWrites(TENANT_A, scope);
+    expect((await createFails(booking('home_collection', { patientId: pt.id }, { orderableIds: [O.cbc, O.lft], sourceRefId: refs[0] }), creator('home_collection'))).code).toBe('catalog.test_inactive');
+    expect((await createFails(booking('home_collection', { patientId: pt.id }, { orderableIds: [O.cul], sourceRefId: refs[1] }), creator('home_collection'))).code).toBe('catalog.no_price');
+    expect(await scopedWrites(TENANT_A, scope)).toEqual(before);
   }, T);
 
   it('(10) a new patient with a consentTextVersion that is not the tenant\'s current one -> frontdesk.consent_required, no patient row; with the current one the patient + consent row are written with the port source', async () => {
     const np = newPatientInput();
-    const before = await writes(TENANT_A);
-    const e = await createFails(booking('home_collection', { newPatient: { ...np, consents: consentInput({ consentTextVersion: 'v0-old' }) } }), creator('home_collection'));
+    const ref = uid();
+    const scope = { phones: [np.phoneE164], refs: [ref] };   // FD-T11 ruling: scoped to rows this test could create
+    const before = await scopedWrites(TENANT_A, scope);
+    const e = await createFails(booking('home_collection', { newPatient: { ...np, consents: consentInput({ consentTextVersion: 'v0-old' }) } }, { sourceRefId: ref }), creator('home_collection'));
     expect(e.code).toBe('frontdesk.consent_required');
-    expect(await writes(TENANT_A)).toEqual(before);
+    expect(await scopedWrites(TENANT_A, scope)).toEqual(before);
     const r = await create(booking('partner_manifest', { newPatient: np }, { confirmImmediately: false }), creator('partner_manifest'));
     const [p] = await patientsByPhone(TENANT_A, np.phoneE164);
     expect(p).toMatchObject({ full_name: np.fullName, sex: 'female', birth_on: expect.anything(), source: 'partner_manifest', registered_centre_id: CENTRE.a });
@@ -170,11 +174,12 @@ describe('createOrderFromBooking: per-source authorisation (08 R7), actor guard 
     for (const actor of NON_STAFF) {
       for (const source of SOURCES) {
         const w = rworld({ creditList: true });
-        const before = await writes(TENANT_A);
         const garbage = { ...booking(source, { patientId: pt.id }), orderableIds: ['not-a-uuid'] };   // would be validation_failed if validation ran first
+        const scope = { patientIds: [pt.id], refs: [garbage.sourceRefId], keys: [garbage.idempotencyKey] };   // FD-T11 ruling: scoped to rows this test could create
+        const before = await scopedWrites(TENANT_A, scope);
         expect((await createFails(garbage, { actor, grants: ALL_USER_PERMS, w })).code, `${actor}/${source}`).toBe('auth.forbidden');
         expect(portCalls(w)).toHaveLength(0);
-        expect(await writes(TENANT_A)).toEqual(before);
+        expect(await scopedWrites(TENANT_A, scope)).toEqual(before);
       }
       const o = { actor, grants: ALL_USER_PERMS };
       expect((await fails(o, (p, c) => p.getOrderSummary(c, { orderId: uid() }))).code, `${actor}/getOrderSummary`).toBe('auth.forbidden');
@@ -218,9 +223,10 @@ describe('cases (11) (12): booking consumers over the same booking.service path 
     expect(await orderRow(made.orderId)).toMatchObject({ status: 'registered', cancelled_at: null });
     expect(await eventRows('frontdesk.order.cancelled.v1', made.orderId)).toHaveLength(0);
     // no linked order -> nothing happens (inbox only)
-    const before = await writes(TENANT_A);
+    const scope = { patientIds: [pt.id], refs: [visit] };   // FD-T11 ruling: scoped to rows this test could create
+    const before = await scopedWrites(TENANT_A, scope);
     await consume(onBookingCancelled, cancelledEvent(pt.id, { booking_kind: 'home_collection', home_visit_id: uid() }));
-    expect((await writes(TENANT_A)).flags).toBe(before.flags);
+    expect((await scopedWrites(TENANT_A, scope)).flags).toBe(before.flags);
   }, T);
 });
 

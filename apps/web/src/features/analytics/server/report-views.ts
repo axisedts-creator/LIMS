@@ -139,6 +139,36 @@ function topReferrers(b: Json, { q }: Ctx): Built {
   };
 }
 
+/** S4 (04-UI-UX §5). Volume plus Net billed only: no rate/amount-payable/pay column exists; the SELF row has no Net billed ("—"). */
+function referral(b: Json, { q }: Ctx): Built {
+  const g = radio(q, 'group_by', 'Group by', opts(['referrer', 'Referrer'], ['referrer_ad_month', 'Referrer × A.D. month'], ['referrer_bs_month', 'Referrer × B.S. month']), 'referrer');
+  const monthly = g.value !== 'referrer';
+  const rows = arr(b.rows);
+  const totals = obj(b.totals);
+  const next = str(obj(b.page).next_cursor);
+  const nums: Spec[] = [['Orders', 'orders', 'int'], ['Patient visits', 'patient_visits', 'int'], ['Tests ordered', 'tests_ordered', 'int'], ['Net billed', 'net_billed_paisa', 'money']];
+  const vm: TableVM = {
+    id: 'referral', caption: 'Referral business report',
+    columns: [{ id: 'who', header: 'Referrer' }, ...(monthly ? [{ id: 'period', header: 'Period' }] : []), ...nums.map(([header, key]) => ({ id: key, header, align: 'end' as const }))],
+    rows: rows.map((r, i) => ({
+      id: `${i}:${str(r.referrer_id)}:${str(r.period_key)}`,
+      cells: [t(r.is_self === true ? 'SELF (no referrer)' : name(r)), ...(monthly ? [t(str(r.period_label) || str(r.period_key) || '—')] : []), ...nums.map(([, key, kind]) => c(kind, r[key]))],
+    })),
+    ...(rows.length > 0 ? { total: [t('Total'), ...(monthly ? [t('')] : []), ...nums.map(([, key, kind]) => c(kind, totals[key]))] } : {}),
+    ...(next || q.has('cursor') ? { pager: { ...(next ? { next } : {}), hasPrevious: q.has('cursor'), limit: 50 } } : {}),
+  };
+  return {
+    title: 'Referral business report', groupLabel: labelOf(g.options, g.value),
+    controls: [g, { type: 'switch', id: 'rollup', label: 'Combine merged doctors', on: q.get('rollup') !== 'none', offValue: 'none' }],
+    sections: [
+      { t: 'note', text: 'Orders and billing by referring doctor. For internal review only.' },
+      T(vm),
+      { t: 'note', text: 'Net billed counts credit-party work on the day it was charged.' },
+      { t: 'note', text: 'Viewing this report is recorded.' },
+    ],
+  };
+}
+
 function topCentres(b: Json, { q }: Ctx): Built {
   const modes: [string, string][] = [['Walk-in', 'walk_in'], ['Home', 'home'], ['Centre', 'centre'], ['Partner', 'partner']];
   const tail: Spec[] = [['Patient visits', 'patient_visits', 'int'], ['Tests ordered', 'tests_ordered', 'int'], ['Net sales', 'net_sales_paisa', 'money']];
@@ -311,7 +341,7 @@ function interfaces(b: Json, { o, perms }: Ctx): Built {
 }
 
 const BUILDERS: Record<string, (b: Json, x: Ctx) => Built> = {
-  income, 'department-income': departmentIncome, collections, volume, 'top-referrers': topReferrers, 'top-centres': topCentres, 'tests-done': testsDone, tat,
+  income, 'department-income': departmentIncome, collections, volume, 'top-referrers': topReferrers, 'top-centres': topCentres, 'referral-incentive': referral, 'tests-done': testsDone, tat,
   'pending-tests': pending, 'quality-indicators': quality, delivery, interfaces,
 };
 

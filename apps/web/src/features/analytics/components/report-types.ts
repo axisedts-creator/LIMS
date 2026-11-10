@@ -53,7 +53,7 @@ export interface PageVM {
   tab: string;
   title: string;
   helpKey: string;
-  pageId: 'staff.analytics.reports' | 'staff.analytics.collections';
+  pageId: 'staff.analytics.reports' | 'staff.analytics.collections' | 'staff.analytics.referral_incentive';
   /** Path filters / tabs navigate on (query is appended). */
   basePath: string;
   tabs: { id: string; label: string; href: string }[];

@@ -134,7 +134,11 @@ describe('done_when: unimplemented handlers throw common.service_unavailable', (
   // Ruling FD-T04-ruling.md (TESTS_WRONG): the stub requirement (06-IMPLEMENTATION-PLAN:11) lasts only "until their task merges".
   // Still-stub operationIds come from probes/pending.json (LD-70, writer-owned stub inventory) when it exists; until the
   // writer generates it, fall back to every operation minus the six FD-T04 ops (06-IMPLEMENTATION-PLAN:14).
-  const FD_T04_OPS = ['searchPatients', 'createPatient', 'getPatient', 'updatePatient', 'recordPatientConsent', 'listPatientOrders'];
+  // FD-T05 (06-IMPLEMENTATION-PLAN:15) turns quoteRegistration into a real handler the same way.
+  // FD-T06 (06-IMPLEMENTATION-PLAN:16) turns createRegistration into a real handler the same way.
+  // FD-T07 (06-IMPLEMENTATION-PLAN:17) turns F15-F19 into real handlers the same way (LD-70: pending.json is the writer's).
+  const FD_T04_OPS = ['searchPatients', 'createPatient', 'getPatient', 'updatePatient', 'recordPatientConsent', 'listPatientOrders', 'quoteRegistration', 'createRegistration',
+    'requestDiscountApproval', 'listDiscountApprovals', 'getDiscountApproval', 'approveDiscount', 'rejectDiscount'];
   const stubOps = (): string[] => {
     const p = join(REPO_ROOT, F, '__tests__/probes/pending.json');
     if (existsSync(p)) return JSON.parse(readFileSync(p, 'utf8')) as string[];

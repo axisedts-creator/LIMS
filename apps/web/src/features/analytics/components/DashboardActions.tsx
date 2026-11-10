@@ -26,7 +26,8 @@ export function AutoRefresh() {
   return null;
 }
 
-export function RefreshButton() {
+/** `pageId` = shortcut scope of Alt+R (dashboard by default; report pages pass their own). */
+export function RefreshButton({ pageId = 'staff.analytics.dashboard' }: { pageId?: string } = {}) {
   const toast = useToast();
   const [busy, setBusy] = useState(false);
   const [until, setUntil] = useState<string>();
@@ -65,7 +66,7 @@ export function RefreshButton() {
 
   const run = useRef(press);
   run.current = press;
-  useEffect(() => shortcuts.register('staff.analytics.dashboard', { key: 'Alt+R', description: 'Refresh', run: () => void run.current() }), []);
+  useEffect(() => shortcuts.register(pageId, { key: 'Alt+R', description: 'Refresh', run: () => void run.current() }), [pageId]);
 
   return (
     <>

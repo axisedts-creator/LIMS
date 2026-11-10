@@ -103,6 +103,20 @@ function Body({ s, many, onNext, onPrevious }: { s: Section; many: boolean; onNe
   }
 }
 
+const noop = () => undefined;
+/** AN-T20 report-run page: the report's own sections only (same table/chart/tile components), no filters, no pager, no export. */
+export function ReportSections({ vm }: { vm: PageVM }) {
+  return (
+    <>
+      {vm.sections.map((s, i) => {
+        if (s.t !== 'table') return <Body key={i} s={s} many={false} onNext={noop} onPrevious={noop} />;
+        const { pager: _pager, ...table } = s.vm; // eslint-disable-line @typescript-eslint/no-unused-vars -- first page only, no pager
+        return <Body key={i} s={{ t: 'table', vm: table }} many={false} onNext={noop} onPrevious={noop} />;
+      })}
+    </>
+  );
+}
+
 function ControlView({ c, q, go }: { c: Control; q: URLSearchParams; go: (p: Record<string, string | undefined>) => void }) {
   switch (c.type) {
     case 'radio':

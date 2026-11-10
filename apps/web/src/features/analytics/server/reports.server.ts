@@ -36,6 +36,17 @@ export const REPORT_DEFS: Record<string, ReportDef> = {
   delivery: { slug: 'delivery', path: 'delivery', code: 'delivery', period: true, params: { group_by: en('channel', 'day', 'ad_month', 'bs_month') } },
   interfaces: { slug: 'interfaces', path: 'interfaces', code: 'interfaces', period: true, params: {} },
 };
+/** S4 (AN-T20): deliberately NOT in REPORT_DEFS (that table feeds /analytics/reports/[reportCode], gated by dashboard.read). Permission: analytics.referral_report.read. */
+export const REFERRAL_DEF: ReportDef = {
+  slug: 'referral-incentive', path: 'referral-incentive', code: 'referral_incentive', period: true,
+  params: { group_by: en('referrer', 'referrer_ad_month', 'referrer_bs_month'), rollup: en('canonical', 'none'), referrer_id: uuids(20), cursor: (v) => v.length <= 512 && /^[A-Za-z0-9_-]+$/.test(v) },
+};
+/** Referral report query: whitelisted params + cursor pages of 50 (04-UI-UX §5). */
+export function referralQuery(sp: SP): URLSearchParams {
+  const q = reportQuery(REFERRAL_DEF, sp);
+  q.set('limit', '50');
+  return q;
+}
 // the summary read of pending tests takes the same filters minus the list-only ones
 const SUMMARY_PARAMS = ['department_id', 'priority', 'processing_branch_id'];
 

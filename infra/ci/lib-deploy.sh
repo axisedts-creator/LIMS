@@ -50,7 +50,30 @@ read_lock() {
   [ ${#IMG_ARGS[@]} -gt 0 ] || refuse "$f holds no lims/* image"
 }
 
-# run_deploy <env> <release> <inventory-dir>: IMG_ARGS must be filled.
+# env_lock <env>: 03-APP-FLOW s2.1 - one deploy/rollback per env at a time; a second one waits <= 10 min, then fails.
+# Exported LIMS_ENV_LOCK_HELD lets rollback.sh, when called by deploy.sh, reuse the held lock (fd 9 is inherited).
+env_lock() {
+  [ "${LIMS_ENV_LOCK_HELD:-}" = 1 ] && return 0
+  exec 9>"${LIMS_DEPLOY_LOCK_DIR:-/var/lock}/lims-deploy-$1"
+  flock -w 600 9 || refuse "env lock for $1 held > 10 min: another deploy/rollback is running"
+  export LIMS_ENV_LOCK_HELD=1
+}
+
+# prod_key_check <env> <hint>: 02-TRD s12.2 - the runner holds no prod key; lims-prod-decrypt@<release> releases it
+# to LIMS_PROD_KEY_FILE (default /run/lims/ci-prod/age.key). Refuses before anything runs if it is not readable.
+prod_key_check() {
+  [ "$1" = prod ] || return 0
+  [ -r "${LIMS_PROD_KEY_FILE:-/run/lims/ci-prod/age.key}" ] || refuse "prod key not released: $2"
+}
+
+# run_deploy <env> <release> <inventory-dir> [roll-marker]: IMG_ARGS must be filled. SOPS_AGE_KEY_FILE for prod ONLY.
 run_deploy() {
-  ansible-playbook -i "$3" "$ROOT/infra/ansible/playbooks/deploy.yml" -e "deploy_release=$2" "${IMG_ARGS[@]}"
+  local extra=()
+  [ -n "${4:-}" ] && extra=(-e "deploy_roll_marker=$4")
+  if [ "$1" = prod ]; then
+    SOPS_AGE_KEY_FILE=${LIMS_PROD_KEY_FILE:-/run/lims/ci-prod/age.key} \
+      ansible-playbook -i "$3" "$ROOT/infra/ansible/playbooks/deploy.yml" -e "deploy_release=$2" "${IMG_ARGS[@]}" "${extra[@]}"
+  else
+    ansible-playbook -i "$3" "$ROOT/infra/ansible/playbooks/deploy.yml" -e "deploy_release=$2" "${IMG_ARGS[@]}" "${extra[@]}"
+  fi
 }

@@ -14,9 +14,12 @@ PROG=rollback.sh
 [ $# -eq 1 ] || die "usage: rollback.sh <dev|staging|prod>"
 env=$1
 check_env "$env"
+env_lock "$env"
 
 read_lock "$REL_DIR/$env.deployed.lock.yaml" "$env"
 inv=$(inventory_for "$env")
+# the key released for the approved release is still within its TTL when deploy.sh calls us
+prod_key_check "$env" "start lims-prod-decrypt@<approved release> first"
 run_deploy "$env" rollback "$inv" || refuse "redeploy of the previous digests failed for $env: manual recovery needed"
 
 tf=${TEXTFILE_DIR:-/var/lib/node_exporter/textfile}
@@ -31,7 +34,6 @@ if [ -f "$prom" ]; then
   done < "$prom"
 fi
 n[$env]=$((n[$env] + 1))
-# ponytail: read-modify-write without a lock; rollbacks are rare and serial (one runner), add flock if that changes
 tmp=$(mktemp "$tf/.rolled_back.XXXXXX.prom")
 {
   echo "# HELP lims_ops_deploy_rolled_back_total Deploys rolled back after a failed smoke test."

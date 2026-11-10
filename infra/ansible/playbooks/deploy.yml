@@ -81,7 +81,8 @@
           deploy_{api,worker,web,portal,renderer,pdf_sandbox}_image (each by digest) or
           secrets_render_enc_file unset
 
-    # AC-21.2: dev/staging never mail through a real relay; the sink name is an inventory var.
+    # AC-21.2: dev/staging never mail through a real relay. `mail_sink_fqdn` and the staging case
+    # (02-TRD s7 line 495 says smtp_relay_fqdn) are pending CR .orchestra/cr/C1.T-24.md.
     - name: Non-prod GoTrue mail goes to the local sink, not a real relay
       ansible.builtin.assert:
         that:
@@ -136,9 +137,7 @@
     # PGPASSWORD reaches the container through the compose service's
     # `environment: [PGPASSWORD]` pass-through: never in argv or the log.
     - name: DB flow as lims_migrator (credential only in this block's env)
-      environment:
-        LIMS_API_IMAGE: "{{ deploy_api_image }}"
-        PGPASSWORD: "{{ deploy_migrator_secret.stdout }}"
+      environment: "{{ deploy_compose_env | combine({'PGPASSWORD': deploy_migrator_secret.stdout}) }}"
       block:
         - name: Apply migrations
           ansible.builtin.command:
@@ -180,34 +179,45 @@
               if env == 'prod' else '--all' }}
           run_once: true
 
-    # 02-TRD s12.3 step 5: rolling update. `up --wait` returns only when the container is healthy, so api-a is
+    # 03-APP-FLOW s2.1: from here a failure is a health timeout -> deploy.sh rolls back (marker path from deploy.sh).
+    - name: Mark the rolling update as started
+      ansible.builtin.file:
+        path: "{{ deploy_roll_marker }}"
+        state: touch
+        mode: "0644"
+      delegate_to: localhost
+      run_once: true
+      become: false
+      when: deploy_roll_marker is defined
+
+    # 02-TRD s12.3 step 5: rolling update, health wait 5 min [CONV]. `up --wait` returns only when the container is healthy, so api-a is
     # ready before api-b is touched. worker-b and web-b exist only in the `full` profile (LD-45).
     - name: Roll api-a (wait healthy)
       ansible.builtin.command:
         cmd: >-
           docker compose -p lims -f {{ deploy_compose_dir }}/compose.app.yml
-          up -d --no-deps --wait --wait-timeout 180 api-a
+          up -d --no-deps --wait --wait-timeout 300 api-a
       environment: "{{ deploy_compose_env }}"
 
     - name: Roll api-b (wait healthy)
       ansible.builtin.command:
         cmd: >-
           docker compose -p lims -f {{ deploy_compose_dir }}/compose.app.yml
-          up -d --no-deps --wait --wait-timeout 180 api-b
+          up -d --no-deps --wait --wait-timeout 300 api-b
       environment: "{{ deploy_compose_env }}"
 
     - name: Roll worker-a (wait healthy)
       ansible.builtin.command:
         cmd: >-
           docker compose -p lims -f {{ deploy_compose_dir }}/compose.app.yml
-          up -d --no-deps --wait --wait-timeout 180 worker-a
+          up -d --no-deps --wait --wait-timeout 300 worker-a
       environment: "{{ deploy_compose_env }}"
 
     - name: Roll worker-b (wait healthy, full profile)
       ansible.builtin.command:
         cmd: >-
           docker compose -p lims -f {{ deploy_compose_dir }}/compose.app.yml
-          up -d --no-deps --wait --wait-timeout 180 worker-b
+          up -d --no-deps --wait --wait-timeout 300 worker-b
       environment: "{{ deploy_compose_env }}"
       when: topology_profile == 'full'
 
@@ -215,14 +225,14 @@
       ansible.builtin.command:
         cmd: >-
           docker compose -p lims -f {{ deploy_compose_dir }}/compose.app.yml
-          up -d --no-deps --wait --wait-timeout 180 web-a
+          up -d --no-deps --wait --wait-timeout 300 web-a
       environment: "{{ deploy_compose_env }}"
 
     - name: Roll web-b (wait healthy, full profile)
       ansible.builtin.command:
         cmd: >-
           docker compose -p lims -f {{ deploy_compose_dir }}/compose.app.yml
-          up -d --no-deps --wait --wait-timeout 180 web-b
+          up -d --no-deps --wait --wait-timeout 300 web-b
       environment: "{{ deploy_compose_env }}"
       when: topology_profile == 'full'
 
@@ -230,21 +240,21 @@
       ansible.builtin.command:
         cmd: >-
           docker compose -p lims -f {{ deploy_compose_dir }}/compose.app.yml
-          up -d --no-deps --wait --wait-timeout 180 portal
+          up -d --no-deps --wait --wait-timeout 300 portal
       environment: "{{ deploy_compose_env }}"
 
     - name: Roll renderer (wait healthy)
       ansible.builtin.command:
         cmd: >-
           docker compose -p lims -f {{ deploy_compose_dir }}/compose.app.yml
-          up -d --no-deps --wait --wait-timeout 180 renderer
+          up -d --no-deps --wait --wait-timeout 300 renderer
       environment: "{{ deploy_compose_env }}"
 
     - name: Roll pdf-sandbox (wait healthy)
       ansible.builtin.command:
         cmd: >-
           docker compose -p lims -f {{ deploy_compose_dir }}/compose.app.yml
-          up -d --no-deps --wait --wait-timeout 180 pdf-sandbox
+          up -d --no-deps --wait --wait-timeout 300 pdf-sandbox
       environment: "{{ deploy_compose_env }}"
 
     - name: ops_audit release record (what/who/when only, s8.4)

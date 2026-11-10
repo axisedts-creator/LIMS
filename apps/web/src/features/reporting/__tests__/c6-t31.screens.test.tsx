@@ -23,7 +23,7 @@ import { http, HttpResponse } from 'msw';
 import { setupServer } from 'msw/node';
 import type { ReactNode } from 'react';
 import { ToastProvider } from '@lims/ui/components/Toast';
-import { ADMIN, BULK, CENTRE, DLV, FILE, ITEM, NARR, ORDER, ORIGIN, READ, RELEASE, REPORT, TPL, U, V1, V2, alert, centreContact, channelAccount, delivery, detail, inputFile, msgTemplate, narrative, narrativeTemplate, outsourced, page, problem, settings, summary, templateDetail, vsum } from './c6-t31.fixtures';
+import { ADMIN, BULK, CENTRE, DLV, FILE, ITEM, NARR, ORDER, ORIGIN, READ, RELEASE, REPORT, TPL, U, V1, V2, V3, alert, centreContact, channelAccount, delivery, detail, inputFile, msgTemplate, narrative, narrativeTemplate, outsourced, page, problem, settings, summary, templateDetail, vsum } from './c6-t31.fixtures';
 
 const push = vi.fn();
 const replace = vi.fn();
@@ -58,6 +58,10 @@ const api = setupServer(
   http.get(`${ORIGIN}/v1/billing/coded-sets/override_reasons`, () => HttpResponse.json({ data: [{ code: 'family_emergency', display: 'Family emergency', sort_order: 1 }, { code: 'regular_customer', display: 'Regular customer', sort_order: 2 }] })),
   http.get(`${R}/critical-alerts`, async ({ request }) => { await rec(request); return HttpResponse.json(page([alert()])); }),
   http.post(`${R}/reports/search`, async ({ request }) => { await rec(request); return HttpResponse.json({ data: [summary()] }); }),
+  // R7 takes report-VERSION ids: the server action resolves each selected report id via getReport (ReportDetail.versions[].id), newest releasable (rendered) version.
+  http.get(`${R}/reports/:id`, ({ params }) => HttpResponse.json(detail({ id: params.id, versions: params.id === REPORT
+    ? [vsum({ id: V1, version_no: 2, status: 'rendered' }), vsum({ id: V3, version_no: 1, status: 'superseded' })]
+    : [vsum({ id: V2, version_no: 1, status: 'rendered' })] }))),
   http.post(`${R}/report-versions/bulk-release`, async ({ request }) => { await rec(request); return HttpResponse.json({ results: [{ id: V1, outcome: 'released', release_basis: 'paid_in_full' }, { id: V2, outcome: 'blocked_due' }] }); }),
   http.post(`${R}/report-versions/:id/release`, async ({ request }) => { await rec(request); return HttpResponse.json(vsum({ status: 'released' })); }),
   http.post(`${R}/report-versions/:id/retry-render`, async ({ request }) => { await rec(request); return HttpResponse.json(vsum({ status: 'rendering' })); }),
@@ -193,7 +197,7 @@ describe('§2.1 ReportsWorklist', () => {
     await waitFor(() => expect(calls.filter((c) => c.method === 'POST')).toHaveLength(1));
     expect(last().url.pathname).toBe('/v1/reporting/report-versions/bulk-release');
     expect(Array.isArray(last().body.ids)).toBe(true);
-    expect(last().body.ids).toHaveLength(2);
+    expect([...last().body.ids].sort()).toEqual([V1, V2].sort()); // version ids, never the report ids (REPORT / U(5))
     expect(last().headers.get('idempotency-key')).toBeTruthy();
     expect(await screen.findByText(/1 released · 1 held for dues · 0 not released/)).toBeTruthy();
   });

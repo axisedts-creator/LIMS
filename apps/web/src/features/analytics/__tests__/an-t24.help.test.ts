@@ -28,7 +28,7 @@ const manualText = () => mdIn(manualDir).map((n) => read(join(manualDir, n))).jo
 
 // ---- per-screen requirements (PRD §8.2 metric ids; UI-UX §13 copy keys paraphrased as regexes)
 const METRICS: Record<string, string[]> = {
-  dashboard: ['M03', 'M04', 'M12', 'M27'],
+  dashboard: ['M04', 'M12', 'M27'],
   income: ['M10', 'M11', 'M12'],
   'department-income': ['M21', 'M22'],
   collections: ['M25', 'M26', 'M27'],

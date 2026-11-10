@@ -216,6 +216,13 @@ describe('US-FD-04 credit registration', () => {
     expect(c[0].input).toMatchObject({ orderId: r.body.order.id, creditPartyId: CP.ok, branchId: BRANCH.a, centreId: CENTRE.a, expectedFingerprint: p.fp });
     expect(r.body).not.toHaveProperty('invoice');
     expect(r.body.credit_charges.length).toBeGreaterThan(0);
+    // review item 3: period_month = first day of the A.D. month (05-SCHEMA.md:1049), status default 'uninvoiced' (:1050), amounts sum to the order net
+    for (const cc of r.body.credit_charges) {
+      expect(cc.period_month).toMatch(/^\d{4}-(0[1-9]|1[0-2])(-01)?$/);
+      expect(cc.period_month.slice(0, 4)).toBe(String(new Date(NOW as never).getUTCFullYear()));
+      expect(cc.status).toBe('uninvoiced');
+    }
+    expect(r.body.credit_charges.reduce((s: number, cc: any) => s + cc.amount.amount_paisa, 0)).toBe(NET);
     expect(r.body.ledger_entries).toEqual([]);
     expect(await orderRow(r.body.order.id)).toMatchObject({ billing_mode: 'credit', credit_party_id: CP.ok });
     const ev = (await eventRows('frontdesk.order.created.v1', r.body.order.id))[0].envelope.payload;

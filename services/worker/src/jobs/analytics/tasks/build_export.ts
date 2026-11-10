@@ -41,18 +41,28 @@ export const buildExportTask: TaskHandler = async (payload, jctx) => {
   const row = await repo.loadForBuild(ctx.tx, { tenantId, id: exportId }); // step 1 (FOR UPDATE)
   if (!row || (row.status !== 'queued' && row.status !== 'building')) return;
 
+  // TRD §13: ids, report code, format, counts, failure code only; telemetry never fails the job.
+  const tele = (outcome: 'ready' | 'failed', extra: { rows?: number; failure_code?: string }) => {
+    try {
+      const f = { tenant_id: tenantId, export_id: exportId, report_code: row.report_code, format: row.format, ...extra };
+      ctx.metrics?.inc?.('lims_analytics_exports_total', { tenant_id: tenantId, format: row.format, outcome });
+      if (outcome === 'ready') { ctx.metrics?.observe?.('lims_analytics_export_rows', extra.rows ?? 0, { report_code: row.report_code }); ctx.log?.info?.({ event: 'analytics_export_built', ...f }); }
+      else ctx.log?.error?.({ event: 'analytics_export_failed', ...f });
+    } catch { /* ignore */ }
+  };
+
   await ctx.tx.query('SAVEPOINT build_export', []);
   try {
-    await build(ctx, row, key);
+    tele('ready', { rows: await build(ctx, row, key) });
   } catch (e) {
     await ctx.tx.query('ROLLBACK TO SAVEPOINT build_export', []);
     if (e instanceof Terminal) {
-      if (e.alert) { ctx.log.error({ event: 'export_build_failed', exportId, failure: e.failure }, 'export_build_failed'); ctx.metrics.inc('lims_analytics_export_failed_total', { code: e.failure }); }
+      tele('failed', { failure_code: e.failure });
       await repo.markFailed(ctx.tx, { ...key, code: e.failure });
       return;
     }
     if (ctx.attempt >= ctx.maxAttempts) {
-      ctx.log.error({ event: 'export_build_failed', exportId, failure: 'common.internal' }, 'export_build_failed');
+      tele('failed', { failure_code: 'common.internal' });
       await repo.markFailed(ctx.tx, { ...key, code: 'common.internal' });
       return; // resolve so the committed 'failed' survives
     }
@@ -60,7 +70,7 @@ export const buildExportTask: TaskHandler = async (payload, jctx) => {
   }
 };
 
-async function build(ctx: any, row: repo.ExportRecord, key: { tenantId: string; id: string; actorId: string }): Promise<void> {
+async function build(ctx: any, row: repo.ExportRecord, key: { tenantId: string; id: string; actorId: string }): Promise<number> {
   const cfg = loadAnalyticsConfig();
   const { tenantId, id: exportId, actorId } = key;
   const report = getReport(row.report_code);
@@ -107,6 +117,7 @@ async function build(ctx: any, row: repo.ExportRecord, key: { tenantId: string; 
   const sha256 = createHash('sha256').update(bytes).digest('hex');
   const readyAt = new Date(now);
   await repo.storeFile(ctx.tx, { ...key, content: bytes, contentType, sha256, readyAt, expiresAt: new Date(readyAt.getTime() + cfg.exportTtlHours * HOUR_MS), rowCount: built.rows.length });
+  return built.rows.length;
 }
 
 /** RenderPort -> bytes; error mapping per TRD §7.2: too large -> analytics.export_too_large, outage -> retry, anything else is a C8 bug -> common.internal + alert. */

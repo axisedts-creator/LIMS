@@ -30,6 +30,16 @@ const DEFS = {
   lims_core_retention_purge_capped_total: ['counter', ['table'], 'Retention purges stopped at the cap, by table'],
   lims_core_storage_deletes_total: ['counter', ['bucket', 'reason'], 'Storage objects deleted by bucket and reason'],
   lims_core_port_consumer_not_listed_total: ['counter', ['module', 'port'], 'Port calls from a consumer not listed for the port'],
+  // C8 analytics (LD-88 / CR-C8-016; names, types, labels verbatim from C8 02-TRD §13 lines 846-854)
+  lims_analytics_refresh_duration_seconds: ['histogram', ['family'], 'Analytics refresh duration in seconds by family'],
+  lims_analytics_refresh_failures_total: ['counter', ['family'], 'Analytics refresh failures by family'],
+  lims_analytics_family_stale: ['gauge', ['tenant_id', 'family'], 'Analytics family staleness flag (0 or 1) by tenant and family'],
+  lims_analytics_dirty_partitions: ['gauge', ['family'], 'Analytics dirty partitions awaiting refresh by family'],
+  lims_analytics_reconciliation_mismatch_total: ['counter', ['rule', 'family'], 'Analytics reconciliation mismatches by rule and family'],
+  lims_analytics_exports_total: ['counter', ['tenant_id', 'format', 'outcome'], 'Analytics exports by tenant, format and outcome'],
+  lims_analytics_export_rows: ['histogram', ['report_code'], 'Rows per analytics export by report code'],
+  lims_analytics_export_downloads_total: ['counter', ['tenant_id'], 'Analytics export downloads by tenant'],
+  lims_analytics_schedule_sends_total: ['counter', ['outcome'], 'Analytics scheduled report sends by outcome'],
 } as const satisfies Record<string, readonly [Kind, readonly string[], string]>;
 
 export type MetricName = keyof typeof DEFS;

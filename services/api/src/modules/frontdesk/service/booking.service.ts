@@ -12,15 +12,15 @@ import { estimatedBirthOn, isDuplicateSuspect, normaliseName } from '../domain/p
 import { formatNumber, hasToken } from '../domain/numbering.js';
 import { createFrontdeskEvents } from '../events/publish.js';
 import { dateOnly } from '../mappers/patient.dto.js';
-import { getBookingLink, insertBookingLink } from '../repository/bookingLinks.repo.js';
+import { getBookingLink, insertBookingLink, touchBookingLink } from '../repository/bookingLinks.repo.js';
 import { insertConsent } from '../repository/consents.repo.js';
 import { nextCounterValue } from '../repository/counters.repo.js';
-import { insertOrderFlag, listOrderFlagsByOrder } from '../repository/flags.repo.js';
-import { insertOrderItem } from '../repository/orderItems.repo.js';
-import { getOrderById, insertOrder, patientHasOrder } from '../repository/orders.repo.js';
+import { cancelActiveItems, insertOrderItem } from '../repository/orderItems.repo.js';
+import { cancelOrderRow, getOrderById, insertOrder, lockOrderById, patientHasOrder } from '../repository/orders.repo.js';
 import { findDedupePool, getPatientById, insertPatient } from '../repository/patients.repo.js';
 import { getSettings } from '../repository/settings.repo.js';
 import type { Tx } from '../repository/shared.repo.js';
+import { raiseBookingCancelledFlag } from './flags.service.js';
 import { bad, isObj, todayIn } from './patient.service.js';
 import { ageParts, priceDraft, type Draft, type QuoteCtx } from './registration.service.js';
 
@@ -277,25 +277,59 @@ export async function createOrderFromBooking(ctx: unknown, input: unknown): Prom
   return { orderId, registrationNo: order['registration_no'], status: b.confirmImmediately ? 'registered' : 'pre_registered', replayed: false };
 }
 
-// ---------------- booking consumers (TRD §3.1 subscriptions; the FD-T12 worker wraps these) ----------------
+// ---------------- booking consumers (TRD §3.1 / §8.2 subscriptions; the FD-T12 worker files wrap these with envelope.payload and envelope.aggregate.seq) ----------------
+// `seq` = aggregate.seq of the event. booking_links.last_seq records the newest applied one; a cancelled link is final (03-IC §3.24 Ordering: a late confirmation is ignored).
+const bookingKey = (id: unknown): string => String(id);
+
 /** engagement.booking.confirmed.v1: centre_visit -> one pre_registered engagement_booking order (same path as the port, X5); home_collection -> nothing (C17 creates it at assignment, 08 R7). */
-export async function onBookingConfirmed(ctx: unknown, payload: unknown): Promise<void> {
+export async function onBookingConfirmed(ctx: unknown, payload: unknown, seq?: number): Promise<void> {
   const c = staffCtx(ctx, ['system']);
   if (!isObj(payload)) throw bad('');
   if (payload['booking_kind'] !== 'centre_visit') return;
-  await createOrderFromBooking(c, { source: 'engagement_booking', sourceRefId: payload['booking_id'], patient: { patientId: payload['patient_id'] }, branchId: payload['branch_id'], centreId: payload['centre_id'],
-    orderableIds: payload['orderable_ids'], priority: 'routine', scheduledAt: payload['slot_start'], confirmImmediately: false, idempotencyKey: `booking:${String(payload['booking_id'])}:confirmed` });
+  const id = payload['booking_id'];
+  if (typeof id !== 'string' || !UUID.test(id)) throw bad('/booking_id');
+  await lock(c, `booking:engagement_booking:${id}`);
+  if ((await getBookingLink(c.tx, c.tenantId, 'engagement_booking', id))?.['state'] === 'cancelled') return;      // cancel-before-confirm / stale confirmation
+  await createOrderFromBooking(c, { source: 'engagement_booking', sourceRefId: id, patient: { patientId: payload['patient_id'] }, branchId: payload['branch_id'], centreId: payload['centre_id'],
+    orderableIds: payload['orderable_ids'], priority: 'routine', scheduledAt: payload['slot_start'], confirmImmediately: false, idempotencyKey: `booking:${bookingKey(id)}:confirmed` });
+  if (seq !== undefined) await touchBookingLink(c.tx, c.tenantId, 'engagement_booking', id, seq);
 }
 
-/** engagement.booking.cancelled.v1: a home_collection booking whose visit links an already REGISTERED order -> review flag, the order is never touched (08 A2.12). centre_visit cancel is FD-T12. */
-export async function onBookingCancelled(ctx: unknown, payload: unknown): Promise<void> {
+/**
+ * engagement.booking.cancelled.v1. centre_visit: unknown booking -> link cancelled + last_seq; pre_registered order -> cancelled (reason booking_cancelled, event, no billing: never invoiced);
+ * registered or later -> review flag, order untouched. home_collection with a linked REGISTERED order -> the same flag (08 R7, A2.12); no link -> nothing.
+ */
+export async function onBookingCancelled(ctx: unknown, payload: unknown, seq?: number): Promise<void> {
   const c = staffCtx(ctx, ['system']);
   if (!isObj(payload)) throw bad('');
-  if (payload['booking_kind'] !== 'home_collection' || typeof payload['home_visit_id'] !== 'string' || !UUID.test(payload['home_visit_id'])) return;
-  const link = await getBookingLink(c.tx, c.tenantId, 'home_collection', payload['home_visit_id']);
-  const order = link?.['order_id'] ? await getOrderById(c.tx, c.tenantId, link['order_id']) : null;
-  if (!order || order['status'] === 'pre_registered' || order['status'] === 'cancelled') return;
-  const flags = await listOrderFlagsByOrder(c.tx, c.tenantId, order['id']);
-  if (flags.some((f) => f['kind'] === 'booking_cancelled_after_registration')) return;     // redelivery: one open review item per order (unique index)
-  await insertOrderFlag(c.tx, c.tenantId, { id: uuidv7(), centre_id: order['centre_id'], order_id: order['id'], kind: 'booking_cancelled_after_registration' });
+  if (payload['booking_kind'] === 'home_collection') {
+    if (typeof payload['home_visit_id'] !== 'string' || !UUID.test(payload['home_visit_id'])) return;
+    const link = await getBookingLink(c.tx, c.tenantId, 'home_collection', payload['home_visit_id']);
+    const order = link?.['order_id'] ? await getOrderById(c.tx, c.tenantId, link['order_id']) : null;
+    if (!order || order['status'] === 'pre_registered' || order['status'] === 'cancelled') return;
+    await raiseBookingCancelledFlag(c, order);        // redelivery: the unique index keeps one open review item per order
+    return;
+  }
+  const id = payload['booking_id'];
+  if (typeof id !== 'string' || !UUID.test(id)) throw bad('/booking_id');
+  const at = seq ?? 0;
+  await lock(c, `booking:engagement_booking:${id}`);
+  const link = await getBookingLink(c.tx, c.tenantId, 'engagement_booking', id);
+  if (!link) { await insertBookingLink(c.tx, c.tenantId, { source: 'engagement_booking', source_ref_id: id, state: 'cancelled', last_seq: at }); return; }
+  if (seq !== undefined && seq <= Number(link['last_seq'])) return;                  // stale or duplicate
+  const order = link['order_id'] ? await lockOrderById(c.tx, c.tenantId, link['order_id']) : null;
+  if (order?.['status'] === 'pre_registered') {
+    const when = new Date(c.now());
+    const updated = await cancelOrderRow(c.tx, c.tenantId, order['id'], Number(order['version']), { at: when, by: c.actor.id, reasonCode: 'booking_cancelled', requiresCreditNote: false });
+    if (!updated) throw new LimsError('common.version_conflict');
+    await cancelActiveItems(c.tx, c.tenantId, order['id']);
+    const ev = (c as unknown as { events?: unknown }).events ?? events;
+    await createFrontdeskEvents(ev as never).cancelled(dateCtx(c) as never, { order_id: order['id'], reason_code: 'booking_cancelled', cancelled_at: when.toISOString(), requires_credit_note: false }, Number(updated['version']));
+    await touchBookingLink(c.tx, c.tenantId, 'engagement_booking', id, at, 'cancelled');
+  } else if (order && order['status'] !== 'cancelled') {
+    await raiseBookingCancelledFlag(c, order);
+    await touchBookingLink(c.tx, c.tenantId, 'engagement_booking', id, at);
+  } else {
+    await touchBookingLink(c.tx, c.tenantId, 'engagement_booking', id, at, 'cancelled');
+  }
 }

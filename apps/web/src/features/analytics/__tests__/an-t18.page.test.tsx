@@ -19,8 +19,9 @@ import { delay, http, HttpResponse } from 'msw';
 import { setupServer } from 'msw/node';
 import { ToastProvider } from '@lims/ui/components/Toast';
 
+const routerRefresh = vi.hoisted(() => vi.fn());
 vi.mock('next/navigation', () => ({
-  useRouter: () => ({ push: vi.fn(), replace: vi.fn(), refresh: vi.fn(), back: vi.fn() }),
+  useRouter: () => ({ push: vi.fn(), replace: vi.fn(), refresh: routerRefresh, back: vi.fn() }),
   usePathname: () => '/analytics',
   useSearchParams: () => new URLSearchParams(),
   notFound: () => { throw new Error('NEXT_NOT_FOUND'); },
@@ -83,8 +84,9 @@ const api = setupServer(
   http.post(`${ORIGIN}/v1/analytics/refresh`, ({ request }) => { calls.push({ url: new URL(request.url), headers: request.headers, method: 'POST' }); return refresh(); }),
   http.get(`${ORIGIN}/v1/analytics/*`, () => problem('common.dependency_unavailable', 503)),
 );
+function setVisibility(v: 'visible' | 'hidden') { Object.defineProperty(document, 'visibilityState', { configurable: true, get: () => v }); }
 beforeAll(() => api.listen({ onUnhandledRequest: 'error' }));
-afterEach(() => { cleanup(); api.resetHandlers(); calls.length = 0; dash = () => HttpResponse.json(dashboard()); refresh = () => HttpResponse.json({}, { status: 202 }); });
+afterEach(() => { cleanup(); vi.useRealTimers(); routerRefresh.mockClear(); setVisibility('visible'); api.resetHandlers(); calls.length = 0; dash = () => HttpResponse.json(dashboard()); refresh = () => HttpResponse.json({}, { status: 202 }); });
 afterAll(() => api.close());
 
 type SP = Record<string, string | string[] | undefined>;
@@ -260,6 +262,36 @@ describe('S1 dashboard — freshness (US-01.4, 04-UI-UX §2)', () => {
     expect(norm(tileEl('Income (net sales)').textContent)).toMatch(/2,25,000/);
   });
 
+  // review #1: 03-APP-FLOW §5 S1 "stale badge per tile", US-01.4. A tile's cell = the widest ancestor of the tile that holds no other tile (tile + its sub-values + badge).
+  const cellOf = (label: string) => {
+    let el: HTMLElement = tileEl(label);
+    while (el.parentElement && el.parentElement.querySelectorAll('.lims-stat').length === 1) el = el.parentElement;
+    return el;
+  };
+  const STALE = 'Data may be out of date';
+  const staleFresh = (family: string) => ['orders', 'income', 'results'].map((f) => (f === family
+    ? { family: f, refreshed_at: '2026-01-15T03:45:00.000Z', is_stale: true, stale_reason: 'refresh_lagging', live: false }
+    : { family: f, refreshed_at: '2026-01-15T04:30:00.000Z', is_stale: false, live: false }));
+
+  it('stale income: the stale marker sits in the "Income (net sales)" tile cell and NOT in "Patient visits"; last values still shown', async () => {
+    dash = () => HttpResponse.json(dashboard({ freshness: staleFresh('income') }));
+    await show();
+    expect(norm(cellOf('Income (net sales)').textContent)).toContain(STALE);
+    expect(norm(cellOf('Income (net sales)').textContent)).toMatch(/2,25,000/);
+    expect(norm(cellOf('Patient visits').textContent)).not.toContain(STALE);
+    expect(norm(cellOf('Results approved').textContent)).not.toContain(STALE);
+  });
+
+  it.each([
+    ['orders', 'Patient visits', ['Income (net sales)', 'Results approved']],
+    ['results', 'Results approved', ['Patient visits', 'Income (net sales)']],
+  ])('stale %s family marks only the "%s" tile', async (family, label, others) => {
+    dash = () => HttpResponse.json(dashboard({ freshness: staleFresh(family) }));
+    await show();
+    expect(norm(cellOf(label).textContent)).toContain(STALE);
+    for (const o of others) expect(norm(cellOf(o).textContent)).not.toContain(STALE);
+  });
+
   it('never_refreshed shows the marker without crashing when refreshed_at is absent', async () => {
     dash = () => HttpResponse.json(dashboard({ tiles: zeros, freshness: [{ family: 'income', is_stale: true, stale_reason: 'never_refreshed', live: false }] }));
     await show();
@@ -356,6 +388,79 @@ describe('S1 dashboard — refresh action (04-UI-UX §2)', () => {
     await user.dblClick(btn());
     await waitFor(() => expect(norm(document.body.textContent)).toMatch(/Refresh available at/));
     expect(calls.filter((c) => c.method === 'POST')).toHaveLength(1);
+  });
+});
+
+// review #2: 03-APP-FLOW §2 step 5 — auto-refresh every 5 min via router.refresh() only while the tab is visible, never faster.
+// Only the interval is faked so MSW/fetch keep real timers. ASSUMED: poller is a client child of the page tree (pattern: instruments AgentsList).
+describe('S1 dashboard — auto-refresh (03-APP-FLOW §2.5)', () => {
+  const FIVE_MIN = 5 * 60_000;
+  const fakeInterval = () => vi.useFakeTimers({ toFake: ['setInterval', 'clearInterval'] });
+
+  it('calls router.refresh() at 5 min and not before (nor at 30 s / 4m59s)', async () => {
+    fakeInterval();
+    await show();
+    vi.advanceTimersByTime(30_000);
+    vi.advanceTimersByTime(FIVE_MIN - 31_000);
+    expect(routerRefresh).not.toHaveBeenCalled();
+    vi.advanceTimersByTime(1_000);
+    expect(routerRefresh).toHaveBeenCalledTimes(1);
+    vi.advanceTimersByTime(FIVE_MIN);
+    expect(routerRefresh).toHaveBeenCalledTimes(2);
+  });
+
+  it('does not refresh while the tab is hidden; resumes when visible again', async () => {
+    fakeInterval();
+    await show();
+    setVisibility('hidden');
+    vi.advanceTimersByTime(3 * FIVE_MIN);
+    expect(routerRefresh).not.toHaveBeenCalled();
+    setVisibility('visible');
+    vi.advanceTimersByTime(FIVE_MIN);
+    expect(routerRefresh).toHaveBeenCalled();
+  });
+
+  it('stops polling after unmount', async () => {
+    fakeInterval();
+    const { unmount } = await show();
+    unmount();
+    vi.advanceTimersByTime(3 * FIVE_MIN);
+    expect(routerRefresh).not.toHaveBeenCalled();
+  });
+});
+
+// review #3: 04-UI-UX §2 — Alt+R = Refresh on the dashboard, registered via core/shortcuts/registry for page id staff.analytics.dashboard.
+describe('S1 dashboard — Alt+R shortcut (04-UI-UX §2)', () => {
+  const PAGE = 'staff.analytics.dashboard';
+  const altR = async () => (await import('@/core/shortcuts/registry')).shortcuts.list(PAGE).find((s) => /^alt\+r$/i.test(s.key));
+
+  it('Alt+R is registered with a "Refresh" description and posts once to /v1/analytics/refresh', async () => {
+    const { act } = await import('@testing-library/react');
+    await show();
+    const sc = await altR();
+    expect(sc).toBeTruthy();
+    expect(sc!.description).toMatch(/refresh/i);
+    act(() => { sc!.run(); });
+    await waitFor(() => expect(calls.filter((c) => c.method === 'POST')).toHaveLength(1));
+    expect(calls.find((c) => c.method === 'POST')!.headers.get('authorization')).toBe('Bearer jwt-synthetic');
+    await waitFor(() => expect(norm(document.body.textContent)).toMatch(/Refresh available at/));
+  });
+
+  it('pressing Alt+R twice quickly sends one request (same guard as the button)', async () => {
+    const { act } = await import('@testing-library/react');
+    refresh = async () => { await delay(100); return HttpResponse.json({}, { status: 202 }); };
+    await show();
+    const sc = (await altR())!;
+    act(() => { sc.run(); sc.run(); });
+    await waitFor(() => expect(norm(document.body.textContent)).toMatch(/Refresh available at/));
+    expect(calls.filter((c) => c.method === 'POST')).toHaveLength(1);
+  });
+
+  it('is unregistered on unmount', async () => {
+    await show();
+    expect(await altR()).toBeTruthy();
+    cleanup();
+    expect(await altR()).toBeUndefined();
   });
 });
 

@@ -1,5 +1,6 @@
 // C7 API-T13 — E38 reprocessInstrumentMessage / E39 rematchInstrumentRecord (02-TRD §6.7; 01-PRD AC-19.1..19.5; 07-SECURITY AB11, REQ-SEC-096/097, 02-CV §9.2). Seams: reprocess.helpers.ts header.
-import { describe, expect, it } from 'vitest';
+import { beforeAll, describe, expect, it } from 'vitest';
+import { eventValidators } from '../../../core/events/publish.js';
 import { localToUtc } from '../domain/instrumentTime.js';
 import {
   ASTM_PATIENT, GLU, NA, QC, PLANT, PERM, REASON_TEXT_PLANT, CENTRE_A1, CENTRE_A2, TENANT_A, TENANT_B, USER, INS, AGENT_A1, idN, msgId, recId, msgRow, recordRow, rec1, failure, snakeToCamel,
@@ -7,6 +8,7 @@ import {
 } from './reprocess.helpers.js';
 
 const load = () => import('../service/reprocess.service.js');
+beforeAll(() => { eventValidators(); }, 120_000);   // first-call event schema compile is slow (ruling §3)
 const MSG = msgId(1), REC = recId(1);
 const BODY = { reason_code: 'driver_fixed', reason_text: REASON_TEXT_PLANT };
 const NEW_BC = 'E2600000099';
@@ -21,8 +23,9 @@ async function setup(o: { msg?: Row; records?: Row[]; recs?: Row[]; driver?: Ret
   const c = makeRctx(w, { port, ...(o.roles ? { roles: o.roles } : {}), ...(o.failAudit ? { failAudit: true } : {}), ...(o.tenantId ? { tenantId: o.tenantId } : {}) });
   const driver = o.driver === undefined ? spyDriver(o.recs ?? [GLU, NA, QC]) : o.driver;
   const svc = createReprocessService({ repo: w.repo, ...(driver ? { getDriver: driver.getDriver } : {}) });
-  const reprocess = (body: unknown = BODY, id: unknown = MSG) => svc.reprocessInstrumentMessage(c.ctx, { instrumentMessageId: id, body } as any);
-  const rematch = (body: unknown = REMATCH, id: unknown = REC) => svc.rematchInstrumentRecord(c.ctx, { recordId: id, body } as any);
+  // an explicit `undefined` id must reach the service (rest args, not default params)
+  const reprocess = (body: unknown = BODY, ...rest: unknown[]) => svc.reprocessInstrumentMessage(c.ctx, { instrumentMessageId: rest.length ? rest[0] : MSG, body } as any);
+  const rematch = (body: unknown = REMATCH, ...rest: unknown[]) => svc.rematchInstrumentRecord(c.ctx, { recordId: rest.length ? rest[0] : REC, body } as any);
   return { w, c, port, driver, svc, reprocess, rematch };
 }
 const untouched = (s: Awaited<ReturnType<typeof setup>>) => {
@@ -290,7 +293,7 @@ describe('access_log — REQ-SEC-096/097 (same transaction, fails closed)', () =
 describe('authorisation and tenancy — BOLA', () => {
   it('assertRole(instruments.message.rematch) at the MESSAGE centre, after the row was loaded (reprocess and re-match)', async () => {
     const s = await setup({ records: [recordRow(1, MSG)], msg: { centre_id: CENTRE_A2 } });
-    await s.reprocess(); await s.rematch();
+    await s.rematch(); await s.reprocess();      // rematch first: after a reprocess the record is of an older run (409)
     expect(s.c.asserted).toEqual([{ permission: PERM, centreId: CENTRE_A2 }, { permission: PERM, centreId: CENTRE_A2 }]);
     expect(s.w.order.indexOf('findMessage')).toBeLessThan(s.w.order.indexOf('assertRole'));
   });
@@ -318,7 +321,7 @@ describe('authorisation and tenancy — BOLA', () => {
 describe('hygiene — 02-CV §9.2 / REQ-SEC-098', () => {
   it('logs and metrics carry no barcode, value, reason text or raw byte; the reprocess counter is labelled kind + port_outcome', async () => {
     const s = await setup({ records: [recordRow(1, MSG)] });
-    await s.reprocess(); await s.rematch();
+    await s.rematch(); await s.reprocess();      // rematch first: after a reprocess the record is of an older run (409)
     const text = s.c.logText();
     for (const secret of [PLANT.barcode, NEW_BC, PLANT.value, 'Testpatient', REASON_TEXT_PLANT]) expect(text).not.toContain(secret);
     expect(s.c.metricCalls).toContainEqual(['lims_instruments_reprocess_total', { kind: 'reprocess', port_outcome: 'applied' }]);
@@ -326,7 +329,7 @@ describe('hygiene — 02-CV §9.2 / REQ-SEC-098', () => {
   });
   it('response DTOs expose no tenant_id / created_by / result_key_sha256 / raw bytes', async () => {
     const s = await setup({ records: [recordRow(1, MSG)] });
-    const a = JSON.stringify((await s.reprocess()).body); const b = JSON.stringify((await s.rematch()).body);
+    const b = JSON.stringify((await s.rematch()).body); const a = JSON.stringify((await s.reprocess()).body);   // rematch first (older-run rule)
     for (const t of [a, b]) { expect(t).not.toMatch(/tenant_id|created_by|result_key_sha256|raw_bytes|raw_base64/); expect(t).not.toContain(TENANT_A); }
   });
 });

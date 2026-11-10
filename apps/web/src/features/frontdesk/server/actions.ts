@@ -3,7 +3,7 @@
 // across the action boundary in production. Only ApiError is mapped; anything else rethrows to the error boundary.
 import 'server-only';
 import { ApiError } from '@/core/api/server-fetch';
-import { approveDiscount, cancelOrder, changeOrderItems, confirmPreRegisteredOrder, quoteOrderItemsChange, recordPatientConsent, recordPayment, rejectDiscount, resolveOrderFlag, updatePatient, uploadTrf } from './write.server';
+import { approveDiscount, cancelOrder, changeOrderItems, quoteOrderItemsChange, recordPatientConsent, recordPayment, rejectDiscount, resolveOrderFlag, updatePatient, uploadTrf } from './write.server';
 import type { ActionResult, Consents } from './types';
 
 async function run<T>(f: () => Promise<T>): Promise<ActionResult<T>> {
@@ -28,16 +28,13 @@ export async function quoteItemsChangeAction(orderId: string, add: Add): Promise
 export async function changeOrderItemsAction(orderId: string, version: number, r: { add?: Add; remove?: { order_item_id: string; reason_code: string }[]; quote_fingerprint?: string }, key: string): Promise<ActionResult<true>> {
   return run(async () => (await changeOrderItems(orderId, version, r, key), true as const));
 }
-export async function confirmOrderAction(orderId: string, version: number, key: string): Promise<ActionResult<true>> {
-  return run(async () => (await confirmPreRegisteredOrder(orderId, version, key), true as const));
-}
 export async function recordPaymentAction(orderId: string, r: { method_code: string; amount_received_paisa: number; reference?: string }, key: string): Promise<ActionResult<true>> {
   return run(async () => (await recordPayment(orderId, r, key), true as const));
 }
-export async function uploadTrfAction(centreId: string, form: FormData, key: string): Promise<ActionResult<true>> {
+export async function uploadTrfAction(centreId: string, orderId: string, form: FormData, key: string): Promise<ActionResult<true>> {
   const file = form.get('file');
   if (!(file instanceof File)) return { ok: false, status: 400, code: 'common.validation_failed' };
-  return run(async () => (await uploadTrf(centreId, file, key), true as const));
+  return run(async () => (await uploadTrf(centreId, orderId, file, key), true as const));
 }
 export async function updatePatientAction(patientId: string, version: number, changes: Record<string, string>): Promise<ActionResult<true>> {
   return run(async () => (await updatePatient(patientId, version, changes), true as const));

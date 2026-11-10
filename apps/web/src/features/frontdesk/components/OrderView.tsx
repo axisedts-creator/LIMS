@@ -16,7 +16,7 @@ import { Tabs } from '@lims/ui/components/Tabs';
 import { TextField } from '@lims/ui/components/TextField';
 import { useToast } from '@lims/ui/components/Toast';
 import { PAYMENT_METHODS } from '@/features/billing/server/types';
-import { cancelOrderAction, changeOrderItemsAction, confirmOrderAction, quoteItemsChangeAction, recordPaymentAction, uploadTrfAction } from '../server/actions';
+import { cancelOrderAction, changeOrderItemsAction, quoteItemsChangeAction, recordPaymentAction, uploadTrfAction } from '../server/actions';
 import type { CatalogOption, Coded, Order, OrderBilling, OrderItem } from '../server/types';
 import { BsAd, Status, errorText, formatNpr, hasPerm, humanize, npr } from './format';
 
@@ -44,7 +44,8 @@ export function OrderView({ order, billing, permissions, cancelReasons, removalR
   const cancelled = order.status === 'cancelled';
   const editable = order.status === 'registered' && hasPerm(permissions, 'frontdesk.order.edit');
   const canCancel = !cancelled && hasPerm(permissions, 'frontdesk.order.cancel');
-  const canConfirm = order.status === 'pre_registered' && hasPerm(permissions, 'frontdesk.registration.create');
+  // Booked orders are confirmed through the registration payment panel (F12 needs quote_fingerprint + payments, FD-T13); this page only flags them.
+  const booked = order.status === 'pre_registered' && hasPerm(permissions, 'frontdesk.registration.create');
   const paid = billing?.balance.paid.amount_paisa ?? 0;
   const tabs = [{ id: 'items', label: 'Items' }, ...(billing ? [{ id: 'billing', label: 'Billing' }] : []), { id: 'attachments', label: 'Attachments' }];
 
@@ -52,7 +53,7 @@ export function OrderView({ order, billing, permissions, cancelReasons, removalR
     if (!file) return;
     const form = new FormData();
     form.set('file', file);
-    const r = await uploadTrfAction(order.centre_id, form, key.current);
+    const r = await uploadTrfAction(order.centre_id, order.id, form, key.current);
     if (r.ok) done('File uploaded. It is being scanned.'); else fail(r.code, r.status);
   };
 
@@ -74,9 +75,7 @@ export function OrderView({ order, billing, permissions, cancelReasons, removalR
       </dl>
 
       {notice ? <div role="alert"><Banner tone="danger" title={notice} /></div> : null}
-      {canConfirm ? (
-        <Banner tone="info" title="Booked — confirm on arrival" action={{ label: 'Confirm & bill', onPress: () => void confirm() }} />
-      ) : null}
+      {booked ? <Banner tone="info" title="Booked — confirm on arrival" /> : null}
       {cancelled && order.requires_credit_note ? <Banner tone="warning" title="Credit note required — Finance must issue a credit note for this cancelled order." /> : null}
 
       <Tabs items={tabs} selectedId={tab} onChange={(id) => setTab(id as Tab)} aria-label="Order sections">
@@ -159,12 +158,6 @@ export function OrderView({ order, billing, permissions, cancelReasons, removalR
       {open.kind === 'pay' && billing ? <PaymentDialog order={order} due={billing.balance.balance_due.amount_paisa} idempotencyKey={key.current} onClose={close} onDone={() => done('Payment recorded.')} onFail={fail} /> : null}
     </section>
   );
-
-  async function confirm() {
-    key.current = newKey();
-    const r = await confirmOrderAction(order.id, order.version, key.current);
-    if (r.ok) done('Order confirmed.'); else fail(r.code, r.status);
-  }
 }
 
 function BillingTab({ billing, permissions, onPay }: { billing: OrderBilling; permissions: readonly string[]; onPay: () => void }) {

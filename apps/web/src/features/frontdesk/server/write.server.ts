@@ -1,6 +1,6 @@
 import 'server-only';
 // BFF writes for the front-desk order, patient, worklist and approvals pages: F14 cancelOrder, F13 changeOrderItems, F8b quoteOrderItemsChange,
-// F12 confirmPreRegisteredOrder, F7 updatePatient, F7b recordPatientConsent, F16 approve/reject, F18 resolveOrderFlag.
+// F7 updatePatient, F7b recordPatientConsent, F16 approve/reject, F18 resolveOrderFlag.
 // Every write sends Idempotency-Key (02-CONVENTIONS §4.5); versioned writes send If-Match `"<version>"` (OpenAPI IfMatch).
 import { ApiError, serverFetch } from '@/core/api/server-fetch';
 import { problem } from '@/core/session/types';
@@ -44,9 +44,6 @@ export const changeOrderItems = (orderId: string, v: number, r: { add?: { ordera
   return send<Order & { credit_note_required?: boolean }>('POST', `/v1/frontdesk/orders/${uuid(orderId)}/items-changes`, r, key, v);
 };
 
-// ponytail: F12 needs quote_fingerprint + payments from the registration payment panel (FD-T13); this bare confirm lets the API answer with its own validation error until that panel is shared.
-export const confirmPreRegisteredOrder = (orderId: string, v: number, key: string) => send<Order>('POST', `/v1/frontdesk/orders/${uuid(orderId)}/confirm`, { payments: [] }, key, v);
-
 export const updatePatient = (patientId: string, v: number, changes: Record<string, string>) => {
   if (Object.keys(changes).length < 1) throw bad();
   return send<Patient>('PATCH', `/v1/frontdesk/patients/${uuid(patientId)}`, changes, undefined, v);
@@ -59,11 +56,12 @@ export const recordPayment = (orderId: string, r: { method_code: string; amount_
   return send<unknown>('POST', `/v1/billing/orders/${uuid(orderId)}/payments`, r, key);
 };
 
-/** F21 uploadTrf. ponytail: the operation takes centre_id, not order_id — files uploaded here are scanned and stored but not linked to the order (open point). */
-export function uploadTrf(centreId: string, file: File, key: string) {
+/** F21 uploadTrf; TrfUploadForm.order_id links the file to the order so it shows in that order's trf_attachments. */
+export function uploadTrf(centreId: string, orderId: string, file: File, key: string) {
   if (!KEY_RE.test(key)) throw bad();
   const form = new FormData();
   form.set('centre_id', uuid(centreId));
+  form.set('order_id', uuid(orderId));
   form.set('file', file);
   return serverFetch<unknown>('/v1/frontdesk/trf-attachments', { method: 'POST', headers: { 'idempotency-key': key }, body: form });
 }

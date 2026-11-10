@@ -1,0 +1,25 @@
+---
+# 02-TRD s12.2, 07-SEC A9, CR-C1-001: self-hosted runner on the ops host (group `ops`).
+# The runner is an unprivileged user. It runs only protected-branch/tag and environment-protected jobs
+# (enforced by the GitHub environment/branch rules, C0-owned workflows); PR code never reaches it.
+# It holds no age key for prod: lims-prod-decrypt@<release> (root) releases the prod key for one approved
+# release id for a bounded time.
+ci_runner_user: lims-ci
+ci_runner_group: lims-ci
+ci_runner_home: /srv/lims/ci-runner
+ci_runner_dir: "{{ ci_runner_home }}/runner"
+ci_runner_name: "{{ inventory_hostname }}-nepal"
+ci_runner_labels: nepal-ops
+
+# No defaults, fail closed: the runner release archive (URL + sha256 you verified) and the repo it serves.
+# Archive layout: GitHub Actions runner (config.sh, run.sh); version/URL UNVERIFIED, set per release.
+ci_runner_archive_url: ""
+ci_runner_archive_sha256: ""
+ci_runner_repo_url: ""
+# One-shot registration secret (secret store, s8.2); empty = register by hand. Never logged.
+ci_runner_registration_token: ""
+
+# Prod key release (root-only source file placed by the founder, never in git, never owned by the runner).
+ci_runner_prod_key_src: /etc/lims/ci/prod-age.key
+ci_runner_prod_key_dir: /run/lims/ci-prod
+ci_runner_prod_key_ttl: 2h

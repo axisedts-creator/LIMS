@@ -6,3 +6,7 @@ Fix: none in implementation (test edit forbidden). Wrote API-T11-dispute.md. T11
 Stale IMPLEMENTED list fixed by tester. Only fail left: boot.test "boots and mounts" 30 s timeout (boot.test.ts:218-229, fixed `30_000` arg); fails alone too (~32-36 s), sibling boot test takes 21 s.
 Cause: `bootstrap()` autoloads + compiles every module spec in a cold vite-node run on this box; T11 files import only node:crypto + local modules, no heavy dep. Same flake seen before T11 (obs of API-T09/T10 runs). Not T11 code.
 Fix: none in implementation (no smallest-change lever; test timeout is test-owned). Needs ruling: raise that test's timeout (or LIMS test config) -- not a spec contradiction, so no dispute file.
+
+## Round 3 (2026-11-10)
+Latest verify log: 122/123 pass; only boot.test "boots and mounts" fails, 30 s timeout (took 49 s under load; sibling boot test 28 s). Same cause as round 2: cold `bootstrap()` of all modules, no T11 import in the path. No implementation lever, test timeout (boot.test.ts:229) is test-owned.
+Fix: none. Needs ruling: raise that test's timeout (or vitest testTimeout for boot.test). T11 suites (handlers, service, contract, worker scan) pass.

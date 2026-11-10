@@ -64,11 +64,11 @@ const H = handlers as unknown as Record<string, (req: any, ctx: any) => Promise<
 export const req = (o: { params?: object; query?: object; headers?: object; body?: unknown } = {}) => ({ params: {}, query: {}, headers: {}, body: undefined, ...o });
 
 /** One request = one committed tx under RLS with `claimsTenant` claims; `tenantId` is what the handler sees as ctx.tenantId (normally the same). */
-export async function call(operationId: string, r: ReturnType<typeof req>, o: { grants?: readonly string[]; tenant?: string; tenantId?: string; fn?: (tx: Tx) => Promise<void> } = {}): Promise<Reply & { probe: Probe }> {
+export async function call(operationId: string, r: ReturnType<typeof req>, o: { grants?: readonly string[]; tenant?: string; tenantId?: string; requestId?: string; fn?: (tx: Tx) => Promise<void> } = {}): Promise<Reply & { probe: Probe }> {
   const grants = o.grants ?? FULL;
   const tenant = o.tenant ?? TENANT_A;
   const side = tenant === TENANT_B ? 'b' : 'a';
-  const probe = { logs: [] as string[], accessCalls: [] as any[], identity: makeIdentity(grants, { centreIds: [CENTRE[side]] }), membershipId: uid(), requestId: uid() } as Probe;
+  const probe = { logs: [] as string[], accessCalls: [] as any[], identity: makeIdentity(grants, { centreIds: [CENTRE[side]] }), membershipId: uid(), requestId: o.requestId ?? uid() } as Probe;
   const out = await appTx(tenant, async (tx) => {
     const log = (lvl: string) => (obj: object, msg?: string) => { probe.logs.push(`${lvl} ${JSON.stringify(obj)} ${msg ?? ''}`); };
     const ctx: any = {

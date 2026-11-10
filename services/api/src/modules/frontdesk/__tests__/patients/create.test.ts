@@ -2,12 +2,14 @@
 // US-FD-02.4 (the registration half: NotificationPort suppressed_no_consent, UI text) belongs to FD-T06/FD-T09; here the SMS flag a registration will read is proven stored + returned faithfully.
 // Known interface gap pinned softly: LimsError (core/errors.ts) has no field for the problem extension `candidates`; the test checks the code/status and, when the handler exposes `candidates`, its shape.
 import { beforeAll, describe, expect, it } from 'vitest';
-import { PERM, T, TENANT_A, TENANT_B, accessRows, appTx, call, consentRows, consents, countPatients, fails, newPatient, norm, NOW_DATE, ownerRows, patientRow, phone,
+import { PERM, T, TENANT_A, TENANT_B, accessRows, appTx, call, consentRows, consents, fails, newPatient, norm, NOW_DATE, ownerRows, patientRow, phone,
   req, schemaErrors, seedPatient, seedSettings, superTx, tag, uid } from './helpers.js';
 
 const create = (body: object, o: Parameters<typeof call>[2] = {}) => call('createPatient', req({ body, headers: { 'idempotency-key': `k-${uid()}` } }), o);
 const createFails = (body: object, o: Parameters<typeof call>[2] = {}) => fails('createPatient', req({ body, headers: { 'idempotency-key': `k-${uid()}` } }), o);
 const byName = (n: string) => ownerRows('frontdesk.patients', 'tenant_id = $1 AND name_search = $2', [TENANT_A, norm(n)]);
+// Ruling FD-T04 #2: count only rows this test could create (unique phone), never a tenant-wide count that other parallel suites move.
+const countByPhone = async (ph: string) => (await ownerRows('frontdesk.patients', 'tenant_id = $1 AND phone_e164 = $2', [TENANT_A, ph])).length;
 beforeAll(async () => { await seedSettings(); }, T);
 
 describe('US-FD-02.1 create from age only', () => {
@@ -24,7 +26,7 @@ describe('US-FD-02.1 create from age only', () => {
     expect(row).toMatchObject({ tenant_id: TENANT_A, is_birth_on_estimated: true, source: 'front_desk', phone_e164: body.phone_e164, version: 1 });
     expect(row.registered_centre_id).not.toBeNull();
     expect(row.name_search).toBe(norm(body.full_name));            // normalised for search + dedupe
-    expect(String(row.birth_on).slice(0, 10)).toBe('1983-11-10');
+    expect((await superTx((tx) => tx.query('SELECT birth_on::text AS d FROM frontdesk.patients WHERE id = $1', [r.body.id]))).rows[0].d).toBe('1983-11-10');   // ruling #3: compare the date text, not a JS Date string
     expect(r.probe.identity.calls[0]).toMatchObject({ permission: PERM.create });
   });
   it('with age in years+months+days the estimate subtracts all three; with only birth_on it is exact and not estimated', { timeout: T }, async () => {
@@ -55,20 +57,20 @@ describe('US-FD-02.1 create from age only', () => {
     ['negative age', { age: { years: -1 } }],
     ['blank name', { full_name: '   ' }],
   ])('%s -> 400 common.validation_failed and nothing is stored', { timeout: T }, async (_n, patch) => {
-    const before = await countPatients(TENANT_A);
-    const e = await createFails(newPatient(patch as any));
+    const body = newPatient(patch as any);
+    const e = await createFails(body);
     expect(e.code).toBe('common.validation_failed');
-    expect(await countPatients(TENANT_A)).toBe(before);
+    expect(await countByPhone(body.phone_e164)).toBe(0);
   });
   it('consent_text_version different from the tenant setting -> 400 common.validation_failed, nothing stored', { timeout: T }, async () => {
-    const before = await countPatients(TENANT_A);
-    expect((await createFails(newPatient({ consents: consents({ consent_text_version: 'v0-old' }) }))).code).toBe('common.validation_failed');
-    expect(await countPatients(TENANT_A)).toBe(before);
+    const body = newPatient({ consents: consents({ consent_text_version: 'v0-old' }) });
+    expect((await createFails(body)).code).toBe('common.validation_failed');
+    expect(await countByPhone(body.phone_e164)).toBe(0);
   });
   it('permission: patient.read alone cannot create (auth.forbidden), nothing stored', { timeout: T }, async () => {
-    const before = await countPatients(TENANT_A);
-    expect((await createFails(newPatient(), { grants: [PERM.read] })).code).toBe('auth.forbidden');
-    expect(await countPatients(TENANT_A)).toBe(before);
+    const body = newPatient();
+    expect((await createFails(body, { grants: [PERM.read] })).code).toBe('auth.forbidden');
+    expect(await countByPhone(body.phone_e164)).toBe(0);
   });
 });
 
@@ -76,7 +78,7 @@ describe('US-FD-02.2 duplicate suspicion + audited override', () => {
   it('same normalised name + birth year ±1 + same phone -> 409 frontdesk.patient_duplicate_suspected listing the candidate; nothing stored', { timeout: T }, async () => {
     const t = tag(); const ph = phone();
     const existing = await seedPatient('a', { full_name: `Sita Rai ${t}`, name_search: norm(`Sita Rai ${t}`), birth_on: '1983-03-03', phone_e164: ph });
-    const before = await countPatients(TENANT_A);
+    const before = await countByPhone(ph);
     const e = await createFails(newPatient({ full_name: `  SITA   rai ${t}`, age: undefined, birth_on: '1984-12-31', phone_e164: ph }));
     expect(e.code).toBe('frontdesk.patient_duplicate_suspected'); expect(e.statusCode).toBe(409);
     const cands = e.candidates ?? e.extensions?.candidates;
@@ -85,7 +87,7 @@ describe('US-FD-02.2 duplicate suspicion + audited override', () => {
       expect(cands.map((c: any) => c.id)).toContain(existing.id);
       expect(JSON.stringify(cands)).not.toContain(ph);          // summaries mask the phone
     }
-    expect(await countPatients(TENANT_A)).toBe(before);
+    expect(await countByPhone(ph)).toBe(before);
   });
   it('resubmitting with duplicate_override.reason_code creates the patient and records the reason on the row', { timeout: T }, async () => {
     const t = tag(); const ph = phone();
@@ -142,20 +144,19 @@ describe('US-FD-02.2 duplicate suspicion + audited override', () => {
 
 describe('US-FD-02.3 processing consent required', () => {
   it('processing=false -> 422 frontdesk.consent_required and NOTHING is stored (no patient, no consent, no counter use visible as a patient)', { timeout: T }, async () => {
-    const before = await countPatients(TENANT_A);
     const body = newPatient({ consents: consents({ processing: false }) });
     const e = await createFails(body);
     expect(e.code).toBe('frontdesk.consent_required'); expect(e.statusCode).toBe(422);
-    expect(await countPatients(TENANT_A)).toBe(before);
+    expect(await countByPhone(body.phone_e164)).toBe(0);
     expect(await byName(body.full_name)).toHaveLength(0);
   });
   it('no consent + a matching duplicate: either error is acceptable (spec silent on order), but nothing is stored and no patient is created',{ timeout: T }, async () => {
     const t = tag(); const ph = phone();
     await seedPatient('a', { full_name: `Order ${t}`, name_search: norm(`Order ${t}`), birth_on: '1983-06-06', phone_e164: ph });
-    const before = await countPatients(TENANT_A);
+    const before = await countByPhone(ph);
     const e = await createFails(newPatient({ full_name: `Order ${t}`, age: undefined, birth_on: '1983-06-06', phone_e164: ph, consents: consents({ processing: false }) }));
     expect(['frontdesk.consent_required', 'frontdesk.patient_duplicate_suspected']).toContain(e.code);
-    expect(await countPatients(TENANT_A)).toBe(before);
+    expect(await countByPhone(ph)).toBe(before);
   });
 });
 

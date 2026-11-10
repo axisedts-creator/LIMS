@@ -1,7 +1,7 @@
 // FD-T04 F1 searchPatients — US-FD-01.1..6 (01-PRD §8), 03-APP-FLOW §2.1, 02-TRD §5.1 F1 + access-log table (patient.search, detail {mode, result_count}, no query text).
 // Query modes: auto -> phone (digits>=10 or '+', +977 default) | code (patientCodePattern prefix; fake tenant pattern 'MP{seq:8}') | registration_no ('R{seq:6}') | name.
 import { beforeAll, describe, expect, it } from 'vitest';
-import { PERM, T, TENANT_A, TENANT_B, accessRows, call, countPatients, fails, national, norm, phone, req, schemaErrors, seedOrder, seedPatient, seedSettings, tag } from './helpers.js';
+import { PERM, T, TENANT_A, TENANT_B, accessRows, call, countPatients, fails, ownerRows, uid, national, norm, phone, req, schemaErrors, seedOrder, seedPatient, seedSettings, tag } from './helpers.js';
 
 const search = (body: object, o: Parameters<typeof call>[2] = {}) => call('searchPatients', req({ body }), o);
 beforeAll(async () => { await seedSettings(); }, T);
@@ -85,8 +85,13 @@ describe('US-FD-01.4 tenant isolation', () => {
   });
   it('RLS backstop: if the handler were handed the wrong ctx.tenantId it still sees nothing of the other tenant', { timeout: T }, async () => {
     const b = await seedPatient('b');
-    const r = await call('searchPatients', req({ body: { query: national(b.phone_e164) } }), { tenant: TENANT_A, tenantId: TENANT_B });
-    expect(r.body.data).toEqual([]);
+    // Ruling FD-T04 #4: the patient.search access_log row is mandatory (01-PRD:142, 02-TRD:225, 03-APP-FLOW:68); with claims A + ctx.tenantId B, RLS rejects that row,
+    // so failing closed is correct. Accept EITHER a rejection OR 200 with no data; never a tenant-B row, never a tenant-B access_log row.
+    const requestId = uid();
+    const out = await call('searchPatients', req({ body: { query: national(b.phone_e164) } }), { tenant: TENANT_A, tenantId: TENANT_B, requestId }).then((x) => ({ ok: x }), (e) => ({ err: e }));
+    if ('ok' in out) { expect(out.ok.status).toBe(200); expect(out.ok.body.data).toEqual([]); }
+    expect(JSON.stringify('ok' in out ? out.ok.body : {})).not.toContain(b.id);
+    expect(await ownerRows('audit.access_log', 'tenant_id = $1 AND request_id = $2', [TENANT_B, requestId])).toEqual([]);
   });
 });
 

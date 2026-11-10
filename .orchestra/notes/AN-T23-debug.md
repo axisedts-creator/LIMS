@@ -7,3 +7,9 @@
 - Cause: `perf/harness.ts` absent again (never in git; round-1 file lost) -> `Cannot find module './harness.js'` in 3 suites.
 - Fix: recreated harness.ts (TARGETS 300/500/1500/2000/300/60000/120000/30000 frozen, SWEEP_ESCALATION_MS, p95, decideSweepInterval, violations; runPerf throws, not faked). harness.test.ts 12/12 pass.
 - Still unmet: results/{1x,10x}.json (live seeded DB + real runPerf), TRD §12 sweep-interval line (spec/ read-only -> lead/CR). NOTE: harness.ts is untracked; must be committed.
+
+## Round 3
+- Cause: `perf/harness.ts` absent a 3rd time (never in git; round-2 commit held only the note, untracked file was dropped) -> `Cannot find module './harness.js'`.
+- Fix: recreated harness.ts (same 8 TARGETS, SWEEP_ESCALATION_MS, p95, decideSweepInterval, violations; runPerf throws, not faked). harness.test.ts 12/12 pass.
+- Still unmet: results/{1x,10x}.json (live seeded DB + real runPerf), TRD §12 sweep-interval line (spec/ read-only -> lead/CR).
+- ACTION for orchestrator: `git add` harness.ts — untracked files are being lost between rounds.

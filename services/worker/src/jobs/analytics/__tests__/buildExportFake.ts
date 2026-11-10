@@ -14,10 +14,10 @@
 import { vi } from 'vitest';
 import { createFakeRenderPort } from '../../../../../../packages/fakes/src/RenderPort.fake';
 import { ExportsDb, type ExportRow } from '../../../../../api/src/modules/analytics/export/__tests__/sqlFake.js';
-import { A1, A2, A3, B1, D1, D2, TA, makeCore } from '../../../../../api/src/modules/analytics/handlers/__tests__/helpers.js';
+import { A1, A2, A3, B1, D1, D2, D3, TA, makeCore } from '../../../../../api/src/modules/analytics/handlers/__tests__/helpers.js';
 import { db as rollupDb, w as volumeWorld, seed09, R, rf } from '../../../../../api/src/modules/analytics/handlers/__tests__/t09.helpers.js';
 
-export { A1, A2, A3, B1, D1, D2, TA, R, rf, volumeWorld, seed09, rollupDb };
+export { A1, A2, A3, B1, D1, D2, D3, TA, R, rf, volumeWorld, seed09, rollupDb };
 export const NOW = '2026-11-06T06:00:00.000Z';
 export const SYS = '01900000-0000-7000-8000-00000000ff01';
 export const MID = '01900002-0000-7000-8000-0000000000b1';       // requester membership

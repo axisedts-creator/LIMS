@@ -145,7 +145,7 @@ describe('createAnalyticsExport — request handling (US-17.1, TRD §10.1 step 4
     ['missing params', { report_code: 'income', format: 'csv' }], ['non-string report_code', createBody({ report_code: 42 })], ['body is an array', []], ['no body', undefined],
   ])('%s -> 400 common.validation_failed (X2); nothing written', async (_n, body) => {
     const c = await makeCtx15(OWNER);
-    expect(await codeOf(create(c.ctx, body))).toBe('common.validation_failed');
+    expect(await codeOf(callExp('createAnalyticsExport', c.ctx, { body }))).toBe('common.validation_failed'); // direct call: `create` would swap undefined for the default valid body
     untouched();
   });
 });

@@ -10,7 +10,7 @@ import { income } from '../../../../../api/src/modules/analytics/service/reports
 import { csvParts, flat, readXlsx } from '../../../../../api/src/modules/analytics/export/__tests__/xlsxRead.js';
 import { iso } from '../../../../../api/src/modules/analytics/export/__tests__/sqlFake.js';
 import {
-  A1, A2, A3, D1, D2, EXPORT, NOW, R, SYS, TA, alerted, exportsDb, fileOf, makeJobCtx, resetWorld, rf, rollupDb, rollupReads, rowOf, run, seed09, seedExport, volumeWorld, world,
+  A1, A2, A3, D1, D2, D3, EXPORT, NOW, R, SYS, TA, alerted, exportsDb, fileOf, makeJobCtx, resetWorld, rf, rollupDb, rollupReads, rowOf, run, seed09, seedExport, volumeWorld, world,
 } from './buildExportFake.js';
 
 vi.mock('../../../../../api/src/modules/analytics/repository/rollups.repo.js', async () => (await import('../../../../../api/src/modules/analytics/handlers/__tests__/t09.helpers.js')).rollupsMock09);
@@ -234,7 +234,7 @@ describe('build_export — step 3: effective scope = snapshot ∩ current member
 describe('build_export — steps 5/7: row and size caps -> failed analytics.export_too_large (CR-C8-002)', () => {
   it('rows above LIMS_ANALYTICS_EXPORT_MAX_ROWS', async () => {
     process.env.LIMS_ANALYTICS_EXPORT_MAX_ROWS = '1';
-    seedExport({ format: 'csv' });
+    seedExport({ format: 'csv', params: { business_date_from: D1, business_date_to: D3, group_by: 'day' } }); // 2 day-rows (D1, D2) > 1 (TRD:757 is strictly greater)
     await run(makeJobCtx());
     failed('analytics.export_too_large');
   });

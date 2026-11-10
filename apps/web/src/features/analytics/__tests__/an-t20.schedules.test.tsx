@@ -432,6 +432,9 @@ describe('recipient names are plain text (REQ-SEC-088)', () => {
     const H = '<img src=x onerror=alert(1)>';
     routes['GET /v1/analytics/filter-options'] = json({ ...FILTER_OPTIONS, recipients: [{ membership_id: OWNER_M, display_name: H }] });
     const { container } = await show(NEW_PAGE);
+    // LD-89: pick the recipient explicitly; do not rely on the creator chip (membershipId is optional on the session).
+    await userEvent.type(screen.getByRole('combobox', { name: /recipients/i }), '<img');
+    await userEvent.click(await screen.findByRole('option'));
     expect(container.querySelector('img')).toBeNull();
     expect(pageText()).toContain(H);
   });

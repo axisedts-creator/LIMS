@@ -9,6 +9,9 @@ CONTRACT for the writer (flood.js is a k6 script; stdlib-only Python here, k6 mu
    TARGET_URL      base URL of the staging edge (required)
    TARGET_ENV      must be `staging` or `staging-lean`; anything else (prod, prod-lean, dev, unset) -> k6 exits non-zero
                    BEFORE sending a single request
+   STAFF_URL       OPTIONAL (default TARGET_URL): base URL used for ALL authenticated traffic (calibration, baseline, burst,
+                   staff probe). The anonymous flood always goes to TARGET_URL. Lets the staff/burst traffic come through a
+                   second address that the flood IP's edge rate-limit / fail2ban does not shed (review T-32 item 2).
    STAFF_TOKEN     synthetic bearer for the authenticated staff probe (required; no token literal in the file; never sent
                    on flood traffic, which is anonymous)
    PROMETHEUS_URL  staging Prometheus (required: without it the run cannot prove cl_waiting/fd, so it FAILS)
@@ -25,9 +28,11 @@ CONTRACT for the writer (flood.js is a k6 script; stdlib-only Python here, k6 mu
    containing `pgbouncer_pools_client_waiting_connections` and an fd metric containing `node_filefd_allocated` (ratio to
    `node_filefd_maximum` may be computed in PromQL or in the script; the mock returns the ratio for any query containing
    `node_filefd`). Empty result = no evidence = FAIL.
- Report JSON keys: ac="AC-24.1", pass(bool), target_env, flood_rate, shed_responses (429+503 seen on flood traffic),
+ Burst must really arrive (review T-32 item 1): burst responses must be 200 (Rate `burst_ok`, threshold rate>0.99); a burst shed
+   by the edge (429) means 500 req/s never reached PgBouncer, so cl_waiting==0 proves nothing -> FAIL.
+ Report JSON keys: ac="AC-24.1", pass(bool), burst_ok_rate (fraction of burst responses with status 200), target_env, flood_rate, shed_responses (429+503 seen on flood traffic),
    staff_p95_baseline_ms, staff_p95_flood_ms, staff_p95_ratio, pgbouncer_cl_waiting_max, fd_used_ratio_max.
- pass = shed_responses>0 AND ratio<2 AND cl_waiting_max==0 AND fd_used_ratio_max<0.9 [CONV]. k6 must exit NON-ZERO whenever
+ pass = burst_ok_rate>0.99 AND shed_responses>0 AND ratio<2 AND cl_waiting_max==0 AND fd_used_ratio_max<0.9 [CONV]. k6 must exit NON-ZERO whenever
    pass is false (thresholds / abort), and exit 0 when true. 429/503 on flood traffic are expected, not failures.
 """
 import json
@@ -64,7 +69,8 @@ class Mock:
     """Target + Prometheus in one local server. Authorization == Bearer TOKEN -> staff (200 after STAFF_MS, +SLOW_MS while an
     anonymous flood was seen in the last second); anonymous -> `anon_status`. /api/v1/query -> canned Prometheus answers."""
 
-    def __init__(self, anon_status=429, slow_ms=0, cl_waiting="0", fd="0.1", empty=False):
+    def __init__(self, anon_status=429, slow_ms=0, cl_waiting="0", fd="0.1", empty=False, auth_shed=None):
+        self.auth_shed = auth_shed  # (lo, hi): authenticated request #n with lo < n <= hi gets 429 (sheds part of the burst)
         self.anon_status, self.slow_ms, self.cl_waiting, self.fd, self.empty = anon_status, slow_ms, cl_waiting, fd, empty
         self.anon = self.staff = self.bad_auth = 0
         self.queries = []
@@ -106,7 +112,10 @@ class Mock:
                     return self._send(401)
                 with mock.lock:
                     mock.staff += 1
+                    n = mock.staff
                     flooding = time.time() - mock.last_anon < 1.0
+                if mock.auth_shed and mock.auth_shed[0] < n <= mock.auth_shed[1]:
+                    return self._send(429)
                 time.sleep(0.05 + (mock.slow_ms / 1000.0 if flooding else 0))
                 self._send(200)
 
@@ -155,6 +164,10 @@ class TestSource(unittest.TestCase):
     def test_k6_script_shape(self):
         for needle in ("k6/http", "export const options", "handleSummary", "__ENV.TARGET_URL", "__ENV.TARGET_ENV",
                        "__ENV.STAFF_TOKEN", "__ENV.PROMETHEUS_URL", "__ENV.REPORT_PATH", "AC-24.1"):
+            self.assertIn(needle, self.src)
+
+    def test_staff_url_and_burst_ok_present(self):  # review T-32 items 1 and 2
+        for needle in ("__ENV.STAFF_URL", "burst_ok", "burst_ok_rate"):
             self.assertIn(needle, self.src)
 
     def test_staging_only_guard_names_both_staging_profiles(self):
@@ -322,6 +335,33 @@ class TestRun(unittest.TestCase):
         self.assertNotEqual(0, p.returncode, "empty Prometheus result must not count as cl_waiting 0")
         if rep is not None:
             self.assertIsNot(rep.get("pass"), True)
+
+    def test_pass_run_reports_burst_ok(self):
+        p, rep, _ = self.run_case()
+        self.assertEqual(0, p.returncode, p.stderr[-800:])
+        self.assertGreater(rep["burst_ok_rate"], 0.99)
+
+    def test_fails_when_burst_is_shed_by_edge(self):
+        # review T-32 item 1: authenticated burst answered 429 -> 500 req/s never reached PgBouncer -> must not pass.
+        # calibration (40) + baseline (~40) consume staff requests 1..~80; requests 85..150 (most of the 100-request burst) get 429.
+        p, rep, _ = self.run_case(dict(auth_shed=(85, 150)))
+        self.assertNotEqual(0, p.returncode)
+        self.assertIsNotNone(rep, "no report written")
+        self.assertIs(rep["pass"], False)
+        self.assertLess(rep["burst_ok_rate"], 0.99)
+        self.assertEqual(0, rep["pgbouncer_cl_waiting_max"])  # cl_waiting alone looks fine: only burst_ok catches it
+
+    def test_staff_url_separates_authenticated_from_flood_traffic(self):
+        # review T-32 item 2: flood (anonymous) -> TARGET_URL; calibration/baseline/burst/staff probe (bearer) -> STAFF_URL.
+        with Mock() as flood_m, Mock() as staff_m:
+            p, rep = run_k6(flood_m, self.tmp, STAFF_URL=staff_m.url, PROMETHEUS_URL=staff_m.url)
+        self.assertEqual(0, p.returncode, p.stderr[-800:])
+        self.assertIs(rep["pass"], True)
+        self.assertGreater(flood_m.anon, 100)  # flood hit TARGET_URL
+        self.assertEqual(0, flood_m.staff + flood_m.bad_auth)  # no bearer traffic on the flood address
+        self.assertEqual(0, staff_m.anon)  # no anonymous flood on the staff address
+        self.assertGreater(staff_m.staff, 150)  # calibration + baseline + burst + probe
+        self.assertEqual(0, staff_m.bad_auth)
 
 
 if __name__ == "__main__":

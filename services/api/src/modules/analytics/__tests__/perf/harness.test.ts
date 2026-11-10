@@ -15,7 +15,8 @@ const KEYS = ['dashboard_31d', 'report_31d', 'report_366d', 'tat_366d', 'pending
 /** Target column of the §12 operations table -> ms, in row order (independent of harness.ts). Only the 8 latency/wall rows. */
 function trdTargetsMs(): number[] {
   const sec = TRD.split(/^## 12\. /m)[1]!.split(/^## 13\. /m)[0]!;
-  const rows = sec.split('\n').filter((l) => /^\| [^|]+\| ≤ [\d.]+ (ms|s|min)\b/.test(l));
+  const rows = sec.split('\n').filter((l) => /^\| [^|]+\| (?:ready )?≤ [\d.]+ (ms|s|min)\b/.test(l));
+  expect(rows).toHaveLength(8);
   return rows.map((l) => {
     const m = /≤ ([\d.]+) (ms|s|min)/.exec(l.split('|')[2]!)!;
     return Number(m[1]) * ({ ms: 1, s: 1000, min: 60_000 } as const)[m[2] as 'ms' | 's' | 'min'];

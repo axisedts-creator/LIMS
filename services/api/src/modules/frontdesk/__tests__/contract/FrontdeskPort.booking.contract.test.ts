@@ -4,7 +4,8 @@
 import { beforeAll, describe, expect, it } from 'vitest';
 import { onBookingCancelled, onBookingConfirmed } from '../../service/booking.service.js';
 import { REFERRER } from '../quote/helpers.js';
-import { ALL_USER_PERMS, BRANCH, CENTRE, CONSENT_VERSION, CP, NON_STAFF, NOW, O, PARTNER, PERMS, SOURCES, T, TENANT_A, TENANT_B, accessLogRows, allEventRows, asSystem, asUser, booking, cancelledEvent,
+import { BRANCH_A2 } from '../registration/helpers.js';
+import { ALL_USER_PERMS, BRANCH, CENTRE, CENTRE_A2, CONSENT_VERSION, CP, NON_STAFF, NOW, O, PARTNER, PERMS, SOURCES, T, TENANT_A, TENANT_B, accessLogRows, allEventRows, asSystem, asUser, booking, cancelledEvent,
   confirmedEvent, consentInput, consentRows, create, createFails, creator, eventRows, fails, flagRows, fullPatient, itemRows, linkRows, newPatientInput, orderRow, ordersBySource, patientRow, patientsByPhone,
   run, rworld, seedPatient, scopedWrites, uid, without, type Source } from './helpers.js';
 
@@ -168,6 +169,17 @@ describe('createOrderFromBooking: per-source authorisation (08 R7), actor guard 
     expect((await create(await mk('partner_manifest'), creator('partner_manifest'))).status).toBe('pre_registered');
     expect((await create(await mk('partner_manifest'), asUser([PERMS.manifestReceive]))).status).toBe('pre_registered');
     expect((await createFails(await mk('partner_manifest'), asUser(without(PERMS.manifestReceive)))).code).toBe('auth.forbidden');
+  }, T);
+  it('centre scope (03-IC §4.3, review FD-T11 #1): a USER actor scoped to centre A passing centre A2 -> common.not_found (a coded error, not a raw RLS error); nothing is written; scope [A, A2] passes', async () => {
+    const pt = await fullPatient();
+    for (const [source, perm] of [['home_collection', PERMS.visitAssign], ['partner_manifest', PERMS.manifestReceive]] as const) {
+      const input = booking(source, { patientId: pt.id }, { confirmImmediately: false, centreId: CENTRE_A2, branchId: BRANCH_A2 });
+      const scope = { patientIds: [pt.id], refs: [input.sourceRefId], keys: [input.idempotencyKey] };
+      const before = await scopedWrites(TENANT_A, scope);
+      expect((await createFails(input, asUser([perm], { centreIds: [CENTRE.a] }))).code, source).toBe('common.not_found');
+      expect(await scopedWrites(TENANT_A, scope), source).toEqual(before);
+      expect((await create(input, asUser([perm], { centreIds: [CENTRE.a, CENTRE_A2] }))).status, source).toBe('pre_registered');
+    }
   }, T);
   it('patient / portal / partner / device actors are refused for every source and every method, BEFORE any validation, port call or write', async () => {
     const pt = await fullPatient();

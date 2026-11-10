@@ -1,1 +1,1 @@
-pnpm --dir services/api exec vitest run src/modules/frontdesk/__tests__/integration
+cd /d "%~dp0..\.." && "C:\Program Files\Git\bin\bash.exe" tests/frontdesk/J-T01.pg.sh

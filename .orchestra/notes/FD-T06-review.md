@@ -1,9 +1,10 @@
-CHANGES
-# FD-T06 review (reviewer) — diff 9b6c69a6..117b864b
+APPROVE
+# FD-T06 review round 2 (reviewer) — diff 9b6c69a6..a90cbe8f
 
-1. `services/api/src/modules/frontdesk/service/registration.service.ts:381` — `credit_charges[].period_month` uses the B.S. month (`bsDate.slice(0, 7)`), but `billing.credit_charges.period_month` is the "first day of A.D. month in tenant tz" (05-SCHEMA.md:1049; 03-IC §6.2 / :2192 "first of A.D. month"). Fix: `period_month: today.slice(0, 7)` (`today` = `todayIn(tz, c.now())`, already computed at step 5).
-2. Same line — `status: 'open'` is invented; the column default is `'uninvoiced'` (05-SCHEMA.md:1050). Fix: `status: 'uninvoiced'`.
-3. Same line — `amount: p.q.lines[i]?.net ?? p.q.totals.net` silently returns the WHOLE order net for any charge id with no line at that index (e.g. a surcharge/extra charge row), so the response can over-state charges. Fix: if `out.chargeIds.length !== p.q.lines.length` throw `new LimsError('common.internal')` (no fallback); keep the index mapping only when the counts match, and add one assertion in registration.test.ts (credit case, ~line 218) that `credit_charges[i].period_month` matches `/^\d{4}-(0[1-9]|1[0-2])$/` as the A.D. month, `status === 'uninvoiced'`, and the sum of `amount.amount_paisa` equals `balance`/totals net.
-4. `registration.service.ts:266` and `:304` — two spec requirements of 03-APP-FLOW §2.3 are skipped with no CR: (a) retry steps 1–9 once in a new tx on `billing.counter_busy` / SQLSTATE `40P01` (03-APP-FLOW.md:97, 08 A13 D-25); (b) fresh quote in the 409 problem extension `quote` (03-APP-FLOW.md:86). The impl note lists both as "open" because ctx has no tx opener and LimsError has no extension. Per CLAUDE.md a missing contract must be a CR, not a silent gap. Fix: write `.orchestra/cr/FD-T06-retry-quote-ext.md` (CR template, To owner: C0 — tx opener on handler ctx + LimsError problem extensions) and cite it in the comments at :266 and :304.
+Round-1 items all resolved:
+1. `registration.service.ts:384` period_month = `today.slice(0, 7)` (A.D. month, tenant tz; `today` from :314). Matches CreditChargeDto pattern `^[0-9]{4}-(0[1-9]|1[0-2])$` (contracts/openapi/frontdesk.yaml:3743).
+2. status = `'uninvoiced'` (05-SCHEMA.md:1050).
+3. Count mismatch now throws `common.internal` (:383), no whole-net fallback; registration.test.ts credit case asserts period_month, status and sum of amounts = NET.
+4. CR-C4-FD-T06-002 (`.orchestra/cr/FD-T06-retry-quote-ext.md`, To C0-0C) written in template form and cited at :266 and :305.
 
-Checked, no defect: names verbatim (event type/key `<order_id>:created`, template/purpose/idempotency keys, error codes, permission `billing.invoice.issue` pre-check); event payload ids/enums only (no name/phone/registration_no), validated by core schema; order of steps 1–9 and counter lock window; one request tx, rollback test with failure injection after issueOrderInvoice, idempotent replay via real core idempotency, event-once, stale-quote 409 all tested; no PHI in the SMS warn log (code + order_id); no secrets; paths owned by C4; LD-25 limits tested, gaps (no columns/setting/OpenAPI fields, `patient.view` stand-in action) covered by CR-C4-FD-T06-001; LD-70 respected (no frontdesk pending.json). Not re-run by reviewer: DB suite (writer reports 89/89).
+Round-1 "checked, no defect" list still holds (only lines above changed). Reviewer re-ran Docker-free: registration.static + events.publish + unit + quote.static = 65/65 pass. DB suite (FD-T06.pg.sh) not re-run by reviewer; writer reports 89/89.

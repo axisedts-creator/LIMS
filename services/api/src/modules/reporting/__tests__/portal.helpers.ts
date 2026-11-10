@@ -63,6 +63,8 @@ const COLS: Record<string, string[]> = {
   otp_challenges: ['id', 'tenant_id', 'link_id', 'channel', 'destination_sha256', 'code_hmac', 'status', 'attempts', 'failure_code', 'expires_at', 'verified_at', 'delivery_id', 'created_at', 'created_by'],
   portal_sessions: ['id', 'tenant_id', 'link_id', 'report_id', 'token_sha256', 'last_seen_at', 'idle_expires_at', 'absolute_expires_at', 'ended_at', 'user_agent_sha256', 'link_purpose', 'created_at', 'created_by'],
   settings: ['tenant_id', 'link_reissue_max_per_day', 'dues_link_enabled', 'portal_payment_gateways'],
+  // C6-T42 (05-SCHEMA §2.15): portal dues payment requests
+  portal_payment_requests: ['id', 'tenant_id', 'link_id', 'report_id', 'order_id', 'gateway', 'status', 'review', 'intent_id', 'amount_paisa', 'action_json', 'failure_code', 'intent_expires_at', 'last_checked_at', 'completed_at', 'expires_at', 'version', 'created_at', 'created_by', 'updated_at', 'updated_by'],
 };
 const DEFAULTS: Record<string, Row> = {
   reports: { state: 'open', latest_version_no: 1, released_version_no: 1, billing_balance_due_paisa: null, family: 'laboratory', version: 1 },
@@ -72,9 +74,24 @@ const DEFAULTS: Record<string, Row> = {
   otp_challenges: { destination_sha256: null, code_hmac: null, status: 'pending_send', attempts: 0, failure_code: null, verified_at: null, delivery_id: null },
   portal_sessions: { ended_at: null, user_agent_sha256: null, link_purpose: 'report' },
   settings: { link_reissue_max_per_day: 3, dues_link_enabled: true, portal_payment_gateways: [] },
+  portal_payment_requests: { status: 'queued', review: false, version: 1 },
 };
 const UNIQUE: Record<string, string[][]> = { portal_links: [['token_sha256']], portal_sessions: [['token_sha256']] };
-const JSON_COLS = new Set(['smart_summary_json', 'portal_payment_gateways', 'panel_names_snapshot']);
+const JSON_COLS = new Set(['smart_summary_json', 'portal_payment_gateways', 'panel_names_snapshot', 'action_json']);
+
+// C6-T42: the CHECKs / guard trigger / partial unique index of reporting.portal_payment_requests (05-SCHEMA §2.15), so a buggy writer trips them here as it would in PostgreSQL.
+const PPR_TERMINAL = ['completed', 'failed', 'expired'];
+function pprChecks(row: Row, bad: (why: string) => never) {
+  if (!['esewa', 'khalti'].includes(row['gateway'])) bad('gateway');
+  if (!['queued', 'ready', 'completed', 'failed', 'expired'].includes(row['status'])) bad('status');
+  if (!((row['status'] === 'ready' && !row['review']) || row['action_json'] == null)) bad('action_json only while ready and not review');
+  if (row['action_json'] != null && (typeof row['action_json'] !== 'object' || typeof row['action_json'].url !== 'string')) bad('action_shape');
+  if (['ready', 'completed'].includes(row['status']) && (row['intent_id'] == null || row['amount_paisa'] == null)) bad('ready needs intent_id + amount_paisa');
+  if (row['amount_paisa'] != null && !(Number(row['amount_paisa']) > 0)) bad('amount > 0');
+  if (row['status'] === 'failed' && !row['failure_code']) bad('failed needs failure_code');
+  if (row['failure_code'] != null && !(String(row['failure_code']).length >= 1 && String(row['failure_code']).length <= 64)) bad('failure_code length');
+  if (row['status'] === 'completed' && row['completed_at'] == null) bad('completed needs completed_at');
+}
 
 // ------------------------------------------------------------------------------------------------ fake transaction engine
 const norm = (v: any) => (v instanceof Uint8Array && !Buffer.isBuffer(v) ? Buffer.from(v) : v instanceof Date ? v.toISOString() : v);
@@ -150,7 +167,13 @@ export function makePortalDb(nowIso: () => string) {
     const table = /(?:from|into|update)\s+reporting\.(\w+)/i.exec(text)?.[1];
     if (!table || !(table in store)) return [];
     const rows = store[table]!;
-    if (verb === 'delete') throw pgError('42501', 'permission denied: no DELETE grant');
+    if (verb === 'delete') {
+      if (!['portal_payment_requests', 'otp_challenges', 'portal_sessions'].includes(table)) throw pgError('42501', 'permission denied: no DELETE grant');   // only the system purge (reporting.purge_ephemeral, policies __delete__tenant_expired) deletes these
+      const where = /\bwhere\b([\s\S]*?)(?:\breturning\b|$)/i.exec(text)?.[1]; if (!where) throw new Error('FAKE-UNSUPPORTED-SQL: DELETE without WHERE');
+      const gone = rows.filter(predicate(where, values));
+      for (const r of gone) { rows.splice(rows.indexOf(r), 1); undo(tx, () => { rows.push(r); }); }
+      return /\breturning\b/i.test(text) ? gone.map((r) => ({ ...r })) : [];
+    }
     if (verb === 'select') {
       const where = /\bwhere\b([\s\S]*?)(?:\border\s+by\b|\blimit\b|\bfor\s+update\b|$)/i.exec(text)?.[1] ?? '';
       const forUpdate = /\bfor\s+update\b/i.test(text);
@@ -165,7 +188,17 @@ export function makePortalDb(nowIso: () => string) {
     if (verb === 'update') {
       const m = /\bset\b([\s\S]*?)\bwhere\b([\s\S]*?)(?:\breturning\b|$)/i.exec(text); if (!m) throw new Error('FAKE-UNSUPPORTED-SQL: UPDATE without WHERE');
       const hit = await claim(tx, () => rows.filter(predicate(m[2]!, values)));
-      for (const r of hit) { const before = { ...r }; applySet(r, m[1]!, values); undo(tx, () => { Object.assign(r, before); }); }
+      for (const r of hit) {
+        const before = { ...r }; applySet(r, m[1]!, values); undo(tx, () => { Object.assign(r, before); });
+        if (table === 'portal_payment_requests') {
+          const bad = (why: string): never => { throw pgError('23514', `portal_payment_requests check violated: ${why}`); };
+          const guard = (why: string): never => { throw pgError('P0001', `immutable_row: ${why}`); };
+          if (PPR_TERMINAL.includes(before['status']) && ['status', 'review', 'intent_id', 'amount_paisa', 'action_json', 'failure_code', 'intent_expires_at', 'last_checked_at', 'completed_at'].some((c) => JSON.stringify(before[c]) !== JSON.stringify(r[c]))) guard('terminal');
+          if (r['status'] !== before['status'] && !((before['status'] === 'queued' && ['ready', 'failed'].includes(r['status'])) || (before['status'] === 'ready' && ['completed', 'failed', 'expired'].includes(r['status'])))) guard('status');
+          if ((before['intent_id'] != null && r['intent_id'] !== before['intent_id']) || (before['amount_paisa'] != null && r['amount_paisa'] !== before['amount_paisa'])) guard('intent');
+          pprChecks(r, bad);
+        }
+      }
       return /\breturning\b/i.test(text) ? hit.map((r) => ({ ...r })) : [];
     }
     if (verb === 'insert') {
@@ -195,6 +228,13 @@ export function makePortalDb(nowIso: () => string) {
           if (String(row['patient_display_snapshot'] ?? '').length > 60 || row['patient_display_snapshot'] == null) bad('patient_display_snapshot 1..60');
           if (order(row['expires_at'], new Date(Date.parse(row['created_at']) + 90 * 86400_000).toISOString()) > 0) bad('ttl <= 90 days');
         }
+        if (table === 'portal_payment_requests') {
+          pprChecks(row, bad);
+          if (order(row['expires_at'], new Date(Date.parse(row['created_at']) + 120 * 86400_000).toISOString()) > 0 || order(row['expires_at'], row['created_at']) <= 0) bad('ttl');
+        }
+        // partial unique index: one open (queued/ready) request per order
+        const open = table === 'portal_payment_requests' && ['queued', 'ready'].includes(row['status']) && rows.some((e) => e['tenant_id'] === row['tenant_id'] && e['order_id'] === row['order_id'] && ['queued', 'ready'].includes(e['status']));
+        if (open) { if (!m[3]) throw pgError('23505', 'duplicate key value violates unique constraint "portal_payment_requests__tenant_id_order_id__open__p_uq"'); continue; }
         const dup = rows.find((e) => (UNIQUE[table] ?? []).some((u) => u.every((c) => same(e[c], row[c]))));
         if (dup) { if (!m[3]) throw pgError('23505', 'duplicate key'); continue; }
         rows.push(row); undo(tx, () => { rows.splice(rows.indexOf(row), 1); }); out.push({ ...row });

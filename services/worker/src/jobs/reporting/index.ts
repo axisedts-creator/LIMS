@@ -10,12 +10,16 @@ import { handle as readyForReport } from './consumers/lab.order.ready_for_report
 import { handle as resultAmended } from './consumers/lab.result.amended.v1.js';
 import { handle as resultApproved } from './consumers/lab.result.approved.v1.js';
 import { handle as specimenStatus } from './consumers/lab.specimen.status_changed.v1.js';
-import { crontab, SWEEP_ASSEMBLY, SWEEP_HELD, SWEEP_RENDERS, sweepAssembly, sweepHeldReleases, sweepStuckRenders } from './cron.js';
+import { crontab, PURGE_EPHEMERAL, SWEEP_ASSEMBLY, SWEEP_HELD, SWEEP_RENDERS, sweepAssembly, sweepHeldReleases, sweepStuckRenders } from './cron.js';
 import { createAssembleReport } from './tasks/assemble_report.js';
+import { applyProviderEvents } from './tasks/apply_provider_events.js';
 import { checkWhatsappFallback } from './tasks/check_whatsapp_fallback.js';
 import { dispatchReleaseDeliveries } from './tasks/dispatch_release_deliveries.js';
 import { createProcessInputFile } from './tasks/process_input_file.js';
 import { releaseIfEligible } from './tasks/release_if_eligible.js';
+import { createBuildBulkPrint } from './tasks/build_bulk_print.js';
+import { purgeEphemeral } from './tasks/purge_ephemeral.js';
+import { createRenderPrint } from './tasks/render_print.js';
 import { createRenderReportVersion } from './tasks/render_report_version.js';
 import { createSendDelivery } from './tasks/send_delivery.js';
 import { createSendPortalOtp } from './tasks/send_portal_otp.js';
@@ -39,17 +43,21 @@ export const manifest: WorkerManifest = Object.freeze({
     'reporting.process_input_file': createProcessInputFile({ sandbox: unwiredSandbox }),
     'reporting.assemble_report': createAssembleReport({ sandbox: unwiredSandbox }),
     'reporting.render_report_version': createRenderReportVersion({ renderer: unwiredRenderer, sandbox: unwiredAssembler }),
+    'reporting.render_print': createRenderPrint({ renderer: unwiredRenderer, sandbox: unwiredAssembler }),       // C6-T16
+    'reporting.build_bulk_print': createBuildBulkPrint({ sandbox: unwiredAssembler }),
+    [PURGE_EPHEMERAL]: purgeEphemeral,
     'reporting.release_if_eligible': releaseIfEligible,
     'reporting.dispatch_release_deliveries': dispatchReleaseDeliveries,
     'reporting.send_delivery': createSendDelivery(),
     'reporting.check_whatsapp_fallback': checkWhatsappFallback,
     'reporting.send_portal_otp': createSendPortalOtp(),
     'reporting.reissue_portal_link': reissuePortalLinkStub,
+    'reporting.apply_provider_events': applyProviderEvents,
     [SWEEP_HELD]: sweepHeldReleases,
     [SWEEP_ASSEMBLY]: sweepAssembly,
     [SWEEP_RENDERS]: sweepStuckRenders,
   }),
-  maxAttempts: Object.freeze({ 'reporting.process_input_file': 5, 'reporting.assemble_report': 10, 'reporting.render_report_version': 5, 'reporting.release_if_eligible': 10, 'reporting.dispatch_release_deliveries': 10, 'reporting.send_delivery': 8, 'reporting.check_whatsapp_fallback': 8, 'reporting.send_portal_otp': 8, 'reporting.reissue_portal_link': 8, [SWEEP_ASSEMBLY]: 5, [SWEEP_RENDERS]: 5, [SWEEP_HELD]: 5 }),
+  maxAttempts: Object.freeze({ 'reporting.process_input_file': 5, 'reporting.assemble_report': 10, 'reporting.render_report_version': 5, 'reporting.render_print': 5, 'reporting.build_bulk_print': 5, [PURGE_EPHEMERAL]: 5, 'reporting.release_if_eligible': 10, 'reporting.dispatch_release_deliveries': 10, 'reporting.send_delivery': 8, 'reporting.check_whatsapp_fallback': 8, 'reporting.send_portal_otp': 8, 'reporting.reissue_portal_link': 8, 'reporting.apply_provider_events': 10, [SWEEP_ASSEMBLY]: 5, [SWEEP_RENDERS]: 5, [SWEEP_HELD]: 5 }),
   subscriptions: Object.freeze({
     'frontdesk.order.created.v1': orderCreated,
     'frontdesk.order.items_changed.v1': itemsChanged,

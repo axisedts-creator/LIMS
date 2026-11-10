@@ -1,9 +1,10 @@
 'use client';
 // S1 header actions (04-UI-UX §2 Refresh; §3 empty-state "Show yesterday"). Refresh goes through a server action -> BFF.
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@lims/ui/components/Button';
 import { useToast } from '@lims/ui/components/Toast';
+import { shortcuts } from '@/core/shortcuts/registry';
 import { refreshAction } from '../server/actions';
 
 const COOLDOWN_MS = 5 * 60_000; // ponytail: 5 min per 04-UI-UX; the API's next_allowed_at wins when present
@@ -13,20 +14,34 @@ const at = (iso: string | undefined) => {
   return TIME.format(Number.isFinite(t) ? t : Date.now() + COOLDOWN_MS);
 };
 
+/** 03-APP-FLOW §2 step 5: re-run the server component every 5 min, only while the tab is visible. */
+export function AutoRefresh() {
+  const router = useRouter();
+  useEffect(() => {
+    const t = setInterval(() => {
+      if (document.visibilityState === 'visible') router.refresh();
+    }, COOLDOWN_MS);
+    return () => clearInterval(t);
+  }, [router]);
+  return null;
+}
+
 export function RefreshButton() {
   const toast = useToast();
   const [busy, setBusy] = useState(false);
   const [until, setUntil] = useState<string>();
   const inflight = useRef(false);
+  const cooling = useRef(false); // Alt+R honours the same disabled state as the button
 
   const press = async () => {
-    if (inflight.current) return;
+    if (inflight.current || cooling.current) return;
     inflight.current = true;
     setBusy(true);
     try {
       const r = await refreshAction();
       const text = `Refresh available at ${at(r.ok ? r.data.nextAllowedAt : undefined)}`;
       if (r.ok || r.status === 429) {
+        cooling.current = true;
         setUntil(text);
         if (!r.ok) toast.show({ tone: 'warning', title: text });
       } else {
@@ -40,9 +55,13 @@ export function RefreshButton() {
     }
   };
 
+  const run = useRef(press);
+  run.current = press;
+  useEffect(() => shortcuts.register('staff.analytics.dashboard', { key: 'Alt+R', description: 'Refresh', run: () => void run.current() }), []);
+
   return (
     <>
-      <Button variant="secondary" iconStart="refresh" isLoading={busy} isDisabled={!!until} onPress={press}>
+      <Button variant="secondary" isLoading={busy} isDisabled={!!until} onPress={press}>
         Refresh
       </Button>
       {until ? <span role="status">{until}</span> : null}

@@ -12,7 +12,7 @@ import { StatTile } from '@lims/ui/components/StatTile';
 import { TimeSeriesChart } from '@lims/ui/components/TimeSeriesChart';
 import type { DashboardDto, Tile } from '../server/dashboard.server';
 import { ScopeBanner } from './ScopeBanner';
-import { RefreshButton, ShowYesterday } from './DashboardActions';
+import { AutoRefresh, RefreshButton, ShowYesterday } from './DashboardActions';
 
 const NUM = new Intl.NumberFormat('en-IN', { maximumFractionDigits: 0 });
 const RS = new Intl.NumberFormat('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -40,13 +40,14 @@ export function DashboardView({ dto, query }: { dto: DashboardDto; query: string
   const reason = stale[0]?.stale_reason;
   const caption = period.days === 1 ? 'vs yesterday' : `vs previous ${period.days} days`;
 
-  const cells: { key: string; label: string; href: string; note?: string; extra: string[] }[] = [
-    { key: 'patient_visits', label: 'Patient visits', href: '/analytics/reports/volume', extra: [`New patients ${sub(dto, 'new_patients')}`] },
-    { key: 'net_sales_paisa', label: 'Income (net sales)', href: '/analytics/reports/income', extra: [`Invoiced ${sub(dto, 'invoiced_paisa')}`, `Credit notes ${sub(dto, 'credit_notes_paisa')}`] },
-    { key: 'results_approved', label: 'Results approved', href: '/analytics/reports/tests-done', extra: [`Tests ordered ${sub(dto, 'tests_ordered')}`] },
-    { key: 'reports_pending', label: 'Reports pending', href: '/analytics/reports/pending-tests', extra: [`Ready, not released ${sub(dto, 'reports_ready_unreleased')}`] },
-    { key: 'pending_tests', label: 'Pending tests', href: '/analytics/reports/pending-tests', extra: [`Overdue ${sub(dto, 'pending_overdue')}`] },
-    ...(val(dto, 'net_collected_paisa') ? [{ key: 'net_collected_paisa', label: 'Cash collected (net)', href: '/analytics/collections', extra: [] }] : []),
+  // family = freshness[].family feeding the tile (03-APP-FLOW §5 S1 stale badge per tile); report_backlog = snapshot tiles [CONV].
+  const cells: { key: string; label: string; href: string; family: string; extra: string[] }[] = [
+    { key: 'patient_visits', label: 'Patient visits', href: '/analytics/reports/volume', family: 'orders', extra: [`New patients ${sub(dto, 'new_patients')}`] },
+    { key: 'net_sales_paisa', label: 'Income (net sales)', href: '/analytics/reports/income', family: 'income', extra: [`Invoiced ${sub(dto, 'invoiced_paisa')}`, `Credit notes ${sub(dto, 'credit_notes_paisa')}`] },
+    { key: 'results_approved', label: 'Results approved', href: '/analytics/reports/tests-done', family: 'results', extra: [`Tests ordered ${sub(dto, 'tests_ordered')}`] },
+    { key: 'reports_pending', label: 'Reports pending', href: '/analytics/reports/pending-tests', family: 'report_backlog', extra: [`Ready, not released ${sub(dto, 'reports_ready_unreleased')}`] },
+    { key: 'pending_tests', label: 'Pending tests', href: '/analytics/reports/pending-tests', family: 'report_backlog', extra: [`Overdue ${sub(dto, 'pending_overdue')}`] },
+    ...(val(dto, 'net_collected_paisa') ? [{ key: 'net_collected_paisa', label: 'Cash collected (net)', href: '/analytics/collections', family: 'collections', extra: [] }] : []),
   ];
   const shown = cells.filter((c) => val(dto, c.key));
   const anyDelta = shown.some((c) => delta(val(dto, c.key)!));
@@ -56,6 +57,7 @@ export function DashboardView({ dto, query }: { dto: DashboardDto; query: string
 
   return (
     <>
+      <AutoRefresh />
       <PageHeader
         title="Dashboard"
         helpKey="analytics.dashboard"
@@ -76,9 +78,11 @@ export function DashboardView({ dto, query }: { dto: DashboardDto; query: string
         {shown.map((c) => {
           const t = val(dto, c.key)!;
           const d = delta(t);
+          const f = freshness.find((x) => x.family === c.family && x.is_stale);
           return (
             <div key={c.key}>
               <StatTile label={c.label} value={fmt(t)} href={c.href} {...(d ? { delta: d } : {})} />
+              {f ? <FreshnessBadge isStale {...(f.refreshed_at ? { refreshedAt: f.refreshed_at } : {})} {...(f.stale_reason ? { reason: f.stale_reason } : {})} /> : null}
               {c.extra.length > 0 ? <ul>{c.extra.map((e) => <li key={e}>{e}</li>)}</ul> : null}
             </div>
           );

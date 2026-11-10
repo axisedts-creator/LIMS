@@ -11,6 +11,10 @@ export interface RefreshCtx {
   readonly actor: { readonly id: string };
   readonly db: { tx<T>(fn: (c: { tx: RefreshTx }) => Promise<T>): Promise<T> };
   now(): string;
+  // TRD §13 telemetry (AN-T22); optional so callers without a job context (tests, scripts) still work. Never carries PHI: ids, family, dates, counts, error code.
+  readonly log?: { info?(o: object): void; error?(o: object): void } | undefined;
+  readonly metrics?: { inc?(n: string, l?: object): void; observe?(n: string, v: number, l?: object): void } | undefined;
+  readonly attempt?: number | undefined;
 }
 export interface RefreshInput {
   readonly tenantId: string; readonly trigger?: RefreshTrigger | undefined;
@@ -73,8 +77,10 @@ const errorCode = (e: unknown): string => {
 async function refreshRange(ctx: RefreshCtx, a: Required<Pick<RefreshInput, 'tenantId'>> & { trigger: RefreshTrigger; runStartedAt: string; backlogLookbackDays?: number | undefined }, r: Range): Promise<void> {
   const runId = uuidv7();
   const actor = ctx.actor.id;
+  const t0 = Date.now();
+  const emit = (f: () => void) => { try { f(); } catch { /* telemetry must never fail a refresh */ } };
   try {
-    await ctx.db.tx(async ({ tx }) => {
+    const rowsWritten = await ctx.db.tx(async ({ tx }) => {
       await tx.query(LOCK, [a.tenantId, r.family]);
       const { rowsWritten } = await replacePartition(tx, {
         tenantId: a.tenantId, family: r.family, runId, ...(r.from && r.to ? { from: r.from, to: r.to } : {}),
@@ -84,9 +90,15 @@ async function refreshRange(ctx: RefreshCtx, a: Required<Pick<RefreshInput, 'ten
       else await tx.query(DEL_MARKS_SNAPSHOT, [a.tenantId, r.family, a.runStartedAt]);
       await tx.query(RUN_OK, [runId, a.tenantId, r.family, a.trigger, r.from, r.to, rowsWritten, actor]);
       await tx.query(STATE_OK, [a.tenantId, r.family, runId, actor]);
+      return rowsWritten;
     });
+    const ms = Date.now() - t0;
+    emit(() => ctx.metrics?.observe?.('lims_analytics_refresh_duration_seconds', ms / 1000, { family: r.family }));
+    emit(() => ctx.log?.info?.({ event: 'analytics_refresh_run', tenant_id: a.tenantId, family: r.family, from: r.from, to: r.to, rows_written: rowsWritten, duration_ms: ms, outcome: 'succeeded', run_id: runId }));
   } catch (err) {
     const code = errorCode(err);
+    emit(() => ctx.metrics?.inc?.('lims_analytics_refresh_failures_total', { family: r.family }));
+    emit(() => ctx.log?.error?.({ event: 'analytics_refresh_failed', tenant_id: a.tenantId, family: r.family, error_code: code, attempt: ctx.attempt ?? 1 }));
     try {
       await ctx.db.tx(async ({ tx }) => {
         await tx.query(RUN_FAILED, [uuidv7(), a.tenantId, r.family, a.trigger, r.from, r.to, code, actor]);

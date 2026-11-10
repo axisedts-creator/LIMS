@@ -2,7 +2,7 @@
 // FD-T13 — registration page states, F9 error table (04-UI-UX §3.3), success panel (§3.4), label flow (08 A13 D-4; US-FD-15.1), credit badge (Quote.credit_status),
 // payment rules (§3.2 F), LD-25 downtime back-entry (limits), PHI rules (§1), a11y (§9). Contract + MSW: see fd-t13.harness.tsx.
 import { describe, expect, it, vi } from 'vitest';
-import { fireEvent, screen, waitFor } from '@testing-library/react';
+import { fireEvent, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { PATH, HttpResponse, MONEY, ORDER, PERMS, UNIT, calls, delay, handlers, noAxeViolations, of, party, problem, push, quoteFor, renderForm, result, setup } from './fd-t13.harness';
 
@@ -131,6 +131,26 @@ describe('states (03-APP-FLOW §10 row Registration)', () => {
     await text(/approval needed \(limit 5%\)/i);
     await user.keyboard('{Alt>}a{/Alt}');
     await waitFor(() => expect(calls.some((c) => c.method === 'POST' && /discount-approvals$/.test(c.path))).toBe(true), { timeout: T });
+  });
+
+  it('discount reason is a Select over the F25 discount_reasons set (sorted by sort_order); the submitted reason_code is one of the set codes (04-UI-UX:90)', async () => {
+    const user = newUser();
+    await renderForm();
+    await ready(user, 1);
+    await user.keyboard('{F6}');
+    const dlg = await screen.findByRole('dialog', { name: /discount/i });
+    await waitFor(() => expect(calls.some((c) => c.method === 'GET' && /\/frontdesk\/coded-sets\/discount_reasons$/.test(c.path))).toBe(true), { timeout: T });
+    expect(within(dlg).queryByRole('textbox', { name: /reason/i })).toBeNull();
+    await user.type(within(dlg).getByRole('spinbutton', { name: /discount percent/i }), '10');
+    await user.click(within(dlg).getByRole('button', { name: /reason/i }));
+    const opts = await screen.findAllByRole('option', undefined, { timeout: T });
+    expect(opts.map((o) => o.textContent)).toEqual(['Staff family', 'Senior citizen', 'Promotion']);
+    await user.click(screen.getByRole('option', { name: 'Senior citizen' }));
+    await user.click(within(dlg).getByRole('button', { name: /apply discount/i }));
+    await waitFor(() => expect(of('POST', PATH.quote).some((c) => c.body.discounts?.length)).toBe(true), { timeout: T });
+    const sent = of('POST', PATH.quote).filter((c) => c.body.discounts?.length).at(-1)!.body.discounts[0];
+    expect(['staff_family', 'senior_citizen', 'promotion']).toContain(sent.reason_code);
+    expect(sent.reason_code).toBe('senior_citizen');
   });
 });
 
@@ -381,6 +401,8 @@ describe('label flow (08 A13 D-4; US-FD-15.1; 04-UI-UX §3.4)', () => {
     expect(of('POST', PATH.labels)).toHaveLength(3);
     expect(of('POST', PATH.labels)[0]!.path).toContain(ORDER);
     expect(of('POST', PATH.labels)[0]!.body ?? {}).toEqual({});
+    // C5 #14a is x-idempotency: none ("a retry needs no key", 08 A13 D-4) — no Idempotency-Key on any poll.
+    for (const c of of('POST', PATH.labels)) expect(c.headers.get('idempotency-key')).toBeNull();
     const frame = document.querySelector('iframe');
     expect(frame, 'print frame').toBeTruthy();
     expect(frame!.getAttribute('src') ?? '').toMatch(new RegExp(`/lab/orders/${ORDER}/labels$`)); // route staff.lab.order_labels, order_id substituted

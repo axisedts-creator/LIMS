@@ -105,6 +105,8 @@ export const api = setupServer(
   http.post(`${ORIGIN}/v1/catalog/doctors/search`, async ({ request }) => { await rec(request); return HttpResponse.json({ data: [{ id: U(40), doctor_code: 'CP00001', display_name: 'Dr Synthetic Referrer', is_verified: true, is_active: true }] }); }),
   http.get(`${ORIGIN}/v1/catalog/credit-parties`, async ({ request }) => { await rec(request); return HttpResponse.json({ data: [party], page: { next_cursor: null } }); }),
   http.get(`${ORIGIN}/v1/billing/coded-sets/payment_methods`, async ({ request }) => { await rec(request); return HttpResponse.json({ data: [{ code: 'cash', display: 'Cash', sort_order: 1 }, { code: 'card', display: 'Card', sort_order: 2 }, { code: 'esewa', display: 'eSewa', sort_order: 3 }] }); }),
+  // F25 listFrontdeskCodes (C4 02-TRD:219); deliberately unsorted — the UI sorts by sort_order. Seed codes per 05-SCHEMA:1859.
+  http.get(`${ORIGIN}/v1/frontdesk/coded-sets/discount_reasons`, async ({ request }) => { await rec(request); return HttpResponse.json({ data: [{ code: 'promotion', display: 'Promotion', sort_order: 3 }, { code: 'staff_family', display: 'Staff family', sort_order: 1 }, { code: 'senior_citizen', display: 'Senior citizen', sort_order: 2 }] }); }),
   http.post(`${ORIGIN}/v1/frontdesk/registrations/quote`, async ({ request }) => { const c = await rec(request); return handlers.quote(c.body); }),
   http.post(`${ORIGIN}/v1/frontdesk/registrations`, async ({ request }) => { const c = await rec(request); return handlers.register(c.body); }),
   http.post(`${ORIGIN}/v1/billing/invoices/:id/print`, async ({ request }) => { const c = await rec(request); return handlers.print(c.body); }),

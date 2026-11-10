@@ -43,6 +43,7 @@ const IMPLEMENTED: readonly string[] = [
   'enrolAgent', 'getAgentConfig', 'submitAgentHeartbeat', 'submitAgentLogBundle', 'downloadAgentRelease', // API-T06
   'submitMessageBatch', // API-T09
   'submitAttachment', 'downloadInstrumentAttachment', // API-T11
+  'listInstrumentMessages', 'searchInstrumentMessages', 'getInstrumentMessage', 'getInstrumentMessageRaw', 'listMessageRejections', // API-T12
 ];
 
 const FAKE_REQ = { params: {}, query: {}, headers: {}, body: {} };

@@ -135,7 +135,8 @@ describe('done_when: unimplemented handlers throw common.service_unavailable', (
   // Still-stub operationIds come from probes/pending.json (LD-70, writer-owned stub inventory) when it exists; until the
   // writer generates it, fall back to every operation minus the six FD-T04 ops (06-IMPLEMENTATION-PLAN:14).
   // FD-T05 (06-IMPLEMENTATION-PLAN:15) turns quoteRegistration into a real handler the same way.
-  const FD_T04_OPS = ['searchPatients', 'createPatient', 'getPatient', 'updatePatient', 'recordPatientConsent', 'listPatientOrders', 'quoteRegistration'];
+  // FD-T06 (06-IMPLEMENTATION-PLAN:16) turns createRegistration into a real handler the same way.
+  const FD_T04_OPS = ['searchPatients', 'createPatient', 'getPatient', 'updatePatient', 'recordPatientConsent', 'listPatientOrders', 'quoteRegistration', 'createRegistration'];
   const stubOps = (): string[] => {
     const p = join(REPO_ROOT, F, '__tests__/probes/pending.json');
     if (existsSync(p)) return JSON.parse(readFileSync(p, 'utf8')) as string[];

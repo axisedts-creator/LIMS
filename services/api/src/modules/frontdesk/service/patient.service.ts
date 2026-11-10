@@ -66,7 +66,7 @@ function calendarDate(v: unknown, path: string, today: string): string {
   return v as string;
 }
 /** today's A.D. date in the tenant timezone. */
-function todayIn(tz: string, now: Date): string {
+export function todayIn(tz: string, now: Date): string {
   return new Intl.DateTimeFormat('en-CA', { timeZone: tz, year: 'numeric', month: '2-digit', day: '2-digit' }).format(now);
 }
 const daysIn = (y: number, m: number): number => new Date(Date.UTC(y, m, 0)).getUTCDate();

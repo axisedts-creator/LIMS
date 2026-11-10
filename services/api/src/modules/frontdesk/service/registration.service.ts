@@ -24,7 +24,7 @@ import { FRONTDESK_PERMISSIONS as P } from '../permissions.js';
 import { lockApprovalForRegistration, markConsumed, toApiDiscount } from './discount.service.js';
 import { bad, createPatient, isObj, patientCtx, todayIn, type PatientCtx, type Result } from './patient.service.js';
 
-type QuoteCtx = PatientCtx & { readonly ports: { readonly CatalogPort: CatalogPortV1; readonly BillingCommandPort: BillingCommandPortV1 } };
+export type QuoteCtx = PatientCtx & { readonly ports: { readonly CatalogPort: CatalogPortV1; readonly BillingCommandPort: BillingCommandPortV1 } };
 type CreateCtx = QuoteCtx & {
   readonly ports: QuoteCtx['ports'] & { readonly NotificationPort: NotificationPortV1 };
   readonly events: { publish(ctx: never, type: string, input: never): Promise<{ eventId: string; duplicate: boolean }> };
@@ -34,7 +34,7 @@ type CreateCtx = QuoteCtx & {
 type Priority = 'routine' | 'urgent';
 type CollectionMode = 'walk_in' | 'home' | 'centre' | 'partner';
 interface DraftDiscount { scope: 'bill' | 'line'; orderableId?: string; kind: 'amount' | 'percent'; amountPaisa?: number; percentBp?: number; reasonCode: string; reasonText?: string }
-interface Draft {
+export interface Draft {
   centreId: string; billingMode: 'cash' | 'credit'; visitType: 'opd' | 'ipd'; priority: Priority; collectionMode: CollectionMode; creditPartyId?: string; referrerId?: string;
   items: Array<{ orderableId: string; priority: Priority }>;
   discounts: DraftDiscount[];
@@ -47,7 +47,7 @@ const int = (v: unknown): v is number => Number.isSafeInteger(v);
 const INVOICE_ISSUE = 'billing.invoice.issue';       // 03-APP-FLOW §2.3 pre-transaction: second assert for cash
 const TZ = 'Asia/Kathmandu';
 
-function quoteCtx(c: unknown): QuoteCtx {
+export function quoteCtx(c: unknown): QuoteCtx {
   const x = patientCtx(c) as QuoteCtx;
   if (!x.ports.CatalogPort || !x.ports.BillingCommandPort) throw new LimsError('common.service_unavailable');
   return x;
@@ -98,29 +98,29 @@ function parseDraft(b: unknown): Draft {
 }
 
 const money = (m: { amountPaisa: number; currency: string }) => ({ amount_paisa: m.amountPaisa, currency: m.currency });
-const lineDto = (l: ComputedLine) => ({
+export const lineDto = (l: ComputedLine) => ({
   line_ref: l.lineRef, orderable_id: l.orderableId, orderable_kind: l.orderableKind, code: l.code, name: l.name, priority: l.priority, kind: l.lineKind,
   unit_price: money(l.gross), discount: money(l.discount), taxable: money(l.taxable), exempt: money(l.exempt), vat: money(l.vat), other_tax: money(l.otherTax),
   ...(l.otherTaxCode ? { other_tax_code: l.otherTaxCode } : {}), net: money(l.net),
   price_source: l.priceSource, price_list_id: l.priceListId, price_list_version: l.priceListVersion,
 });
-const totalsDto = (t: QuoteResult['totals']) => ({ gross: money(t.gross), discount: money(t.discount), exempt: money(t.exempt), taxable: money(t.taxable), vat: money(t.vat), other_tax: money(t.otherTax), net: money(t.net) });
+export const totalsDto = (t: QuoteResult['totals']) => ({ gross: money(t.gross), discount: money(t.discount), exempt: money(t.exempt), taxable: money(t.taxable), vat: money(t.vat), other_tax: money(t.otherTax), net: money(t.net) });
 
 /** Tenant-local A.D. date of `now` -> B.S. fiscal year "YYYY/YY" (FY starts Shrawan 1, 04 L16). */
-function fiscalYearOf(now: Date, tz: unknown): string {
+export function fiscalYearOf(now: Date, tz: unknown): string {
   return fiscalYearBs(todayIn(typeof tz === 'string' ? tz : TZ, now) as IsoDate).long;
 }
 
 const lineRefOf = (orderableId: string, priority: Priority): string => `${orderableId}:${priority}`;
 
-interface Priced {
+export interface Priced {
   resolved: ResolvedOrderables; priced: PricedLineInput[]; meta: Array<{ testIds: readonly string[]; departmentId?: string }>;
   discounts: DiscountInput[]; computed: number[]; byOrderable: Map<string, string>; q: QuoteResult;
   limits: { selfLimitBp: number; selfLimitPaisa: number; absoluteMaxBp: number }; verdict: LimitResult;
 }
 
 /** Shared by F8 and F9 (§2.2 steps 2-6, re-run inside the F9 tx so the fingerprint compares against live prices). Read-only. */
-async function priceDraft(c: QuoteCtx, d: Draft, settings: any): Promise<Priced> {
+export async function priceDraft(c: QuoteCtx, d: Draft, settings: any): Promise<Priced> {
   const { CatalogPort: catalog, BillingCommandPort: billing } = c.ports;
   const at = c.now().toISOString();
   const limits = {

@@ -17,6 +17,20 @@ export async function activeItemIdsByOrders(tx: Tx, tenantId: string, orderIds: 
   return out;
 }
 
+/** FD-T09 F13: active -> removed (reason + time + who). null when the item is not an active item of this order. */
+export async function removeOrderItem(tx: Tx, tenantId: string, orderId: string, id: string, r: { at: Date; by: string; reasonCode: string }): Promise<any | null> {
+  const { rows } = await tx.query(`UPDATE frontdesk.order_items SET status = 'removed', removed_at = $4, removed_by = $5, removal_reason_code = $6,
+      version = version + 1, updated_at = now(), updated_by = (SELECT app.current_actor_id())
+    WHERE tenant_id = $1 AND order_id = $2 AND id = $3 AND status = 'active' RETURNING *`, [tenantId, orderId, id, r.at, r.by, r.reasonCode]);
+  return rows[0] ?? null;
+}
+
+/** FD-T09 F14: every still-active item becomes cancelled (removed items stay removed). */
+export async function cancelActiveItems(tx: Tx, tenantId: string, orderId: string): Promise<void> {
+  await tx.query(`UPDATE frontdesk.order_items SET status = 'cancelled', version = version + 1, updated_at = now(), updated_by = (SELECT app.current_actor_id())
+    WHERE tenant_id = $1 AND order_id = $2 AND status = 'active'`, [tenantId, orderId]);
+}
+
 export async function listOrderItemsByOrder(tx: Tx, tenantId: string, orderId: string): Promise<any[]> {
   const { rows } = await tx.query(`SELECT * FROM frontdesk.order_items WHERE tenant_id = $1 AND order_id = $2 ORDER BY created_at, id`, [tenantId, orderId]);
   return rows;

@@ -3,17 +3,25 @@
 // D-5: in_progress/completed come from LabPort.getOrderItemProcessingState (an item whose only specimen was rejected without recollection is `cancelled` there) through the
 // pure deriveOrderStatus; pre_registered / cancelled / completed are returned stored WITHOUT a lab call. The lab call carries {orderId} only (no PHI to C5).
 // Centre scope = IdentityPort.getActor().centreScope (as FD-T06/T07); an order outside it is common.not_found (404, never 403: existence is not confirmed).
+// FD-T09 (below, after F10): F8b quoteOrderItemsChange, F13 changeOrderItems, F14 cancelOrder (02-TRD §5.1 F8b/F13/F14, §6.4, §8.1; 03-APP-FLOW §2.5/§2.6; 07-SECURITY §5/§6).
+import type { IssuedInvoiceRef } from '../../../../../../contracts/ports/BillingCommandPort.js';
+import type { LabPortV1 } from '../../../../../../contracts/ports/LabPort.js';
+import { formatBs, instantToBs, type IsoUtc } from '../../../../../../packages/shared-ts/src/bsdate/index.js';
+import { uuidv7 } from '../../../../../../packages/shared-ts/src/uuidv7/index.js';
 import { LimsError } from '../../../core/errors.js';
-import { deriveOrderStatus, ORDER_STATUSES, type ItemProcessingStatus, type OrderStatus } from '../domain/order.state.js';
+import { checkCancel, deriveOrderStatus, ORDER_STATUSES, type ItemProcessingStatus, type OrderStatus } from '../domain/order.state.js';
+import { createFrontdeskEvents } from '../events/publish.js';
 import { decodeCursor, encodeCursor, isoUtc, orderSummaryDto } from '../mappers/patient.dto.js';
 import { listDiscountsByOrder } from '../repository/discounts.repo.js';
 import { listOrderFlagsByOrder } from '../repository/flags.repo.js';
-import { activeItemIdsByOrders, listOrderItemsByOrder } from '../repository/orderItems.repo.js';
-import { getOrderById, pageOrders, type OrderFilter } from '../repository/orders.repo.js';
+import { activeItemIdsByOrders, cancelActiveItems, insertOrderItem, listOrderItemsByOrder, removeOrderItem } from '../repository/orderItems.repo.js';
+import { bumpOrderItemsVersion, cancelOrderRow, getOrderById, lockOrderById, pageOrders, type OrderFilter } from '../repository/orders.repo.js';
 import { getPatientById } from '../repository/patients.repo.js';
+import { getSettings } from '../repository/settings.repo.js';
 import { listTrfByOrder } from '../repository/trf.repo.js';
 import { FRONTDESK_PERMISSIONS as P } from '../permissions.js';
-import { bad, isObj, patientCtx, strict, type PatientCtx, type Result } from './patient.service.js';
+import { bad, expectedVersion, isObj, patientCtx, strict, type PatientCtx, type Result } from './patient.service.js';
+import { fiscalYearOf, lineDto, priceDraft, quoteCtx, totalsDto, type Draft, type Priced, type QuoteCtx } from './registration.service.js';
 
 type Obj = Record<string, any>;
 type Money = { amountPaisa: number; currency: string };
@@ -32,7 +40,7 @@ function orderCtx(c: unknown): OrderCtx {
   return x;
 }
 /** Port calls take an ISO-string clock (registration.service portCtx); Object.create keeps tenantId/actor/tx visible to the port. */
-const portCtx = (c: OrderCtx): OrderCtx => Object.assign(Object.create(c), { now: () => c.now().toISOString() });
+const portCtx = <T extends { now(): Date }>(c: T): T => Object.assign(Object.create(c), { now: () => c.now().toISOString() });
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 const ISO_MS = /^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}\.[0-9]{3}Z$/;
@@ -80,7 +88,11 @@ export async function getOrder(hctx: unknown, params: unknown): Promise<Result> 
   if (!o) throw new LimsError('common.not_found');
   const scope = await scopeOf(c);
   if (!scope.all && !scope.centreIds.includes(o['centre_id'])) throw new LimsError('common.not_found');
+  return { status: 200, body: await orderDto(c, o, true) };
+}
 
+/** The OrderDto of a loaded row (F11, and the result of F13/F14). `withBilling` = false for a pre-registered order: it is never invoiced, billing is not asked. */
+async function orderDto(c: OrderCtx, o: Obj, withBilling: boolean): Promise<Obj> {
   const patient = await getPatientById(c.tx, c.tenantId, o['patient_id']);
   if (!patient) throw new LimsError('common.not_found');
   const items = await listOrderItemsByOrder(c.tx, c.tenantId, o['id']);
@@ -93,14 +105,16 @@ export async function getOrder(hctx: unknown, params: unknown): Promise<Result> 
 
   // Billing may not know a pre-registered order yet: not_found there means "no block", every other port error propagates.
   let billing: Obj | undefined;
-  try {
-    const b = (await c.ports.BillingCommandPort.getOrderBillingSummary(portCtx(c), { orderId: o['id'] })).balance;
-    billing = { order_id: b.orderId, invoiced: portMoney(b.invoiced), paid: portMoney(b.paid), credited: portMoney(b.credited), balance_due: portMoney(b.balanceDue),
-      balance_version: b.balanceVersion, as_of: b.asOf };
-  } catch (e) { if (!(e instanceof LimsError && e.code === 'common.not_found')) throw e; }
+  if (withBilling) {
+    try {
+      const b = (await c.ports.BillingCommandPort.getOrderBillingSummary(portCtx(c), { orderId: o['id'] })).balance;
+      billing = { order_id: b.orderId, invoiced: portMoney(b.invoiced), paid: portMoney(b.paid), credited: portMoney(b.credited), balance_due: portMoney(b.balanceDue),
+        balance_version: b.balanceVersion, as_of: b.asOf };
+    } catch (e) { if (!(e instanceof LimsError && e.code === 'common.not_found')) throw e; }
+  }
 
   const orderableOf = new Map<string, string>(items.map((i) => [i['id'], i['orderable_id']]));
-  return { status: 200, body: omitNull({
+  return omitNull({
     id: o['id'], registration_no: o['registration_no'],
     patient: { id: patient['id'], patient_code: patient['patient_code'], full_name: patient['anonymised_at'] != null ? '' : String(patient['full_name'] ?? ''), sex: patient['sex'],
       age_at_order: o['age_years'] != null ? `${o['age_years']} Years` : 'Unknown' },    // snapshot at order time (ageDisplay format)
@@ -119,7 +133,7 @@ export async function getOrder(hctx: unknown, params: unknown): Promise<Result> 
       resolution_code: f['resolution_code'], version: Number(f['version']) }))),
     requires_credit_note: o['requires_credit_note'] === true, registered_at: isoUtc(o['registered_at']), cancelled_at: isoUtc(o['cancelled_at']),
     cancel_reason_code: o['cancel_reason_code'], billing, version: Number(o['version']),
-  }) };
+  });
 }
 
 // ======================= F10 listOrders =======================
@@ -159,4 +173,283 @@ export async function listOrders(hctx: unknown, query: unknown): Promise<Result>
   const active = await activeItemIdsByOrders(c.tx, c.tenantId, page.filter((o) => o['status'] === 'registered' || o['status'] === 'in_progress').map((o) => o['id']));
   const data = await Promise.all(page.map(async (o) => orderSummaryDto({ ...o, status: await derivedStatus(c, o, active.get(o['id']) ?? new Set()) }, String(o['patient_display'] ?? ''))));
   return { status: 200, body: { data, page: { limit, ...(rows.length > limit && last ? { next_cursor: encodeCursor(sort, last['sort_key'], last['id']) } : {}) } } };
+}
+
+// ======================= FD-T09: F8b quoteOrderItemsChange / F13 changeOrderItems / F14 cancelOrder =======================
+// One request = ONE tx (ctx.tx). The order row is locked FOR UPDATE first, so a racing F13/F14 waits, then sees the moved version (409) before any billing call is made.
+// Retry-once in a NEW tx on billing.counter_busy / 40P01 (03-APP-FLOW §2.3 step 9, D-25) is NOT done: the handler ctx has no tx opener (same CR as F9: .orchestra/cr/FD-T06-retry-quote-ext.md);
+// the error surfaces (409 billing.counter_busy) and the whole request is rolled back, never half-written.
+// No log line is written here at all: names, registration no and cancel reason text never reach the logs (07-SECURITY §5).
+type ChangeCtx = QuoteCtx & {
+  readonly ports: QuoteCtx['ports'] & { readonly LabPort: LabPortV1 };
+  readonly events: { publish(ctx: never, type: string, input: never): Promise<{ eventId: string; duplicate: boolean }> };
+};
+function changeCtx(c: unknown): ChangeCtx {
+  const x = quoteCtx(c) as ChangeCtx;
+  if (typeof x.ports.LabPort?.getOrderItemProcessingState !== 'function' || typeof x.ports.LabPort.getOrderResults !== 'function' || typeof x.events?.publish !== 'function') throw new LimsError('common.service_unavailable');
+  return x;
+}
+const asOrderCtx = (c: ChangeCtx): OrderCtx => c as unknown as OrderCtx;
+const INVOICE_ISSUE = 'billing.invoice.issue';       // F13 on a cash order with additions (03-APP-FLOW §2.5), checked before any write
+const CODE = /^[A-Za-z0-9_.:^+\-]{1,64}$/;
+const FP = /^[0-9a-f]{64}$/;
+type Priority = 'routine' | 'urgent';
+
+/** A port may carry its own error class (no HTTP status): re-raise by code as the core LimsError (08 R18: code and detail unchanged). pg SQLSTATEs are not app codes and pass through. */
+async function wrap<T>(fn: () => Promise<T>): Promise<T> {
+  try { return await fn(); } catch (e) {
+    const x = e as { code?: unknown; detail?: unknown; statusCode?: unknown } | null;
+    if (e instanceof LimsError || typeof x?.code !== 'string' || !/^[a-z_]+\.[a-z_]+$/.test(x.code)) throw e;
+    if (typeof x.statusCode === 'number') throw e;                                    // the port error already carries its HTTP status (e.g. billing.counter_busy 409): keep it
+    throw new LimsError(x.code, typeof x.detail === 'string' ? x.detail : undefined);
+  }
+}
+
+const uuidIn = (v: unknown, path: string): string => { if (typeof v !== 'string' || !UUID.test(v)) throw bad(path); return v; };
+const codeIn = (v: unknown, path: string): string => { if (typeof v !== 'string' || !CODE.test(v)) throw bad(path); return v; };
+
+function parseAdds(raw: unknown, min: number): Array<{ orderableId: string; priority: Priority }> {
+  if (!Array.isArray(raw) || raw.length < min || raw.length > 50) throw bad('/add');
+  const seen = new Set<string>();
+  return raw.map((x: unknown, i) => {
+    const o = strict(x, ['orderable_id', 'priority'], `/add/${i}`);
+    const orderableId = uuidIn(o['orderable_id'], `/add/${i}/orderable_id`);
+    if (seen.has(orderableId)) throw bad(`/add/${i}/orderable_id`);                    // one line per orderable (as F9): a line carries one priority
+    seen.add(orderableId);
+    if (o['priority'] !== 'routine' && o['priority'] !== 'urgent') throw bad(`/add/${i}/priority`);
+    return { orderableId, priority: o['priority'] as Priority };
+  });
+}
+
+interface ChangeIn {
+  add: Array<{ orderableId: string; priority: Priority }>; remove: Array<{ itemId: string; reasonCode: string }>;
+  fingerprint?: string; payments: Array<{ methodCode: string; amountPaisa: number; reference?: string }>;
+}
+function parseChange(body: unknown): ChangeIn {
+  const b = strict(body, ['add', 'remove', 'quote_fingerprint', 'payments']);
+  const add = b['add'] === undefined ? [] : parseAdds(b['add'], 0);
+  const rr = b['remove'] === undefined ? [] : b['remove'];
+  if (!Array.isArray(rr) || rr.length > 50) throw bad('/remove');
+  const seen = new Set<string>();
+  const remove = rr.map((x: unknown, i) => {
+    const o = strict(x, ['order_item_id', 'reason_code'], `/remove/${i}`);
+    const itemId = uuidIn(o['order_item_id'], `/remove/${i}/order_item_id`);
+    if (seen.has(itemId)) throw bad(`/remove/${i}/order_item_id`);
+    seen.add(itemId);
+    return { itemId, reasonCode: codeIn(o['reason_code'], `/remove/${i}/reason_code`) };
+  });
+  if (add.length === 0 && remove.length === 0) throw bad('');                         // "added/removed are never both empty" (event contract)
+  const fp = b['quote_fingerprint'];
+  if (add.length > 0) { if (typeof fp !== 'string' || !FP.test(fp)) throw bad('/quote_fingerprint'); }
+  else if (fp !== undefined) throw bad('/quote_fingerprint');                         // "omitted when add is empty"
+  const pr = b['payments'] === undefined ? [] : b['payments'];
+  if (!Array.isArray(pr) || pr.length > 5 || (pr.length > 0 && add.length === 0)) throw bad('/payments');   // a payment needs the supplementary invoice of an addition
+  const payments = pr.map((x: unknown, i) => {
+    const o = strict(x, ['method_code', 'amount_received_paisa', 'reference', 'tendered_paisa'], `/payments/${i}`);
+    if (typeof o['method_code'] !== 'string' || o['method_code'].length < 1 || o['method_code'].length > 64) throw bad(`/payments/${i}/method_code`);
+    if (!Number.isSafeInteger(o['amount_received_paisa']) || o['amount_received_paisa'] < 1) throw bad(`/payments/${i}/amount_received_paisa`);
+    if (o['reference'] !== undefined && (typeof o['reference'] !== 'string' || o['reference'].length > 100)) throw bad(`/payments/${i}/reference`);
+    if (o['tendered_paisa'] !== undefined && (!Number.isSafeInteger(o['tendered_paisa']) || o['tendered_paisa'] < 1)) throw bad(`/payments/${i}/tendered_paisa`);
+    return { methodCode: o['method_code'], amountPaisa: o['amount_received_paisa'] as number, ...(typeof o['reference'] === 'string' ? { reference: o['reference'] } : {}) };
+  });
+  return { add, remove, ...(typeof fp === 'string' ? { fingerprint: fp } : {}), payments };
+}
+
+/** The order of the path, tenant-filtered; outside the actor's centre scope = 404 (never 403). `lock` = FOR UPDATE (F13/F14). */
+async function loadOrder(c: ChangeCtx, params: unknown, lock: boolean): Promise<Obj> {
+  const id = isObj(params) ? params['order_id'] : undefined;
+  const o = typeof id === 'string' && UUID.test(id) ? await (lock ? lockOrderById : getOrderById)(c.tx, c.tenantId, id) : null;
+  if (!o) throw new LimsError('common.not_found');
+  const scope = await scopeOf(asOrderCtx(c));
+  if (!scope.all && !scope.centreIds.includes(o['centre_id'])) throw new LimsError('common.not_found');
+  return o;
+}
+/** Editable = registered | in_progress (APP-FLOW §2.5). pre_registered goes through F12 items_override; completed is closed. */
+function assertEditable(o: Obj): void {
+  if (o['status'] === 'cancelled') throw new LimsError('frontdesk.order_already_cancelled');
+  if (o['status'] !== 'registered' && o['status'] !== 'in_progress') throw new LimsError('frontdesk.order_not_editable');
+}
+
+/** F8b / F13 step 3: price `adds` in the STORED order's context (centre, referrer, credit party; precedence is C3's). Fingerprint = over exactly these lines, no discounts. */
+async function priceAdds(c: ChangeCtx, o: Obj, adds: ChangeIn['add']): Promise<Priced> {
+  const d: Draft = {
+    centreId: o['centre_id'], billingMode: o['billing_mode'], visitType: o['visit_type'], priority: o['priority'], collectionMode: o['collection_mode'],
+    ...(o['credit_party_id'] ? { creditPartyId: o['credit_party_id'] } : {}), ...(o['referrer_id'] ? { referrerId: o['referrer_id'] } : {}),
+    items: adds.map((a) => ({ orderableId: a.orderableId, priority: a.priority })), discounts: [],
+  };
+  return priceDraft(c, d, await getSettings(c.tx, c.tenantId));
+}
+
+// ---------------- F8b quoteOrderItemsChange (read-only) ----------------
+export function quoteItemsChange(hctx: unknown, params: unknown, body: unknown): Promise<Result> {
+  return wrap(async () => {
+    const c = changeCtx(hctx);
+    await c.ports.IdentityPort.assertRole(c, { permission: P.orderEdit });
+    const adds = parseAdds(strict(body, ['add'])['add'], 1);
+    const o = await loadOrder(c, params, false);
+    assertEditable(o);
+    const { resolved, q, limits, verdict } = await priceAdds(c, o, adds);
+    const tz = ((await c.ports.IdentityPort.getTenantSettings(c, { keys: ['timezone'] })) ?? {}).timezone;
+    return { status: 200, body: {
+      lines: q.lines.map(lineDto), totals: totalsDto(q.totals),
+      discount_evaluation: { within_limit: verdict === 'within_limit', approval_required: verdict === 'approval_required', limit_percent_bp: limits.selfLimitBp, limit_paisa: limits.selfLimitPaisa },
+      catalog_revision: resolved.catalogRevision, quote_fingerprint: q.fingerprint, base_fingerprint: q.baseFingerprint, fiscal_year_bs: fiscalYearOf(c.now(), tz),
+    } };
+  });
+}
+
+// ---------------- F13 changeOrderItems ----------------
+/** InvoiceDto of the supplementary invoice. IssuedInvoiceRef carries ids + totals only, so the rest is composed here [CONV] (CR .orchestra/cr/FD-T09-invoice-dto.md):
+ *  line ids are generated, invoice_seq = trailing number of invoice_no, series 'INV' (05-SCHEMA invoices__series__ck), cbms_state from ird.cbmsRealtimeRequired. */
+async function supplementaryDto(c: ChangeCtx, inv: IssuedInvoiceRef, p: Priced, o: Obj, buyer: Obj): Promise<Obj> {
+  const t = (await c.ports.IdentityPort.getTenantSettings(c, { keys: ['timezone', 'branding', 'ird'] })) ?? {};
+  const tz = typeof t.timezone === 'string' ? t.timezone : 'Asia/Kathmandu';
+  const seq = Number(/([0-9]+)$/.exec(inv.invoiceNo)?.[1] ?? 1);
+  const zero = { amount_paisa: 0, currency: 'NPR' };
+  return omitNull({
+    id: inv.invoiceId, invoice_no: inv.invoiceNo, invoice_seq: Number.isSafeInteger(seq) && seq >= 1 && seq <= 2147483647 ? seq : 1, series: 'INV', fiscal_year_bs: inv.fiscalYearBs,
+    invoice_kind: 'tax_invoice', status: 'issued', is_active: true, issued_at: inv.issuedAt, invoice_date_bs: formatBs(instantToBs(inv.issuedAt as IsoUtc, tz), 'iso'),
+    branch_id: o['branch_id'], centre_id: o['centre_id'], order_id: o['id'], referrer_id: o['referrer_id'], is_periodic_credit_bill: false, buyer,
+    seller: omitNull({ name: String(t.branding?.legalName ?? ''), pan: t.ird?.pan, address: Array.isArray(t.branding?.addressLines) ? t.branding.addressLines.join(', ') : undefined }),
+    lines: p.q.lines.map((l, i) => omitNull({
+      id: uuidv7(), line_no: i + 1, line_kind: l.lineKind, orderable_id: l.orderableId, code: l.code, name: l.name, department_id: l.departmentId, quantity: 1,
+      unit_price: portMoney(l.lineKind === 'urgent_surcharge' ? l.gross : l.unitPrice), gross: portMoney(l.gross), discount: portMoney(l.discount), exempt: portMoney(l.exempt),
+      taxable: portMoney(l.taxable), vat: portMoney(l.vat), other_tax: portMoney(l.otherTax), other_tax_code: l.otherTaxCode, net: portMoney(l.net), credited: zero,
+    })),
+    totals: totalsDto(inv.totals), credited_total: zero, print_count: 0, cbms_state: t.ird?.cbmsRealtimeRequired === true ? 'pending' : 'not_required', version: 1,
+  });
+}
+
+export function changeItems(hctx: unknown, params: unknown, headers: unknown, body: unknown): Promise<Result> {
+  return wrap(async () => {
+    const c = changeCtx(hctx);
+    const { IdentityPort: identity, BillingCommandPort: billing, LabPort: lab } = c.ports;
+    await identity.assertRole(c, { permission: P.orderEdit });
+    const version = expectedVersion(headers);
+    const r = parseChange(body);
+    const o = await loadOrder(c, params, true);
+    assertEditable(o);
+    if (Number(o['version']) !== version) throw new LimsError('common.version_conflict');
+    const orderId: string = o['id'];
+    const credit = o['billing_mode'] === 'credit';
+    if (credit && r.payments.length > 0) throw bad('/payments');                       // credit orders take no payment (as F9)
+    if (r.add.length > 0 && !credit) await identity.assertRole(c, { permission: INVOICE_ISSUE, centreId: o['centre_id'] });   // checked before any write
+    const pc = portCtx(c);
+
+    // removal guard (TRD §6.4): LabPort says per item whether it is still removable; ONE blocked item fails the whole request. {orderId} only, no PHI.
+    if (r.remove.length > 0) {
+      const have = new Map((await listOrderItemsByOrder(c.tx, c.tenantId, orderId)).map((i) => [i['id'] as string, i]));
+      for (const x of r.remove) {
+        const it = have.get(x.itemId);
+        if (!it) throw new LimsError('common.not_found');                              // not an item of THIS order (another order's id is no different from a random one)
+        if (it['status'] !== 'active') throw new LimsError('frontdesk.order_not_editable');
+      }
+      const states = new Map((await lab.getOrderItemProcessingState(pc, { orderId: orderId as never })).map((s) => [s.orderItemId as string, s]));
+      if (r.remove.some((x) => states.get(x.itemId)?.removable === false)) throw new LimsError('frontdesk.order_not_editable');
+    }
+
+    // stale-quote guard: the fingerprint must equal the F8b quote over exactly `add`, re-priced now inside this tx (nothing is written and no counter touched before this)
+    let p: Priced | undefined;
+    if (r.add.length > 0) {
+      p = await priceAdds(c, o, r.add);
+      if (p.q.fingerprint !== r.fingerprint) throw new LimsError('common.version_conflict', 'Prices changed');     // fresh `quote` extension: same CR as F9 (FD-T06-retry-quote-ext.md)
+    }
+
+    const at = c.now();
+    const by = c.actor.membershipId ?? c.actor.id;
+    const itemsVersion = Number(o['items_version']) + 1;
+    const added: any[] = [];
+    for (const l of p?.priced ?? []) {
+      const i = added.length;
+      added.push(await insertOrderItem(c.tx, c.tenantId, {
+        id: uuidv7(), order_id: orderId, centre_id: o['centre_id'], orderable_id: l.orderableId, orderable_kind: l.orderableKind, code: l.code, name: l.name,
+        test_ids: p!.meta[i]!.testIds, department_id: p!.meta[i]!.departmentId, priority: l.priority, unit_price_paisa: l.unitPrice.amountPaisa,
+        urgent_surcharge_paisa: l.urgentSurcharge?.amountPaisa, price_list_id: l.priceListId, price_list_version: l.priceListVersion, price_source: l.priceSource,
+        vat_treatment: l.tax.vat, other_tax_code: l.tax.otherTaxCode, added_in_items_version: itemsVersion,
+      }));
+    }
+    for (const x of r.remove) if (!(await removeOrderItem(c.tx, c.tenantId, orderId, x.itemId, { at, by, reasonCode: x.reasonCode }))) throw new LimsError('frontdesk.order_not_editable');
+
+    // billing, same tx. Removals first, the invoice counter (inside billing) last: short lock window (as F9).
+    let creditNote = false;
+    const byReason = new Map<string, string[]>();
+    for (const x of r.remove) (byReason.get(x.reasonCode) ?? byReason.set(x.reasonCode, []).get(x.reasonCode)!).push(x.itemId);
+    for (const [reasonCode, ids] of byReason) {
+      // credit: charges not yet on a periodic invoice are voided; those already on one cannot be, so finance gets a credit-note task on that periodic invoice (US-BL-10.5).
+      // cash: the lines of the issued invoice must be credited (task only, no fiscal document is created here).
+      const orderItemIds = ids as never[];
+      const open = credit ? (await billing.voidCreditCharges(pc, { orderId: orderId as never, orderItemIds, reasonCode })).alreadyInvoiced.length > 0 : true;
+      if (open) creditNote = (await billing.raiseCreditNoteRequirement(pc, { orderId: orderId as never, orderItemIds, cause: 'item_removed', reasonCode })).required || creditNote;
+    }
+    let supplementary: Obj | undefined;
+    if (p) {
+      const patient = (await getPatientById(c.tx, c.tenantId, o['patient_id']))!;
+      const refPart = o['referrer_id'] ? { referrerId: o['referrer_id'] as never } : {};
+      const common = { orderId: orderId as never, branchId: o['branch_id'] as never, centreId: o['centre_id'] as never, ...refPart, lines: p.priced, discounts: p.discounts, expectedFingerprint: r.fingerprint! };
+      if (credit) {
+        await billing.recordCreditCharges(pc, { ...common, creditPartyId: o['credit_party_id'] as never, patientDisplayName: String(patient['full_name']) });
+      } else {
+        const buyer = { name: String(patient['full_name']), ...(patient['address_text'] ? { address: String(patient['address_text']) } : {}) };
+        const inv = await billing.issueOrderInvoice(pc, { ...common, patientId: o['patient_id'], buyer, purpose: 'supplementary' });
+        for (const [i, pay] of r.payments.entries()) {
+          await billing.recordPayment(pc, {
+            orderId: orderId as never, invoiceId: inv.invoiceId, methodCode: pay.methodCode, amount: { amountPaisa: pay.amountPaisa, currency: 'NPR' } as never,
+            ...(pay.reference ? { reference: pay.reference } : {}), captureKind: 'manual', idempotencyKey: `${orderId}:items:${Number(o['version']) + 1}:${i}`,
+            collectedByMembershipId: by as never, issueReceiptNo: false,       // the supplementary invoice is the receipt (PRD D-RECEIPT, as F9)
+          });
+        }
+        supplementary = await supplementaryDto(c, inv, p, o, buyer);
+      }
+    }
+
+    const updated = await bumpOrderItemsVersion(c.tx, c.tenantId, orderId, version, creditNote);
+    if (!updated) throw new LimsError('common.version_conflict');
+    await createFrontdeskEvents(c.events as never).itemsChanged(c as never, {
+      order_id: orderId, items_version: itemsVersion,
+      added: added.map((it, i) => ({ order_item_id: it['id'], orderable_id: it['orderable_id'], orderable_kind: it['orderable_kind'], test_ids: p!.meta[i]!.testIds, priority: it['priority'] })),
+      removed: r.remove.map((x) => ({ order_item_id: x.itemId, reason_code: x.reasonCode })), changed_at: at.toISOString(),
+    }, Number(updated['version']));
+    return { status: 200, body: { ...(await orderDto(asOrderCtx(c), updated, true)), ...(supplementary ? { supplementary_invoice: supplementary } : {}), credit_note_required: creditNote } };
+  });
+}
+
+// ---------------- F14 cancelOrder ----------------
+export function cancelOrder(hctx: unknown, params: unknown, headers: unknown, body: unknown): Promise<Result> {
+  return wrap(async () => {
+    const c = changeCtx(hctx);
+    const { IdentityPort: identity, BillingCommandPort: billing, LabPort: lab } = c.ports;
+    await identity.assertRole(c, { permission: P.orderCancel });
+    const version = expectedVersion(headers);
+    const b = strict(body, ['reason_code', 'reason_text']);
+    const reasonCode = codeIn(b['reason_code'], '/reason_code');
+    const text = b['reason_text'];
+    if (text !== undefined && (typeof text !== 'string' || text.length > 500 || text.includes('\u0000'))) throw bad('/reason_text');
+    const o = await loadOrder(c, params, true);
+    const status = o['status'] as OrderStatus;
+    const refuse = (k: { ok: boolean; code?: string }) => { if (!k.ok) throw new LimsError(k.code!); };
+    refuse(checkCancel({ status, hasApprovedResults: false }));                       // already cancelled / completed (11.3)
+    if (Number(o['version']) !== version) throw new LimsError('common.version_conflict');
+    const orderId: string = o['id'];
+    const pc = portCtx(c);
+    // 11.2: an APPROVED result blocks the cancel. A pre-registered order has no lab footprint. {orderId, scope} only, no PHI. A lab failure propagates: fail closed.
+    if (status !== 'pre_registered') {
+      const res = await lab.getOrderResults(pc, { orderId: orderId as never, scope: 'approved' });
+      refuse(checkCancel({ status, hasApprovedResults: res.items.some((i) => i.results.length > 0) }));
+    }
+
+    // billing, same tx. Pre-registered orders were never invoiced: no billing call. Payments are NOT refunded automatically (11.1).
+    let required = false;
+    if (status !== 'pre_registered') {
+      // credit (11.4 / US-BL-10.5): unbilled charges are voided; charges already on a periodic invoice need a credit-note task on that invoice. cash: a task for the issued invoice.
+      const open = o['billing_mode'] === 'credit' ? (await billing.voidCreditCharges(pc, { orderId: orderId as never, reasonCode })).alreadyInvoiced.length > 0 : true;
+      if (open) required = (await billing.raiseCreditNoteRequirement(pc, { orderId: orderId as never, cause: 'order_cancelled', reasonCode })).required;
+    }
+    await cancelActiveItems(c.tx, c.tenantId, orderId);
+    const at = c.now();
+    const updated = await cancelOrderRow(c.tx, c.tenantId, orderId, version, { at, by: c.actor.membershipId ?? c.actor.id, reasonCode, ...(typeof text === 'string' ? { reasonText: text } : {}), requiresCreditNote: required });
+    if (!updated) throw new LimsError('common.version_conflict');
+    // the event never carries reason_text (P3)
+    await createFrontdeskEvents(c.events as never).cancelled(c as never, { order_id: orderId, reason_code: reasonCode, cancelled_at: at.toISOString(), requires_credit_note: required }, Number(updated['version']));
+    return { status: 200, body: await orderDto(asOrderCtx(c), updated, status !== 'pre_registered') };
+  });
 }

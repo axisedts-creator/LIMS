@@ -1,6 +1,8 @@
-CHANGES
-# FD-T09 review (reviewer) — diff 54bbb15d..340c203d
+APPROVE
+# FD-T09 re-review (reviewer) — diff 54bbb15d..ec0f311a
 
-1. services/api/src/modules/frontdesk/service/order.service.ts:348 — removal guard fails OPEN. `states.get(x.itemId)?.removable === false` lets an item through when LabPort returns no row for it (undefined). Spec: 03-INTERFACE-CATALOG §3.2 "C4 may remove an item only when `LabPort.getOrderItemProcessingState` returns `removable: true` for it"; 02-TRD.md:482 "cancel/removal fails closed". Fix: `if (r.remove.some((x) => states.get(x.itemId)?.removable !== true)) throw new LimsError('frontdesk.order_not_editable');`. Tester: add a change.test.ts case where the lab fake omits the removed item -> 409 `frontdesk.order_not_editable`, nothing written, billing not called (FD-T09-tests.md lists "items the lab does not know" as unasserted).
+Prior finding #1 resolved: order.service.ts:349 removal guard now `removable !== true` (fails closed per 03-IC §3.2, 02-TRD:482); change.test.ts:317 covers lab-omitted item -> 409 `frontdesk.order_not_editable`, no writes, no billing calls. Comment rewording (FOR UPDATE -> row lock) is cosmetic, keeps FD-T08 static test green.
 
-Checked, OK: event names/payloads/keys/seq match 03-IC §3.2/§3.3 (no reason_text in cancelled.v1); permissions `frontdesk.order.edit`/`frontdesk.order.cancel` + `billing.invoice.issue` before writes; FOR UPDATE + If-Match under lock; cancel guard via getOrderResults({scope:'approved'}); `requires_credit_note = required` on cancel per APP-FLOW:111; credit void + task on periodic invoice (US-BL-10.5); no logging/PHI; only owned paths; pending.json edit per LD-70. Retry-once on billing.counter_busy/40P01 not done — accepted as in FD-T06 via CR `.orchestra/cr/FD-T06-retry-quote-ext.md`; supplementary InvoiceDto composition covered by CR `.orchestra/cr/FD-T09-invoice-dto.md` (non-blocking).
+Re-ran: tests/frontdesk/FD-T09.pg.sh 80/80; frontdesk non-DB vitest 366/366; tsc 0 errors in modules/frontdesk.
+
+Still open, non-blocking (accepted via CR): retry-once on billing.counter_busy/40P01 (.orchestra/cr/FD-T06-retry-quote-ext.md); supplementary InvoiceDto composition (.orchestra/cr/FD-T09-invoice-dto.md). All other checks from the first pass unchanged and OK.

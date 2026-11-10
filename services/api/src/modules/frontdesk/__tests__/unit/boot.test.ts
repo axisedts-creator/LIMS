@@ -131,11 +131,26 @@ describe('done_when: unimplemented handlers throw common.service_unavailable', (
     expect(manifest.handlers).toBe(h);
   });
 
-  it('every handler rejects with LimsError common.service_unavailable (503)', async () => {
+  // Ruling FD-T04-ruling.md (TESTS_WRONG): the stub requirement (06-IMPLEMENTATION-PLAN:11) lasts only "until their task merges".
+  // Still-stub operationIds come from probes/pending.json (LD-70, writer-owned stub inventory) when it exists; until the
+  // writer generates it, fall back to every operation minus the six FD-T04 ops (06-IMPLEMENTATION-PLAN:14).
+  // FD-T05 (06-IMPLEMENTATION-PLAN:15) turns quoteRegistration into a real handler the same way.
+  // FD-T06 (06-IMPLEMENTATION-PLAN:16) turns createRegistration into a real handler the same way.
+  // FD-T07 (06-IMPLEMENTATION-PLAN:17) turns F15-F19 into real handlers the same way (LD-70: pending.json is the writer's).
+  const FD_T04_OPS = ['searchPatients', 'createPatient', 'getPatient', 'updatePatient', 'recordPatientConsent', 'listPatientOrders', 'quoteRegistration', 'createRegistration',
+    'requestDiscountApproval', 'listDiscountApprovals', 'getDiscountApproval', 'approveDiscount', 'rejectDiscount'];
+  const stubOps = (): string[] => {
+    const p = join(REPO_ROOT, F, '__tests__/probes/pending.json');
+    if (existsSync(p)) return JSON.parse(readFileSync(p, 'utf8')) as string[];
+    return operationIds(spec()).filter((op: string) => !FD_T04_OPS.includes(op));
+  };
+
+  it('every still-unimplemented handler rejects with LimsError common.service_unavailable (503)', async () => {
     const { manifest } = await load(FILES.index);
     const ctx = { operationId: 'x', clientIp: '203.0.113.9', log: { info() {}, warn() {}, error() {} } };
     const req = { params: {}, query: {}, headers: {}, body: {} };
-    for (const op of operationIds(spec())) {
+    expect(stubOps().length, 'stub inventory must not be empty while later tasks are unmerged').toBeGreaterThan(0);
+    for (const op of stubOps()) {
       let err: unknown;
       try { await manifest.handlers[op](req, { ...ctx, operationId: op }); } catch (e) { err = e; }
       expect(isLimsError(err, 'common.service_unavailable'), `${op} must throw common.service_unavailable, got ${String(err)}`).toBe(true);
@@ -147,9 +162,10 @@ describe('done_when: unimplemented handlers throw common.service_unavailable', (
     const { manifest } = await load(FILES.index);
     const secret = 'SYNTHETIC-PATIENT-Sita-Test-9800000000';
     const req = { params: { patient_id: secret }, query: { q: secret }, headers: { authorization: `Bearer ${secret}` }, body: { full_name: secret } };
-    const ctx = { operationId: 'searchPatients', clientIp: '203.0.113.9', log: { info() {}, warn() {}, error() {} } };
+    const stub = stubOps().includes('anonymisePatient') ? 'anonymisePatient' : stubOps()[0]!;
+    const ctx = { operationId: stub, clientIp: '203.0.113.9', log: { info() {}, warn() {}, error() {} } };
     let err: any;
-    try { await manifest.handlers.searchPatients(req, ctx); } catch (e) { err = e; }
+    try { await manifest.handlers[stub](req, ctx); } catch (e) { err = e; }
     expect(isLimsError(err, 'common.service_unavailable')).toBe(true);
     expect(JSON.stringify({ m: err.message, d: err.detail, e: err.errors })).not.toContain(secret);
   });

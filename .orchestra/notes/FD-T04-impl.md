@@ -1,0 +1,8 @@
+# FD-T04 impl (Patients F1-F6)
+- New: handlers/{searchPatients,createPatient,getPatient,updatePatient,recordPatientConsent,listPatientOrders}.ts, service/patient.service.ts, mappers/patient.dto.ts; edited handlers/index.ts (6 real, rest stubs). Additive repo fns in repository/patients.repo.ts + orders.repo.ts (pageOrdersByPatient). No probes/pending.json exists for frontdesk (LD-70: nothing to remove).
+- [CONV] ctx shape as the tester assumed; auth.unauthenticated if absent. Order: assertRole -> If-Match(428) -> validation -> consent(422)/version -> dedupe(409) -> write. Candidates attached as `err.candidates` (CR `.orchestra/cr/FD-T04-problem-candidates.md`).
+- [CONV] F6 sort key = COALESCE(registered_at, created_at), µs-exact cursor [sort,key,id]; anonymised patients: not_found on update/consent, '' name/masked phone on read. read-only role gets masked phone only (no phone_e164/email/address). Override audit (US-FD-02.2) relies on the C0 row-audit trigger on frontdesk.patients.
+- History: first DB run 115/135, all 20 failures on the test side (ruling TESTS_WRONG, tests revised in e3f569ca). No impl change.
+- Ran 2026-11-10 after 2nd revision (9d2ff7c9, search count probe): FD-T04.pg.sh (docker PG17) 135/135 pass; patients.static 37/37. No impl change needed.
+- Unrelated failure: unit/boot.test.ts "build-nav accepts the real features dir" fails on 4 catalog nav routeIds (staff.catalog.price_lists/price_simulator/surcharges/tax) not in contracts/routes.yaml. Catalog chunk owns it, not this one.
+- Open: duplicate_override reason code not checked against the coded set; dedupe TOCTOU not locked (concurrent duplicate creates).

@@ -1,0 +1,7 @@
+# C6-T39 tests (02-TRD §14 row "08 Addendum A4" (a)-(d), AC-16.1)
+- NEW api `reporting/__tests__/t39.a4.test.ts` — (b) getStaffNotificationContact spy/eligibility matrix; (c) label_text 80/81/URL forms/`<b>` accepted+stored raw, short_text 40/41/charset. RED: 2 tests (`<b>` rejected by messages.ts label_text `[<>]` check; 02-TRD §7.2 "no markup [CONV]" conflicts with §14 (c) + 08 A4.3 -> followed §14 (c)/08).
+- NEW worker `t39.a4.escape.test.ts` — (c) `<b>` HTML-escaped in e-mail body+subject. RED: 3 tests (send_delivery.ts `fill` does not escape). Needs escape of param values for channel email.
+- NEW worker `t39.a4.first_assembly.test.ts` — (a) first assembly approved/draft/feature_disabled snapshot. GREEN now (T38 impl already does it) = regression guard.
+- NEW portal `apps/portal/src/features/portal/__tests__/HealthSummary.test.ts` — (d) component SSR (6 tests), GREEN now. Page-level hidden/shown/error + zero Smart calls already in tests/portal-e2e C6-T30 (AC-11.11); read side `smartSummaryAvailable` in reportingport.read.test.ts (both reused, not rerun by verify except the latter).
+- Run: `.orchestra\notes\C6-T39-verify.cmd` (expected now: fails on the 5 red tests). Portal test runs via apps/web's vitest with `--root ../portal` (portal has no vitest dep).
+- Not covered: real-DB pgTAP (no Postgres); worker staff-recipient send path (send_delivery resolveRecipient has no 'staff' branch — outside T39 file list, flag to lead); pending.json untouched (LD-70).

@@ -29,7 +29,9 @@ type Row = Record<string, any>;
 
 export interface SendDeps { env?: Env; transports?: Record<string, Transport> }
 
-const fill = (t: string, p: Record<string, string>) => t.replace(/\{([a-z_]+)\}/g, (_m, k: string) => p[k] ?? '');
+// [C6-T39 / 08 A4.3] label_text is stored raw and HTML-escaped when inserted into an e-mail body/subject (`esc` = channel email only; sms/whatsapp are plain text).
+const escHtml = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+const fill = (t: string, p: Record<string, string>, esc = false) => t.replace(/\{([a-z_]+)\}/g, (_m, k: string) => (esc ? escHtml(p[k] ?? '') : p[k] ?? ''));
 
 export function createSendDelivery(deps: SendDeps = {}): TaskHandler {
   const breaker = new Map<string, { fails: number; openUntil: number }>();
@@ -123,11 +125,12 @@ export function createSendDelivery(deps: SendDeps = {}): TaskHandler {
       });
       params['url'] = `${env['LIMS_ORIGIN_PORTAL'] ?? ''}/r/${token}`;
     }
-    const body = fill(text['body_text'], params);
+    const isMail = d['channel'] === 'email';
+    const body = fill(text['body_text'], params, isMail);
     const msg: OutboundMessage = {
       deliveryId: id, channel: d['channel'], to: address, body, unicode: /[^\x00-\x7f]/.test(body),
       ...(account?.sender_id ? { senderId: account.sender_id } : {}),
-      ...(d['channel'] === 'email' && text['subject_text'] ? { subject: fill(text['subject_text'], params) } : {}),
+      ...(d['channel'] === 'email' && text['subject_text'] ? { subject: fill(text['subject_text'], params, true) } : {}),
       ...(d['channel'] === 'whatsapp' ? { providerTemplate: { name: text['provider_template_name'], language: text['provider_template_language'], variables: ((text['provider_variable_order'] ?? []) as string[]).map((k) => params[k] ?? '') } } : {}),
     };
 

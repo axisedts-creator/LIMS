@@ -1,9 +1,10 @@
 // ReportingPort (03-IC §4.7) — real C6 implementation. Reads go through ctx.tx only, so partner / patient visibility is the database's RLS (05-SCHEMA §4), never an
 // app-side filter. issuePortalLink delegates to the portal service (C6-T20). openReleasedReportFile is the minimal version AC-15.1 needs (cases 4 and 7);
-// C6-T37 adds the patient visible_from check and the smart-summary snapshot; redeemPortalLinkForApp is C6-T37 too and is not exposed here yet.
+// C6-T37 adds the smart-summary snapshot and redeemPortalLinkForApp (patient visible_from is C16's, TRD §7.1).
 import { LimsError, type FieldError } from '../../../core/errors.js';
 import { findReleasedVersionFile, listVersions, panelNamesByVersion, type ScopeColumn } from '../repository/released.repo.js';
 import { createPortalService } from '../service/portal.service.js';
+import { hashToken } from '../domain/tokens.js';
 
 type Row = Record<string, any>;
 type Env = Readonly<Record<string, string | undefined>>;
@@ -11,6 +12,8 @@ type Env = Readonly<Record<string, string | undefined>>;
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const ISO = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,6})?(?:Z|[+-]\d{2}:\d{2})$/;
 const B64URL = /^[A-Za-z0-9_-]+$/;
+const E164 = /^\+[1-9]\d{6,14}$/;
+const MAX_TOKEN = 4096;                                                 // LD-66: same cap as the core pre-resolver
 const DEFAULT_LIMIT = 50; const MAX_LIMIT = 200;
 const URL_TTL_SECONDS = 300;                                            // IC §4.7 ReleasedReportFile.signedUrl TTL ≤ 300 s
 const REPORT_BUCKET = 'reports';
@@ -73,7 +76,8 @@ export function createReportingPort(deps: { env: Env }) {
     /** Staff (`user`) / `system` only; see portal.service.ts. */
     issuePortalLink: (ctx: any, input: any) => portal.issuePortalLink(ctx, input),
 
-    /** Minimal (C6-T21). Anything not visible to the caller (other tenant, other partner, not released/superseded) is the same common.not_found. */
+    /** AC-15.3. Partner / patient visibility is RLS on ctx.tx (05-SCHEMA §4); anything not visible (other tenant / partner / patient, not released or superseded) is the same
+     *  common.not_found. smartSummary = the smart_summary_json snapshot stored on THAT version (08 A2.3); SmartReportPort is never called (07-SECURITY 8a). */
     async openReleasedReportFile(ctx: any, input: { reportId?: unknown; versionNo?: unknown }) {
       const tenantId = tenantOf(ctx);
       if (typeof input?.reportId !== 'string' || !UUID.test(input.reportId) || !Number.isInteger(input.versionNo) || (input.versionNo as number) < 1) throw new LimsError('common.not_found');
@@ -82,7 +86,22 @@ export function createReportingPort(deps: { env: Env }) {
       if (!ctx.storage) throw new LimsError('common.internal');
       const signedUrl: string = await ctx.storage.signedUrl(REPORT_BUCKET, v['pdf_object_path'], URL_TTL_SECONDS);
       return { reportVersionId: v['id'], reportId: v['report_id'], versionNo: v['version_no'], status: v['status'] === 'superseded' ? 'superseded' : 'valid',
-        contentType: 'application/pdf', byteSize: Number(v['pdf_bytes']), sha256: v['pdf_sha256'], signedUrl, expiresAt: new Date(Date.parse(ctx.now()) + URL_TTL_SECONDS * 1000).toISOString() };
+        contentType: 'application/pdf', byteSize: Number(v['pdf_bytes']), sha256: v['pdf_sha256'], signedUrl, expiresAt: new Date(Date.parse(ctx.now()) + URL_TTL_SECONDS * 1000).toISOString(),
+        ...(v['smart_summary_json'] != null ? { smartSummary: v['smart_summary_json'] } : {}) };
+    },
+
+    /** AC-15.4. Patient actor only. Hashes token + phone (sha256 of utf8), calls the C0 DEFINER app.reporting_redeem_link_for_app (03-IC §13.3) through ctx.tx and requires its
+     *  tenant_id = ctx.tenantId. Never consumes / extends / reveals the link; the DEFINER owns the only write (redeem_failures). Every failure is the same reporting.link_invalid,
+     *  and ctx.commitOnError() keeps the failure counter although the call fails (08 A19 P-42). */
+    async redeemPortalLinkForApp(ctx: any, input: { linkToken?: unknown; phoneE164?: unknown }) {
+      const tenantId = tenantOf(ctx);
+      if (ctx.actor?.type !== 'patient') throw new LimsError('auth.forbidden');
+      const { linkToken, phoneE164 } = input ?? {};
+      if (typeof linkToken !== 'string' || linkToken.length < 1 || linkToken.length > MAX_TOKEN || typeof phoneE164 !== 'string' || !E164.test(phoneE164)) throw new LimsError('reporting.link_invalid');
+      const row = (await ctx.tx.query('SELECT tenant_id, patient_id, report_id, version_no, released_at FROM app.reporting_redeem_link_for_app($1::bytea, $2::bytea)',
+        [Buffer.from(hashToken(linkToken)), Buffer.from(hashToken(phoneE164))])).rows[0];
+      if (!row || row['tenant_id'] !== tenantId) { ctx.commitOnError?.(); throw new LimsError('reporting.link_invalid'); }
+      return { patientId: row['patient_id'], reportId: row['report_id'], versionNo: row['version_no'], releasedAt: isoDate(row['released_at']) };
     },
   };
 }

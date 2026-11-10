@@ -33,6 +33,6 @@ export async function panelNamesByVersion(tx: Tx, tenantId: string, versionIds: 
 }
 
 export async function findReleasedVersionFile(tx: Tx, tenantId: string, reportId: string, versionNo: number): Promise<Row | undefined> {
-  return (await tx.query(`SELECT id, report_id, version_no, status, pdf_object_path, pdf_sha256, pdf_bytes FROM reporting.report_versions
+  return (await tx.query(`SELECT id, report_id, version_no, status, pdf_object_path, pdf_sha256, pdf_bytes, smart_summary_json FROM reporting.report_versions
     WHERE tenant_id = $1 AND report_id = $2 AND version_no = $3 AND status IN ('released', 'superseded')`, [tenantId, reportId, versionNo])).rows[0];
 }

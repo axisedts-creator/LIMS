@@ -472,7 +472,7 @@ export async function quote(hctx: unknown, body: unknown): Promise<Result> {
   let creditStatus: 'ok' | 'locked' | 'over_limit' | undefined;
   if (d.billingMode === 'credit') {
     try {
-      await billing.assertCreditAllowed(c, { creditPartyId: d.creditPartyId as never, additional: { amountPaisa: q.totals.net.amountPaisa } as never });
+      await billing.assertCreditAllowed(c, { creditPartyId: d.creditPartyId as never, additional: q.totals.net });   // J-T01: full Money incl. currency, as register() does; real billing rejects a missing currency
       creditStatus = 'ok';
     } catch (e) {
       const code = (e as { code?: unknown } | null)?.code;     // by code, not instanceof: a port may carry its own LimsError class

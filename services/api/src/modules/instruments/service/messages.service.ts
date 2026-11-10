@@ -55,10 +55,10 @@ function toSummary(r: Row): Row {
   return { ...pick(r, ['id', 'instrument_id', 'instrument_code', 'agent_id', 'centre_id', 'protocol', 'message_kind']), received_at: iso(r['received_at']),
     ...(given(r['captured_at']) ? { captured_at: iso(r['captured_at']) } : {}), size_bytes: r['size_bytes'], latest_run: pick(lr, ['run_no', 'kind', 'outcome', ...COUNTERS]) };
 }
-function toRun(r: Row): Row {
+export function toRun(r: Row): Row {
   return { ...pick(r, ['id', 'run_no', 'kind', 'driver_code', 'driver_version', 'outcome', 'error_code', 'error_reason', ...RUN_COUNTERS, 'reason_code', 'reason_text', 'actor_type', 'actor_display']), created_at: iso(r['created_at']) };
 }
-function toRecord(r: Row): Row {
+export function toRecord(r: Row): Row {
   return { ...pick(r, ['id', 'run_no', 'record_seq', 'record_class', 'sample_barcode', 'control_id_raw', 'record_kind', 'instrument_analyte_code', 'mapping_status', 'analyte_id', 'test_id',
     'value_raw', 'unit_raw', 'is_rerun', 'emit_status', 'event_id', 'port_outcome', 'port_reason_code', 'port_result_id', 'source_record_id']),
     ...(given(r['instrument_result_time']) ? { instrument_result_time: iso(r['instrument_result_time']) } : {}), instrument_flags: r['instrument_flags'] ?? [], warnings: r['warnings'] ?? [] };

@@ -37,8 +37,8 @@ const META_INTS = ['frames', 'retransmits', 'naks_sent', 'mllp_discarded_bytes']
 const META_REASONS = ['frame_timeout', 'new_enq', 'new_start_block', 'msh_unparseable', 'process_restart'];
 const sha256 = (b: Uint8Array | string) => createHash('sha256').update(b).digest('hex');
 const iso = (v: unknown) => new Date(v as string).toISOString();
-const within = (v: unknown, min: number, max: number): v is string => typeof v === 'string' && v.length >= min && v.length <= max;
-const fit = (v: string | undefined, max: number) => (typeof v === 'string' && v.length <= max ? v : undefined);   // never store a value that breaks a column CHECK
+export const within = (v: unknown, min: number, max: number): v is string => typeof v === 'string' && v.length >= min && v.length <= max;
+export const fit = (v: string | undefined, max: number) => (typeof v === 'string' && v.length <= max ? v : undefined);   // never store a value that breaks a column CHECK
 const obj = (v: unknown): Row => (typeof v === 'object' && v !== null && !Array.isArray(v) ? (v as Row) : {});
 
 function cleanMeta(v: unknown): Row {
@@ -47,13 +47,13 @@ function cleanMeta(v: unknown): Row {
   if (META_REASONS.includes(m['incomplete_reason'])) out['incomplete_reason'] = m['incomplete_reason'];
   return out;
 }
-function qcPatterns(v: unknown): RegExp[] {
+export function qcPatterns(v: unknown): RegExp[] {
   const out: RegExp[] = [];
   for (const p of Array.isArray(v) ? v : []) { try { out.push(new RegExp(String(p))); } catch { /* a stored bad pattern never matches */ } }
   return out;
 }
-const mapOrganism = (o: NonNullable<ParsedRecord['organism']>) => ({ organism_code_raw: o.organismCodeRaw, ...(o.isolateSeq === undefined ? {} : { isolate_seq: o.isolateSeq }) });
-const mapAst = (a: NonNullable<ParsedRecord['ast']>) => ({ antibiotic_code_raw: a.antibioticCodeRaw, ...(a.isolateSeq === undefined ? {} : { isolate_seq: a.isolateSeq }), method: a.method, raw_value: a.rawValue,
+export const mapOrganism = (o: NonNullable<ParsedRecord['organism']>) => ({ organism_code_raw: o.organismCodeRaw, ...(o.isolateSeq === undefined ? {} : { isolate_seq: o.isolateSeq }) });
+export const mapAst = (a: NonNullable<ParsedRecord['ast']>) => ({ antibiotic_code_raw: a.antibioticCodeRaw, ...(a.isolateSeq === undefined ? {} : { isolate_seq: a.isolateSeq }), method: a.method, raw_value: a.rawValue,
   ...(a.interpretationRaw === undefined ? {} : { interpretation_raw: a.interpretationRaw }), ...(a.standard === undefined ? {} : { standard: a.standard }), ...(a.standardVersion === undefined ? {} : { standard_version: a.standardVersion }) });
 
 export function createIngestService(deps: IngestDeps = {}) {

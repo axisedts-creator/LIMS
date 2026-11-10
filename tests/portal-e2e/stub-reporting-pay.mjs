@@ -1,6 +1,6 @@
 // Stub of the C6 reporting API for the C6-T42 portal dues-payment E2E (synthetic data only; fake gateway: no real URL is ever contacted). Prefix /v1/reporting.
 // Links (22-char tokens = name padded with '0'): all accept code 123456 and start session `sess-<name>`; report page data = P3 with a `dues` block:
-//   pay2     balance 50000, online_gateways [esewa, khalti]          pay0     balance 50000, online_gateways []
+//   pay2     balance 50000, online_gateways [esewa, khalti]          paynone  balance 50000, online_gateways []   (not 'pay0': name() strips trailing zeros)
 //   payref   referrer link: no dues block (PP1 -> 404)               payopen  as pay2 + open_request {id: pr-open, status: queued}; PP1 -> 200 pr-open
 //   paycf    as pay2; PP1 -> 409 version_conflict / payment_in_progress (open request through another link)
 // PP1 answers 202 {id: pr-1, status: queued}. PP2 answers by the control mode (POST /__control {mode}): queued (default) | ready | review | completed | failed_unavail | failed_nothing | failed_payment | expired.
@@ -12,8 +12,8 @@ const log = []; let mode = 'queued';
 const GATEWAY_URL = 'https://gateway.fake.invalid/pay/pr-1';
 const problem = (status, code, title, extra = {}) => ({ type: `urn:lims:error:${code}`, title, status, code, request_id: '01900000-0000-7000-8000-000000000001', ...extra });
 const name = (tok) => tok.replace(/0+$/, '');
-const LINKS = new Set(['pay2', 'pay0', 'payref', 'payopen', 'paycf']);
-const dues = (link) => link === 'payref' ? undefined : { balance_due_paisa: 50000, online_gateways: link === 'pay0' ? [] : ['esewa', 'khalti'], ...(link === 'payopen' ? { open_request: { id: 'pr-open', status: 'queued' } } : {}) };
+const LINKS = new Set(['pay2', 'paynone', 'payref', 'payopen', 'paycf']);
+const dues = (link) => link === 'payref' ? undefined : { balance_due_paisa: 50000, online_gateways: link === 'paynone' ? [] : ['esewa', 'khalti'], ...(link === 'payopen' ? { open_request: { id: 'pr-open', status: 'queued' } } : {}) };
 const report = (link) => ({ lab_name: 'Test Diagnostics', patient_display: 'A.B.', report: { family: 'laboratory', report_kind: 'final', status_label: 'Final', issued_at: '2026-11-01T04:15:00.000Z', version_no: 1, panel_names: ['Complete Blood Count'] },
   download: { report_version_id: `ver-${link}-1` }, ...(dues(link) ? { dues: dues(link) } : {}) });
 const pr = (id, gateway = 'esewa') => {

@@ -12,7 +12,7 @@ import { describe, expect, it, vi } from 'vitest';
 vi.setConfig({ testTimeout: 30_000 });   // cold module load (jsdom pre-warm) can exceed the 5 s default, as in the other portal tests
 import { REPO_ROOT, loadSpec } from '../../../core/module.js';
 import { DUE, ORDER_A, REPORT_A, doneUrl, idem, makePayWorld, rejection } from './portal.payment.helpers.js';
-import { idN } from './portal.helpers.js';
+import { idN, TENANT_A } from './portal.helpers.js';
 
 const OPEN = ['queued', 'ready'];
 const keysOf = (b: any) => Object.keys(b ?? {}).sort();
@@ -177,7 +177,7 @@ describe('PP2 getPortalPaymentRequest — AC-18.5', () => {
     const l = p.w.mkLink(); const e = await rejection(p.pp2(l.cred, r['id'])); expect(e.code).toBe('reporting.otp_required');
   });
   it('refresh enqueue: ready + last_checked_at >= 3 s old -> one `reporting.refresh_portal_payment_request` keyed ppref:<id>; < 3 s, queued, terminal -> none; PP2 itself never writes', async () => {
-    const p = makePayWorld(); const s = p.patient(); const r = await p.seedReady(s.linkId);
+    const p = makePayWorld(); const s = p.patient(); const r = await p.seedReady(s.linkId); const seededCalls = p.providerCalls.length;   // ruling #3: seedReady itself calls createIntent
     await p.pp2(s.cred, r['id']); expect(p.jobs('reporting.refresh_portal_payment_request')).toHaveLength(0);          // checked just now
     p.w.advance(3_000); await p.pp2(s.cred, r['id']);
     const j = p.jobs('reporting.refresh_portal_payment_request'); expect(j).toHaveLength(1); expect(j[0]!.jobKey).toBe(`ppref:${r['id']}`); expect(j[0]!.payload).toMatchObject({ portal_payment_request_id: r['id'] });
@@ -185,7 +185,7 @@ describe('PP2 getPortalPaymentRequest — AC-18.5', () => {
     const t = p.patient(); const q = p.seedRequest(t.linkId, { status: 'completed', intent_id: idN(0x7002), amount_paisa: DUE, completed_at: p.w.now() });
     const before = p.jobs('reporting.refresh_portal_payment_request').length; expect((await p.pp2(t.cred, q['id'])).body.status).toBe('completed'); expect(p.jobs('reporting.refresh_portal_payment_request')).toHaveLength(before);
     expect(p.w.db.writes().filter((x) => /portal_payment_requests/i.test(x.text) && x.verb !== 'insert')).toHaveLength(0);
-    expect(p.w.forbiddenCalls).toEqual([]); expect(p.providerCalls).toEqual([]);
+    expect(p.w.forbiddenCalls).toEqual([]); expect(p.providerCalls).toHaveLength(seededCalls);
   });
 });
 
@@ -230,7 +230,12 @@ describe('probes: portal request paths stay payment-free (REQ-SEC-046/059)', () 
   it('tenant scoping: every statement on portal_payment_requests is parameterised with the tenant and carries no inlined id / token', async () => {
     const p = makePayWorld(); const s = p.patient(); const first = await p.pp1(s.cred); await p.pp2(s.cred, first.body.id);
     for (const x of p.w.db.stmts.filter((y) => /portal_payment_requests/i.test(y.text))) {
-      expect(x.text, x.text).toMatch(/tenant_id\s*=\s*\$\d+/); expect(x.text).not.toContain(first.body.id); expect(x.text).not.toMatch(/[0-9a-f]{8}-[0-9a-f]{4}-/);
+      if (x.verb === 'insert') {   // ruling #4: an INSERT has no predicate; the tenant_id column must be bound to a parameter whose value is TENANT_A
+        const cols = /\(([^)]*)\)\s*values\s*\(([^)]*)\)/i.exec(x.text); expect(cols, x.text).toBeTruthy();
+        const i = cols![1]!.split(',').map((c) => c.trim()).indexOf('tenant_id'); expect(i, x.text).toBeGreaterThanOrEqual(0);
+        const ph = /^\$(\d+)$/.exec(cols![2]!.split(',')[i]!.trim()); expect(ph, x.text).toBeTruthy(); expect(x.values[Number(ph![1]) - 1]).toBe(TENANT_A);
+      } else expect(x.text, x.text).toMatch(/tenant_id\s*=\s*\$\d+/);
+      expect(x.text).not.toContain(first.body.id); expect(x.text).not.toMatch(/[0-9a-f]{8}-[0-9a-f]{4}-/);
     }
   });
 });

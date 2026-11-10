@@ -4,7 +4,7 @@
 // ASSUMED (also in .orchestra/notes/C6-T42-tests.md): tasks are TaskHandler(payload, ctx) registered in jobs/reporting/index.ts manifest.tasks; payload { tenant_id, portal_payment_request_id };
 //   ctx = JobContext (+ ports, audit, tx) as in send_portal_otp; single-table SQL in the T20 fake dialect (api __tests__/portal.helpers.ts); expire / purge payload { tenant_id }.
 import '../../../../../api/src/__tests__/setup-env.js';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { LimsError } from '../../../../../api/src/core/errors.js';
 import { validateManifests } from '../../../core/manifest.js';
 import { manifest } from '../index.js';
@@ -12,6 +12,9 @@ vi.setConfig({ testTimeout: 30_000 });
 
 const P = () => import('../../../../../api/src/modules/reporting/__tests__/portal.payment.helpers.js');
 const H = () => import('../../../../../api/src/modules/reporting/__tests__/portal.helpers.js');
+// C6-T42 ruling #1: returnUrl = LIMS_ORIGIN_PORTAL + '/r/payments/<id>/done' (02-TRD:664, :845); the env comes from C1, so the test supplies it (as assemble_report.test.ts).
+beforeEach(async () => { vi.stubEnv('LIMS_ORIGIN_PORTAL', (await H()).PORTAL_ORIGIN); });
+afterEach(() => { vi.unstubAllEnvs(); });
 const T = manifest.tasks as Record<string, (p: any, c: any) => Promise<void>>;
 const CREATE = 'reporting.create_portal_payment_intent'; const REFRESH = 'reporting.refresh_portal_payment_request';
 const EXPIRE = 'reporting.expire_portal_payment_requests'; const PURGE = 'reporting.purge_ephemeral';
@@ -181,7 +184,7 @@ describe(`${PURGE} — portal_payment_requests`, () => {
 
 describe('end to end across API + worker (fake gateway): PP1 -> create -> PP2 -> settle at C15 -> refresh -> PP2', () => {
   it('AC-18.3, 18.5, 18.6: queued -> ready with Continue URL for this link only -> "checking" while pending -> completed after C15 settles; the URL disappears; one ledger row (C15)', async () => {
-    const { m, p, s } = await setup({ gatewayStatus: 'COMPLETE' });
+    const { m, p, s } = await setup({ gatewayStatus: 'Completed' });   // ruling #2: Khalti settles only on 'Completed' ('COMPLETE' is eSewa)
     const out = await p.pp1(s.cred, { gateway: 'khalti' }); const id = out.body.id; await p.runTask(T[CREATE]!, id);
     p.w.advance(4_000); const rdy = await p.pp2(s.cred, id); expect(rdy.body).toMatchObject({ status: 'ready', amount_paisa: m.DUE }); expect(rdy.body.action_url).toMatch(/^https:\/\/khalti\.sandbox\.invalid\//);
     expect((await p.pp2(p.patient().cred, id).catch((e) => e)).code).toBe('common.not_found');

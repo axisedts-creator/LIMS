@@ -13,13 +13,14 @@ const apiLog = async (): Promise<any[]> => (await fetch(`${API}/__requests`)).js
 const control = (mode: string) => fetch(`${API}/__control`, { method: 'POST', body: JSON.stringify({ mode }) });
 const GATEWAY_URL = 'https://gateway.fake.invalid/pay/pr-1';
 
+// ruling #7: under `next dev` the page is clicked/typed before hydration; wait for network idle and use generous navigation timeouts.
 async function login(page: Page, link: string) {
-  await page.goto(`/r/${T(link)}`);
+  await page.goto(`/r/${T(link)}`); await page.waitForLoadState('networkidle');
   await page.getByRole('button', { name: 'Send me a code' }).click();
-  await expect(page).toHaveURL(new RegExp(`/r/${T(link)}/code$`));
+  await expect(page).toHaveURL(new RegExp(`/r/${T(link)}/code$`), { timeout: 30_000 }); await page.waitForLoadState('networkidle');
   await page.getByLabel('Digit 1 of 6').click(); await page.keyboard.type('123456');
   const view = page.getByRole('button', { name: 'View report' }); if (await view.isVisible().catch(() => false)) await view.click();
-  await expect(page).toHaveURL(new RegExp(`/r/${T(link)}/report$`));
+  await expect(page).toHaveURL(new RegExp(`/r/${T(link)}/report$`), { timeout: 30_000 });
 }
 async function axeScan(page: Page) {
   await page.evaluate(AXE);
@@ -36,7 +37,7 @@ test.describe('AC-18.1 / AC-18.2 dues card on the report page', () => {
     await expect(page.getByText('The exact amount is confirmed when you pay.')).toBeVisible();
   });
   test('AC-18.2: no gateways -> amount + counter/app copy and NO payment button; referrer link -> no dues section at all', async ({ page }) => {
-    await login(page, 'pay0');
+    await login(page, 'paynone');
     await expect(page.getByText('Amount due: NPR 500.00')).toBeVisible(); await expect(page.getByText('Please pay at the lab counter or in the app.')).toBeVisible();
     await expect(page.getByRole('button', { name: /^Pay with/ })).toHaveCount(0);
     await page.context().clearCookies(); await login(page, 'payref');
@@ -94,7 +95,7 @@ test.describe('AC-18.6 return page /r/payments/{id}/done', () => {
     await login(page, 'pay2'); await control('ready');
     await page.goto('/r/payments/pr-1/done?outcome=PWNED-OUTCOME-settled');
     await expect(page.getByText('Checking your payment…')).toBeVisible(); await expect(page.getByText('Payment received. Thank you.')).toHaveCount(0);
-    expect(await page.content()).not.toContain('PWNED-OUTCOME');
+    expect(await page.locator('body').innerText()).not.toContain('PWNED-OUTCOME');   // ruling #6: rendered text; Next's own flight payload echoes the request URL outside app code (log checks below stay)
     await control('completed'); await expect(page.getByText('Payment received. Thank you.')).toBeVisible({ timeout: 15_000 });
     await expect(page.getByRole('link', { name: 'Back to your report' })).toBeVisible(); expect(await page.content()).not.toContain('gateway.fake.invalid');
     const log = await apiLog(); const pp2 = log.filter((r) => r.url === '/v1/reporting/portal/payment-requests/pr-1'); expect(pp2.length).toBeGreaterThan(0);

@@ -6,3 +6,5 @@
 - Now: 85 api tests fail (export/*.ts missing, handlers #20–#23 are stubs -> common.internal); 38 worker tests fail (tasks/build_export.ts missing). Right reason.
 - Writer must create: `export/{layout,CsvWriter,XlsxWriter,PdfRequest}.ts` (signatures: writers.test.ts header), `tasks/build_export.ts` (+ register in worker manifest), handlers, service, repo; quota needs a lock (advisory/FOR UPDATE) before count.
 - Not covered here (no DB/Fastify in unit layer): real-Postgres RLS/probe tests P7/P9 SQL, HTTP-level Idempotency-Key, `write-excel-file` real-library output (reader is a hand-written zip parser).
+
+Rev (review #2): buildExportFake now models ONE job tx (db.tx reuses ctx, rollback on reject, SAVEPOINT/ROLLBACK TO, 25P02 after SQL error). build_export.test.ts: final attempt must RESOLVE with committed failed/common.internal; +2 SQL-error cases. Expected to fail until impl adds the savepoint (3 tests).

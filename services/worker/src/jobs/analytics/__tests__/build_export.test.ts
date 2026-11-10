@@ -304,14 +304,27 @@ describe('build_export — retries and the final attempt (step 8a, 03-APP-FLOW E
     expect(rowOf().status).toBe('queued'); expect(rowOf().failure_code).toBeNull(); expect(fileOf()).toBeUndefined();
   });
 
-  it('final attempt: failed / common.internal written in a SEPARATE transaction, then the error is rethrown', async () => {
+  it('final attempt: the task RESOLVES and the committed row is failed / common.internal (ctx.db.tx reuses the job tx, so a rethrow would roll the failure back)', async () => {
     seedExport({ format: 'csv' });
     rollupDb.fail = new Error('synthetic database outage');
-    await expect(run(makeJobCtx({ attempt: 3, maxAttempts: 3 }))).rejects.toThrow('synthetic database outage');
+    await expect(run(makeJobCtx({ attempt: 3, maxAttempts: 3 }))).resolves.toBeUndefined();
     failed('common.internal');
-    const upd = exportsDb.log.filter((s) => /^\s*UPDATE\s+analytics\.exports/i.test(s.text) && (/common\.internal/.test(s.text) || s.values.includes('common.internal')));
-    expect(upd.length).toBeGreaterThan(0);
-    expect(upd.at(-1)!.txId).not.toBe('main');
+    expect(world.errors.length).toBeGreaterThan(0);
+  });
+
+  // A SQL error (e.g. statement timeout) aborts the Postgres transaction: the task must SAVEPOINT before building and ROLLBACK TO SAVEPOINT in its catch.
+  const sqlTimeout = () => { exportsDb.failOn = (t) => (/^\s*INSERT\s+INTO\s+analytics\.export_files/i.test(t) ? Object.assign(new Error('canceling statement due to statement timeout'), { code: '57014' }) : undefined); };
+  it('final attempt after a SQL error following markBuilding (aborted tx): savepoint rollback, then failed / common.internal is committed', async () => {
+    seedExport({ format: 'csv' });
+    sqlTimeout();
+    await expect(run(makeJobCtx({ attempt: 3, maxAttempts: 3 }))).resolves.toBeUndefined();
+    failed('common.internal');
+  });
+  it('non-final attempt after a SQL error: rejects with the ORIGINAL error (not "transaction is aborted"), the export stays queued', async () => {
+    seedExport({ format: 'csv' });
+    sqlTimeout();
+    await expect(run(makeJobCtx({ attempt: 1, maxAttempts: 3 }))).rejects.toThrow('statement timeout');
+    expect(rowOf().status).toBe('queued'); expect(rowOf().failure_code).toBeNull(); expect(fileOf()).toBeUndefined();
   });
 });
 

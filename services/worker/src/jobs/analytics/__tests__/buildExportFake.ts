@@ -8,8 +8,9 @@
 //   * requester re-validation: ctx.core.membership(ctx,{membershipId}) (status 'active', isActive, no lockedAt) and ctx.core.membershipPermissions(ctx,{membershipId});
 //     referral flag: ctx.ports.IdentityPort.getTenantSettings(ctx,{keys:[...]}); tenant name: ctx.core.tenant(ctx).displayName; requester name: membership.displayName.
 //   * terminal failures (auth.forbidden, common.feature_disabled, analytics.export_too_large, common.internal) RESOLVE the task after writing status 'failed' + failure_code;
-//     retryable failures (render_unavailable, unexpected errors) REJECT; the export goes back to 'queued' (E6) unless ctx.attempt >= ctx.maxAttempts, in which case
-//     'failed'/common.internal is written through ctx.db.tx(...) (a separate tx from ctx.tx) before the error is rethrown.
+//     retryable failures (render_unavailable, unexpected errors) REJECT (the job tx rolls back, the committed row stays 'queued' = E6); on the final attempt
+//     (ctx.attempt >= ctx.maxAttempts) the task must RESOLVE after writing 'failed'/common.internal, because ctx.db.tx reuses the job tx (a rethrow would roll it back).
+//     A failed SQL statement aborts the tx: the task must SAVEPOINT before building and ROLLBACK TO SAVEPOINT in its catch before writing anything (review AN-T15 #1).
 //   * rows are built with the API's reports.service functions and the EXPLICIT effective scope (rollups.repo receives `scope`).
 import { vi } from 'vitest';
 import { createFakeRenderPort } from '../../../../../../packages/fakes/src/RenderPort.fake';
@@ -47,9 +48,32 @@ export const seedExport = (o: Partial<ExportRow> = {}): ExportRow => exportsDb.s
   params: { business_date_from: D1, business_date_to: D2, group_by: 'day' }, scope_all_centres: true, scope_centre_ids: [], ...o,
 });
 
+// The job runs in ONE transaction (core consumer.ts: `db.tx = (fn) => fn(ctx)` reuses it). Model it: a rejected task rolls the whole tx back (run()), SAVEPOINT /
+// ROLLBACK TO SAVEPOINT restore a snapshot, and after a failed statement every statement but ROLLBACK TO SAVEPOINT fails (Postgres 25P02).
+type Snap = { exports: Map<string, ExportRow>; files: Map<string, any> };
+const snapshot = (): Snap => ({ exports: new Map([...exportsDb.exports].map(([k, v]) => [k, { ...v }])), files: new Map([...exportsDb.files].map(([k, v]) => [k, { ...v }])) });
+const restore = (s: Snap): void => {
+  exportsDb.exports.clear(); for (const [k, v] of s.exports) exportsDb.exports.set(k, { ...v });
+  exportsDb.files.clear(); for (const [k, v] of s.files) exportsDb.files.set(k, { ...v });
+};
+
 export function makeJobCtx(o: { attempt?: number; maxAttempts?: number; tenantId?: string | undefined } = {}) {
-  let txSeq = 0;
-  const txFor = (txId: string) => ({ query: vi.fn((text: string, values: unknown[] = []) => exportsDb.exec(text, values, { tenant: ctx.tenantId ?? TA, txId })) });
+  const savepoints = new Map<string, Snap>();
+  let aborted = false;
+  const txFor = (txId: string) => ({
+    query: vi.fn(async (text: string, values: unknown[] = []) => {
+      let m: RegExpExecArray | null;
+      if ((m = /^\s*SAVEPOINT\s+(\w+)/i.exec(text))) { if (aborted) throw abortedErr(); savepoints.set(m[1]!, snapshot()); return { rows: [], rowCount: 0 }; }
+      if ((m = /^\s*ROLLBACK\s+TO\s+(?:SAVEPOINT\s+)?(\w+)/i.exec(text))) {
+        const s = savepoints.get(m[1]!); if (!s) throw Object.assign(new Error(`no such savepoint ${m[1]}`), { code: '3B001' });
+        restore(s); aborted = false; return { rows: [], rowCount: 0 };
+      }
+      if (/^\s*RELEASE\s+(?:SAVEPOINT\s+)?\w+/i.test(text)) return { rows: [], rowCount: 0 };
+      if (aborted) throw abortedErr();
+      try { return await exportsDb.exec(text, values, { tenant: ctx.tenantId ?? TA, txId }); } catch (e) { aborted = true; throw e; }
+    }),
+  });
+  const abortedErr = () => Object.assign(new Error('current transaction is aborted, commands ignored until end of transaction block'), { code: '25P02' });
   const core: any = makeCore(world.touched);
   core.tenant = async () => ({ id: TA, displayName: 'Test Lab Pvt Ltd', timezone: 'Asia/Kathmandu' });
   core.membership = async (_c: unknown, i: { membershipId: string }) => {
@@ -64,7 +88,7 @@ export function makeJobCtx(o: { attempt?: number; maxAttempts?: number; tenantId
     attempt: o.attempt ?? 1, maxAttempts: o.maxAttempts ?? 3,
     now: () => exportsDb.clock.now, isNewer: () => true,
     tx: txFor('main'),
-    db: { tx: async <T>(fn: (c: any) => Promise<T>) => fn({ ...ctx, tx: txFor(`tx${++txSeq}`) }) },
+    db: { tx: async <T>(fn: (c: any) => Promise<T>) => fn(ctx) },   // same transaction, exactly like services/worker/src/core/consumer.ts:58
     core, events: {}, storage: {}, files: {}, audit: { access: vi.fn(async () => undefined) },
     log: { info: (x: unknown) => world.logs.push(x), warn: (x: unknown) => world.logs.push(x), error: (x: unknown) => { world.logs.push(x); world.errors.push(x); }, debug() {} },
     metrics: { inc: (name: string, labels: unknown) => world.metrics.push({ name, labels }), set() {}, observe() {} },
@@ -78,7 +102,9 @@ export function makeJobCtx(o: { attempt?: number; maxAttempts?: number; tenantId
 
 export async function run(ctx: any, over: { tenant_id?: string; export_id?: string } = {}): Promise<void> {
   const { buildExportTask } = await import('../tasks/build_export.js');
-  await buildExportTask({ tenant_id: TA, export_id: EXPORT, ...over } as never, ctx);
+  const before = snapshot();
+  try { await buildExportTask({ tenant_id: TA, export_id: EXPORT, ...over } as never, ctx); }
+  catch (e) { restore(before); throw e; }                       // a rejected task rolls the job transaction back; a resolved one commits
 }
 export const rowOf = (): ExportRow => exportsDb.exports.get(EXPORT)!;
 export const fileOf = () => exportsDb.files.get(`${TA}|${EXPORT}`);

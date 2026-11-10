@@ -47,6 +47,8 @@ export function OutsourcedQueue({ items, permissions, centres }: { items: readon
     try {
       const r = await uploadOutsourcedAction(uploadFor.order_item_id, form, key.current);
       if (r.ok) { key.current = newKey(); setUploadFor(null); toast.show({ tone: 'success', title: 'File uploaded. Checking it now.' }); router.refresh(); } else setErrors({ form: errorText(r.code) });
+    } catch {
+      setErrors({ form: 'The upload failed. Check your connection and try again.' }); // network/transport failure: show it, don't leave an unhandled rejection
     } finally { setBusy(false); }
   };
   const openFile = async (i: OutsourcedItem) => {

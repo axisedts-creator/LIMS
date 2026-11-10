@@ -12,3 +12,8 @@
 - Unchanged: integration dir still absent, vitest "No test files found". Tester never wrote the suite (only renamed a CR file).
 - Not impl bug, not spec dispute; debugger may not author tests. No code change.
 - Needed: TESTER must write FD integration tests (real BillingCommandPort, registration rollback proves counter rollback, US-FD-03.5). Stop re-routing to debugger.
+
+## J-T01 debug round 4
+- Cause: gate test fails: `frontdesk/service/registration.service.ts` absent on lane/C4b. FD-T06 (a90cbe8f) is on main/lane/C4 etc., not merged into lane/C4b. BL-T07 gate passes.
+- Not test bug (gate correct), not spec dispute. Fix = merge main (FD-T04..T06) into lane/C4b; that is orchestrator work, outside J-T01 owned paths. Re-implementing FD-T06 here would collide. No code change.
+- Next: orchestrator merges main into lane/C4b, then TESTER writes real rollback suite (US-FD-03.5), then re-verify.

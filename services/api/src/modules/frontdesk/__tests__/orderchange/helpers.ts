@@ -27,6 +27,7 @@ export const NOW_ISO = NOW.toISOString();
 export const money = (n: number) => ({ amount_paisa: n, currency: 'NPR' });
 
 export interface ItemDef {
+  /** the lab fake has NO row for this item (C5 has not consumed items_changed yet) */ labOmit?: boolean;
   orderable: string; code: string; lab?: LabState; status?: 'active' | 'removed' | 'cancelled'; price?: number;
   /** cash: the registration invoice (fake fixture) lists this item among its lines */ invoiced?: boolean;
   /** credit: a credit charge exists for the item; `periodic` = already on a periodic invoice */ charge?: 'open' | 'periodic';
@@ -48,7 +49,7 @@ export async function edit(o: EditOpts = {}): Promise<E> {
   const mode = o.mode ?? 'cash';
   const defs = o.items ?? [CBC, GLU];
   const centre = o.centre ?? CENTRE[side];
-  const specs: ItemSpec[] = defs.map((d) => ({ lab: d.lab ?? 'not_started', ...(d.status ? { status: d.status } : {}),
+  const specs: ItemSpec[] = defs.map((d) => ({ lab: d.lab ?? 'not_started', ...(d.labOmit ? { labOmit: true } : {}), ...(d.status ? { status: d.status } : {}),
     row: { orderable_id: d.orderable, code: d.code, name: `${d.code} synthetic test`, unit_price_paisa: d.price ?? 50000, vat_treatment: 'exempt' } }));
   const s = await scenario({ side, stored: o.stored ?? 'registered', items: specs, centre, order: { billing_mode: mode, ...(mode === 'credit' ? { credit_party_id: o.creditParty ?? CP.ok } : {}),
     ...(o.referrer ? { referrer_id: REFERRER } : {}) } });

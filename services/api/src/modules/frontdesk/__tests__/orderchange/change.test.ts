@@ -2,7 +2,7 @@
 // §8.1 (items_changed.v1: key `<order_id>:items:<order_version>`, seq = order version); 03-APP-FLOW §2.5; 07-SECURITY §5/§6.1/§6.2/§6.4/§6.5.
 // Ports are the real fakes (packages/fakes). LD-70: pending.json is the writer's; nothing here touches it.
 // Spec gaps, deliberately NOT asserted: adding an orderable that is already active on the order; F13 on a stored `in_progress` order (TRD §8.1 says registered/in_progress, APP-FLOW §2.5 says
-// `registered`); an item the lab fake does not know; unknown / inactive reason codes (coded-set validation owner); billing idempotency-key format.
+// `registered`); unknown / inactive reason codes (coded-set validation owner); billing idempotency-key format.
 // The whole-tx RETRY on billing.counter_busy / 40P01 (03-APP-FLOW §2.3 step 9, D-25) needs a handler-ctx tx opener that does not exist (CR .orchestra/cr/FD-T06-retry-quote-ext.md):
 // 'transient counter_busy' below accepts a retried success OR a clean failure, but never a half-written change.
 import { beforeAll, describe, expect, it } from 'vitest';
@@ -312,6 +312,15 @@ describe('F13 removals (US-FD-10.2, US-FD-10.3)', () => {
     const lab = e.labPortCalls();
     expect(lab.length).toBeGreaterThan(0);
     for (const c of lab) expect(c.input).toEqual({ orderId: e.order.id });
+  }, T);
+
+  it('10.3 removal guard fails CLOSED: the lab returns no row for the removed item -> 409 frontdesk.order_not_editable; nothing written; billing not called (reviewer FD-T09 #1; 03-IC §3.2, 02-TRD:482)', async () => {
+    const e = await edit({ items: [{ ...CBC, labOmit: true }, GLU] });
+    const before = await snap(e);
+    const x = await changeFails(e, await mk(e, { remove: [rm(e.itemOf('CBC').id)] }));
+    expect(x.code).toBe('frontdesk.order_not_editable'); expect(x.statusCode).toBe(409);
+    expect(await snap(e)).toEqual(before);
+    expect(mutations(e)).toEqual([]);
   }, T);
 
   it('10.3 a result already entered also blocks removal (fake reason result_entered)', async () => {

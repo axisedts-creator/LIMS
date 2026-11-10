@@ -407,8 +407,8 @@ class Scheduling(unittest.TestCase):
         timers = [p for p in fs if re.search(r"container[-_]health", p.name) and ".timer" in p.name]
         self.assertTrue(timers, "no container-health .timer (or .timer.j2) under infra/ansible")
         t = "\n".join(p.read_text(encoding="utf-8") for p in timers)
-        self.assertRegex(t, r"(?m)^\s*(OnUnitActiveSec|OnUnitInactiveSec)\s*=\s*30\s*(s|sec|seconds)?\s*$|"
-                            r"(?m)^\s*OnCalendar\s*=.*\*:\*:(00?/30|0,30|00,30)\b", "cadence must be 30 s")
+        self.assertRegex(t, r"(?m)(^\s*(OnUnitActiveSec|OnUnitInactiveSec)\s*=\s*30\s*(s|sec|seconds)?\s*$|"
+                            r"^\s*OnCalendar\s*=.*\*:\*:(00?/30|0,30|00,30)\b)", "cadence must be 30 s")
         services = [p for p in fs if re.search(r"container[-_]health", p.name) and ".service" in p.name]
         self.assertTrue(services, "no container-health .service (or .service.j2)")
         s = "\n".join(p.read_text(encoding="utf-8") for p in services)

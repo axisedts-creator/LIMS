@@ -9,7 +9,7 @@ import { fiscalYearBs, formatBs, instantToBs, type IsoDate, type IsoUtc } from '
 import { uuidv7 } from '../../../../../../packages/shared-ts/src/uuidv7/index.js';
 import { LimsError } from '../../../core/errors.js';
 import { evaluateLimit, resolveDiscounts, type Discount, type LimitResult } from '../domain/discount.js';
-import { formatNumber } from '../domain/numbering.js';
+import { formatNumber, hasToken } from '../domain/numbering.js';
 import { ageDisplay } from '../domain/patient.js';
 import { createFrontdeskEvents } from '../events/publish.js';
 import { dateOnly } from '../mappers/patient.dto.js';
@@ -27,7 +27,7 @@ type QuoteCtx = PatientCtx & { readonly ports: { readonly CatalogPort: CatalogPo
 type CreateCtx = QuoteCtx & {
   readonly ports: QuoteCtx['ports'] & { readonly NotificationPort: NotificationPortV1 };
   readonly events: { publish(ctx: never, type: string, input: never): Promise<{ eventId: string; duplicate: boolean }> };
-  readonly core: { centre(ctx: unknown, i: { centreId: string }): Promise<{ branchId: string }> };
+  readonly core: { centre(ctx: unknown, i: { centreId: string }): Promise<{ branchId: string }>; branch(ctx: unknown, i: { branchId: string }): Promise<{ branchCode: string }> };
   readonly log?: { warn(o: object, msg?: string): void };
 };
 type Priority = 'routine' | 'urgent';
@@ -314,13 +314,15 @@ async function createInTx(hctx: unknown, body: unknown): Promise<Result> {
   const pattern = tenant.numbering?.registrationNoPattern;
   if (typeof pattern !== 'string') throw new LimsError('common.internal');
   const branchId = (await c.core.centre(c, { centreId: d.centreId })).branchId;
+  // registrationNoPattern must contain {branch} (03-IC §9.3 / 2844): its value is the branch_code of the centre's branch
+  const branchCode = hasToken(pattern, 'branch') ? (await c.core.branch(c, { branchId })).branchCode : undefined;
   const seq = await nextCounterValue(c.tx, c.tenantId, 'registration_no', branchId, c.actor.id);
   const birth = dateOnly(patient['birth_on']);
   const age = birth ? ageParts(birth, today) : undefined;
   const orderId = uuidv7();
   const registeredAt = c.now();
   const order = await insertOrder(c.tx, c.tenantId, {
-    id: orderId, branch_id: branchId, centre_id: d.centreId, patient_id: patient['id'], registration_no: formatNumber(pattern, { seq, year: Number(today.slice(0, 4)) }),
+    id: orderId, branch_id: branchId, centre_id: d.centreId, patient_id: patient['id'], registration_no: formatNumber(pattern, { seq, year: Number(today.slice(0, 4)), ...(branchCode === undefined ? {} : { branch: branchCode }) }),
     status: 'registered', visit_type: d.visitType, billing_mode: d.billingMode, credit_party_id: d.creditPartyId, referrer_id: d.referrerId, priority: d.priority,
     collection_mode: d.collectionMode, source: 'front_desk', age_years: age?.years, age_months: age?.months, age_days: age?.days,
     is_first_order_of_patient: isFirst, catalog_revision: p.resolved.catalogRevision, registered_at: registeredAt,

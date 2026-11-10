@@ -162,7 +162,7 @@ function evalWhere(row: Row, where: string, values: readonly unknown[]): boolean
 
 // ------------------------------------------------------------------------------------------------ the database
 export interface Seed { [table: string]: Row[] }
-export interface DbOpts { rls?: boolean; tenant?: string; failOn?: Array<{ match: RegExp; error: () => Error; times?: number }> }
+export interface DbOpts { rls?: boolean; tenant?: string; allowDelete?: readonly string[]; failOn?: Array<{ match: RegExp; error: () => Error; times?: number }> }
 
 export function makeDb(seed: Seed = {}, opts: DbOpts = {}) {
   const rls = opts.rls ?? true; const tenant = opts.tenant ?? TENANT_A;
@@ -189,7 +189,15 @@ export function makeDb(seed: Seed = {}, opts: DbOpts = {}) {
     if (verb === 'with' || /\bjoin\b|\(\s*select\b|\bunnest\s*\(|\bcount\s*\(/i.test(text)) unsupported(text.slice(0, 90));
     const table = /\b(?:from|into|update)\s+((?:reporting|core|catalog|frontdesk|lab|billing|micro|anatomic)\.\w+)/i.exec(text)?.[1];
     if (!table) return [];
-    if (verb === 'delete') throw pgError('42501', 'permission denied: no DELETE grant');
+    if (verb === 'delete') {
+      // C6-T16: DELETE stays "no grant" unless the test opts a table in (E tables only, 05-SCHEMA §6: purge_ephemeral under the system actor). WHERE is mandatory.
+      if (!opts.allowDelete?.includes(table)) throw pgError('42501', 'permission denied: no DELETE grant');
+      const where = /\bwhere\b([\s\S]*?)(?:\breturning\b[\s\S]*)?$/i.exec(text)?.[1];
+      if (!where?.trim()) return unsupported('DELETE without WHERE');
+      const rows = rowsOf(table); const hit = visible(table).filter((r) => evalWhere(r, where, values));
+      for (const r of hit) rows.splice(rows.indexOf(r), 1);
+      return /\breturning\b/i.test(text) ? hit.map((r) => ({ ...r })) : [];
+    }
 
     if (verb === 'select') {
       const where = /\bwhere\b([\s\S]*?)(?:\border\s+by\b|\bfor\s+update\b|\blimit\b|\bgroup\s+by\b|$)/i.exec(text)?.[1] ?? '';

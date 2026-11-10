@@ -42,3 +42,30 @@ export const HEALTH_OPTIONS = options(HEALTH);
 export const DEFAULT_CLOCK_OFFSET_WARN_SECONDS = 300; // 02-TRD settings default for clock_offset_warn_seconds [CONV]
 
 export const hasPerm =(perms: readonly string[], p: string) => perms.includes(p);
+
+// SCR-05/07 (WEB-T03): the chip carries just the state name; "no results sent" is a separate visible hint (04-UI-UX §1) [CONV].
+const STATE_CHIP: Record<string, readonly [Tone, string]> = {
+  draft: ['neutral', 'Draft'],
+  commissioning: ['info', 'Commissioning'],
+  live: ['success', 'Live'],
+  suspended: ['warning', 'Suspended'],
+  retired: ['neutral', 'Retired'],
+};
+export const InstrumentStatePill = ({ state }: { state: string }) => (
+  <>
+    {chip(STATE_CHIP, state)}
+    {state === 'commissioning' || state === 'suspended' ? <span className="lims-description"> (no results sent)</span> : null}
+  </>
+);
+export const INSTRUMENT_STATE_OPTIONS = options(STATE_CHIP);
+
+const DRIVER: Record<string, readonly [Tone, string]> = {
+  generic: ['warning', 'Generic'],
+  verified: ['success', 'Verified'],
+  sketch_blocked: ['danger', 'Sketch — not for live use'],
+};
+export const DriverStatusBadge = ({ status }: { status: string }) => chip(DRIVER, status);
+export const driverStatusLabel = (s: string) => (Object.hasOwn(DRIVER, s) ? DRIVER[s]![1] : s);
+
+export const PROTOCOL_LABEL: Record<string, string> = { astm: 'ASTM', hl7v2: 'HL7 v2', file_drop: 'Folder only' };
+export const PROTOCOL_OPTIONS = Object.entries(PROTOCOL_LABEL).map(([value, label]) => ({ value, label }));

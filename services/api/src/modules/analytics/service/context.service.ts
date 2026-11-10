@@ -28,7 +28,7 @@ function actorOf(ctx: ScopeContext): Promise<ActorProfile> {
 }
 
 /** Port errors may be the contracts' LimsError class (same code space, other class): re-wrap so the API error mapper renders them. */
-function asApiError(e: unknown): never {
+export function asApiError(e: unknown): never {
   const o = e as { code?: unknown; detail?: unknown } | null;
   if (!(e instanceof LimsError) && typeof o?.code === 'string') {
     throw new LimsError(o.code, typeof o.detail === 'string' ? o.detail : undefined);

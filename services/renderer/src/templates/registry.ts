@@ -5,6 +5,7 @@ import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import type { DataTemplateModule, SmartSectionRenderer, TemplateModule } from './contract.js';
+import { accessSlipTemplate } from './access-slip/index.js';
 import { labReportTemplate } from './lab/index.js';
 import { narrativeReportTemplate } from './narrative/index.js';
 
@@ -32,6 +33,7 @@ export async function loadRegistry(o: { templatesRoot?: string } = {}): Promise<
   };
   add(labReportTemplate.templateId, labReportTemplate);
   add(narrativeReportTemplate.templateId, narrativeReportTemplate);
+  add(accessSlipTemplate.templateKey, accessSlipTemplate);   // C6-owned (08 A5.1), always present
 
   for (const dir of DATA_DIRS) {
     const mod = await load(root, dir);

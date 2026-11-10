@@ -15,6 +15,7 @@ import { join } from 'node:path';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { norm, pdfPages } from '../../__tests__/helpers/pdf-text.js';
 import * as fx from './helpers/make-pdf.js';
+import { locateText, onScreen } from './helpers/stamp-pos.js';
 import { startServer } from '../server.js';
 
 vi.setConfig({ testTimeout: 60_000, hookTimeout: 60_000 });
@@ -155,6 +156,12 @@ describe('sanitize: malformed corpus is rejected (AC-04.6; done_when "malformed 
   it('embedded file attachment → 422', async () => {
     await expectRejected(await sanitize(fx.embeddedFile()));
   });
+  it('AcroForm /XFA (script without any /JS or /JavaScript name) → 422, array and single-stream forms (07-SECURITY A12)', async () => {
+    for (const bytes of [fx.xfaForm(), fx.xfaFormSingleStream()]) {
+      expect(bytes.toString('latin1')).not.toMatch(/\/(JS|JavaScript)\b/); // fixture sanity: only /XFA can trip the scan
+      await expectRejected(await sanitize(bytes));
+    }
+  });
   it('> 15 MB → 413 (common.payload_too_large), never parsed', async () => {
     const huge = fx.simple('HUGE', 1, { hook: () => ({ objects: [`<< /Length ${15 * MIB}\n>>\nstream\n${' '.repeat(15 * MIB)}\nendstream`] }) });
     expect(huge.length).toBeGreaterThan(15 * MIB);
@@ -280,6 +287,90 @@ describe('assemble + stamp: "Page N Of M" over the merged document (AC-04.5, AC-
     expect(pages).toHaveLength(4);
     expect(pages[3]).toContain('OUTSAN-2');
     expect(pages[3]).toContain('Page 4 Of 4');
+  });
+  // Review item 2: the label must land inside the visible page whatever the page geometry (AC-04.5 "every page … carries Page N Of M").
+  describe('stamp position follows the visible page (CropBox/MediaBox origin and /Rotate)', () => {
+    const SLACK = 1; // pt
+    const stampedPage = async (pdf: Buffer) => {
+      const res = await asm([part('outsourced', pdf)], { markers: { plain: false, not_released: true } });
+      expect(res.status).toBe(200);
+      return Buffer.from(await res.arrayBuffer());
+    };
+    const inside = (g: ReturnType<typeof locateText>[number]) => {
+      const f = g.found!;
+      const [x0, y0, x1, y1] = g.box;
+      expect(f.x).toBeGreaterThanOrEqual(x0 - SLACK);
+      expect(f.x).toBeLessThanOrEqual(x1 + SLACK);
+      expect(f.y).toBeGreaterThanOrEqual(y0 - SLACK);
+      expect(f.y).toBeLessThanOrEqual(y1 + SLACK);
+    };
+    it('fixture sanity: the locator reads a plain page at the bottom-right (and NOT RELEASED bottom-left)', async () => {
+      const out = await stampedPage(fx.simple('PLAIN'));
+      const [lab] = locateText(out, 'Page 1 Of 1');
+      const [nr] = locateText(out, 'NOT RELEASED');
+      const s = onScreen(lab!)!;
+      expect(s.sx).toBeGreaterThan(s.W / 2);
+      expect(s.sy).toBeLessThan(60);
+      expect(onScreen(nr!)!.sx).toBeLessThan(s.W / 2);
+    });
+    it('MediaBox [100 100 712 892] (origin ≠ 0,0): both labels are inside the box, near its bottom edge', async () => {
+      const out = await stampedPage(fx.offsetBox('OFF'));
+      for (const needle of ['Page 1 Of 1', 'NOT RELEASED']) {
+        const [g] = locateText(out, needle);
+        expect(g!.found, needle).toBeDefined();
+        expect(g!.box).toEqual([100, 100, 712, 892]);
+        inside(g!);
+        expect(onScreen(g!)!.sy, needle).toBeLessThan(60);
+      }
+      const s = onScreen(locateText(out, 'Page 1 Of 1')[0]!)!;
+      expect(s.sx).toBeGreaterThan(s.W / 2);
+    });
+    it('CropBox smaller than and offset inside the MediaBox: labels sit inside the CropBox (what is shown)', async () => {
+      const out = await stampedPage(fx.offsetBox('CROP', '[0 0 800 1000]', '/CropBox [150 200 650 900]'));
+      for (const needle of ['Page 1 Of 1', 'NOT RELEASED']) {
+        const [g] = locateText(out, needle);
+        expect(g!.found, needle).toBeDefined();
+        expect(g!.box).toEqual([150, 200, 650, 900]);
+        inside(g!);
+        expect(onScreen(g!)!.sy, needle).toBeLessThan(60);
+      }
+    });
+    it.each([90, 180, 270] as const)('/Rotate %i: labels are inside the box, upright on screen, bottom-right and bottom-left', async (angle) => {
+      const out = await stampedPage(fx.rotated('ROT', angle));
+      const [lab] = locateText(out, 'Page 1 Of 1');
+      const [nr] = locateText(out, 'NOT RELEASED');
+      for (const g of [lab!, nr!]) {
+        expect(g.found).toBeDefined();
+        expect(g.rotate).toBe(angle);
+        inside(g);
+        const s = onScreen(g)!;
+        expect(s.dx).toBeGreaterThan(0.99); // reads left-to-right as displayed
+        expect(Math.abs(s.dy)).toBeLessThan(0.01);
+        expect(s.sy).toBeLessThan(60); // bottom of the displayed page
+      }
+      const a = onScreen(lab!)!;
+      expect(a.sx).toBeGreaterThan(a.W / 2); // "Page N Of M" right
+      expect(onScreen(nr!)!.sx).toBeLessThan(a.W / 2); // "NOT RELEASED" left
+    });
+    it('/Rotate 90 on an offset MediaBox: still inside the box and upright', async () => {
+      const out = await stampedPage(fx.rotated('ROFF', 90, '[100 100 712 892]'));
+      const [g] = locateText(out, 'Page 1 Of 1');
+      expect(g!.found).toBeDefined();
+      inside(g!);
+      const s = onScreen(g!)!;
+      expect(s.dx).toBeGreaterThan(0.99);
+      expect(s.sy).toBeLessThan(60);
+    });
+    it('page numbering stays right across mixed geometries: main + rotated + offset → Page 1/2/3 Of 3', async () => {
+      const res = await asm([part('main', fx.simple('M')), part('outsourced', fx.rotated('R', 90)), part('outsourced', fx.offsetBox('O'))]);
+      expect(res.status).toBe(200);
+      const out = Buffer.from(await res.arrayBuffer());
+      pageTexts(out).forEach((t, i) => expect(t).toContain(`Page ${i + 1} Of 3`));
+      locateText(out, 'Of 3').forEach((g) => {
+        expect(g.found).toBeDefined();
+        inside(g);
+      });
+    });
   });
   it('output carries no /Encrypt and no active content from a clean input', async () => {
     const s = Buffer.from(await (await asm([part('main', fx.simple('C'))])).arrayBuffer()).toString('latin1');

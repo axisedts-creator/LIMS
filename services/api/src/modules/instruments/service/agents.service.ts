@@ -21,6 +21,7 @@ export interface AgentsCtx {
   readonly audit?: { access(entry: Record<string, unknown>): Promise<unknown> };
 }
 export interface Result { status: number; body: any; version?: number }
+export type Scope = ReturnType<typeof scope>;
 
 const READ = 'instruments.agent.read';
 const MANAGE = 'instruments.agent.manage';
@@ -37,32 +38,32 @@ const DAY_MS = 24 * 3600 * 1000;
 const REUPLOAD_MAX_MS = 72 * 3600 * 1000;               // 02-TRD E17: since >= now - 72 h
 const SUPERSEDED_REASON = 'other';                       // [CONV] earlier unused codes revoked on E14 re-issue (seeded g_cs_revoke_reasons)
 
-const fail = (path: string, code = 'common.field_invalid', message = 'Field invalid'): never => {
+export const fail = (path: string, code = 'common.field_invalid', message = 'Field invalid'): never => {
   throw new LimsError('common.validation_failed', undefined, [{ path, code, message } satisfies FieldError]);
 };
-const isUuid = (v: unknown): v is string => typeof v === 'string' && UUID.test(v);
-const isInt = (v: unknown, min: number, max: number) => Number.isSafeInteger(v) && (v as number) >= min && (v as number) <= max;
-function version(v: unknown): number {
+export const isUuid = (v: unknown): v is string => typeof v === 'string' && UUID.test(v);
+export const isInt = (v: unknown, min: number, max: number) => Number.isSafeInteger(v) && (v as number) >= min && (v as number) <= max;
+export function version(v: unknown): number {
   if (v === undefined || v === null) throw new LimsError('common.precondition_required');
   if (!isInt(v, 1, 2147483647)) fail('/If-Match');
   return v as number;
 }
-function limitOf(v: unknown): number {
+export function limitOf(v: unknown): number {
   const n = v === undefined ? 50 : v;
   if (!isInt(n, 1, 200)) fail('/limit');
   return n as number;
 }
-function enumList(v: unknown, allowed: string[], path: string): string[] | undefined {
+export function enumList(v: unknown, allowed: string[], path: string): string[] | undefined {
   if (v === undefined) return undefined;
   if (!Array.isArray(v) || v.length > allowed.length || !v.every((x) => allowed.includes(x))) fail(path);
   return [...new Set(v as string[])];
 }
-function cursorOf(v: unknown): string | undefined {
+export function cursorOf(v: unknown): string | undefined {
   if (v === undefined) return undefined;
   if (typeof v !== 'string' || v.length === 0 || v.length > 512) throw new LimsError('common.invalid_cursor');
   return v;
 }
-function scope(ctx: AgentsCtx) {
+export function scope(ctx: AgentsCtx) {
   if (typeof ctx?.tenantId !== 'string' || !UUID.test(ctx.tenantId) || typeof ctx.actor?.id !== 'string' || typeof ctx.actor?.type !== 'string' || !ctx.tx) {
     throw new LimsError('auth.unauthenticated');
   }
@@ -73,7 +74,7 @@ function scope(ctx: AgentsCtx) {
     assert: (permission: string, centreId?: string) => assertRole.call(ctx.ports!.IdentityPort, ctx, centreId === undefined ? { permission } : { permission, centreId }),
   };
 }
-function page(limit: number, nextCursor?: string) {
+export function page(limit: number, nextCursor?: string) {
   return nextCursor ? { limit, next_cursor: nextCursor } : { limit };
 }
 
@@ -81,7 +82,6 @@ export function createAgentsService(deps: { repo?: AgentsRepo; now?: () => Date 
   const repo = deps.repo ?? createAgentsRepo();
   const nowMs = (ctx: AgentsCtx): number => new Date(deps.now?.() ?? ctx.now?.() ?? new Date()).getTime();
 
-  type Scope = ReturnType<typeof scope>;
   /** BOLA: RLS-visible row of the caller's tenant, else 404; then assertRole at the agent's centre. */
   async function loadAgent(s: Scope, agentId: unknown, permission: string): Promise<Row> {
     if (!isUuid(agentId)) throw new LimsError('common.not_found');

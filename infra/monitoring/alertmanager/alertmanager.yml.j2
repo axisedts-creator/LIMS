@@ -46,6 +46,11 @@ route:
       group_wait: 10s
       group_interval: 5m
       repeat_interval: 4h
+    # AC-06.3 (T-26): Studio break-glass is on -> reminder every hour (before the generic info route).
+    - matchers: ['alertname="StudioEnabled"']
+      receiver: ops-digest-email
+      group_interval: 5m
+      repeat_interval: 1h
     - matchers: ['severity="info"']
       receiver: dashboard-only
     - matchers: ['alertname="BridgeAgentOfflineLong"']

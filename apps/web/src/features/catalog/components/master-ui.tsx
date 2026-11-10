@@ -3,6 +3,7 @@
 // (`/`, `n`), and the editor dialog (Ctrl+S, one Idempotency-Key per open, 409 handling). Manage affordances are a UI hint; the API enforces.
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
+import { Badge } from '@lims/ui/components/Badge';
 import { Banner } from '@lims/ui/components/Banner';
 import { Button } from '@lims/ui/components/Button';
 import { Dialog } from '@lims/ui/components/Dialog';
@@ -16,9 +17,11 @@ import type { ActionResult } from '../server/types';
 
 export const canManage = (permissions: readonly string[]) => permissions.includes('catalog.test.manage');
 export const statusText = (active: boolean) => (active ? 'Active' : 'Inactive');
+export const StatusBadge = ({ active }: { active: boolean }) => <Badge tone={active ? 'success' : 'neutral'}>{statusText(active)}</Badge>;
 export const CODE_HINT = 'Pattern ^[A-Z0-9][A-Z0-9_]{0,31}$: capital letters A-Z0-9 and _, up to 32.'; // [CONV] hint wording
 export const DUPLICATE = 'This code is already used.';
-const CONFLICT = 'Someone else changed this item. Reload to see their changes.';
+export const CONFLICT = 'Someone else changed this item. Reload to see their changes.';
+export const MFA = 'This change needs a second factor. Verify your identity (multi-factor sign-in), then try again.';
 
 /** Only the fields that differ from the loaded item (PATCH never re-sends untouched fields). */
 export function changed<T extends object>(before: T, after: Partial<T>): Partial<T> {
@@ -81,15 +84,17 @@ export function useListFilter<R extends { code: string; is_active: boolean }>(ro
 export interface Col<R> { header: string; cell: (r: R) => ReactNode }
 
 /** Plain table (role=table; rows named by their content). `onEdit` undefined or `canEdit` false = no Edit button for the row. */
-export function MasterTable<R extends { id: string; code: string }>({ caption, cols, rows, empty, emptyAction, onEdit, canEdit = () => true, rowExtra }: {
+export function MasterTable<R extends { id: string }>({ caption, cols, rows, empty, emptyAction, onEdit, canEdit = () => true, rowExtra, codeOf = (r) => (r as { code?: string }).code ?? '' }: {
   caption: string;
+  /** Code shown (visually hidden) after the Edit button so each Edit has a unique name. */
+  codeOf?: (r: R) => string;
   cols: readonly Col<R>[];
   rows: readonly R[];
   empty: string;
   emptyAction?: { label: string; onPress: () => void } | undefined;
   onEdit?: ((r: R) => void) | undefined;
   canEdit?: (r: R) => boolean;
-  rowExtra?: (r: R) => ReactNode;
+  rowExtra?: ((r: R) => ReactNode) | undefined;
 }) {
   if (rows.length === 0) return <EmptyState title={empty} {...(emptyAction ? { action: emptyAction } : {})} />;
   const actions = !!onEdit || !!rowExtra;
@@ -115,7 +120,7 @@ export function MasterTable<R extends { id: string; code: string }>({ caption, c
                 {rowExtra?.(r)}
                 {onEdit && canEdit(r) ? (
                   <Button size="sm" variant="ghost" onPress={() => onEdit(r)}>
-                    Edit<VisuallyHidden> {r.code}</VisuallyHidden>
+                    Edit<VisuallyHidden> {codeOf(r)}</VisuallyHidden>
                   </Button>
                 ) : null}
               </td>
@@ -128,27 +133,32 @@ export function MasterTable<R extends { id: string; code: string }>({ caption, c
 }
 
 /**
- * Editor dialog: Save / Ctrl+S submit the form once at a time; one Idempotency-Key per open (a retry after a failure is the
- * same create, 02-CONVENTIONS §4.5); success → toast + refresh + close; 409 duplicate → onDuplicate (inline on Code);
- * 409 version_conflict → Banner + Reload, input kept; 409 version_in_use → onInUse + Banner. Failures stay inline:
- * a toast behind the modal is aria-hidden. Raw problem detail is never shown.
+ * Save form: Save / Ctrl+S submit the form once at a time; one Idempotency-Key per mount (a retry after a failure is the
+ * same create, 02-CONVENTIONS §4.5); success → toast + refresh + done; 409 duplicate → onDuplicate (inline on Code);
+ * 409 version_conflict → Banner + Reload, input kept; 409 version_in_use → onInUse + Banner; 403 auth.mfa_required → step-up
+ * message. Failures stay inline: a toast behind a modal is aria-hidden. Raw problem detail is never shown.
+ * `keepOpen` = an in-page form (detail screens): it can be saved again after a success.
  */
-export function EditorDialog({ title, savedText, onClose, check, save, onDuplicate, onInUse, inUseText, children }: {
-  title: string;
+export function SaveForm({ savedText, onDone, check, save, onSaved, onDuplicate, onInUse, inUseText, keepOpen, reloadLabel = 'Reload', children }: {
   savedText: string;
-  onClose: () => void;
+  /** Label of the conflict banner's refresh button. */
+  reloadLabel?: string;
+  onDone?: () => void;
   /** Extra client checks; false blocks the request (the screen shows its own field errors). */
   check?: () => boolean;
   save: (idempotencyKey: string) => Promise<ActionResult<unknown>>;
+  /** Called with the saved entity (before the form closes), e.g. to surface possible duplicates. */
+  onSaved?: (data: unknown) => void;
   onDuplicate: () => void;
   onInUse?: () => void;
   inUseText?: string;
+  keepOpen?: boolean;
   children: ReactNode;
 }) {
   const router = useRouter();
   const toast = useToast();
   const [key] = useState(() => crypto.randomUUID());
-  const [banner, setBanner] = useState<'conflict' | 'in_use' | 'error' | null>(null);
+  const [banner, setBanner] = useState<'conflict' | 'in_use' | 'mfa' | 'duplicate' | 'error' | null>(null);
   const wrap = useRef<HTMLDivElement>(null);
   const done = useRef(false);
 
@@ -168,12 +178,17 @@ export function EditorDialog({ title, savedText, onClose, check, save, onDuplica
     setBanner(null);
     const r = await save(key);
     if (r.ok) {
-      done.current = true;
-      onClose();
+      done.current = !keepOpen;
+      onSaved?.(r.data);
+      onDone?.();
       toast.show({ tone: 'success', title: savedText });
       router.refresh();
-    } else if (r.code === 'catalog.code_duplicate') onDuplicate();
+    } else if (r.code === 'catalog.code_duplicate') {
+      onDuplicate();
+      setBanner('duplicate');
+    }
     else if (r.code === 'common.version_conflict') setBanner('conflict');
+    else if (r.code === 'auth.mfa_required') setBanner('mfa');
     else if (r.code === 'catalog.version_in_use' && onInUse) {
       onInUse();
       setBanner('in_use');
@@ -181,20 +196,37 @@ export function EditorDialog({ title, savedText, onClose, check, save, onDuplica
   };
 
   return (
+    <div ref={wrap}>
+      <Form onSubmit={submit}>
+        {banner === 'conflict' ? <Banner tone="warning" title={CONFLICT} action={{ label: reloadLabel, onPress: () => router.refresh() }} /> : null}
+        {banner === 'in_use' ? <Banner tone="info" title={inUseText ?? ''} /> : null}
+        {banner === 'duplicate' ? (
+          <div role="alert">
+            <Banner tone="danger" title="The code is already in use. Choose another code." />
+          </div>
+        ) : null}
+        {banner === 'mfa' ? (
+          <div role="alert">
+            <Banner tone="warning" title={MFA} />
+          </div>
+        ) : null}
+        {banner === 'error' ? (
+          <div role="alert">
+            <Banner tone="danger" title="Could not save. Try again." />
+          </div>
+        ) : null}
+        {children}
+        <Button type="submit" variant="primary" shortcut="Ctrl+S">Save</Button>
+      </Form>
+    </div>
+  );
+}
+
+/** Editor dialog: SaveForm inside a modal; Esc / close = onClose. */
+export function EditorDialog({ title, onClose, ...rest }: { title: string; onClose: () => void } & Omit<Parameters<typeof SaveForm>[0], 'onDone' | 'keepOpen'>) {
+  return (
     <Dialog title={title} isOpen onClose={onClose} size="md">
-      <div ref={wrap}>
-        <Form onSubmit={submit}>
-          {banner === 'conflict' ? <Banner tone="warning" title={CONFLICT} action={{ label: 'Reload', onPress: () => router.refresh() }} /> : null}
-          {banner === 'in_use' ? <Banner tone="info" title={inUseText ?? ''} /> : null}
-          {banner === 'error' ? (
-            <div role="alert">
-              <Banner tone="danger" title="Could not save. Try again." />
-            </div>
-          ) : null}
-          {children}
-          <Button type="submit" variant="primary" shortcut="Ctrl+S">Save</Button>
-        </Form>
-      </div>
+      <SaveForm {...rest} onDone={onClose} />
     </Dialog>
   );
 }

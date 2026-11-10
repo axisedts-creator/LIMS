@@ -1,12 +1,16 @@
-// catalog.import_validate for kind `price_list` (02-TRD §8.3, §8.6, §10): scan -> ZIP inspect + parse (XlsxReader) -> row validation against the
+// catalog.import_validate (02-TRD §8.3, §8.6, §10): scan -> ZIP inspect + parse (XlsxReader) -> row validation against the
 // tenant catalog (dry run: only imports / files / import_issues are written) -> annotated report -> validated | invalid.
-// Other import kinds are left untouched here (later tasks). No cell value is ever stored in an issue or logged (05-SCHEMA §9, 07 S-13).
+// Kind price_list is validated here; catalog_master / referrers / credit_parties by the planners in catalog.import_kinds.ts (T-25).
+// No cell value is ever stored in an issue or logged (05-SCHEMA §9, 07 S-13).
 import { createHash } from 'node:crypto';
 import { uuidv7 } from '../../../../../../packages/shared-ts/src/uuidv7/index.js';
 import { loadCatalogConfig } from '../../../../../api/src/modules/catalog/config.js';
 import type { TaskHandler } from '../../../core/manifest.js';
 import { XlsxReadError, readXlsx, type Sheet } from '../xlsx/XlsxReader.js';
 import { writeXlsx } from '../xlsx/XlsxWriter.js';
+import { CODE_RE, KINDS, blank, planKind, txt } from './catalog.import_kinds.js';
+
+export { CODE_RE, blank, txt };
 
 export const IMPORT_VALIDATE = 'catalog.import_validate';
 
@@ -16,7 +20,8 @@ const MAX_PRICE = 9_999_999.99;
 export const FILE_SHEET = '(file)';                       // [CONV] sheet label for file-level issues
 const CHUNK = 400;                                   // issue rows per INSERT (12 binds each)
 const KNOWN_COLS = ['orderable_code', 'orderable_kind', 'orderable_name', 'department', 'unit_price_npr'];
-export const CODE_RE =/^[A-Z0-9][A-Z0-9_\-+.]{0,31}$/;     // orderables__code__ck
+const ALL_KINDS: readonly string[] = ['price_list', ...KINDS];
+const rowKey = (sheet: string, row: number) => `${sheet}\u0000${row}`;
 
 type Severity = 'error' | 'warning';
 interface Issue { severity: Severity; sheet: string; row_no: number | null; column_key: string | null; issue_code: string; message: string }
@@ -29,7 +34,7 @@ export const MSG: Record<string, string> = {
   'file.external_links': 'The workbook contains external links, which are not allowed.',
   'file.parse_timeout': 'The workbook took too long to read.',
   'file.too_many_rows': 'A sheet has more than 20,000 rows.',
-  'file.sheet_missing': 'Sheet "Prices" is missing.',
+  'file.sheet_missing': 'A required sheet is missing.',
   'file.header_mismatch': 'A required column is missing from the header row.',
   'file.unknown_column': 'Unknown column ignored.',
   'file.meta_missing': 'A required _meta entry is missing.',
@@ -45,10 +50,18 @@ export const MSG: Record<string, string> = {
   'row.price_invalid': 'The price must be a number from 0 to 9,999,999.99.',
   'row.price_decimals': 'The price has more than 2 decimals.',
   'row.price_change_large': 'The price changes by more than the warning threshold.',
+  'row.reference_unknown': 'The referenced code is not in the workbook or the catalog.',
+  'row.value_invalid': 'The value is not allowed for this column.',
+  'row.formula_invalid': 'The formula is invalid (syntax, unknown or non-numeric input, or a cycle).',
+  'row.range_overlap': 'The range overlaps another range of the same analyte.',
+  'row.panel_cycle': 'The panel would contain itself.',
+  'row.phone_invalid': 'The phone number is not in international format.',
+  'row.email_invalid': 'The email address is invalid.',
+  'file.draft_exists': 'A target already has an open draft version; discard it or commit with replace_draft.',
 };
 
-export const blank = (v: unknown) => v === null || v === undefined || (typeof v === 'string' && v.trim() === '');
-export const txt = (v: unknown) => (blank(v) || v instanceof Date ? '' : String(v).trim());
+const WARNINGS = ['file.unknown_column', 'file.stale_base', 'file.too_many_issues', 'row.orderable_inactive', 'row.price_change_large'];
+export const sev = (code: string): 'error' | 'warning' => (WARNINGS.includes(code) ? 'warning' : 'error');
 
 /** Number or numeric text, 0..MAX, <= 2 decimals. Anything else (commas, symbols, sign, bool, date) is price_invalid. */
 export function parsePrice(v: unknown): { paise: number } | { code: 'row.price_invalid' | 'row.price_decimals' } {
@@ -84,7 +97,8 @@ export const importValidate: TaskHandler = async (payload, jobCtx) => {
   // independent scan_unavailable write below cannot block on this transaction.
   const imp = (await q(
     'SELECT id, kind, status, target_price_list_id, upload_file_id, file_name FROM catalog.imports WHERE tenant_id = $1 AND id = $2', [tenantId, importId])).rows[0];
-  if (!imp || !WORKING.includes(imp.status) || imp.kind !== 'price_list') return;
+  if (!imp || !WORKING.includes(imp.status) || !ALL_KINDS.includes(imp.kind)) return;
+  const kind: string = imp.kind;
 
   const up = imp.upload_file_id
     ? (await q('SELECT content FROM catalog.files WHERE tenant_id = $1 AND id = $2', [tenantId, imp.upload_file_id])).rows[0] : undefined;
@@ -100,7 +114,7 @@ export const importValidate: TaskHandler = async (payload, jobCtx) => {
   const quarantine = async () => {
     if (!(await lock())) return;
     await setState(ctx, 'quarantined', 'common.upload_quarantined');
-    ctx.metrics?.inc?.('lims_catalog_imports_total', { kind: 'price_list', outcome: 'quarantined' });   // 02-TRD §12
+    ctx.metrics?.inc?.('lims_catalog_imports_total', { kind, outcome: 'quarantined' });   // 02-TRD §12
     ctx.log?.error?.({ event: 'import_quarantined', import_id: importId });
   };
 
@@ -122,15 +136,14 @@ export const importValidate: TaskHandler = async (payload, jobCtx) => {
 
   // ---- 2-3. ZIP inspection + parse (XlsxReader inspects first and restores neutralised text)
   const issues: Issue[] = [];
-  const rowCodes = new Map<number, string[]>();
+  const rowCodes = new Map<string, string[]>();
   let errors = 0, warnings = 0, truncated = false;
   const add = (severity: Severity, code: string, sheet: string, row: number | null = null, col: string | null = null) => {
     if (severity === 'error') errors++; else warnings++;
-    if (row !== null) { const l = rowCodes.get(row); if (l) l.push(code); else rowCodes.set(row, [code]); }
+    if (row !== null) { const k = rowKey(sheet, row), l = rowCodes.get(k); if (l) l.push(code); else rowCodes.set(k, [code]); }
     if (issues.length < cfg.importMaxIssues) issues.push({ severity, sheet, row_no: row, column_key: col && col.slice(0, 40), issue_code: code, message: MSG[code]! });
     else truncated = true;
   };
-  const sev = (code: string): Severity => (['file.unknown_column', 'file.stale_base', 'file.too_many_issues', 'row.orderable_inactive', 'row.price_change_large'].includes(code) ? 'warning' : 'error');
   const flag = (code: string, sheet: string, row?: number | null, col?: string | null) => add(sev(code), code, sheet, row ?? null, col ?? null);
 
   let sheets: Sheet[] | undefined;
@@ -142,7 +155,11 @@ export const importValidate: TaskHandler = async (payload, jobCtx) => {
 
   let rows = 0, added = 0, changed = 0, unchanged = 0, removed = 0;
   let baseNo: number | null = null;
-  if (sheets) {
+  let extra: Record<string, number> = {};
+  if (sheets && kind !== 'price_list') {
+    const plan = await planKind(kind, sheets, q, tenantId, flag);
+    ({ rows, added, changed, unchanged, extra } = plan);
+  } else if (sheets) {
     const prices = sheets.find((s) => s.name === 'Prices');
     const meta = sheets.find((s) => s.name === '_meta');
     // _meta: only template_kind / template_version / price_list_id / base_version_no are read (§8.2)
@@ -234,14 +251,14 @@ export const importValidate: TaskHandler = async (payload, jobCtx) => {
 
   // ---- 5. annotated report (original rows + `issues` column + `Issues` sheet; the writer neutralises every text cell)
   const status = errors === 0 ? 'validated' : 'invalid';
-  const summary = { rows, added, changed, removed, unchanged, errors, warnings };
+  const summary = { rows, added, changed, removed, unchanged, errors, warnings, ...extra };
   const reportSheets: Array<{ name: string; rows: unknown[][] }> = [];
-  const prices = sheets?.find((s) => s.name === 'Prices');
-  if (prices) {
-    const width = prices.rows.reduce((w, r) => Math.max(w, r.length), 0);
-    reportSheets.push({ name: 'Prices', rows: prices.rows.map((r, i) => [
+  // price_list: the Prices sheet; other kinds: every sheet but _meta (the report never carries _meta)
+  for (const s of sheets?.filter((x) => (kind === 'price_list' ? x.name === 'Prices' : x.name !== '_meta' && x.name !== 'Issues')) ?? []) {
+    const width = s.rows.reduce((w, r) => Math.max(w, r.length), 0);
+    reportSheets.push({ name: s.name, rows: s.rows.map((r, i) => [
       ...Array.from({ length: width }, (_, j) => r[j] ?? null),
-      i === 0 ? 'issues' : (rowCodes.get(i + 1)?.join('; ') ?? null)]) });
+      i === 0 ? 'issues' : (rowCodes.get(rowKey(s.name, i + 1))?.join('; ') ?? null)]) });
   }
   reportSheets.push({ name: 'Issues', rows: [   // always: AC-16.10 also covers file-level rejections
     ['seq', 'severity', 'sheet', 'row_no', 'column_key', 'issue_code', 'message'],
@@ -270,5 +287,5 @@ export const importValidate: TaskHandler = async (payload, jobCtx) => {
   await q(
     'UPDATE catalog.imports SET status = $3, summary = $4::jsonb, error_count = $5, warning_count = $6, base_version_no = $7, report_file_id = $8, validated_at = $9, expires_at = $10, last_error_code = NULL, version = version + 1, updated_at = $9, updated_by = $11 WHERE tenant_id = $1 AND id = $2',
     [tenantId, importId, status, JSON.stringify(summary), errors, warnings, baseNo, reportId, nowIso, impExp, actor]);
-  ctx.metrics?.inc?.('lims_catalog_imports_total', { kind: 'price_list', outcome: status });
+  ctx.metrics?.inc?.('lims_catalog_imports_total', { kind, outcome: status });
 };

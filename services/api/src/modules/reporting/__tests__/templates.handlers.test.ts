@@ -54,8 +54,11 @@ describe('T1-T4 and T6 are no longer 501 stubs', () => {
     const err = await rejection(manifest.handlers[op]({ params: {}, query: {}, headers: {}, body: undefined }, { operationId: op, clientIp: '203.0.113.9', log: noop }));
     expect(err?.code).toBe('auth.unauthenticated');
   });
-  it('T5 previewReportTemplate is still a stub (C6-T16)', async () => {
-    const t = e('previewReportTemplate'); expect((await run('previewReportTemplate', t, { params: { template_id: TPL_PUB }, body: { variant: 'letterhead' } })).status).toBe(501);
+  // C6-T16 implemented T5 previewReportTemplate (print.handlers.test.ts); the former "still a 501 stub" assertion is superseded there (LEAD-VISIBLE edit).
+  it('T5 previewReportTemplate is no longer a 501 stub (C6-T16): fails closed without a request context', async () => {
+    const noop = { info() {}, warn() {}, error() {} };
+    const err = await rejection(manifest.handlers['previewReportTemplate']({ params: {}, query: {}, headers: {}, body: undefined }, { operationId: 'previewReportTemplate', clientIp: '203.0.113.9', log: noop }));
+    expect(err?.code).toBe('auth.unauthenticated');
   });
 });
 

@@ -85,6 +85,7 @@
   become: true
   roles:
     - edge_nginx
+    - fail2ban
     - acme
 
 # 02-TRD s7.4 (T-14): LIMS runtime on the app host. secrets_render first

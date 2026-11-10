@@ -23,5 +23,15 @@ export const listTests = (tx: LabelsTx, a: LabelsInput) =>
   select<TestRow>(tx, 'test_id, code, name, department_id, is_active', 'catalog.v_pub_test_directory', 'test_id', a);
 export const listReferrers = (tx: LabelsTx, a: LabelsInput) =>
   select<ReferrerRow>(tx, 'referrer_id, display_name, is_active, canonical_referrer_id', 'catalog.v_pub_referrer_directory', 'referrer_id', a);
-export const listInstruments = (tx: LabelsTx, a: LabelsInput) =>
+/** #17: case-insensitive "contains" on display_name. The term is one bound LIKE pattern; % _ \ are escaped so they match literally. */
+export async function searchReferrers(tx: LabelsTx, a: { readonly tenantId: string; readonly query: string; readonly limit?: number | undefined }): Promise<ReferrerRow[]> {
+  const pattern = `%${a.query.replace(/[\\%_]/g, '\\$&')}%`;
+  const limit = Math.min(Math.max(1, Math.trunc(a.limit ?? 20)), 20);
+  return (await tx.query(
+    `SELECT referrer_id, display_name, is_active, canonical_referrer_id FROM catalog.v_pub_referrer_directory
+WHERE tenant_id = $1 AND display_name ILIKE $2 ESCAPE '\\' ORDER BY display_name, referrer_id LIMIT $3`,
+    [a.tenantId, pattern, limit],
+  )).rows as ReferrerRow[];
+}
+export const listInstruments =(tx: LabelsTx, a: LabelsInput) =>
   select<InstrumentRow>(tx, 'instrument_id, centre_id, instrument_code, display_name, is_active', 'instruments.v_pub_instrument_directory', 'instrument_id', a);

@@ -49,9 +49,9 @@ export async function scheduleEditorPage(id?: string) {
     name: '', reportCodes: ['dashboard', 'income'].filter((c) => reports.some((r) => r.code === c)), frequency: 'daily', weekday: 7, time: '07:00', period: 'previous_business_day',
     allCentres: true, centreIds: [], recipientIds: [] as string[],
   };
-  // ShellSession.actor has no membership id yet (C2/C0-0D gap, CR: .orchestra/cr/AN-T20.md); until it lands this default does not apply.
-  const self = (await getShellSession())?.actor as { membershipId?: string } | undefined;
-  if (!schedule && self?.membershipId) init.recipientIds = [self.membershipId]; // default recipient = the creator
+  // LD-89 / CR-C8-001: actor.membershipId is optional (absent in production until C2 resolveSession carries it); no creator default then.
+  const self = (await getShellSession())?.actor.membershipId;
+  if (!schedule && self) init.recipientIds = [self]; // default recipient = the creator
   return (
     <ScheduleEditor
       key={schedule?.version ?? 'new'} init={init} reports={reports} recipients={recipients} centres={(options?.centres ?? []).map((c) => ({ id: c.id, label: c.label }))}

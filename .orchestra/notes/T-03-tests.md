@@ -1,8 +1,8 @@
-# T-03 tests (C5 tester) — NOTE: overwrites the C1 T-03 notes of the same name (id collision)
-- Files: `services/api/src/modules/lab/repository/__tests__/repository.static.test.ts` (no DB) and `repository.integration.test.ts` (live DB); fixtures `tests/db/c5-t03/fixtures.sql`; harness `tests/db/c5-t03/run.sh`.
-- Run: `.orchestra\notes\T-03-verify.cmd` (docker -> pinned supabase/postgres image -> migrations+seeds -> vitest with LIMS_TEST_DATABASE_URL=lims_api and LIMS_TEST_ADMIN_DATABASE_URL=superuser). `LIMS_PG_IMAGE` overrides the image for local smoke only.
-- Covers: explicit tenant filter proven with RLS bypassed (superuser), statement hygiene (bound tenant, no interpolation, lab-only, no DELETE), `version = version + 1` conflicts/not_found/race, patch-key allowlist, EXPLAIN uses the 05 s5 index (worklist, pending, history, queue, barcode, registration, recent, by-order, hot set, delta) and no Seq Scan, counter allocation.
-- SEAMS (spec silent; full list in header of the integration test): `RepoCtx {tx,tenantId,actorId}`; files specimens/orders/orderTests/results/labSettings/barcodeCounters/deltaRules `.repo.ts`; snake_case rows; `insertX/getX/updateX(rc,id,expectedVersion,patch)`; named list functions.
-- WRITER MUST add `pg` 8.23.1 (+ `@types/pg`) to services/api (in lockfile already); tests import `pg`.
-- Other lab tables: only static check (named in some *.repo.ts); no behaviour tests for them.
-- NOT run: no node_modules and pinned image absent here; syntax-checked only (node --check), fixtures.sql never executed against a DB. Expect fixture/EXPLAIN-planner tweaks on first live run.
+## C3-catalog-pricing (lane/C3b)
+# T-03 tests (tester, chunk C3-catalog-pricing)
+- Files: `services/api/src/modules/catalog/__tests__/integration/revision.test.ts` + fixture `__tests__/helpers/catalogDb.ts` (in-memory Postgres fake: row lock on catalog_state, READ COMMITTED, tx-private writes, per-tenant scope). Real core `createEvents({producer:'catalog'})` validates every event.
+- Run: `.orchestra\notes\T-03-verify.cmd` (= `pnpm --filter @lims/api exec vitest run src/modules/catalog/__tests__/integration`). Not run by tester: no node_modules in this worktree.
+- Covers AC-19.2, AC-19.3 (20 writers gapless), AC-01.1 event half, 03-IC §3.19 payload, bind-only SQL.
+- Review round: added test "catalog_state UPDATE is scoped by tenant_id explicitly" (needs `WHERE tenant_id = $1`, values[0] = tx tenant). Fails against current impl (no WHERE, no bind) until repo fix lands. Review's claim "no test change needed" held for the fake, but the assertion was requested.
+- Interface seam names unchanged: `createRevisionService({events}).bumpRevision(ctx,{entityType,entityId,changeKind,effectiveFrom})`, `createCatalogEvents(events).catalogChanged`.
+- NOT covered: HTTP half of AC-01.1 (T-04), stamping for analyte/range/TAT owners (T-06+), real Postgres lock (db/tests), import-mode suppression (T-20).

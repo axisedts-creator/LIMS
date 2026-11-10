@@ -8,6 +8,8 @@ coverage/
 .env
 .env.*
 *.pem
+!services/api/src/modules/instruments/__tests__/fixtures/config/*.pem
+!apps/bridge-agent/testdata/config/*.pem
 *.key
 supabase/.temp/
 tools/codegen/out/

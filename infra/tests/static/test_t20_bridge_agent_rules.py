@@ -98,11 +98,11 @@ def _lint(tc, rules, label):
         tc.assertEqual(str(a.get("runbook_url", "")).lower(), "infra/runbooks/instruments.md#%s" % name.lower(),
                        "%s %s: runbook_url" % (label, name))
         tc.assertEqual((r.get("labels") or {}).get("team"), "ops", "%s %s: team" % (label, name))
-        blob = json.dumps(r)
-        for lbl in DROP_LABELS:
-            tc.assertNotRegex(blob, r"\b%s\b" % lbl, "%s %s mentions PHI-class label %s" % (label, name, lbl))
-        # annotation templates may use only opaque ids (AC-25.2: tenant_id, centre_id, agent_id only)
-        for k, v in a.items():
+        # T-20 ruling (2026-11-08): check label KEYS and template uses, not a substring over the blob
+        # (receiver name `oncall-email` is spec-mandated routing, not a PHI label).
+        tc.assertEqual(set(r.get("labels") or {}) & set(DROP_LABELS), set(), "%s %s: PHI-class label key" % (label, name))
+        # expr and annotation templates may use only opaque ids (AC-25.2: tenant_id, centre_id, agent_id only)
+        for k, v in list(a.items()) + [("expr", r["expr"])]:
             for used in re.findall(r"\$labels\.(\w+)|\.Labels\.(\w+)", str(v)):
                 used = used[0] or used[1]
                 tc.assertIn(used, TENANT_OK_LABELS | {"alertname", "severity", "team"}, "%s %s: annotation %s uses label %s" % (label, name, k, used))
@@ -186,9 +186,14 @@ class ImportedC7RulesTest(unittest.TestCase):
         _lint(self, self.rules, "imported")
 
     def test_import_adds_only_allowed_keys(self):  # severity, team, runbook_url (+ receiver label)
+        # T-20 ruling (TESTS_WRONG): the limit is on what C1 ADDS (02-TRD s11.3 :884); source labels such as
+        # C7's `route` are kept verbatim. Allowed = labels of the same alert in the C7 source
+        # (else at least {route}) + {severity, team, receiver, notify_tenant}.
+        src = _rules(C7_SRC) if C7_SRC.exists() else {}
         for name, r in self.rules.items():
             self.assertFalse(set(r) - {"alert", "expr", "for", "labels", "annotations", "keep_firing_for"}, name)
-            self.assertFalse(set(r["labels"]) - {"severity", "team", "receiver", "notify_tenant"}, "%s: %s" % (name, r["labels"]))
+            allowed = set((src.get(name) or {}).get("labels") or {"route": 1}) | {"severity", "team", "receiver", "notify_tenant"}
+            self.assertFalse(set(r["labels"]) - allowed, "%s: %s" % (name, r["labels"]))
             self.assertNotEqual(r["labels"].get("notify_tenant"), "true", "%s: tenant mail is for BridgeAgentOfflineLong" % name)
 
     def test_alert_import_drift_against_c7_source_when_present(self):  # 02-TRD s11.3 CI job alert-import-drift
@@ -287,7 +292,7 @@ class PromtoolTestFileTest(unittest.TestCase):
         blob = PTEST.read_text(encoding="utf-8")
         self.assertNotRegex(blob, r"[A-Za-z0-9._%+-]+@[A-Za-z0-9-]+\.[A-Za-z]{2,}")
         for lbl in DROP_LABELS:
-            self.assertNotRegex(blob, r"\b%s\b" % lbl)
+            self.assertNotRegex(blob, r"[{,\s]%s\s*[=:]" % lbl)  # label key only; ruling 2026-11-08
 
     def test_runs_unmodified_rule_names(self):
         known = set(self.rules)

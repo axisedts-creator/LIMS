@@ -386,18 +386,38 @@ test('the 5 reporting.tg_*_guard / scrub functions equal the spec bodies (SECURI
 });
 test('the 4 lims_reporting_lookup DEFINERs equal §6.2 verbatim (SECURITY DEFINER, search_path = \'\', GUC set with set_config(..., true) and reset to \'\' before every return), owner lims_reporting_lookup, REVOKE ALL FROM PUBLIC, EXECUTE to lims_api only; D-201 window closed; no standing CREATE', () => {
   const sql = repSql(), want = spec62();
+  const INGEST = 'app.reporting_ingest_provider_callback';
   for (const f of DEFINERS) {
-    const got = fnText(sql, f), exp = fnText(want, f); assert.ok(got, `${f} missing`); assert.equal(norm(got), norm(exp), `${f} body`);
+    const got = fnText(sql, f), exp = fnText(want, f); assert.ok(got, `${f} missing`);
+    if (f !== INGEST) assert.equal(norm(got), norm(exp), `${f} body`);   // INGEST: LD-49 (b) (C6-T29) overrides §6.2, see the next test
     assert.match(got, /SECURITY\s+DEFINER/i); assert.match(got, /SET\s+search_path\s*=\s*''/i);
   }
   const keep = (s) => /^(ALTER FUNCTION app\.reporting_|REVOKE ALL ON FUNCTION app\.reporting_|GRANT EXECUTE ON FUNCTION app\.reporting_|GRANT EXECUTE ON FUNCTION app\.enqueue_job|GRANT CREATE ON SCHEMA app|REVOKE CREATE ON SCHEMA app)/i.test(s);
-  const g = stmts(sql).map(ws).filter(keep).map(norm).sort(), e = stmts(want).map(ws).filter(keep).map(norm).sort();
-  assert.deepEqual(g, e, 'owner / REVOKE / GRANT EXECUTE / window statements');
-  assert.equal(g.length, 4 * 3 + 3, '4 x (ALTER OWNER, REVOKE, GRANT) + enqueue_job grant + window open + close');
+  const isEnq = (s) => /GRANT EXECUTE ON FUNCTION app\.enqueue_job/i.test(s);
+  const g = stmts(sql).map(ws).filter(keep).map(norm).sort(), e = stmts(want).map(ws).filter(keep).filter((s) => !isEnq(s)).map(norm).sort();
+  assert.deepEqual(g, e, 'owner / REVOKE / GRANT EXECUTE / window statements (§6.2 minus the enqueue_job grant: LD-49 (b))');
+  assert.equal(g.length, 4 * 3 + 2, '4 x (ALTER OWNER, REVOKE, GRANT) + window open + close; NO enqueue_job grant to lims_reporting_lookup (LD-49 (b))');
+  assert.ok(!stmts(sql).map(ws).some(isEnq), 'lims_reporting_lookup is not granted app.enqueue_job');
   const dsql = stmts(sql).map(ws);
   assert.ok(dsql.findIndex((s) => /^REVOKE CREATE ON SCHEMA app FROM lims_reporting_lookup$/i.test(s)) > dsql.findIndex((s) => /^CREATE FUNCTION app\.reporting_redeem_link_for_app/i.test(s)), 'window closed after the last DEFINER');
   assert.doesNotMatch(sql, /GRANT\s+CREATE\s+ON\s+DATABASE/i); assert.doesNotMatch(sql, /ALTER\s+ROLE\s+lims_reporting_lookup/i, 'role is C0 bootstrap: no changes here');
   assert.doesNotMatch(sql, /CREATE\s+ROLE/i);
+});
+test('LD-49 (b) (C6-T29): app.reporting_ingest_provider_callback RETURNS uuid (tenant id, NULL = rejected), never enqueues, never sets JWT claims, sets then resets the 3 callback GUCs before every RETURN, inserts with the dedupe ON CONFLICT', () => {
+  const body = fnText(repSql(), 'app.reporting_ingest_provider_callback'); assert.ok(body, 'ingest function missing');
+  assert.match(body, /\(\s*p_provider_kind\s+text\s*,\s*p_token_sha256\s+bytea\s*,\s*p_events\s+jsonb\s*\)/i, 'signature (text, bytea, jsonb) unchanged (08 4.7)');
+  assert.match(body, /RETURNS\s+uuid\b/i, 'returns the tenant id');
+  assert.doesNotMatch(body, /enqueue_job/i, 'the DEFINER does not enqueue (C6 handler does, inside withTenantScope)');
+  assert.doesNotMatch(body, /request\.jwt|set_config\(\s*'request\./i, 'never set JWT claims to get around the enqueue tenant check');
+  assert.match(body, /ON\s+CONFLICT\s+ON\s+CONSTRAINT\s+provider_events__dedupe__uq\s+DO\s+NOTHING/i);
+  assert.doesNotMatch(body, /RETURN\s+-1\b/, 'no -1 sentinel for a uuid return');
+  for (const gname of ['app.pre_callback_token_sha256', 'app.pre_callback_tenant_id', 'app.pre_callback_channel_account_id']) {
+    assert.match(body, new RegExp(`set_config\\(\\s*'${gname.replace(/\./g, '\\.')}'\\s*,\\s*''\\s*,\\s*true\\s*\\)`, 'i'), `${gname} reset to '' (A21.4)`);
+  }
+  // every RETURN that follows the token lookup is preceded by the GUC reset of the token GUC (the early reject before any set_config is the only exception)
+  const returns = [...body.matchAll(/RETURN\b[^;]*;/gi)];
+  assert.ok(returns.length >= 2, 'a reject return and a success return');
+  assert.match(body, /RETURN\s+v_tenant(_id)?\s*;/i, 'success returns the resolved tenant variable (name v_tenant / v_tenant_id)');
 });
 test('triggers: the mutable_columns triggers + 5 guard/scrub triggers equal the spec (mutable-column lists = §3 mutability); no other non-audit trigger; none disabled or dropped', () => {
   const have = new Map(createTriggers(repSql()).filter((s) => !isAudit(s)).map((s) => [trgName(s), norm(s)]));

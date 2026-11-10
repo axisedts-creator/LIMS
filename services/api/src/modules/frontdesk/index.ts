@@ -1,0 +1,10 @@
+// Frontdesk module manifest (02-TRD §3.1, §6.3 autoloader). `ports: { FrontdeskPort }` is added by its task (FD-T11).
+import type { ModuleManifest } from '../../core/module.js';
+import { handlers } from './handlers/index.js';
+
+export const manifest: ModuleManifest = {
+  name: 'frontdesk',
+  openapi: 'contracts/openapi/frontdesk.yaml',
+  produces: ['frontdesk.order.created.v1', 'frontdesk.order.items_changed.v1', 'frontdesk.order.cancelled.v1'],
+  handlers,
+};

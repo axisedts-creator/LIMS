@@ -168,7 +168,7 @@ SELECT is(has_function_privilege(r, p.oid, 'EXECUTE'), r = 'lims_api', 'C6 check
 SELECT is(has_function_privilege('public', p.oid, 'EXECUTE'), false, 'C6 check 10: PUBLIC has no EXECUTE on app.' || rd.f) FROM rd JOIN pg_proc p ON p.oid = ('app.' || rd.f || '(' || rd.args || ')')::regprocedure;
 SELECT is(has_schema_privilege('lims_reporting_lookup', 'app', 'CREATE'), false, 'C6 check 10 / AC-0B-6.3 (D-201): lims_reporting_lookup holds no standing CREATE on schema app');
 SELECT is(has_database_privilege('lims_reporting_lookup', current_database(), 'CREATE'), false, 'C6 check 10 (D-201): lims_reporting_lookup holds no CREATE on the database');
-SELECT is(has_function_privilege('lims_reporting_lookup', 'app.enqueue_job(text, jsonb, text, timestamptz, integer)', 'EXECUTE'), true, 'C6 check 10: lookup role may call app.enqueue_job (ingest callback)');
+SELECT is(has_function_privilege('lims_reporting_lookup', 'app.enqueue_job(text, jsonb, text, timestamptz, integer)', 'EXECUTE'), false, 'C6 check 10 / LD-49 (b) (C6-T29): lookup role may NOT call app.enqueue_job (the API handler enqueues under withTenantScope)');
 SELECT is((SELECT rolbypassrls OR rolsuper OR rolcanlogin FROM pg_roles WHERE rolname = 'lims_reporting_lookup'), false, 'lims_reporting_lookup is NOLOGIN NOBYPASSRLS NOSUPERUSER');
 
 SELECT * FROM finish();

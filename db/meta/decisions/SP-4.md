@@ -97,3 +97,12 @@ Reading: every cross-tenant read and write attempt was denied, by RLS (403 `new 
 - C4 07-SECURITY REQ-SEC-034 row says "CHECK + storage policy". Under api-proxied there is no storage policy; the guards are the CHECK plus the `ctx.storage` adapter. This is a wording fix for the C4 doc owner, with no behaviour change; filed as `.orchestra/cr/SP-4.nonblocking.md`.
 - Probed on the CLI dev stack, not the C1 self-hosted compose stack. Re-run when `infra/compose/supabase/upstream/UPSTREAM.lock` lands, only if a future CR proposes a tenant-bearing token for Storage/Realtime.
 - To revisit storage-policies or Realtime policies, raise a CR against 08 R10 for a token issuer that carries `tenant_id` and is verifiable by Storage/Realtime. Today's probe shows the enforcement side would work.
+
+## Provisioning contract (LD-55)
+
+Ruled by the lead on 2026-11-07 (CR-C0-T0B-12-b). Used by `db/provisioning/create-storage-buckets.mjs` (T0B-12, LD-54). The routes come from the storage-api source at tag v1.89.13 (the version this probe ran) and are confirmed live only by the first-deploy smoke test in `db/provisioning/README.md`.
+
+1. Base URL env `LIMS_CORE_STORAGE_URL` [CONV]: internal base URL of the Storage API including its path prefix, for example `http://<internal-host>:<port>/storage/v1`. Internal only (the public edge returns 404 for /storage/v1). No default value and no hard-coded host; if it is unset the script prints one line and exits non-zero.
+2. Endpoints relative to that base: `GET /bucket?limit=100&offset=N` (JSON array of objects with id, name, public; page until a page has fewer than 100 items); `POST /bucket` with JSON `{"id":"<name>","name":"<name>","public":false}` (200 on create); `PUT /bucket/{id}` with JSON `{"public":false}` (200 on update).
+3. Auth: header `Authorization: Bearer <credential>` and header `apikey: <credential>`. Credential = contents of the file named by `LIMS_CORE_STORAGE_KEY_FILE`, surrounding whitespace trimmed; never printed or logged.
+4. Idempotency does not depend on an "already exists" response: list first; POST only absent buckets; PUT `{"public":false}` for a listed bucket whose public flag is true; leave private ones untouched. If a POST returns non-2xx, list again and accept only if the bucket now exists and is private, otherwise exit non-zero. Any non-2xx on a list or a PUT exits non-zero. Output is only bucket names and created/ok/flipped, never a credential, URL or response body. Error body shapes are unspecified and are not relied on.

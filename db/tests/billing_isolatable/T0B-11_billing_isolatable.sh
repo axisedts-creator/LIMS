@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # T0B-11 / AC-0B-6.4 (04 D16, B17): runtime proof that `billing` is isolatable per tenant.
 #   seed billing rows for tenants A and B (incl. the FK chain invoices/invoice_lines/credit_notes/credit_note_lines/ledger_entries + one self-referencing reversal)
-#   -> `node db/tools/export-tenant-billing.ts --tenant A` -> restore the output into an EMPTY, really-migrated `billing` schema (second database, same migrations)
+#   -> `node db/tools/export-tenant-billing.ts --tenant A` -> restore the output into an EMPTY, really-migrated `billing` schema (second database, same migrations except storage (LD-52))
 #   -> per tenant table: row count and md5 checksum of A's rows match the source; zero rows of any other tenant; B's id/values absent from the output;
 #   source billing data unchanged by the export (read-only); a role under FORCE RLS gets an error, never a silently short export.
 # Run from the repo root:  bash db/tests/billing_isolatable/T0B-11_billing_isolatable.sh     Exit 0 = pass, 1 = assertion failed, 2 = environment.
@@ -14,7 +14,7 @@ command -v psql >/dev/null || { echo "T0B-11: psql is not on PATH (the export to
 command -v docker >/dev/null || { echo "T0B-11: docker is required"; exit 2; }
 HOSTPWD="$(pwd -W 2>/dev/null || pwd)"
 NAME="lims_t0b11_$$"; DB="postgres"; RDB="lims_restore"
-WORK="$(mktemp -d)"
+WORK="$(cd "$(mktemp -d)" && (pwd -W 2>/dev/null || pwd))"
 cleanup() { docker rm -f "$NAME" >/dev/null 2>&1 || true; rm -rf "$WORK"; }
 trap cleanup EXIT
 PW() { head -c 18 /dev/urandom | base64 | tr -dc 'A-Za-z0-9' | head -c 20; }
@@ -35,14 +35,15 @@ RURL="postgres://supabase_admin:$SUPER_PW@127.0.0.1:$PORT/$RDB"
 SU -v lims_migrator_pw="$MIG_PW" -v lims_api_pw="$API_PW" -v lims_worker_pw="$WORKER_PW" -v lims_monitor_pw="$MON_PW" \
    -v lims_replicator_pw="$REPL_PW" -v lims_audit_ship_pw="$SHIP_PW" -v dbname="$DB" -f db/bootstrap/00_roles.sql
 build_db() { # $1 database: bootstrap + all migrations (same D-201 window as run-suites.sh)
+  # LD-52: skip every <timestamp>_storage__*.sql on BOTH databases (storage grant defect belongs to CR-C0-T0B-12 / T0B-12, out of scope for AC-0B-6.4; billing needs no storage).
   local d="$1" f STEP_C="20261105001200"
   [ "$d" = "$DB" ] || { SU -c "CREATE DATABASE $d"; SUD "$d" -c "CREATE SCHEMA IF NOT EXISTS extensions"; }  # fresh DB lacks the image's init-DB `extensions` schema (review round 4)
   SUD "$d" -c "CREATE EXTENSION IF NOT EXISTS pgtap WITH SCHEMA extensions"
   SUD "$d" -v dbname="$d" -f db/bootstrap/01_database.sql
-  for f in $(ls db/migrations/*.sql | sort); do if [[ "$(basename "$f")" < "$STEP_C" ]]; then MIGD "$d" --single-transaction -f "/repo/$f"; fi; done
+  for f in $(ls db/migrations/*.sql | sort); do case "$(basename "$f")" in *_storage__*) continue;; esac; if [[ "$(basename "$f")" < "$STEP_C" ]]; then MIGD "$d" --single-transaction -f "/repo/$f"; fi; done
   if ! PGOPTIONS='-c role=lims_queue' PGPASSWORD="$MIG_PW" npx --no-install graphile-worker --schema-only -c "postgres://lims_migrator@127.0.0.1:$PORT/$d"; then
     echo "T0B-11: graphile-worker --schema-only failed"; exit 2; fi
-  for f in $(ls db/migrations/*.sql | sort); do if [[ ! "$(basename "$f")" < "$STEP_C" ]]; then MIGD "$d" --single-transaction -f "/repo/$f"; fi; done
+  for f in $(ls db/migrations/*.sql | sort); do case "$(basename "$f")" in *_storage__*) continue;; esac; if [[ ! "$(basename "$f")" < "$STEP_C" ]]; then MIGD "$d" --single-transaction -f "/repo/$f"; fi; done
 }
 build_db "$DB"; build_db "$RDB"
 
@@ -135,7 +136,7 @@ cmp -s "$WORK/src_all.txt" "$WORK/src_after.txt" || { echo "FAIL: export changed
 
 # no silent data loss: billing tables are FORCE RLS; a role without BYPASSRLS must get an ERROR (row_security=off), never a quietly short export with exit 0.
 RPW="$(PW)"
-SU -c "CREATE ROLE t0b11_reader LOGIN PASSWORD '$RPW'; GRANT USAGE ON SCHEMA billing TO t0b11_reader; GRANT SELECT ON ALL TABLES IN SCHEMA billing TO t0b11_reader"
+SU -c "CREATE ROLE t0b11_reader LOGIN PASSWORD '$RPW'; GRANT CONNECT ON DATABASE $DB TO t0b11_reader; GRANT USAGE ON SCHEMA billing TO t0b11_reader; GRANT SELECT ON ALL TABLES IN SCHEMA billing TO t0b11_reader"
 if DATABASE_URL="postgres://t0b11_reader:$RPW@127.0.0.1:$PORT/$DB" node db/tools/export-tenant-billing.ts --tenant "$TA" --out "$WORK/export_reader.sql" 2>"$WORK/reader.err"; then
   cmp -s "$WORK/export_a.sql" "$WORK/export_reader.sql" || { echo "FAIL: exit 0 but the export is short for a role under RLS (silent data loss)"; exit 1; }
 else

@@ -1,7 +1,7 @@
-# T-02 tests (tester)
-- File: `infra/tests/static/test_t02_providers.py` (stdlib + PyYAML). Classes: ProviderDocs, InventoryLayout, MemoryBudget, ProfileDocs, EnvSeparation, InventorySecurity, ProviderValueGrep, Tooling.
-- Run: `.orchestra\notes\T-02-verify.cmd` (= `python -B -m unittest discover -s infra/tests/static -p "test_t02_*.py"` from repo root). No `-I`: PyYAML is in user site, which -I hides.
-- Covers IS-01, TRD s3.4/s3.1/s4/s12.1, grep check for provider values (ruling-scoped), planted-value self-check.
-- LD-45/LD-48 (review round): all 5 inventories (dev, staging, prod, staging-lean, prod-lean) get layout/parse/subnet/known_hosts/public_ip checks; lean roles map (prod-1 in data+app+ops, backup-1 in `backup` only, dr empty, staging-lean = 1 VM); sum(mem_limit) <= 85 % RAM per host (+ gate self-check); prod-lean named default in infra/README.md + DECISION.md with scale triggers; `topology_profile` var.
-- Result: 33 run, OK, 1 skip (ansible-inventory off CI, LD-17; on CI it now loops all 5 inventories).
-- Assumption: backup-1 has no mem_limit_gib (LD-45 gives none); only prod-1 is pinned (32 GiB, Σ <= 27.2).
+# T-02 tests (tester, chunk C3-catalog-pricing) — NOTE: overwrites C1/C5 T-02 notes of the same name (id collision, as with T-01)
+- Files: `services/api/src/modules/catalog/domain/__tests__/{codes,versioning.state,import.state}.test.ts` (vitest, pure, no DB).
+- Run: `.orchestra\notes\T-02-verify.cmd` (= `pnpm --filter @lims/api exec vitest run src/modules/catalog/domain/__tests__`). Fails now on import: `../codes.js`, `../versioning.state.js`, `../import.state.js` missing.
+- Covers: AC-01.2 (normalise + §5.1 regexes, ASCII-only hardening), AC-03.2/13.4 (non-draft edit -> catalog.version_in_use), AC-03.3 (now-300 s boundary, /effective_from), AC-03.4 (second draft -> common.version_conflict); V1–V6 and import §2.2 as EXHAUSTIVE allowed+forbidden matrices (5 statuses x 4 kinds; 12 import statuses), terminal set, final-failure mapping, commit guard.
+- SEAMS (signatures documented atop each test; writer must match): `normaliseCode/isValidCode/assertCode(kind,raw,path?)`; `versionTransition(from|null,to,kind)->'V1'..'V6'`, `isVersionTransitionAllowed`, `assertVersionEditable`, `assertCanCreateDraft(siblingStatuses)`, `assertEffectiveWindow({effectiveFrom,now,toleranceSeconds?,path?,siblings?})`; `importTransition`, `isImportTransitionAllowed`, `isTerminalImportStatus`, `finalFailureStatus`, `assertCommittable`.
+- Assumptions (spec silent): forbidden version transitions -> `catalog.version_in_use` (02-TRD §5.2 uses it for publish/retire/discard/edit of wrong state); forbidden import transitions -> `catalog.import_not_committable` (only 409 import code); non-ASCII codes rejected; sibling-window violations -> `common.validation_failed` at the same path; expires_at == now still committable.
+- No coverage plugin installed: "100 % branch coverage" is argued by exhaustive matrices, not measured.

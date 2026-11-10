@@ -2,6 +2,8 @@
 # Container-internal listener: the clamd container is only on app_net and has no published port.
 TCPSocket 3310
 TCPAddr 0.0.0.0
+# Image entrypoint waits for this socket before going healthy (tmpfs /run/clamav in compose); TCP 3310 stays the app path.
+LocalSocket /run/clamav/clamd.sock
 Foreground yes
 StreamMaxLength {{ clamav_stream_max_length }}
 MaxFileSize {{ clamav_max_file_size }}

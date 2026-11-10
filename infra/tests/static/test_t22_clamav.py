@@ -133,6 +133,9 @@ class ClamdConf(unittest.TestCase):
         for k, v in want.items():
             self.assertEqual(c.get(k), [v], "%s must be set exactly once to %s" % (k, v))
 
+    def test_local_socket_for_image_entrypoint(self):  # review item 1: official image entrypoint waits for this socket, else exits after CLAMD_STARTUP_TIMEOUT
+        self.assertEqual(self.conf().get("LocalSocket"), ["/run/clamav/clamd.sock"])
+
     def test_no_unrendered_template_or_unix_socket_only(self):
         t = render(need(ROLE / "templates" / "clamd.conf.j2"), **defaults())
         self.assertNotIn("{{", t)

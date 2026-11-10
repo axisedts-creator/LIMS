@@ -310,7 +310,7 @@ describe('editor — create (US-18.1)', () => {
   it('adds a recipient chosen from the filter-options recipients (membership id, display name only)', async () => {
     await show(NEW_PAGE);
     await fill();
-    await userEvent.click(screen.getByRole('combobox', { name: /recipients/i }));
+    await userEvent.type(screen.getByRole('combobox', { name: /recipients/i }), 'Synthetic Manager');
     await userEvent.click(await screen.findByRole('option', { name: /Synthetic Manager Two/ }));
     await userEvent.click(save());
     await waitFor(() => expect(posts()).toHaveLength(1));

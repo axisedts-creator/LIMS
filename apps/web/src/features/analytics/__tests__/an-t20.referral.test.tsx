@@ -25,16 +25,16 @@ const HOSTILE = '<img src=x onerror=alert(1)>';
 const body = (over: Record<string, unknown> = {}) => ({
   report_code: 'referral_incentive', period: PERIOD, scope: { all_centres: true, centre_ids: [], tenant_wide_sections_hidden: [] }, freshness: FRESH, generated_at: '2026-01-15T04:30:00.000Z',
   rows: [
-    { referrer_id: REF_1, label: 'Dr Synthetic Sharma', is_self: false, orders: 12, patient_visits: 10, tests_ordered: 30, net_billed_paisa: 1234567800 },
+    { referrer_id: REF_1, label: 'Dr Synthetic Sharma', is_self: false, orders: 12, patient_visits: 10, tests_ordered: 30, net_billed_paisa: 123456780 },
     { referrer_id: REF_2, label: 'डा. सिन्थेटिक', is_self: false, orders: 4, patient_visits: 4, tests_ordered: 9, net_billed_paisa: 50000 },
     { label: 'SELF (no referrer)', is_self: true, orders: 7, patient_visits: 7, tests_ordered: 15 },
   ],
-  totals: { orders: 23, patient_visits: 21, tests_ordered: 54, net_billed_paisa: 1234617800 },
+  totals: { orders: 23, patient_visits: 21, tests_ordered: 54, net_billed_paisa: 123461780 },
   billed_note_key: 'analytics.referrers.billed_note', page: { limit: 50 }, ...over,
 });
 const monthly = body({
   rows: [
-    { referrer_id: REF_1, label: 'Dr Synthetic Sharma', is_self: false, period_key: '2026-01', period_label: 'Jan 2026', orders: 12, patient_visits: 10, tests_ordered: 30, net_billed_paisa: 1234567800 },
+    { referrer_id: REF_1, label: 'Dr Synthetic Sharma', is_self: false, period_key: '2026-01', period_label: 'Jan 2026', orders: 12, patient_visits: 10, tests_ordered: 30, net_billed_paisa: 123456780 },
     { referrer_id: REF_1, label: 'Dr Synthetic Sharma', is_self: false, period_key: '2025-12', period_label: 'Dec 2025', orders: 3, patient_visits: 3, tests_ordered: 5, net_billed_paisa: 100000 },
   ],
 });

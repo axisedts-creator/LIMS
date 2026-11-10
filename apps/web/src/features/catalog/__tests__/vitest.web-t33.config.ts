@@ -13,6 +13,6 @@ export default defineConfig({
     include: ['src/features/catalog/__tests__/web-t33.*.test.{ts,tsx}'],
     environment: 'node', // component file opts in with `// @vitest-environment jsdom`
     restoreMocks: true,
-    testTimeout: 15000,
+    testTimeout: 60000, // LD-76: keystroke-heavy component tests exceed 15s on this machine
   },
 });

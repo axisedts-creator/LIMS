@@ -1,0 +1,3 @@
+# C6-T16 test dispute
+`services/api/src/modules/reporting/__tests__/settings.handlers.test.ts:47-50` "the other reporting operations are still 501 stubs" requires >= 5 operationIds outside T03_OPS and IMPLEMENTED. After T16 moves createReportPrint, getReportPrint, downloadReportPrintPdf, createBulkPrint, previewReportTemplate to real handlers (as the task requires and implemented-ops.ts already lists), only 3 stubs remain -> `expected 3 to be >= 5`.
+Not a defect in the implementation: the floor is a shrinking-inventory guard. Fix (tester): lower the floor / skip the loop when fewer remain. Writer did not touch the test.

@@ -7,7 +7,8 @@ export const IMPLEMENTED = new Set([
   'uploadNarrativeImage', 'getNarrativeImageContent',                                                          // C6-T11
   'listNarrativeReports', 'getNarrativeReport', 'saveNarrativeDraft', 'signNarrativeReport', 'startNarrativeAmendment', // C6-T17
   'listNarrativeTemplates', 'createNarrativeTemplate', 'updateNarrativeTemplate',
-  'listReportTemplates', 'createReportTemplate', 'getReportTemplate', 'updateReportTemplateDraft', 'publishReportTemplate', // C6-T18 (previewReportTemplate stays a stub: C6-T16)
+  'listReportTemplates', 'createReportTemplate', 'getReportTemplate', 'updateReportTemplateDraft', 'publishReportTemplate', // C6-T18
+  'createReportPrint', 'getReportPrint', 'downloadReportPrintPdf', 'createBulkPrint', 'previewReportTemplate',   // C6-T16 (R10-R13, T5)
   'retryRenderReportVersion',                                                                                  // C6-T09
   'releaseReportVersion',                                                                                      // C6-T13
   'bulkReleaseReportVersions',                                                                                 // C6-T14

@@ -5,6 +5,7 @@
 import type { ConsumerHandler, TaskHandler, WorkerManifest } from '../../core/manifest.js';
 import { consumers } from './consumers/index.js';
 import { backfillTask } from './tasks/backfill.js';
+import { buildExportTask } from './tasks/build_export.js';
 import { purgeTask } from './tasks/purge.js';
 import { refreshTenantTask } from './tasks/refresh_tenant.js';
 import { selfCheckTask } from './tasks/self_check.js';
@@ -31,7 +32,7 @@ export const manifest: WorkerManifest = {
   tasks: { // AN-T04 refresh_tenant + AN-T06 sweeps/self_check/purge/backfill are real; build_export, dispatch_schedules still stubs
     ...Object.fromEntries(TASKS.map((id) => [id, task(id)])),
     'analytics.refresh_tenant': refreshTenantTask, 'analytics.sweep_recent': sweepRecentTask, 'analytics.sweep_nightly': sweepNightlyTask,
-    'analytics.self_check': selfCheckTask, 'analytics.purge': purgeTask, 'analytics.backfill': backfillTask,
+    'analytics.self_check': selfCheckTask, 'analytics.purge': purgeTask, 'analytics.backfill': backfillTask, 'analytics.build_export': buildExportTask,
   },
   subscriptions: Object.fromEntries(SUBSCRIPTIONS.map((type) => [type, consumers[type] ?? consumer(type)])), // AN-T05: all 12 real
   crontab: [

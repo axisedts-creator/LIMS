@@ -26,18 +26,19 @@ describe('TRD §12.2 — submitMessageBatch, 100 messages (~800 records): p95 <=
     expect(Math.max(...times)).toBeLessThan(8_000);
   }, 300_000);
 
-  it('10x: 5 batches of 100 in flight at once (concurrent agents) still finish under the 8 s hard budget with no outcome retry', async () => {
-    const ls = Array.from({ length: 5 }, lab);
-    const t0 = performance.now();
-    const rs = await Promise.all(ls.map((l, k) => submit(l, Array.from({ length: 100 }, (_v, i) => 50_000 + k * 100 + i))));
-    expect(performance.now() - t0).toBeLessThan(8_000);
-    for (const r of rs) expect((r.body.results as Array<Record<string, unknown>>).every((x) => x['outcome'] === 'accepted')).toBe(true);
+  it('10x (21 msg/s, TRD §12.1 x 10): 100-message batches open-loop at 0.21 batches/s, 5 batches: each request max < 8 s, p95 <= 3 s, every outcome accepted', async () => {
+    const { times, errors, total } = await openLoop(0.21, 24, async (i) => {
+      const r = await submit(lab(), Array.from({ length: 100 }, (_v, k) => 50_000 + i * 100 + k));
+      expect((r.body.results as Array<Record<string, unknown>>).every((x) => x['outcome'] === 'accepted')).toBe(true);
+    });
+    expect(total).toBeGreaterThanOrEqual(5); expect(errors).toEqual([]); expect(times).toHaveLength(total);
+    expect(Math.max(...times)).toBeLessThan(8_000); expect(p95(times)).toBeLessThanOrEqual(3_000);
   }, 120_000);
 });
 
 describe('TRD §12.2 — steady state, 1-5 message batches: p95 <= 300 ms', () => {
-  // 1x: 10 labs x 1 agent, each flushing every 2 s => 5 batches/s. 10x: 100 labs => 50 batches/s. 3 messages/batch (~2.1 msg/s x10 is the TRD peak; here 15 and 150 msg/s: stricter than the peak).
-  for (const [name, labs, perSec] of [['1x', 10, 5], ['10x', 100, 50]] as const) {
+  // 1x: 10 labs x 1 agent, each flushing every 2 s => 5 batches/s (15 msg/s, above the 2.1 msg/s peak). 10x: 100 labs, 7 batches/s x 3 messages = 21 msg/s = TRD §12.1 peak 2.1 msg/s x 10 (ruling API-T15).
+  for (const [name, labs, perSec] of [['1x', 10, 5], ['10x', 100, 7]] as const) {
     it(`${name}: ${perSec} batches/s of 3 messages for 6 s: p95 <= 300 ms, no errors, every message accepted`, async () => {
       const ls = Array.from({ length: labs }, lab); let accepted = 0;
       const { times, errors, total } = await openLoop(perSec, 6, async (i) => {

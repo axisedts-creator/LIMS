@@ -8,3 +8,7 @@
 - Re-verified: same 2 reds (schedules l.182, l.436). `membershipId` still absent from core/session/types.ts; CR-C8-001 (.orchestra/cr/AN-T20.md) still open. schedules-page.tsx:52-54 already reads it, so no C8 fix exists.
 - Only workaround is displayName matching (names not unique, rejected in CR) or editing core/** (not C8-owned). No code changed.
 - Unblock: land CR-C8-001 (l.182 goes green). l.436 still needs the tester to pick the recipient explicitly instead of relying on the creator chip.
+
+## Round 3
+- Same 2 reds (schedules l.182, l.436); 135/137 pass. `membershipId` exists only on server-side `BffSession` (core/session/store.ts:13), not on `ShellSession.actor` (core/session/types.ts); schedules-page.tsx:52-54 already consumes it. CR-C8-001 still open.
+- No C8-owned fix exists (core/** belongs to C0-0D). No code changed. Needs CR landed + tester fix for l.436.

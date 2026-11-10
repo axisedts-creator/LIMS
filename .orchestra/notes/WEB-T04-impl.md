@@ -1,4 +1,4 @@
-# WEB-T04 impl — SCR-08 mappings via C3 #92–#95 + E32 (186/188; 2 disputed, see WEB-T04-dispute.md)
+# WEB-T04 impl — SCR-08 mappings via C3 #92–#95 + E32 (188/188 after ruling 2026-11-10 22:20; no impl change needed; tsc clean for server/components)
 - New: server/{listInstrumentCodeMaps,listObservedInstrumentCodes,createInstrumentCodeMap,updateInstrumentCodeMap,upsertInstrumentCodeMaps,catalogLookups}.server.ts, server/codeMaps.ts (DTOs + #93/#94/#95 rules, shared with the editor), components/InstrumentMappings.tsx, app/(staff)/instruments/instruments/[instrument_id]/mappings/page.tsx. Edited: server/actions.ts (+7 actions), server/shared.server.ts (requirePermission, idemKey).
 - C3 fns check session `catalog.instrument_code_map.manage` (exact match) → 403 auth.forbidden before any request; page makes zero /v1/catalog/* calls without it (D-39/S-04). flag_map = JSON object text, limits on the parsed form (ruling).
 - [CONV] catalogLookups.server.ts = own thin searchOrderables/getTestDetail/listUnits (no cross-feature import, 02-CONVENTIONS); gated by the same permission.

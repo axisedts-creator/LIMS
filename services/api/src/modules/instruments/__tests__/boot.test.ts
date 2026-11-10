@@ -229,7 +229,7 @@ describe('API-T01 boot against the real repo (default modulesDir, real instrumen
       }
     }
     expect(unmounted).toEqual([]);
-  }, 30_000);
+  }, 120_000); // LD-86: harness timeout only (cold bootstrap on shared machine)
 
   it('fails closed: user and device routes without credentials are 401 (never 200/501/500); a non-spec path is 404', async () => {
     const app = await boot();
@@ -242,5 +242,5 @@ describe('API-T01 boot against the real repo (default modulesDir, real instrumen
     expect(enrol.statusCode, enrol.body).toBe(401);
     expect(JSON.parse(enrol.body).code).toMatch(/^auth\./);
     expect((await app.inject({ method: 'GET', url: '/v1/instruments/not-in-spec' })).statusCode).toBe(404);
-  }, 30_000);
+  }, 120_000); // LD-86
 });

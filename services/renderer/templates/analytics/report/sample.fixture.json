@@ -1,0 +1,24 @@
+{
+  "tenantDisplayName": "Synthetic Test Lab",
+  "reportTitle": "Department income",
+  "periodLabelAd": "01/11/2026 – 30/11/2026",
+  "periodLabelBs": "2083-07-15 – 2083-08-14 B.S.",
+  "scopeLabel": "Centre Alpha, Centre Beta",
+  "generatedAtLocal": "2026-11-10 09:15",
+  "exportId": "018f0000-0000-7000-8000-0000000000e1",
+  "exportedBy": "Exported by Synthetic Analyst",
+  "freshnessNote": "Updated 2026-11-10 09:10",
+  "notStatutoryNote": "Internal MIS — not a statutory register",
+  "columns": [
+    { "key": "department", "label": "Department", "kind": "text" },
+    { "key": "tests", "label": "Tests", "kind": "count" },
+    { "key": "income_paisa", "label": "Income", "kind": "paisa" },
+    { "key": "avg_tat", "label": "Avg TAT", "kind": "seconds" },
+    { "key": "share_bp", "label": "Share", "kind": "bp" }
+  ],
+  "rows": [
+    { "department": "Biochemistry", "tests": 42, "income_paisa": 123456789, "avg_tat": 2520, "share_bp": 1234 },
+    { "department": "Haematology", "tests": 7, "income_paisa": -5000, "avg_tat": 18720, "share_bp": 7 },
+    { "department": "'=HYPERLINK(\"http://x\",\"click\")", "tests": 0, "income_paisa": 0, "avg_tat": 273600, "share_bp": 10000 }
+  ]
+}

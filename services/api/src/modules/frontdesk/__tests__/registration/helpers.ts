@@ -41,7 +41,9 @@ export function rworld(o: Parameters<typeof world>[0] = {}): RWorld {
   const billing = { ...billingFake, issueOrderInvoice: wrap('issueOrderInvoice'), recordPayment: wrap('recordPayment'), recordCreditCharges: wrap('recordCreditCharges') };
   // Template override: spec 03-APP-FLOW §2.3 step 7 declares params {lab_name, registered_time_hhmm} (the fake's default declares {lab_name, ref}).
   const notif: any = createFakeNotificationPort({ seed: 1, fixtures: { templates: [{ id: TEMPLATE_ID, code: 'frontdesk.registration_confirmation', purpose: 'registration_confirmation',
-    channels: ['sms', 'whatsapp'], params: { lab_name: 'short_text', registered_time_hhmm: 'short_text' } }] } as any });
+    channels: ['sms', 'whatsapp'], params: { lab_name: 'short_text', registered_time_hhmm: 'short_text' } }],
+    // fake `channels` is keyed by the fake tenant ids; key it by the DB tenant ids (ruling FD-T06 #3). Gate stays channels.smsEnabled (03-APP-FLOW §2.3).
+    channels: { [TENANT_A]: { smsEnabled: true, whatsappEnabled: true, emailEnabled: true }, [TENANT_B]: { smsEnabled: true, whatsappEnabled: true, emailEnabled: true } } } as any });
   return { ...base, billing: billing as any, billingFake, notif, spy };
 }
 /** Make `patientId` resolvable by the fake NotificationPort (recipient + consent matrix). Re-seeds the fake: call before registering. */
@@ -57,7 +59,7 @@ export function ctxFor(tx: any, tenant: string, w: RWorld, o: RegOpts, probe: Re
   const side = tenant === TENANT_B ? 'b' : 'a';
   const centre = o.centreId ?? CENTRE[side];
   const identity: any = makeIdentity(o.grants ?? [PERM, INVOICE_PERM], { centreIds: o.centreIds ?? [centre], displayName: 'Synthetic Operator' });
-  const settings = { ...TENANT_SETTINGS, branding: { displayName: LAB_NAME }, channels: { ...TENANT_SETTINGS.channels, smsEnabled: o.smsEnabled ?? true } };
+  const settings = { ...TENANT_SETTINGS, numbering: { ...TENANT_SETTINGS.numbering, registrationNoPattern: REG_PATTERN }, branding: { displayName: LAB_NAME }, channels: { ...TENANT_SETTINGS.channels, smsEnabled: o.smsEnabled ?? true } };
   identity.getTenantSettings = async () => settings;
   probe.identity = identity;
   tx.startedAt = o.now ?? NOW;                               // core events.publish stamps occurred_at from tx.startedAt (the real request tx has it)
@@ -81,6 +83,7 @@ export function ctxFor(tx: any, tenant: string, w: RWorld, o: RegOpts, probe: Re
 /** One registration = one request tx under RLS. On throw the tx rolls back and the in-memory spies drop what that tx published/queued (as the real outbox would). */
 export async function register(body: unknown, o: RegOpts = {}): Promise<RegReply> {
   await seedLimits();
+  await ensureTaskRegistry();
   const tenant = o.tenant ?? TENANT_A;
   const w = o.w ?? rworld();
   const probe: RegReply['probe'] = { logs: [], accessCalls: [], identity: undefined, requestId: o.requestId ?? uid(), ctx: undefined };
@@ -106,6 +109,7 @@ export interface Prepared { patient: any; w: RWorld; body: any; fp: string }
 /** Seed a patient (SMS consent given), quote, and build the F9 body. `d` overrides draft fields; `payments` default = one full cash payment. */
 export async function prepare(o: { side?: 'a' | 'b'; patient?: Record<string, unknown>; consent?: Record<string, unknown>; w?: RWorld; d?: Record<string, unknown>;
   payments?: unknown[]; centreId?: string; sms?: boolean; fp?: string; extra?: Record<string, unknown> } = {}): Promise<Prepared> {
+  await ensureTaskRegistry();
   const side = o.side ?? 'a';
   const tenant = side === 'b' ? TENANT_B : TENANT_A;
   const patient = await seedPatient(side, o.patient ?? {}, { sms: true, ...(o.consent ?? {}) });
@@ -134,6 +138,14 @@ export const generatedOrderId = (w: RWorld): string | undefined => {
   for (const m of ['issueOrderInvoice', 'recordCreditCharges', 'recordPayment']) { const c = w.billingFake.calls(m)[0]; if (c) return (c.input as any).orderId; }
   return undefined;
 };
+let registryDone = false;
+/** app.enqueue_job rejects identifiers absent from core.g_task_registry (C0 02-TRD:867); the deploy step registry-sync.ts (02-TRD:790) fills it and the FD-T03 boot skips it (ruling FD-T06 #1). Superuser, idempotent. */
+export async function ensureTaskRegistry(): Promise<void> {
+  if (registryDone) return;
+  await superTx(async (tx) => { await tx.query(
+    `INSERT INTO core.g_task_registry (identifier,module,kind,scope,max_attempts) VALUES ('core.event_fanout','core','core','per_tenant',25) ON CONFLICT DO NOTHING`); });
+  registryDone = true;
+}
 /** Everything a registration writes, by order id: all must be empty after a rollback. */
 export async function storedFor(orderId: string) {
   return {
@@ -145,5 +157,8 @@ export async function storedFor(orderId: string) {
   };
 }
 export const NOTHING = { orders: 0, items: 0, discounts: 0, trf: 0, events: 0 };
-export const regNo = (n: number) => `R${String(n).padStart(6, '0')}`;   // TENANT_SETTINGS.numbering.registrationNoPattern 'R{seq:6}'
+/** C4 grammar: registrationNoPattern must contain {branch} (03-INTERFACE-CATALOG:2844), counter per branch (05-SCHEMA:134). Branch code of the counter tests' centre A2: see `branchCode`. */
+export const BRANCH_CODE = 'A-B2';   // db/seeds/010 branch code of BRANCH_A2 (the {branch} token value)
+export const REG_PATTERN ='{branch}R{seq:6}';
+export const regNo = (n: number, branch = BRANCH_CODE) => `${branch}R${String(n).padStart(6, '0')}`;
 export type { World };

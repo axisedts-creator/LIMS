@@ -20,7 +20,7 @@ describe('US-FD-03.1 cash walk-in: one transaction creates order, items, invoice
     expect(o).toMatchObject({ tenant_id: TENANT_A, status: 'registered', billing_mode: 'cash', visit_type: 'opd', patient_id: p.patient.id, centre_id: CENTRE.a, branch_id: BRANCH.a,
       source: 'front_desk', is_first_order_of_patient: true, items_version: 1, catalog_revision: 1, age_years: 43 });
     expect(new Date(o.registered_at).toISOString()).toBe(NOW.toISOString());
-    expect(o.registration_no).toMatch(/^R\d{6}$/);                                   // numbering.registrationNoPattern 'R{seq:6}'
+    expect(o.registration_no).toMatch(/^A-B1R\d{6}$/);                               // numbering.registrationNoPattern '{branch}R{seq:6}' (REG_PATTERN), branch A-B1
     expect(o.credit_party_id).toBeNull();
     expect(r.body.order.registration_no).toBe(o.registration_no);
 
@@ -329,7 +329,8 @@ describe('discount authority at registration (US-FD-06.1 / US-FD-07.1 slices; co
     expect(p.w.billingFake.calls('issueOrderInvoice')).toHaveLength(0);
   }, T);
   it('above the absolute maximum (60 % > 50 %) -> 422 frontdesk.discount_exceeds_limit', async () => {
-    const p = await prepare({ d: { discounts: disc(6000) }, payments: [] });
+    // F8 already answers 422 above discount_absolute_max_bp (03-APP-FLOW:78), so prepare() must not quote it: hand F9 a dummy fingerprint (ruling FD-T06 #4).
+    const p = await prepare({ d: { discounts: disc(6000) }, fp: 'a'.repeat(64), payments: [] });
     const e = await registerFails(p.body, { w: p.w });
     expect(e.code).toBe('frontdesk.discount_exceeds_limit'); expect(e.statusCode).toBe(422);
   }, T);

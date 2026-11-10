@@ -2,7 +2,7 @@
 // Prices come from CatalogPort, taxes/totals/fingerprints from BillingCommandPort.computeQuote (08 R18: C4 owns no tax table). Unknown request keys are ignored (never trusted, never echoed).
 // Ctx shape is ASSUMED as in patient.service (+ ports.CatalogPort/BillingCommandPort/NotificationPort, ctx.events, ctx.core.centre). Layout: shared parsing + pricing, then `create` (F9), then `quote` (F8, read-only, last).
 // F9 is ONE request tx (ctx.tx) and opens no transaction statement of its own: the core pipeline commits, or undoes everything (rows, counters, billing events, events) when anything throws.
-import type { BillingCommandPortV1, ComputedLine, DiscountInput, PricedLineInput, QuoteResult } from '../../../../../../contracts/ports/BillingCommandPort.js';
+import type { BillingCommandPortV1, ComputedLine, DiscountInput, IssuedInvoiceRef, PricedLineInput, QuoteResult } from '../../../../../../contracts/ports/BillingCommandPort.js';
 import type { CatalogPortV1, ResolvedOrderables } from '../../../../../../contracts/ports/CatalogPort.js';
 import type { NotificationPortV1 } from '../../../../../../contracts/ports/NotificationPort.js';
 import { fiscalYearBs, formatBs, instantToBs, type IsoDate, type IsoUtc } from '../../../../../../packages/shared-ts/src/bsdate/index.js';
@@ -16,13 +16,13 @@ import { dateOnly } from '../mappers/patient.dto.js';
 import { nextCounterValue } from '../repository/counters.repo.js';
 import { listConsentsByPatient } from '../repository/consents.repo.js';
 import { insertDiscount } from '../repository/discounts.repo.js';
-import { insertOrderItem } from '../repository/orderItems.repo.js';
-import { insertOrder, patientHasOrder } from '../repository/orders.repo.js';
+import { cancelOrderItem, insertOrderItem, listOrderItemsByOrder } from '../repository/orderItems.repo.js';
+import { confirmOrderRow, insertOrder, lockOrderById, patientHasOrder } from '../repository/orders.repo.js';
 import { getPatientById } from '../repository/patients.repo.js';
 import { getSettings } from '../repository/settings.repo.js';
 import { FRONTDESK_PERMISSIONS as P } from '../permissions.js';
 import { lockApprovalForRegistration, markConsumed, toApiDiscount } from './discount.service.js';
-import { bad, createPatient, isObj, patientCtx, todayIn, type PatientCtx, type Result } from './patient.service.js';
+import { bad, createPatient, expectedVersion, isObj, patientCtx, strict, todayIn, type PatientCtx, type Result } from './patient.service.js';
 
 export type QuoteCtx = PatientCtx & { readonly ports: { readonly CatalogPort: CatalogPortV1; readonly BillingCommandPort: BillingCommandPortV1 } };
 type CreateCtx = QuoteCtx & {
@@ -105,6 +105,28 @@ export const lineDto = (l: ComputedLine) => ({
   price_source: l.priceSource, price_list_id: l.priceListId, price_list_version: l.priceListVersion,
 });
 export const totalsDto = (t: QuoteResult['totals']) => ({ gross: money(t.gross), discount: money(t.discount), exempt: money(t.exempt), taxable: money(t.taxable), vat: money(t.vat), other_tax: money(t.otherTax), net: money(t.net) });
+
+/** InvoiceDto of an issued invoice (F9/F12 registration, F13 supplementary). IssuedInvoiceRef carries ids + totals only, so the rest is composed here [CONV] (CR .orchestra/cr/FD-T09-invoice-dto.md):
+ *  line ids are generated, invoice_seq = trailing number of invoice_no, series 'INV' (05-SCHEMA invoices__series__ck), cbms_state from ird.cbmsRealtimeRequired. */
+export async function invoiceDto(c: QuoteCtx, inv: IssuedInvoiceRef, p: Priced, o: Record<string, any>, buyer: Record<string, any>): Promise<Record<string, any>> {
+  const omitNull = (x: Record<string, any>) => Object.fromEntries(Object.entries(x).filter(([, v]) => v !== undefined && v !== null));
+  const t = (await c.ports.IdentityPort.getTenantSettings(c, { keys: ['timezone', 'branding', 'ird'] })) ?? {};
+  const tz = typeof t.timezone === 'string' ? t.timezone : TZ;
+  const seq = Number(/([0-9]+)$/.exec(inv.invoiceNo)?.[1] ?? 1);
+  const zero = { amount_paisa: 0, currency: 'NPR' };
+  return omitNull({
+    id: inv.invoiceId, invoice_no: inv.invoiceNo, invoice_seq: Number.isSafeInteger(seq) && seq >= 1 && seq <= 2147483647 ? seq : 1, series: 'INV', fiscal_year_bs: inv.fiscalYearBs,
+    invoice_kind: 'tax_invoice', status: 'issued', is_active: true, issued_at: inv.issuedAt, invoice_date_bs: formatBs(instantToBs(inv.issuedAt as IsoUtc, tz), 'iso'),
+    branch_id: o['branch_id'], centre_id: o['centre_id'], order_id: o['id'], referrer_id: o['referrer_id'], is_periodic_credit_bill: false, buyer,
+    seller: omitNull({ name: String(t.branding?.legalName ?? ''), pan: t.ird?.pan, address: Array.isArray(t.branding?.addressLines) ? t.branding.addressLines.join(', ') : undefined }),
+    lines: p.q.lines.map((l, i) => omitNull({
+      id: uuidv7(), line_no: i + 1, line_kind: l.lineKind, orderable_id: l.orderableId, code: l.code, name: l.name, department_id: l.departmentId, quantity: 1,
+      unit_price: money(l.lineKind === 'urgent_surcharge' ? l.gross : l.unitPrice), gross: money(l.gross), discount: money(l.discount), exempt: money(l.exempt),
+      taxable: money(l.taxable), vat: money(l.vat), other_tax: money(l.otherTax), other_tax_code: l.otherTaxCode, net: money(l.net), credited: zero,
+    })),
+    totals: totalsDto(inv.totals), credited_total: zero, print_count: 0, cbms_state: t.ird?.cbmsRealtimeRequired === true ? 'pending' : 'not_required', version: 1,
+  });
+}
 
 /** Tenant-local A.D. date of `now` -> B.S. fiscal year "YYYY/YY" (FY starts Shrawan 1, 04 L16). */
 export function fiscalYearOf(now: Date, tz: unknown): string {
@@ -266,14 +288,55 @@ type SmsState = 'queued' | 'suppressed_no_consent' | 'suppressed_no_contact' | '
 /** A port may carry its own error class (the contracts' LimsError has no HTTP status): re-raise by code as the core LimsError (08 R18: code and detail unchanged). */
 // Retry steps 1-9 once in a new tx on billing.counter_busy / 40P01 (03-APP-FLOW.md:97) is NOT done: handler ctx has no tx opener -> CR .orchestra/cr/FD-T06-retry-quote-ext.md
 export async function create(hctx: unknown, body: unknown): Promise<Result> {
-  try { return await createInTx(hctx, body); } catch (e) {
+  return portErrors(() => createInTx(hctx, body));
+}
+
+async function portErrors(fn: () => Promise<Result>): Promise<Result> {
+  try { return await fn(); } catch (e) {
     const x = e as { code?: unknown; detail?: unknown } | null;
     if (e instanceof LimsError || typeof x?.code !== 'string' || !/^[a-z_]+\.[a-z_]+$/.test(x.code)) throw e;     // app codes only: a pg SQLSTATE ('23505') is not one
     throw new LimsError(x.code, typeof x.detail === 'string' ? x.detail : undefined);
   }
 }
 
-async function createInTx(hctx: unknown, body: unknown): Promise<Result> {
+// ======================= F12 confirmPreRegisteredOrder =======================
+// FD-T12 (review item 1): the F9 path over the STORED pre_registered order (02-TRD §5.1 F12, PRD US-FD-12.2): the stored context (patient, centre, billing mode, referrer, ...) is
+// turned into a RegistrationDraft and run through createInTx, which then registers the existing row instead of inserting one (registration_no kept, no new order).
+// items_override replaces the stored items. A stored item is kept only when its orderable + priority + price snapshot equal the live priced line; otherwise it is cancelled and re-inserted [CONV].
+interface Pre { order: Record<string, any>; items: Record<string, any>[] }
+const CONFIRM_KEYS = ['quote_fingerprint', 'payments', 'discounts', 'discount_approval_id', 'items_override'];
+
+export function confirm(hctx: unknown, params: unknown, headers: unknown, body: unknown): Promise<Result> {
+  return portErrors(async () => {
+    const c = createCtx(hctx);
+    await c.ports.IdentityPort.assertRole(c, { permission: P.registrationCreate });
+    const version = expectedVersion(headers);
+    const b = strict(body, CONFIRM_KEYS);
+    let items: unknown;
+    if (b['items_override'] !== undefined) {
+      items = strict(b['items_override'], ['items'], '/items_override')['items'];
+      if (!Array.isArray(items) || items.length < 1 || items.length > 50) throw bad('/items_override/items');
+    }
+    const id = isObj(params) ? params['order_id'] : undefined;
+    const o = typeof id === 'string' && UUID.test(id) ? await lockOrderById(c.tx, c.tenantId, id) : null;    // row lock: a racing confirm/cancel waits, then sees the moved status
+    if (!o) throw new LimsError('common.not_found');
+    const scope = (await c.ports.IdentityPort.getActor(c)).centreScope as { all?: boolean; centreIds: readonly string[] } | undefined;
+    if (scope && scope.all !== true && !scope.centreIds.includes(o['centre_id'])) throw new LimsError('common.not_found');   // 404, never 403
+    if (o['status'] !== 'pre_registered') throw new LimsError('common.immutable_record');
+    if (Number(o['version']) !== version) throw new LimsError('common.version_conflict');
+    const stored = (await listOrderItemsByOrder(c.tx, c.tenantId, o['id'])).filter((i) => i['status'] === 'active');
+    const draftBody = {
+      patient: { patient_id: o['patient_id'] }, centre_id: o['centre_id'], visit_type: o['visit_type'], billing_mode: o['billing_mode'], priority: o['priority'], collection_mode: o['collection_mode'],
+      ...(o['credit_party_id'] ? { credit_party_id: o['credit_party_id'] } : {}), ...(o['referrer_id'] ? { referrer_id: o['referrer_id'] } : {}),
+      items: items ?? stored.map((i) => ({ orderable_id: i['orderable_id'], priority: i['priority'] })),
+      ...(b['discounts'] !== undefined ? { discounts: b['discounts'] } : {}), quote_fingerprint: b['quote_fingerprint'], payments: b['payments'],
+      ...(b['discount_approval_id'] !== undefined ? { discount_approval_id: b['discount_approval_id'] } : {}),
+    };
+    return createInTx(c, draftBody, { order: o, items: stored });
+  });
+}
+
+async function createInTx(hctx: unknown, body: unknown, pre?: Pre): Promise<Result> {
   const c = createCtx(hctx);
   const { IdentityPort: identity, CatalogPort: catalog, BillingCommandPort: billing, NotificationPort: notify } = c.ports;
   await identity.assertRole(c, { permission: P.registrationCreate });
@@ -294,7 +357,7 @@ async function createInTx(hctx: unknown, body: unknown): Promise<Result> {
 
   // 1. patient
   const patient = await resolvePatient(c, (body as Record<string, unknown>)['patient'], d.centreId);
-  const isFirst = !(await patientHasOrder(c.tx, c.tenantId, patient['id']));
+  const isFirst = pre ? pre.order['is_first_order_of_patient'] === true : !(await patientHasOrder(c.tx, c.tenantId, patient['id']));
 
   // 2. referrer
   if (!d.referrerId && settings?.require_referrer === true) throw new LimsError('frontdesk.referrer_required');
@@ -323,27 +386,47 @@ async function createInTx(hctx: unknown, body: unknown): Promise<Result> {
   const today = todayIn(tz, c.now());
   const pattern = tenant.numbering?.registrationNoPattern;
   if (typeof pattern !== 'string') throw new LimsError('common.internal');
-  const branchId = (await c.core.centre(c, { centreId: d.centreId })).branchId;
-  // registrationNoPattern must contain {branch} (03-IC §9.3 / 2844): its value is the branch_code of the centre's branch
-  const branchCode = hasToken(pattern, 'branch') ? (await c.core.branch(c, { branchId })).branchCode : undefined;
-  const seq = await nextCounterValue(c.tx, c.tenantId, 'registration_no', branchId, c.actor.id);
   const birth = dateOnly(patient['birth_on']);
-  const age = birth ? ageParts(birth, today) : undefined;
-  const orderId = uuidv7();
   const registeredAt = c.now();
-  const order = await insertOrder(c.tx, c.tenantId, {
-    id: orderId, branch_id: branchId, centre_id: d.centreId, patient_id: patient['id'], registration_no: formatNumber(pattern, { seq, year: Number(today.slice(0, 4)), ...(branchCode === undefined ? {} : { branch: branchCode }) }),
-    status: 'registered', visit_type: d.visitType, billing_mode: d.billingMode, credit_party_id: d.creditPartyId, referrer_id: d.referrerId, priority: d.priority,
-    collection_mode: d.collectionMode, source: 'front_desk', age_years: age?.years, age_months: age?.months, age_days: age?.days,
-    is_first_order_of_patient: isFirst, catalog_revision: p.resolved.catalogRevision, registered_at: registeredAt,
-  });
+  let branchId: string;
+  let orderId: string;
+  let order: Record<string, any>;
+  if (pre) {          // F12: the existing row becomes registered (registration_no, age snapshot and first-order flag were set at pre-registration)
+    branchId = pre.order['branch_id'];
+    orderId = pre.order['id'];
+    const moved = await confirmOrderRow(c.tx, c.tenantId, orderId, Number(pre.order['version']), { at: registeredAt, catalogRevision: p.resolved.catalogRevision });
+    if (!moved) throw new LimsError('common.version_conflict');
+    order = moved;
+  } else {
+    branchId = (await c.core.centre(c, { centreId: d.centreId })).branchId;
+    // registrationNoPattern must contain {branch} (03-IC §9.3 / 2844): its value is the branch_code of the centre's branch
+    const branchCode = hasToken(pattern, 'branch') ? (await c.core.branch(c, { branchId })).branchCode : undefined;
+    const seq = await nextCounterValue(c.tx, c.tenantId, 'registration_no', branchId, c.actor.id);
+    const age = birth ? ageParts(birth, today) : undefined;
+    orderId = uuidv7();
+    order = await insertOrder(c.tx, c.tenantId, {
+      id: orderId, branch_id: branchId, centre_id: d.centreId, patient_id: patient['id'], registration_no: formatNumber(pattern, { seq, year: Number(today.slice(0, 4)), ...(branchCode === undefined ? {} : { branch: branchCode }) }),
+      status: 'registered', visit_type: d.visitType, billing_mode: d.billingMode, credit_party_id: d.creditPartyId, referrer_id: d.referrerId, priority: d.priority,
+      collection_mode: d.collectionMode, source: 'front_desk', age_years: age?.years, age_months: age?.months, age_days: age?.days,
+      is_first_order_of_patient: isFirst, catalog_revision: p.resolved.catalogRevision, registered_at: registeredAt,
+    });
+  }
+  // F12: a stored item equal to the live line (orderable, priority, price snapshot) is kept; every other stored active item is cancelled. Unmatched lines are inserted.
+  const same = (s: Record<string, any>, l: PricedLineInput) => s['orderable_id'] === l.orderableId && s['priority'] === l.priority && Number(s['unit_price_paisa']) === l.unitPrice.amountPaisa
+    && (s['urgent_surcharge_paisa'] == null ? undefined : Number(s['urgent_surcharge_paisa'])) === l.urgentSurcharge?.amountPaisa
+    && s['price_list_id'] === l.priceListId && Number(s['price_list_version']) === l.priceListVersion && s['price_source'] === l.priceSource;
+  const keep = new Map<number, Record<string, any>>();
+  for (const s of pre?.items ?? []) {
+    const i = p.priced.findIndex((l, j) => !keep.has(j) && same(s, l));
+    if (i >= 0) keep.set(i, s); else await cancelOrderItem(c.tx, c.tenantId, orderId, s['id']);
+  }
   const itemRows: any[] = [];
   for (const [i, l] of p.priced.entries()) {
-    itemRows.push(await insertOrderItem(c.tx, c.tenantId, {
+    itemRows.push(keep.get(i) ?? await insertOrderItem(c.tx, c.tenantId, {
       id: uuidv7(), order_id: orderId, centre_id: d.centreId, orderable_id: l.orderableId, orderable_kind: l.orderableKind, code: l.code, name: l.name,
       test_ids: p.meta[i]!.testIds, department_id: p.meta[i]!.departmentId, priority: l.priority, unit_price_paisa: l.unitPrice.amountPaisa,
       urgent_surcharge_paisa: l.urgentSurcharge?.amountPaisa, price_list_id: l.priceListId, price_list_version: l.priceListVersion, price_source: l.priceSource,
-      vat_treatment: l.tax.vat, other_tax_code: l.tax.otherTaxCode, added_in_items_version: 1,
+      vat_treatment: l.tax.vat, other_tax_code: l.tax.otherTaxCode, added_in_items_version: Number(order['items_version'] ?? 1),
     }));
   }
   const itemOf = new Map(itemRows.map((it) => [it['orderable_id'] as string, it['id'] as string]));
@@ -374,7 +457,7 @@ async function createInTx(hctx: unknown, body: unknown): Promise<Result> {
       orderId: orderId as never, patientId: patient['id'], branchId: branchId as never, centreId: d.centreId as never, ...refPart, buyer,
       lines: p.priced, discounts: p.discounts, expectedFingerprint: r.fingerprint, purpose: 'registration',
     });
-    invoice = { id: inv.invoiceId, invoice_no: inv.invoiceNo, fiscal_year_bs: inv.fiscalYearBs, issued_at: inv.issuedAt, branch_id: branchId, centre_id: d.centreId, order_id: orderId, ...(d.referrerId ? { referrer_id: d.referrerId } : {}), buyer, totals: totalsDto(inv.totals) };
+    invoice = await invoiceDto(c, inv, p, { id: orderId, branch_id: branchId, centre_id: d.centreId, referrer_id: d.referrerId }, buyer);
     for (const [i, pay] of r.payments.entries()) {
       const out = await billing.recordPayment(pc, {
         orderId: orderId as never, invoiceId: inv.invoiceId, methodCode: pay.methodCode, amount: { amountPaisa: pay.amountPaisa, currency: 'NPR' } as never,
@@ -417,10 +500,11 @@ async function createInTx(hctx: unknown, body: unknown): Promise<Result> {
   }
 
   // 8. event (IC §3.1: ids, enums and times only; no names, phones or registration no)
+  const source = pre ? { source: pre.order['source'], ...(pre.order['source_ref_id'] ? { source_ref_id: pre.order['source_ref_id'] } : {}) } : { source: 'front_desk' };
   await createFrontdeskEvents(c.events as never).orderCreated(c as never, {
     order_id: orderId, patient_id: patient['id'], branch_id: branchId, centre_id: d.centreId, visit_type: d.visitType, billing_mode: d.billingMode,
     ...(d.creditPartyId ? { credit_party_id: d.creditPartyId } : {}), ...(d.referrerId ? { referrer_id: d.referrerId } : {}), priority: d.priority,
-    collection_mode: d.collectionMode, source: 'front_desk', registered_at: nowIso,
+    collection_mode: d.collectionMode, ...source, registered_at: nowIso,
     items: itemRows.map((it, i) => ({ order_item_id: it['id'], orderable_id: it['orderable_id'], orderable_kind: it['orderable_kind'], test_ids: p.meta[i]!.testIds, priority: it['priority'] })),
   }, Number(order['version']));
 
@@ -438,7 +522,7 @@ async function createInTx(hctx: unknown, body: unknown): Promise<Result> {
       id: orderId, registration_no: order['registration_no'],
       patient: { id: patient['id'], patient_code: patient['patient_code'], full_name: patient['full_name'], sex: patient['sex'], age_at_order: birth ? ageDisplay(birth, today) : 'Unknown' },
       branch_id: branchId, centre_id: d.centreId, visit_type: d.visitType, billing_mode: d.billingMode, ...(d.creditPartyId ? { credit_party_id: d.creditPartyId } : {}),
-      ...(d.referrerId ? { referrer_id: d.referrerId } : {}), priority: d.priority, collection_mode: d.collectionMode, source: 'front_desk', status: 'registered',
+      ...(d.referrerId ? { referrer_id: d.referrerId } : {}), priority: d.priority, collection_mode: d.collectionMode, ...source, status: 'registered',
       items: itemRows.map((it) => ({ id: it['id'], orderable_id: it['orderable_id'], orderable_kind: it['orderable_kind'], code: it['code'], name: it['name'], priority: it['priority'],
         status: it['status'], unit_price: { amount_paisa: Number(it['unit_price_paisa']), currency: 'NPR' },
         ...(it['urgent_surcharge_paisa'] != null ? { urgent_surcharge: { amount_paisa: Number(it['urgent_surcharge_paisa']), currency: 'NPR' } } : {}), outsourced: it['outsourced'] === true })),

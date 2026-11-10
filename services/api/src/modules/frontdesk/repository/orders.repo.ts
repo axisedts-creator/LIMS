@@ -31,6 +31,14 @@ export async function cancelOrderRow(tx: Tx, tenantId: string, id: string, expec
   return rows[0] ?? null;
 }
 
+/** FD-T12 F12: pre_registered -> registered (registered_at + catalog_revision re-stamped, as the lifecycle guard allows). null when the version or status moved. */
+export async function confirmOrderRow(tx: Tx, tenantId: string, id: string, expectedVersion: number, c: { at: Date; catalogRevision: number }): Promise<any | null> {
+  const { rows } = await tx.query(`UPDATE frontdesk.orders SET status = 'registered', registered_at = $4, catalog_revision = $5,
+      version = version + 1, updated_at = now(), updated_by = (SELECT app.current_actor_id())
+    WHERE tenant_id = $1 AND id = $2 AND version = $3 AND status = 'pre_registered' RETURNING *`, [tenantId, id, expectedVersion, c.at, c.catalogRevision]);
+  return rows[0] ?? null;
+}
+
 /** FD-T11 ageAtOrder: per patient, the age snapshot of the most recent order that carries one. */
 export async function latestAgeByPatients(tx: Tx, tenantId: string, patientIds: readonly string[]): Promise<Map<string, { years: number; months: number; days: number }>> {
   const out = new Map<string, { years: number; months: number; days: number }>();

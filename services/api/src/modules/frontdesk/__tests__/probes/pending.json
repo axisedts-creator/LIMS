@@ -1,9 +1,6 @@
 [
   "listPossibleDuplicatePatients",
   "anonymisePatient",
-  "confirmPreRegisteredOrder",
-  "listOrderFlags",
-  "resolveOrderFlag",
   "getFrontdeskSettings",
   "updateFrontdeskSettings",
   "listFrontdeskCodes"

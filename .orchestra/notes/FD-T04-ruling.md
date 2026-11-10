@@ -1,6 +1,9 @@
-TESTS_WRONG — all four disputed points are harness/assertion defects; the spec requires the implementation's behaviour.
-1. Fixture ids: spec/program/02-CONVENTIONS.md:452 (and :525) says internal IDs are UUIDv7 from `@lims/shared-ts/uuidv7`. core/audit/access.ts:23,31 enforces this on entityId. Change `uid()` in __tests__/integration/helpers.ts:29 to uuidv7() from packages/shared-ts/src/uuidv7. That covers seedPatient, seedOrder, consents, `rows.*`, membershipId and requestId in patients/helpers.ts. Keep the `entity_id: p.id` assertions.
-2. countPatients race: no spec line requires a tenant-wide count to be stable while other test files run. In create.test.ts "nothing stored" checks, count only rows the test could create: filter by the body's unique name tag (byName / name_search) or phone_e164, not `countPatients(TENANT_A)`.
-3. create.test.ts:27: compare the date, not the JS Date string. Select `birth_on::text`, or use `toISOString().slice(0,10)` with a check that it does not shift across timezones. The API body (line 20) already checks the 02-TRD value.
-4. search.test.ts:86-90: 01-PRD.md:142, 02-TRD.md:225 and 03-APP-FLOW.md:68 make the `patient.search` access_log row mandatory for any search. With claims for A and ctx.tenantId B, RLS rejects that row, so failing closed is correct. Assert that the call EITHER rejects OR returns `{status 200, body.data: []}`. Also assert that no tenant-B row (b.id) appears in either case, and that no access_log row with tenant_id B exists for probe.requestId.
+TESTS_WRONG — search.test.ts:167/171 asserts a tenant-wide patient count is stable while other suites insert into TENANT_A in parallel; no spec line requires that.
+1. Same defect class as prior ruling item 2 (create.test.ts countPatients race). Items 1-4 of the previous ruling still stand unchanged.
+2. Spec need here is only that hostile input is treated as data: spec/chunks/C4-frontdesk-billing/07-SECURITY.md:34 (REQ-SEC-080/081/082: parameterised SQL; trigram search input escaped). It says nothing about tenant-wide row counts.
+3. searchPatients only reads and writes access_log (01-PRD.md:142 patient.search row); it does not insert patients, so the count drift comes from other test files, not the handler.
+4. Change in search.test.ts "probes: hostile query strings": remove `countPatients(TENANT_A)` before/after (lines 167, 171). Keep "table intact" by:
+   a. keeping the patient from `const p = await seedPatient('a')` and asserting after the call that the row with p.id still exists (SELECT by id via superTx/ownerRows), and
+   b. asserting `SELECT to_regclass('frontdesk.patients')` is not null.
+5. Keep lines 168-170 (200 or common.validation_failed, ≤20 rows, no anonymised rows) unchanged.
 No implementation change required by this ruling.

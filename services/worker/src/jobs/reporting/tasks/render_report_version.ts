@@ -16,7 +16,7 @@ export interface RenderPorts {
   sandbox: { assemble(req: Row): Promise<{ pdf: Uint8Array; pageCount: number }> };
 }
 
-const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+export const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const INPUT_BUCKET = 'reporting-inputs';
 const REPORT_BUCKET = 'reports';
 const RELEASE_TASK = 'reporting.release_if_eligible';
@@ -24,13 +24,13 @@ const RELEASE_MAX_ATTEMPTS = 10;                                        // 02-TR
 const FAILURES = 'lims_reporting_render_failures_total';
 const COUNCILS = ['NMC', 'NHPC'];
 const IMAGE_MIMES = ['image/png', 'image/jpeg'];
-const STAMP = { page_label_format: 'Page {n} Of {m}', position: 'footer_right', font_size_pt: 8, markers: { plain: false, not_released: false } };
-const sha = (b: Uint8Array) => createHash('sha256').update(b).digest('hex');
-const json = (v: unknown) => (typeof v === 'string' ? JSON.parse(v) : v);
-const codeOf = (e: unknown) => String((e as Row)?.code ?? '');
+export const STAMP = { page_label_format: 'Page {n} Of {m}', position: 'footer_right', font_size_pt: 8, markers: { plain: false, not_released: false } };
+export const sha = (b: Uint8Array) => createHash('sha256').update(b).digest('hex');
+export const json = (v: unknown) => (typeof v === 'string' ? JSON.parse(v) : v);
+export const codeOf =(e: unknown) => String((e as Row)?.code ?? '');
 
 /** A failure that no retry can fix: the version goes straight to render_failed with `code`. */
-class Permanent extends Error { constructor(readonly code: string) { super(code); } }
+export class Permanent extends Error { constructor(readonly code: string) { super(code); } }
 
 /** D15: {tenant}/{yyyy}/{mm}/{report_id}-v{n}.pdf, yyyy/mm = version created_at in UTC (not the run date). */
 function objectPath(tenantId: string, v: Row): string {
@@ -110,17 +110,17 @@ export function createRenderReportVersion(o: RenderPorts): TaskHandler {
 }
 
 /** A sanitised outside file read from storage; bytes whose sha256 differs from the snapshot's recorded one never reach the sandbox merge. */
-async function part(ctx: any, kind: 'outsourced' | 'instrument_pdf', path: string, expected: string): Promise<Row> {
+export async function part(ctx: any, kind: 'outsourced' | 'instrument_pdf', path: string, expected: string): Promise<Row> {
   const bytes: Uint8Array = await ctx.storage.read(INPUT_BUCKET, path);   // storage failure = retryable
   if (sha(bytes) !== String(expected).toLowerCase()) throw new Permanent('common.internal');
   return { kind, pdf_base64: Buffer.from(bytes).toString('base64'), sha256: sha(bytes) };
 }
 
 /** E9: logo / letterhead images and signature images, keyed by sha256. A missing, altered or non-image asset is logged `asset_missing` and left out; it never blocks. */
-async function collectAssets(ctx: any, versionId: string, doc: Row): Promise<Record<string, { mime_type: string; base64: string }>> {
+export async function collectAssets(ctx: any, versionId: string, doc: Row, skipBranding = false): Promise<Record<string, { mime_type: string; base64: string }>> {   // C6-T16: skipBranding = plain print (no letterhead images)
   const identity = ctx.ports.identity; const out: Record<string, { mime_type: string; base64: string }> = {};
   const refs: Array<{ kind: 'branding' | 'signature'; ref: Row; membershipId?: string }> = [];
-  for (const k of ['logoAssetRef', 'headerAssetRef', 'footerAssetRef']) if (doc['lab']?.[k]) refs.push({ kind: 'branding', ref: doc['lab'][k] });
+  if (!skipBranding) for (const k of ['logoAssetRef', 'headerAssetRef', 'footerAssetRef']) if (doc['lab']?.[k]) refs.push({ kind: 'branding', ref: doc['lab'][k] });
   for (const s of (doc['signatories'] ?? []) as Row[]) if (s['signatureAssetRef']) refs.push({ kind: 'signature', ref: s['signatureAssetRef'], membershipId: s['membershipId'] });
   for (const { kind, ref, membershipId } of refs) {
     if (out[ref['sha256']]) continue;
@@ -144,7 +144,7 @@ async function collectAssets(ctx: any, versionId: string, doc: Row): Promise<Rec
 }
 
 /** LD-27: copy the registering council of each signatory profile onto the request document (never the stored snapshot). */
-async function addCouncils(ctx: any, doc: Row): Promise<void> {
+export async function addCouncils(ctx: any, doc: Row): Promise<void> {
   const signatories = (doc['signatories'] ?? []) as Row[];
   if (signatories.length === 0) return;
   const profiles: Row[] = await ctx.ports.identity.getSignatories(ctx, { membershipIds: signatories.map((s) => s['membershipId']) });   // outage = retry

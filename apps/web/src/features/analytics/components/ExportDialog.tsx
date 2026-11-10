@@ -77,7 +77,7 @@ export function ExportDialog({ isOpen, onClose, reportCode, params, summary, pdf
         name="format"
         value={format}
         onChange={setFormat}
-        options={[{ value: 'xlsx', label: 'Excel (.xlsx)' }, { value: 'csv', label: 'CSV (.csv)' }, { value: 'pdf', label: 'PDF', ...(pdfEnabled ? {} : { isDisabled: true }) }] as never /* CR AN-T17: kit RadioGroup lacks per-option isDisabled */}
+        options={[{ value: 'xlsx', label: 'Excel (.xlsx)' }, { value: 'csv', label: 'CSV (.csv)' }, { value: 'pdf', label: 'PDF', ...(pdfEnabled ? {} : { isDisabled: true }) }] /* LD-83: kit RadioGroup per-option isDisabled */}
         {...(pdfEnabled ? {} : { description: 'PDF export is not available yet' })}
       />
       <DescriptionList

@@ -164,7 +164,7 @@ describe('#93 createInstrumentCodeMap (AC-17.2)', () => {
 
   it('carries the optional unit conversion (all three) and flag_map when given', async () => {
     const create = await load();
-    const extra = { unit_from_raw: 'g/L', unit_to_code: 'g/dL', unit_factor: '0.1', flag_map: { H: 'HIGH', L: 'LOW' } };
+    const extra = { unit_from_raw: 'g/L', unit_to_code: 'g/dL', unit_factor: '0.1', flag_map: JSON.stringify({ H: 'HIGH', L: 'LOW' }) };
     await create(input(extra), KEY);
     expect(seen[0]!.body).toEqual(input(extra));
   });
@@ -177,7 +177,7 @@ describe('#93 createInstrumentCodeMap (AC-17.2)', () => {
 
   it('boundaries accepted: instrument_code 64 chars, flag_map 20 entries with 16-char keys and 64-char values, unit_factor 6 decimals', async () => {
     const create = await load();
-    const flag_map = Object.fromEntries(Array.from({ length: 20 }, (_, i) => [`K${String(i).padStart(2, '0')}`.padEnd(16, 'x'), 'v'.repeat(64)]));
+    const flag_map = JSON.stringify(Object.fromEntries(Array.from({ length: 20 }, (_, i) => [`K${String(i).padStart(2, '0')}`.padEnd(16, 'x'), 'v'.repeat(64)])));
     await create(input({ instrument_code: 'A'.repeat(64), flag_map, unit_from_raw: 'x'.repeat(32), unit_to_code: 'g/dL', unit_factor: '0.000001' }), KEY);
     expect(seen).toHaveLength(1);
   });
@@ -211,13 +211,16 @@ describe('#93 createInstrumentCodeMap (AC-17.2)', () => {
     expect(seen[0]!.body.unit_factor).toBe(f);
   });
 
-  it('flag_map limits: 21 entries / key > 16 chars / value > 64 chars / array / non-string value → 400 before any network call', async () => {
+  it('flag_map limits (JSON object text, limits on the parsed form): 21 entries / key > 16 chars / value > 64 chars / array / non-string value / text > 2000 chars / non-JSON → 400 before any network call', async () => {
     const create = await load();
-    await rejects400(create(input({ flag_map: Object.fromEntries(Array.from({ length: 21 }, (_, i) => [`k${i}`, 'v'])) }) as never, KEY));
-    await rejects400(create(input({ flag_map: { ['k'.repeat(17)]: 'v' } }) as never, KEY));
-    await rejects400(create(input({ flag_map: { k: 'v'.repeat(65) } }) as never, KEY));
-    await rejects400(create(input({ flag_map: ['H'] }) as never, KEY));
-    await rejects400(create(input({ flag_map: { k: 5 } }) as never, KEY));
+    await rejects400(create(input({ flag_map: JSON.stringify(Object.fromEntries(Array.from({ length: 21 }, (_, i) => [`k${i}`, 'v']))) }) as never, KEY));
+    await rejects400(create(input({ flag_map: JSON.stringify({ ['k'.repeat(17)]: 'v' }) }) as never, KEY));
+    await rejects400(create(input({ flag_map: JSON.stringify({ k: 'v'.repeat(65) }) }) as never, KEY));
+    await rejects400(create(input({ flag_map: JSON.stringify(['H']) }) as never, KEY));
+    await rejects400(create(input({ flag_map: JSON.stringify({ k: 5 }) }) as never, KEY));
+    await rejects400(create(input({ flag_map: JSON.stringify({ k: 'v', pad: ' '.repeat(2000) }) }) as never, KEY));
+    await rejects400(create(input({ flag_map: 'x'.repeat(2001) }) as never, KEY));
+    await rejects400(create(input({ flag_map: 'not json' }) as never, KEY));
   });
 
   it('missing / blank Idempotency-Key → 400 before any network call (a retry must not double-create)', async () => {
@@ -243,14 +246,14 @@ describe('#94 updateInstrumentCodeMap (edit / deactivate)', () => {
 
   it('PATCH /{map_id} with If-Match "<version>" and only the changed mutable fields', async () => {
     const update = await load();
-    const r = await update(MAP, 3, { unit_from_raw: 'g/L', unit_to_code: 'g/dL', unit_factor: '0.1', flag_map: { H: 'HIGH' } });
+    const r = await update(MAP, 3, { unit_from_raw: 'g/L', unit_to_code: 'g/dL', unit_factor: '0.1', flag_map: JSON.stringify({ H: 'HIGH' }) });
     expect(seen).toHaveLength(1);
     const c = seen[0]!;
     expect(c.method).toBe('PATCH');
     expect(c.url.pathname).toBe(`/v1/catalog/instrument-code-maps/${MAP}`);
     expect(c.headers.get('if-match')).toBe('"3"');
     expect(c.headers.get('authorization')).toBe('Bearer jwt-synthetic');
-    expect(c.body).toEqual({ unit_from_raw: 'g/L', unit_to_code: 'g/dL', unit_factor: '0.1', flag_map: { H: 'HIGH' } });
+    expect(c.body).toEqual({ unit_from_raw: 'g/L', unit_to_code: 'g/dL', unit_factor: '0.1', flag_map: JSON.stringify({ H: 'HIGH' }) });
     expect(r.version).toBe(4);
   });
 
@@ -307,7 +310,7 @@ describe('#95 upsertInstrumentCodeMaps (Copy from instrument…)', () => {
 
   it('POST /bulk-upsert with Idempotency-Key and {instrument_id, maps[]}; returns the per-row results', async () => {
     const upsert = await load();
-    const maps = [item(), item({ instrument_code: 'WBC', direction: 'inbound', unit_from_raw: 'x', unit_to_code: 'y', unit_factor: '2', flag_map: { H: 'HIGH' } })];
+    const maps = [item(), item({ instrument_code: 'WBC', direction: 'inbound', unit_from_raw: 'x', unit_to_code: 'y', unit_factor: '2', flag_map: JSON.stringify({ H: 'HIGH' }) })];
     const r = await upsert(INST, maps, KEY);
     expect(seen).toHaveLength(1);
     const c = seen[0]!;

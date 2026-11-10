@@ -72,7 +72,7 @@ const OBSERVED = [
   oc({ instrument_analyte_code: 'WBC', last_mapping_status: 'mapped', last_analyte_id: A_WBC, seen_count: 40 }),
   oc({ instrument_analyte_code: 'CAL9', record_class: 'calibrator', last_mapping_status: 'mapped', last_analyte_id: A_HGB, seen_count: 3 }),
 ];
-const cm = (o: Record<string, unknown> = {}) => ({ id: M1, instrument_id: INST, direction: 'both', instrument_code: 'WBC', analyte_id: A_WBC, test_id: T_WBC, unit_from_raw: 'g/L', unit_to_code: 'g/dL', unit_factor: '0.1', flag_map: { H: 'HIGH', L: 'LOW' }, is_active: true, version: 5, ...o });
+const cm = (o: Record<string, unknown> = {}) => ({ id: M1, instrument_id: INST, direction: 'both', instrument_code: 'WBC', analyte_id: A_WBC, test_id: T_WBC, unit_from_raw: 'g/L', unit_to_code: 'g/dL', unit_factor: '0.1', flag_map: JSON.stringify({ H: 'HIGH', L: 'LOW' }), is_active: true, version: 5, ...o });
 const MAPROWS = [
   cm(),
   cm({ id: M2, instrument_code: 'GLU', analyte_id: A_HCT, test_id: T_HGB, direction: 'inbound', unit_from_raw: undefined, unit_to_code: undefined, unit_factor: undefined, flag_map: undefined, version: 2 }),

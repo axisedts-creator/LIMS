@@ -148,4 +148,4 @@ export const noAxeViolations = async () => {
 };
 /** Rupee text as the kit renders it ("Rs. 339.00"; spec wording "NPR 339.00" also accepted). */
 export const MONEY = (paisa: number) => new RegExp(`(NPR|Rs\\.?)\\s*${(paisa / 100).toLocaleString('en-US', { minimumFractionDigits: 2 }).replace(/\./g, '\\.')}`);
-export { delay, http, HttpResponse };
+export { delay, http, HttpResponse } from 'msw';

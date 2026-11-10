@@ -273,7 +273,7 @@ describe('payment (§3.2 F; US-FD-03)', () => {
     await user.clear(screen.getAllByRole('textbox', { name: /^amount/i })[0]!);
     await submit(user);
     await text(/No payment/);
-    expect(screen.getByRole('alertdialog', {}).textContent ?? '').toMatch(MONEY(UNIT));
+    expect(screen.getByRole('dialog', { name: /payment/i }).textContent ?? '').toMatch(MONEY(UNIT));
     expect(of('POST', PATH.register)).toHaveLength(0);
     await user.keyboard('{Enter}');
     await waitFor(() => expect(of('POST', PATH.register)).toHaveLength(1), { timeout: T });

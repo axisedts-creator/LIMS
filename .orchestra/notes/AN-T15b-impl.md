@@ -4,3 +4,4 @@
 - [CONV] paisa `12,34,567.89` no currency prefix, `-` sign; seconds `<h> h <m> min` below 48 h else `<d> d <h> h`; bp half-up to one decimal; count plain.
 - [CONV] `@page` landscape when >8 columns, font 9/7.5/6 pt by column count; `thead` repeats per page; system fonts only (no @font-face).
 - Schema-breaking data throws a data-free Error (server -> 422). Open: renderer default LIMS_RENDERER_MAX_PAGES=60 < pages for 5,000 rows (tester note); deploy config must raise it.
+- Lead AUTO 2026-11-10T18:11:34 (APPROVED_REWRITE): C0-0C owns/adds contracts/render/analytics.report.schema.json; C8 writes nothing more. No code change this round; 34 schema.test.ts fails stay until C0-0C lands the file.

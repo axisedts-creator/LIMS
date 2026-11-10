@@ -7,3 +7,4 @@
 - Not covered: per-specimen last-seq storage for status_changed (spec gives no column); real wrapper inbox dedupe (core consumer.test.ts); recollection SMS `centre_phone` fake default template lacks it (harness overrides, as registration does); catalog cache (C4 has none yet, so only no-throw/no-write is observable).
 - Fake `NotificationPort` default `frontdesk.recollection_request` declares only {lab_name}; TRD §8.2 needs {lab_name, centre_phone} - fake fixture is C6/packages/fakes, not edited.
 - LD-70: probes/pending.json untouched (writer removes nothing here: consumers are not operationIds).
+- Harness fix per FD-T12-ruling: runner vitest cmd passes `--fsModuleCache=false` (stale transform cache). Tests unchanged.

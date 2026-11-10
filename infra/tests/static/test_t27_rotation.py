@@ -309,6 +309,60 @@ class DbPasswordFlow(unittest.TestCase):
         self.assertEqual(module(resc[-1]["task"]), "fail", "rescue ends with ansible.builtin.fail")
         self.assertTrue(all(e["no_log"] for e in find(r"ALTER ROLE", resc)))
 
+    def test_rescue_render_failure_must_not_abort_the_rescue(self):
+        # ignore_errors on a dynamic include_role covers only the include; apply.ignore_errors covers the role's tasks
+        incl = [e for e in entries() if e["section"] == "rescue" and module(e["task"]) == "include_role"]
+        self.assertTrue(incl, "rescue re-renders secrets via include_role")
+        for e in incl:
+            t = e["task"]
+            args = next(v for k, v in t.items() if k not in KEYWORDS)
+            self.assertIs(t.get("ignore_errors"), True, "include_role itself ignore_errors: true")
+            self.assertIsInstance(args, dict)
+            self.assertIs((args.get("apply") or {}).get("ignore_errors"), True,
+                          "include_role apply: {ignore_errors: true} so a failing secrets_render task cannot skip the "
+                          "RESTORE FAILED note and the final message")
+
+
+class LiveCommand(unittest.TestCase):
+    """The live AC-19.2 test must pass every input the playbook's 'Inputs of the DB flow are present' assert needs."""
+    ENV = {"LIMS_T27_INVENTORY": "infra/ansible/inventories/staging/hosts.yml", "LIMS_T27_ENV": "staging",
+           "LIMS_T27_ENC_FILE": "/srv/lims-secrets/staging.enc.yaml", "LIMS_T27_PROBE_BASE": "https://staging.invalid",
+           "LIMS_T27_COMPOSE_ENV": '{"APP_WG_IP": "10.0.0.1"}', "LIMS_T27_CA_FILE": "/etc/ca.pem"}
+
+    def cmd_vars(self):
+        import importlib.util
+        spec = importlib.util.spec_from_file_location("t27_live", ROOT / "infra" / "tests" / "integration" / "test_t27_live.py")
+        mod = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(mod)
+        cmd = mod.playbook_cmd(self.ENV)
+        out = {}
+        for i, a in enumerate(cmd):
+            if a == "-e":
+                v = cmd[i + 1]
+                out.update(json.loads(v) if v.startswith("{") else dict([v.split("=", 1)]))
+        return cmd, out
+
+    def test_command_line_carries_every_required_input(self):
+        play_vars = {}
+        for p in load_plays():
+            play_vars.update(p.get("vars") or {})
+        gate = [e for e in find(r"Inputs of the DB flow are present") if module(e["task"]) == "assert"]
+        self.assertTrue(gate, "playbook asserts its DB-flow inputs")
+        required = set(re.findall(r"\b(rotate_\w+)\s*\|\s*length", json.dumps(gate[0]["task"]["ansible.builtin.assert"]["that"])))
+        self.assertTrue(required)
+        cmd, given = self.cmd_vars()
+        for var in sorted(required):
+            alias = re.search(r"\b(secrets_render_\w+)\b", str(play_vars.get(var, "")))  # e.g. rotate_enc_file <- secrets_render_enc_file
+            self.assertIn(alias.group(1) if alias else var, given, "live command must set -e for %s" % var)
+        self.assertTrue(given.get("rotate_compose_env"), "rotate_compose_env is a non-empty dict")
+        self.assertEqual(given.get("rotate_probe_ca_file"), "/etc/ca.pem")
+
+    def test_inventory_resolved_from_repo_root(self):
+        cmd, _ = self.cmd_vars()
+        inv = Path(cmd[cmd.index("-i") + 1])
+        self.assertTrue(inv.is_absolute())
+        self.assertEqual(inv, (ROOT / self.ENV["LIMS_T27_INVENTORY"]).resolve())
+
 
 class LoadGate(unittest.TestCase):
     def test_load_started_in_background_and_collected(self):

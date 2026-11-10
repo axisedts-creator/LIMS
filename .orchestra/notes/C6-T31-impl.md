@@ -5,4 +5,6 @@ Post-ruling fix: OutsourcedQueue upload now catches non-ApiError transport failu
 [CONV] native `<select>` (ReasonDialog/NativeSelect) instead of kit ConfirmDialog's react-aria Select for reason dialogs; NumberInput/SimpleTable (native table + caption); Timeline replaced by a plain ordered list.
 [CONV] PDF links go through same-origin proxy routes (browser never holds the token); outsourced link maps to GET /outsourced-files/{id}/content.
 LD-70: no API stubs became real handlers in this task (web only) → pending.json untouched.
-Open: bulk release needs report-VERSION ids but ReportSummary has no latest_version_id (CR .orchestra/cr/C6-T31.md); next.config serverActions.bodySizeLimit must allow 15 MB uploads (not owned); centre-contacts read-only; preview/print polling and E2E not covered by tests.
+Review #1 fixed: invented `latest_version_id` removed; UI selects report ids, bulkReleaseAction resolves each via getReport to its newest `rendered` version id (cap 200), results mapped back to report ids; reports without a rendered version count as "not released". CR .orchestra/cr/C6-T31.md no longer needed. Re-run: 200/200 pass, tsc clean for reporting.
+[CONV] bulk resolve = N GET /reports/{id} calls (≤200) per bulk release; switch to a contract field if one is added.
+Open: next.config serverActions.bodySizeLimit must allow 15 MB uploads (not owned); centre-contacts read-only; preview/print polling and E2E not covered by tests.

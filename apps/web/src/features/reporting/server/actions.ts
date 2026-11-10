@@ -3,7 +3,8 @@
 // the action boundary in production. Only ApiError is mapped; anything else rethrows to the error boundary.
 import 'server-only';
 import { ApiError } from '@/core/api/server-fetch';
-import { getReportPrint, listCriticalAlerts, listOverrideReasons, listReportingCodes } from './read.server';
+import { problem } from '@/core/session/types';
+import { getReport, getReportPrint, listCriticalAlerts, listOverrideReasons, listReportingCodes } from './read.server';
 import { bulkRelease, confirmOutsourced, createPrint, listOutsourcedFiles, previewTemplate, publishTemplate, recordOverride, regenerate, releaseVersion, retryDelivery, retryRender, revokeQr, rotateCallbackToken, saveNarrativeDraft, saveTemplateDraft, searchReports, signNarrative, startAmendment, updateSettings, uploadNarrativeImage, uploadOutsourced, upsertChannelAccount, upsertMessageText } from './write.server';
 import type { ActionResult, BulkResult, ChannelAccount, CodedOption, CriticalAlert, Delivery, InputFile, MessageText, Narrative, Page, ReportSummary, ReportingSettings, TemplateConfig, TemplateDetail, VersionSummary } from './types';
 
@@ -43,8 +44,21 @@ export async function searchReportsAction(k: { barcode: string } | { registratio
 export async function releaseVersionAction(versionId: string, version: number, b: { audiences?: string[]; suppress_notifications?: boolean }, key: string): Promise<ActionResult<VersionSummary>> {
   return run(() => releaseVersion(versionId, version, b, key));
 }
-export async function bulkReleaseAction(ids: string[], key: string): Promise<ActionResult<BulkResult>> {
-  return run(() => bulkRelease(ids, key));
+// R7 takes report-VERSION ids. The UI selects report ids; each is resolved here via getReport (ReportDetail.versions[].id) to its newest
+// `rendered` version (the only releasable status, reporting.yaml VersionSummary.status). Results come back keyed by report id.
+// Reports without a rendered version are not sent and count as "not released" in the UI.
+export async function bulkReleaseAction(reportIds: string[], key: string): Promise<ActionResult<BulkResult>> {
+  return run(async () => {
+    if (reportIds.length < 1 || reportIds.length > 200) throw new ApiError(400, problem('common.validation_failed', 'Validation failed', 400)); // getReport validates each uuid
+    const pairs = await Promise.all(reportIds.map(async (rid) => {
+      const v = (await getReport(rid)).versions.filter((x) => x.status === 'rendered').sort((a, b) => b.version_no - a.version_no)[0];
+      return v ? ([v.id, rid] as const) : null;
+    }));
+    const toReport = new Map(pairs.filter((p): p is readonly [string, string] => p !== null));
+    if (toReport.size === 0) return { results: [] };
+    const r = await bulkRelease([...toReport.keys()], key);
+    return { results: r.results.map((x) => ({ ...x, id: toReport.get(x.id) ?? x.id })) };
+  });
 }
 export async function retryRenderAction(versionId: string, key: string): Promise<ActionResult<VersionSummary>> {
   return run(() => retryRender(versionId, key));

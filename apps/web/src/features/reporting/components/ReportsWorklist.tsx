@@ -25,7 +25,6 @@ const EMPTY: Record<ReportTab, string> = {
 };
 const OUTCOME: Record<string, string> = { released: 'Released', blocked_due: 'Held for dues' };
 const REG_NO = /^R\d{10}$/;
-const selectId = (r: ReportSummary) => r.latest_version_id ?? r.id; // [CONV] see types.ts: falls back to the report id until the contract adds latest_version_id
 
 export interface ReportsWorklistProps { reports: readonly ReportSummary[]; tab: ReportTab; permissions: readonly string[]; centres: readonly Centre[]; nextCursor?: string | undefined }
 
@@ -39,13 +38,13 @@ export function ReportsWorklist({ reports, tab, permissions, centres, nextCursor
   const selectable = canBulk && (tab === 'ready_to_release' || tab === 'held');
   const [selected, setSelected] = useState<ReadonlySet<string>>(new Set());
   const [confirming, setConfirming] = useState(false);
-  const [result, setResult] = useState<BulkResult['results'] | null>(null);
+  const [result, setResult] = useState<{ rows: BulkResult['results']; sent: number } | null>(null);
   const [query, setQuery] = useState('');
   const [searchMsg, setSearchMsg] = useState<string>();
   const [found, setFound] = useState<ReportSummary[]>([]);
   const key = useRef(newKey());
   const searchBox = useRef<HTMLDivElement>(null);
-  const byVersion = new Map(reports.map((r) => [selectId(r), r]));
+  const byId = new Map(reports.map((r) => [r.id, r]));
 
   const goTab = (t: string) => {
     const p = new URLSearchParams(sp.toString());
@@ -70,13 +69,13 @@ export function ReportsWorklist({ reports, tab, permissions, centres, nextCursor
   ], [canBulk, selected.size, sp.toString()]);
 
   const release = async () => {
-    const ids = [...selected];
+    const ids = [...selected]; // report ids; bulkReleaseAction resolves version ids server-side (review C6-T31 #1)
     const r = await bulkReleaseAction(ids, key.current);
     setConfirming(false);
     if (!r.ok) { toast.show({ tone: 'danger', title: 'Could not release the reports', description: errorText(r.code) }); return; }
     key.current = newKey();
     setSelected(new Set());
-    setResult(r.data.results);
+    setResult({ rows: r.data.results, sent: ids.length });
     router.refresh();
   };
 
@@ -112,7 +111,7 @@ export function ReportsWorklist({ reports, tab, permissions, centres, nextCursor
     { id: 'updated', header: 'Updated', cell: (r) => <When value={r.updated_at} /> },
   ];
 
-  const counts = result ? { ok: result.filter((x) => x.outcome === 'released').length, held: result.filter((x) => x.outcome === 'blocked_due').length } : null;
+  const counts = result ? { ok: result.rows.filter((x) => x.outcome === 'released').length, held: result.rows.filter((x) => x.outcome === 'blocked_due').length } : null;
   return (
     <section aria-label="Reports">
       <PageHeader
@@ -141,13 +140,13 @@ export function ReportsWorklist({ reports, tab, permissions, centres, nextCursor
         ]}
         value={f.value} onChange={f.onChange} onReset={f.onReset}
       />
-      {counts ? <p role="status">{`${counts.ok} released · ${counts.held} held for dues · ${result!.length - counts.ok - counts.held} not released`}</p> : null}
+      {counts ? <p role="status">{`${counts.ok} released · ${counts.held} held for dues · ${result!.sent - counts.ok - counts.held} not released`}</p> : null}
       {result ? (
         <SimpleTable
           caption="Bulk release result"
-          rows={result} getRowId={(x) => x.id}
+          rows={result.rows} getRowId={(x) => x.id}
           columns={[
-            { id: 'r', header: 'Report', rowHeader: true, cell: (x) => byVersion.get(x.id)?.registration_no ?? '—' },
+            { id: 'r', header: 'Report', rowHeader: true, cell: (x) => byId.get(x.id)?.registration_no ?? '—' },
             { id: 'o', header: 'Outcome', cell: (x) => OUTCOME[x.outcome] ?? errorText(x.outcome) },
           ]}
           empty={{ title: 'Nothing was released.' }}
@@ -156,8 +155,8 @@ export function ReportsWorklist({ reports, tab, permissions, centres, nextCursor
       <Tabs aria-label="Report status" selectedId={tab} onChange={goTab} items={REPORT_TABS.map((t) => ({ id: t, label: TAB_LABEL[t] }))}>
         <SimpleTable
           caption={`Reports: ${TAB_LABEL[tab]}`}
-          columns={columns} rows={reports} getRowId={selectId} empty={{ title: EMPTY[tab] }}
-          {...(selectable ? { selection: { selectedIds: selected, onChange: setSelected, label: (id: string) => `Select ${byVersion.get(id)?.registration_no ?? 'report'}` } } : {})}
+          columns={columns} rows={reports} getRowId={(r) => r.id} empty={{ title: EMPTY[tab] }}
+          {...(selectable ? { selection: { selectedIds: selected, onChange: setSelected, label: (id: string) => `Select ${byId.get(id)?.registration_no ?? 'report'}` } } : {})}
         />
         {nextCursor ? <p><a className="lims-link" href={`/reporting?${new URLSearchParams({ ...Object.fromEntries(sp.entries()), tab, cursor: nextCursor }).toString()}`}>Next page</a></p> : null}
       </Tabs>

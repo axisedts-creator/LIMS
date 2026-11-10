@@ -14,7 +14,7 @@ export interface ReportSummary {
   registration_no: string; patient_display_name: string; centre_code?: string; referrer_name?: string; items_total: number; items_ready: number;
   latest_version_no?: number; latest_report_kind?: string;
   /** [CONV] NOT in ReportSummary today (CR .orchestra/cr/C6-T31.md): bulk release needs report-version ids; falls back to the report id until the contract adds it. */
-  latest_version_id?: string; registered_at: string; updated_at: string; review_flag?: string; version: number;
+  registered_at: string; updated_at: string; review_flag?: string; version: number;
 }
 export interface VersionSummary {
   id: string; version_no: number; status: string; report_kind?: string; completeness?: string; page_count?: number; pdf_bytes?: number; rendered_at?: string;

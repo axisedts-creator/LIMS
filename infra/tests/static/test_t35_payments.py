@@ -199,8 +199,10 @@ class SquidScopePerEnv(unittest.TestCase):
         acl = [l for l in conf.splitlines() if l.startswith("acl lims_allowed_dst")]
         self.assertEqual(len(acl), 1, conf)
         self.assertEqual(sorted(acl[0].split()[3:]), sorted(UAT))
+        hosts = set(acl[0].split()[3:])
         for f in PROD:
-            self.assertNotIn(f, conf)
+            self.assertNotIn(f, hosts)
+            self.assertNotRegex(conf, r"(?<![\w.-])" + re.escape(f) + r"(?![\w.-])")
         self.assertRegex(conf, r"(?m)^http_access allow CONNECT lims_src lims_allowed_dst$")
         self.assertRegex(conf, r"(?m)^http_access deny all$")
 

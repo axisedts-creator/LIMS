@@ -24,6 +24,12 @@ import { listInstrumentCodeMaps } from './listInstrumentCodeMaps.server';
 import { updateInstrumentCodeMap } from './updateInstrumentCodeMap.server';
 import { upsertInstrumentCodeMaps } from './upsertInstrumentCodeMaps.server';
 import { getTestRef, listUnitRefs, searchTests } from './catalogLookups.server';
+import { getInstrumentMessage } from './getInstrumentMessage.server';
+import { getInstrumentMessageRaw } from './getInstrumentMessageRaw.server';
+import { rematchInstrumentRecord } from './rematchInstrumentRecord.server';
+import { reprocessInstrumentMessage } from './reprocessInstrumentMessage.server';
+import { searchInstrumentMessages, type SearchMessagesInput } from './searchInstrumentMessages.server';
+import type { MessageDetailDto, MessageRaw, MessageSummary, ReasonFields, RematchResult, ReprocessResult } from './messages';
 import type { CodeMapCreate, CodeMapFields, CodeMapPatch, CodeMapResult, InstrumentCodeMap, TestRef, UnitRef } from './codeMaps';
 import type { InstrumentBody } from '../forms/instrument';
 import type { ActionResult, Agent, AgentCommand, AgentLogBundle,AgentCommandKind, CreateAgentInput, EnrolmentCodeIssued, FieldProblemDto, GoLiveChecklist, InstrumentSettings, InstrumentSettingsBody, ReasonInput, UpdateAgentInput } from './types';
@@ -150,6 +156,27 @@ export async function getTestRefAction(testId: string): Promise<ActionResult<Tes
 
 export async function listUnitRefsAction(): Promise<ActionResult<UnitRef[]>> {
   return run(() => listUnitRefs());
+}
+
+// ── WEB-T05 SCR-09/10 messages (E34–E36, E38, E39). The caller owns the Idempotency-Key so a retry reuses it. The sample barcode is only ever a POST body. ──
+export async function searchInstrumentMessagesAction(input: SearchMessagesInput): Promise<ActionResult<{ data: MessageSummary[] }>> {
+  return run(() => searchInstrumentMessages(input));
+}
+
+export async function getInstrumentMessageRawAction(id: string): Promise<ActionResult<MessageRaw>> {
+  return run(() => getInstrumentMessageRaw(id));
+}
+
+export async function getInstrumentMessageAction(id: string, opts: { previewParse?: boolean } = {}): Promise<ActionResult<MessageDetailDto>> {
+  return run(() => getInstrumentMessage(id, opts));
+}
+
+export async function reprocessInstrumentMessageAction(id: string, input: ReasonFields, idempotencyKey: string): Promise<ActionResult<ReprocessResult>> {
+  return run(() => reprocessInstrumentMessage(id, input, idempotencyKey));
+}
+
+export async function rematchInstrumentRecordAction(recordId: string, input: ReasonFields & { sampleBarcode: string }, idempotencyKey: string): Promise<ActionResult<RematchResult>> {
+  return run(() => rematchInstrumentRecord(recordId, input, idempotencyKey));
 }
 
 export async function retireInstrumentAction(instrumentId: string, version: number, reason: string): Promise<ActionResult<{ version: number }>> {

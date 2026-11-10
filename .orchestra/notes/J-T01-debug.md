@@ -7,3 +7,8 @@
 - Same state as round 1: `services/api/src/modules/frontdesk/__tests__/integration/` still absent, vitest "No test files found". Tester has written no integration tests.
 - Not an implementation bug; debugger may not author tests. No code change. Not a spec dispute either (nothing to cite).
 - Needed: route to TESTER to write the FD integration suite (real BillingCommandPort, registration rollback proves counter rollback, US-FD-03.5).
+
+## J-T01 debug round 3
+- Unchanged: integration dir still absent, vitest "No test files found". Tester never wrote the suite (only renamed a CR file).
+- Not impl bug, not spec dispute; debugger may not author tests. No code change.
+- Needed: TESTER must write FD integration tests (real BillingCommandPort, registration rollback proves counter rollback, US-FD-03.5). Stop re-routing to debugger.

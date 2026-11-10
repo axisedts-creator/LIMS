@@ -1,9 +1,9 @@
-TESTS_WRONG — the tests put `flag_map` on the C3 wire as a JS object; the C3 contract types it as JSON object text (string ≤ 2000).
+TESTS_WRONG — web-t04.components.test.tsx L166 picks an ambiguous row, and L296 requires the BFF's request to C3 to have no JWT. The spec requires the opposite.
 Reasons:
-- contracts/openapi/catalog.yaml:11157-11160, 11203-11206, 11222-11225, 11274-11277: `InstrumentCodeMap`/`Create`/`Update`/`Row` `flag_map: type: string, maxLength: 2000`, "≤20 entries as JSON object text [CONV]". Examples at :7030, :7080, :7154, :7230 are `'{"H":"HIGH","L":"LOW"}'`.
-- spec/chunks/C3-catalog-pricing/02-TRD.md:180 and 05-SCHEMA.md:1048 say "object" for the logical value / jsonb column only; the wire shape is the contract's text form ([CONV], 02-CONVENTIONS.md:12). No spec line requires an object on the wire, so the tests cannot assert one.
-- spec/chunks/C7-instrument-integration/01-PRD.md:234 (AC-17.2): BFF calls C3 `createInstrumentCodeMap` with `flag_map?` — i.e. the C3 contract field as-is.
+- spec/chunks/C7-instrument-integration/04-UI-UX.md:148: the Mappings table MUST show "Instrument code". The test file itself finds the GLU map row by code (L183). With manage + MAPROWS (map M2 = GLU) + observed GLU, two rows match /\bGLU\b/, so `getByRole` at L166 must throw. The spec cannot be met while that test passes.
+- 04-UI-UX.md:147: status shown = E32 "Mapping status" text in the Observed codes panel. The assertion's intent is valid. Only its scope is wrong.
+- spec/program/02-CONVENTIONS.md:231 (REQ-SEC-068): the browser talks only to the BFF, and the BFF talks to the API. The file header (L6) says server actions run for real against MSW, so the recorded request is BFF→C3 and must carry the JWT (server test L159 asserts `Bearer jwt-synthetic` on the same call). No spec line requires that request to have no Authorization header.
+- The browser-side rule (no JWT in component code) is already covered by the static guard at web-t04.server.test.ts L461.
 Change the tests:
-1. web-t04.server.test.ts L165-170, L178-183, L244-255, L310: BFF input and the asserted outgoing C3 body carry `flag_map: JSON.stringify({...})` (forwarded unchanged).
-2. L214-221: keep the same limit cases (21 entries, key > 16, value > 64, array, non-string value) but express each as `JSON.stringify(...)`; add string > 2000 chars and non-JSON text → `400 common.validation_failed` with no C3 call. Limits apply to the parsed form.
-3. web-t04.components.test.tsx `cm()` L75 and `MAPROWS`: `flag_map` as JSON text; the component parses it for "Flag map count" (still 2, L181) and builds the string from `KeyValueListEditor` rows. `unset: ['flag_map']` unchanged.
+1. L166: scope the lookup to the observed panel, e.g. `within(<Observed codes region/table>).getByRole('row', { name: /\bGLU\b/ })`. Keep the manager view and keep the `Unmapped` assertion (the map exists in C3 but E32 still says unmapped).
+2. L296: delete the line. Optionally replace it with `expect(c.headers.get('authorization')).toBe('Bearer jwt-synthetic')`.

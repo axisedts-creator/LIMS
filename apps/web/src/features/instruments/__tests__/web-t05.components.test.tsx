@@ -173,7 +173,7 @@ describe('SCR-09 / AC-18.1 — message list', () => {
     await userEvent.click(screen.getByLabelText(/has qc records/i));
     await waitFor(() => expect(urlsPushed().some((u) => /[?&]has_qc=true/.test(u))).toBe(true));
     replace.mockReset(); push.mockReset();
-    await userEvent.click(screen.getByRole('button', { name: /^instrument/i }));
+    await userEvent.click(screen.getAllByRole('button', { name: /instrument/i })[0]!);
     await userEvent.click(await screen.findByRole('option', { name: /SIM-CHEM-1/ }));
     await waitFor(() => expect(urlsPushed().some((u) => u.includes(`instrument_id=${INST}`))).toBe(true));
   });
@@ -226,7 +226,7 @@ describe('SCR-09 / AC-18.1 / REQ-SEC-098 — barcode search is a POST; the barco
   });
 
   it('API failure (403/500) does not crash and does not show or leak the barcode; the original list stays', async () => {
-    api.use(http.post(`${IM}/messages/search`, () => problem(500, 'common.internal')));
+    api.use(http.post(`${IM}/messages/search`, async ({ request }) => { await rec(request); return problem(500, 'common.internal'); }));
     await showList();
     await scan(NEWBC);
     await waitFor(() => expect(searches()).toHaveLength(1));
@@ -287,7 +287,7 @@ describe('SCR-10 / AC-18.2 — message detail', () => {
     expect(text(r1)).toMatch(/AN1/);
     expect(text(r1)).toMatch(/11\.5/);
     expect(text(r1)).toMatch(/g\/dL/);
-    expect(text(r1)).toMatch(/\bH\b/);
+    expect(Array.from(r1.querySelectorAll('td')).some((c) => /^\s*H\s*$/.test(c.textContent ?? ''))).toBe(true);
     expect(text(r1)).toMatch(/Mapped/);
     expect(text(r1)).toMatch(/Applied/);
     expect(within(r1).getByTitle(EVT(1))).toBeTruthy();
@@ -625,7 +625,7 @@ describe('SCR-10 / AC-19.2, AC-19.5 — Re-match (E39): the corrected barcode tr
     await userEvent.type(within(d).getByLabelText(/new barcode/i), 'not valid!{Enter}');
     await confirm(d);
     expect(rematches()).toHaveLength(0);
-    expect(rowOf(new RegExp(BC(2)))).toBeTruthy();
+    expect(screen.getByRole('row', { name: new RegExp(BC(2)), hidden: true })).toBeTruthy();
   });
 
   it('confirming with no new barcode entered sends nothing', async () => {
@@ -644,7 +644,7 @@ describe('SCR-10 / AC-19.2, AC-19.5 — Re-match (E39): the corrected barcode tr
     const alert = await within(screen.getByRole('dialog')).findByRole('alert');
     expect(text(alert)).not.toContain(NEWBC);
     expect(refresh).not.toHaveBeenCalled();
-    expect(text(rowOf(new RegExp(BC(2))))).toMatch(/Not matched/);
+    expect(text(screen.getByRole('row', { name: new RegExp(BC(2)), hidden: true }))).toMatch(/Not matched/);
   });
 
   it('a double click on confirm sends ONE request', async () => {

@@ -15,8 +15,8 @@ export const quoteRegistration = (draft: RegistrationDraft) => post<Quote>('/v1/
 export const createRegistration = (body: RegisterBody, key: string) => post<RegistrationResult>('/v1/frontdesk/registrations', body, key);
 export const requestDiscountApproval = (b: DiscountApprovalIn, key: string) =>
   post<{ id: string; state?: string; status?: string }>('/v1/frontdesk/discount-approvals', { centre_id: b.centre_id, base_fingerprint: b.base_fingerprint, discounts: b.discounts, reason_code: b.reason_code, ...(b.reason_text ? { reason_text: b.reason_text } : {}), patient_ref: b.patient_id ? { patient_id: b.patient_id } : undefined }, key);
-/** C5 #14a: 200 once the specimens exist, 409 common.version_conflict while they do not. Body is `{}`. */
-export function requestLabelPrints(orderId: string, key: string) {
+/** C5 #14a: 200 once the specimens exist, 409 common.version_conflict while they do not. Body is `{}`. x-idempotency: none — no key (C5 02-TRD:227, 08 A13 D-4). */
+export function requestLabelPrints(orderId: string) {
   if (!UUID_RE.test(orderId)) throw bad();
-  return post<LabelReadiness>(`/v1/lab/orders/${orderId}/label-prints`, {}, key);
+  return post<LabelReadiness>(`/v1/lab/orders/${orderId}/label-prints`, {});
 }

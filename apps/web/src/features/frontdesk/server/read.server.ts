@@ -27,6 +27,10 @@ export async function searchCreditParties(q: string): Promise<CreditPartySummary
 export async function listPaymentMethods(): Promise<CodedSetEntry[]> {
   return (await serverFetch<{ data: CodedSetEntry[] }>('/v1/billing/coded-sets/payment_methods')).data;
 }
+/** F25 listFrontdeskCodes (C4 02-TRD:219; frontdesk.order.read). Only the discount_reasons set is used by this page (04-UI-UX:90). */
+export async function listDiscountReasons(): Promise<CodedSetEntry[]> {
+  return (await serverFetch<{ data: CodedSetEntry[] }>('/v1/frontdesk/coded-sets/discount_reasons')).data;
+}
 /** Centres in scope for the page header. Identity may refuse the read for some roles: callers treat a failure as "none". */
 export async function listCentres(): Promise<Centre[]> {
   const r = await serverFetch<{ data: { centre_id: string; name: string; is_active?: boolean }[] }>('/v1/identity/centres');

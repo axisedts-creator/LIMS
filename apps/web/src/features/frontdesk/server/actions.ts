@@ -4,7 +4,7 @@
 import 'server-only';
 import { ApiError } from '@/core/api/server-fetch';
 import { printInvoice } from '@/features/billing/server/write.server';
-import { getDiscountApproval, listPaymentMethods, searchCreditParties, searchDoctors, searchOrderables, searchPatients } from './read.server';
+import { getDiscountApproval, listDiscountReasons, listPaymentMethods, searchCreditParties, searchDoctors, searchOrderables, searchPatients } from './read.server';
 import { createRegistration, quoteRegistration, requestDiscountApproval, requestLabelPrints } from './write.server';
 import type { ActionResult, CodedSetEntry, CreditPartySummary, DiscountApprovalIn, DoctorSummary, InvoicePrintDoc, LabelReadiness, OrderableSummary, PatientSummary, Quote, RegisterBody, RegistrationDraft, RegistrationResult } from './types';
 
@@ -29,5 +29,6 @@ export async function quoteRegistrationAction(draft: RegistrationDraft): Promise
 export async function createRegistrationAction(body: RegisterBody, key: string): Promise<ActionResult<RegistrationResult>> { return run(() => createRegistration(body, key)); }
 export async function requestDiscountApprovalAction(b: DiscountApprovalIn, key: string): Promise<ActionResult<{ id: string }>> { return run(() => requestDiscountApproval(b, key)); }
 export async function printInvoiceAction(invoiceId: string, reasonCode: string, key: string): Promise<ActionResult<InvoicePrintDoc>> { return run(() => printInvoice(invoiceId, reasonCode, key)); }
-export async function requestLabelPrintsAction(orderId: string, key: string): Promise<ActionResult<LabelReadiness>> { return run(() => requestLabelPrints(orderId, key)); }
+export async function requestLabelPrintsAction(orderId: string): Promise<ActionResult<LabelReadiness>> { return run(() => requestLabelPrints(orderId)); }
+export async function listDiscountReasonsAction(): Promise<ActionResult<CodedSetEntry[]>> { return run(() => listDiscountReasons()); }
 export async function getDiscountApprovalAction(id: string): Promise<ActionResult<{ id: string; status?: string; state?: string }>> { return run(() => getDiscountApproval(id)); }

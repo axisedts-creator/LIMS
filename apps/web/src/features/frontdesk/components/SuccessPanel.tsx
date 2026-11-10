@@ -58,7 +58,7 @@ export function SuccessPanel({ result, onNew, onOpenOrder, retryLabelsRef }: { r
     const t0 = Date.now();
     setLabels({ s: 'preparing' });
     for (;;) {
-      const r = await requestLabelPrintsAction(result.order.id, newKey());
+      const r = await requestLabelPrintsAction(result.order.id); // x-idempotency: none
       if (my !== run.current || !alive.current) return;
       if (r.ok) return setLabels({ s: 'ready' });
       if (r.code !== 'common.version_conflict') return setLabels({ s: 'error', text: r.title ?? 'Labels could not be prepared.' });

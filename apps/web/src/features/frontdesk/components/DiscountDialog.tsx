@@ -1,6 +1,6 @@
 'use client';
 // F6 discount dialog (04-UI-UX §3.2 E): scope line/bill, kind amount/percent, value, reason. The quote decides whether approval is needed.
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Button } from '@lims/ui/components/Button';
 import { Dialog } from '@lims/ui/components/Dialog';
 import { IntegerField } from '@lims/ui/components/IntegerField';
@@ -9,7 +9,8 @@ import { RadioGroup } from '@lims/ui/components/RadioGroup';
 import { Select } from '@lims/ui/components/Select';
 import { TextField } from '@lims/ui/components/TextField';
 import type { Item } from '../forms/draft';
-import type { DraftDiscount } from '../server/types';
+import { listDiscountReasonsAction } from '../server/actions';
+import type { CodedSetEntry, DraftDiscount } from '../server/types';
 
 export function DiscountDialog({ items, onApply, onClose }: { items: Item[]; onApply: (d: DraftDiscount) => void; onClose: () => void }) {
   const [scope, setScope] = useState<'line' | 'bill'>('bill');
@@ -17,19 +18,26 @@ export function DiscountDialog({ items, onApply, onClose }: { items: Item[]; onA
   const [line, setLine] = useState<string>();
   const [money, setMoney] = useState<Money>();
   const [pct, setPct] = useState<number>();
-  const [reason, setReason] = useState('');
+  const [reason, setReason] = useState<string>();
+  const [reasons, setReasons] = useState<CodedSetEntry[]>([]);
   const [text, setText] = useState('');
   const [err, setErr] = useState<Record<string, string>>({});
+  // Reason comes from the F25 discount_reasons coded set (04-UI-UX:90), ordered by sort_order.
+  useEffect(() => {
+    let live = true;
+    void listDiscountReasonsAction().then((r) => { if (live && r.ok) setReasons([...r.data].sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0))); });
+    return () => { live = false; };
+  }, []);
 
   const apply = () => {
     const e: Record<string, string> = {};
     if (scope === 'line' && !line) e['line'] = 'Choose a line';
     if (kind === 'amount' && !(money && money.amountPaisa >= 1)) e['value'] = 'Enter an amount';
     if (kind === 'percent' && !(pct && pct >= 1 && pct <= 100)) e['value'] = 'Enter a percent from 1 to 100';
-    if (reason.trim() === '') e['reason'] = 'A reason is required';
+    if (!reason) e['reason'] = 'A reason is required';
     setErr(e);
     if (Object.keys(e).length) return;
-    const base = { scope, reason_code: reason.trim(), ...(text.trim() ? { reason_text: text.trim() } : {}), ...(scope === 'line' && line ? { orderable_id: line } : {}) };
+    const base = { scope, reason_code: reason!, ...(text.trim() ? { reason_text: text.trim() } : {}), ...(scope === 'line' && line ? { orderable_id: line } : {}) };
     onApply(kind === 'amount' ? { ...base, kind, amount_paisa: money!.amountPaisa } : { ...base, kind, percent_bp: pct! * 100 });
   };
 
@@ -41,7 +49,7 @@ export function DiscountDialog({ items, onApply, onClose }: { items: Item[]; onA
       {kind === 'amount'
         ? <MoneyField label="Discount amount" name="discount_amount" isRequired {...(money ? { value: money } : {})} onChange={setMoney} {...(err['value'] ? { error: err['value'] } : {})} />
         : <IntegerField label="Discount percent" name="discount_percent" min={1} max={100} isRequired {...(pct !== undefined ? { value: pct } : {})} onChange={setPct} {...(err['value'] ? { error: err['value'] } : {})} />}
-      <TextField label="Reason" name="reason_code" maxLength={64} isRequired value={reason} onChange={setReason} {...(err['reason'] ? { error: err['reason'] } : {})} />
+      <Select label="Reason" name="reason_code" isRequired options={reasons.map((r) => ({ value: r.code, label: r.display }))} {...(reason ? { value: reason } : {})} onChange={setReason} {...(err['reason'] ? { error: err['reason'] } : {})} />
       <TextField label="Details" name="reason_text" maxLength={500} value={text} onChange={setText} />
     </Dialog>
   );

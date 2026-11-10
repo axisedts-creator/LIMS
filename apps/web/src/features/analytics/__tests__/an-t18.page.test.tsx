@@ -391,6 +391,70 @@ describe('S1 dashboard — refresh action (04-UI-UX §2)', () => {
   });
 });
 
+// review round 2 #1: 04-UI-UX §2 L48 — Refresh is "disabled for 5 min after use", then enabled again (button and Alt+R).
+// Clock is faked with shouldAdvanceTime so MSW/fetch/waitFor keep working; only setTimeout + Date are faked.
+describe('S1 dashboard — refresh cooldown ends (04-UI-UX §2)', () => {
+  const FIVE_MIN = 5 * 60_000;
+  const postCount = () => calls.filter((c) => c.method === 'POST').length;
+  const fakeClock = () => vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'Date'], shouldAdvanceTime: true });
+  const refreshBtn = () => screen.queryByRole('button', { name: /refresh/i }) as HTMLButtonElement | null;
+  const disabled = () => refreshBtn()?.disabled ?? true;
+  const pressAndCool = async () => {
+    await userEvent.setup({ advanceTimers: (ms) => vi.advanceTimersByTime(ms) }).click(refreshBtn()!);
+    await waitFor(() => expect(norm(document.body.textContent)).toMatch(/Refresh available at/));
+    expect(disabled()).toBe(true);
+  };
+
+  it('no next_allowed_at: disabled just before 5 min, enabled after, and the "available at" text is gone', async () => {
+    fakeClock();
+    await show();
+    await pressAndCool();
+    await vi.advanceTimersByTimeAsync(FIVE_MIN - 10_000);
+    expect(disabled()).toBe(true);
+    await vi.advanceTimersByTimeAsync(20_000);
+    await waitFor(() => expect(disabled()).toBe(false));
+    expect(norm(document.body.textContent)).not.toMatch(/Refresh available at/);
+  });
+
+  it('next_allowed_at wins over the 5 min default (re-enabled after ~60 s)', async () => {
+    fakeClock();
+    refresh = () => HttpResponse.json({ next_allowed_at: new Date(Date.now() + 60_000).toISOString() }, { status: 202 });
+    await show();
+    await pressAndCool();
+    await vi.advanceTimersByTimeAsync(50_000);
+    expect(disabled()).toBe(true);
+    await vi.advanceTimersByTimeAsync(20_000);
+    await waitFor(() => expect(disabled()).toBe(false));
+  });
+
+  it('after the cooldown the button posts again and Alt+R works again', async () => {
+    const { act } = await import('@testing-library/react');
+    fakeClock();
+    await show();
+    await pressAndCool();
+    expect(postCount()).toBe(1);
+    const sc = (await (await import('@/core/shortcuts/registry')).shortcuts.list('staff.analytics.dashboard').find((s) => /^alt\+r$/i.test(s.key)))!;
+    act(() => { sc.run(); }); // still cooling: no request
+    await vi.advanceTimersByTimeAsync(100);
+    expect(postCount()).toBe(1);
+    await vi.advanceTimersByTimeAsync(FIVE_MIN + 1_000);
+    await waitFor(() => expect(disabled()).toBe(false));
+    act(() => { sc.run(); });
+    await waitFor(() => expect(postCount()).toBe(2));
+  });
+
+  it('unmount during cooldown leaves no pending timer that fires into a dead component', async () => {
+    fakeClock();
+    const err = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const { unmount } = await show();
+    await pressAndCool();
+    unmount();
+    await vi.advanceTimersByTimeAsync(FIVE_MIN + 1_000);
+    expect(err).not.toHaveBeenCalled();
+    err.mockRestore();
+  });
+});
+
 // review #2: 03-APP-FLOW §2 step 5 — auto-refresh every 5 min via router.refresh() only while the tab is visible, never faster.
 // Only the interval is faked so MSW/fetch keep real timers. ASSUMED: poller is a client child of the page tree (pattern: instruments AgentsList).
 describe('S1 dashboard — auto-refresh (03-APP-FLOW §2.5)', () => {

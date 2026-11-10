@@ -52,7 +52,7 @@ export function InstrumentDetail({ instrument, agents, drivers, permissions }: {
   const [error, setError] = useState<string>();
   const [busy, setBusy] = useState(false);
   const inFlight = useRef(false); // one request per click: a double click must not send a second transition
-  const doneAt = useRef<number>(); // instrument version a transition already succeeded on; lifts when the re-read brings a new version
+  const doneAt = useRef<number | undefined>(undefined); // instrument version a transition already succeeded on; lifts when the re-read brings a new version
   const canManage = hasPerm(permissions, 'instruments.instrument.manage');
   const i = instrument;
   const driver = drivers.find((d) => d.code === i.driver_code);

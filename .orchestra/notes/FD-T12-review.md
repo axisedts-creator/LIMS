@@ -1,11 +1,14 @@
-CHANGES
-Reviewed `git diff 0d9a723c..HEAD`. The consumer half is sound: names match 02-TRD §3.3/§8.2, tenant comes from ctx with the envelope compared against it, flags are idempotent through both partial unique indexes (D-6), cancel-before-confirm and stale seq handling go through booking_links.last_seq, home_collection confirm creates no order, SMS params are {lab_name, centre_phone}, the warn log has no PHI, and there are no secrets. Static suite re-run: 18/18 pass with --fsModuleCache=false. The DB suite was not re-run by the reviewer; the writer reports 76/76.
+APPROVE
+Re-review of `git diff 0d9a723c..HEAD` after the fix commits f688ef89 (tester) and 3d7a08d4 (writer).
 
-1. services/api/src/modules/frontdesk/handlers/index.ts:31,33 + __tests__/probes/pending.json:4-6. FD-T12's plan row (06-IMPLEMENTATION-PLAN.md:22) is titled "Consumers + flags + confirm F12, F22, F23", and no other task owns these operations. Yet `confirmPreRegisteredOrder` (F12), `listOrderFlags` (F22) and `resolveOrderFlag` (F23) still map to `notImplemented`. Because of that, AC US-FD-12.2 (confirm a pre_registered order: it becomes registered, invoice + payment as in US-FD-03, and `frontdesk.order.created.v1` is emitted once) is not implemented, even though it is in this task's acs. The FD-T12-impl.md "OPEN" note says they are "not in this task's files list", but that is not a valid reason when the plan title names them.
-   Fix (writer): add handlers/confirmPreRegisteredOrder.ts, handlers/listOrderFlags.ts and handlers/resolveOrderFlag.ts with their service functions (F22/F23 belong in service/flags.service.ts). Copy the contracts verbatim from 02-TRD.md:205,216,217:
-   - F12: permission `frontdesk.registration.create`, Idempotency-Key required, body `{quote_fingerprint, payments[], discounts?[], discount_approval_id?, items_override?}`, same registration/invoice path as F9.
-   - F22: permission `frontdesk.order.read`, filters `status/kind/centre_id`, keyset page.
-   - F23: permission `frontdesk.order.edit`, Idempotency-Key required, body `{resolution_code, note?≤500}`, `common.immutable_record` on an already-resolved flag.
-   Wire all three in handlers/index.ts and remove exactly those three operationIds from pending.json (LD-70).
-   Fix (tester): add tests for US-FD-12.2 (confirm: becomes registered, invoice + payment, exactly one `frontdesk.order.created.v1`, replay with the same key) and for F22/F23 (permission denied, centre scoping under RLS, resolve once then `common.immutable_record`, idempotent replay).
-   If the lead decides F12/F22/F23 are out of scope, record that as an LD or a CR. Do not leave it as an impl note.
+Previous item 1 is resolved. F12 `confirmPreRegisteredOrder`, F22 `listOrderFlags` and F23 `resolveOrderFlag` are now real handlers, wired in handlers/index.ts, and their three operationIds are removed from pending.json (LD-70).
+- Contracts match 02-TRD:205,216,217: permissions, Idempotency-Key, If-Match, `common.immutable_record`, and the `note` 500-character limit.
+- F12 locks the order row, then checks centre scope (404), status (immutable_record) and version (version_conflict), in that order. It then reuses the F9 createInTx path on the existing row: registration_no and the first-order flag are kept, and exactly one `frontdesk.order.created.v1` is emitted, carrying the stored source.
+- F22/F23 filter by tenant, apply centre scope through IdentityPort, cast to `::uuid[]`, and bind every value as a parameter. F23 locks the flag row FOR UPDATE, so a second resolve waits and then gets `common.immutable_record`. The note is never logged.
+- Tests cover US-FD-12.2, F22 and F23: permission, RLS and centre scope, immutable, If-Match, validation, keyset paging and rollback.
+
+Checks re-run by the reviewer: static suites flags.static + consumers.static, 27/27 pass (`--fsModuleCache=false`). The only `tsc` error is the existing one at contracts/ports/common.ts:33, which is outside this diff. The DB suites were not re-run here; the writer reports FD-T12 113/113 on PG17.
+
+Not blocking, already recorded as [CONV]/OPEN in FD-T12-impl.md:
+- F23 does not check `resolution_code` against the `flag_resolutions` coded set (05-SCHEMA:1862). This matches the FD-T09 cancel-reason convention.
+- F12 does not retry once on counter_busy/40P01 (CR FD-T06-retry-quote-ext).

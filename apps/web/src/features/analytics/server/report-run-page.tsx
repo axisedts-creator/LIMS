@@ -4,7 +4,6 @@ import 'server-only';
 import { notFound } from 'next/navigation';
 import { ApiError } from '@/core/api/server-fetch';
 import { ReportRunView } from '../components/ReportRunView';
-import { addDays } from '../components/period';
 import type { PageVM } from '../components/report-types';
 import { REPORT_CODES, UUID_RE } from '../report-codes';
 import { getReportRun } from './report-runs.server';
@@ -34,7 +33,7 @@ export async function reportRunPage(id: string) {
   const ISO = /^\d{4}-\d{2}-\d{2}$/;
   if (ISO.test(str(period['business_date_from'])) && ISO.test(str(period['business_date_to']))) {
     sp['business_date_from'] = str(period['business_date_from']);
-    sp['business_date_to'] = addDays(str(period['business_date_to']), -1); // the response bound is exclusive, the request bound inclusive (see AN-T20-dispute.md)
+    sp['business_date_to'] = str(period['business_date_to']); // half-open [from, to) in request and response alike (01-PRD:246; AN-T20-ruling #2)
   }
   if (scope['all_centres'] === false && centres.length > 0) sp['centre_id'] = centres.join(',');
 

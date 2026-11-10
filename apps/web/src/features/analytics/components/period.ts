@@ -18,7 +18,7 @@ const month = (s: string, delta: number) => {
   return { from: ymd(new Date(Date.UTC(y, m - 1 + delta, 1))), to: ymd(new Date(Date.UTC(y, m + delta, 0))) };
 };
 
-/** Inclusive from/to (the request's business_date_to is inclusive; the response's is exclusive). */
+/** Inclusive from/to as shown in the picker. API periods are half-open [from, to) (01-PRD:246): callers send to + 1 day. */
 export function presetRange(p: PeriodPreset, today: string): { from: string; to: string } | undefined {
   if (p === 'today') return { from: today, to: today };
   if (p === 'yesterday') return { from: addDays(today, -1), to: addDays(today, -1) };

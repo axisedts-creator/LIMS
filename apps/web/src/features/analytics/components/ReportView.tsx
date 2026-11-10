@@ -215,13 +215,13 @@ export function ReportView({ vm }: { vm: PageVM }) {
   const [period, setPeriod] = useState<PeriodValue>(() => {
     const from = q.get('business_date_from') ?? undefined;
     const to = q.get('business_date_to') ?? undefined;
-    if (from && to) return { preset: presetOf(from, to, today), from, to };
+    if (from && to) { const last = addDays(to, -1); return { preset: presetOf(from, last, today), from, to: last }; } // URL/API `to` is exclusive; the picker shows the last day
     return vm.period ? { preset: 'custom', from: vm.period.from, to: addDays(vm.period.to, -1) } : { preset: 'custom' };
   });
   const onPeriod = (v: PeriodValue) => {
     setPeriod(v);
     const r = v.preset === 'custom' ? (v.from && v.to && !periodError(v) ? { from: v.from, to: v.to } : undefined) : presetRange(v.preset, today);
-    if (r) go({ business_date_from: r.from, business_date_to: r.to, bs_month: undefined, fiscal_year_bs: undefined });
+    if (r) go({ business_date_from: r.from, business_date_to: addDays(r.to, 1), bs_month: undefined, fiscal_year_bs: undefined });
   };
 
   // ---- freshness

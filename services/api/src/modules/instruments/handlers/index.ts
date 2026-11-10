@@ -8,6 +8,7 @@ import { agentsHandlers } from './agents.handlers.js';
 import { attachmentsHandlers } from './attachments.handlers.js';
 import { deviceHandlers } from './device.handlers.js';
 import { ingestHandlers } from './ingest.handlers.js';
+import { messagesHandlers } from './messages.handlers.js';
 
 const OPERATION_IDS = [
   // agent (deviceToken)
@@ -33,7 +34,7 @@ const notImplemented = (operationId: string): Handler => async () => {
   throw new LimsError('common.internal', `instruments ${operationId} not implemented`);
 };
 
-const implemented: Partial<Record<InstrumentsOperationId, Handler>> = { ...agentsHandlers, ...deviceHandlers, ...ingestHandlers, ...attachmentsHandlers };   // API-T04: E10-E21, API-T06: E01-E03/E07/E08, API-T09: E04, API-T11: E06/E37
+const implemented: Partial<Record<InstrumentsOperationId, Handler>> = { ...agentsHandlers, ...deviceHandlers, ...ingestHandlers, ...attachmentsHandlers, ...messagesHandlers };   // API-T04: E10-E21, API-T06: E01-E03/E07/E08, API-T09: E04, API-T11: E06/E37, API-T12: E33-E36/E42
 
 export const handlers: Readonly<Record<InstrumentsOperationId, Handler>> = Object.freeze(
   Object.fromEntries(OPERATION_IDS.map((op) => [op, implemented[op] ?? notImplemented(op)])) as Record<InstrumentsOperationId, Handler>,

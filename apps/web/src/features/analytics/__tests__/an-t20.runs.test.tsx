@@ -32,6 +32,14 @@ const run = (over: Record<string, unknown> = {}) => ({
   effective_scope: { all_centres: true, centre_ids: [], tenant_wide_sections_hidden: [] }, viewer_omitted_report_codes: ['referral_incentive'],
   recipients: [{ membership_id: OWNER_M, display_name: 'Synthetic Owner', outcome: 'queued' }, { membership_id: MEMBER_2, display_name: 'Synthetic Manager Two', outcome: 'skipped_ineligible' }], ...over,
 });
+const tile = (value: number, unit = 'count') => ({ value, unit });
+const DASHBOARD = {
+  report_code: 'dashboard', period: PERIOD, scope: { all_centres: true, centre_ids: [], tenant_wide_sections_hidden: [] },
+  freshness: [{ family: 'orders', refreshed_at: '2026-01-15T04:30:00.000Z', is_stale: false, live: false }], generated_at: '2026-01-15T04:30:00.000Z',
+  tiles: Object.fromEntries(['patient_visits', 'new_patients', 'net_orders', 'tests_ordered', 'net_sales_paisa', 'invoiced_paisa', 'credit_notes_paisa', 'results_approved', 'reports_pending', 'reports_ready_unreleased', 'pending_tests', 'pending_overdue']
+    .map((k) => [k, tile(12, k.endsWith('paisa') ? 'paisa' : 'count')])),
+  series: { days: [{ business_date: '2026-01-01', net_sales_paisa: 22500000, patient_visits: 12, net_orders: 13 }] }, department_top: [],
+};
 const REPORT = { income: bySlug('income'), 'department-income': bySlug('department-income'), volume: bySlug('volume') };
 
 beforeAll(() => api.listen({ onUnhandledRequest: 'error' }));
@@ -102,6 +110,22 @@ describe('content (§9)', () => {
     }
     expect(calls.some((c) => /referral/.test(c.url.pathname))).toBe(false);
     expect(pageText()).not.toMatch(/referral/i);
+  });
+
+  it('a run of the default schedule [dashboard, income] renders TWO cards: the Dashboard card is not dropped (§9)', async () => {
+    routes[`GET ${RUN}`] = json(run({ report_codes: ['dashboard', 'income'], viewer_omitted_report_codes: [] }));
+    routes[`GET /v1/analytics/dashboard`] = json(DASHBOARD);
+    await show(PAGE, props());
+    expect(callsTo('GET', '/v1/analytics/dashboard').length).toBeGreaterThan(0);
+    for (const c of callsTo('GET', '/v1/analytics/dashboard')) {
+      expect(c.url.searchParams.get('business_date_from')).toBe(PERIOD.business_date_from);
+      expect(c.url.searchParams.get('business_date_to')).toBe(PERIOD.business_date_to);
+    }
+    expect(reportCalls().map((c) => c.url.pathname)).toEqual(['/v1/analytics/reports/income']);
+    expect(screen.queryAllByRole('region').length + screen.queryAllByRole('article').length + screen.queryAllByRole('group').length).toBeGreaterThanOrEqual(2);
+    expect(pageText()).toMatch(/dashboard/i);
+    expect(pageText()).toMatch(/income/i);
+    expect(screen.queryByRole('button', { name: /refresh|export/i })).toBeNull(); // dashboard refresh/export actions are hidden inside a run
   });
 
   it('renders the same content as the report pages (rows from the API, formatted)', async () => {

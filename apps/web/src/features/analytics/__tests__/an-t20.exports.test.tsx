@@ -86,6 +86,15 @@ describe('table (§7)', () => {
     expect(t).toContain('1 of 3');
   });
 
+  it('Period for a date-range export shows the INCLUSIVE last day (stored business_date_to is exclusive, 01-PRD:246)', async () => {
+    routes[`GET ${LIST}`] = list([exportDto(1, { expires_at: FUTURE, params: { business_date_from: '2026-01-01', business_date_to: '2026-02-01' } })]);
+    await show(PAGE);
+    const t = rowTexts(gridNamed(/export/i))[0]!;
+    expect(t).toContain('2026-01-01');
+    expect(t).toContain('2026-01-31');
+    expect(t).not.toContain('2026-02-01');
+  });
+
   it('status chips for queued/building/failed/expired show their text label (never colour alone)', async () => {
     routes[`GET ${LIST}`] = list([
       exportDto(1, { status: 'queued', ready_at: undefined, expires_at: undefined, row_count: undefined, size_bytes: undefined, downloads_used: 0 }),

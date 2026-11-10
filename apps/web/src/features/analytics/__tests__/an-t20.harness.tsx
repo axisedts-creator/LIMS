@@ -35,7 +35,7 @@ export const exportId = (n: number) => `01a1a98a-ac40-7000-8000-0000000001${Stri
 export const state = { permissions: [] as string[], token: TOKEN as string | undefined };
 export const sessionMock = {
   getAccessToken: async () => state.token,
-  getShellSession: async () => ({ actor: { permissions: state.permissions, displayName: 'Synthetic Owner', membershipId: OWNER_M, tenantCode: 'syn', roles: [] } }),
+  getShellSession: async () => ({ actor: { permissions: state.permissions, displayName: 'Synthetic Owner', tenantCode: 'syn', roles: [] } }),
   getRequestPathname: async () => '/analytics',
 };
 export const router = { push: vi.fn(), replace: vi.fn(), refresh: vi.fn(), back: vi.fn() };

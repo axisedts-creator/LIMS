@@ -53,6 +53,12 @@ const reportBox = (re: RegExp) => screen.getByRole('checkbox', { name: re }) as 
 async function fill(name = 'Daily MIS') {
   await userEvent.clear(nameBox());
   await userEvent.type(nameBox(), name);
+  // The real ShellSession has no membership id yet (CR AN-T20), so the creator default chip is absent. Tests that are not about that default
+  // pick the owner explicitly so they stay independent of it; once the CR lands the chip is already there and nothing is added.
+  if (!screen.queryByRole('button', { name: /remove.*synthetic owner/i })) {
+    await userEvent.type(screen.getByRole('combobox', { name: /recipients/i }), 'Synthetic Owner');
+    await userEvent.click(await screen.findByRole('option', { name: /Synthetic Owner/ }));
+  }
 }
 
 describe('access (US-18; E1-style)', () => {

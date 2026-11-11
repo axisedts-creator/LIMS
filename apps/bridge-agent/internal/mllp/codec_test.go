@@ -4,7 +4,7 @@
 //
 //	const (SB = 0x0B; EB = 0x1C; CR = 0x0D)
 //	const DefaultMaxMessageBytes = 1 << 20
-//	const (ReasonNewStartBlock = "new_start_block"; ReasonConnectionClosed = "connection_closed"; ReasonMSHUnparseable = "msh_unparseable")
+//	const (ReasonNewStartBlock = "new_start_block"; ReasonMSHUnparseable = "msh_unparseable")
 //	var ErrOversize error
 //	type Stats struct{...}                     // zero value usable, safe for concurrent use
 //	func (s *Stats) DiscardedBytes() int64     // mllp_discarded_bytes
@@ -49,7 +49,7 @@ func TestConstants(t *testing.T) {
 	if mllp.DefaultMaxMessageBytes != 1<<20 {
 		t.Errorf("DefaultMaxMessageBytes = %d, want 1 MiB", mllp.DefaultMaxMessageBytes)
 	}
-	if mllp.ReasonNewStartBlock != "new_start_block" || mllp.ReasonConnectionClosed != "connection_closed" || mllp.ReasonMSHUnparseable != "msh_unparseable" {
+	if mllp.ReasonNewStartBlock != "new_start_block" || mllp.ReasonMSHUnparseable != "msh_unparseable" {
 		t.Error("reason strings differ from spec")
 	}
 }
@@ -159,7 +159,7 @@ func TestEOFMidBlockIsIncomplete(t *testing.T) {
 	if err != io.EOF {
 		t.Fatalf("err = %v", err)
 	}
-	if len(evs) != 1 || evs[0].Kind != mllp.KindIncomplete || evs[0].Reason != mllp.ReasonConnectionClosed || string(evs[0].Data) != "MSH|^~\\&|A|B" {
+	if len(evs) != 1 || evs[0].Kind != mllp.KindIncomplete || evs[0].Reason != "" || string(evs[0].Data) != "MSH|^~\\&|A|B" {
 		t.Fatalf("events = %+v", evs)
 	}
 	if st.Incomplete() != 1 {

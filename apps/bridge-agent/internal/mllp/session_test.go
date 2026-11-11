@@ -394,7 +394,7 @@ func TestSessionsNewStartBlockMidMessage(t *testing.T) {
 	}
 }
 
-// §3.3: connection closed mid-block → partial stored as incomplete(connection_closed), no ACK, Serve returns cleanly.
+// §3.3: connection closed mid-block → partial stored as incomplete with empty reason (E04 incomplete_reason is optional; no enum value for this), no ACK, Serve returns cleanly.
 func TestSessionsConnectionClosedMidBlock(t *testing.T) {
 	sink := &fakeSink{}
 	c, done := serveOne(t, newCfg(sink, &mllp.Stats{}))
@@ -405,7 +405,7 @@ func TestSessionsConnectionClosedMidBlock(t *testing.T) {
 		t.Fatalf("Serve = %v, want nil on peer close", err)
 	}
 	msgs, inc, _ := sink.snapshot()
-	if len(msgs) != 0 || len(inc) != 1 || inc[0].reason != mllp.ReasonConnectionClosed || !strings.HasPrefix(inc[0].raw, "MSH|^~\\&|A|B") {
+	if len(msgs) != 0 || len(inc) != 1 || inc[0].reason != "" || !strings.HasPrefix(inc[0].raw, "MSH|^~\\&|A|B") {
 		t.Fatalf("msgs=%q inc=%+v", msgs, inc)
 	}
 }

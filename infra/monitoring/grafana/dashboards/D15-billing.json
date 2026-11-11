@@ -1,0 +1,103 @@
+{
+  "uid": "lims-d15-billing",
+  "title": "D15 Modules / Billing",
+  "description": "04-UI-UX s3 D15 for C4; panels from the chunk TRD observability section (T-21).",
+  "tags": [
+    "modules",
+    "c4"
+  ],
+  "editable": false,
+  "schemaVersion": 39,
+  "version": 1,
+  "time": {
+    "from": "now-6h",
+    "to": "now"
+  },
+  "refresh": "1m",
+  "templating": {
+    "list": []
+  },
+  "panels": [
+    {
+      "id": 1,
+      "type": "text",
+      "title": "About this dashboard",
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 24,
+        "h": 2
+      },
+      "options": {
+        "mode": "markdown",
+        "content": "Owner C4. Alert rules: `rules/imported/billing.rules.yml`. Runbook: `infra/runbooks/billing.md`."
+      }
+    },
+    {
+      "id": 2,
+      "type": "timeseries",
+      "title": "lims_billing_counter_busy_total",
+      "description": "Owner C4 (Billing). Metric lims_billing_counter_busy_total from worker-a/b /metrics (02-TRD s11.2). Alerts: BillingCounterBusy.",
+      "gridPos": {
+        "x": 0,
+        "y": 2,
+        "w": 12,
+        "h": 8
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum(rate(lims_billing_counter_busy_total[5m]))"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "type": "timeseries",
+      "title": "lims_billing_integrity_violations_total",
+      "description": "Owner C4 (Billing). Metric lims_billing_integrity_violations_total from worker-a/b /metrics (02-TRD s11.2). Alerts: BillingIntegrityViolation.",
+      "gridPos": {
+        "x": 12,
+        "y": 2,
+        "w": 12,
+        "h": 8
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum(rate(lims_billing_integrity_violations_total[5m]))"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "type": "timeseries",
+      "title": "lims_billing_numbering_pattern_invalid_total",
+      "description": "Owner C4 (Billing). Metric lims_billing_numbering_pattern_invalid_total from worker-a/b /metrics (02-TRD s11.2). Alerts: BillingNumberingPatternInvalid.",
+      "gridPos": {
+        "x": 0,
+        "y": 10,
+        "w": 12,
+        "h": 8
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum(rate(lims_billing_numbering_pattern_invalid_total[5m]))"
+        }
+      ]
+    }
+  ]
+}

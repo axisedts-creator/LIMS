@@ -1,7 +1,7 @@
 // Module contract + autoloader (02-TRD §6.3). Every check is a boot failure that names the module and the offender.
 // Types are the T0D-01 subset; Operations-typed handlers and the full HandlerContext land with codegen (T0C) and T0D-02..10.
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
-import { join } from 'node:path';
+import { dirname, join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { parse } from 'yaml';
 
@@ -25,6 +25,8 @@ export interface HandlerRequest {
 /** T0D-01 subset of HandlerContext (§6.3); auth/db/events/... are added by their tasks. */
 export interface HandlerContext {
   readonly operationId: string;
+  /** 08 A25 P-61 (02-TRD §6.4); modules never parse a header. */
+  readonly clientIp: string;
   readonly log: { info(o: object, m?: string): void; warn(o: object, m?: string): void; error(o: object, m?: string): void };
 }
 export type Handler = (req: HandlerRequest, ctx: HandlerContext) => Promise<HandlerResult>;
@@ -49,7 +51,7 @@ export const PORT_OWNERS: Readonly<Record<string, ModuleName>> = Object.freeze({
 });
 
 /** authResolvers key -> the only module allowed to supply it (02-TRD §6.3). */
-const AUTH_RESOLVER_OWNERS: Readonly<Record<string, ModuleName>> = {
+export const AUTH_RESOLVER_OWNERS: Readonly<Record<string, ModuleName>> = {
   deviceToken: 'instruments', portalSession: 'reporting', paymentCallback: 'payments',
   patientPreAuth: 'engagement', queueDisplayToken: 'engagement',
 };
@@ -112,7 +114,53 @@ export interface LoadedModule {
 }
 
 export function loadSpec(file: string): any {
-  return parse(readFileSync(file, 'utf8'));
+  return bundleRefs(parse(readFileSync(file, 'utf8')), dirname(file));
+}
+
+/**
+ * Cross-file refs (`_common.yaml#/components/responses/X`) -> local: the target, and the same-file refs it uses, are
+ * copied under the same pointer and the ref becomes `#/...` (glue gets one self-contained document).
+ * A local component with the same pointer is a boot failure, never silently shadowed.
+ */
+function bundleRefs(spec: any, dir: string): any {
+  const docs = new Map<string, any>();
+  const placed = new Map<string, string>(); // pointer -> source file
+  const get = (doc: any, ptr: string) => ptr.slice(2).split('/').reduce((o, k) => o?.[k.replaceAll('~1', '/').replaceAll('~0', '~')], doc);
+  const place = (file: string, ptr: string) => {
+    if (placed.has(ptr)) {
+      if (placed.get(ptr) !== file) throw new Error(`spec: $ref ${file}${ptr} collides with ${placed.get(ptr)}${ptr}`);
+      return;
+    }
+    const local = get(spec, ptr);
+    // LD-53 (1), CR-C2-020 option A: a local node that is exactly `{ $ref: <this file + this pointer> }` is an alias of
+    // the very target being placed; it is replaced by the cloned target below. Any other local node still collides.
+    const alias = local && typeof local === 'object' && Object.keys(local).length === 1 && local.$ref === `${file}${ptr}`;
+    if (local !== undefined && !alias) throw new Error(`spec: $ref ${file}${ptr} collides with a local definition`);
+    const v = get(docs.get(file), ptr);
+    if (v === undefined) throw new Error(`spec: unresolved $ref ${file}${ptr}`);
+    const keys = ptr.slice(2).split('/');
+    let o = spec;
+    for (const k of keys.slice(0, -1)) o = o[k] ??= {};
+    o[keys.at(-1)!] = structuredClone(v);
+    placed.set(ptr, file);
+    visit(o[keys.at(-1)!], file);
+  };
+  const visit = (node: any, from?: string) => {
+    if (!node || typeof node !== 'object') return;
+    if (typeof node.$ref === 'string') {
+      const [f, ptr = ''] = node.$ref.split('#') as [string, string?];
+      const file = f || from;
+      if (!file) return; // local ref of the spec itself
+      if (!docs.has(file)) docs.set(file, parse(readFileSync(join(dir, file), 'utf8')));
+      // place before rewriting: the alias check needs this node's original $ref (LD-53 (1)).
+      place(file, `#${ptr}`);
+      node.$ref = `#${ptr}`;
+      return;
+    }
+    for (const v of Object.values(node)) visit(v, from);
+  };
+  visit(spec);
+  return spec;
 }
 
 /** Validate one imported manifest found in directory `dir` (02-TRD §6.3). */

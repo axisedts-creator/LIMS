@@ -1,7 +1,7 @@
-# T0-03 tests
-- File: tests/monorepo/T0-03.pins.test.mjs (node:test, no deps). Run: `node --test tests/monorepo/T0-03.pins.test.mjs`
-- Checks: TRD §2.3 table (6 CV §15.1 cols, a row per §2.2/[PIN-C0] item, exact version, allowed licence, ISO last-release date, alternatives, 04-pinned versions), table vs installed pkg version+licence, exact versions in all package.json/pubspec, `.nvmrc`=engines.node (26.x.y), exact Dart+Flutter SDK in root pubspec, pnpm-lock/pubspec.lock committed and matching, banned list (direct + lockfile + pub + browser-only @supabase + ENUM), installed-tree licence scan.
-- Expected now: 8 of 23 fail (placeholder row/missing rows/no table rows, pubspec.lock absent, root `sdk: ^3.6.0`, vitest/ajv/yaml not in lockfile importers); 15 pass (banned/licence/exact-version guards hold today; selfchecks included).
-- CONFLICT: §2.3 lives in `spec/` (read-only per CLAUDE.md) but task says fill it; writer needs a CR or planner ruling. Test reads that path as the brief says.
-- My assumptions: required-row list also includes CV [PIN-C0] items outside §2.2 (staticcheck, k6, flutter_secure_storage, decimal lib, HTML sanitiser, SMTP client); table name = npm package name for npm rows; non-exact "Last release" staleness limit not tested (spec gives none).
-- Not testable here: CI gate 13 wiring, docker digest pins (no Dockerfiles yet; check passes vacuously), network-egress check of deps.
+# T0-03 tests (revised per LD-04 / LD-05 / LD-13 / LD-15)
+- File: tests/monorepo/T0-03.pins.test.mjs (node:test, no deps). Run: `node --test tests/monorepo/T0-03.pins.test.mjs` (verify: .orchestra/notes/T0-03-verify.cmd).
+- LD-04: table read from `db/meta/decisions/T0-03-dependencies.md`. spec/ untouched.
+- LD-05/LD-13: pin test now requires rows for T0D-12 + T0D-01 + T0D-14 CR pins (adds fastify 5.12.8, fastify-openapi-glue 4.12.0, @fastify/ajv-compiler 4.0.7, yaml 2.8.1, @types/node 26.6.6, next 16.4.5, server-only 0.0.1, @playwright/test 1.65.0). New test: pnpm-workspace.yaml lists `services/*` and `apps/*`.
+- LD-15: ALLOWED adds `PostgreSQL`, `BlueOak-1.0.0`. pubspec.lock test is its own test; skipped with `needs flutter pub get (human)` only if `flutter` is not on PATH (flutter IS installed here, so it runs and fails until `flutter pub get` is committed).
+- Expected now: 6 of 27 fail (pins table rows for LD-13 CRs, installed-vs-table, every-dep-has-row, workspace globs, pubspec.lock, lock specifiers); 21 pass.
+- Not testable: CI gate 13 wiring, docker digests, network egress. Local node v25.8.0 vs .nvmrc 26.x.

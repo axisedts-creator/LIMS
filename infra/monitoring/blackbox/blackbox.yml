@@ -1,0 +1,20 @@
+---
+# 02-TRD s11.1: blackbox_exporter v0.29.1 on ops-1 (127.0.0.1:9115).
+modules:
+  # HTTPS origin probe: TLS required; 200/302/404 accepted as configured per
+  # origin (portal /v/<invalid-token> answers the uniform response, R3).
+  http_origin:
+    prober: http
+    timeout: 10s
+    http:
+      method: GET
+      valid_status_codes: [200, 302, 404]
+      fail_if_not_ssl: true
+      follow_redirects: false
+      preferred_ip_protocol: ip4
+  # Forbidden-port check: success = port open = ForbiddenPortOpen (T-19).
+  tcp_connect:
+    prober: tcp
+    timeout: 5s
+    tcp:
+      preferred_ip_protocol: ip4

@@ -1,0 +1,7 @@
+# T0A-11 tests (tester)
+- File: `packages/shared-dart/test/public_api_test.dart` (barrel-only imports). Run: `.orchestra/notes/T0A-11-verify.cmd` (= `dart analyze --fatal-infos` + this file + the 3 existing Dart tests).
+- Covers AC-0A-2.3 (vectors.json), 3.1 (1200 months), 4.2 (all money golden cases) through `package:lims_shared/lims_shared.dart`; LimsException; bsdate throws it (no BsDateError); errors.yaml == `limsErrorHttpStatus` == `LimsErrorCodes`; package `analysis_options.yaml` strict flags; pubspec/workspace; nepali_utils only in `lib/src/bsdate`.
+- Now fails for the right reason: barrel `lib/lims_shared.dart` is empty (`library;`), no `lib/src/errors.dart`, no package `analysis_options.yaml`.
+- ASSUMED API: `lib/src/errors.dart` exports `FieldError({path, code, message})` (const) and `LimsException(String code, {String? safeDetail, List<FieldError>? fieldErrors})`, an `Exception`; `code` is a String = `LimsErrorCodes.*` (generated file has no `ErrorCode` type). Barrel must export errors, error_codes.g, routes.g, uuidv7, money, bsdate.
+- Writer must: swap `BsDateError` -> `LimsException` in bsdate.dart (existing bsdate test only reads `.code.toString()`); add `packages/shared-dart/analysis_options.yaml` (strict flags directly or via relative `include:`).
+- Not run: green path (needs impl). Money has top-level `add/sub/compare/format`; barrel users must prefix-import to avoid clashes.

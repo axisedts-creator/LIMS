@@ -1,0 +1,137 @@
+---
+# Host baseline on every host (02-TRD s4, s5); idempotent: a second run
+# must report zero changes. Order matters: wireguard runs before nftables,
+# chrony (clients sync to ops-1 over wg0), luks_volumes (keys come from
+# ops-1 over wg0) and docker_engine (docker.service is After=wg-quick@wg0).
+# sshd moves to the wg IP in a handler, i.e. only after wg0 is up.
+- name: Host baseline
+  hosts: all
+  become: true
+  roles:
+    - base_os
+    - hardening
+    - wireguard
+    - nftables
+    - chrony
+    - luks_volumes
+    - docker_engine
+
+# 02-TRD s9: pgBackRest config, tmpfs cipher passes, timers. `data` only:
+# dr-1 (repo2 host) never holds a cipher pass (AC-12.3).
+- name: pgBackRest
+  hosts: data
+  become: true
+  roles:
+    - pgbackrest
+
+# 02-TRD s10.3 (T-15): append-only audit store + subscription audit_ship.
+# LD-45: full = own instance on the dr host; lean/dev = database lims_audit
+# on the data host. The role gates on auditstore_host_group.
+- name: Audit store
+  hosts: data:dr
+  become: true
+  roles:
+    - auditstore
+
+# 02-TRD s9.5 (T-12): streaming standby on the dr host, seeded by
+# pg_basebackup (CR-C1-T09 (a)). Gated by standby_enabled: LD-45 `lean`
+# and dev install nothing.
+- name: Standby
+  hosts: dr
+  become: true
+  roles:
+    - standby
+
+# 02-TRD s9.5: object replica. Sync job on the Storage host (app), target
+# directory on dr; the dr host is groups['dr'][0] of the active profile
+# (LD-45), none in dev.
+- name: Object replica
+  hosts: app:dr
+  become: true
+  roles:
+    - object_replica
+
+# 02-TRD s11, s8.2: monitoring core on ops-1 (site B). internal_ca first:
+# it issues the ops nginx (and registry) certificates the stack mounts.
+- name: Monitoring core
+  hosts: ops
+  become: true
+  roles:
+    - internal_ca
+    - monitoring
+
+# 02-TRD s10.1 (T-17): Fluent Bit on every host (incl. lean backup); VictoriaLogs
+# on groups['ops'][0] of the active profile (LD-45). Shippers buffer to disk and
+# retry, so host order inside the play does not matter.
+- name: Logging
+  hosts: all
+  become: true
+  roles:
+    - logging
+
+# 02-TRD s12.2: Nepal registry. Server on ops-1 (uses the internal_ca
+# registry leaf above); client trust + name on every host that pulls.
+- name: Registry
+  hosts: ops:data:app:dr
+  become: true
+  roles:
+    - registry
+
+# 02-TRD s18 (T-30): monthly external port scan from the ops host (lean: the one prod host); targets = the
+# active inventory's public IPs (LD-45), outcome recorded in ops_audit.
+- name: External scan
+  hosts: ops
+  become: true
+  roles:
+    - external_scan
+
+# 02-TRD s12.2 (T-24, CR-C1-001): self-hosted CI runner on the ops host (lean: the one prod host), after
+# the registry (it pushes there). Unprivileged; the prod key is released by lims-prod-decrypt@<release>.
+- name: CI runner
+  hosts: ops
+  become: true
+  roles:
+    - ci_runner
+
+# 02-TRD s7.11 (T-34, CR-C7-012): C7 agent release service on the ops host only (lean: the one prod host);
+# after the registry (CI artefact). Holds the release key + client Authenticode cert; never an app-only host.
+- name: Agent release service
+  hosts: ops
+  become: true
+  roles:
+    - agent_release
+
+# 02-TRD s6 (T-13): public edge nginx on the app host. edge_nginx first (it
+# bootstraps placeholder certs so nginx answers HTTP-01), then acme issues the
+# real ECDSA P-256 certificates and reloads nginx through its deploy hook.
+- name: Public edge
+  hosts: app
+  become: true
+  roles:
+    - edge_nginx
+    - fail2ban
+    - acme
+
+# 02-TRD s7.4 (T-22): ClamAV. freshclam on the ops host via Squid, copy over wg0
+# to /srv/lims/clamav-db on the app host (lean: the same host). Before the runtime
+# play: clamd needs the populated signature directory when compose starts.
+- name: ClamAV
+  hosts: ops:app
+  become: true
+  roles:
+    - clamav
+
+# 02-TRD s7.4 (T-14): LIMS runtime on the app host. secrets_render first
+# (tmpfs secret files + the valkey password), then the inputs the stack
+# mounts (Valkey ACL, squid.conf + SMTP relay set, envelope probes), then
+# lims_runtime starts compose.app.yml for the active profile (LD-45) and
+# runs the deploy-time probes.
+- name: LIMS runtime
+  hosts: app
+  become: true
+  roles:
+    - secrets_render
+    - valkey
+    - egress_proxy
+    - renderer_runtime
+    - lims_runtime

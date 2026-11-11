@@ -1,0 +1,30 @@
+# portal origin (02-TRD s6.1): patient portal incl. /r/{token}, /v/{token} (C6).
+server {
+    server_name {{ origins.portal }};
+    ssl_certificate     /etc/nginx/certs/{{ origins.portal }}/fullchain.pem;
+    ssl_certificate_key /etc/nginx/certs/{{ origins.portal }}/privkey.pem;
+    include /etc/nginx/snippets/server.conf;
+    client_max_body_size 1m;
+
+    include /etc/nginx/snippets/reserved-deny.conf;
+
+    # QR verify flood guard, /v/ only (04 s4, 08 A13 D-32). X-Robots-Tag on token paths [CONV].
+    location ^~ /v/ {
+        limit_req zone=qrverify burst=9 nodelay;
+        limit_req zone=perip burst=200 nodelay;  # TRD s6.5 "every server": location limit_req replaces the server one
+        set $retry_after 60;
+        include /etc/nginx/snippets/headers.conf;
+        add_header X-Robots-Tag "noindex, nofollow" always;
+        proxy_pass http://portal:3000;
+    }
+
+    location ^~ /r/ {
+        include /etc/nginx/snippets/headers.conf;
+        add_header X-Robots-Tag "noindex, nofollow" always;
+        proxy_pass http://portal:3000;
+    }
+
+    location / {
+        proxy_pass http://portal:3000;
+    }
+}

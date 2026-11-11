@@ -1,0 +1,1 @@
+cd /d "%~dp0..\.." && pnpm --dir services/api exec vitest run src/modules/reporting/__tests__/portal.payment.test.ts && pnpm --dir services/worker exec vitest run src/jobs/reporting/__tests__/portal_payment.tasks.test.ts && node --test tests/portal-e2e/C6-T42.static.test.mjs && pnpm --filter @lims/portal exec playwright test -c ../../tests/portal-e2e/playwright.pay.config.ts

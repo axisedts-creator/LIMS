@@ -1,0 +1,1 @@
+node --test packages/shared-ts/test/logger.test.mjs packages/shared-ts/test/crypto.test.mjs packages/shared-ts/test/clock.test.mjs packages/shared-ts/test/validation.test.mjs packages/shared-ts/test/errors.test.mjs

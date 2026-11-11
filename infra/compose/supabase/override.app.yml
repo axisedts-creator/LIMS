@@ -1,0 +1,80 @@
+# app-1: gateway, auth, rest, storage, imgproxy (02-TRD s7.2; 08 A25 D-203). Layered over
+# upstream/docker-compose.yml:  up -d api-gw auth rest storage imgproxy   (project name `supabase`).
+# POSTGRES_HOST must be the data-1 wg address (dr-1 after promotion); SMTP_HOST/SMTP_PORT=587 = the relay.
+# Image digests = upstream/UPSTREAM.lock `images` (single source; CI test_rendered_images_use_lock_digest).
+services:
+  db: !reset null
+  supavisor: !reset null
+  studio: !reset null        # override.breakglass.yml (T-26) re-adds it
+  meta: !reset null
+  functions: !reset null     # Edge Functions unused; the trimmed Envoy config has no route/cluster for it
+  realtime: !reset null      # Phase 3 override re-adds it
+
+  api-gw:
+    image: envoyproxy/envoy@sha256:1fde8efee875e4e4f6a39a90fe49d9338e1caacce5762034ef9fb4bbb9ad6aed
+    depends_on: !reset {}
+    ports: !reset []         # no published port (04 S6, AC-06.2); break-glass re-adds 127.0.0.1:8000
+    networks: !override
+      - app_net
+      - auth_net
+    volumes:                 # trimmed copies live OUTSIDE upstream/ so upstream stays byte-for-byte
+      - ./envoy/lds.template.yaml:/etc/envoy/lds.template.yaml:ro
+      - ./envoy/cds.yaml:/etc/envoy/cds.yaml:ro
+    mem_limit: 256m
+    pids_limit: 256
+
+  auth:                      # CR-C2-012: nothing published; db_net carries Postgres + the SMTP relay
+    image: supabase/gotrue@sha256:1736a63078f5922b198c4cbe50f80ab9a2d3b54fe8b7b6cfb2e9dc5dbbc12c6b
+    depends_on: !reset {}
+    networks: !override
+      auth_net: {}
+      db_net:
+        ipv4_address: 172.30.50.20   # fixed: the nftables SMTP exception (TRD s5.5 rule 5) matches this source
+    mem_limit: 512m
+    pids_limit: 256
+
+  rest:
+    image: postgrest/postgrest@sha256:c7cd7e265a85b05248abf53f4473fcec7e327c282d0bd0cf60f1551996d09fcf
+    depends_on: !reset {}
+    networks: !override
+      - app_net
+      - db_net
+    mem_limit: 512m
+    pids_limit: 256
+
+  storage:
+    image: supabase/storage-api@sha256:8526956cb462e9f7d392e9848ec77133b2769982ed614e9753cc687e8e4339a6
+    depends_on: !override    # NOT `!reset {..}`: reset clears the value (DECISION.md spike result)
+      rest: { condition: service_started }
+      imgproxy: { condition: service_started }
+    volumes: !override
+      - /srv/lims/storage:/var/lib/storage:z   # vg_storage, growable (04 I1/I4)
+    networks: !override
+      - app_net
+      - db_net
+    mem_limit: 1g
+    pids_limit: 256
+
+  imgproxy:
+    image: darthsim/imgproxy@sha256:69ae09dbc3349944564cb2f66cf35f80a4a9a78fda73d06061a337849520ab1f
+    volumes: !override
+      - /srv/lims/storage:/var/lib/storage:ro,z   # reads objects Storage wrote; same LV
+    networks: !override
+      - app_net
+    mem_limit: 512m
+    pids_limit: 256
+
+# Created once by the docker_engine role with these subnets (docker_engine_networks); `name:` makes this
+# project attach to those shared networks instead of creating `supabase_*` copies.
+networks:
+  app_net:
+    name: app_net
+    internal: true
+    ipam: { config: [{ subnet: 172.30.20.0/24 }] }
+  auth_net:
+    name: auth_net
+    internal: true
+    ipam: { config: [{ subnet: 172.30.30.0/24 }] }
+  db_net:
+    name: db_net
+    ipam: { config: [{ subnet: 172.30.50.0/24 }] }

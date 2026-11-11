@@ -5,6 +5,17 @@
 import type { Handler } from '../../../core/module.js';
 import { LimsError } from '../../../core/errors.js';
 import { criticalHandlers } from './critical.handlers.js';
+// T-07 specimen actions (each file: `export const handler`); later tasks add their own imports + entries to REAL below.
+import { handler as bulkCollectSpecimens } from './bulkCollectSpecimens.js';
+import { handler as bulkDispatchSpecimens } from './bulkDispatchSpecimens.js';
+import { handler as bulkReceiveSpecimens } from './bulkReceiveSpecimens.js';
+import { handler as collectSpecimen } from './collectSpecimen.js';
+import { handler as discardSpecimen } from './discardSpecimen.js';
+import { handler as getSpecimen } from './getSpecimen.js';
+import { handler as listSpecimens } from './listSpecimens.js';
+import { handler as lookupSpecimenByBarcode } from './lookupSpecimenByBarcode.js';
+import { handler as receiveSpecimen } from './receiveSpecimen.js';
+import { handler as storeSpecimen } from './storeSpecimen.js';
 import { resultEntryHandlers } from './resultEntry.handlers.js';
 
 const OPERATION_IDS = [
@@ -36,8 +47,13 @@ const notImplemented = (operationId: string): Handler => async () => {
   throw new LimsError('common.internal', `lab ${operationId} not implemented`);
 };
 
-export const handlers: Readonly<Record<LabOperationId, Handler>> = Object.freeze({
-  ...(Object.fromEntries(OPERATION_IDS.map((op) => [op, notImplemented(op)])) as Record<LabOperationId, Handler>),
+/** operationId -> real handler; everything not listed is still a fail-closed stub. */
+const REAL: Partial<Record<LabOperationId, Handler>> = {
+  lookupSpecimenByBarcode, listSpecimens, getSpecimen, collectSpecimen, bulkCollectSpecimens, bulkDispatchSpecimens, receiveSpecimen, bulkReceiveSpecimens, storeSpecimen, discardSpecimen,
   ...resultEntryHandlers, // T-14: bulkEnterResults, getResult, listOrderResults
   ...criticalHandlers, // T-15: listCriticalValues, getCriticalValue, logCriticalNotification
-});
+};
+
+export const handlers: Readonly<Record<LabOperationId, Handler>> = Object.freeze(
+  Object.fromEntries(OPERATION_IDS.map((op) => [op, REAL[op] ?? notImplemented(op)])) as Record<LabOperationId, Handler>,
+);

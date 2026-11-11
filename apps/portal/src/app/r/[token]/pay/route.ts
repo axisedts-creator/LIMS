@@ -10,10 +10,10 @@ const NONCE = /^[A-Za-z0-9_-]{16,64}$/;
 export async function POST(req: Request, ctx: { params: Promise<{ token: string }> }): Promise<Response> {
   if (!originAllowed(req)) return forbidden();
   const { token } = await ctx.params;
-  const back = (q: string) => see(`/r/${encodeURIComponent(token)}/report${q}`);
+  const form = await req.formData().catch(() => undefined);
+  const back = (q: string) => see(`/r/${encodeURIComponent(token)}/${form?.get('from') === 'dues' ? 'dues' : 'report'}${q}`);   // whitelist: only these two pages
   const session = await getSession();
   if (!token22(token) || !session) return see(`/r/${encodeURIComponent(token)}`);
-  const form = await req.formData().catch(() => undefined);
   const gateway = form?.get('gateway'); const nonce = form?.get('nonce');
   if (typeof gateway !== 'string' || !GATEWAYS.includes(gateway) || typeof nonce !== 'string' || !NONCE.test(nonce)) return back('?pay=error');
 

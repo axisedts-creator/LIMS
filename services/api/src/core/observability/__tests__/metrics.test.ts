@@ -37,6 +37,21 @@ const EXPECTED: Record<string, 'counter' | 'gauge' | 'histogram'> = {
   lims_analytics_export_rows: 'histogram',
   lims_analytics_export_downloads_total: 'counter',
   lims_analytics_schedule_sends_total: 'counter',
+  // C5 additions — LD-120 / CR-C5-T31-001, names+types verbatim from C5 02-TRD §11 lines 468-481.
+  lims_lab_specimen_transitions_total: 'counter',
+  lims_lab_specimen_creation_lag_seconds: 'histogram',
+  lims_lab_results_ingested_total: 'counter',
+  lims_lab_ingest_exceptions_open: 'gauge',
+  lims_lab_ingest_exception_age_seconds: 'histogram',
+  lims_lab_ingest_exception_oldest_open_age_seconds: 'gauge',
+  lims_lab_critical_unnotified_oldest_age_seconds: 'gauge',
+  lims_lab_result_transitions_total: 'counter',
+  lims_lab_critical_detected_total: 'counter',
+  lims_lab_critical_unnotified_open: 'gauge',
+  lims_lab_formula_errors_total: 'counter',
+  lims_lab_host_query_duration_seconds: 'histogram',
+  lims_lab_readiness_emitted_total: 'counter',
+  lims_lab_barcode_alloc_failures_total: 'counter',
 };
 
 // LD-88: TRD §13 fixes this C8 histogram as a row count, so it cannot end in _seconds.

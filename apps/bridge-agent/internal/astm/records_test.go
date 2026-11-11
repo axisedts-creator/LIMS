@@ -97,12 +97,12 @@ func TestTokenizeKnownRecordTypes(t *testing.T) {
 
 func TestTokenizeFailsClosedWithoutHeader(t *testing.T) { // §5.3 UNVERIFIED delimiters -> fail closed
 	for name, raw := range map[string]string{
-		"empty":           "",
-		"only CR":         "\r",
-		"no H":            "P|1\rR|1|^^^GLU|5.4\rL|1|N\r",
-		"H too short":     "H\rL|1|N\r",
-		"binary garbage":  "\x00\xff\xfe\x01\x02",
-		"lowercase h":     "h|\\^&\rR|1\r",
+		"empty":          "",
+		"only CR":        "\r",
+		"no H":           "P|1\rR|1|^^^GLU|5.4\rL|1|N\r",
+		"H too short":    "H\rL|1|N\r",
+		"binary garbage": "\x00\xff\xfe\x01\x02",
+		"lowercase h":    "h|\\^&\rR|1\r",
 	} {
 		m := astm.Tokenize([]byte(raw))
 		if m.HasHeader {

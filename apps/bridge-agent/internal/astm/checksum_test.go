@@ -22,9 +22,9 @@ type vectorFrame struct {
 }
 
 type vectorFile struct {
-	Frames        []vectorFrame `json:"frames"`
-	AssembledN    int           `json:"assembled_from_first_n_frames"`
-	AssembledSHA  string        `json:"assembled_sha256"`
+	Frames       []vectorFrame `json:"frames"`
+	AssembledN   int           `json:"assembled_from_first_n_frames"`
+	AssembledSHA string        `json:"assembled_sha256"`
 }
 
 func loadVectors(t *testing.T) vectorFile {

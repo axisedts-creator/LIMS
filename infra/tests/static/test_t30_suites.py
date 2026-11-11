@@ -494,6 +494,13 @@ class InternalSuiteComplete(unittest.TestCase):
         self.assertRegex(t, r"(?i)decrypt|sops|lims-prod-decrypt", "asserts prod secrets cannot be decrypted")
         self.assertRegex(t, r"(?m)^set -u")
 
+    def test_oncall_sudo_sh_tests_policy_not_outcome(self):  # T-30 review item 1: ask sudo's policy, never execute the command
+        t = read(INT / "oncall_sudo.sh")
+        self.assertNotRegex(t, r"sudo\s+-n\s+-u\s+\"?\$U\"?\s+sudo", "executing the command gives false greens/side effects")
+        self.assertRegex(t, r"sudo\s+-l\s+-U\s+\"\$U\"\s+\$c\b", "allowlist loop checks policy with `sudo -l -U \"$U\" $c`")
+        self.assertRegex(t, r"sudo\s+-l\s+-U\s+\"\$U\"\s+/usr/bin/systemctl\s+start\s+lims-prod-decrypt@",
+                         "prod decrypt unit checked with `sudo -l -U \"$U\" ...`")
+
     def test_roles_sql_contract(self):  # 07-SEC: no BYPASSRLS/SUPERUSER for lims_%; REPLICATION only for the two roles (02-TRD s8.1)
         t = read(INT / "roles.sql")
         self.assertRegex(t, r"(?i)rolbypassrls")

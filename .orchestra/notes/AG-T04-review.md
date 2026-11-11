@@ -1,0 +1,7 @@
+CHANGES
+
+1. apps/bridge-agent/internal/queue/queue.go:30 — `tsFormat ="2006-01-02T15:04:05.000Z"` is not gofmt-formatted (missing space after `=`), so the CI step `.github/workflows/pr.yml:97` (`test -z "$(gofmt -l .)"`) fails. Fix: run `gofmt -w ./internal/queue ./internal/secrets` in apps/bridge-agent (gives `tsFormat      = "2006-01-02T15:04:05.000Z"` aligned with the const block) and confirm `gofmt -l .` prints nothing — writer and tester both report gofmt was never run, so also check the *_test.go files.
+
+Checked, no defect: schema.sql = TRD 5.6 verbatim; pragmas WAL/synchronous FULL/secure_delete/foreign_keys/busy_timeout 5000 + auto_vacuum INCREMENTAL; AES-256-GCM, 96-bit random nonce, AAD `table:id:seq` (items seq 0 / `items_meta` [CONV] noted); key only DPAPI-wrapped in kv, unwrap failure fails Open without re-minting; DPAPI user scope primary, machine fallback (LD-94 cited); truncation only `uploaded`, clamp 1–72 h, outbound sent/failed 24 h, incremental_vacuum; disk guard 500 MiB injectable; finalize atomic; kill tests for AC-05.7; token file REQ-SEC-118 name `device-token.bin`. No PHI in logs, no secrets, only owned paths. RLS/permissions/rate tier/error codes N/A (agent-local store).
+Not verified by reviewer: tests/vet/gofmt could not be executed in this session (commands blocked); relied on writer's reported pass.
+Non-blocking: go.mod:16 `golang.org/x/sys` still `// indirect` though now imported directly — `go mod tidy` when go.mod is next touched.

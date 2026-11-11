@@ -91,7 +91,7 @@ describe('provisionTenant - AC-E1.2 duplicate code, validation, mass assignment'
   });
   it('mass assignment: status/id/version/createdBy/activatedAt/actorId in the input never reach the repo; the row is status provisioning created by the ctx actor', async () => {
     const { svc, ctx, f } = setup(); const r = await svc.provisionTenant(ctx, { ...PROVISION, status: 'active', id: TENANT_A, tenantId: TENANT_A, version: 9, activatedAt: 'x', actorId: 'evil', trainingModeX: 1 });
-    expect(r.body.status).toBe('provisioning'); expect(r.body.tenant_id).not.toBe(TENANT_A); const a: any = f.by('insert')[0]!.args[1];
+    expect(r.body.status).toBe('provisioning'); expect(r.body.tenant_id).not.toBe(TENANT_A); const a: any = f.by('insert')[0]!.args[0];
     expect(a.actorId).toBe(STAFF_USER); for (const k of Object.keys(a)) expect(['actorId', 'code', 'displayName', 'id', 'legalName', 'pan', 'timezone']).toContain(k); expect(a.id).not.toBe(TENANT_A);
     expect(f.data(TENANT_A).members).toHaveLength(3);
   });
@@ -277,8 +277,8 @@ describe('getTenantSettingsAsPlatform / updateTenantSettingsAsPlatform (D-T21, P
     expect(r.status).toBe(200); expect(r.version).toBe(2); expect(await code(svc.getTenantSettingsAsPlatform(ctx, { tenantId: idN(0xdead) }))).toBe('common.not_found'); expect(scopes).toEqual([]);
   });
   it('update: writes through ONE withTenantScope(target) window, bumps version, platform-only fields (ird_pan) allowed, access log settings.change / tenant_settings', async () => {
-    const { svc, ctx, f, scopes } = setup(); const r = await svc.updateTenantSettingsAsPlatform(ctx, { tenantId: TENANT_A, expectedVersion: 2, patch: { idle_timeout_minutes: 45, ird_pan: '123456789' } });
-    expect(r.status).toBe(200); expect(r.version).toBe(3); expect(scopes).toEqual([TENANT_A]); expect(f.data(TENANT_A).settings).toMatchObject({ idle_timeout_minutes: 45, ird_pan: '123456789' });
+    const { svc, ctx, f, scopes } = setup(); const r = await svc.updateTenantSettingsAsPlatform(ctx, { tenantId: TENANT_A, expectedVersion: 2, patch: { idle_timeout_minutes: 25, ird_pan: '123456789' } });
+    expect(r.status).toBe(200); expect(r.version).toBe(3); expect(scopes).toEqual([TENANT_A]); expect(f.data(TENANT_A).settings).toMatchObject({ idle_timeout_minutes: 25, ird_pan: '123456789' });
     expect(f.by('accessLog')[0]!.args[1]).toMatchObject({ action: 'settings.change', entityType: 'tenant_settings' });
   });
   it('timezone Asia/Kolkata -> 422 identity.setting_out_of_range at /timezone; nothing written (P-15)', async () => {
@@ -287,8 +287,8 @@ describe('getTenantSettingsAsPlatform / updateTenantSettingsAsPlatform (D-T21, P
   });
   it('unknown / system columns (tenant_id, version, created_by, id) -> 400 mass assignment; If-Match missing -> 428; stale -> 409', async () => {
     const { svc, ctx, f } = setup(); for (const k of ['tenant_id', 'version', 'created_by', 'id', 'nonsense']) expect((await rejection(svc.updateTenantSettingsAsPlatform(ctx, { tenantId: TENANT_A, expectedVersion: 2, patch: { [k]: 'x' } }))).code).toBe('common.validation_failed');
-    expect(await code(svc.updateTenantSettingsAsPlatform(ctx, { tenantId: TENANT_A, expectedVersion: undefined, patch: { idle_timeout_minutes: 45 } }))).toBe('common.precondition_required');
-    expect(await code(svc.updateTenantSettingsAsPlatform(ctx, { tenantId: TENANT_A, expectedVersion: 1, patch: { idle_timeout_minutes: 45 } }))).toBe('common.version_conflict'); expect(f.data(TENANT_A).settings!['version']).toBe(2); expect(f.data(TENANT_A).settings).not.toHaveProperty('nonsense');
+    expect(await code(svc.updateTenantSettingsAsPlatform(ctx, { tenantId: TENANT_A, expectedVersion: undefined, patch: { idle_timeout_minutes: 25 } }))).toBe('common.precondition_required');
+    expect(await code(svc.updateTenantSettingsAsPlatform(ctx, { tenantId: TENANT_A, expectedVersion: 1, patch: { idle_timeout_minutes: 25 } }))).toBe('common.version_conflict'); expect(f.data(TENANT_A).settings!['version']).toBe(2); expect(f.data(TENANT_A).settings).not.toHaveProperty('nonsense');
   });
 });
 

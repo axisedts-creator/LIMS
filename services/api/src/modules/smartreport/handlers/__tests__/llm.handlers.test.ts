@@ -158,7 +158,7 @@ describe('C14-T28 #33 requestSmartLlmRephrase — 03-APP-FLOW §2.9 step 1', () 
 // ================================================================= #34
 describe('C14-T28 #34 listSmartLlmRuns — 02-TRD §5 #34', () => {
   it('lists the runs of the summary as contract LlmRun objects (Date -> ISO created_at, snake_case items); no internal column leaks', async () => {
-    const s = await mk(); runs.rows = [mkRun(s.id), mkRun(s.id, { id: uid(0x7002), status: 'failed', items: [], latency_ms: null, error_code: 'llm_unavailable', created_at: new Date('2026-11-12T06:00:00.000Z') })];
+    const s = await mk(); w.writes.length = 0; runs.rows = [mkRun(s.id), mkRun(s.id, { id: uid(0x7002), status: 'failed', items: [], latency_ms: null, error_code: 'llm_unavailable', created_at: new Date('2026-11-12T06:00:00.000Z') })];
     const x = listRuns(s.id); const r = await x.run();
     expect(r.status).toBe(200);
     expect(responseProblems(LIST, r)).toEqual([]);

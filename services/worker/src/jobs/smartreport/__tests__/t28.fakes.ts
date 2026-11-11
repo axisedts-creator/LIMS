@@ -18,9 +18,13 @@
 import { FakeRephraser } from '../../../../../api/src/modules/smartreport/llm/FakeRephraser.js';
 import type { LlmRephraseInput, LlmRephraseOutput } from '../../../../../api/src/modules/smartreport/llm/LlmRephraser.js';
 import { LimsError } from '../../../../../api/src/core/errors.js';
+import { llmCircuit, registerRephraser } from '../../../../../api/src/modules/smartreport/llm.service.js';
 import { systemActorOf } from '../../../core/__tests__/helpers.js';
 
-export { LimsError };
+export { LimsError, llmCircuit, registerRephraser };
+/** C0 JobContext has no `metrics`; the harness injects the Setup's sink (assigned in beforeEach, read lazily per run). */
+let metricsSink: unknown;
+export const setMetrics = (m: unknown): void => { metricsSink = m; };
 type Row = Record<string, any>;
 
 export const TA = '0190a000-0000-7000-8000-00000000aaaa';
@@ -143,7 +147,7 @@ export function withPorts<M extends { tasks?: Record<string, any> }>(manifest: M
       },
       async savepoint<T>(fn: (t: unknown) => Promise<T>): Promise<T> { return fn(tx); },
     });
-    try { return await h(a, { ...ctx, ports, tx }); } catch (e) { Object.assign(store, before); throw e; }
+    try { return await h(a, { ...ctx, ports, tx, metrics: metricsSink }); } catch (e) { Object.assign(store, before); throw e; }
   };
   return { ...manifest, tasks: Object.fromEntries(Object.entries(manifest.tasks ?? {}).map(([k, h]) => [k, wrap(h)])) } as M;
 }

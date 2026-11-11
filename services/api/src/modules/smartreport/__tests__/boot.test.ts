@@ -28,7 +28,8 @@ const IMPLEMENTED: readonly string[] = ['listSmartDenyTerms', 'createSmartDenyTe
   'replaceSmartTemplateBlock', 'deleteSmartTemplateBlock', 'listSmartRules', 'createSmartRule', 'replaceSmartRule', 'deleteSmartRule', 'listSmartAnalyteGroups',
   'putSmartAnalyteGroup', 'deleteSmartAnalyteGroup', 'listSmartGroupSettings', 'putSmartGroupSetting', 'validateSmartLibraryVersion', 'submitSmartLibraryVersion',
   'approveSmartLibraryVersion', 'returnSmartLibraryVersion', // C14-T11 (#1-#21)
-  'listSmartSummaries', 'getSmartSummary', 'getCurrentSmartSummary', 'buildSmartSummary', 'approveSmartSummary', 'rejectSmartSummary']; // C14-T15 (#27-#32)
+  'listSmartSummaries', 'getSmartSummary', 'getCurrentSmartSummary', 'buildSmartSummary', 'approveSmartSummary', 'rejectSmartSummary', // C14-T15 (#27-#32)
+  'requestSmartLlmRephrase', 'listSmartLlmRuns']; // C14-T28
 
 const FAKE_REQ = { params: {}, query: {}, headers: {}, body: {} };
 const noop = () => undefined;

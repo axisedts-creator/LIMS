@@ -3,10 +3,9 @@
 // Fails now: the task is the SR-T01 fail-closed stub ("smartreport.llm_rephrase not implemented") and ../../../../../api/src/modules/smartreport/llm.service.ts does not exist.
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { setup, type Setup } from '../../../core/__tests__/helpers.js';
-import { llmCircuit, registerRephraser } from '../../../../../api/src/modules/smartreport/llm.service.js';
 import { manifest } from '../index.js';
 import {
-  B, ENDPOINT, EXPECTED_SECONDS, MEMBER, MODEL, ProbeRephraser, R_ALT, R_HGB, RULE_FU, SENSITIVE, SUMMARY, SYS, TA, TB, TEXT_EN, TEXT_NE, bigSummary, content, makePorts, reset, store,
+  B, ENDPOINT, llmCircuit, registerRephraser, setMetrics, EXPECTED_SECONDS, MEMBER, MODEL, ProbeRephraser, R_ALT, R_HGB, RULE_FU, SENSITIVE, SUMMARY, SYS, TA, TB, TEXT_EN, TEXT_NE, bigSummary, content, makePorts, reset, store,
   summaryRow, withPorts,
 } from './t28.fakes.js';
 
@@ -31,6 +30,7 @@ beforeEach(async () => {
   vi.useFakeTimers({ toFake: ['Date'] }); clock += 3_600_000; vi.setSystemTime(clock);   // any breaker opened by an earlier test has expired
   llmCircuit.recordSuccess();                                                              // consecutive-failure count back to 0
   s = await setup([withPorts(manifest as any, makePorts())]);
+  setMetrics(s.metrics);
 });
 afterEach(() => { vi.useRealTimers(); for (const [k, v] of Object.entries(saved)) { if (v === undefined) delete process.env[k]; else process.env[k] = v; } });
 
@@ -69,10 +69,14 @@ describe('llm_rephrase — gating: flags on? summary still draft? (TRD §9.1, 03
     ['payload tenant differs from the job tenant', payload({ tenant_id: TB })],
     ['summary_id not a uuid', payload({ summary_id: 'not-a-uuid' })],
     ['summary_id missing', { tenant_id: TA }],
-    ['payload null', null],
   ])('bad payload / foreign summary: %s -> done, nothing sent, nothing stored', async (_n, p) => {
     store.summaries.push(summaryRow({ id: '0190a000-0000-7000-8000-0000000b5001', tenant_id: TB }));
     await run(p);
+    untouched();
+  });
+
+  it('payload null -> rejected by the C0 wrapper (no tenant), nothing sent, nothing stored', async () => {
+    expect(await settle(run(null))).toBeInstanceOf(Error);
     untouched();
   });
 

@@ -146,8 +146,17 @@ describe('§2.1 ReviewQueue — filters', () => {
 
   it('status filter offers the six spec options with spec labels', async () => {
     await view();
-    await userEvent.click(screen.getByRole('button', { name: /status/i }));
-    for (const l of ['Under review', 'Waiting for provider', 'Started', 'Failed', 'Expired', 'Paid']) expect(await screen.findByRole('option', { name: new RegExp(l, 'i') })).toBeTruthy();
+    // 04-UI-UX §2.1: status is "select multiple" → kit MultiSelect = always-visible listbox (no trigger button).
+    const box = screen.getByRole('listbox', { name: /status/i });
+    for (const l of ['Under review', 'Waiting for provider', 'Started', 'Failed', 'Expired', 'Paid']) expect(within(box).getByRole('option', { name: new RegExp(l, 'i') })).toBeTruthy();
+    expect(box.getAttribute('aria-multiselectable')).toBe('true');
+  });
+
+  it('status filter is multi-select: a multi-value status selects every listed option', async () => {
+    const ReviewQueue = await comp();
+    wrap(<ReviewQueue intents={rows as never} permissions={READ} centres={centres} holdReasons={holdReasons} filter={{ status: ['held_for_review', 'pending'], created: ['', ''] }} />);
+    const selected = within(screen.getByRole('listbox', { name: /status/i })).getAllByRole('option').filter((o) => o.getAttribute('aria-selected') === 'true');
+    expect(selected.map((o) => o.textContent).sort()).toEqual(['Under review', 'Waiting for provider']);
   });
 });
 

@@ -355,6 +355,16 @@ describe('P4 resolvePaymentIntent (AC-PG-07.1-07.6)', () => {
       expect(ledger()).toHaveLength(0); expect(settledEvents()).toHaveLength(0); expect(snap(ID(1))).toBe(before); expect(t.h.db.transitions()).toHaveLength(0);
     });
 
+  it.each([['settle', 'gateway_ambiguous'], ['record_exceeding_due', 'exceeds_due']] as const)(
+    'TRD 6.5: %s while the forced gateway check gets NO answer (transient) -> 409 payments.intent_not_verifiable (not gateway_not_available); still held, no ledger, no event, no transition, no access_log row', async (resolution, hold) => {
+      const o = held(1, { hold }); t.script(o, 'code:0');
+      const before = snap(ID(1));
+      const r = await resolve(ID(1), { resolution, reason_code: 'gateway_confirmed_paid' });
+      expect(r.code).toBe('payments.intent_not_verifiable'); expect(r.status).toBe(409);
+      expect(t.row(ID(1)).status).toBe('held_for_review'); expect(snap(ID(1))).toBe(before);
+      expect(ledger()).toHaveLength(0); expect(settledEvents()).toHaveLength(0); expect(t.h.db.transitions(A)).toHaveLength(0); expect(t.access()).toHaveLength(0);
+    });
+
   it('AC-PG-07.4: hold exceeds_due + latest check success + exact amount, "Record anyway" -> recordGatewayPayment with allowExceedsDue true, settled; plain "settle" of the same intent is refused (not_verifiable)', async () => {
     const o = held(1, { hold: 'exceeds_due' }); paid(o);
     t.h.setOrder({ id: o, tenantId: A, dueAmountPaisa: 100000, gatewayStatus: 'COMPLETE' });                // the due fell after the intent was created

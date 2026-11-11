@@ -19,5 +19,35 @@ export interface PaymentIntentDetail extends PaymentIntentSummary {
 }
 
 export interface CodedValue { code: string; display: string; requires_text?: boolean; is_active?: boolean }
-export interface IntentCodes { resolution_reasons: readonly CodedValue[]; cancel_reasons: readonly CodedValue[] }
+export interface IntentCodes { resolution_reasons: readonly CodedValue[]; cancel_reasons: readonly CodedValue[]; refund_reasons?: readonly CodedValue[] }
 export interface PaymentCentre { id: string; name: string }
+
+// PG-T19 (02-TRD §4): refunds, reconciliation, static-QR worksheet, merchant settings. Only the fields below are ever rendered.
+export interface PersonRef { membership_id: string; display_name: string }
+export interface RefundDto {
+  id: string; intent_id: string; order_id?: string; gateway: string; mode: string; status: string; amount: PaymentMoney; reason_code?: string;
+  requested_by?: PersonRef; requested_at: string; approved_by?: PersonRef; approved_at?: string; held_reason?: string; version: number;
+}
+export interface RefundCodes { refund_reject_reasons: readonly CodedValue[]; refund_fail_reasons: readonly CodedValue[]; refund_hold_reasons: readonly CodedValue[] }
+
+export interface ReconciliationRunDto {
+  id: string; business_date: string; trigger: string; status: string; started_at?: string; finished_at?: string;
+  counts?: { checked?: number; ok?: number; findings?: number; critical?: number }; version?: number;
+}
+export interface FindingDto {
+  id: string; kind: string; severity: string; intent_id?: string; our_status?: string; gateway_status_raw?: string; our_amount?: PaymentMoney; gateway_amount?: PaymentMoney;
+  auto_action?: string; status?: string; created_at: string; version: number;
+}
+export interface ReconStats { lastSuccessfulRunAt?: string; openCritical: number; underReview: number }
+export interface ReconCodes { finding_kinds: readonly CodedValue[]; finding_resolutions: readonly CodedValue[] }
+
+export interface StaticQrReconDto {
+  id: string; business_date: string; centre_id?: string; system_entries?: number; system_total: PaymentMoney; statement_total: PaymentMoney; difference: PaymentMoney;
+  statement_reference?: string; status: string; reconciled_by?: PersonRef; created_at: string;
+}
+
+export interface MerchantAccountDto {
+  gateway: string; environment: string; is_enabled: boolean; esewa_product_code?: string; khalti_website_url?: string; api_refunds_enabled?: boolean; version?: number;
+  secret?: { is_set: boolean; set_at?: string; fingerprint?: string };
+}
+export interface PaymentSettingsDto { refund_two_person_threshold: PaymentMoney; purchase_order_label: string; reconciliation_enabled: boolean; version: number }

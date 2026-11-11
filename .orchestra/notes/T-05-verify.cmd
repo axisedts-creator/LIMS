@@ -1,0 +1,1 @@
+cd /d "%~dp0..\.." && pnpm --filter @lims/api exec vitest run src/modules/catalog/__tests__/helpers/setsDb.test.ts src/modules/catalog/__tests__/integration/masterSets.service.test.ts src/modules/catalog/__tests__/integration/masterSets.handlers.test.ts

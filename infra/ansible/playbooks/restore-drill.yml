@@ -1,0 +1,581 @@
+---
+# 02-TRD s9.6 / 03-APP-FLOW s4 / AC-13.1..13.3 (04 I3): monthly restore
+# drill, automated. Runs on group `ops` only (07-SEC control 6). LD-45: the
+# hosts behind `ops`/`dr`/`app` come from the active profile's inventory
+# (`full` or `lean`); no host names here. Staging (AC-13.3) runs this same
+# playbook with the staging inventory.
+# Triggers: timer lims-restore-drill (first Saturday 02:00 NPT,
+# TimeoutStartSec=3h) or by hand:
+#   ansible-playbook -i inventories/<env>/hosts.yml playbooks/restore-drill.yml
+#   (-e drill_install_only=true only installs/refreshes the timer).
+# States (03-APP-FLOW s4.1): preparing -> restoring -> verifying ->
+# reporting -> cleaning. A failure in preparing = aborted, later = failed;
+# both run report.sh and then fail the play (never rc 0).
+# PHI exists only on the scratch LV of LUKS VG vg_ops; it is blkdiscarded and
+# removed in `always` (07-SEC control 2). The repo2 pass comes from SOPS
+# (drill scope), lives on tmpfs only and never on a command line (AC-12.3).
+- name: Restore drill (02-TRD s9.6)
+  hosts: ops
+  become: true
+  gather_facts: true
+  any_errors_fatal: true
+  vars:
+    drill_vg: vg_ops
+    drill_lv: lv_drill
+    drill_lv_dev: "/dev/{{ drill_vg }}/{{ drill_lv }}"
+    # [CONV] must exceed the restored DB size
+    drill_lv_size: "{{ drill_lv_size_gb | default(200) }}G"
+    drill_mnt: /srv/lims/drill
+    drill_lock: /var/lock/lims-drill
+    drill_secret_dir: /run/lims/secrets/drill
+    drill_lib: /usr/local/lib/lims/drill
+    drill_textfile_dir: /var/lib/node_exporter/textfile
+    drill_repo_dir: >-
+      {{ drill_repo_checkout | default('/srv/lims/drill-repo') }}
+    drill_skip_pr: false
+    drill_container: drill-pg
+    # [CONV] dedicated bridge for drill-pg; egress only to dr wg_ip:2222
+    # (02-TRD s9.6 step 1), enforced in DOCKER-USER
+    drill_net: drill-net
+    drill_net_subnet: "{{ drill_net_subnet_cidr | default('172.31.250.0/24') }}"
+    # UNVERIFIED uid of postgres in the image; same value as role pgbackrest
+    drill_pg_uid: "{{ pgbackrest_pg_uid | default(101) }}"
+    drill_pg_superuser: supabase_admin  # pg1-user of pgbackrest.conf.j2
+    # config file of the supabase image: UNVERIFIED -> first staging drill
+    drill_pg_config_file: /etc/postgresql/postgresql.conf
+    drill_image: >-
+      registry.lims.internal/lims/postgres-pgbackrest@{{
+      drill_db_image_digest | default('') }}
+    drill_sql_checks:
+      - recovery_ended
+      - audit_recency
+      - tenant_invoices
+      - tenant_audit
+      - amcheck_top20
+    # C0 export-tenant-billing.ts dry run argv; empty = SKIP until C0
+    # publishes its CLI (no flag names invented here)
+    drill_billing_dry_run_argv: []
+    drill_objects_src_root: /srv/lims/storage
+    drill_objects_replica_root: /replica/storage
+    # ssh command prefixes to the `app` / `dr` hosts; empty = local
+    drill_objects_src_ssh: ""
+    drill_objects_replica_ssh: ""
+    drill_ops_note: "{{ playbook_dir }}/../../ci/ops-note.sh"
+    drill_target_offset: "{{ drill_target_offset_min | default(30) }}"
+  tasks:
+    # ------------------------------------------------ install / refresh timer
+    - name: Drill scripts on the host
+      ansible.builtin.copy:
+        src: "{{ playbook_dir }}/../../drill/"
+        dest: "{{ drill_lib }}/"
+        owner: root
+        group: root
+        mode: "0755"
+
+    - name: Drill timer and service units
+      ansible.builtin.copy:
+        src: "{{ playbook_dir }}/../../drill/{{ item }}"
+        dest: "/etc/systemd/system/{{ item }}"
+        owner: root
+        group: root
+        mode: "0644"
+      loop: [lims-restore-drill.service, lims-restore-drill.timer]
+
+    - name: Timer environment (no secrets)
+      ansible.builtin.copy:
+        content: |
+          DRILL_REPO_DIR={{ drill_repo_dir }}
+          LIMS_ENV={{ env }}
+        dest: /etc/lims/restore-drill.env
+        owner: root
+        group: root
+        mode: "0644"
+
+    - name: Enable the monthly timer
+      ansible.builtin.systemd_service:
+        name: lims-restore-drill.timer
+        enabled: true
+        state: started
+        daemon_reload: true
+
+    - name: Stop here when only installing
+      ansible.builtin.meta: end_play
+      when: drill_install_only | default(false) | bool
+
+    # ------------------------------------------------ preparing (guards)
+    - name: Preconditions
+      ansible.builtin.assert:
+        that:
+          - secrets_render_enc_file | default('') | length > 0
+          - groups['dr'] | default([]) | length > 0
+          - pgbackrest_repo2_sftp_host_fingerprint | default('') | length > 0
+          - >-
+            drill_db_image_digest | default('')
+            is match('^sha256:[0-9a-f]{64}$')
+          - drill_target_offset | string is match('^[0-9]+$')
+        fail_msg: >-
+          restore-drill: secrets file, dr group, repo2 fingerprint or
+          image digest missing
+
+    - name: Secrets parent directory is tmpfs (never a disk path)
+      ansible.builtin.command: findmnt -n -o FSTYPE --target /run/lims/secrets
+      register: drill_fstype
+      changed_when: false
+      failed_when: drill_fstype.stdout | trim != 'tmpfs'
+
+    - name: Volume group exists (LUKS, role luks_volumes)
+      ansible.builtin.command: "vgs {{ drill_vg }}"
+      changed_when: false
+
+    - name: Look for the drill lock
+      ansible.builtin.stat:
+        path: "{{ drill_lock }}"
+      register: drill_lock_stat
+
+    - name: Refuse when another drill holds the lock (03-APP-FLOW s4.1)
+      ansible.builtin.fail:
+        msg: >-
+          {{ drill_lock }} exists: another drill is running, or a stale
+          lock after a crash (check, then remove it by hand)
+      when: drill_lock_stat.stat.exists
+
+    - name: Take the lock (deploy pre-flight blocks on it, 03-APP-FLOW s4.3)
+      ansible.builtin.copy:
+        content: "restore-drill {{ ansible_date_time.iso8601 }}\n"
+        dest: "{{ drill_lock }}"
+        mode: "0644"
+
+    - name: ops_audit - drill start
+      ansible.builtin.command:
+        argv:
+          - "{{ drill_ops_note }}"
+          - >-
+            restore-drill start env={{ env }}
+            offset={{ drill_target_offset }}min
+      delegate_to: localhost
+      become: false
+      changed_when: false
+
+    - name: Drill
+      block:
+        - name: Phase preparing
+          ansible.builtin.set_fact:
+            drill_phase: preparing
+
+        - name: Create the scratch LV on the LUKS VG
+          ansible.builtin.command: >-
+            lvcreate -y -n {{ drill_lv }} -L {{ drill_lv_size }} {{ drill_vg }}
+          changed_when: true
+
+        - name: Filesystem on the scratch LV
+          ansible.builtin.command: "mkfs.ext4 -q {{ drill_lv_dev }}"
+          changed_when: true
+
+        - name: Mount point
+          ansible.builtin.file:
+            path: "{{ drill_mnt }}"
+            state: directory
+            mode: "0700"
+
+        - name: Mount the scratch LV
+          ansible.builtin.command: >-
+            mount -o nodev,nosuid {{ drill_lv_dev }} {{ drill_mnt }}
+          changed_when: true
+
+        - name: Data and config directories on the scratch LV
+          ansible.builtin.file:
+            path: "{{ item }}"
+            state: directory
+            owner: "{{ drill_pg_uid }}"
+            mode: "0700"
+          loop: ["{{ drill_mnt }}/pgdata", "{{ drill_mnt }}/conf"]
+
+        - name: Decrypt repo2 pass and SFTP key on the controller (SOPS)
+          ansible.builtin.command:
+            argv:
+              - sops
+              - -d
+              - --extract
+              - '["{{ item }}"]'
+              - "{{ secrets_render_enc_file }}"
+          loop: [pgbackrest_repo2_cipher_pass, repo2_sftp_private_key]
+          delegate_to: localhost
+          become: false
+          changed_when: false
+          register: drill_secrets
+          no_log: true
+
+        - name: ops_audit - drill read 2 repo2 credentials (who/what/when)
+          ansible.builtin.command:
+            argv:
+              - "{{ drill_ops_note }}"
+              - restore-drill decrypted 2 repo2 credentials (drill scope)
+          delegate_to: localhost
+          become: false
+          changed_when: false
+
+        - name: Secret dir on tmpfs
+          ansible.builtin.file:
+            path: "{{ drill_secret_dir }}"
+            state: directory
+            owner: "{{ drill_pg_uid }}"
+            mode: "0700"
+
+        - name: Cipher include and SFTP key on tmpfs
+          ansible.builtin.copy:
+            content: "{{ item.content }}"
+            dest: "{{ drill_secret_dir }}/{{ item.file }}"
+            owner: "{{ drill_pg_uid }}"
+            mode: "0600"
+          loop:
+            - file: cipher.conf
+              content: >-
+                [global]{{ '\n' }}repo2-cipher-pass={{
+                drill_secrets.results[0].stdout }}{{ '\n' }}
+            - file: sftp_key
+              content: "{{ drill_secrets.results[1].stdout }}\n"
+          no_log: true
+
+        # same repo2 settings as infra/database/pgbackrest/pgbackrest.conf.j2
+        - name: pgbackrest.conf for the drill (repo2 only)
+          ansible.builtin.copy:
+            content: |
+              [global]
+              repo2-type=sftp
+              repo2-sftp-host={{ hostvars[groups['dr'][0]].wg_ip }}
+              repo2-sftp-host-port=2222
+              repo2-sftp-host-user=pgbackrest
+              repo2-sftp-private-key-file=/run/secrets/pgbackrest/sftp_key
+              repo2-sftp-host-key-check-type=fingerprint
+              repo2-sftp-host-fingerprint={{
+                pgbackrest_repo2_sftp_host_fingerprint }}
+              repo2-path=/repo
+              repo2-cipher-type=aes-256-cbc
+              log-level-console=warn
+              log-level-file=off
+              [lims]
+              pg1-path=/var/lib/postgresql/data
+              pg1-socket-path=/var/run/postgresql
+              pg1-user={{ drill_pg_superuser }}
+            dest: "{{ drill_mnt }}/conf/pgbackrest.conf"
+            owner: "{{ drill_pg_uid }}"
+            mode: "0600"
+          no_log: true
+
+        # 02-TRD s9.6 step 1: "no network except wg0 to dr-1:2222". The
+        # container holds PHI, so the default bridge (open egress) is not used.
+        - name: Dedicated network for drill-pg
+          ansible.builtin.command:
+            argv:
+              - docker
+              - network
+              - create
+              - --driver=bridge
+              - --subnet={{ drill_net_subnet }}
+              - "{{ drill_net }}"
+          changed_when: true
+
+        # -I puts each rule first: ACCEPT (inserted last) precedes DROP.
+        - name: DOCKER-USER - drop all other egress from the drill network
+          ansible.builtin.command:
+            argv: [iptables, -I, DOCKER-USER, -s, "{{ drill_net_subnet }}",
+                   -j, DROP]
+          changed_when: true
+
+        - name: DOCKER-USER - allow drill network to dr SFTP only
+          ansible.builtin.command:
+            argv: [iptables, -I, DOCKER-USER, -s, "{{ drill_net_subnet }}",
+                   -d, "{{ hostvars[groups['dr'][0]].wg_ip }}", -o, wg0,
+                   -p, tcp, --dport=2222, -j, ACCEPT]
+          changed_when: true
+
+        # 03-APP-FLOW s4.3: no published port, no host network; Postgres
+        # binds 127.0.0.1 in the container with archive_mode=off and
+        # max_wal_senders=0 (restore.sh).
+        - name: Start scratch container drill-pg (idle; restore runs inside)
+          ansible.builtin.command:
+            argv:
+              - docker
+              - run
+              - -d
+              - --name={{ drill_container }}
+              - --network={{ drill_net }}
+              - --user=postgres
+              - --entrypoint=sleep
+              - --volume={{ drill_mnt }}/pgdata:/var/lib/postgresql/data
+              - --volume={{ drill_mnt }}/conf:/etc/pgbackrest:ro
+              - --volume={{ drill_secret_dir }}:/run/secrets/pgbackrest:ro
+              - --volume={{ drill_lib }}:/drill:ro
+              - --env=PGBACKREST_CONFIG=/etc/pgbackrest/pgbackrest.conf
+              - --env=PGBACKREST_CONFIG_INCLUDE_PATH=/run/secrets/pgbackrest
+              - "{{ drill_image }}"
+              - infinity
+          changed_when: true
+
+        - name: Phase restoring
+          ansible.builtin.set_fact:
+            drill_phase: restoring
+
+        - name: PITR repo2 to now - offset, start, measure RTO (restore.sh)
+          ansible.builtin.command:
+            argv:
+              - docker
+              - exec
+              - --env=PGDATA=/var/lib/postgresql/data
+              - --env=DRILL_TARGET_OFFSET_MIN={{ drill_target_offset }}
+              - --env=DRILL_ACCEPT_TIMEOUT_S=7200
+              - --env=DRILL_PG_CONFIG_FILE={{ drill_pg_config_file }}
+              - "{{ drill_container }}"
+              - bash
+              - /drill/restore.sh
+          register: drill_restore
+          changed_when: true
+
+        - name: Wait until recovery has ended (target-action=promote)
+          ansible.builtin.command:
+            argv:
+              - docker
+              - exec
+              - "{{ drill_container }}"
+              - psql
+              - -X
+              - -At
+              - -h
+              - /var/run/postgresql
+              - -U
+              - "{{ drill_pg_superuser }}"
+              - -d
+              - "{{ app_db_name }}"
+              - -c
+              - SELECT pg_is_in_recovery()
+          register: drill_recovery
+          until: drill_recovery.stdout | trim == 'f'
+          retries: 360
+          delay: 10
+          changed_when: false
+
+        # stdout_lines + select/replace: no regex backreferences in Jinja
+        - name: Phase verifying
+          ansible.builtin.set_fact:
+            drill_phase: verifying
+            drill_target_time: >-
+              {{ drill_restore.stdout_lines | select('match', 'target_time=')
+              | first | replace('target_time=', '') }}
+            drill_rto: >-
+              {{ drill_restore.stdout_lines | select('match', 'rto_seconds=')
+              | first | replace('rto_seconds=', '') }}
+
+        - name: Checks on the restored copy (verify.sql; failures counted)
+          ansible.builtin.command:
+            argv:
+              - docker
+              - exec
+              - "{{ drill_container }}"
+              - psql
+              - -X
+              - -At
+              - -h
+              - /var/run/postgresql
+              - -U
+              - "{{ drill_pg_superuser }}"
+              - -d
+              - "{{ app_db_name }}"
+              - -v
+              - "target_time={{ drill_target_time }}"
+              - -f
+              - /drill/verify.sql
+          register: drill_verify
+          changed_when: false
+          failed_when: false
+
+        - name: Billing export dry run (C0 export-tenant-billing.ts, 04 D16)
+          ansible.builtin.command:
+            argv: "{{ drill_billing_dry_run_argv }}"
+          register: drill_billing
+          changed_when: false
+          failed_when: false
+          when: drill_billing_dry_run_argv | length > 0
+
+        - name: Objects - 200 random files, sha256 at source and replica
+          ansible.builtin.command:
+            argv: ["{{ drill_lib }}/objects_sample.sh"]
+          environment:
+            SRC_ROOT: "{{ drill_objects_src_root }}"
+            REPLICA_ROOT: "{{ drill_objects_replica_root }}"
+            SRC_SSH: "{{ drill_objects_src_ssh }}"
+            REPLICA_SSH: "{{ drill_objects_replica_ssh }}"
+            OBJ_SAMPLE_N: "200"
+          register: drill_objects
+          changed_when: false
+          failed_when: false
+
+        # a check line that is missing (SQL error) counts as FAIL
+        - name: Count checks
+          ansible.builtin.set_fact:
+            drill_phase: reporting
+            drill_check_states: >-
+              {% set lines = drill_verify.stdout_lines
+              + drill_verify.stderr_lines %}{% set r = {} %}{%
+              for c in drill_sql_checks %}{% set m = lines
+              | select('search', '^(NOTICE: +)?' ~ c ~ ' (PASS|FAIL|SKIP)( |$)')
+              | list %}{% set _ = r.update({c: ('FAIL' if not m
+              else ('PASS' if ' PASS' in m[0]
+              else ('SKIP' if ' SKIP' in m[0] else 'FAIL')))}) %}{%
+              endfor %}{% set _ = r.update({'billing_export_dry_run': ('SKIP'
+              if drill_billing is skipped
+              else ('PASS' if drill_billing.rc == 0 else 'FAIL'))}) %}{%
+              set _ = r.update({'objects_sample':
+              ('PASS' if drill_objects.rc == 0 else 'FAIL')}) %}{{ r }}
+            drill_lsn: >-
+              {{ drill_verify.stdout_lines | select('match', 'verified_lsn ')
+              | first | default('') | replace('verified_lsn ', '') }}
+
+        - name: Checks summary (no row contents)
+          ansible.builtin.set_fact:
+            drill_checks_total: "{{ drill_check_states | length }}"
+            drill_checks_failed: >-
+              {{ drill_check_states | dict2items
+              | selectattr('value', 'eq', 'FAIL') | list | length }}
+
+      rescue:
+        - name: Report the failed/aborted drill (report.sh; no success time)
+          ansible.builtin.command:
+            argv: ["{{ drill_lib }}/report.sh"]
+          environment:
+            DRILL_STATE: >-
+              {{ 'aborted'
+              if (drill_phase | default('preparing')) == 'preparing'
+              else 'failed' }}
+            DRILL_TARGET_TIME: "{{ drill_target_time | default('') }}"
+            TEXTFILE_DIR: "{{ drill_textfile_dir }}"
+            DRILL_LOG_DIR: "{{ drill_repo_dir }}/infra/runbooks/drill-log"
+            DRILL_REPO_DIR: "{{ drill_repo_dir }}"
+            DRILL_SKIP_PR: "{{ '1' if drill_skip_pr | bool else '0' }}"
+          changed_when: true
+          failed_when: false
+
+        - name: ops_audit - drill failed
+          ansible.builtin.command:
+            argv:
+              - "{{ drill_ops_note }}"
+              - >-
+                restore-drill FAILED in phase
+                {{ drill_phase | default('preparing') }}
+          delegate_to: localhost
+          become: false
+          changed_when: false
+          failed_when: false
+
+        - name: Fail the play (a failed drill never exits 0)
+          ansible.builtin.fail:
+            msg: >-
+              restore drill failed in phase
+              {{ drill_phase | default('preparing') }}
+              (RestoreDrillFailed pages)
+
+      always:
+        # 02-TRD s9.6 step 6: container and LV destroyed, blkdiscard before
+        # lvremove; cleanup errors are never swallowed.
+        - name: Remove scratch container drill-pg
+          ansible.builtin.command: "docker rm -f {{ drill_container }}"
+          register: drill_rm
+          changed_when: drill_rm.rc == 0
+          failed_when: >-
+            drill_rm.rc != 0 and 'No such container' not in drill_rm.stderr
+
+        - name: DOCKER-USER - delete the drill network egress rules
+          ansible.builtin.command:
+            argv: "{{ ['iptables', '-D', 'DOCKER-USER'] + item }}"
+          loop:
+            - [-s, "{{ drill_net_subnet }}",
+               -d, "{{ hostvars[groups['dr'][0]].wg_ip }}", -o, wg0,
+               -p, tcp, --dport=2222, -j, ACCEPT]
+            - [-s, "{{ drill_net_subnet }}", -j, DROP]
+          register: drill_fw_del
+          changed_when: drill_fw_del.rc == 0
+          failed_when: >-
+            drill_fw_del.rc != 0
+            and 'does a matching rule exist' not in drill_fw_del.stderr
+
+        - name: Remove the drill network
+          ansible.builtin.command: "docker network rm {{ drill_net }}"
+          register: drill_net_rm
+          changed_when: drill_net_rm.rc == 0
+          failed_when: >-
+            drill_net_rm.rc != 0 and 'not found' not in drill_net_rm.stderr
+
+        - name: Unmount the scratch LV
+          ansible.builtin.command: "umount {{ drill_mnt }}"
+          register: drill_umount
+          changed_when: drill_umount.rc == 0
+          failed_when: >-
+            drill_umount.rc != 0 and 'not mounted' not in drill_umount.stderr
+
+        - name: Discard the scratch LV blocks (PHI)
+          ansible.builtin.command:
+            cmd: "blkdiscard {{ drill_lv_dev }}"
+            removes: "{{ drill_lv_dev }}"
+
+        - name: Remove the scratch LV
+          ansible.builtin.command:
+            cmd: "lvremove -y {{ drill_lv_dev }}"
+            removes: "{{ drill_lv_dev }}"
+
+        - name: Remove the cipher pass and SFTP key from tmpfs
+          ansible.builtin.file:
+            path: "{{ drill_secret_dir }}"
+            state: absent
+          no_log: true
+
+        - name: Release the lock
+          ansible.builtin.file:
+            path: /var/lock/lims-drill  # = drill_lock (literal, greppable)
+            state: absent
+
+    # 03-APP-FLOW s4.1: cleaning -> succeeded only once the LV is discarded
+    # and removed; any_errors_fatal stops the play before this if `always`
+    # failed, so the success timestamp is never written with PHI left behind.
+    - name: Report - metrics, Markdown drill log, PR (report.sh)
+      ansible.builtin.command:
+        argv: ["{{ drill_lib }}/report.sh"]
+      environment:
+        DRILL_STATE: >-
+          {{ 'succeeded' if drill_checks_failed | int == 0
+          else 'succeeded_with_failures' }}
+        DRILL_RTO_SECONDS: "{{ drill_rto }}"
+        DRILL_TARGET_TIME: "{{ drill_target_time }}"
+        DRILL_VERIFIED_LSN: "{{ drill_lsn }}"
+        DRILL_CHECKS_TOTAL: "{{ drill_checks_total }}"
+        DRILL_CHECKS_FAILED: "{{ drill_checks_failed }}"
+        DRILL_OBJECTS_SAMPLED: >-
+          {{ drill_objects.stdout_lines
+          | select('match', 'objects_sampled=') | first
+          | default('') | replace('objects_sampled=', '') }}
+        DRILL_OBJECTS_MISMATCHED: >-
+          {{ drill_objects.stdout_lines
+          | select('match', 'objects_mismatched=') | first
+          | default('') | replace('objects_mismatched=', '') }}
+        TEXTFILE_DIR: "{{ drill_textfile_dir }}"
+        DRILL_LOG_DIR: "{{ drill_repo_dir }}/infra/runbooks/drill-log"
+        DRILL_REPO_DIR: "{{ drill_repo_dir }}"
+        DRILL_SKIP_PR: "{{ '1' if drill_skip_pr | bool else '0' }}"
+      register: drill_report
+      changed_when: true
+      failed_when: drill_report.rc not in [0, 3]
+
+    - name: ops_audit - drill end
+      ansible.builtin.command:
+        argv:
+          - "{{ drill_ops_note }}"
+          - >-
+            restore-drill end
+            failed_checks={{ drill_checks_failed }}/{{ drill_checks_total }}
+      delegate_to: localhost
+      become: false
+      changed_when: false
+
+    - name: Report PR could not be opened (metrics and report are written)
+      ansible.builtin.fail:
+        msg: >-
+          report.sh could not open the drill-log PR; push the report by hand
+      when: drill_report.rc == 3

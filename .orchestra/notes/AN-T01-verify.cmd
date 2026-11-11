@@ -1,0 +1,1 @@
+cd /d "%~dp0..\.." && pnpm --dir services/api exec vitest run src/modules/analytics/__tests__/boot.test.ts && pnpm exec vitest run --root services/worker src/jobs/analytics/__tests__ && cd /d "%~dp0..\..\apps\web" && node --test src/features/analytics/__tests__/nav.manifest.test.ts

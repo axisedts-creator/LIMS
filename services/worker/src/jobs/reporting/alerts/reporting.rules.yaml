@@ -1,0 +1,56 @@
+# C6 reporting alert rules for C1 to wire (02-TRD §12 "Alert rules for C1", 08 A13 P-14, CR-C6-013 item 6). expr / for are verbatim from that table;
+# severity + route are [CONV] (route = receiver name for C1 to map); C1 adds team / runbook_url. A new alert needs a TRD row first.
+# Gauges are set by cron reporting.sweep_stuck_renders / reporting.sweep_held_releases and by reporting.send_delivery (C6-T33).
+groups:
+  - name: reporting
+    rules:
+      - alert: ReportingRenderFailureRate
+        expr: 'sum(increase(lims_reporting_render_failures_total[15m])) / clamp_min(sum(increase(lims_reporting_versions_total[15m])), 1) > 0.05'
+        for: 15m
+        labels: { severity: warning, route: lab-on-call }
+        annotations: { summary: "More than 5% of report versions failed to render in the last 15 minutes" }
+      - alert: ReportingVersionStuckRendering
+        expr: 'lims_reporting_versions_rendering_oldest_seconds > 900'
+        for: 5m
+        labels: { severity: critical, route: provider-on-call }
+        annotations: { summary: "A report version has been rendering for over 15 minutes" }
+      - alert: ReportingHeldVersionsOverSevenDays
+        expr: 'lims_reporting_held_oldest_seconds > 604800'
+        for: 1h
+        labels: { severity: info, route: tenant-admin }
+        annotations: { summary: "A rendered report version has been held for over 7 days" }
+      - alert: ReportingDeliveryFailureRate
+        expr: 'sum by (channel) (increase(lims_reporting_deliveries_total{status="failed"}[1h])) / clamp_min(sum by (channel) (increase(lims_reporting_deliveries_total[1h])), 1) > 0.2'
+        for: 1h
+        labels: { severity: warning, route: provider-on-call }
+        annotations: { summary: "More than 20% of deliveries failed on channel {{ $labels.channel }} in the last hour" }
+      - alert: ReportingTransportCircuitOpen
+        expr: 'lims_reporting_transport_circuit_open == 1'
+        for: 1m
+        labels: { severity: warning, route: provider-on-call }
+        annotations: { summary: "A delivery transport circuit breaker is open" }
+      - alert: ReportingOtpVerifyBruteForce
+        expr: 'sum by (tenant_id) (increase(lims_reporting_otp_verify_failures_total[1h])) > 50'
+        for: 0m
+        labels: { severity: warning, route: security }
+        annotations: { summary: "More than 50 failed portal OTP verifications in an hour (tenant {{ $labels.tenant_id }})" }
+      - alert: ReportingQrEnumeration
+        expr: 'sum(increase(lims_reporting_qr_verify_total{outcome="not_found"}[1h])) > 500'
+        for: 0m
+        labels: { severity: warning, route: security }
+        annotations: { summary: "More than 500 QR verifications for unknown tokens in an hour" }
+      - alert: ReportingRendererBlockedRequest
+        expr: 'increase(lims_renderer_blocked_requests_total[5m]) > 0'
+        for: 0m
+        labels: { severity: critical, route: security }
+        annotations: { summary: "The renderer blocked a request (template or data injection attempt)" }
+      - alert: ReportingSandboxRejectionSpike
+        expr: 'sum(increase(lims_reporting_sandbox_rejections_total[1h])) > 20'
+        for: 0m
+        labels: { severity: warning, route: provider-on-call }
+        annotations: { summary: "More than 20 uploaded files were rejected by the sandbox in an hour" }
+      - alert: ReportingRendererSandboxDown
+        expr: 'lims_ops_container_health{service=~"renderer|pdf-sandbox"} == 0'
+        for: 2m
+        labels: { severity: critical, route: provider-on-call }
+        annotations: { summary: "The renderer or the PDF sandbox container is unhealthy" }

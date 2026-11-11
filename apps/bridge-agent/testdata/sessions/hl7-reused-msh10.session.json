@@ -1,0 +1,9 @@
+{"name": "hl7-reused-msh10", "protocol": "hl7v2", "transport": "pipe", "instrument_profile": "hl7_generic_v25", "options": {},
+ "steps": [
+  {"from": "instrument", "bytes": "<VT>MSH|^~\\&|SIM-ANALYSER|SIM-LAB|LIMS|SIM-SITE|20261111||ORU^R01|MSG0001|P|2.5<CR>OBR|1||E2600000042|GLU^Glucose<CR>OBX|1|NM|GLU^Glucose||5.4|mmol/L|3.9-5.6|N|||F<CR><FS><CR>"},
+  {"expect": "agent", "bytes": "<VT>MSH|^~\\&|LIMS||SIM-ANALYSER|SIM-LAB|{now}||ACK|ACK0001|P|2.5<CR>MSA|AA|MSG0001<CR><FS><CR>", "within_ms": 200},
+  {"expect_queue": {"items": 1, "kind": "data", "raw_sha256": "99b871cc95d6bdc5bad5217dac7f4868a928c4d7d7fd995678903dafffd126c1"}},
+  {"from": "instrument", "bytes": "<VT>MSH|^~\\&|SIM-ANALYSER|SIM-LAB|LIMS|SIM-SITE|20261111||ORU^R01|MSG0001|P|2.5<CR>OBR|1||E2600000042|GLU^Glucose<CR>OBX|1|NM|GLU^Glucose||6.2|mmol/L|3.9-5.6|N|||F<CR><FS><CR>"},
+  {"expect": "agent", "bytes": "<VT>MSH|^~\\&|LIMS||SIM-ANALYSER|SIM-LAB|{now}||ACK|ACK0002|P|2.5<CR>MSA|AA|MSG0001<CR><FS><CR>", "within_ms": 200},
+  {"expect_queue": {"items": 2, "kind": "data", "raw_sha256": "1a3750e0055f118f1e86e6380d31fcac25b72b12dd2f5a09468c192e936ea254", "note": "same MSH-10, different bytes: both stored (D-12), the server keys the second by msh10_reused"}}
+ ]}

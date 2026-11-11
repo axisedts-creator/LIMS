@@ -1,0 +1,7 @@
+# AG-T17 impl
+Files: `internal/simulator/{session,run,duplex}.go` (runner), `cmd/simulator/main.go` (`-sessions <dir>`), `testdata/sessions/*.session.json` (19, generated once by an independent Python script; hashes + checksums not computed by the code under test; single-glucose hash = TRD 5.2.6 gold).
+Runner: real astm Receiver+Sender, mllp.Serve, filedrop.Watcher, hostquery.Relay (server stub); fake clock from 2026-11-11T08:00Z; scratch queue (identity KeyProtector, no DPAPI in CI).
+[CONV] extra step shapes (spec leaves open): `outbound:[records]`, `host_query:{reply:[msg]}`, `file:{write|append,text}`, `note`; `{now}` in an expect = fake clock YYYYMMDDHHMMSS; protocol values astm|hl7v2|file_drop (queue enum); strict JSON (unknown field = error).
+[CONV] expect_queue: items>1 + raw_sha256 = at least one item has it; ASTM sender/receiver glue (contention: ENQ is its own step) lives in run.go.
+Result: simulator + cmd/simulator tests green; `simulator -sessions testdata/sessions` 19/19 PASS; full suite: only svc (TestStatusFileACLAppliedNoUsers, Git-Bash whoami env, known) and one update launcher timing flake (passes alone) fail, neither touches this task.
+Review round: `leaves()` fixed by tester; workaround notes removed. filedrop-unstable-file note reworded (real `items:0` step satisfies check); astm-nak-to-enq-retry-10s keeps 9999+1 not-early check and adds second NAK + `{"wait_ms":10000}` + ENQ. Tests green.

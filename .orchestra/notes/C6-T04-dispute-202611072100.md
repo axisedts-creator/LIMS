@@ -1,0 +1,5 @@
+# C6-T04 dispute (writer)
+Test: consumers.test.ts:323 "frontdesk.order.cancelled.v1 › sets every report of the order to cancelled …" expects the untouched released version `toMatchObject({ status: 'released', discard_reason: null })`.
+Why wrong: the `version()` helper (consumers.test.ts:311) seeds `db.store['reporting.report_versions']` directly, which bypasses makeDb's DDL defaults, so `discard_reason` is `undefined` on that row (in Postgres it would be NULL). The consumer never writes the released row (its UPDATE is `status IN ('rendering','rendered','render_failed')`), so no implementation can make it `null` except by writing a released version — which 02-TRD §8.2 forbids ("released versions untouched").
+Fix (test side): add `discard_reason: null` (and `discarded_at: null`) to `version()`, or seed via `seededShell({ 'reporting.report_versions': [...] })` so the defaults apply.
+State: every other test passes (90/91, incl. core wiring 13/13, fake 4/4, manifest 4/4). Implementation left in the working tree (uncommitted); no test edited or weakened.

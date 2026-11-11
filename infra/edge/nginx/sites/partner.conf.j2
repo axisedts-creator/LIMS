@@ -1,0 +1,26 @@
+# partner origin (02-TRD s6.1, Phase 2): rendered only with partner_enabled.
+# T-33 / LD-45: no host names here (origins.partner only; the key is untouched while the flag is off).
+# realtime_* never appears in any site: /realtime/v1/ is 404 via reserved-deny.conf (REQ-SEC-036, 02-TRD s6.3).
+{% if partner_enabled %}
+server {
+    server_name {{ origins.partner }};
+    ssl_certificate     /etc/nginx/certs/{{ origins.partner }}/fullchain.pem;
+    ssl_certificate_key /etc/nginx/certs/{{ origins.partner }}/privkey.pem;
+    include /etc/nginx/snippets/server.conf;
+    client_max_body_size 16m;                # [CONV] same upload cap as staff_web
+
+    include /etc/nginx/snippets/reserved-deny.conf;
+
+    # Partner-BFF login/recovery routes (C13 src/app/(auth)/auth/**; AC-04.1; same shape as staff_web).
+    location ~ ^/auth/(login|mfa|mfa/enrol|forgot|confirm|set-password)$ {
+        limit_req zone=login burst=20 nodelay;
+        limit_req zone=perip burst=200 nodelay;  # TRD s6.5 "every server": location limit_req replaces the server one
+        set $retry_after 60;
+        proxy_pass http://partner:3000;
+    }
+
+    location / {
+        proxy_pass http://partner:3000;
+    }
+}
+{% endif %}

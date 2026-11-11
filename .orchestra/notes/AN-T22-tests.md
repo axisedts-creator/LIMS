@@ -1,0 +1,8 @@
+# AN-T22 tests (tester)
+- `services/api/src/modules/analytics/__tests__/ops/observability.test.ts` - rule file (exactly 5 rules, expr/for verbatim from TRD §13, in step with C1's imported copy) + 9 `lims_analytics_*` metrics in core `createMetrics()` (type, exact labels, no id labels).
+- `services/worker/src/jobs/analytics/__tests__/observability.test.ts` - refresh_tenant emits duration histogram / failures counter / `analytics_refresh_run|failed` logs (SQLSTATE, never message); self_check log; PHI-scan (field whitelist per TRD §13 event, email/phone/name/URL regexes, static scan: every logged `event:` key is a TRD §13 key).
+- Run: `.orchestra\notes\AN-T22-verify.cmd` (API package vitest + worker vitest `--root services/worker`).
+- Now failing (right reason): rule file missing (ENOENT), 9 metrics not in DEFS, refresh emits no metric/log, `export_build_failed` is not a TRD event key (`analytics_export_failed`).
+- SEAMS: "metrics in services/tasks" does not exist; metrics go in `services/api/src/core/observability/metrics.ts` DEFS. LD-88: tester added the 9 names to `core/observability/__tests__/metrics.test.ts` EXPECTED (+ `_seconds` rule exempts `lims_analytics_export_rows`, a row-count histogram); verify.cmd now runs that file too. It fails 4/18 until writer adds the 9 DEFS. C8 rule file need not carry severity/team (C1 adds them); if present severity must match.
+- Not covered: `analytics_export_*` / `analytics_schedule_dispatched` dynamic log scan (only statically by event key); `family_stale` / `dirty_partitions` gauge emission (no producer is specified in TRD §9 - implementer to state where set).
+- `no-commission.sh` already proven by AN-T10 tests (`__tests__/ci/no-commission.test.ts`).

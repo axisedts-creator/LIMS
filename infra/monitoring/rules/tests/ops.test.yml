@@ -1,0 +1,160 @@
+# T-19 (tester, LD-39): promtool tests for rules/ops.rules.yml. Synthetic series only.
+# LD-45: TargetDown must page for the lean host prod-1 as well as the full-profile data-1/app-1
+# (site A runs prod-1 in `lean`), and only warn for site-B hosts (dr-1, ops-1, backup-1).
+# CONTRACT (spec silent): MetricCardinalityHigh = warn; recording rule lims_ops_series_per_metric
+# {metric} = series count per metric name (02-TRD s11.2 item 2, threshold > 5000).
+rule_files:
+  - ../ops.rules.yml
+evaluation_interval: 1m
+tests:
+  - interval: 1m
+    name: Watchdog always fires (dead man's switch)
+    input_series:
+      - series: 'up{job="node", host="ops-1", instance="10.79.0.14:9100"}'
+        values: "1x10"
+    alert_rule_test:
+      - alertname: Watchdog
+        eval_time: 1m
+        exp_alerts:
+          - exp_labels:
+              severity: none
+              team: ops
+
+  - interval: 1m
+    name: data-1 down -> pending before 2m, page at 2m
+    input_series:
+      - series: 'up{job="node", host="data-1", instance="10.79.0.11:9100"}'
+        values: "0x10"
+    alert_rule_test:
+      - alertname: TargetDown
+        eval_time: 1m
+        exp_alerts: []
+      - alertname: TargetDown
+        eval_time: 2m
+        exp_alerts:
+          - exp_labels:
+              severity: page
+              team: ops
+              job: node
+              host: data-1
+              instance: "10.79.0.11:9100"
+
+  - interval: 1m
+    name: app-1 down -> page
+    input_series:
+      - series: 'up{job="api-a", host="app-1", instance="10.79.0.12:9464"}'
+        values: "0x10"
+    alert_rule_test:
+      - alertname: TargetDown
+        eval_time: 3m
+        exp_alerts:
+          - exp_labels:
+              severity: page
+              team: ops
+              job: api-a
+              host: app-1
+              instance: "10.79.0.12:9464"
+
+  - interval: 1m
+    name: lean profile prod-1 (site A, every role) down -> page (LD-45)
+    input_series:
+      - series: 'up{job="postgres_exporter", host="prod-1", instance="10.79.0.11:9187"}'
+        values: "0x10"
+    alert_rule_test:
+      - alertname: TargetDown
+        eval_time: 3m
+        exp_alerts:
+          - exp_labels:
+              severity: page
+              team: ops
+              job: postgres_exporter
+              host: prod-1
+              instance: "10.79.0.11:9187"
+
+  - interval: 1m
+    name: site-B hosts down -> warn only (ops-1, dr-1, lean backup-1)
+    input_series:
+      - series: 'up{job="node", host="ops-1", instance="10.79.0.14:9100"}'
+        values: "0x10"
+      - series: 'up{job="node", host="dr-1", instance="10.79.0.13:9100"}'
+        values: "0x10"
+      - series: 'up{job="node", host="backup-1", instance="10.79.0.15:9100"}'
+        values: "0x10"
+    alert_rule_test:
+      - alertname: TargetDown
+        eval_time: 3m
+        exp_alerts:
+          - exp_labels: {severity: warn, team: ops, job: node, host: backup-1, instance: "10.79.0.15:9100"}
+          - exp_labels: {severity: warn, team: ops, job: node, host: dr-1, instance: "10.79.0.13:9100"}
+          - exp_labels: {severity: warn, team: ops, job: node, host: ops-1, instance: "10.79.0.14:9100"}
+
+  - interval: 1m
+    name: all targets up -> TargetDown not firing
+    input_series:
+      - series: 'up{job="node", host="data-1", instance="10.79.0.11:9100"}'
+        values: "1x10"
+      - series: 'up{job="node", host="prod-1", instance="10.79.0.11:9100"}'
+        values: "1x10"
+    alert_rule_test:
+      - alertname: TargetDown
+        eval_time: 5m
+        exp_alerts: []
+
+  - interval: 1m
+    name: target flaps back up before 2m -> never fires
+    input_series:
+      - series: 'up{job="node", host="data-1", instance="10.79.0.11:9100"}'
+        values: "0 0 1 1 0 0 1 1 1 1"
+    alert_rule_test:
+      - alertname: TargetDown
+        eval_time: 6m
+        exp_alerts: []
+
+  - interval: 1m
+    name: recording rule lims_ops_series_per_metric counts series per metric name
+    input_series:
+      - series: 'lims_http_requests_total{route="a"}'
+        values: "1x10"
+      - series: 'lims_http_requests_total{route="b"}'
+        values: "1x10"
+      - series: 'lims_http_requests_total{route="c"}'
+        values: "1x10"
+      - series: 'lims_other_total{x="1"}'
+        values: "1x10"
+    promql_expr_test:
+      - expr: lims_ops_series_per_metric{metric="lims_http_requests_total"}
+        eval_time: 3m
+        exp_samples:
+          - labels: 'lims_ops_series_per_metric{metric="lims_http_requests_total"}'
+            value: 3
+      - expr: lims_ops_series_per_metric{metric="lims_other_total"}
+        eval_time: 3m
+        exp_samples:
+          - labels: 'lims_ops_series_per_metric{metric="lims_other_total"}'
+            value: 1
+
+  - interval: 1m
+    name: MetricCardinalityHigh fires above 5000 series for one metric, not at 5000
+    input_series:
+      - series: 'lims_ops_series_per_metric{metric="lims_noisy_total"}'
+        values: "5001x60"
+      - series: 'lims_ops_series_per_metric{metric="lims_edge_total"}'
+        values: "5000x60"
+    alert_rule_test:
+      - alertname: MetricCardinalityHigh
+        eval_time: 30m
+        exp_alerts:
+          - exp_labels:
+              severity: warn
+              team: ops
+              metric: lims_noisy_total
+
+  - interval: 1m
+    name: MetricCardinalityHigh quiet when every metric is small
+    input_series:
+      - series: 'lims_ops_series_per_metric{metric="lims_small_total"}'
+        values: "40x60"
+    alert_rule_test:
+      - alertname: MetricCardinalityHigh
+        eval_time: 30m
+        exp_alerts: []

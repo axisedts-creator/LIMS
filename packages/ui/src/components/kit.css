@@ -183,3 +183,49 @@
 .lims-codeblock-body:focus-visible, .lims-duration:focus-visible, .lims-rte-surface:focus-visible, .lims-chip[tabindex]:focus-visible { outline: 2px solid var(--lims-focus-ring); outline-offset: 2px; }
 .lims-perm { display: flex; flex-wrap: wrap; gap: var(--lims-space-1); align-items: center; }
 .lims-printframe { position: fixed; right: 0; bottom: 0; width: 0; height: 0; border: 0; }
+/* T0D-13 batch 2 */
+.lims-visually-hidden { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); clip-path: inset(50%); white-space: nowrap; border: 0; }
+.lims-scan-ok { border-color: var(--lims-tone-success-fg); transition: border-color var(--lims-motion-duration-fast) var(--lims-motion-easing); }
+.lims-scan-bad { border-color: var(--lims-tone-danger-fg); }
+.lims-date-field { position: relative; }
+.lims-calendar-popover { position: absolute; z-index: 10; margin-top: var(--lims-space-1); }
+.lims-calendar-header { display: flex; justify-content: space-between; gap: var(--lims-space-3); }
+.lims-calendar-title { font-weight: var(--lims-font-weight-medium); margin: 0; }
+.lims-calendar-range { margin: 0; color: var(--lims-neutral-700); }
+.lims-calendar-grid { border-collapse: collapse; }
+.lims-calendar-grid th, .lims-calendar-day { min-width: 2.25rem; min-height: 2.25rem; text-align: center; }
+.lims-calendar-day { cursor: pointer; border-radius: var(--lims-radius-sm); }
+.lims-calendar-day[aria-selected='true'] { background: var(--lims-accent); color: var(--lims-accent-fg); }
+.lims-calendar-day[aria-disabled='true'] { opacity: 0.4; cursor: default; }
+.lims-calendar-day:focus { outline: 2px solid var(--lims-focus-ring); outline-offset: -2px; }
+.lims-date-range .lims-inline { display: flex; flex-wrap: wrap; gap: var(--lims-space-2); }
+.lims-filter-bar { display: flex; flex-wrap: wrap; align-items: flex-end; gap: var(--lims-space-3); }
+.lims-chip-list { display: flex; flex-wrap: wrap; gap: var(--lims-space-1); }
+.lims-data-table .lims-table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+.lims-table-sticky thead th { position: sticky; top: 0; background: var(--lims-neutral-0); }
+.lims-table-compact td, .lims-table-compact th { padding: var(--lims-space-1); }
+.lims-table-regular td, .lims-table-regular th { padding: var(--lims-space-2); }
+.lims-align-end { text-align: end; }
+.lims-align-center { text-align: center; }
+.lims-data-table [role='gridcell']:focus, .lims-data-table [role='rowheader']:focus, .lims-data-table [role='row']:focus { outline: 2px solid var(--lims-focus-ring); outline-offset: -2px; }
+.lims-pager { display: flex; justify-content: flex-end; gap: var(--lims-space-2); margin-top: var(--lims-space-2); }
+@media (max-width: 767px) { .lims-hide-below-md { display: none; } }
+@media (max-width: 1023px) { .lims-hide-below-lg { display: none; } }
+@media (max-width: 1279px) { .lims-hide-below-xl { display: none; } }
+.lims-timeline { list-style: none; padding: 0; display: flex; flex-direction: column; gap: var(--lims-space-2); }
+.lims-timeline-item { border-inline-start: 3px solid var(--lims-neutral-300); padding-inline-start: var(--lims-space-2); }
+.lims-timeline-time { color: var(--lims-neutral-700); }
+.lims-stat { display: flex; flex-direction: column; gap: var(--lims-space-1); padding: var(--lims-space-3); border: 1px solid var(--lims-neutral-200); border-radius: var(--lims-radius-md); color: inherit; text-decoration: none; }
+.lims-stat-value { font-size: var(--lims-font-size-md-size); font-weight: var(--lims-font-weight-medium); font-variant-numeric: tabular-nums; }
+.lims-chart { margin: 0; }
+.lims-chart-title { font-weight: var(--lims-font-weight-medium); }
+.lims-chart-axis { stroke: var(--lims-neutral-300); }
+.lims-chart-band { fill: var(--lims-neutral-100); }
+.lims-chart-tick, .lims-chart-unit { fill: var(--lims-neutral-700); font-size: 12px; }
+.lims-chart-legend { display: flex; flex-wrap: wrap; gap: var(--lims-space-3); list-style: none; padding: 0; }
+.lims-chart-swatch { display: inline-block; width: 12px; height: 12px; background: currentColor; }
+.lims-file-list, .lims-file-problems { list-style: none; padding: 0; }
+.lims-file-item { display: flex; flex-wrap: wrap; gap: var(--lims-space-2); align-items: center; }
+.lims-scan-infected { color: var(--lims-tone-danger-fg); font-weight: var(--lims-font-weight-medium); }
+.lims-shortcuts-row { display: flex; gap: var(--lims-space-3); }
+.lims-shortcuts dd { margin: 0; }

@@ -1,0 +1,72 @@
+---
+# T-30 (02-TRD s18): installs the scanner, the active inventory and a monthly systemd timer on the ops host.
+# The service records its outcome through ci/ops-note.sh (ops_audit). Idempotent: a second run changes nothing.
+- name: Preconditions
+  ansible.builtin.assert:
+    that:
+      - "'ops' in group_names"
+    fail_msg: external_scan runs on group ops only
+
+- name: PyYAML for ports.py
+  ansible.builtin.apt:
+    name: python3-yaml
+    state: present
+
+- name: Directories
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+  loop:
+    - "{{ external_scan_tests_dir }}"
+    - "{{ external_scan_tests_dir }}/external"
+    - "{{ external_scan_ci_dir }}"
+    - "{{ external_scan_inventory_dir }}"
+
+- name: Scanner
+  ansible.builtin.copy:
+    src: "{{ external_scan_tests_src }}/external/ports.py"
+    dest: "{{ external_scan_tests_dir }}/external/ports.py"
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: ops_audit note writer
+  ansible.builtin.copy:
+    src: "{{ external_scan_ops_note_src }}"
+    dest: "{{ external_scan_ci_dir }}/ops-note.sh"
+    owner: root
+    group: root
+    mode: "0755"
+
+# The scan targets are the public IPs of THIS environment's inventory (LD-45: lean or full), a copy of hosts.yml.
+- name: Active inventory (targets of the scan)
+  ansible.builtin.copy:
+    src: "{{ inventory_dir }}/hosts.yml"
+    dest: "{{ external_scan_inventory_dir }}/hosts.yml"
+    owner: root
+    group: root
+    mode: "0644"
+
+- name: Scan service and monthly timer
+  ansible.builtin.copy:
+    src: "{{ item }}"
+    dest: "/etc/systemd/system/{{ item }}"
+    owner: root
+    group: root
+    mode: "0644"
+  loop:
+    - lims-external-scan.service
+    - lims-external-scan.timer
+  notify: Reload systemd for the external scan units
+
+- name: Flush handlers (units must be known before enabling)
+  ansible.builtin.meta: flush_handlers
+
+- name: Enable the monthly scan timer
+  ansible.builtin.systemd_service:
+    name: lims-external-scan.timer
+    enabled: true
+    state: started

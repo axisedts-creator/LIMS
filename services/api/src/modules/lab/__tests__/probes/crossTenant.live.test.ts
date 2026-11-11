@@ -105,7 +105,7 @@ describe.skipIf(!live)('P-04 bulk operations with mixed A/B ids => per-id common
   });
   it('bulkEnterResults entries [A result, B result]: B entry not_found, no B change', { timeout: T }, async () => {
     const before = await snapshot(TENANT_B);
-    const e = (X: Objs) => ({ result_id: X.resultId, version: 1, value_numeric: 5.5 });
+    const e = (X: Objs) => ({ result_id: X.resultId, version: 1, value_numeric: '5.5' });   // ruling A: DecimalString
     const out = await fire('bulkEnterResults', req({ headers: { 'idempotency-key': uid() }, body: { entries: [e(A), e(B)] } }), FULL_A);
     expect([200, 404]).toContain(out.reply?.status ?? (out.error as any)?.statusCode);
     expect(JSON.stringify(out.reply?.body ?? seen(out.error))).not.toContain(B.barcode);

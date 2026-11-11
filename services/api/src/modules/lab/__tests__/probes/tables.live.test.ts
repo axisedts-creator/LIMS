@@ -52,15 +52,19 @@ describe.skipIf(!live)('P-T every lab tenant table (LAB_TENANT_TABLES)', () => {
   });
 
   it('INSERT of a row carrying tenant B under tenant-A claims fails the RLS WITH CHECK (every table that holds a tenant-A row to copy)', { timeout: T }, async () => {
-    let probed = 0;
+    // Ruling C3: order-independent. These tables are seeded by THIS file's beforeAll (objs('a') + approved result / version / notification), so each one MUST be probed whatever the other files did;
+    // any further table another file happened to fill is probed too, but is not counted on.
+    const SEEDED_HERE = ['orders', 'specimens', 'order_tests', 'results', 'result_versions', 'critical_value_log', 'critical_notifications', 'ingest_exceptions', 'worksheets', 'worksheet_items', 'qc_holds',
+      'delta_check_rules', 'cs_rejection_reasons'];
+    const probed = new Set<string>();
     for (const t of LAB_TENANT_TABLES) {
       if (Number((await owner(`SELECT count(*)::int AS n FROM lab.${t} WHERE tenant_id = $1`, [TENANT_A]))[0].n) === 0) continue;
       const e = await rejects(asA((c) => c.query(
         `INSERT INTO lab.${t} SELECT (jsonb_populate_record(NULL::lab.${t}, to_jsonb(x) || jsonb_build_object('tenant_id', $2::text))).* FROM lab.${t} x WHERE x.tenant_id = $1 LIMIT 1`, [TENANT_A, TENANT_B])));
       expect(e.message, `${t}`).toMatch(/row-level security|permission denied/);
-      probed++;
+      probed.add(t);
     }
-    expect(probed, 'tables probed').toBeGreaterThanOrEqual(15);
+    for (const t of SEEDED_HERE) expect(probed.has(t), `lab.${t} holds a tenant-A row seeded by this file, so it must have been probed`).toBe(true);
     expect(Number((await owner('SELECT count(*)::int AS n FROM lab.specimens WHERE tenant_id = $1 AND id = $2', [TENANT_B, A.specimenId]))[0].n)).toBe(0);
   });
 });

@@ -10,7 +10,9 @@ import { ALL_LAB_PERMS, FULL_A, MEM, NOW, OPS, ROLES, T, TENANT_A, as, closePool
 let A: Objs; let VERIFIED: string; let APPROVED: string;
 const allLogs: string[] = [];
 const keep = (o: Outcome): Outcome => { allLogs.push(...o.probe.logs); return o; };
-const nonAudit = (o: Outcome): string[] => o.probe.writes.filter((w) => !/audit\.access_log/i.test(w));
+/** Ruling D: for amendResult 02-TRD.md:266 maps auth.forbidden to lab.amend_requires_pathologist (403; 07-SECURITY.md:66,121 S-04; 01-PRD.md:225 AC-17.2; 02-TRD.md:260); every other operation stays auth.forbidden. */
+const deniedCode = (operationId: string): string => (operationId === 'amendResult' ? 'lab.amend_requires_pathologist' : 'auth.forbidden');
+const nonAudit =(o: Outcome): string[] => o.probe.writes.filter((w) => !/audit\.access_log/i.test(w));
 
 beforeAll(async () => {
   if (!live) return;
@@ -33,7 +35,7 @@ describe.skipIf(!live)('P-10 role x operation: a default role gets exactly the o
         expect(out.probe.identity.calls.map((c) => c.permission), `${id} must ask for its contract permission`).toContain(op.permission);
       } else {
         expect(out.reply, `${role} lacks ${op.permission} but got ${out.reply?.status}`).toBeUndefined();
-        expect(codeOf(out), `${out.error?.message}`).toBe('auth.forbidden');
+        expect(codeOf(out), `${out.error?.message}`).toBe(deniedCode(id));
         expect((out.error as any).statusCode).toBe(403);
         expect(nonAudit(out), 'a refused request writes nothing').toEqual([]);
       }
@@ -43,11 +45,11 @@ describe.skipIf(!live)('P-10 role x operation: a default role gets exactly the o
     const who = mk('a', { grants: grantsOfRole('front_desk'), allCentres: true, centreIds: [A.centre] });
     const out = keep(await fire('listOrderResults', requestFor('listOrderResults', A), who));
     expect(codeOf(out)).toBe('auth.forbidden');
-    for (const o of OPS.filter((x) => /^lab\.(result|critical_value|qc)/.test(x.permission))) expect(codeOf(keep(await fire(o.id, requestFor(o.id, A), who))), o.id).toBe('auth.forbidden');
+    for (const o of OPS.filter((x) => /^lab\.(result|critical_value|qc)/.test(x.permission))) expect(codeOf(keep(await fire(o.id, requestFor(o.id, A), who))), o.id).toBe(deniedCode(o.id));
   });
   it('a user with NO lab permission at all is refused everywhere (deny by default)', { timeout: T }, async () => {
     const who = mk('a', { grants: [], allCentres: true });
-    for (const o of OPS) expect(codeOf(keep(await fire(o.id, requestFor(o.id, A), who))), o.id).toBe('auth.forbidden');
+    for (const o of OPS) expect(codeOf(keep(await fire(o.id, requestFor(o.id, A), who))), o.id).toBe(deniedCode(o.id));
   });
   it('privileged permissions at aal1 => 403 auth.mfa_required on every operation that needs one (approve, amend, config.manage, qc_hold.release)', { timeout: T }, async () => {
     const who = mk('a', { grants: ALL_LAB_PERMS, mfa: 'aal1', allCentres: true, centreIds: [A.centre] });
@@ -83,17 +85,19 @@ describe.skipIf(!live)('S-01 approve', () => {
 });
 describe.skipIf(!live)('S-02 / S-04', () => {
   it('S-02: approver = verifier => 403 lab.self_approval_forbidden, result unchanged (single and bulk)', { timeout: T }, async () => {
+    // Ruling C1: own fresh graph + verified result; the shared VERIFIED of fixture A is mutated by the P-10 matrix above (test order, not the refusal).
+    const F = await objs('a'); const own = await seedResult(F, { status: 'verified', verifiedBy: MEM.a });
     const who = mk('a', { grants: grantsOfRole('pathologist'), allCentres: true, membershipId: MEM.a });
-    const one = keep(await fire('approveResult', req({ params: { result_id: VERIFIED }, headers: { 'if-match': '"1"' }, body: {} }), who));
+    const one = keep(await fire('approveResult', req({ params: { result_id: own }, headers: { 'if-match': '"1"' }, body: {} }), who));
     expect(codeOf(one), `${one.error?.message}`).toBe('lab.self_approval_forbidden');
     expect((one.error as any).statusCode).toBe(403);
-    const bulk = keep(await fire('bulkApproveResults', req({ headers: { 'idempotency-key': uid() }, body: { items: [{ id: VERIFIED, version: 1 }] } }), who));
+    const bulk = keep(await fire('bulkApproveResults', req({ headers: { 'idempotency-key': uid() }, body: { items: [{ id: own, version: 1 }] } }), who));
     expect(codeOf(bulk) ?? bulk.reply?.body?.results?.[0]?.code).toBe('lab.self_approval_forbidden');
-    expect((await owner('SELECT status, approved_by_membership_id FROM lab.results WHERE id = $1', [VERIFIED]))[0]).toMatchObject({ status: 'verified', approved_by_membership_id: null });
+    expect((await owner('SELECT status, approved_by_membership_id FROM lab.results WHERE id = $1', [own]))[0]).toMatchObject({ status: 'verified', approved_by_membership_id: null });
   });
   it('S-04: a technologist amend => 403 lab.amend_requires_pathologist, nothing written', { timeout: T }, async () => {
     const before = await snapshot(TENANT_A);
-    const out = keep(await fire('amendResult', req({ params: { result_id: APPROVED }, headers: { 'idempotency-key': uid(), 'if-match': '"1"' }, body: { amendment_reason_code: 'transcription_error', value_numeric: 6 } }),
+    const out = keep(await fire('amendResult', req({ params: { result_id: APPROVED }, headers: { 'idempotency-key': uid(), 'if-match': '"1"' }, body: { amendment_reason_code: 'transcription_error', value_numeric: '6' } }),
       mk('a', { grants: grantsOfRole('lab_technologist'), allCentres: true })));
     expect(codeOf(out), `${out.error?.message}`).toBe('lab.amend_requires_pathologist');
     expect((out.error as any).statusCode).toBe(403);
@@ -101,7 +105,7 @@ describe.skipIf(!live)('S-02 / S-04', () => {
   });
   it('S-21: amendResult with a module-only reason code => 400 common.validation_failed (08 R1, A13 P-1)', { timeout: T }, async () => {
     for (const code of ['module_phase_progression', 'module_preliminary_update', 'supplementary_report']) {
-      const out = keep(await fire('amendResult', req({ params: { result_id: APPROVED }, headers: { 'idempotency-key': uid(), 'if-match': '"1"' }, body: { amendment_reason_code: code, value_numeric: 6 } }),
+      const out = keep(await fire('amendResult', req({ params: { result_id: APPROVED }, headers: { 'idempotency-key': uid(), 'if-match': '"1"' }, body: { amendment_reason_code: code, value_numeric: '6' } }),
         mk('a', { grants: grantsOfRole('pathologist'), allCentres: true })));
       expect(codeOf(out), `${code}: ${out.error?.message}`).toBe('common.validation_failed');
       expect((out.error as any).statusCode).toBe(400);

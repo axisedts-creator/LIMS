@@ -92,6 +92,15 @@ export async function ins(c: pg.PoolClient, table: string, row: Record<string, u
   await c.query(`INSERT INTO ${table} (${keys.join(',')}) VALUES (${keys.map((_, i) => `$${i + 1}`).join(',')})`, keys.map((k) => r[k]));
 }
 
+/** Ruling E: app.enqueue_job rejects identifiers absent from core.g_task_registry; the deploy-time registry-sync fills it, app code never does (precedent ports/__tests__/harness.ts ensureTaskRegistry, ruling
+ *  C5.T-24 #2). Seeds the task receiveSpecimen enqueues (S-12: lab.reapply_exceptions_for_specimen). Superuser, idempotent; objs() calls it, so every live file has it. */
+let registrySeeded = false;
+export async function ensureLabTaskRegistry(): Promise<void> {
+  if (registrySeeded) return;
+  await owner(`INSERT INTO core.g_task_registry (identifier,module,kind,scope,max_attempts) VALUES ('lab.reapply_exceptions_for_specimen','lab','task','per_tenant',10) ON CONFLICT DO NOTHING`);
+  registrySeeded = true;
+}
+
 // ---------------------------------------------------------------- actors
 export interface Who {
   tenant: string; membershipId: string; grants: readonly string[]; mfa: 'aal1' | 'aal2'; centreIds: readonly string[]; allCentres: boolean;
@@ -135,6 +144,29 @@ const WRITE = /^\s*(insert|update|delete|truncate)\b/i;
 const H = handlers as unknown as Record<string, (r: any, ctx: any) => Promise<{ status: number; body?: any; headers?: Record<string, string> }>>;
 export interface FireOpts { now?: Date; ports?: Record<string, unknown>; claims?: Record<string, unknown> }
 
+// Ruling B (C5.T-32-ruling.md): worklist / pending / worksheet / status board / label ops need FrontdeskPort (02-TRD.md:111, 364). Synthetic fake over the SAME tenant-scoped tx (RLS on), so a foreign-tenant id is
+// invisible exactly as with the real port; LD-124 "invent no port" binds the handler, not the test fakes. Demographics are the synthetic rows objs() inserts (label printing reads them through the batch call).
+function frontdeskFake(tx: { query: (text: string, values?: unknown[]) => Promise<{ rows: any[] }> }) {
+  const demo = (r: any) => ({ patientId: r.id, patientCode: r.patient_code, fullName: r.full_name, sex: r.sex, ageAtOrder: { years: 30, months: 0, days: 0 }, dateOfBirth: null });
+  return {
+    async getOrderSummary(_c: unknown, a: { orderId: string }) {
+      const o = (await tx.query('SELECT * FROM frontdesk.orders WHERE id = $1', [a.orderId])).rows[0];
+      if (!o) throw new LimsError('common.not_found');
+      const items = (await tx.query('SELECT id, status FROM frontdesk.order_items WHERE order_id = $1', [a.orderId])).rows;
+      return { orderId: o.id, centreId: o.centre_id, branchId: o.branch_id, patientId: o.patient_id, registrationNo: o.registration_no, visitType: o.visit_type, priority: o.priority, referrerId: null, source: o.source,
+        registeredAt: new Date(o.registered_at).toISOString(), items: items.map((i) => ({ orderItemId: i.id, status: i.status ?? 'active' })) };
+    },
+    async getPatientDemographics(_c: unknown, a: { patientId: string }) {
+      const r = (await tx.query('SELECT * FROM frontdesk.patients WHERE id = $1', [a.patientId])).rows[0];
+      if (!r) throw new LimsError('common.not_found');
+      return demo(r);
+    },
+    async getPatientDemographicsBatch(_c: unknown, a: { patientIds: string[] }) {
+      return (await tx.query('SELECT * FROM frontdesk.patients WHERE id = ANY($1::uuid[])', [a.patientIds])).rows.map(demo);
+    },
+  };
+}
+
 /** One request = one committed tx under `who.tenant`'s claims (RLS on); on a throw the tx rolls back and the error is returned, never thrown. */
 export async function fire(operationId: string, r: ReturnType<typeof req>, who: Who, o: FireOpts = {}): Promise<Outcome> {
   const side = who.tenant === TENANT_B ? 'b' : 'a';
@@ -146,7 +178,7 @@ export async function fire(operationId: string, r: ReturnType<typeof req>, who: 
       operationId, clientIp: '203.0.113.9', log: { info: log('info'), warn: log('warn'), error: log('error'), debug: log('debug') }, metrics: { inc: () => undefined },
       tenantId: who.tenant, tx, requestId: probe.requestId, now: () => o.now ?? NOW, centreId: CENTRE[side],
       actor: { type: who.type ?? 'user', id: SYS, membershipId: who.membershipId },
-      ports: { IdentityPort: probe.identity, ...(o.ports ?? {}) },
+      ports: { IdentityPort: probe.identity, FrontdeskPort: frontdeskFake(tx), ...(o.ports ?? {}) },
       events: { publish: async (_c: unknown, type: string, input: unknown) => { probe.events.push({ type, input }); return { eventId: uid(), duplicate: false }; } },
       core: { centres: { list: async () => [{ id: CENTRE[side], branchId: BRANCH[side], branch_id: BRANCH[side] }, { id: CENTRE_A2, branchId: BRANCH_A2, branch_id: BRANCH_A2 }] } },
     };
@@ -172,6 +204,7 @@ export interface Objs {
 export async function objs(side: 'a' | 'b', o: { centre?: string; processing?: string; state?: 'received' | 'collected' } = {}): Promise<Objs> {
   const tenant = tenantOf(side); const centre = o.centre ?? CENTRE[side]; const branch = centre === CENTRE_A2 ? BRANCH_A2 : BRANCH[side];
   const received = (o.state ?? 'received') === 'received'; const proc = received ? (o.processing ?? centre) : undefined; const procBranch = proc === CENTRE_A2 ? BRANCH_A2 : BRANCH[side];
+  await ensureLabTaskRegistry();
   const n = ++seq; const tag = `${Date.now() % 1e8}${n}`;
   const S: Objs = { side, tenant, centre, patientId: uid(), orderId: uid(), regNo: `R32${tag}`, itemId: uid(), specimenId: uid(), barcode: `T32${tag}`.slice(0, 20), specimenVersion: 1, orderTestId: uid(), testId: uid(), resultId: uid(),
     analyteId: uid(), criticalId: uid(), exceptionId: uid(), resultKey: `rk-${tag}-${uid()}`, worksheetId: uid(), holdId: uid(), ruleId: uid(), ruleRowId: uid(), codeOnlyHere: `zprobe_${tag}`.toLowerCase(), instrumentId: uid() };
@@ -254,7 +287,7 @@ export function requestFor(id: string, S: Objs): ReturnType<typeof req> {
     case 'createWorksheet': return req({ headers: idem, body: { title: 'Probe worksheet', order_test_ids: [S.orderTestId] } });
     case 'getWorksheet': return req({ params: { worksheet_id: S.worksheetId } });
     case 'getResult': return req({ params: { result_id: S.resultId } });
-    case 'bulkEnterResults': return req({ headers: idem, body: { entries: [{ result_id: S.resultId, version: 1, value_numeric: 5.5 }] } });
+    case 'bulkEnterResults': return req({ headers: idem, body: { entries: [{ result_id: S.resultId, version: 1, value_numeric: '5.5' }] } });   // ruling A: DecimalString (lab.yaml:6220-6221), never a JSON number
     case 'getResultHistory': return req({ params: { result_id: S.resultId } });
     case 'getAnalyteTrend': return req({ params: { patient_id: S.patientId, analyte_id: S.analyteId } });
     case 'verifyResult': return req({ params: { result_id: S.resultId }, headers: ifm, body: {} });
@@ -262,7 +295,7 @@ export function requestFor(id: string, S: Objs): ReturnType<typeof req> {
     case 'returnResult': return req({ params: { result_id: S.resultId }, headers: ifm, body: { reason_code: 'recheck' } });
     case 'approveResult': return req({ params: { result_id: S.resultId }, headers: ifm, body: {} });
     case 'bulkApproveResults': return req({ headers: idem, body: { items: [{ id: S.resultId, version: 1 }] } });
-    case 'amendResult': return req({ params: { result_id: S.resultId }, headers: im, body: { amendment_reason_code: 'transcription_error', value_numeric: 6 } });
+    case 'amendResult': return req({ params: { result_id: S.resultId }, headers: im, body: { amendment_reason_code: 'transcription_error', value_numeric: '6' } });
     case 'listResultVersions': return req({ params: { result_id: S.resultId } });
     case 'listVerificationQueue': return req({ query: { stage: 'verify' } });
     case 'listCriticalValues': return req();
@@ -275,14 +308,14 @@ export function requestFor(id: string, S: Objs): ReturnType<typeof req> {
     case 'reapplyIngestException': return req({ params: { exception_id: S.exceptionId }, body: {} });
     case 'discardIngestException': return req({ params: { exception_id: S.exceptionId }, body: { reason_code: 'duplicate' } });
     case 'listQcResults': return req();
-    case 'captureQcResult': return req({ headers: idem, body: { centre_id: S.centre, instrument_id: S.instrumentId, analyte_id: S.analyteId, control_id_raw: 'QC-L1', value_numeric: 4.2,
+    case 'captureQcResult': return req({ headers: idem, body: { centre_id: S.centre, instrument_id: S.instrumentId, analyte_id: S.analyteId, control_id_raw: 'QC-L1', value_numeric: '4.2',
       instrument_result_time: '2026-06-15T04:00:00.000Z' } });
     case 'listQcHolds': return req();
     case 'releaseQcHold': return req({ params: { hold_id: S.holdId }, body: { comment: 'Probe release (SYNTHETIC)' } });
     case 'getLabSettings': return req();
     case 'updateLabSettings': return req({ headers: ifm, body: { label_width_mm: 50, label_height_mm: 25, label_copies_default: 1, label_renderer: 'html_svg', host_query_requires_received: true, ingest_auto_receive: false,
       critical_notification_blocks_approval: true, recollection_default: true, delta_check_enabled: true, history_days: 730 } });
-    case 'listDeltaCheckRules': return req();
+    case 'listDeltaCheckRules': return req({ query: { analyte_id: S.analyteId } });   // ruling C2: lab.yaml:5109-5113 analyte_id filter, so S's row cannot fall off the capped page
     case 'createDeltaCheckRule': return req({ headers: idem, body: { analyte_id: S.analyteId, window_seconds: 86400, unit_code: 'g/L', abs_threshold: 5 } });
     case 'versionDeltaCheckRule': return req({ params: { rule_id: S.ruleId }, headers: im, body: { window_seconds: 86400, unit_code: 'g/L', abs_threshold: 6 } });
     case 'deactivateDeltaCheckRule': return req({ params: { rule_id: S.ruleId }, headers: ifm, body: {} });

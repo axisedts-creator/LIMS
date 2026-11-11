@@ -36,7 +36,9 @@ const TOKEN = `e2e-${randomBytes(12).toString('hex')}`;       // synthetic, per 
 const SEED = 7;
 const sha256 = (b: Buffer) => createHash('sha256').update(b).digest('hex');
 const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
-const RM = { recursive: true, force: true, maxRetries: 5, retryDelay: 200 } as const;
+const RM = { recursive: true, force: true, maxRetries: 20, retryDelay: 200 } as const;
+// teardown cleanup must not fail the run (harness concern, not spec behaviour)
+const rmQuiet = (p: string) => { try { rmSync(p, RM); } catch (e) { console.warn('teardown rmSync failed:', p, (e as Error).message); } };
 const p95 = (xs: number[]) => [...xs].sort((a, b) => a - b)[Math.ceil(xs.length * 0.95) - 1]!;
 const pad8 = (n: number) => String(n).padStart(8, '0');
 const barcode = (base: number, n: number) => `E26${pad8(base + n)}`;
@@ -145,7 +147,7 @@ async function astmSend(sock: Socket, rd: Reader, text: Buffer): Promise<void> {
 }
 async function hl7Send(sock: Socket, rd: Reader, msg: Buffer): Promise<string> {
   sock.write(Buffer.concat([Buffer.from([VT]), msg, Buffer.from([FS, CR])]));
-  const ack = await rd.until(CR, 5000);                       // VT <ACK msg> FS CR
+  const ack = await rd.until(FS, 5000); expect(await rd.byte()).toBe(CR);   // VT MSH<CR>MSA<CR> FS CR
   return ack.toString('latin1');
 }
 
@@ -194,7 +196,7 @@ beforeAll(async () => {
 
 afterAll(async () => {
   await agent?.stop(); await stack?.close(); await new Promise((r) => pipeServer?.close(r));
-  if (work) rmSync(work, RM);
+  if (work) rmQuiet(work);
 });
 
 describe('INT-T01 simulator -> agent -> API -> C5 (fake) -> resulted', () => {
@@ -262,6 +264,6 @@ describe('INT-T01 simulator -> agent -> API -> C5 (fake) -> resulted', () => {
       expect(other.world.messages).toHaveLength(0);
       expect(stack.batches.length).toBe(before);
       s.destroy(); await bad.stop(); await other.close();
-    } finally { rmSync(dir, RM); }
+    } finally { rmQuiet(dir); }
   }, 60_000);
 });

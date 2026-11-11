@@ -4,6 +4,7 @@
 // [CONV] stubs are generated here from one list instead of 55 placeholder files; each later task adds its own file.
 import type { Handler } from '../../../core/module.js';
 import { LimsError } from '../../../core/errors.js';
+import { criticalHandlers } from './critical.handlers.js';
 import { resultEntryHandlers } from './resultEntry.handlers.js';
 
 const OPERATION_IDS = [
@@ -38,4 +39,5 @@ const notImplemented = (operationId: string): Handler => async () => {
 export const handlers: Readonly<Record<LabOperationId, Handler>> = Object.freeze({
   ...(Object.fromEntries(OPERATION_IDS.map((op) => [op, notImplemented(op)])) as Record<LabOperationId, Handler>),
   ...resultEntryHandlers, // T-14: bulkEnterResults, getResult, listOrderResults
+  ...criticalHandlers, // T-15: listCriticalValues, getCriticalValue, logCriticalNotification
 });

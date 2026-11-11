@@ -353,10 +353,23 @@ paths:
             schema:
               type: object
               additionalProperties: false
-              description: collected_at ≤ now and ≥ now−72h [CONV]; absent = now.
+              description: collected_at ≤ now and ≥ now−72h [CONV]; absent = now. LD-25 (2026-11-07) downtime back-entry - entry_mode, occurred_at, downtime_ref (not together with collected_at).
               properties:
                 collected_at:
                   $ref: _common.yaml#/components/schemas/IsoUtc
+                entry_mode:
+                  type: string
+                  enum:
+                    - live
+                    - downtime_backentry
+                  default: live
+                  description: LD-25. downtime_backentry requires occurred_at (≤ now, ≥ now − 72 h) and downtime_ref; live carries neither.
+                occurred_at:
+                  $ref: _common.yaml#/components/schemas/IsoUtc
+                downtime_ref:
+                  type: string
+                  minLength: 1
+                  maxLength: 32
             examples:
               synthetic:
                 value:
@@ -460,6 +473,19 @@ paths:
                         $ref: _common.yaml#/components/schemas/Uuid
                       version:
                         $ref: _common.yaml#/components/schemas/Version
+                entry_mode:
+                  type: string
+                  enum:
+                    - live
+                    - downtime_backentry
+                  default: live
+                  description: LD-25, applies to every item. downtime_backentry requires occurred_at (≤ now, ≥ now − 72 h) and downtime_ref; live carries neither.
+                occurred_at:
+                  $ref: _common.yaml#/components/schemas/IsoUtc
+                downtime_ref:
+                  type: string
+                  minLength: 1
+                  maxLength: 32
             examples:
               synthetic:
                 value:
@@ -569,6 +595,19 @@ paths:
                         $ref: _common.yaml#/components/schemas/Uuid
                       version:
                         $ref: _common.yaml#/components/schemas/Version
+                entry_mode:
+                  type: string
+                  enum:
+                    - live
+                    - downtime_backentry
+                  default: live
+                  description: LD-25, applies to every item. downtime_backentry requires occurred_at (≤ now, ≥ now − 72 h) and downtime_ref; live carries neither.
+                occurred_at:
+                  $ref: _common.yaml#/components/schemas/IsoUtc
+                downtime_ref:
+                  type: string
+                  minLength: 1
+                  maxLength: 32
             examples:
               synthetic:
                 value:
@@ -673,6 +712,19 @@ paths:
               properties:
                 processing_centre_id:
                   $ref: _common.yaml#/components/schemas/Uuid
+                entry_mode:
+                  type: string
+                  enum:
+                    - live
+                    - downtime_backentry
+                  default: live
+                  description: LD-25. downtime_backentry requires occurred_at (≤ now, ≥ now − 72 h) and downtime_ref; live carries neither.
+                occurred_at:
+                  $ref: _common.yaml#/components/schemas/IsoUtc
+                downtime_ref:
+                  type: string
+                  minLength: 1
+                  maxLength: 32
             examples:
               synthetic:
                 value:
@@ -780,6 +832,19 @@ paths:
                         $ref: _common.yaml#/components/schemas/Uuid
                       version:
                         $ref: _common.yaml#/components/schemas/Version
+                entry_mode:
+                  type: string
+                  enum:
+                    - live
+                    - downtime_backentry
+                  default: live
+                  description: LD-25, applies to every item. downtime_backentry requires occurred_at (≤ now, ≥ now − 72 h) and downtime_ref; live carries neither.
+                occurred_at:
+                  $ref: _common.yaml#/components/schemas/IsoUtc
+                downtime_ref:
+                  type: string
+                  minLength: 1
+                  maxLength: 32
             examples:
               synthetic:
                 value:
@@ -1288,6 +1353,19 @@ paths:
                   type: string
                   maxLength: 120
                   minLength: 1
+                entry_mode:
+                  type: string
+                  enum:
+                    - live
+                    - downtime_backentry
+                  default: live
+                  description: LD-25. downtime_backentry requires occurred_at (≤ now, ≥ now − 72 h) and downtime_ref; live carries neither.
+                occurred_at:
+                  $ref: _common.yaml#/components/schemas/IsoUtc
+                downtime_ref:
+                  type: string
+                  minLength: 1
+                  maxLength: 32
             examples:
               synthetic:
                 value:
@@ -1385,6 +1463,19 @@ paths:
                   type: string
                   maxLength: 200
                   minLength: 1
+                entry_mode:
+                  type: string
+                  enum:
+                    - live
+                    - downtime_backentry
+                  default: live
+                  description: LD-25. downtime_backentry requires occurred_at (≤ now, ≥ now − 72 h) and downtime_ref; live carries neither.
+                occurred_at:
+                  $ref: _common.yaml#/components/schemas/IsoUtc
+                downtime_ref:
+                  type: string
+                  minLength: 1
+                  maxLength: 32
             examples:
               synthetic:
                 value:

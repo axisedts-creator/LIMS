@@ -4,6 +4,17 @@
 // [CONV] stubs are generated here from one list instead of 55 placeholder files; each later task adds its own file.
 import type { Handler } from '../../../core/module.js';
 import { LimsError } from '../../../core/errors.js';
+// T-07 specimen actions (each file: `export const handler`); later tasks add their own imports + entries to REAL below.
+import { handler as bulkCollectSpecimens } from './bulkCollectSpecimens.js';
+import { handler as bulkDispatchSpecimens } from './bulkDispatchSpecimens.js';
+import { handler as bulkReceiveSpecimens } from './bulkReceiveSpecimens.js';
+import { handler as collectSpecimen } from './collectSpecimen.js';
+import { handler as discardSpecimen } from './discardSpecimen.js';
+import { handler as getSpecimen } from './getSpecimen.js';
+import { handler as listSpecimens } from './listSpecimens.js';
+import { handler as lookupSpecimenByBarcode } from './lookupSpecimenByBarcode.js';
+import { handler as receiveSpecimen } from './receiveSpecimen.js';
+import { handler as storeSpecimen } from './storeSpecimen.js';
 
 const OPERATION_IDS = [
   // specimens
@@ -34,6 +45,11 @@ const notImplemented = (operationId: string): Handler => async () => {
   throw new LimsError('common.internal', `lab ${operationId} not implemented`);
 };
 
+/** operationId -> real handler; everything not listed is still a fail-closed stub. */
+const REAL: Partial<Record<LabOperationId, Handler>> = {
+  lookupSpecimenByBarcode, listSpecimens, getSpecimen, collectSpecimen, bulkCollectSpecimens, bulkDispatchSpecimens, receiveSpecimen, bulkReceiveSpecimens, storeSpecimen, discardSpecimen,
+};
+
 export const handlers: Readonly<Record<LabOperationId, Handler>> = Object.freeze(
-  Object.fromEntries(OPERATION_IDS.map((op) => [op, notImplemented(op)])) as Record<LabOperationId, Handler>,
+  Object.fromEntries(OPERATION_IDS.map((op) => [op, REAL[op] ?? notImplemented(op)])) as Record<LabOperationId, Handler>,
 );

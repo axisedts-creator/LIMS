@@ -44,6 +44,17 @@ export const insertResult = (rc: RepoCtx, row: Row) => insertRow(rc, RESULTS, ro
 export const getResult = (rc: RepoCtx, id: string) => getRow(rc, RESULTS, id);
 export const updateResult = (rc: RepoCtx, id: string, expectedVersion: number, patch: Row) => updateRow(rc, RESULTS, id, expectedVersion, patch);
 
+// ---- T-07 S4: processing centre/branch copy (every statement: tenant filter, version bump) ----
+export const copyProcessingToResultsOfSpecimen = (rc: RepoCtx, specimenId: string, p: { centreId: string; branchId: string }) =>
+  query(rc, `UPDATE lab.results SET processing_centre_id = $3, processing_branch_id = $4, version = version + 1, updated_at = now(), updated_by = $2
+             WHERE tenant_id = $1 AND specimen_id = $5 RETURNING id`, [rc.actorId, p.centreId, p.branchId, specimenId]);
+/** 08 A13 D-13: results of the order's existing-material tests that have no processing centre yet. */
+export const copyProcessingToExistingMaterialResults = (rc: RepoCtx, orderId: string, p: { centreId: string; branchId: string }) =>
+  query(rc, `UPDATE lab.results SET processing_centre_id = $3, processing_branch_id = $4, version = version + 1, updated_at = now(), updated_by = $2
+             WHERE tenant_id = $1 AND order_id = $5 AND specimen_id IS NULL AND processing_centre_id IS NULL
+               AND order_test_id IN (SELECT id FROM lab.order_tests WHERE tenant_id = $1 AND order_id = $5 AND uses_existing_material = true AND specimen_id IS NULL)
+             RETURNING id`, [rc.actorId, p.centreId, p.branchId, orderId]);
+
 /** results__tenant_id_order__idx */
 export const listResultsByOrder = async (rc: RepoCtx, orderId: string) =>
   (isUuid(orderId) ? query(rc, 'SELECT * FROM lab.results WHERE tenant_id = $1 AND order_id = $2 ORDER BY order_test_id, analyte_code, id', [orderId]) : []);

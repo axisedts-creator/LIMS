@@ -110,6 +110,63 @@ test('E2E: reads the stack URL from env (no hard-coded host) and README explains
   const r = must(join(E2E, 'README.md')); assert.match(r, /compose/i); assert.match(r, /nightly/i); assert.match(r, /reporting-journey/);
 });
 
+// ---- spec-name pins (review C6-T34-review.md item 11): harness must use catalogued routes/fields, not invented ones ------------
+// 02-TRD §6.2 R7 bulk-release {ids 1-200 unique, Idempotency R}; D3 POST /reports/{report_id}/deliveries; Q1 body {qr_token}; portal = /v1/reporting/portal/* + X-Lims-Portal-Credential.
+const strip = (t) => t.replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|[^:])\/\/.*$/gm, '$1'); // ignore comments so prose cannot satisfy/violate a pin
+const crFile = () => existsSync(join(ROOT, '.orchestra', 'cr', 'C6-T34.md'));
+
+test('pin: bulk release uses R7 path /v1/reporting/report-versions/bulk-release with {ids} body and an Idempotency-Key, in load and E2E', () => {
+  for (const [n, s] of [['load', strip(k6())], ['e2e', strip(journey())]]) {
+    assert.match(s, /\/report-versions\/bulk-release/, `${n}: R7 path`);
+    assert.match(s, /\{\s*ids\b/, `${n}: body {ids}`);
+    assert.match(s, /Idempotency-Key/, `${n}: Idempotency-Key header`);
+    assert.doesNotMatch(s, /synthetic_batch/, `${n}: invented body field`);
+  }
+});
+
+test('pin: delivery scenario posts to /reports/{report_id}/deliveries (D3) with Idempotency-Key', () => {
+  const s = strip(k6());
+  assert.match(s, /\/reports\/[^'"`\n]*\/deliveries/); assert.match(s, /recipient_kind/); assert.match(s, /channel/); assert.match(s, /Idempotency-Key/);
+});
+
+test('pin: QR verify (Q1) body field is qr_token, never token', () => {
+  for (const [n, s] of [['load', strip(k6())], ['e2e', strip(journey())]]) {
+    assert.match(s, /qr_token/, `${n}: qr_token`);
+    assert.doesNotMatch(s, /\{\s*token\s*:/, `${n}: Q1 body must not use "token"`);
+  }
+});
+
+test('pin: no invented render route — only R8 retry-render / R9 regenerations; no test-support routes unless .orchestra/cr/C6-T34.md exists', () => {
+  for (const [n, s] of [['load', strip(k6())], ['e2e', strip(journey())]]) {
+    assert.doesNotMatch(s, /\/render['"`?]/, `${n}: invented POST /report-versions/{id}/render`);
+    if (!crFile()) assert.doesNotMatch(s, /test-support/, `${n}: test-support routes need a CR (.orchestra/cr/C6-T34.md)`);
+  }
+});
+
+test('pin: portal calls use /v1/reporting/portal/ prefix and X-Lims-Portal-Credential header, not Bearer / unprefixed /portal', () => {
+  const s = strip(journey());
+  assert.match(s, /\/v1\/reporting\/portal\//); assert.match(s, /X-Lims-Portal-Credential/);
+  assert.doesNotMatch(s, /['"`]\/portal\//, 'unprefixed /portal route');
+  assert.doesNotMatch(s, /link_token/, 'P1 credential goes in the header, body is {}');
+  assert.match(s, /challenge_id/, 'P1 response field');
+});
+
+test('pin: held-dues step is not vacuous — asserts link_purpose dues, balance_due_paisa and reporting.release_blocked_due (08 A21.1)', () => {
+  const s = strip(journey());
+  assert.match(s, /link_purpose/); assert.match(s, /balance_due_paisa/); assert.match(s, /reporting\.release_blocked_due/);
+  assert.doesNotMatch(s, /\[\s*200\s*,\s*401\s*\]/, 'status assertion that passes unauthenticated');
+});
+
+test('pin: order lookup uses R2 POST /reports/search (PHI-safe body), not a ?order_id= query on /report-versions', () => {
+  const s = strip(journey());
+  assert.match(s, /\/reports\/search/); assert.doesNotMatch(s, /report-versions\?[^'"`\n]*order_id/);
+});
+
+test('pin: load setup fails fast when seed produced no QR tokens; OTP code is added to the PHI/log scan', () => {
+  assert.match(strip(k6()), /tokens\.length[\s\S]{0,120}throw\s+new\s+Error|throw\s+new\s+Error[\s\S]{0,120}tokens\.length/, 'setup throws when data.tokens is empty');
+  assert.match(strip(journey()), /phi\.push\([^)]*\b(code|otp)\b/i, 'OTP code pushed into S.phi so logs/bodies are scanned for it');
+});
+
 // ---- hygiene across both folders ---------------------------------------------------------------------------------------
 test('hygiene: no TODO/FIXME, no real-looking Nepali phone or e-mail, no secrets in tests/load and tests/e2e files', () => {
   const files = [...walk(LOAD), ...walk(E2E)].filter((f) => !/C6-T34\.static\.test\.mjs$/.test(f) && /\.(js|ts|mjs|md|json)$/.test(f));

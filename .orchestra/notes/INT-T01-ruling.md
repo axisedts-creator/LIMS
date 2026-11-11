@@ -1,0 +1,7 @@
+TESTS_WRONG — harness bugs in simulator-agent-api-c5.e2e.test.ts; spec requirement itself is not in dispute.
+1. Spec (spec/chunks/C7-instrument-integration/06-IMPLEMENTATION-PLAN.md:81) requires only: simulator -> agent core -> API -> C5 consumer (fake), result `resulted` in C5 within 5 s p95. Nothing in the spec requires the test to open client sockets via a `net.Server`.
+2. Line 21 imports `createServer as createNet` from `node:net`; lines 202, 241, 257 call `createNet().connect(...)`. `net.Server` has no `.connect` -> TypeError before any byte reaches the agent. Tests 1, 3, 4 fail on this; test 2 fails as a knock-on (0 archived messages). No implementation can make this pass.
+   Change: add `connect as netConnect` to the `node:net` import and replace `createNet().connect(P, '127.0.0.1', cb)` with `netConnect(P, '127.0.0.1', cb)` at lines 202, 241, 257. Keep every assertion (5 s p95, counts, retransmit, TLS) unchanged.
+3. Teardown (line 166, 196, 264): `Agent.stop()` kills the process and sleeps 200 ms, then `rmSync` fails with EPERM on Windows while the child still holds state/queue.db. This is test-harness cleanup, not spec behaviour.
+   Change: in `stop()`, after `proc.kill()` await the child `exit` event (bounded, e.g. 5 s) instead of the fixed sleep; pass `{ recursive: true, force: true, maxRetries: 5, retryDelay: 200 }` to both `rmSync` calls.
+4. Tester owns the fix; writer must not edit the test. Re-run .orchestra/notes/INT-T01-verify.cmd after the fix; any remaining failure is then judged against the implementation.

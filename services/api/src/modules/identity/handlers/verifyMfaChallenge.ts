@@ -20,7 +20,7 @@ export interface MfaDeps {
   gotrue: Pick<GoTrueGateway, 'mfaChallengeAndVerify' | 'mfaEnrollTotp' | 'adminDeleteFactor'>;
   repo: Pick<MfaRepo, keyof MfaRepo>;
   events: { recordTenantless(tx: Tx, e: AuthEvent): Promise<void>; recordTenant(tx: Tx, e: AuthEvent): Promise<void> };
-  limits: Pick<AuthLimits, 'recordAccountFailure' | 'clearAccountFailures'>;
+  limits: Pick<AuthLimits, 'consumeAttempt' | 'recordAccountFailure' | 'clearAccountFailures'>;
   hmac?: (normalisedEmail: string) => string; newId?: () => string; now?: () => Date;
 }
 interface MfaHctx extends HandlerContext {
@@ -120,6 +120,7 @@ export function mfaOperation<B, R>(operationId: string, parse: (req: HandlerRequ
           ? { userId: s.userId, platformStaffId: s.platformStaffId!, sessionId: s.sessionId }
           : { userId: s.userId, tenantId: s.tenantId!, membershipId: s.membershipId!, sessionId: s.sessionId };
         const accountKey = hmac(load.email);
+        await deps.limits.consumeAttempt(accountKey);   // x-rate-limit-tier: login (LD-10, 02-CV §10.3): 429 before any GoTrue call / write
         const c: MfaCtx = {
           tx, deps, s, ref, load, now, requestId: ctx.requestId, clientIp: ctx.clientIp, userAgent, actorId, newId, accountKey,
           ev: (eventType, o = {}) => ({ id: newId(), eventType, ...who, emailHmacHex: accountKey, clientIp: ctx.clientIp, userAgent, requestId: ctx.requestId, actorId, ...o }),

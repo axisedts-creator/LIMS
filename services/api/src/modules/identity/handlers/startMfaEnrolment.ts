@@ -4,6 +4,7 @@
 // removed (re_enrol) before the new one is enrolled. Plumbing: verifyMfaChallenge.ts (mfaOperation = one ctx.db.identityAuthTx, D-212).
 import { LimsError } from '../../../core/errors.js';
 import type { Handler } from '../../../core/module.js';
+import { GoTrueError } from '../gotrue/gateway.js';
 import { bodyObject, gotrueCall, invalid, mfaOperation, wire } from './verifyMfaChallenge.js';
 
 function parse(b: unknown): { friendlyName: string | undefined } {
@@ -17,7 +18,10 @@ export const createStartMfaEnrolment = mfaOperation('startMfaEnrolment', (req) =
   const own = await c.deps.repo.factors(c.tx, { tenantId: c.s.tenantId, userId: c.s.userId });
   if (own.some((f) => f.status === 'verified')) throw new LimsError('common.version_conflict');
   for (const f of own) {   // only `unverified` remain here
-    await gotrueCall(() => c.deps.gotrue.adminDeleteFactor(c.s.userId, f.gotrueFactorId));
+    // a GoTrue 404 = already deleted by an earlier attempt whose tx rolled back: treat as removed, else the user is locked out
+    await gotrueCall(async () => {
+      try { await c.deps.gotrue.adminDeleteFactor(c.s.userId, f.gotrueFactorId); } catch (e) { if (!(e instanceof GoTrueError && e.status === 404)) throw e; }
+    });
     await c.deps.repo.removeFactor(c.tx, { id: f.id, tenantId: c.s.tenantId, userId: c.s.userId, reason: 're_enrol', at: c.now, actorId: c.actorId });
   }
   const enr = await gotrueCall(() => c.deps.gotrue.mfaEnrollTotp(c.load.accessToken, friendlyName));

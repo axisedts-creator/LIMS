@@ -15,7 +15,7 @@ function parse(req: HandlerRequest): { factorId: string; code: string } {
 
 export const createCompleteMfaEnrolment = mfaOperation('completeMfaEnrolment', parse, async (c, { factorId, code }) => {
   const wasLogin = c.s.state === 'mfa_enrolment_required';
-  if (!wasLogin && c.s.state !== 'active') throw new LimsError('common.version_conflict');
+  if (!wasLogin && c.s.state !== 'active') throw new LimsError('common.not_found');   // OpenAPI declares no 409; same as an unusable factor
   const f = (await c.deps.repo.factors(c.tx, { tenantId: c.s.tenantId, userId: c.s.userId }))
     .find((x) => x.id.toLowerCase() === factorId && x.status === 'unverified');
   if (!f) throw new LimsError('common.not_found');

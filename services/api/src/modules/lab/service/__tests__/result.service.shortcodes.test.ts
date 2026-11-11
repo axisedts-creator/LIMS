@@ -39,7 +39,7 @@ const row = (resultId: string, over: Record<string, unknown> = {}) => ({
 });
 const entry = (resultId: string, over: Record<string, unknown> = {}) => ({ resultId, version: 3, valueNumeric: '13.4', ...over });
 
-function make(rows: any[], opt: { lib?: Record<string, { version: number; text: string }>; resolveFails?: Error; saveFails?: Record<string, Error> } = {}) {
+function make(rows: any[], opt: { lib?: Record<string, { version: number; text: string }>; deptLib?: Record<string, Record<string, { version: number; text: string }>>; resolveFails?: Error; saveFails?: Record<string, Error> } = {}) {
   const tx = { id: 'tx-1' };
   const log: { fn: string; tenantId: unknown; arg: any }[] = [];
   const byId = new Map(rows.map((r) => [r.resultId, r]));
@@ -81,9 +81,12 @@ function make(rows: any[], opt: { lib?: Record<string, { version: number; text: 
           if (opt.resolveFails) throw opt.resolveFails;
           if (q.codes.length > 50) throw new LimsError('common.validation_failed');
           const up = [...new Set(q.codes.map((c) => c.toUpperCase()))];
+          // 03-IC §4.2 / C3 02-TRD: a department-specific active code wins over the tenant-wide one (only when departmentId is sent)
+          const dl = (q.departmentId && opt.deptLib?.[q.departmentId]) || {};
+          const pick = (c: string) => dl[c] ?? lib[c];
           return {
-            resolved: up.filter((c) => lib[c]).map((c) => ({ code: c, commentCodeId: `cc-${c}`, version: lib[c]!.version, text: lib[c]!.text })),
-            unknown: up.filter((c) => !lib[c]),
+            resolved: up.filter((c) => pick(c)).map((c) => ({ code: c, commentCodeId: `cc-${c}`, version: pick(c)!.version, text: pick(c)!.text })),
+            unknown: up.filter((c) => !pick(c)),
           };
         },
       },
@@ -171,6 +174,71 @@ describe('T-18 AC-10.2 server re-resolves the codes and stores code + library ve
     expect(m.saves()[0].commentLibVersions).toBeUndefined();
     expect(m.saves()[1].commentLibVersions).toBeUndefined();
     expect(m.saves()[1].commentText).toBe('free text');
+  });
+});
+
+describe('T-18 review: department-specific codes (03-IC §4.2: department code wins over tenant-wide)', () => {
+  const DEPT_H = '01a1a98a-ac40-7000-8000-0000000f0001', DEPT_M = '01a1a98a-ac40-7000-8000-0000000f0002';
+  it('a code that exists only for the row\'s department resolves (no 400); the catalog receives that departmentId; the dept version + text are stored', async () => {
+    const m = make([row(id(1), { departmentId: DEPT_H })], { deptLib: { [DEPT_H]: { HEMO: { version: 5, text: 'Haematology-only comment.' } } } });
+    const out = await run(m, [entry(id(1), { commentCodes: ['HEMO'] })]);
+    expect(out.results[0].outcome).toBe('ok');
+    expect(m.resolveCalls().some((c) => c.departmentId === DEPT_H && c.codes.includes('HEMO'))).toBe(true);
+    expect(m.saves()[0]).toMatchObject({ commentCodes: ['HEMO'], commentLibVersions: { HEMO: 5 }, commentText: 'Haematology-only comment.' });
+  });
+  it('a department override of a tenant-wide code is stored with the department text and version, not the tenant-wide ones', async () => {
+    const m = make([row(id(1), { departmentId: DEPT_H })], { deptLib: { [DEPT_H]: { HYPO: { version: 9, text: 'Dept hypochromia text.' } } } });
+    await run(m, [entry(id(1), { commentCodes: ['HYPO'] })]);
+    expect(m.saves()[0]).toMatchObject({ commentLibVersions: { HYPO: 9 }, commentText: 'Dept hypochromia text.' });
+  });
+  it('rows of different departments in one batch: each code is resolved against ITS row\'s department (no cross-department leak)', async () => {
+    const m = make([row(id(1), { departmentId: DEPT_H }), row(id(2), { departmentId: DEPT_M })], {
+      deptLib: { [DEPT_H]: { HEMO: { version: 5, text: 'H text.' } }, [DEPT_M]: { MBIO: { version: 2, text: 'M text.' } } },
+    });
+    const out = await run(m, [entry(id(1), { commentCodes: ['HEMO'] }), entry(id(2), { commentCodes: ['MBIO'] })]);
+    expect(out.results.every((r: any) => r.outcome === 'ok')).toBe(true);
+    expect(m.saves().map((s) => s.commentLibVersions)).toEqual([{ HEMO: 5 }, { MBIO: 2 }]);
+    // a code of another department is unknown for this row -> 400 at that entry, nothing saved
+    const x = make([row(id(1), { departmentId: DEPT_H })], { deptLib: { [DEPT_M]: { MBIO: { version: 2, text: 'M text.' } } } });
+    const e = await fail(run(x, [entry(id(1), { commentCodes: ['MBIO'] })]));
+    expect(e.code).toBe('common.validation_failed');
+    expect(e.errors[0].path).toBe('/entries/0/comment_codes/0');
+    expect(x.saves()).toHaveLength(0);
+  });
+  it('unknown code in a later department group still saves nothing from earlier groups (all resolution happens before the first save)', async () => {
+    const m = make([row(id(1), { departmentId: DEPT_H }), row(id(2), { departmentId: DEPT_M })], { deptLib: { [DEPT_H]: { HEMO: { version: 5, text: 'H text.' } } } });
+    await fail(run(m, [entry(id(1), { commentCodes: ['HEMO'] }), entry(id(2), { commentCodes: ['NOPE'] })]));
+    expect(m.saves()).toHaveLength(0);
+  });
+});
+
+describe('T-18 review: expanded text longer than 1000 chars (results__comment_text__ck, #24 contract) -> 400 before any save', () => {
+  const long = (n: number, ch: string) => ({ version: 1, text: ch.repeat(n) });
+  it('two long library texts (600 + 600 + 1 space = 1201) and no commentText: 400 common.validation_failed at /entries/n/comment_codes, nothing saved', async () => {
+    const m = make([row(id(1)), row(id(2))], { lib: { ...LIB, LONGA: long(600, 'a'), LONGB: long(600, 'b') } });
+    const e = await fail(run(m, [entry(id(1), { commentCodes: ['HYPO'] }), entry(id(2), { commentCodes: ['LONGA', 'LONGB'] })]));
+    expect(e).toBeInstanceOf(LimsError);
+    expect(e.code).toBe('common.validation_failed');
+    expect(e.statusCode).toBe(400);
+    expect(e.errors[0]).toMatchObject({ path: '/entries/1/comment_codes', code: 'common.field_invalid' });
+    expect(m.saves()).toHaveLength(0);
+  });
+  it('boundary: expanded text of exactly 1000 chars (499 + space + 500) is accepted and stored whole', async () => {
+    const m = make([row(id(1))], { lib: { LONGA: long(499, 'a'), LONGB: long(500, 'b') } });
+    const out = await run(m, [entry(id(1), { commentCodes: ['LONGA', 'LONGB'] })]);
+    expect(out.results[0].outcome).toBe('ok');
+    expect(m.saves()[0].commentText).toHaveLength(1000);
+  });
+  it('one char over the boundary (1001) is rejected', async () => {
+    const m = make([row(id(1))], { lib: { LONGA: long(500, 'a'), LONGB: long(500, 'b') } });
+    const e = await fail(run(m, [entry(id(1), { commentCodes: ['LONGA', 'LONGB'] })]));
+    expect(e.errors[0].path).toBe('/entries/0/comment_codes');
+  });
+  it('a client-sent commentText is kept verbatim: long library texts do not trigger the limit when the client supplied the text', async () => {
+    const m = make([row(id(1))], { lib: { LONGA: long(600, 'a'), LONGB: long(600, 'b') } });
+    const out = await run(m, [entry(id(1), { commentCodes: ['LONGA', 'LONGB'], commentText: 'short client text' })]);
+    expect(out.results[0].outcome).toBe('ok');
+    expect(m.saves()[0].commentText).toBe('short client text');
   });
 });
 

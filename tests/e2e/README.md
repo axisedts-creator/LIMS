@@ -8,4 +8,4 @@ docker compose up -d --wait
 E2E_BASE_URL=<stack url> E2E_STAFF_TOKEN_A=<token> E2E_STAFF_TOKEN_B=<token> npx vitest run tests/e2e/reporting-journey.e2e.ts
 ```
 
-Nightly (`.github/workflows/nightly.yml`, owned outside C6) runs this file and then `tests/load/reporting-load.js` against the compose stack. Route paths can be overridden with `E2E_PATH_*` env vars (see the top of the file).
+Nightly (`.github/workflows/nightly.yml`, owned outside C6) runs this file and then `tests/load/reporting-load.js` against the compose stack. Routes are those of 02-TRD §6 (portal under `/v1/reporting/portal/` with `X-Lims-Portal-Credential`); register, approve, pay, recorded provider messages, QR-token read, logs and seed use the non-production test-support routes proposed in CR `.orchestra/cr/C6-T34`, which must be mounted in the compose stack before the journey can pass.

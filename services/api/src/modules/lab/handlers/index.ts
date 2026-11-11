@@ -10,7 +10,10 @@ import { handler as bulkCollectSpecimens } from './bulkCollectSpecimens.js';
 import { handler as bulkDispatchSpecimens } from './bulkDispatchSpecimens.js';
 import { handler as bulkReceiveSpecimens } from './bulkReceiveSpecimens.js';
 import { handler as collectSpecimen } from './collectSpecimen.js';
+import { handler as createAliquots } from './createAliquots.js';
 import { handler as discardSpecimen } from './discardSpecimen.js';
+import { handler as rejectSpecimen } from './rejectSpecimen.js';
+import { handler as requestRecollection } from './requestRecollection.js';
 import { handler as getSpecimen } from './getSpecimen.js';
 import { handler as listSpecimens } from './listSpecimens.js';
 import { handler as lookupSpecimenByBarcode } from './lookupSpecimenByBarcode.js';
@@ -51,6 +54,7 @@ const notImplemented = (operationId: string): Handler => async () => {
 /** operationId -> real handler; everything not listed is still a fail-closed stub. */
 const REAL: Partial<Record<LabOperationId, Handler>> = {
   lookupSpecimenByBarcode, listSpecimens, getSpecimen, collectSpecimen, bulkCollectSpecimens, bulkDispatchSpecimens, receiveSpecimen, bulkReceiveSpecimens, storeSpecimen, discardSpecimen,
+  rejectSpecimen, requestRecollection, createAliquots, // T-08
   ...resultEntryHandlers, // T-14: bulkEnterResults, getResult, listOrderResults
   ...criticalHandlers, // T-15: listCriticalValues, getCriticalValue, logCriticalNotification
   ...verifyHandlers, // T-16: verifyResult, bulkVerifyResults, returnResult

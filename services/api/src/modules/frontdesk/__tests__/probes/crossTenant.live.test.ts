@@ -61,6 +61,9 @@ describe('list endpoints: B data present => zero B rows, A control row present',
   });
   it('F10 listOrders (window = the day both tenants have an order on)', { timeout: T }, async () => {
     const s = await scenario({ side: 'a', order: { registered_at: A.at, centre_id: A.centre } });
+    // FD-T16 ruling (round 3): A's objs() order is registered in this window too; the lab fake must know it or F10 correctly propagates common.not_found
+    s.lab.__seed({ orders: [{ id: A.order.id, tenantId: TENANT_A, patientId: A.patient.id, centreId: A.centre, priority: 'routine', patient: { sex: 'female', ageDays: 15000 } }] });
+    s.billing.__seed({ orders: [{ id: A.order.id, tenantId: TENANT_A }] });
     const r = await fire('listOrders', requestFor('listOrders', B), FULL_A, { lab: s.lab, billing: s.billing });
     expect(r.reply?.status, JSON.stringify(r.error?.code)).toBe(200);
     const ids = idsOf(r.reply!.body);

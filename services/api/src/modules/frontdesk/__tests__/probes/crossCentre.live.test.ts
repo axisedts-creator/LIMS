@@ -52,7 +52,12 @@ describe('lists exclude A2 rows for an A1-only user; an all-centre user sees the
     const s1 = await scenario({ side: 'a', order: { registered_at: DAY }, centre: CENTRE.a });
     const s2 = await scenario({ side: 'a', order: { registered_at: DAY }, centre: CENTRE_A2 });
     const shared = sharedFakes(); mergeInto(shared, s1); mergeInto(shared, s2);
-    const q = { ...requestFor('listOrders', A1), query: { registered_at_from: '2026-02-03T00:00:00.000Z', registered_at_to: '2026-02-03T23:59:59.000Z', limit: '200' } };
+    // FD-T16 ruling (round 3): F10 derives status per registered order via LabPort, and a lab not_found propagates: seed the objs() orders that share this window too
+    for (const o of [A1, A2]) {
+      shared.lab.__seed({ orders: [{ id: o.order.id, tenantId: TENANT_A, patientId: o.patient.id, centreId: o.centre, priority: 'routine', patient: { sex: 'female', ageDays: 15000 } }] });
+      shared.billing.__seed({ orders: [{ id: o.order.id, tenantId: TENANT_A }] });
+    }
+    const q ={ ...requestFor('listOrders', A1), query: { registered_at_from: '2026-02-03T00:00:00.000Z', registered_at_to: '2026-02-03T23:59:59.000Z', limit: '200' } };
     const one = await fire('listOrders', q, A1_ONLY, { lab: shared.lab, billing: shared.billing });
     expect(one.reply?.status, JSON.stringify(one.error?.code)).toBe(200);
     expect(idsOf(one.reply!.body)).toContain(s1.order.id);

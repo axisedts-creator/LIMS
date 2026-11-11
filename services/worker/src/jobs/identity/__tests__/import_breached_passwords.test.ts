@@ -10,9 +10,11 @@ import { createHash } from 'node:crypto';
 import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import { IMPORT_BREACHED_PASSWORDS, importBreachedPasswords } from '../tasks/import_breached_passwords.js';
 import { LimsError, ctx27, err, makeTx } from './t27.helpers.js';
+
+vi.setConfig({ testTimeout: 60_000 }); // ruling C2.T27: 25k per-element expects exceed vitest's 5 s default (LD-91 pattern)
 
 const ENV = 'LIMS_IDENTITY_BREACHED_LIST_PATH';
 const sha1 = (s: string) => createHash('sha1').update(s).digest('hex');

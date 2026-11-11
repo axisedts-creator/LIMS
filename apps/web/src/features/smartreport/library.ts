@@ -54,5 +54,54 @@ export function textProblems(text: string, kind: BlockKind | undefined, label: s
   return out;
 }
 
-export const statusText = (s: string) => (STATUS_LABEL[s] ?? s.replace(/_/g, ' ')).toLowerCase();
+// ---- SR-05 review: "Changes since active version" (04-UI-UX SR-05). Identity: blocks by block_key; rules by (rule_kind, trigger_kind, analyte|group, direction, block_key); mappings by analyte_id.
+export interface Counts { added: number; changed: number; removed: number }
+export interface Diff { texts: Counts; rules: Counts; mapping: Counts }
+
+function countDiff<T>(base: T[], next: T[], id: (x: T) => string, same: (a: T, b: T) => boolean): Counts {
+  const old = new Map(base.map((x) => [id(x), x]));
+  const seen = new Set<string>();
+  let added = 0, changed = 0;
+  for (const x of next) {
+    const k = id(x);
+    seen.add(k);
+    const o = old.get(k);
+    if (!o) added++; else if (!same(o, x)) changed++;
+  }
+  return { added, changed, removed: [...old.keys()].filter((k) => !seen.has(k)).length };
+}
+const pick = <T extends object>(o: T, keys: readonly string[]) => JSON.stringify(keys.map((k) => (o as Record<string, unknown>)[k] ?? null));
+
+export function diffLibrary(base: { blocks: Block[]; rules: Rule[]; mappings: Mapping[] }, next: { blocks: Block[]; rules: Rule[]; mappings: Mapping[] }): Diff {
+  const key = (blocks: Block[]) => new Map(blocks.map((b) => [b.id, b.block_key]));
+  const bk = { base: key(base.blocks), next: key(next.blocks) };
+  const ruleId = (m: Map<string, string>) => (r: Rule) => JSON.stringify([r.rule_kind, r.trigger_kind, r.analyte_id ?? r.group_code ?? null, r.direction, m.get(r.block_id) ?? r.block_id]);
+  // one id function per side: block ids differ between versions, block keys do not
+  const baseRules = new Map(base.rules.map((r) => [ruleId(bk.base)(r), r]));
+  const nextRules = new Map(next.rules.map((r) => [ruleId(bk.next)(r), r]));
+  const RULE_FIELDS = ['min_severity', 'priority', 'suggested_test_id', 'interval_days'];
+  const rules: Counts = { added: 0, changed: 0, removed: 0 };
+  for (const [k, r] of nextRules) { const o = baseRules.get(k); if (!o) rules.added++; else if (pick(o, RULE_FIELDS) !== pick(r, RULE_FIELDS)) rules.changed++; }
+  for (const k of baseRules.keys()) if (!nextRules.has(k)) rules.removed++;
+  const MAP_FIELDS = ['group_code', 'include_in_score', 'trend_enabled', 'borderline_fraction_bp', 'trend_stable_bp', 'sort_order'];
+  return {
+    texts: countDiff(base.blocks, next.blocks, (b) => b.block_key, (a, b) => pick(a, ['kind', 'text_en', 'text_ne']) === pick(b, ['kind', 'text_en', 'text_ne'])),
+    rules,
+    mapping: countDiff(base.mappings, next.mappings, (m) => m.analyte_id, (a, b) => pick(a, MAP_FIELDS) === pick(b, MAP_FIELDS)),
+  };
+}
+
+// ---- SR-06 wording terms, preview (SR-04 "Check & submit")
+export interface Term { id?: string; term: string; language: 'en' | 'ne' | 'any'; scope: 'global' | 'tenant'; reason?: string; is_active: boolean; version?: number }
+export const TERM_LANG_LABEL: Record<string, string> = { en: 'English', ne: 'Nepali', any: 'Any' };
+export const FIXTURES = ['synthetic_basic', 'synthetic_all_in_range', 'synthetic_critical'] as const;
+export type Fixture = (typeof FIXTURES)[number];
+/** Only the fields the preview dialog renders cross to the browser. */
+export interface Preview {
+  score?: { value: number; band: string; explanation?: string };
+  panels: { name: string; status: string }[];
+  deranged: string[]; advice: string[]; followUps: string[]; disclaimer?: string;
+}
+
+export const statusText =(s: string) => (STATUS_LABEL[s] ?? s.replace(/_/g, ' ')).toLowerCase();
 export const newKey = () => globalThis.crypto.randomUUID();

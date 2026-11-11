@@ -63,7 +63,7 @@ const SPECS: Spec[] = [
   mk("H2", "getHomeVisit", "GET", V, "homecollection.visit.read", N, [200], ["homecollection.visit_not_assigned"]),
   mk("H3", "assignHomeVisit", "POST", `${V}/assign`, "homecollection.visit.assign", R,
     [], [VCL, "homecollection.visit_incomplete", "homecollection.phlebotomist_not_eligible", "frontdesk.consent_required", "frontdesk.booking_already_converted",
-      "frontdesk.patient_duplicate_suspected", "catalog.test_inactive", "catalog.no_price", ...IDEM, VC, PRE], IM),
+      "frontdesk.patient_duplicate_suspected", ...IDEM, VC, PRE], IM),
   mk("H4", "unassignHomeVisit", "POST", `${V}/unassign`, "homecollection.visit.assign", O, [], [VCL, MSUP, VC, PRE], IM),
   mk("H5", "scheduleHomeVisit", "POST", `${V}/schedule`, "homecollection.visit.assign", R, [], [VCL, ...IDEM, VC, PRE], IM),
   mk("H6", "cancelHomeVisit", "POST", `${V}/cancel`, "homecollection.visit.assign", R, [], [VCL, MSUP, ...IDEM, VC, PRE], IM),
@@ -545,12 +545,12 @@ describe("homecollection.yaml (T0C-10.C17)", () => {
       isUuid(bp(s, "device_id"));
       expect(bp(s, "cursor").maxLength).toBe(512);
       expect(bp(s, "applied_at_device").format).toBe("date-time");
-      int(bp(s, "max_device_seq_acked"), 0, undefined);
+      int(bp(s, "max_device_seq_acked"), 0, 9007199254740991);
       expect(bp(s, "wipe_completed").type).toBe("boolean");
       expect(r(s)).toEqual(["applied_at_device", "cursor", "device_id", "max_device_seq_acked"]);
     });
     T("A5 sign-off: last_device_seq int ≥0 required", () => {
-      int(bp("signOffPhleboDevice", "last_device_seq"), 0, undefined);
+      int(bp("signOffPhleboDevice", "last_device_seq"), 0, 9007199254740991);
       expect(r("signOffPhleboDevice")).toEqual(["last_device_seq"]);
     });
     T("A3 PushRequest: all six fields required; anchors 0..20; mutations 1..100; now {device_wall_time, monotonic_ms ≥0, boot_id 1..64}", () => {
@@ -564,7 +564,7 @@ describe("homecollection.yaml (T0C-10.C17)", () => {
       const now = bp("pushSyncMutations", "now");
       expect(Object.keys(props(now)).sort()).toEqual(["boot_id", "device_wall_time", "monotonic_ms"]);
       expect(reqd(now).sort()).toEqual(["boot_id", "device_wall_time", "monotonic_ms"]);
-      int(deref(props(now).monotonic_ms), 0, undefined);
+      int(deref(props(now).monotonic_ms), 0, 9007199254740991);
       len(deref(props(now).boot_id), 1, 64);
       expect(sorted(b)).toEqual(dtoKeys(DTO.PushRequest));
     });
@@ -607,7 +607,7 @@ describe("homecollection.yaml (T0C-10.C17)", () => {
         const ty = deref(props(v).type);
         expect(ty.enum ?? [ty.const]).toEqual([t]);
         isUuid(deref(props(v).client_mutation_id));
-        int(deref(props(v).device_seq), 1, undefined);
+        int(deref(props(v).device_seq), 1, 9007199254740991);
         const cap = deref(props(v).captured);
         expect(Object.keys(props(cap)).sort()).toEqual(["anchor_id", "device_wall_time", "elapsed_since_anchor_ms"]);
         expect(reqd(cap).sort()).toEqual(["anchor_id", "device_wall_time", "elapsed_since_anchor_ms"]);

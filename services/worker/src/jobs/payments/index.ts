@@ -6,6 +6,8 @@ import type { Ctx } from '../../../../api/src/modules/payments/repository/shared
 import type { TaskHandler, WorkerManifest } from '../../core/manifest.js';
 import { crontab } from './cron.js';
 import { POLL_INTENT, createPollIntent } from './tasks/poll_intent.js';
+import { RECONCILE_BATCH, createReconcileBatch } from './tasks/reconcile_batch.js';
+import { RECONCILE_TENANT, createReconcileTenant } from './tasks/reconcile_tenant.js';
 import { SWEEP_OPEN_INTENTS, createSweepOpenIntents } from './tasks/sweep_open_intents.js';
 
 export const config = loadPaymentsConfig();
@@ -24,8 +26,10 @@ export const manifest: WorkerManifest = Object.freeze({
   tasks: Object.freeze({
     [POLL_INTENT]: bound((r) => createPollIntent(r.deps, r.ports)),
     [SWEEP_OPEN_INTENTS]: bound((r) => createSweepOpenIntents(r.deps)),
+    [RECONCILE_TENANT]: bound((r) => createReconcileTenant(r.deps, r.ports)),
+    [RECONCILE_BATCH]: bound((r) => createReconcileBatch(r.deps, r.ports)),
   }),
-  maxAttempts: Object.freeze({ [POLL_INTENT]: 8, [SWEEP_OPEN_INTENTS]: 3 }),
+  maxAttempts: Object.freeze({ [POLL_INTENT]: 8, [SWEEP_OPEN_INTENTS]: 3, [RECONCILE_TENANT]: 3, [RECONCILE_BATCH]: 3 }),
   subscriptions: Object.freeze({}),
   crontab,
 });

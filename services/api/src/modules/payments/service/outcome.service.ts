@@ -14,7 +14,10 @@ import { guardActor, money, notFound, strict, uuid, type Ctx, type PaymentsDeps,
 
 export type { PaymentsDeps } from '../repository/shared.js';
 export type CheckMode = 'verify' | 'reconciliation';
-export interface CheckOptions { cause?: string; allowExceedsDue?: boolean; suppressUnknownHold?: boolean }
+/** PG-T13: what applyCheck decided (final outcome, after the exceeds-due / already-held adjustments) — lets reconciliation derive its finding without a second gateway call. */
+export interface CheckDecision { outcome: GatewayOutcome; beforeStatus: string; answer?: { statusRaw: string; amountPaisa?: number } }
+// PG-T12 (P4): `reason` = reason_code of the settle transition row; `settleSets` = extra columns written in the same UPDATE as the settle (resolution_* fields). Both default to none.
+export interface CheckOptions { cause?: string; allowExceedsDue?: boolean; suppressUnknownHold?: boolean; reason?: string; settleSets?: Row; onDecision?: (d: CheckDecision) => void }
 export interface VerifyResult { intentId: string; status: string; gatewayStatusRaw?: string; verifiedAmount?: { amountPaisa: number; currency: 'NPR' } }
 
 const SETTLED_FAMILY = ['settled', 'partially_refunded', 'refunded'];
@@ -120,6 +123,7 @@ export function createOutcomeService(deps: PaymentsDeps) {
       if (amount > bal.balanceDue.amountPaisa) out = hold('exceeds_due'); // TRD §6.2 step 5a / AC-PG-06.3
     }
     if (out.kind === 'hold' && row['status'] === 'held_for_review') out = STAY;
+    o.onDecision?.({ outcome: out, beforeStatus: row['status'], ...(answer ? { answer: { statusRaw: answer.statusRaw, ...(answer.amountPaisa !== undefined ? { amountPaisa: answer.amountPaisa } : {}) } } : {}) });
 
     let upd: Row;
     switch (out.kind) {
@@ -128,14 +132,14 @@ export function createOutcomeService(deps: PaymentsDeps) {
         const led = await ctx.ports.BillingPort.recordGatewayPayment(ctx, { intentId: row['id'], orderId: row['order_id'], gateway: row['gateway'],
           gatewayTxnRef: row['gateway_txn_ref'], amount: money(amount), verifiedAt: nowIso, ...(o.allowExceedsDue ? { allowExceedsDue: true } : {}) });
         const settled = await updateIntent(ctx, row, { ...book, status: 'settled', settled_at: nowIso, verified_amount_paisa: amount,
-          verification_method: METHOD[row['gateway'] as 'esewa' | 'khalti'], ledger_entry_id: led.ledgerEntryId }, { from: SETTLEABLE, inc: ['check_count'] });
+          verification_method: METHOD[row['gateway'] as 'esewa' | 'khalti'], ledger_entry_id: led.ledgerEntryId, ...o.settleSets }, { from: SETTLEABLE, inc: ['check_count'] });
         if (!settled) throw new LimsError('common.internal');
         await deps.events.publish(ctx, 'payments.intent.settled.v1', {
           aggregate: { type: 'payment_intent', id: row['id'], seq: Number(settled['version']) },
           idempotencyKey: `${row['gateway']}:${row['gateway_txn_ref']}:settled`,
           payload: { intent_id: row['id'], order_id: row['order_id'], gateway: row['gateway'], gateway_txn_ref: row['gateway_txn_ref'],
             amount: { amount_paisa: amount, currency: 'NPR' }, verified_at: nowIso, verification_method: METHOD[row['gateway'] as 'esewa' | 'khalti'], ledger_entry_id: led.ledgerEntryId } });
-        await insertTransition(ctx, newId(), row['id'], { from: row['status'], to: 'settled', cause });
+        await insertTransition(ctx, newId(), row['id'], { from: row['status'], to: 'settled', cause, ...(o.reason ? { reason: o.reason } : {}) });
         upd = settled;
         break;
       }
@@ -157,5 +161,12 @@ export function createOutcomeService(deps: PaymentsDeps) {
     return applyCheck(ctx, uuid(i['intentId'], 'intentId'), 'verify');
   }
 
-  return { verify, applyCheck, gatewayLog };
+  /** PG-T13: one gateway status call for an intent with the call evidence row, no intent bookkeeping or transition (reconciliation of refunds). */
+  async function probe(ctx: Ctx, intentId: string): Promise<Check> {
+    const row = await findById(ctx, intentId) ?? notFound();
+    const { acct, handle } = usable(deps.kek, ctx, await accountById(ctx, row['merchant_account_id']));
+    return callGateway(ctx, row, acct, handle);
+  }
+
+  return { verify, applyCheck, probe, gatewayLog };
 }

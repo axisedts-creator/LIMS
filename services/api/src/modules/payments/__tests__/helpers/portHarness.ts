@@ -50,7 +50,8 @@ export interface HarnessExtras {
   config: ReturnType<typeof loadPaymentsConfig>;
   /** the real port without the tx/db wrapper: for tests that supply their own ctx.tx */
   deps: any;
-  /** PG-T11: the ledger / frontdesk doubles the wrapper injects as ctx.ports, for worker tasks that bring their own ctx */
+  /** PG-T09: the Billing/Frontdesk doubles the wrapped port injects, for tests that build their own ctx (callback handlers).
+   *  PG-T11: also the ledger / frontdesk doubles the wrapper injects as ctx.ports, for worker tasks that bring their own ctx */
   ports: { BillingPort: any; FrontdeskPort: any };
   setOrder(o: { id: string; tenantId?: string; dueAmountPaisa: number; gatewayStatus?: string; gatewayAmountPaisa?: number; status?: string }): void;
   disableAccount(gateway: 'esewa' | 'khalti', tenant?: 'A' | 'B'): void;

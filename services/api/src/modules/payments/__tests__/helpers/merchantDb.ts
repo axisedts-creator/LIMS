@@ -1,6 +1,7 @@
 // PG-T17 test fixture: in-memory fake of `ctx.tx.query` for payments.merchant_accounts, payments.settings and audit.access_log
 // (05-SCHEMA §1 constraints copied by name). The repo has no payments migration yet, so the fake is the integration seam (same approach as
 // catalog/__tests__/helpers/*Db.ts). Synthetic data only.
+// PG-T09 additions: payments.callbacks (append-only), SELECT <cols|*> FROM app.payments_resolve_callback_token($1) (DEFINER emulation), ctx.db.tx = SAVEPOINT.
 // Dialect the writer's SQL must stay inside (anything else throws "fake: unsupported SQL"):
 //   SELECT <cols|*> FROM <table> [WHERE c AND c ...] [ORDER BY col [ASC|DESC][, ...]] [LIMIT n] [FOR UPDATE]
 //   INSERT INTO <table> (cols) VALUES (exprs) [ON CONFLICT [(cols)] DO NOTHING] [RETURNING cols|*]
@@ -38,7 +39,16 @@ const TABLES = {
   'payments.intent_transitions': ['id', 'tenant_id', 'intent_id', 'from_status', 'to_status', 'cause', 'reason_code', 'actor_type', 'created_at', 'created_by'],
   'payments.gateway_calls': ['id', 'tenant_id', 'intent_id', 'refund_id', 'merchant_account_id', 'gateway', 'operation', 'attempt', 'http_status', 'outcome',
     'gateway_status_raw', 'response_redacted', 'duration_ms', 'created_at', 'created_by'],
+  // PG-T09: 05-SCHEMA §6 payments.callbacks (append-only; CHECK names copied).
+  'payments.callbacks': ['id', 'tenant_id', 'intent_id', 'gateway', 'kind', 'query_redacted', 'signature_valid', 'outcome_code', 'received_at', 'created_at', 'created_by'],
+  // PG-T12: coded sets (05-SCHEMA §5-§6; g_cs_reasons is GLOBAL = no tenant_id, readable by every tenant, no RLS) and a minimal refunds shell (PG-T14 owns refunds;
+  // the staff intent detail only reads it, so this fake models just enough columns to SELECT).
+  'payments.g_cs_reasons': ['id', 'set_name', 'code', 'display', 'requires_text', 'sort_order', 'is_active', 'created_at'],
+  'payments.cs_reasons': ['id', 'tenant_id', 'set_name', 'code', 'display', 'requires_text', 'sort_order', 'version', 'is_active', 'created_at', 'created_by', 'updated_at', 'updated_by'],
+  'payments.refunds': ['id', 'tenant_id', 'intent_id', 'order_id', 'centre_id', 'gateway', 'mode', 'status', 'amount_paisa', 'reason_code', 'reason_text', 'requested_by_membership_id',
+    'requested_at', 'version', 'created_at', 'created_by', 'updated_at', 'updated_by'],
 } as const;
+const GLOBAL_TABLES: readonly string[] = ['payments.g_cs_reasons'];
 type Table = keyof typeof TABLES;
 const NOT_NULL: Record<Table, string[]> = {
   'payments.merchant_accounts': ['id', 'tenant_id', 'gateway', 'environment', 'is_enabled', 'api_refunds_enabled', 'version', 'is_active', 'created_by', 'updated_by'],
@@ -49,6 +59,10 @@ const NOT_NULL: Record<Table, string[]> = {
     'created_actor_type', 'version', 'created_by', 'updated_by'],
   'payments.intent_transitions': ['id', 'tenant_id', 'intent_id', 'to_status', 'cause', 'actor_type', 'created_by'],
   'payments.gateway_calls': ['id', 'tenant_id', 'gateway', 'operation', 'attempt', 'outcome', 'duration_ms', 'created_by'],
+  'payments.callbacks': ['id', 'tenant_id', 'intent_id', 'gateway', 'kind', 'outcome_code', 'created_by'],
+  'payments.g_cs_reasons': ['id', 'set_name', 'code', 'display'],
+  'payments.cs_reasons': ['id', 'tenant_id', 'set_name', 'code', 'display', 'created_by', 'updated_by'],
+  'payments.refunds': ['id', 'tenant_id', 'intent_id', 'order_id', 'centre_id', 'gateway', 'mode', 'status', 'amount_paisa', 'reason_code', 'requested_by_membership_id', 'requested_at', 'version', 'created_by', 'updated_by'],
 };
 const DEFAULTS: Record<Table, () => Row> = {
   'payments.merchant_accounts': () => ({ is_enabled: false, api_refunds_enabled: false, version: 1, is_active: true }),
@@ -57,6 +71,10 @@ const DEFAULTS: Record<Table, () => Row> = {
   'payments.intents': () => ({ status: 'created', currency: 'NPR', check_count: 0, consecutive_unknown: 0, refunded_paisa: 0, version: 1 }),
   'payments.intent_transitions': () => ({}),
   'payments.gateway_calls': () => ({ attempt: 1 }),
+  'payments.callbacks': () => ({}),
+  'payments.g_cs_reasons': () => ({ requires_text: false, sort_order: 0, is_active: true }),
+  'payments.cs_reasons': () => ({ requires_text: false, sort_order: 0, version: 1, is_active: true }),
+  'payments.refunds': () => ({ version: 1 }),
 };
 const nn = (v: unknown): boolean => v !== null && v !== undefined;
 
@@ -104,6 +122,14 @@ function checks(t: Table, r: Row): string | undefined {            // returns th
     if (!['answer', 'service_unavailable', 'timeout', 'network_error', 'http_error', 'auth_error', 'not_found', 'invalid_response'].includes(r.outcome)) return 'gateway_calls__outcome__ck';
     return undefined;
   }
+  if (t === 'payments.callbacks') {
+    if (!['esewa_success', 'esewa_failure', 'khalti_return', 'launch'].includes(r.kind)) return 'callbacks__kind__ck';
+    if (!['ok', 'payments.signature_invalid', 'payments.callback_mismatch', 'payments.callback_stale', 'rate_limited'].includes(r.outcome_code)) return 'callbacks__outcome__ck';
+    const q = typeof r.query_redacted === 'string' ? JSON.parse(r.query_redacted) : r.query_redacted;       // node-pg sends jsonb as text or object
+    if (nn(q) && Object.hasOwn(q, 'mobile')) return 'callbacks__no_mobile__ck';
+    if (nn(q) && JSON.stringify(q).length > 6144) return 'callbacks__size__ck';
+    return undefined;
+  }
   if (t !== 'payments.merchant_accounts') return undefined;
   if (!['esewa', 'khalti', 'fonepay'].includes(r.gateway)) return 'merchant_accounts__gateway__ck';
   if (!['uat', 'production'].includes(r.environment)) return 'merchant_accounts__env__ck';
@@ -134,7 +160,7 @@ const uniq = (t: Table, rows: Row[], r: Row, self?: Row): string | undefined => 
     if (nn(r.gateway_txn_ref) && dup((x) => x.tenant_id === r.tenant_id && x.gateway === r.gateway && x.gateway_txn_ref === r.gateway_txn_ref)) return 'intents__tenant_id_gateway_txn__p_uq';
     if (dup((x) => same(x.callback_token_sha256, r.callback_token_sha256))) return 'intents__callback_token_sha256__uq';
   }
-  if ((t === 'payments.intent_transitions' || t === 'payments.gateway_calls') && dup((x) => x.id === r.id)) return `${t.split('.')[1]}__pk`;
+  if ((t === 'payments.intent_transitions' || t === 'payments.gateway_calls' || t === 'payments.callbacks') && dup((x) => x.id === r.id)) return `${t.split('.')[1]}__pk`;
   return undefined;
 };
 
@@ -145,7 +171,7 @@ const MUTABLE = new Set(['status', 'gateway_txn_ref', 'gateway_secondary_ref', '
 const TRANSITIONS: [string[], string[]][] = [[['created'], ['initiated', 'failed']], [['initiated', 'pending'], ['pending', 'settled', 'failed', 'expired', 'held_for_review']],
   [['held_for_review'], ['settled', 'failed']], [['failed', 'expired'], ['held_for_review']], [['settled'], ['partially_refunded', 'refunded']], [['partially_refunded'], ['refunded']]];
 function guard(t: Table, old: Row, next: Row): void {
-  if (t === 'payments.intent_transitions' || t === 'payments.gateway_calls') throw pgError('42501', `permission denied for table ${t.split('.')[1]}`); // append-only: INSERT + SELECT only
+  if (t === 'payments.intent_transitions' || t === 'payments.gateway_calls' || t === 'payments.callbacks') throw pgError('42501', `permission denied for table ${t.split('.')[1]}`); // append-only: INSERT + SELECT only
   if (t !== 'payments.intents') return;
   for (const c of TABLES[t]) if (!MUTABLE.has(c) && !same(old[c], next[c])) throw pgError('P0001', 'immutable_row');
   for (const c of ['gateway_txn_ref', 'gateway_payment_url', 'expires_at']) if (nn(old[c]) && !same(old[c], next[c])) throw pgError('P0001', 'immutable_row');
@@ -217,6 +243,10 @@ export function makeMerchantDb(seed: { merchant_accounts?: Row[]; settings?: Row
     'payments.intents': (seed.intents ?? []).map((r) => ({ ...r })),
     'payments.intent_transitions': [],
     'payments.gateway_calls': [],
+    'payments.callbacks': [],
+    'payments.g_cs_reasons': [],
+    'payments.cs_reasons': [],
+    'payments.refunds': [],
   };
   const stmts: Stmt[] = [];
   const logs: unknown[] = [];
@@ -235,9 +265,18 @@ export function makeMerchantDb(seed: { merchant_accounts?: Row[]; settings?: Row
           splitTop(cols, /,/).map((c) => { const [e, a] = c.split(/\s+as\s+/i); return [(a ?? e!).trim().split('.').pop()!, r[e!.trim().split('.').pop()!]]; }))));
         let m: RegExpMatchArray | null;
 
+        // PG-T09 / CR-C15-004: app.payments_resolve_callback_token(bytea) RETURNS TABLE (tenant_id, intent_id). SECURITY DEFINER: sees every tenant's intents, but returns only
+        // a live token's row (32-byte hash, created <= 30 days ago; an intent without created_at counts as created now). Dialect: SELECT <cols|*> FROM app.payments_resolve_callback_token($1)
+        if ((m = sql.match(/^select (.+?) from app\.payments_resolve_callback_token\s*\(\s*\$1\s*\)$/i))) {
+          const hash = values[0];
+          const live = Buffer.isBuffer(hash) && hash.length === 32
+            ? work['payments.intents'].filter((r) => same(r.callback_token_sha256, hash) && now.getTime() - new Date(r.created_at ?? now).getTime() <= 30 * 86_400_000) : [];
+          const out = project(live.map((r) => ({ tenant_id: r.tenant_id, intent_id: r.id })), m[1]);
+          return { rows: out, rowCount: out.length };
+        }
         if ((m = sql.match(/^select (.+?) from ([\w.]+)(?: where (.+?))?(?: order by (.+?))?(?: limit (\d+))?(?: for update)?$/i))) {
           const t = tbl(m[2]!);
-          let rows = work[t].filter((r) => r.tenant_id === tenantId && matches(m![3], values, r, now, text));
+          let rows = work[t].filter((r) => (GLOBAL_TABLES.includes(t) || r.tenant_id === tenantId) && matches(m![3], values, r, now, text));
           if (m[4]) for (const o of [...splitTop(m[4], /,/)].reverse()) {
             const [c, d] = o.split(/\s+/); const desc = /desc/i.test(d ?? '');
             rows = [...rows].sort((a, b) => (a[c!.split('.').pop()!] > b[c!.split('.').pop()!] ? 1 : a[c!.split('.').pop()!] < b[c!.split('.').pop()!] ? -1 : 0) * (desc ? -1 : 1));
@@ -254,11 +293,14 @@ export function makeMerchantDb(seed: { merchant_accounts?: Row[]; settings?: Row
           const row: Row = { ...DEFAULTS[t]() };
           cols.forEach((c, i) => { if (!(TABLES[t] as readonly string[]).includes(c)) throw pgError('42703', `column "${c}" does not exist`); row[c] = evalExpr(exprs[i]!, values, undefined, now, text); });
           if (t !== 'audit.access_log') { row.created_at ??= now; row.updated_at ??= now; }
+          if (t === 'payments.callbacks') row.received_at ??= now;
           for (const c of TABLES[t]) row[c] ??= null;
           toDates(row);
+          if (GLOBAL_TABLES.includes(t)) throw pgError('42501', `permission denied for table ${t.split('.')[1]}`);   // g_cs_reasons: SELECT only (05-SCHEMA §3)
           if (row.tenant_id !== tenantId) throw pgError('42501', 'new row violates row-level security policy');
           const nul = NOT_NULL[t].find((c) => !nn(row[c]));
           if (nul) throw pgError('23502', `null value in column "${nul}"`);
+          if (t === 'payments.callbacks' && !work['payments.intents'].some((i) => i.tenant_id === row.tenant_id && i.id === row.intent_id)) throw pgError('23503', 'violates foreign key callbacks__intent__fk', 'callbacks__intent__fk');
           const dupe = uniq(t, work[t], row);
           if (dupe) { if (/on conflict/i.test(sql)) return { rows: [], rowCount: 0 }; throw pgError('23505', `duplicate key ${dupe}`, dupe); }
           const bad = checks(t, row);
@@ -305,7 +347,11 @@ export function makeMerchantDb(seed: { merchant_accounts?: Row[]; settings?: Row
       const tx = makeTx(tenantId, work, clock);
       const ctx: any = { tenantId, requestId: randomUUID(), actor: { type: 'user', id: USER, membershipId: USER }, tx, now: () => clock().toISOString(), permissions: o.permissions };
       ctx.audit = { access: (entry: any) => access(ctx, entry) };
-      ctx.db = { tx: async (f: (c: any) => Promise<any>) => f(ctx) };
+      // ctx.db.tx = SAVEPOINT / ROLLBACK TO (C0 TRD §6, 08 A19 P-44): a throw inside restores every table to its state at entry, then rethrows.
+      ctx.db = { tx: async (f: (c: any) => Promise<any>) => {
+        const snap = Object.fromEntries((Object.keys(work) as Table[]).map((t) => [t, work[t].map((r) => ({ ...r }))])) as Record<Table, Row[]>;
+        try { return await f(ctx); } catch (e) { for (const t of Object.keys(snap) as Table[]) work[t] = snap[t]; throw e; }
+      } };
       const rec = (...a: unknown[]) => { logs.push(a); };
       ctx.log = { info: rec, warn: rec, error: rec, debug: rec };
       const out = await fn(ctx);
@@ -322,6 +368,8 @@ export function makeMerchantDb(seed: { merchant_accounts?: Row[]; settings?: Row
     intents: (tenantId = TENANT_A) => store['payments.intents'].filter((r) => r.tenant_id === tenantId),
     transitions: (tenantId = TENANT_A) => store['payments.intent_transitions'].filter((r) => r.tenant_id === tenantId),
     gatewayCalls: (tenantId = TENANT_A) => store['payments.gateway_calls'].filter((r) => r.tenant_id === tenantId),
+    callbacks: (tenantId = TENANT_A) => store['payments.callbacks'].filter((r) => r.tenant_id === tenantId),
+    refunds: (tenantId = TENANT_A) => store['payments.refunds'].filter((r) => r.tenant_id === tenantId),
     /** Test seeding of any table row (tenant defaults to A); bypasses CHECKs on purpose (arrange step). */
     put: (table: Table, row: Row) => { store[table].push({ ...Object.fromEntries((TABLES[table] as readonly string[]).map((c) => [c, null])), ...DEFAULTS[table](), ...row }); },
     settings: (tenantId = TENANT_A) => store['payments.settings'].filter((r) => r.tenant_id === tenantId),

@@ -549,12 +549,12 @@ describe("inventory.yaml (T0C-10.C12)", () => {
         });
       expect(n).toBeGreaterThan(8);
     });
-    T("every line array: lines[1..200] on #43 #47(lot_ids) #50 #52 #57 #59 #66 #81 #83; item_ids ≤ 200 on #88; observations 1–50 on #76", () => {
+    T("every line array: lines[1..200] on #43 #47(lot_ids) #50 #52 #57 #59 #66 #81 #83; item_ids ≤ 200 on #88; observations integer 1–50 on #76", () => {
       for (const id of ["createStockIssue", "createGoodsReceipt", "replaceGoodsReceiptDraft", "createTransfer", "replaceTransferDraft", "recordStockCountLines", "createPurchaseOrder", "replacePurchaseOrderDraft"])
         expect([bp(id, "lines").minItems, bp(id, "lines").maxItems], id).toEqual([1, 200]);
       expect([bp("writeOffExpiredStock", "lot_ids").minItems, bp("writeOffExpiredStock", "lot_ids").maxItems]).toEqual([1, 200]);
       expect(bp("createPurchaseOrdersFromReorder", "item_ids").maxItems).toBe(200);
-      expect([bp("logConsumptionEvent", "observations").minItems, bp("logConsumptionEvent", "observations").maxItems]).toEqual([1, 50]);
+      expect([bp("logConsumptionEvent", "observations").type, bp("logConsumptionEvent", "observations").minimum, bp("logConsumptionEvent", "observations").maximum]).toEqual(["integer", 1, 50]);
       for (const id of ["createStoreReturn", "createSupplierReturn", "recordWastage", "createStockAdjustment", "receiveTransfer"]) expect(bp(id, "lines").maxItems, id).toBeLessThanOrEqual(200);
     });
     T("required request fields per TRD (master data, stock, documents)", () => {

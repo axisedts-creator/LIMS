@@ -1,6 +1,6 @@
 # T31 impl (writer)
 Files: handlers/{loginPartner,openMobileSession,refreshMobileSession,logoutMobileSession,resolvePatientSession,logoutPatientSession}.ts (new), handlers/{index,loginStaff,resolveSession}.ts, service/{session,auth}.service.ts, ports/IdentityPort.impl.ts, repository/{mfa,auth-events}.repo.ts.
-Result: T31 suites 99/101; identity suite 3431 pass / 2 fail / 72 skip; tsc clean in identity (pre-existing contracts/* TS2835 elsewhere); no lint script exists. 2 failures = missing clock seam in the test -> notes/T31-dispute.md (verified: 20/20 with the one-line fix).
+Result (after T31-ruling.md clock seam): T31 suites 101/101; identity suite 3433 pass / 0 fail / 72 skip; tsc: 0 errors in modules/identity; no lint script exists.
 [CONV] login families share one envelope (createLoginHandler) + auth.service login(mode); AuthDeps.now seam. Row without actor_type = user membership. Mobile 403 writes login_failed (reasonCode mobile_permission) + sign-out job. App kinds are served only in state active. Patient lifetimes 14 d idle / 30 d absolute; JWT exp = min(now+1h, absolute, idle).
 [CONV] reuse revoke runs after bindTenant + row lock, kind check first (a token of another family is never a reuse); patient never enqueues gotrue_signout (LD-81).
 Fail closed (CR .orchestra/cr/C2.T31.nonblocking.md): real loginPartner (DEFINER lacks actor_type), real patient port writes (no account-id column, A28.2 scope), wired patient JWT signer (kid source unruled).

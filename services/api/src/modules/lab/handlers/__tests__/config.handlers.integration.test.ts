@@ -118,11 +118,11 @@ const SETTINGS = { label_width_mm: 60, label_height_mm: 30, label_copies_default
   critical_notification_blocks_approval: false, recollection_default: false, delta_check_enabled: false, history_days: 365 };
 const getSettings = (o: Opts = {}) => call('getLabSettings', req(), o);
 const putSettings = (body: unknown, h: object, o: Opts = {}) => call('updateLabSettings', req({ headers: h, body }), o);
-const RULE = { window_seconds: 7 * 86400, abs_threshold: '1.0', unit_code: 'mmol/L' };
+const RULE = { window_seconds: 7 * 86400, abs_threshold: '1.0', unit_code: 'mmol_l' };
 const create = (analyte: string, over: Record<string, unknown> = {}, o: Opts = {}) =>
   call('createDeltaCheckRule', req({ headers: idem(), body: { analyte_id: analyte, ...RULE, effective_from: iso(NOW.getTime() - 10 * DAY), ...over } }), o);
 const version = (ruleId: string, v: number | string, over: Record<string, unknown> = {}, o: Opts = {}) =>
-  call('versionDeltaCheckRule', req({ params: { rule_id: ruleId }, headers: { ...ifm(v), ...idem() }, body: { window_seconds: 14 * 86400, pct_threshold: '20', unit_code: 'mmol/L', ...over } }), o);
+  call('versionDeltaCheckRule', req({ params: { rule_id: ruleId }, headers: { ...ifm(v), ...idem() }, body: { window_seconds: 14 * 86400, pct_threshold: '20', unit_code: 'mmol_l', ...over } }), o);
 const deactivate = (ruleId: string, v: number | string, o: Opts = {}) => call('deactivateDeltaCheckRule', req({ params: { rule_id: ruleId }, headers: ifm(v), body: {} }), o);
 const listRules = (query: object = {}, o: Opts = {}) => call('listDeltaCheckRules', req({ query }), o);
 const listSet = (set: string, o: Opts = {}) => call('listLabCodedSet', req({ params: { set_name: set } }), o);
@@ -257,7 +257,7 @@ describe.skipIf(!live)('T-29 #50 createDeltaCheckRule (versioned rules, AC-12.4)
     const r = await create(an, { effective_from: from });
     expect(r.status).toBe(201);
     expect(schemaErrors('DeltaCheckRuleDto', r.body)).toEqual([]);
-    expect(r.body).toMatchObject({ analyte_id: an, version: 1, rule_version: 1, window_seconds: 7 * 86400, unit_code: 'mmol/L', is_active: true, effective_from: from });
+    expect(r.body).toMatchObject({ analyte_id: an, version: 1, rule_version: 1, window_seconds: 7 * 86400, unit_code: 'mmol_l', is_active: true, effective_from: from });
     expect(Number(r.body.abs_threshold)).toBe(1);
     expect(r.body.pct_threshold).toBeUndefined();
     expect(r.body.effective_to).toBeUndefined();

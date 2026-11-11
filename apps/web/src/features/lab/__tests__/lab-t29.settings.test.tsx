@@ -48,7 +48,7 @@ const SETTINGS = { version: 3, label_width_mm: 50, label_height_mm: 25, label_co
   critical_notification_blocks_approval: true, recollection_default: true, delta_check_enabled: true, history_days: 730 };
 const KEYS = Object.keys(SETTINGS).filter((k) => k !== 'version').sort();
 const rule = (n: number, o: Record<string, unknown> = {}) => ({ id: U(0x800 + n), version: 2, analyte_id: `${(0xa0 + n).toString(16).padStart(2, '0')}c4a0${n}0-ac40-7000-8000-000000000${n}00`, rule_version: 1, window_seconds: 7 * 86400, abs_threshold: '1.0',
-  unit_code: 'mmol/L', effective_from: '2026-11-05T04:15:00.000Z', is_active: true, ...o });
+  unit_code: 'mmol_l', effective_from: '2026-11-05T04:15:00.000Z', is_active: true, ...o });
 const code = (c: string, o: Record<string, unknown> = {}) => ({ code: c, display: `${c} display`, sort_order: 1, is_active: true, source: 'global', ...o });
 
 interface Call { op: string; url: URL; headers: Headers; body?: any }
@@ -95,19 +95,19 @@ const type = async (user: ReturnType<typeof userEvent.setup>, label: RegExp, val
 describe('General tab — #47 / #48 (02-TRD §9.1)', () => {
   it('loads GET /v1/lab/settings with the bearer token and shows every §9.1 value in labelled controls; General is the default tab', async () => {
     await open();
-    expect(await screen.findByLabelText(/label width/i)).toHaveValue(50);
+    expect(Number(((await screen.findByLabelText(/label width/i)) as HTMLInputElement).value)).toBe(50);
     expect(ops('getSettings')).toHaveLength(1);
     expect(ops('getSettings')[0]!.headers.get('authorization')).toBe('Bearer jwt-synthetic');
-    expect(screen.getByRole('tab', { name: /general/i })).toHaveAttribute('aria-selected', 'true');
-    expect(screen.getByLabelText(/label height/i)).toHaveValue(25);
-    expect(screen.getByLabelText(/copies per specimen/i)).toHaveValue(1);
-    expect(screen.getByLabelText(/history \(days\)/i)).toHaveValue(730);
-    expect(screen.getByLabelText(/label renderer/i)).toHaveValue('html_svg');
-    expect(screen.getByLabelText(/host query requires received/i)).toBeChecked();
-    expect(screen.getByLabelText(/auto-receive/i)).not.toBeChecked();
-    expect(screen.getByLabelText(/critical notification blocks approval/i)).toBeChecked();
-    expect(screen.getByLabelText(/recollection/i)).toBeChecked();
-    expect(screen.getByLabelText(/delta check enabled/i)).toBeChecked();
+    expect(screen.getByRole('tab', { name: /general/i }).getAttribute('aria-selected')).toBe('true');
+    expect(Number((screen.getByLabelText(/label height/i) as HTMLInputElement).value)).toBe(25);
+    expect(Number((screen.getByLabelText(/copies per specimen/i) as HTMLInputElement).value)).toBe(1);
+    expect(Number((screen.getByLabelText(/history \(days\)/i) as HTMLInputElement).value)).toBe(730);
+    expect((screen.getByLabelText(/label renderer/i) as HTMLSelectElement).value).toBe('html_svg');
+    expect((screen.getByLabelText(/host query requires received/i) as HTMLInputElement).checked).toBe(true);
+    expect((screen.getByLabelText(/auto-receive/i) as HTMLInputElement).checked).toBe(false);
+    expect((screen.getByLabelText(/critical notification blocks approval/i) as HTMLInputElement).checked).toBe(true);
+    expect((screen.getByLabelText(/recollection/i) as HTMLInputElement).checked).toBe(true);
+    expect((screen.getByLabelText(/delta check enabled/i) as HTMLInputElement).checked).toBe(true);
   });
 
   it('Save sends PUT with If-Match "<version>" and exactly the ten update keys (no version, no tenant); success shows "Settings saved"', async () => {
@@ -116,7 +116,7 @@ describe('General tab — #47 / #48 (02-TRD §9.1)', () => {
     await type(user, /label width/i, '60');
     await user.click(screen.getByLabelText(/auto-receive/i));
     await user.click(screen.getByRole('button', { name: /save settings/i }));
-    expect(await screen.findByText(/settings saved/i)).toBeInTheDocument();
+    expect(await screen.findByText(/settings saved/i)).toBeTruthy();
     expect(ops('putSettings')).toHaveLength(1);
     const put = ops('putSettings')[0]!;
     expect(put.headers.get('if-match')).toBe('"3"');
@@ -144,8 +144,8 @@ describe('General tab — #47 / #48 (02-TRD §9.1)', () => {
     const user = userEvent.setup();
     const el = await type(user, label, value);
     await user.click(screen.getByRole('button', { name: /save settings/i }));
-    expect(await screen.findByText(msg)).toBeInTheDocument();
-    expect(el).toHaveAttribute('aria-invalid', 'true');
+    expect(await screen.findByText(msg)).toBeTruthy();
+    expect(el.getAttribute('aria-invalid')).toBe('true');
     expect(ops('putSettings')).toHaveLength(0);
   });
 
@@ -162,8 +162,8 @@ describe('General tab — #47 / #48 (02-TRD §9.1)', () => {
     putReply = () => problem(409, 'common.version_conflict', 'The settings were changed by someone else');
     settingsReply = () => HttpResponse.json({ ...SETTINGS, version: 5, label_width_mm: 70 });
     await user.click(screen.getByRole('button', { name: /save settings/i }));
-    expect(await within(await screen.findByRole('alert')).findByText(/changed by someone else/i)).toBeInTheDocument();
-    await waitFor(() => expect(screen.getByLabelText(/label width/i)).toHaveValue(70));
+    expect(await within(await screen.findByRole('alert')).findByText(/changed by someone else/i)).toBeTruthy();
+    await waitFor(() => expect(Number((screen.getByLabelText(/label width/i) as HTMLInputElement).value)).toBe(70));
     expect(ops('getSettings')).toHaveLength(2);
   });
 
@@ -173,14 +173,14 @@ describe('General tab — #47 / #48 (02-TRD §9.1)', () => {
     await type(user, /label width/i, '60');
     putReply = () => problem(403, 'auth.mfa_required', 'Multi-factor authentication required');
     await user.click(screen.getByRole('button', { name: /save settings/i }));
-    expect(await within(await screen.findByRole('alert')).findByText(/multi-factor|verify your identity|re-authenticate/i)).toBeInTheDocument();
-    expect(screen.getByLabelText(/label width/i)).toHaveValue(60);
+    expect(await within(await screen.findByRole('alert')).findByText(/multi-factor|verify your identity|re-authenticate/i)).toBeTruthy();
+    expect(Number((screen.getByLabelText(/label width/i) as HTMLInputElement).value)).toBe(60);
   });
 
   it('without lab.config.manage the values are shown read-only: no Save button, inputs disabled or readonly (S-15, REQ-SEC-062)', async () => {
     await open(READ_ONLY);
     const w = await screen.findByLabelText(/label width/i);
-    expect(w).toHaveValue(50);
+    expect(Number((w as HTMLInputElement).value)).toBe(50);
     expect(screen.queryByRole('button', { name: /save settings/i })).toBeNull();
     expect(w.hasAttribute('disabled') || w.hasAttribute('readonly')).toBe(true);
   });
@@ -188,7 +188,7 @@ describe('General tab — #47 / #48 (02-TRD §9.1)', () => {
   it('a failing read (403) shows the error text in an alert, not an empty form, and no Save button', async () => {
     settingsReply = () => problem(403, 'auth.forbidden', 'You do not have permission');
     await open();
-    expect(await within(await screen.findByRole('alert')).findByText(/do not have permission/i)).toBeInTheDocument();
+    expect(await within(await screen.findByRole('alert')).findByText(/do not have permission/i)).toBeTruthy();
     expect(screen.queryByRole('button', { name: /save settings/i })).toBeNull();
   });
 
@@ -209,9 +209,9 @@ describe('Delta rules tab — #49-#52 (AC-12.4: versioned rules, effective_from)
     const [active, inactive] = rowsOf();
     expect(active!.textContent).toContain(rule(1).analyte_id.slice(0, 8));
     expect(active!.textContent).not.toContain(rule(1).analyte_id);              // IdText: first 8 chars only
-    expect(active!.textContent).toContain('mmol/L');
-    expect(within(active!).getByText(/^active$/i)).toBeInTheDocument();
-    expect(within(inactive!).getByText(/^inactive$/i)).toBeInTheDocument();
+    expect(active!.textContent).toContain('mmol_l');
+    expect(within(active!).getByText(/^active$/i)).toBeTruthy();
+    expect(within(inactive!).getByText(/^inactive$/i)).toBeTruthy();
     expect(inactive!.textContent).toContain('20');                              // pct threshold of the second rule
     expect(active!.textContent).toMatch(/1\.0/);
     expect(active!.textContent).toMatch(/7\s*(d|days)|168\s*(h|hours)/i);       // 604800 s shown as a human duration, not raw seconds
@@ -232,7 +232,7 @@ describe('Delta rules tab — #49-#52 (AC-12.4: versioned rules, effective_from)
     await tab(/delta rules/i);
     await waitFor(() => expect(rowsOf()).toHaveLength(2));
     const [active, inactive] = rowsOf();
-    expect(within(active!).getByRole('button', { name: /deactivate/i })).toBeInTheDocument();
+    expect(within(active!).getByRole('button', { name: /deactivate/i })).toBeTruthy();
     expect(within(inactive!).queryByRole('button', { name: /deactivate/i })).toBeNull();
   });
 
@@ -244,11 +244,11 @@ describe('Delta rules tab — #49-#52 (AC-12.4: versioned rules, effective_from)
     await type(user, /analyte id/i, U(0xa11));
     await type(user, /window \(hours\)/i, '168');
     await type(user, /absolute threshold/i, '1.5');
-    await type(user, /^unit/i, 'mmol/L');
+    await type(user, /^unit/i, 'mmol_l');
     await user.click(screen.getByRole('button', { name: /save rule/i }));
     await waitFor(() => expect(ops('createRule')).toHaveLength(1));
     const c = ops('createRule')[0]!;
-    expect(c.body).toEqual({ analyte_id: U(0xa11), window_seconds: 168 * 3600, abs_threshold: '1.5', unit_code: 'mmol/L' });
+    expect(c.body).toEqual({ analyte_id: U(0xa11), window_seconds: 168 * 3600, abs_threshold: '1.5', unit_code: 'mmol_l' });
     expect(c.headers.get('idempotency-key')).toMatch(/\S{8,}/);
     await waitFor(() => expect(ops('listRules').length).toBeGreaterThanOrEqual(2));
   });
@@ -264,11 +264,11 @@ describe('Delta rules tab — #49-#52 (AC-12.4: versioned rules, effective_from)
     await user.click(screen.getByRole('button', { name: /new rule/i }));
     await type(user, /analyte id/i, U(0xa12));
     await type(user, /window \(hours\)/i, '168');
-    await type(user, /^unit/i, 'mmol/L');
+    await type(user, /^unit/i, 'mmol_l');
     if (v.abs) await type(user, /absolute threshold/i, v.abs);
     if (v.pct) await type(user, /percent threshold/i, v.pct);
     await user.click(screen.getByRole('button', { name: /save rule/i }));
-    expect(await screen.findByText(msg)).toBeInTheDocument();
+    expect(await screen.findByText(msg)).toBeTruthy();
     expect(ops('createRule')).toHaveLength(0);
   });
 
@@ -279,11 +279,11 @@ describe('Delta rules tab — #49-#52 (AC-12.4: versioned rules, effective_from)
     await user.click(screen.getByRole('button', { name: /new rule/i }));
     await type(user, /analyte id/i, U(0xa13));
     await type(user, /absolute threshold/i, '1');
-    await type(user, /^unit/i, 'mmol/L');
+    await type(user, /^unit/i, 'mmol_l');
     for (const bad of ['0', '8761']) {
       await type(user, /window \(hours\)/i, bad);
       await user.click(screen.getByRole('button', { name: /save rule/i }));
-      expect(await screen.findByText(/1.*8760|between 1/i)).toBeInTheDocument();
+      expect(await screen.findByText(/1.*8760|between 1/i)).toBeTruthy();
     }
     expect(ops('createRule')).toHaveLength(0);
   });
@@ -295,7 +295,7 @@ describe('Delta rules tab — #49-#52 (AC-12.4: versioned rules, effective_from)
     await user.click(within(rowsOf()[0]!).getByRole('button', { name: /new version/i }));
     await type(user, /window \(hours\)/i, '336');
     await type(user, /percent threshold/i, '20');
-    await type(user, /^unit/i, 'mmol/L');
+    await type(user, /^unit/i, 'mmol_l');
     await type(user, /effective from/i, '2026-12-01T08:00');
     await user.click(screen.getByRole('button', { name: /save rule/i }));
     await waitFor(() => expect(ops('versionRule')).toHaveLength(1));
@@ -304,7 +304,7 @@ describe('Delta rules tab — #49-#52 (AC-12.4: versioned rules, effective_from)
     expect(v.headers.get('if-match')).toBe('"2"');
     expect(v.headers.get('idempotency-key')).toMatch(/\S{8,}/);
     expect(v.body).not.toHaveProperty('analyte_id');
-    expect(v.body).toMatchObject({ window_seconds: 336 * 3600, pct_threshold: '20', unit_code: 'mmol/L' });
+    expect(v.body).toMatchObject({ window_seconds: 336 * 3600, pct_threshold: '20', unit_code: 'mmol_l' });
     expect(v.body.effective_from).toMatch(/^2026-1[12]-\d\dT\d\d:\d\d(:\d\d(\.\d+)?)?Z$/);
   });
 
@@ -332,20 +332,20 @@ describe('Delta rules tab — #49-#52 (AC-12.4: versioned rules, effective_from)
     deactivateReply = () => problem(409, 'common.version_conflict', 'This rule was changed by someone else');
     await user.click(within(rowsOf()[0]!).getByRole('button', { name: /deactivate/i }));
     await user.click(within(await screen.findByRole('dialog')).getByRole('button', { name: /^deactivate$/i }));
-    expect(await screen.findByText(/changed by someone else/i)).toBeInTheDocument();
+    expect(await screen.findByText(/changed by someone else/i)).toBeTruthy();
     await waitFor(() => expect(ops('listRules').length).toBeGreaterThanOrEqual(2));
     deactivateReply = () => problem(403, 'auth.mfa_required', 'Multi-factor authentication required');
     await user.click(within(rowsOf()[0]!).getByRole('button', { name: /deactivate/i }));
     await user.click(within(await screen.findByRole('dialog')).getByRole('button', { name: /^deactivate$/i }));
-    expect(await screen.findByText(/multi-factor|verify your identity|re-authenticate/i)).toBeInTheDocument();
+    expect(await screen.findByText(/multi-factor|verify your identity|re-authenticate/i)).toBeTruthy();
   });
 
   it('an empty list shows "No delta rules." and, with the permission, still offers New rule', async () => {
     rulesReply = () => HttpResponse.json({ data: [] });
     await open();
     await tab(/delta rules/i);
-    expect(await screen.findByText(/no delta rules/i)).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /new rule/i })).toBeInTheDocument();
+    expect(await screen.findByText(/no delta rules/i)).toBeTruthy();
+    expect(screen.getByRole('button', { name: /new rule/i })).toBeTruthy();
   });
 });
 
@@ -359,11 +359,11 @@ describe('Reason codes tab — #53 / #54 (global rows shadowed by tenant rows)',
     expect(within(sel).getAllByRole('option').map((o) => (o as HTMLOptionElement).value)).toEqual(['rejection_reasons', 'return_reasons', 'amendment_reasons', 'exception_discard_reasons']);
     const [glob, tenant, off] = rowsOf();
     expect(glob!.textContent).toContain('rejection_reasons_glob');
-    expect(within(glob!).getByText(/^global$/i)).toBeInTheDocument();
+    expect(within(glob!).getByText(/^global$/i)).toBeTruthy();
     expect(tenant!.textContent).toContain('Haemolysed (lab wording)');
-    expect(within(tenant!).getByText(/^tenant$/i)).toBeInTheDocument();
-    expect(within(off!).getByText(/^inactive$/i)).toBeInTheDocument();
-    expect(within(glob!).getByText(/^active$/i)).toBeInTheDocument();
+    expect(within(tenant!).getByText(/^tenant$/i)).toBeTruthy();
+    expect(within(off!).getByText(/^inactive$/i)).toBeTruthy();
+    expect(within(glob!).getByText(/^active$/i)).toBeTruthy();
   });
 
   it('switching the set loads that set\'s codes (GET /coded-sets/amendment_reasons)', async () => {
@@ -372,7 +372,7 @@ describe('Reason codes tab — #53 / #54 (global rows shadowed by tenant rows)',
     await waitFor(() => expect(rowsOf()).toHaveLength(3));
     await user.selectOptions(screen.getByLabelText(/code set/i), 'amendment_reasons');
     await waitFor(() => expect(ops('listSet').map((c) => c.url.pathname)).toContain('/v1/lab/coded-sets/amendment_reasons'));
-    expect(await screen.findByText('amendment_reasons_glob')).toBeInTheDocument();
+    expect(await screen.findByText('amendment_reasons_glob')).toBeTruthy();
   });
 
   it('overriding a GLOBAL row: Edit -> PUT /coded-sets/{set}/codes/{code} with { display, sort_order, is_active } only, NO If-Match (creates the tenant row); the list reloads', async () => {
@@ -398,11 +398,11 @@ describe('Reason codes tab — #53 / #54 (global rows shadowed by tenant rows)',
     await type(user, /^code$/i, 'Bad Code!');
     await type(user, /display/i, 'Shown to staff');
     await user.click(screen.getByRole('button', { name: /save/i }));
-    expect(await screen.findByText(/lowercase|a-z0-9_|letters, digits/i)).toBeInTheDocument();
+    expect(await screen.findByText(/lowercase|a-z0-9_|letters, digits/i)).toBeTruthy();
     await type(user, /^code$/i, 'clotted');
     await type(user, /display/i, '');
     await user.click(screen.getByRole('button', { name: /save/i }));
-    expect(await screen.findByText(/display.*required|required|1.*120/i)).toBeInTheDocument();
+    expect(await screen.findByText(/display.*required|required|1.*120/i)).toBeTruthy();
     expect(ops('upsertCode')).toHaveLength(0);
     await type(user, /display/i, 'Clotted sample');
     await user.click(screen.getByRole('button', { name: /save/i }));
@@ -424,7 +424,7 @@ describe('Reason codes tab — #53 / #54 (global rows shadowed by tenant rows)',
     setReply = () => problem(500, 'common.internal', 'Something went wrong');
     await open();
     await tab(/reason codes/i);
-    expect(await within(await screen.findByRole('alert')).findByText(/something went wrong/i)).toBeInTheDocument();
+    expect(await within(await screen.findByRole('alert')).findByText(/something went wrong/i)).toBeTruthy();
     cleanup(); calls.length = 0;
     setReply = (set) => HttpResponse.json({ data: [code(`${set}_glob`)] });
     upsertReply = () => problem(403, 'auth.mfa_required', 'Multi-factor authentication required');
@@ -433,7 +433,7 @@ describe('Reason codes tab — #53 / #54 (global rows shadowed by tenant rows)',
     await waitFor(() => expect(rowsOf()).toHaveLength(1));
     await user.click(within(rowsOf()[0]!).getByRole('button', { name: /edit/i }));
     await user.click(screen.getByRole('button', { name: /save/i }));
-    expect(await screen.findByText(/multi-factor|verify your identity|re-authenticate/i)).toBeInTheDocument();
+    expect(await screen.findByText(/multi-factor|verify your identity|re-authenticate/i)).toBeTruthy();
   });
 
   it('axe: the Reason codes tab has no accessibility violations (status as text, labelled select)', async () => {

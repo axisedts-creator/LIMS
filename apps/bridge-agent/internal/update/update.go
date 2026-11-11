@@ -11,6 +11,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -69,8 +70,35 @@ const (
 	pendingFile = "pending.json"
 	currentFile = "current.json"
 	healthyFile = "healthy.json"
-	maxJSON     = 64 << 10
+
+	// rolledBackFile lists versions the launcher rolled back; only the launcher writes it, so the agent cannot clobber the block [CONV].
+	rolledBackFile = "rolled-back.json"
+	attemptsFile   = "download-attempts.json" // version -> download attempt times, for the 3/day cap [CONV]
+	maxJSON        = 64 << 10
 )
+
+// Now is the clock Download uses for the retry cap (tests replace it).
+var Now = time.Now
+
+type rolledBackList struct {
+	Versions []string `json:"versions"`
+}
+
+func isRolledBack(root, version string) bool {
+	var r rolledBackList
+	_ = readJSON(filepath.Join(root, rolledBackFile), &r)
+	return slices.Contains(r.Versions, version)
+}
+
+func markRolledBack(root, version string) error {
+	var r rolledBackList
+	_ = readJSON(filepath.Join(root, rolledBackFile), &r)
+	if slices.Contains(r.Versions, version) {
+		return nil
+	}
+	r.Versions = append(r.Versions, version)
+	return writeJSON(filepath.Join(root, rolledBackFile), r)
+}
 
 func ReadStatus(root string) (Status, error) {
 	var s Status

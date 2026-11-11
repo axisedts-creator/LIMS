@@ -36,7 +36,7 @@ type LauncherOptions struct {
 
 type Launcher struct {
 	o   LauncherOptions
-	bad map[string]bool // versions rolled back: never retried (in memory + the rolled_back status on startup)
+	bad map[string]bool // versions rolled back: never retried (in memory + rolled-back.json on startup)
 }
 
 const (
@@ -101,8 +101,10 @@ func (l *Launcher) Run(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	if st, err := ReadStatus(l.o.Root); err == nil && st.State == StateRolledBack && validVersion(st.TargetVersion) {
-		l.bad[st.TargetVersion] = true
+	var rb rolledBackList
+	_ = readJSON(l.path(rolledBackFile), &rb)
+	for _, v := range rb.Versions {
+		l.bad[v] = true
 	}
 	var pr *probation
 	if cur.Previous != "" && !l.healthy(cur.Version) {
@@ -188,6 +190,7 @@ outer:
 // rollback restores the previous version and records rolled_back with the failed version as target.
 func (l *Launcher) rollback(cur current) (current, *probation) {
 	l.bad[cur.Version] = true
+	_ = markRolledBack(l.o.Root, cur.Version) // best effort: the in-memory block still holds until restart
 	if cur.Previous == "" {
 		writeStatus(l.o.Root, StateFailed, cur.Version)
 		return cur, nil

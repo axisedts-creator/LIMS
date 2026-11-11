@@ -15,7 +15,9 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"slices"
 	"strings"
+	"time"
 )
 
 const (
@@ -37,12 +39,18 @@ func Download(ctx context.Context, c *http.Client, rawURL, token, root string, r
 	if !validVersion(rel.Version) {
 		return fail("invalid version")
 	}
+	if isRolledBack(root, rel.Version) { // status stays rolled_back (AC-15.3)
+		return "", &Error{State: StateRolledBack, Reason: "version was rolled back"}
+	}
 	if rel.PackageSize <= 0 || rel.PackageSize > maxPackage {
 		return fail("invalid package_size")
 	}
 	u, err := url.Parse(rawURL)
 	if err != nil || u.Scheme != "https" || u.Host == "" {
 		return fail("package URL must be https")
+	}
+	if !recordAttempt(root, rel.Version) {
+		return fail("retry cap: %d downloads of %s in 24 h", maxAttempts, rel.Version)
 	}
 	if c == nil {
 		c = http.DefaultClient
@@ -82,6 +90,29 @@ func Download(ctx context.Context, c *http.Client, rawURL, token, root string, r
 		return fail("package is %d bytes, release says %d", n, rel.PackageSize)
 	}
 	return part, nil
+}
+
+const maxAttempts = 3 // 03-APP-FLOW 3.6: max 3/day [CONV]
+
+// recordAttempt drops attempts older than 24 h and records one for version unless it already has maxAttempts in the last 24 h.
+func recordAttempt(root, version string) bool {
+	now := Now()
+	all := map[string][]time.Time{}
+	_ = readJSON(filepath.Join(root, attemptsFile), &all)
+	for v, ts := range all {
+		ts = slices.DeleteFunc(ts, func(t time.Time) bool { return now.Sub(t) >= 24*time.Hour })
+		if len(ts) == 0 {
+			delete(all, v)
+		} else {
+			all[v] = ts
+		}
+	}
+	if len(all[version]) >= maxAttempts {
+		return false
+	}
+	all[version] = append(all[version], now)
+	_ = writeJSON(filepath.Join(root, attemptsFile), all) // ponytail: unwritable root disables the cap; the download fails there anyway
+	return true
 }
 
 // verifyZip checks size, SHA-256 and the Ed25519 release signature of a package file against keys.
@@ -142,6 +173,10 @@ func checkPublisher(av Authenticode, exe, expected string) error {
 // Stage verifies partPath (size, SHA-256, Ed25519, then Authenticode publisher of the unpacked agent.exe) and, only if all hold, leaves
 // versions\<version>.zip, versions\<version>\ and pending.json. Any failure -> *Error verify_failed and nothing staged (AC-15.2).
 func Stage(root, partPath string, rel Release, keys ReleaseKeys, av Authenticode) (err error) {
+	if validVersion(rel.Version) && isRolledBack(root, rel.Version) { // status stays rolled_back (AC-15.3)
+		_ = os.Remove(partPath)
+		return &Error{State: StateRolledBack, Reason: "version was rolled back"}
+	}
 	vdir := ""
 	defer func() {
 		if err == nil {

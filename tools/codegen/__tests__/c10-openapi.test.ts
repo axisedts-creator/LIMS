@@ -693,7 +693,7 @@ describe("micro.yaml (T0C-10.C10)", () => {
       expect(Object.keys(props(prop(d, "permissions_hint")))).toEqual(["can_amend_approved"]);
     });
     T("PlateDto and ObservationDto fields exactly (§5.6)", () => {
-      expect(sorted(schema("PlateDto"))).toEqual(["id", "incubation_text", "media_code", "parent_plate_id", "plate_no", "planted_at", "source_isolate_id", "status", "version"]);
+      expect(sorted(schema("PlateDto"))).toEqual(["id", "incubation_text", "media_code", "parent_plate_id", "planted_at", "plate_no", "source_isolate_id", "status", "version"]);
       for (const f of ["incubation_text", "parent_plate_id", "source_isolate_id"]) expect(reqd(schema("PlateDto")), f).not.toContain(f);
       expect(sorted(schema("ObservationDto"))).toEqual(["corrects_observation_id", "finding_text", "growth_code", "hours_since_planting", "id", "is_corrected", "kind", "observed_at", "plate_id",
         "quantity_text", "recorded_by_display"]);

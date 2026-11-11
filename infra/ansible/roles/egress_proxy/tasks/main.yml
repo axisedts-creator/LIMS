@@ -16,14 +16,26 @@
     egress_proxy_list: >-
       {{ (lookup('ansible.builtin.file', egress_proxy_allowlist)
       | from_yaml).destinations }}
+    egress_proxy_scope: >-
+      {{ ((lookup('ansible.builtin.file', egress_proxy_allowlist)
+      | from_yaml).env_scope | default({})).get(env, []) }}
 
+# T-35 (CR-C15-008 item 4): an owner-C15 gateway also needs its fqdn in
+# env_scope[env]; unlisted = never loaded (fail closed). Other owners: unscoped.
 - name: Approved Squid names only (pending/refused stay 403, B11)
   ansible.builtin.set_fact:
     egress_proxy_fqdns: >-
-      {{ egress_proxy_list | selectattr('via', 'eq', 'squid')
+      {{ (egress_proxy_list | selectattr('via', 'eq', 'squid')
       | selectattr('f01_status', 'eq', 'approved')
       | selectattr('port', 'eq', 443)
-      | map(attribute='fqdn') | unique | list }}
+      | rejectattr('owner', 'eq', 'C15')
+      | map(attribute='fqdn') | list
+      + egress_proxy_list | selectattr('via', 'eq', 'squid')
+      | selectattr('f01_status', 'eq', 'approved')
+      | selectattr('port', 'eq', 443)
+      | selectattr('owner', 'eq', 'C15')
+      | selectattr('fqdn', 'in', egress_proxy_scope)
+      | map(attribute='fqdn') | list) | unique | list }}
 
 # Names land in squid.conf: plain DNS names only
 - name: Approved names are DNS names

@@ -488,6 +488,16 @@ describe.skipIf(!live)('T-25 #46 releaseQcHold (02-TRD §5.7; 07-SECURITY S-16, 
     expect(await resultRow(rs[0]!)).toMatchObject({ on_hold: true, hold_id: holdId });
   });
 
+  it('review T-25 #2: lab.qc_holds is tenant-wide, so a centre-scoped actor holding lab.qc_hold.release -> 403 auth.forbidden; the hold stays active and its results stay on_hold', async () => {
+    const instr = nid(), an = nid();
+    const rs = await seedResults(A, 2, instr, an);
+    const { holdId } = await holdWithResults(instr, an);
+    const before = await holdRow(holdId);
+    expectCode(await failure(release(holdId, { comment: COMMENT }, { scope: { all: false, centreIds: [CEN] } })), 'auth.forbidden', 403);
+    expect(await holdRow(holdId)).toEqual(before);
+    for (const id of rs) expect(await resultRow(id), id).toMatchObject({ on_hold: true, hold_id: holdId });
+  });
+
   it('REQ-SEC-062/067: a privileged session below aal2 gets auth.mfa_required (from IdentityPort) unchanged, and nothing is released', async () => {
     const id = await seedHold(A);
     const e = await failure(release(id, { comment: COMMENT }, { mfa: true }));

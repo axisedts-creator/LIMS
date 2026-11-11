@@ -228,6 +228,17 @@ describe('AC-PG-09.3 Approve (P9) and the two-person rule', () => {
     expect(isEnabled(act(2, /approve/i))).toBe(false);
   });
 
+  it('own request, threshold 500000: amount ≤ threshold → Approve enabled; amount > threshold → disabled with the second-person hint', async () => {
+    await view(APPROVE, rows, { thresholdPaisa: 500000 });
+    expect(isEnabled(act(2, /approve/i))).toBe(true); // row 2 amount 225000 ≤ 500000
+    cleanup();
+    await view(APPROVE, rows, { thresholdPaisa: 100000 }); // 225000 > 100000
+    const b = act(2, /approve/i)!;
+    expect(isEnabled(b)).toBe(false);
+    await userEvent.hover(b.parentElement ?? b);
+    await waitFor(() => expect(document.body.textContent!.includes(SECOND) || describedText(b).includes(SECOND)).toBe(true));
+  });
+
   it('another person\'s request: ConfirmDialog "Approve refund of NPR 2,250.00?" with the manual-mode next step and an optional note ≤ 500', async () => {
     await view(APPROVE);
     await userEvent.click(act(1, /approve/i)!);

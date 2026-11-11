@@ -1,0 +1,6 @@
+# AG-T16 impl
+Files (apps/bridge-agent/): internal/update/{update,stage,launcher,authenticode_windows,authenticode_other}.go; cmd/launcher/{main,service_windows,service_other}.go. Tests: `go test ./internal/update/... ./cmd/launcher/...` pass (x2), vet + build ./... clean, no -race (CGO off).
+[CONV] launcher pins versions\<v>\agent.exe to the SHA-256 of agent.exe inside the verified zip (not only Authenticode), so a swapped but validly signed older exe is refused.
+[CONV] launcher applies pending.json only when not in probation; a version rolled back is never retried (in memory + rolled_back status read at startup); same-version pending = verify_failed; restart back-off 2 s.
+[CONV] writeJSON retries rename (Windows refuses rename over a file a reader has open).
+Open: Policy is nil in cmd/launcher (downgrade never allowed) until the applied signed config is readable by the launcher; EmbeddedReleaseKeys empty (fail closed) until release pipeline; Status.ErrorCode unset (no spec error code for update); agent launched with no args (agent CLI not final); Authenticode revocation off (offline PCs), signer name = CertGetNameString simple display name; signed-exe positive case not run (needs LIMS_AG_T16_SIGNED_EXE/_CN).

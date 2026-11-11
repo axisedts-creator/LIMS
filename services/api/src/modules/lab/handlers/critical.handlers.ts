@@ -4,6 +4,7 @@
 // a ctx without them fails closed (common.internal) until the core pipeline wires the SQL store.
 import { LimsError } from '../../../core/errors.js';
 import type { Handler, HandlerContext } from '../../../core/module.js';
+import { labStore } from '../store/labStore.js';
 import { getCriticalValue, listCriticalValues, logCriticalNotification, type CriticalCtx, type EventRow, type ListQuery, type NotificationRow } from '../service/critical.service.js';
 
 type Obj = Record<string, any>;
@@ -16,8 +17,8 @@ const put = (o: Obj, k: string, v: unknown): void => { if (present(v)) o[k] = v;
 function authed(h: HandlerContext): CriticalCtx {
   const c = h as Partial<CriticalCtx>;
   if (typeof c.tenantId !== 'string' || typeof c.actor?.id !== 'string' || !c.tx) throw new LimsError('auth.unauthenticated');
-  if (!c.store || !c.ports?.IdentityPort || !c.audit) throw new LimsError('common.internal');   // fail closed: production wiring missing
-  return c as CriticalCtx;
+  if (!c.ports?.IdentityPort || !c.audit) throw new LimsError('common.internal');   // fail closed: port / audit wiring missing (no port is invented)
+  return { ...c, store: c.store ?? labStore(c.tx) } as CriticalCtx;   // LD-124: ctx.store ?? labStore(ctx.tx)
 }
 
 const valueOf = (e: EventRow): string => String(e['value_numeric'] ?? e['value_text'] ?? e['ordinal_code'] ?? '');

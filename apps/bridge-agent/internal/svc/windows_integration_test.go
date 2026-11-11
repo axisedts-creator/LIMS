@@ -17,6 +17,8 @@ import (
 	"testing"
 	"time"
 
+	"golang.org/x/sys/windows"
+
 	"lims/apps/bridge-agent/internal/secrets"
 	"lims/apps/bridge-agent/internal/svc"
 )
@@ -130,6 +132,74 @@ func TestPrepareFoldersReplacesExistingBroadAndIsIdempotent(t *testing.T) {
 		}
 		assertAudit(t, l.DataRoot, me, false)
 		assertAudit(t, l.SecretsDir(), me, true)
+	}
+}
+
+func ownerIsAdministrators(t *testing.T, path string) bool {
+	t.Helper()
+	sd, err := windows.GetNamedSecurityInfo(path, windows.SE_FILE_OBJECT, windows.OWNER_SECURITY_INFORMATION)
+	if err != nil {
+		t.Fatalf("GetNamedSecurityInfo(%s): %v", path, err)
+	}
+	owner, _, err := sd.Owner()
+	if err != nil || owner == nil {
+		t.Fatalf("owner of %s: %v", path, err)
+	}
+	admins, err := windows.CreateWellKnownSid(windows.WinBuiltinAdministratorsSid)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return owner.Equals(admins)
+}
+
+// AG-T15 review item 1: an owner keeps implicit WRITE_DAC, so a user who pre-created the data root must not stay its owner.
+// PrepareFolders either fails closed (clear error) or leaves BUILTIN\Administrators as owner of the root and of every child.
+// (From an elevated shell the folder is Administrators-owned already, so the test cannot discriminate there.)
+func TestPrepareFoldersOwnerIsAdministrators(t *testing.T) {
+	me := whoami(t)
+	l := layoutFor(t)
+	if err := os.MkdirAll(l.SecretsDir(), 0o700); err != nil {
+		t.Fatal(err)
+	}
+	if ownerIsAdministrators(t, l.DataRoot) {
+		t.Log("data root pre-created with Administrators as owner (elevated shell): owner check is not discriminating here")
+	}
+	if err := svc.NewWindowsPlatform(l, "").PrepareFolders(l, me); err != nil {
+		t.Logf("PrepareFolders failed closed: %v", err)
+		return
+	}
+	for _, p := range append([]string{l.DataRoot}, l.Dirs()...) {
+		if !ownerIsAdministrators(t, p) {
+			t.Errorf(`%s: owner is not BUILTIN\Administrators after PrepareFolders`, p)
+		}
+	}
+}
+
+// AG-T15 review item 2: a link entry in a folder must not stop the repair of its later siblings (fs.SkipDir on a non-directory skips the rest of the folder).
+func TestPrepareFoldersLinkDoesNotSkipLaterSiblings(t *testing.T) {
+	me := whoami(t)
+	l := layoutFor(t)
+	if err := os.MkdirAll(l.SecretsDir(), 0o700); err != nil {
+		t.Fatal(err)
+	}
+	target := t.TempDir()
+	link := filepath.Join(l.SecretsDir(), "a") // sorts before "z.bin": WalkDir visits the link first
+	if out, err := exec.Command("cmd", "/c", "mklink", "/J", link, target).CombinedOutput(); err != nil {
+		t.Skipf("cannot create a junction here: %v\n%s", err, out)
+	}
+	later := filepath.Join(l.SecretsDir(), "z.bin")
+	if err := os.WriteFile(later, []byte("synthetic"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if out, err := exec.Command("icacls", later, "/grant", "*S-1-5-32-545:R", "*S-1-5-11:R").CombinedOutput(); err != nil {
+		t.Fatalf("seeding a broad grant: %v\n%s", err, out)
+	}
+	if err := svc.NewWindowsPlatform(l, "").PrepareFolders(l, me); err != nil {
+		t.Fatalf("PrepareFolders: %v", err)
+	}
+	assertAudit(t, later, me, true) // the broad explicit ACEs behind the link entry must be gone
+	if _, err := os.Stat(target); err != nil {
+		t.Errorf("link target damaged: %v", err)
 	}
 }
 

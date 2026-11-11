@@ -19,7 +19,7 @@ const ifm = (v: number) => ({ 'if-match': `"${v}"` });
 const resolve = (id: string, body: unknown, o: { v?: number; as?: any; tenant?: 'A' | 'B'; headers?: Record<string, string> } = {}) =>
   t.call('resolvePaymentIntent', { params: { intent_id: id }, body, headers: o.headers ?? ifm(o.v ?? 1), ...(o.as ? { as: o.as } : {}), ...(o.tenant ? { tenant: o.tenant } : {}) });
 const recheck = (id: string, o: { as?: any; now?: string; tenant?: 'A' | 'B' } = {}) => t.call('recheckPaymentIntent', { params: { intent_id: id }, ...o });
-const cancel = (id: string, reason = 'patient_changed_method', o: { as?: any; tenant?: 'A' | 'B' } = {}) => t.call('cancelPaymentIntent', { params: { intent_id: id }, body: { reason_code: reason }, ...o });
+const cancel = (id: string, reason = 'patient_changed_method', o: { as?: any; tenant?: 'A' | 'B' } = {}) => t.call('cancelPaymentIntent', { params: { intent_id: id }, body: { reason_code: reason }, as: 'front_desk', ...o });
 const get = (id: string, o: { as?: any; tenant?: 'A' | 'B' } = {}) => t.call('getPaymentIntent', { params: { intent_id: id }, ...o });
 const list = (query: Record<string, unknown> = {}, o: { as?: any; tenant?: 'A' | 'B' } = {}) => t.call('listPaymentIntents', { query, ...o });
 const ledger = () => t.h.ledger.calls;
@@ -177,7 +177,7 @@ describe('P2 getPaymentIntent', () => {
     full();
     const before = snap(ID(1));
     await get(ID(1));
-    expect(t.checks()).toHaveLength(0); expect(t.access()).toHaveLength(0); expect(snap(ID(1))).toBe(before); expect(t.h.db.transitions()).toHaveLength(3);
+    expect(t.checks()).toHaveLength(0); expect(t.access()).toHaveLength(0); expect(snap(ID(1))).toBe(before); expect(t.h.db.transitions(A)).toHaveLength(3);
   });
 
   it('AC-PG-14.1 / ST-15: a tenant-B intent id under tenant-A claims is byte-identical to an unknown id: 404 common.not_found, no B data, no side effect', async () => {
@@ -222,13 +222,13 @@ describe('P3 recheckPaymentIntent (AC-PG-07.1, 07.5, 07.7)', () => {
     for (const k of Object.keys(r.body)) expect([...SUMMARY, ...DETAIL_EXTRA], k).toContain(k);
     expect(ledger()).toHaveLength(1); expect(ledger()[0]).toMatchObject({ intentId: ID(1), gateway: 'esewa', amount: { amountPaisa: 225000, currency: 'NPR' } });
     expect(settledEvents()).toHaveLength(1); expect(t.checks()).toHaveLength(1);
-    expect(t.h.db.transitions().at(-1)).toMatchObject({ intent_id: ID(1), from_status: 'held_for_review', to_status: 'settled', cause: 'recheck', actor_type: 'user' });
+    expect(t.h.db.transitions(A).at(-1)).toMatchObject({ intent_id: ID(1), from_status: 'held_for_review', to_status: 'settled', cause: 'recheck', actor_type: 'user' });
     expect(r.body.transitions.at(-1)).toMatchObject({ to_status: 'settled', cause: 'recheck' });           // the response is the refreshed detail
   });
 
   it('the first re-check of an intent never checked before (last_checked_at null) is allowed; an initiated / pending intent can be re-checked too', async () => {
     for (const [i, status] of (['initiated', 'pending'] as const).entries()) {
-      const o = t.add({ id: ID(10 + i), status, gateway: 'khalti' }); t.script(o, 'Pending');
+      const o = t.add({ id: ID(10 + i), status, gateway: 'khalti' }); t.script(o, 'Initiated');
       const r = await recheck(ID(10 + i));
       expect(r.status).toBe(200); expect(r.body.status).toBe(status); expect(r.body.last_checked_at).toBe(FIXED_NOW);
     }
@@ -242,7 +242,7 @@ describe('P3 recheckPaymentIntent (AC-PG-07.1, 07.5, 07.7)', () => {
     const r = await recheck(ID(1));
     expect(r.code).toBe('common.rate_limited'); expect(r.status).toBe(429);
     expect(r.err.retryAfterSeconds).toBeGreaterThanOrEqual(1); expect(r.err.retryAfterSeconds).toBeLessThanOrEqual(min); expect(Number(hdr(r, 'retry-after'))).toBeGreaterThanOrEqual(1);
-    expect(t.checks()).toHaveLength(0); expect(ledger()).toHaveLength(0); expect(snap(ID(1))).toBe(before); expect(t.h.db.transitions()).toHaveLength(0);
+    expect(t.checks()).toHaveLength(0); expect(ledger()).toHaveLength(0); expect(snap(ID(1))).toBe(before); expect(t.h.db.transitions(A)).toHaveLength(0);
   });
 
   it('the interval is measured from the last gateway check: pressing the button twice in a row -> first 200, second 429, one gateway call', async () => {
@@ -326,7 +326,7 @@ describe('P4 resolvePaymentIntent (AC-PG-07.1-07.6)', () => {
     expect(ledger()).toHaveLength(1); expect(ledger()[0]).not.toHaveProperty('allowExceedsDue'); expect(settledEvents()).toHaveLength(1); expect(t.checks()).toHaveLength(1);
     expect(t.row(ID(1))).toMatchObject({ status: 'settled', resolution_reason_code: 'gateway_confirmed_paid', resolution_note: 'Synthetic note: confirmed with provider' });
     expect(t.row(ID(1)).resolved_by).toBeTruthy(); expect(t.row(ID(1)).resolved_at).toBeTruthy();
-    expect(t.h.db.transitions().at(-1)).toMatchObject({ from_status: 'held_for_review', to_status: 'settled', cause: 'resolve', reason_code: 'gateway_confirmed_paid', actor_type: 'user' });
+    expect(t.h.db.transitions(A).at(-1)).toMatchObject({ from_status: 'held_for_review', to_status: 'settled', cause: 'resolve', reason_code: 'gateway_confirmed_paid', actor_type: 'user' });
   });
 
   it('AC-PG-07.2 fail: reason gateway_confirmed_unpaid -> 200 failed (failure_reason resolved_failed), no ledger, transition cause resolve, reason stored', async () => {
@@ -335,7 +335,7 @@ describe('P4 resolvePaymentIntent (AC-PG-07.1-07.6)', () => {
     expect(r.status).toBe(200); expect(r.body).toMatchObject({ status: 'failed', failure_reason: 'resolved_failed' });
     expect(ledger()).toHaveLength(0); expect(settledEvents()).toHaveLength(0);
     expect(t.row(ID(1))).toMatchObject({ status: 'failed', failure_reason: 'resolved_failed', resolution_reason_code: 'gateway_confirmed_unpaid' });
-    expect(t.h.db.transitions().at(-1)).toMatchObject({ from_status: 'held_for_review', to_status: 'failed', cause: 'resolve', reason_code: 'gateway_confirmed_unpaid' });
+    expect(t.h.db.transitions(A).at(-1)).toMatchObject({ from_status: 'held_for_review', to_status: 'failed', cause: 'resolve', reason_code: 'gateway_confirmed_unpaid' });
   });
 
   it('AC-PG-07.2 / 6.5: "Mark failed" while the latest gateway check IS success -> 409 payments.intent_not_verifiable (never fail a paid intent), nothing changed', async () => {
@@ -463,7 +463,7 @@ describe('P4 resolvePaymentIntent (AC-PG-07.1-07.6)', () => {
     expect(rs.filter((r) => r.status === 200)).toHaveLength(1);
     for (const r of rs.filter((x) => x.status !== 200)) expect(['common.version_conflict', 'payments.intent_invalid_transition']).toContain(r.code);
     expect(ledger()).toHaveLength(1); expect(settledEvents()).toHaveLength(1);
-    expect(t.h.db.transitions().filter((x) => x.to_status === 'settled')).toHaveLength(1); expect(t.access()).toHaveLength(1);
+    expect(t.h.db.transitions(A).filter((x) => x.to_status === 'settled')).toHaveLength(1); expect(t.access()).toHaveLength(1);
   });
 
   it('ST-18: a centre-1 finance user resolving a centre-2 intent -> 404 common.not_found, no gateway call, no ledger, no access_log row; ST-15: a tenant-B intent -> the same 404', async () => {
@@ -491,7 +491,7 @@ describe('P5 cancelPaymentIntent (AC-PG-13.1, 13.3)', () => {
     const r = await cancel(ID(1), 'wrong_amount');
     expect(r.status).toBe(200); expect(r.body).toEqual({ intent_id: ID(1), status: 'failed' });
     expect(t.row(ID(1))).toMatchObject({ status: 'failed', failure_reason: 'abandoned' });
-    expect(t.h.db.transitions().at(-1)).toMatchObject({ from_status: 'initiated', to_status: 'failed', cause: 'cancel', reason_code: 'wrong_amount' });
+    expect(t.h.db.transitions(A).at(-1)).toMatchObject({ from_status: 'pending', to_status: 'failed', cause: 'cancel', reason_code: 'wrong_amount' });
     expect(t.checks()).toHaveLength(1);
   });
 
@@ -519,7 +519,7 @@ describe('P5 cancelPaymentIntent (AC-PG-13.1, 13.3)', () => {
 
   it.each([['extra key', { reason_code: 'patient_left', amount_paisa: 1 }], ['missing reason_code', {}], ['body array', []], ['body missing', undefined]])('invalid body (%s) -> 400 common.validation_failed', async (_n, body) => {
     t.add({ id: ID(1), status: 'initiated' });
-    expect((await t.call('cancelPaymentIntent', { params: { intent_id: ID(1) }, body })).code).toBe('common.validation_failed');
+    expect((await t.call('cancelPaymentIntent', { params: { intent_id: ID(1) }, body, as: 'front_desk' })).code).toBe('common.validation_failed');
     expect(t.row(ID(1)).status).toBe('initiated');
   });
 

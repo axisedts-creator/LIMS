@@ -124,10 +124,10 @@ describe('borderline (§4.2) — only in_range, numeric value, numeric limit(s),
     });
   });
 
-  it('margin is rounded half-up in micro-units: width 0.000003, b=5000 -> m = 1.5 µ -> 2 µ', () => {
-    const snap = { low: '0', high: '0.000003' };
-    expect(inRange('0.000001', snap, 5000)).toEqual({ status: 'borderline', direction: 'low' });   // 1 < 0 + 2
-    expect(inRange('0.000002', snap, 5000)).toEqual({ status: 'in_range' });                        // 2 < 2 is false (truncated m = 1 would also say in_range; 0.000001 above discriminates)
+  it('margin is rounded half-up in micro-units: width 0.000030, b=500 -> m = 1.5 µ -> 2 µ', () => {
+    const snap = { low: '0', high: '0.000030' };
+    expect(inRange('0.000001', snap, 500)).toEqual({ status: 'borderline', direction: 'low' });   // 1 < 2 (truncated m = 1 would give in_range: discriminates half-up)
+    expect(inRange('0.000002', snap, 500)).toEqual({ status: 'in_range' });                        // 2 < 2 false; 2 > 30 - 2 = 28 false
   });
 
   it('exact arithmetic, no float drift: 0.1..0.3, b=5000 (m=0.1): v=0.2 is exactly low+m -> in_range; v=0.199999 -> borderline low', () => {

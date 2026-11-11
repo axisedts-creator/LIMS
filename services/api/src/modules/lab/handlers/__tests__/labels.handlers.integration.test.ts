@@ -128,6 +128,7 @@ interface SpecIn { status?: string; active?: boolean; tests?: { code: string; pr
 interface Seeded { id: string; barcode: string }
 interface Scen { tenant: string; orderId: string; regNo: string; centre: string; branch: string; specimens: Seeded[] }
 
+const seededOrders = new Map<string, { tenant: string; centre: string }>();   // what the FrontdeskPort fake can see
 /** Phase 1: the frontdesk order (FK parent). Phase 2 (`seedLab`): lab.orders + specimens (+ order tests + results) — the consumer's work (04 §4.1). */
 async function frontOrder(tenant: string, centre = CENTRE[tenant]): Promise<Scen> {
   const orderId = u(nextId++);
@@ -135,6 +136,7 @@ async function frontOrder(tenant: string, centre = CENTRE[tenant]): Promise<Scen
   const branch = centre === CENTRE_A2 ? BRANCH_A2 : BRANCH[tenant];
   await asAdmin(tenant, (c) => ins(c, 'frontdesk.orders', { id: orderId, tenant_id: tenant, branch_id: branch, centre_id: centre, patient_id: PATIENT[tenant], registration_no: regNo, status: 'registered',
     visit_type: 'opd', billing_mode: 'cash', priority: 'routine', collection_mode: 'walk_in', source: 'front_desk', is_first_order_of_patient: false, catalog_revision: 1, registered_at: '2026-06-15T04:00:00.000Z' }));
+  seededOrders.set(orderId, { tenant, centre });
   return { tenant, orderId, regNo, centre, branch, specimens: [] };
 }
 async function seedLab(s: Scen, specs: SpecIn[], o: { labOrderOnly?: boolean } = {}): Promise<Scen> {
@@ -203,7 +205,12 @@ async function call(operationId: string, r: ReturnType<typeof req>, o: Opts = {}
         FrontdeskPort: {
           async getPatientDemographics(_c: unknown, x: { patientId: string; purpose: string }) { probe.demographics.push(x); return demo(x.patientId); },
           async getPatientDemographicsBatch(_c: unknown, x: { patientIds: string[]; purpose: string }) { probe.demographics.push(x); return x.patientIds.map(demo); },
-          async getOrderSummary(_c: unknown, x: { orderId: string }) { return { orderId: x.orderId, registrationNo: 'REGX', patientId: PATIENT[tenant], items: [] }; },
+          // Contract (03-INTERFACE-CATALOG §4.3 FrontdeskPort): other tenant's order / other centre outside actor scope / unknown id -> common.not_found.
+          async getOrderSummary(_c: unknown, x: { orderId: string }) {
+            const seen = seededOrders.get(x.orderId);
+            if (!seen || seen.tenant !== tenant || (!scope.all && !(scope.centreIds ?? []).includes(seen.centre))) throw new LimsError('common.not_found');
+            return { orderId: x.orderId, registrationNo: 'REGX', patientId: PATIENT[tenant], items: [] };
+          },
         },
       },
       events: { publish: async (_c: unknown, type: string, input: unknown) => { probe.events.push({ type, input }); return { eventId: u(0x8a00 + probe.events.length), duplicate: false }; } },

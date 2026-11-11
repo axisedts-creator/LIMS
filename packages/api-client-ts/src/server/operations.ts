@@ -759,6 +759,155 @@ export interface Operations {
       };
     };
   };
+  activateBreakpointSet: {
+    params: {
+      set_id: string;
+    };
+    query: Record<string, never>;
+    headers: {
+      "If-Match": string;
+    };
+    body: {
+      effective_from?: string;
+    };
+    responses: {
+      200: ({
+        id: string;
+        version: number;
+        standard: "CLSI" | "EUCAST" | "ECOFF";
+        standard_version: string;
+        title: string;
+        licence_attestation_text: string;
+        status: "uploaded" | "validating" | "validated" | "invalid" | "active" | "retired" | "discarded";
+        file_sha256: string;
+        file_bytes: number;
+        row_count: number;
+        band_count: number;
+        error_count: number;
+        warning_count: number;
+        intended_effective_from?: string;
+        effective_from?: string;
+        effective_to?: string;
+        imported_by_display: string;
+        created_at: string;
+        activated_by_display?: string;
+        activated_at?: string;
+        retired_at?: string;
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      409: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      428: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
   activateQcPlan: {
     params: {
       plan_id: string;
@@ -1390,6 +1539,147 @@ export interface Operations {
       };
     };
   };
+  addCulturePlate: {
+    params: {
+      culture_id: string;
+    };
+    query: Record<string, never>;
+    headers: {
+      "Idempotency-Key": string;
+    };
+    body: {
+      media_code: string;
+      incubation_text?: string;
+      parent_plate_id?: string;
+      source_isolate_id?: string;
+      planted_at?: string;
+    };
+    responses: {
+      200: ({
+        id: string;
+        version: number;
+        plate_no: number;
+        media_code: string;
+        incubation_text?: string;
+        parent_plate_id?: string;
+        source_isolate_id?: string;
+        planted_at: string;
+        status: "active" | "discarded";
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      409: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      422: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
   addInventoryItemBarcode: {
     params: {
       item_id: string;
@@ -1971,6 +2261,176 @@ export interface Operations {
           consent_text_version: string;
         };
         version: number;
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      409: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      422: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      428: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  applyMicroInstrumentRecord: {
+    params: {
+      record_id: string;
+    };
+    query: Record<string, never>;
+    headers: {
+      "Idempotency-Key": string;
+      "If-Match": string;
+    };
+    body: {
+      resolution?: "use_instrument" | "keep_existing";
+    };
+    responses: {
+      200: ({
+        id: string;
+        version: number;
+        record_kind: "organism_id" | "ast";
+        instrument_id: string;
+        instrument_message_id: string;
+        sample_barcode: string;
+        isolate_seq?: number;
+        organism_code_raw?: string;
+        antibiotic_code_raw?: string;
+        method?: "mic" | "zone_diameter" | "other";
+        raw_value?: string;
+        interpretation_raw?: string;
+        standard?: "CLSI" | "EUCAST" | "ECOFF" | "unknown";
+        standard_version?: string;
+        instrument_result_time?: string;
+        received_at: string;
+        is_rerun: boolean;
+        match_status: "pending_match" | "needs_mapping" | "conflict" | "late_after_final" | "applied" | "ignored";
+        match_reason?: string;
+        culture_id?: string;
+        isolate_id?: string;
+        ast_result_id?: string;
+        organism_code?: string;
+        antibiotic_code?: string;
+        ignore_reason_code?: string;
+        ignore_comment?: string;
+        expires_at?: string;
       });
       400: {
         type: string;
@@ -3577,6 +4037,196 @@ export interface Operations {
       };
     };
   };
+  assignAstPanel: {
+    params: {
+      isolate_id: string;
+    };
+    query: Record<string, never>;
+    headers: {
+      "Idempotency-Key": string;
+      "If-Match": string;
+    };
+    body: {
+      ast_panel_id?: string;
+      method?: "mic" | "zone_diameter" | "other";
+    };
+    responses: {
+      200: ({
+        id: string;
+        version: number;
+        isolate_seq: number;
+        status: "pending_id" | "identified" | "withdrawn";
+        organism_code?: string;
+        organism_display?: string;
+        organism_source?: string;
+        identified_at?: string;
+        colony_description?: string;
+        quantity_text?: string;
+        is_reportable: boolean;
+        withdraw_reason_code?: string;
+        ast_panel?: {
+          id: string;
+          code: string;
+          version_no: number;
+          display: string;
+        };
+        ast_method?: "mic" | "zone_diameter" | "other";
+        ast: ({
+          id: string;
+          version: number;
+          antibiotic_code: string;
+          antibiotic_display: string;
+          method: "mic" | "zone_diameter" | "other";
+          raw_value?: string;
+          raw_qualifier?: "=" | "<" | "<=" | ">" | ">=";
+          raw_numeric?: string;
+          unit_code?: "ug_ml" | "mm";
+          category_code?: string;
+          standard?: "CLSI" | "EUCAST" | "ECOFF" | "unknown";
+          standard_version?: string;
+          standard_source?: "manual" | "instrument_payload" | "instrument_default" | "breakpoint_set";
+          interpretation_raw?: string;
+          interpretation_source?: "manual" | "instrument" | "breakpoint_suggestion";
+          breakpoint_set_id?: string;
+          suggestion_overridden: boolean;
+          source: "manual" | "instrument";
+          instrument_id?: string;
+          instrument_result_time?: string;
+          is_reportable: boolean;
+          report_visibility: "shown" | "suppressed_by_rule";
+          off_panel: boolean;
+          panel_sort_order?: number;
+          entered_at?: string;
+        })[];
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      409: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      422: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      428: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
   assignHomeVisit: {
     params: {
       visit_id: string;
@@ -3988,6 +4638,178 @@ export interface Operations {
         }[];
       };
       422: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  assignMicroInstrumentRecord: {
+    params: {
+      record_id: string;
+    };
+    query: Record<string, never>;
+    headers: {
+      "Idempotency-Key": string;
+      "If-Match": string;
+    };
+    body: {
+      culture_id: string;
+      isolate_seq?: number;
+      resolution?: "use_instrument" | "keep_existing";
+    };
+    responses: {
+      200: ({
+        id: string;
+        version: number;
+        record_kind: "organism_id" | "ast";
+        instrument_id: string;
+        instrument_message_id: string;
+        sample_barcode: string;
+        isolate_seq?: number;
+        organism_code_raw?: string;
+        antibiotic_code_raw?: string;
+        method?: "mic" | "zone_diameter" | "other";
+        raw_value?: string;
+        interpretation_raw?: string;
+        standard?: "CLSI" | "EUCAST" | "ECOFF" | "unknown";
+        standard_version?: string;
+        instrument_result_time?: string;
+        received_at: string;
+        is_rerun: boolean;
+        match_status: "pending_match" | "needs_mapping" | "conflict" | "late_after_final" | "applied" | "ignored";
+        match_reason?: string;
+        culture_id?: string;
+        isolate_id?: string;
+        ast_result_id?: string;
+        organism_code?: string;
+        antibiotic_code?: string;
+        ignore_reason_code?: string;
+        ignore_comment?: string;
+        expires_at?: string;
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      409: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      422: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      428: {
         type: string;
         title: string;
         status: number;
@@ -5837,6 +6659,159 @@ export interface Operations {
         }[];
       };
       422: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      428: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  cancelCulture: {
+    params: {
+      culture_id: string;
+    };
+    query: Record<string, never>;
+    headers: {
+      "If-Match": string;
+    };
+    body: {
+      reason_code: string;
+      comment?: string;
+    };
+    responses: {
+      200: ({
+        id: string;
+        version: number;
+        status: "awaiting_setup" | "incubating" | "growth_detected" | "final_submitted" | "amending" | "cancelled";
+        order_id: string;
+        order_item_id: string;
+        specimen_id: string;
+        patient_id: string;
+        centre_id: string;
+        test_id: string;
+        test_code: string;
+        test_name: string;
+        specimen_type_code: string;
+        specimen_site_code?: string;
+        outcome_code?: string;
+        received_at: string;
+        planted_at?: string;
+        next_read_due_at?: string;
+        final_due_at?: string;
+        is_read_overdue: boolean;
+        current_report_version_no: number;
+        last_report_phase?: "preliminary" | "final";
+        chain_cancelled: boolean;
+        open_instrument_record_count: number;
+        barcode?: string;
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      409: {
         type: string;
         title: string;
         status: number;
@@ -12804,6 +13779,161 @@ export interface Operations {
       };
     };
   };
+  createAstPanel: {
+    params: Record<string, never>;
+    query: Record<string, never>;
+    headers: {
+      "Idempotency-Key": string;
+    };
+    body: {
+      code: string;
+      display: string;
+      organism_code?: string;
+      organism_group_code?: string;
+      specimen_site_code?: string;
+      default_method: "mic" | "zone_diameter" | "other";
+      antibiotics: ({
+        antibiotic_code: string;
+        method?: "mic" | "zone_diameter" | "other";
+        is_reported_default: boolean;
+      })[];
+    };
+    responses: {
+      201: ({
+        id: string;
+        version: number;
+        code: string;
+        version_no: number;
+        display: string;
+        organism_code?: string;
+        organism_group_code?: string;
+        specimen_site_code?: string;
+        default_method: "mic" | "zone_diameter" | "other";
+        superseded_at?: string;
+        is_active: boolean;
+        created_at: string;
+        updated_at: string;
+        antibiotics: ({
+          antibiotic_code: string;
+          sort_order: number;
+          method?: "mic" | "zone_diameter" | "other";
+          is_reported_default: boolean;
+        })[];
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      409: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      422: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
   createAuditExport: {
     params: Record<string, never>;
     query: Record<string, never>;
@@ -13471,6 +14601,188 @@ export interface Operations {
         }[];
       };
       409: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      422: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  createBreakpointImport: {
+    params: Record<string, never>;
+    query: Record<string, never>;
+    headers: {
+      "Idempotency-Key": string;
+    };
+    body: {
+      metadata: {
+        standard: "CLSI" | "EUCAST" | "ECOFF";
+        standard_version: string;
+        title: string;
+        licence_attestation_text: string;
+        intended_effective_from?: string;
+      };
+      file: string;
+    };
+    responses: {
+      201: ({
+        id: string;
+        version: number;
+        standard: "CLSI" | "EUCAST" | "ECOFF";
+        standard_version: string;
+        title: string;
+        licence_attestation_text: string;
+        status: "uploaded" | "validating" | "validated" | "invalid" | "active" | "retired" | "discarded";
+        file_sha256: string;
+        file_bytes: number;
+        row_count: number;
+        band_count: number;
+        error_count: number;
+        warning_count: number;
+        intended_effective_from?: string;
+        effective_from?: string;
+        effective_to?: string;
+        imported_by_display: string;
+        created_at: string;
+        activated_by_display?: string;
+        activated_at?: string;
+        retired_at?: string;
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      409: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      413: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      415: {
         type: string;
         title: string;
         status: number;
@@ -17129,6 +18441,144 @@ export interface Operations {
       };
     };
   };
+  createInstrumentVocabMap: {
+    params: Record<string, never>;
+    query: Record<string, never>;
+    headers: {
+      "Idempotency-Key": string;
+    };
+    body: {
+      instrument_id: string;
+      kind: "organism" | "antibiotic";
+      code_raw: string;
+      local_code: string;
+    };
+    responses: {
+      201: ({
+        id: string;
+        version: number;
+        instrument_id: string;
+        kind: "organism" | "antibiotic";
+        code_raw: string;
+        local_code: string;
+        is_active: boolean;
+        created_at: string;
+        updated_at: string;
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      409: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      422: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
   createInventoryItem: {
     params: Record<string, never>;
     query: Record<string, never>;
@@ -17602,6 +19052,183 @@ export interface Operations {
         version: number;
         updated_at: string;
       };
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      409: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      422: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  createIsolate: {
+    params: {
+      culture_id: string;
+    };
+    query: Record<string, never>;
+    headers: {
+      "Idempotency-Key": string;
+    };
+    body: {
+      plate_id?: string;
+      colony_description?: string;
+      quantity_text?: string;
+      organism_code?: string;
+    };
+    responses: {
+      200: ({
+        id: string;
+        version: number;
+        isolate_seq: number;
+        status: "pending_id" | "identified" | "withdrawn";
+        organism_code?: string;
+        organism_display?: string;
+        organism_source?: string;
+        identified_at?: string;
+        colony_description?: string;
+        quantity_text?: string;
+        is_reportable: boolean;
+        withdraw_reason_code?: string;
+        ast_panel?: {
+          id: string;
+          code: string;
+          version_no: number;
+          display: string;
+        };
+        ast_method?: "mic" | "zone_diameter" | "other";
+        ast: ({
+          id: string;
+          version: number;
+          antibiotic_code: string;
+          antibiotic_display: string;
+          method: "mic" | "zone_diameter" | "other";
+          raw_value?: string;
+          raw_qualifier?: "=" | "<" | "<=" | ">" | ">=";
+          raw_numeric?: string;
+          unit_code?: "ug_ml" | "mm";
+          category_code?: string;
+          standard?: "CLSI" | "EUCAST" | "ECOFF" | "unknown";
+          standard_version?: string;
+          standard_source?: "manual" | "instrument_payload" | "instrument_default" | "breakpoint_set";
+          interpretation_raw?: string;
+          interpretation_source?: "manual" | "instrument" | "breakpoint_suggestion";
+          breakpoint_set_id?: string;
+          suggestion_overridden: boolean;
+          source: "manual" | "instrument";
+          instrument_id?: string;
+          instrument_result_time?: string;
+          is_reportable: boolean;
+          report_visibility: "shown" | "suppressed_by_rule";
+          off_panel: boolean;
+          panel_sort_order?: number;
+          entered_at?: string;
+        })[];
+      });
       400: {
         type: string;
         title: string;
@@ -20025,6 +21652,167 @@ export interface Operations {
         }[];
       };
       403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      422: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  createPlatingProtocol: {
+    params: Record<string, never>;
+    query: Record<string, never>;
+    headers: {
+      "Idempotency-Key": string;
+    };
+    body: {
+      code: string;
+      display: string;
+      read_schedule_hours: number[];
+      final_no_growth_hours: number;
+      requires_gram_stain: boolean;
+      default_specimen_site_code?: string;
+      media: {
+        media_code: string;
+        incubation_text?: string;
+      }[];
+      applies_to: {
+        test_id?: string;
+        specimen_type_code?: string;
+      }[];
+    };
+    responses: {
+      201: {
+        id: string;
+        version: number;
+        code: string;
+        version_no: number;
+        display: string;
+        read_schedule_hours: number[];
+        final_no_growth_hours: number;
+        requires_gram_stain: boolean;
+        default_specimen_site_code?: string;
+        superseded_at?: string;
+        is_active: boolean;
+        created_at: string;
+        updated_at: string;
+        media: {
+          media_code: string;
+          sort_order: number;
+          incubation_text?: string;
+        }[];
+        applies_to: {
+          test_id?: string;
+          specimen_type_code?: string;
+        }[];
+      };
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      409: {
         type: string;
         title: string;
         status: number;
@@ -26364,6 +28152,151 @@ export interface Operations {
       };
     };
   };
+  deactivateAstPanel: {
+    params: {
+      panel_id: string;
+    };
+    query: Record<string, never>;
+    headers: {
+      "If-Match": string;
+    };
+    body: Record<string, never>;
+    responses: {
+      200: ({
+        id: string;
+        version: number;
+        code: string;
+        version_no: number;
+        display: string;
+        organism_code?: string;
+        organism_group_code?: string;
+        specimen_site_code?: string;
+        default_method: "mic" | "zone_diameter" | "other";
+        superseded_at?: string;
+        is_active: boolean;
+        created_at: string;
+        updated_at: string;
+        antibiotics: ({
+          antibiotic_code: string;
+          sort_order: number;
+          method?: "mic" | "zone_diameter" | "other";
+          is_reported_default: boolean;
+        })[];
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      409: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      428: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
   deactivateBranch: {
     params: {
       branch_id: string;
@@ -27364,6 +29297,141 @@ export interface Operations {
       };
     };
   };
+  deactivateInstrumentVocabMap: {
+    params: {
+      map_id: string;
+    };
+    query: Record<string, never>;
+    headers: {
+      "If-Match": string;
+    };
+    body: Record<string, never>;
+    responses: {
+      200: ({
+        id: string;
+        version: number;
+        instrument_id: string;
+        kind: "organism" | "antibiotic";
+        code_raw: string;
+        local_code: string;
+        is_active: boolean;
+        created_at: string;
+        updated_at: string;
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      409: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      428: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
   deactivateInventoryItemBarcode: {
     params: {
       item_id: string;
@@ -28065,6 +30133,154 @@ export interface Operations {
         last_login_at?: string;
         version: number;
       });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      409: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      428: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  deactivatePlatingProtocol: {
+    params: {
+      protocol_id: string;
+    };
+    query: Record<string, never>;
+    headers: {
+      "If-Match": string;
+    };
+    body: Record<string, never>;
+    responses: {
+      200: {
+        id: string;
+        version: number;
+        code: string;
+        version_no: number;
+        display: string;
+        read_schedule_hours: number[];
+        final_no_growth_hours: number;
+        requires_gram_stain: boolean;
+        default_specimen_site_code?: string;
+        superseded_at?: string;
+        is_active: boolean;
+        created_at: string;
+        updated_at: string;
+        media: {
+          media_code: string;
+          sort_order: number;
+          incubation_text?: string;
+        }[];
+        applies_to: {
+          test_id?: string;
+          specimen_type_code?: string;
+        }[];
+      };
       400: {
         type: string;
         title: string;
@@ -29992,6 +32208,197 @@ export interface Operations {
       };
     };
   };
+  describeIsolate: {
+    params: {
+      isolate_id: string;
+    };
+    query: Record<string, never>;
+    headers: {
+      "If-Match": string;
+    };
+    body: {
+      colony_description?: string;
+      quantity_text?: string;
+      is_reportable: boolean;
+      plate_id?: string;
+    };
+    responses: {
+      200: ({
+        id: string;
+        version: number;
+        isolate_seq: number;
+        status: "pending_id" | "identified" | "withdrawn";
+        organism_code?: string;
+        organism_display?: string;
+        organism_source?: string;
+        identified_at?: string;
+        colony_description?: string;
+        quantity_text?: string;
+        is_reportable: boolean;
+        withdraw_reason_code?: string;
+        ast_panel?: {
+          id: string;
+          code: string;
+          version_no: number;
+          display: string;
+        };
+        ast_method?: "mic" | "zone_diameter" | "other";
+        ast: ({
+          id: string;
+          version: number;
+          antibiotic_code: string;
+          antibiotic_display: string;
+          method: "mic" | "zone_diameter" | "other";
+          raw_value?: string;
+          raw_qualifier?: "=" | "<" | "<=" | ">" | ">=";
+          raw_numeric?: string;
+          unit_code?: "ug_ml" | "mm";
+          category_code?: string;
+          standard?: "CLSI" | "EUCAST" | "ECOFF" | "unknown";
+          standard_version?: string;
+          standard_source?: "manual" | "instrument_payload" | "instrument_default" | "breakpoint_set";
+          interpretation_raw?: string;
+          interpretation_source?: "manual" | "instrument" | "breakpoint_suggestion";
+          breakpoint_set_id?: string;
+          suggestion_overridden: boolean;
+          source: "manual" | "instrument";
+          instrument_id?: string;
+          instrument_result_time?: string;
+          is_reportable: boolean;
+          report_visibility: "shown" | "suppressed_by_rule";
+          off_panel: boolean;
+          panel_sort_order?: number;
+          entered_at?: string;
+        })[];
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      409: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      422: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      428: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
   discardAnalyteVersionDraft: {
     params: {
       analyte_version_id: string;
@@ -30304,6 +32711,153 @@ export interface Operations {
       };
     };
   };
+  discardBreakpointSet: {
+    params: {
+      set_id: string;
+    };
+    query: Record<string, never>;
+    headers: {
+      "If-Match": string;
+    };
+    body: Record<string, never>;
+    responses: {
+      200: ({
+        id: string;
+        version: number;
+        standard: "CLSI" | "EUCAST" | "ECOFF";
+        standard_version: string;
+        title: string;
+        licence_attestation_text: string;
+        status: "uploaded" | "validating" | "validated" | "invalid" | "active" | "retired" | "discarded";
+        file_sha256: string;
+        file_bytes: number;
+        row_count: number;
+        band_count: number;
+        error_count: number;
+        warning_count: number;
+        intended_effective_from?: string;
+        effective_from?: string;
+        effective_to?: string;
+        imported_by_display: string;
+        created_at: string;
+        activated_by_display?: string;
+        activated_at?: string;
+        retired_at?: string;
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      409: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      428: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
   discardContainer: {
     params: {
       container_id: string;
@@ -30548,6 +33102,142 @@ export interface Operations {
           abnormal_codes?: string[];
         })[];
         version: number;
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      409: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      428: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  discardCulturePlate: {
+    params: {
+      culture_id: string;
+      plate_id: string;
+    };
+    query: Record<string, never>;
+    headers: {
+      "If-Match": string;
+    };
+    body: Record<string, never>;
+    responses: {
+      200: ({
+        id: string;
+        version: number;
+        plate_no: number;
+        media_code: string;
+        incubation_text?: string;
+        parent_plate_id?: string;
+        source_isolate_id?: string;
+        planted_at: string;
+        status: "active" | "discarded";
       });
       400: {
         type: string;
@@ -32499,6 +35189,99 @@ export interface Operations {
     params: {
       export_id: string;
     };
+    query: Record<string, never>;
+    headers: Record<string, never>;
+    body: never;
+    responses: {
+      200: string;
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  downloadBreakpointTemplate: {
+    params: Record<string, never>;
     query: Record<string, never>;
     headers: Record<string, never>;
     body: never;
@@ -38385,6 +41168,123 @@ export interface Operations {
       };
     };
   };
+  getBreakpointSet: {
+    params: {
+      set_id: string;
+    };
+    query: Record<string, never>;
+    headers: Record<string, never>;
+    body: never;
+    responses: {
+      200: ({
+        id: string;
+        version: number;
+        standard: "CLSI" | "EUCAST" | "ECOFF";
+        standard_version: string;
+        title: string;
+        licence_attestation_text: string;
+        status: "uploaded" | "validating" | "validated" | "invalid" | "active" | "retired" | "discarded";
+        file_sha256: string;
+        file_bytes: number;
+        row_count: number;
+        band_count: number;
+        error_count: number;
+        warning_count: number;
+        intended_effective_from?: string;
+        effective_from?: string;
+        effective_to?: string;
+        imported_by_display: string;
+        created_at: string;
+        activated_by_display?: string;
+        activated_at?: string;
+        retired_at?: string;
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
   getCancelledInvoiceRegister: {
     params: Record<string, never>;
     query: {
@@ -40008,6 +42908,374 @@ export interface Operations {
           recorded_at: string;
         })[];
         referrer_display_name?: string;
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  getCulture: {
+    params: {
+      culture_id: string;
+    };
+    query: Record<string, never>;
+    headers: Record<string, never>;
+    body: never;
+    responses: {
+      200: ({
+        id: string;
+        version: number;
+        status: "awaiting_setup" | "incubating" | "growth_detected" | "final_submitted" | "amending" | "cancelled";
+        order_id: string;
+        order_item_id: string;
+        specimen_id: string;
+        patient_id: string;
+        centre_id: string;
+        test_id: string;
+        test_code: string;
+        test_name: string;
+        specimen_type_code: string;
+        specimen_site_code?: string;
+        outcome_code?: string;
+        received_at: string;
+        planted_at?: string;
+        next_read_due_at?: string;
+        final_due_at?: string;
+        is_read_overdue: boolean;
+        current_report_version_no: number;
+        last_report_phase?: "preliminary" | "final";
+        chain_cancelled: boolean;
+        open_instrument_record_count: number;
+        barcode?: string;
+        suggested_protocol?: {
+          id: string;
+          code: string;
+          version_no: number;
+          display: string;
+        };
+        protocol?: {
+          id: string;
+          code: string;
+          version_no: number;
+          display: string;
+          read_schedule_hours: number[];
+          final_no_growth_hours: number;
+          requires_gram_stain: boolean;
+        };
+        plates: ({
+          id: string;
+          version: number;
+          plate_no: number;
+          media_code: string;
+          incubation_text?: string;
+          parent_plate_id?: string;
+          source_isolate_id?: string;
+          planted_at: string;
+          status: "active" | "discarded";
+        })[];
+        observations: ({
+          id: string;
+          kind: "plate_read" | "gram_stain" | "microscopy" | "other";
+          plate_id?: string;
+          growth_code?: string;
+          quantity_text?: string;
+          finding_text?: string;
+          observed_at: string;
+          hours_since_planting?: number;
+          recorded_by_display: string;
+          corrects_observation_id?: string;
+          is_corrected: boolean;
+        })[];
+        isolates: ({
+          id: string;
+          version: number;
+          isolate_seq: number;
+          status: "pending_id" | "identified" | "withdrawn";
+          organism_code?: string;
+          organism_display?: string;
+          organism_source?: string;
+          identified_at?: string;
+          colony_description?: string;
+          quantity_text?: string;
+          is_reportable: boolean;
+          withdraw_reason_code?: string;
+          ast_panel?: {
+            id: string;
+            code: string;
+            version_no: number;
+            display: string;
+          };
+          ast_method?: "mic" | "zone_diameter" | "other";
+          ast: ({
+            id: string;
+            version: number;
+            antibiotic_code: string;
+            antibiotic_display: string;
+            method: "mic" | "zone_diameter" | "other";
+            raw_value?: string;
+            raw_qualifier?: "=" | "<" | "<=" | ">" | ">=";
+            raw_numeric?: string;
+            unit_code?: "ug_ml" | "mm";
+            category_code?: string;
+            standard?: "CLSI" | "EUCAST" | "ECOFF" | "unknown";
+            standard_version?: string;
+            standard_source?: "manual" | "instrument_payload" | "instrument_default" | "breakpoint_set";
+            interpretation_raw?: string;
+            interpretation_source?: "manual" | "instrument" | "breakpoint_suggestion";
+            breakpoint_set_id?: string;
+            suggestion_overridden: boolean;
+            source: "manual" | "instrument";
+            instrument_id?: string;
+            instrument_result_time?: string;
+            is_reportable: boolean;
+            report_visibility: "shown" | "suppressed_by_rule";
+            off_panel: boolean;
+            panel_sort_order?: number;
+            entered_at?: string;
+          })[];
+        })[];
+        transitions: ({
+          from_status?: "awaiting_setup" | "incubating" | "growth_detected" | "final_submitted" | "amending" | "cancelled";
+          to_status: "awaiting_setup" | "incubating" | "growth_detected" | "final_submitted" | "amending" | "cancelled";
+          reason_code?: string;
+          occurred_at: string;
+          actor_display: string;
+        })[];
+        report_versions: ({
+          version_no: number;
+          report_phase: "preliminary" | "final";
+          version_kind: "initial" | "update" | "amendment";
+          outcome_code?: string;
+          flag: "N" | "A";
+          is_critical: boolean;
+          signed_by_display: string;
+          signed_at: string;
+          lab_status_at_submit: string;
+          amendment_reason_code?: string;
+        })[];
+        amendment_reason_code?: string;
+        amendment_reason_text?: string;
+        cancel_reason_code?: string;
+        lab_result?: {
+          result_id: string;
+          status: string;
+          version_no: number;
+          verified_at?: string;
+          approved_at?: string;
+        };
+        permissions_hint: {
+          can_amend_approved: boolean;
+        };
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  getCultureReportVersion: {
+    params: {
+      culture_id: string;
+      version_no: number;
+    };
+    query: Record<string, never>;
+    headers: Record<string, never>;
+    body: never;
+    responses: {
+      200: ({
+        version_no: number;
+        report_phase: "preliminary" | "final";
+        version_kind: "initial" | "update" | "amendment";
+        outcome_code?: string;
+        flag: "N" | "A";
+        is_critical: boolean;
+        signed_by_display: string;
+        signed_at: string;
+        lab_status_at_submit: string;
+        amendment_reason_code?: string;
+        culture_summary_text: string;
+        isolates: {
+          seq: number;
+          organism_code: string;
+          organism_display: string;
+          growth_text: string;
+        }[];
+        ast: ({
+          isolate_seq: number;
+          antibiotic_code: string;
+          antibiotic_display: string;
+          method: "mic" | "zone_diameter" | "other";
+          raw_value: string;
+          category_code: string;
+          standard: "CLSI" | "EUCAST" | "ECOFF";
+          standard_version: string;
+        })[];
+        comments_text?: string;
+        early_final_reason?: string;
+        amendment_reason_text?: string;
+        lab_result_id: string;
+        lab_result_version_no: number;
       });
       400: {
         type: string;
@@ -45609,6 +48877,111 @@ export interface Operations {
         }[];
       };
       403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  getMicroSettings: {
+    params: Record<string, never>;
+    query: Record<string, never>;
+    headers: Record<string, never>;
+    body: never;
+    responses: {
+      200: ({
+        id?: string;
+        version: number;
+        manual_ast_standard?: "CLSI" | "EUCAST";
+        zone_suggestion_enabled: boolean;
+        mic_suggestion_enabled: boolean;
+        default_final_no_growth_hours: number;
+        early_final_requires_reason: boolean;
+        recent_window_days: number;
+        is_active: boolean;
+        created_at?: string;
+        updated_at?: string;
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
         type: string;
         title: string;
         status: number;
@@ -56595,6 +59968,350 @@ export interface Operations {
       };
     };
   };
+  identifyIsolate: {
+    params: {
+      isolate_id: string;
+    };
+    query: Record<string, never>;
+    headers: {
+      "If-Match": string;
+    };
+    body: {
+      organism_code: string;
+    };
+    responses: {
+      200: ({
+        id: string;
+        version: number;
+        isolate_seq: number;
+        status: "pending_id" | "identified" | "withdrawn";
+        organism_code?: string;
+        organism_display?: string;
+        organism_source?: string;
+        identified_at?: string;
+        colony_description?: string;
+        quantity_text?: string;
+        is_reportable: boolean;
+        withdraw_reason_code?: string;
+        ast_panel?: {
+          id: string;
+          code: string;
+          version_no: number;
+          display: string;
+        };
+        ast_method?: "mic" | "zone_diameter" | "other";
+        ast: ({
+          id: string;
+          version: number;
+          antibiotic_code: string;
+          antibiotic_display: string;
+          method: "mic" | "zone_diameter" | "other";
+          raw_value?: string;
+          raw_qualifier?: "=" | "<" | "<=" | ">" | ">=";
+          raw_numeric?: string;
+          unit_code?: "ug_ml" | "mm";
+          category_code?: string;
+          standard?: "CLSI" | "EUCAST" | "ECOFF" | "unknown";
+          standard_version?: string;
+          standard_source?: "manual" | "instrument_payload" | "instrument_default" | "breakpoint_set";
+          interpretation_raw?: string;
+          interpretation_source?: "manual" | "instrument" | "breakpoint_suggestion";
+          breakpoint_set_id?: string;
+          suggestion_overridden: boolean;
+          source: "manual" | "instrument";
+          instrument_id?: string;
+          instrument_result_time?: string;
+          is_reportable: boolean;
+          report_visibility: "shown" | "suppressed_by_rule";
+          off_panel: boolean;
+          panel_sort_order?: number;
+          entered_at?: string;
+        })[];
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      409: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      422: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      428: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  ignoreMicroInstrumentRecord: {
+    params: {
+      record_id: string;
+    };
+    query: Record<string, never>;
+    headers: {
+      "If-Match": string;
+    };
+    body: {
+      reason_code: string;
+      comment?: string;
+    };
+    responses: {
+      200: ({
+        id: string;
+        version: number;
+        record_kind: "organism_id" | "ast";
+        instrument_id: string;
+        instrument_message_id: string;
+        sample_barcode: string;
+        isolate_seq?: number;
+        organism_code_raw?: string;
+        antibiotic_code_raw?: string;
+        method?: "mic" | "zone_diameter" | "other";
+        raw_value?: string;
+        interpretation_raw?: string;
+        standard?: "CLSI" | "EUCAST" | "ECOFF" | "unknown";
+        standard_version?: string;
+        instrument_result_time?: string;
+        received_at: string;
+        is_rerun: boolean;
+        match_status: "pending_match" | "needs_mapping" | "conflict" | "late_after_final" | "applied" | "ignored";
+        match_reason?: string;
+        culture_id?: string;
+        isolate_id?: string;
+        ast_result_id?: string;
+        organism_code?: string;
+        antibiotic_code?: string;
+        ignore_reason_code?: string;
+        ignore_comment?: string;
+        expires_at?: string;
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      409: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      428: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
   invitePartnerUser: {
     params: Record<string, never>;
     query: Record<string, never>;
@@ -59217,6 +62934,125 @@ export interface Operations {
       };
     };
   };
+  listAstPanels: {
+    params: Record<string, never>;
+    query: {
+      include_superseded?: boolean;
+      organism_code?: string;
+      organism_group_code?: string;
+    };
+    headers: Record<string, never>;
+    body: never;
+    responses: {
+      200: ({
+        data: ({
+          id: string;
+          version: number;
+          code: string;
+          version_no: number;
+          display: string;
+          organism_code?: string;
+          organism_group_code?: string;
+          specimen_site_code?: string;
+          default_method: "mic" | "zone_diameter" | "other";
+          superseded_at?: string;
+          is_active: boolean;
+          created_at: string;
+          updated_at: string;
+          antibiotics: ({
+            antibiotic_code: string;
+            sort_order: number;
+            method?: "mic" | "zone_diameter" | "other";
+            is_reported_default: boolean;
+          })[];
+        })[];
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
   listAuditEntries: {
     params: Record<string, never>;
     query: {
@@ -60064,6 +63900,368 @@ export interface Operations {
         }[];
       };
       403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  listBreakpointImportIssues: {
+    params: {
+      set_id: string;
+    };
+    query: {
+      severity?: "error" | "warning";
+      limit?: number;
+      cursor?: string;
+    };
+    headers: Record<string, never>;
+    body: never;
+    responses: {
+      200: ({
+        data: ({
+          line_no?: number;
+          severity: "error" | "warning";
+          code: string;
+          field?: string;
+          message: string;
+        })[];
+        page: {
+          next_cursor?: string;
+          limit: number;
+        };
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  listBreakpointRows: {
+    params: {
+      set_id: string;
+    };
+    query: {
+      antibiotic_code?: string;
+      organism_code?: string;
+      limit?: number;
+      cursor?: string;
+    };
+    headers: Record<string, never>;
+    body: never;
+    responses: {
+      200: ({
+        data: ({
+          id: string;
+          line_no: number;
+          organism_scope: "organism" | "group" | "any";
+          organism_code?: string;
+          antibiotic_code: string;
+          method: "mic" | "zone_diameter";
+          specimen_site_code?: string;
+          qualifier_code?: string;
+          bands: {
+            id: string;
+            band_no: number;
+            category_code: string;
+            lower_value?: string;
+            lower_inclusive: boolean;
+            upper_value?: string;
+            upper_inclusive: boolean;
+            note?: string;
+          }[];
+        })[];
+        page: {
+          next_cursor?: string;
+          limit: number;
+        };
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  listBreakpointSets: {
+    params: Record<string, never>;
+    query: {
+      standard?: "CLSI" | "EUCAST" | "ECOFF";
+      status?: string;
+      limit?: number;
+      cursor?: string;
+    };
+    headers: Record<string, never>;
+    body: never;
+    responses: {
+      200: ({
+        data: ({
+          id: string;
+          version: number;
+          standard: "CLSI" | "EUCAST" | "ECOFF";
+          standard_version: string;
+          title: string;
+          licence_attestation_text: string;
+          status: "uploaded" | "validating" | "validated" | "invalid" | "active" | "retired" | "discarded";
+          file_sha256: string;
+          file_bytes: number;
+          row_count: number;
+          band_count: number;
+          error_count: number;
+          warning_count: number;
+          intended_effective_from?: string;
+          effective_from?: string;
+          effective_to?: string;
+          imported_by_display: string;
+          created_at: string;
+          activated_by_display?: string;
+          activated_at?: string;
+          retired_at?: string;
+        })[];
+        page: {
+          next_cursor?: string;
+          limit: number;
+        };
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
         type: string;
         title: string;
         status: number;
@@ -62499,6 +66697,253 @@ export interface Operations {
         page: {
           next_cursor?: string;
           limit: number;
+        };
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  listCultureReportVersions: {
+    params: {
+      culture_id: string;
+    };
+    query: Record<string, never>;
+    headers: Record<string, never>;
+    body: never;
+    responses: {
+      200: ({
+        data: ({
+          version_no: number;
+          report_phase: "preliminary" | "final";
+          version_kind: "initial" | "update" | "amendment";
+          outcome_code?: string;
+          flag: "N" | "A";
+          is_critical: boolean;
+          signed_by_display: string;
+          signed_at: string;
+          lab_status_at_submit: string;
+          amendment_reason_code?: string;
+        })[];
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  listCultures: {
+    params: Record<string, never>;
+    query: {
+      status?: string;
+      specimen_id?: string;
+      order_id?: string;
+      centre_id?: string;
+      received_at_from?: string;
+      received_at_to?: string;
+      read_overdue?: boolean;
+      has_open_instrument_records?: boolean;
+      updated_at_from?: string;
+      include_total?: boolean;
+      sort?: "received_at" | "-received_at" | "next_read_due_at" | "-updated_at";
+      limit?: number;
+      cursor?: string;
+    };
+    headers: Record<string, never>;
+    body: never;
+    responses: {
+      200: ({
+        data: ({
+          id: string;
+          version: number;
+          status: "awaiting_setup" | "incubating" | "growth_detected" | "final_submitted" | "amending" | "cancelled";
+          order_id: string;
+          order_item_id: string;
+          specimen_id: string;
+          patient_id: string;
+          centre_id: string;
+          test_id: string;
+          test_code: string;
+          test_name: string;
+          specimen_type_code: string;
+          specimen_site_code?: string;
+          outcome_code?: string;
+          received_at: string;
+          planted_at?: string;
+          next_read_due_at?: string;
+          final_due_at?: string;
+          is_read_overdue: boolean;
+          current_report_version_no: number;
+          last_report_phase?: "preliminary" | "final";
+          chain_cancelled: boolean;
+          open_instrument_record_count: number;
+          barcode?: string;
+        })[];
+        page: {
+          next_cursor?: string;
+          limit: number;
+          total?: number;
         };
       });
       400: {
@@ -65511,6 +69956,106 @@ export interface Operations {
       };
     };
   };
+  listInstrumentAstDefaults: {
+    params: Record<string, never>;
+    query: Record<string, never>;
+    headers: Record<string, never>;
+    body: never;
+    responses: {
+      200: ({
+        data: ({
+          instrument_id: string;
+          standard: "CLSI" | "EUCAST" | "ECOFF";
+          standard_version: string;
+          version: number;
+        })[];
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
   listInstrumentBindings: {
     params: Record<string, never>;
     query: {
@@ -65780,6 +70325,121 @@ export interface Operations {
             unmapped_records: number;
             emitted_events: number;
           };
+        })[];
+        page: {
+          next_cursor?: string;
+          limit: number;
+        };
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  listInstrumentVocabMaps: {
+    params: Record<string, never>;
+    query: {
+      instrument_id?: string;
+      kind?: "organism" | "antibiotic";
+      is_active?: boolean;
+      limit?: number;
+      cursor?: string;
+    };
+    headers: Record<string, never>;
+    body: never;
+    responses: {
+      200: ({
+        data: ({
+          id: string;
+          version: number;
+          instrument_id: string;
+          kind: "organism" | "antibiotic";
+          code_raw: string;
+          local_code: string;
+          is_active: boolean;
+          created_at: string;
+          updated_at: string;
         })[];
         page: {
           next_cursor?: string;
@@ -67740,6 +72400,257 @@ export interface Operations {
           limit: number;
         };
       };
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  listMicroCodedSet: {
+    params: {
+      set_name: "organisms" | "organism_groups" | "antibiotics" | "media" | "specimen_sites" | "growth_codes" | "culture_outcomes" | "isolate_withdraw_reasons" | "culture_cancel_reasons" | "record_ignore_reasons" | "ast_interpretations";
+    };
+    query: {
+      include_inactive?: boolean;
+      q?: string;
+    };
+    headers: Record<string, never>;
+    body: never;
+    responses: {
+      200: ({
+        data: ({
+          code: string;
+          display: string;
+          sort_order: number;
+          is_active: boolean;
+          source: "global" | "tenant";
+          standard?: "CLSI" | "EUCAST" | "ECOFF";
+          organism_group_code?: string;
+          gram_class?: "gram_positive" | "gram_negative" | "yeast" | "mould" | "other";
+          is_alert?: boolean;
+          snomed_ct_concept_id?: string;
+          antibiotic_class?: string;
+          indicates_growth?: boolean;
+          result_flag?: "N" | "A";
+          requires_isolate?: boolean;
+        })[];
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  listMicroInstrumentRecords: {
+    params: Record<string, never>;
+    query: {
+      match_status?: string;
+      culture_id?: string;
+      instrument_id?: string;
+      received_at_from?: string;
+      received_at_to?: string;
+      sort?: "-received_at" | "received_at";
+      limit?: number;
+      cursor?: string;
+    };
+    headers: Record<string, never>;
+    body: never;
+    responses: {
+      200: ({
+        data: ({
+          id: string;
+          version: number;
+          record_kind: "organism_id" | "ast";
+          instrument_id: string;
+          instrument_message_id: string;
+          sample_barcode: string;
+          isolate_seq?: number;
+          organism_code_raw?: string;
+          antibiotic_code_raw?: string;
+          method?: "mic" | "zone_diameter" | "other";
+          raw_value?: string;
+          interpretation_raw?: string;
+          standard?: "CLSI" | "EUCAST" | "ECOFF" | "unknown";
+          standard_version?: string;
+          instrument_result_time?: string;
+          received_at: string;
+          is_rerun: boolean;
+          match_status: "pending_match" | "needs_mapping" | "conflict" | "late_after_final" | "applied" | "ignored";
+          match_reason?: string;
+          culture_id?: string;
+          isolate_id?: string;
+          ast_result_id?: string;
+          organism_code?: string;
+          antibiotic_code?: string;
+          ignore_reason_code?: string;
+          ignore_comment?: string;
+          expires_at?: string;
+        })[];
+        page: {
+          next_cursor?: string;
+          limit: number;
+        };
+      });
       400: {
         type: string;
         title: string;
@@ -73470,6 +78381,127 @@ export interface Operations {
         }[];
       };
       403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  listPlatingProtocols: {
+    params: Record<string, never>;
+    query: {
+      include_superseded?: boolean;
+      is_active?: boolean;
+    };
+    headers: Record<string, never>;
+    body: never;
+    responses: {
+      200: {
+        data: {
+          id: string;
+          version: number;
+          code: string;
+          version_no: number;
+          display: string;
+          read_schedule_hours: number[];
+          final_no_growth_hours: number;
+          requires_gram_stain: boolean;
+          default_specimen_site_code?: string;
+          superseded_at?: string;
+          is_active: boolean;
+          created_at: string;
+          updated_at: string;
+          media: {
+            media_code: string;
+            sort_order: number;
+            incubation_text?: string;
+          }[];
+          applies_to: {
+            test_id?: string;
+            specimen_type_code?: string;
+          }[];
+        }[];
+      };
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
         type: string;
         title: string;
         status: number;
@@ -84043,6 +89075,121 @@ export interface Operations {
       };
     };
   };
+  previewAstInterpretation: {
+    params: {
+      isolate_id: string;
+    };
+    query: Record<string, never>;
+    headers: Record<string, never>;
+    body: {
+      entries: ({
+        antibiotic_code: string;
+        method: "mic" | "zone_diameter" | "other";
+        raw_value: string;
+        qualifier_code?: string;
+      })[];
+    };
+    responses: {
+      200: ({
+        results: ({
+          antibiotic_code: string;
+          method: "mic" | "zone_diameter" | "other";
+          suggestion?: {
+            category_code: string;
+            standard: "CLSI" | "EUCAST" | "ECOFF";
+            standard_version: string;
+            breakpoint_set_id: string;
+            breakpoint_band_id: string;
+          };
+          reason?: "no_active_set" | "no_row" | "indeterminate" | "disabled" | "value_invalid";
+        })[];
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
   previewConsumption: {
     params: Record<string, never>;
     query: Record<string, never>;
@@ -86629,6 +91776,139 @@ export interface Operations {
         }[];
       };
       503: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  putInstrumentAstDefault: {
+    params: {
+      instrument_id: string;
+    };
+    query: Record<string, never>;
+    headers: {
+      "If-Match"?: string;
+    };
+    body: {
+      standard: "CLSI" | "EUCAST" | "ECOFF";
+      standard_version: string;
+    };
+    responses: {
+      200: ({
+        instrument_id: string;
+        standard: "CLSI" | "EUCAST" | "ECOFF";
+        standard_version: string;
+        version: number;
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      409: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      428: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
         type: string;
         title: string;
         status: number;
@@ -90632,6 +95912,181 @@ export interface Operations {
       };
     };
   };
+  recordAstResults: {
+    params: {
+      isolate_id: string;
+    };
+    query: Record<string, never>;
+    headers: {
+      "Idempotency-Key": string;
+    };
+    body: {
+      entries: ({
+        antibiotic_code: string;
+        method: "mic" | "zone_diameter" | "other";
+        raw_value?: string;
+        category_code?: string;
+        standard?: "CLSI" | "EUCAST" | "ECOFF";
+        standard_version?: string;
+        accept_suggestion?: boolean;
+        breakpoint_band_id?: string;
+        qualifier_code?: string;
+        is_reportable?: boolean;
+        add_to_isolate?: boolean;
+        version?: number;
+      })[];
+    };
+    responses: {
+      200: ({
+        results: ({
+          antibiotic_code: string;
+          method: "mic" | "zone_diameter" | "other";
+          outcome: "ok" | "error";
+          code?: string;
+          path?: string;
+          ast_result?: {
+            id: string;
+            version: number;
+            antibiotic_code: string;
+            antibiotic_display: string;
+            method: "mic" | "zone_diameter" | "other";
+            raw_value?: string;
+            raw_qualifier?: "=" | "<" | "<=" | ">" | ">=";
+            raw_numeric?: string;
+            unit_code?: "ug_ml" | "mm";
+            category_code?: string;
+            standard?: "CLSI" | "EUCAST" | "ECOFF" | "unknown";
+            standard_version?: string;
+            standard_source?: "manual" | "instrument_payload" | "instrument_default" | "breakpoint_set";
+            interpretation_raw?: string;
+            interpretation_source?: "manual" | "instrument" | "breakpoint_suggestion";
+            breakpoint_set_id?: string;
+            suggestion_overridden: boolean;
+            source: "manual" | "instrument";
+            instrument_id?: string;
+            instrument_result_time?: string;
+            is_reportable: boolean;
+            report_visibility: "shown" | "suppressed_by_rule";
+            off_panel: boolean;
+            panel_sort_order?: number;
+            entered_at?: string;
+          };
+        })[];
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      409: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      422: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
   recordCorrectiveAction: {
     params: {
       qc_run_id: string;
@@ -90865,6 +96320,179 @@ export interface Operations {
         }[];
       };
       404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      422: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  recordCultureObservation: {
+    params: {
+      culture_id: string;
+    };
+    query: Record<string, never>;
+    headers: {
+      "Idempotency-Key": string;
+    };
+    body: {
+      kind: "plate_read" | "gram_stain" | "microscopy" | "other";
+      plate_id?: string;
+      growth_code?: string;
+      quantity_text?: string;
+      finding_text?: string;
+      observed_at?: string;
+      corrects_observation_id?: string;
+    };
+    responses: {
+      200: ({
+        observation: {
+          id: string;
+          kind: "plate_read" | "gram_stain" | "microscopy" | "other";
+          plate_id?: string;
+          growth_code?: string;
+          quantity_text?: string;
+          finding_text?: string;
+          observed_at: string;
+          hours_since_planting?: number;
+          recorded_by_display: string;
+          corrects_observation_id?: string;
+          is_corrected: boolean;
+        };
+        culture: {
+          id: string;
+          version: number;
+          status: "awaiting_setup" | "incubating" | "growth_detected" | "final_submitted" | "amending" | "cancelled";
+          order_id: string;
+          order_item_id: string;
+          specimen_id: string;
+          patient_id: string;
+          centre_id: string;
+          test_id: string;
+          test_code: string;
+          test_name: string;
+          specimen_type_code: string;
+          specimen_site_code?: string;
+          outcome_code?: string;
+          received_at: string;
+          planted_at?: string;
+          next_read_due_at?: string;
+          final_due_at?: string;
+          is_read_overdue: boolean;
+          current_report_version_no: number;
+          last_report_phase?: "preliminary" | "final";
+          chain_cancelled: boolean;
+          open_instrument_record_count: number;
+          barcode?: string;
+        };
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      409: {
         type: string;
         title: string;
         status: number;
@@ -94297,6 +99925,292 @@ export interface Operations {
         }[];
       };
       422: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  reopenCulture: {
+    params: {
+      culture_id: string;
+    };
+    query: Record<string, never>;
+    headers: {
+      "If-Match": string;
+    };
+    body: {
+      amendment_reason_code: string;
+      amendment_reason_text?: string;
+    };
+    responses: {
+      200: ({
+        id: string;
+        version: number;
+        status: "awaiting_setup" | "incubating" | "growth_detected" | "final_submitted" | "amending" | "cancelled";
+        order_id: string;
+        order_item_id: string;
+        specimen_id: string;
+        patient_id: string;
+        centre_id: string;
+        test_id: string;
+        test_code: string;
+        test_name: string;
+        specimen_type_code: string;
+        specimen_site_code?: string;
+        outcome_code?: string;
+        received_at: string;
+        planted_at?: string;
+        next_read_due_at?: string;
+        final_due_at?: string;
+        is_read_overdue: boolean;
+        current_report_version_no: number;
+        last_report_phase?: "preliminary" | "final";
+        chain_cancelled: boolean;
+        open_instrument_record_count: number;
+        barcode?: string;
+        suggested_protocol?: {
+          id: string;
+          code: string;
+          version_no: number;
+          display: string;
+        };
+        protocol?: {
+          id: string;
+          code: string;
+          version_no: number;
+          display: string;
+          read_schedule_hours: number[];
+          final_no_growth_hours: number;
+          requires_gram_stain: boolean;
+        };
+        plates: ({
+          id: string;
+          version: number;
+          plate_no: number;
+          media_code: string;
+          incubation_text?: string;
+          parent_plate_id?: string;
+          source_isolate_id?: string;
+          planted_at: string;
+          status: "active" | "discarded";
+        })[];
+        observations: ({
+          id: string;
+          kind: "plate_read" | "gram_stain" | "microscopy" | "other";
+          plate_id?: string;
+          growth_code?: string;
+          quantity_text?: string;
+          finding_text?: string;
+          observed_at: string;
+          hours_since_planting?: number;
+          recorded_by_display: string;
+          corrects_observation_id?: string;
+          is_corrected: boolean;
+        })[];
+        isolates: ({
+          id: string;
+          version: number;
+          isolate_seq: number;
+          status: "pending_id" | "identified" | "withdrawn";
+          organism_code?: string;
+          organism_display?: string;
+          organism_source?: string;
+          identified_at?: string;
+          colony_description?: string;
+          quantity_text?: string;
+          is_reportable: boolean;
+          withdraw_reason_code?: string;
+          ast_panel?: {
+            id: string;
+            code: string;
+            version_no: number;
+            display: string;
+          };
+          ast_method?: "mic" | "zone_diameter" | "other";
+          ast: ({
+            id: string;
+            version: number;
+            antibiotic_code: string;
+            antibiotic_display: string;
+            method: "mic" | "zone_diameter" | "other";
+            raw_value?: string;
+            raw_qualifier?: "=" | "<" | "<=" | ">" | ">=";
+            raw_numeric?: string;
+            unit_code?: "ug_ml" | "mm";
+            category_code?: string;
+            standard?: "CLSI" | "EUCAST" | "ECOFF" | "unknown";
+            standard_version?: string;
+            standard_source?: "manual" | "instrument_payload" | "instrument_default" | "breakpoint_set";
+            interpretation_raw?: string;
+            interpretation_source?: "manual" | "instrument" | "breakpoint_suggestion";
+            breakpoint_set_id?: string;
+            suggestion_overridden: boolean;
+            source: "manual" | "instrument";
+            instrument_id?: string;
+            instrument_result_time?: string;
+            is_reportable: boolean;
+            report_visibility: "shown" | "suppressed_by_rule";
+            off_panel: boolean;
+            panel_sort_order?: number;
+            entered_at?: string;
+          })[];
+        })[];
+        transitions: ({
+          from_status?: "awaiting_setup" | "incubating" | "growth_detected" | "final_submitted" | "amending" | "cancelled";
+          to_status: "awaiting_setup" | "incubating" | "growth_detected" | "final_submitted" | "amending" | "cancelled";
+          reason_code?: string;
+          occurred_at: string;
+          actor_display: string;
+        })[];
+        report_versions: ({
+          version_no: number;
+          report_phase: "preliminary" | "final";
+          version_kind: "initial" | "update" | "amendment";
+          outcome_code?: string;
+          flag: "N" | "A";
+          is_critical: boolean;
+          signed_by_display: string;
+          signed_at: string;
+          lab_status_at_submit: string;
+          amendment_reason_code?: string;
+        })[];
+        amendment_reason_code?: string;
+        amendment_reason_text?: string;
+        cancel_reason_code?: string;
+        lab_result?: {
+          result_id: string;
+          status: string;
+          version_no: number;
+          verified_at?: string;
+          approved_at?: string;
+        };
+        permissions_hint: {
+          can_amend_approved: boolean;
+        };
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      409: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      422: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      428: {
         type: string;
         title: string;
         status: number;
@@ -101472,6 +107386,153 @@ export interface Operations {
       };
     };
   };
+  retireBreakpointSet: {
+    params: {
+      set_id: string;
+    };
+    query: Record<string, never>;
+    headers: {
+      "If-Match": string;
+    };
+    body: Record<string, never>;
+    responses: {
+      200: ({
+        id: string;
+        version: number;
+        standard: "CLSI" | "EUCAST" | "ECOFF";
+        standard_version: string;
+        title: string;
+        licence_attestation_text: string;
+        status: "uploaded" | "validating" | "validated" | "invalid" | "active" | "retired" | "discarded";
+        file_sha256: string;
+        file_bytes: number;
+        row_count: number;
+        band_count: number;
+        error_count: number;
+        warning_count: number;
+        intended_effective_from?: string;
+        effective_from?: string;
+        effective_to?: string;
+        imported_by_display: string;
+        created_at: string;
+        activated_by_display?: string;
+        activated_at?: string;
+        retired_at?: string;
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      409: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      428: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
   retireCriticalLimitSet: {
     params: {
       set_id: string;
@@ -108231,6 +114292,298 @@ export interface Operations {
       };
     };
   };
+  setupCulture: {
+    params: {
+      culture_id: string;
+    };
+    query: Record<string, never>;
+    headers: {
+      "Idempotency-Key": string;
+      "If-Match": string;
+    };
+    body: {
+      plating_protocol_id?: string;
+      specimen_site_code?: string;
+      planted_at?: string;
+      plates?: {
+        media_code: string;
+        incubation_text?: string;
+      }[];
+    };
+    responses: {
+      200: ({
+        id: string;
+        version: number;
+        status: "awaiting_setup" | "incubating" | "growth_detected" | "final_submitted" | "amending" | "cancelled";
+        order_id: string;
+        order_item_id: string;
+        specimen_id: string;
+        patient_id: string;
+        centre_id: string;
+        test_id: string;
+        test_code: string;
+        test_name: string;
+        specimen_type_code: string;
+        specimen_site_code?: string;
+        outcome_code?: string;
+        received_at: string;
+        planted_at?: string;
+        next_read_due_at?: string;
+        final_due_at?: string;
+        is_read_overdue: boolean;
+        current_report_version_no: number;
+        last_report_phase?: "preliminary" | "final";
+        chain_cancelled: boolean;
+        open_instrument_record_count: number;
+        barcode?: string;
+        suggested_protocol?: {
+          id: string;
+          code: string;
+          version_no: number;
+          display: string;
+        };
+        protocol?: {
+          id: string;
+          code: string;
+          version_no: number;
+          display: string;
+          read_schedule_hours: number[];
+          final_no_growth_hours: number;
+          requires_gram_stain: boolean;
+        };
+        plates: ({
+          id: string;
+          version: number;
+          plate_no: number;
+          media_code: string;
+          incubation_text?: string;
+          parent_plate_id?: string;
+          source_isolate_id?: string;
+          planted_at: string;
+          status: "active" | "discarded";
+        })[];
+        observations: ({
+          id: string;
+          kind: "plate_read" | "gram_stain" | "microscopy" | "other";
+          plate_id?: string;
+          growth_code?: string;
+          quantity_text?: string;
+          finding_text?: string;
+          observed_at: string;
+          hours_since_planting?: number;
+          recorded_by_display: string;
+          corrects_observation_id?: string;
+          is_corrected: boolean;
+        })[];
+        isolates: ({
+          id: string;
+          version: number;
+          isolate_seq: number;
+          status: "pending_id" | "identified" | "withdrawn";
+          organism_code?: string;
+          organism_display?: string;
+          organism_source?: string;
+          identified_at?: string;
+          colony_description?: string;
+          quantity_text?: string;
+          is_reportable: boolean;
+          withdraw_reason_code?: string;
+          ast_panel?: {
+            id: string;
+            code: string;
+            version_no: number;
+            display: string;
+          };
+          ast_method?: "mic" | "zone_diameter" | "other";
+          ast: ({
+            id: string;
+            version: number;
+            antibiotic_code: string;
+            antibiotic_display: string;
+            method: "mic" | "zone_diameter" | "other";
+            raw_value?: string;
+            raw_qualifier?: "=" | "<" | "<=" | ">" | ">=";
+            raw_numeric?: string;
+            unit_code?: "ug_ml" | "mm";
+            category_code?: string;
+            standard?: "CLSI" | "EUCAST" | "ECOFF" | "unknown";
+            standard_version?: string;
+            standard_source?: "manual" | "instrument_payload" | "instrument_default" | "breakpoint_set";
+            interpretation_raw?: string;
+            interpretation_source?: "manual" | "instrument" | "breakpoint_suggestion";
+            breakpoint_set_id?: string;
+            suggestion_overridden: boolean;
+            source: "manual" | "instrument";
+            instrument_id?: string;
+            instrument_result_time?: string;
+            is_reportable: boolean;
+            report_visibility: "shown" | "suppressed_by_rule";
+            off_panel: boolean;
+            panel_sort_order?: number;
+            entered_at?: string;
+          })[];
+        })[];
+        transitions: ({
+          from_status?: "awaiting_setup" | "incubating" | "growth_detected" | "final_submitted" | "amending" | "cancelled";
+          to_status: "awaiting_setup" | "incubating" | "growth_detected" | "final_submitted" | "amending" | "cancelled";
+          reason_code?: string;
+          occurred_at: string;
+          actor_display: string;
+        })[];
+        report_versions: ({
+          version_no: number;
+          report_phase: "preliminary" | "final";
+          version_kind: "initial" | "update" | "amendment";
+          outcome_code?: string;
+          flag: "N" | "A";
+          is_critical: boolean;
+          signed_by_display: string;
+          signed_at: string;
+          lab_status_at_submit: string;
+          amendment_reason_code?: string;
+        })[];
+        amendment_reason_code?: string;
+        amendment_reason_text?: string;
+        cancel_reason_code?: string;
+        lab_result?: {
+          result_id: string;
+          status: string;
+          version_no: number;
+          verified_at?: string;
+          approved_at?: string;
+        };
+        permissions_hint: {
+          can_amend_approved: boolean;
+        };
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      409: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      422: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      428: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
   signNarrativeReport: {
     params: {
       narrative_id: string;
@@ -110301,6 +116654,171 @@ export interface Operations {
         }[];
       };
       415: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      422: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  submitCultureReport: {
+    params: {
+      culture_id: string;
+    };
+    query: Record<string, never>;
+    headers: {
+      "Idempotency-Key": string;
+    };
+    body: {
+      report_phase: "preliminary" | "final";
+      outcome_code?: string;
+      culture_summary_text?: string;
+      comments_text?: string;
+      is_critical: boolean;
+      early_final_reason?: string;
+    };
+    responses: {
+      201: ({
+        version_no: number;
+        report_phase: "preliminary" | "final";
+        version_kind: "initial" | "update" | "amendment";
+        outcome_code?: string;
+        flag: "N" | "A";
+        is_critical: boolean;
+        signed_by_display: string;
+        signed_at: string;
+        lab_status_at_submit: string;
+        amendment_reason_code?: string;
+        culture_summary_text: string;
+        isolates: {
+          seq: number;
+          organism_code: string;
+          organism_display: string;
+          growth_text: string;
+        }[];
+        ast: ({
+          isolate_seq: number;
+          antibiotic_code: string;
+          antibiotic_display: string;
+          method: "mic" | "zone_diameter" | "other";
+          raw_value: string;
+          category_code: string;
+          standard: "CLSI" | "EUCAST" | "ECOFF";
+          standard_version: string;
+        })[];
+        comments_text?: string;
+        early_final_reason?: string;
+        amendment_reason_text?: string;
+        lab_result_id: string;
+        lab_result_version_no: number;
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      409: {
         type: string;
         title: string;
         status: number;
@@ -116582,6 +123100,143 @@ export interface Operations {
       };
     };
   };
+  updateInstrumentVocabMap: {
+    params: {
+      map_id: string;
+    };
+    query: Record<string, never>;
+    headers: {
+      "If-Match": string;
+    };
+    body: {
+      local_code: string;
+    };
+    responses: {
+      200: ({
+        id: string;
+        version: number;
+        instrument_id: string;
+        kind: "organism" | "antibiotic";
+        code_raw: string;
+        local_code: string;
+        is_active: boolean;
+        created_at: string;
+        updated_at: string;
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      409: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      428: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
   updateInventoryItem: {
     params: {
       item_id: string;
@@ -117993,6 +124648,149 @@ export interface Operations {
         created_at: string;
         updated_at: string;
       };
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      409: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      428: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  updateMicroSettings: {
+    params: Record<string, never>;
+    query: Record<string, never>;
+    headers: {
+      "If-Match": string;
+    };
+    body: {
+      manual_ast_standard?: "CLSI" | "EUCAST";
+      zone_suggestion_enabled: boolean;
+      mic_suggestion_enabled: boolean;
+      default_final_no_growth_hours: number;
+      early_final_requires_reason: boolean;
+      recent_window_days: number;
+      unset?: "manual_ast_standard"[];
+    };
+    responses: {
+      200: ({
+        id?: string;
+        version: number;
+        manual_ast_standard?: "CLSI" | "EUCAST";
+        zone_suggestion_enabled: boolean;
+        mic_suggestion_enabled: boolean;
+        default_final_no_growth_hours: number;
+        early_final_requires_reason: boolean;
+        recent_window_days: number;
+        is_active: boolean;
+        created_at?: string;
+        updated_at?: string;
+      });
       400: {
         type: string;
         title: string;
@@ -124435,6 +131233,159 @@ export interface Operations {
       };
     };
   };
+  upsertMicroCode: {
+    params: {
+      set_name: "organisms" | "organism_groups" | "antibiotics" | "media" | "specimen_sites" | "growth_codes" | "culture_outcomes" | "isolate_withdraw_reasons" | "culture_cancel_reasons" | "record_ignore_reasons" | "ast_interpretations";
+      code: string;
+    };
+    query: Record<string, never>;
+    headers: {
+      "If-Match"?: string;
+    };
+    body: {
+      display: string;
+      sort_order: number;
+      is_active: boolean;
+      organism_group_code?: string;
+      gram_class?: "gram_positive" | "gram_negative" | "yeast" | "mould" | "other";
+      is_alert?: boolean;
+      snomed_ct_concept_id?: string;
+      antibiotic_class?: string;
+      indicates_growth?: boolean;
+      result_flag?: "N" | "A";
+      requires_isolate?: boolean;
+    };
+    responses: {
+      200: ({
+        code: string;
+        display: string;
+        sort_order: number;
+        is_active: boolean;
+        source: "global" | "tenant";
+        standard?: "CLSI" | "EUCAST" | "ECOFF";
+        organism_group_code?: string;
+        gram_class?: "gram_positive" | "gram_negative" | "yeast" | "mould" | "other";
+        is_alert?: boolean;
+        snomed_ct_concept_id?: string;
+        antibiotic_class?: string;
+        indicates_growth?: boolean;
+        result_flag?: "N" | "A";
+        requires_isolate?: boolean;
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      409: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      428: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
   upsertPriceListItems: {
     params: {
       price_list_version_id: string;
@@ -125885,6 +132836,177 @@ export interface Operations {
       };
     };
   };
+  versionAstPanel: {
+    params: {
+      panel_id: string;
+    };
+    query: Record<string, never>;
+    headers: {
+      "Idempotency-Key": string;
+      "If-Match": string;
+    };
+    body: {
+      display: string;
+      organism_code?: string;
+      organism_group_code?: string;
+      specimen_site_code?: string;
+      default_method: "mic" | "zone_diameter" | "other";
+      antibiotics: ({
+        antibiotic_code: string;
+        method?: "mic" | "zone_diameter" | "other";
+        is_reported_default: boolean;
+      })[];
+    };
+    responses: {
+      200: ({
+        id: string;
+        version: number;
+        code: string;
+        version_no: number;
+        display: string;
+        organism_code?: string;
+        organism_group_code?: string;
+        specimen_site_code?: string;
+        default_method: "mic" | "zone_diameter" | "other";
+        superseded_at?: string;
+        is_active: boolean;
+        created_at: string;
+        updated_at: string;
+        antibiotics: ({
+          antibiotic_code: string;
+          sort_order: number;
+          method?: "mic" | "zone_diameter" | "other";
+          is_reported_default: boolean;
+        })[];
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      409: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      422: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      428: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
   versionDeltaCheckRule: {
     params: {
       rule_id: string;
@@ -125986,6 +133108,358 @@ export interface Operations {
         }[];
       };
       422: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      428: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  versionPlatingProtocol: {
+    params: {
+      protocol_id: string;
+    };
+    query: Record<string, never>;
+    headers: {
+      "Idempotency-Key": string;
+      "If-Match": string;
+    };
+    body: {
+      display: string;
+      read_schedule_hours: number[];
+      final_no_growth_hours: number;
+      requires_gram_stain: boolean;
+      default_specimen_site_code?: string;
+      media: {
+        media_code: string;
+        incubation_text?: string;
+      }[];
+      applies_to: {
+        test_id?: string;
+        specimen_type_code?: string;
+      }[];
+    };
+    responses: {
+      200: {
+        id: string;
+        version: number;
+        code: string;
+        version_no: number;
+        display: string;
+        read_schedule_hours: number[];
+        final_no_growth_hours: number;
+        requires_gram_stain: boolean;
+        default_specimen_site_code?: string;
+        superseded_at?: string;
+        is_active: boolean;
+        created_at: string;
+        updated_at: string;
+        media: {
+          media_code: string;
+          sort_order: number;
+          incubation_text?: string;
+        }[];
+        applies_to: {
+          test_id?: string;
+          specimen_type_code?: string;
+        }[];
+      };
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      409: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      422: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      428: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  withdrawIsolate: {
+    params: {
+      isolate_id: string;
+    };
+    query: Record<string, never>;
+    headers: {
+      "If-Match": string;
+    };
+    body: {
+      reason_code: string;
+      comment?: string;
+    };
+    responses: {
+      200: ({
+        id: string;
+        version: number;
+        isolate_seq: number;
+        status: "pending_id" | "identified" | "withdrawn";
+        organism_code?: string;
+        organism_display?: string;
+        organism_source?: string;
+        identified_at?: string;
+        colony_description?: string;
+        quantity_text?: string;
+        is_reportable: boolean;
+        withdraw_reason_code?: string;
+        ast_panel?: {
+          id: string;
+          code: string;
+          version_no: number;
+          display: string;
+        };
+        ast_method?: "mic" | "zone_diameter" | "other";
+        ast: ({
+          id: string;
+          version: number;
+          antibiotic_code: string;
+          antibiotic_display: string;
+          method: "mic" | "zone_diameter" | "other";
+          raw_value?: string;
+          raw_qualifier?: "=" | "<" | "<=" | ">" | ">=";
+          raw_numeric?: string;
+          unit_code?: "ug_ml" | "mm";
+          category_code?: string;
+          standard?: "CLSI" | "EUCAST" | "ECOFF" | "unknown";
+          standard_version?: string;
+          standard_source?: "manual" | "instrument_payload" | "instrument_default" | "breakpoint_set";
+          interpretation_raw?: string;
+          interpretation_source?: "manual" | "instrument" | "breakpoint_suggestion";
+          breakpoint_set_id?: string;
+          suggestion_overridden: boolean;
+          source: "manual" | "instrument";
+          instrument_id?: string;
+          instrument_result_time?: string;
+          is_reportable: boolean;
+          report_visibility: "shown" | "suppressed_by_rule";
+          off_panel: boolean;
+          panel_sort_order?: number;
+          entered_at?: string;
+        })[];
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      409: {
         type: string;
         title: string;
         status: number;

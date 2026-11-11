@@ -12,12 +12,14 @@ export default async function PaymentIntentPage({ params }: { params: Promise<{ 
   if (!permissions.includes('payments.reconciliation.read')) notFound();
   try {
     const canResolve = permissions.includes('payments.intent.resolve');
-    const [intent, resolution_reasons, cancel_reasons] = await Promise.all([
+    const canRefund = permissions.includes('payments.refund.request');
+    const [intent, resolution_reasons, cancel_reasons, refund_reasons] = await Promise.all([
       getPaymentIntent(intent_id),
       canResolve ? listPaymentCodes('resolution_reasons') : [],
       canResolve ? listPaymentCodes('cancel_reasons') : [],
+      canRefund ? listPaymentCodes('refund_reasons') : [],
     ]);
-    return <IntentDetailView intent={intent} permissions={permissions} codes={{ resolution_reasons, cancel_reasons }} />;
+    return <IntentDetailView intent={intent} permissions={permissions} codes={{ resolution_reasons, cancel_reasons, refund_reasons }} />;
   } catch (e) {
     if (e instanceof ApiError && (e.status === 404 || e.status === 400)) notFound();
     if (e instanceof ApiError && e.status === 403) return <PermissionDenied />;

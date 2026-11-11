@@ -29,6 +29,59 @@ function instant(v: string | string[] | undefined): { ms: number; isDay: boolean
 }
 const dayOf = (ms: number) => new Date(ms + NEPAL_OFFSET_MS).toISOString().slice(0, 10);
 
+// ---- PG-T19 URL -> query reducers (refunds P6, findings P15, worksheets P17). Same rule: whitelisted, well-formed values only. ----
+export const REFUND_STATUSES = ['pending_approval', 'approved', 'requested', 'held_for_review', 'completed', 'failed', 'rejected'] as const;
+export const FINDING_KINDS = [
+  'missed_settlement', 'still_held', 'late_payment_found', 'status_divergence', 'gateway_refund_unrecorded', 'amount_mismatch', 'ledger_entry_missing', 'refund_unconfirmed', 'gateway_unreachable',
+] as const;
+export const FINDING_SEVERITIES = ['critical', 'warning', 'info'] as const;
+
+const paging = (q: URLSearchParams, sp: SP) => {
+  q.set('limit', '50');
+  const cursor = first(sp['cursor']);
+  if (cursor && CURSOR.test(cursor)) q.set('cursor', cursor);
+};
+
+export function refundsQuery(sp: SP): { query: URLSearchParams; filter: { status: string[]; gateway?: string; created?: [string, string] } } {
+  const q = new URLSearchParams();
+  const status = csv(sp['status'], (s) => (REFUND_STATUSES as readonly string[]).includes(s));
+  if (status.length) q.set('status', status.join(','));
+  const gateway = csv(sp['gateway'], (s) => (REVIEW_GATEWAYS as readonly string[]).includes(s));
+  if (gateway.length) q.set('gateway', gateway.join(','));
+  const intent = first(sp['intent_id']);
+  if (intent && UUID.test(intent)) q.set('intent_id', intent);
+  const f = instant(sp['created_at_from']);
+  const t = instant(sp['created_at_to']);
+  if (f) q.set('created_at_from', new Date(f.ms).toISOString());
+  if (t) q.set('created_at_to', new Date(t.ms + (t.isDay ? DAY_MS : 0)).toISOString());
+  q.set('sort', '-created_at');
+  paging(q, sp);
+  return { query: q, filter: { status, ...(gateway[0] ? { gateway: gateway[0] } : {}), ...(f && t ? { created: [dayOf(f.ms), dayOf(t.ms + (t.isDay ? DAY_MS : 0) - 1)] as [string, string] } : {}) } };
+}
+
+export function findingsQuery(sp: SP): { query: URLSearchParams; filter: { kind: string[]; severity?: string } } {
+  const q = new URLSearchParams({ status: 'open' });
+  const kind = csv(sp['kind'], (s) => (FINDING_KINDS as readonly string[]).includes(s));
+  if (kind.length) q.set('kind', kind.join(','));
+  const severity = csv(sp['severity'], (s) => (FINDING_SEVERITIES as readonly string[]).includes(s))[0];
+  if (severity) q.set('severity', severity);
+  q.set('sort', '-created_at');
+  paging(q, sp);
+  return { query: q, filter: { kind, ...(severity ? { severity } : {}) } };
+}
+
+export function staticQrQuery(sp: SP): URLSearchParams {
+  const q = new URLSearchParams();
+  for (const k of ['business_date_from', 'business_date_to'] as const) {
+    const v = first(sp[k]);
+    if (v && DAY.test(v) && !Number.isNaN(Date.parse(`${v}T00:00:00Z`))) q.set(k, v);
+  }
+  const centre = first(sp['centre_id']);
+  if (centre && UUID.test(centre)) q.set('centre_id', centre);
+  paging(q, sp);
+  return q;
+}
+
 /** What the filter bar shows. `created` is [from, to] inclusive A.D. days. */
 export interface ReviewFilter {
   status: readonly string[]; gateway?: string; hold_reason?: string; centre_id?: string; created: readonly [string, string];

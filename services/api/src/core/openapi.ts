@@ -72,7 +72,8 @@ export const AJV_OPTIONS = {
   allErrors: true,
   // [CONV] `discriminator` (02-CONVENTIONS §479: oneOf + discriminator with explicit mapping) is annotation-only:
   // ajv's `discriminator: true` throws "mapping is not supported", so validation is the `oneOf` itself (LD-53 (2)).
-  keywords: ['x-coded-set', 'discriminator'],
+  // CR-C16-024 (lead-accepted): `x-extensible` is annotation-only (02-CONVENTIONS §459); `enum` still rejects unknown values.
+  keywords: ['x-coded-set', 'discriminator', 'x-extensible'],
 } as const;
 /**
  * [CONV] coerceTypes 'array' is only for query/path/header strings (SP-8 O1); JSON bodies are typed, so a body

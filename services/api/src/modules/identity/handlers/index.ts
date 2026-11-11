@@ -90,6 +90,18 @@ import { resendInvitation } from './resendInvitation.js';
 import { resetUserMfa } from './resetUserMfa.js';
 import { revokeUserSessions } from './revokeUserSessions.js';
 import { uploadUserSignature } from './uploadUserSignature.js';
+import { listTenants } from './listTenants.js';
+import { provisionTenant } from './provisionTenant.js';
+import { getTenant } from './getTenant.js';
+import { updateTenant } from './updateTenant.js';
+import { activateTenant } from './activateTenant.js';
+import { suspendTenant } from './suspendTenant.js';
+import { reactivateTenant } from './reactivateTenant.js';
+import { terminateTenant } from './terminateTenant.js';
+import { getTenantSettingsAsPlatform } from './getTenantSettingsAsPlatform.js';
+import { updateTenantSettingsAsPlatform } from './updateTenantSettingsAsPlatform.js';
+import { setFeatureFlagAsPlatform } from './setFeatureFlagAsPlatform.js';
+import { inviteTenantAdmin } from './inviteTenantAdmin.js';
 
 const OPERATION_IDS = [
   // auth (identity_auth)
@@ -144,6 +156,8 @@ const implemented: Partial<Record<IdentityOperationId, Handler>> = {
   listAdminNotices, dismissAdminNotice,                                                                         // T17
   listUsers, searchUsers, inviteUser, getUser, updateUser, setUserRoles, setUserCentreScope, lockUser, unlockUser,   // T13
   deactivateUser, reactivateUser, resendInvitation, resetUserMfa, revokeUserSessions, uploadUserSignature,         // T13
+  listTenants, provisionTenant, getTenant, updateTenant, activateTenant, suspendTenant, reactivateTenant, terminateTenant,   // T22
+  getTenantSettingsAsPlatform, updateTenantSettingsAsPlatform, setFeatureFlagAsPlatform, inviteTenantAdmin,                 // T22
 };
 
 export const handlers: Readonly<Record<IdentityOperationId, Handler>> = Object.freeze(

@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"sort"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -71,7 +72,7 @@ func leaves(v any, key string, out *[]string) {
 	case string:
 		*out = append(*out, x, key+"="+x)
 	case float64:
-		*out = append(*out, key+"="+strings.TrimRight(strings.TrimRight(jsonNum(x), "0"), "."))
+		*out = append(*out, key+"="+strconv.FormatFloat(x, 'f', -1, 64))
 	case []any:
 		for _, e := range x {
 			leaves(e, key, out)
@@ -82,8 +83,6 @@ func leaves(v any, key string, out *[]string) {
 		}
 	}
 }
-
-func jsonNum(f float64) string { b, _ := json.Marshal(f); return string(b) }
 
 func readRaw(t *testing.T, name string) (rawSession, string) {
 	t.Helper()

@@ -21,7 +21,7 @@ import userEvent from '@testing-library/user-event';
 import { HttpResponse } from 'msw';
 import {
   APPROVE, APPROVE_ONLY, CAND_BLOCKS, EXPECTED_DIFF, MANAGE_ONLY, REVIEW_PAGE, VER_APPROVED, VER_DRAFT, VER_REVIEW, VER_RETIRED, api, apiCalls, axeClean, bodyOf, callsTo, json, mountReviewApi, norm,
-  pageText, problem, resetApi, reviewVersion, router, routes, showOrThrown, showReview, steppedUp, stubLocation, vp, SR,
+  pageText, problem, resetApi, reviewVersion, router, routes, showOrThrown, showReview, steppedUp, stubLocation, summaryDto, vp, SR,
 } from './sr-t21.harness';
 
 vi.mock('next/navigation', async () => (await import('./sr-t20.harness')).navigationMock);
@@ -141,6 +141,18 @@ describe('Changes since active version (done_when: diff counts)', () => {
     routes[`GET ${vp(VER_APPROVED, '/analyte-groups')}`] = json({ data: [] });
     await showReview();
     expect(norm(region().textContent)).toMatch(/Texts\D*0 added\D*0 changed\D*0 removed/i);
+  });
+
+  it('finds the active version even when 50+ newer non-approved versions fill the default list page', async () => {
+    const filler = Array.from({ length: 50 }, (_, i) => ({ id: `01940e00-0000-7000-8000-${String(5000 + i).padStart(12, '0')}`, version_no: 100 + i, status: i % 2 ? 'draft' : 'retired', language: 'en', version: 1 }));
+    routes[`GET ${SR}`] = (c) => (c.url.searchParams.get('status') === 'approved'
+      ? HttpResponse.json({ data: [summaryDto()], page: { limit: 1 } } as never)
+      : HttpResponse.json({ data: filler, page: { limit: 50 } } as never));
+    await showReview();
+    const t = norm(region().textContent);
+    expect(t).toMatch(/Texts\D*2 added\D*1 changed\D*1 removed/i);
+    expect(t).toMatch(/Rules\D*1 added\D*1 changed\D*0 removed/i);
+    expect(t).toMatch(/Analyte mapping\D*0 added\D*1 changed\D*1 removed/i);
   });
 
   it('no active version yet (first library): the page still renders with the actions and no error', async () => {

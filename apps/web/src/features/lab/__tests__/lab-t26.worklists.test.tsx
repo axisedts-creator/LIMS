@@ -404,6 +404,15 @@ describe('AC-07.4 / §3.15 — worksheet print view: a snapshot, rendered from #
     expect(id.textContent).not.toContain(INSTR);
     expect(id.closest('[title]')?.getAttribute('title') ?? id.getAttribute('title')).toBe(INSTR);
   });
+  it('04-UI-UX §3.15: header shows the department as IdText (first 8 chars, full id in title), never the raw UUID as text', async () => {
+    await openSheet();
+    await screen.findByText('Morning haematology');
+    expect(document.body.textContent).toMatch(/Department:/);
+    const id = screen.getByText(new RegExp(DEPT.slice(0, 8)));
+    expect(id.textContent).not.toContain(DEPT);
+    expect(id.closest('[title]')?.getAttribute('title') ?? id.getAttribute('title')).toBe(DEPT);
+    expect(document.body.textContent).not.toContain(DEPT);
+  });
   it('404: "This item doesn\'t exist or isn\'t visible to you." (another centre / tenant looks the same); 403: no-access text; no row data either way', async () => {
     sheetReply = () => problem('common.not_found', 404);
     await openSheet();

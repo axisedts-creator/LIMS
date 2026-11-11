@@ -29,17 +29,21 @@ export function openerFromEnv(env: NodeJS.ProcessEnv = process.env): Opener {
 export interface SessionRef { sessionId: string; tenantId: string | null; userId: string; kind: string }
 export interface SessionPatch {
   state?: string; aal?: string; accessToken?: string; refreshToken?: string; accessExpiresAt?: Date; mfaFailedAttempts?: number;
-  revoked?: { reason: 'mfa_failed' }; actorId: string;
+  lastSeenAt?: Date; idleExpiresAt?: Date;   // T8 touch
+  revoked?: { reason: 'mfa_failed' | 'logout' | 'refresh_failed' }; actorId: string;
 }
 
 const BY_TOKEN_SQL = `SELECT session_id, kind, state, tenant_id, user_id, membership_id, platform_staff_id, support_session_id, token_reused
   FROM app.identity_session_by_token($1)`;
 // [CONV] e-mail for the account-failure key: core.users (tenant) / identity.platform_staff (platform). Row lock serialises parallel codes.
 const LOAD_SQL = `SELECT s.aal, s.access_token_enc, s.refresh_token_enc, s.enc_key_id, s.mfa_failed_attempts, s.access_expires_at,
-    s.idle_expires_at, s.absolute_expires_at, coalesce(u.email_normalized, p.email_normalized) AS email
+    s.idle_expires_at, s.absolute_expires_at, coalesce(u.email_normalized, p.email_normalized) AS email,
+    s.state, s.last_seen_at, s.idle_timeout_minutes, (m.locked_at IS NOT NULL) AS membership_locked, t.status AS tenant_status
   FROM identity.sessions s
   LEFT JOIN core.users u ON u.tenant_id = s.tenant_id AND u.id = s.user_id
   LEFT JOIN identity.platform_staff p ON p.id = s.platform_staff_id
+  LEFT JOIN core.memberships m ON m.tenant_id = s.tenant_id AND m.id = s.membership_id
+  LEFT JOIN core.tenants t ON t.id = s.tenant_id
   WHERE s.id = $1 AND s.user_id = $2 AND s.tenant_id IS NOT DISTINCT FROM $3 AND s.kind = $4
   FOR UPDATE OF s`;
 const SESSION_UPDATE_DEFINER = 'SELECT app.identity_platform_auth_write_session_update($1::uuid, $2::uuid, $3::jsonb) AS n';
@@ -72,7 +76,7 @@ export function createMfaRepo(o: { seal?: Sealer; open?: Opener } = {}) {
   const seal = o.seal ?? sealerFromEnv();
   const open = o.open ?? openerFromEnv();
 
-  return {
+  const repo = {
     async sessionByToken(tx: Q, sha: Buffer) {
       if (!Buffer.isBuffer(sha) || sha.length !== 32) throw new LimsError('common.internal', 'identity: token hash must be 32 bytes');
       const r = (await tx.query(BY_TOKEN_SQL, [sha])).rows[0];
@@ -89,7 +93,19 @@ export function createMfaRepo(o: { seal?: Sealer; open?: Opener } = {}) {
         aal: r.aal as 'aal1' | 'aal2', accessToken: open(r.access_token_enc, r.enc_key_id), refreshToken: open(r.refresh_token_enc, r.enc_key_id),
         mfaFailedAttempts: Number(r.mfa_failed_attempts), email: typeof r.email === 'string' ? r.email.trim().normalize('NFC').toLowerCase() : '',
         accessExpiresAt: r.access_expires_at as Date, idleExpiresAt: r.idle_expires_at as Date, absoluteExpiresAt: r.absolute_expires_at as Date,
+        state: r.state as string, lastSeenAt: r.last_seen_at as Date, idleTimeoutMinutes: Number(r.idle_timeout_minutes),
+        membershipLocked: r.membership_locked === true, tenantStatus: (r.tenant_status ?? null) as string | null,
       };
+    },
+
+    /** T8 touch (03-APP-FLOW s3.5): last_seen_at = now, idle_expires_at = now + idle_timeout_minutes; caller holds the row lock */
+    async touchSession(tx: Q, ref: SessionRef, a: { lastSeenAt: Date; idleExpiresAt: Date; actorId: string }): Promise<void> {
+      await repo.updateSession(tx, ref, { lastSeenAt: a.lastSeenAt, idleExpiresAt: a.idleExpiresAt, actorId: a.actorId });
+    },
+
+    /** T8 lazy expiry (SS10); caller checked state under the row lock. The reason lives in the auth event (no column). */
+    async expireSession(tx: Q, ref: SessionRef, a: { reason: 'idle' | 'absolute'; actorId: string }): Promise<void> {
+      await repo.updateSession(tx, ref, { state: 'expired', actorId: a.actorId });
     },
 
     async updateSession(tx: Q, ref: SessionRef, patch: SessionPatch): Promise<void> {
@@ -104,6 +120,8 @@ export function createMfaRepo(o: { seal?: Sealer; open?: Opener } = {}) {
       if (patch.aal !== undefined) set['aal'] = patch.aal;
       if (patch.accessExpiresAt !== undefined) set['access_expires_at'] = patch.accessExpiresAt;
       if (patch.mfaFailedAttempts !== undefined) set['mfa_failed_attempts'] = patch.mfaFailedAttempts;
+      if (patch.lastSeenAt !== undefined) set['last_seen_at'] = patch.lastSeenAt;
+      if (patch.idleExpiresAt !== undefined) set['idle_expires_at'] = patch.idleExpiresAt;
       if (patch.revoked) {   // sessions__revoke__ck: state + revoked_at + revoke_reason together
         set['state'] = 'revoked'; set['revoked_at'] = new Date(); set['revoke_reason'] = patch.revoked.reason; set['revoked_by'] = patch.actorId;
       }
@@ -165,6 +183,7 @@ export function createMfaRepo(o: { seal?: Sealer; open?: Opener } = {}) {
         e.requestId, e.clientIp ?? '', e.actorId]);
     },
   };
+  return repo;
 }
 
 export type MfaRepo = ReturnType<typeof createMfaRepo>;

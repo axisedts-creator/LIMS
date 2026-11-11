@@ -66,7 +66,7 @@ export function parseCode(b: unknown): string {
   return code;
 }
 
-function sessionToken(req: HandlerRequest): string | undefined {
+export function sessionToken(req: HandlerRequest): string | undefined {
   const raw = (req.headers as Record<string, unknown> | undefined)?.['cookie'];
   if (typeof raw !== 'string') return undefined;
   for (const part of raw.split(';')) {
@@ -180,7 +180,7 @@ export const sessionState = (c: MfaCtx) => ({
 
 // ---------- wiring (shared by the three handlers) ----------
 let gateway: GoTrueGateway | undefined;
-const gw = () => (gateway ??= createHttpGoTrueGateway({
+export const gw = () => (gateway ??= createHttpGoTrueGateway({
   url: process.env['LIMS_IDENTITY_GOTRUE_URL'] ?? '', serviceKey: process.env['LIMS_IDENTITY_GOTRUE_SERVICE_KEY'] ?? '',
 }));
 const wiredGotrue: MfaDeps['gotrue'] = {

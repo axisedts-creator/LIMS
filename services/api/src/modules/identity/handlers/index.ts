@@ -56,6 +56,8 @@ import { loginStaff } from './loginStaff.js';
 import { verifyMfaChallenge } from './verifyMfaChallenge.js';
 import { startMfaEnrolment } from './startMfaEnrolment.js';
 import { completeMfaEnrolment } from './completeMfaEnrolment.js';
+import { resolveSession } from './resolveSession.js';
+import { logoutSession } from './logoutSession.js';
 
 const OPERATION_IDS = [
   // auth (identity_auth)
@@ -103,6 +105,7 @@ const implemented: Partial<Record<IdentityOperationId, Handler>> = {
   listPlatformSessions, revokePlatformSession, listPlatformAuthEvents,                                          // T25
   loginStaff,                                                                                                   // T6
   verifyMfaChallenge, startMfaEnrolment, completeMfaEnrolment,                                                  // T7
+  resolveSession, logoutSession,                                                                                // T8
 };
 
 export const handlers: Readonly<Record<IdentityOperationId, Handler>> = Object.freeze(

@@ -330,7 +330,8 @@ class IncidentResponse(unittest.TestCase):  # AC-23.1, 03 s12, 04 s5.3-5.4, REQ-
 
 class TabletopRecord(unittest.TestCase):  # done_when 2, AC-23.1 "tabletop twice a year, recorded"
     def records(self):
-        recs = sorted(TABLETOPS.glob("*.md")) if TABLETOPS.exists() else []
+        # LD-106(1): AC-22.2 DR site-failover walk-through is not a REQ-SEC-134 security-incident record.
+        recs = sorted(p for p in TABLETOPS.glob("*.md") if not p.name.endswith("-site-failover.md")) if TABLETOPS.exists() else []
         self.assertTrue(recs, "no record under infra/runbooks/tabletop-log/")
         return recs
 

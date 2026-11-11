@@ -13,7 +13,7 @@
 # The metric stays 0 and NoOffsiteArchive keeps paging; this playbook never writes any other value.
 # Interim pass: escrowed with sops from the control host (secrets.md) before it lands on the promoted host's tmpfs;
 # a rerun reuses it. The repo account is chrooted, sftp-only, group lims-interim-repo (role hardening template).
-# Promoted dr host archives to the interim repo only (no repo2): blocking CR .orchestra/cr/C1.T-29.md.
+# Promoted dr host archives to the interim repo only, no repo2 settings: LD-106 (CR-C1-T29b option (a), 02-TRD s9).
 # UNVERIFIED until the staging game day: the standby container mounts the standby conf and secret dirs at the
 # same paths as the host; sshd internal-sftp + chroot + Match in a drop-in; pgBackRest sftp hash type sha256.
 - name: Promote the standby (guards, promote, degraded-mode metric)

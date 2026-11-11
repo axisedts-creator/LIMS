@@ -74,6 +74,12 @@ export async function asAdmin<T>(fn: (c: pg.PoolClient) => Promise<T>, replica =
   } catch (e) { await c.query('ROLLBACK').catch(() => undefined); throw e; } finally { c.release(); }
 }
 
+/** app.enqueue_job rejects identifiers absent from core.g_task_registry (C0 02-TRD:867); the deploy-time registry-sync (02-TRD:790) fills it, app code never does (ruling C5.T-24 #2). Superuser, idempotent. */
+export async function ensureTaskRegistry(): Promise<void> {
+  await asAdmin(async (c) => { await c.query(
+    `INSERT INTO core.g_task_registry (identifier,module,kind,scope,max_attempts) VALUES ('core.event_fanout','core','core','per_tenant',25) ON CONFLICT DO NOTHING`); });
+}
+
 /** Removes every row of the id namespace `ns` (+ everything the impl created for those orders). Frontdesk parents stay. */
 export async function cleanup(ns: string): Promise<void> {
   const like = `${ns}%`;

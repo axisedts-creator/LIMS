@@ -538,7 +538,7 @@ describe.skipIf(!live)('lookupSpecimens (S-20; 08 §4.14 CR-C10-003 + C17-002)',
   });
   it('1..200 ids: 200 ok, 201 / 0 / no selector -> common.validation_failed; other tenant order -> omitted (not an error)', async () => {
     const h = await boot(fx());
-    const ids = (k: number) => Array.from({ length: k }, (_, i) => L(0x100 - 1 - (i % 200)));
+    const ids = (k: number) => Array.from({ length: k }, (_, i) => L(0x1000 + (i % 200)));   // unknown ids, none of the fixture L() values (ruling C5.T-24 #1; 08-CR-REGISTER:1655 unknown -> omitted)
     expect(await h.impl.lookupSpecimens(sys(h), { specimenIds: ids(200) })).toEqual([]);
     for (const bad of [{ specimenIds: ids(201) }, { specimenIds: [] }, {}]) expect(await code(h.impl.lookupSpecimens(sys(h), bad as never)), JSON.stringify(Object.keys(bad))).toBe('common.validation_failed');
     expect(await h.impl.lookupSpecimens(sys(h), { orderId: ob })).toEqual([]);

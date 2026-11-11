@@ -1,7 +1,7 @@
 // C5 T-24 harness part 2 (not a test file): the ContractHarness over the REAL `labPort`. Seams, seeding and adapters are documented in ./harness.ts.
 import { makeCtxFor, type ContractHarness } from '../../../../../../../packages/fakes/src/harness';
 import { LimsError } from '../../../../core/errors.js';
-import { admin, api, claimsOf, cleanup, dropDash, L, MEMBERSHIP, NOW, NS, q, seedFixtures, SYS, TENANT, tenantKey, type World } from './harness.js';
+import { admin, api, claimsOf, cleanup, dropDash, ensureTaskRegistry, L, MEMBERSHIP, NOW, NS, q, seedFixtures, SYS, TENANT, tenantKey, type World } from './harness.js';
 
 type Obj = Record<string, any>;
 
@@ -50,6 +50,7 @@ export interface RealHarness extends ContractHarness {
 /** () => Promise<RealHarness> over the REAL implementation. Dynamic import: this file loads before the impl exists; the failure is the missing module. */
 export function realLabPortHarness(): () => Promise<RealHarness> {
   return async () => {
+    await ensureTaskRegistry();
     await cleanup(NS);
     const mod: any = await import('../LabPort.impl.js');
     const real = mod.labPort;

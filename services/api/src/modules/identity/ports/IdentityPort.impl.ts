@@ -5,18 +5,39 @@ import type {
   ActorProfile, IdentityPort, PartnerRole, Signatory, TenantSettings,
 } from '../../../../../../contracts/ports/IdentityPort.js';
 import { FIXED_ACTOR_PERMISSIONS, PERMISSION_CODES, PRIVILEGED } from '../../../../../../contracts/ports/generated/permissions.js';
+import { createHash, randomBytes } from 'node:crypto';
 import { LimsError } from '../../../core/errors.js';
 import type { CoreAdminRepo, MembershipRecord } from '../repository/core-admin.repo.js';
+// [CONV] relative import until @lims/shared-ts is a services/api dependency (same as core/errors.ts).
+import { uuidv7 } from '../../../../../../packages/shared-ts/src/uuidv7/index.js';
+
+/** T31 kind patient row (05-SCHEMA s4.1, LD-81): no GoTrue session / refresh / access-token columns (NULL by CHECK). */
+export interface NewPatientSession {
+  id: string; membershipId: string; userId: string; kind: 'patient'; tokenSha256: Buffer; state: 'active'; aal: 'aal1';
+  appInstanceId: string; appPlatform: 'android' | 'ios'; idleTimeoutMinutes: number; idleExpiresAt: Date; absoluteExpiresAt: Date; expiresAt: Date; actorId: string;
+}
+/** T31 patient-context writes (08 A28.2: the repo runs them in the identity-system-actor write scope). Optional until the real repo
+ *  lands them (.orchestra/cr/T31.md); absent -> the port fails closed with common.internal. */
+export interface PatientWrites {
+  createPatientMembership?(ctx: any, i: { accountId: string }): Promise<{ membershipId: string; userId: string }>;
+  insertPatientSession?(ctx: any, s: NewPatientSession): Promise<void>;
+  deactivatePatientMembership?(ctx: any, i: { membershipId: string }): Promise<void>;
+}
 
 export type AuthzOutcome = 'allow' | 'forbidden' | 'mfa_required' | 'locked' | 'support_required';
 export interface IdentityPortDeps {
-  readonly repo: CoreAdminRepo;
+  readonly repo: CoreAdminRepo & PatientWrites;
   /** Worker-manifest permissions of a system actor id (CR-C2-013 = ctx.core.systemActorPermissions). Unknown id → []. */
   readonly systemActorPermissions: (actorId: string) => readonly string[];
   readonly nowMs?: () => number;
   readonly settingsTtlMs?: number;
   /** lims_identity_authz_decisions_total{outcome} — no ids. */
   readonly metrics?: { authzDecision(outcome: AuthzOutcome, privileged: boolean): void };
+  /** T31: opaque patient session token (default 32 random bytes base64url = 43 chars), session row id */
+  readonly newToken?: () => string;
+  readonly newId?: () => string;
+  /** LD-81: EdDSA signer of the patient access JWT; claims exactly sub / session_id / aal / iat / exp */
+  readonly mintPatientAccessToken?: (c: { sub: string; sessionId: string; aal: string; issuedAt: Date; expiresAt: Date }) => string;
 }
 export type IdentityPortImpl = IdentityPort & { invalidateTenantSettings(tenantId: string): void };
 
@@ -33,6 +54,8 @@ const RESTRICTED_SETTING_KEYS: readonly string[] = ['timezone', 'calendarDisplay
 const SUPPORT_RO = ['identity.user.read', 'identity.centre.read', 'audit.log.read'];          // §7.4 [DECISION]
 const SUPPORT_ADMIN = [...SUPPORT_RO, 'identity.user.manage', 'identity.role.manage', 'identity.centre.manage', 'identity.settings.manage', 'identity.session.revoke'];
 const SUPPORT_SUFFIX = ' (the LIMS provider support)';
+// patient kind lifetimes (05-SCHEMA s4.1 sessions__idle__ck default 14 d; 02-TRD s11 absolute 30 d), LD-81 access JWT <= 1 h
+const PATIENT_IDLE_MIN = 14 * 24 * 60, PATIENT_ABSOLUTE_MS = 30 * 86_400_000, PATIENT_JWT_MS = 3_600_000;
 const CODE_RE = /^[a-z][a-z0-9_]{0,63}$/;
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -88,6 +111,9 @@ function userProfile(ctx: any, m: MembershipRecord, aal: 'aal1' | 'aal2'): Actor
 export function createIdentityPort(deps: IdentityPortDeps): IdentityPortImpl {
   const { repo } = deps;
   const nowMs = deps.nowMs ?? Date.now;
+  const newToken = deps.newToken ?? (() => randomBytes(32).toString('base64url'));
+  const newId = deps.newId ?? uuidv7;
+  const unwired = () => err('common.internal', 'identity: patient writer not wired');
   const ttl = deps.settingsTtlMs ?? 30_000;                                                  // 02-TRD §7.3 [CONV]
   const memo = new WeakMap<object, Map<string, Promise<Resolved>>>();
   const settingsCache = new Map<string, { value: TenantSettings; loadedAt: number }>();
@@ -345,14 +371,35 @@ export function createIdentityPort(deps: IdentityPortDeps): IdentityPortImpl {
       return { membershipId: i.membershipId, status: r.status, version: r.version };
     },
 
-    // BLOCKED until C2 T1 confirms the GoTrue paths (§8, 08 A25 D-218): caller restriction enforced, success path fails closed.
-    async provisionPatientMembership(ctx) {
+    // LD-81 (T31): the patient kind has no GoTrue user / session, so D-218 no longer blocks these two (patient pre_auth context only).
+    async provisionPatientMembership(ctx, input) {
       await requirePreAuthPatient(ctx);
-      throw err('common.internal', 'blocked_gotrue_t1');
+      const accountId = (input as any)?.accountId;
+      if (!uuid(accountId)) throw invalid('account_id_invalid');
+      if (!repo.createPatientMembership) throw unwired();
+      const r = await repo.createPatientMembership(ctx, { accountId });   // idempotent per accountId; user id generated by LIMS; no phone / e-mail
+      return { membershipId: r.membershipId as any, userId: r.userId as any };
     },
-    async openPatientSession(ctx) {
+    async openPatientSession(ctx, input) {
       await requirePreAuthPatient(ctx);
-      throw err('common.internal', 'blocked_gotrue_t1');
+      const i: any = input ?? {};
+      if (!uuid(i.membershipId)) throw invalid('membership_id_invalid');
+      if (!uuid(i.appInstanceId)) throw invalid('app_instance_id_invalid');
+      if (i.appPlatform !== 'android' && i.appPlatform !== 'ios') throw invalid('app_platform_invalid');
+      const m = await repo.membership(ctx, { membershipId: i.membershipId });
+      if (!m || m.actorType !== 'patient' || m.tenantId !== ctx.tenantId) throw err('common.not_found');
+      if (m.status !== 'active') throw err('identity.membership_inactive');
+      if (!repo.insertPatientSession || !deps.mintPatientAccessToken) throw unwired();
+      const now = nowMs(); const token = newToken(); const id = newId();
+      const absoluteExpiresAt = new Date(now + PATIENT_ABSOLUTE_MS);
+      await repo.insertPatientSession(ctx, {
+        id, membershipId: m.membershipId, userId: m.userId, kind: 'patient', tokenSha256: createHash('sha256').update(token).digest(), state: 'active', aal: 'aal1',
+        appInstanceId: i.appInstanceId, appPlatform: i.appPlatform, idleTimeoutMinutes: PATIENT_IDLE_MIN,
+        idleExpiresAt: new Date(now + PATIENT_IDLE_MIN * 60_000), absoluteExpiresAt, expiresAt: absoluteExpiresAt, actorId: ctx.actor.id,
+      });
+      const expiresAt = new Date(Math.min(now + PATIENT_JWT_MS, absoluteExpiresAt.getTime()));   // never outlives the session
+      const accessToken = deps.mintPatientAccessToken({ sub: m.userId, sessionId: id, aal: 'aal1', issuedAt: new Date(now), expiresAt });
+      return { sessionToken: token, accessToken, accessExpiresAt: expiresAt.toISOString() as any, sessionExpiresAt: absoluteExpiresAt.toISOString() as any };
     },
 
     async revokePatientSessions(ctx, input) {
@@ -365,11 +412,12 @@ export function createIdentityPort(deps: IdentityPortDeps): IdentityPortImpl {
       if (!uuid(i.membershipId)) throw invalid('membership_id_invalid');
       if (typeof i.reason !== 'string' || !REVOKE_REASONS.includes(i.reason)) throw invalid('reason_invalid');
       if (typeof i.deactivateMembership !== 'boolean') throw invalid('deactivate_membership_invalid');
-      // [CONV] deactivateMembership=true needs the A28.2 identity-system-actor write scope (ctx.db.withTenantScope) — not wired yet
-      if (i.deactivateMembership) throw err('common.internal', 'blocked_a28_2');
       const m = await repo.membership(ctx, { membershipId: i.membershipId });
       if (!m || m.actorType !== 'patient' || m.tenantId !== ctx.tenantId) throw err('common.not_found');
-      return { revokedSessions: await repo.revokeSessions(ctx, { membershipId: i.membershipId, reason: i.reason }) };
+      if (i.deactivateMembership && !repo.deactivatePatientMembership) throw unwired();   // checked before any write
+      const revokedSessions = await repo.revokeSessions(ctx, { membershipId: i.membershipId, reason: i.reason });
+      if (i.deactivateMembership) await repo.deactivatePatientMembership!(ctx, { membershipId: i.membershipId });   // 08 A28.2 write scope in the repo
+      return { revokedSessions };
     },
 
     async getStaffNotificationContact(ctx, input) {

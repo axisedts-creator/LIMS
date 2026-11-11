@@ -13,14 +13,14 @@ interface SessionHctx extends HandlerContext {
   requestId: string; bffKey?: string; actor?: { type: string; id: string }; commitOnError?: () => void;
   db: { identityAuthTx<T>(input: TxInput, fn: TxFn<T>): Promise<T> };
 }
-const TOKEN_RE = /^[A-Za-z0-9_-]{43}$/;
+export const TOKEN_RE = /^[A-Za-z0-9_-]{43}$/;
 
 /** request -> SessionCall; E-9: missing / malformed cookie looks like any other dead session */
-export function sessionCall(operationId: SessionCall['operationId'], req: HandlerRequest, hctx: HandlerContext): SessionCall {
+export function sessionCall(operationId: SessionCall['operationId'], req: HandlerRequest, hctx: HandlerContext,
+  token: string | undefined = sessionToken(req)): SessionCall {
   const ctx = hctx as SessionHctx;
   const actorId = ctx.actor?.id;
   if (typeof actorId !== 'string' || !actorId) throw new LimsError('common.internal');   // system actor = created_by of every write
-  const token = sessionToken(req);
   if (!token || !TOKEN_RE.test(token)) throw new LimsError('auth.session_expired');
   const ua = (req.headers as Record<string, unknown> | undefined)?.['user-agent'];
   return { operationId, token, bffKey: ctx.bffKey, actorId, requestId: ctx.requestId, clientIp: ctx.clientIp, userAgent: typeof ua === 'string' ? ua : undefined,
@@ -40,9 +40,10 @@ export const createResolveSession = (deps: SessionDeps) => {
 const wiredGotrue: SessionDeps['gotrue'] = { refresh: (rt) => gw().refresh(rt) };   // the one lazily built HTTP gateway of T7
 let wiredRepo: MfaRepo | undefined;
 const wiredEvents = createAuthEventsRepo();
-export function wireSession(factory: (deps: SessionDeps) => (req: HandlerRequest, hctx: HandlerContext) => Promise<unknown>): Handler {
+export function wireSession(factory: (deps: SessionDeps) => (req: HandlerRequest, hctx: HandlerContext) => Promise<unknown>,
+  extra: Partial<SessionDeps> = {}): Handler {
   return (async (req: HandlerRequest, hctx: HandlerContext) =>
-    factory({ gotrue: wiredGotrue, repo: (wiredRepo ??= createMfaRepo()), events: wiredEvents })(req, hctx)) as Handler;
+    factory({ gotrue: wiredGotrue, repo: (wiredRepo ??= createMfaRepo()), events: wiredEvents, ...extra })(req, hctx)) as Handler;
 }
 
 export const resolveSession: Handler = wireSession(createResolveSession);

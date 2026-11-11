@@ -16,11 +16,12 @@
 //   export function criticalAction(i: { isCritical: boolean; valueSha256Prefix16: string; existing: readonly { valueSha256Prefix16: string; status: 'open'|'notified'|'closed' }[] }):
 //        { insertLogAndEmit: boolean; markValueChangedAfterDetection: boolean }      (02-TRD §4.3 step 4; AC-13.2 / AC-13.3)
 //   export async function persistEvaluation(ctx: EvalCtx, i: { stage: 'R2' | 'R3' | 'R7'; resultId: string; versionNo: number; evaluation: Evaluation }): Promise<void>
-//        R2/R3 -> one UPDATE on lab.results; R7 -> writes ONLY lab.result_versions (no statement touches lab.results). Every statement is tenant-scoped ($tenant from ctx).
+//        R2/R3 -> one UPDATE on lab.results (tenant-scoped, $tenant from ctx); R7 -> rejects (result_versions is immutable; ruling per T-12 review).
+//   export function evaluationColumns(e: Evaluation, stage: 'R2'|'R3'|'R7'): { cols: string[]; values: unknown[] }   (R7 outputs bound into the amendment INSERT; no ref_unit_code for R7)
 import { describe, expect, it } from 'vitest';
 import { createHash } from 'node:crypto';
 import { LimsError, isLimsError } from '../../../../core/errors.js';
-import { criticalAction, evaluateValue, persistEvaluation } from '../evaluation.service.js';
+import { criticalAction, evaluateValue, evaluationColumns, persistEvaluation } from '../evaluation.service.js';
 
 const TENANT = '01a1a98a-ac40-7000-8000-00000000a001';
 const ACTOR = '01a1b34e-1000-7eee-9d29-d7ca59a102b5';
@@ -255,13 +256,12 @@ describe('T-12 criticalAction — AC-13.1 / AC-13.2 / AC-13.3 (02-TRD §4.3 step
   });
 });
 
-describe('T-12 persistEvaluation — R2/R3 write lab.results; R7 writes ONLY lab.result_versions (02-TRD §4.3 "Where the output goes")', () => {
+describe('T-12 persistEvaluation / evaluationColumns — R2/R3 UPDATE lab.results; R7 outputs only via INSERT columns for lab.result_versions (02-TRD §4.3 "Where the output goes")', () => {
   const evaluation = {
     flag: 'HH', rangeSnapshot: { referenceRangeId: RANGE.referenceRangeId, version: 2, low: '3.5', high: '5.1', text: '3.5 - 5.1', unitCode: 'mmol/L' },
     critical: { isCritical: true, direction: 'high', criticalLimitId: CRIT.criticalLimitId, version: 4 },
     rangeUnavailableAgeUnknown: false, valueSha256Prefix16: sha16('n:7.0'), delta: { status: 'no_rule' },
   } as any;
-  const hitsResults = (t: string) => /\blab\.results\b/i.test(t);
   const hitsVersions = (t: string) => /\blab\.result_versions\b/i.test(t);
 
   it.each(['R2', 'R3'] as const)('%s: UPDATE lab.results, tenant-scoped, carrying flag / delta_status / range_unavailable_age_unknown / is_critical', async (stage) => {
@@ -277,22 +277,31 @@ describe('T-12 persistEvaluation — R2/R3 write lab.results; R7 writes ONLY lab
     expect(c.stmts.some((s) => s.values.includes('HH'))).toBe(true);
   });
 
-  it('R7: writes lab.result_versions only — no statement references lab.results (the approved row is locked)', async () => {
+  it('R7: persistEvaluation rejects and writes nothing (result_versions is immutable-by-trigger; R7 outputs go in at INSERT time via evaluationColumns)', async () => {
     const c = makeCtx();
-    await persistEvaluation(c.ctx, { stage: 'R7', resultId: RESULT, versionNo: 3, evaluation });
-    expect(c.stmts.length).toBeGreaterThan(0);
-    expect(c.stmts.some((s) => hitsResults(s.text))).toBe(false);
-    expect(c.stmts.some((s) => hitsVersions(s.text))).toBe(true);
-    const all = c.stmts.map((s) => s.text).join('\n');
-    for (const col of ['flag', 'delta_status', 'range_unavailable_age_unknown', 'is_critical']) expect(all).toContain(col);
-    for (const s of c.stmts) { expect(s.text).toMatch(/tenant_id\s*=\s*\$\d/i); expect(s.values).toContain(TENANT); }
-    expect(c.stmts.some((s) => s.values.includes(RESULT) && s.values.includes(3))).toBe(true); // targets (result_id, version_no)
+    await expect(persistEvaluation(c.ctx, { stage: 'R7', resultId: RESULT, versionNo: 3, evaluation })).rejects.toThrow();
+    expect(c.stmts).toHaveLength(0);
+  });
+
+  it('R7: evaluationColumns returns the INSERT column/value pairs — no ref_unit_code, has flag / is_critical / range_unavailable_age_unknown / delta_status', () => {
+    const { cols, values } = evaluationColumns(evaluation, 'R7');
+    expect(cols).toHaveLength(values.length);
+    expect(cols).not.toContain('ref_unit_code');
+    for (const col of ['flag', 'is_critical', 'range_unavailable_age_unknown', 'delta_status']) expect(cols).toContain(col);
+    expect(values[cols.indexOf('flag')]).toBe('HH');
+    expect(values[cols.indexOf('is_critical')]).toBe(true);
+  });
+
+  it('R2/R3: evaluationColumns includes ref_unit_code', () => {
+    for (const stage of ['R2', 'R3'] as const) expect(evaluationColumns(evaluation, stage).cols).toContain('ref_unit_code');
   });
 
   it('tenant comes from ctx only: a tenant id inside the evaluation payload is never used', async () => {
+    const other = '01a1a98a-ac40-7000-8000-00000000b001';
     const c = makeCtx();
-    await persistEvaluation(c.ctx, { stage: 'R7', resultId: RESULT, versionNo: 2, evaluation: { ...evaluation, tenantId: '01a1a98a-ac40-7000-8000-00000000b001' } });
-    for (const s of c.stmts) expect(s.values).not.toContain('01a1a98a-ac40-7000-8000-00000000b001');
+    await persistEvaluation(c.ctx, { stage: 'R3', resultId: RESULT, versionNo: 2, evaluation: { ...evaluation, tenantId: other } });
+    for (const s of c.stmts) expect(s.values).not.toContain(other);
+    expect(evaluationColumns({ ...evaluation, tenantId: other }, 'R7').values).not.toContain(other);
   });
 
   it('rejects an unknown stage and writes nothing (R6 copy is not this function)', async () => {

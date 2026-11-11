@@ -48,25 +48,25 @@ interface Tally { checked: number; ok: number; findings: number; critical: numbe
 
 /** Tenant business date (Asia/Kathmandu) of an instant, optionally minus whole days. */
 export const businessDate = (nowIso: string, minusDays = 0): string => new Date(Date.parse(nowIso) + KATHMANDU_OFFSET_MS - minusDays * DAY).toISOString().slice(0, 10);
-const dateText = (v: unknown): string => (v instanceof Date ? v.toISOString() : String(v)).slice(0, 10);
-const isDate = (v: unknown): v is string => {
+export const dateText =(v: unknown): string => (v instanceof Date ? v.toISOString() : String(v)).slice(0, 10);
+export const isDate =(v: unknown): v is string => {
   if (typeof v !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(v)) return false;
   const t = Date.parse(`${v}T00:00:00Z`);
   return !Number.isNaN(t) && new Date(t).toISOString().startsWith(v);
 };
-const moneyDto = (paisa: unknown) => ({ amount_paisa: Number(paisa), currency: 'NPR' as const });
+export const moneyDto =(paisa: unknown) => ({ amount_paisa: Number(paisa), currency: 'NPR' as const });
 const pick = <T extends string>(v: unknown, allowed: readonly T[], path: string): T => (typeof v === 'string' && (allowed as readonly string[]).includes(v) ? (v as T) : invalid(path));
 
-function pageLimit(v: unknown): number {
+export function pageLimit(v: unknown): number {
   if (v === undefined) return DEFAULT_LIMIT;
   const n = typeof v === 'number' ? v : typeof v === 'string' && /^\d{1,4}$/.test(v) ? Number(v) : Number.NaN;
   return Number.isInteger(n) && n >= 1 && n <= MAX_LIMIT ? n : invalid('limit');
 }
 
 // Keyset cursor: base64url JSON { k: list kind, s: sort, v: sort key of the last row }. A cursor of another list (or sort) is "foreign" -> common.invalid_cursor.
-type Key = (string | number)[];
+export type Key =(string | number)[];
 const encodeCursor = (k: string, s: string, v: Key): string => Buffer.from(JSON.stringify({ k, s, v }), 'utf8').toString('base64url');
-function decodeCursor(c: unknown, k: string, s: string, shape: ('string' | 'number')[]): Key {
+export function decodeCursor(c: unknown, k: string, s: string, shape: ('string' | 'number')[]): Key {
   const bad = (): never => { throw new LimsError('common.invalid_cursor'); };
   if (typeof c !== 'string' || c.length < 1 || c.length > 512) return bad();
   let o: any;
@@ -75,7 +75,7 @@ function decodeCursor(c: unknown, k: string, s: string, shape: ('string' | 'numb
   return o.v as Key;
 }
 /** rows sorted by `key` with per-element direction; returns the page after `after` and the cursor for the next one */
-function page<T>(rows: T[], key: (r: T) => Key, dirs: (1 | -1)[], after: Key | undefined, limit: number, kind: string, sort: string): { items: T[]; next?: string } {
+export function page<T>(rows: T[], key: (r: T) => Key, dirs: (1 | -1)[], after: Key | undefined, limit: number, kind: string, sort: string): { items: T[]; next?: string } {
   const cmp = (a: Key, b: Key): number => { for (let i = 0; i < a.length; i++) if (a[i]! !== b[i]!) return (a[i]! < b[i]! ? -1 : 1) * dirs[i]!; return 0; };
   const sorted = [...rows].sort((x, y) => cmp(key(x), key(y)));
   const rest = after ? sorted.filter((r) => cmp(key(r), after) > 0) : sorted;

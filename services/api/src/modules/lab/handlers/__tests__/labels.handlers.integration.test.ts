@@ -240,7 +240,9 @@ beforeAll(async () => {
   });
   savedSettings = (await sql('SELECT label_width_mm, label_height_mm, label_copies_default FROM lab.lab_settings WHERE tenant_id = $1', [A]))[0];
   // Ruling C5.T-10: no migration/seed creates the row -> upsert it (02-TRD #14: size + label_copies_default come from lab_settings).
-  await sql('INSERT INTO lab.lab_settings (tenant_id, label_width_mm, label_height_mm, label_copies_default) VALUES ($1, 60, 30, 2) ON CONFLICT (tenant_id) DO UPDATE SET label_width_mm = 60, label_height_mm = 30, label_copies_default = 2', [A]);
+  // created_by/updated_by are uuid NOT NULL, no DEFAULT, no FK (05-SCHEMA.md:178-185) -> fixed synthetic actor.
+  const SETTINGS_ACTOR = '00000000-0000-4000-8000-0000000010aa';
+  await sql('INSERT INTO lab.lab_settings (tenant_id, label_width_mm, label_height_mm, label_copies_default, created_by, updated_by) VALUES ($1, 60, 30, 2, $2, $2) ON CONFLICT (tenant_id) DO UPDATE SET label_width_mm = 60, label_height_mm = 30, label_copies_default = 2', [A, SETTINGS_ACTOR]);
 }, 120_000);
 afterAll(async () => {
   if (live) {

@@ -220,7 +220,8 @@ export function createMerchantService(deps: MerchantDeps) {
     const body = validateSettingsBody(input.body);
     let cur = await readSettings(ctx, true);
     const before: Row = cur ?? SETTINGS_DEFAULTS;
-    const fields = SETTINGS_KEYS.filter((k) => body[k] !== before[k]);
+    // int8 threshold arrives from node-pg as a string; compare numerically so unchanged values are not logged
+    const fields = SETTINGS_KEYS.filter((k) => (k === 'refund_two_person_threshold_paisa' ? Number(before[k]) !== body[k] : body[k] !== before[k]));
     let row: Row | undefined;
     if (!cur) {                                                           // P-22: lazy first row; a first save may carry If-Match of the default version or none
       if (input.expectedVersion !== undefined && input.expectedVersion !== 1) conflict();

@@ -138,6 +138,7 @@ export interface EntryAnalyte {
 export interface EntryRow {
   resultId: string; rowVersion: number; status: ResultStatus; orderId: string; orderItemId: string; specimenId?: string | undefined; patientId: string; testId: string;
   analyteId: string; centreId: string; currentVersionNo: number; sex: Sex; patientAgeDays: number | null; specimenTypeCode?: string; collectedAt?: Date; unitCode?: string;
+  departmentId?: string;   // T-18: comment codes resolve against the row's department (03-IC §4.2)
   analyte: EntryAnalyte;
 }
 export interface Downtime { occurredAt: string; downtimeRef: string }
@@ -181,6 +182,7 @@ export interface EntryOutcome { resultId: string; outcome: 'ok' | 'error'; code?
 const invalidValue = () => new LimsError('lab.result_value_invalid');
 const MAX_COMMENT_CODES = 10;      // lab.results CHECK results__comment_codes__ck
 const CATALOG_CODES_PER_CALL = 50; // C3 02-TRD §4.14
+const MAX_COMMENT_TEXT = 1000;     // lab.results CHECK results__comment_text__ck
 const fieldInvalid = (path: string): FieldError => ({ path, code: 'common.field_invalid', message: 'Field invalid' }); // fixed text: nothing submitted is echoed (S-19)
 
 /**
@@ -188,27 +190,39 @@ const fieldInvalid = (path: string): FieldError => ({ path, code: 'common.field_
  * per entry ([CONV]: order kept, first occurrence wins). Rejects the whole request with common.validation_failed + errors[] paths /entries/n/comment_codes[/k].
  * Returns, per entry index, the codes, the { code: library version } jsonb and the expanded library text (texts joined by one space, in entry order).
  */
-async function resolveEntryComments(ctx: EntryCtx, entries: EntryInput['entries']): Promise<Map<number, { codes: string[]; versions: Record<string, number>; text: string }>> {
+async function resolveEntryComments(ctx: EntryCtx, entries: EntryInput['entries'], rows: ReadonlyMap<string, EntryRow>): Promise<Map<number, { codes: string[]; versions: Record<string, number>; text: string }>> {
   const errors: FieldError[] = [];
   const wanted = new Map<number, string[]>();
   entries.forEach((e, n) => {
     if (!e.commentCodes?.length) return;
     if (e.commentCodes.length > MAX_COMMENT_CODES) { errors.push(fieldInvalid(`/entries/${n}/comment_codes`)); return; }
     e.commentCodes.forEach((c, k) => { if (typeof c !== 'string' || !c) errors.push(fieldInvalid(`/entries/${n}/comment_codes/${k}`)); });
-    wanted.set(n, e.commentCodes.map((c) => String(c).toUpperCase()));
+    if (rows.has(e.resultId)) wanted.set(n, e.commentCodes.map((c) => String(c).toUpperCase()));   // missing row: its per-row common.not_found handles it
   });
   if (errors.length) throw new LimsError('common.validation_failed', undefined, errors);
-  const distinct = [...new Set([...wanted.values()].flat())];
-  const lib = new Map<string, { version: number; text: string }>();
-  for (let i = 0; i < distinct.length; i += CATALOG_CODES_PER_CALL) {
-    const r = await ctx.ports.CatalogPort.resolveCommentCodes(ctx, { codes: distinct.slice(i, i + CATALOG_CODES_PER_CALL) });   // tenant from ctx only; a catalog failure propagates (not "unknown")
-    for (const x of r.resolved) lib.set(x.code.toUpperCase(), { version: x.version, text: x.text });
+  // 03-IC §4.2: a department-specific active code wins over tenant-wide -> one resolve per department of the rows (review T-18 #1).
+  const dept = (n: number) => rows.get(entries[n]!.resultId)?.departmentId;
+  const byDept = new Map<string | undefined, Set<string>>();
+  for (const [n, codes] of wanted) { const d = dept(n); const s = byDept.get(d) ?? new Set<string>(); codes.forEach((c) => s.add(c)); byDept.set(d, s); }
+  const lib = new Map<string | undefined, Map<string, { version: number; text: string }>>();
+  for (const [d, set] of byDept) {
+    const m = new Map<string, { version: number; text: string }>();
+    const distinct = [...set];
+    for (let i = 0; i < distinct.length; i += CATALOG_CODES_PER_CALL) {
+      const r = await ctx.ports.CatalogPort.resolveCommentCodes(ctx, { codes: distinct.slice(i, i + CATALOG_CODES_PER_CALL), ...(d === undefined ? {} : { departmentId: d }) });   // tenant from ctx only; a catalog failure propagates (not "unknown")
+      for (const x of r.resolved) m.set(x.code.toUpperCase(), { version: x.version, text: x.text });
+    }
+    lib.set(d, m);
   }
   const out = new Map<number, { codes: string[]; versions: Record<string, number>; text: string }>();
   for (const [n, codes] of wanted) {
-    codes.forEach((c, k) => { if (!lib.has(c)) errors.push(fieldInvalid(`/entries/${n}/comment_codes/${k}`)); });
+    const l = lib.get(dept(n))!;
+    codes.forEach((c, k) => { if (!l.has(c)) errors.push(fieldInvalid(`/entries/${n}/comment_codes/${k}`)); });
     const uniq = [...new Set(codes)];
-    out.set(n, { codes: uniq, versions: Object.fromEntries(uniq.map((c) => [c, lib.get(c)?.version ?? 0])), text: uniq.map((c) => lib.get(c)?.text ?? '').join(' ') });
+    const text = uniq.map((c) => l.get(c)?.text ?? '').join(' ');
+    // results__comment_text__ck / #24: comment_text <= 1000 chars; only the server-built expansion is checked (a sent text is validated by the contract). Review T-18 #2.
+    if (entries[n]!.commentText === undefined && text.length > MAX_COMMENT_TEXT) errors.push(fieldInvalid(`/entries/${n}/comment_codes`));
+    out.set(n, { codes: uniq, versions: Object.fromEntries(uniq.map((c) => [c, l.get(c)?.version ?? 0])), text });
   }
   if (errors.length) throw new LimsError('common.validation_failed', undefined, errors);
   return out;
@@ -220,9 +234,9 @@ export const ENTRY_AUDIT_ACTION = 'lab_result.enter';
 export async function bulkEnterResults(rawCtx: unknown, input: EntryInput): Promise<{ results: EntryOutcome[]; recomputed: ResultRow[] }> {
   const ctx = rawCtx as EntryCtx;
   const { tx, tenantId, store } = ctx;
-  const comments = await resolveEntryComments(ctx, input.entries);   // AC-10.3: before any lock / save; unknown code -> 400 for the whole request
   const ids = [...new Set(input.entries.map((e) => e.resultId))].sort();   // 02-TRD §3.2: lock order = result id ascending
   const rows = new Map((await store.lockResults(tx, tenantId, ids)).map((r) => [r.resultId, r]));
+  const comments = await resolveEntryComments(ctx, input.entries, rows);   // AC-10.3: after the lock (needs the row's department), before any save; unknown code -> 400, nothing saved
   const labEvents = createLabEvents(ctx.events as never);
   const saved = new Map<string, EntryRow>();   // value rows saved in this batch (drives roll-up, critical, recompute)
   const touched = new Set<string>();           // ids saved in this batch (a second entry for the same row is a lost race)

@@ -3,7 +3,7 @@
 // 08 R10, A3.1 (CR-C2-018), A19 P-42, A25 D-212/P-61; LD-81 (patient access JWT minted by LIMS, no GoTrue for kind patient).
 //
 // Handler files (plan row T31); each exports the wired `Handler` AND a factory createX(deps) like T8 (resolveSession.ts):
-//   handlers/loginPartner.ts          createLoginPartner(deps: AuthDeps)           deps = T6 auth.helpers makeWorld().deps (gotrue, repo, events, limits, hmac, newId, newToken, sleep, alert)
+//   handlers/loginPartner.ts          createLoginPartner(deps: AuthDeps)           deps = T6 auth.helpers makeWorld().deps (gotrue, repo, events, limits, hmac, newId, newToken, now?, sleep, alert)
 //   handlers/openMobileSession.ts     createOpenMobileSession(deps: AuthDeps)      same deps; repo ALSO has  membershipHasPermission(tx, { tenantId, membershipId, permission }) -> boolean  (called AFTER tx.bindTenant)
 //   handlers/refreshMobileSession.ts  createRefreshMobileSession(deps: AppDeps)    body { session_token }                       -> 200 { session_token, access_token, access_expires_at, session_expires_at, session }
 //   handlers/logoutMobileSession.ts   createLogoutMobileSession(deps: AppDeps)     body { session_token }                       -> 204

@@ -15,7 +15,7 @@ function partnerWorld(row = partnerRow()) { return makeWorld({ rows: { [SUB]: ro
 function mobileWorld(o: { row?: Record<string, unknown>; permitted?: boolean } = {}) {
   const w = makeWorld({ rows: { [SUB]: o.row ?? staffRow() } });
   const checks: any[] = [];
-  const deps = { ...w.deps, repo: { ...w.deps.repo, async membershipHasPermission(_tx: unknown, a: unknown) { checks.push(a); return o.permitted ?? true; } } };
+  const deps = { ...w.deps, now: () => new Date(w.clock.ms), repo: { ...w.deps.repo, async membershipHasPermission(_tx: unknown, a: unknown) { checks.push(a); return o.permitted ?? true; } } };
   return { w, deps, checks };
 }
 const runPartner = (w: ReturnType<typeof makeWorld>, a: { body?: unknown; key?: string | undefined } = {}) => {

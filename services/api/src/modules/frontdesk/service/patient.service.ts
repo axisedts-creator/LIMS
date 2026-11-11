@@ -8,10 +8,13 @@ import { formatNumber } from '../domain/numbering.js';
 import { consentRecordDto, dateOnly, decodeCursor, encodeCursor, orderSummaryDto, patientDto, patientSummaryDto } from '../mappers/patient.dto.js';
 import { nextCounterValue } from '../repository/counters.repo.js';
 import { insertConsent, listConsentsByPatient } from '../repository/consents.repo.js';
-import { pageOrdersByPatient } from '../repository/orders.repo.js';
-import { findDedupePool, findPatientsByCode, findPatientsByPhone, findPatientsByRegistrationNo, getPatientById, insertPatient,
-  searchPatientsByNameRanked, updatePatientRow } from '../repository/patients.repo.js';
+import { deriveOrderStatus, type ItemProcessingStatus, type OrderStatus } from '../domain/order.state.js';
+import { activeItemIdsByOrders } from '../repository/orderItems.repo.js';
+import { lastOrderAt, openOrdersOfPatient, pageOrdersByPatient } from '../repository/orders.repo.js';
+import { anonymisePatientRow, duplicateCandidates, findDedupePool, findPatientsByCode, findPatientsByPhone, findPatientsByRegistrationNo, getPatientById, insertPatient,
+  pageDuplicatePatients, searchPatientsByNameRanked, updatePatientRow } from '../repository/patients.repo.js';
 import { getSettings } from '../repository/settings.repo.js';
+import { deactivateTrfByPatient } from '../repository/trf.repo.js';
 import type { Tx } from '../repository/shared.repo.js';
 import { FRONTDESK_PERMISSIONS as P } from '../permissions.js';
 
@@ -86,9 +89,10 @@ function birthFromAge(age: unknown, today: string): string {
 }
 
 async function role(c: PatientCtx, permission: string): Promise<void> { await c.ports.IdentityPort.assertRole(c, { permission }); }
-async function tenantInfo(c: PatientCtx): Promise<{ today: string; numbering: Obj }> {
+async function tenantInfo(c: PatientCtx): Promise<{ today: string; tz: string; numbering: Obj }> {
   const s = (await c.ports.IdentityPort.getTenantSettings(c, { keys: ['numbering', 'timezone'] })) ?? {};
-  return { today: todayIn(typeof s.timezone === 'string' ? s.timezone : 'Asia/Kathmandu', c.now()), numbering: isObj(s.numbering) ? s.numbering : {} };
+  const tz = typeof s.timezone === 'string' ? s.timezone : 'Asia/Kathmandu';
+  return { today: todayIn(tz, c.now()), tz, numbering: isObj(s.numbering) ? s.numbering : {} };
 }
 const canSeePii = async (c: PatientCtx): Promise<boolean> => (await c.ports.IdentityPort.getActor(c)).permissions.includes(P.registrationCreate);
 const consentOf = async (c: PatientCtx, patientId: string) => (await listConsentsByPatient(c.tx, c.tenantId, patientId))[0];
@@ -304,4 +308,83 @@ export async function listPatientOrders(hctx: unknown, params: unknown, query: u
   const last = page[page.length - 1];
   const display = String(p['full_name'] ?? '');
   return { status: 200, body: { data: page.map((o) => orderSummaryDto(o, display)), page: { limit, ...(rows.length > limit && last ? { next_cursor: encodeCursor(sort, last['sort_key'], last['id']) } : {}) } } };
+}
+
+// ---- F7 anonymisePatient (FD-T15; 03-APP-FLOW §2.18, 08 A13 D-27 a/b, P-12 c, CR-C4-007, REQ-SEC-139) ----
+const BUCKET = 'frontdesk-trf' as const;
+const portClock = <T extends { now(): Date }>(c: T): T => Object.assign(Object.create(c), { now: () => c.now().toISOString() });
+interface LabLike { getOrderItemProcessingState?: (c: unknown, i: { orderId: string }) => Promise<readonly { orderItemId: string; processingStatus: ItemProcessingStatus }[]> }
+
+/** An order blocks while it is pre_registered, or registered/in_progress and not (derived) completed. LabPort is only needed for the latter and fails CLOSED. */
+async function assertNoOpenOrder(c: PatientCtx, patientId: string): Promise<void> {
+  const open = await openOrdersOfPatient(c.tx, c.tenantId, patientId);
+  if (open.some((o) => o['status'] === 'pre_registered')) throw new LimsError('frontdesk.order_not_editable');
+  if (open.length === 0) return;
+  const lab = (c.ports as { LabPort?: LabLike }).LabPort;
+  if (typeof lab?.getOrderItemProcessingState !== 'function') throw new LimsError('common.service_unavailable');
+  const active = await activeItemIdsByOrders(c.tx, c.tenantId, open.map((o) => o['id']));
+  for (const o of open) {
+    const by = new Map((await lab.getOrderItemProcessingState(portClock(c), { orderId: o['id'] })).map((s) => [s.orderItemId, s.processingStatus]));   // {orderId} only, no PHI
+    const derived = deriveOrderStatus(o['status'] as OrderStatus, [...(active.get(o['id']) ?? [])].map((id) => by.get(id) ?? 'not_started'));
+    if (derived !== 'completed') throw new LimsError('frontdesk.order_not_editable');
+  }
+}
+
+export async function anonymisePatient(hctx: unknown, params: unknown, headers: unknown, body: unknown): Promise<Result> {
+  const c = patientCtx(hctx);
+  const storage = (c as unknown as { storage?: { delete?: (bucket: string, path: string) => Promise<void> } }).storage;
+  await role(c, P.patientAnonymise);   // privileged: IdentityPort enforces aal2 (auth.mfa_required)
+  const version = expectedVersion(headers);
+  const b = strict(body, ['reason_code', 'reason_text']);
+  if (typeof b['reason_code'] !== 'string' || !CODE.test(b['reason_code'])) throw bad('/reason_code');   // ponytail: format only, membership of anonymise_reasons is not checked (as duplicate_override)
+  if (b['reason_text'] !== undefined) text(b['reason_text'], '/reason_text', 500);   // validated, never stored or logged (patients has no column for it)
+  if (typeof storage?.delete !== 'function') throw new LimsError('common.service_unavailable');
+
+  const cur = await loadPatient(c, isObj(params) ? params['patient_id'] : undefined);
+  if (cur['anonymised_at'] != null) throw new LimsError('common.not_found');   // as F4: an anonymised patient is gone for edits
+  if (Number(cur['version']) !== version) throw new LimsError('common.version_conflict');
+  await assertNoOpenOrder(c, cur['id']);
+  // retention (CR-C4-007): last order + retentionYears must be strictly before now; default 5 (PRD B15). ponytail: UTC calendar-year arithmetic, tenant-zone edge ignored.
+  const ry = Number(((await c.ports.IdentityPort.getTenantSettings(c, { keys: ['retentionYears'] })) ?? {}).retentionYears);
+  const until = new Date((await lastOrderAt(c.tx, c.tenantId, cur['id'])) ?? cur['created_at']);   // no order at all: the patient row's age
+  until.setUTCFullYear(until.getUTCFullYear() + (Number.isInteger(ry) && ry > 0 ? ry : 5));
+  if (!(until < c.now())) throw new LimsError('frontdesk.retention_not_elapsed');
+
+  // the UPDATE goes first: it serialises concurrent calls, so the loser (version moved) leaves no consent row, no TRF change, no storage delete.
+  const row = await anonymisePatientRow(c.tx, c.tenantId, cur['id'], version, { at: c.now(), by: c.actor.id, reasonCode: b['reason_code'] });
+  if (!row) throw new LimsError('common.version_conflict');
+  const prev = await consentOf(c, row['id']);
+  const consent = await insertConsent(c.tx, c.tenantId, { id: uuidv7(), patient_id: row['id'], processing: false, sms: false, whatsapp: false, email: false, share_with_referrer: false,
+    consent_text_version: prev?.consent_text_version ?? (await getSettings(c.tx, c.tenantId))?.consent_text_version ?? 'none', source: 'anonymisation', captured_at: c.now() });
+  const trfs = await deactivateTrfByPatient(c.tx, c.tenantId, row['id']);   // metadata rows stay, inactive
+  // A13 D-27a compensating control: column names only, never values.
+  await c.audit.access({ action: 'patient.anonymise', entityType: 'patient', entityId: row['id'], outcome: 'allowed',
+    detail: { changed_fields: 'full_name,name_search,birth_on,phone_e164,email,address_text', reason_code: b['reason_code'] } });
+  // objects last: a failure here rolls the tx back, a retry deletes the rest (ponytail: objects already deleted stay deleted; storage.delete must be idempotent).
+  for (const t of trfs) await storage.delete(t.bucket ?? BUCKET, t.object_path);
+  const { today } = await tenantInfo(c);
+  return { status: 200, body: patientDto(row, consent, today, true) };
+}
+
+// ---- F26 listPossibleDuplicatePatients (FD-T15; 02-TRD §5 F26, US-FD-02.2 over one day of registrations) ----
+export async function listPossibleDuplicates(hctx: unknown, query: unknown): Promise<Result> {
+  const c = patientCtx(hctx);
+  await role(c, P.registrationCreate);
+  const q = strict(query ?? {}, ['created_on', 'cursor', 'limit']);
+  const raw = q['limit'];
+  const limit = raw === undefined ? 50 : typeof raw === 'string' && /^[0-9]{1,3}$/.test(raw) ? Number(raw) : raw;
+  if (!Number.isInteger(limit) || limit < 1 || limit > 200) throw bad('/limit');
+  const { today, tz } = await tenantInfo(c);
+  const date = q['created_on'] === undefined ? today : calendarDate(q['created_on'], '/created_on', '9999-12-31');   // a future day is legal, just empty
+  const after = q['cursor'] === undefined ? undefined : decodeCursor(q['cursor'], 'created_at');
+  const rows = await pageDuplicatePatients(c.tx, c.tenantId, date, tz, { limit, ...(after ? { after } : {}) });
+  const page = rows.slice(0, limit);
+  const last = page[page.length - 1];
+  const by = new Map<string, Obj[]>();
+  for (const r of await duplicateCandidates(c.tx, c.tenantId, page.map((p) => p['id']))) (by.get(r['for_id']) ?? by.set(r['for_id'], []).get(r['for_id'])!).push(r);
+  await c.audit.access({ action: 'patient.search', entityType: 'patient', outcome: 'allowed', detail: { mode: 'possible_duplicates', result_count: page.length } });
+  return { status: 200, body: {
+    data: page.map((p) => ({ patient: patientSummaryDto(p, today), candidates: (by.get(p['id']) ?? []).map((r) => patientSummaryDto(r, today)) })),
+    page: { limit, ...(rows.length > limit && last ? { next_cursor: encodeCursor('created_at', last['sort_key'], last['id']) } : {}) },
+  } };
 }

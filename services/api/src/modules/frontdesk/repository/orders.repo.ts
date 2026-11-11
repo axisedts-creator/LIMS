@@ -51,6 +51,15 @@ export async function latestAgeByPatients(tx: Tx, tenantId: string, patientIds: 
 }
 
 /** is_first_order_of_patient = NOT this (any status counts: a cancelled order is still a prior visit). */
+/** FD-T15 F7: orders that can still change (stored pre_registered / registered; `registered` may derive to completed) and the instant of the last order.
+ *  Last = COALESCE(registered_at, cancelled_at, created_at): a pre-registration cancelled before confirmation has no registered_at. */
+export async function openOrdersOfPatient(tx: Tx, tenantId: string, patientId: string): Promise<any[]> {
+  return (await tx.query(`SELECT id, status FROM frontdesk.orders WHERE tenant_id = $1 AND patient_id = $2 AND status IN ('pre_registered','registered','in_progress') ORDER BY id`, [tenantId, patientId])).rows;
+}
+export async function lastOrderAt(tx: Tx, tenantId: string, patientId: string): Promise<Date | null> {
+  return (await tx.query(`SELECT max(COALESCE(registered_at, cancelled_at, created_at)) AS at FROM frontdesk.orders WHERE tenant_id = $1 AND patient_id = $2`, [tenantId, patientId])).rows[0]?.at ?? null;
+}
+
 export async function patientHasOrder(tx: Tx, tenantId: string, patientId: string): Promise<boolean> {
   const { rows } = await tx.query('SELECT 1 FROM frontdesk.orders WHERE tenant_id = $1 AND patient_id = $2 LIMIT 1', [tenantId, patientId]);
   return rows.length > 0;

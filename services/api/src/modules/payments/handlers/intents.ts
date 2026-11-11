@@ -223,8 +223,8 @@ export function createIntentHandlers(deps: PaymentsDeps) {
       const c = checked();
       const res = await c.applyCheck(ctx as unknown as Ctx, id, 'reconciliation',
         { cause: 'resolve', reason: code.code, settleSets: resolved, ...(resolution === 'record_exceeding_due' ? { allowExceedsDue: true } : {}) });
-      if (c.unanswered()) throw new LimsError('payments.gateway_not_available');
-      if (res.status !== 'settled') throw new LimsError('payments.intent_not_verifiable');
+      // TRD §6.5: no gateway answer is also "not settle" — P4's error list has no gateway_not_available
+      if (c.unanswered() || res.status !== 'settled') throw new LimsError('payments.intent_not_verifiable');
     }
     // 08 A13 P-3: one access_log row, the note is never in it; written on success only, so a refused resolve leaves none
     await ctx.audit.access({ action: 'payment_intent.resolve', entityType: 'payment_intent', entityId: id, centreId: row['centre_id'], outcome: 'allowed', detail: { resolution, reason_code: code.code } });

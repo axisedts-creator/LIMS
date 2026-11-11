@@ -137,9 +137,11 @@ describe.skipIf(!live)('S-06 / S-11 / S-15 / S-16', () => {
     expect((await snapshot(TENANT_A))['delta_check_rules']).toEqual(before['delta_check_rules']);
   });
   it('S-16: QC hold release without the permission => 403; at aal1 => mfa_required; the hold stays active', { timeout: T }, async () => {
-    expect(codeOf(keep(await fire('releaseQcHold', requestFor('releaseQcHold', A), mk('a', { grants: grantsOfRole('lab_technologist'), allCentres: true }))))).toBe('auth.forbidden');
-    expect(codeOf(keep(await fire('releaseQcHold', requestFor('releaseQcHold', A), mk('a', { grants: grantsOfRole('lab_manager'), mfa: 'aal1', allCentres: true }))))).toBe('auth.mfa_required');
-    expect((await owner('SELECT status FROM lab.qc_holds WHERE id = $1', [A.holdId]))[0].status).toBe('active');
+    // Ruling C5.T-32-ruling.md: use a fresh hold; the shared A.holdId is legitimately released by the P-10 matrix above (test order, not the refusal).
+    const H = await objs('a');
+    expect(codeOf(keep(await fire('releaseQcHold', requestFor('releaseQcHold', H), mk('a', { grants: grantsOfRole('lab_technologist'), allCentres: true }))))).toBe('auth.forbidden');
+    expect(codeOf(keep(await fire('releaseQcHold', requestFor('releaseQcHold', H), mk('a', { grants: grantsOfRole('lab_manager'), mfa: 'aal1', allCentres: true }))))).toBe('auth.mfa_required');
+    expect((await owner('SELECT status, released_by_membership_id FROM lab.qc_holds WHERE id = $1', [H.holdId]))[0]).toMatchObject({ status: 'active', released_by_membership_id: null });
   });
 });
 

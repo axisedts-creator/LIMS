@@ -1,0 +1,2 @@
+# PG-T20 dispute (writer)
+`services/api/src/core/observability/__tests__/metrics.test.ts:78` ("REQUIRED_METRICS lists exactly the spec names") compares REQUIRED_METRICS to an exact EXPECTED map. The PG-T20 tests require the 12 `lims_payments_*` names in REQUIRED_METRICS (observability.test.ts:39-41), so the core test now fails (1 test) until EXPECTED gains the same 12 names/types (as C5/C14 did). I may not edit tests: tester must add the 12 entries to EXPECTED (names/types in 02-TRD §11).

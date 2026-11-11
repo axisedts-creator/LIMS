@@ -105,7 +105,7 @@ async function ins(c: pg.PoolClient, table: string, row: Record<string, unknown>
   const r: Record<string, unknown> = { ...row };
   for (const a of ['created_by', 'updated_by']) if (cols.has(a) && !(a in r)) r[a] = SYS;
   const keys = Object.keys(r);
-  await c.query(`INSERT INTO ${table} (${keys.join(',')}) VALUES (${keys.map((_, i) => `$${i + 1}`).join(',')})`, keys.map((k) => (r[k] !== null && typeof r[k] === 'object' ? JSON.stringify(r[k]) : r[k])));
+  await c.query(`INSERT INTO ${table} (${keys.join(',')}) VALUES (${keys.map((_, i) => `$${i + 1}`).join(',')})`, keys.map((k) => (r[k] !== null && typeof r[k] === 'object' && !Array.isArray(r[k]) ? JSON.stringify(r[k]) : r[k])));
 }
 
 interface Order { orderId: string; tenant: string; regNo: string; items: Record<string, string> }

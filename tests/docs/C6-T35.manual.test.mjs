@@ -98,6 +98,15 @@ describe('C6-T35 portal page (04-UI-UX 4)', () => {
       ['report status words', /Final.*Amended|Amended.*Final/s], ['rate limit', /Too many attempts/], ['dues', /Payment due|Amount due/i]]) assert.match(t, re, `portal.md: ${l}`);
     assert.match(raw(join(manualDir, 'portal.md')), /^#\s+\S/m);
   });
+  // Review C6-T35: C6-T42 payment pages (04-UI-UX 4) must be documented ("every screen documented", IS-23).
+  test('documents the payment status and payment return pages (04-UI-UX 4)', () => {
+    const t = page('portal');
+    for (const s of ['/payments/', '/r/payments/', 'Preparing your payment', 'Continue to eSewa', 'Continue to Khalti', 'We are confirming your payment',
+      'Online payment is not available right now', 'Nothing is due on this report', 'A payment for this order is already in progress', 'A payment is in progress',
+      'See payment status', 'The exact amount is confirmed when you pay', 'Payment received. Thank you.', 'Back to your report', 'Checking your payment',
+      'We have not received confirmation yet', 'The payment was not completed', 'Open your report link again to see your payment status']) assert.ok(t.includes(s), `portal.md: ${s}`);
+    assert.match(t, /(never|not)[^.]*(shown|trusted)[^.]*(outcome|gateway)|(outcome|gateway)[^.]*(never|not)[^.]*(shown|trusted)/i, 'portal.md: gateway outcome never shown/trusted');
+  });
 });
 
 describe('C6-T35 runbooks (04-UI-UX 6)', () => {
@@ -123,6 +132,9 @@ describe('C6-T35 runbooks (04-UI-UX 6)', () => {
     const t = norm(raw(join(manualDir, 'runbooks.md')));
     for (const k of ['report_id', 'delivery_id', 'request_id']) assert.ok(t.includes(k), k);
     assert.match(t, /never[^.]*(phone|name)/i);
+  });
+  test('callback-token rotation names the permission verbatim (02-TRD token table)', () => {
+    assert.ok(norm(raw(join(manualDir, 'runbooks.md'))).includes('reporting.channel.manage'));
   });
   test('renderer health endpoint is documented verbatim', () => {
     assert.ok(norm(raw(join(manualDir, 'runbooks.md'))).includes('/internal/health'));

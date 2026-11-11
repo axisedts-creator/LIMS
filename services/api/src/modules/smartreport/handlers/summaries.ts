@@ -11,6 +11,7 @@ import * as codedSetsRepo from '../repository/codedSets.repo.js';
 import type { RepoCtx, Row } from '../repository/common.repo.js';
 import * as reviewsRepo from '../repository/reviews.repo.js';
 import * as summariesRepo from '../repository/summaries.repo.js';
+import { srMetrics } from '../metrics.js';
 import { buildOrGet, type BuildCtx } from '../summary.service.js';
 import { fieldError, ifMatch, nfc, param, parseBody, query, validationFailed } from './libraryInput.js';
 import { authorise, invalidField, type SrCtx } from './shared.js';
@@ -135,6 +136,10 @@ export const listSmartSummaries: Handler = async (req, ctx) => {
   const centres: (string | undefined)[] = scope.all ? [q.centre_id as string | undefined]
     : (q.centre_id === undefined ? [...scope.centreIds] : scope.centreIds.includes(q.centre_id as string) ? [q.centre_id as string] : []);
   const lists = await Promise.all([...statuses].flatMap((status) => centres.map((centreId) => summariesRepo.listReviewQueue(rc, { status, centreId, limit: PAGE_MAX }))));
+  if (statuses.size === 1 && statuses.has('draft') && scope.all && q.centre_id === undefined) {            // whole tenant draft queue read: refresh the draft gauges (02-TRD §12)
+    const drafts = lists.flat();
+    if (drafts.length < PAGE_MAX) srMetrics.drafts(k, k.tenantId, drafts.length, drafts.length === 0 ? 0 : (Date.parse(nowOf(k)) - Math.min(...drafts.map((r) => ms(r.built_at)))) / 1000);
+  }
   const dir = desc ? -1 : 1;
   const cmp = (a: Row, b: Row): number => dir * (ms(a.built_at) - ms(b.built_at) || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
   const rows = lists.flat()
@@ -205,6 +210,8 @@ export const approveSmartSummary: Handler = sumMapped(async (req, ctx) => {
   }
   const updated = await summariesRepo.updateSummary(rc, row.id, expected, { status: 'approved', approved_at: now, approved_by_membership_id: membershipId, use_llm_text: b.use_llm_text ?? false });
   await reviewsRepo.insertSummaryReview(rc, { id: uuidv7(), centre_id: row.centre_id, summary_id: row.id, action: 'approved', actor_membership_id: membershipId });
+  srMetrics.review(k, 'approved');
+  srMetrics.draftAge(k, (Date.parse(now) - ms(row.built_at)) / 1000);                              // observed at approval (02-TRD §12)
   return { status: 200, body: await view(k, rc, updated, { approver: true }) };
 });
 
@@ -229,5 +236,6 @@ export const rejectSmartSummary: Handler = sumMapped(async (req, ctx) => {
   await reviewsRepo.insertSummaryReview(rc, {
     id: uuidv7(), centre_id: row.centre_id, summary_id: row.id, action: 'rejected', reason_code: b.reason_code, ...(comment !== undefined ? { comment } : {}), actor_membership_id: membershipId,
   });
+  srMetrics.review(k, 'rejected');
   return { status: 200, body: await view(k, rc, updated, { approver: true }) };
 });

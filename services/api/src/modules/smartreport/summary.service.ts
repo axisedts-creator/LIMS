@@ -22,7 +22,9 @@ export interface BuildCtx {
   readonly actor: { readonly id: string };
   readonly tx: RepoCtx['tx'] & { savepoint<T>(fn: (tx: never) => Promise<T>): Promise<T> };
   readonly ports: { FrontdeskPort: any; LabPort: any; CatalogPort: any };   // ponytail: port types live in C0; narrowed when the shared PortMap is importable here
-  readonly log: { warn(o: object, m?: string): void };
+  readonly log: { warn(o: object, m?: string): void; info?(o: object, m?: string): void; error?(o: object, m?: string): void };
+  /** Optional sink for the lims_smartreport_* metrics (02-TRD §12; registered in core/observability/metrics.ts per lead T17-01). Absent in some contexts: always call with `?.`. */
+  readonly metrics?: { inc?(name: string, labels?: Record<string, string | number>, by?: number): void; set?(name: string, value: number, labels?: Record<string, string | number>): void; observe?(name: string, value: number, labels?: Record<string, string | number>): void };
   now(): string;
 }
 
@@ -36,7 +38,31 @@ const opt = <T>(v: T | null | undefined): T | undefined => (v == null ? undefine
 /** A port error C14 handles by skipping: the same call made in a savepoint, so what the port wrote before failing is rolled back (P-44). */
 const inSavepoint = <T>(ctx: BuildCtx, fn: (c: BuildCtx) => Promise<T>): Promise<T> => ctx.tx.savepoint((tx) => fn({ ...ctx, tx } as BuildCtx));
 
+const REFUSAL_OUTCOME: Readonly<Record<string, string>> = { 'smartreport.no_eligible_results': 'no_eligible', 'smartreport.template_not_approved': 'not_approved' };
+
+/** Single build entry. Wraps the build with the 02-TRD §12 metrics and log line (T17-01): ids, outcome, duration and error code only; never text, values or error messages (AC-21.3). */
 export async function buildOrGet(ctx: BuildCtx, input: BuildInput): Promise<{ summary: Row; created: boolean }> {
+  const path = input.mode === 'prebuild' ? 'prebuild' : input.reportVersionNo !== undefined ? 'port' : 'staff';   // ponytail: port = the SmartReportPort call (carries the report version); staff = #30 / other
+  const t0 = performance.now();
+  const done = (outcome: string, cached: boolean, fields: Record<string, unknown>, level: 'info' | 'warn' | 'error'): void => {
+    const ms = Math.max(0, Math.round(performance.now() - t0));
+    ctx.metrics?.inc?.('lims_smartreport_builds_total', { path, outcome });
+    ctx.metrics?.observe?.('lims_smartreport_build_duration_seconds', ms / 1000, { path, cached: String(cached) });
+    (ctx.log[level] ?? ctx.log.warn).call(ctx.log, { order_id: input.orderId, outcome, duration_ms: ms, ...fields }, 'smartreport build');
+  };
+  try {
+    const r = await buildInner(ctx, input);
+    done(r.created ? 'built' : 'cached', !r.created, { summary_id: r.summary.id, library_version_id: r.summary.library_version_id }, 'info');
+    return r;
+  } catch (e) {
+    const code = typeof (e as { code?: unknown } | null)?.code === 'string' ? (e as { code: string }).code : 'common.internal';
+    const outcome = REFUSAL_OUTCOME[code] ?? 'error';
+    done(outcome, false, { error_code: code }, outcome === 'error' ? 'error' : 'warn');
+    throw e;
+  }
+}
+
+async function buildInner(ctx: BuildCtx, input: BuildInput): Promise<{ summary: Row; created: boolean }> {
   const { orderId, reportVersionNo } = input;
   const mode = input.mode ?? 'current';
   if (!MODES.includes(mode)) throw new LimsError('common.validation_failed');
@@ -60,8 +86,11 @@ export async function buildOrGet(ctx: BuildCtx, input: BuildInput): Promise<{ su
     }
     return { summary, created };
   };
-  const supersede = (row: Row, reason: 'results_changed' | 'library_rebuild'): Promise<Row> =>               // S5: successor id stays NULL (the successor does not exist yet)
-    summariesRepo.updateSummary(rc, row.id, row.version, { status: 'superseded', superseded_at: ctx.now(), superseded_reason: reason });
+  const supersede = async (row: Row, reason: 'results_changed' | 'library_rebuild'): Promise<Row> => {     // S5: successor id stays NULL (the successor does not exist yet)
+    const r = await summariesRepo.updateSummary(rc, row.id, row.version, { status: 'superseded', superseded_at: ctx.now(), superseded_reason: reason });
+    ctx.metrics?.inc?.('lims_smartreport_supersede_total', { reason });
+    return r;
+  };
 
   // step 7a/7b
   const live = await summariesRepo.getLiveSummaryByOrder(rc, orderId);
@@ -139,6 +168,7 @@ export async function computeContent(ctx: BuildCtx, rc: RepoCtx, version: Row, o
     } catch (e) {
       const code = (e as { code?: unknown } | null)?.code;
       if (code !== 'catalog.test_inactive' && code !== 'common.not_found') throw e;
+      ctx.metrics?.inc?.('lims_smartreport_followup_skipped_total', { reason: code === 'catalog.test_inactive' ? 'test_inactive' : 'test_not_found' });
     }
   }
 
@@ -153,7 +183,7 @@ export async function computeContent(ctx: BuildCtx, rc: RepoCtx, version: Row, o
         patientId: order.patientId, analyteIds: trendIds, before: now, since: new Date(Date.parse(now) - version!.trend_lookback_days * DAY_MS).toISOString(),
         limitPerAnalyte: Math.min(10, version!.trend_max_points), excludeOrderId: orderId, includeLegacy: false,
       }));
-    } catch { history = undefined; }
+    } catch { history = undefined; ctx.metrics?.inc?.('lims_smartreport_trend_unavailable_total'); }
   }
 
   const v = version;

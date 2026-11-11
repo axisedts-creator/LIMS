@@ -12,6 +12,7 @@ import type { RepoCtx } from '../repository/base.repo.js';
 import { claimIngestKey, closeOpenIngestExceptions, finishIngestLog, upsertOpenIngestException } from '../repository/ingest.repo.js';
 import { getLabSettings } from '../repository/labSettings.repo.js';
 import { findSpecimenByBarcode } from '../repository/specimens.repo.js';
+import { enqueueReapplyForSpecimen } from './exception.service.js';
 import { evaluateValue, criticalAction, type EvalCtx, type Evaluation } from './evaluation.service.js';
 import {
   assertManualValueAllowed, autoVerifyAfterInstrumentSave, type EntryRow, type EntryStore, type EntryValue, type ResultRow, type VerifyStore,
@@ -271,6 +272,7 @@ async function run(ctx: IngestCtx, i: InstrumentResultInput, source: 'event' | '
   let processingCentreId = specimen?.processingCentreId;
   if (specimen && decision.receive === true) {   // S4 as system, processing centre = the event centre; stays done even if the analyte turns out not to be ordered (same tx)
     await store.receiveSpecimen(tx, tenantId, { specimenId: specimen.specimenId, processingCentreId: i.centreId, occurredAt: at });
+    await enqueueReapplyForSpecimen(ctx as never, specimen.specimenId);   // T-23 review: S4 side effect (03-APP-FLOW S4, 02-TRD §8 "enqueued in the receive tx"); same ctx.tx, rollback drops the job
     processingCentreId = i.centreId;
   }
   const spec = specimen === undefined ? {} : { specimenId: specimen.specimenId, ...(processingCentreId === undefined ? {} : { processingCentreId }) };

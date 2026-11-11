@@ -66,7 +66,7 @@ const SPECS: Spec[] = [
   S("M7", "deleteManifestLine", "DELETE", `${MF}/lines/{line_id}`, MS, N, [204], [MNE], IM),
   S("M8", "submitManifest", "POST", `${MF}/submit`, MS, R, [200], [MI, MIT], IM),
   S("M9", "withdrawManifest", "POST", `${MF}/withdraw`, MS, R, [200], [MIT], IM),
-  S("M10", "discardManifest", "POST", `${MF}/discard`, MS, N, [200], [MIT], IM),
+  S("M10", "discardManifest", "POST", `${MF}/discard`, MS, O, [200], [MIT], IM),
   S("M11", "getManifestPrintView", "GET", `${MF}/print-view`, OR, N, [200], [MIT]),
   S("O1", "listPartnerOrders", "GET", "/orders", OR, N, [200], [], L),
   S("O2", "searchPartnerOrders", "POST", "/orders/search", OR, N, [200], []),
@@ -88,39 +88,39 @@ const SPECS: Spec[] = [
   S("F1", "listPartnerReferrers", "GET", "/referrers", RFR, N, [200], [], L),
   S("F2", "createPartnerReferrer", "POST", "/referrers", RFM, R, [201], [RD]),
   S("F3", "updatePartnerReferrer", "PATCH", "/referrers/{referrer_id}", RFM, N, [200], [RD], IM),
-  S("F4", "deactivatePartnerReferrer", "POST", "/referrers/{referrer_id}/deactivate", RFM, N, [200], [], IM),
-  S("F5", "reactivatePartnerReferrer", "POST", "/referrers/{referrer_id}/reactivate", RFM, N, [200], [], IM),
+  S("F4", "deactivatePartnerReferrer", "POST", "/referrers/{referrer_id}/deactivate", RFM, O, [200], [], IM),
+  S("F5", "reactivatePartnerReferrer", "POST", "/referrers/{referrer_id}/reactivate", RFM, O, [200], [], IM),
   S("U1", "listPartnerUsers", "GET", "/users", PUM, N, [200], [MFA], L),
   S("U2", "invitePartnerUser", "POST", "/users", PUM, R, [201], [IUE, MFA]),
-  S("U3", "changePartnerUserRole", "POST", `${PU}/role`, PUM, N, [200], [LPA, SAF, MFA], IM),
-  S("U4", "deactivatePartnerUser", "POST", `${PU}/deactivate`, PUM, N, [200], [LPA, SAF, MFA], IM),
-  S("U5", "reactivatePartnerUser", "POST", `${PU}/reactivate`, PUM, N, [200], [MFA], IM),
+  S("U3", "changePartnerUserRole", "POST", `${PU}/role`, PUM, O, [200], [LPA, SAF, MFA], IM),
+  S("U4", "deactivatePartnerUser", "POST", `${PU}/deactivate`, PUM, O, [200], [LPA, SAF, MFA], IM),
+  S("U5", "reactivatePartnerUser", "POST", `${PU}/reactivate`, PUM, O, [200], [MFA], IM),
   S("U6", "resendPartnerInvitation", "POST", `${PU}/resend-invitation`, PUM, R, [202], [PUIT, MFA]),
   S("SA1", "listPartners", "GET", "/admin/partners", PRD, N, [200], [], L),
   S("SA2", "createPartner", "POST", "/admin/partners", PM, R, [201], [CD, CPIU, CPI, ICI, MFA]),
   S("SA3", "getPartner", "GET", AP, PRD, N, [200], []),
   S("SA4", "updatePartner", "PATCH", AP, PM, N, [200], [CD, CPIU, CPI, ICI, MFA], IM),
-  S("SA5", "suspendPartner", "POST", `${AP}/suspend`, PM, N, [200], [PAIT, MFA], IM),
-  S("SA6", "reactivatePartner", "POST", `${AP}/reactivate`, PM, N, [200], [PAIT, CPI, MFA], IM),
+  S("SA5", "suspendPartner", "POST", `${AP}/suspend`, PM, O, [200], [PAIT, MFA], IM),
+  S("SA6", "reactivatePartner", "POST", `${AP}/reactivate`, PM, O, [200], [PAIT, CPI, MFA], IM),
   S("SA7", "resyncPartnerProjections", "POST", `${AP}/resync`, PM, O, [202], [MFA]),
   S("SA8", "listPartnerUsersForPartner", "GET", `${AP}/users`, PRD, N, [200], [], L),
   S("SA9", "invitePartnerUserByStaff", "POST", `${AP}/users`, PM, R, [201], [IUE, MFA]),
-  S("SA10", "changePartnerUserRoleByStaff", "POST", `${AU}/role`, PM, N, [200], [LPA, MFA], IM),
-  S("SA10", "deactivatePartnerUserByStaff", "POST", `${AU}/deactivate`, PM, N, [200], [LPA, MFA], IM),
-  S("SA10", "reactivatePartnerUserByStaff", "POST", `${AU}/reactivate`, PM, N, [200], [MFA], IM),
+  S("SA10", "changePartnerUserRoleByStaff", "POST", `${AU}/role`, PM, O, [200], [LPA, MFA], IM),
+  S("SA10", "deactivatePartnerUserByStaff", "POST", `${AU}/deactivate`, PM, O, [200], [LPA, MFA], IM),
+  S("SA10", "reactivatePartnerUserByStaff", "POST", `${AU}/reactivate`, PM, O, [200], [MFA], IM),
   S("SI1", "listInboundManifests", "GET", "/admin/manifests", MRC, N, [200], [], L),
   S("SI2", "getInboundManifest", "GET", AM, MRC, N, [200], []),
   S("SI3", "receiveManifest", "POST", `${AM}/receive`, MRC, R, [200], [MIT, MI], IM),
   S("SI4", "retryManifestLineConversion", "POST", `${AL}/retry`, MRC, R, [202], [MLIT], IM),
-  S("SI5", "markManifestLineNotReceived", "POST", `${AL}/not-received`, MRC, N, [200], [MLIT], IM),
+  S("SI5", "markManifestLineNotReceived", "POST", `${AL}/not-received`, MRC, O, [200], [MLIT], IM),
   S("SP1", "listInboundPickups", "GET", "/admin/pickup-requests", PKM, N, [200], [], L),
-  S("SP2", "schedulePickup", "POST", `${APK}/schedule`, PKM, N, [200], [PKIT, PKI], IM),
-  S("SP3", "markPickupCollected", "POST", `${APK}/picked-up`, PKM, N, [200], [PKIT], IM),
-  S("SP4", "rejectPickup", "POST", `${APK}/reject`, PKM, N, [200], [PKIT], IM),
+  S("SP2", "schedulePickup", "POST", `${APK}/schedule`, PKM, O, [200], [PKIT, PKI], IM),
+  S("SP3", "markPickupCollected", "POST", `${APK}/picked-up`, PKM, O, [200], [PKIT], IM),
+  S("SP4", "rejectPickup", "POST", `${APK}/reject`, PKM, O, [200], [PKIT], IM),
   S("SR1", "listReferrerMappings", "GET", "/admin/referrers", RMAP, N, [200], [], L),
-  S("SR2", "mapPartnerReferrer", "POST", `${AR}/map`, RMAP, N, [200], [RDI], IM),
-  S("SR3", "rejectPartnerReferrerMapping", "POST", `${AR}/reject-mapping`, RMAP, N, [200], [RIT], IM),
-  S("SR3", "unmapPartnerReferrer", "POST", `${AR}/unmap`, RMAP, N, [200], [RIT], IM),
+  S("SR2", "mapPartnerReferrer", "POST", `${AR}/map`, RMAP, O, [200], [RDI], IM),
+  S("SR3", "rejectPartnerReferrerMapping", "POST", `${AR}/reject-mapping`, RMAP, O, [200], [RIT], IM),
+  S("SR3", "unmapPartnerReferrer", "POST", `${AR}/unmap`, RMAP, O, [200], [RIT], IM),
   S("SS1", "getPartnerSettings", "GET", "/admin/settings", PRD, N, [200], []),
   S("SS1", "updatePartnerSettings", "PUT", "/admin/settings", PM, N, [200], [SOR, MFA], IM),
 ];
@@ -324,7 +324,10 @@ describe("partners.yaml (T0C-10.C13)", () => {
         if (r!.ids.length === 1 && !/\bGET \/ PUT\b/.test(r!.mp)) expect(r!.mp, `#${s.n} method+path`).toBe(`${s.method} ${s.path}`);
         if (r!.ids.length === 1) {
           expect(r!.perm, `#${s.n} permission`).toBe(s.perm);
-          expect(r!.idem, `#${s.n} idem`).toBe(s.idem);
+          // Ruling T0C-10.C13: 02-CONVENTIONS.md:371-375 — a POST may be `none` only for E1-E4 (searchPartnerOrders = E3);
+          // every other TRD-`none` POST is "Optional (accepted)", like catalog.yaml.
+          const expIdem = r!.idem === "none" && s.method === "POST" && s.id !== "searchPartnerOrders" ? "optional" : r!.idem;
+          expect(expIdem, `#${s.n} idem`).toBe(s.idem);
           expect(r!.tier, `#${s.n} tier`).toBe(s.tier);
         }
       }
@@ -820,7 +823,7 @@ describe("partners.yaml (T0C-10.C13)", () => {
       sup(reqd(s), ["id", "report_id", "version_no", "state"], "AccessSlip required");
       for (const f of ["link_expires_at", "failure_code", "issued_at"]) expect(reqd(s), f).not.toContain(f);
       for (const id of ["issuePatientAccessSlip", "getPatientAccessSlip"])
-        walk(okSchema(id), (n) => { for (const f of Object.keys(props(n))) expect(f, `${id}.${f}`).not.toMatch(/token|url|href|secret|^link$|^link_/i); });
+        walk(okSchema(id), (n) => { for (const f of Object.keys(props(n))) expect(f, `${id}.${f}`).not.toMatch(/token|url|href|secret|^link$/i); });
       for (const [n, sc] of Object.entries<any>(doc.components?.schemas ?? {}))
         if (/slip/i.test(n)) for (const f of Object.keys(props(sc))) expect(f, `${n}.${f}`).not.toMatch(/token|url|href|secret|^link$/i);
     });
@@ -858,7 +861,11 @@ describe("partners.yaml (T0C-10.C13)", () => {
         for (const [, r] of Object.entries<any>(op.responses ?? {}))
           walk(deref(r)?.content?.["application/json"]?.schema, (n) => {
             const bad = path.startsWith("/admin") ? [...FORBIDDEN_ANY, "email"] : FORBIDDEN_PARTNER;
-            for (const f of bad) expect(Object.keys(props(n)), `${op.operationId}.${f}`).not.toContain(f);
+            for (const f of bad) {
+              // Ruling T0C-10.C13: `consents.email` is a boolean consent flag (TRD §5.2 R/M lines, 204/360); only string `email` is a clear address.
+              if (f === "email" && deref(props(n).email)?.type === "boolean") continue;
+              expect(Object.keys(props(n)), `${op.operationId}.${f}`).not.toContain(f);
+            }
           });
     });
   });

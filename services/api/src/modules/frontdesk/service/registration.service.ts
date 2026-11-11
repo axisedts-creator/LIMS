@@ -15,6 +15,7 @@ import { createFrontdeskEvents } from '../events/publish.js';
 import { dateOnly } from '../mappers/patient.dto.js';
 import { nextCounterValue } from '../repository/counters.repo.js';
 import { listConsentsByPatient } from '../repository/consents.repo.js';
+import { lockDiscountApproval } from '../repository/discountApprovals.repo.js';
 import { insertDiscount } from '../repository/discounts.repo.js';
 import { cancelOrderItem, insertOrderItem, listOrderItemsByOrder } from '../repository/orderItems.repo.js';
 import { confirmOrderRow, insertOrder, lockOrderById, patientHasOrder } from '../repository/orders.repo.js';
@@ -385,6 +386,8 @@ async function createInTx(hctx: unknown, body: unknown, pre?: Pre): Promise<Resu
       approvalId: r.approvalId, baseFingerprint: p.q.baseFingerprint, patientId: isObj((body as Record<string, any>)['patient']?.new_patient) ? undefined : patient['id'],
       centreId: d.centreId, discounts: d.discounts.map(toApiDiscount),
     });
+  } else if (r.approvalId && !(await lockDiscountApproval(c.tx, c.tenantId, r.approvalId))) {
+    throw new LimsError('common.not_found');      // 07-SECURITY §6.1: a named approval that is not this tenant's is 404 even when none is needed (not silently ignored); not consumed
   }
 
   // 5. order: registration_no counter (per branch) first, invoice counter (inside billing) last: short lock window
@@ -556,6 +559,9 @@ export async function quote(hctx: unknown, body: unknown): Promise<Result> {
 
   const scope = (await identity.getActor(c)).centreScope as { all?: boolean; centreIds: readonly string[] } | undefined;
   if (scope && scope.all !== true && !scope.centreIds.includes(d.centreId)) throw new LimsError('common.not_found');   // 404, not 403: do not confirm the centre exists
+  // 07-SECURITY §6.1: another tenant's centre is common.not_found (tenant-bound lookup, as F15). The patient is NOT looked up: a quote is read-only and names no stored row.
+  // ponytail: optional only because the FD-T05 quote harness ctx carries no `core`; the app ctx always does (createCtx requires it).
+  if (typeof (c as { core?: { centre?: unknown } }).core?.centre === 'function') await (c as unknown as CreateCtx).core.centre(c as never, { centreId: d.centreId });
 
   const settings = await getSettings(c.tx, c.tenantId);      // missing row = schema defaults: every discount needs approval (05-SCHEMA §3)
   const { resolved, q, limits, verdict } = await priceDraft(c, d, settings);

@@ -303,7 +303,9 @@ export async function listPatientOrders(hctx: unknown, params: unknown, query: u
   if (!Number.isInteger(limit) || limit < 1 || limit > 200) throw bad('/limit');
   const after = q['cursor'] === undefined ? undefined : decodeCursor(q['cursor'], sort);
   const p = await loadPatient(c, isObj(params) ? params['patient_id'] : undefined);
-  const rows = await pageOrdersByPatient(c.tx, c.tenantId, p['id'], { asc: sort === 'registered_at', limit, ...(after ? { after } : {}) });
+  const s = (await c.ports.IdentityPort.getActor(c)).centreScope;                   // 07-SECURITY §6.2: other-centre orders never listed (fail closed: no scope = no centre)
+  const scopeCentreIds = s?.all === true ? undefined : (s?.centreIds ?? []);
+  const rows = await pageOrdersByPatient(c.tx, c.tenantId, p['id'], { asc: sort === 'registered_at', limit, ...(after ? { after } : {}), ...(scopeCentreIds ? { scopeCentreIds } : {}) });
   const page = rows.slice(0, limit);
   const last = page[page.length - 1];
   const display = String(p['full_name'] ?? '');

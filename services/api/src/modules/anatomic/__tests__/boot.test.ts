@@ -227,9 +227,10 @@ describe('C11-T01 boot against the real repo (default modulesDir, real anatomic.
         const requiredQuery = (op.parameters ?? []).some((p: any) => p.in === 'query' && p.required);
         const requiredHeader = (op.parameters ?? []).some((p: any) => (p.in === 'header' && p.required) || /\/IfMatch$/.test(p.$ref ?? '')); // $ref'd If-Match is unresolved in raw spec
         if (!requiredQuery && !requiredHeader && !op.requestBody?.required) {
-          // path params with an enum must carry a valid value, else validation (400) precedes auth
+          // path params with an enum or integer type must carry a valid value, else validation (400) precedes auth (ruling C11.T-01-ruling)
           const url = path.replace(/\{([^}]+)\}/g, (_m, name) => {
             const prm = (op.parameters ?? []).find((p: any) => p.in === 'path' && p.name === name);
+            if (prm?.schema?.type === 'integer') return String(prm.schema.minimum ?? 1);
             return prm?.schema?.enum?.[0] ?? '01a1a98a-ac40-7000-8000-000000090001';
           });
           probes.push({ method: method.toUpperCase(), url });

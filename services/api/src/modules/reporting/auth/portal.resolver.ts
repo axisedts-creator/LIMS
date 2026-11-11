@@ -26,6 +26,8 @@ export const portalSessionResolver = Object.freeze({
     if (kind === 'session' && !(await db.query(LINK_NOT_REVOKED, [row.tenant_id, row.link_id])).rows[0]) return INVALID;
     const extraClaims: Record<string, string> = { portal_stage: row.stage, portal_report_id: row.report_id };
     if (row.session_id) extraClaims['portal_session_id'] = row.session_id;
+    // LD-96 / CR C6-T43 (A37): from the DEFINER row (portal_links.purpose), never from the credential.
+    if (typeof row.purpose === 'string') extraClaims['portal_link_purpose'] = row.purpose;
     return { actor: { type: 'portal', id: row.link_id }, tenantId: row.tenant_id, extraClaims };
   },
 });

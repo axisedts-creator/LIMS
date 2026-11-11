@@ -46,7 +46,7 @@ const STAFF_KINDS = new Set(['tenant_staff', 'platform']);
 export const invalid = () => new LimsError('common.validation_failed');
 const expired = () => new LimsError('auth.session_expired');
 
-function envHmac(email: string): string {
+export function envHmac(email: string): string {
   const key = process.env['LIMS_IDENTITY_EMAIL_HMAC_KEY'];
   if (!key) throw new LimsError('common.internal', 'identity: email HMAC key missing');
   return createHmac('sha256', key).update(email).digest('hex');
@@ -66,7 +66,7 @@ export function parseCode(b: unknown): string {
   return code;
 }
 
-function sessionToken(req: HandlerRequest): string | undefined {
+export function sessionToken(req: HandlerRequest): string | undefined {
   const raw = (req.headers as Record<string, unknown> | undefined)?.['cookie'];
   if (typeof raw !== 'string') return undefined;
   for (const part of raw.split(';')) {
@@ -180,7 +180,7 @@ export const sessionState = (c: MfaCtx) => ({
 
 // ---------- wiring (shared by the three handlers) ----------
 let gateway: GoTrueGateway | undefined;
-const gw = () => (gateway ??= createHttpGoTrueGateway({
+export const gw = () => (gateway ??= createHttpGoTrueGateway({
   url: process.env['LIMS_IDENTITY_GOTRUE_URL'] ?? '', serviceKey: process.env['LIMS_IDENTITY_GOTRUE_SERVICE_KEY'] ?? '',
 }));
 const wiredGotrue: MfaDeps['gotrue'] = {

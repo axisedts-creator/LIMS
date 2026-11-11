@@ -29,7 +29,25 @@ const LAB_EVENTS_PRODUCED = [
   'lab.result.verified.v1', 'lab.specimen.rejected.v1', 'lab.specimen.status_changed.v1',
 ];
 /** operationIds whose stub a later task has replaced; that task moves its ids here (tester-owned list). */
-const IMPLEMENTED: readonly string[] = [];
+const IMPLEMENTED: readonly string[] = [
+  // T-07 specimen actions
+  'lookupSpecimenByBarcode', 'listSpecimens', 'getSpecimen', 'collectSpecimen', 'bulkCollectSpecimens', 'bulkDispatchSpecimens',
+  'receiveSpecimen', 'bulkReceiveSpecimens', 'storeSpecimen', 'discardSpecimen',
+  // T-08 reject + recollection + aliquots
+  'rejectSpecimen', 'requestRecollection', 'createAliquots',
+  // T-14 result entry
+  'bulkEnterResults', 'getResult', 'listOrderResults',
+  // T-15 critical values
+  'listCriticalValues', 'getCriticalValue', 'logCriticalNotification',
+  // T-16 verify / return
+  'verifyResult', 'bulkVerifyResults', 'returnResult',
+  // T-10 labels
+  'printSpecimenLabels', 'requestOrderLabelPrint',
+  // T-17 approve / amend
+  'approveResult', 'bulkApproveResults', 'amendResult', 'listResultVersions',
+  // T-19 history
+  'getResultHistory', 'getAnalyteTrend',
+];
 
 const FAKE_REQ = { params: {}, query: {}, headers: {}, body: {} };
 const fakeCtx = (operationId: string) =>
@@ -158,7 +176,7 @@ describe('T-01 boot against the real repo (default modulesDir, real lab.yaml)', 
       }
     }
     expect(unmounted).toEqual([]);
-  }, 30_000);
+  });
 
   it('fails closed: an unauthenticated lab call is 401 (never 200/501/500) and a non-spec path is 404', async () => {
     const app = await boot();
@@ -166,5 +184,5 @@ describe('T-01 boot against the real repo (default modulesDir, real lab.yaml)', 
     expect(r.statusCode, r.body).toBe(401);
     expect(JSON.parse(r.body).code).toMatch(/^auth\./);
     expect((await app.inject({ method: 'GET', url: '/v1/lab/not-in-spec' })).statusCode).toBe(404);
-  }, 30_000);
+  });
 });

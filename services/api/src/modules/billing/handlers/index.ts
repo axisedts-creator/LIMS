@@ -4,8 +4,10 @@ import { LimsError } from '../../../core/errors.js';
 import type { Handler } from '../../../core/module.js';
 import { cbmsHandlers } from './cbms.handlers.js';
 import { creditHandlers } from './credit.handlers.js';
+import { exportHandlers } from './export.handlers.js';
 import { invoiceHandlers } from './invoice.handlers.js';
 import { ledgerHandlers } from './ledger.handlers.js';
+import { registerHandlers } from './register.handlers.js';
 import { releaseHandlers } from './release.handlers.js';
 import { settingsHandlers } from './settings.handlers.js';
 
@@ -35,6 +37,15 @@ export const handlers: Readonly<Record<(typeof OPERATION_IDS)[number], Handler>>
   printInvoice: invoiceHandlers['printInvoice']!,
   printCreditNote: invoiceHandlers['printCreditNote']!,
   listCreditNoteTasks: invoiceHandlers['listCreditNoteTasks']!,
+  listCreditNotes: invoiceHandlers['listCreditNotes']!,
+  getCreditNote: invoiceHandlers['getCreditNote']!,
+  getSalesRegister: registerHandlers['getSalesRegister']!,
+  getCancelledInvoiceRegister: registerHandlers['getCancelledInvoiceRegister']!,
+  getCreditNoteRegister: registerHandlers['getCreditNoteRegister']!,
+  getAuditTrail: registerHandlers['getAuditTrail']!,
+  createBillingExport: exportHandlers['createBillingExport']!,
+  getBillingExport: exportHandlers['getBillingExport']!,
+  getBillingExportContent: exportHandlers['getBillingExportContent']!,
   cancelInvoice: invoiceHandlers['cancelInvoice']!,
   issuePartialCreditNote: invoiceHandlers['issuePartialCreditNote']!,
   createReleaseOverride: releaseHandlers['createReleaseOverride']!,

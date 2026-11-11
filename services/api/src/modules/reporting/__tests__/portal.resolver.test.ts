@@ -36,9 +36,11 @@ describe('portalSession resolver: valid credentials', () => {
     const w = makePortalWorld(); const l = w.mkLink(); const s = w.mkSession(l.row);
     expect(await w.authenticate(s.cred)).toMatchObject({ sub: l.row['id'], actor_type: 'portal', portal_stage: 'session', portal_session_id: s.row['id'], portal_report_id: REPORT_A });
   });
-  it('only core-allowlisted extra claims are returned (core/auth/claims.ts: portal_stage, portal_report_id, portal_session_id) - purpose is read from the DB by the handlers', async () => {
+  // C6-T43: REVISED. The T20 version asserted that the resolver must NOT return portal_link_purpose (core allow-list had no such key). 02-TRD §6.6 and 08 A21.1 say the opposite:
+  // claims carry portal_link_purpose (report|dues) because the RLS policies on report_versions / qr_tokens read it (migration 20261105001900:914/937). Pinned in portal.dues.test.ts.
+  it('claims carry portal_link_purpose from the link / session row (08 A21.1)', async () => {
     const w = makePortalWorld(); const l = w.mkLink({ purpose: 'dues' }); const s = w.mkSession(l.row);
-    await expect(w.authenticate(s.cred)).resolves.toMatchObject({ portal_stage: 'session' });   // would reject if the resolver returned portal_link_purpose
+    await expect(w.authenticate(s.cred)).resolves.toMatchObject({ portal_stage: 'session', portal_link_purpose: 'dues' });
   });
 });
 

@@ -82,6 +82,8 @@ function make(rows: any[], opt: { range?: any; critical?: any; existingCritical?
       CatalogPort: {
         async referenceRangeFor(_c: unknown, q: any) { catalogQueries.push({ fn: 'range', q }); if (opt.catalogError) throw opt.catalogError; return opt.range ?? { referenceRangeId: 'rr-1', version: 2, low: '12.0', high: '16.0', unitCode: 'g/dL' }; },
         async criticalLimitsFor(_c: unknown, q: any) { catalogQueries.push({ fn: 'critical', q }); return opt.critical === null ? undefined : (opt.critical ?? { criticalLimitId: 'cl-1', version: 1, low: '7.0', high: '20.0' }); },
+        // T-18 (CR-C5-001): comment codes are re-resolved server-side; this fake knows every code (not recorded in catalogQueries, which is the range/critical call log). Detail: result.service.shortcodes.test.ts.
+        async resolveCommentCodes(_c: unknown, q: { codes: string[] }) { const up = [...new Set(q.codes.map((c) => c.toUpperCase()))]; return { resolved: up.map((c) => ({ code: c, commentCodeId: `cc-${c}`, version: 1, text: `Library text ${c}` })), unknown: [] }; },
       },
       IdentityPort: { async assertRole(c: unknown, r: unknown) { await opt.assertRole?.(c, r); } },
     },

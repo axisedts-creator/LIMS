@@ -52,7 +52,9 @@ function ctxOf(over: { rows?: any[]; stored?: any[]; order?: any; assertRole?: (
     events: { async publish() { return { eventId: 'e', duplicate: false }; } },
     audit: { async access(e: unknown) { access.push(e); } },
     ports: {
-      CatalogPort: { async referenceRangeFor() { return { referenceRangeId: u(0x10), version: 1, low: '12.0', high: '16.0', unitCode: 'g/dL' }; }, async criticalLimitsFor() { return undefined; } },
+      CatalogPort: { async referenceRangeFor() { return { referenceRangeId: u(0x10), version: 1, low: '12.0', high: '16.0', unitCode: 'g/dL' }; }, async criticalLimitsFor() { return undefined; },
+        // T-18 (CR-C5-001): codes are re-resolved server-side; this fake knows every code.
+        async resolveCommentCodes(_c: unknown, q: { codes: string[] }) { const up = [...new Set(q.codes.map((c) => c.toUpperCase()))]; return { resolved: up.map((c) => ({ code: c, commentCodeId: `cc-${c}`, version: 1, text: `Library text ${c}` })), unknown: [] }; } },
       IdentityPort: { async assertRole(_c: unknown, r: any) { asked.push(r); await over.assertRole?.(r); } },
     },
   };

@@ -277,6 +277,9 @@ func TestLogBundleRequestMatchesE07(t *testing.T) {
 	if s.hdr.Get("Authorization") != "Bearer "+tok {
 		t.Errorf("Authorization = %q", s.hdr.Get("Authorization"))
 	}
+	if got := s.hdr.Get("Idempotency-Key"); got != cmdA { // E07: Idempotency required (02-TRD 7.2, 02-CONVENTIONS 4.5)
+		t.Errorf("Idempotency-Key = %q, want the bundle command_id %q", got, cmdA)
+	}
 	var m map[string]any
 	if err := json.Unmarshal(s.body, &m); err != nil {
 		t.Fatal(err)

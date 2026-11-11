@@ -47,7 +47,7 @@ describe('AC-A7.3 / AU-T11: valid setup session + compliant password', () => {
   it('the new password never reaches logs, events, enqueue payloads, repo patches or errors', async () => {
     const w = await makeWorld(); const s = await w.addSetupSession(); await set(w, s.token, PW_SENTINEL);
     const all = JSON.stringify([w.log.info.mock.calls, w.log.warn.mock.calls, w.log.error.mock.calls, w.store.writes.map((x) => x.arg), w.txCalls, w.tx.query.mock.calls]); expect(all).not.toContain(PW_SENTINEL);
-    const w2 = await makeWorld(); const s2 = await w2.addSetupSession(); const e = await rejection(set(w2, s2.token, 'short-PW-sentinel')); expect(JSON.stringify([e.message, e.detail, e.errors, w2.log.warn.mock.calls])).not.toContain('short-PW-sentinel');
+    const w2 = await makeWorld(); const s2 = await w2.addSetupSession(); const e = await rejection(set(w2, s2.token, 'shortPW-sen')); expect(JSON.stringify([e.message, e.detail, e.errors, w2.log.warn.mock.calls])).not.toContain('shortPW-sen');   // 11 code points < 12 floor (AC-A6.1), ruling T9-ruling.md
   });
 });
 

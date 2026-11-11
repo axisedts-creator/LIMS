@@ -3,9 +3,9 @@
 // because a thrown ApiError loses its code across the action boundary in production. Only ApiError is mapped.
 import 'server-only';
 import { ApiError } from '@/core/api/server-fetch';
-import { bulkApproveResults, bulkCollect, bulkDispatch, bulkVerifyResults, lookupSpecimens, receiveSpecimen, rejectSpecimen } from './write.server';
-import { getStatusBoard } from './read.server';
-import type { ActionResult, BoardQuery, BulkItem, BulkRow, LookupKey, RejectBody, RejectResult, ResultBulkRow, Specimen, StatusBoardPage, VerifyItem } from './types';
+import { amendResult, bulkApproveResults, bulkCollect, bulkDispatch, bulkEnterResults, bulkVerifyResults, lookupSpecimens, receiveSpecimen, rejectSpecimen, returnResult } from './write.server';
+import { getAnalyteTrend, getResultHistory, getStatusBoard, listCommentCodes } from './read.server';
+import type { ActionResult, AmendBody, BoardQuery, BulkItem, BulkRow, CommentCodeRow, DowntimeFields, EnterEntry, EnterResponse, GridResult, HistoryRow, LookupKey, RejectBody, RejectResult, ResultBulkRow, ReturnBody, Specimen, StatusBoardPage, TrendResponse, VerifyItem } from './types';
 
 async function run<T>(f: () => Promise<T>): Promise<ActionResult<T>> {
   try {
@@ -23,6 +23,13 @@ async function run<T>(f: () => Promise<T>): Promise<ActionResult<T>> {
 export async function getStatusBoardAction(q: BoardQuery): Promise<ActionResult<StatusBoardPage>> { return run(() => getStatusBoard(q)); }
 export async function bulkVerifyAction(list: VerifyItem[], key: string): Promise<ActionResult<ResultBulkRow[]>> { return run(() => bulkVerifyResults(list, key)); }
 export async function bulkApproveAction(list: VerifyItem[], key: string): Promise<ActionResult<ResultBulkRow[]>> { return run(() => bulkApproveResults(list, key)); }
+// C5.T-20 result grid
+export async function bulkEnterAction(list: EnterEntry[], key: string, downtime?: DowntimeFields): Promise<ActionResult<EnterResponse>> { return run(() => bulkEnterResults(list, key, downtime)); }
+export async function returnResultAction(id: string, version: number, body: ReturnBody): Promise<ActionResult<GridResult>> { return run(() => returnResult(id, version, body)); }
+export async function amendResultAction(id: string, version: number, body: AmendBody, key: string): Promise<ActionResult<GridResult>> { return run(() => amendResult(id, version, body, key)); }
+export async function getResultHistoryAction(id: string): Promise<ActionResult<HistoryRow[]>> { return run(() => getResultHistory(id)); }
+export async function getAnalyteTrendAction(patientId: string, analyteId: string): Promise<ActionResult<TrendResponse>> { return run(() => getAnalyteTrend(patientId, analyteId)); }
+export async function listCommentCodesAction(prefix: string): Promise<ActionResult<CommentCodeRow[]>> { return run(() => listCommentCodes(prefix)); }
 export async function lookupSpecimenAction(k: LookupKey): Promise<ActionResult<Specimen[]>> { return run(() => lookupSpecimens(k)); }
 export async function bulkCollectAction(list: BulkItem[], key: string): Promise<ActionResult<BulkRow[]>> { return run(() => bulkCollect(list, key)); }
 export async function bulkDispatchAction(list: BulkItem[], key: string): Promise<ActionResult<BulkRow[]>> { return run(() => bulkDispatch(list, key)); }

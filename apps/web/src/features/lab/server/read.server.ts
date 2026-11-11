@@ -3,17 +3,45 @@ import 'server-only';
 // T-27: the status board (#17). The board query carries only the range, centre_id, board_status and the opaque paging cursor/limit (REQ-SEC-098: no patient / order identifier in a URL).
 import { ApiError, serverFetch } from '@/core/api/server-fetch';
 import { problem } from '@/core/session/types';
-import { BOARD_STATUSES, ISO_MS_RE, UUID_RE, type BoardQuery, type QueueItem, type RejectionReason, type StatusBoardPage } from './types';
+import { BOARD_STATUSES, ISO_MS_RE, UUID_RE, type BoardQuery, type CodedOption, type CommentCodeRow, type HistoryRow, type OrderResults, type QueueItem, type RejectionReason, type StatusBoardPage, type TrendResponse } from './types';
 
 const DAY_MS = 86_400_000;
 const CODE_RE = /^[A-Za-z0-9][A-Za-z0-9_.:-]{0,99}$/;
 
-export async function listRejectionReasons(): Promise<RejectionReason[]> {
-  const r = await serverFetch<{ data: { code: string; display: string; sort_order?: number; is_active?: boolean }[] }>('/v1/lab/coded-sets/rejection_reasons');
+/** C5 coded set (#53), active only, in sort_order. */
+export async function listCodedSet(set: 'rejection_reasons' | 'return_reasons' | 'amendment_reasons'): Promise<CodedOption[]> {
+  const r = await serverFetch<{ data: { code: string; display: string; sort_order?: number; is_active?: boolean }[] }>(`/v1/lab/coded-sets/${set}`);
   return r.data
     .filter((c) => c.is_active !== false)
     .sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0))
     .map(({ code, display }) => ({ code, display }));
+}
+export const listRejectionReasons = (): Promise<RejectionReason[]> => listCodedSet('rejection_reasons');
+
+/** #listOrderResults (04-UI-UX §3.4: Enter opens the grid filtered to the department). Only a valid department_id is forwarded (REQ-SEC-028). 404/5xx throw. */
+export async function listOrderResults(orderId: string, sp: Record<string, string | string[] | undefined> = {}): Promise<OrderResults> {
+  if (!UUID_RE.test(orderId)) throw new ApiError(404, problem('common.not_found', 'Not found', 404));
+  const dept = typeof sp['department_id'] === 'string' ? sp['department_id'] : undefined;
+  const q = dept && UUID_RE.test(dept) ? `?${new URLSearchParams({ department_id: dept })}` : '';
+  return serverFetch<OrderResults>(`/v1/lab/orders/${orderId}/results${q}`);
+}
+
+const bad400 = () => new ApiError(400, problem('common.validation_failed', 'Validation failed', 400));
+/** #getResultHistory: id only in the path (P-02); the API caps the page, the grid shows the first 5. */
+export async function getResultHistory(resultId: string): Promise<HistoryRow[]> {
+  if (!UUID_RE.test(resultId)) throw bad400();
+  return (await serverFetch<{ data: HistoryRow[] }>(`/v1/lab/results/${resultId}/history?limit=5`)).data;
+}
+/** #getAnalyteTrend: ids only in the path (P-02). */
+export async function getAnalyteTrend(patientId: string, analyteId: string): Promise<TrendResponse> {
+  if (!UUID_RE.test(patientId) || !UUID_RE.test(analyteId)) throw bad400();
+  return serverFetch<TrendResponse>(`/v1/lab/patients/${patientId}/analytes/${analyteId}/trend?limit=50`);
+}
+/** C3 #listCommentCodes through the BFF (T-18 CommentCell lookup). The prefix is 1..16 [A-Z0-9_] like the short-code token. */
+export async function listCommentCodes(prefix: string): Promise<CommentCodeRow[]> {
+  if (typeof prefix !== 'string' || !/^[A-Z0-9_]{0,16}$/.test(prefix)) throw bad400();
+  const r = await serverFetch<{ data: (CommentCodeRow & { is_active?: boolean })[] }>(`/v1/catalog/comment-codes?${new URLSearchParams({ code_prefix: prefix })}`);
+  return r.data.filter((c) => c.is_active !== false).map(({ code, text, version }) => ({ code, text, version }));
 }
 
 /** #listVerificationQueue. Only the documented filters are forwarded (a stray param never reaches the API, REQ-SEC-028); invalid values are dropped. A failed read throws (no false "Nothing waiting"). */

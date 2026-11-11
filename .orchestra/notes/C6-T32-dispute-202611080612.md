@@ -1,0 +1,5 @@
+# C6-T32 dispute (writer)
+Test fixture defect, not an implementation gap: `assemble.modules.helpers.ts` `moduleSetup()` pushes the micro/anatomic `reporting.report_order_items` rows straight into `s.db.store` (line 34), bypassing the fake DB's DEFAULTS, so the rows have no `item_status`. Real DDL: `item_status text NOT NULL DEFAULT 'active'` (C6 05-SCHEMA §report_order_items). `assemble_report.ts` step 2 keeps only `item_status === 'active'`, so both module items are dropped as not-active and no module section / view read ever happens.
+Evidence: with a temporary `(i.item_status ?? 'active') === 'active'` all 27 tests in assemble_modules.test.ts pass (probe reverted; renderer test file 20/20 passes with the shipped code).
+Fix options (lead/arbiter): (a) tester adds `item_status: 'active'` (and `approved_results`, `amendment_pending` if needed) to `item()` in assemble.modules.helpers.ts — preferred, matches the DDL; or (b) allow the `?? 'active'` tolerance in assemble_report.ts (dead code in production, NOT NULL column).
+Same class as the earlier "fixture bypasses DDL defaults" ruling (C6-T14).

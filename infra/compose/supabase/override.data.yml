@@ -1,0 +1,32 @@
+# data-1: db + pgbouncer only (02-TRD s7.2). Layered over upstream/docker-compose.yml and
+# upstream/docker-compose.pgbouncer.yml:  up -d db pgbouncer   (project name `supabase`).
+# Needs Compose >= 2.24.4 (`!reset`, `!override`). Values come from env (WG_IP = data-1 wg address).
+# T-07: PgBouncer config comes from the rendered ini (TRD s7.6), not the image's env generation.
+services:
+  supavisor: !reset null
+  db:
+    # Derived image of T-04/T-09. The digest comes from the release lock (T-23) as DB_IMAGE_DIGEST;
+    # the all-zero default can never be pulled, so a missing digest fails closed.
+    image: registry.lims.internal/lims/postgres-pgbackrest@${DB_IMAGE_DIGEST:-sha256:0000000000000000000000000000000000000000000000000000000000000000}
+    ports: !override
+      - "${WG_IP:?WG_IP (data-1 wg address) required}:5432:5432"
+    volumes:
+      - /srv/lims/pg/data:/var/lib/postgresql/data:Z
+      - ../../database/postgresql/zz-lims.conf:/etc/postgresql-custom/conf.d/zz-lims.conf:ro
+      - ../../database/postgresql/pg_hba.conf:/etc/postgresql/pg_hba.conf:ro
+      - /srv/lims/pgbackrest/spool:/var/spool/pgbackrest
+      - /run/lims/secrets/pgbackrest:/run/secrets/pgbackrest:ro
+    mem_limit: 26g
+    pids_limit: 1024
+  pgbouncer:
+    # digest from upstream/UPSTREAM.lock images.pgbouncer (single source, 08 A25 D-208)
+    image: edoburu/pgbouncer@sha256:7d7a27d9e90985cab5cf42256f5c13a3120baa4b055b69df37beb272b89b2340
+    ports: !override
+      - "${WG_IP:?WG_IP (data-1 wg address) required}:6432:6432"
+    volumes:
+      # rendered from pgbouncer.ini.j2 (entrypoint skips env generation)
+      - ../../database/pgbouncer/pgbouncer.ini:/etc/pgbouncer/pgbouncer.ini:ro
+      # auth_file: `pgbouncer` credential only; lims_api via auth_query
+      - /run/lims/secrets/pgbouncer/userlist.txt:/etc/pgbouncer/userlist.txt:ro
+    mem_limit: 256m
+    pids_limit: 128

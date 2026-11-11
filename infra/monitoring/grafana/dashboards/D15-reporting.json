@@ -1,0 +1,213 @@
+{
+  "uid": "lims-d15-reporting",
+  "title": "D15 Modules / Reporting & delivery",
+  "description": "04-UI-UX s3 D15 for C6; panels from the chunk TRD observability section (T-21).",
+  "tags": [
+    "modules",
+    "c6"
+  ],
+  "editable": false,
+  "schemaVersion": 39,
+  "version": 1,
+  "time": {
+    "from": "now-6h",
+    "to": "now"
+  },
+  "refresh": "1m",
+  "templating": {
+    "list": []
+  },
+  "panels": [
+    {
+      "id": 1,
+      "type": "text",
+      "title": "About this dashboard",
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 24,
+        "h": 2
+      },
+      "options": {
+        "mode": "markdown",
+        "content": "Owner C6. Alert rules: `rules/imported/reporting.rules.yml`. Runbook: `infra/runbooks/reporting.md`."
+      }
+    },
+    {
+      "id": 2,
+      "type": "timeseries",
+      "title": "lims_ops_container_health",
+      "description": "Owner C6 (Reporting & delivery). Metric lims_ops_container_health from node_exporter textfile /metrics (02-TRD s11.2). Alerts: ReportingRendererDown.",
+      "gridPos": {
+        "x": 0,
+        "y": 2,
+        "w": 12,
+        "h": 8
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "max(lims_ops_container_health{service=~\"renderer|pdf-sandbox\"})"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "type": "timeseries",
+      "title": "lims_renderer_blocked_requests_total",
+      "description": "Owner C6 (Reporting & delivery). Metric lims_renderer_blocked_requests_total from worker-a/b /metrics (02-TRD s11.2). Alerts: ReportingRendererBlockedRequest.",
+      "gridPos": {
+        "x": 12,
+        "y": 2,
+        "w": 12,
+        "h": 8
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum(rate(lims_renderer_blocked_requests_total[5m]))"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "type": "timeseries",
+      "title": "lims_reporting_deliveries_total",
+      "description": "Owner C6 (Reporting & delivery). Metric lims_reporting_deliveries_total from worker-a/b /metrics (02-TRD s11.2). Alerts: ReportingDeliveryFailureRate.",
+      "gridPos": {
+        "x": 0,
+        "y": 10,
+        "w": 12,
+        "h": 8
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum(rate(lims_reporting_deliveries_total{status=\"failed\"}[5m]))"
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "type": "timeseries",
+      "title": "lims_reporting_otp_verify_failures_total",
+      "description": "Owner C6 (Reporting & delivery). Metric lims_reporting_otp_verify_failures_total from worker-a/b /metrics (02-TRD s11.2). Alerts: ReportingOtpVerifyBruteForce.",
+      "gridPos": {
+        "x": 12,
+        "y": 10,
+        "w": 12,
+        "h": 8
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum(rate(lims_reporting_otp_verify_failures_total[5m]))"
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "type": "timeseries",
+      "title": "lims_reporting_qr_verify_total",
+      "description": "Owner C6 (Reporting & delivery). Metric lims_reporting_qr_verify_total from worker-a/b /metrics (02-TRD s11.2). Alerts: ReportingQrEnumeration.",
+      "gridPos": {
+        "x": 0,
+        "y": 18,
+        "w": 12,
+        "h": 8
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum(rate(lims_reporting_qr_verify_total{outcome=\"not_found\"}[5m]))"
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "type": "timeseries",
+      "title": "lims_reporting_render_failures_total",
+      "description": "Owner C6 (Reporting & delivery). Metric lims_reporting_render_failures_total from worker-a/b /metrics (02-TRD s11.2). Alerts: ReportingRenderFailureRate.",
+      "gridPos": {
+        "x": 12,
+        "y": 18,
+        "w": 12,
+        "h": 8
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum(rate(lims_reporting_render_failures_total[5m]))"
+        }
+      ]
+    },
+    {
+      "id": 8,
+      "type": "timeseries",
+      "title": "lims_reporting_sandbox_rejections_total",
+      "description": "Owner C6 (Reporting & delivery). Metric lims_reporting_sandbox_rejections_total from worker-a/b /metrics (02-TRD s11.2). Alerts: ReportingSandboxRejectionSpike.",
+      "gridPos": {
+        "x": 0,
+        "y": 26,
+        "w": 12,
+        "h": 8
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum(rate(lims_reporting_sandbox_rejections_total[5m]))"
+        }
+      ]
+    },
+    {
+      "id": 9,
+      "type": "timeseries",
+      "title": "lims_reporting_versions_total",
+      "description": "Owner C6 (Reporting & delivery). Metric lims_reporting_versions_total from worker-a/b /metrics (02-TRD s11.2). Alerts: ReportingRenderFailureRate.",
+      "gridPos": {
+        "x": 12,
+        "y": 26,
+        "w": 12,
+        "h": 8
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum(rate(lims_reporting_versions_total[5m]))"
+        }
+      ]
+    }
+  ]
+}

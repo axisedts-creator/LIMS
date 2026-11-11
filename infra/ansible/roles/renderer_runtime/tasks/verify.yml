@@ -1,0 +1,35 @@
+---
+# After `up --wait` (role lims_runtime). A failure stops the deploy.
+# sandbox worker-only reachability needs br_netfilter (s3.2): if it fails
+# on a real host, record the outcome in inventories/DECISION.md.
+- name: renderer_egress.sh (AC-09.1)
+  ansible.builtin.command:
+    argv: ["{{ renderer_runtime_tests_dir }}/renderer_egress.sh"]
+  environment:
+    RENDERER_CONTAINER: "{{ renderer_runtime_project }}-renderer-1"
+    DATA_WG_IP: "{{ db_primary_wg_ip }}"
+    SANDBOX_IP: "{{ nftables_pdf_sandbox_ip | default('172.30.40.11') }}"
+    SANDBOX_PORT: "{{ renderer_runtime_sandbox_port }}"
+    PROBE_IMAGE: "{{ renderer_runtime_probe_image }}"
+    WG_PEER_IPS: "{{ wg_peer_ips }}"
+  vars:
+    wg_peer_ips: >-
+      {{ groups['all'] | map('extract', hostvars, 'wg_ip')
+      | select('defined') | unique | join(' ') }}
+  changed_when: false
+
+- name: sandbox_envelope.sh (AC-10.1)
+  ansible.builtin.command:
+    argv: ["{{ renderer_runtime_tests_dir }}/sandbox_envelope.sh"]
+  environment:
+    SANDBOX_CONTAINER: "{{ p }}-pdf-sandbox-1"
+    SANDBOX_PORT: "{{ renderer_runtime_sandbox_port }}"
+    DATA_WG_IP: "{{ db_primary_wg_ip }}"
+    PROBE_IMAGE: "{{ renderer_runtime_probe_image }}"
+    WORKER_CONTAINERS: >-
+      {{ p }}-worker-a-1{{ (' ' ~ p ~ '-worker-b-1')
+      if topology_profile == 'full' else '' }}
+    DENY_CONTAINERS: "{{ p }}-api-a-1 {{ p }}-api-b-1 {{ p }}-renderer-1"
+  vars:
+    p: "{{ renderer_runtime_project }}"
+  changed_when: false

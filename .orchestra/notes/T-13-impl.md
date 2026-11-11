@@ -1,0 +1,7 @@
+# T-13 impl (writer) — comment codes #57–#59
+- Files: service/comments.service.ts (new: list/create/update + text history), service/masters.service.ts (validation/lock/pg-map helpers exported, no behaviour change), repo/masters.repo.ts (MasterTable += comment_codes, comment_code_texts), handlers/masters.handlers.ts (+CommentCode, path param `comment_code_id`), handlers/index.ts (3 stubs removed), __tests__/probes/pending.json (3 ids removed).
+- Uniqueness = expression index comment_codes__tenant_id_code_dept__uq: its 23505 -> 409 catalog.code_duplicate (no pre-read); dept FK 23503 -> 404 common.not_found (S-1).
+- [CONV] code checked against ^[A-Za-z0-9_]{1,16}$ after trim, BEFORE upper-casing (blocks ı -> I). code_prefix same rule, upper-cased, 400 otherwise (so `%` -> 400).
+- [CONV] code_prefix = range predicate `code >= $p AND code < $p+1` (no LIKE); assumes byte-wise ordering of [A-Z0-9_] (same as the (code, id) cursor) — ponytail note in code.
+- [CONV] effective_from of a text row = ctx.now() = revision effectiveFrom; text edit closes the open row then inserts text_version = new code version; is_active-only patch writes no text row.
+- Open: two text edits of one code at the same clock instant would hit UNIQUE(code, effective_from) -> unmapped 500; unchanged text still writes a history row; no is_active list param (tester's CR gap). Pre-existing: tsc TS5097 in packages/shared-ts/bsdate; instruments/reporting suites fail (not C3).

@@ -1,0 +1,6 @@
+# API-T08 debug
+- Cause: NOT an implementation defect. 13 failures = ENOENT on fixtures/config/test-key.pkcs8.pem + test-key.spki.pem. Both absent from disk and from all git history (git log --all empty); .gitignore negation per LD-58 is committed (88aeb022) but PEMs were never committed and were lost from the worktree.
+- No fix in signing.ts possible: private key behind committed signature.b64url.txt is unrecoverable (no seed in README), so it cannot be regenerated without also regenerating golden signature/sha/vector, which is shared with Go (AG-T11) and outside debugger scope.
+- Needed (lead/writer): restore original cfg-test-1 PEMs, or lead authorises a new synthetic keypair + regenerated signature.b64url.txt; then plain git add + commit (no -f; check git ls-files). Stopped; no code or tests changed.
+- Round 2 recheck: state unchanged. PEMs still absent on disk; git log --all -- '*test-key*' empty; gitignore negation present. Search outside this worktree not permitted. Still blocked on lead: restore PEMs or authorise new keypair + regenerated signature.b64url.txt.
+- Round 3 recheck: unchanged. fixtures/config has no *.pem on disk, none tracked; gitignore negation present. Same 13 ENOENT failures. Blocked on lead: restore cfg-test-1 PEMs or authorise new keypair + regenerated golden signature (shared with Go AG-T11). No code or tests changed.

@@ -1,0 +1,537 @@
+(node:4544) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/LIMS-lanes/C0-0B/db/tools/gen-isolation-probes.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to C:\LIMS-lanes\C0-0B\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+gen-isolation-probes: wrote 12 probe files + _registry.sql to C:\LIMS-lanes\C0-0B\db\tests\isolation
+# --- db/tests/app/T0B-02_helpers.test.sql
+not ok 56 - lims_owner default ACL for tables has no PUBLIC rights
+# Failed test 56: "lims_owner default ACL for tables has no PUBLIC rights"
+# --- db/tests/audit/T0B-04_audit.test.sql
+ok 1 - coded set exists
+ok 2 - seed loaded: base list + 03-IC §13.1
+ok 3 - every seeded code matches ^[a-z_]+\.[a-z_]+$
+ok 4 - defaults: active, system lims/1, non-empty display
+ok 5 - base and 03-IC §13.1 codes present
+ok 6 - removed / withdrawn / reserved codes not seeded
+ok 7 - access_log insert with a seeded action succeeds (lims_api)
+ok 8 - unknown action -> 23503 (FK to the coded set)
+ok 9 - lims_app cannot add a coded value (class G, read-only)
+ok 10 - lims_api cannot UPDATE the coded set
+ok 11 - lims_api cannot DELETE from the coded set
+ok 12 - AC-0B-5.3: lims_app has no INSERT on audit.audit_log
+ok 13 - AC-0B-5.3: direct INSERT INTO audit.audit_log as lims_app -> 42501
+ok 14 - lims_api direct INSERT -> 42501
+ok 15 - lims_worker direct INSERT -> 42501
+ok 16 - AC-0B-4.3: no UPDATE/DELETE/TRUNCATE privilege for app roles on audit_log / access_log
+ok 17 - access_log: lims_app may INSERT (ctx.audit.access)
+ok 18 - lims_app may SELECT both (policy-filtered)
+ok 19 - access_log UPDATE -> 42501 (append-only)
+ok 20 - access_log DELETE -> 42501
+ok 21 - no PUBLIC grant on the audit tables
+ok 22 - ENABLE + FORCE RLS on both audit tables
+ok 23 - audit_log request_id index
+ok 24 - access_log request_id index
+ok 25 - support_session partial indexes on both tables
+psql:db/tests/audit/T0B-04_audit.test.sql:73: ERROR:  could not determine which collation to use for string comparison
+HINT:  Use the COLLATE clause to set the collation explicitly.
+CONTEXT:  PL/pgSQL function results_eq(refcursor,refcursor,text) line 17 at IF
+PL/pgSQL function results_eq(text,text,text) line 9 at assignment
+psql failed: db/tests/audit/T0B-04_audit.test.sql
+# --- db/tests/core/T0B-03_audit.test.sql
+# --- db/tests/core/T0B-03_isolation.test.sql
+not ok 39 - AC-0B-3.2: tenant A claims inserting a tenant B row into core.membership_centres -> 42501
+# Failed test 39: "AC-0B-3.2: tenant A claims inserting a tenant B row into core.membership_centres -> 42501"
+ok 128 # SKIP core.event_log / core.idempotency_keys not created yet (T0B-05): schema test 24 platform-table half runs after T0B-05
+# --- db/tests/core/T0B-03_schema.test.sql
+# --- db/tests/core/T0B-06_membership_branches.test.sql
+ok 1 - core.membership_branches exists
+ok 2 - membership_branches: ENABLE + FORCE RLS
+ok 3 - membership_branches: owned by lims_owner
+ok 4 - membership_branches: exactly the five spec columns (association class, no version/is_active)
+ok 5 - membership_branches.tenant_id NOT NULL
+ok 6 - membership_branches.membership_id NOT NULL
+ok 7 - membership_branches.branch_id NOT NULL
+ok 8 - membership_branches.created_at NOT NULL
+ok 9 - membership_branches.created_by NOT NULL
+ok 10 - membership_branches__pk (tenant_id, membership_id, branch_id)
+ok 11 - membership_branches__membership__fk is composite
+ok 12 - membership_branches__branch__fk is composite
+ok 13 - membership_branches: exactly select/insert/delete __tenant policies (no UPDATE policy, no owner policy: branch scope is application-level only, 08 R3)
+ok 14 - membership_branches__select__tenant: TO lims_app with tenant predicate and the staff guard (08 A17 P-16)
+ok 15 - membership_branches__insert__tenant: TO lims_app with tenant predicate and the staff guard (08 A17 P-16)
+ok 16 - membership_branches__delete__tenant: TO lims_app with tenant predicate and the staff guard (08 A17 P-16)
+ok 17 - lims_app: SELECT, INSERT, DELETE
+ok 18 - lims_app: no UPDATE / TRUNCATE / REFERENCES
+ok 19 - no other application role reads membership_branches
+ok 20 - app.tg_scope_user_only() exists
+ok 21 - app.tg_scope_user_only is SECURITY INVOKER (not in the DEFINER inventory)
+ok 22 - app.tg_scope_user_only has SET search_path
+ok 23 - app.tg_scope_user_only returns trigger
+ok 24 - membership_branches__scope_user_only: BEFORE INSERT FOR EACH ROW only
+ok 25 - membership_centres__scope_user_only: BEFORE INSERT FOR EACH ROW only (schema test 14 covers both scope tables)
+ok 26 - membership_branches is audited (tg_row_audit trigger; 05-SCHEMA §3.3 "audited")
+ok 27 - staff A inserts a branch scope row for a user membership
+ok 28 - staff A inserts a centre scope row for a user membership
+ok 29 - staff A sees its tenant's branch scope row
+ok 30 - staff B sees none of tenant A's branch scope rows (isolation)
+ok 31 - no claims -> 0 rows (fail closed)
+ok 32 - partner claims of tenant A -> 0 rows (staff guard)
+ok 33 - patient claims of tenant A -> 0 rows (staff guard)
+ok 34 - tenant A claims cannot insert a tenant B row (refused by the BEFORE trigger lookup or RLS WITH CHECK, never accepted)
+ok 35 - partner claims cannot insert a branch scope row (staff guard: trigger lookup or WITH CHECK)
+ok 36 - branch of another tenant -> composite FK violation
+ok 37 - duplicate (tenant, membership, branch) -> PK violation
+ok 38 - a second user membership (all_centres = true) may still carry an explicit branch row (trigger tests actor_type only)
+ok 39 - patient membership -> branch scope refused: 23514 scope_user_only
+ok 40 - partner membership -> branch scope refused: 23514 scope_user_only
+ok 41 - patient membership -> centre scope refused: 23514 scope_user_only
+ok 42 - partner membership -> centre scope refused: 23514 scope_user_only
+ok 43 - unknown membership id -> refused (the trigger does not pass a missing membership)
+ok 44 - membership of another tenant under own tenant_id -> refused (lookup is tenant-scoped)
+ok 45 - superuser insert for a patient membership is refused too (trigger is not RLS-dependent)
+ok 46 - superuser insert of a centre scope row for a partner membership is refused too
+ok 47 - diagnostic: SQLSTATE 23514 message scope_user_only
+ok 48 - no scope row exists for a patient or partner membership
+ok 49 - no centre row exists for a patient or partner membership
+psql:db/tests/core/T0B-06_membership_branches.test.sql:129: ERROR:  function like(text, unknown, unknown) does not exist
+LINE 1: SELECT like(pg_temp.w(pg_temp.cl('user', 1, 31, 41), format(...
+               ^
+HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
+psql failed: db/tests/core/T0B-06_membership_branches.test.sql
+# --- db/tests/definers/T0B-08_contracts_helpers.test.sql
+ok 24 # SKIP object not present yet: current_partner_id (touches partners.partner_users, partners.partners; relforcerowsecurity) returns NULL for a partner claim with no partner_users row
+ok 25 # SKIP object not present yet: engagement_account_id (touches engagement.accounts, core.memberships; relforcerowsecurity) returns NULL for a patient claim with no account
+ok 26 # SKIP object not present yet: engagement_patient_ids (touches engagement.account_patient_links; relforcerowsecurity) returns no ids without links
+ok 27 # SKIP object not present yet: engagement_patient_visible (touches engagement.account_patient_links; relforcerowsecurity) is false without a link
+# --- db/tests/definers/T0B-08_contracts_platform.test.sql
+ok 1 # SKIP object not present yet: schema test 22: core.tenants has relforcerowsecurity = true before app.cron_tenant_ids runs
+ok 2 # SKIP object not present yet: schema test 22: cron_tenant_ids returns exactly the active and suspended ids, and app.maintenance is '' afterwards
+ok 3 # SKIP object not present yet: schema test 22: lims_api has no EXECUTE on cron_tenant_ids
+ok 4 # SKIP object not present yet: schema test 22: PUBLIC has no EXECUTE on cron_tenant_ids
+ok 5 # SKIP object not present yet: schema test 29: core_resolve_tenant_code returns (tenant_id, status) for a known code of any status and resets app.pre_tenant_code
+ok 6 # SKIP object not present yet: schema test 29: unknown code -> 0 rows
+ok 7 # SKIP object not present yet: schema test 29: NULL code -> 0 rows
+ok 8 # SKIP object not present yet: schema test 29: identity_tenants_for_email_hmacs returns the distinct tenants of matching users and resets app.maintenance
+ok 9 # SKIP object not present yet: schema test 29: more than 100 values raises identity_tenants_for_email_hmacs_invalid_input
+ok 10 # SKIP object not present yet: schema test 29: lims_api has no EXECUTE on identity_tenants_for_email_hmacs
+ok 11 # SKIP object not present yet: schema test 16: core.tenants and identity.platform_staff have relforcerowsecurity = true
+ok 12 # SKIP object not present yet: schema test 16(a): platform claims list every seeded tenant once
+ok 13 # SKIP object not present yet: schema test 16(a): p_status narrows
+ok 14 # SKIP object not present yet: schema test 16(a): code order ascending
+ok 15 # SKIP object not present yet: schema test 16: aal1 platform claims -> 0 rows
+ok 16 # SKIP object not present yet: schema test 16: tenant claims -> 0 rows
+ok 17 # SKIP object not present yet: schema test 16: p_sort = 'name' raises platform_list_tenants_invalid_input
+ok 18 # SKIP object not present yet: schema test 16(a): the result has no status_reason / created_by / updated_by column
+ok 19 # SKIP object not present yet: schema test 13: core.dead_letters has relforcerowsecurity = true before dl_list_platform runs
+ok 20 # SKIP object not present yet: schema test 13: dl_list_platform returns its seeded platform rows (non-empty under FORCE RLS)
+ok 21 # SKIP object not present yet: schema test 10: p_state narrows
+ok 22 # SKIP object not present yet: schema test 10: aal1 platform claims -> 0 rows
+ok 23 # SKIP object not present yet: schema test 10: tenant claims -> 0 rows
+ok 24 # SKIP object not present yet: schema test 12: lims_worker has no EXECUTE on dl_list_platform
+ok 25 # SKIP object not present yet: schema test 27: first NULL-tenant insert returns the key
+ok 26 # SKIP object not present yet: schema test 27: the replay returns nothing
+ok 27 # SKIP object not present yet: schema test 27: aal1 platform claims see no NULL-tenant key
+ok 28 # SKIP object not present yet: schema test 27: tenant claims see no NULL-tenant key
+ok 29 # SKIP object not present yet: schema test 13: core.event_log has relforcerowsecurity = true before purge_event_log runs
+ok 30 # SKIP object not present yet: schema tests 13/31: purge_event_log deletes its 10,050 seeded expired rows, capped = false, app.maintenance is empty afterwards
+ok 31 # SKIP object not present yet: schema test 31: the 5 unexpired event_log rows remain
+ok 32 # SKIP object not present yet: schema test 13: core.idempotency_keys has relforcerowsecurity = true before purge_idempotency_keys runs
+ok 33 # SKIP object not present yet: schema tests 13/27/31: purge_idempotency_keys deletes 10,050 tenant rows and the expired NULL-tenant row, capped = false, GUC reset
+ok 34 # SKIP object not present yet: schema test 31: 5 unexpired tenant keys and the platform key remain
+ok 35 # SKIP object not present yet: schema test 13: core.dead_letters has relforcerowsecurity = true before purge_dead_letters runs
+ok 36 # SKIP object not present yet: schema tests 13/31: purge_dead_letters deletes 10,050 tenant rows and the old NULL-tenant row, capped = false, GUC reset
+ok 37 # SKIP object not present yet: schema test 31: open rows and the recently resolved row remain (5 + 1 + 1)
+ok 38 # SKIP object not present yet: schema test 13: purge_event_inboxes runs over the 16 inbox tables under FORCE RLS and resets the GUC
+ok 39 # SKIP object not present yet: schema test 23: platform claims replay an open tenant dead letter at version 1
+ok 40 # SKIP object not present yet: schema test 23: the stale version changes 0 rows
+ok 41 # SKIP object not present yet: schema test 23/14: aal1 platform claims change no dead letter
+ok 42 # SKIP object not present yet: lims_api has no EXECUTE on app.purge_event_log
+ok 43 # SKIP object not present yet: lims_api has no EXECUTE on app.purge_event_inboxes
+ok 44 # SKIP object not present yet: lims_api has no EXECUTE on app.purge_idempotency_keys
+ok 45 # SKIP object not present yet: lims_api has no EXECUTE on app.purge_dead_letters
+# --- db/tests/definers/T0B-08_inventory.test.sql
+# --- db/tests/definers/T0B-08_owner_policies.test.sql
+ok 36 # SKIP object not present yet: schema test 15: dead_letters owner SELECT with app.maintenance unset admits the NULL-tenant row only
+ok 37 # SKIP object not present yet: schema test 15: dead_letters owner SELECT with app.maintenance {"app.maintenance": ""} admits the NULL-tenant row only
+ok 38 # SKIP object not present yet: schema test 15: dead_letters owner SELECT with app.maintenance {"app.maintenance": "purge_event_log"} admits the NULL-tenant row only
+ok 39 # SKIP object not present yet: schema test 15: core.event_log owner SELECT with app.maintenance unset admits nothing
+ok 40 # SKIP object not present yet: schema test 15: core.event_log owner SELECT with app.maintenance {"app.maintenance": ""} admits nothing
+ok 41 # SKIP object not present yet: schema test 15: core.event_log owner SELECT with app.maintenance {"app.maintenance": "purge_dead_letters"} admits nothing
+ok 42 # SKIP object not present yet: schema test 15: core.idempotency_keys owner SELECT with app.maintenance unset admits nothing
+ok 43 # SKIP object not present yet: schema test 15: core.idempotency_keys owner SELECT with app.maintenance {"app.maintenance": ""} admits nothing
+ok 44 # SKIP object not present yet: schema test 15: core.idempotency_keys owner SELECT with app.maintenance {"app.maintenance": "purge_dead_letters"} admits nothing
+ok 45 # SKIP object not present yet: schema test 15: event_log owner SELECT with purge_event_log admits exactly the 90-day-old row
+ok 46 # SKIP object not present yet: schema test 15: idempotency_keys owner SELECT with purge_idempotency_keys admits exactly the expired row
+ok 47 # SKIP object not present yet: schema test 15: dead_letters owner SELECT with purge_dead_letters admits the NULL-tenant row plus the resolved-and-old row
+ok 48 # SKIP object not present yet: schema test 15: lims_worker with app.maintenance = purge_event_log sees no expired row of core.event_log
+ok 49 # SKIP object not present yet: schema test 15: lims_worker with app.maintenance = purge_idempotency_keys sees no expired row of core.idempotency_keys
+ok 50 # SKIP object not present yet: schema test 15: lims_worker with app.maintenance = purge_dead_letters sees no expired row of core.dead_letters
+# --- db/tests/grants/T0B-08_grants.test.sql
+# --- db/tests/identity/T0B-06_definers.test.sql
+ok 1 - inventory: 19 identity DEFINERs of C2 05-SCHEMA §6/§10.3 (excl. identity_tenants_for_email_hmacs = T0B-05, identity_is_breached = INVOKER)
+ok 2 - exists: app.identity_bootstrap_platform_admin(uuid,uuid,text,text,uuid)
+ok 3 - exists: app.identity_expire_audit_exports()
+ok 4 - exists: app.identity_expire_invitations()
+ok 5 - exists: app.identity_expire_support_sessions()
+ok 6 - exists: app.identity_finish_breached_import(text)
+ok 7 - exists: app.identity_load_breached_batch(bytea[],text)
+ok 8 - exists: app.identity_login_context(uuid)
+ok 9 - exists: app.identity_notify_ip_throttle_hmacs(inet,timestamptz)
+ok 10 - exists: app.identity_platform_auth_write_invitation_accept(uuid,uuid)
+ok 11 - exists: app.identity_platform_auth_write_mfa_factor(uuid,uuid,jsonb)
+ok 12 - exists: app.identity_platform_auth_write_session_insert(uuid,jsonb)
+ok 13 - exists: app.identity_platform_auth_write_session_update(uuid,uuid,jsonb)
+ok 14 - exists: app.identity_platform_auth_write_staff_login(uuid)
+ok 15 - exists: app.identity_purge_auth_events()
+ok 16 - exists: app.identity_purge_sessions()
+ok 17 - exists: app.identity_record_auth_event(jsonb)
+ok 18 - exists: app.identity_resolve_session(uuid,uuid)
+ok 19 - exists: app.identity_session_by_token(bytea)
+ok 20 - exists: app.identity_user_exists(uuid)
+ok 21 - prosecdef: app.identity_bootstrap_platform_admin(uuid,uuid,text,text,uuid)
+ok 22 - prosecdef: app.identity_expire_audit_exports()
+ok 23 - prosecdef: app.identity_expire_invitations()
+ok 24 - prosecdef: app.identity_expire_support_sessions()
+ok 25 - prosecdef: app.identity_finish_breached_import(text)
+ok 26 - prosecdef: app.identity_load_breached_batch(bytea[],text)
+ok 27 - prosecdef: app.identity_login_context(uuid)
+ok 28 - prosecdef: app.identity_notify_ip_throttle_hmacs(inet,timestamptz)
+ok 29 - prosecdef: app.identity_platform_auth_write_invitation_accept(uuid,uuid)
+ok 30 - prosecdef: app.identity_platform_auth_write_mfa_factor(uuid,uuid,jsonb)
+ok 31 - prosecdef: app.identity_platform_auth_write_session_insert(uuid,jsonb)
+ok 32 - prosecdef: app.identity_platform_auth_write_session_update(uuid,uuid,jsonb)
+ok 33 - prosecdef: app.identity_platform_auth_write_staff_login(uuid)
+ok 34 - prosecdef: app.identity_purge_auth_events()
+ok 35 - prosecdef: app.identity_purge_sessions()
+ok 36 - prosecdef: app.identity_record_auth_event(jsonb)
+ok 37 - prosecdef: app.identity_resolve_session(uuid,uuid)
+ok 38 - prosecdef: app.identity_session_by_token(bytea)
+ok 39 - prosecdef: app.identity_user_exists(uuid)
+ok 40 - owner lims_owner: app.identity_bootstrap_platform_admin(uuid,uuid,text,text,uuid)
+ok 41 - owner lims_owner: app.identity_expire_audit_exports()
+ok 42 - owner lims_owner: app.identity_expire_invitations()
+ok 43 - owner lims_owner: app.identity_expire_support_sessions()
+ok 44 - owner lims_owner: app.identity_finish_breached_import(text)
+ok 45 - owner lims_owner: app.identity_load_breached_batch(bytea[],text)
+ok 46 - owner lims_owner: app.identity_login_context(uuid)
+ok 47 - owner lims_owner: app.identity_notify_ip_throttle_hmacs(inet,timestamptz)
+ok 48 - owner lims_owner: app.identity_platform_auth_write_invitation_accept(uuid,uuid)
+ok 49 - owner lims_owner: app.identity_platform_auth_write_mfa_factor(uuid,uuid,jsonb)
+ok 50 - owner lims_owner: app.identity_platform_auth_write_session_insert(uuid,jsonb)
+ok 51 - owner lims_owner: app.identity_platform_auth_write_session_update(uuid,uuid,jsonb)
+ok 52 - owner lims_owner: app.identity_platform_auth_write_staff_login(uuid)
+ok 53 - owner lims_owner: app.identity_purge_auth_events()
+ok 54 - owner lims_owner: app.identity_purge_sessions()
+ok 55 - owner lims_owner: app.identity_record_auth_event(jsonb)
+ok 56 - owner lims_owner: app.identity_resolve_session(uuid,uuid)
+ok 57 - owner lims_owner: app.identity_session_by_token(bytea)
+ok 58 - owner lims_owner: app.identity_user_exists(uuid)
+ok 59 - proconfig has search_path (empty): app.identity_bootstrap_platform_admin(uuid,uuid,text,text,uuid)
+ok 60 - proconfig has search_path (empty): app.identity_expire_audit_exports()
+ok 61 - proconfig has search_path (empty): app.identity_expire_invitations()
+ok 62 - proconfig has search_path (empty): app.identity_expire_support_sessions()
+ok 63 - proconfig has search_path (empty): app.identity_finish_breached_import(text)
+ok 64 - proconfig has search_path (empty): app.identity_load_breached_batch(bytea[],text)
+ok 65 - proconfig has search_path (empty): app.identity_login_context(uuid)
+ok 66 - proconfig has search_path (empty): app.identity_notify_ip_throttle_hmacs(inet,timestamptz)
+ok 67 - proconfig has search_path (empty): app.identity_platform_auth_write_invitation_accept(uuid,uuid)
+ok 68 - proconfig has search_path (empty): app.identity_platform_auth_write_mfa_factor(uuid,uuid,jsonb)
+ok 69 - proconfig has search_path (empty): app.identity_platform_auth_write_session_insert(uuid,jsonb)
+ok 70 - proconfig has search_path (empty): app.identity_platform_auth_write_session_update(uuid,uuid,jsonb)
+ok 71 - proconfig has search_path (empty): app.identity_platform_auth_write_staff_login(uuid)
+ok 72 - proconfig has search_path (empty): app.identity_purge_auth_events()
+ok 73 - proconfig has search_path (empty): app.identity_purge_sessions()
+ok 74 - proconfig has search_path (empty): app.identity_record_auth_event(jsonb)
+ok 75 - proconfig has search_path (empty): app.identity_resolve_session(uuid,uuid)
+ok 76 - proconfig has search_path (empty): app.identity_session_by_token(bytea)
+ok 77 - proconfig has search_path (empty): app.identity_user_exists(uuid)
+ok 78 - no EXECUTE for PUBLIC: app.identity_bootstrap_platform_admin(uuid,uuid,text,text,uuid)
+ok 79 - no EXECUTE for PUBLIC: app.identity_expire_audit_exports()
+ok 80 - no EXECUTE for PUBLIC: app.identity_expire_invitations()
+ok 81 - no EXECUTE for PUBLIC: app.identity_expire_support_sessions()
+ok 82 - no EXECUTE for PUBLIC: app.identity_finish_breached_import(text)
+ok 83 - no EXECUTE for PUBLIC: app.identity_load_breached_batch(bytea[],text)
+ok 84 - no EXECUTE for PUBLIC: app.identity_login_context(uuid)
+ok 85 - no EXECUTE for PUBLIC: app.identity_notify_ip_throttle_hmacs(inet,timestamptz)
+ok 86 - no EXECUTE for PUBLIC: app.identity_platform_auth_write_invitation_accept(uuid,uuid)
+ok 87 - no EXECUTE for PUBLIC: app.identity_platform_auth_write_mfa_factor(uuid,uuid,jsonb)
+ok 88 - no EXECUTE for PUBLIC: app.identity_platform_auth_write_session_insert(uuid,jsonb)
+ok 89 - no EXECUTE for PUBLIC: app.identity_platform_auth_write_session_update(uuid,uuid,jsonb)
+ok 90 - no EXECUTE for PUBLIC: app.identity_platform_auth_write_staff_login(uuid)
+ok 91 - no EXECUTE for PUBLIC: app.identity_purge_auth_events()
+ok 92 - no EXECUTE for PUBLIC: app.identity_purge_sessions()
+ok 93 - no EXECUTE for PUBLIC: app.identity_record_auth_event(jsonb)
+ok 94 - no EXECUTE for PUBLIC: app.identity_resolve_session(uuid,uuid)
+ok 95 - no EXECUTE for PUBLIC: app.identity_session_by_token(bytea)
+ok 96 - no EXECUTE for PUBLIC: app.identity_user_exists(uuid)
+ok 97 - no EXECUTE for anon/authenticated: app.identity_bootstrap_platform_admin(uuid,uuid,text,text,uuid)
+ok 98 - no EXECUTE for anon/authenticated: app.identity_expire_audit_exports()
+ok 99 - no EXECUTE for anon/authenticated: app.identity_expire_invitations()
+ok 100 - no EXECUTE for anon/authenticated: app.identity_expire_support_sessions()
+ok 101 - no EXECUTE for anon/authenticated: app.identity_finish_breached_import(text)
+ok 102 - no EXECUTE for anon/authenticated: app.identity_load_breached_batch(bytea[],text)
+ok 103 - no EXECUTE for anon/authenticated: app.identity_login_context(uuid)
+ok 104 - no EXECUTE for anon/authenticated: app.identity_notify_ip_throttle_hmacs(inet,timestamptz)
+ok 105 - no EXECUTE for anon/authenticated: app.identity_platform_auth_write_invitation_accept(uuid,uuid)
+ok 106 - no EXECUTE for anon/authenticated: app.identity_platform_auth_write_mfa_factor(uuid,uuid,jsonb)
+ok 107 - no EXECUTE for anon/authenticated: app.identity_platform_auth_write_session_insert(uuid,jsonb)
+ok 108 - no EXECUTE for anon/authenticated: app.identity_platform_auth_write_session_update(uuid,uuid,jsonb)
+ok 109 - no EXECUTE for anon/authenticated: app.identity_platform_auth_write_staff_login(uuid)
+ok 110 - no EXECUTE for anon/authenticated: app.identity_purge_auth_events()
+ok 111 - no EXECUTE for anon/authenticated: app.identity_purge_sessions()
+ok 112 - no EXECUTE for anon/authenticated: app.identity_record_auth_event(jsonb)
+ok 113 - no EXECUTE for anon/authenticated: app.identity_resolve_session(uuid,uuid)
+ok 114 - no EXECUTE for anon/authenticated: app.identity_session_by_token(bytea)
+ok 115 - no EXECUTE for anon/authenticated: app.identity_user_exists(uuid)
+ok 116 - EXECUTE only for lims_api: app.identity_bootstrap_platform_admin(uuid,uuid,text,text,uuid)
+ok 117 - EXECUTE only for lims_worker: app.identity_expire_audit_exports()
+ok 118 - EXECUTE only for lims_worker: app.identity_expire_invitations()
+ok 119 - EXECUTE only for lims_worker: app.identity_expire_support_sessions()
+ok 120 - EXECUTE only for lims_worker: app.identity_finish_breached_import(text)
+ok 121 - EXECUTE only for lims_worker: app.identity_load_breached_batch(bytea[],text)
+ok 122 - EXECUTE only for lims_api: app.identity_login_context(uuid)
+ok 123 - EXECUTE only for lims_worker: app.identity_notify_ip_throttle_hmacs(inet,timestamptz)
+ok 124 - EXECUTE only for lims_api: app.identity_platform_auth_write_invitation_accept(uuid,uuid)
+ok 125 - EXECUTE only for lims_api: app.identity_platform_auth_write_mfa_factor(uuid,uuid,jsonb)
+ok 126 - EXECUTE only for lims_api: app.identity_platform_auth_write_session_insert(uuid,jsonb)
+ok 127 - EXECUTE only for lims_api: app.identity_platform_auth_write_session_update(uuid,uuid,jsonb)
+ok 128 - EXECUTE only for lims_api: app.identity_platform_auth_write_staff_login(uuid)
+ok 129 - EXECUTE only for lims_worker: app.identity_purge_auth_events()
+ok 130 - EXECUTE only for lims_worker: app.identity_purge_sessions()
+ok 131 - EXECUTE only for lims_api: app.identity_record_auth_event(jsonb)
+ok 132 - EXECUTE only for lims_api: app.identity_resolve_session(uuid,uuid)
+ok 133 - EXECUTE only for lims_api: app.identity_session_by_token(bytea)
+ok 134 - EXECUTE only for lims_api: app.identity_user_exists(uuid)
+ok 135 - prosecdef set (app.identity_*) = inventory exactly (no extra DEFINER)
+ok 136 - app.tg_scope_user_only is INVOKER
+ok 137 - lims_api cannot call a lims_worker DEFINER (purge_sessions)
+ok 138 - lims_worker cannot call a lims_api DEFINER (user_exists)
+ok 139 - lims_queue cannot call identity DEFINERs
+ok 140 - every policy mentioning app.pre_* / app.maintenance is TO lims_owner only
+ok 141 - platform_staff__select__owner_only TO lims_owner USING (true) (08 A10.5 - the single allowlisted USING (true))
+ok 142 - USING (true) / WITH CHECK (true) appears exactly once in the database (AC-0B-2.2)
+ok 143 - FORCE + ENABLE RLS on every table the DEFINERs touch (asserted from pg_class, C2 §11 test 22)
+ok 144 - is_platform_actor: relforcerowsecurity on identity.platform_staff
+ok 145 - is_platform_actor: EXECUTE for lims_app, lims_api, lims_worker
+ok 146 - is_platform_actor: active staff row, aal2, scope platform -> true (lims_api)
+ok 147 - is_platform_actor: true as lims_worker too
+ok 148 - is_platform_actor: inactive staff row -> false
+ok 149 - is_platform_actor: aal1 -> false
+ok 150 - is_platform_actor: scope <> platform -> false
+ok 151 - is_platform_actor: staff id of another user (sub mismatch) -> false
+ok 152 - is_platform_actor: no claims -> false
+ok 153 - platform_staff stays invisible to a lims_app session (owner policy is TO lims_owner only)
+ok 154 - resolve: tenant-staff session -> one row
+ok 155 - resolve: session_id
+ok 156 - resolve: tenant_status
+ok 157 - resolve: membership_status = active
+ok 158 - resolve: membership_locked = false when locked_at IS NULL (08 A3.4)
+ok 159 - resolve: membership_id
+ok 160 - resolve: wrong sub -> no row
+ok 161 - resolve: unknown gotrue session id -> no row
+ok 162 - resolve: NULL arguments -> no row, no error
+ok 163 - resolve: revoked session is returned with state revoked (the claims resolver refuses it)
+ok 164 - resolve: revoked session carries revoked_at
+ok 165 - resolve: expired session is returned with state expired
+ok 166 - resolve: locked membership -> membership_locked = true (08 A3.4)
+ok 167 - resolve: suspended tenant -> tenant_status suspended
+ok 168 - resolve: platform session -> platform_staff_id
+ok 169 - resolve: platform session -> platform_role
+ok 170 - resolve: active unexpired support session -> support_session_id (08 A15.1)
+ok 171 - resolve: support_tenant_id
+ok 172 - resolve: support_scope
+ok 173 - resolve: support_expires_at
+ok 174 - resolve: support_tenant_status = core.tenants.status of the support tenant, read via app.pre_tenant_id (08 A20.1)
+ok 175 - resolve: platform session has no tenant_id
+ok 176 - resolve: support session active but past expires_at -> the five support columns are NULL
+ok 177 - resolve: support session not active -> the five support columns are NULL
+ok 178 - resolve: platform columns still filled when the support session is not usable
+ok 179 - by_token: current hash -> the session
+ok 180 - by_token: current hash -> token_reused = false
+ok 181 - by_token: current hash -> exactly one row
+ok 182 - by_token: previous hash -> the same session
+ok 183 - by_token: previous hash -> token_reused = true (CR-C2-018)
+ok 184 - by_token: current hash of a revoked session -> no row
+ok 185 - by_token: previous hash of a revoked session -> no row
+ok 186 - by_token: hash of an expired session -> no row
+ok 187 - by_token: unknown hash -> no row
+ok 188 - by_token: NULL -> no row, no error
+ok 189 - by_token: platform session -> platform_staff_id
+ok 190 - by_token: platform session -> support_session_id
+ok 191 - login_context: staff with one active user membership -> membership_count 1
+ok 192 - login_context: tenant_id of the active membership
+ok 193 - login_context: membership_id
+ok 194 - login_context: membership_status active
+ok 195 - login_context: membership_locked false
+ok 196 - login_context: tenant_status
+ok 197 - login_context: mfa_required from the membership's roles (core.roles.mfa_required via membership_roles)
+ok 198 - login_context: verified tenant factor -> has_verified_factor true
+ok 199 - login_context: tenant idle_timeout_minutes
+ok 200 - login_context: tenant absolute_session_hours
+ok 201 - login_context: locked membership -> membership_locked true (test 18)
+ok 202 - test 19: active user A + deactivated user B + patient + partner memberships -> membership_count 1
+ok 203 - test 19: the chosen membership is the active user membership
+ok 204 - test 19: only deactivated user memberships -> membership_count 0
+ok 205 - test 19: deactivated never produces membership_count > 1
+ok 206 - test 20: deactivated (A, updated later) + active (B) -> returns tenant B
+ok 207 - test 20: membership_id of the active one
+ok 208 - test 20: membership_status active
+ok 209 - test 20: only deactivated -> the most recently updated one (ORDER BY updated_at DESC)
+ok 210 - test 20: membership_status deactivated (loginStaff -> 403 identity.membership_inactive)
+ok 211 - test 20: tenant of the most recently updated deactivated membership
+ok 212 - login_context: exactly one row per user (no fan-out from the platform_staff left join)
+ok 213 - login_context: platform staff user -> platform_staff_id
+ok 214 - login_context: platform_role
+ok 215 - login_context: platform_active
+ok 216 - login_context: platform staff, no membership -> membership_count 0
+ok 217 - login_context: platform staff -> tenant_id NULL
+ok 218 - login_context: platform staff -> mfa_required true
+ok 219 - login_context: verified tenant-less factor -> has_verified_factor true (08 A15.2)
+ok 220 - login_context: only an unverified tenant-less factor (the verified one belongs to a tenant) -> false
+ok 221 - login_context: inactive platform staff -> platform_active false
+ok 222 - login_context: unknown user -> membership_count 0 (not an error, not a tenant leak)
+ok 223 - login_context: unknown user -> tenant_id NULL
+ok 224 - user_exists: core.users row in tenant A
+ok 225 - user_exists: core.users row in tenant B (any tenant, no tenant revealed)
+ok 226 - user_exists: platform staff user without core.users row
+ok 227 - user_exists: unknown id -> false
+ok 228 - user_exists: NULL -> false
+ok 229 - GUCs reset to empty string after identity_resolve_session (platform session with support tenant)
+ok 230 - GUCs reset after identity_resolve_session (tenant session)
+ok 231 - GUCs reset after identity_resolve_session (no row)
+ok 232 - GUC reset after identity_session_by_token
+ok 233 - GUCs reset after identity_login_context (membership user)
+ok 234 - GUCs reset after identity_login_context (platform staff)
+ok 235 - GUC reset after identity_user_exists
+ok 236 - AC-0D-2.3 (DB half): a statement with no claims sees app.current_tenant_id() NULL after the DEFINERs ran
+ok 237 - test 24(b): lims_api sets the GUC itself (SELECT set_config('app.pre_session_token_sha256', '000000000...) and sees 0 rows in all 13 tables
+ok 238 - test 24(b): lims_worker sets the GUC itself (SELECT set_config('app.pre_session_token_sha256', '000000000...) and sees 0 rows in all 13 tables
+ok 239 - test 24(b): lims_api sets the GUC itself (SELECT set_config('app.pre_gotrue_session_id', '01900000-000...) and sees 0 rows in all 13 tables
+ok 240 - test 24(b): lims_worker sets the GUC itself (SELECT set_config('app.pre_gotrue_session_id', '01900000-000...) and sees 0 rows in all 13 tables
+ok 241 - test 24(b): lims_api sets the GUC itself (SELECT set_config('app.pre_user_id', '01900000-0000-7000-800...) and sees 0 rows in all 13 tables
+ok 242 - test 24(b): lims_worker sets the GUC itself (SELECT set_config('app.pre_user_id', '01900000-0000-7000-800...) and sees 0 rows in all 13 tables
+ok 243 - test 24(b): lims_api sets the GUC itself (SELECT set_config('app.pre_user_id', '01900000-0000-7000-800...) and sees 0 rows in all 13 tables
+ok 244 - test 24(b): lims_worker sets the GUC itself (SELECT set_config('app.pre_user_id', '01900000-0000-7000-800...) and sees 0 rows in all 13 tables
+ok 245 - test 24(b): lims_api sets the GUC itself (SELECT set_config('app.pre_support_session_id', '01900000-00...) and sees 0 rows in all 13 tables
+ok 246 - test 24(b): lims_worker sets the GUC itself (SELECT set_config('app.pre_support_session_id', '01900000-00...) and sees 0 rows in all 13 tables
+ok 247 - test 24(b): lims_api sets the GUC itself (SELECT set_config('app.maintenance', 'identity_purge_auth_ev...) and sees 0 rows in all 13 tables
+ok 248 - test 24(b): lims_worker sets the GUC itself (SELECT set_config('app.maintenance', 'identity_purge_auth_ev...) and sees 0 rows in all 13 tables
+ok 249 - test 24(b): lims_api sets the GUC itself (SELECT set_config('app.maintenance', 'identity_purge_session...) and sees 0 rows in all 13 tables
+ok 250 - test 24(b): lims_worker sets the GUC itself (SELECT set_config('app.maintenance', 'identity_purge_session...) and sees 0 rows in all 13 tables
+ok 251 - test 24(b): lims_api sets the GUC itself (SELECT set_config('app.maintenance', 'identity_expire_suppor...) and sees 0 rows in all 13 tables
+ok 252 - test 24(b): lims_worker sets the GUC itself (SELECT set_config('app.maintenance', 'identity_expire_suppor...) and sees 0 rows in all 13 tables
+ok 253 - test 24(b): lims_api sets the GUC itself (SELECT set_config('app.maintenance', 'identity_expire_invita...) and sees 0 rows in all 13 tables
+ok 254 - test 24(b): lims_worker sets the GUC itself (SELECT set_config('app.maintenance', 'identity_expire_invita...) and sees 0 rows in all 13 tables
+ok 255 - test 24(b): lims_api sets the GUC itself (SELECT set_config('app.maintenance', 'identity_expire_audit_...) and sees 0 rows in all 13 tables
+ok 256 - test 24(b): lims_worker sets the GUC itself (SELECT set_config('app.maintenance', 'identity_expire_audit_...) and sees 0 rows in all 13 tables
+ok 257 - test 24(b): lims_api sets the GUC itself (SELECT set_config('app.maintenance', 'identity_notify_ip_thr...) and sees 0 rows in all 13 tables
+ok 258 - test 24(b): lims_worker sets the GUC itself (SELECT set_config('app.maintenance', 'identity_notify_ip_thr...) and sees 0 rows in all 13 tables
+ok 259 - test 24(b): lims_api sets the GUC itself (SELECT set_config('app.maintenance', 'identity_tenants_for_e...) and sees 0 rows in all 13 tables
+ok 260 - test 24(b): lims_worker sets the GUC itself (SELECT set_config('app.maintenance', 'identity_tenants_for_e...) and sees 0 rows in all 13 tables
+
+ok 261 - test 24(d): lims_owner, app.maintenance unset -> 0 rows of identity.sessions
+ok 262 - test 24(d): lims_owner, app.maintenance unset -> 0 rows of identity.admin_notices
+ok 263 - test 24(d): lims_owner, app.maintenance unset -> 0 rows of identity.support_sessions
+ok 264 - test 24(d): lims_owner, app.maintenance unset -> 0 rows of identity.invitations
+ok 265 - test 24(d): lims_owner, app.maintenance unset -> 0 rows of identity.audit_exports
+ok 266 - test 24(d): lims_owner, app.maintenance unset -> 0 rows of identity.auth_events
+ok 267 - test 24(d): lims_owner, another function's name in app.maintenance -> 0 rows of identity.sessions
+ok 268 - test 24(d): lims_owner, another function's name in app.maintenance -> 0 rows of identity.admin_notices
+ok 269 - test 24(d): lims_owner, another function's name in app.maintenance -> 0 rows of identity.support_sessions
+ok 270 - test 24(d): lims_owner, another function's name in app.maintenance -> 0 rows of identity.invitations
+ok 271 - test 24(d): lims_owner, another function's name in app.maintenance -> 0 rows of identity.audit_exports
+ok 272 - test 24(d): lims_owner, another function's name in app.maintenance -> 0 rows of identity.auth_events
+ok 273 - test 24(d): lims_owner with app.maintenance = identity_purge_sessions -> sees exactly the 1 due rows of identity.sessions
+ok 274 - test 24(d): lims_owner with app.maintenance = identity_purge_sessions -> sees exactly the 1 due rows of identity.admin_notices
+ok 275 - test 24(d): lims_owner with app.maintenance = identity_expire_support_sessions -> sees exactly the 4 due rows of identity.support_sessions
+ok 276 - test 24(d): lims_owner with app.maintenance = identity_expire_invitations -> sees exactly the 4 due rows of identity.invitations
+ok 277 - test 24(d): lims_owner with app.maintenance = identity_expire_audit_exports -> sees exactly the 5 due rows of identity.audit_exports
+ok 278 - test 24(d): lims_owner with app.maintenance = identity_purge_auth_events -> sees exactly the 4 due rows of identity.auth_events
+ok 279 - test 24(d): identity_purge_sessions admits exactly the one expired session (not the 8 live ones)
+ok 280 - test 24(d): the maintenance branch of sessions__select__owner_only admits only expires_at < now() rows
+ok 281 - test 24(d): identity_purge_auth_events admits only the 4 rows older than 5 years (never the newer ones)
+
+ok 282 - maintenance GUC is empty before the maintenance run
+ok 283 - purge_sessions: deletes exactly the 1 expired session + 1 expired admin notice (returns 2)
+ok 284 - purge_sessions: the expired session is gone
+ok 285 - purge_sessions: the 8 unexpired sessions stay
+ok 286 - purge_sessions: the unexpired admin notice stays
+ok 287 - purge_sessions: app.maintenance is empty on return (08 A15.3)
+ok 288 - expire_support_sessions: requested>24h, approved>60min, active past expires_at -> 3
+ok 289 - expire_support_sessions: exactly the due rows are now expired with end_reason expired and ended_at
+ok 290 - expire_support_sessions: the unexpired active session is untouched
+ok 291 - expire_support_sessions: a recent request is untouched
+ok 292 - expire_support_sessions: version bumped
+ok 293 - expire_support_sessions: app.maintenance empty on return
+ok 294 - expire_invitations: 2 expired + 1 email cleared = 3 (sum of both branches)
+ok 295 - expire_invitations: pending past expires_at -> expired
+ok 296 - expire_invitations: sent past expires_at -> expired
+ok 297 - expire_invitations: a row expired in this run keeps its email
+ok 298 - expire_invitations: terminal row older than 30 days -> email cleared
+ok 299 - expire_invitations: a cleared terminal row keeps its status
+ok 300 - expire_invitations: terminal row younger than 30 days keeps its email
+ok 301 - expire_invitations: an unexpired pending invitation is untouched
+ok 302 - expire_invitations: the tenant-less platform invitation is untouched
+ok 303 - expire_invitations: app.maintenance empty on return
+ok 304 - expire_invitations: second run changes nothing (idempotent)
+ok 305 - expire_audit_exports: returns exactly the object paths of the due ready rows
+ok 306 - test 31: expired/failed rows older than 1 year deleted; younger and every queued/ready row kept
+ok 307 - expire_audit_exports: due rows expired, the unexpired ready row stays ready
+ok 308 - expire_audit_exports: app.maintenance empty on return
+ok 309 - purge_auth_events: tenant-less 6y + tenant A 6y + tenant B 8y = 3
+ok 310 - purge_auth_events: tenant-B 6y row stays (retention 7y); tenant-A 6y and tenant-less 6y go; 4y and 1y rows stay
+ok 311 - purge_auth_events: app.maintenance empty on return
+ok 312 - test 35: distinct HMACs of tenant-less login_failed events of that IP since p_since (not other IPs, older events, tenant rows, other event types, NULL hmac)
+ok 313 - test 35: app.maintenance empty after notify_ip_throttle_hmacs
+psql:db/tests/identity/T0B-06_definers.test.sql:436: ERROR:  function like(text, unknown, unknown) does not exist
+LINE 1: SELECT like(pg_temp.api($$SELECT app.identity_notify_ip_thro...
+               ^
+HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
+psql failed: db/tests/identity/T0B-06_definers.test.sql
+# --- db/tests/immutability/T0B-08_immutability.test.sql
+# --- db/tests/isolation/T0B-08_step9_fixed.test.sql
+ok 54 # SKIP object not present yet: probe step 9 core.idempotency_keys own-rows test
+ok 55 # SKIP object not present yet: probe step 9 core.idempotency_keys own-rows test
+ok 56 # SKIP object not present yet: probe step 9 core.idempotency_keys own-rows test
+ok 57 # SKIP object not present yet: probe step 9 core.idempotency_keys see-own-only test
+ok 58 # SKIP object not present yet: probe step 9 core.idempotency_keys see-own-only test
+ok 59 # SKIP object not present yet: probe step 9 core.idempotency_keys see-own-only test
+# --- db/tests/isolation/audit.access_log.test.sql
+not ok 12 - probe step 5: centre A1 claims INSERT a centre A2 row into audit.access_log -> 42501
+# Failed test 12: "probe step 5: centre A1 claims INSERT a centre A2 row into audit.access_log -> 42501"
+# --- db/tests/isolation/audit.audit_log.test.sql
+# --- db/tests/isolation/core.branches.test.sql
+# --- db/tests/isolation/core.collection_centres.test.sql
+# --- db/tests/isolation/core.membership_branches.test.sql
+not ok 4 - probe step 3: INSERT of a tenant B row into core.membership_branches -> 42501
+# Failed test 4: "probe step 3: INSERT of a tenant B row into core.membership_branches -> 42501"
+not ok 8 - probe step 6: membership_branches__membership__fk on core.membership_branches refuses a tenant B parent (23503/42501)
+# Failed test 8: "probe step 6: membership_branches__membership__fk on core.membership_branches refuses a tenant B parent (23503/42501)"
+not ok 11 - probe step 8: lims_worker system claims INSERT of a tenant B row into core.membership_branches -> 42501
+# Failed test 11: "probe step 8: lims_worker system claims INSERT of a tenant B row into core.membership_branches -> 42501"
+# --- db/tests/isolation/core.membership_centres.test.sql
+not ok 4 - probe step 3: INSERT of a tenant B row into core.membership_centres -> 42501
+# Failed test 4: "probe step 3: INSERT of a tenant B row into core.membership_centres -> 42501"
+not ok 8 - probe step 6: membership_centres__membership__fk on core.membership_centres refuses a tenant B parent (23503/42501)
+# Failed test 8: "probe step 6: membership_centres__membership__fk on core.membership_centres refuses a tenant B parent (23503/42501)"
+not ok 11 - probe step 8: lims_worker system claims INSERT of a tenant B row into core.membership_centres -> 42501
+# Failed test 11: "probe step 8: lims_worker system claims INSERT of a tenant B row into core.membership_centres -> 42501"
+# --- db/tests/isolation/core.membership_roles.test.sql
+# --- db/tests/isolation/core.memberships.test.sql
+# --- db/tests/isolation/core.role_permissions.test.sql
+# --- db/tests/isolation/core.roles.test.sql
+# --- db/tests/isolation/core.tenants.test.sql
+# --- db/tests/isolation/core.users.test.sql
+# --- db/tests/policy/T0B-08_policy_shape.test.sql
+not ok 1 - AC-0B-2.1 tables without ENABLE+FORCE RLS equal db/tests/rls_exempt.txt
+# Failed test 1: "AC-0B-2.1 tables without ENABLE+FORCE RLS equal db/tests/rls_exempt.txt"
+# --- db/tests/roles/00_bootstrap_roles.test.sql
+ok 1 - AC-0B-1.1 no lims_% role has rolsuper or rolbypassrls
+psql:db/tests/roles/00_bootstrap_roles.test.sql:16: ERROR:  could not determine which collation to use for string comparison
+HINT:  Use the COLLATE clause to set the collation explicitly.
+CONTEXT:  PL/pgSQL function results_eq(refcursor,refcursor,text) line 17 at IF
+PL/pgSQL function results_eq(text,text,text) line 9 at assignment
+psql failed: db/tests/roles/00_bootstrap_roles.test.sql
+# --- db/tests/roles/T0B-08_roles.test.sql
+# --- db/tests/views/T0B-08_views.test.sql
+# elapsed 57s

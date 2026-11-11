@@ -1,17 +1,19 @@
-// T0-03: pin all [PIN-C0] versions; fill 02-TRD §2.3 (CV §15.1-15.3, 02-TRD §2.1-2.3).
+// T0-03: pin all [PIN-C0] versions; fill the CV §15.1 dependencies table (table path per LD-04; titles saying §2.3 = that table).
 // Run: node --test tests/monorepo/T0-03.pins.test.mjs
 // Sources: spec/program/02-CONVENTIONS.md §15.1 (exact versions, lockfiles, table columns),
 //          §15.2 (licences), §15.3 (banned deps); spec/chunks/C0-foundation-contracts/02-TRD.md §2.1-2.3.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync, existsSync, readdirSync, statSync } from 'node:fs';
+import { spawnSync } from 'node:child_process';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const ROOT = fileURLToPath(new URL('../../', import.meta.url));
 const p = (...s) => join(ROOT, ...s);
 const read = (f) => readFileSync(f, 'utf8');
-const TRD = p('spec', 'chunks', 'C0-foundation-contracts', '02-TRD.md');
+// LD-04 (2026-11-07) T0-03 option B: the CV §15.1 table lives here, not in spec/ (read-only); 02-TRD §2.3 is not edited.
+const TRD = p('db', 'meta', 'decisions', 'T0-03-dependencies.md');
 
 // ---------- helpers ----------
 const EXACT_NPM = /^\d+\.\d+\.\d+(-[0-9A-Za-z.-]+)?(\+[0-9A-Za-z.-]+)?$/;
@@ -19,7 +21,9 @@ const EXACT_ANY = /^v?\d+(\.\d+)+([-+][0-9A-Za-z.-]+)?$/; // tools / fonts / SDK
 const RANGE_CHARS = /[\^~><*|]|\bx\b|latest|\|\||\s-\s/i;
 
 const ALLOWED = ['MIT', 'Apache-2.0', 'BSD-2-Clause', 'BSD-3-Clause', 'ISC', '0BSD', 'Zlib',
-  'Unicode-DFS', 'Unicode-3.0', 'OFL-1.1'];
+  'Unicode-DFS', 'Unicode-3.0', 'OFL-1.1',
+  // LD-15 (2026-11-07) T0-03: pgTAP (test-only) and lru-cache (dev-only) are permissive SPDX ids.
+  'PostgreSQL', 'BlueOak-1.0.0'];
 const REVIEW = ['MPL-2.0', 'EPL-2.0', 'LGPL', 'CC-BY'];
 const BANNED_LICENCE = /(?<!L)GPL|AGPL|SSPL|BUSL|\bFSL\b|Commons[ -]Clause|non-?commercial|source-available|UNLICENSED|UNLICENSE[D]?\b|proprietary/i;
 
@@ -81,10 +85,10 @@ function section(md, startRe, endRe) {
 }
 
 function loadTable() {
-  assert.ok(existsSync(TRD), 'C0 02-TRD.md must exist');
-  const sec = section(read(TRD), /^### 2\.3 /m, /^(### |## )(?!2\.3)/m);
+  assert.ok(existsSync(TRD), 'db/meta/decisions/T0-03-dependencies.md must exist (LD-04)');
+  const sec = read(TRD); // whole file: the table is the only table in it
   const lines = sec.split(/\r?\n/).filter((l) => l.trim().startsWith('|'));
-  assert.ok(lines.length >= 3, '§2.3 must contain a markdown table (header, separator, rows)');
+  assert.ok(lines.length >= 3, 'dependencies file must contain a markdown table (header, separator, rows)');
   const cells = (l) => l.trim().replace(/^\||\|$/g, '').split('|').map((c) => c.trim());
   const header = cells(lines[0]).map((h) => h.toLowerCase());
   const rows = lines.slice(2).map(cells);
@@ -196,6 +200,32 @@ test('02-TRD §2.3 every row: exact version, allowed licence, dated release evid
   assert.deepEqual(errs, []);
 });
 
+// LD-05 (2026-11-07) T0D-12 T0-03: pins from CR-C0-0D-001 (.orchestra/cr/T0D-12*.md) are recorded in the same table.
+const T0D12_PINS = {
+  'react-aria-components': '1.22.1', 'react': '19.3.1', 'react-dom': '19.3.1',
+  '@fontsource/noto-sans': '5.3.0', '@fontsource/noto-sans-devanagari': '5.3.0', '@fontsource/noto-sans-mono': '5.3.0',
+  '@testing-library/react': '16.3.3', '@testing-library/user-event': '14.6.8',
+  '@types/react': '19.3.0', '@types/react-dom': '19.3.0', 'axe-core': '4.14.0', 'jsdom': '31.0.0',
+  'typescript': '7.0.2', 'vitest': '5.1.0',
+  // LD-13 (2026-11-07) T0-03: pins from CR-C0-0D-002 (T0D-01) and CR-C0-0D-003 (T0D-14).
+  'fastify': '5.12.8', 'fastify-openapi-glue': '4.12.0', '@fastify/ajv-compiler': '4.0.7', 'yaml': '2.8.1',
+  '@types/node': '26.6.6', 'next': '16.4.5', 'server-only': '0.0.1', '@playwright/test': '1.65.0',
+};
+test('dependencies table (LD-05/LD-13): T0D-12, T0D-01, T0D-14 pins are recorded with the exact CR versions', () => {
+  const { rows } = loadTable();
+  const byName = new Map(rows.map((r) => [clean(r[0]).toLowerCase(), clean(r[1])]));
+  const errs = [];
+  for (const [n, v] of Object.entries(T0D12_PINS)) {
+    // fonts may be listed as "Noto Sans" etc. or by package name; accept either
+    const alias = { '@fontsource/noto-sans': 'noto sans', '@fontsource/noto-sans-devanagari': 'noto sans devanagari',
+      '@fontsource/noto-sans-mono': 'noto sans mono' }[n];
+    const got = byName.get(n) ?? (alias && byName.get(alias));
+    if (got === undefined) errs.push(`${n}: no row`);
+    else if (got !== v) errs.push(`${n}: table ${got} != CR ${v}`);
+  }
+  assert.deepEqual(errs, []);
+});
+
 test('02-TRD §2.3 versions of 04-pinned items match 02-TRD §2.1 exactly', () => {
   const { rows } = loadTable();
   for (const r of rows) {
@@ -278,9 +308,22 @@ test('Node base image / CI image references are never :latest and carry a digest
 });
 
 // ---------- lockfiles ----------
-test('lockfiles committed: pnpm-lock.yaml and pubspec.lock exist and are not git-ignored', () => {
+// LD-13 (2026-11-07) T0-03: services/* and apps/* are workspace members so their pins land in pnpm-lock.yaml.
+test('pnpm-workspace.yaml lists services/* and apps/* (LD-13)', () => {
+  const ws = read(p('pnpm-workspace.yaml'));
+  for (const g of ['services/*', 'apps/*']) {
+    assert.ok(ws.split(/\r?\n/).some((l) => l.replace(/['"\s]/g, '') === '-' + g), g + ' missing from packages:');
+  }
+});
+
+// LD-15 (2026-11-07) T0-03: pubspec.lock needs a human-run `flutter pub get` when flutter is not installed.
+const HAS_FLUTTER = spawnSync('flutter', ['--version'], { shell: true, stdio: 'ignore' }).status === 0;
+test('pubspec.lock exists (REQ-SEC-129; CV §15.1)', { skip: HAS_FLUTTER ? false : 'needs flutter pub get (human)' }, () => {
+  assert.ok(existsSync(p('pubspec.lock')), 'pubspec.lock');
+});
+
+test('lockfiles committed: pnpm-lock.yaml exists; lockfiles are not git-ignored', () => {
   assert.ok(existsSync(p('pnpm-lock.yaml')), 'pnpm-lock.yaml');
-  assert.ok(existsSync(p('pubspec.lock')), 'pubspec.lock (REQ-SEC-129; CV §15.1)');
   const gi = existsSync(p('.gitignore')) ? read(p('.gitignore')) : '';
   assert.ok(!/^\s*(pnpm-lock\.yaml|pubspec\.lock)\s*$/m.test(gi), 'lockfiles must not be git-ignored');
 });
@@ -334,15 +377,31 @@ function lockedNpmNames() {
   return names;
 }
 
+// CV §15.3 (02-CONVENTIONS.md:1195): `bikram-sambat` "may appear only as a test oracle, never imported by app code".
+// Exemption: devDependencies of packages/test-fixtures only (cross-library B.S. golden-table oracle, T0A-06).
+const isOracleUse = (d) => d.name === 'bikram-sambat' && d.g === 'devDependencies' &&
+  d.f.replace(/\\/g, '/').endsWith('/packages/test-fixtures/package.json');
+
 test('banned list: no banned package in any package.json (direct) — CV §15.3', () => {
-  const hit = allNpmDeps().filter((d) => BANNED_PKGS.includes(d.name));
+  const hit = allNpmDeps().filter((d) => BANNED_PKGS.includes(d.name) && !isOracleUse(d));
   assert.deepEqual(hit.map((d) => `${d.f.slice(ROOT.length)}: ${d.name}`), []);
 });
 
 test('banned list: no banned package anywhere in pnpm-lock.yaml (transitive) — CV §15.3', () => {
   const names = lockedNpmNames();
   assert.ok(names.size > 0, 'lockfile parser found package entries');
-  assert.deepEqual(BANNED_PKGS.filter((b) => names.has(b)), []);
+  const oracle = allNpmDeps().some(isOracleUse);
+  assert.deepEqual(BANNED_PKGS.filter((b) => names.has(b) && !(b === 'bikram-sambat' && oracle)), []);
+});
+
+test('banned list: bikram-sambat test oracle is never a runtime dependency or imported by non-test source', () => {
+  const bad = allNpmDeps().filter((d) => d.name === 'bikram-sambat' && !isOracleUse(d));
+  assert.deepEqual(bad.map((d) => `${d.f.slice(ROOT.length)} ${d.g}`), []);
+  const src = [...walk(p('apps'), (n) => /\.(ts|tsx|mjs|js|dart)$/.test(n)), ...walk(p('packages'), (n) => /\.(ts|tsx|mjs|js|dart)$/.test(n))]
+    .filter((f) => !/[\\/](__tests__|tests?|node_modules)[\\/]|\.(test|spec)\.|_test\.dart$/.test(f.slice(ROOT.length)) &&
+      !/[\\/]packages[\\/]test-fixtures[\\/]/.test(f))
+    .filter((f) => /['"]bikram-sambat['"]/.test(read(f)));
+  assert.deepEqual(src.map((f) => f.slice(ROOT.length)), []);
 });
 
 test('banned list: @supabase/supabase-js and @supabase/ssr not in browser-bundle packages (web, portal, partner, ui)', () => {

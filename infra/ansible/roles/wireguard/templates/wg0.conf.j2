@@ -1,0 +1,26 @@
+# Managed by Ansible (02-TRD s3.2, s3.3, s12.1). Full mesh between the
+# inventory hosts; ops engineers peer with ops-1 only and reach the other
+# hosts with `ssh -J` through ops-1. No default route through the tunnel.
+[Interface]
+Address = {{ wg_ip }}/{{ wg_subnet.split('/')[1] }}
+ListenPort = 51820
+# Private key never leaves the host (secret id wireguard_private_keys).
+PostUp = wg set %i private-key /etc/wireguard/wg0.key
+{% for h in groups['all'] | difference([inventory_hostname]) | sort %}
+
+[Peer]
+# {{ h }}
+PublicKey = {{ hostvars[h].wireguard_public_key }}
+Endpoint = {{ hostvars[h].public_ip }}:51820
+AllowedIPs = {{ hostvars[h].wg_ip }}/32
+PersistentKeepalive = 25
+{% endfor %}
+{% if 'ops' in group_names %}
+{% for p in wg_engineer_peers | default([]) %}
+
+[Peer]
+# engineer {{ p.name }}
+PublicKey = {{ p.public_key }}
+AllowedIPs = {{ p.wg_ip }}/32
+{% endfor %}
+{% endif %}

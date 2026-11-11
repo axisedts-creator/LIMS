@@ -1,0 +1,6 @@
+{"name": "hl7-enhanced-ack", "protocol": "hl7v2", "transport": "pipe", "instrument_profile": "hl7_generic_v25", "options": {},
+ "steps": [
+  {"from": "instrument", "bytes": "<VT>MSH|^~\\&|SIM-ANALYSER|SIM-LAB|LIMS|SIM-SITE|20261111||ORU^R01|MSG0002|P|2.5|||AL<CR>OBR|1||E2600000042|GLU^Glucose<CR>OBX|1|NM|GLU^Glucose||5.4|mmol/L|3.9-5.6|N|||F<CR><FS><CR>"},
+  {"expect": "agent", "bytes": "<VT>MSH|^~\\&|LIMS||SIM-ANALYSER|SIM-LAB|{now}||ACK|ACK0001|P|2.5<CR>MSA|CA|MSG0002<CR><FS><CR>", "within_ms": 200},
+  {"expect_queue": {"items": 1, "kind": "data", "raw_sha256": "5a7812ef7555d64f5911e6431aac1616d060a73452a572ef9004de9e40ab1d8a"}}
+ ]}

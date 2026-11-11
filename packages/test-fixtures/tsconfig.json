@@ -1,8 +1,10 @@
 {
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
-    "rootDir": "src",
-    "outDir": "dist"
+    "rootDir": "..",
+    "outDir": "dist",
+    "rewriteRelativeImportExtensions": true
   },
+  "//": "rootDir '..': generators import ../../shared-ts/src/uuidv7 directly (Node test runs strip types, no build step)",
   "include": ["src"]
 }

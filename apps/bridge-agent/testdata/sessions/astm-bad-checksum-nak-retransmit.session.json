@@ -1,0 +1,15 @@
+{"name": "astm-bad-checksum-nak-retransmit", "protocol": "astm", "transport": "pipe", "instrument_profile": "astm_generic_e1394", "options": {},
+ "steps": [
+  {"from": "instrument", "bytes": "<ENQ>"},
+  {"expect": "agent", "bytes": "<ACK>", "within_ms": 200},
+  {"from": "instrument", "bytes": "<STX>1H|\\^&|||SIM-ANALYSER^0.1|||||||P|1<CR><ETX>1C<CR><LF>"},
+  {"expect": "agent", "bytes": "<ACK>", "within_ms": 200},
+  {"from": "instrument", "bytes": "<STX>2R|1|^^^GLU|5.4|mmol/L||N||F<CR><ETX>12<CR><LF>"},
+  {"expect": "agent", "bytes": "<NAK>", "within_ms": 200},
+  {"from": "instrument", "bytes": "<STX>2R|1|^^^GLU|5.4|mmol/L||N||F<CR><ETX>02<CR><LF>"},
+  {"expect": "agent", "bytes": "<ACK>", "within_ms": 200},
+  {"from": "instrument", "bytes": "<STX>3L|1|N<CR><ETX>06<CR><LF>"},
+  {"expect": "agent", "bytes": "<ACK>", "within_ms": 200},
+  {"from": "instrument", "bytes": "<EOT>"},
+  {"expect_queue": {"items": 1, "kind": "data", "raw_sha256": "c87b49d34a08ec92c19a716d80873d85abdad8f138e7611653858503739f4edc"}}
+ ]}

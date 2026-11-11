@@ -10,9 +10,9 @@ SELECT is_empty($$SELECT rolname FROM pg_roles WHERE rolname LIKE 'lims\_%' AND 
   'AC-0B-1.1 no lims_% role has rolsuper or rolbypassrls');
 
 -- exact role set (no role outside the table; lims_migration is not created)
-SELECT results_eq($$SELECT rolname::text FROM pg_roles WHERE rolname LIKE 'lims\_%' ORDER BY 1$$,
-  $$VALUES ('lims_analytics'),('lims_api'),('lims_app'),('lims_audit_ship'),('lims_migrator'),('lims_monitor'),
-           ('lims_owner'),('lims_queue'),('lims_replicator'),('lims_reporting_lookup'),('lims_worker')$$,
+SELECT is(ARRAY(SELECT rolname::text FROM pg_roles WHERE rolname LIKE 'lims\_%' ORDER BY rolname::text COLLATE "C"),
+  ARRAY['lims_analytics','lims_api','lims_app','lims_audit_ship','lims_migrator','lims_monitor',
+        'lims_owner','lims_queue','lims_replicator','lims_reporting_lookup','lims_worker']::text[],
   'exactly the 11 spec roles exist; lims_migration not created');
 
 -- AC-0B-1.2: lims_owner NOLOGIN, plus the other NOLOGIN roles
@@ -26,18 +26,18 @@ SELECT is_empty($$SELECT rolname FROM pg_roles WHERE rolname LIKE 'lims\_%' AND 
   'no lims_% role has CREATEDB or CREATEROLE');
 
 -- replication only for lims_replicator and lims_audit_ship
-SELECT results_eq($$SELECT rolname::text FROM pg_roles WHERE rolname LIKE 'lims\_%' AND rolreplication ORDER BY 1$$,
-  $$VALUES ('lims_audit_ship'),('lims_replicator')$$, 'rolreplication only lims_replicator + lims_audit_ship');
+SELECT is(ARRAY(SELECT rolname::text FROM pg_roles WHERE rolname LIKE 'lims\_%' AND rolreplication ORDER BY rolname::text COLLATE "C"),
+  ARRAY['lims_audit_ship','lims_replicator']::text[], 'rolreplication only lims_replicator + lims_audit_ship');
 
 -- membership with INHERIT / SET options (PG16+ pg_auth_members)
 CREATE TEMP TABLE m AS
 SELECT g.rolname::text AS grp, u.rolname::text AS member, a.inherit_option AS inh, a.set_option AS setopt
   FROM pg_auth_members a JOIN pg_roles g ON g.oid = a.roleid JOIN pg_roles u ON u.oid = a.member
  WHERE u.rolname LIKE 'lims\_%' AND g.rolname LIKE 'lims\_%';
-SELECT results_eq($$SELECT grp, member, inh, setopt FROM m ORDER BY 1,2$$,
-  $$VALUES ('lims_app','lims_api',true,false),('lims_app','lims_worker',true,false),
-           ('lims_owner','lims_migrator',false,true),('lims_queue','lims_migrator',false,true),
-           ('lims_queue','lims_worker',true,false),('lims_reporting_lookup','lims_migrator',false,true)$$,
+SELECT is(ARRAY(SELECT grp || '|' || member || '|' || inh::text || '|' || setopt::text FROM m ORDER BY grp || '|' || member || '|' || inh::text || '|' || setopt::text COLLATE "C"),
+  ARRAY['lims_app|lims_api|true|false','lims_app|lims_worker|true|false',
+        'lims_owner|lims_migrator|false|true','lims_queue|lims_migrator|false|true',
+        'lims_queue|lims_worker|true|false','lims_reporting_lookup|lims_migrator|false|true']::text[],
   'lims_% memberships and INHERIT/SET options match 05-SCHEMA §1 exactly');
 SELECT is(pg_has_role('lims_monitor','pg_monitor','MEMBER'), true, 'lims_monitor is member of pg_monitor');
 

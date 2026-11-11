@@ -1,0 +1,54 @@
+{
+  "branch": "main",
+  "required_status_checks": {
+    "strict": true,
+    "contexts": [
+      "paths",
+      "typecheck",
+      "lint",
+      "unit",
+      "integration",
+      "contracts",
+      "oasdiff",
+      "codegen-fresh",
+      "migrations",
+      "isolation",
+      "secrets",
+      "deps",
+      "images",
+      "bsdate-golden",
+      "phi-log-scan",
+      "ui",
+      "supabase-pin",
+      "identity-service-key-grep",
+      "identity-no-dead-letter-sql",
+      "c3-wording-commission",
+      "c04-copy-scan",
+      "c8-no-commission",
+      "c7-go-build",
+      "c7-go-windows",
+      "c7-go-sessions",
+      "c7-go-insecure-tls-gate",
+      "c7-fixture-copy-check",
+      "c7-driver-registry-check",
+      "c7-synthetic-data-scan",
+      "c17-no-bad-cert-callback",
+      "c17-db-forensics"
+    ]
+  },
+  "enforce_admins": true,
+  "required_pull_request_reviews": {
+    "require_code_owner_reviews": true,
+    "required_approving_review_count": 1,
+    "dismiss_stale_reviews": true
+  },
+  "restrictions": null,
+  "required_linear_history": true,
+  "allow_force_pushes": false,
+  "allow_deletions": false,
+  "repository": {
+    "allow_squash_merge": true,
+    "allow_merge_commit": false,
+    "allow_rebase_merge": false
+  }
+}

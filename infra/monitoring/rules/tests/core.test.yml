@@ -1,0 +1,185 @@
+# T-21 (tester, LD-39): promtool tests for ../core.rules.yml. Synthetic series only (no real tenant or patient data).
+# Per alert one firing case (labels carry the rule's severity and team), one not-firing case, and for rules with a
+# `for` clause a pending-before-`for` + firing-after-`for` check. Thresholds are the owner's (02-TRD s11.3).
+rule_files:
+  - ../core.rules.yml
+evaluation_interval: 1m
+tests:
+
+  - interval: 1m
+    name: "CoreDeadLetter fires"
+    input_series:
+      - series: 'lims_core_dead_letters_total{task="evt.x"}'
+        values: "0+1x15"
+    alert_rule_test:
+      - alertname: CoreDeadLetter
+        eval_time: 12m
+        exp_alerts:
+          - exp_labels: {severity: "page", team: "ops"}
+            exp_annotations: {summary: "A job or event consumer dead-lettered (any task).", runbook_url: "infra/runbooks/core.md#coredeadletter"}
+
+  - interval: 1m
+    name: "CoreDeadLetter quiet"
+    input_series:
+      - series: 'lims_core_dead_letters_total{task="evt.x"}'
+        values: "0+0x15"
+    alert_rule_test:
+      - alertname: CoreDeadLetter
+        eval_time: 12m
+        exp_alerts: []
+
+  - interval: 1m
+    name: "CoreFakePortsActive fires"
+    input_series:
+      - series: 'lims_core_fake_ports_active{env="prod"}'
+        values: "1x15"
+    alert_rule_test:
+      - alertname: CoreFakePortsActive
+        eval_time: 12m
+        exp_alerts:
+          - exp_labels: {severity: "page", team: "ops", env: "prod"}
+            exp_annotations: {summary: "A fake port implementation is active in staging or prod.", runbook_url: "infra/runbooks/core.md#corefakeportsactive"}
+
+  - interval: 1m
+    name: "CoreFakePortsActive quiet"
+    input_series:
+      - series: 'lims_core_fake_ports_active{env="prod"}'
+        values: "0x15"
+      - series: 'lims_core_fake_ports_active{env="dev"}'
+        values: "1x15"
+    alert_rule_test:
+      - alertname: CoreFakePortsActive
+        eval_time: 12m
+        exp_alerts: []
+
+  - interval: 1m
+    name: "CoreFanoutLagHigh fires"
+    input_series:
+      - series: 'lims_core_event_fanout_lag_seconds_bucket{le="5"}'
+        values: "0+0x20"
+      - series: 'lims_core_event_fanout_lag_seconds_bucket{le="100"}'
+        values: "0+1x20"
+      - series: 'lims_core_event_fanout_lag_seconds_bucket{le="+Inf"}'
+        values: "0+1x20"
+    alert_rule_test:
+      - alertname: CoreFanoutLagHigh
+        eval_time: 4m
+        exp_alerts: []
+      - alertname: CoreFanoutLagHigh
+        eval_time: 17m
+        exp_alerts:
+          - exp_labels: {severity: "warn", team: "ops"}
+            exp_annotations: {summary: "Event fan-out lag p95 above 10 s for 5 min.", runbook_url: "infra/runbooks/core.md#corefanoutlaghigh"}
+
+  - interval: 1m
+    name: "CoreFanoutLagHigh quiet"
+    input_series:
+      - series: 'lims_core_event_fanout_lag_seconds_bucket{le="5"}'
+        values: "0+1x20"
+      - series: 'lims_core_event_fanout_lag_seconds_bucket{le="100"}'
+        values: "0+1x20"
+      - series: 'lims_core_event_fanout_lag_seconds_bucket{le="+Inf"}'
+        values: "0+1x20"
+    alert_rule_test:
+      - alertname: CoreFanoutLagHigh
+        eval_time: 17m
+        exp_alerts: []
+
+  - interval: 1m
+    name: "CoreRlsDeniedSpike fires"
+    input_series:
+      - series: 'lims_rls_denied_total'
+        values: "0x600 10+10x40"
+    alert_rule_test:
+      - alertname: CoreRlsDeniedSpike
+        eval_time: 5m
+        exp_alerts: []
+      - alertname: CoreRlsDeniedSpike
+        eval_time: 9m
+        exp_alerts: []
+      - alertname: CoreRlsDeniedSpike
+        eval_time: 630m
+        exp_alerts:
+          - exp_labels: {severity: "page", team: "ops"}
+            exp_annotations: {summary: "RLS denials above 5x the 7-day baseline for 10 min.", runbook_url: "infra/runbooks/core.md#corerlsdeniedspike"}
+
+  - interval: 1m
+    name: "CoreRlsDeniedSpike quiet"
+    input_series:
+      - series: 'lims_rls_denied_total'
+        values: "0+10x633"
+    alert_rule_test:
+      - alertname: CoreRlsDeniedSpike
+        eval_time: 630m
+        exp_alerts: []
+
+  - interval: 1m
+    name: "CoreAuthAlgFailure fires"
+    input_series:
+      - series: 'lims_core_auth_failures_total{reason="alg"}'
+        values: "0+1x15"
+    alert_rule_test:
+      - alertname: CoreAuthAlgFailure
+        eval_time: 12m
+        exp_alerts:
+          - exp_labels: {severity: "page", team: "ops", reason: "alg"}
+            exp_annotations: {summary: "A token with a disallowed algorithm was presented.", runbook_url: "infra/runbooks/core.md#coreauthalgfailure"}
+
+  - interval: 1m
+    name: "CoreAuthAlgFailure quiet"
+    input_series:
+      - series: 'lims_core_auth_failures_total{reason="alg"}'
+        values: "0+0x15"
+      - series: 'lims_core_auth_failures_total{reason="expired"}'
+        values: "0+1x15"
+    alert_rule_test:
+      - alertname: CoreAuthAlgFailure
+        eval_time: 12m
+        exp_alerts: []
+
+  - interval: 1m
+    name: "CoreAuthzNotAsserted fires"
+    input_series:
+      - series: 'lims_core_authz_not_asserted_total'
+        values: "0+1x15"
+    alert_rule_test:
+      - alertname: CoreAuthzNotAsserted
+        eval_time: 12m
+        exp_alerts:
+          - exp_labels: {severity: "page", team: "ops"}
+            exp_annotations: {summary: "An operation returned without an authorization assertion.", runbook_url: "infra/runbooks/core.md#coreauthznotasserted"}
+
+  - interval: 1m
+    name: "CoreAuthzNotAsserted quiet"
+    input_series:
+      - series: 'lims_core_authz_not_asserted_total'
+        values: "0+0x15"
+    alert_rule_test:
+      - alertname: CoreAuthzNotAsserted
+        eval_time: 12m
+        exp_alerts: []
+
+  - interval: 1m
+    name: "CoreRetentionPurgeCapped fires"
+    input_series:
+      - series: 'lims_core_retention_purge_capped_total{table="t_synth"}'
+        values: "0+1x4505"
+    alert_rule_test:
+      - alertname: CoreRetentionPurgeCapped
+        eval_time: 4319m
+        exp_alerts: []
+      - alertname: CoreRetentionPurgeCapped
+        eval_time: 4502m
+        exp_alerts:
+          - exp_labels: {severity: "warn", team: "ops", table: "t_synth"}
+            exp_annotations: {summary: "Retention purge hit its cap three days in a row.", runbook_url: "infra/runbooks/core.md#coreretentionpurgecapped"}
+
+  - interval: 1m
+    name: "CoreRetentionPurgeCapped quiet"
+    input_series:
+      - series: 'lims_core_retention_purge_capped_total{table="t_synth"}'
+        values: "0+0x4505"
+    alert_rule_test:
+      - alertname: CoreRetentionPurgeCapped
+        eval_time: 4502m
+        exp_alerts: []

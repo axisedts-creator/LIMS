@@ -1,0 +1,7 @@
+# API-T07 impl
+- Files: `drivers/{types,delimited,registry,mindray_sketches}.ts`, `drivers/{astm_generic_e1394,hl7v2_generic_oru,file_drop_generic}/{index.ts,testdata/*}`. Per LD-56 the tester owns and created `__tests__/ci/*.ts` (be989af); writer made no changes there. Re-run 2026-11-07 22:10: API-T07 tests 126/126 pass; tsc clean for these files (the remaining shared-ts bsdate TS5097 was already there).
+- [CONV] Field refs are `SEG.n[.c]`: c=0 means the whole field. Over-long barcode, code, value, unit, control id or flags skip the record with a constant warning and are never truncated. Warnings and reasons never contain input text.
+- [CONV] HL7 message kind = first 3 letters of MSH-9.1 (ORU means results; ORM/QRY mean host_query). Records are emitted only for results. QC records have controlIdRaw and no sampleBarcode.
+- [CONV] IsoUtc/Uuidv7 are declared locally in types.ts, because importing contracts/ports/common.ts breaks tsc (missing .js extensions in that file). The ASTM generic driver has no extractHostQueryBarcodes/buildHostQueryReply yet: hostQuery=false and no test uses them.
+- Open: file_drop metadata goes through ctx.options (the tester's SPEC GAP; lead CR needed). CLI main() of the CI scripts is untested: plain node cannot resolve the `.js` imports to `.ts`, so CI wiring (CR-C7-013, C0) needs a TS runner.
+- Full suite: 5 boot/autoload failures (instruments, lab, catalog boot tests). They are the same env/upstream failures as before; none touch drivers/.

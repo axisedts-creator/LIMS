@@ -1,0 +1,86 @@
+---
+# 02-TRD s11.2 item 3 (verbatim). C7 exports the series from worker-a/b;
+# both replicas may export identical series, so every rule aggregates
+# `max by (tenant_id, centre_id, agent_id)`. Deployed only while
+# c7_metrics_live=true (roles/monitoring, 02-TRD s12).
+# notify_tenant="true" on BridgeAgentOfflineLong only (s11.4 [CONV]).
+groups:
+  - name: instruments
+    rules:
+      - alert: BridgeAgentOffline
+        expr: >-
+          max by (tenant_id, centre_id, agent_id)
+          (lims_instruments_agent_state{state="offline"}) == 1
+        for: 15m
+        labels:
+          severity: warn
+          team: ops
+        annotations:
+          summary: >-
+            Bridge agent {{ $labels.agent_id }} (tenant {{ $labels.tenant_id }},
+            centre {{ $labels.centre_id }}) offline for 15 min.
+          runbook_url: "infra/runbooks/instruments.md#bridgeagentoffline"
+      # paged only within lab_hours (Alertmanager time_intervals, s11.4)
+      - alert: BridgeAgentOfflineLong
+        expr: >-
+          max by (tenant_id, centre_id, agent_id)
+          (lims_instruments_agent_state{state="offline"}) == 1
+        for: 60m
+        labels:
+          severity: page
+          team: ops
+          notify_tenant: "true"
+        annotations:
+          summary: >-
+            Bridge agent {{ $labels.agent_id }} (tenant {{ $labels.tenant_id }},
+            centre {{ $labels.centre_id }}) offline for 60 min.
+          runbook_url: "infra/runbooks/instruments.md#bridgeagentofflinelong"
+      - alert: BridgeAgentBacklog
+        expr: >-
+          max by (tenant_id, centre_id, agent_id)
+          (lims_instruments_agent_state{state="backlog"}) == 1
+        for: 30m
+        labels:
+          severity: warn
+          team: ops
+        annotations:
+          summary: >-
+            Bridge agent {{ $labels.agent_id }} (tenant {{ $labels.tenant_id }})
+            has a backlog for 30 min.
+          runbook_url: "infra/runbooks/instruments.md#bridgeagentbacklog"
+      - alert: BridgeAgentDegraded
+        expr: >-
+          max by (tenant_id, centre_id, agent_id)
+          (lims_instruments_agent_state{state="degraded"}) == 1
+        for: 30m
+        labels:
+          severity: warn
+          team: ops
+        annotations:
+          summary: >-
+            Bridge agent {{ $labels.agent_id }} (tenant {{ $labels.tenant_id }})
+            degraded for 30 min.
+          runbook_url: "infra/runbooks/instruments.md#bridgeagentdegraded"
+      - alert: BridgeAgentClockOffset
+        expr: >-
+          abs(max by (tenant_id, centre_id, agent_id)
+          (lims_instruments_agent_clock_offset_seconds)) > 120
+        for: 30m
+        labels:
+          severity: info
+          team: ops
+        annotations:
+          summary: >-
+            Bridge agent {{ $labels.agent_id }} clock offset above 120 s.
+          runbook_url: "infra/runbooks/instruments.md#bridgeagentclockoffset"
+      - alert: BridgeAgentMetricsAbsent
+        expr: absent(lims_instruments_agent_state)
+        for: 10m
+        labels:
+          severity: warn
+          team: ops
+        annotations:
+          summary: >-
+            No lims_instruments_agent_state series from worker-a/b for 10 min
+            although c7_metrics_live is true.
+          runbook_url: "infra/runbooks/instruments.md#bridgeagentmetricsabsent"

@@ -20,6 +20,7 @@ export interface TrendCandidate {
   derangedSeverity?: DerangedSeverity; // set = analyte has a deranged entry
   groupSortOrder: number;
   analyteSortOrder: number;
+  trendStableBp?: number; // analyte_groups.trend_stable_bp override (05-SCHEMA §2.4)
 }
 export interface TrendHistoryPoint { source: string; resultId: string; approvedAt: string; valueNumeric?: string; unitCode?: string }
 export interface TrendHistory { series: readonly { analyteId: string; points: readonly TrendHistoryPoint[] }[] }
@@ -84,7 +85,7 @@ export function buildTrends(a: {
       analyteName: c.analyteName,
       unitCode: c.unitCode,
       direction: direction(toMicro(points[points.length - 2]!.valueNumeric), toMicro(c.valueNumeric!),
-        low === undefined ? undefined : toMicro(low), high === undefined ? undefined : toMicro(high), a.trendStableBp),
+        low === undefined ? undefined : toMicro(low), high === undefined ? undefined : toMicro(high), c.trendStableBp ?? a.trendStableBp),
       pointResultIds: points.map((p) => p.resultId),
       points,
     });

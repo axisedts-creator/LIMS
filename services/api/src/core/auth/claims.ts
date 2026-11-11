@@ -44,7 +44,7 @@ export function buildDbClaims(resolved: ResolvedClaims): DbClaims {
 
 /** extraClaims keys each module may set (02-TRD §6.3, 08 §4.11). */
 const EXTRA_CLAIMS: Readonly<Partial<Record<ModuleName, readonly string[]>>> = {
-  reporting: ['portal_stage', 'portal_report_id', 'portal_session_id'],
+  reporting: ['portal_stage', 'portal_report_id', 'portal_session_id', 'portal_link_purpose'],
   instruments: ['credential_kind', 'credential_id'],
   payments: ['payment_intent_id'],
   engagement: ['patient_stage', 'otp_token_sha256', 'device_kind'],

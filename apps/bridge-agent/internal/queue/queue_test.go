@@ -168,9 +168,17 @@ func TestTamperRowIDChanged(t *testing.T) {
 
 func TestTamperSwapCiphertextBetweenRows(t *testing.T) {
 	d, path := seedTwoItems(t)
-	rawExec(t, path, `UPDATE items SET
-	  nonce = CASE id WHEN 'A' THEN (SELECT nonce FROM items WHERE id='B') ELSE (SELECT nonce FROM items WHERE id='A') END,
-	  ct    = CASE id WHEN 'A' THEN (SELECT ct FROM items WHERE id='B')    ELSE (SELECT ct FROM items WHERE id='A') END`)
+	// Read both rows first: a single UPDATE with subselects on items sees its own earlier writes.
+	nonceA := rawBlob(t, path, "SELECT nonce FROM items WHERE id='A'")
+	ctA := rawBlob(t, path, "SELECT ct FROM items WHERE id='A'")
+	nonceB := rawBlob(t, path, "SELECT nonce FROM items WHERE id='B'")
+	ctB := rawBlob(t, path, "SELECT ct FROM items WHERE id='B'")
+	rawExec(t, path, "UPDATE items SET nonce=?, ct=? WHERE id='A'", nonceB, ctB)
+	rawExec(t, path, "UPDATE items SET nonce=?, ct=? WHERE id='B'", nonceA, ctA)
+	if !bytes.Equal(rawBlob(t, path, "SELECT ct FROM items WHERE id='A'"), ctB) ||
+		!bytes.Equal(rawBlob(t, path, "SELECT ct FROM items WHERE id='B'"), ctA) {
+		t.Fatal("test setup: ciphertexts were not exchanged")
+	}
 	_, errA := d.GetItem("A")
 	_, errB := d.GetItem("B")
 	mustTamper(t, errA)

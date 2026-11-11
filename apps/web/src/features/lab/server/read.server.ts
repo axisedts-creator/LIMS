@@ -10,6 +10,12 @@ const DAY_MS = 86_400_000;
 const CODE_RE = /^[A-Za-z0-9][A-Za-z0-9_.:-]{0,99}$/;
 const CURSOR_RE = /^[A-Za-z0-9_-]{1,512}$/;
 
+/** C7 E23 instruments as { id, name } for the QC screen (T-25, 08 A13 D-14: names come from C7, never from lab.yaml). A refused read is the caller's "none". */
+export async function listInstrumentOptions(): Promise<{ id: string; name: string }[]> {
+  const r = await serverFetch<{ data: { id: string; display_name: string }[] }>('/v1/instruments/instruments?limit=200');
+  return r.data.map((i) => ({ id: i.id, name: i.display_name }));
+}
+
 /** C5 coded set (#53), active only, in sort_order. */
 export async function listCodedSet(set: 'rejection_reasons' | 'return_reasons' | 'amendment_reasons'): Promise<CodedOption[]> {
   const r = await serverFetch<{ data: { code: string; display: string; sort_order?: number; is_active?: boolean }[] }>(`/v1/lab/coded-sets/${set}`);

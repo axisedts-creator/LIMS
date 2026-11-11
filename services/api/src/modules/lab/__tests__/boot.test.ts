@@ -55,6 +55,8 @@ const IMPLEMENTED: readonly string[] = [
   'getStatusBoard',
   // T-29 configuration (#47-#54)
   'getLabSettings', 'updateLabSettings', 'listDeltaCheckRules', 'createDeltaCheckRule', 'versionDeltaCheckRule', 'deactivateDeltaCheckRule', 'listLabCodedSet', 'upsertLabCode',
+  // T-25 QC capture + holds (#43-#46)
+  'listQcResults', 'captureQcResult', 'listQcHolds', 'releaseQcHold',
 ];
 
 const FAKE_REQ = { params: {}, query: {}, headers: {}, body: {} };

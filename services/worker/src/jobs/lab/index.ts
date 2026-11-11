@@ -8,6 +8,7 @@ import { handle as createdHandler } from './consumers/frontdesk.order.created.v1
 import { handle as itemsChangedHandler } from './consumers/frontdesk.order.items_changed.v1.js';
 import { handle as cancelledHandler } from './consumers/frontdesk.order.cancelled.v1.js';
 import { handle as homeCollectionHandler } from './consumers/homecollection.collection.synced.v1.js';
+import { handle as instrumentResultHandler } from './consumers/instruments.result.received.v1.js';
 
 const CONSUMED = [
   'frontdesk.order.created.v1',
@@ -31,6 +32,7 @@ const IMPLEMENTED: Readonly<Record<string, ConsumerHandler>> = {
   'frontdesk.order.items_changed.v1': itemsChangedHandler,
   'frontdesk.order.cancelled.v1': cancelledHandler,
   'homecollection.collection.synced.v1': homeCollectionHandler,
+  'instruments.result.received.v1': instrumentResultHandler,   // T-22
 };
 
 export const manifest: WorkerManifest = {

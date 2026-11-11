@@ -280,7 +280,7 @@ describe('AC-B2.4 / AC-B2.3 setUserRoles', () => {
     const { svc, ctx, fake, access } = await mk([target()]);
     const r = await svc['setUserRoles']!(ctx, { membershipId: T1, expectedVersion: 1, roleIds: [R_FD, R_ADMIN2] });
     expect(r.status).toBe(200); expect(r.body.roles.map((x: any) => x.role_id).sort()).toEqual([R_FD, R_ADMIN2].sort());
-    expect(fake.by('replaceRoles')[0]!.args.slice(1)).toEqual([T1, [R_FD, R_ADMIN2], USER]);
+    expect(fake.by('replaceRoles')[0]!.args).toEqual([T1, [R_FD, R_ADMIN2], USER]);
     expect(fake.st.sessionsRevoked).toEqual([{ membershipId: T1, userId: fake.row(T1).user_id, reason: 'role_change', actorId: USER }]);
     expect(fake.jobs('identity.gotrue_signout')).toHaveLength(1); expect(fake.jobs('identity.gotrue_signout')[0]!.payload).toMatchObject({ user_id: fake.row(T1).user_id, tenant_id: TENANT_A });
     expect(fake.jobs('identity.gotrue_signout')[0]!.jobKey).toContain('role_change');
@@ -314,12 +314,12 @@ describe('AC-B3.3 setUserCentreScope', () => {
     const { svc, ctx, fake } = await mk([target({ all_centres: true, centre_ids: [] })]);
     const r = await svc['setUserCentreScope']!(ctx, { membershipId: T1, expectedVersion: 1, allCentres: false, centreIds: [C1, C2], branchIds: [B1] });
     expect(r.body).toMatchObject({ all_centres: false, centre_ids: [C1, C2], branch_ids: [B1], centre_count: 2 }); expect(fake.st.membershipWrites[0]!.set).toEqual({ all_centres: false });
-    expect(fake.by('replaceScope')[0]!.args.slice(1)).toEqual([T1, { centreIds: [C1, C2], branchIds: [B1] }, USER]);
+    expect(fake.by('replaceScope')[0]!.args).toEqual([T1, { centreIds: [C1, C2], branchIds: [B1] }, USER]);
     expect(fake.st.sessionsRevoked[0]).toMatchObject({ membershipId: T1, reason: 'role_change' }); expect(fake.jobs('identity.gotrue_signout')).toHaveLength(1);
   });
   it('all_centres=true stores no centres even if some are given (inactive ones are not even checked)', async () => {
     const { svc, ctx, fake } = await mk([target()]); await svc['setUserCentreScope']!(ctx, { membershipId: T1, expectedVersion: 1, allCentres: true, centreIds: [C_INACTIVE] });
-    expect(fake.st.membershipWrites[0]!.set).toEqual({ all_centres: true }); expect(fake.by('replaceScope')[0]!.args[2]).toEqual({ centreIds: [], branchIds: [] });
+    expect(fake.st.membershipWrites[0]!.set).toEqual({ all_centres: true }); expect(fake.by('replaceScope')[0]!.args[1]).toEqual({ centreIds: [], branchIds: [] });
   });
   it('AC-B3.3 an inactive centre -> 409 identity.centre_inactive; an inactive branch too; nothing written', async () => {
     for (const input of [{ centreIds: [C1, C_INACTIVE] }, { centreIds: [C1], branchIds: [B_INACTIVE] }]) {
@@ -416,7 +416,7 @@ describe('deactivateUser / reactivateUser (M3-M6, D-T8, D-T13, AC-B4.4)', () => 
   });
   it('M3 invited -> deactivated: the open invitation is revoked', async () => {
     const { svc, ctx, fake } = await mk([target({ status: 'invited', accepted_at: null, invitation: { status: 'sent', expires_at: NOW } })]);
-    await svc['deactivateUser']!(ctx, { membershipId: T1, expectedVersion: 1, reasonCode: 'other' }); expect(fake.by('revokeOpenInvitations')[0]!.args.slice(1)).toEqual([T1, USER]);
+    await svc['deactivateUser']!(ctx, { membershipId: T1, expectedVersion: 1, reasonCode: 'other' }); expect(fake.by('revokeOpenInvitations')[0]!.args).toEqual([T1, USER]);
   });
   it('AC-B4.3 deactivating yourself -> 409 identity.self_action_forbidden; an already deactivated member -> 409 common.version_conflict', async () => {
     const a = await mk(); expect((await rejection(a.svc['deactivateUser']!(a.ctx, { membershipId: ADMIN, expectedVersion: 1, reasonCode: 'other' }))).code).toBe('identity.self_action_forbidden'); expect(a.fake.writes).toEqual([]);

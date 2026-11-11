@@ -180,7 +180,7 @@ export async function makeDeps(o: { seed?: Seed; gotrue?: Parameters<typeof make
   const base = await makeUploadCtx({ tenantId: TENANT_A });
   const ctx: any = { ...base.ctx, actor: { type: 'user', id: USER, membershipId: ADMIN }, tx: { __tx: 'T13-request-tx', query: vi.fn(async () => ({ rows: [], rowCount: 0 })) } };
   const deps = { repo: fake.repo, gotrue: g.gotrue, userExists, emailHmac, clearAccountFailures, newId };
-  return { fake, g, deps, ctx, access: base.access, userExists, clearAccountFailures, emailHmac, mode: base.mode, scan: base.scan, storageKeys: base.storageKeys, raw: base.raw };
+  return { fake, g, deps, ctx, access: base.ctx.audit.access, userExists, clearAccountFailures, emailHmac, mode: base.mode, scan: base.scan, storageKeys: base.storageKeys, raw: base.raw };
 }
 
 // ---------------------------------------------------------------------------------------------- wire-shape check against contracts/openapi/identity.yaml

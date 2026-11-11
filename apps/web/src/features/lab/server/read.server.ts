@@ -3,6 +3,7 @@ import 'server-only';
 // T-27: the status board (#17). The board query carries only the range, centre_id, board_status and the opaque paging cursor/limit (REQ-SEC-098: no patient / order identifier in a URL).
 import { ApiError, serverFetch } from '@/core/api/server-fetch';
 import { problem } from '@/core/session/types';
+import type { AnalyteInfo, AnalyteMap } from '../components/grid/resultModel';
 import { BOARD_STATUSES, ISO_MS_RE, UUID_RE, type BoardQuery, type CodedOption, type CommentCodeRow, type HistoryRow, type OrderResults, type QueueItem, type RejectionReason, type StatusBoardPage, type TrendResponse } from './types';
 
 const DAY_MS = 86_400_000;
@@ -24,6 +25,25 @@ export async function listOrderResults(orderId: string, sp: Record<string, strin
   const dept = typeof sp['department_id'] === 'string' ? sp['department_id'] : undefined;
   const q = dept && UUID_RE.test(dept) ? `?${new URLSearchParams({ department_id: dept })}` : '';
   return serverFetch<OrderResults>(`/v1/lab/orders/${orderId}/results${q}`);
+}
+
+/** C3 #getAnalyte (`catalog.test.read`) per distinct analyte_id → grid AnalyteMap (review C5.T-20 #1). result_type numeric/ordinal map 1:1; the other
+ * types are entered as text. A 403/404 drops that analyte (grid falls back to the code + numeric check); 5xx throws (error.tsx). */
+export async function getAnalytes(ids: readonly string[]): Promise<AnalyteMap> {
+  type Detail = { name: string; current_version?: { result_type: string; decimals?: number } };
+  const pairs = await Promise.all([...new Set(ids)].filter((id) => UUID_RE.test(id)).map(async (id) => {
+    try {
+      const d = await serverFetch<Detail>(`/v1/catalog/analytes/${id}`);
+      const rt = d.current_version?.result_type;
+      const info: AnalyteInfo = { name: d.name, value_type: rt === 'numeric' || rt === 'ordinal' ? rt : 'text' };
+      if (typeof d.current_version?.decimals === 'number') info.decimals = d.current_version.decimals;
+      return [id, info] as const;
+    } catch (e) {
+      if (e instanceof ApiError && (e.status === 403 || e.status === 404)) return null;
+      throw e;
+    }
+  }));
+  return Object.fromEntries(pairs.filter((p) => p !== null));
 }
 
 const bad400 = () => new ApiError(400, problem('common.validation_failed', 'Validation failed', 400));

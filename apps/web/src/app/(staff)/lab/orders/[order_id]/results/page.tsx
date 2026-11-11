@@ -3,7 +3,7 @@ import { notFound } from 'next/navigation';
 import { ApiError } from '@/core/api/server-fetch';
 import { getShellSession } from '@/core/session/server';
 import { ResultGrid } from '@/features/lab/components/grid/ResultGrid';
-import { listCodedSet, listOrderResults } from '@/features/lab/server/read.server';
+import { getAnalytes, listCodedSet, listOrderResults } from '@/features/lab/server/read.server';
 import { UUID_RE } from '@/features/lab/server/types';
 
 export const metadata = { title: 'Enter results' };
@@ -16,6 +16,7 @@ export default async function ResultsPage({ params, searchParams }: { params: Pr
     listCodedSet('return_reasons'),
     listCodedSet('amendment_reasons'),
   ]);
-  // ponytail: LabOrderDto / ResultDto carry no patient id, analyte name or decimals (SPEC GAP, C5.T-20-impl.md): the grid falls back to the analyte code and the trend (F3) says it is unavailable.
-  return <ResultGrid data={data} analytes={{}} permissions={session?.actor.permissions ?? []} returnReasons={returnReasons} amendmentReasons={amendmentReasons} />;
+  // Review C5.T-20 #1: name / result_type / decimals from C3 getAnalyte. No patient id on LabOrderDto (CR .orchestra/cr/C5.T-20.md): F3 says the trend is unavailable until ruled.
+  const analytes = await getAnalytes(data.items.flatMap((i) => i.results.map((r) => r.analyte_id)));
+  return <ResultGrid data={data} analytes={analytes} permissions={session?.actor.permissions ?? []} returnReasons={returnReasons} amendmentReasons={amendmentReasons} />;
 }

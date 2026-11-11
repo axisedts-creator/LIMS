@@ -1,9 +1,10 @@
-TESTS_WRONG — release_dues_link.test.ts l.122 seeds the report link into a copy, not the store, so l.127 can never find it.
+TESTS_WRONG — the assertion at tests/portal-e2e/C6-T43.dues.e2e.ts:46 (land on /r/{token}/payments/pr-1) is correct; the fixture tests/portal-e2e/stub-reporting-dues.mjs is incomplete and contradicts the spec, so the TESTER must fix the stub, not the test or the implementation.
+Change: in stub-reporting-dues.mjs add, next to the PP1 handler (l.50), a PP2 handler:
+`if (p === '/portal/payment-requests/pr-1' && req.method === 'GET') { if (!need()) return; return send(200, { id: 'pr-1', status: 'queued', gateway: 'esewa', review: false }, { 'cache-control': 'no-store' }); }`
+Leave every assertion in C6-T43.dues.e2e.ts unchanged; do not weaken the T42 "PP2 404 -> leave the payments page" rule.
 Reasons:
-- delivery.helpers.ts:309,314 `portalLinks()` = `s.db.all('reporting.portal_links')`; consumers.helpers.ts:261 `all = rowsOf(t).map((r) => ({ ...r }))` returns fresh copies, so `.push()` on it never reaches the fake DB (t39.a4.escape.test.ts:12 already documents "db.all() returns copies").
-- l.127 `.find(purpose === 'report')!` therefore yields undefined -> TypeError; this is a fixture defect, not a spec assertion failing.
-- Spec intent the line protects (rule 8 revokes only unrevoked dues links with dues_settled; report links untouched — 02-TRD §4.6 rule 8, 08 A21.1, AC-18.10) is valid and must stay asserted.
-- Writer reports l.124-126 pass (version released / paid_in_full, dues link revoked dues_settled), so implementation behaviour on the observable spec points is not in question.
-Change in the test (tester): replace l.122 with a store write, e.g.
-  `(w.db.store['reporting.portal_links'] ??= []).push(linkRow(7, { purpose: 'report', delivery_id: null }));`
-(or seed it via the deliveryWorld options before the first run). Keep l.125-127 assertions unchanged.
+- spec/chunks/C6-reporting-delivery/02-TRD.md:654 — PP2 `GET /portal/payment-requests/{id}` with a `session` credential returns `200 PortalPaymentRequest` with `Cache-Control: no-store`; `common.not_found` is only for another link's request (RLS). The stub answers 404 for the request the same session just created (PP1, stub l.50), which a conforming API never does.
+- 02-TRD.md:553 — PortalPaymentRequest shape `id, status (queued|…), gateway, review, …`; the proposed body matches it (no action_url, since status is queued).
+- 02-TRD.md:215 — the /r/[token]/payments/[id] page shows the payment status, so it must call PP2; 02-TRD.md:665 (step 3) — PP2 only reads the row.
+- 02-TRD.md:656 — PP2 needs `reporting.portal.view`, the same as PP1/P7, so a dues session may call it. No spec text stops a dues session reading its own payment request.
+- The writer's PP1 -> 303 /payments/pr-1 path works (dispute l.2); the only failure is the missing fixture route.

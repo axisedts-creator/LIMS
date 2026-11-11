@@ -61,6 +61,12 @@ import { logoutSession } from './logoutSession.js';
 import { requestPasswordRecovery } from './requestPasswordRecovery.js';
 import { confirmEmailToken } from './confirmEmailToken.js';
 import { setPasswordFromSetup } from './setPasswordFromSetup.js';
+import { getMe } from './getMe.js';
+import { changeOwnPassword } from './changeOwnPassword.js';
+import { listOwnSessions } from './listOwnSessions.js';
+import { revokeOwnSession } from './revokeOwnSession.js';
+import { listOwnMfaFactors } from './listOwnMfaFactors.js';
+import { removeOwnMfaFactor } from './removeOwnMfaFactor.js';
 
 const OPERATION_IDS = [
   // auth (identity_auth)
@@ -110,6 +116,7 @@ const implemented: Partial<Record<IdentityOperationId, Handler>> = {
   verifyMfaChallenge, startMfaEnrolment, completeMfaEnrolment,                                                  // T7
   resolveSession, logoutSession,                                                                                // T8
   requestPasswordRecovery, confirmEmailToken, setPasswordFromSetup,                                             // T9
+  getMe, changeOwnPassword, listOwnSessions, revokeOwnSession, listOwnMfaFactors, removeOwnMfaFactor,           // T10
 };
 
 export const handlers: Readonly<Record<IdentityOperationId, Handler>> = Object.freeze(

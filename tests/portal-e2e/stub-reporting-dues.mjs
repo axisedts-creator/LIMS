@@ -48,6 +48,7 @@ createServer((req, res) => {
     }
     if (/^\/portal\/report-versions\/[^/]+\/pdf$/.test(p) && req.method === 'GET') { if (!need()) return; return send(404, problem(404, 'common.not_found', 'Not found')); }
     if (p === '/portal/payment-requests' && req.method === 'POST') { if (!need()) return; return send(202, { id: 'pr-1', status: 'queued', gateway: body?.gateway, review: false }); }
+    if (p === '/portal/payment-requests/pr-1' && req.method === 'GET') { if (!need()) return; return send(200, { id: 'pr-1', status: 'queued', gateway: 'esewa', review: false }, { 'cache-control': 'no-store' }); }
     if (p === '/portal/sessions/end' && req.method === 'POST') { if (!need()) return; issued.delete(token); res.writeHead(204); return res.end(); }
     return send(404, problem(404, 'common.not_found', 'Not found'));
   });

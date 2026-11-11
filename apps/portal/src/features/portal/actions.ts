@@ -38,7 +38,7 @@ export async function verifyCode(token: string, prev: CodeState, formData: FormD
   if (typeof code !== 'string' || !/^[0-9]{6}$/.test(code)) return { seq, error: 'invalid' };
   const challengeId = (await getChallenge())?.split(':')[1];
   if (!challengeId) redirect(landing(token));
-  const r = await callApi<{ session_token: string; absolute_expires_at: string }>(
+  const r = await callApi<{ session_token: string; absolute_expires_at: string; link_purpose?: string }>(
     'POST',
     `/portal/otp-challenges/${encodeURIComponent(challengeId)}/verify`,
     { stage: 'link', credential: token, json: { code } },
@@ -46,7 +46,7 @@ export async function verifyCode(token: string, prev: CodeState, formData: FormD
   if (r.status === 200 && r.body?.session_token) {
     await setSession(r.body.session_token, r.body.absolute_expires_at, token);
     await clearChallenge();
-    redirect(`/r/${token}/report`); // ponytail: dues-purpose links (C15) go to the report page until /dues ships
+    redirect(r.body.link_purpose === 'dues' ? `/r/${token}/dues` : `/r/${token}/report`); // 08 A21.1: a dues session sees the dues page only
   }
   if (r.status === 401) return { seq, error: r.code === 'auth.otp_attempts_exhausted' ? 'exhausted' : 'invalid' };
   if (r.status === 429 || r.status === 404) fail(token, r);

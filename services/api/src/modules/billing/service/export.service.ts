@@ -98,6 +98,7 @@ export function createExportService(deps: { repo?: ExportRepo; config?: Pick<Bil
     const job = await db.insertExportJob(tx, {
       id: uuidv7(), tenant_id: tenantId, kind, format, filters, status: 'queued', requested_by_membership_id: ctx.actor.membershipId, created_at: now, updated_at: now, created_by: actorId, updated_by: actorId,
     });
+    if (!job) throw new LimsError('common.internal'); // fail closed like every other insert (RETURNING gave no row): no enqueue, no audit on a job that was not stored
     const id = String(job['id']);
     await db.enqueueExportRender(tx, { tenantId, exportId: id });
     await access({ action: 'data.export', entityType: 'billing_export', entityId: id, outcome: 'allowed', detail: { stage: 'create' } });
@@ -117,7 +118,8 @@ export function createExportService(deps: { repo?: ExportRepo; config?: Pick<Bil
     return jobDto((await load(ctx, raw)).job);
   }
 
-  async function content(ctx: BalanceCtx, raw: unknown): Promise<{ fileName: string; contentType: string; bytes: Uint8Array }> {
+  /** Privileged + state + tenant-prefix checks shared by content() and prepareDownload(); reads no byte and writes nothing. */
+  async function locate(ctx: BalanceCtx, raw: unknown) {
     await requirePrivileged(ctx);
     const access = auditOf(ctx);
     const { tenantId, actorId, job } = await load(ctx, raw);
@@ -129,11 +131,27 @@ export function createExportService(deps: { repo?: ExportRepo; config?: Pick<Bil
     // defence in depth next to export_jobs__path__ck: a path outside the caller's tenant prefix (or another bucket) is never read
     if (typeof path !== 'string' || job['bucket'] !== EXPORT_BUCKET || path.split('/')[0] !== tenantId) throw new LimsError('common.not_found');
     const id = String(job['id']);
-    await access({ action: 'data.export', entityType: 'billing_export', entityId: id, outcome: 'allowed', detail: { stage: 'download' } });
-    await activity(ctx, tenantId, actorId, 'export_downloaded', id, { kind: job['kind'], format: job['format'] });
-    const bytes = await (ctx as any).storage.get(EXPORT_BUCKET, path) as Uint8Array;
-    return { fileName: `${String(job['kind']).replace(/_/g, '-')}-${id}.${String(job['format'])}`, contentType: TYPES[String(job['format'])] ?? 'application/octet-stream', bytes };
+    const accessEntry = { action: 'data.export', entityType: 'billing_export', entityId: id, outcome: 'allowed', detail: { stage: 'download' } } as const;
+    const fileName = `${String(job['kind']).replace(/_/g, '-')}-${id}.${String(job['format'])}`;
+    const contentType = TYPES[String(job['format'])] ?? 'application/octet-stream';
+    const downloaded = () => activity(ctx, tenantId, actorId, 'export_downloaded', id, { kind: job['kind'], format: job['format'] });
+    return { path, fileName, contentType, access, accessEntry, downloaded };
   }
-  return { create, get, content };
+
+  async function content(ctx: BalanceCtx, raw: unknown): Promise<{ fileName: string; contentType: string; bytes: Uint8Array }> {
+    const l = await locate(ctx, raw);
+    await l.access(l.accessEntry);
+    await l.downloaded();
+    const bytes = await (ctx as any).storage.get(EXPORT_BUCKET, l.path) as Uint8Array;
+    return { fileName: l.fileName, contentType: l.contentType, bytes };
+  }
+
+  /** B29a handler path: same checks + the activity row, then the input for the core ctx.download.stream (which reads the bytes and writes the access_log row; P-2). */
+  async function prepareDownload(ctx: BalanceCtx, raw: unknown) {
+    const l = await locate(ctx, raw);
+    await l.downloaded();
+    return { bucket: EXPORT_BUCKET, objectPath: l.path, filename: l.fileName, contentType: l.contentType, scanState: 'clean', access: l.accessEntry };
+  }
+  return { create, get, content, prepareDownload };
 }
 export type ExportService = ReturnType<typeof createExportService>;

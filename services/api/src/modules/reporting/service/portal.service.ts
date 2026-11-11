@@ -226,6 +226,28 @@ export function createPortalService(deps: { env: Env; newId?: () => string }) {
       return { status: 200, body };
     },
 
+    /** P7 — stage session, purpose `dues` or `report` (08 A21.1). The dues block is the one of P3 (balance hint on the report row, this link's open request); never any report content.
+     *  [CONV] lab_name = latest qr_tokens snapshot of the report; a dues session cannot read qr_tokens under RLS (policy needs portal_link_purpose = 'report'),
+     *  so it gets the neutral 'Laboratory' until a CR gives it a source (.orchestra/notes/C6-T43-impl.md). */
+    async getDues(ctx: PortalCtx) {
+      const s = await liveSession(ctx, true);
+      const { tx, tenantId } = s;
+      const r = (await tx.query(`SELECT billing_balance_due_paisa FROM reporting.reports WHERE tenant_id = $1 AND id = $2`, [tenantId, s.reportId])).rows[0];
+      const link = (await tx.query(`SELECT recipient_kind FROM reporting.portal_links WHERE tenant_id = $1 AND id = $2`, [tenantId, s.linkId])).rows[0];
+      if (!r || !link) throw new LimsError('common.not_found');
+      const qr = (await tx.query(`SELECT lab_name_snapshot FROM reporting.qr_tokens WHERE tenant_id = $1 AND report_id = $2 AND revoked_at IS NULL ORDER BY issued_at DESC LIMIT 1`, [tenantId, s.reportId])).rows[0];
+      const body: Row = { lab_name: typeof qr?.['lab_name_snapshot'] === 'string' && qr['lab_name_snapshot'] ? qr['lab_name_snapshot'] : 'Laboratory', report_follows: s.purpose === 'dues' };
+      const due = Number(r['billing_balance_due_paisa']);
+      if (link['recipient_kind'] === 'patient' && due > 0) {
+        const st = (await tx.query(`SELECT portal_payment_gateways FROM reporting.settings WHERE tenant_id = $1`, [tenantId])).rows[0];
+        const dues: Row = { balance_due_paisa: due, online_gateways: Array.isArray(st?.['portal_payment_gateways']) ? st['portal_payment_gateways'] : [] };
+        const open = await findOpenRequestOfLink(tx, tenantId, s.linkId);
+        if (open) dues['open_request'] = { id: open['id'], status: open['status'] };
+        body['dues'] = dues;
+      }
+      return { status: 200, body };
+    },
+
     /** P4 — stage session, purpose report. Only the report's current released version; 20 per hour per link; access log report.portal_download. */
     async download(ctx: PortalCtx, input: { reportVersionId: unknown }) {
       const s = await liveSession(ctx, true);

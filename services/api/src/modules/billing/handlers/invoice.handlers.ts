@@ -62,6 +62,8 @@ export const invoiceHandlers: Readonly<Record<string, Handler>> = Object.freeze(
   printInvoice: bindPrint((s, ctx, req) => s.print(ctx, { invoiceId: obj(req.params)['invoice_id'], ...reasonOf(req) })),
   printCreditNote: bindPrint((s, ctx, req) => s.printCreditNote(ctx, { creditNoteId: obj(req.params)['credit_note_id'], ...reasonOf(req) })),
   listCreditNoteTasks: bind((s, ctx, req) => s.listCreditNoteTasks(ctx, req.query)),
+  listCreditNotes: bind((s, ctx, req) => s.listCreditNotes(ctx, req.query)),
+  getCreditNote: bind((s, ctx, req) => s.getCreditNote(ctx, { creditNoteId: obj(req.params)['credit_note_id'] })),
   cancelInvoice,
   issuePartialCreditNote,
 });

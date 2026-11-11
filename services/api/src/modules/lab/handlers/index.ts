@@ -85,7 +85,6 @@ const REAL: Partial<Record<LabOperationId, Handler>> = {
 const spec: any = loadSpec(join(REPO_ROOT, 'contracts/openapi/lab.yaml'));
 const PERMISSION: Readonly<Record<string, string>> = Object.fromEntries(Object.values<any>(spec.paths).flatMap((item) =>
   ['get', 'post', 'put', 'patch', 'delete'].map((m) => item?.[m]).filter((op) => op?.operationId).map((op) => [op.operationId, op['x-permission']])));
-const ENTER = 'lab.result.enter';
 
 function gated(op: string, h: Handler): Handler {
   const permission = PERMISSION[op];
@@ -97,8 +96,8 @@ function gated(op: string, h: Handler): Handler {
     if (!id) throw new LimsError('common.internal');   // fail closed: no identity port
     try { await id.assertRole(ctx, { permission }); }
     catch (e) {
-      // 07 S-04 / AC-17.2: a lab user who may enter results but not amend is told the amendment needs a pathologist; anyone else is plainly forbidden.
-      if (op === 'amendResult' && e instanceof LimsError && e.code === 'auth.forbidden' && await id.assertRole(ctx, { permission: ENTER }).then(() => true, () => false)) throw new LimsError('lab.amend_requires_pathologist');
+      // 02-TRD:266 / 07 S-04 / AC-17.2 (ruling D): any auth.forbidden on lab.result.amend is 403 lab.amend_requires_pathologist; auth.mfa_required passes through.
+      if (op === 'amendResult' && e instanceof LimsError && e.code === 'auth.forbidden') throw new LimsError('lab.amend_requires_pathologist');
       throw e;
     }
     return h(req, ctx);

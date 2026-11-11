@@ -29,7 +29,13 @@ const LAB_EVENTS_PRODUCED = [
   'lab.result.verified.v1', 'lab.specimen.rejected.v1', 'lab.specimen.status_changed.v1',
 ];
 /** operationIds whose stub a later task has replaced; that task moves its ids here (tester-owned list). */
-const IMPLEMENTED: readonly string[] = [];
+const IMPLEMENTED: readonly string[] = [
+  // T-07 specimen actions
+  'lookupSpecimenByBarcode', 'listSpecimens', 'getSpecimen', 'collectSpecimen', 'bulkCollectSpecimens', 'bulkDispatchSpecimens',
+  'receiveSpecimen', 'bulkReceiveSpecimens', 'storeSpecimen', 'discardSpecimen',
+  // T-14 result entry
+  'bulkEnterResults', 'getResult', 'listOrderResults',
+];
 
 const FAKE_REQ = { params: {}, query: {}, headers: {}, body: {} };
 const fakeCtx = (operationId: string) =>

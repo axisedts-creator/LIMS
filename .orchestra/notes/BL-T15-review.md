@@ -1,9 +1,8 @@
 APPROVE
-Re-review of `git diff 486602609dbb..HEAD` (BL-T15) after review round 1. Ran BL-T15-verify.cmd suites: api 83 pass / 6 skipped (live, no DB), worker 49 pass.
-Round-1 items:
-1. Fixed. Object key from job `created_at`; ifAbsent clash reads back via StorageAdapter.read (core/storage `read` exists), XML must hash-equal else rethrow, PDF reuses stored bytes. Worker test covers fail-after-put then later-month retry -> ready, one object.
-2. Fixed (fail closed). export_render: `invoice_documents` -> Permanent `common.feature_disabled`; no sales-register mapping left. B28 still accepts the kind per TRD enum (test:100); resolution tracked in `.orchestra/cr/BL-T15.md` (CR-C4-BL15 B).
-3. Fixed. `cancelled_by` not added; CR-C4-BL15 A filed per template.
-4. Fixed. B26 and credit_notes export ORDER BY fiscal_year_bs, credit_note_seq, id; keyset (fy, seq, id) with `f` validated (FY regex), missing `f`/non-integer `k` -> `common.invalid_cursor`; repo ordering test added.
-Still OK from round 1: tenant_id + `::uuid[]`, RLS untouched, caps/error codes, access_log create/download, no URL/PHI in logs, owned paths only.
-Not verified: real SQL (no LIMS_TEST_DATABASE_URL), real RenderPort, real xmllint XSD validation.
+Scope reviewed: tester commit 5940f25a (13516a1e..HEAD) plus the writer's LD-97 working-tree changes. These are uncommitted: handlers/{register,export}.handlers.ts are new, and index.ts, invoice.handlers.ts, creditNotes.repo.ts, export.service.ts and invoiceRead.service.ts are modified. They must be committed with this approval.
+- Nine ops wired in handlers/index.ts exactly; createPaymentIntent/verifyPaymentIntent stay notYet (LD-97). Names/params match contracts/openapi/billing.yaml (credit_note_id, export_id, invoice_id, fiscal_year_bs, Cursor, Limit).
+- Fail-closed bind (tenantId/actor/tx -> auth.unauthenticated) same as credit.handlers; tenant from ctx only; SQL fully bound, tenant_id named, `ANY($2::uuid[])`.
+- B29a: privileged + tenant/ready/expiry/prefix checks in locate() before any read; bytes only via core ctx.download.stream (attachment, nosniff, no-store, access_log row by the helper); missing helper -> common.internal; never a URL. B28 -> 202.
+- No PHI in logs, no secrets, only C4-owned paths; no contracts/openapi edit; no probes/pending.json in this lane.
+Ran: api 5 files / 131 tests pass (register/export service, export.permissions static, registers.order, register.export.handlers, invoiceRead); worker export.render + xsdSubset 48 pass. NOT run: register.live (needs DB env), real xmllint XSD validation.
+Carry-over (not a BL-T15 code defect): openapi CancelledInvoiceRow lacks cancelled_by (US-BL-12.2) -> CR to C0; no non-test code calls core createDownload to wire ctx.download (core/C0 gap, same for identity/settings users).

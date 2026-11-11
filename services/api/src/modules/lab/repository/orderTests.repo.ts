@@ -19,6 +19,23 @@ export const updateOrderTest = (rc: RepoCtx, id: string, expectedVersion: number
 export const listOrderTestsByOrder = async (rc: RepoCtx, orderId: string) =>
   (isUuid(orderId) ? query(rc, 'SELECT * FROM lab.order_tests WHERE tenant_id = $1 AND order_id = $2 ORDER BY ordered_at, id', [orderId]) : []);
 
+// ---- T-07 specimen-driven order test moves (every statement: tenant filter, version bump) ----
+/** S2: the specimen's tests wait for receipt. */
+export const markTestsAwaitingReceipt = (rc: RepoCtx, specimenId: string) =>
+  query(rc, `UPDATE lab.order_tests SET status = 'awaiting_receipt', version = version + 1, updated_at = now(), updated_by = $2
+             WHERE tenant_id = $1 AND specimen_id = $3 AND status = 'awaiting_collection' RETURNING id`, [rc.actorId, specimenId]);
+/** S4: the specimen's tests start processing at the processing centre (03-APP-FLOW S4). */
+export const startTestsOfSpecimen = (rc: RepoCtx, specimenId: string, p: { centreId: string; branchId: string; receivedAt: string }) =>
+  query(rc, `UPDATE lab.order_tests SET status = 'in_process', processing_centre_id = $3, processing_branch_id = $4, received_at = $5::timestamptz,
+                    version = version + 1, updated_at = now(), updated_by = $2
+             WHERE tenant_id = $1 AND specimen_id = $6 AND status IN ('awaiting_collection','awaiting_receipt') RETURNING id`,
+    [rc.actorId, p.centreId, p.branchId, p.receivedAt, specimenId]);
+/** 08 A13 D-13: existing-material tests of the order (no specimen) get the processing centre/branch when they have none yet. */
+export const copyProcessingToExistingMaterialTests = (rc: RepoCtx, orderId: string, p: { centreId: string; branchId: string }) =>
+  query(rc, `UPDATE lab.order_tests SET processing_centre_id = $3, processing_branch_id = $4, version = version + 1, updated_at = now(), updated_by = $2
+             WHERE tenant_id = $1 AND order_id = $5 AND uses_existing_material = true AND specimen_id IS NULL AND processing_centre_id IS NULL RETURNING id`,
+    [rc.actorId, p.centreId, p.branchId, orderId]);
+
 /** order_tests__tenant_id_worklist__p_idx; urgent first ('urgent' > 'routine'), then receipt time. */
 export const listWorklist = async (rc: RepoCtx, o: { departmentId: string; limit: number }) => {
   const limit = limitOf(o?.limit);

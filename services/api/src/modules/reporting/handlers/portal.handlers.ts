@@ -19,6 +19,7 @@ export const portalHandlers: Readonly<Record<string, Handler>> = Object.freeze({
   verifyPortalOtp: async (req: HandlerRequest, hctx: HandlerContext) =>
     svc.verifyChallenge(ctxOf(hctx), { challengeId: obj(req.params)['challenge_id'], code: obj(req.body)['code'] }),
   getPortalReport: async (_req: HandlerRequest, hctx: HandlerContext) => svc.getReport(ctxOf(hctx)),
+  getPortalDues: async (_req: HandlerRequest, hctx: HandlerContext) => svc.getDues(ctxOf(hctx)),   // P7 (08 A21.1)
   // REQ-SEC-083 / P-2: attachment + nosniff + no-store; the filename is generated, never taken from stored data.
   downloadPortalReportPdf: async (req: HandlerRequest, hctx: HandlerContext) => {
     const out = await svc.download(ctxOf(hctx), { reportVersionId: obj(req.params)['report_version_id'] });

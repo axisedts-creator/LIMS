@@ -226,7 +226,8 @@ describe('C3.T-38 integration guide docs/manual/catalog/integration.md (04-UI-UX
   it('runbook entries: Import stuck / Import quarantined / No price spike (C1 registers the alerts)', () => {
     const t = allManual();
     expect(t).toMatch(/Import stuck/);
-    expect(t).toMatch(/catalog\.import_\*/);
+    // raw (un-normalised) text: norm() strips `*`, so the verbatim spec name catalog.import_* (04-UI-UX:233) is checked unnormalised (T-38 ruling)
+    expect(mdIn(manualDir).map((n) => raw(join(manualDir, n))).join('\n')).toMatch(/catalog\.import_\*/);
     expect(t).toMatch(/dead letters?/i);
     expect(t).toMatch(/re-?enqueue[^.]{0,60}(safe|idempotent)|idempotent[^.]{0,60}re-?enqueue/i);
     expect(t).toMatch(/Import quarantined/);

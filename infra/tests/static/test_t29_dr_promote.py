@@ -489,6 +489,20 @@ class RunbookContent(unittest.TestCase):
                   r"semi-annual|every 6 months|twice a year", r"tabletop"):
             self.assertRegex(b, re.compile(p, re.I))
 
+    def test_game_day_staging_step1_stops_only_postgres_and_records_interim_host(self):
+        # review round 2 item 1: staging data-1+app-1 share one VM, dr-1+ops-1 share one VM (02-TRD:154)
+        b = self.heads().get("game-day", "")
+        s1 = re.search(r"(?m)^1\.\s.*$", b)
+        self.assertTrue(s1, "game day step 1 missing")
+        s1 = s1.group(0)
+        self.assertRegex(s1, r"(?i)staging[^.\n]*only[^.\n]*postgres container", "staging: stop only the Postgres container")
+        self.assertRegex(s1, r"(?i)5432|split.brain probe", "step 1 names the closed port / split-brain probe")
+        self.assertRegex(s1, r"(?i)prod[^.\n]*fence[^.\n]*data host", "prod: fence the data host")
+        self.assertNotRegex(s1, r"(?i)stop the staging data host", "old text would also take the app hosts down")
+        self.assertRegex(b, r"Interim repo host", "record key `Interim repo host` in step 4")
+        self.assertRegex(b, r"(?i)staging[^.\n]*interim repo[^.\n]*(shares|same)[^.\n]*(VM|host)", "staging shares the promoted VM")
+        self.assertRegex(b, r"groups\['ops'\]\[0\]\s*!=\s*groups\['dr'\]\[0\]", "AC-22.3 different-host proven only when ops != dr host")
+
     def test_switch_back_text(self):
         b = self.heads().get("switch-back", "")
         # repo2 is required only while the playbook archives to repo2 (review item 3; see Repo2ArchiveConflict)
@@ -664,7 +678,7 @@ class GameDayRecord(unittest.TestCase):
     tabletop-log/2026-11-08-credential-exposure.md and MUST exist."""
 
     KEYS = ["Date", "Environment", "Scenario", "Participants", "Promotion started", "Application reconnected",
-            "RTO measured", "RTO target", "Interim repo check", "NoOffsiteArchive fired", "NoOffsiteArchive still firing at",
+            "RTO measured", "RTO target", "Interim repo check", "Interim repo host", "NoOffsiteArchive fired", "NoOffsiteArchive still firing at",
             "Actions", "Next game day"]
 
     def records(self, d, suffix):

@@ -290,7 +290,9 @@ func (r *Receiver) Recover() (int, error) {
 	return n, errors.Join(errs...)
 }
 
-// endsWithL reports whether the last chunk is an L (terminator) record; the field delimiter comes from the H record.
+// endsWithL reports whether the last chunk is a complete L (terminator) record ending with ETX
+// (03-APP-FLOW §3.1 rule 4). An ETX-terminated record text ends with CR; an ETB chunk never does.
+// The field delimiter comes from the H record.
 func endsWithL(parts [][]byte) bool {
 	if len(parts) == 0 {
 		return false
@@ -300,5 +302,5 @@ func endsWithL(parts [][]byte) bool {
 		delim = h[1]
 	}
 	last := parts[len(parts)-1]
-	return len(last) >= 1 && last[0] == 'L' && (len(last) == 1 || last[1] == delim || last[1] == '\r')
+	return len(last) >= 2 && last[0] == 'L' && (last[1] == delim || last[1] == '\r') && last[len(last)-1] == '\r'
 }

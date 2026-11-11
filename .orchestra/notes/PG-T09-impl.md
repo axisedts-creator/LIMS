@@ -5,4 +5,5 @@
 - [CONV] `held_for_review`/`created` intents: row written, no gateway call, no state change (finance resolves holds); terminal intents -> `payments.callback_stale`, no check.
 - [CONV] eSewa mismatch of transaction_uuid/product_code -> `payments.callback_mismatch` (signature_valid=false); stored query keeps only transaction_code/status/total_amount/transaction_uuid/product_code (never `data`, `signature`, Khalti `mobile`).
 - [CONV] applyCheck runs in mode `reconciliation` (no 10 s min interval; the per-intent throttle is the limiter); error -> poll job key `poll:<id>:cb:<minute>`, payload n=0.
+- [CONV] LD-121: `core/ratelimit/index.ts` tier `general` accepts `payments:cb:<non-empty id>` via the `u:` bucket (10/s, burst 20); rest unchanged. Limiter + callbacks + resolver + helpers: 184 pass, 1 fail (AC-PG-14.2 test bug, dispute note).
 - Open: CR in `.orchestra/cr/PG-T09.md` (limiter prefix `payments:cb:`; resolver-undefined -> 303 vs auth.unauthenticated). Not run: lint (no script found for this lane), real DB/RLS/DEFINER.

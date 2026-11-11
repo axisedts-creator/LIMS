@@ -113,7 +113,8 @@ test('E2E: reads the stack URL from env (no hard-coded host) and README explains
 // ---- spec-name pins (review C6-T34-review.md item 11): harness must use catalogued routes/fields, not invented ones ------------
 // 02-TRD §6.2 R7 bulk-release {ids 1-200 unique, Idempotency R}; D3 POST /reports/{report_id}/deliveries; Q1 body {qr_token}; portal = /v1/reporting/portal/* + X-Lims-Portal-Credential.
 const strip = (t) => t.replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|[^:])\/\/.*$/gm, '$1'); // ignore comments so prose cannot satisfy/violate a pin
-const crFile = () => existsSync(join(ROOT, '.orchestra', 'cr', 'C6-T34.md'));
+// the CR is renamed C6-T34.resolved-<stamp>.md once the lead resolves it; either name proves a CR was filed
+const crFile = () => existsSync(join(ROOT, '.orchestra', 'cr')) && readdirSync(join(ROOT, '.orchestra', 'cr')).some((n) => /^C6-T34(\.resolved-\d+)?\.md$/.test(n));
 
 test('pin: bulk release uses R7 path /v1/reporting/report-versions/bulk-release with {ids} body and an Idempotency-Key, in load and E2E', () => {
   for (const [n, s] of [['load', strip(k6())], ['e2e', strip(journey())]]) {

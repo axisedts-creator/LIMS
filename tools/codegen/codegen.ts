@@ -413,8 +413,10 @@ function genMsw(oas: Docs, domains: string[]) {
     for (const path of Object.keys(spec.paths ?? {}).sort(cmp)) for (const method of METHODS) {
       const op = spec.paths[path][method];
       if (!isObj(op) || method === "trace") continue; // MSW has no trace helper
-      const ok = Object.keys(op.responses ?? {}).filter((s) => /^2\d\d$/.test(s)).sort(cmp)[0];
-      if (!ok) throw new Error(`${op.operationId}: no 2xx response for gen-msw`);
+      // T0C-10.C15 (LD-103): redirect-only browser callbacks (payments P31–P33) have no 2xx; mock their lowest 3xx without a body.
+      const codes = Object.keys(op.responses ?? {});
+      const ok = codes.filter((s) => /^2\d\d$/.test(s)).sort(cmp)[0] ?? codes.filter((s) => /^3\d\d$/.test(s)).sort(cmp)[0];
+      if (!ok) throw new Error(`${op.operationId}: no 2xx/3xx response for gen-msw`);
       const r = res(op.responses[ok], `${d}.yaml`);
       const json = r.node?.content?.["application/json"];
       const first = isObj(json?.examples) ? Object.values(json.examples)[0] : undefined;

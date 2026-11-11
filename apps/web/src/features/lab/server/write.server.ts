@@ -3,7 +3,7 @@ import 'server-only';
 // Bulk + reject send Idempotency-Key (required); receive sends it too (optional); receive/reject send If-Match "<version>".
 import { ApiError, serverFetch } from '@/core/api/server-fetch';
 import { problem } from '@/core/session/types';
-import { BARCODE_RE, KEY_RE, REGNO_RE, UUID_RE, type BulkItem, type BulkRow, type LookupKey, type RejectBody, type RejectResult, type ResultBulkRow, type Specimen, type VerifyItem } from './types';
+import { BARCODE_RE, KEY_RE, REGNO_RE, UUID_RE, type AssignBody, type BulkItem, type BulkRow, type DiscardBody, type ExceptionAction, type IngestException, type LookupKey, type RejectBody, type RejectResult, type ResultBulkRow, type Specimen, type VerifyItem } from './types';
 
 const bad = () => new ApiError(400, problem('common.validation_failed', 'Validation failed', 400));
 const uuid = (v: unknown) => {
@@ -60,7 +60,23 @@ async function bulkResults(op: 'verify' | 'approve', list: VerifyItem[], key: st
 export const bulkVerifyResults = (list: VerifyItem[], key: string) => bulkResults('verify', list, key);
 export const bulkApproveResults = (list: VerifyItem[], key: string) => bulkResults('approve', list, key);
 
-export const receiveSpecimen = (id: string, version: number, centreId: string, key: string) =>
+/** C5.T-23 #41 reapply: body {} (the tenant and the actor are never sent). */
+export const reapplyException = (id: string) => post<ExceptionAction>(`/v1/lab/ingest-exceptions/${uuid(id)}/reapply`, {});
+
+/** #42 discard: reason_code from lab.exception_discard_reasons, comment <= 300 (omitted when empty). */
+export function discardException(id: string, b: DiscardBody) {
+  if (typeof b?.reason_code !== 'string' || !/^[A-Za-z0-9][A-Za-z0-9_.:-]{0,99}$/.test(b.reason_code)) throw bad();
+  if (b.comment !== undefined && (typeof b.comment !== 'string' || b.comment.length > 300)) throw bad();
+  return post<IngestException>(`/v1/lab/ingest-exceptions/${uuid(id)}/discard`, { reason_code: b.reason_code, ...(b.comment ? { comment: b.comment } : {}) });
+}
+
+/** #40 assign: Idempotency-Key required; override_analyte only when true. */
+export function assignException(id: string, b: AssignBody, key: string) {
+  const body = { result_id: uuid(b?.result_id), ...(b.override_analyte === true ? { override_analyte: true } : {}) };
+  return post<ExceptionAction>(`/v1/lab/ingest-exceptions/${uuid(id)}/assign`, body, { key });
+}
+
+export const receiveSpecimen =(id: string, version: number, centreId: string, key: string) =>
   post<Specimen>(`/v1/lab/specimens/${uuid(id)}/receive`, { processing_centre_id: uuid(centreId) }, { key, version });
 
 export function rejectSpecimen(id: string, version: number, b: RejectBody, key: string) {

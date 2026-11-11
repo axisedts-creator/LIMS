@@ -33,6 +33,23 @@ export interface RejectBody { reason_code: string; comment?: string; recollectio
 export interface RejectResult { specimen: Specimen; recollection_specimen?: Specimen }
 export interface RejectionReason { code: string; display: string }
 
+// T-27 status board (lab.yaml StatusBoardRow / StatusBoardPage; getStatusBoard #17)
+export const BOARD_STATUSES = ['waiting', 'collected', 'in_lab', 'ready', 'printed'] as const;
+export type BoardStatus = (typeof BOARD_STATUSES)[number];
+export interface StatusBoardRow {
+  order_id: string;
+  registration_no: string;
+  patient_display: { full_name: string; age_sex: string; patient_code: string };
+  centre_id: string;
+  board_status: BoardStatus;
+  rejected_specimens: number;
+  last_released_at?: string;
+  priority: string;
+}
+export interface StatusBoardPage { data: StatusBoardRow[]; page: { limit: number; next_cursor?: string } }
+export interface BoardQuery { registered_at_from: string; registered_at_to: string; centre_id?: string; board_status?: string; cursor?: string; limit?: number }
+export const ISO_MS_RE = /^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}\.[0-9]{3}Z$/;
+
 // C5.T-21: verification / approval queue (VerificationQueueItem, ResultBulkResponse). Only the ResultDto fields the queues read.
 export type AckFlag = 'delta' | 'critical' | 'unit_mismatch' | 'instrument_flag';
 export interface QueueResult {
@@ -56,5 +73,21 @@ export interface QueueItem {
   priority: string;
 }
 export interface QueueFilters { department_id?: string; priority?: string; flagged_only?: 'true' }
+// C5.T-23: instrument exceptions (IngestExceptionDto / IngestExceptionDetail / IngestExceptionActionResponse; GET /v1/lab/orders/{id}/results).
+export type ExceptionStatus = 'open' | 'resolved' | 'discarded';
+export const EXCEPTION_STATUSES: readonly ExceptionStatus[] = ['open', 'resolved', 'discarded'];
+export const EXCEPTION_REASONS = ['unmapped_code', 'unknown_barcode', 'specimen_rejected', 'specimen_not_received', 'analyte_not_ordered', 'result_locked', 'result_already_verified', 'unit_mismatch'] as const;
+export interface IngestException {
+  id: string; status: ExceptionStatus; reason: string; result_key: string; created_at: string;
+  instrument_id?: string; sample_barcode?: string; instrument_analyte_code?: string; result_id?: string; resolved_at?: string; resolution?: string;
+}
+export interface IngestExceptionDetailDto extends IngestException { raw_value?: string; raw_flags?: string[]; unit_raw?: string }
+export interface ExceptionPage { items: IngestException[]; nextCursor?: string }
+export interface ExceptionAction { exception: IngestException; outcome: 'applied' | 'held' | 'unmatched' | 'rejected_state' | 'duplicate' | 'not_applicable'; result?: { id: string; status: string } }
+export interface DiscardBody { reason_code: string; comment?: string }
+export interface AssignBody { result_id: string; override_analyte?: true }
+export interface OrderResult { id: string; analyte_code: string; status: string }
+export interface OrderResultsItem { order_item_id: string; test: { id: string; code: string; name?: string }; results: OrderResult[] }
+
 export interface VerifyItem { id: string; version: number; acknowledged_flags?: AckFlag[] }
 export interface ResultBulkRow { id: string; outcome: 'ok' | 'error'; code?: string }

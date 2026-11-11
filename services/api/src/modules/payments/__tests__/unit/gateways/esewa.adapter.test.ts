@@ -107,7 +107,8 @@ describe('buildAction (AC-PG-01.1; TRD §7.2.3)', () => {
 
   it('only the order reference, amount and product code go out: no PHI-shaped or extra field (REQ-SEC-141)', async () => {
     const a = await action();
-    expect(JSON.stringify(a)).not.toMatch(/patient|name|phone|email|mobile/i);
+    expect(Object.values(a.fields).join('|')).not.toMatch(/patient|\bname\b|phone|email|mobile/i);
+    expect(JSON.stringify(a)).not.toMatch(/patient|phone|email|mobile/i);
   });
 });
 

@@ -63,7 +63,7 @@ export interface IngestStore extends Pick<EntryStore, 'deltaInputs' | 'listCriti
   insertAttachment(tx: unknown, tenantId: string, a: { resultId: string; bucket: string; objectPath: string; sha256: string; mimeType: string }): Promise<void>;
   /** upsert on the open key (tenant_id, result_key) WHERE status = 'open'. */
   upsertOpenException(tx: unknown, tenantId: string, a: ExceptionInput): Promise<{ exceptionId: string }>;
-  closeOpenExceptions(tx: unknown, tenantId: string, a: { resultKey: string; resolution: 'applied' | 'assigned'; resolverMembershipId?: string; occurredAt: string }): Promise<void>;
+  closeOpenExceptions(tx: unknown, tenantId: string, a: { resultKey: string; resolution: 'applied' | 'assigned'; resolverMembershipId?: string; resultId?: string; occurredAt: string }): Promise<void>;
   finishLog(tx: unknown, tenantId: string, logId: string, a: { lastOutcome: IngestOutcome; resultId?: string; specimenId?: string; processingCentreId?: string; exceptionId?: string; occurredAt: string }): Promise<void>;
 }
 
@@ -362,7 +362,7 @@ async function run(ctx: IngestCtx, i: InstrumentResultInput, source: 'event' | '
   return result;
 
   async function finishApplied(target: EntryRow, out: 'applied' | 'held', mismatch = false, savedRow?: ResultRow): Promise<IngestResult> {
-    await store.closeOpenExceptions(tx, tenantId, { resultKey: key, resolution: assign ? 'assigned' : 'applied', ...(source === 'port' && ctx.actor.membershipId !== undefined ? { resolverMembershipId: ctx.actor.membershipId } : {}), occurredAt: at });
+    await store.closeOpenExceptions(tx, tenantId, { resultKey: key, resolution: assign ? 'assigned' : 'applied', resultId: target.resultId, ...(source === 'port' && ctx.actor.membershipId !== undefined ? { resolverMembershipId: ctx.actor.membershipId } : {}), occurredAt: at });
     let exceptionId: string | undefined;
     if (mismatch) ({ exceptionId } = await store.upsertOpenException(tx, tenantId, exceptionFor('unit_mismatch', { ...spec, resultId: target.resultId, ...known })));
     await store.finishLog(tx, tenantId, claim.logId, {

@@ -335,6 +335,19 @@ describe('llm_rephrase — host allowlist, failures, circuit breaker (AC-20.5, T
     expect(s.metrics.last('set', 'lims_smartreport_llm_circuit_open')?.value).toBe(1);
   });
 
+  it('circuit open on the FINAL attempt -> resolves (no dead-letter), model not called, one failed llm_runs row, runs_total{failed} +1 (TRD §9.1: final failure -> run row failed)', async () => {
+    probe.behaviour = 'throw';
+    for (let i = 0; i < 5; i++) await settle(run(payload(), { attempts: 1 }));
+    expect(probe.calls).toHaveLength(5);
+    expect(store.runs).toEqual([]);
+    await run(payload(), { attempts: 3 });
+    expect(probe.calls).toHaveLength(5);
+    expect(store.runs).toHaveLength(1);
+    expect(store.runs[0]).toMatchObject({ status: 'failed', summary_id: SUMMARY, items: [] });
+    expect(store.updates).toEqual([]);
+    expect(s.metrics.total('lims_smartreport_llm_runs_total', { outcome: 'failed' })).toBe(1);
+  });
+
   it('a successful run in between keeps the breaker closed (4 failures, 1 success, 4 failures -> still calling)', async () => {
     probe.behaviour = 'throw';
     for (let i = 0; i < 4; i++) await settle(run(payload(), { attempts: 1 }));

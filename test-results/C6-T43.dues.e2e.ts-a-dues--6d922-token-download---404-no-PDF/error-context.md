@@ -6,8 +6,8 @@
 
 # Test info
 
-- Name: C6-T43.dues.e2e.ts >> control: a report link still lands on /report >> P2 link_purpose report -> /r/{token}/report with the report card
-- Location: ..\..\tests\portal-e2e\C6-T43.dues.e2e.ts:70:3
+- Name: C6-T43.dues.e2e.ts >> a dues session cannot reach report content through the portal pages >> /r/{token}/report -> no report content (P3 404 -> back to the link page); /r/{token}/download -> 404, no PDF
+- Location: ..\..\tests\portal-e2e\C6-T43.dues.e2e.ts:62:3
 
 # Error details
 

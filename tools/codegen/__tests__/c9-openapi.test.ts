@@ -641,7 +641,7 @@ describe("quality.yaml (T0C-10.C9)", () => {
     });
     T("#37 createAutoverifyVersion: copy_from_version_id uuid / definition RuleSetDefinition, exactly one (oneOf), neither top-level required", () => {
       const b = bodySchema("createAutoverifyVersion");
-      expect(allKeys(b).sort()).toEqual(["copy_from_version_id", "definition"]);
+      expect(Object.keys({ ...props(b), ...Object.assign({}, ...(b.oneOf ?? []).map((v: any) => props(v))) }).sort()).toEqual(["copy_from_version_id", "definition"]);
       expect(r("createAutoverifyVersion")).toEqual([]);
       expect(Array.isArray(b.oneOf), "exactly one → oneOf").toBe(true);
       expect(JSON.stringify(b)).toContain("RuleSetDefinition");

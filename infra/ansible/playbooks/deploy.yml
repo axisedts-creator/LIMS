@@ -179,6 +179,32 @@
               if env == 'prod' else '--all' }}
           run_once: true
 
+    # 02-TRD s7.11 / CR-C7-012 (T-34): C7 agent release, only when a release manifest is passed
+    # (-e agent_release_manifest='{"version":"1.2.3"}'). The key and certificate are read by the script on the
+    # ops host only (delegated; no secret value here); the app host receives the signed zip + seed SQL.
+    - name: Agent release - sign and stage on the ops host (agent-release.sh)
+      ansible.builtin.command:
+        argv:
+          - "{{ agent_release_bin_dir | default('/usr/local/lib/lims/bin') }}/agent-release.sh"
+          - "{{ agent_release_manifest.version }}"
+      environment: "{{ {'LIMS_AGENT_RELEASE_APP_TARGET': agent_release_app_target} if (agent_release_app_target | default('')) | length > 0 else {} }}"
+      delegate_to: "{{ groups['ops'][0] }}"
+      run_once: true
+      when: agent_release_manifest is defined and agent_release_manifest.version is defined
+
+    - name: Agent release - apply the g_agent_releases seed as lims_migrator (one-shot migrate container)
+      environment: "{{ deploy_compose_env | combine({'PGPASSWORD': deploy_migrator_secret.stdout}) }}"
+      ansible.builtin.shell:
+        cmd: >-
+          docker compose -p lims
+          -f {{ deploy_compose_dir }}/compose.app.yml run --rm -T
+          -e PGHOST={{ db_primary_wg_ip }} -e PGPORT=5432
+          -e PGUSER=lims_migrator -e PGDATABASE={{ app_db_name }}
+          migrate psql -v ON_ERROR_STOP=1 -f -
+          < /srv/lims/agent-releases/{{ agent_release_manifest.version | quote }}.seed.sql
+      run_once: true
+      when: agent_release_manifest is defined and agent_release_manifest.version is defined
+
     # 03-APP-FLOW s2.1: from here a failure is a health timeout -> deploy.sh rolls back (marker path from deploy.sh).
     - name: Mark the rolling update as started
       ansible.builtin.file:

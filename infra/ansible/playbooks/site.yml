@@ -93,6 +93,14 @@
   roles:
     - ci_runner
 
+# 02-TRD s7.11 (T-34, CR-C7-012): C7 agent release service on the ops host only (lean: the one prod host);
+# after the registry (CI artefact). Holds the release key + client Authenticode cert; never an app-only host.
+- name: Agent release service
+  hosts: ops
+  become: true
+  roles:
+    - agent_release
+
 # 02-TRD s6 (T-13): public edge nginx on the app host. edge_nginx first (it
 # bootstraps placeholder certs so nginx answers HTTP-01), then acme issues the
 # real ECDSA P-256 certificates and reloads nginx through its deploy hook.

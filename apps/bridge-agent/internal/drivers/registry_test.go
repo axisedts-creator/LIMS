@@ -137,8 +137,11 @@ func TestUnknownDriverCodeFallsBackToProtocolGenericAndIsReported(t *testing.T) 
 		if r.Known {
 			t.Errorf("%s: unknown code reported Known", c.proto)
 		}
-		if r.HeartbeatError != "driver_profile_unknown" || r.HeartbeatError != ProfileUnknownCode {
+		if r.HeartbeatError != "driver_profile_unknown" {
 			t.Errorf("%s: HeartbeatError = %q, want driver_profile_unknown", c.proto, r.HeartbeatError)
+		}
+		if ProfileUnknownCode != "driver_profile_unknown" {
+			t.Errorf("ProfileUnknownCode = %q", ProfileUnknownCode)
 		}
 		if r.Profile.Code != c.wantCode {
 			t.Errorf("%s: fallback Profile.Code = %q, want %q", c.proto, r.Profile.Code, c.wantCode)

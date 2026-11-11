@@ -15,6 +15,7 @@ import { handler as discardSpecimen } from './discardSpecimen.js';
 import { handler as rejectSpecimen } from './rejectSpecimen.js';
 import { handler as requestRecollection } from './requestRecollection.js';
 import { handler as getSpecimen } from './getSpecimen.js';
+import { handler as getStatusBoard } from './getStatusBoard.js';
 import { handler as listSpecimens } from './listSpecimens.js';
 import { handler as lookupSpecimenByBarcode } from './lookupSpecimenByBarcode.js';
 import { handler as printSpecimenLabels } from './printSpecimenLabels.js';
@@ -67,6 +68,7 @@ const REAL: Partial<Record<LabOperationId, Handler>> = {
   ...approveHandlers, // T-17: approveResult, bulkApproveResults, amendResult, listResultVersions
   ...historyHandlers, // T-19: getResultHistory, getAnalyteTrend
   ...ingestExceptionHandlers, // T-23: list/get/assign/reapply/discard IngestException (#38-#42)
+  getStatusBoard, // T-27
 };
 
 export const handlers: Readonly<Record<LabOperationId, Handler>> = Object.freeze(

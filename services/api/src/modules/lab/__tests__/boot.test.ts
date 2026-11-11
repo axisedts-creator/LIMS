@@ -49,6 +49,8 @@ const IMPLEMENTED: readonly string[] = [
   'getResultHistory', 'getAnalyteTrend',
   // T-23 ingest exception queue
   'listIngestExceptions', 'getIngestException', 'assignIngestException', 'reapplyIngestException', 'discardIngestException',
+  // T-27 status board
+  'getStatusBoard',
 ];
 
 const FAKE_REQ = { params: {}, query: {}, headers: {}, body: {} };

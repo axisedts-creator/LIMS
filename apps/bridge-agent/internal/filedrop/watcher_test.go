@@ -35,7 +35,8 @@ func TestNewValidates(t *testing.T) {
 		"no folder":     {Config: filedrop.Config{InstrumentID: instID}, Store: st},
 		"no store":      {Config: filedrop.Config{InstrumentID: instID, Folder: dir}},
 		"bad regex":     {Config: filedrop.Config{InstrumentID: instID, Folder: dir, BarcodeRegex: "(["}, Store: st},
-		"move without subdir": {Config: filedrop.Config{InstrumentID: instID, Folder: dir, MoveAfterCapture: true}, Store: st},
+		"bad filename regex":  {Config: filedrop.Config{InstrumentID: instID, Folder: dir, FilenamePattern: "(["}, Store: st},
+		"unknown type":        {Config: filedrop.Config{InstrumentID: instID, Folder: dir, AllowedTypes: []string{"pdf", "exe"}}, Store: st},
 	}
 	for name, o := range cases {
 		if _, err := filedrop.New(o); err == nil {
@@ -136,7 +137,7 @@ func TestConfiguredStableFor(t *testing.T) {
 }
 
 func TestFilterExtensionPatternAndSize(t *testing.T) {
-	r := newRig(t, func(c *filedrop.Config) { c.FilenamePattern = "scan-*" })
+	r := newRig(t, func(c *filedrop.Config) { c.FilenamePattern = `^scan-\d+\.[A-Za-z]+$` })
 	for _, n := range []string{"scan-1.pdf", "scan-2.PNG", "scan-3.jpg"} {
 		r.write(n, []byte("data-"+n))
 	}
@@ -154,6 +155,51 @@ func TestFilterExtensionPatternAndSize(t *testing.T) {
 	}
 	if len(got) != 3 || !got["scan-1.pdf"] || !got["scan-2.PNG"] || !got["scan-3.jpg"] {
 		t.Fatalf("captured %v, want exactly scan-1.pdf scan-2.PNG scan-3.jpg", got)
+	}
+}
+
+// AC-12.1: filename_pattern is an RE2 regex (TRD 5.8), anchors honoured.
+func TestFilenamePatternIsAnchoredRegex(t *testing.T) {
+	r := newRig(t, func(c *filedrop.Config) { c.FilenamePattern = `^SMP\d+\.pdf$` })
+	r.write("SMP12.pdf", pdf)
+	r.write("xSMP12.pdf", pdf)
+	r.write("SMP12.pdf.png", pdf)
+	r.settle()
+	if r.store.count() != 1 || metaOf(t, r.store.items[0])["file_name"] != "SMP12.pdf" {
+		t.Fatalf("captured %d items, want only SMP12.pdf", r.store.count())
+	}
+}
+
+// AC-12.1: allowed_types restricts the captured extensions.
+func TestAllowedTypesRestrictsExtensions(t *testing.T) {
+	r := newRig(t, func(c *filedrop.Config) { c.AllowedTypes = []string{"pdf"} })
+	r.write("a.pdf", pdf)
+	r.write("b.PDF", pdf)
+	r.write("c.png", pdf)
+	r.write("d.jpg", pdf)
+	r.settle()
+	got := map[string]bool{}
+	for _, in := range r.store.items {
+		got[metaOf(t, in)["file_name"].(string)] = true
+	}
+	if len(got) != 2 || !got["a.pdf"] || !got["b.PDF"] {
+		t.Fatalf("captured %v, want exactly a.pdf b.PDF", got)
+	}
+}
+
+// AC-12.5: captured_subdirectory defaults to "captured" when omitted.
+func TestMoveDefaultsCapturedSubdirectory(t *testing.T) {
+	r := newRig(t, func(c *filedrop.Config) { c.MoveAfterCapture = true })
+	p := r.write("a.pdf", pdf)
+	r.settle()
+	if r.store.count() != 1 {
+		t.Fatal("not captured")
+	}
+	if _, err := os.Stat(p); !os.IsNotExist(err) {
+		t.Fatal("source still in the watched folder after move")
+	}
+	if b, err := os.ReadFile(filepath.Join(r.dir, "captured", "a.pdf")); err != nil || !bytes.Equal(b, pdf) {
+		t.Fatalf("moved file missing in default captured/: %v", err)
 	}
 }
 
@@ -312,7 +358,8 @@ func TestNoDeleteWhenMoveDisabled(t *testing.T) {
 // AB14 path safety.
 func TestUnsafeCapturedSubdirectoryRejected(t *testing.T) {
 	dir := t.TempDir()
-	for _, sub := range []string{"..", "../escape", `..\escape`, "a/../../b", "a/b", `a\b`, filepath.Join(dir, "abs"), `C:\Windows`, `\\srv\share`, ".", "done/.."} {
+	for _, sub := range []string{"..", "../escape", `..\escape`, "a/../../b", "a/b", `a\b`, filepath.Join(dir, "abs"), `C:\Windows`, `\\srv\share`, ".", "done/..",
+		"my dir", "café", "a.b", strings.Repeat("a", 61)} {
 		_, err := filedrop.New(filedrop.Options{Store: &fakeStore{},
 			Config: filedrop.Config{InstrumentID: instID, Folder: dir, MoveAfterCapture: true, CapturedSubdirectory: sub}})
 		if err == nil {

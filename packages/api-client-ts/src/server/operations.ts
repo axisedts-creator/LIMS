@@ -1112,6 +1112,184 @@ export interface Operations {
       };
     };
   };
+  approvePaymentRefund: {
+    params: {
+      refund_id: string;
+    };
+    query: Record<string, never>;
+    headers: {
+      "Idempotency-Key": string;
+      "If-Match": string;
+    };
+    body: {
+      note?: string;
+    };
+    responses: {
+      200: ({
+        id: string;
+        intent_id: string;
+        order_id: string;
+        gateway: "esewa" | "khalti" | "fonepay";
+        mode: "manual" | "api";
+        status: "pending_approval" | "approved" | "rejected" | "requested" | "held_for_review" | "completed" | "failed";
+        amount: {
+          amount_paisa: number;
+          currency: "NPR";
+        };
+        reason_code: string;
+        reason_text?: string;
+        requested_by: {
+          membership_id: string;
+          display_name: string;
+        };
+        requested_at: string;
+        approved_by?: {
+          membership_id: string;
+          display_name: string;
+        };
+        approved_at?: string;
+        rejected_by?: {
+          membership_id: string;
+          display_name: string;
+        };
+        rejected_at?: string;
+        gateway_refund_reference?: string;
+        completed_at?: string;
+        ledger_entry_id?: string;
+        failure_reason?: string;
+        failure_note?: string;
+        held_reason?: string;
+        last_checked_at?: string;
+        version: number;
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      409: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      422: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      428: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
   approvePurchaseOrder: {
     params: {
       po_id: string;
@@ -1684,6 +1862,411 @@ export interface Operations {
       };
     };
   };
+  approveSmartLibraryVersion: {
+    params: {
+      library_version_id: string;
+    };
+    query: Record<string, never>;
+    headers: {
+      "If-Match": string;
+    };
+    body: {
+      attestation: true;
+      note?: string;
+    };
+    responses: {
+      200: ({
+        id: string;
+        version_no: number;
+        status: "draft" | "in_review" | "approved" | "retired";
+        language: "en" | "ne";
+        formula_version: "hs-1";
+        params: {
+          score_enabled: boolean;
+          credit_in_range_bp: number;
+          credit_borderline_bp: number;
+          credit_out_of_range_bp: number;
+          credit_critical_bp: number;
+          min_groups_scored: number;
+          band_good_min: number;
+          band_fair_min: number;
+          critical_forces_needs_attention: boolean;
+          borderline_fraction_bp: number;
+          min_mapped_results: number;
+          trend_enabled: boolean;
+          trend_max_points: number;
+          trend_lookback_days: number;
+          trend_stable_bp: number;
+          trends_max: number;
+          advice_max_blocks: number;
+          followup_max: number;
+        };
+        source_version_id?: string;
+        change_summary?: string;
+        content_sha256?: string;
+        submitted_at?: string;
+        submitted_by_membership_id?: string;
+        approved_at?: string;
+        approved_by_membership_id?: string;
+        approved_by_display_name?: string;
+        approval_note?: string;
+        returned_at?: string;
+        return_comment?: string;
+        retired_at?: string;
+        counts: {
+          blocks: number;
+          rules: number;
+          analyte_groups: number;
+          groups_shown: number;
+        };
+        version: number;
+        created_at: string;
+        updated_at: string;
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      409: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      428: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  approveSmartSummary: {
+    params: {
+      summary_id: string;
+    };
+    query: Record<string, never>;
+    headers: {
+      "If-Match": string;
+    };
+    body: {
+      attestation: true;
+      use_llm_text?: boolean;
+    };
+    responses: {
+      200: ({
+        id: string;
+        order_id: string;
+        centre_id: string;
+        status: "draft" | "approved" | "rejected" | "superseded" | "preview";
+        library_version_id: string;
+        template_library_version: number;
+        formula_version: "hs-1";
+        language: "en" | "ne";
+        built_at: string;
+        report_version_nos: number[];
+        approved_at?: string;
+        approved_by_membership_id?: string;
+        approved_by_display_name?: string;
+        rejected_at?: string;
+        rejected_by_display_name?: string;
+        reject_reason_code?: string;
+        reject_comment?: string;
+        superseded_at?: string;
+        superseded_reason?: string;
+        superseded_by_summary_id?: string;
+        health_score?: {
+          value: number;
+          band: "good" | "fair" | "needs_attention";
+          formula_version: "hs-1";
+          panels_scored: number;
+          explanation_text?: string;
+        };
+        panels: ({
+          panel_code: string;
+          display_name: string;
+          status: "in_range" | "borderline" | "out_of_range" | "critical";
+          result_ids: string[];
+        })[];
+        deranged: ({
+          result_id: string;
+          analyte_id: string;
+          analyte_name: string;
+          direction: "low" | "high" | "abnormal";
+          severity: "in_range" | "borderline" | "out_of_range" | "critical";
+          template_block_id: string;
+          text: string;
+          llm_text?: string;
+        })[];
+        advice: {
+          template_block_id: string;
+          text: string;
+          llm_text?: string;
+        }[];
+        follow_ups: {
+          rule_id: string;
+          suggested_test_code: string;
+          suggested_test_name: string;
+          interval_days: number;
+          text: string;
+          llm_text?: string;
+        }[];
+        trends: ({
+          analyte_id: string;
+          analyte_name: string;
+          unit_code?: string;
+          direction: "improved" | "worsened" | "stable";
+          point_result_ids: string[];
+          points: {
+            result_id: string;
+            approved_at: string;
+            value_numeric: string;
+          }[];
+        })[];
+        disclaimer_block_id: string;
+        disclaimer_text: string;
+        counts: {
+          deranged: number;
+          critical: number;
+          unmapped_results: number;
+          ignored_duplicates: number;
+        };
+        llm: {
+          enabled: boolean;
+          use_llm_text: boolean;
+          last_run_id?: string;
+        };
+        registration_no: string;
+        patient_display_name?: string;
+        review_inputs?: ({
+          result_id: string;
+          analyte_id: string;
+          analyte_name: string;
+          value_text: string;
+          unit_code?: string;
+          flag?: string;
+          ref_range_text?: string;
+          band_status: "in_range" | "borderline" | "out_of_range" | "critical";
+          group_code?: string;
+        })[];
+        reviews: ({
+          action: "approved" | "rejected" | "superseded" | "llm_rephrase_requested";
+          actor_display_name?: string;
+          reason_code?: string;
+          at: string;
+        })[];
+        version: number;
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      409: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      428: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
   approveSupportSession: {
     params: {
       support_session_id: string;
@@ -1959,6 +2542,338 @@ export interface Operations {
         }[];
       };
       404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      422: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  buildSmartSummary: {
+    params: {
+      order_id: string;
+    };
+    query: Record<string, never>;
+    headers: {
+      "Idempotency-Key": string;
+    };
+    body: {
+      mode: "current" | "rebuild_with_active_library";
+    };
+    responses: {
+      200: ({
+        id: string;
+        order_id: string;
+        centre_id: string;
+        status: "draft" | "approved" | "rejected" | "superseded" | "preview";
+        library_version_id: string;
+        template_library_version: number;
+        formula_version: "hs-1";
+        language: "en" | "ne";
+        built_at: string;
+        report_version_nos: number[];
+        approved_at?: string;
+        approved_by_membership_id?: string;
+        approved_by_display_name?: string;
+        rejected_at?: string;
+        rejected_by_display_name?: string;
+        reject_reason_code?: string;
+        reject_comment?: string;
+        superseded_at?: string;
+        superseded_reason?: string;
+        superseded_by_summary_id?: string;
+        health_score?: {
+          value: number;
+          band: "good" | "fair" | "needs_attention";
+          formula_version: "hs-1";
+          panels_scored: number;
+          explanation_text?: string;
+        };
+        panels: ({
+          panel_code: string;
+          display_name: string;
+          status: "in_range" | "borderline" | "out_of_range" | "critical";
+          result_ids: string[];
+        })[];
+        deranged: ({
+          result_id: string;
+          analyte_id: string;
+          analyte_name: string;
+          direction: "low" | "high" | "abnormal";
+          severity: "in_range" | "borderline" | "out_of_range" | "critical";
+          template_block_id: string;
+          text: string;
+          llm_text?: string;
+        })[];
+        advice: {
+          template_block_id: string;
+          text: string;
+          llm_text?: string;
+        }[];
+        follow_ups: {
+          rule_id: string;
+          suggested_test_code: string;
+          suggested_test_name: string;
+          interval_days: number;
+          text: string;
+          llm_text?: string;
+        }[];
+        trends: ({
+          analyte_id: string;
+          analyte_name: string;
+          unit_code?: string;
+          direction: "improved" | "worsened" | "stable";
+          point_result_ids: string[];
+          points: {
+            result_id: string;
+            approved_at: string;
+            value_numeric: string;
+          }[];
+        })[];
+        disclaimer_block_id: string;
+        disclaimer_text: string;
+        counts: {
+          deranged: number;
+          critical: number;
+          unmapped_results: number;
+          ignored_duplicates: number;
+        };
+        llm: {
+          enabled: boolean;
+          use_llm_text: boolean;
+          last_run_id?: string;
+        };
+        registration_no: string;
+        patient_display_name?: string;
+        review_inputs?: ({
+          result_id: string;
+          analyte_id: string;
+          analyte_name: string;
+          value_text: string;
+          unit_code?: string;
+          flag?: string;
+          ref_range_text?: string;
+          band_status: "in_range" | "borderline" | "out_of_range" | "critical";
+          group_code?: string;
+        })[];
+        reviews: ({
+          action: "approved" | "rejected" | "superseded" | "llm_rephrase_requested";
+          actor_display_name?: string;
+          reason_code?: string;
+          at: string;
+        })[];
+        version: number;
+      });
+      201: ({
+        id: string;
+        order_id: string;
+        centre_id: string;
+        status: "draft" | "approved" | "rejected" | "superseded" | "preview";
+        library_version_id: string;
+        template_library_version: number;
+        formula_version: "hs-1";
+        language: "en" | "ne";
+        built_at: string;
+        report_version_nos: number[];
+        approved_at?: string;
+        approved_by_membership_id?: string;
+        approved_by_display_name?: string;
+        rejected_at?: string;
+        rejected_by_display_name?: string;
+        reject_reason_code?: string;
+        reject_comment?: string;
+        superseded_at?: string;
+        superseded_reason?: string;
+        superseded_by_summary_id?: string;
+        health_score?: {
+          value: number;
+          band: "good" | "fair" | "needs_attention";
+          formula_version: "hs-1";
+          panels_scored: number;
+          explanation_text?: string;
+        };
+        panels: ({
+          panel_code: string;
+          display_name: string;
+          status: "in_range" | "borderline" | "out_of_range" | "critical";
+          result_ids: string[];
+        })[];
+        deranged: ({
+          result_id: string;
+          analyte_id: string;
+          analyte_name: string;
+          direction: "low" | "high" | "abnormal";
+          severity: "in_range" | "borderline" | "out_of_range" | "critical";
+          template_block_id: string;
+          text: string;
+          llm_text?: string;
+        })[];
+        advice: {
+          template_block_id: string;
+          text: string;
+          llm_text?: string;
+        }[];
+        follow_ups: {
+          rule_id: string;
+          suggested_test_code: string;
+          suggested_test_name: string;
+          interval_days: number;
+          text: string;
+          llm_text?: string;
+        }[];
+        trends: ({
+          analyte_id: string;
+          analyte_name: string;
+          unit_code?: string;
+          direction: "improved" | "worsened" | "stable";
+          point_result_ids: string[];
+          points: {
+            result_id: string;
+            approved_at: string;
+            value_numeric: string;
+          }[];
+        })[];
+        disclaimer_block_id: string;
+        disclaimer_text: string;
+        counts: {
+          deranged: number;
+          critical: number;
+          unmapped_results: number;
+          ignored_duplicates: number;
+        };
+        llm: {
+          enabled: boolean;
+          use_llm_text: boolean;
+          last_run_id?: string;
+        };
+        registration_no: string;
+        patient_display_name?: string;
+        review_inputs?: ({
+          result_id: string;
+          analyte_id: string;
+          analyte_name: string;
+          value_text: string;
+          unit_code?: string;
+          flag?: string;
+          ref_range_text?: string;
+          band_status: "in_range" | "borderline" | "out_of_range" | "critical";
+          group_code?: string;
+        })[];
+        reviews: ({
+          action: "approved" | "rejected" | "superseded" | "llm_rephrase_requested";
+          actor_display_name?: string;
+          reason_code?: string;
+          at: string;
+        })[];
+        version: number;
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      409: {
         type: string;
         title: string;
         status: number;
@@ -4032,6 +4947,136 @@ export interface Operations {
       };
     };
   };
+  cancelPaymentIntent: {
+    params: {
+      intent_id: string;
+    };
+    query: Record<string, never>;
+    headers: {
+      "Idempotency-Key": string;
+    };
+    body: {
+      reason_code: string;
+    };
+    responses: {
+      200: ({
+        intent_id: string;
+        status: "created" | "initiated" | "pending" | "settled" | "failed" | "expired" | "held_for_review" | "refunded" | "partially_refunded";
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      409: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      422: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
   cancelPurchaseOrder: {
     params: {
       po_id: string;
@@ -6004,6 +7049,185 @@ export interface Operations {
         }[];
       };
       401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  confirmManualPaymentRefund: {
+    params: {
+      refund_id: string;
+    };
+    query: Record<string, never>;
+    headers: {
+      "Idempotency-Key": string;
+      "If-Match": string;
+    };
+    body: {
+      gateway_refund_reference: string;
+      refunded_on: string;
+    };
+    responses: {
+      200: ({
+        id: string;
+        intent_id: string;
+        order_id: string;
+        gateway: "esewa" | "khalti" | "fonepay";
+        mode: "manual" | "api";
+        status: "pending_approval" | "approved" | "rejected" | "requested" | "held_for_review" | "completed" | "failed";
+        amount: {
+          amount_paisa: number;
+          currency: "NPR";
+        };
+        reason_code: string;
+        reason_text?: string;
+        requested_by: {
+          membership_id: string;
+          display_name: string;
+        };
+        requested_at: string;
+        approved_by?: {
+          membership_id: string;
+          display_name: string;
+        };
+        approved_at?: string;
+        rejected_by?: {
+          membership_id: string;
+          display_name: string;
+        };
+        rejected_at?: string;
+        gateway_refund_reference?: string;
+        completed_at?: string;
+        ledger_entry_id?: string;
+        failure_reason?: string;
+        failure_note?: string;
+        held_reason?: string;
+        last_checked_at?: string;
+        version: number;
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      409: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      422: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      428: {
         type: string;
         title: string;
         status: number;
@@ -12025,6 +13249,171 @@ export interface Operations {
       };
     };
   };
+  createPaymentRefundRequest: {
+    params: {
+      intent_id: string;
+    };
+    query: Record<string, never>;
+    headers: {
+      "Idempotency-Key": string;
+    };
+    body: {
+      refund_amount_paisa: number;
+      reason_code: string;
+      reason_text?: string;
+    };
+    responses: {
+      201: ({
+        id: string;
+        intent_id: string;
+        order_id: string;
+        gateway: "esewa" | "khalti" | "fonepay";
+        mode: "manual" | "api";
+        status: "pending_approval" | "approved" | "rejected" | "requested" | "held_for_review" | "completed" | "failed";
+        amount: {
+          amount_paisa: number;
+          currency: "NPR";
+        };
+        reason_code: string;
+        reason_text?: string;
+        requested_by: {
+          membership_id: string;
+          display_name: string;
+        };
+        requested_at: string;
+        approved_by?: {
+          membership_id: string;
+          display_name: string;
+        };
+        approved_at?: string;
+        rejected_by?: {
+          membership_id: string;
+          display_name: string;
+        };
+        rejected_at?: string;
+        gateway_refund_reference?: string;
+        completed_at?: string;
+        ledger_entry_id?: string;
+        failure_reason?: string;
+        failure_note?: string;
+        held_reason?: string;
+        last_checked_at?: string;
+        version: number;
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      409: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      422: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
   createPlatformIrdAnnex: {
     params: Record<string, never>;
     query: Record<string, never>;
@@ -14401,6 +15790,605 @@ export interface Operations {
       };
     };
   };
+  createSmartDenyTerm: {
+    params: Record<string, never>;
+    query: Record<string, never>;
+    headers: {
+      "Idempotency-Key": string;
+    };
+    body: {
+      term: string;
+      language: "en" | "ne" | "any";
+      reason?: string;
+    };
+    responses: {
+      201: ({
+        id?: string;
+        term: string;
+        language: "en" | "ne" | "any";
+        scope: "global" | "tenant";
+        reason?: string;
+        is_active: boolean;
+        version?: number;
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      409: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      422: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  createSmartLibraryVersion: {
+    params: Record<string, never>;
+    query: Record<string, never>;
+    headers: {
+      "Idempotency-Key": string;
+    };
+    body: {
+      source: "starter" | "clone_active" | "clone_version";
+      source_version_id?: string;
+      change_summary?: string;
+    };
+    responses: {
+      201: ({
+        id: string;
+        version_no: number;
+        status: "draft" | "in_review" | "approved" | "retired";
+        language: "en" | "ne";
+        formula_version: "hs-1";
+        params: {
+          score_enabled: boolean;
+          credit_in_range_bp: number;
+          credit_borderline_bp: number;
+          credit_out_of_range_bp: number;
+          credit_critical_bp: number;
+          min_groups_scored: number;
+          band_good_min: number;
+          band_fair_min: number;
+          critical_forces_needs_attention: boolean;
+          borderline_fraction_bp: number;
+          min_mapped_results: number;
+          trend_enabled: boolean;
+          trend_max_points: number;
+          trend_lookback_days: number;
+          trend_stable_bp: number;
+          trends_max: number;
+          advice_max_blocks: number;
+          followup_max: number;
+        };
+        source_version_id?: string;
+        change_summary?: string;
+        content_sha256?: string;
+        submitted_at?: string;
+        submitted_by_membership_id?: string;
+        approved_at?: string;
+        approved_by_membership_id?: string;
+        approved_by_display_name?: string;
+        approval_note?: string;
+        returned_at?: string;
+        return_comment?: string;
+        retired_at?: string;
+        counts: {
+          blocks: number;
+          rules: number;
+          analyte_groups: number;
+          groups_shown: number;
+        };
+        version: number;
+        created_at: string;
+        updated_at: string;
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      409: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      422: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  createSmartRule: {
+    params: {
+      library_version_id: string;
+    };
+    query: Record<string, never>;
+    headers: {
+      "Idempotency-Key": string;
+    };
+    body: {
+      rule_kind: "deranged" | "advice" | "followup";
+      trigger_kind: "analyte" | "group" | "any" | "all_in_range";
+      analyte_id?: string;
+      group_code?: string;
+      direction: "low" | "high" | "abnormal" | "any";
+      min_severity?: "borderline" | "out_of_range" | "critical";
+      priority?: number;
+      block_id: string;
+      suggested_test_id?: string;
+      interval_days?: number;
+    };
+    responses: {
+      201: ({
+        id: string;
+        rule_kind: "deranged" | "advice" | "followup";
+        trigger_kind: "analyte" | "group" | "any" | "all_in_range";
+        analyte_id?: string;
+        group_code?: string;
+        direction: "low" | "high" | "abnormal" | "any";
+        min_severity?: "borderline" | "out_of_range" | "critical";
+        priority?: number;
+        block_id: string;
+        suggested_test_id?: string;
+        interval_days?: number;
+        version: number;
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      409: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      422: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  createSmartTemplateBlock: {
+    params: {
+      library_version_id: string;
+    };
+    query: Record<string, never>;
+    headers: {
+      "Idempotency-Key": string;
+    };
+    body: {
+      block_key: string;
+      kind: "deranged" | "advice" | "followup" | "disclaimer" | "score_explanation";
+      text_en?: string;
+      text_ne?: string;
+      note?: string;
+    };
+    responses: {
+      201: ({
+        id: string;
+        block_key: string;
+        kind: "deranged" | "advice" | "followup" | "disclaimer" | "score_explanation";
+        text_en?: string;
+        text_ne?: string;
+        note?: string;
+        placeholders: string[];
+        version: number;
+        updated_at: string;
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      409: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      422: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
   createSpecimenType: {
     params: Record<string, never>;
     query: Record<string, never>;
@@ -14424,6 +16412,160 @@ export interface Operations {
         updated_at: string;
         report_label: string;
       };
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      409: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      422: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  createStaticQrReconciliation: {
+    params: Record<string, never>;
+    query: Record<string, never>;
+    headers: {
+      "Idempotency-Key": string;
+    };
+    body: {
+      business_date: string;
+      centre_id?: string;
+      statement_total_paisa: number;
+      statement_reference: string;
+      note?: string;
+    };
+    responses: {
+      201: ({
+        id: string;
+        business_date: string;
+        centre_id?: string;
+        system_entries: number;
+        system_total: {
+          amount_paisa: number;
+          currency: "NPR";
+        };
+        statement_total: {
+          amount_paisa: number;
+          currency: "NPR";
+        };
+        difference: {
+          amount_paisa: number;
+          currency: "NPR";
+        };
+        statement_reference: string;
+        status: "matched" | "accepted_with_difference";
+        note?: string;
+        reconciled_by: {
+          membership_id: string;
+          display_name: string;
+        };
+        created_at: string;
+      });
       400: {
         type: string;
         title: string;
@@ -17701,6 +19843,139 @@ export interface Operations {
       };
     };
   };
+  deactivateSmartDenyTerm: {
+    params: {
+      term_id: string;
+    };
+    query: Record<string, never>;
+    headers: {
+      "If-Match": string;
+    };
+    body: Record<string, never> | undefined;
+    responses: {
+      200: ({
+        id?: string;
+        term: string;
+        language: "en" | "ne" | "any";
+        scope: "global" | "tenant";
+        reason?: string;
+        is_active: boolean;
+        version?: number;
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      409: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      428: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
   deactivateUser: {
     params: {
       membership_id: string;
@@ -17804,6 +20079,398 @@ export interface Operations {
         }[];
       };
       409: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      428: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  deleteSmartAnalyteGroup: {
+    params: {
+      library_version_id: string;
+      analyte_id: string;
+    };
+    query: Record<string, never>;
+    headers: {
+      "If-Match": string;
+    };
+    body: never;
+    responses: {
+      204: undefined;
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      409: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      428: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  deleteSmartRule: {
+    params: {
+      library_version_id: string;
+      rule_id: string;
+    };
+    query: Record<string, never>;
+    headers: {
+      "If-Match": string;
+    };
+    body: never;
+    responses: {
+      204: undefined;
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      409: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      428: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  deleteSmartTemplateBlock: {
+    params: {
+      library_version_id: string;
+      block_id: string;
+    };
+    query: Record<string, never>;
+    headers: {
+      "If-Match": string;
+    };
+    body: never;
+    responses: {
+      204: undefined;
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      409: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      422: {
         type: string;
         title: string;
         status: number;
@@ -21542,6 +24209,114 @@ export interface Operations {
       };
     };
   };
+  esewaFailureCallback: {
+    params: {
+      callback_token: string;
+    };
+    query: Record<string, never>;
+    headers: Record<string, never>;
+    body: never;
+    responses: {
+      303: undefined;
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  esewaSuccessCallback: {
+    params: {
+      callback_token: string;
+    };
+    query: {
+      data?: string;
+    };
+    headers: Record<string, never>;
+    body: never;
+    responses: {
+      303: undefined;
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
   exportGoodsReceiptsCsv: {
     params: Record<string, never>;
     query: {
@@ -21758,6 +24533,199 @@ export interface Operations {
         }[];
       };
       500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  failManualPaymentRefund: {
+    params: {
+      refund_id: string;
+    };
+    query: Record<string, never>;
+    headers: {
+      "Idempotency-Key": string;
+      "If-Match": string;
+    };
+    body: {
+      reason_code: string;
+      note?: string;
+    };
+    responses: {
+      200: ({
+        id: string;
+        intent_id: string;
+        order_id: string;
+        gateway: "esewa" | "khalti" | "fonepay";
+        mode: "manual" | "api";
+        status: "pending_approval" | "approved" | "rejected" | "requested" | "held_for_review" | "completed" | "failed";
+        amount: {
+          amount_paisa: number;
+          currency: "NPR";
+        };
+        reason_code: string;
+        reason_text?: string;
+        requested_by: {
+          membership_id: string;
+          display_name: string;
+        };
+        requested_at: string;
+        approved_by?: {
+          membership_id: string;
+          display_name: string;
+        };
+        approved_at?: string;
+        rejected_by?: {
+          membership_id: string;
+          display_name: string;
+        };
+        rejected_at?: string;
+        gateway_refund_reference?: string;
+        completed_at?: string;
+        ledger_entry_id?: string;
+        failure_reason?: string;
+        failure_note?: string;
+        held_reason?: string;
+        last_checked_at?: string;
+        version: number;
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      409: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      422: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      428: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      503: {
         type: string;
         title: string;
         status: number;
@@ -25345,6 +28313,203 @@ export interface Operations {
           recorded_at: string;
         })[];
         referrer_display_name?: string;
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  getCurrentSmartSummary: {
+    params: {
+      order_id: string;
+    };
+    query: Record<string, never>;
+    headers: Record<string, never>;
+    body: never;
+    responses: {
+      200: ({
+        id: string;
+        order_id: string;
+        centre_id: string;
+        status: "draft" | "approved" | "rejected" | "superseded" | "preview";
+        library_version_id: string;
+        template_library_version: number;
+        formula_version: "hs-1";
+        language: "en" | "ne";
+        built_at: string;
+        report_version_nos: number[];
+        approved_at?: string;
+        approved_by_membership_id?: string;
+        approved_by_display_name?: string;
+        rejected_at?: string;
+        rejected_by_display_name?: string;
+        reject_reason_code?: string;
+        reject_comment?: string;
+        superseded_at?: string;
+        superseded_reason?: string;
+        superseded_by_summary_id?: string;
+        health_score?: {
+          value: number;
+          band: "good" | "fair" | "needs_attention";
+          formula_version: "hs-1";
+          panels_scored: number;
+          explanation_text?: string;
+        };
+        panels: ({
+          panel_code: string;
+          display_name: string;
+          status: "in_range" | "borderline" | "out_of_range" | "critical";
+          result_ids: string[];
+        })[];
+        deranged: ({
+          result_id: string;
+          analyte_id: string;
+          analyte_name: string;
+          direction: "low" | "high" | "abnormal";
+          severity: "in_range" | "borderline" | "out_of_range" | "critical";
+          template_block_id: string;
+          text: string;
+          llm_text?: string;
+        })[];
+        advice: {
+          template_block_id: string;
+          text: string;
+          llm_text?: string;
+        }[];
+        follow_ups: {
+          rule_id: string;
+          suggested_test_code: string;
+          suggested_test_name: string;
+          interval_days: number;
+          text: string;
+          llm_text?: string;
+        }[];
+        trends: ({
+          analyte_id: string;
+          analyte_name: string;
+          unit_code?: string;
+          direction: "improved" | "worsened" | "stable";
+          point_result_ids: string[];
+          points: {
+            result_id: string;
+            approved_at: string;
+            value_numeric: string;
+          }[];
+        })[];
+        disclaimer_block_id: string;
+        disclaimer_text: string;
+        counts: {
+          deranged: number;
+          critical: number;
+          unmapped_results: number;
+          ignored_duplicates: number;
+        };
+        llm: {
+          enabled: boolean;
+          use_llm_text: boolean;
+          last_run_id?: string;
+        };
+        registration_no: string;
+        patient_display_name?: string;
+        review_inputs?: ({
+          result_id: string;
+          analyte_id: string;
+          analyte_name: string;
+          value_text: string;
+          unit_code?: string;
+          flag?: string;
+          ref_range_text?: string;
+          band_status: "in_range" | "borderline" | "out_of_range" | "critical";
+          group_code?: string;
+        })[];
+        reviews: ({
+          action: "approved" | "rejected" | "superseded" | "llm_rephrase_requested";
+          actor_display_name?: string;
+          reason_code?: string;
+          at: string;
+        })[];
+        version: number;
       });
       400: {
         type: string;
@@ -30572,6 +33737,477 @@ export interface Operations {
       };
     };
   };
+  getPaymentIntent: {
+    params: {
+      intent_id: string;
+    };
+    query: Record<string, never>;
+    headers: Record<string, never>;
+    body: never;
+    responses: {
+      200: ({
+        id: string;
+        order_id: string;
+        centre_id: string;
+        gateway: "esewa" | "khalti" | "fonepay";
+        environment: "uat" | "production";
+        status: "created" | "initiated" | "pending" | "settled" | "failed" | "expired" | "held_for_review" | "refunded" | "partially_refunded";
+        amount: {
+          amount_paisa: number;
+          currency: "NPR";
+        };
+        hold_reason?: string;
+        failure_reason?: string;
+        created_at: string;
+        expires_at?: string;
+        settled_at?: string;
+        last_checked_at?: string;
+        version: number;
+        gateway_txn_ref: string;
+        gateway_secondary_ref?: string;
+        last_gateway_status_raw?: string;
+        verified_amount?: {
+          amount_paisa: number;
+          currency: "NPR";
+        };
+        verification_method?: "esewa_status_check" | "khalti_lookup";
+        refunded_amount: {
+          amount_paisa: number;
+          currency: "NPR";
+        };
+        ledger_entry_id?: string;
+        created_by_actor_type: "user" | "system";
+        transitions: ({
+          from_status?: "created" | "initiated" | "pending" | "settled" | "failed" | "expired" | "held_for_review" | "refunded" | "partially_refunded";
+          to_status: "created" | "initiated" | "pending" | "settled" | "failed" | "expired" | "held_for_review" | "refunded" | "partially_refunded";
+          cause: "create" | "callback" | "poll" | "verify_call" | "recheck" | "resolve" | "cancel" | "reconciliation" | "refund" | "sweep";
+          reason_code?: string;
+          actor_type: "user" | "system";
+          at: string;
+        })[];
+        gateway_checks: ({
+          operation: "khalti_initiate" | "khalti_lookup" | "esewa_status" | "khalti_refund" | "credential_test";
+          outcome: "answer" | "service_unavailable" | "timeout" | "network_error" | "http_error" | "auth_error" | "not_found" | "invalid_response";
+          gateway_status_raw?: string;
+          http_status?: number;
+          at: string;
+        })[];
+        callbacks: ({
+          kind: "esewa_success" | "esewa_failure" | "khalti_return" | "launch";
+          outcome_code: "ok" | "payments.signature_invalid" | "payments.callback_mismatch" | "payments.callback_stale" | "rate_limited";
+          signature_valid?: boolean;
+          at: string;
+        })[];
+        refunds: ({
+          id: string;
+          intent_id: string;
+          order_id: string;
+          gateway: "esewa" | "khalti" | "fonepay";
+          mode: "manual" | "api";
+          status: "pending_approval" | "approved" | "rejected" | "requested" | "held_for_review" | "completed" | "failed";
+          amount: {
+            amount_paisa: number;
+            currency: "NPR";
+          };
+          reason_code: string;
+          reason_text?: string;
+          requested_by: {
+            membership_id: string;
+            display_name: string;
+          };
+          requested_at: string;
+          approved_by?: {
+            membership_id: string;
+            display_name: string;
+          };
+          approved_at?: string;
+          rejected_by?: {
+            membership_id: string;
+            display_name: string;
+          };
+          rejected_at?: string;
+          gateway_refund_reference?: string;
+          completed_at?: string;
+          ledger_entry_id?: string;
+          failure_reason?: string;
+          failure_note?: string;
+          held_reason?: string;
+          last_checked_at?: string;
+          version: number;
+        })[];
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  getPaymentRefund: {
+    params: {
+      refund_id: string;
+    };
+    query: Record<string, never>;
+    headers: Record<string, never>;
+    body: never;
+    responses: {
+      200: ({
+        id: string;
+        intent_id: string;
+        order_id: string;
+        gateway: "esewa" | "khalti" | "fonepay";
+        mode: "manual" | "api";
+        status: "pending_approval" | "approved" | "rejected" | "requested" | "held_for_review" | "completed" | "failed";
+        amount: {
+          amount_paisa: number;
+          currency: "NPR";
+        };
+        reason_code: string;
+        reason_text?: string;
+        requested_by: {
+          membership_id: string;
+          display_name: string;
+        };
+        requested_at: string;
+        approved_by?: {
+          membership_id: string;
+          display_name: string;
+        };
+        approved_at?: string;
+        rejected_by?: {
+          membership_id: string;
+          display_name: string;
+        };
+        rejected_at?: string;
+        gateway_refund_reference?: string;
+        completed_at?: string;
+        ledger_entry_id?: string;
+        failure_reason?: string;
+        failure_note?: string;
+        held_reason?: string;
+        last_checked_at?: string;
+        version: number;
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  getPaymentResultPage: {
+    params: Record<string, never>;
+    query: {
+      outcome: "settled" | "pending" | "failed" | "unknown";
+      intent_id?: string;
+    };
+    headers: Record<string, never>;
+    body: never;
+    responses: {
+      200: string;
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  getPaymentSettings: {
+    params: Record<string, never>;
+    query: Record<string, never>;
+    headers: Record<string, never>;
+    body: never;
+    responses: {
+      200: {
+        refund_two_person_threshold: {
+          amount_paisa: number;
+          currency: "NPR";
+        };
+        purchase_order_label: string;
+        reconciliation_enabled: boolean;
+        version: number;
+      };
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
   getPendingTestsSummary: {
     params: Record<string, never>;
     query: {
@@ -31681,6 +35317,115 @@ export interface Operations {
           ratelimit: "ok" | "degraded" | "down";
         };
       });
+    };
+  };
+  getReconciliationRun: {
+    params: {
+      run_id: string;
+    };
+    query: Record<string, never>;
+    headers: Record<string, never>;
+    body: never;
+    responses: {
+      200: ({
+        id: string;
+        business_date: string;
+        trigger: "cron" | "manual";
+        status: "running" | "completed" | "failed";
+        started_at: string;
+        finished_at?: string;
+        counts: {
+          checked: number;
+          ok: number;
+          findings: number;
+          critical: number;
+        };
+        version: number;
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
     };
   };
   getReferenceRangeSet: {
@@ -33575,6 +37320,551 @@ export interface Operations {
         }[];
       };
       403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  getSmartCodedSet: {
+    params: {
+      set_code: "summary_reject_reasons";
+    };
+    query: Record<string, never>;
+    headers: Record<string, never>;
+    body: never;
+    responses: {
+      200: {
+        set_code: string;
+        items: {
+          code: string;
+          display: string;
+          sort_order: number;
+          is_active: boolean;
+        }[];
+      };
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  getSmartLibraryCodedSet: {
+    params: {
+      set_code: "organ_groups";
+    };
+    query: Record<string, never>;
+    headers: Record<string, never>;
+    body: never;
+    responses: {
+      200: {
+        set_code: string;
+        items: {
+          code: string;
+          display: string;
+          sort_order: number;
+          is_active: boolean;
+        }[];
+      };
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  getSmartLibraryVersion: {
+    params: {
+      library_version_id: string;
+    };
+    query: Record<string, never>;
+    headers: Record<string, never>;
+    body: never;
+    responses: {
+      200: ({
+        id: string;
+        version_no: number;
+        status: "draft" | "in_review" | "approved" | "retired";
+        language: "en" | "ne";
+        formula_version: "hs-1";
+        params: {
+          score_enabled: boolean;
+          credit_in_range_bp: number;
+          credit_borderline_bp: number;
+          credit_out_of_range_bp: number;
+          credit_critical_bp: number;
+          min_groups_scored: number;
+          band_good_min: number;
+          band_fair_min: number;
+          critical_forces_needs_attention: boolean;
+          borderline_fraction_bp: number;
+          min_mapped_results: number;
+          trend_enabled: boolean;
+          trend_max_points: number;
+          trend_lookback_days: number;
+          trend_stable_bp: number;
+          trends_max: number;
+          advice_max_blocks: number;
+          followup_max: number;
+        };
+        source_version_id?: string;
+        change_summary?: string;
+        content_sha256?: string;
+        submitted_at?: string;
+        submitted_by_membership_id?: string;
+        approved_at?: string;
+        approved_by_membership_id?: string;
+        approved_by_display_name?: string;
+        approval_note?: string;
+        returned_at?: string;
+        return_comment?: string;
+        retired_at?: string;
+        counts: {
+          blocks: number;
+          rules: number;
+          analyte_groups: number;
+          groups_shown: number;
+        };
+        version: number;
+        created_at: string;
+        updated_at: string;
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  getSmartSummary: {
+    params: {
+      summary_id: string;
+    };
+    query: Record<string, never>;
+    headers: Record<string, never>;
+    body: never;
+    responses: {
+      200: ({
+        id: string;
+        order_id: string;
+        centre_id: string;
+        status: "draft" | "approved" | "rejected" | "superseded" | "preview";
+        library_version_id: string;
+        template_library_version: number;
+        formula_version: "hs-1";
+        language: "en" | "ne";
+        built_at: string;
+        report_version_nos: number[];
+        approved_at?: string;
+        approved_by_membership_id?: string;
+        approved_by_display_name?: string;
+        rejected_at?: string;
+        rejected_by_display_name?: string;
+        reject_reason_code?: string;
+        reject_comment?: string;
+        superseded_at?: string;
+        superseded_reason?: string;
+        superseded_by_summary_id?: string;
+        health_score?: {
+          value: number;
+          band: "good" | "fair" | "needs_attention";
+          formula_version: "hs-1";
+          panels_scored: number;
+          explanation_text?: string;
+        };
+        panels: ({
+          panel_code: string;
+          display_name: string;
+          status: "in_range" | "borderline" | "out_of_range" | "critical";
+          result_ids: string[];
+        })[];
+        deranged: ({
+          result_id: string;
+          analyte_id: string;
+          analyte_name: string;
+          direction: "low" | "high" | "abnormal";
+          severity: "in_range" | "borderline" | "out_of_range" | "critical";
+          template_block_id: string;
+          text: string;
+          llm_text?: string;
+        })[];
+        advice: {
+          template_block_id: string;
+          text: string;
+          llm_text?: string;
+        }[];
+        follow_ups: {
+          rule_id: string;
+          suggested_test_code: string;
+          suggested_test_name: string;
+          interval_days: number;
+          text: string;
+          llm_text?: string;
+        }[];
+        trends: ({
+          analyte_id: string;
+          analyte_name: string;
+          unit_code?: string;
+          direction: "improved" | "worsened" | "stable";
+          point_result_ids: string[];
+          points: {
+            result_id: string;
+            approved_at: string;
+            value_numeric: string;
+          }[];
+        })[];
+        disclaimer_block_id: string;
+        disclaimer_text: string;
+        counts: {
+          deranged: number;
+          critical: number;
+          unmapped_results: number;
+          ignored_duplicates: number;
+        };
+        llm: {
+          enabled: boolean;
+          use_llm_text: boolean;
+          last_run_id?: string;
+        };
+        registration_no: string;
+        patient_display_name?: string;
+        review_inputs?: ({
+          result_id: string;
+          analyte_id: string;
+          analyte_name: string;
+          value_text: string;
+          unit_code?: string;
+          flag?: string;
+          ref_range_text?: string;
+          band_status: "in_range" | "borderline" | "out_of_range" | "critical";
+          group_code?: string;
+        })[];
+        reviews: ({
+          action: "approved" | "rejected" | "superseded" | "llm_rephrase_requested";
+          actor_display_name?: string;
+          reason_code?: string;
+          at: string;
+        })[];
+        version: number;
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
         type: string;
         title: string;
         status: number;
@@ -37190,6 +41480,124 @@ export interface Operations {
         }[];
       };
       503: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  khaltiReturnCallback: {
+    params: {
+      callback_token: string;
+    };
+    query: {
+      pidx?: string;
+      status?: string;
+      transaction_id?: string;
+      tidx?: string;
+      txnId?: string;
+      amount?: string;
+      total_amount?: string;
+      mobile?: string;
+      purchase_order_id?: string;
+      purchase_order_name?: string;
+    };
+    headers: Record<string, never>;
+    body: never;
+    responses: {
+      303: undefined;
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  launchEsewaPayment: {
+    params: {
+      callback_token: string;
+    };
+    query: Record<string, never>;
+    headers: Record<string, never>;
+    body: never;
+    responses: {
+      200: string;
+      303: undefined;
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
         type: string;
         title: string;
         status: number;
@@ -44035,6 +48443,118 @@ export interface Operations {
       };
     };
   };
+  listMerchantAccounts: {
+    params: Record<string, never>;
+    query: Record<string, never>;
+    headers: Record<string, never>;
+    body: never;
+    responses: {
+      200: ({
+        data: ({
+          gateway: "esewa" | "khalti" | "fonepay";
+          environment: "uat" | "production";
+          is_enabled: boolean;
+          esewa_product_code?: string;
+          khalti_website_url?: string;
+          secret: {
+            is_set: boolean;
+            set_at?: string;
+            fingerprint?: string;
+          };
+          api_refunds_enabled: boolean;
+          last_test?: {
+            outcome: "reachable_key_valid" | "reachable_key_unverifiable" | "auth_failed" | "unreachable";
+            at: string;
+          };
+          version: number;
+        })[];
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
   listMessageRejections: {
     params: Record<string, never>;
     query: {
@@ -46034,6 +50554,480 @@ export interface Operations {
       };
     };
   };
+  listPaymentCancelReasons: {
+    params: Record<string, never>;
+    query: Record<string, never>;
+    headers: Record<string, never>;
+    body: never;
+    responses: {
+      200: {
+        data: {
+          code: string;
+          display: string;
+          requires_text: boolean;
+          is_active: boolean;
+        }[];
+      };
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  listPaymentCodes: {
+    params: {
+      set_name: "hold_reasons" | "failure_reasons" | "cancel_reasons" | "resolution_reasons" | "refund_reasons" | "refund_reject_reasons" | "refund_fail_reasons" | "refund_hold_reasons" | "finding_kinds" | "finding_resolutions";
+    };
+    query: Record<string, never>;
+    headers: Record<string, never>;
+    body: never;
+    responses: {
+      200: {
+        data: {
+          code: string;
+          display: string;
+          requires_text: boolean;
+          is_active: boolean;
+        }[];
+      };
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  listPaymentIntents: {
+    params: Record<string, never>;
+    query: {
+      status?: ("created" | "initiated" | "pending" | "settled" | "failed" | "expired" | "held_for_review" | "refunded" | "partially_refunded")[];
+      gateway?: ("esewa" | "khalti" | "fonepay")[];
+      hold_reason?: string;
+      order_id?: string;
+      centre_id?: string;
+      created_at_from?: string;
+      created_at_to?: string;
+      sort?: "-created_at" | "created_at";
+      cursor?: string;
+      limit?: number;
+    };
+    headers: Record<string, never>;
+    body: never;
+    responses: {
+      200: ({
+        data: ({
+          id: string;
+          order_id: string;
+          centre_id: string;
+          gateway: "esewa" | "khalti" | "fonepay";
+          environment: "uat" | "production";
+          status: "created" | "initiated" | "pending" | "settled" | "failed" | "expired" | "held_for_review" | "refunded" | "partially_refunded";
+          amount: {
+            amount_paisa: number;
+            currency: "NPR";
+          };
+          hold_reason?: string;
+          failure_reason?: string;
+          created_at: string;
+          expires_at?: string;
+          settled_at?: string;
+          last_checked_at?: string;
+          version: number;
+        })[];
+        page: {
+          next_cursor?: string;
+          limit: number;
+        };
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  listPaymentRefunds: {
+    params: Record<string, never>;
+    query: {
+      status?: ("pending_approval" | "approved" | "rejected" | "requested" | "held_for_review" | "completed" | "failed")[];
+      gateway?: ("esewa" | "khalti" | "fonepay")[];
+      intent_id?: string;
+      created_at_from?: string;
+      created_at_to?: string;
+      sort?: "-created_at" | "created_at";
+      cursor?: string;
+      limit?: number;
+    };
+    headers: Record<string, never>;
+    body: never;
+    responses: {
+      200: ({
+        data: ({
+          id: string;
+          intent_id: string;
+          order_id: string;
+          gateway: "esewa" | "khalti" | "fonepay";
+          mode: "manual" | "api";
+          status: "pending_approval" | "approved" | "rejected" | "requested" | "held_for_review" | "completed" | "failed";
+          amount: {
+            amount_paisa: number;
+            currency: "NPR";
+          };
+          reason_code: string;
+          reason_text?: string;
+          requested_by: {
+            membership_id: string;
+            display_name: string;
+          };
+          requested_at: string;
+          approved_by?: {
+            membership_id: string;
+            display_name: string;
+          };
+          approved_at?: string;
+          rejected_by?: {
+            membership_id: string;
+            display_name: string;
+          };
+          rejected_at?: string;
+          gateway_refund_reference?: string;
+          completed_at?: string;
+          ledger_entry_id?: string;
+          failure_reason?: string;
+          failure_note?: string;
+          held_reason?: string;
+          last_checked_at?: string;
+          version: number;
+        })[];
+        page: {
+          next_cursor?: string;
+          limit: number;
+        };
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
   listPendingItems: {
     params: Record<string, never>;
     query: {
@@ -47697,6 +52691,261 @@ export interface Operations {
       };
     };
   };
+  listReconciliationFindings: {
+    params: Record<string, never>;
+    query: {
+      status?: "open" | "resolved";
+      kind?: string;
+      severity?: "info" | "warning" | "critical";
+      run_id?: string;
+      sort?: "-created_at" | "severity";
+      cursor?: string;
+      limit?: number;
+    };
+    headers: Record<string, never>;
+    body: never;
+    responses: {
+      200: ({
+        data: ({
+          id: string;
+          run_id: string;
+          kind: string;
+          severity: "info" | "warning" | "critical";
+          intent_id?: string;
+          refund_id?: string;
+          our_status?: string;
+          gateway_status_raw?: string;
+          our_amount?: {
+            amount_paisa: number;
+            currency: "NPR";
+          };
+          gateway_amount?: {
+            amount_paisa: number;
+            currency: "NPR";
+          };
+          auto_action: "none" | "settled" | "held" | "ledger_repaired";
+          status: "open" | "resolved";
+          resolution_code?: string;
+          note?: string;
+          resolved_by?: {
+            membership_id: string;
+            display_name: string;
+          };
+          resolved_at?: string;
+          created_at: string;
+          version: number;
+        })[];
+        page: {
+          next_cursor?: string;
+          limit: number;
+        };
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  listReconciliationRuns: {
+    params: Record<string, never>;
+    query: {
+      business_date_from?: string;
+      business_date_to?: string;
+      status?: "running" | "completed" | "failed";
+      sort?: "-business_date";
+      cursor?: string;
+      limit?: number;
+    };
+    headers: Record<string, never>;
+    body: never;
+    responses: {
+      200: ({
+        data: ({
+          id: string;
+          business_date: string;
+          trigger: "cron" | "manual";
+          status: "running" | "completed" | "failed";
+          started_at: string;
+          finished_at?: string;
+          counts: {
+            checked: number;
+            ok: number;
+            findings: number;
+            critical: number;
+          };
+          version: number;
+        })[];
+        page: {
+          next_cursor?: string;
+          limit: number;
+        };
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
   listReferenceRangeSets: {
     params: {
       analyte_id: string;
@@ -48766,6 +54015,888 @@ export interface Operations {
       };
     };
   };
+  listSmartAnalyteGroups: {
+    params: {
+      library_version_id: string;
+    };
+    query: Record<string, never>;
+    headers: Record<string, never>;
+    body: never;
+    responses: {
+      200: {
+        data: {
+          analyte_id: string;
+          group_code: string;
+          include_in_score: boolean;
+          trend_enabled: boolean;
+          borderline_fraction_bp?: number;
+          trend_stable_bp?: number;
+          sort_order: number;
+          version: number;
+        }[];
+      };
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  listSmartDenyTerms: {
+    params: Record<string, never>;
+    query: {
+      include_global?: boolean;
+    };
+    headers: Record<string, never>;
+    body: never;
+    responses: {
+      200: ({
+        data: ({
+          id?: string;
+          term: string;
+          language: "en" | "ne" | "any";
+          scope: "global" | "tenant";
+          reason?: string;
+          is_active: boolean;
+          version?: number;
+        })[];
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  listSmartGroupSettings: {
+    params: {
+      library_version_id: string;
+    };
+    query: Record<string, never>;
+    headers: Record<string, never>;
+    body: never;
+    responses: {
+      200: {
+        data: {
+          group_code: string;
+          display_en: string;
+          display_ne?: string;
+          score_weight: number;
+          sort_order: number;
+          is_shown: boolean;
+          version: number;
+        }[];
+      };
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  listSmartLibraryVersions: {
+    params: Record<string, never>;
+    query: {
+      status?: string;
+      sort?: "-version_no";
+      cursor?: string;
+      limit?: number;
+    };
+    headers: Record<string, never>;
+    body: never;
+    responses: {
+      200: ({
+        data: ({
+          id: string;
+          version_no: number;
+          status: "draft" | "in_review" | "approved" | "retired";
+          language: "en" | "ne";
+          approved_at?: string;
+          approved_by_membership_id?: string;
+          approved_by_display_name?: string;
+          updated_at: string;
+          version: number;
+        })[];
+        page: {
+          next_cursor?: string;
+          limit: number;
+        };
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  listSmartLlmRuns: {
+    params: {
+      summary_id: string;
+    };
+    query: Record<string, never>;
+    headers: Record<string, never>;
+    body: never;
+    responses: {
+      200: ({
+        data: ({
+          id: string;
+          status: "succeeded" | "partially_passed" | "validator_failed" | "failed";
+          prompt_template_version: string;
+          model_ref: string;
+          items: {
+            item_ref: string;
+            template_text: string;
+            output_text?: string;
+            passed: boolean;
+            failure_codes: string[];
+          }[];
+          latency_ms?: number;
+          created_at: string;
+        })[];
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  listSmartRules: {
+    params: {
+      library_version_id: string;
+    };
+    query: {
+      rule_kind?: "deranged" | "advice" | "followup";
+    };
+    headers: Record<string, never>;
+    body: never;
+    responses: {
+      200: ({
+        data: ({
+          id: string;
+          rule_kind: "deranged" | "advice" | "followup";
+          trigger_kind: "analyte" | "group" | "any" | "all_in_range";
+          analyte_id?: string;
+          group_code?: string;
+          direction: "low" | "high" | "abnormal" | "any";
+          min_severity?: "borderline" | "out_of_range" | "critical";
+          priority?: number;
+          block_id: string;
+          suggested_test_id?: string;
+          interval_days?: number;
+          version: number;
+        })[];
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  listSmartSummaries: {
+    params: Record<string, never>;
+    query: {
+      status?: string;
+      centre_id?: string;
+      built_at_from?: string;
+      built_at_to?: string;
+      has_critical?: boolean;
+      sort?: "built_at" | "-built_at";
+      cursor?: string;
+      limit?: number;
+    };
+    headers: Record<string, never>;
+    body: never;
+    responses: {
+      200: ({
+        data: ({
+          id: string;
+          order_id: string;
+          centre_id: string;
+          status: "draft" | "approved" | "rejected" | "superseded";
+          built_at: string;
+          health_score_band?: "good" | "fair" | "needs_attention";
+          deranged_count: number;
+          critical_count: number;
+          registration_no: string;
+          patient_display_name?: string;
+          version: number;
+        })[];
+        page: {
+          next_cursor?: string;
+          limit: number;
+        };
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  listSmartTemplateBlocks: {
+    params: {
+      library_version_id: string;
+    };
+    query: {
+      kind?: "deranged" | "advice" | "followup" | "disclaimer" | "score_explanation";
+    };
+    headers: Record<string, never>;
+    body: never;
+    responses: {
+      200: ({
+        data: ({
+          id: string;
+          block_key: string;
+          kind: "deranged" | "advice" | "followup" | "disclaimer" | "score_explanation";
+          text_en?: string;
+          text_ne?: string;
+          note?: string;
+          placeholders: string[];
+          version: number;
+          updated_at: string;
+        })[];
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
   listSpecimenTypes: {
     params: Record<string, never>;
     query: {
@@ -48925,6 +55056,136 @@ export interface Operations {
             test_id: string;
             test_code: string;
           }[];
+        })[];
+        page: {
+          next_cursor?: string;
+          limit: number;
+        };
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  listStaticQrReconciliations: {
+    params: Record<string, never>;
+    query: {
+      business_date_from?: string;
+      business_date_to?: string;
+      centre_id?: string;
+      cursor?: string;
+      limit?: number;
+    };
+    headers: Record<string, never>;
+    body: never;
+    responses: {
+      200: ({
+        data: ({
+          id: string;
+          business_date: string;
+          centre_id?: string;
+          system_entries: number;
+          system_total: {
+            amount_paisa: number;
+            currency: "NPR";
+          };
+          statement_total: {
+            amount_paisa: number;
+            currency: "NPR";
+          };
+          difference: {
+            amount_paisa: number;
+            currency: "NPR";
+          };
+          statement_reference: string;
+          status: "matched" | "accepted_with_difference";
+          note?: string;
+          reconciled_by: {
+            membership_id: string;
+            display_name: string;
+          };
+          created_at: string;
         })[];
         page: {
           next_cursor?: string;
@@ -53992,6 +60253,327 @@ export interface Operations {
       };
     };
   };
+  previewSmartLibraryVersion: {
+    params: {
+      library_version_id: string;
+    };
+    query: Record<string, never>;
+    headers: Record<string, never>;
+    body: ({
+      order_id: string;
+    } | {
+      fixture_code: "synthetic_basic" | "synthetic_all_in_range" | "synthetic_critical";
+    });
+    responses: {
+      200: ({
+        id?: string;
+        order_id?: string;
+        centre_id?: string;
+        status: "draft" | "approved" | "rejected" | "superseded" | "preview";
+        library_version_id: string;
+        template_library_version: number;
+        formula_version: "hs-1";
+        language: "en" | "ne";
+        built_at: string;
+        report_version_nos: number[];
+        approved_at?: string;
+        approved_by_membership_id?: string;
+        approved_by_display_name?: string;
+        rejected_at?: string;
+        rejected_by_display_name?: string;
+        reject_reason_code?: string;
+        reject_comment?: string;
+        superseded_at?: string;
+        superseded_reason?: string;
+        superseded_by_summary_id?: string;
+        health_score?: {
+          value: number;
+          band: "good" | "fair" | "needs_attention";
+          formula_version: "hs-1";
+          panels_scored: number;
+          explanation_text?: string;
+        };
+        panels: ({
+          panel_code: string;
+          display_name: string;
+          status: "in_range" | "borderline" | "out_of_range" | "critical";
+          result_ids: string[];
+        })[];
+        deranged: ({
+          result_id: string;
+          analyte_id: string;
+          analyte_name: string;
+          direction: "low" | "high" | "abnormal";
+          severity: "in_range" | "borderline" | "out_of_range" | "critical";
+          template_block_id: string;
+          text: string;
+          llm_text?: string;
+        })[];
+        advice: {
+          template_block_id: string;
+          text: string;
+          llm_text?: string;
+        }[];
+        follow_ups: {
+          rule_id: string;
+          suggested_test_code: string;
+          suggested_test_name: string;
+          interval_days: number;
+          text: string;
+          llm_text?: string;
+        }[];
+        trends: ({
+          analyte_id: string;
+          analyte_name: string;
+          unit_code?: string;
+          direction: "improved" | "worsened" | "stable";
+          point_result_ids: string[];
+          points: {
+            result_id: string;
+            approved_at: string;
+            value_numeric: string;
+          }[];
+        })[];
+        disclaimer_block_id: string;
+        disclaimer_text: string;
+        counts: {
+          deranged: number;
+          critical: number;
+          unmapped_results: number;
+          ignored_duplicates: number;
+        };
+        llm: {
+          enabled: boolean;
+          use_llm_text: boolean;
+          last_run_id?: string;
+        };
+        registration_no?: string;
+        patient_display_name?: string;
+        review_inputs?: ({
+          result_id: string;
+          analyte_id: string;
+          analyte_name: string;
+          value_text: string;
+          unit_code?: string;
+          flag?: string;
+          ref_range_text?: string;
+          band_status: "in_range" | "borderline" | "out_of_range" | "critical";
+          group_code?: string;
+        })[];
+        reviews: ({
+          action: "approved" | "rejected" | "superseded" | "llm_rephrase_requested";
+          actor_display_name?: string;
+          reason_code?: string;
+          at: string;
+        })[];
+        version?: number;
+        unmapped_result_count: number;
+        ignored_duplicate_count: number;
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      422: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  previewStaticQrReconciliation: {
+    params: Record<string, never>;
+    query: {
+      business_date: string;
+      centre_id?: string;
+    };
+    headers: Record<string, never>;
+    body: never;
+    responses: {
+      200: {
+        business_date: string;
+        centre_id?: string;
+        system_entries: number;
+        system_total: {
+          amount_paisa: number;
+          currency: "NPR";
+        };
+      };
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
   printCreditNote: {
     params: {
       credit_note_id: string;
@@ -55788,6 +62370,433 @@ export interface Operations {
         }[];
       };
       409: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  putMerchantAccount: {
+    params: {
+      gateway: "esewa" | "khalti" | "fonepay";
+      environment: "uat" | "production";
+    };
+    query: Record<string, never>;
+    headers: {
+      "If-Match"?: string;
+    };
+    body: {
+      is_enabled: boolean;
+      esewa_product_code?: string;
+      khalti_website_url?: string;
+      secret?: string;
+      api_refunds_enabled?: boolean;
+    };
+    responses: {
+      200: ({
+        gateway: "esewa" | "khalti" | "fonepay";
+        environment: "uat" | "production";
+        is_enabled: boolean;
+        esewa_product_code?: string;
+        khalti_website_url?: string;
+        secret: {
+          is_set: boolean;
+          set_at?: string;
+          fingerprint?: string;
+        };
+        api_refunds_enabled: boolean;
+        last_test?: {
+          outcome: "reachable_key_valid" | "reachable_key_unverifiable" | "auth_failed" | "unreachable";
+          at: string;
+        };
+        version: number;
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      409: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      503: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  putSmartAnalyteGroup: {
+    params: {
+      library_version_id: string;
+      analyte_id: string;
+    };
+    query: Record<string, never>;
+    headers: {
+      "If-Match"?: string;
+    };
+    body: {
+      group_code: string;
+      include_in_score?: boolean;
+      trend_enabled?: boolean;
+      borderline_fraction_bp?: number;
+      trend_stable_bp?: number;
+      sort_order?: number;
+    };
+    responses: {
+      200: {
+        analyte_id: string;
+        group_code: string;
+        include_in_score: boolean;
+        trend_enabled: boolean;
+        borderline_fraction_bp?: number;
+        trend_stable_bp?: number;
+        sort_order: number;
+        version: number;
+      };
+      201: {
+        analyte_id: string;
+        group_code: string;
+        include_in_score: boolean;
+        trend_enabled: boolean;
+        borderline_fraction_bp?: number;
+        trend_stable_bp?: number;
+        sort_order: number;
+        version: number;
+      };
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      409: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  putSmartGroupSetting: {
+    params: {
+      library_version_id: string;
+      group_code: string;
+    };
+    query: Record<string, never>;
+    headers: {
+      "If-Match": string;
+    };
+    body: {
+      display_en: string;
+      display_ne?: string;
+      score_weight: number;
+      sort_order: number;
+      is_shown: boolean;
+    };
+    responses: {
+      200: {
+        group_code: string;
+        display_en: string;
+        display_ne?: string;
+        score_weight: number;
+        sort_order: number;
+        is_shown: boolean;
+        version: number;
+      };
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      409: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      428: {
         type: string;
         title: string;
         status: number;
@@ -57752,6 +64761,378 @@ export interface Operations {
       };
     };
   };
+  recheckPaymentIntent: {
+    params: {
+      intent_id: string;
+    };
+    query: Record<string, never>;
+    headers: Record<string, never>;
+    body: never;
+    responses: {
+      200: ({
+        id: string;
+        order_id: string;
+        centre_id: string;
+        gateway: "esewa" | "khalti" | "fonepay";
+        environment: "uat" | "production";
+        status: "created" | "initiated" | "pending" | "settled" | "failed" | "expired" | "held_for_review" | "refunded" | "partially_refunded";
+        amount: {
+          amount_paisa: number;
+          currency: "NPR";
+        };
+        hold_reason?: string;
+        failure_reason?: string;
+        created_at: string;
+        expires_at?: string;
+        settled_at?: string;
+        last_checked_at?: string;
+        version: number;
+        gateway_txn_ref: string;
+        gateway_secondary_ref?: string;
+        last_gateway_status_raw?: string;
+        verified_amount?: {
+          amount_paisa: number;
+          currency: "NPR";
+        };
+        verification_method?: "esewa_status_check" | "khalti_lookup";
+        refunded_amount: {
+          amount_paisa: number;
+          currency: "NPR";
+        };
+        ledger_entry_id?: string;
+        created_by_actor_type: "user" | "system";
+        transitions: ({
+          from_status?: "created" | "initiated" | "pending" | "settled" | "failed" | "expired" | "held_for_review" | "refunded" | "partially_refunded";
+          to_status: "created" | "initiated" | "pending" | "settled" | "failed" | "expired" | "held_for_review" | "refunded" | "partially_refunded";
+          cause: "create" | "callback" | "poll" | "verify_call" | "recheck" | "resolve" | "cancel" | "reconciliation" | "refund" | "sweep";
+          reason_code?: string;
+          actor_type: "user" | "system";
+          at: string;
+        })[];
+        gateway_checks: ({
+          operation: "khalti_initiate" | "khalti_lookup" | "esewa_status" | "khalti_refund" | "credential_test";
+          outcome: "answer" | "service_unavailable" | "timeout" | "network_error" | "http_error" | "auth_error" | "not_found" | "invalid_response";
+          gateway_status_raw?: string;
+          http_status?: number;
+          at: string;
+        })[];
+        callbacks: ({
+          kind: "esewa_success" | "esewa_failure" | "khalti_return" | "launch";
+          outcome_code: "ok" | "payments.signature_invalid" | "payments.callback_mismatch" | "payments.callback_stale" | "rate_limited";
+          signature_valid?: boolean;
+          at: string;
+        })[];
+        refunds: ({
+          id: string;
+          intent_id: string;
+          order_id: string;
+          gateway: "esewa" | "khalti" | "fonepay";
+          mode: "manual" | "api";
+          status: "pending_approval" | "approved" | "rejected" | "requested" | "held_for_review" | "completed" | "failed";
+          amount: {
+            amount_paisa: number;
+            currency: "NPR";
+          };
+          reason_code: string;
+          reason_text?: string;
+          requested_by: {
+            membership_id: string;
+            display_name: string;
+          };
+          requested_at: string;
+          approved_by?: {
+            membership_id: string;
+            display_name: string;
+          };
+          approved_at?: string;
+          rejected_by?: {
+            membership_id: string;
+            display_name: string;
+          };
+          rejected_at?: string;
+          gateway_refund_reference?: string;
+          completed_at?: string;
+          ledger_entry_id?: string;
+          failure_reason?: string;
+          failure_note?: string;
+          held_reason?: string;
+          last_checked_at?: string;
+          version: number;
+        })[];
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      409: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      503: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  recheckPaymentRefund: {
+    params: {
+      refund_id: string;
+    };
+    query: Record<string, never>;
+    headers: Record<string, never>;
+    body: Record<string, never>;
+    responses: {
+      200: ({
+        id: string;
+        intent_id: string;
+        order_id: string;
+        gateway: "esewa" | "khalti" | "fonepay";
+        mode: "manual" | "api";
+        status: "pending_approval" | "approved" | "rejected" | "requested" | "held_for_review" | "completed" | "failed";
+        amount: {
+          amount_paisa: number;
+          currency: "NPR";
+        };
+        reason_code: string;
+        reason_text?: string;
+        requested_by: {
+          membership_id: string;
+          display_name: string;
+        };
+        requested_at: string;
+        approved_by?: {
+          membership_id: string;
+          display_name: string;
+        };
+        approved_at?: string;
+        rejected_by?: {
+          membership_id: string;
+          display_name: string;
+        };
+        rejected_at?: string;
+        gateway_refund_reference?: string;
+        completed_at?: string;
+        ledger_entry_id?: string;
+        failure_reason?: string;
+        failure_note?: string;
+        held_reason?: string;
+        last_checked_at?: string;
+        version: number;
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      409: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      503: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
   recordAccessReview: {
     params: Record<string, never>;
     query: Record<string, never>;
@@ -59034,6 +66415,185 @@ export interface Operations {
       };
     };
   };
+  rejectPaymentRefund: {
+    params: {
+      refund_id: string;
+    };
+    query: Record<string, never>;
+    headers: {
+      "Idempotency-Key": string;
+      "If-Match": string;
+    };
+    body: {
+      reason_code: string;
+      note?: string;
+    };
+    responses: {
+      200: ({
+        id: string;
+        intent_id: string;
+        order_id: string;
+        gateway: "esewa" | "khalti" | "fonepay";
+        mode: "manual" | "api";
+        status: "pending_approval" | "approved" | "rejected" | "requested" | "held_for_review" | "completed" | "failed";
+        amount: {
+          amount_paisa: number;
+          currency: "NPR";
+        };
+        reason_code: string;
+        reason_text?: string;
+        requested_by: {
+          membership_id: string;
+          display_name: string;
+        };
+        requested_at: string;
+        approved_by?: {
+          membership_id: string;
+          display_name: string;
+        };
+        approved_at?: string;
+        rejected_by?: {
+          membership_id: string;
+          display_name: string;
+        };
+        rejected_at?: string;
+        gateway_refund_reference?: string;
+        completed_at?: string;
+        ledger_entry_id?: string;
+        failure_reason?: string;
+        failure_note?: string;
+        held_reason?: string;
+        last_checked_at?: string;
+        version: number;
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      409: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      422: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      428: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
   rejectRefund: {
     params: {
       refund_request_id: string;
@@ -59166,6 +66726,236 @@ export interface Operations {
         }[];
       };
       422: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      428: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  rejectSmartSummary: {
+    params: {
+      summary_id: string;
+    };
+    query: Record<string, never>;
+    headers: {
+      "If-Match": string;
+    };
+    body: {
+      reason_code: string;
+      comment?: string;
+    };
+    responses: {
+      200: ({
+        id: string;
+        order_id: string;
+        centre_id: string;
+        status: "draft" | "approved" | "rejected" | "superseded" | "preview";
+        library_version_id: string;
+        template_library_version: number;
+        formula_version: "hs-1";
+        language: "en" | "ne";
+        built_at: string;
+        report_version_nos: number[];
+        approved_at?: string;
+        approved_by_membership_id?: string;
+        approved_by_display_name?: string;
+        rejected_at?: string;
+        rejected_by_display_name?: string;
+        reject_reason_code?: string;
+        reject_comment?: string;
+        superseded_at?: string;
+        superseded_reason?: string;
+        superseded_by_summary_id?: string;
+        health_score?: {
+          value: number;
+          band: "good" | "fair" | "needs_attention";
+          formula_version: "hs-1";
+          panels_scored: number;
+          explanation_text?: string;
+        };
+        panels: ({
+          panel_code: string;
+          display_name: string;
+          status: "in_range" | "borderline" | "out_of_range" | "critical";
+          result_ids: string[];
+        })[];
+        deranged: ({
+          result_id: string;
+          analyte_id: string;
+          analyte_name: string;
+          direction: "low" | "high" | "abnormal";
+          severity: "in_range" | "borderline" | "out_of_range" | "critical";
+          template_block_id: string;
+          text: string;
+          llm_text?: string;
+        })[];
+        advice: {
+          template_block_id: string;
+          text: string;
+          llm_text?: string;
+        }[];
+        follow_ups: {
+          rule_id: string;
+          suggested_test_code: string;
+          suggested_test_name: string;
+          interval_days: number;
+          text: string;
+          llm_text?: string;
+        }[];
+        trends: ({
+          analyte_id: string;
+          analyte_name: string;
+          unit_code?: string;
+          direction: "improved" | "worsened" | "stable";
+          point_result_ids: string[];
+          points: {
+            result_id: string;
+            approved_at: string;
+            value_numeric: string;
+          }[];
+        })[];
+        disclaimer_block_id: string;
+        disclaimer_text: string;
+        counts: {
+          deranged: number;
+          critical: number;
+          unmapped_results: number;
+          ignored_duplicates: number;
+        };
+        llm: {
+          enabled: boolean;
+          use_llm_text: boolean;
+          last_run_id?: string;
+        };
+        registration_no: string;
+        patient_display_name?: string;
+        review_inputs?: ({
+          result_id: string;
+          analyte_id: string;
+          analyte_name: string;
+          value_text: string;
+          unit_code?: string;
+          flag?: string;
+          ref_range_text?: string;
+          band_status: "in_range" | "borderline" | "out_of_range" | "critical";
+          group_code?: string;
+        })[];
+        reviews: ({
+          action: "approved" | "rejected" | "superseded" | "llm_rephrase_requested";
+          actor_display_name?: string;
+          reason_code?: string;
+          at: string;
+        })[];
+        version: number;
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      409: {
         type: string;
         title: string;
         status: number;
@@ -61200,6 +68990,326 @@ export interface Operations {
       };
     };
   };
+  replaceSmartRule: {
+    params: {
+      library_version_id: string;
+      rule_id: string;
+    };
+    query: Record<string, never>;
+    headers: {
+      "If-Match": string;
+    };
+    body: {
+      rule_kind: "deranged" | "advice" | "followup";
+      trigger_kind: "analyte" | "group" | "any" | "all_in_range";
+      analyte_id?: string;
+      group_code?: string;
+      direction: "low" | "high" | "abnormal" | "any";
+      min_severity?: "borderline" | "out_of_range" | "critical";
+      priority?: number;
+      block_id: string;
+      suggested_test_id?: string;
+      interval_days?: number;
+    };
+    responses: {
+      200: ({
+        id: string;
+        rule_kind: "deranged" | "advice" | "followup";
+        trigger_kind: "analyte" | "group" | "any" | "all_in_range";
+        analyte_id?: string;
+        group_code?: string;
+        direction: "low" | "high" | "abnormal" | "any";
+        min_severity?: "borderline" | "out_of_range" | "critical";
+        priority?: number;
+        block_id: string;
+        suggested_test_id?: string;
+        interval_days?: number;
+        version: number;
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      409: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      422: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      428: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  replaceSmartTemplateBlock: {
+    params: {
+      library_version_id: string;
+      block_id: string;
+    };
+    query: Record<string, never>;
+    headers: {
+      "If-Match": string;
+    };
+    body: {
+      block_key: string;
+      kind: "deranged" | "advice" | "followup" | "disclaimer" | "score_explanation";
+      text_en?: string;
+      text_ne?: string;
+      note?: string;
+    };
+    responses: {
+      200: ({
+        id: string;
+        block_key: string;
+        kind: "deranged" | "advice" | "followup" | "disclaimer" | "score_explanation";
+        text_en?: string;
+        text_ne?: string;
+        note?: string;
+        placeholders: string[];
+        version: number;
+        updated_at: string;
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      409: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      422: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      428: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
   replaceStaffAssignments: {
     params: Record<string, never>;
     query: Record<string, never>;
@@ -62994,6 +71104,149 @@ export interface Operations {
       };
     };
   };
+  requestSmartLlmRephrase: {
+    params: {
+      summary_id: string;
+    };
+    query: Record<string, never>;
+    headers: {
+      "Idempotency-Key": string;
+      "If-Match": string;
+    };
+    body: Record<string, never> | undefined;
+    responses: {
+      202: {
+        summary_id: string;
+        requested_at: string;
+      };
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      409: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      422: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      428: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
   resendInvitation: {
     params: {
       membership_id: string;
@@ -64110,6 +72363,411 @@ export interface Operations {
         }[];
       };
       401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  resolvePaymentIntent: {
+    params: {
+      intent_id: string;
+    };
+    query: Record<string, never>;
+    headers: {
+      "Idempotency-Key": string;
+      "If-Match": string;
+    };
+    body: {
+      resolution: "settle" | "fail" | "record_exceeding_due";
+      reason_code: string;
+      note?: string;
+    };
+    responses: {
+      200: ({
+        id: string;
+        order_id: string;
+        centre_id: string;
+        gateway: "esewa" | "khalti" | "fonepay";
+        environment: "uat" | "production";
+        status: "created" | "initiated" | "pending" | "settled" | "failed" | "expired" | "held_for_review" | "refunded" | "partially_refunded";
+        amount: {
+          amount_paisa: number;
+          currency: "NPR";
+        };
+        hold_reason?: string;
+        failure_reason?: string;
+        created_at: string;
+        expires_at?: string;
+        settled_at?: string;
+        last_checked_at?: string;
+        version: number;
+        gateway_txn_ref: string;
+        gateway_secondary_ref?: string;
+        last_gateway_status_raw?: string;
+        verified_amount?: {
+          amount_paisa: number;
+          currency: "NPR";
+        };
+        verification_method?: "esewa_status_check" | "khalti_lookup";
+        refunded_amount: {
+          amount_paisa: number;
+          currency: "NPR";
+        };
+        ledger_entry_id?: string;
+        created_by_actor_type: "user" | "system";
+        transitions: ({
+          from_status?: "created" | "initiated" | "pending" | "settled" | "failed" | "expired" | "held_for_review" | "refunded" | "partially_refunded";
+          to_status: "created" | "initiated" | "pending" | "settled" | "failed" | "expired" | "held_for_review" | "refunded" | "partially_refunded";
+          cause: "create" | "callback" | "poll" | "verify_call" | "recheck" | "resolve" | "cancel" | "reconciliation" | "refund" | "sweep";
+          reason_code?: string;
+          actor_type: "user" | "system";
+          at: string;
+        })[];
+        gateway_checks: ({
+          operation: "khalti_initiate" | "khalti_lookup" | "esewa_status" | "khalti_refund" | "credential_test";
+          outcome: "answer" | "service_unavailable" | "timeout" | "network_error" | "http_error" | "auth_error" | "not_found" | "invalid_response";
+          gateway_status_raw?: string;
+          http_status?: number;
+          at: string;
+        })[];
+        callbacks: ({
+          kind: "esewa_success" | "esewa_failure" | "khalti_return" | "launch";
+          outcome_code: "ok" | "payments.signature_invalid" | "payments.callback_mismatch" | "payments.callback_stale" | "rate_limited";
+          signature_valid?: boolean;
+          at: string;
+        })[];
+        refunds: ({
+          id: string;
+          intent_id: string;
+          order_id: string;
+          gateway: "esewa" | "khalti" | "fonepay";
+          mode: "manual" | "api";
+          status: "pending_approval" | "approved" | "rejected" | "requested" | "held_for_review" | "completed" | "failed";
+          amount: {
+            amount_paisa: number;
+            currency: "NPR";
+          };
+          reason_code: string;
+          reason_text?: string;
+          requested_by: {
+            membership_id: string;
+            display_name: string;
+          };
+          requested_at: string;
+          approved_by?: {
+            membership_id: string;
+            display_name: string;
+          };
+          approved_at?: string;
+          rejected_by?: {
+            membership_id: string;
+            display_name: string;
+          };
+          rejected_at?: string;
+          gateway_refund_reference?: string;
+          completed_at?: string;
+          ledger_entry_id?: string;
+          failure_reason?: string;
+          failure_note?: string;
+          held_reason?: string;
+          last_checked_at?: string;
+          version: number;
+        })[];
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      409: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      422: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      428: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  resolveReconciliationFinding: {
+    params: {
+      finding_id: string;
+    };
+    query: Record<string, never>;
+    headers: {
+      "Idempotency-Key": string;
+      "If-Match": string;
+    };
+    body: {
+      resolution_code: string;
+      note?: string;
+    };
+    responses: {
+      200: ({
+        id: string;
+        run_id: string;
+        kind: string;
+        severity: "info" | "warning" | "critical";
+        intent_id?: string;
+        refund_id?: string;
+        our_status?: string;
+        gateway_status_raw?: string;
+        our_amount?: {
+          amount_paisa: number;
+          currency: "NPR";
+        };
+        gateway_amount?: {
+          amount_paisa: number;
+          currency: "NPR";
+        };
+        auto_action: "none" | "settled" | "held" | "ledger_repaired";
+        status: "open" | "resolved";
+        resolution_code?: string;
+        note?: string;
+        resolved_by?: {
+          membership_id: string;
+          display_name: string;
+        };
+        resolved_at?: string;
+        created_at: string;
+        version: number;
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      409: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      422: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      428: {
         type: string;
         title: string;
         status: number;
@@ -65802,6 +74460,180 @@ export interface Operations {
           amended_at: string;
           amended_by: string;
         };
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      409: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      428: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  returnSmartLibraryVersion: {
+    params: {
+      library_version_id: string;
+    };
+    query: Record<string, never>;
+    headers: {
+      "If-Match": string;
+    };
+    body: {
+      comment: string;
+    };
+    responses: {
+      200: ({
+        id: string;
+        version_no: number;
+        status: "draft" | "in_review" | "approved" | "retired";
+        language: "en" | "ne";
+        formula_version: "hs-1";
+        params: {
+          score_enabled: boolean;
+          credit_in_range_bp: number;
+          credit_borderline_bp: number;
+          credit_out_of_range_bp: number;
+          credit_critical_bp: number;
+          min_groups_scored: number;
+          band_good_min: number;
+          band_fair_min: number;
+          critical_forces_needs_attention: boolean;
+          borderline_fraction_bp: number;
+          min_mapped_results: number;
+          trend_enabled: boolean;
+          trend_max_points: number;
+          trend_lookback_days: number;
+          trend_stable_bp: number;
+          trends_max: number;
+          advice_max_blocks: number;
+          followup_max: number;
+        };
+        source_version_id?: string;
+        change_summary?: string;
+        content_sha256?: string;
+        submitted_at?: string;
+        submitted_by_membership_id?: string;
+        approved_at?: string;
+        approved_by_membership_id?: string;
+        approved_by_display_name?: string;
+        approval_note?: string;
+        returned_at?: string;
+        return_comment?: string;
+        retired_at?: string;
+        counts: {
+          blocks: number;
+          rules: number;
+          analyte_groups: number;
+          groups_shown: number;
+        };
+        version: number;
+        created_at: string;
+        updated_at: string;
       });
       400: {
         type: string;
@@ -70318,6 +79150,143 @@ export interface Operations {
       };
     };
   };
+  startReconciliationRun: {
+    params: Record<string, never>;
+    query: Record<string, never>;
+    headers: {
+      "Idempotency-Key": string;
+    };
+    body: Record<string, never>;
+    responses: {
+      202: ({
+        id: string;
+        business_date: string;
+        trigger: "cron" | "manual";
+        status: "running" | "completed" | "failed";
+        started_at: string;
+        finished_at?: string;
+        counts: {
+          checked: number;
+          ok: number;
+          findings: number;
+          critical: number;
+        };
+        version: number;
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      409: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      422: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
   storeSpecimen: {
     params: {
       specimen_id: string;
@@ -71119,6 +80088,192 @@ export interface Operations {
       };
     };
   };
+  submitSmartLibraryVersion: {
+    params: {
+      library_version_id: string;
+    };
+    query: Record<string, never>;
+    headers: {
+      "If-Match": string;
+    };
+    body: Record<string, never> | undefined;
+    responses: {
+      200: ({
+        id: string;
+        version_no: number;
+        status: "draft" | "in_review" | "approved" | "retired";
+        language: "en" | "ne";
+        formula_version: "hs-1";
+        params: {
+          score_enabled: boolean;
+          credit_in_range_bp: number;
+          credit_borderline_bp: number;
+          credit_out_of_range_bp: number;
+          credit_critical_bp: number;
+          min_groups_scored: number;
+          band_good_min: number;
+          band_fair_min: number;
+          critical_forces_needs_attention: boolean;
+          borderline_fraction_bp: number;
+          min_mapped_results: number;
+          trend_enabled: boolean;
+          trend_max_points: number;
+          trend_lookback_days: number;
+          trend_stable_bp: number;
+          trends_max: number;
+          advice_max_blocks: number;
+          followup_max: number;
+        };
+        source_version_id?: string;
+        change_summary?: string;
+        content_sha256?: string;
+        submitted_at?: string;
+        submitted_by_membership_id?: string;
+        approved_at?: string;
+        approved_by_membership_id?: string;
+        approved_by_display_name?: string;
+        approval_note?: string;
+        returned_at?: string;
+        return_comment?: string;
+        retired_at?: string;
+        counts: {
+          blocks: number;
+          rules: number;
+          analyte_groups: number;
+          groups_shown: number;
+        };
+        version: number;
+        created_at: string;
+        updated_at: string;
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      409: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      422: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      428: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
   supersedeConsumptionRule: {
     params: {
       rule_id: string;
@@ -71778,6 +80933,105 @@ export interface Operations {
         }[];
       };
       428: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  testMerchantAccount: {
+    params: {
+      gateway: "esewa" | "khalti" | "fonepay";
+      environment: "uat" | "production";
+    };
+    query: Record<string, never>;
+    headers: Record<string, never>;
+    body: never;
+    responses: {
+      200: ({
+        outcome: "reachable_key_valid" | "reachable_key_unverifiable" | "auth_failed" | "unreachable";
+        checked_at: string;
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
         type: string;
         title: string;
         status: number;
@@ -76486,6 +85740,141 @@ export interface Operations {
       };
     };
   };
+  updatePaymentSettings: {
+    params: Record<string, never>;
+    query: Record<string, never>;
+    headers: {
+      "If-Match": string;
+    };
+    body: {
+      refund_two_person_threshold_paisa: number;
+      purchase_order_label: string;
+      reconciliation_enabled: boolean;
+    };
+    responses: {
+      200: {
+        refund_two_person_threshold: {
+          amount_paisa: number;
+          currency: "NPR";
+        };
+        purchase_order_label: string;
+        reconciliation_enabled: boolean;
+        version: number;
+      };
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      409: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      428: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
   updatePlatformStaff: {
     params: {
       platform_staff_id: string;
@@ -77677,6 +87066,201 @@ export interface Operations {
         }[];
       };
       422: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      428: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  updateSmartLibraryVersion: {
+    params: {
+      library_version_id: string;
+    };
+    query: Record<string, never>;
+    headers: {
+      "If-Match": string;
+    };
+    body: {
+      language?: "en" | "ne";
+      change_summary?: string;
+      params?: {
+        score_enabled?: boolean;
+        credit_in_range_bp?: number;
+        credit_borderline_bp?: number;
+        credit_out_of_range_bp?: number;
+        credit_critical_bp?: number;
+        min_groups_scored?: number;
+        band_good_min?: number;
+        band_fair_min?: number;
+        critical_forces_needs_attention?: boolean;
+        borderline_fraction_bp?: number;
+        min_mapped_results?: number;
+        trend_enabled?: boolean;
+        trend_max_points?: number;
+        trend_lookback_days?: number;
+        trend_stable_bp?: number;
+        trends_max?: number;
+        advice_max_blocks?: number;
+        followup_max?: number;
+      };
+    };
+    responses: {
+      200: ({
+        id: string;
+        version_no: number;
+        status: "draft" | "in_review" | "approved" | "retired";
+        language: "en" | "ne";
+        formula_version: "hs-1";
+        params: {
+          score_enabled: boolean;
+          credit_in_range_bp: number;
+          credit_borderline_bp: number;
+          credit_out_of_range_bp: number;
+          credit_critical_bp: number;
+          min_groups_scored: number;
+          band_good_min: number;
+          band_fair_min: number;
+          critical_forces_needs_attention: boolean;
+          borderline_fraction_bp: number;
+          min_mapped_results: number;
+          trend_enabled: boolean;
+          trend_max_points: number;
+          trend_lookback_days: number;
+          trend_stable_bp: number;
+          trends_max: number;
+          advice_max_blocks: number;
+          followup_max: number;
+        };
+        source_version_id?: string;
+        change_summary?: string;
+        content_sha256?: string;
+        submitted_at?: string;
+        submitted_by_membership_id?: string;
+        approved_at?: string;
+        approved_by_membership_id?: string;
+        approved_by_display_name?: string;
+        approval_note?: string;
+        returned_at?: string;
+        return_comment?: string;
+        retired_at?: string;
+        counts: {
+          blocks: number;
+          rules: number;
+          analyte_groups: number;
+          groups_shown: number;
+        };
+        version: number;
+        created_at: string;
+        updated_at: string;
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      409: {
         type: string;
         title: string;
         status: number;
@@ -80746,6 +90330,112 @@ export interface Operations {
           message: string;
         }[];
       };
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  validateSmartLibraryVersion: {
+    params: {
+      library_version_id: string;
+    };
+    query: Record<string, never>;
+    headers: Record<string, never>;
+    body: Record<string, never> | undefined;
+    responses: {
+      200: ({
+        valid: boolean;
+        issues: ({
+          code: string;
+          severity: "error" | "warning";
+          path?: string;
+          block_key?: string;
+          rule_id?: string;
+          analyte_id?: string;
+          detail: string;
+        })[];
+      });
       400: {
         type: string;
         title: string;

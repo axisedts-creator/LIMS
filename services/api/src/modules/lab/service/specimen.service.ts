@@ -55,7 +55,7 @@ const BACKENTRY_MAX_HOURS = 72;     // LD-25 default; the tenant setting downtim
 const BULK_MAX = 200;
 const MAX_VERSION = 2147483647;
 // T-10: label.service.ts reuses the same ctx / validation / centre-scope helpers (declared below; export lists are hoisted).
-export { specimenCtx, bad, strict, uuidParam, scopeOf, visible, role, repoCtx, isObj, UUID, BULK_MAX };
+export { specimenCtx, bad, strict, uuidParam, scopeOf, visible, role, repoCtx, isObj, UUID, BULK_MAX, ISO_MS, step, emitStatus };
 export type { SpecimenCtx, Obj };
 
 interface SpecimenCtx {

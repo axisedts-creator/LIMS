@@ -13,6 +13,8 @@ import { handle as catalogChangedHandler } from './consumers/catalog.changed.v1.
 import { handle as reapplyForSpecimen } from './tasks/lab.reapply_exceptions_for_specimen.js';
 import { handle as reapplyUnmapped } from './tasks/lab.reapply_unmapped_exceptions.js';
 
+import { handle as reportReleasedHandler } from './consumers/reporting.report.released.v1.js';
+
 const CONSUMED = [
   'frontdesk.order.created.v1',
   'frontdesk.order.items_changed.v1',
@@ -35,6 +37,7 @@ const IMPLEMENTED: Readonly<Record<string, ConsumerHandler>> = {
   'frontdesk.order.items_changed.v1': itemsChangedHandler,
   'frontdesk.order.cancelled.v1': cancelledHandler,
   'homecollection.collection.synced.v1': homeCollectionHandler,
+  'reporting.report.released.v1': reportReleasedHandler,   // T-27
   'instruments.result.received.v1': instrumentResultHandler,   // T-22
   'catalog.changed.v1': catalogChangedHandler,                  // T-23
 };

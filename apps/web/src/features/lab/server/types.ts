@@ -91,3 +91,55 @@ export interface OrderResultsItem { order_item_id: string; test: { id: string; c
 
 export interface VerifyItem { id: string; version: number; acknowledged_flags?: AckFlag[] }
 export interface ResultBulkRow { id: string; outcome: 'ok' | 'error'; code?: string }
+
+// C5.T-20: result entry grid (ResultDto / OrderResultsResponse / bulkEnterResults / getResultHistory / getAnalyteTrend). Only the fields the grid reads.
+export const OCCURRED_AT_RE = /^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\.[0-9]{1,3})?Z$/;
+export interface GridResult {
+  id: string;
+  version: number;
+  order_id: string;
+  order_item_id: string;
+  specimen_id?: string;
+  test_id: string;
+  analyte_id: string;
+  analyte_code: string;
+  status: string; // pending | resulted | verified | approved | cancelled (kept a string so DTOs parsed from JSON type-check)
+  origin: string;
+  value_numeric?: string;
+  value_text?: string;
+  ordinal_code?: string;
+  unit_code?: string;
+  flag?: string;
+  reference_range_snapshot?: { low?: string; high?: string; text?: string; unit_code?: string };
+  range_unavailable_age_unknown: boolean;
+  delta?: { status: string; prev_value?: string; abs?: string; pct?: string; prev_at?: string };
+  critical: { is_critical: boolean; critical_event_id?: string };
+  calc?: { status: string; reason?: string; provenance?: string };
+  comment_codes?: string[];
+  comment_text?: string;
+  on_hold: boolean;
+  qc_review_required: boolean;
+  unit_mismatch: boolean;
+  instrument_flags?: string[];
+  current_version_no: number;
+  // LD-25 (2026-11-07): not in lab.yaml ResultDto yet (SPEC GAP, see C5.T-20-impl.md); read when the API sends them
+  entry_mode?: 'live' | 'downtime_backentry';
+  occurred_at?: string;
+  downtime_ref?: string;
+}
+export interface OrderResults {
+  order: { order_id: string; registration_no: string; [k: string]: unknown };
+  items: { order_item_id: string; test: { test_id: string; test_code: string }; results: GridResult[] }[];
+}
+export interface EnterEntry { result_id: string; version: number; value_numeric?: string; value_text?: string; ordinal_code?: string; comment_codes?: string[]; comment_text?: string }
+/** LD-25 downtime back-entry: occurred_at = original time from the paper form (ISO instant), downtime_ref = paper form serial (<= 32). */
+export interface DowntimeFields { entry_mode: 'downtime_backentry'; occurred_at: string; downtime_ref: string }
+export interface EnterRow { result_id: string; outcome: 'ok' | 'error'; code?: string; result?: GridResult }
+export interface EnterResponse { results: EnterRow[]; recomputed?: GridResult[] }
+export interface ReturnBody { reason_code: string; comment?: string }
+export interface AmendBody { value_numeric?: string; value_text?: string; ordinal_code?: string; amendment_reason_code: string; amendment_reason_text?: string; comment_codes?: string[]; comment_text?: string }
+export interface HistoryRow { result_id: string; approved_at: string; value: string; unit_code?: string; flag?: string; version_no: number }
+export interface TrendPoint { result_id: string; at: string; value: string; unit_code?: string; flag?: string }
+export interface TrendResponse { points: TrendPoint[]; reference_band?: { low?: string; high?: string; unit_code?: string } }
+export interface CommentCodeRow { code: string; text: string; version: number }
+export interface CodedOption { code: string; display: string }

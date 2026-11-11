@@ -4,10 +4,10 @@
 import 'server-only';
 import { ApiError } from '@/core/api/server-fetch';
 import { problem } from '@/core/session/types';
-import { amendResult, assignException, bulkApproveResults, bulkCollect, bulkDispatch, bulkEnterResults, bulkVerifyResults, discardException, lookupSpecimens, reapplyException, receiveSpecimen, rejectSpecimen, returnResult } from './write.server';
+import { amendResult, assignException, bulkApproveResults, bulkCollect, bulkDispatch, bulkEnterResults, bulkVerifyResults, createAliquots, discardException, discardSpecimen, lookupSpecimens, reapplyException, receiveSpecimen, rejectSpecimen, requestRecollection, returnResult, storeSpecimen } from './write.server';
 import { getAnalyteTrend, getResultHistory, getStatusBoard, listCommentCodes, listOrderResults } from './read.server';
 import { UUID_RE } from './types';
-import type { ActionResult, AmendBody, AssignBody, BoardQuery, BulkItem, BulkRow, CommentCodeRow, DiscardBody, DowntimeFields, EnterEntry, EnterResponse, ExceptionAction, GridResult, HistoryRow, IngestException, LookupKey, OrderResult, RejectBody, RejectResult, ResultBulkRow, ReturnBody, Specimen, StatusBoardPage, TrendResponse, VerifyItem } from './types';
+import type { ActionResult, AliquotBody, AliquotResult, AmendBody, AssignBody, BoardQuery, BulkItem, BulkRow, CommentCodeRow, DiscardBody, DiscardSpecimenBody, DowntimeFields, EnterEntry, EnterResponse, ExceptionAction, GridResult, HistoryRow, IngestException, LookupKey, OrderResult, RejectBody, RejectResult, ResultBulkRow, ReturnBody, Specimen, StatusBoardPage, StoreBody, TrendResponse, VerifyItem } from './types';
 
 async function run<T>(f: () => Promise<T>): Promise<ActionResult<T>> {
   try {
@@ -46,4 +46,9 @@ export async function lookupSpecimenAction(k: LookupKey): Promise<ActionResult<S
 export async function bulkCollectAction(list: BulkItem[], key: string): Promise<ActionResult<BulkRow[]>> { return run(() => bulkCollect(list, key)); }
 export async function bulkDispatchAction(list: BulkItem[], key: string): Promise<ActionResult<BulkRow[]>> { return run(() => bulkDispatch(list, key)); }
 export async function receiveSpecimenAction(id: string, version: number, centreId: string, key: string): Promise<ActionResult<Specimen>> { return run(() => receiveSpecimen(id, version, centreId, key)); }
+// C5.T-30 specimen detail actions (#12 store, #13 discard, #10 recollect, #11 aliquots)
+export async function storeSpecimenAction(id: string, version: number, body: StoreBody, key?: string): Promise<ActionResult<Specimen>> { return run(() => storeSpecimen(id, version, body, key)); }
+export async function discardSpecimenAction(id: string, version: number, body: DiscardSpecimenBody, key?: string): Promise<ActionResult<Specimen>> { return run(() => discardSpecimen(id, version, body, key)); }
+export async function requestRecollectionAction(id: string, version: number, key: string): Promise<ActionResult<RejectResult>> { return run(() => requestRecollection(id, version, key)); }
+export async function createAliquotsAction(id: string, version: number, body: AliquotBody, key: string): Promise<ActionResult<AliquotResult>> { return run(() => createAliquots(id, version, body, key)); }
 export async function rejectSpecimenAction(id: string, version: number, body: RejectBody, key: string): Promise<ActionResult<RejectResult>> { return run(() => rejectSpecimen(id, version, body, key)); }

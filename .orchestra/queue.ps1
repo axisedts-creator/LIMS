@@ -138,6 +138,13 @@ while ($true) {
     $host.UI.RawUI.WindowTitle = "LIMS queue - DISK LOW $free GB"
   } else { if (Test-Path $flag) { Remove-Item $flag -Force -ErrorAction SilentlyContinue }; $host.UI.RawUI.WindowTitle = "LIMS queue" }
   if ($lowDisk) { Q "DISK LOW: $free GB free (limit $MinFreeGB GB) - not starting new lanes; running lanes continue. To free space: powershell -ExecutionPolicy Bypass -File C:\LIMS\.orchestra\free-space.ps1 -Apply" }
+  # 1c. test-hang watchdog (2026-11-11 night): a static test run (python -m unittest) older than 40 min is hung, not slow (one blocked a lane for 1h41m). Kill it so the agent waiting on it continues.
+  try {
+    foreach ($w in @(Get-CimInstance Win32_Process -Filter "Name='python.exe'" -ErrorAction SilentlyContinue | Where-Object { $_.CommandLine -match '-m unittest' -and $_.CreationDate -lt (Get-Date).AddMinutes(-40) })) {
+      Stop-Process -Id $w.ProcessId -Force -ErrorAction SilentlyContinue
+      Q "WATCHDOG: killed hung test run pid $($w.ProcessId) started $($w.CreationDate.ToString('s')): $($w.CommandLine.Substring(0, [Math]::Min(120, $w.CommandLine.Length)))"
+    }
+  } catch { }
   # 2. start lanes that are ready, in priority order, while a slot is free
   $waiting = 0
   foreach ($l in $Queue) {
@@ -158,8 +165,32 @@ while ($true) {
       git -C $wt rev-parse -q --verify MERGE_HEAD 2>&1 | Out-Null
       if ($LASTEXITCODE -eq 0) { $mf = "an earlier merge is unfinished (MERGE_HEAD present)" }
       else {
+        # self-heal (2026-11-11 night): untracked CR archive files that main already has would block the merge; drop the ones main has
+        try {
+          foreach ($s in @(git -C $wt status --porcelain 2>$null)) {
+            if ($s -match '^\?\? (\.orchestra/cr/\S*\.resolved-\S*)$') {
+              $rf = $Matches[1]
+              if (Test-Path (Join-Path $Integration $rf)) { Remove-Item (Join-Path $wt $rf) -Force -ErrorAction SilentlyContinue }
+            }
+          }
+        } catch { }
         $mo = git -C $wt merge --no-edit main 2>&1
-        if ($LASTEXITCODE -ne 0) { git -C $wt merge --abort 2>&1 | Out-Null; $mf = "merge of main failed and was aborted: " + ((@($mo) -join ' ') -replace '\s+', ' ') }
+        if ($LASTEXITCODE -ne 0) {
+          # a conflict that touches nothing but .orchestra/cr archive names (rename/rename of resolved CR files) is bookkeeping: keep both names and commit
+          $healed = $false
+          try {
+            git -C $wt rev-parse -q --verify MERGE_HEAD 2>&1 | Out-Null
+            if ($LASTEXITCODE -eq 0) {
+              $un = @(git -C $wt diff --name-only --diff-filter=U 2>$null)
+              if ($un.Count -gt 0 -and @($un | Where-Object { $_ -notlike '.orchestra/cr/*' }).Count -eq 0) {
+                git -C $wt add -A -- .orchestra/cr 2>&1 | Out-Null
+                git -C $wt commit -q --no-edit 2>&1 | Out-Null
+                if ($LASTEXITCODE -eq 0) { $healed = $true; Q "lane $($l.name): merge of main conflicted only in .orchestra/cr archive names - kept both and committed" }
+              }
+            }
+          } catch { }
+          if (-not $healed) { git -C $wt merge --abort 2>&1 | Out-Null; $mf = "merge of main failed and was aborted: " + ((@($mo) -join ' ') -replace '\s+', ' ') }
+        }
       }
       if ($mf) {
         if (-not $script:MergeWarned) { $script:MergeWarned = @{} }

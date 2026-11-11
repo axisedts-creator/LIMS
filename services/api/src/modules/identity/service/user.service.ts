@@ -6,6 +6,7 @@ import { LimsError, type FieldError } from '../../../core/errors.js';
 // [CONV] relative import until @lims/shared-ts is a services/api dependency (same as role.service).
 import { uuidv7 } from '../../../../../../packages/shared-ts/src/uuidv7/index.js';
 import type { GoTrueGateway } from '../gotrue/gateway.js';
+import type { AuthEvent } from '../repository/auth-events.repo.js';
 import { createAssetsRepo } from '../repository/assets.repo.js';
 import { createInvitationsRepo } from '../repository/invitations.repo.js';
 
@@ -14,6 +15,7 @@ export interface UserCtx {
   readonly tenantId: string;
   readonly actor: { readonly type: string; readonly id: string; readonly membershipId?: string };
   readonly requestId?: string;
+  readonly clientIp?: string;
   readonly tx: unknown;
   readonly now?: () => string | Date;
   readonly audit?: { access(entry: Access): Promise<unknown> };
@@ -50,7 +52,7 @@ export interface UserRepo {
   replaceScope(tx: unknown, tenantId: string, membershipId: string, s: { centreIds: string[]; branchIds: string[] }, actorId: string): Promise<void>;
   insertInvitation(tx: unknown, tenantId: string, i: { id: string; membershipId: string; userId: string; email: string; expiresAt: Date; actorId: string }): Promise<void>;
   revokeOpenInvitations(tx: unknown, tenantId: string, membershipId: string, actorId: string): Promise<void>;
-  revokeSessions(tx: unknown, tenantId: string, a: { membershipId: string; userId: string; reason: string; actorId: string }): Promise<number>;
+  revokeSessions(tx: unknown, tenantId: string, a: { membershipId: string; userId: string; reason: string; actorId: string }): Promise<Array<{ id: string; user_id: string }>>;
   removeMfaFactors(tx: unknown, tenantId: string, a: { userId: string; actorId: string }): Promise<number>;
   insertSignatureAsset(tx: unknown, tenantId: string, a: { id: string; membershipId: string; bucket: string; objectPath: string; contentType: string; sizeBytes: number; widthPx: number; heightPx: number; sha256: string; scanState: string; actorId: string }): Promise<void>;
   deactivateOtherSignatureAssets(tx: unknown, tenantId: string, membershipId: string, keepId: string, actorId: string): Promise<void>;
@@ -192,7 +194,7 @@ export function createUserRepo(): UserRepo {
     async revokeSessions(tx, t, a) {
       return (await q(tx, `UPDATE identity.sessions SET state = 'revoked', revoked_at = now(), revoked_by = $4, revoke_reason = $3,
           version = version + 1, updated_at = now(), updated_by = $4
-        WHERE tenant_id = $1 AND membership_id = $2 AND state NOT IN ('revoked', 'expired') RETURNING id`, [t, a.membershipId, a.reason, a.actorId])).length;
+        WHERE tenant_id = $1 AND membership_id = $2 AND state NOT IN ('revoked', 'expired') RETURNING id, user_id`, [t, a.membershipId, a.reason, a.actorId]));
     },
     async removeMfaFactors(tx, t, a) {
       return (await q(tx, `UPDATE identity.mfa_factors SET status = 'removed', removed_at = now(), removed_by = $3, removal_reason = 'admin_reset', is_active = false,
@@ -225,7 +227,7 @@ const intIn = (v: unknown, min: number, max: number) => Number.isSafeInteger(v) 
 function scope(ctx: UserCtx, audited = false) {
   if (typeof ctx?.tenantId !== 'string' || !UUID.test(ctx.tenantId) || typeof ctx.actor?.id !== 'string' || !ctx.tx) throw new LimsError('auth.unauthenticated');
   if (audited && typeof ctx.audit?.access !== 'function') throw new LimsError('common.internal');   // fail closed: no access log
-  return { tx: ctx.tx, tenantId: ctx.tenantId, actorId: ctx.actor.id };
+  return { tx: ctx.tx, tenantId: ctx.tenantId, actorId: ctx.actor.id, clientIp: ctx.clientIp ?? '', requestId: ctx.requestId ?? '' };
 }
 type Scope = ReturnType<typeof scope>;
 function expected(v: unknown): number {
@@ -273,6 +275,7 @@ function toUser(m: MemberView) {
 export function createUserService(deps: {
   repo?: UserRepo; gotrue?: Pick<GoTrueGateway, 'adminCreateUser'>; userExists?: (tx: unknown, userId: string) => Promise<boolean>;
   emailHmac?: (emailNormalized: string) => Buffer; clearAccountFailures?: (emailNormalized: string) => Promise<void>; newId?: () => string;
+  events?: { recordTenant(tx: unknown, e: AuthEvent): Promise<void> };
 } = {}) {
   const repo = deps.repo ?? createUserRepo();
   const newId = deps.newId ?? uuidv7;
@@ -300,11 +303,16 @@ export function createUserService(deps: {
     if (keepsManage || !eligible.some((h) => h.membershipId === targetId)) return;
     if (!eligible.some((h) => h.membershipId !== targetId)) throw new LimsError('identity.last_admin_protected');
   }
-  /** SS9: revoke in this tx, sign-out job committed with it. */
+  /** SS9: revoke in this tx, sign-out job committed with it, auth event session_revoked (reason) per revoked session. */
   async function signOut(s: Scope, m: MemberView, reason: string): Promise<number> {
-    const n = await repo.revokeSessions(s.tx, s.tenantId, { membershipId: m.id, userId: m.user_id, reason, actorId: s.actorId });
+    const events = need(deps.events);   // fail closed
+    const rows = await repo.revokeSessions(s.tx, s.tenantId, { membershipId: m.id, userId: m.user_id, reason, actorId: s.actorId });
     await repo.enqueue(s.tx, SIGNOUT, { user_id: m.user_id, tenant_id: s.tenantId }, `signout:${m.user_id}:${reason}`);
-    return n;
+    for (const r of rows) {
+      await events.recordTenant(s.tx, { id: newId(), eventType: 'session_revoked', reasonCode: reason, tenantId: s.tenantId, userId: r.user_id,
+        membershipId: m.id, sessionId: r.id, clientIp: s.clientIp, requestId: s.requestId, actorId: s.actorId });
+    }
+    return rows.length;
   }
   async function invite(ctx: UserCtx, s: Scope, membershipId: string, userId: string, email: string) {
     const id = newId();

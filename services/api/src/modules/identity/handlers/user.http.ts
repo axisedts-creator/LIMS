@@ -7,6 +7,7 @@ import { LimsError } from '../../../core/errors.js';
 import type { Handler, HandlerContext, HandlerRequest } from '../../../core/module.js';
 import type { GoTrueGateway } from '../gotrue/gateway.js';
 import { createHttpGoTrueGateway } from '../gotrue/gateway.http.js';
+import { createAuthEventsRepo } from '../repository/auth-events.repo.js';
 import { createUserService, type Result, type UserCtx } from '../service/user.service.js';
 import { createAuthLimits } from './loginStaff.js';
 import { ifMatch, obj } from './role.http.js';
@@ -25,6 +26,7 @@ const svc = createUserService({
   })).adminCreateUser(i) },
   emailHmac: (e) => Buffer.from(hmacHex(e), 'hex'),
   clearAccountFailures: (e) => limits.clearAccountFailures(hmacHex(e)),
+  events: createAuthEventsRepo(),
 });
 
 export function bindUser(fn: (s: Svc, ctx: UserCtx, req: HandlerRequest) => Promise<Result>, o: { etag?: boolean } = {}): Handler {

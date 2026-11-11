@@ -3,7 +3,7 @@ import 'server-only';
 import { notFound } from 'next/navigation';
 import { serverFetch } from '@/core/api/server-fetch';
 import { getShellSession } from '@/core/session/server';
-import type { Block, Group, Issue, Mapping, Option, Rule, Summary, Version } from '../library';
+import type { Block, Group, Issue, Mapping, Option, Rule, Summary, Term, Version } from '../library';
 
 export const PERM = 'smartreport.template.manage';
 const SR = '/v1/smartreport/library-versions';
@@ -17,6 +17,18 @@ const idem = (k: string) => ({ 'idempotency-key': k });
 export async function requireManage() {
   const perms = (await getShellSession())?.actor.permissions ?? [];
   if (!perms.includes(PERM)) notFound();
+}
+
+export const APPROVE_PERM = 'smartreport.template.approve';
+/** SR-05: notFound() unless the session holds manage OR approve (the page is read-only without approve). Returns what the session may do. */
+export async function requireReview() {
+  const perms = (await getShellSession())?.actor.permissions ?? [];
+  if (!perms.includes(PERM) && !perms.includes(APPROVE_PERM)) notFound();
+  return { canApprove: perms.includes(APPROVE_PERM) };
+}
+/** True when the session may preview with a real order (UI hint only; the API re-checks lab.result.read for the order's centre). */
+export async function canReadResults() {
+  return ((await getShellSession())?.actor.permissions ?? []).includes('lab.result.read');
 }
 
 const v = (id: string, tail = '') => `${SR}/${encodeURIComponent(id)}${tail}`;
@@ -46,4 +58,14 @@ export const putMapping = (id: string, analyteId: string, version: number, body:
 export const deleteMapping = (id: string, analyteId: string, version: number) => serverFetch<unknown>(v(id, `/analyte-groups/${analyteId}`), json('DELETE', undefined, ifMatch(version)));
 export const putGroup = (id: string, code: string, version: number, body: Record<string, unknown>) => serverFetch<Group>(v(id, `/groups/${encodeURIComponent(code)}`), json('PUT', body, ifMatch(version)));
 export const validateVersion = (id: string) => serverFetch<{ valid?: boolean; issues?: Issue[] }>(v(id, '/validate'), json('POST'));
-export const submitVersion = (id: string, version: number) => serverFetch<Version>(v(id, '/submit'), json('POST', undefined, ifMatch(version)));
+export const approveVersion = (id: string, version: number, body: { attestation: true; note?: string }) => serverFetch<Version>(v(id, '/approve'), json('POST', body, ifMatch(version)));
+export const returnVersion = (id: string, version: number, body: { comment: string }) => serverFetch<Version>(v(id, '/return'), json('POST', body, ifMatch(version)));
+/** #22 read-only POST; the body (fixture code or order id) never goes into a URL. */
+export const previewVersion = (id: string, body: { fixture_code: string } | { order_id: string }) => serverFetch<Record<string, unknown>>(v(id, '/preview'), json('POST', body));
+
+// SR-06 wording terms (#23–#25)
+const TERMS = '/v1/smartreport/wording-deny-terms';
+export const listTerms = async () => data(await serverFetch<{ data?: Term[] }>(`${TERMS}?include_global=true`));
+export const createTerm = (body: Record<string, unknown>, key: string) => serverFetch<Term>(TERMS, json('POST', body, idem(key)));
+export const deactivateTerm = (id: string, version: number) => serverFetch<Term>(`${TERMS}/${encodeURIComponent(id)}/deactivate`, json('POST', undefined, ifMatch(version)));
+export const submitVersion =(id: string, version: number) => serverFetch<Version>(v(id, '/submit'), json('POST', undefined, ifMatch(version)));

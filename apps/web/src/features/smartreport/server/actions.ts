@@ -3,7 +3,7 @@
 // Only ApiError is mapped to { ok:false } (code + field errors); anything else rethrows to the error boundary.
 import 'server-only';
 import { ApiError } from '@/core/api/server-fetch';
-import { UUID_RE, type Issue } from '../library';
+import { FIXTURES, UUID_RE, type Issue, type Preview } from '../library';
 import * as api from './library.server';
 
 export interface FieldError { path: string; message: string }
@@ -84,6 +84,51 @@ export async function validateAction(id: string): Promise<ActionResult<Issue[]>>
       ...(typeof i.rule_id === 'string' ? { rule_id: i.rule_id } : {}), ...(typeof i.path === 'string' ? { path: i.path } : {}),
     }));
   });
+}
+
+export async function approveAction(id: string, version: number, note?: string) {
+  if (!UUID_RE.test(id) || !ver(version) || (note !== undefined && (typeof note !== 'string' || note.length > 500))) return bad();
+  return run(async () => { await api.approveVersion(id, version, { attestation: true, ...(note ? { note } : {}) }); return null; });
+}
+
+export async function returnAction(id: string, version: number, comment: string) {
+  if (!UUID_RE.test(id) || !ver(version) || typeof comment !== 'string' || !comment.trim() || comment.length > 1000) return bad();
+  return run(async () => { await api.returnVersion(id, version, { comment }); return null; });
+}
+
+const str = (x: unknown) => (typeof x === 'string' ? x : '');
+const texts = (x: unknown, key: string) => (Array.isArray(x) ? x.slice(0, 200).map((i) => str(obj(i) ? i[key] : '')).filter(Boolean) : []);
+const words = (s: unknown) => str(s).replace(/_/g, ' ');
+
+/** #22. The order id travels in the body only; the result is cut down to what the dialog renders. */
+export async function previewAction(id: string, source: { fixture_code: string } | { order_id: string }): Promise<ActionResult<Preview>> {
+  if (!UUID_RE.test(id) || !obj(source)) return bad();
+  const body = 'order_id' in source
+    ? UUID_RE.test(String(source.order_id)) ? { order_id: String(source.order_id) } : undefined
+    : (FIXTURES as readonly string[]).includes(String(source.fixture_code)) ? { fixture_code: String(source.fixture_code) } : undefined;
+  if (!body) return bad();
+  return run(async () => {
+    const r = await api.previewVersion(id, body);
+    const hs = obj(r['health_score']) ? r['health_score'] : undefined;
+    return {
+      ...(hs && typeof hs['value'] === 'number' ? { score: { value: hs['value'], band: words(hs['band']), ...(str(hs['explanation_text']) ? { explanation: str(hs['explanation_text']) } : {}) } } : {}),
+      panels: Array.isArray(r['panels']) ? r['panels'].slice(0, 100).map((p) => ({ name: str(obj(p) ? p['display_name'] : ''), status: words(obj(p) ? p['status'] : '') })) : [],
+      deranged: texts(r['deranged'], 'text'), advice: texts(r['advice'], 'text'), followUps: texts(r['follow_ups'], 'text'),
+      ...(str(r['disclaimer_text']) ? { disclaimer: str(r['disclaimer_text']) } : {}),
+    };
+  });
+}
+
+const TERM_LANGS = ['en', 'ne', 'any'];
+export async function addTermAction(body: { term: string; language: string; reason?: string }, key: string) {
+  if (!KEY.test(key) || !obj(body) || typeof body.term !== 'string' || body.term.length < 2 || body.term.length > 60 || !TERM_LANGS.includes(body.language)) return bad();
+  if (body.reason !== undefined && (typeof body.reason !== 'string' || body.reason.length > 200)) return bad();
+  return run(async () => { await api.createTerm({ term: body.term, language: body.language, ...(body.reason ? { reason: body.reason } : {}) }, key); return null; });
+}
+
+export async function deactivateTermAction(id: string, version: number) {
+  if (!UUID_RE.test(id) || !ver(version)) return bad();
+  return run(async () => { await api.deactivateTerm(id, version); return null; });
 }
 
 export async function submitAction(id: string, version: number) {

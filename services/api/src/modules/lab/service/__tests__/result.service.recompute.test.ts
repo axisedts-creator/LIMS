@@ -5,9 +5,10 @@
 // Interface expected from the writer (../result.service.ts) — SEAM (names not in the spec; shapes follow 02-TRD §4.4):
 //   export async function recomputeDependents(ctx: RecomputeCtx, i: { orderItemId: string; changedAnalyteCode: string;
 //        trigger: 'enter' | 'amend'; amendmentReason?: { reasonCode: string; reasonText?: string } }): Promise<{ resultId: string; analyteCode: string; outcome: CalcOutcome }[]>
-//     RecomputeCtx = { tenantId; actor:{type?:string; id:string}; now(): Date; tx: object; store: ResultStore; events: { emit(type: string, payload: { result_id: string; version_no: number }): Promise<void> } }
+//     RecomputeCtx = { tenantId; actor:{type?:string; id:string; membershipId?:string}; now(): Date; tx: object; store: ResultStore; events: { publish(...) } }
+//       events.publish takes the core PublishInput (services/api/src/core/events/publish.ts); the fake accepts publish(type, input) or publish(ctx, type, input) (string arg = type, last arg = input).
 //     ResultStore (production impl wraps lab repositories on ctx.tx; EVERY call receives (tx, tenantId, ...) — tenant comes from ctx only):
-//       listCalculatedTargets(tx, tenantId, orderItemId): { resultId; analyteCode; expression; status; versionNo; rowVersion; decimals; testRevision; catalogRevision; sex; ageDays? }[]
+//       listCalculatedTargets(tx, tenantId, orderItemId): { resultId; analyteCode; expression; status; versionNo; rowVersion; decimals; testRevision; catalogRevision; sex; ageDays?; ageYears?; orderId; testId; analyteId }[]
 //       listInputs(tx, tenantId, orderItemId): CalcInput[]   (current value of every result of the order item, incl. already-calculated ones; see formulaInputs.test.ts)
 //       inputUnitByCode(tx, tenantId, orderItemId): Record<string,string>      (catalog unitCode of each input analyte)
 //       applyComputed(tx, tenantId, { resultId; expectedRowVersion; outcome: CalcOutcome; origin: 'calculated'; transition?: { to: 'resulted'; rule: 'R5'; actorType: 'system'; reasonCode: 'input_changed' } }): Promise<void>
@@ -15,7 +16,8 @@
 //     Behaviour: targets = calculated results of the order item whose expression references changedAnalyteCode (transitively); evaluated in topological order, each using the freshly computed values of earlier targets;
 //       a target in a cycle -> not_computable 'formula_cycle'; an unparseable expression -> not_computable 'formula_unparseable'; never throws for a bad formula.
 //       trigger 'enter': status verified -> applyComputed with transition R5/input_changed; resulted/pending -> applyComputed without transition. approved -> never applyComputed (row is locked).
-//       trigger 'amend': an approved target -> amendCalculated (newVersionNo = versionNo + 1, same reason as the input amendment) + events.emit('lab.result.amended.v1', { result_id, version_no: newVersionNo });
+//       trigger 'amend': an approved target -> amendCalculated (newVersionNo = versionNo + 1, same reason as the input amendment) + events.publish('lab.result.amended.v1', { aggregate: { type:'result', id: resultId, seq: newVersionNo }, idempotencyKey: `${resultId}:amended:${newVersionNo}`, payload: 03-IC §3.11 }) (review C5.T-13 item 1).
+//       Formula ctx passed to the shared lib = { sex, ageDays, ageYears } (review item 2).
 //                        a non-approved target -> as 'enter'.
 //   export function assertManualValueAllowed(i: { analyte: { formula?: { expression: string } | null } }): void   — AC-09.7: calculated analyte -> throws LimsError('lab.result_value_invalid') (422).
 import { describe, expect, it } from 'vitest';
@@ -24,19 +26,20 @@ import { assertManualValueAllowed, recomputeDependents } from '../result.service
 
 const TENANT = '01a1a98a-ac40-7000-8000-00000000a001';
 const ACTOR = '01a1b34e-1000-7eee-9d29-d7ca59a102b5';
+const MEMBERSHIP = '01a1b34e-2000-7eee-9d29-d7ca59a102b6';
 const ITEM = '01a1a98a-ac40-7000-8000-0000000b0001';
 const NOW = new Date('2026-06-15T05:00:00Z');
 const FRIEDEWALD = 'if(TG >= 400, invalid("tg_over_400"), TC - HDL - TG / 5)';
 
-interface Target { resultId: string; analyteCode: string; expression: string; status: string; versionNo: number; rowVersion: number; decimals: number; testRevision: number; catalogRevision: number; sex: string; ageDays?: number }
-const target = (over: Partial<Target> = {}): Target => ({ resultId: 'r-LDL', analyteCode: 'LDL', expression: FRIEDEWALD, status: 'pending', versionNo: 1, rowVersion: 4, decimals: 0, testRevision: 3, catalogRevision: 17, sex: 'female', ageDays: 10950, ...over });
+interface Target { resultId: string; analyteCode: string; expression: string; status: string; versionNo: number; rowVersion: number; decimals: number; testRevision: number; catalogRevision: number; sex: string; ageDays?: number; ageYears?: number; orderId: string; testId: string; analyteId: string }
+const target = (over: Partial<Target> = {}): Target => ({ resultId: 'r-LDL', analyteCode: 'LDL', expression: FRIEDEWALD, status: 'pending', versionNo: 1, rowVersion: 4, decimals: 0, testRevision: 3, catalogRevision: 17, sex: 'female', ageDays: 10950, ageYears: 30, orderId: 'o-1', testId: 't-lipid', analyteId: 'a-LDL', ...over });
 const input = (analyteCode: string, value: string | undefined, over: Record<string, unknown> = {}) => ({ analyteCode, resultId: `r-${analyteCode}`, versionNo: 1, status: 'resulted', resultType: 'numeric', value, unitCode: 'mg/dL', ...over });
 const lipids = (tg = '150', over: Record<string, Record<string, unknown>> = {}) => [input('TC', '200', over['TC']), input('HDL', '50', over['HDL']), input('TG', tg, over['TG'])];
 
 function make(targets: Target[], inputs: any[], units: Record<string, string> = { TC: 'mg/dL', HDL: 'mg/dL', TG: 'mg/dL' }) {
   const tx = { id: 'tx-1' };
   const log: { fn: string; tx: unknown; tenantId: unknown; arg: any }[] = [];
-  const emitted: { type: string; payload: any }[] = [];
+  const emitted: { type: string; input: any }[] = [];
   const store = {
     async listCalculatedTargets(t: unknown, tenantId: unknown, orderItemId: string) { log.push({ fn: 'listCalculatedTargets', tx: t, tenantId, arg: orderItemId }); return targets; },
     async listInputs(t: unknown, tenantId: unknown, orderItemId: string) { log.push({ fn: 'listInputs', tx: t, tenantId, arg: orderItemId }); return inputs; },
@@ -44,7 +47,7 @@ function make(targets: Target[], inputs: any[], units: Record<string, string> = 
     async applyComputed(t: unknown, tenantId: unknown, arg: any) { log.push({ fn: 'applyComputed', tx: t, tenantId, arg }); },
     async amendCalculated(t: unknown, tenantId: unknown, arg: any) { log.push({ fn: 'amendCalculated', tx: t, tenantId, arg }); },
   };
-  const ctx = { tenantId: TENANT, actor: { type: 'user', id: ACTOR }, now: () => NOW, tx, store, events: { async emit(type: string, payload: unknown) { emitted.push({ type, payload }); } } };
+  const ctx = { tenantId: TENANT, actor: { type: 'user', id: ACTOR, membershipId: MEMBERSHIP }, now: () => NOW, tx, store, events: { async publish(...a: unknown[]) { emitted.push({ type: a.find((x) => typeof x === 'string') as string, input: a[a.length - 1] }); } } };
   return { ctx: ctx as any, tx, log, emitted, writes: () => log.filter((l) => l.fn === 'applyComputed' || l.fn === 'amendCalculated') };
 }
 const run = (m: ReturnType<typeof make>, over: Record<string, unknown> = {}) =>
@@ -89,6 +92,13 @@ describe('T-13 recomputeDependents — AC-09.1 / 09.2 / 09.3 outcomes', () => {
     const m = make([target({ resultId: 'r-NLR', analyteCode: 'NLR', expression: 'NEUT_ABS / LYMPH_ABS' })], lipids());
     expect(await run(m)).toEqual([]);
     expect(m.writes()).toEqual([]);
+  });
+  it('formula ctx carries ageYears: @age_years formula with ageYears set -> computed (review item 2)', async () => {
+    const m = make([target({ expression: 'TC + @age_years', ageYears: 30 })], lipids());
+    await run(m);
+    const o = m.writes()[0]!.arg.outcome;
+    expect(o.calcStatus).toBe('computed');
+    expect(Number(o.value)).toBe(230);
   });
   it('a bad formula never throws out of recompute (formula_unparseable is stored)', async () => {
     const m = make([target({ expression: 'TC - ' })], lipids());
@@ -135,7 +145,18 @@ describe('T-13 recomputeDependents — AC-09.5 amended input -> new approved ver
     expect(w[0]!.arg).toMatchObject({ resultId: 'r-LDL', newVersionNo: 3, origin: 'calculated', reasonCode: 'transcription_error', reasonText: 'wrong TC' });
     expect(Number(w[0]!.arg.outcome.value)).toBe(120);
     expect(w[0]!.arg.outcome.provenance.inputs.find((x: any) => x.analyte_code === 'TC')).toMatchObject({ version_no: 2 });
-    expect(m.emitted).toEqual([{ type: 'lab.result.amended.v1', payload: { result_id: 'r-LDL', version_no: 3 } }]);
+    expect(m.emitted).toEqual([{
+      type: 'lab.result.amended.v1',
+      input: {
+        aggregate: { type: 'result', id: 'r-LDL', seq: 3 },
+        idempotencyKey: 'r-LDL:amended:3',
+        payload: {
+          result_id: 'r-LDL', previous_version_no: 2, new_version_no: 3, order_id: 'o-1', order_item_id: ITEM, test_id: 't-lipid', analyte_id: 'a-LDL',
+          amendment_reason_code: 'transcription_error', amended_at: NOW.toISOString(), amended_by_membership_id: MEMBERSHIP,
+        },
+      },
+    }]);
+    expect(JSON.stringify(m.emitted[0]!.input.payload)).not.toMatch(/wrong TC|"value"/); // P3: no value, no free-text reason
   });
   it('amend trigger with a not-approved dependent behaves like an edit (no new version, no amended event)', async () => {
     const m = make([target({ status: 'verified' })], lipids());

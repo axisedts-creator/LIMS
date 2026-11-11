@@ -33,6 +33,8 @@ const IMPLEMENTED: readonly string[] = [
   // T-07 specimen actions
   'lookupSpecimenByBarcode', 'listSpecimens', 'getSpecimen', 'collectSpecimen', 'bulkCollectSpecimens', 'bulkDispatchSpecimens',
   'receiveSpecimen', 'bulkReceiveSpecimens', 'storeSpecimen', 'discardSpecimen',
+  // T-08 reject + recollection + aliquots
+  'rejectSpecimen', 'requestRecollection', 'createAliquots',
   // T-14 result entry
   'bulkEnterResults', 'getResult', 'listOrderResults',
   // T-15 critical values
@@ -41,6 +43,8 @@ const IMPLEMENTED: readonly string[] = [
   'verifyResult', 'bulkVerifyResults', 'returnResult',
   // T-10 labels
   'printSpecimenLabels', 'requestOrderLabelPrint',
+  // T-17 approve / amend
+  'approveResult', 'bulkApproveResults', 'amendResult', 'listResultVersions',
   // T-19 history
   'getResultHistory', 'getAnalyteTrend',
 ];
@@ -172,7 +176,7 @@ describe('T-01 boot against the real repo (default modulesDir, real lab.yaml)', 
       }
     }
     expect(unmounted).toEqual([]);
-  }, 30_000);
+  });
 
   it('fails closed: an unauthenticated lab call is 401 (never 200/501/500) and a non-spec path is 404', async () => {
     const app = await boot();
@@ -180,5 +184,5 @@ describe('T-01 boot against the real repo (default modulesDir, real lab.yaml)', 
     expect(r.statusCode, r.body).toBe(401);
     expect(JSON.parse(r.body).code).toMatch(/^auth\./);
     expect((await app.inject({ method: 'GET', url: '/v1/lab/not-in-spec' })).statusCode).toBe(404);
-  }, 30_000);
+  });
 });

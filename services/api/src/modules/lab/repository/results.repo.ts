@@ -55,6 +55,24 @@ export const copyProcessingToExistingMaterialResults = (rc: RepoCtx, orderId: st
                AND order_test_id IN (SELECT id FROM lab.order_tests WHERE tenant_id = $1 AND order_id = $5 AND uses_existing_material = true AND specimen_id IS NULL)
              RETURNING id`, [rc.actorId, p.centreId, p.branchId, orderId]);
 
+// ---- T-08 reject / recollection / aliquots ----
+/** S11 (R8): every non-approved result of the specimen is cancelled; approved rows stay. Returns the cancelled rows. */
+export const cancelResultsOfSpecimen = (rc: RepoCtx, specimenId: string, at: string) =>
+  query(rc, `UPDATE lab.results SET status = 'cancelled', cancelled_at = $3::timestamptz, cancel_reason = 'specimen_rejected', version = version + 1, updated_at = now(), updated_by = $2
+             WHERE tenant_id = $1 AND specimen_id = $4 AND status IN ('pending','resulted','verified') RETURNING id`, [rc.actorId, at, specimenId]);
+/** 08 A13 D-12: the rows a recollection replaces (cancelled by the rejection) of the re-opened order tests. */
+export const listRejectedResultsOfTests = (rc: RepoCtx, specimenId: string, orderTestIds: readonly string[]) =>
+  query(rc, `SELECT * FROM lab.results WHERE tenant_id = $1 AND specimen_id = $2 AND status = 'cancelled' AND cancel_reason = 'specimen_rejected' AND order_test_id = ANY($3::uuid[])
+             ORDER BY order_test_id, analyte_code, id`, [specimenId, orderTestIds]);
+/** S5 guard: the tests (of the specimen) that still have a not-approved, not-cancelled result. */
+export const listAliquotableTestIds = async (rc: RepoCtx, specimenId: string, testIds: readonly string[]) =>
+  (await query(rc, `SELECT DISTINCT test_id FROM lab.results WHERE tenant_id = $1 AND specimen_id = $2 AND status IN ('pending','resulted','verified') AND test_id = ANY($3::uuid[])`,
+    [specimenId, testIds])).map((r) => r['test_id'] as string);
+/** S5: the not-approved results of the assigned tests move to the aliquot (same rows, new specimen_id). */
+export const moveResultsToSpecimen = (rc: RepoCtx, fromId: string, toId: string, testIds: readonly string[]) =>
+  query(rc, `UPDATE lab.results SET specimen_id = $3, version = version + 1, updated_at = now(), updated_by = $2
+             WHERE tenant_id = $1 AND specimen_id = $4 AND test_id = ANY($5::uuid[]) AND status IN ('pending','resulted','verified') RETURNING id`, [rc.actorId, toId, fromId, testIds]);
+
 /** results__tenant_id_order__idx */
 export const listResultsByOrder = async (rc: RepoCtx, orderId: string) =>
   (isUuid(orderId) ? query(rc, 'SELECT * FROM lab.results WHERE tenant_id = $1 AND order_id = $2 ORDER BY order_test_id, analyte_code, id', [orderId]) : []);

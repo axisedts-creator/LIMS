@@ -7,6 +7,7 @@ import type { ConsumerHandler, WorkerManifest } from '../../core/manifest.js';
 import { handle as createdHandler } from './consumers/frontdesk.order.created.v1.js';
 import { handle as itemsChangedHandler } from './consumers/frontdesk.order.items_changed.v1.js';
 import { handle as cancelledHandler } from './consumers/frontdesk.order.cancelled.v1.js';
+import { handle as homeCollectionHandler } from './consumers/homecollection.collection.synced.v1.js';
 
 const CONSUMED = [
   'frontdesk.order.created.v1',
@@ -24,11 +25,12 @@ const notImplemented = (eventType: string): ConsumerHandler => async () => {
   throw new LimsError('common.internal', `lab consumer ${eventType} not implemented`);
 };
 
-// T-06: the three frontdesk.order.* consumers are real.
+// T-06: the three frontdesk.order.* consumers are real; T-09: homecollection.collection.synced.v1.
 const IMPLEMENTED: Readonly<Record<string, ConsumerHandler>> = {
   'frontdesk.order.created.v1': createdHandler,
   'frontdesk.order.items_changed.v1': itemsChangedHandler,
   'frontdesk.order.cancelled.v1': cancelledHandler,
+  'homecollection.collection.synced.v1': homeCollectionHandler,
 };
 
 export const manifest: WorkerManifest = {

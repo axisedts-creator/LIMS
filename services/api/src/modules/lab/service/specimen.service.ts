@@ -11,10 +11,15 @@ import { createLabEvents } from '../events/publish.js';
 import { decodeCursor, encodeCursor, groupTests, specimenDetailDto, specimenDto } from '../mappers/specimen.mapper.js';
 import { allocateBarcodeSeq } from '../repository/barcodeCounters.repo.js';
 import type { RepoCtx, RepoTx } from '../repository/base.repo.js';
-import { copyProcessingToExistingMaterialTests, markTestsAwaitingReceipt, startTestsOfSpecimen } from '../repository/orderTests.repo.js';
-import { copyProcessingToExistingMaterialResults, copyProcessingToResultsOfSpecimen } from '../repository/results.repo.js';
+import { listCodedSet } from '../repository/codedSets.repo.js';
 import {
-  findSpecimenWithOrderByBarcode, getSpecimenWithOrder, insertSpecimenTransition, listSpecimensWithOrderByRegistrationNo, listSpecimenTransitions, listTestsOfSpecimens, pageSpecimens,
+  cancelTestsOfSpecimen, copyProcessingToExistingMaterialTests, listOrderTestsOfSpecimen, markTestsAwaitingReceipt, moveTestsToSpecimen, reopenTestsOfSpecimen, startTestsOfSpecimen,
+} from '../repository/orderTests.repo.js';
+import {
+  cancelResultsOfSpecimen, copyProcessingToExistingMaterialResults, copyProcessingToResultsOfSpecimen, insertResult, listAliquotableTestIds, listRejectedResultsOfTests, moveResultsToSpecimen,
+} from '../repository/results.repo.js';
+import {
+  findSpecimenWithOrderByBarcode, getSpecimenWithOrder, insertSpecimen, insertSpecimenTransition, listSpecimensWithOrderByRegistrationNo, listSpecimenTransitions, listTestsOfSpecimens, pageSpecimens,
   resultsSummaryOfSpecimen, updateSpecimen, type SpecimenFilter, type SpecimenSort,
 } from '../repository/specimens.repo.js';
 
@@ -170,27 +175,33 @@ async function dto(c: SpecimenCtx, row: Obj): Promise<Obj> {
 }
 
 // ---- the one transition mechanic shared by every action ----
+/** version check -> table check -> UPDATE (version + 1) -> S-transition row. A racing writer fails the UPDATE with common.version_conflict. */
+async function step(c: SpecimenCtx, row: Obj, version: number, to: SpecimenStatus, patch: Obj, at: string, reasonCode?: string): Promise<{ updated: Obj; code: string }> {
+  if (Number(row['version']) !== version) throw new LimsError('common.version_conflict');
+  const code = specimenTransition(row['status'], to, { isActive: row['is_active'] === true });
+  const updated = await updateSpecimen(repoCtx(c), row['id'], version, { status: to, ...patch });
+  await insertSpecimenTransition(repoCtx(c), {
+    id: uuidv7(), centre_id: row['centre_id'], ...(updated['processing_centre_id'] ? { processing_centre_id: updated['processing_centre_id'] } : {}), specimen_id: row['id'],
+    transition_code: code, from_status: row['status'], to_status: to, specimen_version: Number(updated['version']), occurred_at: at, ...actorCols(c), ...(reasonCode ? { reason_code: reasonCode } : {}),
+  });
+  return { updated, code };
+}
+const actorCols = (c: SpecimenCtx): Obj => ({ actor_type: c.actor.type ?? 'user', actor_id: c.actor.id, ...(c.actor.membershipId ? { membership_id: c.actor.membershipId } : {}) });
+
 /** Writes specimen row (+version), the S-transition row and the order-test/result side effects. Throws LimsError; emits nothing (see emit). */
 async function move(c: SpecimenCtx, row: Obj, version: number, a: Action, centre: { id: string; branchId: string } | undefined): Promise<{ updated: Obj; code: string }> {
-  if (Number(row['version']) !== version) throw new LimsError('common.version_conflict');
   const to = KINDS[a.kind].to;
-  if (a.kind === 'receive') assertSpecimenReceivable(row['status']);               // AC-04.3 (rejected / discarded) before the generic table check
-  const code = specimenTransition(row['status'], to, { isActive: row['is_active'] === true });
+  if (a.kind === 'receive' && Number(row['version']) === version) assertSpecimenReceivable(row['status']);   // AC-04.3 (rejected / discarded) before the generic table check
   const rc = repoCtx(c);
   const at = a.at.toISOString();
   const member = c.actor.membershipId ?? null;
-  const patch: Obj = { status: to };
+  const patch: Obj = {};
   if (a.kind === 'collect') Object.assign(patch, { collected_at: at, collected_by_membership_id: member });
   if (a.kind === 'dispatch') patch['in_transit_at'] = at;
   if (a.kind === 'receive') Object.assign(patch, { received_at: at, received_by_membership_id: member, processing_centre_id: centre!.id, processing_branch_id: centre!.branchId });
   if (a.kind === 'store') Object.assign(patch, { stored_at: at, storage_location: a.location });
   if (a.kind === 'discard') Object.assign(patch, { discarded_at: at, discard_reason: a.reason });
-  const updated = await updateSpecimen(rc, row['id'], version, patch);            // version = version + 1 in the same statement; a racing writer gets common.version_conflict
-  await insertSpecimenTransition(rc, {
-    id: uuidv7(), centre_id: row['centre_id'], ...(updated['processing_centre_id'] ? { processing_centre_id: updated['processing_centre_id'] } : {}), specimen_id: row['id'],
-    transition_code: code, from_status: row['status'], to_status: to, specimen_version: Number(updated['version']), occurred_at: at,
-    actor_type: c.actor.type ?? 'user', actor_id: c.actor.id, ...(member ? { membership_id: member } : {}),
-  });
+  const { updated, code } = await step(c, row, version, to, patch, at);
   if (a.kind === 'collect') await markTestsAwaitingReceipt(rc, row['id']);        // 02-TRD §3.3
   if (a.kind === 'receive') {                                                      // 03-APP-FLOW S4 + 08 A13 D-13
     const p = { centreId: centre!.id, branchId: centre!.branchId };
@@ -203,16 +214,20 @@ async function move(c: SpecimenCtx, row: Obj, version: number, a: Action, centre
 }
 
 /** After a committed-in-tx write: lab.specimen.status_changed.v1 (key `<id>:<to>:<version>`) and, for a back-entry, the audit entry (LD-25). */
-async function emit(c: SpecimenCtx, before: Obj, after: Obj, a: Action): Promise<void> {
-  const to = KINDS[a.kind].to;
-  await createLabEvents(c.events as never).specimenStatusChanged(c as never, {
+/** lab.specimen.status_changed.v1 of `after` (from = null: the specimen is new, no from_status). */
+const emitStatus = (c: SpecimenCtx, after: Obj, from: string | null, to: string, at: string) =>
+  createLabEvents(c.events as never).specimenStatusChanged(c as never, {
     specimen_id: after['id'], order_id: after['order_id'], patient_id: after['patient_id'], centre_id: after['centre_id'],
     ...(after['processing_branch_id'] ? { processing_branch_id: after['processing_branch_id'] } : {}),
     specimen_type_code: after['specimen_type_code'],
     ...(after['parent_specimen_id'] ? { parent_specimen_id: after['parent_specimen_id'] } : {}),
     ...(after['replaces_specimen_id'] ? { replaces_specimen_id: after['replaces_specimen_id'] } : {}),
-    from_status: before['status'], to_status: to, changed_at: a.at.toISOString(),
+    ...(from ? { from_status: from } : {}), to_status: to, changed_at: at,
   }, { specimenVersion: Number(after['version']) });
+
+async function emit(c: SpecimenCtx, before: Obj, after: Obj, a: Action): Promise<void> {
+  const to = KINDS[a.kind].to;
+  await emitStatus(c, after, before['status'], to, a.at.toISOString());
   if (a.downtime) {
     // [CONV] audit.g_cs_access_actions has no specimen action yet; 'patient.view' is the FD-T06 precedent for LD-25 back-entry audit rows; stand-in until C0 rules on CR-C5-T07-001 (.orchestra/cr/C5.T-07.md).
     await c.audit.access({ action: 'patient.view', entityType: 'specimen', entityId: after['id'], centreId: after['centre_id'], outcome: 'allowed',
@@ -376,4 +391,190 @@ export async function getSpecimen(hctx: unknown, params: unknown): Promise<Resul
   let canSeeComment = true;                                                         // REQ-SEC-081: rejection_comment only for holders of lab.specimen.reject
   try { await role(c, P.reject); } catch (e) { if (e instanceof LimsError && e.code === 'auth.forbidden') canSeeComment = false; else throw e; }
   return { status: 200, body: specimenDetailDto(row, tests.get(id) ?? [], await listSpecimenTransitions(rc, id), await resultsSummaryOfSpecimen(rc, id), canSeeComment) };
+}
+
+// ====================================================================== T-08 reject (#9), requestRecollection (#10), createAliquots (#11) ======================================================================
+// One request = one tx (ctx.tx): any throw (also a failed event publish) rolls back specimen, new rows, order tests and results together (AC-05.1).
+const REASON_CODE = /^[A-Za-z0-9][A-Za-z0-9_.:-]*$/;
+const ALIQUOT_MAX = 10;
+const LIVE_TEST = new Set(['awaiting_collection', 'awaiting_receipt', 'in_process', 'resulted', 'verified']);
+
+/** [CONV] the tenant's active reason: tenant rows shadow global rows of the same code (codedSets.repo); unknown / inactive -> 400 /reason_code (AC-05.3). */
+async function assertActiveReason(c: SpecimenCtx, code: string): Promise<void> {
+  const e = (await listCodedSet(repoCtx(c), 'rejection_reasons')).find((r) => r['code'] === code);
+  if (!e || e['is_active'] !== true) throw bad('/reason_code');
+}
+
+/** Row of a write op: 404 when absent or outside the centre scope (never 403). */
+async function writable(c: SpecimenCtx, id: string): Promise<Obj> {
+  const row = await getSpecimenWithOrder(repoCtx(c), id);
+  if (!row || !visible(await scopeOf(c), row)) throw new LimsError('common.not_found');
+  return row;
+}
+const withReg = (row: Obj, from: Obj): Obj => ({ ...row, registration_no: from['registration_no'] });
+
+/** Inserts a new specimen (barcode allocated here) and its first transition (absent -> row.status). */
+async function insertChild(c: SpecimenCtx, code: 'S1' | 'S5', at: string, row: Obj): Promise<Obj> {
+  const kid = await insertSpecimen(repoCtx(c), { id: uuidv7(), barcode: await allocateBarcode(c as never), ...row });
+  await insertSpecimenTransition(repoCtx(c), { id: uuidv7(), centre_id: kid['centre_id'], ...(kid['processing_centre_id'] ? { processing_centre_id: kid['processing_centre_id'] } : {}), specimen_id: kid['id'],
+    transition_code: code, from_status: null, to_status: kid['status'], specimen_version: Number(kid['version']), occurred_at: at, ...actorCols(c) });
+  return kid;
+}
+/** Columns a derived specimen (recollection, aliquot) copies from its source (frozen after insert, so copied once). */
+const inherit = (s: Obj): Obj => ({ centre_id: s['centre_id'], order_id: s['order_id'], patient_id: s['patient_id'], specimen_type_code: s['specimen_type_code'], container_code: s['container_code'],
+  priority: s['priority'], patient_sex: s['patient_sex'], patient_age_days: s['patient_age_days'], ordered_at: s['ordered_at'],
+  ...(s['processing_centre_id'] ? { processing_centre_id: s['processing_centre_id'], processing_branch_id: s['processing_branch_id'] } : {}) });   // D-13
+
+/** S12 effects (08 A13 D-12, D-13): new `ordered` specimen replacing `old` (the old barcode stays on `old`), the tests cancelled with specimen_rejected are re-pointed + re-opened,
+ *  and each of their cancelled result rows gets a NEW pending row. No test to re-open = nothing to recollect (409). */
+async function openRecollection(c: SpecimenCtx, old: Obj, at: string): Promise<Obj> {
+  const rc = repoCtx(c);
+  const fresh = await insertChild(c, 'S1', at, { ...inherit(old), status: 'ordered', replaces_specimen_id: old['id'], creation_key: `${old['id']}:recollection`, ordered_at: at });
+  const reopened = await reopenTestsOfSpecimen(rc, old['id'], fresh['id']);
+  if (reopened.length === 0) throw new LimsError('lab.specimen_invalid_transition');
+  for (const r of await listRejectedResultsOfTests(rc, old['id'], reopened.map((t) => t['id']))) {
+    await insertResult(rc, { id: uuidv7(), centre_id: r['centre_id'], order_id: r['order_id'], order_item_id: r['order_item_id'], order_test_id: r['order_test_id'], specimen_id: fresh['id'],
+      patient_id: r['patient_id'], test_id: r['test_id'], analyte_id: r['analyte_id'], analyte_code: r['analyte_code'], department_id: r['department_id'], is_reportable: r['is_reportable'],
+      result_type: r['result_type'], status: 'pending', ...(fresh['processing_centre_id'] ? { processing_centre_id: fresh['processing_centre_id'], processing_branch_id: fresh['processing_branch_id'] } : {}) });
+  }
+  return fresh;
+}
+
+export async function rejectSpecimen(hctx: unknown, params: unknown, headers: unknown, body: unknown): Promise<Result> {
+  const c = specimenCtx(hctx);
+  await role(c, P.reject);
+  const id = uuidParam(params, 'specimen_id');
+  const version = expectedVersion(headers);
+  const b = strict(body, ['reason_code', 'comment', 'recollection_required']);
+  if (b['comment'] !== undefined && (typeof b['comment'] !== 'string' || b['comment'].length > 500 || b['comment'].includes('\u0000'))) throw bad('/comment');
+  if (typeof b['recollection_required'] !== 'boolean') throw bad('/recollection_required');
+  if (b['reason_code'] === undefined) throw new LimsError('lab.rejection_reason_required');                       // AC-05.2
+  const reason = b['reason_code'];
+  if (typeof reason !== 'string' || reason.length > 100 || !REASON_CODE.test(reason)) throw bad('/reason_code');
+  const row = await writable(c, id);
+  await assertActiveReason(c, reason);
+  const rc = repoCtx(c);
+  const at = c.now().toISOString();
+  const comment = b['comment'] === '' ? undefined : (b['comment'] as string | undefined);
+
+  const tests = await listOrderTestsOfSpecimen(rc, id);
+  const live = tests.filter((t) => LIVE_TEST.has(t['status']));
+  const itemIds = [...new Set((live.length ? live : tests).map((t) => t['order_item_id'] as string))];
+  const s11 = await step(c, row, version, 'rejected', { rejected_at: at, rejection_reason_code: reason, ...(comment ? { rejection_comment: comment } : {}), rejected_by_membership_id: c.actor.membershipId ?? null }, at, reason);
+  await cancelTestsOfSpecimen(rc, id, at);                                                                        // D-5 (a recollection re-opens them below)
+  await cancelResultsOfSpecimen(rc, id, at);                                                                      // R8
+  const s12 = b['recollection_required'] ? await step(c, s11.updated, Number(s11.updated['version']), 'recollection_ordered', { recollection_ordered_at: at }, at) : undefined;
+  const fresh = s12 ? await openRecollection(c, s12.updated, at) : undefined;
+
+  await emitStatus(c, s11.updated, row['status'], 'rejected', at);
+  await createLabEvents(c.events as never).specimenRejected(c as never, {                                         // never the comment (AC-05.6, REQ-SEC-081)
+    specimen_id: id, order_id: row['order_id'], patient_id: row['patient_id'], centre_id: row['centre_id'], reason_code: reason, rejected_at: at,
+    recollection_required: b['recollection_required'], ...(row['collected_by_membership_id'] ? { collected_by_membership_id: row['collected_by_membership_id'] } : {}), order_item_ids: itemIds,
+  }, { specimenVersion: Number(s11.updated['version']) });
+  if (s12 && fresh) { await emitStatus(c, s12.updated, 'rejected', 'recollection_ordered', at); await emitStatus(c, fresh, null, 'ordered', at); }
+  return { status: 200, body: { specimen: await dto(c, withReg((s12 ?? s11).updated, row)), ...(fresh ? { recollection_specimen: await dto(c, withReg(fresh, row)) } : {}) } };
+}
+
+export async function requestRecollection(hctx: unknown, params: unknown, headers: unknown, body: unknown): Promise<Result> {
+  const c = specimenCtx(hctx);
+  await role(c, P.reject);
+  const id = uuidParam(params, 'specimen_id');
+  const version = expectedVersion(headers);
+  strict(body, []);                                                                                               // body is `{}`
+  const row = await writable(c, id);
+  const at = c.now().toISOString();
+  const s12 = await step(c, row, version, 'recollection_ordered', { recollection_ordered_at: at }, at);           // only from `rejected`; one recollection per specimen
+  const fresh = await openRecollection(c, s12.updated, at);
+  await emitStatus(c, s12.updated, 'rejected', 'recollection_ordered', at);                                       // no second lab.specimen.rejected.v1 (D-6)
+  await emitStatus(c, fresh, null, 'ordered', at);
+  return { status: 200, body: { specimen: await dto(c, withReg(s12.updated, row)), recollection_specimen: await dto(c, withReg(fresh, row)) } };
+}
+
+export async function createAliquots(hctx: unknown, params: unknown, headers: unknown, body: unknown): Promise<Result> {
+  const c = specimenCtx(hctx);
+  await role(c, P.receive);
+  const id = uuidParam(params, 'specimen_id');
+  const version = expectedVersion(headers);
+  const raw = strict(body, ['aliquots'])['aliquots'];
+  if (!Array.isArray(raw) || raw.length < 1 || raw.length > ALIQUOT_MAX) throw bad('/aliquots');
+  const seen = new Set<string>();
+  const aliquots = raw.map((it, i) => {
+    const o = strict(it, ['specimen_type_code', 'test_ids'], `/aliquots/${i}`);
+    const type = o['specimen_type_code'];
+    if (type !== undefined && (typeof type !== 'string' || !CODE.test(type))) throw bad(`/aliquots/${i}/specimen_type_code`);
+    const ids = o['test_ids'];
+    if (!Array.isArray(ids) || ids.length < 1 || ids.length > 200) throw bad(`/aliquots/${i}/test_ids`);
+    const testIds = ids.map((t, j) => {
+      if (typeof t !== 'string' || !UUID.test(t) || seen.has(t.toLowerCase())) throw bad(`/aliquots/${i}/test_ids/${j}`);   // a result moves to one aliquot only
+      seen.add(t.toLowerCase());
+      return t.toLowerCase();
+    });
+    return { type: type as string | undefined, testIds };
+  });
+  const row = await writable(c, id);
+  const rc = repoCtx(c);
+  const at = c.now().toISOString();
+  const s5 = await step(c, row, version, 'aliquoted', {}, at);                                                    // only from `received`; a racing request fails here (row lock + version)
+  const ok = new Set(await listAliquotableTestIds(rc, id, [...seen]));                                            // 08 A13 P-1: tests of the parent with a not-approved, not-cancelled result
+  const missing: string[] = [];
+  aliquots.forEach((a, i) => a.testIds.forEach((t, j) => { if (!ok.has(t)) missing.push(`/aliquots/${i}/test_ids/${j}`); }));
+  if (missing.length) throw bad(...missing);
+  const kids: Obj[] = [];
+  for (const [i, a] of aliquots.entries()) {
+    const kid = await insertChild(c, 'S5', at, { ...inherit(row), status: 'received', parent_specimen_id: id, creation_key: `${id}:aliquot:${i}`, specimen_type_code: a.type ?? row['specimen_type_code'],
+      collected_at: row['collected_at'], collected_by_membership_id: row['collected_by_membership_id'],
+      received_at: row['received_at'] ?? at, received_by_membership_id: row['received_by_membership_id'] ?? c.actor.membershipId ?? null });
+    await moveResultsToSpecimen(rc, id, kid['id'], a.testIds);                                                    // same rows, new specimen_id
+    await moveTestsToSpecimen(rc, id, kid['id'], a.testIds);                                                      // [CONV] the aliquot's tests (SpecimenDto.tests) follow their results
+    kids.push(kid);
+  }
+  await emitStatus(c, s5.updated, 'received', 'aliquoted', at);
+  for (const kid of kids) await emitStatus(c, kid, null, 'received', at);
+  const aliquotDtos: Obj[] = [];
+  for (const kid of kids) aliquotDtos.push(await dto(c, withReg(kid, row)));
+  return { status: 200, body: { parent: await dto(c, withReg(s5.updated, row)), aliquots: aliquotDtos } };
+}
+
+// ====================================================================== T-09 home-collection consumer ======================================================================
+// homecollection.collection.synced.v1 (03-IC §3.23; 02-TRD §7.2 row 8; AC-03.2, AC-03.2a). Runs on the worker job tx: any throw rolls the whole job back (retry / dead letter).
+export interface HomeCollectionEnvelope {
+  readonly payload: {
+    readonly visit_id: string; readonly phlebotomist_membership_id?: string; readonly synced_at: string;
+    readonly collections: readonly { readonly specimen_id: string; readonly barcode_verified: boolean; readonly collected_at_device: string }[];
+  };
+}
+export interface HomeCollectionCtx {
+  readonly tenantId: string;
+  readonly actor: { readonly type?: string; readonly id: string };
+  readonly tx: RepoTx;
+  readonly events: SpecimenCtx['events'];
+  now(): Date;
+  readonly log?: { info?(...a: unknown[]): void };
+}
+
+/**
+ * Per collection of a specimen that is `ordered` and active: S2 then S3 (ordered -> collected -> in_transit) in the job tx.
+ * collected_at = min(collected_at_device, synced_at) (device clocks drift; the raw time is kept in collected_at_device); collection_barcode_unverified = !barcode_verified.
+ * Anything else (not ordered, inactive, unknown or of another tenant under RLS) is skipped without a write or an event. booking_id is never read (08 A19 D-120). payments[] is C4's.
+ */
+export async function applyHomeCollectionSynced(ctx: HomeCollectionCtx, env: HomeCollectionEnvelope): Promise<void> {
+  const c = ctx as unknown as SpecimenCtx;
+  const { visit_id: visitId, synced_at: syncedAt, phlebotomist_membership_id: member } = env.payload;
+  const syncedMs = Date.parse(syncedAt);
+  for (const col of env.payload.collections) {
+    const row = await getSpecimenWithOrder(repoCtx(c), col.specimen_id);
+    if (!row || row['status'] !== 'ordered' || row['is_active'] !== true) { ctx.log?.info?.('homecollection: specimen skipped', { specimen_id: col.specimen_id }); continue; }
+    const deviceMs = Date.parse(col.collected_at_device);
+    const collectedMs = Number.isFinite(deviceMs) ? Math.min(deviceMs, syncedMs) : syncedMs;
+    const collectedAt = new Date(collectedMs).toISOString();
+    const inTransitAt = new Date(Math.max(ctx.now().getTime(), collectedMs)).toISOString();   // S3 never precedes S2
+    const s2 = await step(c, row, Number(row['version']), 'collected', {
+      collected_at: collectedAt, collected_at_device: Number.isFinite(deviceMs) ? new Date(deviceMs).toISOString() : null, collected_by_membership_id: member ?? null,
+      collected_via_visit_id: visitId, collection_barcode_unverified: col.barcode_verified !== true,
+    }, collectedAt);
+    await markTestsAwaitingReceipt(repoCtx(c), row['id']);                                     // 02-TRD §3.3, as the manual collect
+    await emitStatus(c, { ...s2.updated, registration_no: row['registration_no'] }, 'ordered', 'collected', collectedAt);
+    const s3 = await step(c, s2.updated, Number(s2.updated['version']), 'in_transit', { in_transit_at: inTransitAt }, inTransitAt);
+    await emitStatus(c, s3.updated, 'collected', 'in_transit', inTransitAt);
+  }
 }

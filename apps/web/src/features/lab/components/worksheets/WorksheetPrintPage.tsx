@@ -1,7 +1,8 @@
 'use client';
 // SCR worksheet print view (PRD AC-07.4; 03-APP-FLOW §3.6; 04-UI-UX §3.15): rendered from #22 ONLY (a stored snapshot, never the live worklist). #22 writes the `worksheet.print` access row.
 // The instrument name comes from C7 E23 via the BFF; on 403 an IdText (first 8 chars, full id in title) is shown, never a guessed name (08 A13 D-14).
-// SPEC GAP (C5.T-26-tests.md): WorksheetDto rows carry no reg no / patient / priority, so the sheet shows #, barcode, test and blank Result / Remarks cells.
+// SPEC GAP, CR filed (.orchestra/cr/C5.T-26.md): WorksheetDto carries no created_by, rows no reg no / patient / priority, and no Code 128 component exists,
+// so the sheet shows #, barcode text, test and blank Result / Remarks cells until the CR lands.
 import { useEffect, useState } from 'react';
 import { Button } from '@lims/ui/components/Button';
 import { IdText } from '@lims/ui/components/IdText';

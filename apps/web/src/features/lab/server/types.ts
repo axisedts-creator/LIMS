@@ -14,5 +14,8 @@ export interface Worksheet {
   id: string; title: string; centre_id: string; processing_centre_id?: string; department_id?: string; instrument_id?: string; created_at: string;
   rows: { order_test_id: string; position: number; barcode?: string; test_code: string }[];
 }
+export interface WorksheetSummary {
+  id: string; title: string; centre_id: string; processing_centre_id?: string; department_id?: string; instrument_id?: string; created_at: string; row_count: number;
+}
 export interface Page<T> { data: T[]; page: { limit: number; next_cursor?: string } }
 export interface InstrumentOption { id: string; display_name: string }

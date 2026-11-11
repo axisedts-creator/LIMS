@@ -1,9 +1,9 @@
 'use server';
-// C5 T-26 server actions (BFF): #18 listWorklistItems, #19 listPendingItems, #20 createWorksheet, #22 getWorksheet + C7 E23 listInstruments (names only).
+// C5 T-26 server actions (BFF): #18 listWorklistItems, #19 listPendingItems, #20 createWorksheet, #21 listWorksheets, #22 getWorksheet + C7 E23 listInstruments (names only).
 // Errors become { ok:false, status, code, requestId } (a thrown ApiError loses its code across the action boundary). Ids / enums are checked before any network call.
 import 'server-only';
 import { ApiError, serverFetch } from '@/core/api/server-fetch';
-import type { ActionResult, InstrumentOption, Page, PendingItem, WorklistItem, Worksheet } from './types';
+import type { ActionResult, InstrumentOption, Page, PendingItem, WorklistItem, Worksheet, WorksheetSummary } from './types';
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const KEY = /^[A-Za-z0-9_-]{1,64}$/;
@@ -45,6 +45,21 @@ export async function createWorksheetAction(body: { title: string; department_id
 export async function getWorksheetAction(worksheetId: string): Promise<ActionResult<Worksheet>> {
   if (!UUID.test(worksheetId)) return { ok: false, status: 404, code: 'common.not_found' };
   return run(() => serverFetch<Worksheet>(`/v1/lab/worksheets/${worksheetId}`));
+}
+
+const ISO = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{1,3})?Z$/;
+const CURSOR = /^[A-Za-z0-9_=-]{1,512}$/;
+
+/** #21 listWorksheets (lab.yaml: created_at_from/to, department_id, cursor). */
+export async function listWorksheetsAction(q: { createdAtFrom?: string; createdAtTo?: string; departmentId?: string; cursor?: string } = {}): Promise<ActionResult<Page<WorksheetSummary>>> {
+  if ((q.createdAtFrom !== undefined && !ISO.test(q.createdAtFrom)) || (q.createdAtTo !== undefined && !ISO.test(q.createdAtTo))
+    || (q.departmentId !== undefined && !UUID.test(q.departmentId)) || (q.cursor !== undefined && !CURSOR.test(q.cursor))) return bad();
+  const p = new URLSearchParams();
+  if (q.createdAtFrom) p.set('created_at_from', q.createdAtFrom);
+  if (q.createdAtTo) p.set('created_at_to', q.createdAtTo);
+  if (q.departmentId) p.set('department_id', q.departmentId);
+  if (q.cursor) p.set('cursor', q.cursor);
+  return run(() => serverFetch<Page<WorksheetSummary>>(`/v1/lab/worksheets${qs(p)}`));
 }
 
 /** C7 E23 via the BFF: display names only, never from lab.yaml (08 A13 D-14). 403 => the caller hides the filter / shows IdText. */

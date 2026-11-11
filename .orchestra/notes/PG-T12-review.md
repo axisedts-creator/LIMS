@@ -1,5 +1,7 @@
-CHANGES
-1. `services/api/src/modules/payments/handlers/intents.ts:226` — P4 `resolvePaymentIntent` throws `payments.gateway_not_available` when the forced check gets no answer. That code is not in P4's error list (02-TRD.md:185; `contracts/openapi/payments.yaml:386-400` x-error-codes), and TRD §6.5 (02-TRD.md:347) says: outcome must be `settle`, else `payments.intent_not_verifiable`. Fix: throw `new LimsError('payments.intent_not_verifiable')` on that line (or drop the line; :227 `res.status !== 'settled'` already covers it). Keep the unit rollback. P3 (:191) is correct as is; its list has `payments.gateway_not_available`.
-2. `services/api/src/modules/payments/__tests__/contract/staff.http.test.ts` (P4 describe, near :350) — no test covers P4 `settle` / `record_exceeding_due` with a gateway that gives no answer (transient / auth_error / throw). Add one: expect 409 `payments.intent_not_verifiable`, still `held_for_review`, no ledger, no event, no transition, no access_log row.
-
-Checked and OK: operationIds, permissions and the order of permission checks (§5.4 / 02-CV §10.1, ST-18 404 rule); `front_desk` gets P5 + P24b and P24 -> 403; aal1 -> `auth.mfa_required`; P3 429 + Retry-After with no gateway call; If-Match 428/400/409; P4 access-log action, entityType and detail match the §5.1 table, note never logged; DTOs build an allowlist key by key (no token, URLs or payloads, no null); tenant + centre scope on every query; SQL values passed as parameters. No secrets, no PHI. Verify cmd: 168/168 pass; tsc shows 0 errors under modules/payments.
+APPROVE
+Re-review after fixes 9320ca97 / d86095af.
+- Item 1 fixed: `handlers/intents.ts:226-227` now throws `payments.intent_not_verifiable` when the gateway gives no answer or the result is not settled (TRD §6.5; P4 error list). Unit still rolls back.
+- Item 2 fixed: `staff.http.test.ts` P4 `it.each` (settle / record_exceeding_due, gateway `code:0`) expects 409 `payments.intent_not_verifiable`, intent still `held_for_review`, no ledger, no event, no transition, no access_log row.
+- `service/outcome.service.ts` change is additive (`reason`, `settleSets`, both default off); payments module path, owned by C15.
+Earlier checks unchanged (names, perms, front_desk P5/P24b vs P24 403, aal, P3 429, If-Match, access-log per §5.1, DTO allowlist, tenant + centre scope, no PHI/secrets).
+Verify cmd: 170/170 pass; tsc: 0 errors under modules/payments.

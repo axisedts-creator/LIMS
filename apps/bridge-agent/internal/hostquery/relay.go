@@ -133,9 +133,7 @@ func (r *Relay) Handle(ctx context.Context, q Query) Outcome {
 		var he *uploader.HTTPError
 		if !errors.As(err, &he) || he.Status == http.StatusUnauthorized || he.Status == http.StatusTooManyRequests || he.Status >= 500 {
 			r.mu.Lock()
-			if r.unreachable.IsZero() { // one window per outage; later probes do not re-arm it
-				r.unreachable = r.o.Now()
-			}
+			r.unreachable = r.o.Now() // every failed probe re-arms the 30 s window (03-APP-FLOW §3.4 step 2)
 			r.mu.Unlock()
 			return r.fail()
 		}

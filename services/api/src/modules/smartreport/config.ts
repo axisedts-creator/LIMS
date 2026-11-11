@@ -6,11 +6,11 @@ export interface SmartreportConfig {
   readonly prebuildEnabled: boolean;
   readonly prebuildDelaySeconds: number;
   readonly llmAdapter: string;
-  readonly llmEndpoint?: string;
+  readonly llmEndpoint: string | undefined;
   readonly llmAllowedHosts: readonly string[];
   readonly llmTimeoutMs: number;
   readonly llmMaxConcurrency: number;
-  readonly llmModelRef?: string;
+  readonly llmModelRef: string | undefined;
 }
 
 type Env = Readonly<Record<string, string | undefined>>;

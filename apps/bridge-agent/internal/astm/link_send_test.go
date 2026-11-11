@@ -406,9 +406,9 @@ func TestSend_ContentionYieldsAckAndDefers20s(t *testing.T) {
 	r.feed("instrument ENQ crosses ours -> ACK", []byte{ENQ}, []byte{ACK})
 	r.state(SendDeferred)
 	r.result(ResultPending)
-	r.adv(17 * time.Second) // 19 s after the yield; also past the 15 s establish timer
+	r.adv(17 * time.Second) // 17 s after the yield (t=19); also past the 15 s establish timer
 	r.tick("no ENQ and no EOT inside defer window", nil)
-	r.adv(2 * time.Second) // 21 s
+	r.adv(4 * time.Second) // 21 s after the yield (t=23)
 	r.tick("defer over -> ENQ again", []byte{ENQ})
 	r.state(SendEstablishing)
 	r.feed("ACK", []byte{ACK}, lkGoldFrame(t, 1)) // message kept

@@ -14,7 +14,8 @@ import { guardActor, money, notFound, strict, uuid, type Ctx, type PaymentsDeps,
 
 export type { PaymentsDeps } from '../repository/shared.js';
 export type CheckMode = 'verify' | 'reconciliation';
-export interface CheckOptions { cause?: string; allowExceedsDue?: boolean; suppressUnknownHold?: boolean }
+// PG-T12 (P4): `reason` = reason_code of the settle transition row; `settleSets` = extra columns written in the same UPDATE as the settle (resolution_* fields). Both default to none.
+export interface CheckOptions { cause?: string; allowExceedsDue?: boolean; suppressUnknownHold?: boolean; reason?: string; settleSets?: Row }
 export interface VerifyResult { intentId: string; status: string; gatewayStatusRaw?: string; verifiedAmount?: { amountPaisa: number; currency: 'NPR' } }
 
 const SETTLED_FAMILY = ['settled', 'partially_refunded', 'refunded'];
@@ -128,14 +129,14 @@ export function createOutcomeService(deps: PaymentsDeps) {
         const led = await ctx.ports.BillingPort.recordGatewayPayment(ctx, { intentId: row['id'], orderId: row['order_id'], gateway: row['gateway'],
           gatewayTxnRef: row['gateway_txn_ref'], amount: money(amount), verifiedAt: nowIso, ...(o.allowExceedsDue ? { allowExceedsDue: true } : {}) });
         const settled = await updateIntent(ctx, row, { ...book, status: 'settled', settled_at: nowIso, verified_amount_paisa: amount,
-          verification_method: METHOD[row['gateway'] as 'esewa' | 'khalti'], ledger_entry_id: led.ledgerEntryId }, { from: SETTLEABLE, inc: ['check_count'] });
+          verification_method: METHOD[row['gateway'] as 'esewa' | 'khalti'], ledger_entry_id: led.ledgerEntryId, ...o.settleSets }, { from: SETTLEABLE, inc: ['check_count'] });
         if (!settled) throw new LimsError('common.internal');
         await deps.events.publish(ctx, 'payments.intent.settled.v1', {
           aggregate: { type: 'payment_intent', id: row['id'], seq: Number(settled['version']) },
           idempotencyKey: `${row['gateway']}:${row['gateway_txn_ref']}:settled`,
           payload: { intent_id: row['id'], order_id: row['order_id'], gateway: row['gateway'], gateway_txn_ref: row['gateway_txn_ref'],
             amount: { amount_paisa: amount, currency: 'NPR' }, verified_at: nowIso, verification_method: METHOD[row['gateway'] as 'esewa' | 'khalti'], ledger_entry_id: led.ledgerEntryId } });
-        await insertTransition(ctx, newId(), row['id'], { from: row['status'], to: 'settled', cause });
+        await insertTransition(ctx, newId(), row['id'], { from: row['status'], to: 'settled', cause, ...(o.reason ? { reason: o.reason } : {}) });
         upd = settled;
         break;
       }

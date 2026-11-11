@@ -14,7 +14,7 @@ vi.mock('../../repository/codedSets.repo.js', async () => (await import('../../_
 vi.mock('../../repository/denyTerms.repo.js', async () => (await import('../../__tests__/t11.fakes.js')).denyTermsRepoFake);
 
 import { sid, starterLibrary, type LibInput } from '../../__tests__/t10.fixtures.js';
-import { ANALYTE, ORGAN_GROUPS, TA, TB, VER, VERB, call, codeOf, fails, ifMatch, loadLibrary, pointerOf, request, requestProblems, responseProblems, seed, uid, world } from '../../__tests__/t11.helpers.js';
+import { ANALYTE, ORGAN_GROUPS, TA, TB, VER, VERB, call, codeOf, fails, ifMatch, loadLibrary, pointerOf, reid, request, requestProblems, responseProblems, seed, uid, world } from '../../__tests__/t11.helpers.js';
 
 const D = VER(1);
 const MAP_ID = sid(900);
@@ -152,7 +152,7 @@ describe('C14-T11 #7 replaceSmartTemplateBlock', () => {
   it('a block that was deactivated, or belongs to another tenant, is 404', async () => {
     world.blocks.find((b) => b.id === BLOCK.advice)!.is_active = false;
     expect(codeOf(await fails(put(BLOCK.advice, same({ block_key: 'advice.all_in_range', kind: 'advice' })).run()))).toBe('common.not_found');
-    loadLibrary(TB, VERB, starterLibrary(), { version_no: 1 });
+    loadLibrary(TB, VERB, reid(starterLibrary(), 9),{ version_no: 1 });
     expect(codeOf(await fails(put(world.blocks.find((b) => b.tenant_id === TB)!.id, same()).run()))).toBe('common.not_found');
   });
 });
@@ -237,7 +237,7 @@ describe('C14-T11 #10 createSmartRule (AC-05.1, AC-05.3, AC-05.4)', () => {
     ['tenant_id smuggled', ruleBody({ tenant_id: TB }), undefined], ['library_version_id smuggled', ruleBody({ library_version_id: VERB }), undefined],
     ['block_kind smuggled', ruleBody({ block_kind: 'advice' }), undefined], ['is_active smuggled', ruleBody({ is_active: false }), undefined],
   ])('%s -> 400 common.validation_failed, nothing written', async (_n, body, path) => {
-    loadLibrary(TB, VERB, starterLibrary(), { version_no: 1 });
+    loadLibrary(TB, VERB, reid(starterLibrary(), 9),{ version_no: 1 });
     const tbBlock = world.blocks.find((b) => b.tenant_id === TB && b.kind === 'deranged')!.id;
     const dead = uid(0xf003); world.blocks.push({ ...world.blocks.find((b) => b.id === BLOCK.high)!, id: dead, block_key: 'dead.block', is_active: false });
     const b = { ...(body as any) }; if (b.block_id === '__TB_BLOCK__') b.block_id = tbBlock; if (b.block_id === '__DEAD_BLOCK__') b.block_id = dead;
@@ -313,7 +313,7 @@ describe('C14-T11 #13-#15 analyte -> organ group mappings (AC-04.1-04.3, AC-03.7
     }
   });
   it('tenant B can map its own analyte in its own draft, not tenant A\'s', async () => {
-    loadLibrary(TB, VERB, starterLibrary(), { version_no: 1 });
+    loadLibrary(TB, VERB, reid(starterLibrary(), 9),{ version_no: 1 });
     expect((await putMap(ANALYTE.b1, { group_code: 'liver' }, {}, 'pathologist', 'B', VERB).run()).status).toBe(201);
     expect(codeOf(await fails(putMap(ANALYTE.a1, { group_code: 'liver' }, {}, 'pathologist', 'B', VERB).run()))).toBe('common.not_found');
   });

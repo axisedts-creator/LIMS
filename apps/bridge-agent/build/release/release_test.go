@@ -1,4 +1,4 @@
-package release_test
+package main_test
 
 // AG-T18 tests: release pipeline tool (02-TRD 5.11, 05-SCHEMA g_agent_releases, 07-SECURITY REQ-SEC-119/128, 06 R3, CR-C7-012).
 // The spec names only: artefact bridge-agent-<version>-windows-amd64.zip = agent.exe + manifest.json; the g_agent_releases row

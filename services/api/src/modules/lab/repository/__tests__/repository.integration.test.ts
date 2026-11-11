@@ -231,7 +231,9 @@ describe.skipIf(!live)('T-03 index use (05-SCHEMA §5; EXPLAIN on the statements
     ['active delta rule', 'delta_check_rules__tenant_id_analyte__p_uq', (rc) => deltaRules.getActiveDeltaRule(rc, uid(5001))],
   ];
 
-  async function explainAll(stmts: Stmt[]): Promise<{ indexes: Set<string>; seqScans: string[] }> {
+  // LD-92 (2026-11-11): the named index must be able to serve the statement whatever the planner's tie-break between equal-cost sibling indexes;
+  // sibling non-constraint indexes of its table are dropped inside the transaction (DDL is transactional; ROLLBACK restores them).
+  async function explainAll(stmts: Stmt[], expectedIndex?: string): Promise<{ indexes: Set<string>; seqScans: string[] }> {
     const indexes = new Set<string>();
     const seqScans: string[] = [];
     const client = await admin.connect();
@@ -239,6 +241,19 @@ describe.skipIf(!live)('T-03 index use (05-SCHEMA §5; EXPLAIN on the statements
       await client.query('BEGIN');
       await client.query('SET LOCAL enable_seqscan = off');       // tiny tables: make "an index exists and fits the predicate" the only way to avoid a Seq Scan
       await client.query("SET LOCAL search_path = ''");
+      if (expectedIndex) {
+        const sib = await client.query(
+          `SELECT format('%I.%I', n.nspname, c.relname) AS idx
+             FROM pg_index i
+             JOIN pg_class c ON c.oid = i.indexrelid
+             JOIN pg_namespace n ON n.oid = c.relnamespace
+            WHERE i.indrelid = (SELECT x.indrelid FROM pg_index x JOIN pg_class xc ON xc.oid = x.indexrelid
+                                  JOIN pg_namespace xn ON xn.oid = xc.relnamespace
+                                 WHERE xc.relname = $1 AND xn.nspname = 'lab')
+              AND c.relname <> $1
+              AND NOT EXISTS (SELECT 1 FROM pg_constraint k WHERE k.conindid = i.indexrelid)`, [expectedIndex]);
+        for (const r of sib.rows) await client.query(`DROP INDEX ${r.idx}`);
+      }
       for (const s of stmts) {
         const plan = (await client.query(`EXPLAIN (FORMAT JSON) ${s.text}`, s.values)).rows[0]['QUERY PLAN'][0].Plan;
         const walk = (n: any) => {
@@ -253,10 +268,10 @@ describe.skipIf(!live)('T-03 index use (05-SCHEMA §5; EXPLAIN on the statements
     return { indexes, seqScans };
   }
 
-  it.each(EXPECT)('%s uses %s and no Seq Scan on a lab table', async (_name, index, call) => {
+  it.each(EXPECT)('%s uses %s and no Seq Scan on a lab table', async (name, index, call) => {
     const stmts = await asApi(A, async (rc, s) => { await call(rc); return s.map((x) => ({ ...x })); });
-    const { indexes, seqScans } = await explainAll(stmts);
-    expect([...indexes], 'plan indexes').toContain(index);
+    const { indexes, seqScans } = await explainAll(stmts, index);
+    expect([...indexes], `plan indexes for ${name}: indexes=[${[...indexes].join(', ')}] seqScans=[${seqScans.join(', ')}]`).toContain(index);
     expect(seqScans).toEqual([]);
   });
 

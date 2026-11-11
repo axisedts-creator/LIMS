@@ -4,6 +4,9 @@
 // Tasks of 02-TRD §8 are added by their tasks; no crontab in Phase 1 (02-TRD §8).
 import { LimsError } from '../../../../api/src/core/errors.js';
 import type { ConsumerHandler, WorkerManifest } from '../../core/manifest.js';
+import { handle as createdHandler } from './consumers/frontdesk.order.created.v1.js';
+import { handle as itemsChangedHandler } from './consumers/frontdesk.order.items_changed.v1.js';
+import { handle as cancelledHandler } from './consumers/frontdesk.order.cancelled.v1.js';
 
 const CONSUMED = [
   'frontdesk.order.created.v1',
@@ -21,9 +24,16 @@ const notImplemented = (eventType: string): ConsumerHandler => async () => {
   throw new LimsError('common.internal', `lab consumer ${eventType} not implemented`);
 };
 
+// T-06: the three frontdesk.order.* consumers are real.
+const IMPLEMENTED: Readonly<Record<string, ConsumerHandler>> = {
+  'frontdesk.order.created.v1': createdHandler,
+  'frontdesk.order.items_changed.v1': itemsChangedHandler,
+  'frontdesk.order.cancelled.v1': cancelledHandler,
+};
+
 export const manifest: WorkerManifest = {
   module: 'lab',
   tasks: {},
-  subscriptions: Object.freeze(Object.fromEntries(CONSUMED.map((t) => [t, notImplemented(t)]))),
+  subscriptions: Object.freeze(Object.fromEntries(CONSUMED.map((t) => [t, IMPLEMENTED[t] ?? notImplemented(t)]))),
   crontab: [],
 };

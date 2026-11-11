@@ -46,7 +46,7 @@ const STAFF_KINDS = new Set(['tenant_staff', 'platform']);
 export const invalid = () => new LimsError('common.validation_failed');
 const expired = () => new LimsError('auth.session_expired');
 
-function envHmac(email: string): string {
+export function envHmac(email: string): string {
   const key = process.env['LIMS_IDENTITY_EMAIL_HMAC_KEY'];
   if (!key) throw new LimsError('common.internal', 'identity: email HMAC key missing');
   return createHmac('sha256', key).update(email).digest('hex');

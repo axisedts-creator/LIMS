@@ -37,6 +37,8 @@ const IMPLEMENTED: readonly string[] = [
   'rejectSpecimen', 'requestRecollection', 'createAliquots',
   // T-14 result entry
   'bulkEnterResults', 'getResult', 'listOrderResults',
+  // T-15 critical values
+  'listCriticalValues', 'getCriticalValue', 'logCriticalNotification',
 ];
 
 const FAKE_REQ = { params: {}, query: {}, headers: {}, body: {} };

@@ -117,13 +117,44 @@ func ApplyACL(path string, aces []ACE) error {
 		windows.DACL_SECURITY_INFORMATION|windows.PROTECTED_DACL_SECURITY_INFORMATION, nil, nil, acl, nil)
 }
 
-// resetToInherited drops every explicit ACE of path and turns inheritance back on, so the object carries only what the data root gives it.
-func resetToInherited(path string) error {
+// resetToInherited makes BUILTIN\Administrators the owner of path, drops every explicit ACE and turns inheritance back on, so the
+// object carries only what the data root gives it and no earlier creator keeps the owner's implicit WRITE_DAC (AG-T15 review item 1).
+func resetToInherited(path string, owner *windows.SID) error {
 	// x/sys cannot build an empty ACL (ACLFromEntries(nil, nil) panics): an ACL header with revision 2, size 8, zero ACEs is one.
 	hdr := [2]uint32{0x00080002, 0}
 	empty := (*windows.ACL)(unsafe.Pointer(&hdr[0]))
 	return windows.SetNamedSecurityInfo(path, windows.SE_FILE_OBJECT,
-		windows.DACL_SECURITY_INFORMATION|windows.UNPROTECTED_DACL_SECURITY_INFORMATION, nil, nil, empty, nil)
+		windows.OWNER_SECURITY_INFORMATION|windows.DACL_SECURITY_INFORMATION|windows.UNPROTECTED_DACL_SECURITY_INFORMATION,
+		owner, nil, empty, nil)
+}
+
+// setOwner makes sid the owner of path. Assigning BUILTIN\Administrators needs an elevated token; without it Windows refuses
+// (ERROR_INVALID_OWNER) and the caller fails closed.
+func setOwner(path string, sid *windows.SID) error {
+	if err := windows.SetNamedSecurityInfo(path, windows.SE_FILE_OBJECT, windows.OWNER_SECURITY_INFORMATION, sid, nil, nil, nil); err != nil {
+		return fmt.Errorf(`svc: cannot make BUILTIN\Administrators the owner of %s (the installer must run elevated): %w`, path, err)
+	}
+	return nil
+}
+
+// trustedOwner reports whether path is owned by Administrators, SYSTEM or TrustedInstaller (the owners that may keep WRITE_DAC).
+func trustedOwner(path string) (bool, error) {
+	sd, err := windows.GetNamedSecurityInfo(path, windows.SE_FILE_OBJECT, windows.OWNER_SECURITY_INFORMATION)
+	if err != nil {
+		return false, err
+	}
+	owner, _, err := sd.Owner()
+	if err != nil || owner == nil {
+		return false, fmt.Errorf("svc: reading the owner of %s: %v", path, err)
+	}
+	for _, k := range []windows.WELL_KNOWN_SID_TYPE{windows.WinBuiltinAdministratorsSid, windows.WinLocalSystemSid} {
+		if owner.IsWellKnown(k) {
+			return true, nil
+		}
+	}
+	// NT SERVICE\TrustedInstaller has no well-known SID constant in x/sys; it is a fixed service SID.
+	ti, err := windows.StringToSid("S-1-5-80-956008885-3418522649-1831038044-1853292631-2271478464")
+	return err == nil && owner.Equals(ti), nil
 }
 
 type winPlatform struct {
@@ -171,6 +202,26 @@ func (p *winPlatform) PrepareFolders(l Layout, account string) error {
 	if fi, err := os.Lstat(root); err != nil || !fi.IsDir() || isLink(fi) {
 		return errors.New("svc: the data root is a link or not a folder; refusing to set permissions on it")
 	}
+	admins, err := windows.CreateWellKnownSid(windows.WinBuiltinAdministratorsSid)
+	if err != nil {
+		return err
+	}
+	// AG-T15 review item 1: a user who pre-created the parent (C:\ProgramData\LIMS) could rename BridgeAgent away and plant their
+	// own folder. Take ownership of the parent when its owner is not Administrators, SYSTEM or TrustedInstaller; fail closed otherwise.
+	parent := filepath.Dir(root)
+	ok, err := trustedOwner(parent)
+	if err != nil {
+		return fmt.Errorf("svc: checking the owner of %s: %w", parent, err)
+	}
+	if !ok {
+		if err := setOwner(parent, admins); err != nil {
+			return err
+		}
+	}
+	// The owner keeps implicit WRITE_DAC whatever the DACL says, so the root is owned by Administrators before its DACL is set.
+	if err := setOwner(root, admins); err != nil {
+		return err
+	}
 	if err := ApplyACL(root, DataACL(account)); err != nil {
 		return fmt.Errorf("svc: setting the data root ACL: %w", err)
 	}
@@ -187,9 +238,11 @@ func (p *winPlatform) PrepareFolders(l Layout, account string) error {
 			return nil
 		}
 		if d.Type()&(fs.ModeSymlink|fs.ModeIrregular) != 0 {
-			return fs.SkipDir // never set an ACL through a link
+			// never set an ACL through a link. Return nil, not fs.SkipDir: on a non-directory entry SkipDir skips every later
+			// sibling (AG-T15 review item 2). WalkDir does not follow links, so nothing below the link is visited.
+			return nil
 		}
-		if err := resetToInherited(path); err != nil {
+		if err := resetToInherited(path, admins); err != nil {
 			return fmt.Errorf("svc: resetting the ACL of %s: %w", path, err)
 		}
 		return nil

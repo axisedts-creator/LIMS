@@ -1,0 +1,3 @@
+# C6-T42 debug (2026-11-11)
+- Cause: not an implementation defect. Verify run failed 2 pay E2E (tests 4, 6); my rerun failed 3 DIFFERENT ones (AC-18.1, AC-18.2, AC-18.6) — all 60s test timeouts (`Test timeout of 60000ms exceeded`), never assertion mismatches. api 31/31, worker 23/23, static 5/5 green; tests that pass take 35-47s each under cold `next dev` + machine load (login alone 6-45s).
+- Fix: none in impl code. Flake is the Playwright harness (tests/portal-e2e/playwright.pay.config.ts: `next dev`, timeout 60_000) — tester-owned. Suggest tester: `next build && next start` webServer and/or `timeout: 120_000`; rerun when machine idle.

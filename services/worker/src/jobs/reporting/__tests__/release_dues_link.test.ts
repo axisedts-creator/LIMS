@@ -119,7 +119,7 @@ describe('send task + AC-18.10: the dues link, then release after the balance ev
     const paid = { v: false }; const s = await setup({ billing: () => (paid.v ? ELIGIBLE : DUE_500) }); const { w } = s; ok(await s.release());
     const rec = makeTransport('recording'); const m: any = await import('../tasks/send_delivery.js');
     ok(await w.run(m.createSendDelivery ? m.createSendDelivery({ env: { ...w.env }, transports: { recording: rec } }) : m.sendDelivery, { delivery_id: dues(w)[0]!['id'] }));
-    w.portalLinks().push(linkRow(7, { purpose: 'report', delivery_id: null }));                    // a report link of the same report must stay untouched
+    (w.db.store['reporting.portal_links'] ??= []).push(linkRow(7, { purpose: 'report', delivery_id: null }));                  // a report link of the same report must stay untouched
     paid.v = true; ok(await s.release());
     expect(w.version(1)).toMatchObject({ status: 'released', release_basis: 'paid_in_full' });
     const dl = w.portalLinks().filter((l) => l['purpose'] === 'dues'); expect(dl).toHaveLength(1);

@@ -1,2 +1,3 @@
 - Cause: sim harness (`khalti.sim.ts`) lacks refund route/origin/replies; 28 tests die on `sim.refund` undefined, not adapter logic.
 - Fix: none in implementation (adapter correct). Tests are off-limits; dispute written to PG-T15-dispute.md. Tester must ship the sim additions per PG-T15-ruling.md.
+- Re-run (LD-123): still 28 fails on `sim.refund` undefined in khalti.sim.ts (test harness, not adapter). No impl change; debugger may not edit tests. Blocked on TESTER shipping sim additions per PG-T15-ruling.md.

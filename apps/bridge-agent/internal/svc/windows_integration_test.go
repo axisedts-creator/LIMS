@@ -3,7 +3,7 @@
 package svc_test
 
 // AG-T15 Windows integration: the icacls audit of 02-TRD 5.12 against real folders, real DPAPI for the token, and (opt-in) a real SCM round trip.
-// The icacls tests need no elevation: the "service account" here is the current user, so the DACL can be applied and audited without admin rights.
+// The PrepareFolders/icacls tests need an elevated shell; the AG-T15 verify run must be elevated to exercise them (otherwise they skip, not pass).
 // The SCM test changes the machine (registers and removes a throw-away service) and so runs only when LIMS_AG_T15_SCM=1 in an elevated shell.
 
 import (
@@ -92,6 +92,9 @@ func layoutFor(t *testing.T) svc.Layout {
 }
 
 func TestIcaclsAuditMatchesTRD512(t *testing.T) {
+	if !elevated() {
+		t.Skip("PrepareFolders runs only from the elevated installer (04-UI-UX §2, 02-TRD §5.11)")
+	}
 	me := whoami(t)
 	l := layoutFor(t)
 	p := svc.NewWindowsPlatform(l, "")
@@ -115,6 +118,9 @@ func TestIcaclsAuditMatchesTRD512(t *testing.T) {
 
 // The installer must REPLACE the DACL, not add to it: a pre-existing Users grant has to be gone afterwards.
 func TestPrepareFoldersReplacesExistingBroadAndIsIdempotent(t *testing.T) {
+	if !elevated() {
+		t.Skip("PrepareFolders runs only from the elevated installer (04-UI-UX §2, 02-TRD §5.11)")
+	}
 	me := whoami(t)
 	l := layoutFor(t)
 	if err := os.MkdirAll(l.SecretsDir(), 0o700); err != nil {
@@ -153,20 +159,23 @@ func ownerIsAdministrators(t *testing.T, path string) bool {
 }
 
 // AG-T15 review item 1: an owner keeps implicit WRITE_DAC, so a user who pre-created the data root must not stay its owner.
-// PrepareFolders either fails closed (clear error) or leaves BUILTIN\Administrators as owner of the root and of every child.
-// (From an elevated shell the folder is Administrators-owned already, so the test cannot discriminate there.)
+// Not elevated: PrepareFolders MUST fail closed (an error), since a non-admin cannot assign BUILTIN\Administrators as owner (AG-T15 ruling).
+// Elevated: BUILTIN\Administrators owns the root and every child.
 func TestPrepareFoldersOwnerIsAdministrators(t *testing.T) {
 	me := whoami(t)
 	l := layoutFor(t)
 	if err := os.MkdirAll(l.SecretsDir(), 0o700); err != nil {
 		t.Fatal(err)
 	}
-	if ownerIsAdministrators(t, l.DataRoot) {
-		t.Log("data root pre-created with Administrators as owner (elevated shell): owner check is not discriminating here")
-	}
-	if err := svc.NewWindowsPlatform(l, "").PrepareFolders(l, me); err != nil {
-		t.Logf("PrepareFolders failed closed: %v", err)
+	err := svc.NewWindowsPlatform(l, "").PrepareFolders(l, me)
+	if !elevated() {
+		if err == nil {
+			t.Fatal("PrepareFolders succeeded without elevation: it must fail closed")
+		}
 		return
+	}
+	if err != nil {
+		t.Fatalf("PrepareFolders: %v", err)
 	}
 	for _, p := range append([]string{l.DataRoot}, l.Dirs()...) {
 		if !ownerIsAdministrators(t, p) {
@@ -177,6 +186,9 @@ func TestPrepareFoldersOwnerIsAdministrators(t *testing.T) {
 
 // AG-T15 review item 2: a link entry in a folder must not stop the repair of its later siblings (fs.SkipDir on a non-directory skips the rest of the folder).
 func TestPrepareFoldersLinkDoesNotSkipLaterSiblings(t *testing.T) {
+	if !elevated() {
+		t.Skip("PrepareFolders runs only from the elevated installer (04-UI-UX §2, 02-TRD §5.11)")
+	}
 	me := whoami(t)
 	l := layoutFor(t)
 	if err := os.MkdirAll(l.SecretsDir(), 0o700); err != nil {

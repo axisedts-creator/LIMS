@@ -21,15 +21,15 @@ else
   tap ok "allowlist of $U has no blanket grant"
 fi
 
-# non-allowlisted commands must be refused (`sudo -n`: no prompt, so a refusal is immediate)
+# non-allowlisted commands must be refused (policy query `sudo -l -U`: never executes the command; LD-116)
 for c in "/bin/bash -c true" "/usr/bin/id" "/bin/cat /etc/shadow" "/usr/bin/systemctl edit sshd"; do
   # shellcheck disable=SC2086
-  if sudo -n -u "$U" sudo -n $c >/dev/null 2>&1; then tap fail "$U ran '$c' through sudo"; else tap ok "$U cannot sudo '$c'"; fi
+  if sudo -l -U "$U" $c >/dev/null 2>&1; then tap fail "$U may run '$c' through sudo"; else tap ok "$U cannot sudo '$c'"; fi
 done
 
 # prod secrets: the decrypt units are root-only and the oncall user holds no key
-if sudo -n -u "$U" sudo -n systemctl start "lims-prod-decrypt@v0.0.0.service" >/dev/null 2>&1; then
-  tap fail "$U started lims-prod-decrypt@ (prod secrets decrypt)"
+if sudo -l -U "$U" /usr/bin/systemctl start lims-prod-decrypt@v0.0.0.service >/dev/null 2>&1; then
+  tap fail "$U may start lims-prod-decrypt@ (prod secrets decrypt)"
 else
   tap ok "$U cannot start lims-prod-decrypt@"
 fi

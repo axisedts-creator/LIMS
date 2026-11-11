@@ -62,7 +62,7 @@ interface Opt {
   hookEnabled?: boolean; decision?: any; canAutoVerifyThrows?: Error; saveThrows?: Error; rangeThrows?: Error; actor?: any;
 }
 function make(opt: Opt = {}) {
-  const tx = { id: 'tx-1' };
+  const tx = { id: 'tx-1', query: async () => ({ rows: [], rowCount: 0 }) };
   const log: { fn: string; tenantId: unknown; tx: unknown; arg: any }[] = [];
   const events: any[] = [], logged: unknown[][] = [], asked: any[] = [], portCalls: string[] = [];
   const rec = (fn: string, t: unknown, tenantId: unknown, arg?: any) => log.push({ fn, tenantId, tx: t, arg });

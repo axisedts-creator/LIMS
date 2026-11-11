@@ -13,6 +13,7 @@ import {
   createSmartRule, createSmartTemplateBlock, deleteSmartAnalyteGroup, deleteSmartRule, deleteSmartTemplateBlock, listSmartAnalyteGroups, listSmartGroupSettings, listSmartRules,
   listSmartTemplateBlocks, putSmartAnalyteGroup, putSmartGroupSetting, replaceSmartRule, replaceSmartTemplateBlock,
 } from './libraryChildren.js';
+import { listSmartLlmRuns, requestSmartLlmRephrase } from './llm.js';
 import { approveSmartSummary, buildSmartSummary, getCurrentSmartSummary, getSmartSummary, listSmartSummaries, rejectSmartSummary } from './summaries.js';
 
 const OPERATION_IDS = [
@@ -41,6 +42,7 @@ const implemented: Partial<Record<SmartreportOperationId, Handler>> = {
   validateSmartLibraryVersion, submitSmartLibraryVersion, approveSmartLibraryVersion, returnSmartLibraryVersion,
   listSmartDenyTerms, createSmartDenyTerm, deactivateSmartDenyTerm, getSmartCodedSet, getSmartLibraryCodedSet,
   listSmartSummaries, getSmartSummary, getCurrentSmartSummary, buildSmartSummary, approveSmartSummary, rejectSmartSummary,
+  requestSmartLlmRephrase, listSmartLlmRuns,
 };
 
 export const handlers: Readonly<Record<SmartreportOperationId, Handler>> = Object.freeze(

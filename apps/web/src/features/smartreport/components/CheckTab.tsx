@@ -8,17 +8,19 @@ import { StatusChip } from '@lims/ui/components/StatusChip';
 import { submitAction, validateAction } from '../server/actions';
 import type { Issue } from '../library';
 import { ErrorAlert, useEditor } from './common';
+import { PreviewDialog } from './PreviewDialog';
 
 const TAB_NAME: Record<string, string> = { texts: 'Texts', rules: 'Rules', mapping: 'Analyte mapping' };
 const owner = (i: Issue) => (i.block_key ? 'texts' : i.rule_id ? 'rules' : 'mapping');
 
 export type Numbered = Issue & { n: number };
 /** `issues` lives in the editor so the last check run survives a jump to another tab. */
-export function CheckTab({ version, onJump, issues, setIssues }: { version: number; onJump: (tab: string) => void; issues: Numbered[] | undefined; setIssues: (i: Numbered[]) => void }) {
+export function CheckTab({ version, onJump, issues, setIssues, canPreviewOrder }: { version: number; onJump: (tab: string) => void; issues: Numbered[] | undefined; setIssues: (i: Numbered[]) => void; canPreviewOrder: boolean }) {
   const ed = useEditor();
   const router = useRouter();
   const [busy, setBusy] = useState(false);
   const [alert, setAlert] = useState<string>();
+  const [previewing, setPreviewing] = useState(false);
   const hasErrors = !!issues?.some((i) => i.severity === 'error');
 
   const check = async () => {
@@ -53,12 +55,14 @@ export function CheckTab({ version, onJump, issues, setIssues }: { version: numb
       <ErrorAlert text={alert} />
       <span className="lims-inline">
         <Button onPress={() => void check()} isDisabled={busy}>Run checks</Button>
+        <Button onPress={() => setPreviewing(true)}>Preview</Button>
         <Button variant="primary" onPress={() => void submit()} isDisabled={busy || !issues || hasErrors}>Submit for approval</Button>
       </span>
       {issues && issues.length === 0 ? <p role="status">No issues found. You can submit this version for approval.</p> : null}
       {issues && issues.length > 0 ? (
         <DataTable columns={columns} rows={issues} getRowId={(i) => String(i.n)} caption="Issues" density="compact" emptyState={{ title: 'No issues found' }} />
       ) : null}
+      <PreviewDialog versionId={ed.versionId} canPreviewOrder={canPreviewOrder} isOpen={previewing} onClose={() => setPreviewing(false)} />
     </div>
   );
 }

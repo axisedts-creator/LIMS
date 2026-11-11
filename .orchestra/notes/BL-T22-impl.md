@@ -1,8 +1,7 @@
-BL-T22 impl (writer, round 4, after main merged into lane: HEAD..main = 0). Owned paths only. No code change this round.
-Files (earlier rounds, unchanged): worker billing/alerts/{integrity,cbms}.rules.yaml, frontdesk/alerts/frontdesk.rules.yaml; ledger.service.ts recordPayment (LD-75(b), in HEAD).
-Probes run 2026-11-11 11:00: 28 fail / 332 pass / 7 skip. alerts.rules, securityContracts, phi.logscan pass; uploads 9/10 pass.
-16 fails = probe.kit ctxFor too thin (own IdentityPort 404, no events/core/storage.delete/download) -> TESTS_WRONG, see BL-T22-dispute.md §1.
-1 fail = PDF-JS sanitise is worker trf_scan's job (02-TRD:556), not the handler -> TESTS_WRONG, dispute §2.
-11 fails = billing/handlers/index.ts:27 notYet stubs (BL-T15 handlers never wired; BL-T21 payment intents Phase 1.5). Not faked (LD-95); dispute §3.
-[CONV] none new.
-Open: lead/BL-T15 owner wires register/export/credit-note handlers; trf_scan.ts:4 lacks qpdf (FD-T10).
+# BL-T22 impl (writer) — 2026-11-11
+- Files changed: none (LD-98: writer changes nothing until BL-T15 lands; no stub faked, LD-75). Alert rule files (billing/alerts/cbms+integrity, frontdesk/alerts/frontdesk.rules.yaml) and CR (.orchestra/cr/BL-T22.nonblocking.md) already in HEAD.
+- Verify run (`vitest run src/modules/billing/__tests__/probes`): 25 fail | 334 pass | 7 skip | 1 todo. alerts.rules, phi.logscan, uploads, securityContracts all pass.
+- 17 fails = 9 BL-T15/B6 ops still `notYet` in services/api/src/modules/billing/handlers/index.ts:12,27 (getSalesRegister, getCancelledInvoiceRegister, getCreditNoteRegister, getAuditTrail, createBillingExport, getBillingExport, getBillingExportContent, listCreditNotes, getCreditNote). register.handlers.ts/export.handlers.ts not on main yet → BL-T15 (LD-97) not done; lane cannot clear these.
+- 8 fails = real handler answers ≠ 404 (already listed in BL-T22-tests.md): frontdesk updatePatient, anonymisePatient, uploadTrf, getTrfAttachment, getTrfAttachmentContent, searchPatients (zero-rows); billing printInvoice, printCreditNote.
+- [CONV] Per LD-98 these 8 are re-checked only after BL-T15 merges; if they persist they are C4-owned and get fixed then (not touched now to avoid acting outside the ruling).
+- Open: BL-T22 stays GATED on BL-T15 (LD-97).

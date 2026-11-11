@@ -175,6 +175,26 @@ describe("rule 3 — closed, bounded schemas", () => {
   });
 });
 
+// LD-119 (2026-11-12): rule 3 allowlist, ONE entry: module instruments + operationId getAgentConfig + response 200 + property path `document`
+// (LD-78 opaque signed bytes). Exempts only additionalProperties: false; keyed by operation context, never by property name alone.
+describe("LD-119 rule 3 allowlist: instruments getAgentConfig 200 `document`", () => {
+  const c = { ...ctx, moduleOwners: { ...ctx.moduleOwners, instruments: "C7" } };
+  const agentCfg = (opId: string, docProp: string, doc: any, extra: any = {}) =>
+    file("instruments", spec({ "/v1/instruments/agent/config": { get: getOp({
+      operationId: opId, tags: ["instruments"],
+      responses: { "200": { description: "ok", ...json({ type: "object", additionalProperties: false,
+        properties: { alg: { type: "string", maxLength: 20 }, [docProp]: doc, ...extra } }) } } }) } }));
+  const open = () => ({ type: "object", additionalProperties: true });
+  it("exact entry (getAgentConfig, 200, document) accepted", async () =>
+    expect(await run([agentCfg("getAgentConfig", "document", open())], c)).toEqual([]));
+  it("same open object under another operationId still rejected (rule 3)", async () =>
+    expectRule("3", [agentCfg("getOtherConfig", "document", open())], c));
+  it("same open object under another property of getAgentConfig still rejected (rule 3)", async () =>
+    expectRule("3", [agentCfg("getAgentConfig", "other", open())], c));
+  it("the exemption covers only additionalProperties: an unbounded string in `document` is still rejected", async () =>
+    expectRule("3", [agentCfg("getAgentConfig", "document", { ...open(), properties: { s: { type: "string" } } })], c));
+});
+
 describe("rule 4 — operation metadata", () => {
   it.each(["operationId", "tags", "summary", "security", "x-idempotency", "x-rate-limit-tier", "x-error-codes"])(
     "missing %s", async (k) => {

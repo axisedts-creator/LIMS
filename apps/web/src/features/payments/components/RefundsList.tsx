@@ -17,11 +17,15 @@ import { StatusChip } from '@lims/ui/components/StatusChip';
 import { TextField } from '@lims/ui/components/TextField';
 import { useToast } from '@lims/ui/components/Toast';
 import { SECOND_PERSON, failText } from '../errors';
-import { dayNpt, dayOfInstant, gatewayLabel, hasPerm, humanize, nprText, refundStatus } from '../labels';
+import { MoneyText } from '@lims/ui/components/MoneyText';
+import { dayNpt, dayOfInstant, gatewayLabel, hasPerm, humanize, kitMoney, nprText, refundStatus } from '../labels';
 import {
   approveRefundAction, confirmRefundAction, failRefundAction, recheckRefundAction, rejectRefundAction, type ActionResult,
 } from '../server/actions';
-import type { RefundCodes, RefundDto } from '../types';
+import type { PaymentMoney, RefundCodes, RefundDto } from '../types';
+
+/** Standalone amount via kit MoneyText (04-UI-UX:21); em dash when absent. */
+const amt = (m: PaymentMoney | undefined) => { const k = kitMoney(m); return k ? <MoneyText value={k} /> : <span className="lims-money">—</span>; };
 
 type Iso = DateTextProps['value'];
 type Fail = Extract<ActionResult, { ok: false }>;
@@ -131,7 +135,7 @@ export function RefundsList({ refunds, permissions, currentMembershipId, codes, 
   const columns: ColumnDef<RefundDto>[] = [
     { id: 'requested', header: 'Requested', isRowHeader: true, cell: (r) => <DateText value={r.requested_at as Iso} withTime /> },
     { id: 'gateway', header: 'Gateway', cell: (r) => gatewayLabel(r.gateway) },
-    { id: 'amount', header: 'Amount', align: 'end', cell: (r) => <span className="lims-money">{nprText(r.amount)}</span> },
+    { id: 'amount', header: 'Amount', align: 'end', cell: (r) => amt(r.amount) },
     { id: 'status', header: 'Status', cell: (r) => { const [tone, label] = refundStatus(r.status); return <StatusChip kind="generic" status={r.status} tone={tone} label={label} />; } },
     { id: 'mode', header: 'Mode', cell: (r) => (r.mode === 'api' ? 'Provider API' : 'Manual') },
     { id: 'requested_by', header: 'Requested by', cell: (r) => r.requested_by?.display_name || '—' },

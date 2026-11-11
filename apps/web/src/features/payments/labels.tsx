@@ -1,5 +1,6 @@
 // Display helpers for the payment screens: lakh-grouped NPR text, plain-words codes, status label from the kit mapping.
 import { statusOf } from '@lims/ui/components/StatusChip';
+import type { Money } from '@lims/ui/components/MoneyField';
 import type { PaymentMoney } from './types';
 
 /** `NPR 1,23,456.00` from integer paisa. String maths only (no float division): the server amount is authoritative. */
@@ -13,7 +14,11 @@ export function nprText(m: PaymentMoney | undefined): string {
   return `${neg ? '-' : ''}NPR ${grouped}.${s.slice(-2)}`;
 }
 
-export const humanize = (code: string | undefined): string => {
+/** DTO money → kit Money for MoneyText (04-UI-UX:21); undefined when absent/invalid. */
+export const kitMoney = (m: PaymentMoney | undefined): Money | undefined =>
+  m && Number.isSafeInteger(m.amount_paisa) ? { amountPaisa: m.amount_paisa, currency: 'NPR' } : undefined;
+
+export const humanize =(code: string | undefined): string => {
   const s = (code ?? '').replace(/_/g, ' ').trim();
   return s ? s.charAt(0).toUpperCase() + s.slice(1) : '—';
 };

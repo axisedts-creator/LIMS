@@ -16,9 +16,13 @@ import { StatusChip } from '@lims/ui/components/StatusChip';
 import { Tabs } from '@lims/ui/components/Tabs';
 import { useToast } from '@lims/ui/components/Toast';
 import { failText } from '../errors';
-import { hasPerm, humanize, instantText, nprText, statusLabel } from '../labels';
+import { MoneyText } from '@lims/ui/components/MoneyText';
+import { hasPerm, humanize, instantText, kitMoney, statusLabel } from '../labels';
 import { resolveFindingAction, startReconciliationAction, type ActionResult } from '../server/actions';
-import type { FindingDto, ReconCodes, ReconStats, ReconciliationRunDto } from '../types';
+import type { FindingDto, PaymentMoney, ReconCodes, ReconStats, ReconciliationRunDto } from '../types';
+
+/** Standalone amount via kit MoneyText (04-UI-UX:21); em dash when absent. */
+const amt = (m: PaymentMoney | undefined) => { const k = kitMoney(m); return k ? <MoneyText value={k} /> : <span className="lims-money">—</span>; };
 
 type Iso = DateTextProps['value'];
 type Fail = Extract<ActionResult, { ok: false }>;
@@ -101,8 +105,8 @@ export function ReconciliationView({ runs, findings, stats, permissions, codes, 
     { id: 'intent', header: 'Intent', cell: (f) => (f.intent_id ? <a href={`/payments/intents/${f.intent_id}`} aria-label={`Payment ${f.intent_id.slice(0, 8)}`}><IdText value={f.intent_id} /></a> : '—') },
     { id: 'our_status', header: 'Our status', cell: (f) => ourStatus(f.our_status) },
     { id: 'provider_status', header: 'Provider status', cell: (f) => f.gateway_status_raw ?? '—' },
-    { id: 'our_amount', header: 'Our amount', align: 'end', cell: (f) => <span className="lims-money">{nprText(f.our_amount)}</span> },
-    { id: 'provider_amount', header: 'Provider amount', align: 'end', cell: (f) => <span className="lims-money">{nprText(f.gateway_amount)}</span> },
+    { id: 'our_amount', header: 'Our amount', align: 'end', cell: (f) => amt(f.our_amount) },
+    { id: 'provider_amount', header: 'Provider amount', align: 'end', cell: (f) => amt(f.gateway_amount) },
     { id: 'auto', header: 'Automatic action', cell: (f) => (f.auto_action ? AUTO_ACTION[f.auto_action] ?? '—' : '—') },
     { id: 'actions', header: 'Actions', cell: (f) => <Button size="sm" isDisabled={!canResolve} onPress={() => { setNeedText(false); setBanner(''); setDlg({ finding: f, key: globalThis.crypto.randomUUID() }); }}>Resolve</Button> },
   ];

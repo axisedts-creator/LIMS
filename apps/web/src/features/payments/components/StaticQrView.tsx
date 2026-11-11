@@ -16,9 +16,13 @@ import { TextArea } from '@lims/ui/components/TextArea';
 import { TextField } from '@lims/ui/components/TextField';
 import { useToast } from '@lims/ui/components/Toast';
 import { failText } from '../errors';
-import { dayNpt, hasPerm, humanize, nprText } from '../labels';
+import { MoneyText } from '@lims/ui/components/MoneyText';
+import { dayNpt, hasPerm, humanize, kitMoney } from '../labels';
 import { previewStaticQrAction, saveStaticQrAction } from '../server/actions';
 import type { PaymentCentre, PaymentMoney, StaticQrReconDto } from '../types';
+
+/** Standalone amount via kit MoneyText (04-UI-UX:21); em dash when absent. */
+const amt = (m: PaymentMoney | undefined) => { const k = kitMoney(m); return k ? <MoneyText value={k} /> : <span className="lims-money">—</span>; };
 
 type Iso = DateTextProps['value'];
 const ALL = 'all';
@@ -97,9 +101,9 @@ export function StaticQrView({ worksheets, permissions, centres }: StaticQrViewP
   const columns: ColumnDef<StaticQrReconDto>[] = [
     { id: 'date', header: 'Date', isRowHeader: true, cell: (s) => <DateText value={s.business_date as Iso} /> },
     { id: 'centre', header: 'Centre', cell: (s) => (s.centre_id ? centreName.get(s.centre_id) ?? '—' : 'All centres') },
-    { id: 'system', header: 'System', align: 'end', cell: (s) => <span className="lims-money">{nprText(s.system_total)}</span> },
-    { id: 'statement', header: 'Statement', align: 'end', cell: (s) => <span className="lims-money">{nprText(s.statement_total)}</span> },
-    { id: 'difference', header: 'Difference', align: 'end', cell: (s) => <span className="lims-money">{nprText(s.difference)}</span> },
+    { id: 'system', header: 'System', align: 'end', cell: (s) => amt(s.system_total) },
+    { id: 'statement', header: 'Statement', align: 'end', cell: (s) => amt(s.statement_total) },
+    { id: 'difference', header: 'Difference', align: 'end', cell: (s) => amt(s.difference) },
     { id: 'status', header: 'Status', cell: (s) => { const [tone, label] = Object.hasOwn(STATUS, s.status) ? STATUS[s.status as keyof typeof STATUS] : (['neutral', humanize(s.status)] as const); return <StatusChip kind="generic" status={s.status} tone={tone} label={label} />; } },
     { id: 'by', header: 'By', cell: (s) => s.reconciled_by?.display_name || '—' },
     { id: 'reference', header: 'Reference', cell: (s) => s.statement_reference || '—' }, // [CONV] not in the §2.5 column list; lets finance find the bank-statement line
@@ -115,14 +119,14 @@ export function StaticQrView({ worksheets, permissions, centres }: StaticQrViewP
       <div className="lims-field">
         <span className="lims-label">System total</span>
         {preview.s === 'ok' ? (
-          <p><span className="lims-money">{nprText(preview.total)}</span> · <span>{preview.entries} {preview.entries === 1 ? 'entry' : 'entries'}</span></p>
+          <p>{amt(preview.total)} · <span>{preview.entries} {preview.entries === 1 ? 'entry' : 'entries'}</span></p>
         ) : preview.s === 'loading' ? <p>Loading…</p> : <p>The system total could not be loaded. Try again later.</p>}
       </div>
       <MoneyField label="Bank statement total" name="statement_total" isRequired {...(statement ? { value: statement } : {})} onChange={setStatement} {...(errors.statement ? { error: errors.statement } : {})} />
       <TextField label="Statement reference" name="statement_reference" maxLength={100} isRequired value={reference} onChange={setReference} {...(errors.reference ? { error: errors.reference } : {})} />
       <div className="lims-field">
         <span className={diff ? 'lims-label lims-tone-danger' : 'lims-label'}>Difference</span>
-        <span className="lims-money">{diff === undefined ? '—' : nprText({ amount_paisa: diff, currency: 'NPR' })}</span>
+        {diff === undefined ? <span className="lims-money">—</span> : amt({ amount_paisa: diff, currency: 'NPR' })}
       </div>
       <TextArea label="Note" name="note" maxLength={1000} value={note} onChange={setNote} {...(errors.note ? { error: errors.note } : {})} />
       <Button variant="primary" isDisabled={!canSave} isLoading={busy} onPress={() => void submit()}>Save worksheet</Button>

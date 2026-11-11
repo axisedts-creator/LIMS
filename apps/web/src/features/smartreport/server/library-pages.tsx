@@ -34,10 +34,10 @@ export async function libraryReviewPage(id: string) {
   const { canApprove } = await api.requireReview();
   try {
     const version = await api.getVersion(id);
-    const [blocks, rules, mappings, groups, organGroups, all] = await Promise.all([
-      api.listBlocks(id), api.listRules(id), api.listMappings(id), api.listGroups(id), api.organGroups(), api.listVersions(),
+    const [blocks, rules, mappings, groups, organGroups, a] = await Promise.all([
+      api.listBlocks(id), api.listRules(id), api.listMappings(id), api.listGroups(id), api.organGroups(), api.activeVersion(),
     ]);
-    const active = all.find((s) => s.status === 'approved' && s.id !== id);
+    const active = a && a.id !== id ? a : undefined;
     const [bb, br, bm] = active ? await Promise.all([api.listBlocks(active.id), api.listRules(active.id), api.listMappings(active.id)]) : [[], [], []];
     const diff = diffLibrary({ blocks: bb, rules: br, mappings: bm }, { blocks, rules, mappings });
     return (

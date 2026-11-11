@@ -35,7 +35,9 @@ const v = (id: string, tail = '') => `${SR}/${encodeURIComponent(id)}${tail}`;
 const data = <T,>(r: { data?: T[] } | undefined) => (Array.isArray(r?.data) ? r.data : []);
 
 export const listVersions = async () => data(await serverFetch<{ data?: Summary[] }>(SR));
-export const getVersion = (id: string) => serverFetch<Version>(v(id));
+/** The single approved (active) version, read with the #1 status filter so paging never hides it. */
+export const activeVersion = async () => data(await serverFetch<{ data?: Summary[] }>(`${SR}?status=approved&limit=1`)).find((s) => s.status === 'approved');
+export const getVersion =(id: string) => serverFetch<Version>(v(id));
 export const listBlocks = async (id: string) => data(await serverFetch<{ data?: Block[] }>(v(id, '/blocks')));
 export const listRules = async (id: string) => data(await serverFetch<{ data?: Rule[] }>(v(id, '/rules')));
 export const listMappings = async (id: string) => data(await serverFetch<{ data?: Mapping[] }>(v(id, '/analyte-groups')));

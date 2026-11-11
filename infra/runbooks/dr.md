@@ -64,9 +64,9 @@ Planned, in a maintenance window, after the cause is fixed. The promoted host ar
 
 ## Game day
 Semi-annual (every 6 months); a tabletop for the site failover alongside. Run in staging with the `full` profile; synthetic data only.
-1. Script: stop the staging data host (fence), run `dr-promote.yml -e confirm_env=staging`, note the start epoch.
+1. Script: in staging stop only the Postgres container of the site-A VM (port 5432 closed, the split-brain probe passes; staging runs `data-1`+`app-1` on one VM, 02-TRD s3.1); in prod fence the data host; then run `dr-promote.yml -e confirm_env=staging` and note the start epoch.
 2. Measure: RTO (start note to the API smoke; target 1 h), time until the interim repo `check` passed (target 4 h).
 3. Verify `NoOffsiteArchive` fired and stays firing after the interim repo exists (still firing at the end of the run); record the time it fired.
-4. Write the record `infra/runbooks/gameday-log/<YYYY-MM-DD>-dr-promotion.md` with the keys of the tabletop record template: Date, Environment, Scenario, Participants, Promotion started, Application reconnected, RTO measured, RTO target, Interim repo check, NoOffsiteArchive fired, NoOffsiteArchive still firing at, Actions, Next game day.
+4. Write the record `infra/runbooks/gameday-log/<YYYY-MM-DD>-dr-promotion.md` with the keys of the tabletop record template: Date, Environment, Scenario, Participants, Promotion started, Application reconnected, RTO measured, RTO target, Interim repo check, Interim repo host, NoOffsiteArchive fired, NoOffsiteArchive still firing at, Actions, Next game day. In staging the interim repo shares the promoted VM (site B runs `dr-1`+`ops-1` on one VM), so the record says so; AC-22.3's "different host" is proven only where `groups['ops'][0] != groups['dr'][0]` (prod `full`).
 5. Site failover tabletop: desk walk-through, record in `infra/runbooks/tabletop-log/<YYYY-MM-DD>-site-failover.md`.
 6. Rebuild the staging standby afterwards (switch-back steps).

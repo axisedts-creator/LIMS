@@ -270,6 +270,7 @@
     # Review item 2: the pass must outlive the promoted host, so it is escrowed (sops, secrets.md) in its own
     # encrypted file next to <env>.enc.yaml in lims-secrets (not in <env>.enc.yaml: the schema rejects extra ids).
     # [CONV] file <env>.dr-interim.enc.yaml, id pgbackrest_interim_cipher_pass; encrypted with the env's rule.
+    # Not in 02-TRD s8.2 / secrets schemas yet: CR-C1-T29c (.orchestra/cr/C1.T-29.secrets.md, non-blocking).
     dr_escrow_file: "{{ (secrets_render_enc_file | default('')) | dirname }}/{{ env }}.dr-interim.enc.yaml"
   tasks:
     - name: Encrypted secrets file of this env known (escrow target)

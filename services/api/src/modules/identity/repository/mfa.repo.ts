@@ -146,10 +146,11 @@ export function createMfaRepo(o: { seal?: Sealer; open?: Opener } = {}) {
       };
     },
 
-    /** T31 app-token rotation (patient / staff_mobile); caller holds the row lock. 0 rows = a parallel rotation won -> fail closed. */
-    async rotateToken(tx: Q, ref: SessionRef, a: { tokenSha256: Buffer; previousTokenSha256: Buffer; actorId: string }): Promise<void> {
+    /** T31 app-token rotation (patient / staff_mobile); caller holds the row lock. false = 0 rows: a parallel refresh already rotated
+     *  this token (lost race) -> the caller treats it as reuse (AU-T15, 02-TRD s4 item 10). */
+    async rotateToken(tx: Q, ref: SessionRef, a: { tokenSha256: Buffer; previousTokenSha256: Buffer; actorId: string }): Promise<boolean> {
       if (!ref.tenantId) throw new LimsError('common.internal');
-      rowsOk((await tx.query(ROTATE_SQL, [ref.tenantId, ref.sessionId, ref.userId, a.tokenSha256, a.previousTokenSha256, a.actorId])).rows, 'token rotation');
+      return (await tx.query(ROTATE_SQL, [ref.tenantId, ref.sessionId, ref.userId, a.tokenSha256, a.previousTokenSha256, a.actorId])).rows.length > 0;
     },
 
     /** T8 touch (03-APP-FLOW s3.5): last_seen_at = now, idle_expires_at = now + idle_timeout_minutes; caller holds the row lock */

@@ -187,7 +187,7 @@ export function createAuthService(deps: AuthDeps) {
       const ok = deps.repo.membershipHasPermission
         ? await deps.repo.membershipHasPermission(tx, { tenantId, membershipId, permission: MOBILE_PERMISSION }) : false;
       if (!ok) {
-        await deps.events.recordTenant(tx, ev('login_failed', { ...who, tenantId, membershipId, emailHmacHex: k, reasonCode: 'mobile_permission' }));
+        await deps.events.recordTenant(tx, ev('login_failed', { ...who, tenantId, membershipId, emailHmacHex: k, reasonCode: 'auth.forbidden' }));
         await signOut('mobile_permission', tenantId);
         return deny(new LimsError('auth.forbidden'));
       }

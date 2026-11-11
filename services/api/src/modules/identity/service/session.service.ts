@@ -108,17 +108,20 @@ export function createSessionService(deps: SessionDeps) {
           },
           deny: (err) => { keep = true; c.commitOnError?.(); throw err; },
         };
-        if (s.tokenReused) {   // AU-T15 (08 R10, A3.1): rotated-out app token presented again -> revoke, event, sign-out job; kept through the 401 (P-42)
-          await deps.repo.updateSession(tx, ref, { revoked: { reason: 'token_reuse' }, actorId: c.actorId });
-          await l.record(ev('session_token_reused'));
-          await l.signOut('token_reuse');
-          return l.deny(expired());
-        }
+        if (s.tokenReused) return await reuse(c, l);   // await: the rejection must reach the catch below (keep)
         return { ok: await run(l) };
       } catch (err) { if (keep) return { err }; throw err; }
     });
     if ('err' in out) throw out.err;
     return out.ok;
+  }
+
+  /** AU-T15 (08 R10, A3.1): rotated-out app token presented again -> revoke, event, sign-out job; kept through the 401 (P-42) */
+  async function reuse(c: SessionCall, l: Locked): Promise<never> {
+    await deps.repo.updateSession(l.tx, l.ref, { revoked: { reason: 'token_reuse' }, actorId: c.actorId });
+    await l.record(l.ev('session_token_reused'));
+    await l.signOut('token_reuse');
+    return l.deny(expired());
   }
 
   /** SS10 lazy expiry (absolute wins when both lapsed); expiry + event kept through the 401 (P-42) */
@@ -211,10 +214,11 @@ export function createSessionService(deps: SessionDeps) {
     refreshMobile: (c: SessionCall) => locked({ ...c, family: 'staff_mobile' }, () => { throw expired(); }, async (l) => {
       await lapse(c, l);
       blocked(l);
-      const { accessToken, accessExpiresAt } = await gotrueRefresh(c, l);
       if (!deps.repo.rotateToken) throw new LimsError('common.internal');
       const token = newToken();
-      await deps.repo.rotateToken(l.tx, l.ref, { tokenSha256: sha(token), previousTokenSha256: sha(c.token), actorId: c.actorId });
+      // rotate BEFORE the GoTrue refresh: a lost race (0 rows) is reuse and never spends a refresh token (AU-T15, 02-TRD s4 item 10)
+      if (!await deps.repo.rotateToken(l.tx, l.ref, { tokenSha256: sha(token), previousTokenSha256: sha(c.token), actorId: c.actorId })) return await reuse(c, l);
+      const { accessToken, accessExpiresAt } = await gotrueRefresh(c, l);
       return { status: 200 as const, body: { session_token: token, access_token: accessToken, access_expires_at: accessExpiresAt.toISOString(),
         session_expires_at: l.load.absoluteExpiresAt.toISOString(), session: sessionBody(l, l.load.idleExpiresAt) } };
     }),

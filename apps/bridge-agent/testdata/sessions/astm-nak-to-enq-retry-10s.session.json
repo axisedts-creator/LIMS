@@ -5,6 +5,9 @@
   {"from": "instrument", "bytes": "<NAK>"},
   {"wait_ms": 9999, "note": "1 ms short of nak_retry_delay_s"},
   {"expect": "agent", "bytes": "", "within_ms": 200},
-  {"wait_ms": 1, "note": "wait_ms=10000 in total since the NAK = nak_retry_delay_s default"},
+  {"wait_ms": 1, "note": "10 s since the NAK = nak_retry_delay_s default"},
+  {"expect": "agent", "bytes": "<ENQ>", "within_ms": 200},
+  {"from": "instrument", "bytes": "<NAK>"},
+  {"wait_ms": 10000, "note": "second NAK: retry again after exactly nak_retry_delay_s"},
   {"expect": "agent", "bytes": "<ENQ>", "within_ms": 200}
  ]}

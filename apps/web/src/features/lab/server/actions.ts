@@ -3,9 +3,9 @@
 // because a thrown ApiError loses its code across the action boundary in production. Only ApiError is mapped.
 import 'server-only';
 import { ApiError } from '@/core/api/server-fetch';
-import { bulkApproveResults, bulkCollect, bulkDispatch, bulkVerifyResults, lookupSpecimens, receiveSpecimen, rejectSpecimen } from './write.server';
-import { getStatusBoard } from './read.server';
-import type { ActionResult, BoardQuery, BulkItem, BulkRow, LookupKey, RejectBody, RejectResult, ResultBulkRow, Specimen, StatusBoardPage, VerifyItem } from './types';
+import { getStatusBoard, listOrderResults } from './read.server';
+import { assignException, bulkApproveResults, bulkCollect, bulkDispatch, bulkVerifyResults, discardException, lookupSpecimens, reapplyException, receiveSpecimen, rejectSpecimen } from './write.server';
+import type { ActionResult, AssignBody, BoardQuery, BulkItem, BulkRow, DiscardBody, ExceptionAction, IngestException, LookupKey, OrderResult, RejectBody, RejectResult, ResultBulkRow, Specimen, StatusBoardPage, VerifyItem } from './types';
 
 async function run<T>(f: () => Promise<T>): Promise<ActionResult<T>> {
   try {
@@ -19,6 +19,10 @@ async function run<T>(f: () => Promise<T>): Promise<ActionResult<T>> {
   }
 }
 
+export async function reapplyExceptionAction(id: string): Promise<ActionResult<ExceptionAction>> { return run(() => reapplyException(id)); }
+export async function discardExceptionAction(id: string, body: DiscardBody): Promise<ActionResult<IngestException>> { return run(() => discardException(id, body)); }
+export async function assignExceptionAction(id: string, body: AssignBody, key: string): Promise<ActionResult<ExceptionAction>> { return run(() => assignException(id, body, key)); }
+export async function listOrderResultsAction(orderId: string): Promise<ActionResult<OrderResult[]>> { return run(() => listOrderResults(orderId)); }
 /** T-27: the board poll / filter change (the JWT stays on the server, REQ-SEC-068). */
 export async function getStatusBoardAction(q: BoardQuery): Promise<ActionResult<StatusBoardPage>> { return run(() => getStatusBoard(q)); }
 export async function bulkVerifyAction(list: VerifyItem[], key: string): Promise<ActionResult<ResultBulkRow[]>> { return run(() => bulkVerifyResults(list, key)); }

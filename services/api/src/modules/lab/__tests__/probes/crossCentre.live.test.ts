@@ -55,10 +55,19 @@ describe.skipIf(!live)('P-02 / P-05 / P-06: centre-A1 user names a centre-A2 obj
     expect(JSON.stringify(out.reply!.body)).not.toContain(A2.regNo);
     expect(JSON.stringify(out.reply!.body)).toContain(A1.regNo);
   });
-  it('P-05 printSpecimenLabels with an A2 specimen id for an A1-only user => 404, no label counter / access-log change', { timeout: T }, async () => {
+  // LD-126 / ruling: 07-SECURITY P-05 demands 404 for order_id; for specimen_ids the answer is the per-id common.not_found of P-04.
+  it('P-05 printSpecimenLabels with an A2 order_id for an A1-only user => 404, no label counter / access-log change', { timeout: T }, async () => {
+    const before = await snapshot(TENANT_A);
+    const out = await fire('printSpecimenLabels', req({ body: { order_id: A2.orderId } }), A1_ONLY);
+    expect(codeOf(out), `${out.error?.message}`).toBe('common.not_found');
+    expect(await snapshot(TENANT_A)).toEqual(before);
+  });
+  it('P-04 printSpecimenLabels with specimen_ids [A2] for an A1-only user => 200, per-id common.not_found, no label', { timeout: T }, async () => {
     const before = await snapshot(TENANT_A);
     const out = await fire('printSpecimenLabels', requestFor('printSpecimenLabels', A2), A1_ONLY);
-    expect(codeOf(out)).toBe('common.not_found');
+    expect(out.reply?.status, `${out.error?.code} ${out.error?.message}`).toBe(200);
+    expect(JSON.stringify(out.reply!.body)).toContain('common.not_found');
+    expect(JSON.stringify(out.reply!.body)).not.toContain(A2.barcode);
     expect(await snapshot(TENANT_A)).toEqual(before);
   });
   it('P-04 bulk with mixed A1 / A2 ids as an A1-only user: A2 id => per-id not_found', { timeout: T }, async () => {

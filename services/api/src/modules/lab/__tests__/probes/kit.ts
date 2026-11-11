@@ -271,7 +271,7 @@ export function requestFor(id: string, S: Objs): ReturnType<typeof req> {
     case 'bulkDispatchSpecimens': return req({ headers: idem, body: { items: [{ id: S.specimenId, version: 1 }] } });
     case 'receiveSpecimen': return req({ params: { specimen_id: S.specimenId }, headers: ifm, body: { processing_centre_id: S.centre } });
     case 'bulkReceiveSpecimens': return req({ headers: idem, body: { processing_centre_id: S.centre, items: [{ id: S.specimenId, version: 1 }] } });
-    case 'rejectSpecimen': return req({ params: { specimen_id: S.specimenId }, headers: im, body: { reason_code: 'HEMOLYZED', recollection_required: false } });
+    case 'rejectSpecimen': return req({ params: { specimen_id: S.specimenId }, headers: im, body: { reason_code: S.codeOnlyHere, recollection_required: false } });
     case 'requestRecollection': return req({ params: { specimen_id: S.specimenId }, headers: im, body: {} });
     case 'createAliquots': return req({ params: { specimen_id: S.specimenId }, headers: im, body: { aliquots: [{ test_ids: [S.testId] }] } });
     case 'storeSpecimen': return req({ params: { specimen_id: S.specimenId }, headers: ifm, body: { location: 'Freezer 1 (SYNTHETIC)' } });

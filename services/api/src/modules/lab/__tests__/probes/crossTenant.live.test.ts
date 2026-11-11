@@ -62,7 +62,7 @@ describe.skipIf(!live)('P-01 operation names a tenant-B object', () => {
 // ---------------------------------------------------------------- P-03 lists
 describe.skipIf(!live)('P-03 list operations with B data present => zero B rows (and an A control row where the list must show one)', () => {
   const OWN: Record<string, (X: Objs) => string> = { listSpecimens: (X) => X.specimenId, listCriticalValues: (X) => X.criticalId, listIngestExceptions: (X) => X.exceptionId, listWorksheets: (X) => X.worksheetId,
-    listQcHolds: (X) => X.holdId, listDeltaCheckRules: (X) => X.ruleId, listLabCodedSet: (X) => X.codeOnlyHere, getStatusBoard: (X) => X.regNo };
+    listQcHolds: (X) => X.holdId, listDeltaCheckRules: (X) => X.ruleRowId,   // LD-126: the DTO id is the row id listLabCodedSet: (X) => X.codeOnlyHere, getStatusBoard: (X) => X.regNo };
   it.each([...LISTS].map((id) => [id] as const))('%s', { timeout: T }, async (id) => {
     const rq = (X: Objs) => (id === 'listSpecimens' ? req({ query: { order_id: X.orderId } }) : requestFor(id, X));
     const own = await fire(id, rq(A), FULL_A);
@@ -106,7 +106,9 @@ describe.skipIf(!live)('P-04 bulk operations with mixed A/B ids => per-id common
   it('bulkEnterResults entries [A result, B result]: B entry not_found, no B change', { timeout: T }, async () => {
     const before = await snapshot(TENANT_B);
     const e = (X: Objs) => ({ result_id: X.resultId, version: 1, value_numeric: '5.5' });   // ruling A: DecimalString
-    const out = await fire('bulkEnterResults', req({ headers: { 'idempotency-key': uid() }, body: { entries: [e(A), e(B)] } }), FULL_A);
+    // LD-126: the code must not invent a CatalogPort; the probe supplies one so the A entry is processed (P-04).
+    const catalog = { async referenceRangeFor() { return undefined; }, async criticalLimitsFor() { return undefined; } };
+    const out = await fire('bulkEnterResults', req({ headers: { 'idempotency-key': uid() }, body: { entries: [e(A), e(B)] } }), FULL_A, { ports: { CatalogPort: catalog } });
     expect([200, 404]).toContain(out.reply?.status ?? (out.error as any)?.statusCode);
     expect(JSON.stringify(out.reply?.body ?? seen(out.error))).not.toContain(B.barcode);
     expect(await snapshot(TENANT_B)).toEqual(before);
@@ -140,8 +142,9 @@ describe.skipIf(!live)('P-05 label operations with a tenant-B order / specimen =
 // ---------------------------------------------------------------- P-07 write / FK probes
 describe.skipIf(!live)('P-07 write and FK probes: an A request that names a B id inside an A object is rejected and writes nothing', () => {
   it('createAliquots on an A specimen listing a tenant-B test id', { timeout: T }, async () => {
+    const A7 = await objs('a');   // LD-126: fresh specimen, version 1 (the earlier print bumped A's)
     const before = { a: await snapshot(TENANT_A), b: await snapshot(TENANT_B) };
-    const out = await fire('createAliquots', req({ params: { specimen_id: A.specimenId }, headers: { 'idempotency-key': uid(), 'if-match': '"1"' }, body: { aliquots: [{ test_ids: [B.testId] }] } }), FULL_A);
+    const out = await fire('createAliquots', req({ params: { specimen_id: A7.specimenId }, headers: { 'idempotency-key': uid(), 'if-match': '"1"' }, body: { aliquots: [{ test_ids: [B.testId] }] } }), FULL_A);
     expect(out.reply, 'must be rejected').toBeUndefined();
     expect(['common.not_found', 'common.validation_failed']).toContain(codeOf(out));
     expect(seen(out.error)).not.toContain(B.testId);

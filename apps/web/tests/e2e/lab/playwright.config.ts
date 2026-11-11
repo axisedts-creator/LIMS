@@ -4,7 +4,7 @@
 import { defineConfig } from '@playwright/test';
 
 export default defineConfig({
-  testDir: __dirname,
+  testDir: '.', // relative to this file; `__dirname` is undefined under apps/web's ESM loader
   testMatch: /.*\.spec\.ts/,
   workers: 1,
   timeout: 60_000,

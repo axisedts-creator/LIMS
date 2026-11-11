@@ -26,6 +26,7 @@ import { resultEntryHandlers } from './resultEntry.handlers.js';
 import { verifyHandlers } from './verify.handlers.js';
 import { historyHandlers } from './history.handlers.js';
 import { approveHandlers } from './approve.handlers.js';
+import { worklistHandlers } from './worklist.handlers.js';
 import { ingestExceptionHandlers } from './ingestException.handlers.js';
 
 const OPERATION_IDS = [
@@ -67,6 +68,7 @@ const REAL: Partial<Record<LabOperationId, Handler>> = {
   ...verifyHandlers, // T-16: verifyResult, bulkVerifyResults, returnResult
   ...approveHandlers, // T-17: approveResult, bulkApproveResults, amendResult, listResultVersions
   ...historyHandlers, // T-19: getResultHistory, getAnalyteTrend
+  ...worklistHandlers, // T-26: listWorklistItems, listPendingItems, createWorksheet, listWorksheets, getWorksheet
   ...ingestExceptionHandlers, // T-23: list/get/assign/reapply/discard IngestException (#38-#42)
   getStatusBoard, // T-27
 };

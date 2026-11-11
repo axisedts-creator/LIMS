@@ -55,6 +55,22 @@ const DEFS = {
   lims_lab_host_query_duration_seconds: ['histogram', ['outcome'], 'Analyser host query duration in seconds by outcome'],
   lims_lab_readiness_emitted_total: ['counter', ['completeness'], 'Order readiness events emitted by completeness'],
   lims_lab_barcode_alloc_failures_total: ['counter', ['reason'], 'Specimen barcode allocation failures by reason'],
+  // C14 smart report (CR-C14-T17-001 / lead T17-01; 02-TRD §12 lines 573-586; names, types, labels verbatim)
+  lims_smartreport_builds_total: ['counter', ['path', 'outcome'], 'Smart-report builds by path and outcome'],
+  lims_smartreport_build_duration_seconds: ['histogram', ['path', 'cached'], 'Smart-report build duration in seconds by path and cache hit'],
+  lims_smartreport_supersede_total: ['counter', ['reason'], 'Smart-report summaries superseded by reason'],
+  lims_smartreport_drafts_pending: ['gauge', ['tenant_id'], 'Smart-report drafts pending review by tenant'],
+  lims_smartreport_draft_age_seconds: ['histogram', [], 'Age of smart-report drafts when reviewed, in seconds'],
+  lims_smartreport_reviews_total: ['counter', ['action'], 'Smart-report reviews by action'],
+  lims_smartreport_library_transitions_total: ['counter', ['to_status'], 'Smart-report library status transitions by target status'],
+  lims_smartreport_followup_skipped_total: ['counter', ['reason'], 'Smart-report follow-up suggestions skipped by reason'],
+  lims_smartreport_trend_unavailable_total: ['counter', [], 'Smart-report trend computations unavailable'],
+  lims_smartreport_llm_runs_total: ['counter', ['outcome'], 'Smart-report LLM runs by outcome'],
+  lims_smartreport_llm_items_total: ['counter', ['outcome', 'failure_code'], 'Smart-report LLM items by outcome and failure code'],
+  lims_smartreport_llm_calls_while_disabled_total: ['counter', [], 'Smart-report LLM calls attempted while disabled'],
+  lims_smartreport_drafts_oldest_age_seconds: ['gauge', ['tenant_id'], 'Age of the oldest pending smart-report draft in seconds (0 when none)'],
+  lims_smartreport_llm_circuit_open: ['gauge', [], 'Smart-report LLM circuit breaker open (1) or closed (0)'],
+  lims_smartreport_llm_endpoint_refused_total: ['counter', [], 'Smart-report LLM endpoint refusals'],
 } as const satisfies Record<string, readonly [Kind, readonly string[], string]>;
 
 export type MetricName = keyof typeof DEFS;

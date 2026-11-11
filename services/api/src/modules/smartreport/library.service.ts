@@ -8,6 +8,7 @@ import { type ValidationReport, validateLibrary } from './domain/library.validat
 import type { LibBlock, LibMapping, LibRule } from './domain/library.validate.js';
 import { assertTransition, type LibraryStatus } from './domain/library.state.js';
 import { type Counts, type Names, PARAM_KEYS, versionDto } from './mappers/library.dto.js';
+import { srMetrics } from './metrics.js';
 import * as blocksRepo from './repository/blocks.repo.js';
 import * as codedSetsRepo from './repository/codedSets.repo.js';
 import type { RepoCtx, Row } from './repository/common.repo.js';
@@ -26,6 +27,7 @@ export interface LibraryCtx {
   readonly ports: { readonly CatalogPort: { getTest(ctx: never, input: { testId: string; requireActive: true }): Promise<unknown> } };
   readonly core?: { readonly memberships: { list(ctx: never, i: { membershipIds: readonly string[]; activeOnly: boolean }): Promise<readonly { membershipId: string; displayName: string }[]> } };
   readonly log?: { warn(o: object, m?: string): void };
+  readonly metrics?: unknown;   // optional sink (T17-01); see ./metrics.ts
 }
 
 const opt = <T>(v: T | null | undefined): T | undefined => (v == null ? undefined : v);
@@ -208,6 +210,7 @@ export async function submitVersion(ctx: LibraryCtx, id: unknown, expected: numb
   const hash = await contentHash(rc, v);
   const row = await libraryRepo.updateLibraryVersion(rc, v.id, expected, { status: 'in_review', content_sha256: hash, submitted_at: nowIso(), submitted_by_membership_id: actor });
   await reviewsRepo.insertLibraryReview(rc, { id: uuidv7(), library_version_id: v.id, action: 'submitted', content_sha256: hash, actor_membership_id: actor });
+  srMetrics.libraryTransition(ctx, 'in_review');
   return row;
 }
 
@@ -220,6 +223,7 @@ export async function returnVersion(ctx: LibraryCtx, id: unknown, expected: numb
   checkVersion(v, expected);
   const row = await libraryRepo.updateLibraryVersion(rc, v.id, expected, { status: 'draft', returned_at: nowIso(), returned_by_membership_id: actor, return_comment: comment });
   await reviewsRepo.insertLibraryReview(rc, { id: uuidv7(), library_version_id: v.id, action: 'returned', comment, content_sha256: opt(v.content_sha256), actor_membership_id: actor });
+  srMetrics.libraryTransition(ctx, 'draft');
   return row;
 }
 
@@ -236,11 +240,13 @@ export async function approveVersion(ctx: LibraryCtx, id: unknown, expected: num
   if (prev && prev.id !== v.id) {
     await libraryRepo.updateLibraryVersion(rc, prev.id, Number(prev.version), { status: 'retired', retired_at: now });
     await reviewsRepo.insertLibraryReview(rc, { id: uuidv7(), library_version_id: prev.id, action: 'retired', content_sha256: opt(prev.content_sha256), actor_membership_id: actor });
+    srMetrics.libraryTransition(ctx, 'retired');
   }
   const row = await libraryRepo.updateLibraryVersion(rc, v.id, expected, {
     status: 'approved', approved_at: now, approved_by_membership_id: actor, ...(note !== undefined ? { approval_note: note } : {}),
   });
   await reviewsRepo.insertLibraryReview(rc, { id: uuidv7(), library_version_id: v.id, action: 'approved', ...(note !== undefined ? { comment: note } : {}), content_sha256: v.content_sha256, actor_membership_id: actor });
+  srMetrics.libraryTransition(ctx, 'approved');
   return row;
 }
 

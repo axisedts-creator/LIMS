@@ -1,0 +1,34 @@
+........FF.......F...........................................................
+======================================================================
+FAIL: test_every_compose_task_carries_the_whole_compose_env (test_t24_cicd.DeployPlaybookTest.test_every_compose_task_carries_the_whole_compose_env)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\LIMS-lanes\C1\infra\tests\static\test_t24_cicd.py", line 905, in test_every_compose_task_carries_the_whole_compose_env
+    self.assertTrue(any("deploy_compose_env" in e for e in self._envs(i)),
+    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                    "`docker compose` task without deploy_compose_env in its environment: %s" % i["task"].get("name"))
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: False is not true : `docker compose` task without deploy_compose_env in its environment: Start the staging mail sink (wait healthy)
+
+======================================================================
+FAIL: test_every_roll_waits_five_minutes_for_health (test_t24_cicd.DeployPlaybookTest.test_every_roll_waits_five_minutes_for_health)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\LIMS-lanes\C1\infra\tests\static\test_t24_cicd.py", line 918, in test_every_roll_waits_five_minutes_for_health
+    self.assertRegex(t08.cmd_of(i["task"]), r"--wait\b[^\n]*--wait-timeout\s+300\b|--wait-timeout\s+300\b[^\n]*--wait\b", i["task"].get("name"))
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: Regex didn't match: '--wait\\b[^\\n]*--wait-timeout\\s+300\\b|--wait-timeout\\s+300\\b[^\\n]*--wait\\b' not found in 'docker compose -p lims-mailsink -f {{ deploy_compose_dir }}/compose.mailsink.yml up -d --wait --wait-timeout 120' : Start the staging mail sink (wait healthy)
+
+======================================================================
+FAIL: test_roll_marker_is_touched_once_right_before_the_first_roll (test_t24_cicd.DeployPlaybookTest.test_roll_marker_is_touched_once_right_before_the_first_roll)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\LIMS-lanes\C1\infra\tests\static\test_t24_cicd.py", line 932, in test_roll_marker_is_touched_once_right_before_the_first_roll
+    self.assertLess(m["idx"], first_roll)
+    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 12 not less than 6
+
+----------------------------------------------------------------------
+Ran 77 tests in 482.668s
+
+FAILED (failures=3)

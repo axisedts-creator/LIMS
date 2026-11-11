@@ -1,0 +1,3 @@
+# AN-T14 dispute (writer) — not a logic dispute, two test-side fixes needed
+1. `services/api/src/modules/analytics/__tests__/boot.test.ts` `IMPLEMENTED` list (tester-owned, same pattern as AN-T08..T12): add 'getAnalyticsDashboard', 'getAnalyticsFreshness', 'requestAnalyticsRefresh' // AN-T14. Without it "in dev every stub answers 501" and "in staging/production a stub never answers 501" fail because these 3 ids are no longer stubs.
+2. dashboard.handler.test.ts first test and freshness.handler.test.ts first test exceed the 5000 ms default when run in parallel (cold import of handlers/index + first Ajv compile in contractErrors; 3.7 s alone, 6-8 s under load). They pass with --testTimeout=30000. Add a warm-up (beforeAll calling contractErrors) or a per-test timeout.

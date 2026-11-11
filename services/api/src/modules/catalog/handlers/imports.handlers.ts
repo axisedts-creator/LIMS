@@ -55,4 +55,8 @@ export const importsHandlers: Readonly<Record<string, Handler>> = Object.freeze(
     const b = await s.discardImport(ctx, obj(req.params)['import_id'], ifMatch(req));
     return { status: 200, body: b, headers: etag(b) };
   }),
+  commitImport: bind(async (s, ctx, req) => {
+    const b = await s.commitImport(ctx, obj(req.params)['import_id'], ifMatch(req), req.body);
+    return { status: 202, body: b, headers: etag(b) };
+  }),
 });

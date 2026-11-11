@@ -21,6 +21,11 @@ export function effectiveVersion<V extends Windowed & { version_no?: number }>(v
   return best;
 }
 
+/** List-level status from its version statuses (02-TRD §7.4a step 3): any published > open draft > discarded. Never 'superseded'. Effectiveness is not part of it. */
+export function listStatus(statuses: readonly string[]): 'published' | 'draft' | 'discarded' {
+  return statuses.includes('published') ? 'published' : statuses.includes('draft') ? 'draft' : 'discarded';   // ponytail: a list with zero / superseded-only versions reads 'discarded' (unreachable via V5)
+}
+
 export interface PriceListInput {
   id: string; falls_through: boolean; is_active: boolean;
   versions: ReadonlyArray<{ version_no: number; status: string; effective_from?: D | null; effective_to?: D | null; items: ReadonlyMap<string, number> }>;

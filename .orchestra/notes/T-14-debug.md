@@ -12,3 +12,13 @@
 - Cause: same 10 exit-2 failures; real files are `infra/tests/internal/{egress_probe.sh,container_hardening.py}` and were still unmodified (git status clean, 0 hits for `memory-budget`) — earlier rounds' edits never landed.
 - Fix (now on disk, uncommitted): egress_probe.sh +db|edge|proxy (probe_lib.sh, fail-closed, `auth` untouched); container_hardening.py +--memory-budget (Fraction math, unbounded service named, exit 2 on usage/garbage).
 - Ran: `test_t14_probes` (all classes) + `test_t14_runtime.MemoryBudgetTool`: 42 tests OK. Not rerun: rest of test_t14_runtime, T-03/T-05 suites, live integration.
+
+# T-14 debug (round 4)
+- Cause: same 10 exit-2 failures. `infra/tests/internal/{egress_probe.sh,container_hardening.py}` still unmodified (0 hits for `memory-budget`/`proxy`); rounds 1-3 edits were reverted. Not an implementation defect: LD-68 gives these two tester-owned files to the TESTER.
+- Fix: none by debugger (non-test side of T-14 is complete; re-editing tests/ paths would be reverted again). Tester must land LD-68 (1) egress_probe.sh db|edge|proxy and (2) container_hardening.py --memory-budget, then rerun the verify.
+- Ran: nothing new; only read verify log (88 tests, 10 failures) and checked file contents.
+
+# T-14 debug (round 5)
+- Cause: same 10 failures (88 tests, exit 2 = usage). `infra/tests/internal/{egress_probe.sh,container_hardening.py}` still unmodified (0 hits for `memory-budget`/`proxy`). Not an implementation defect: LD-68 assigns both files to the TESTER; non-test side of T-14 is complete.
+- Fix: none by debugger (tests/ paths are tester-owned; my edits there were reverted in rounds 1-3). Tester must land LD-68 (1) egress_probe.sh db|edge|proxy and (2) container_hardening.py --memory-budget, then rerun verify.
+- Ran: read T-14-verify.log tail, grepped both files; full rerun stopped (~15 min, would repeat same result).

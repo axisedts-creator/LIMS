@@ -343,23 +343,28 @@ SELECT is(pg_temp.x('lims_api', NULL, format($$ SELECT 1 FROM app.reporting_rede
 SELECT is((SELECT count(*)::int FROM audit.audit_log WHERE schema_name = 'reporting' AND table_name = 'portal_links' AND row_id = pg_temp.uid(341) AND action = 'UPDATE'), 0,
   'C6 check 14 / §1 note: redeem-counter updates are not row-audited (conditional audit trigger)');
 SELECT is((SELECT count(*)::int FROM audit.audit_log WHERE schema_name = 'reporting' AND table_name = 'portal_links' AND row_id = pg_temp.uid(341) AND action = 'INSERT'), 1, 'the link INSERT is audited (portal_links__audit_ins)');
--- app.reporting_ingest_provider_callback: LD-49 (b) -- the DEFINER no longer enqueues and returns the resolved tenant id; the C6 API handler enqueues under withTenantScope (covered by C6-T29).
-SELECT todo_start('CR T0B-10.C6 -> LD-49 (b); covered by C6-T29');
+-- app.reporting_ingest_provider_callback: LD-49 (b) (C6-T29) -- the DEFINER only validates the token and records the events; it returns the resolved tenant id (uuid) or NULL and never enqueues.
+-- The C6 API handler enqueues reporting.apply_provider_events under withTenantScope(returned tenant, reporting system actor). NULL (not -1) is the reject value: a uuid column cannot hold -1.
+SELECT is((SELECT pg_get_function_result(p.oid) FROM pg_proc p WHERE p.oid = 'app.reporting_ingest_provider_callback(text, bytea, jsonb)'::regprocedure), 'uuid', 'LD-49 (b): returns the tenant id (uuid)');
+SELECT unlike((SELECT p.prosrc FROM pg_proc p WHERE p.oid = 'app.reporting_ingest_provider_callback(text, bytea, jsonb)'::regprocedure), '%enqueue_job%', 'LD-49 (b): the DEFINER does not enqueue');
+SELECT unlike((SELECT p.prosrc FROM pg_proc p WHERE p.oid = 'app.reporting_ingest_provider_callback(text, bytea, jsonb)'::regprocedure), '%request.jwt%', 'LD-49 (b): the DEFINER never sets JWT claims');
 SELECT is(pg_temp.x('lims_api', NULL, format($$ SELECT app.reporting_ingest_provider_callback('recording', decode(%L, 'hex'), %L::jsonb) $$, repeat('44', 32),
-  jsonb_build_array(jsonb_build_object('id', pg_temp.uid(601), 'provider_message_id', 'pm-1', 'status_raw', 'ok', 'mapped_status', 'sent', 'occurred_at', now()))::text), 's'), '1',
-  'C6 check 14: provider callback with a valid token stores the event and returns the count');
+  jsonb_build_array(jsonb_build_object('id', pg_temp.uid(601), 'provider_message_id', 'pm-1', 'status_raw', 'ok', 'mapped_status', 'sent', 'occurred_at', now()))::text), 's'), pg_temp.ta()::text,
+  'C6 check 14 / LD-49 (b): provider callback with a valid token stores the event and returns the TENANT ID');
 SELECT is((SELECT count(*)::int FROM reporting.provider_events WHERE provider_message_id = 'pm-1' AND tenant_id = pg_temp.ta() AND channel_account_id = pg_temp.uid(371)), 1, 'the event is stored under the token''s tenant and channel account');
 SELECT is(pg_temp.x('lims_api', NULL, format($$ SELECT app.reporting_ingest_provider_callback('recording', decode(%L, 'hex'), %L::jsonb) $$, repeat('44', 32),
-  jsonb_build_array(jsonb_build_object('id', pg_temp.uid(602), 'provider_message_id', 'pm-1', 'status_raw', 'ok', 'mapped_status', 'sent'))::text), 's'), '1', 'a duplicate event is accepted idempotently (ON CONFLICT DO NOTHING)');
+  jsonb_build_array(jsonb_build_object('id', pg_temp.uid(602), 'provider_message_id', 'pm-1', 'status_raw', 'ok', 'mapped_status', 'sent'))::text), 's'), pg_temp.ta()::text, 'a duplicate event is accepted idempotently (ON CONFLICT DO NOTHING) and still returns the tenant id');
 SELECT is((SELECT count(*)::int FROM reporting.provider_events WHERE provider_message_id = 'pm-1'), 1, 'the duplicate did not create a second row (provider_events__dedupe__uq)');
-SELECT is(pg_temp.x('lims_api', NULL, format($$ SELECT app.reporting_ingest_provider_callback('recording', decode(%L, 'hex'), '[]'::jsonb) $$, repeat('99', 32)), 's'), '-1', 'unknown callback token -> -1');
-SELECT is(pg_temp.x('lims_api', NULL, format($$ SELECT app.reporting_ingest_provider_callback('sms_sparrow', decode(%L, 'hex'), '[]'::jsonb) $$, repeat('44', 32)), 's'), '-1', 'a token with the wrong provider_kind -> -1');
-SELECT is(pg_temp.x('lims_api', NULL, format($$ SELECT app.reporting_ingest_provider_callback('recording', decode(%L, 'hex'), '{}'::jsonb) $$, repeat('44', 32)), 's'), '-1', 'a non-array payload -> -1');
+SELECT is(pg_temp.x('lims_api', NULL, format($$ SELECT app.reporting_ingest_provider_callback('recording', decode(%L, 'hex'), '[]'::jsonb) $$, repeat('99', 32)), 's'), '<null>', 'unknown callback token -> NULL');
+SELECT is(pg_temp.x('lims_api', NULL, format($$ SELECT app.reporting_ingest_provider_callback('sms_sparrow', decode(%L, 'hex'), '[]'::jsonb) $$, repeat('44', 32)), 's'), '<null>', 'a token with the wrong provider_kind -> NULL');
+SELECT is(pg_temp.x('lims_api', NULL, format($$ SELECT app.reporting_ingest_provider_callback('recording', decode(%L, 'hex'), '{}'::jsonb) $$, repeat('44', 32)), 's'), '<null>', 'a non-array payload -> NULL');
+SELECT is(pg_temp.x('lims_api', NULL, format($$ SELECT app.reporting_ingest_provider_callback('recording', decode(%L, 'hex'), '[]'::jsonb) $$, repeat('4', 4)), 's'), '<null>', 'a token hash that is not 32 bytes -> NULL');
+SELECT is(pg_temp.x('lims_api', NULL, format($$ SELECT app.reporting_ingest_provider_callback('recording', decode(%L, 'hex'), (SELECT jsonb_agg('{}'::jsonb) FROM generate_series(1, 101))) $$, repeat('44', 32)), 's'), '<null>', 'more than 100 events -> NULL (nothing stored)');
+SELECT is(pg_temp.x('lims_api', NULL, format($$ SELECT app.reporting_ingest_provider_callback('recording', decode(%L, 'hex'), '[]'::jsonb) $$, repeat('44', 32)), 's'), pg_temp.ta()::text, 'a valid token with no events still returns the tenant id (the CB2 handshake uses this)');
 SELECT ok(pg_temp.guc_empty('app.pre_callback_token_sha256') AND pg_temp.guc_empty('app.pre_callback_tenant_id') AND pg_temp.guc_empty('app.pre_callback_channel_account_id'), 'C6 check 14 / A21.4: all three callback GUCs are empty after return');
 SELECT is((SELECT count(*)::int FROM reporting.provider_events WHERE tenant_id = pg_temp.tb()), 0, 'the callback of tenant A''s account wrote nothing for tenant B');
 SELECT alike(pg_temp.x('lims_app', pg_temp.cl(pg_temp.ta()), 'UPDATE reporting.provider_events SET mapped_status = ''failed''', 'w'), 'EP0001|immutable_row%', 'provider_events: only applied_at / delivery_id / ignored_reason may change (AC-0B-4.1)');
 SELECT is(pg_temp.a('UPDATE reporting.provider_events SET applied_at = now(), delivery_id = ' || quote_literal(pg_temp.uid(361)), 'w'), 'n=1', 'provider_events apply columns are updatable');
-SELECT * FROM todo_end();
 -- audit rows (AC-0B-5.1 / 5.2) and the supersede / revoke lifecycle
 SELECT is(pg_temp.a('UPDATE reporting.reports SET review_flag = ''released_item_removed'', version = version + 1 WHERE id = ' || quote_literal(pg_temp.uid(312))), 'n=1', 'C6 check 14: reports lifecycle update');
 SELECT is((SELECT array_agg(c ORDER BY c) FROM audit.audit_log a, unnest(a.changed_columns) c WHERE a.schema_name = 'reporting' AND a.table_name = 'reports' AND a.row_id = pg_temp.uid(312) AND a.action = 'UPDATE'),

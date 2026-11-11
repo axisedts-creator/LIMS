@@ -367,6 +367,8 @@ export function makeMastersDb(seed: MastersSeed = {}) {
     };
     return {
       id: btx.id, tenantId, actorId, facade,
+      /** T-25 (additive): a row of this tx's own view (committed + its uncommitted writes) — what a Postgres FK check inside one transaction sees. */
+      visibleRow: (t: Table, id: string): Row | undefined => visible(t).find((r) => r.id === id),
       commit() {
         for (const t of TABLES) for (const [id, r] of local.get(t)!) committed.get(t)!.set(id, r);
         btx.commit(); releaseAll();
@@ -410,6 +412,8 @@ export function makeMastersDb(seed: MastersSeed = {}) {
     rows: (t: Table, tenantId?: string): Row[] => [...committed.get(t)!.values()].filter((r) => tenantId === undefined || r.tenant_id === tenantId).map((r) => ({ ...r })),
     row: (t: Table, id: string): Row | undefined => { const r = committed.get(t)!.get(id); return r ? { ...r } : undefined; },
     newId: () => ID(0xf000 + ++seq),
+    /** T-25 (additive): copy rows into the COMMITTED state of this instance (cross-fake FK targets that a layered fake cannot see). Idempotent by id. */
+    mirror: (t: Table, rows: Row[]) => { for (const r of rows) if (!committed.get(t)!.has(r.id)) committed.get(t)!.set(r.id, { ...fill(t, r) }); },
     fail(match: RegExp, make: () => Error = () => new Error('injected')) { failures.push({ match, make }); base.fail(match, make); },
   };
 }

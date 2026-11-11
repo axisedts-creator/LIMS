@@ -40,6 +40,15 @@ const IMPLEMENTED: readonly string[] = [
   'listAgents', 'createAgent', 'getAgent', 'updateAgent', 'issueEnrolmentCode', 'revokeAgent',
   'retireAgent', 'requestAgentCommand', 'listAgentCommands', 'listAgentHealthTransitions',
   'getAgentLogBundle', 'listAgentReleases',
+  'enrolAgent', 'getAgentConfig', 'submitAgentHeartbeat', 'submitAgentLogBundle', 'downloadAgentRelease', // API-T06
+  'submitMessageBatch', // API-T09
+  'submitAttachment', 'downloadInstrumentAttachment', // API-T11
+  'listInstrumentMessages', 'searchInstrumentMessages', 'getInstrumentMessage', 'getInstrumentMessageRaw', 'listMessageRejections', // API-T12
+  'reprocessInstrumentMessage', 'rematchInstrumentRecord', // API-T13
+  // INT-T03 (wiring of API-T05 E22-E32/E40/E41, API-T10 E05)
+  'submitHostQuery', 'listDrivers', 'listInstruments', 'createInstrument', 'getInstrument', 'updateInstrument',
+  'startInstrumentCommissioning', 'goLiveInstrument', 'suspendInstrument', 'resumeInstrument', 'retireInstrument',
+  'listObservedInstrumentCodes', 'getInstrumentSettings', 'updateInstrumentSettings',
 ];
 
 const FAKE_REQ = { params: {}, query: {}, headers: {}, body: {} };
@@ -224,7 +233,7 @@ describe('API-T01 boot against the real repo (default modulesDir, real instrumen
       }
     }
     expect(unmounted).toEqual([]);
-  }, 30_000);
+  }, 120_000); // LD-86: harness timeout only (cold bootstrap on shared machine)
 
   it('fails closed: user and device routes without credentials are 401 (never 200/501/500); a non-spec path is 404', async () => {
     const app = await boot();
@@ -237,5 +246,5 @@ describe('API-T01 boot against the real repo (default modulesDir, real instrumen
     expect(enrol.statusCode, enrol.body).toBe(401);
     expect(JSON.parse(enrol.body).code).toMatch(/^auth\./);
     expect((await app.inject({ method: 'GET', url: '/v1/instruments/not-in-spec' })).statusCode).toBe(404);
-  }, 30_000);
+  }, 120_000); // LD-86
 });

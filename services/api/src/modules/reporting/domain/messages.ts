@@ -25,11 +25,15 @@ const STAFF_ROUTES: readonly RegExp[] = Object.values(ROUTES as Record<string, {
 function parsed(v: string): URL | undefined {
   try { const u = new URL(v); return u.href === v && !u.username && !u.password ? u : undefined; } catch { return undefined; }
 }
+/** A canonical https `${origin}/r/<token>` URL (§7.2 `url` param; §7.4 access-slip portalUrl). Unset origin fails closed. */
+export function portalReportUrlOk(v: string, origin: string | undefined): boolean {
+  const u = origin ? parsed(v) : undefined;
+  return !!u && u.protocol === 'https:' && u.origin === origin && v.startsWith(`${origin}/r/`) && v.length > origin.length + 3;
+}
 function portalUrlOk(v: string, origin: string | undefined): boolean {
   if (!origin) return false;
   if (v === origin) return true;                                           // OTP e-mails pass LIMS_ORIGIN_PORTAL (review fix #29)
-  const u = parsed(v);
-  return !!u && u.protocol === 'https:' && u.origin === origin && v.startsWith(`${origin}/r/`);
+  return portalReportUrlOk(v, origin);
 }
 function staffUrlOk(v: string, origin: string | undefined): boolean {
   const u = origin ? parsed(v) : undefined;
@@ -41,7 +45,7 @@ export function paramValueOk(p: TemplateParam, v: unknown, o: Origins, staffLink
   if (typeof v !== 'string') return false;
   switch (p.kind) {
     case 'short_text': return v.length <= Math.min(p.max_length ?? 40, 40) && SHORT_TEXT_RE.test(v);
-    case 'label_text': return v.length >= 1 && v.length <= 80 && !CONTROL_RE.test(v) && !/[<>]/.test(v) && !/(:\/\/|www\.)/i.test(v);
+    case 'label_text': return v.length >= 1 && v.length <= 80 && !CONTROL_RE.test(v) && !/(:\/\/|www\.)/i.test(v);   // [C6-T39 / 08 A4.3] markup accepted + stored raw; HTML-escaped at render (send_delivery)
     case 'time_hhmm': return /^[0-2][0-9]:[0-5][0-9]$/.test(v);
     case 'otp_code': return /^[0-9]{6}$/.test(v);
     case 'minutes': return /^[0-9]{1,2}$/.test(v) && Number(v) >= 1 && Number(v) <= 60;

@@ -208,7 +208,7 @@ export function makeCommentsDb(seed: CommentsSeed = {}) {
   }
 
   return {
-    run, begin, base: m.base,
+    run, begin, base: m.base, masters: m,   // `masters` (T-25, additive): lets a composite mirror departments created elsewhere
     get stmts() { return m.stmts; },
     get events() { return m.events; },
     revisionOf: m.revisionOf,

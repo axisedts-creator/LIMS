@@ -149,7 +149,7 @@ export async function bulkRelease(ctx: ReleaseCtx, ids: readonly string[]): Prom
       else if (r.kind === 'held') out.push({ id, outcome: 'blocked_due' });
       else out.push({ id, outcome: SKIP_OUTCOME[r.reason] ?? 'not_ready' });
     } catch (e) {
-      (ctx as any).log?.warn?.({ code: (e as any)?.code ?? 'unknown' }, 'bulk release: id rolled back');   // code only, never input or PHI
+      (ctx as any).log?.warn?.({ error_code: (e as any)?.code ?? 'unknown' }, 'bulk release: id rolled back');   // error code only, never input or PHI
       out.push({ id, outcome: 'not_ready' });
     }
   }

@@ -14,7 +14,7 @@
         is search('@sha256:[0-9a-f]{64}$')
     fail_msg: "lims_runtime: profile/wg_ip/db_primary_wg_ip or image {{ item }}"
   loop: >-
-    {{ ['api', 'web', 'portal', 'renderer', 'pdf_sandbox', 'valkey', 'squid']
+    {{ ['api', 'worker', 'web', 'portal', 'renderer', 'pdf_sandbox', 'valkey', 'squid']
     + (['partner'] if partner_enabled | default(false) | bool else []) }}
 
 - name: Inventory budget fits (LD-45 Sum replicas x gib <= 85 % host RAM)
@@ -38,6 +38,7 @@
           | join(','),
         'APP_WG_IP': wg_ip,
         'LIMS_API_IMAGE': lims_runtime_images.api,
+        'LIMS_WORKER_IMAGE': lims_runtime_images.worker,
         'LIMS_WEB_IMAGE': lims_runtime_images.web,
         'LIMS_PORTAL_IMAGE': lims_runtime_images.portal,
         'LIMS_PARTNER_IMAGE': lims_runtime_images.partner
@@ -61,6 +62,7 @@
   loop:
     - "{{ lims_runtime_dir }}"
     - "{{ lims_runtime_tests_dir }}"
+    - /var/lib/node_exporter/textfile
 
 - name: Install compose.app.yml
   ansible.builtin.copy:
@@ -109,6 +111,34 @@
   environment: "{{ lims_runtime_env }}"
   register: lims_runtime_up
   changed_when: lims_runtime_up.stderr is search('Creat|Recreat|Start')
+
+# 02-TRD s11.1 lims_ops_container_health{service}, every 30 s by root (T-16, AC-10.1)
+- name: container_health.sh + textfile dir
+  ansible.builtin.copy:
+    src: "{{ item.src }}"
+    dest: "{{ item.dest }}"
+    owner: root
+    group: root
+    mode: "{{ item.mode }}"
+  loop:
+    - src: "{{ playbook_dir }}/../../monitoring/textfile/container_health.sh"
+      dest: /usr/local/lib/lims/container_health.sh
+      mode: "0755"
+    - src: lims-container-health.service
+      dest: /etc/systemd/system/lims-container-health.service
+      mode: "0644"
+    - src: lims-container-health.timer
+      dest: /etc/systemd/system/lims-container-health.timer
+      mode: "0644"
+  loop_control:
+    label: "{{ item.dest }}"
+
+- name: Container health timer enabled (30 s)
+  ansible.builtin.systemd_service:
+    name: lims-container-health.timer
+    enabled: true
+    state: started
+    daemon_reload: true
 
 - name: Renderer + sandbox envelope probes
   ansible.builtin.include_role:

@@ -1,0 +1,2 @@
+- Cause: worker refresh_tenant.test.ts:66 treats the spec-required `SELECT now()` (kind `dbNow`, run_started_at; 03-APP-FLOW.md:271-272 X3/X4, 02-TRD.md:532,541) as a write. It is a read, issued even when nothing is dirty.
+- Fix: none in impl (changing it would break the api test's iNow < iRead). Test contradicts spec, so dispute written to AN-T04-dispute.md; tester must relax :66. Stopped per role.

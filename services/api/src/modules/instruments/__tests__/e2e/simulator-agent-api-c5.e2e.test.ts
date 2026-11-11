@@ -18,7 +18,7 @@ import { spawn, spawnSync, type ChildProcess } from 'node:child_process';
 import { createHash, randomBytes } from 'node:crypto';
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { createServer as createHttps, type Server as HttpsServer } from 'node:https';
-import { createServer as createNet, type Server as NetServer, type Socket } from 'node:net';
+import { connect as netConnect, createServer as createNet,type Server as NetServer, type Socket } from 'node:net';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -36,6 +36,7 @@ const TOKEN = `e2e-${randomBytes(12).toString('hex')}`;       // synthetic, per 
 const SEED = 7;
 const sha256 = (b: Buffer) => createHash('sha256').update(b).digest('hex');
 const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
+const RM = { recursive: true, force: true, maxRetries: 5, retryDelay: 200 } as const;
 const p95 = (xs: number[]) => [...xs].sort((a, b) => a - b)[Math.ceil(xs.length * 0.95) - 1]!;
 const pad8 = (n: number) => String(n).padStart(8, '0');
 const barcode = (base: number, n: number) => `E26${pad8(base + n)}`;
@@ -163,7 +164,7 @@ async function startAgent(bin: string, dir: string, cfg: Record<string, unknown>
     if (Date.now() > end) { proc.kill(); throw new Error(`agent did not print READY within 15 s: ${out.join('').slice(0, 400)}`); }
     await sleep(50);
   }
-  return { proc, out, async stop() { if (exited === undefined) { proc.kill(); await sleep(200); } } };
+  return { proc, out, async stop() { if (exited === undefined) { const done = new Promise<void>((r) => proc.once('exit', () => r())); proc.kill(); await Promise.race([done, sleep(5000)]); } } };
 }
 
 // ------------------------------------------------------------------------------------------------ suite
@@ -193,13 +194,13 @@ beforeAll(async () => {
 
 afterAll(async () => {
   await agent?.stop(); await stack?.close(); await new Promise((r) => pipeServer?.close(r));
-  if (work) rmSync(work, { recursive: true, force: true });
+  if (work) rmSync(work, RM);
 });
 
 describe('INT-T01 simulator -> agent -> API -> C5 (fake) -> resulted', () => {
   it('ASTM serial-over-pipe and HL7 TCP: every result is `resulted` in C5, p95 (instrument done -> resulted) <= 5 s', async () => {
     const astmSock = await pipeSock; const astmRd = new Reader(astmSock);
-    const hl7Sock: Socket = await new Promise((res, rej) => { const s = createNet().connect(hl7Port, '127.0.0.1', () => res(s)); s.once('error', rej); }); const hl7Rd = new Reader(hl7Sock);
+    const hl7Sock: Socket = await new Promise((res, rej) => { const s = netConnect(hl7Port, '127.0.0.1', () => res(s)); s.once('error', rej); }); const hl7Rd = new Reader(hl7Sock);
     const acks: string[] = [];
     for (let n = 0; n < ROUNDS; n++) {
       const a = astmText(n); await astmSend(astmSock, astmRd, a);
@@ -238,7 +239,7 @@ describe('INT-T01 simulator -> agent -> API -> C5 (fake) -> resulted', () => {
   });
 
   it('an HL7 retransmission (same bytes, same MSH-10) is ACKed but neither archived twice nor applied twice (AC-09.x dedupe, end to end)', async () => {
-    const hl7Sock: Socket = await new Promise((res, rej) => { const s = createNet().connect(hl7Port, '127.0.0.1', () => res(s)); s.once('error', rej); }); const rd = new Reader(hl7Sock);
+    const hl7Sock: Socket = await new Promise((res, rej) => { const s = netConnect(hl7Port, '127.0.0.1', () => res(s)); s.once('error', rej); }); const rd = new Reader(hl7Sock);
     const ack = await hl7Send(hl7Sock, rd, hl7Text(0)); expect(ack).toContain(`MSA|AA|MSG${pad8(0)}`);
     await sleep(2500);                                                   // > flush interval + poller
     expect(stack.world.messages).toHaveLength(ROUNDS * 2);
@@ -254,13 +255,13 @@ describe('INT-T01 simulator -> agent -> API -> C5 (fake) -> resulted', () => {
       const port = await new Promise<number>((r) => { const p = createNet(); p.listen(0, '127.0.0.1', () => { const x = (p.address() as { port: number }).port; p.close(() => r(x)); }); });
       const bad = await startAgent(bin, dir, { api_base_url: other.url, tls_root_ca_pem_path: stack.caPath /* the WRONG CA for `other` */, flush_interval_ms: 200, log_level: 'info',
         instruments: [{ instrument_id: INS(2), protocol: 'hl7v2', transport: 'tcp_listen', listen: `127.0.0.1:${port}` }] });
-      const s: Socket = await new Promise((res, rej) => { const c = createNet().connect(port, '127.0.0.1', () => res(c)); c.once('error', rej); });
+      const s: Socket = await new Promise((res, rej) => { const c = netConnect(port, '127.0.0.1', () => res(c)); c.once('error', rej); });
       await hl7Send(s, new Reader(s), hl7Text(ROUNDS + 1));                // the agent still ACKs locally (durable queue), but must not deliver
       await sleep(3000);
       expect(other.batches).toHaveLength(0);
       expect(other.world.messages).toHaveLength(0);
       expect(stack.batches.length).toBe(before);
       s.destroy(); await bad.stop(); await other.close();
-    } finally { rmSync(dir, { recursive: true, force: true }); }
+    } finally { rmSync(dir, RM); }
   }, 60_000);
 });

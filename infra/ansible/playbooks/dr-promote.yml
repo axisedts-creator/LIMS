@@ -1,0 +1,678 @@
+---
+# 02-TRD s9.5/s11.3, 03-APP-FLOW s11.1, AC-22.1/AC-22.3, 08 A25 D-210: promote the hot standby after the primary
+# DB host is lost. Runbook: infra/runbooks/dr.md. DESTRUCTIVE (04-UI-UX s7):
+#   ansible-playbook -i inventories/<env>/hosts.yml playbooks/dr-promote.yml -e confirm_env=<env>
+# LD-45 (lean/full profiles): group names only. Only `full` has a hot standby (group `dr`); `lean` has none, so
+# it refuses and points at dr.md#lean-restore-onto-a-fresh-vm (restore onto a fresh VM from the backup host).
+# Flow: guards -> start note -> promote + wait -> metric `0` (degraded mode) -> app hosts: new DB address, db_net
+# rule, secrets re-render, consumers recreated, smoke -> incident record -> interim repo (tag `interim_repo`, 4 h)
+# -> end note with the measured RTO. Nothing is deleted. A failure ends in `fail` (never rc 0 after a half
+# promotion); the promote task is idempotent, so a rerun continues. Repeat only the interim repo inside the
+# 4 h window: --tags interim_repo -e dr_promote_started_epoch=<epoch of the start note>.
+# Degraded mode (D-210): the interim repo is on the same site as the promoted primary, so it is never offsite.
+# The metric stays 0 and NoOffsiteArchive keeps paging; this playbook never writes any other value.
+# Interim pass: escrowed with sops from the control host (secrets.md) before it lands on the promoted host's tmpfs;
+# a rerun reuses it. The repo account is chrooted, sftp-only, group lims-interim-repo (role hardening template).
+# Promoted dr host archives to the interim repo only, no repo2 settings: LD-106 (CR-C1-T29b option (a), 02-TRD s9).
+# UNVERIFIED until the staging game day: the standby container mounts the standby conf and secret dirs at the
+# same paths as the host; sshd internal-sftp + chroot + Match in a drop-in; pgBackRest sftp hash type sha256.
+- name: Promote the standby (guards, promote, degraded-mode metric)
+  hosts: dr
+  become: true
+  gather_facts: false
+  any_errors_fatal: true
+  vars:
+    standby_container: standby-db  # = role standby default
+    dr_pg_superuser: supabase_admin  # same login as the drill (pg1-user)
+    dr_psql: [docker, exec, -u, postgres, "{{ standby_container }}", psql, -X, -At,
+              -h, /var/run/postgresql, -U, supabase_admin, -d, postgres, -c]
+  tasks:
+    - name: Refuse unless the active profile has a hot standby (LD-45 lean has none)
+      ansible.builtin.assert:
+        that:
+          - topology_profile | default('') == 'full'
+        fail_msg: >-
+          dr-promote: only topology_profile 'full' has a hot standby. In 'lean' restore onto a fresh VM
+          from the backup host: infra/runbooks/dr.md#lean-restore-onto-a-fresh-vm
+
+    - name: Refuse without confirm_env equal to this environment (DESTRUCTIVE)
+      ansible.builtin.assert:
+        that:
+          - env | default('') in ['staging', 'prod']
+          - confirm_env | default('') | length > 0
+          - confirm_env | default('') == env | default('')
+        fail_msg: "dr-promote: pass -e confirm_env=<env> equal to the inventory env (staging or prod)"
+
+    - name: Refuse unless exactly one dr host, a data host and an ops host exist
+      ansible.builtin.assert:
+        that:
+          - groups['dr'] | default([]) | length == 1
+          - groups['data'] | default([]) | length > 0
+          - groups['ops'] | default([]) | length > 0
+          - hostvars[groups['dr'][0]].wg_ip | default('') | length > 0
+          - hostvars[groups['data'][0]].wg_ip | default('') | length > 0
+        fail_msg: "dr-promote: need one dr host, a data host and an ops host with wg_ip"
+
+    # Promoting while the old primary lives = two primaries (split brain). It must not answer on 5432.
+    - name: Split-brain probe - the old primary must be stopped (nothing listening on 5432)
+      ansible.builtin.wait_for:
+        host: "{{ hostvars[groups['data'][0]].wg_ip }}"
+        port: 5432
+        state: stopped
+        timeout: 20
+        msg: "the old primary still answers on 5432: fence it first (dr.md, section Host loss)"
+
+    - name: Epoch of the promotion request (RTO start)
+      ansible.builtin.set_fact:
+        dr_promote_started_epoch: "{{ lookup('pipe', 'date +%s') }}"
+
+    - name: ops_audit - promotion started
+      ansible.builtin.command:
+        argv:
+          - "{{ playbook_dir }}/../../ci/ops-note.sh"
+          - "dr-promote start env={{ env }} standby={{ inventory_hostname }} epoch={{ dr_promote_started_epoch }}"
+      delegate_to: localhost
+      become: false
+      changed_when: false
+
+    - name: Promotion
+      block:
+        # CASE makes a rerun a no-op once the standby is a primary.
+        - name: Promote the standby inside its container (idempotent)
+          ansible.builtin.command:
+            argv:
+              - docker
+              - exec
+              - -u
+              - postgres
+              - "{{ standby_container }}"
+              - psql
+              - -X
+              - -At
+              - -h
+              - /var/run/postgresql
+              - -U
+              - "{{ dr_pg_superuser }}"
+              - -d
+              - postgres
+              - -c
+              - SELECT CASE WHEN pg_is_in_recovery() THEN pg_promote(true, 60) ELSE true END
+          changed_when: true
+
+        - name: Wait until recovery is over
+          ansible.builtin.command:
+            argv: "{{ dr_psql + ['SELECT pg_is_in_recovery()'] }}"
+          register: dr_recovery
+          until: dr_recovery.stdout | trim == 'f'
+          retries: 60
+          delay: 5
+          changed_when: false
+
+        # Degraded mode from the first second: 0 until a repo on ANOTHER site exists (outside this playbook).
+        # copy writes a temp file and renames it (atomic for the textfile collector).
+        - name: Degraded mode - no offsite archive (alert NoOffsiteArchive pages and stays firing)
+          ansible.builtin.copy:
+            content: |
+              # HELP lims_ops_offsite_archive_configured Offsite pgBackRest repo configured and checked (0 or 1).
+              # TYPE lims_ops_offsite_archive_configured gauge
+              lims_ops_offsite_archive_configured 0
+            dest: /var/lib/node_exporter/textfile/lims_ops_offsite_archive_configured.prom
+            owner: root
+            group: root
+            mode: "0644"
+
+      rescue:
+        - name: ops_audit - promotion failed
+          ansible.builtin.command:
+            argv:
+              - "{{ playbook_dir }}/../../ci/ops-note.sh"
+              - "dr-promote FAILED during the promotion; fix the cause and rerun (promote is idempotent)"
+          delegate_to: localhost
+          become: false
+          changed_when: false
+          failed_when: false
+
+        - name: Fail the play (never rc 0 after a half promotion)
+          ansible.builtin.fail:
+            msg: "dr-promote failed during the promotion"
+
+- name: App hosts follow the new primary (address, db_net rule, consumers, smoke)
+  hosts: app
+  become: true
+  gather_facts: false
+  any_errors_fatal: true
+  vars:
+    dr_lims_dir: /srv/lims/compose/lims
+    dr_supabase_dir: /srv/lims/compose/supabase
+    # Compose interpolates the whole file: the same images as lims_runtime/deploy (release lock) must be set.
+    dr_compose_env:
+      COMPOSE_PROFILES: >-
+        {{ ((['full'] if topology_profile == 'full' else [])
+        + (['partner'] if partner_enabled | default(false) | bool else [])) | join(',') }}
+      APP_WG_IP: "{{ wg_ip }}"
+      LIMS_API_IMAGE: "{{ lims_runtime_images.api | default('') }}"
+      LIMS_WORKER_IMAGE: "{{ lims_runtime_images.worker | default('') }}"
+      LIMS_WEB_IMAGE: "{{ lims_runtime_images.web | default('') }}"
+      LIMS_PORTAL_IMAGE: "{{ lims_runtime_images.portal | default('') }}"
+      LIMS_PARTNER_IMAGE: "{{ lims_runtime_images.partner | default('partner-disabled.invalid') }}"
+      LIMS_RENDERER_IMAGE: "{{ lims_runtime_images.renderer | default('') }}"
+      LIMS_PDF_SANDBOX_IMAGE: "{{ lims_runtime_images.pdf_sandbox | default('') }}"
+      LIMS_VALKEY_IMAGE: "{{ lims_runtime_images.valkey | default('') }}"
+      LIMS_CLAMD_IMAGE: "{{ lims_runtime_images.clamd | default('') }}"
+      LIMS_SQUID_IMAGE: "{{ lims_runtime_images.squid | default('') }}"
+  tasks:
+    - name: Reconnect
+      block:
+        - name: Release images and secrets file known (fail closed before touching anything)
+          ansible.builtin.assert:
+            that:
+              - lims_runtime_images | default({}) | length > 0
+              - secrets_render_enc_file | default('') | length > 0
+            fail_msg: "dr-promote: set lims_runtime_images (release lock) and secrets_render_enc_file as site.yml does"
+
+        - name: New DB address is the promoted dr host
+          ansible.builtin.set_fact:
+            db_primary_wg_ip: "{{ hostvars[groups['dr'][0]].wg_ip }}"
+
+        - name: Re-render the db_net DOCKER-USER rule (role nftables) with the new address
+          ansible.builtin.include_role:
+            name: nftables
+
+        - name: Apply the nftables reload now
+          ansible.builtin.meta: flush_handlers
+
+        - name: Re-render the env files and secrets on tmpfs (role secrets_render)
+          ansible.builtin.include_role:
+            name: secrets_render
+
+        - name: Recreate api and worker with the new address (health-gated)
+          ansible.builtin.command:
+            cmd: >-
+              docker compose -p lims -f compose.app.yml up -d --no-deps --force-recreate
+              --wait --wait-timeout 300 api-a api-b worker-a worker-b
+            chdir: "{{ dr_lims_dir }}"
+          environment: "{{ dr_compose_env | combine({'DATA_WG_IP': db_primary_wg_ip}) }}"
+          changed_when: true
+
+        - name: Recreate auth, rest and storage with the new address (health-gated)
+          ansible.builtin.command:
+            cmd: >-
+              docker compose -p supabase --env-file /run/lims/env/supabase.env
+              -f upstream/docker-compose.yml -f override.app.yml up -d --no-deps --force-recreate
+              --wait --wait-timeout 300 auth rest storage
+            chdir: "{{ dr_supabase_dir }}"
+          environment:
+            DATA_WG_IP: "{{ db_primary_wg_ip }}"
+            POSTGRES_HOST: "{{ db_primary_wg_ip }}"
+          changed_when: true
+
+        - name: Smoke - the API answers ready through the new primary
+          ansible.builtin.command:
+            argv:
+              - docker
+              - exec
+              - "lims-{{ item }}-1"
+              - node
+              - -e
+              - "fetch('http://127.0.0.1:8080/v1/core/health/ready').then(r=>process.exit(r.ok?0:1),()=>process.exit(1))"
+          loop: [api-a, api-b]
+          register: dr_smoke
+          until: dr_smoke.rc == 0
+          retries: 30
+          delay: 10
+          changed_when: false
+
+        - name: Epoch of the reconnect (RTO end)
+          ansible.builtin.set_fact:
+            dr_reconnected_epoch: "{{ lookup('pipe', 'date +%s') }}"
+
+      rescue:
+        - name: ops_audit - reconnect failed
+          ansible.builtin.command:
+            argv:
+              - "{{ playbook_dir }}/../../ci/ops-note.sh"
+              - "dr-promote FAILED while the app hosts followed the new primary; the DB is promoted, rerun the playbook"
+          delegate_to: localhost
+          become: false
+          changed_when: false
+          failed_when: false
+
+        - name: Fail the play (the app is not on the new primary)
+          ansible.builtin.fail:
+            msg: "dr-promote failed while the app hosts followed the new primary"
+
+- name: Incident record of the degraded period
+  hosts: dr
+  become: true
+  gather_facts: false
+  any_errors_fatal: true
+  tasks:
+    - name: ops_audit - incident record, degraded mode (D-210 c)
+      ansible.builtin.command:
+        argv:
+          - "{{ playbook_dir }}/../../ci/ops-note.sh"
+          - >-
+            dr-promote incident: degraded, no second-site archive, audit store on the promoted primary's host;
+            NoOffsiteArchive pages until a repo on another site exists; interim repo due within 4 h
+      delegate_to: localhost
+      become: false
+      changed_when: false
+
+# ---- interim repo (AC-22.3): its own passphrase, never the repo1/repo2 one; same site, so never "offsite".
+- name: Interim repo - key and passphrase on the promoted host
+  hosts: dr
+  become: true
+  gather_facts: false
+  any_errors_fatal: true
+  tags: [interim_repo]
+  vars:
+    dr_secret_dir: /run/lims/secrets/standby  # = role standby secret dir (tmpfs)
+    # Review item 2: the pass must outlive the promoted host, so it is escrowed (sops, secrets.md) in its own
+    # encrypted file next to <env>.enc.yaml in lims-secrets (not in <env>.enc.yaml: the schema rejects extra ids).
+    # [CONV] file <env>.dr-interim.enc.yaml, id pgbackrest_interim_cipher_pass; encrypted with the env's rule.
+    # Not in 02-TRD s8.2 / secrets schemas yet: CR-C1-T29c (.orchestra/cr/C1.T-29.secrets.md, non-blocking).
+    dr_escrow_file: "{{ (secrets_render_enc_file | default('')) | dirname }}/{{ env }}.dr-interim.enc.yaml"
+  tasks:
+    - name: Encrypted secrets file of this env known (escrow target)
+      ansible.builtin.assert:
+        that:
+          - (secrets_render_enc_file | default('') | basename) == (env ~ '.enc.yaml')
+        fail_msg: "dr-promote: set secrets_render_enc_file (<env>.enc.yaml) so the interim pass can be escrowed"
+
+    - name: Read an escrowed interim cipher pass (sops, control host; a rerun reuses it)
+      ansible.builtin.command:
+        argv: [sops, -d, --extract, '["pgbackrest_interim_cipher_pass"]', "{{ dr_escrow_file }}"]
+      delegate_to: localhost
+      become: false
+      run_once: true
+      register: dr_interim_escrowed
+      changed_when: false
+      failed_when: false
+      no_log: true
+
+    - name: Reuse the escrowed interim pass
+      ansible.builtin.set_fact:
+        dr_interim_pass: "{{ dr_interim_escrowed.stdout | trim }}"
+      when: dr_interim_escrowed.rc == 0 and (dr_interim_escrowed.stdout | trim | length) > 0
+      no_log: true
+
+    - name: Fresh interim passphrase (only when none is escrowed)
+      ansible.builtin.set_fact:
+        dr_interim_pass: "{{ lookup('password', '/dev/null length=48 chars=ascii_letters,digits') }}"
+      when: dr_interim_pass is not defined
+      no_log: true
+
+    - name: Repo name of this run
+      ansible.builtin.set_fact:
+        dr_interim_stamp: "{{ lookup('pipe', 'date +%Y%m%dT%H%M%S') }}"
+
+    - name: Escrow file present?
+      ansible.builtin.stat:
+        path: "{{ dr_escrow_file }}"
+      delegate_to: localhost
+      become: false
+      run_once: true
+      register: dr_escrow_stat
+
+    # Plaintext only on stdin of sops; the file on disk is encrypted (age recipients of <env>.enc.yaml).
+    - name: Escrow the interim cipher pass - new encrypted file (sops)
+      ansible.builtin.command:
+        argv:
+          - sops
+          - --encrypt
+          - --input-type
+          - yaml
+          - --output-type
+          - yaml
+          - --filename-override
+          - "{{ secrets_render_enc_file }}"
+          - --output
+          - "{{ dr_escrow_file }}"
+          - /dev/stdin
+        stdin: "pgbackrest_interim_cipher_pass: {{ dr_interim_pass | to_json }}"
+      delegate_to: localhost
+      become: false
+      run_once: true
+      when: not dr_escrow_stat.stat.exists
+      changed_when: true
+      no_log: true
+
+    - name: Escrow the interim cipher pass - existing encrypted file (sops --set)
+      ansible.builtin.command:
+        argv: [sops, --set, '["pgbackrest_interim_cipher_pass"] {{ dr_interim_pass | to_json }}', "{{ dr_escrow_file }}"]
+      delegate_to: localhost
+      become: false
+      run_once: true
+      when: dr_escrow_stat.stat.exists and dr_interim_escrowed.rc != 0
+      changed_when: true
+      no_log: true
+
+    - name: Stage the escrow file in lims-secrets (encrypted file only)
+      ansible.builtin.command:
+        argv: [git, -C, "{{ dr_escrow_file | dirname }}", add, --, "{{ dr_escrow_file | basename }}"]
+      delegate_to: localhost
+      become: false
+      run_once: true
+      changed_when: false
+
+    - name: Commit the escrow file to lims-secrets (backed up off-host with the ops volume, 02-TRD s8.2)
+      ansible.builtin.command:
+        argv:
+          - git
+          - -C
+          - "{{ dr_escrow_file | dirname }}"
+          - commit
+          - -m
+          - "dr-promote: escrow interim pgBackRest cipher pass ({{ env }})"
+          - --
+          - "{{ dr_escrow_file | basename }}"
+      delegate_to: localhost
+      become: false
+      run_once: true
+      register: dr_escrow_commit
+      changed_when: dr_escrow_commit.rc == 0
+      no_log: true  # only the encrypted file is committed; no_log anyway (cipher pass task)
+      failed_when: dr_escrow_commit.rc != 0 and 'nothing' not in (dr_escrow_commit.stdout ~ dr_escrow_commit.stderr)
+
+    - name: SSH key for the interim repo (private half stays on tmpfs)
+      ansible.builtin.command:
+        argv: [ssh-keygen, -q, -t, ed25519, -N, "", -C, interim-repo, -f, "{{ dr_secret_dir }}/interim_sftp_key"]
+        creates: "{{ dr_secret_dir }}/interim_sftp_key"
+
+    - name: Read the public half
+      ansible.builtin.slurp:
+        src: "{{ dr_secret_dir }}/interim_sftp_key.pub"
+      register: dr_interim_pub
+      changed_when: false
+
+    - name: Keep the public half for the repo host
+      ansible.builtin.set_fact:
+        dr_interim_pubkey: "{{ dr_interim_pub.content | b64decode | trim }}"
+
+- name: Interim repo - SFTP target on the first ops host (different host, same site)
+  hosts: ops
+  become: true
+  gather_facts: false
+  any_errors_fatal: true
+  tags: [interim_repo]
+  vars:
+    dr_repo_home: /srv/lims/interim-repo
+    dr_repo_user: lims-interim-repo
+  tasks:
+    - name: Only the first ops host holds the repo
+      ansible.builtin.meta: end_host
+      when: inventory_hostname != groups['ops'][0]
+
+    # Review item 1: sshd `AllowGroups ops lims-interim-repo` (role hardening) admits this group, never `ops`.
+    - name: Dedicated group of the repo account (not ops)
+      ansible.builtin.group:
+        name: lims-interim-repo  # = dr_repo_user
+        system: true
+
+    - name: Repo account (no shell login; sftp only)
+      ansible.builtin.user:
+        name: "{{ dr_repo_user }}"
+        group: lims-interim-repo  # sshd AllowGroups + Match User in role hardening use this literal name
+        system: true
+        shell: /usr/sbin/nologin
+        home: "{{ dr_repo_home }}"
+        create_home: true
+        umask: "0077"
+
+    # sshd refuses a chroot that is not root-owned or is group/world-writable.
+    - name: Chroot directory root-owned 0755 (Match User lims-interim-repo, ChrootDirectory)
+      ansible.builtin.file:
+        path: "{{ dr_repo_home }}"
+        state: directory
+        owner: root
+        group: root
+        mode: "0755"
+
+    - name: Writable repo directory inside the chroot (/repo for the sftp client)
+      ansible.builtin.file:
+        path: "{{ dr_repo_home }}/repo"
+        state: directory
+        owner: "{{ dr_repo_user }}"
+        group: "{{ dr_repo_user }}"
+        mode: "0700"
+
+    - name: SSH directory of the repo account
+      ansible.builtin.file:
+        path: "{{ dr_repo_home }}/.ssh"
+        state: directory
+        owner: "{{ dr_repo_user }}"
+        group: "{{ dr_repo_user }}"
+        mode: "0700"
+
+    - name: Authorize the promoted host's key for sftp only
+      ansible.builtin.copy:
+        content: |
+          restrict,command="internal-sftp" {{ hostvars[groups['dr'][0]].dr_interim_pubkey }}
+        dest: "{{ dr_repo_home }}/.ssh/authorized_keys"
+        owner: "{{ dr_repo_user }}"
+        mode: "0600"
+
+    - name: SSH policy with the interim repo Match block (role hardening template)
+      ansible.builtin.template:
+        src: "{{ playbook_dir }}/../roles/hardening/templates/lims.conf.j2"
+        dest: /etc/ssh/sshd_config.d/lims.conf
+        owner: root
+        group: root
+        mode: "0644"
+        validate: /usr/sbin/sshd -t -f %s
+
+    - name: Validate the full sshd configuration (lockout guard, as T-03)
+      ansible.builtin.command:
+        argv: [/usr/sbin/sshd, -t]
+      changed_when: false
+
+    - name: Reload ssh so the Match block is live
+      ansible.builtin.systemd:
+        name: ssh
+        state: reloaded
+
+    - name: Host key fingerprint of this host (sha256 hex, public)
+      ansible.builtin.shell:
+        cmd: >-
+          set -o pipefail;
+          awk '{print $2}' /etc/ssh/ssh_host_ed25519_key.pub | base64 -d | sha256sum | cut -d' ' -f1
+        executable: /bin/bash
+      register: dr_host_fp
+      changed_when: false
+
+    - name: Keep the fingerprint for the promoted host
+      ansible.builtin.set_fact:
+        dr_interim_host_fp: "{{ dr_host_fp.stdout | trim }}"
+
+    - name: Look at the wg_in chain for the interim rule
+      ansible.builtin.command: nft list chain inet filter wg_in
+      register: dr_wg_in
+      changed_when: false
+
+    # Runtime rule only: the next nftables reload drops it (permanent rule = CR-C1-T29, see runbook).
+    - name: Allow ssh from the promoted host (interim repo)
+      ansible.builtin.command:
+        argv:
+          - nft
+          - insert
+          - rule
+          - inet
+          - filter
+          - wg_in
+          - tcp
+          - dport
+          - "22"
+          - ip
+          - saddr
+          - "{{ hostvars[groups['dr'][0]].wg_ip }}"
+          - accept
+          - comment
+          - interim-repo
+      when: "'interim-repo' not in dr_wg_in.stdout"
+      changed_when: true
+
+- name: Interim repo - configure, stanza-create, check (within 4 h)
+  hosts: dr
+  become: true
+  gather_facts: false
+  any_errors_fatal: true
+  tags: [interim_repo]
+  vars:
+    standby_container: standby-db  # = role standby default
+    dr_conf_dir: /srv/lims/db/standby/conf  # = role standby conf dir (mounted at the same path)
+    dr_secret_dir: /run/lims/secrets/standby
+    dr_pg_uid: "{{ pgbackrest_pg_uid | default(101) }}"
+    dr_pg_gid: "{{ pgbackrest_pg_gid | default(102) }}"
+    dr_deadline_s: 14400  # AC-22.3: 4 h from the promotion request
+    dr_pgb: [docker, exec, -u, postgres, "{{ standby_container }}", pgbackrest,
+             "--config={{ dr_conf_dir }}/pgbackrest.conf", --stanza=lims]
+  tasks:
+    - name: Interim repo
+      block:
+        - name: Interim passphrase include on tmpfs
+          ansible.builtin.copy:
+            content: |
+              [global]
+              repo1-cipher-pass={{ dr_interim_pass }}
+            dest: "{{ dr_secret_dir }}/interim.conf"
+            owner: "{{ dr_pg_uid }}"
+            group: "{{ dr_pg_gid }}"
+            mode: "0600"
+          no_log: true
+
+        - name: Interim repo settings (encrypted, sftp, host key pinned)
+          ansible.builtin.copy:
+            content: |
+              [global]
+              repo1-type=sftp
+              repo1-sftp-host={{ hostvars[groups['ops'][0]].wg_ip }}
+              repo1-sftp-host-port=22
+              repo1-sftp-host-user=lims-interim-repo
+              repo1-sftp-private-key-file={{ dr_secret_dir }}/interim_sftp_key
+              repo1-sftp-host-key-check-type=fingerprint
+              repo1-sftp-host-key-hash-type=sha256
+              repo1-sftp-host-fingerprint={{ hostvars[groups['ops'][0]].dr_interim_host_fp }}
+              repo1-path=/repo/repo-{{ dr_interim_stamp }}
+              repo1-cipher-type=aes-256-cbc
+              repo1-retention-full-type=count
+              repo1-retention-full=2
+              config-include-path={{ dr_secret_dir }}
+              log-level-console=warn
+              [lims]
+              pg1-path=/var/lib/postgresql/data
+              pg1-socket-path=/var/run/postgresql
+              pg1-user={{ dr_pg_superuser | default('supabase_admin') }}
+            dest: "{{ dr_conf_dir }}/pgbackrest.conf"
+            owner: root
+            group: root
+            mode: "0644"
+          no_log: true
+
+        - name: Private key readable by postgres in the container
+          ansible.builtin.file:
+            path: "{{ dr_secret_dir }}/interim_sftp_key"
+            owner: "{{ dr_pg_uid }}"
+            group: "{{ dr_pg_gid }}"
+            mode: "0600"
+
+        # archive_mode needs a restart; the standby ran with it off (standby.conf.j2).
+        - name: Archive settings for the promoted primary
+          ansible.builtin.copy:
+            content: |
+              # dr-promote (D-210): archive WAL to the interim repo.
+              archive_mode = on
+              archive_command = 'pgbackrest --config={{ dr_conf_dir }}/pgbackrest.conf --stanza=lims archive-push %p'
+              archive_timeout = 60
+            dest: "{{ dr_conf_dir }}/zz-interim-archive.conf"
+            owner: root
+            group: root
+            mode: "0644"
+
+        - name: Restart the database container (one short blip, apps reconnect)
+          ansible.builtin.command:
+            argv: [docker, restart, "{{ standby_container }}"]
+          changed_when: true
+
+        - name: Wait until the primary accepts connections again
+          ansible.builtin.command:
+            argv:
+              - docker
+              - exec
+              - -u
+              - postgres
+              - "{{ standby_container }}"
+              - psql
+              - -X
+              - -At
+              - -h
+              - /var/run/postgresql
+              - -U
+              - supabase_admin
+              - -d
+              - postgres
+              - -c
+              - SELECT pg_is_in_recovery()
+          register: dr_back
+          until: dr_back.stdout | default('') | trim == 'f'
+          retries: 60
+          delay: 5
+          changed_when: false
+
+        - name: Interim repo - stanza-create on {{ groups['ops'][0] }}
+          ansible.builtin.command:
+            argv: "{{ dr_pgb + ['stanza-create'] }}"
+          changed_when: true
+
+        - name: Interim repo - pgbackrest check (archive and repo work)
+          ansible.builtin.command:
+            argv: "{{ dr_pgb + ['check'] }}"
+          changed_when: false
+
+        - name: Inside the 4 h window (AC-22.3)
+          ansible.builtin.assert:
+            that:
+              - (lookup('pipe', 'date +%s') | int) - (dr_promote_started_epoch | int) <= (dr_deadline_s | int)
+            fail_msg: "interim repo is in place but later than 4 h (14400 s) after the promotion: record the breach"
+
+        - name: ops_audit - interim repo verified (same site, NoOffsiteArchive stays firing)
+          ansible.builtin.command:
+            argv:
+              - "{{ playbook_dir }}/../../ci/ops-note.sh"
+              - >-
+                dr-promote interim repo verified on {{ groups['ops'][0] }} path=/repo/repo-{{ dr_interim_stamp }}
+                pass=escrowed {{ env }}.dr-interim.enc.yaml; still degraded, same site
+          delegate_to: localhost
+          become: false
+          changed_when: false
+
+      rescue:
+        - name: ops_audit - interim repo failed
+          ansible.builtin.command:
+            argv:
+              - "{{ playbook_dir }}/../../ci/ops-note.sh"
+              - "dr-promote FAILED in the interim repo step; rerun with --tags interim_repo inside the 4 h window"
+          delegate_to: localhost
+          become: false
+          changed_when: false
+          failed_when: false
+
+        - name: Fail the play (no verified interim repo)
+          ansible.builtin.fail:
+            msg: "dr-promote: the interim repo step failed"
+
+- name: End of the promotion (measured RTO)
+  hosts: dr
+  become: true
+  gather_facts: false
+  tasks:
+    - name: ops_audit - promotion finished
+      ansible.builtin.command:
+        argv:
+          - "{{ playbook_dir }}/../../ci/ops-note.sh"
+          - >-
+            dr-promote end env={{ env }}
+            rto_seconds={{ (hostvars[groups['app'][0]].dr_reconnected_epoch | int) - (dr_promote_started_epoch | int) }}
+            target_seconds=3600 interim_repo=checked offsite_archive=none
+      delegate_to: localhost
+      become: false
+      changed_when: false

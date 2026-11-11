@@ -121,18 +121,18 @@ export function createSupportRepo(): SupportRepo {
 const failAt = (path: string): never => {
   throw new LimsError('common.validation_failed', undefined, [{ path, code: 'common.field_invalid', message: 'Field invalid' } satisfies FieldError]);
 };
-const uuidAt = (v: unknown, path: string): string => (typeof v === 'string' && UUID.test(v) ? v : failAt(path));
+export const uuidAt = (v: unknown, path: string): string => (typeof v === 'string' && UUID.test(v) ? v : failAt(path));
 const optUuid = (v: unknown, path: string) => (v === undefined ? undefined : uuidAt(v, path));
 const intIn = (v: unknown, lo: number, hi: number) => Number.isSafeInteger(v) && (v as number) >= lo && (v as number) <= hi;
 const strLen = (v: unknown, lo: number, hi: number) => typeof v === 'string' && v.length >= lo && v.length <= hi;
-function expected(v: unknown): number {
+export function expected(v: unknown): number {
   if (v === undefined || v === null) throw new LimsError('common.precondition_required');
   return intIn(v, 1, 2147483647) ? (v as number) : failAt('/If-Match');
 }
 const iso = (v: Date | string | null | undefined) => (v === null || v === undefined ? undefined : new Date(v).toISOString());
 
 /** SupportSession (contracts/openapi/identity.yaml): absent optional fields are omitted, never null. */
-function toBody(r: SRow) {
+export function toBody(r: SRow) {
   const opt = {
     decided_at: iso(r.decided_at), decision_note: r.decision_note ?? undefined, started_at: iso(r.started_at),
     expires_at: iso(r.expires_at), ended_at: iso(r.ended_at), end_reason: r.end_reason ?? undefined,

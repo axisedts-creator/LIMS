@@ -323,3 +323,81 @@ describe('AU-T20: a partner session runs every s5.2 operation on its own records
     expect(out).toEqual({ kind: 'rejected', code: 'auth.unauthenticated' });
   });
 });
+
+// ---- review round 1 (C2.T10-review.md items 1-3) ----
+describe('changeOwnPassword: the verifying sign-in leaves no live GoTrue session (review item 3)', () => {
+  it('after a successful current-password check the session that sign-in opened is closed: signOut(thatAccessToken, "local"), and the change still succeeds', async () => {
+    const { w, ok } = await setup(); const spy = vi.spyOn(w.fake, 'signInWithPassword'); const me = w.people.get('ME')!;
+    const r: any = await ok('ME', (s, c) => s.changeOwnPassword(c, { currentPassword: OLD_PW, newPassword: NEW_PW })); expect(r.status).toBe(204);
+    const tok = await spy.mock.results[0]!.value; expect(tok.ok).toBe(true);
+    const outs = w.gcalls.filter((c) => c.method === 'signOut'); expect(outs).toHaveLength(1); expect(outs[0]!.args).toEqual([tok.tokens.accessToken, 'local']);
+    expect((await w.fake.signInWithPassword(me.email, NEW_PW)).ok).toBe(true);
+  });
+  it('a signOut failure does not fail the change, but is not swallowed silently: logged (warn/error) without a password', async () => {
+    const { w, ok } = await setup(); vi.spyOn(w.fake, 'signOut').mockRejectedValueOnce(new Error('gotrue down'));
+    const r: any = await ok('ME', (s, c) => s.changeOwnPassword(c, { currentPassword: OLD_PW, newPassword: NEW_PW })); expect(r.status).toBe(204);
+    expect(w.log.warn.mock.calls.length + w.log.error.mock.calls.length).toBeGreaterThan(0);
+    const s = sinks(w); for (const secret of [OLD_PW, NEW_PW]) expect(s).not.toContain(secret);
+  });
+  it('a wrong current password opens no session, so nothing is signed out', async () => {
+    const { w, fail } = await setup(); await fail('ME', (s, c) => s.changeOwnPassword(c, { currentPassword: WRONG_PW, newPassword: NEW_PW }));
+    expect(w.gcalls.some((c) => c.method === 'signOut')).toBe(false);
+  });
+});
+
+describe('changeOwnPassword: tenant password_min_length is read and fails closed (review item 2c, AC-A6.1)', () => {
+  it('a stricter tenant minimum (16) rejects a 14-character password (422 auth.password_policy_violation); nothing changed', async () => {
+    const { w, cur, fail } = await setup(); w.minLength.value = 16; const me = w.people.get('ME')!;
+    const { e } = await fail('ME', (s, c) => s.changeOwnPassword(c, { currentPassword: OLD_PW, newPassword: 'Abcdefgh1!xyzw' }));
+    expect(e.code).toBe('auth.password_policy_violation'); expect(w.committed()).toHaveLength(0); expect(cur['ME']!.state).toBe('active'); expect((await w.fake.signInWithPassword(me.email, OLD_PW)).ok).toBe(true);
+  });
+  it('no tenant_settings row (minimum unknown) -> 500 common.internal, NOT the 12 floor: nothing changed', async () => {
+    const { w, cur, fail } = await setup(); w.minLength.value = undefined; const me = w.people.get('ME')!; const s2 = w.addSession('ME');
+    const { e } = await fail('ME', (s, c) => s.changeOwnPassword(c, { currentPassword: OLD_PW, newPassword: NEW_PW }));
+    expect(e.code).toBe('common.internal'); expect(w.committed()).toHaveLength(0); expect([cur['ME']!.state, s2.state]).toEqual(['active', 'active']); expect((await w.fake.signInWithPassword(me.email, OLD_PW)).ok).toBe(true);
+  });
+  it('the minimum is looked up through the repo seam for a partner too', async () => {
+    const { w, ok } = await setup(); await ok('P1', (s, c) => s.changeOwnPassword(c, { currentPassword: OLD_PW, newPassword: NEW_PW })); expect(w.order).toContain('passwordMinLength');
+  });
+});
+
+// The REAL default repo (repository/self.repo.ts) over a recording tx, not the in-memory fake: a live partner has no core.membership_roles rows and
+// partner claims cannot read core roles (P-16 guard), so roles / permissions must come from the claims (ctx.partnerRole), never from SQL (02-TRD s5.2 / s7.1, 08 A28.3).
+describe('getMe: partner roles / permissions are built from the claims, not from core role tables (review item 1, AU-T20)', () => {
+  const profileRow = (who: { membershipId: string; userId: string; email: string }, o: Record<string, unknown> = {}) => ({ membership_id: who.membershipId, user_id: who.userId, last_login_at: new Date('2026-11-05T04:15:00.000Z'), all_centres: false,
+    display_name: 'Demo', email: who.email, role_ids: [], role_codes: [], role_names: [], permissions: [], centre_ids: [], has_verified_factor: false, ...o });
+  async function viaRepo(key: Who, c: Record<string, unknown> = {}, rowOver: Record<string, unknown> = {}) {
+    const { w, cur } = await setup(); const p = w.people.get(key)!; const sql: string[] = [];
+    const { createSelfRepo } = await import('../../repository/self.repo.js');
+    const svc = createSelfService({ ...w.deps, repo: createSelfRepo() as any });
+    const query = vi.fn(async (text: string) => { sql.push(text); return { rows: /FROM core\.memberships/.test(text) ? [profileRow(p, rowOver)] : [], rowCount: 1 }; });
+    const { ctx } = w.ctxFor(key, cur[key]!, { tx: { query }, ...c });
+    return { p, sql, svc, ctx, query };
+  }
+  it('partner_admin: roles = [partner_admin], permissions = the fixed partner set - even though the DB role tables return nothing', async () => {
+    const { fixedActorPermissions } = await import('../../domain/permission-set.js'); const { svc, ctx } = await viaRepo('P1');
+    const b = ((await svc.getMe(ctx, {})) as any).body; expect(b.roles.map((r: any) => r.code)).toEqual(['partner_admin']);
+    expect(fixedActorPermissions('partner', 'partner_admin').length).toBeGreaterThan(0); expect([...b.permissions].sort()).toEqual(fixedActorPermissions('partner', 'partner_admin'));
+    expect(b.permissions).toContain('identity.self.manage'); expect(b.centre_scope).toEqual({ all: false, centre_ids: [] });
+  });
+  it('partner_member gets the member set (not the admin set)', async () => {
+    const { fixedActorPermissions } = await import('../../domain/permission-set.js'); const { svc, ctx } = await viaRepo('P2');
+    const b = ((await svc.getMe(ctx, {})) as any).body; expect(b.roles.map((r: any) => r.code)).toEqual(['partner_member']); expect([...b.permissions].sort()).toEqual(fixedActorPermissions('partner', 'partner_member'));
+    expect(b.permissions).not.toContain('partners.partner_user.manage');
+  });
+  it('no statement a partner request issues touches core.membership_roles / core.roles / core.role_permissions / core.membership_centres', async () => {
+    const { svc, ctx, sql } = await viaRepo('P1'); await svc.getMe(ctx, {}); expect(sql.length).toBeGreaterThan(0);
+    for (const s of sql) expect(s).not.toMatch(/membership_roles|core\.roles|role_permissions|membership_centres/);
+  });
+  it('a role / permission / centre value the DB hands back for a partner is ignored (the claims win)', async () => {
+    const { svc, ctx } = await viaRepo('P1', {}, { role_ids: [idN(0x9001)], role_codes: ['tenant_admin'], role_names: ['Tenant admin'], permissions: ['identity.user.manage'], centre_ids: [idN(0x9002)], all_centres: true });
+    const b = ((await svc.getMe(ctx, {})) as any).body; expect(b.roles.map((r: any) => r.code)).toEqual(['partner_admin']); expect(b.permissions).not.toContain('identity.user.manage'); expect(b.centre_scope).toEqual({ all: false, centre_ids: [] });
+  });
+  it('a partner ctx without partnerRole fails 401 auth.unauthenticated (no guess, no DB role fallback)', async () => {
+    const { svc, ctx } = await viaRepo('P1', { partnerRole: undefined }); const e = await rejection(svc.getMe(ctx, {})); expect(e.code).toBe('auth.unauthenticated'); expect(e.statusCode).toBe(401);
+  });
+  it('staff control: the same repo DOES read the role tables for a staff session (so the partner assertions above are meaningful)', async () => {
+    const { svc, ctx, sql } = await viaRepo('ME', {}, { role_ids: [idN(0x9003)], role_codes: ['tenant_admin'], role_names: ['Tenant admin'], permissions: ['identity.self.manage'] });
+    const b = ((await svc.getMe(ctx, {})) as any).body; expect(b.roles.map((r: any) => r.code)).toEqual(['tenant_admin']); expect(sql.join('\n')).toMatch(/membership_roles/);
+  });
+});

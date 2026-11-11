@@ -2,7 +2,7 @@
 //
 // Files under test (plan row T10): handlers/{getMe,changeOwnPassword,listOwnSessions,revokeOwnSession,listOwnMfaFactors,removeOwnMfaFactor}.ts (wired into handlers/index.ts)
 // plus service/self.service.ts. Same shape as T14 (role.helpers.ts): a service factory the handlers call, tests inject the fakes below.
-//   service/self.service.ts  exports `createSelfService(deps?: { repo?: SelfRepo; gotrue?: Pick<GoTrueGateway,'signInWithPassword'|'adminUpdatePassword'|'adminDeleteFactor'>;
+//   service/self.service.ts  exports `createSelfService(deps?: { repo?: SelfRepo; gotrue?: Pick<GoTrueGateway,'signInWithPassword'|'signOut'|'adminUpdatePassword'|'adminDeleteFactor'>;
 //                            breached?: { isBreached(tx, sha1: Buffer): Promise<boolean> }; events?: { recordTenant(tx, e: AuthEvent): Promise<void> }; newId?: () => string })`
 //                            -> { getMe, changeOwnPassword, listOwnSessions, revokeOwnSession, listOwnMfaFactors, removeOwnMfaFactor }, each `(ctx, input) => Promise<{ status, body? }>`.
 //                            The DEFAULT repo (SQL on ctx.tx, explicit tenant_id/user_id) lives in the service file or a repository/self.repo.ts - tests only inject.
@@ -23,7 +23,9 @@
 //     findOwnFactor(tx, tenantId, { userId, factorId })             -> FactorRow | undefined   (FOR UPDATE; another user's factor -> undefined)
 //     roleRequiresMfa(tx, tenantId, { membershipId })               -> boolean   (some ACTIVE role of the membership has mfa_required)
 //     markFactorRemoved(tx, tenantId, { factorId, reason:'self', at, actorId })
-//     enqueue(tx, taskIdentifier, payload, jobKey)                  (sign-out jobs: 'identity.gotrue_signout', payload { user_id, tenant_id, session_id }, jobKey `signout:<session id>:<reason>`)
+//     passwordMinLength(tx, tenantId)                               -> number | undefined   (identity.tenant_settings; undefined = no row -> the service fails closed, common.internal; REQUIRED method, not optional)
+//     gotrue Pick also has 'signOut' (the verifying sign-in session is closed with signOut(accessToken,'local') after a successful current-password check)
+//     enqueue(tx, taskIdentifier, payload, jobKey)                 (sign-out jobs: 'identity.gotrue_signout', payload { user_id, tenant_id, session_id }, jobKey `signout:<session id>:<reason>`)
 import { vi } from 'vitest';
 import { LimsError } from '../../../../core/errors.js';
 import { createFakeGoTrueGateway } from '../../gotrue/gateway.fake.js';
@@ -65,6 +67,7 @@ export async function makeWorld(o: { breached?: (sha1: Buffer) => boolean } = {}
   const live = (s: SessRow) => s.state !== 'revoked' && s.state !== 'expired';
   const mine = (s: { tenant_id: string; user_id: string }, t: string, u: string) => s.tenant_id === t && s.user_id === u;
   const fail = { enabled: {} as Record<string, Error | undefined> };
+  const minLength = { value: 12 as number | undefined };
 
   const repo = {
     async getProfile(_tx: unknown, t: string, a: { membershipId: string; userId: string; actorType: string }) { order.push('getProfile'); const p = profiles.get(a.membershipId); const owner = [...people.values()].find((x) => x.membershipId === a.membershipId); return p && owner && p.userId === a.userId && owner.tenantId === t ? { ...p, roles: p.roles.map((r) => ({ ...r })), centreIds: [...p.centreIds], hasVerifiedFactor: factors.some((f) => f.user_id === p.userId && f.status === 'verified') } : undefined; },
@@ -91,6 +94,8 @@ export async function makeWorld(o: { breached?: (sha1: Buffer) => boolean } = {}
       rec('markFactorRemoved', { t, ...a }, () => { if (f && before) Object.assign(f, before); }); if (f) { f.status = 'removed'; f.removal_reason = a.reason; }
     },
     async enqueue(_tx: unknown, identifier: string, payload: Record<string, unknown>, jobKey: string) { rec('enqueue', { identifier, payload, jobKey }); },
+    /** identity.tenant_settings.password_min_length of the tenant; `world.minLength.value = undefined` = no settings row (the service must fail closed) */
+    async passwordMinLength(_tx: unknown, _t: string) { order.push('passwordMinLength'); return minLength.value; },
   };
   for (const m of Object.keys(repo) as Array<keyof typeof repo>) { const f = repo[m] as any; (repo as any)[m] = async (...a: unknown[]) => { if (fail.enabled[m]) throw fail.enabled[m]; return f(...a); }; }
   const events = { async recordTenant(_tx: unknown, e: any) { rec('recordTenant', e); } };
@@ -148,7 +153,7 @@ export async function makeWorld(o: { breached?: (sha1: Buffer) => boolean } = {}
     const { ctx, commitOnError } = ctxFor(key, current, c);
     return { ctx, commitOnError, promise: envelope(() => fn(ctx), () => commitOnError.mock.calls.length > 0) };
   }
-  return { fake, gotrue, gcalls, people, profiles, sessions, factors, mfaRequired, repo, events, breached, audit, log, deps, writes, order, fail, committed, eventsOf, otherWrites, addPerson, addSession, addFactor, ctxFor, run, envelope, committedFlag: () => committedFlag };
+  return { minLength, fake, gotrue, gcalls, people, profiles, sessions, factors, mfaRequired, repo, events, breached, audit, log, deps, writes, order, fail, committed, eventsOf, otherWrites, addPerson, addSession, addFactor, ctxFor, run, envelope, committedFlag: () => committedFlag };
 }
 export type World = Awaited<ReturnType<typeof makeWorld>>;
 

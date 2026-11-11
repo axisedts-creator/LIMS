@@ -7,7 +7,7 @@
 //   INSERT INTO <table> (cols) VALUES (exprs) [ON CONFLICT [(cols)] DO NOTHING] [RETURNING cols|*]
 //   UPDATE <table> SET col = expr[, ...] WHERE c AND c ... [RETURNING cols|*]
 //   cond  := col (=|<>|!=|<|<=|>|>=) expr | col IS [NOT] NULL | col IS [NOT] DISTINCT FROM expr | col = ANY($n)   (no OR, no parentheses, no sub-selects)
-//   expr  := $n[::type] | now() | NULL | true | false | integer | 'text' | col | col + integer
+//   expr  := $n[::type] | now() | NULL | true | false | integer | 'text' | col | col + integer | col + $n
 // Modelled: RLS (rows of other tenants invisible; INSERT with a foreign tenant_id -> 42501), NOT NULL (23502), UNIQUE (23505), CHECK (23514), version/defaults,
 // writes private to the transaction until COMMIT (run() with rollback:true discards them), node-pg types (timestamptz -> Date, bytea -> Buffer).
 import { randomUUID } from 'node:crypto';
@@ -50,6 +50,12 @@ const TABLES = {
     'requested_by_membership_id', 'requested_at', 'approved_by_membership_id', 'approved_at', 'rejected_by_membership_id', 'rejected_at', 'reject_reason_code', 'decision_note',
     'gateway_refund_reference', 'refunded_on', 'confirmed_by_membership_id', 'confirmed_at', 'completed_at', 'ledger_entry_id', 'failure_reason', 'failure_note', 'held_reason',
     'last_checked_at', 'unconfirmed_run_count', 'version', 'created_at', 'created_by', 'updated_at', 'updated_by'],
+  // PG-T13: 05-SCHEMA §6 reconciliation_runs / reconciliation_findings (CHECK + index names copied) and test.markers (P-44 marker rows, see portHarness faults.ledger.marker).
+  'payments.reconciliation_runs': ['id', 'tenant_id', 'business_date', 'trigger', 'status', 'started_at', 'finished_at', 'checked_count', 'ok_count', 'findings_count', 'critical_count',
+    'error_code', 'version', 'created_at', 'created_by', 'updated_at', 'updated_by'],
+  'payments.reconciliation_findings': ['id', 'tenant_id', 'run_id', 'intent_id', 'refund_id', 'kind', 'severity', 'our_status', 'gateway_status_raw', 'our_amount_paisa', 'gateway_amount_paisa',
+    'auto_action', 'status', 'resolution_code', 'note', 'resolved_by', 'resolved_at', 'version', 'created_at', 'created_by', 'updated_at', 'updated_by'],
+  'test.markers': ['id', 'tenant_id', 'label'],
 } as const;
 const GLOBAL_TABLES: readonly string[] = ['payments.g_cs_reasons'];
 type Table = keyof typeof TABLES;
@@ -67,6 +73,9 @@ const NOT_NULL: Record<Table, string[]> = {
   'payments.cs_reasons': ['id', 'tenant_id', 'set_name', 'code', 'display', 'created_by', 'updated_by'],
   'payments.refunds': ['id', 'tenant_id', 'intent_id', 'order_id', 'centre_id', 'gateway', 'mode', 'status', 'amount_paisa', 'reason_code', 'idempotency_key', 'requested_by_membership_id',
     'requested_at', 'unconfirmed_run_count', 'version', 'created_by', 'updated_by'],
+  'payments.reconciliation_runs': ['id', 'tenant_id', 'business_date', 'trigger', 'status', 'started_at', 'checked_count', 'ok_count', 'findings_count', 'critical_count', 'version', 'created_by', 'updated_by'],
+  'payments.reconciliation_findings': ['id', 'tenant_id', 'run_id', 'kind', 'severity', 'auto_action', 'status', 'version', 'created_by', 'updated_by'],
+  'test.markers': ['id', 'tenant_id', 'label'],
 };
 const DEFAULTS: Record<Table, () => Row> = {
   'payments.merchant_accounts': () => ({ is_enabled: false, api_refunds_enabled: false, version: 1, is_active: true }),
@@ -79,6 +88,9 @@ const DEFAULTS: Record<Table, () => Row> = {
   'payments.g_cs_reasons': () => ({ requires_text: false, sort_order: 0, is_active: true }),
   'payments.cs_reasons': () => ({ requires_text: false, sort_order: 0, version: 1, is_active: true }),
   'payments.refunds': () => ({ status: 'pending_approval', unconfirmed_run_count: 0, version: 1 }),
+  'payments.reconciliation_runs': () => ({ status: 'running', checked_count: 0, ok_count: 0, findings_count: 0, critical_count: 0, version: 1 }),
+  'payments.reconciliation_findings': () => ({ auto_action: 'none', status: 'open', version: 1 }),
+  'test.markers': () => ({}),
 };
 const nn = (v: unknown): boolean => v !== null && v !== undefined;
 
@@ -129,6 +141,20 @@ function checks(t: Table, r: Row): string | undefined {            // returns th
     if (r.status === 'failed' && !nn(r.failure_reason)) return 'refunds__failed__ck';
     if (nn(r.failure_reason) && !/^[a-z0-9_]{1,64}$/.test(r.failure_reason)) return 'refunds__failure_code__ck';
     if (!(Number(r.unconfirmed_run_count) >= 0)) return 'refunds__unconfirmed__ck';
+    return undefined;
+  }
+  if (t === 'payments.reconciliation_runs') {                        // PG-T13: reconciliation_runs__*__ck
+    if (!['cron', 'manual'].includes(r.trigger)) return 'reconciliation_runs__trigger__ck';
+    if (!['running', 'completed', 'failed'].includes(r.status)) return 'reconciliation_runs__status__ck';
+    if (![r.checked_count, r.ok_count, r.findings_count, r.critical_count].every((n) => Number(n) >= 0)) return 'reconciliation_runs__counts__ck';
+    return undefined;
+  }
+  if (t === 'payments.reconciliation_findings') {                    // PG-T13: reconciliation_findings__*__ck
+    if (!nn(r.intent_id) && !nn(r.refund_id)) return 'reconciliation_findings__subject__ck';
+    if (!['info', 'warning', 'critical'].includes(r.severity)) return 'reconciliation_findings__severity__ck';
+    if (!['none', 'settled', 'held', 'ledger_repaired'].includes(r.auto_action)) return 'reconciliation_findings__auto__ck';
+    if (!['open', 'resolved'].includes(r.status) || (r.status === 'resolved' && !(nn(r.resolution_code) && nn(r.resolved_by) && nn(r.resolved_at)))) return 'reconciliation_findings__status__ck';
+    if (nn(r.note) && String(r.note).length > 1000) return 'reconciliation_findings__note__ck';
     return undefined;
   }
   if (t === 'payments.intent_transitions') {
@@ -187,6 +213,8 @@ const uniq = (t: Table, rows: Row[], r: Row, self?: Row): string | undefined => 
     if (dup((x) => x.tenant_id === r.tenant_id && x.idempotency_key === r.idempotency_key)) return 'refunds__tenant_id_idempotency_key__uq';
     if (inflight.includes(r.status) && dup((x) => x.tenant_id === r.tenant_id && x.intent_id === r.intent_id && inflight.includes(x.status))) return 'refunds__tenant_id_intent_inflight__p_uq';
   }
+  if ((t === 'payments.reconciliation_runs' || t === 'payments.reconciliation_findings' || t === 'test.markers') && dup((x) => x.id === r.id)) return t.split('.')[1] + '__pk';
+  if (t === 'payments.reconciliation_runs' && r.status === 'running' && dup((x) => x.tenant_id === r.tenant_id && x.status === 'running')) return 'reconciliation_runs__tenant_id_running__p_uq';   // one running run per tenant
   return undefined;
 };
 
@@ -200,6 +228,7 @@ const TRANSITIONS: [string[], string[]][] = [[['created'], ['initiated', 'failed
 const REFUND_MUTABLE = new Set(['status', 'approved_by_membership_id', 'approved_at', 'rejected_by_membership_id', 'rejected_at', 'reject_reason_code', 'decision_note', 'gateway_refund_reference',
   'refunded_on', 'confirmed_by_membership_id', 'confirmed_at', 'completed_at', 'ledger_entry_id', 'failure_reason', 'failure_note', 'held_reason', 'last_checked_at', 'unconfirmed_run_count',
   'updated_at', 'updated_by', 'version']);
+const FINDING_MUTABLE = new Set(['status', 'resolution_code', 'note', 'resolved_by', 'resolved_at', 'updated_at', 'updated_by', 'version']);   // reconciliation_findings__mutable_columns
 const REFUND_TRANSITIONS: [string[], string[]][] = [[['pending_approval'], ['rejected', 'approved']], [['approved'], ['requested']], [['requested'], ['completed', 'held_for_review', 'failed']], [['held_for_review'], ['completed', 'failed']]];
 function guard(t: Table, old: Row, next: Row): void {
   if (t === 'payments.intent_transitions' || t === 'payments.gateway_calls' || t === 'payments.callbacks') throw pgError('42501', `permission denied for table ${t.split('.')[1]}`); // append-only: INSERT + SELECT only
@@ -208,6 +237,7 @@ function guard(t: Table, old: Row, next: Row): void {
     if (old.status !== next.status && !REFUND_TRANSITIONS.some(([from, to]) => from.includes(old.status) && to.includes(next.status))) throw pgError('P0001', 'invalid_transition');
     return;
   }
+  if (t === 'payments.reconciliation_findings') { for (const c of TABLES[t]) if (!FINDING_MUTABLE.has(c) && !same(old[c], next[c])) throw pgError('P0001', 'immutable_row'); return; }
   if (t !== 'payments.intents') return;
   for (const c of TABLES[t]) if (!MUTABLE.has(c) && !same(old[c], next[c])) throw pgError('P0001', 'immutable_row');
   for (const c of ['gateway_txn_ref', 'gateway_payment_url', 'expires_at']) if (nn(old[c]) && !same(old[c], next[c])) throw pgError('P0001', 'immutable_row');
@@ -215,9 +245,9 @@ function guard(t: Table, old: Row, next: Row): void {
 }
 
 // node-pg typing: timestamptz -> Date on the way out of the store (strings the service wrote are parsed), bigint -> decimal STRING (pg's default for int8).
-const BIGINT_COLS = new Set(['amount_paisa', 'verified_amount_paisa', 'refunded_paisa']);
+const BIGINT_COLS = new Set(['amount_paisa', 'verified_amount_paisa', 'refunded_paisa', 'our_amount_paisa', 'gateway_amount_paisa']);
 const toDates = (row: Row): void => { for (const c of Object.keys(row)) if (/_at$/.test(c) && typeof row[c] === 'string') row[c] = new Date(row[c]); };
-const pgOut = (t: Table, rows: Row[]): Row[] => (t !== 'payments.intents' && t !== 'payments.refunds' ? rows : rows.map((r) => Object.fromEntries(Object.entries(r).map(([k, v]) => [k, BIGINT_COLS.has(k) && v !== null && v !== undefined ? String(v) : v]))));
+const pgOut = (t: Table, rows: Row[]): Row[] => (t !== 'payments.intents' && t !== 'payments.refunds' && t !== 'payments.reconciliation_findings' ? rows : rows.map((r) => Object.fromEntries(Object.entries(r).map(([k, v]) => [k, BIGINT_COLS.has(k) && v !== null && v !== undefined ? String(v) : v]))));
 
 // ---------------------------------------------------------------- expression / condition evaluation
 const unsupported = (sql: string): never => { throw new Error(`fake: unsupported SQL: ${sql.slice(0, 160)}`); };
@@ -233,7 +263,7 @@ function evalExpr(e: string, vals: readonly unknown[], row: Row | undefined, now
   if (/^false$/i.test(x)) return false;
   if (/^-?\d+$/.test(x)) return Number(x);
   if ((m = x.match(/^'((?:[^']|'')*)'$/))) return m[1]!.replaceAll("''", "'");
-  if ((m = x.match(/^(?:[a-z_]+\.)?([a-z_]+)\s*\+\s*(\d+)$/i)) && row) return Number(row[m[1]!]) + Number(m[2]);
+  if ((m = x.match(/^(?:[a-z_]+\.)?([a-z_]+)\s*\+\s*(\d+|\$\d+)$/i)) && row) return Number(row[m[1]!]) + Number(m[2]!.startsWith('$') ? vals[Number(m[2]!.slice(1)) - 1] : m[2]);   // PG-T13: col + $n
   if ((m = x.match(/^(?:[a-z_]+\.)?([a-z_]+)$/i)) && row && m[1]! in row) return row[m[1]!];
   return unsupported(sql);
 }
@@ -283,6 +313,9 @@ export function makeMerchantDb(seed: { merchant_accounts?: Row[]; settings?: Row
     'payments.g_cs_reasons': [],
     'payments.cs_reasons': [],
     'payments.refunds': [],
+    'payments.reconciliation_runs': [],
+    'payments.reconciliation_findings': [],
+    'test.markers': [],
   };
   const stmts: Stmt[] = [];
   const logs: unknown[] = [];
@@ -338,6 +371,9 @@ export function makeMerchantDb(seed: { merchant_accounts?: Row[]; settings?: Row
           if (nul) throw pgError('23502', `null value in column "${nul}"`);
           if (t === 'payments.callbacks' && !work['payments.intents'].some((i) => i.tenant_id === row.tenant_id && i.id === row.intent_id)) throw pgError('23503', 'violates foreign key callbacks__intent__fk', 'callbacks__intent__fk');
           if (t === 'payments.refunds' && !work['payments.intents'].some((i) => i.tenant_id === row.tenant_id && i.id === row.intent_id)) throw pgError('23503', 'violates foreign key refunds__intent__fk', 'refunds__intent__fk');
+          if (t === 'payments.reconciliation_findings' && !work['payments.reconciliation_runs'].some((x) => x.tenant_id === row.tenant_id && x.id === row.run_id)) throw pgError('23503', 'violates foreign key reconciliation_findings__run__fk', 'reconciliation_findings__run__fk');
+          if (t === 'payments.reconciliation_findings' && nn(row.intent_id) && !work['payments.intents'].some((x) => x.tenant_id === row.tenant_id && x.id === row.intent_id)) throw pgError('23503', 'violates foreign key reconciliation_findings__intent__fk', 'reconciliation_findings__intent__fk');
+          if (t === 'payments.reconciliation_findings' && nn(row.refund_id) && !work['payments.refunds'].some((x) => x.tenant_id === row.tenant_id && x.id === row.refund_id)) throw pgError('23503', 'violates foreign key reconciliation_findings__refund__fk', 'reconciliation_findings__refund__fk');
           if (t === 'payments.refunds') { const bad0 = checks(t, row); if (bad0) throw pgError('23514', `violates check constraint ${bad0}`, bad0); }   // PG checks CHECKs before unique indexes
           const dupe = uniq(t, work[t], row);
           if (dupe) { if (/on conflict/i.test(sql)) return { rows: [], rowCount: 0 }; throw pgError('23505', `duplicate key ${dupe}`, dupe); }
@@ -408,6 +444,9 @@ export function makeMerchantDb(seed: { merchant_accounts?: Row[]; settings?: Row
     gatewayCalls: (tenantId = TENANT_A) => store['payments.gateway_calls'].filter((r) => r.tenant_id === tenantId),
     callbacks: (tenantId = TENANT_A) => store['payments.callbacks'].filter((r) => r.tenant_id === tenantId),
     refunds: (tenantId = TENANT_A) => store['payments.refunds'].filter((r) => r.tenant_id === tenantId),
+    runs: (tenantId = TENANT_A) => store['payments.reconciliation_runs'].filter((r) => r.tenant_id === tenantId),            // PG-T13
+    findings: (tenantId = TENANT_A) => store['payments.reconciliation_findings'].filter((r) => r.tenant_id === tenantId),
+    markers: (tenantId = TENANT_A) => store['test.markers'].filter((r) => r.tenant_id === tenantId),
     /** Test seeding of any table row (tenant defaults to A); bypasses CHECKs on purpose (arrange step). */
     put: (table: Table, row: Row) => {
       const r = { ...Object.fromEntries((TABLES[table] as readonly string[]).map((c) => [c, null])), ...DEFAULTS[table](), ...row };

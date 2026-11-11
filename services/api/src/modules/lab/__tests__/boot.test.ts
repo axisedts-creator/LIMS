@@ -33,6 +33,8 @@ const IMPLEMENTED: readonly string[] = [
   // T-07 specimen actions
   'lookupSpecimenByBarcode', 'listSpecimens', 'getSpecimen', 'collectSpecimen', 'bulkCollectSpecimens', 'bulkDispatchSpecimens',
   'receiveSpecimen', 'bulkReceiveSpecimens', 'storeSpecimen', 'discardSpecimen',
+  // T-14 result entry
+  'bulkEnterResults', 'getResult', 'listOrderResults',
 ];
 
 const FAKE_REQ = { params: {}, query: {}, headers: {}, body: {} };

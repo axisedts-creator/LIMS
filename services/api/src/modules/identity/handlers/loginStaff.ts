@@ -7,15 +7,14 @@ import type { TxFn, TxInput } from '../../../core/db/tx.js';
 import { createHttpGoTrueGateway } from '../gotrue/gateway.http.js';
 import type { GoTrueGateway } from '../gotrue/gateway.js';
 import { createAuthEventsRepo, createAuthRepo } from '../repository/auth-events.repo.js';
-import { createAuthService, type AuthCtx, type AuthLimits } from '../service/auth.service.js';
+import { createAuthService, type AuthCtx, type AuthDeps, type AuthLimits } from '../service/auth.service.js';
 
-interface LoginHctx extends HandlerContext {
+export interface LoginHctx extends HandlerContext {
   requestId: string; bffKey?: string; actor?: { type: string; id: string }; commitOnError?: () => void;
   rateLimit?: { consume(tier: 'login', key: string): Promise<void> };
   db: { identityAuthTx<T>(input: TxInput, fn: TxFn<T>): Promise<T> };
 }
 
-const OPERATION = Object.freeze({ module: 'identity', operationId: 'loginStaff', context: 'identity_auth' });
 const H = 3_600_000;
 
 // ---------- AuthLimits adapter ----------
@@ -75,7 +74,13 @@ const gotrue: Pick<GoTrueGateway, 'signInWithPassword'> = {
 const repo = createAuthRepo();
 const events = createAuthEventsRepo();
 
-function parseBody(b: unknown): { email: string; password: string } {
+/** module wiring of the login family (loginStaff / loginPartner / openMobileSession) */
+export const wiredAuthDeps = (ctx: LoginHctx): AuthDeps => ({
+  gotrue, repo, events, limits: createAuthLimits(ctx.rateLimit),
+  alert: (code, detail) => ctx.log.warn({ event: 'identity_alert', alert: code, ...detail }, 'identity alert'),
+});
+
+export function parseBody(b: unknown): { email: string; password: string } {
   const bad = new LimsError('common.validation_failed');
   if (!b || typeof b !== 'object' || Array.isArray(b)) throw bad;
   const o = b as Record<string, unknown>;
@@ -86,26 +91,32 @@ function parseBody(b: unknown): { email: string; password: string } {
   return { email, password };
 }
 
-export const loginStaff: Handler = async (req: HandlerRequest, hctx: HandlerContext) => {
-  const ctx = hctx as LoginHctx;
-  const input = parseBody(req.body);
-  const actor = ctx.actor;
-  if (typeof actor?.id !== 'string' || !actor.id) throw new LimsError('common.internal');   // system actor = created_by of every write
-  const ua = (req.headers as Record<string, unknown> | undefined)?.['user-agent'];
-  const userAgent = typeof ua === 'string' ? ua : undefined;
-  const svc = createAuthService({
-    gotrue, repo, events, limits: createAuthLimits(ctx.rateLimit),
-    alert: (code, detail) => ctx.log.warn({ event: 'identity_alert', alert: code, ...detail }, 'identity alert'),
-  });
-  const out = await ctx.db.identityAuthTx({ operation: OPERATION, requestId: ctx.requestId, clientIp: ctx.clientIp, userAgent }, async (tx, ctl) => {
-    ctl.noRetry();   // GoTrue sign-in and limiter state are not replayable
-    let keep = false;
-    const sctx: AuthCtx = {
-      tx, actor,requestId: ctx.requestId, clientIp: ctx.clientIp, userAgent, bffKey: ctx.bffKey,
-      now: () => new Date(), log: ctx.log, commitOnError: () => { keep = true; ctx.commitOnError?.(); },
-    };
-    try { return { ok: await svc.loginStaff(sctx, input) }; } catch (err) { if (keep) return { err }; throw err; }
-  });
-  if ('err' in out) throw out.err;
-  return out.ok;
-};
+/** One identityAuthTx per request; the operation's input is parsed (400) before any DB work. Shared by the T31 login handlers. */
+export function createLoginHandler<I>(operationId: string, parse: (b: unknown) => I, depsFor: (ctx: LoginHctx) => AuthDeps,
+  run: (svc: ReturnType<typeof createAuthService>, c: AuthCtx, input: I) => Promise<unknown>): Handler {
+  const operation = Object.freeze({ module: 'identity', operationId, context: 'identity_auth' });
+  return (async (req: HandlerRequest, hctx: HandlerContext) => {
+    const ctx = hctx as LoginHctx;
+    const input = parse(req.body);
+    const actor = ctx.actor;
+    if (typeof actor?.id !== 'string' || !actor.id) throw new LimsError('common.internal');   // system actor = created_by of every write
+    const ua = (req.headers as Record<string, unknown> | undefined)?.['user-agent'];
+    const userAgent = typeof ua === 'string' ? ua : undefined;
+    const deps = depsFor(ctx);
+    const svc = createAuthService(deps);
+    const now = deps.now ?? (() => new Date());
+    const out = await ctx.db.identityAuthTx({ operation, requestId: ctx.requestId, clientIp: ctx.clientIp, userAgent }, async (tx, ctl) => {
+      ctl.noRetry();   // GoTrue sign-in and limiter state are not replayable
+      let keep = false;
+      const sctx: AuthCtx = {
+        tx, actor, requestId: ctx.requestId, clientIp: ctx.clientIp, userAgent, bffKey: ctx.bffKey,
+        now, log: ctx.log, commitOnError: () => { keep = true; ctx.commitOnError?.(); },
+      };
+      try { return { ok: await run(svc, sctx, input) }; } catch (err) { if (keep) return { err }; throw err; }
+    });
+    if ('err' in out) throw out.err;
+    return out.ok;
+  }) as Handler;
+}
+
+export const loginStaff: Handler = createLoginHandler('loginStaff', parseBody, wiredAuthDeps, (svc, c, i) => svc.loginStaff(c, i));

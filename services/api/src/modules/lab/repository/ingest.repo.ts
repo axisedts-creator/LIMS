@@ -72,10 +72,11 @@ export async function upsertOpenIngestException(rc: RepoCtx, e: Record<string, a
 }
 
 /** Step 12: the open exceptions of the key are resolved as `applied` (ingest_exceptions__closed__ck: resolved_at is set together with the status). */
-export async function closeOpenIngestExceptions(rc: RepoCtx, a: { resultKey: string; resolution?: 'applied' | 'assigned'; resolverMembershipId?: string; occurredAt: string }): Promise<void> {
-  await query(rc, `UPDATE lab.ingest_exceptions SET status = 'resolved', resolution = $6, resolved_at = $3, resolved_by_membership_id = $4,
+export async function closeOpenIngestExceptions(rc: RepoCtx, a: { resultKey: string; resolution?: 'applied' | 'assigned'; resolverMembershipId?: string; resultId?: string; occurredAt: string }): Promise<void> {
+  // result_id: an unmapped/unknown-barcode exception has none until the replay applies; keep an existing one (T-24 debug)
+  await query(rc, `UPDATE lab.ingest_exceptions SET status = 'resolved', resolution = $6, resolved_at = $3, resolved_by_membership_id = $4, result_id = COALESCE($7::uuid, result_id),
       version = version + 1, updated_at = now(), updated_by = $5 WHERE tenant_id = $1 AND result_key = $2 AND status = 'open'`,
-  [a.resultKey, a.occurredAt, a.resolverMembershipId ?? null, rc.actorId, a.resolution ?? 'applied']);
+  [a.resultKey, a.occurredAt, a.resolverMembershipId ?? null, rc.actorId, a.resolution ?? 'applied', a.resultId ?? null]);
 }
 // ---- T-23 exception queue queries (02-TRD §5.6 #38-#42). Tenant = $1; filters are bound parameters; the open list is oldest first (stale-age alert, 02-TRD §12).
 const EXC_SORT = 'created_at';

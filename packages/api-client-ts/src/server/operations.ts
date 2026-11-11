@@ -143,6 +143,855 @@ export interface Operations {
       };
     };
   };
+  acknowledgeQcRun: {
+    params: {
+      qc_run_id: string;
+    };
+    query: Record<string, never>;
+    headers: {
+      "Idempotency-Key": string;
+    };
+    body: {
+      comment: string;
+    };
+    responses: {
+      201: ({
+        id: string;
+        qc_run_id: string;
+        kind: "acknowledge" | "evaluate_now" | "close";
+        comment?: string;
+        reviewed_by_display: string;
+        created_at: string;
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      409: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      422: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      503: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  acknowledgeTatAlert: {
+    params: {
+      tat_item_id: string;
+    };
+    query: Record<string, never>;
+    headers: {
+      "Idempotency-Key": string;
+      "If-Match": string;
+    };
+    body: {
+      note?: string;
+    };
+    responses: {
+      200: ({
+        tat_item_id: string;
+        version: number;
+        order_id: string;
+        order_item_id: string;
+        test_id: string;
+        test_code: string;
+        department_id: string;
+        specimen_id?: string;
+        centre_id: string;
+        priority: "routine" | "urgent";
+        segment: "within_lab" | "total";
+        segment_label: string;
+        start_basis: "specimen_received_at" | "registered_at" | "specimen_ordered_at";
+        target_seconds: number;
+        started_at?: string;
+        elapsed_seconds: number;
+        pct_of_target: number;
+        alert_level: "none" | "warning" | "breached" | "escalated";
+        acknowledged_level?: "warning" | "breached" | "escalated";
+        acknowledged_at?: string;
+        acknowledged_by_display?: string;
+        state: "not_started" | "running" | "stopped" | "cancelled" | "orphan_closed";
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      409: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      422: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      428: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      503: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  activateAutoverifyVersion: {
+    params: {
+      version_id: string;
+    };
+    query: Record<string, never>;
+    headers: {
+      "If-Match": string;
+    };
+    body: {
+      confirmation_text: "ACTIVATE";
+    };
+    responses: {
+      200: ({
+        id: string;
+        rule_set_id: string;
+        version_no: number;
+        version: number;
+        status: "draft" | "simulating" | "stopped" | "active" | "retired" | "discarded";
+        definition: {
+          schema_version: 1;
+          rules: ({
+            key: string;
+            test_id: string;
+            analyte_id: string;
+            instrument_id?: string;
+            enabled: boolean;
+            limits?: {
+              low?: string;
+              high?: string;
+            };
+            allowed_range_flags?: ("N" | "L" | "H")[];
+            instrument_flags_allowed?: string[];
+            qc_allow_warning?: boolean;
+            note?: string;
+          })[];
+        };
+        rule_count: number;
+        created_at: string;
+        created_by_display: string;
+        simulation_started_at?: string;
+        simulation_stopped_at?: string;
+        activated_at?: string;
+        activated_by_display?: string;
+        retired_at?: string;
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      409: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      428: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      503: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  activateQcPlan: {
+    params: {
+      plan_id: string;
+    };
+    query: Record<string, never>;
+    headers: {
+      "If-Match": string;
+    };
+    body: Record<string, never>;
+    responses: {
+      200: ({
+        id: string;
+        version: number;
+        instrument_id: string;
+        instrument_label?: string;
+        test_id: string;
+        analyte_id: string;
+        analyte_code: string;
+        analyte_name: string;
+        unit_code?: string;
+        decimals: number;
+        status: "active" | "inactive";
+        current_version_no: number;
+        params: {
+          controls_per_run: 2 | 3 | 4;
+          composition: {
+            level_id: string;
+            count: number;
+          }[];
+          mean_rule?: "8x" | "10x" | "12x" | "6x" | "9x";
+          two_two_s_across_runs?: boolean;
+          count_rules_across_materials?: boolean;
+          exclude_rejected_runs_from_history?: boolean;
+          run_window_minutes?: number;
+          qc_validity_hours?: number;
+          hold_lookback_hours?: number;
+        };
+        rule_set_preview: {
+          warning: string[];
+          rejection: string[];
+        };
+        effective_from: string;
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      409: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      422: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      428: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      503: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  activateQcTarget: {
+    params: {
+      target_id: string;
+    };
+    query: Record<string, never>;
+    headers: {
+      "If-Match": string;
+    };
+    body: {
+      effective_from?: string;
+    };
+    responses: {
+      200: ({
+        id: string;
+        version: number;
+        plan_id: string;
+        lot_id: string;
+        level_id: string;
+        mean: string;
+        sd: string;
+        cv_pct: string;
+        unit_code: string;
+        source: "manufacturer" | "established";
+        basis?: {
+          n: number;
+          from: string;
+          to: string;
+          observation_ids_sha256: string;
+        };
+        status: "draft" | "active" | "superseded" | "retired" | "discarded";
+        effective_from?: string;
+        effective_to?: string;
+        note?: string;
+        created_by_display: string;
+        activated_by_display?: string;
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      409: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      428: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      503: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
   activateSupportSession: {
     params: {
       support_session_id: string;
@@ -8417,6 +9266,239 @@ export interface Operations {
       };
     };
   };
+  closeQcRun: {
+    params: {
+      qc_run_id: string;
+    };
+    query: Record<string, never>;
+    headers: {
+      "Idempotency-Key": string;
+      "If-Match": string;
+    };
+    body: {
+      comment?: string;
+    };
+    responses: {
+      200: ({
+        id: string;
+        version: number;
+        plan_id: string;
+        instrument_id: string;
+        analyte_id: string;
+        run_at: string;
+        status: "collecting" | "evaluated" | "closed";
+        outcome?: "accepted" | "accepted_warning" | "incomplete" | "rejected";
+        is_complete: boolean;
+        observation_count: number;
+        controls_per_run: number;
+        rule_mode: "classic" | "modern";
+        warning_rules: string[];
+        rules_violated: string[];
+        needs_action: boolean;
+        needs_action_reason?: "corrective_action" | "rerun";
+        closed_at?: string;
+        plan_version_no: number;
+        observations: ({
+          id: string;
+          version: number;
+          plan_id?: string;
+          instrument_id: string;
+          analyte_id?: string;
+          level_id?: string;
+          lot_id?: string;
+          control_id_raw: string;
+          control_lot_raw?: string;
+          control_level_raw?: string;
+          value: string;
+          unit_code?: string;
+          observed_at: string;
+          received_at: string;
+          observed_at_basis: "instrument" | "server";
+          source: "instrument" | "manual";
+          status: "assigned" | "unmapped_analyte" | "non_numeric" | "no_plan" | "unmapped_control" | "level_not_in_plan" | "lot_expired" | "no_target" | "unit_mismatch" | "late_unassigned";
+          qc_run_id?: string;
+          z?: string;
+          target_id?: string;
+          excluded?: {
+            reason_code: string;
+            comment?: string;
+            by_display: string;
+            at: string;
+          };
+          rule_hits: string[];
+        })[];
+        rule_detail: {
+          rule: string;
+          observation_ids: string[];
+        }[];
+        hold?: {
+          hold_since: string;
+          last_in_control_run_at?: string;
+          event_id: string;
+        };
+        corrective_actions: {
+          id: string;
+          qc_run_id: string;
+          action_code: string;
+          action_display: string;
+          description: string;
+          performed_at: string;
+          performed_by_display: string;
+          created_at: string;
+        }[];
+        reviews: ({
+          id: string;
+          qc_run_id: string;
+          kind: "acknowledge" | "evaluate_now" | "close";
+          comment?: string;
+          reviewed_by_display: string;
+          created_at: string;
+        })[];
+        evaluated_at?: string;
+        evaluated_by?: string;
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      409: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      422: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      428: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      503: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
   collectSpecimen: {
     params: {
       specimen_id: string;
@@ -11037,6 +12119,195 @@ export interface Operations {
       };
     };
   };
+  createAutoverifyVersion: {
+    params: Record<string, never>;
+    query: Record<string, never>;
+    headers: {
+      "Idempotency-Key": string;
+    };
+    body: (unknown | unknown) & {
+      copy_from_version_id?: string;
+      definition?: {
+        schema_version: 1;
+        rules: ({
+          key: string;
+          test_id: string;
+          analyte_id: string;
+          instrument_id?: string;
+          enabled: boolean;
+          limits?: {
+            low?: string;
+            high?: string;
+          };
+          allowed_range_flags?: ("N" | "L" | "H")[];
+          instrument_flags_allowed?: string[];
+          qc_allow_warning?: boolean;
+          note?: string;
+        })[];
+      };
+    };
+    responses: {
+      201: ({
+        id: string;
+        rule_set_id: string;
+        version_no: number;
+        version: number;
+        status: "draft" | "simulating" | "stopped" | "active" | "retired" | "discarded";
+        definition: {
+          schema_version: 1;
+          rules: ({
+            key: string;
+            test_id: string;
+            analyte_id: string;
+            instrument_id?: string;
+            enabled: boolean;
+            limits?: {
+              low?: string;
+              high?: string;
+            };
+            allowed_range_flags?: ("N" | "L" | "H")[];
+            instrument_flags_allowed?: string[];
+            qc_allow_warning?: boolean;
+            note?: string;
+          })[];
+        };
+        rule_count: number;
+        created_at: string;
+        created_by_display: string;
+        simulation_started_at?: string;
+        simulation_stopped_at?: string;
+        activated_at?: string;
+        activated_by_display?: string;
+        retired_at?: string;
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      409: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      422: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      503: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
   createBillingExport: {
     params: Record<string, never>;
     query: Record<string, never>;
@@ -12240,6 +13511,645 @@ export interface Operations {
         }[];
       };
       500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  createControlIdMap: {
+    params: Record<string, never>;
+    query: Record<string, never>;
+    headers: {
+      "Idempotency-Key": string;
+    };
+    body: {
+      instrument_id: string;
+      control_id_raw: string;
+      control_lot_raw?: string;
+      lot_id: string;
+    };
+    responses: {
+      201: {
+        id: string;
+        version: number;
+        instrument_id: string;
+        instrument_label?: string;
+        control_id_raw: string;
+        control_lot_raw?: string;
+        lot_id: string;
+        is_active: boolean;
+      };
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      409: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      422: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      503: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  createControlLevel: {
+    params: {
+      material_id: string;
+    };
+    query: Record<string, never>;
+    headers: {
+      "Idempotency-Key": string;
+    };
+    body: {
+      level_code: string;
+      display_name: string;
+      sort_order: number;
+    };
+    responses: {
+      201: {
+        id: string;
+        version: number;
+        material_id: string;
+        level_code: string;
+        display_name: string;
+        sort_order: number;
+        is_active: boolean;
+        lots?: {
+          id: string;
+          version: number;
+          level_id: string;
+          material_id: string;
+          lot_no: string;
+          expires_on: string;
+          is_expired: boolean;
+          is_active: boolean;
+        }[];
+      };
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      409: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      422: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      503: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  createControlLot: {
+    params: {
+      level_id: string;
+    };
+    query: Record<string, never>;
+    headers: {
+      "Idempotency-Key": string;
+    };
+    body: {
+      lot_no: string;
+      expires_on: string;
+    };
+    responses: {
+      201: {
+        id: string;
+        version: number;
+        level_id: string;
+        material_id: string;
+        lot_no: string;
+        expires_on: string;
+        is_expired: boolean;
+        is_active: boolean;
+      };
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      409: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      422: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      503: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  createControlMaterial: {
+    params: Record<string, never>;
+    query: Record<string, never>;
+    headers: {
+      "Idempotency-Key": string;
+    };
+    body: {
+      code: string;
+      name: string;
+      manufacturer?: string;
+      matrix?: string;
+      levels: {
+        level_code: string;
+        display_name: string;
+        sort_order: number;
+      }[];
+    };
+    responses: {
+      201: {
+        id: string;
+        version: number;
+        code: string;
+        name: string;
+        manufacturer?: string;
+        matrix?: string;
+        is_active: boolean;
+        levels: {
+          id: string;
+          version: number;
+          material_id: string;
+          level_code: string;
+          display_name: string;
+          sort_order: number;
+          is_active: boolean;
+          lots?: {
+            id: string;
+            version: number;
+            level_id: string;
+            material_id: string;
+            lot_no: string;
+            expires_on: string;
+            is_expired: boolean;
+            is_active: boolean;
+          }[];
+        }[];
+        lots_expiring_30d: number;
+        created_at: string;
+      };
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      409: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      422: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      503: {
         type: string;
         title: string;
         status: number;
@@ -17939,6 +19849,564 @@ export interface Operations {
       };
     };
   };
+  createQcPlan: {
+    params: Record<string, never>;
+    query: Record<string, never>;
+    headers: {
+      "Idempotency-Key": string;
+    };
+    body: {
+      instrument_id: string;
+      test_id: string;
+      analyte_id: string;
+      params: {
+        controls_per_run: 2 | 3 | 4;
+        composition: {
+          level_id: string;
+          count: number;
+        }[];
+        mean_rule?: "8x" | "10x" | "12x" | "6x" | "9x";
+        two_two_s_across_runs?: boolean;
+        count_rules_across_materials?: boolean;
+        exclude_rejected_runs_from_history?: boolean;
+        run_window_minutes?: number;
+        qc_validity_hours?: number;
+        hold_lookback_hours?: number;
+      };
+    };
+    responses: {
+      201: ({
+        id: string;
+        version: number;
+        instrument_id: string;
+        instrument_label?: string;
+        test_id: string;
+        analyte_id: string;
+        analyte_code: string;
+        analyte_name: string;
+        unit_code?: string;
+        decimals: number;
+        status: "active" | "inactive";
+        current_version_no: number;
+        params: {
+          controls_per_run: 2 | 3 | 4;
+          composition: {
+            level_id: string;
+            count: number;
+          }[];
+          mean_rule?: "8x" | "10x" | "12x" | "6x" | "9x";
+          two_two_s_across_runs?: boolean;
+          count_rules_across_materials?: boolean;
+          exclude_rejected_runs_from_history?: boolean;
+          run_window_minutes?: number;
+          qc_validity_hours?: number;
+          hold_lookback_hours?: number;
+        };
+        rule_set_preview: {
+          warning: string[];
+          rejection: string[];
+        };
+        effective_from: string;
+        warnings: "instrument_code_unmapped"[];
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      409: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      422: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      503: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  createQcPlanVersion: {
+    params: {
+      plan_id: string;
+    };
+    query: Record<string, never>;
+    headers: {
+      "Idempotency-Key": string;
+      "If-Match": string;
+    };
+    body: {
+      params: {
+        controls_per_run: 2 | 3 | 4;
+        composition: {
+          level_id: string;
+          count: number;
+        }[];
+        mean_rule?: "8x" | "10x" | "12x" | "6x" | "9x";
+        two_two_s_across_runs?: boolean;
+        count_rules_across_materials?: boolean;
+        exclude_rejected_runs_from_history?: boolean;
+        run_window_minutes?: number;
+        qc_validity_hours?: number;
+        hold_lookback_hours?: number;
+      };
+      change_reason: string;
+    };
+    responses: {
+      200: ({
+        id: string;
+        version: number;
+        instrument_id: string;
+        instrument_label?: string;
+        test_id: string;
+        analyte_id: string;
+        analyte_code: string;
+        analyte_name: string;
+        unit_code?: string;
+        decimals: number;
+        status: "active" | "inactive";
+        current_version_no: number;
+        params: {
+          controls_per_run: 2 | 3 | 4;
+          composition: {
+            level_id: string;
+            count: number;
+          }[];
+          mean_rule?: "8x" | "10x" | "12x" | "6x" | "9x";
+          two_two_s_across_runs?: boolean;
+          count_rules_across_materials?: boolean;
+          exclude_rejected_runs_from_history?: boolean;
+          run_window_minutes?: number;
+          qc_validity_hours?: number;
+          hold_lookback_hours?: number;
+        };
+        rule_set_preview: {
+          warning: string[];
+          rejection: string[];
+        };
+        effective_from: string;
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      409: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      422: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      428: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      503: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  createQcTarget: {
+    params: Record<string, never>;
+    query: Record<string, never>;
+    headers: {
+      "Idempotency-Key": string;
+    };
+    body: {
+      plan_id: string;
+      lot_id: string;
+      mean: string;
+      sd: string;
+      unit_code: string;
+      source: "manufacturer";
+      note?: string;
+    };
+    responses: {
+      201: ({
+        id: string;
+        version: number;
+        plan_id: string;
+        lot_id: string;
+        level_id: string;
+        mean: string;
+        sd: string;
+        cv_pct: string;
+        unit_code: string;
+        source: "manufacturer" | "established";
+        basis?: {
+          n: number;
+          from: string;
+          to: string;
+          observation_ids_sha256: string;
+        };
+        status: "draft" | "active" | "superseded" | "retired" | "discarded";
+        effective_from?: string;
+        effective_to?: string;
+        note?: string;
+        created_by_display: string;
+        activated_by_display?: string;
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      409: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      422: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      503: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
   createQueue: {
     params: Record<string, never>;
     query: Record<string, never>;
@@ -23250,6 +25718,322 @@ export interface Operations {
       };
     };
   };
+  deactivateControlIdMap: {
+    params: {
+      map_id: string;
+    };
+    query: Record<string, never>;
+    headers: {
+      "If-Match": string;
+    };
+    body: Record<string, never>;
+    responses: {
+      200: {
+        id: string;
+        version: number;
+        instrument_id: string;
+        instrument_label?: string;
+        control_id_raw: string;
+        control_lot_raw?: string;
+        lot_id: string;
+        is_active: boolean;
+      };
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      409: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      428: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      503: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  deactivateControlMaterial: {
+    params: {
+      material_id: string;
+    };
+    query: Record<string, never>;
+    headers: {
+      "If-Match": string;
+    };
+    body: Record<string, never>;
+    responses: {
+      200: {
+        id: string;
+        version: number;
+        code: string;
+        name: string;
+        manufacturer?: string;
+        matrix?: string;
+        is_active: boolean;
+        levels: {
+          id: string;
+          version: number;
+          material_id: string;
+          level_code: string;
+          display_name: string;
+          sort_order: number;
+          is_active: boolean;
+          lots?: {
+            id: string;
+            version: number;
+            level_id: string;
+            material_id: string;
+            lot_no: string;
+            expires_on: string;
+            is_expired: boolean;
+            is_active: boolean;
+          }[];
+        }[];
+        lots_expiring_30d: number;
+        created_at: string;
+      };
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      409: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      428: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      503: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
   deactivateDeltaCheckRule: {
     params: {
       rule_id: string;
@@ -24318,6 +27102,179 @@ export interface Operations {
         }[];
       };
       500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  deactivateQcPlan: {
+    params: {
+      plan_id: string;
+    };
+    query: Record<string, never>;
+    headers: {
+      "If-Match": string;
+    };
+    body: {
+      reason: string;
+    };
+    responses: {
+      200: ({
+        id: string;
+        version: number;
+        instrument_id: string;
+        instrument_label?: string;
+        test_id: string;
+        analyte_id: string;
+        analyte_code: string;
+        analyte_name: string;
+        unit_code?: string;
+        decimals: number;
+        status: "active" | "inactive";
+        current_version_no: number;
+        params: {
+          controls_per_run: 2 | 3 | 4;
+          composition: {
+            level_id: string;
+            count: number;
+          }[];
+          mean_rule?: "8x" | "10x" | "12x" | "6x" | "9x";
+          two_two_s_across_runs?: boolean;
+          count_rules_across_materials?: boolean;
+          exclude_rejected_runs_from_history?: boolean;
+          run_window_minutes?: number;
+          qc_validity_hours?: number;
+          hold_lookback_hours?: number;
+        };
+        rule_set_preview: {
+          warning: string[];
+          rejection: string[];
+        };
+        effective_from: string;
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      409: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      428: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      503: {
         type: string;
         title: string;
         status: number;
@@ -26114,6 +29071,177 @@ export interface Operations {
       };
     };
   };
+  discardAutoverifyDraft: {
+    params: {
+      version_id: string;
+    };
+    query: Record<string, never>;
+    headers: {
+      "If-Match": string;
+    };
+    body: Record<string, never>;
+    responses: {
+      200: ({
+        id: string;
+        rule_set_id: string;
+        version_no: number;
+        version: number;
+        status: "draft" | "simulating" | "stopped" | "active" | "retired" | "discarded";
+        definition: {
+          schema_version: 1;
+          rules: ({
+            key: string;
+            test_id: string;
+            analyte_id: string;
+            instrument_id?: string;
+            enabled: boolean;
+            limits?: {
+              low?: string;
+              high?: string;
+            };
+            allowed_range_flags?: ("N" | "L" | "H")[];
+            instrument_flags_allowed?: string[];
+            qc_allow_warning?: boolean;
+            note?: string;
+          })[];
+        };
+        rule_count: number;
+        created_at: string;
+        created_by_display: string;
+        simulation_started_at?: string;
+        simulation_stopped_at?: string;
+        activated_at?: string;
+        activated_by_display?: string;
+        retired_at?: string;
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      409: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      428: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      503: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
   discardContainer: {
     params: {
       container_id: string;
@@ -27180,6 +30308,168 @@ export interface Operations {
         }[];
       };
       500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  discardQcTarget: {
+    params: {
+      target_id: string;
+    };
+    query: Record<string, never>;
+    headers: {
+      "If-Match": string;
+    };
+    body: Record<string, never>;
+    responses: {
+      200: ({
+        id: string;
+        version: number;
+        plan_id: string;
+        lot_id: string;
+        level_id: string;
+        mean: string;
+        sd: string;
+        cv_pct: string;
+        unit_code: string;
+        source: "manufacturer" | "established";
+        basis?: {
+          n: number;
+          from: string;
+          to: string;
+          observation_ids_sha256: string;
+        };
+        status: "draft" | "active" | "superseded" | "retired" | "discarded";
+        effective_from?: string;
+        effective_to?: string;
+        note?: string;
+        created_by_display: string;
+        activated_by_display?: string;
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      409: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      428: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      503: {
         type: string;
         title: string;
         status: number;
@@ -30279,6 +33569,575 @@ export interface Operations {
       };
     };
   };
+  establishQcTarget: {
+    params: Record<string, never>;
+    query: Record<string, never>;
+    headers: {
+      "Idempotency-Key": string;
+    };
+    body: {
+      plan_id: string;
+      lot_id: string;
+      observed_at_from: string;
+      observed_at_to: string;
+      include_observation_ids?: string[];
+      exclude_observation_ids?: string[];
+    };
+    responses: {
+      201: ({
+        id: string;
+        version: number;
+        plan_id: string;
+        lot_id: string;
+        level_id: string;
+        mean: string;
+        sd: string;
+        cv_pct: string;
+        unit_code: string;
+        source: "manufacturer" | "established";
+        basis?: {
+          n: number;
+          from: string;
+          to: string;
+          observation_ids_sha256: string;
+        };
+        status: "draft" | "active" | "superseded" | "retired" | "discarded";
+        effective_from?: string;
+        effective_to?: string;
+        note?: string;
+        created_by_display: string;
+        activated_by_display?: string;
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      409: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      422: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      503: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  evaluateQcRunNow: {
+    params: {
+      qc_run_id: string;
+    };
+    query: Record<string, never>;
+    headers: {
+      "Idempotency-Key": string;
+      "If-Match": string;
+    };
+    body: {
+      comment?: string;
+    };
+    responses: {
+      200: ({
+        id: string;
+        version: number;
+        plan_id: string;
+        instrument_id: string;
+        analyte_id: string;
+        run_at: string;
+        status: "collecting" | "evaluated" | "closed";
+        outcome?: "accepted" | "accepted_warning" | "incomplete" | "rejected";
+        is_complete: boolean;
+        observation_count: number;
+        controls_per_run: number;
+        rule_mode: "classic" | "modern";
+        warning_rules: string[];
+        rules_violated: string[];
+        needs_action: boolean;
+        needs_action_reason?: "corrective_action" | "rerun";
+        closed_at?: string;
+        plan_version_no: number;
+        observations: ({
+          id: string;
+          version: number;
+          plan_id?: string;
+          instrument_id: string;
+          analyte_id?: string;
+          level_id?: string;
+          lot_id?: string;
+          control_id_raw: string;
+          control_lot_raw?: string;
+          control_level_raw?: string;
+          value: string;
+          unit_code?: string;
+          observed_at: string;
+          received_at: string;
+          observed_at_basis: "instrument" | "server";
+          source: "instrument" | "manual";
+          status: "assigned" | "unmapped_analyte" | "non_numeric" | "no_plan" | "unmapped_control" | "level_not_in_plan" | "lot_expired" | "no_target" | "unit_mismatch" | "late_unassigned";
+          qc_run_id?: string;
+          z?: string;
+          target_id?: string;
+          excluded?: {
+            reason_code: string;
+            comment?: string;
+            by_display: string;
+            at: string;
+          };
+          rule_hits: string[];
+        })[];
+        rule_detail: {
+          rule: string;
+          observation_ids: string[];
+        }[];
+        hold?: {
+          hold_since: string;
+          last_in_control_run_at?: string;
+          event_id: string;
+        };
+        corrective_actions: {
+          id: string;
+          qc_run_id: string;
+          action_code: string;
+          action_display: string;
+          description: string;
+          performed_at: string;
+          performed_by_display: string;
+          created_at: string;
+        }[];
+        reviews: ({
+          id: string;
+          qc_run_id: string;
+          kind: "acknowledge" | "evaluate_now" | "close";
+          comment?: string;
+          reviewed_by_display: string;
+          created_at: string;
+        })[];
+        evaluated_at?: string;
+        evaluated_by?: string;
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      409: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      422: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      428: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      503: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  excludeQcObservation: {
+    params: {
+      observation_id: string;
+    };
+    query: Record<string, never>;
+    headers: {
+      "If-Match": string;
+    };
+    body: {
+      reason_code: string;
+      comment?: string;
+    };
+    responses: {
+      200: ({
+        id: string;
+        version: number;
+        plan_id?: string;
+        instrument_id: string;
+        analyte_id?: string;
+        level_id?: string;
+        lot_id?: string;
+        control_id_raw: string;
+        control_lot_raw?: string;
+        control_level_raw?: string;
+        value: string;
+        unit_code?: string;
+        observed_at: string;
+        received_at: string;
+        observed_at_basis: "instrument" | "server";
+        source: "instrument" | "manual";
+        status: "assigned" | "unmapped_analyte" | "non_numeric" | "no_plan" | "unmapped_control" | "level_not_in_plan" | "lot_expired" | "no_target" | "unit_mismatch" | "late_unassigned";
+        qc_run_id?: string;
+        z?: string;
+        target_id?: string;
+        excluded?: {
+          reason_code: string;
+          comment?: string;
+          by_display: string;
+          at: string;
+        };
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      409: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      428: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      503: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
   exportGoodsReceiptsCsv: {
     params: Record<string, never>;
     query: {
@@ -32365,6 +36224,549 @@ export interface Operations {
       };
     };
   };
+  getAutoverifyDecision: {
+    params: {
+      decision_id: string;
+    };
+    query: Record<string, never>;
+    headers: Record<string, never>;
+    body: never;
+    responses: {
+      200: ({
+        id: string;
+        decided_at: string;
+        mode: "live" | "shadow";
+        decision: "allow" | "deny";
+        reasons: ("manual_origin" | "rule_missing" | "critical" | "delta_failure" | "instrument_flag" | "outside_autoverify_limits" | "qc_out_of_control" | "qc_warning" | "qc_no_data")[];
+        result_id: string;
+        analyte_id: string;
+        instrument_id?: string;
+        version_id?: string;
+        matched_rule_key?: string;
+        qc_status: "in_control" | "warning" | "out_of_control" | "no_qc_data";
+        qc_run_id?: string;
+        inputs?: {
+          value_numeric?: string;
+          range_flag?: "N" | "L" | "H" | "LL" | "HH" | "A";
+          delta_check_failed: boolean;
+          is_critical: boolean;
+          instrument_flags: string[];
+          resulted_at: string;
+        };
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      503: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  getAutoverifyRuleSet: {
+    params: Record<string, never>;
+    query: Record<string, never>;
+    headers: Record<string, never>;
+    body: never;
+    responses: {
+      200: ({
+        id: string;
+        version: number;
+        active_version_id?: string;
+        simulating_version_id?: string;
+        versions: ({
+          id: string;
+          version_no: number;
+          status: "draft" | "simulating" | "stopped" | "active" | "retired" | "discarded";
+          rule_count: number;
+          created_at: string;
+          created_by_display: string;
+          simulation_started_at?: string;
+          simulation_stopped_at?: string;
+          activated_at?: string;
+          activated_by_display?: string;
+          retired_at?: string;
+        })[];
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      503: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  getAutoverifySimulationReport: {
+    params: {
+      version_id: string;
+    };
+    query: {
+      sample_limit?: number;
+    };
+    headers: Record<string, never>;
+    body: never;
+    responses: {
+      200: ({
+        version_id: string;
+        started_at: string;
+        days_running: number;
+        decisions: number;
+        would_allow: number;
+        would_deny: number;
+        deny_by_reason: {
+          manual_origin?: number;
+          rule_missing?: number;
+          critical?: number;
+          delta_failure?: number;
+          instrument_flag?: number;
+          outside_autoverify_limits?: number;
+          qc_out_of_control?: number;
+          qc_warning?: number;
+          qc_no_data?: number;
+        };
+        allow_later_manually_verified: number;
+        allow_not_verified_yet: number;
+        live_comparison?: {
+          both_allow: number;
+          live_only_allow: number;
+          shadow_only_allow: number;
+        };
+        sample: ({
+          decision_id: string;
+          result_id: string;
+          order_id?: string;
+          analyte_id: string;
+          decided_at: string;
+          shadow_decision: "allow" | "deny";
+          shadow_reasons: ("manual_origin" | "rule_missing" | "critical" | "delta_failure" | "instrument_flag" | "outside_autoverify_limits" | "qc_out_of_control" | "qc_warning" | "qc_no_data")[];
+          live_decision?: "allow" | "deny";
+          manually_verified_at?: string;
+        })[];
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      503: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  getAutoverifyVersion: {
+    params: {
+      version_id: string;
+    };
+    query: Record<string, never>;
+    headers: Record<string, never>;
+    body: never;
+    responses: {
+      200: ({
+        id: string;
+        rule_set_id: string;
+        version_no: number;
+        version: number;
+        status: "draft" | "simulating" | "stopped" | "active" | "retired" | "discarded";
+        definition: {
+          schema_version: 1;
+          rules: ({
+            key: string;
+            test_id: string;
+            analyte_id: string;
+            instrument_id?: string;
+            enabled: boolean;
+            limits?: {
+              low?: string;
+              high?: string;
+            };
+            allowed_range_flags?: ("N" | "L" | "H")[];
+            instrument_flags_allowed?: string[];
+            qc_allow_warning?: boolean;
+            note?: string;
+          })[];
+        };
+        rule_count: number;
+        created_at: string;
+        created_by_display: string;
+        simulation_started_at?: string;
+        simulation_stopped_at?: string;
+        activated_at?: string;
+        activated_by_display?: string;
+        retired_at?: string;
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      503: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
   getBillingExport: {
     params: {
       export_id: string;
@@ -33608,6 +38010,144 @@ export interface Operations {
         }[];
       };
       500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  getControlMaterial: {
+    params: {
+      material_id: string;
+    };
+    query: Record<string, never>;
+    headers: Record<string, never>;
+    body: never;
+    responses: {
+      200: {
+        id: string;
+        version: number;
+        code: string;
+        name: string;
+        manufacturer?: string;
+        matrix?: string;
+        is_active: boolean;
+        levels: {
+          id: string;
+          version: number;
+          material_id: string;
+          level_code: string;
+          display_name: string;
+          sort_order: number;
+          is_active: boolean;
+          lots?: {
+            id: string;
+            version: number;
+            level_id: string;
+            material_id: string;
+            lot_no: string;
+            expires_on: string;
+            is_expired: boolean;
+            is_active: boolean;
+          }[];
+        }[];
+        lots_expiring_30d: number;
+        created_at: string;
+      };
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      503: {
         type: string;
         title: string;
         status: number;
@@ -39005,6 +43545,154 @@ export interface Operations {
       };
     };
   };
+  getLeveyJenningsChart: {
+    params: Record<string, never>;
+    query: {
+      plan_id: string;
+      view?: "level" | "z";
+      level_id?: string;
+      lot_id?: string;
+      observed_at_from: string;
+      observed_at_to: string;
+    };
+    headers: Record<string, never>;
+    body: never;
+    responses: {
+      200: ({
+        plan: {
+          id: string;
+          instrument_id: string;
+          analyte_id: string;
+          analyte_code: string;
+          unit_code?: string;
+          decimals: number;
+        };
+        view: "level" | "z";
+        series: ({
+          level_id: string;
+          level_code: string;
+          lot_id: string;
+          lot_no: string;
+          points: ({
+            observation_id: string;
+            observed_at: string;
+            value: string;
+            z?: string;
+            status: "accepted" | "warning" | "rejected" | "excluded" | "unevaluated" | "collecting";
+            qc_run_id?: string;
+            rule_hits: string[];
+          })[];
+          targets: ({
+            target_id: string;
+            effective_from: string;
+            effective_to?: string;
+            mean: string;
+            sd: string;
+            source: "manufacturer" | "established";
+          })[];
+        })[];
+        truncated: boolean;
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      503: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
   getLiveness: {
     params: Record<string, never>;
     query: Record<string, never>;
@@ -43745,6 +48433,489 @@ export interface Operations {
       };
     };
   };
+  getQcPlan: {
+    params: {
+      plan_id: string;
+    };
+    query: Record<string, never>;
+    headers: Record<string, never>;
+    body: never;
+    responses: {
+      200: ({
+        id: string;
+        version: number;
+        instrument_id: string;
+        instrument_label?: string;
+        test_id: string;
+        analyte_id: string;
+        analyte_code: string;
+        analyte_name: string;
+        unit_code?: string;
+        decimals: number;
+        status: "active" | "inactive";
+        current_version_no: number;
+        params: {
+          controls_per_run: 2 | 3 | 4;
+          composition: {
+            level_id: string;
+            count: number;
+          }[];
+          mean_rule?: "8x" | "10x" | "12x" | "6x" | "9x";
+          two_two_s_across_runs?: boolean;
+          count_rules_across_materials?: boolean;
+          exclude_rejected_runs_from_history?: boolean;
+          run_window_minutes?: number;
+          qc_validity_hours?: number;
+          hold_lookback_hours?: number;
+        };
+        rule_set_preview: {
+          warning: string[];
+          rejection: string[];
+        };
+        effective_from: string;
+        versions: ({
+          id: string;
+          version_no: number;
+          params: {
+            controls_per_run: 2 | 3 | 4;
+            composition: {
+              level_id: string;
+              count: number;
+            }[];
+            mean_rule?: "8x" | "10x" | "12x" | "6x" | "9x";
+            two_two_s_across_runs?: boolean;
+            count_rules_across_materials?: boolean;
+            exclude_rejected_runs_from_history?: boolean;
+            run_window_minutes?: number;
+            qc_validity_hours?: number;
+            hold_lookback_hours?: number;
+          };
+          change_reason?: string;
+          effective_from: string;
+          created_at: string;
+          created_by_display: string;
+        })[];
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      503: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  getQcRun: {
+    params: {
+      qc_run_id: string;
+    };
+    query: Record<string, never>;
+    headers: Record<string, never>;
+    body: never;
+    responses: {
+      200: ({
+        id: string;
+        version: number;
+        plan_id: string;
+        instrument_id: string;
+        analyte_id: string;
+        run_at: string;
+        status: "collecting" | "evaluated" | "closed";
+        outcome?: "accepted" | "accepted_warning" | "incomplete" | "rejected";
+        is_complete: boolean;
+        observation_count: number;
+        controls_per_run: number;
+        rule_mode: "classic" | "modern";
+        warning_rules: string[];
+        rules_violated: string[];
+        needs_action: boolean;
+        needs_action_reason?: "corrective_action" | "rerun";
+        closed_at?: string;
+        plan_version_no: number;
+        observations: ({
+          id: string;
+          version: number;
+          plan_id?: string;
+          instrument_id: string;
+          analyte_id?: string;
+          level_id?: string;
+          lot_id?: string;
+          control_id_raw: string;
+          control_lot_raw?: string;
+          control_level_raw?: string;
+          value: string;
+          unit_code?: string;
+          observed_at: string;
+          received_at: string;
+          observed_at_basis: "instrument" | "server";
+          source: "instrument" | "manual";
+          status: "assigned" | "unmapped_analyte" | "non_numeric" | "no_plan" | "unmapped_control" | "level_not_in_plan" | "lot_expired" | "no_target" | "unit_mismatch" | "late_unassigned";
+          qc_run_id?: string;
+          z?: string;
+          target_id?: string;
+          excluded?: {
+            reason_code: string;
+            comment?: string;
+            by_display: string;
+            at: string;
+          };
+          rule_hits: string[];
+        })[];
+        rule_detail: {
+          rule: string;
+          observation_ids: string[];
+        }[];
+        hold?: {
+          hold_since: string;
+          last_in_control_run_at?: string;
+          event_id: string;
+        };
+        corrective_actions: {
+          id: string;
+          qc_run_id: string;
+          action_code: string;
+          action_display: string;
+          description: string;
+          performed_at: string;
+          performed_by_display: string;
+          created_at: string;
+        }[];
+        reviews: ({
+          id: string;
+          qc_run_id: string;
+          kind: "acknowledge" | "evaluate_now" | "close";
+          comment?: string;
+          reviewed_by_display: string;
+          created_at: string;
+        })[];
+        evaluated_at?: string;
+        evaluated_by?: string;
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      503: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  getQcStatusBoard: {
+    params: Record<string, never>;
+    query: {
+      instrument_id?: string;
+      status?: string;
+      overdue_only?: boolean;
+      cursor?: string;
+      limit?: number;
+    };
+    headers: Record<string, never>;
+    body: never;
+    responses: {
+      200: ({
+        data: ({
+          plan_id: string;
+          instrument_id: string;
+          instrument_label?: string;
+          analyte_id: string;
+          analyte_code: string;
+          status: "in_control" | "warning" | "out_of_control" | "no_qc_data";
+          last_in_control_run_at?: string;
+          current_run_id?: string;
+          violated_rules: string[];
+          open_rejected_run_ids: string[];
+          qc_overdue: boolean;
+          patient_results_since_last_qc: number;
+          last_patient_result_at?: string;
+        })[];
+        page: {
+          next_cursor?: string;
+          limit: number;
+        };
+        generated_at: string;
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      503: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
   getQualityIndicatorsReport: {
     params: Record<string, never>;
     query: {
@@ -43904,6 +49075,137 @@ export interface Operations {
         }[];
       };
       500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  getQualitySettings: {
+    params: Record<string, never>;
+    query: Record<string, never>;
+    headers: Record<string, never>;
+    body: never;
+    responses: {
+      200: ({
+        version: number;
+        tat_alerts_enabled: boolean;
+        tat_warn_pct: number;
+        tat_escalate_pct: number;
+        tat_orphan_close_hours: number;
+        target_min_points: number;
+        sim_min_days: number;
+        sim_min_decisions: number;
+        reprocess_window_days: number;
+        default_plan_params: {
+          mean_rule?: "8x" | "10x" | "12x" | "6x" | "9x";
+          two_two_s_across_runs?: boolean;
+          count_rules_across_materials?: boolean;
+          exclude_rejected_runs_from_history?: boolean;
+          run_window_minutes?: number;
+          qc_validity_hours?: number;
+          hold_lookback_hours?: number;
+        };
+        activated_at: string;
+        updated_at?: string;
+        updated_by_display?: string;
+        westgard_mode: "classic" | "modern";
+        auto_verification_enabled: boolean;
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      503: {
         type: string;
         title: string;
         status: number;
@@ -47344,6 +52646,154 @@ export interface Operations {
         }[];
       };
       500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  getTatAlert: {
+    params: {
+      tat_item_id: string;
+    };
+    query: Record<string, never>;
+    headers: Record<string, never>;
+    body: never;
+    responses: {
+      200: ({
+        tat_item_id: string;
+        version: number;
+        order_id: string;
+        order_item_id: string;
+        test_id: string;
+        test_code: string;
+        department_id: string;
+        specimen_id?: string;
+        centre_id: string;
+        priority: "routine" | "urgent";
+        segment: "within_lab" | "total";
+        segment_label: string;
+        start_basis: "specimen_received_at" | "registered_at" | "specimen_ordered_at";
+        target_seconds: number;
+        started_at?: string;
+        elapsed_seconds: number;
+        pct_of_target: number;
+        alert_level: "none" | "warning" | "breached" | "escalated";
+        acknowledged_level?: "warning" | "breached" | "escalated";
+        acknowledged_at?: string;
+        acknowledged_by_display?: string;
+        state: "not_started" | "running" | "stopped" | "cancelled" | "orphan_closed";
+        restart_count: number;
+        first_verified_at?: string;
+        stopped_at?: string;
+        stop_source?: "verified_event" | "release_event" | "sweep";
+        level_events: ({
+          level: "warning" | "breached" | "escalated";
+          raised_at: string;
+          elapsed_seconds: number;
+          restart_no: number;
+        })[];
+        acknowledgements: ({
+          level: "warning" | "breached" | "escalated";
+          note?: string;
+          acknowledged_by_display: string;
+          created_at: string;
+        })[];
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      503: {
         type: string;
         title: string;
         status: number;
@@ -52380,6 +57830,153 @@ export interface Operations {
       };
     };
   };
+  listAutoverifyDecisions: {
+    params: Record<string, never>;
+    query: {
+      result_id?: string;
+      analyte_id?: string;
+      instrument_id?: string;
+      version_id?: string;
+      mode?: "live" | "shadow";
+      decision?: "allow" | "deny";
+      reason?: "manual_origin" | "rule_missing" | "critical" | "delta_failure" | "instrument_flag" | "outside_autoverify_limits" | "qc_out_of_control" | "qc_warning" | "qc_no_data";
+      decided_at_from: string;
+      decided_at_to: string;
+      sort?: "-decided_at";
+      cursor?: string;
+      limit?: number;
+    };
+    headers: Record<string, never>;
+    body: never;
+    responses: {
+      200: ({
+        data: ({
+          id: string;
+          decided_at: string;
+          mode: "live" | "shadow";
+          decision: "allow" | "deny";
+          reasons: ("manual_origin" | "rule_missing" | "critical" | "delta_failure" | "instrument_flag" | "outside_autoverify_limits" | "qc_out_of_control" | "qc_warning" | "qc_no_data")[];
+          result_id: string;
+          analyte_id: string;
+          instrument_id?: string;
+          version_id?: string;
+          matched_rule_key?: string;
+          qc_status: "in_control" | "warning" | "out_of_control" | "no_qc_data";
+          qc_run_id?: string;
+          inputs?: {
+            value_numeric?: string;
+            range_flag?: "N" | "L" | "H" | "LL" | "HH" | "A";
+            delta_check_failed: boolean;
+            is_critical: boolean;
+            instrument_flags: string[];
+            resulted_at: string;
+          };
+        })[];
+        page: {
+          next_cursor?: string;
+          limit: number;
+        };
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      503: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
   listBillingCodes: {
     params: {
       set_name: "payment_methods" | "invoice_cancel_reasons" | "reversal_reasons" | "refund_reasons" | "override_reasons" | "cash_variance_reasons" | "lock_reasons";
@@ -53705,6 +59302,412 @@ export interface Operations {
         }[];
       };
       500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  listControlIdMaps: {
+    params: Record<string, never>;
+    query: {
+      instrument_id?: string;
+      lot_id?: string;
+      is_active?: boolean;
+      cursor?: string;
+      limit?: number;
+    };
+    headers: Record<string, never>;
+    body: never;
+    responses: {
+      200: {
+        data: {
+          id: string;
+          version: number;
+          instrument_id: string;
+          instrument_label?: string;
+          control_id_raw: string;
+          control_lot_raw?: string;
+          lot_id: string;
+          is_active: boolean;
+        }[];
+        page: {
+          next_cursor?: string;
+          limit: number;
+        };
+      };
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      503: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  listControlLots: {
+    params: Record<string, never>;
+    query: {
+      material_id?: string;
+      level_id?: string;
+      is_active?: boolean;
+      expires_on_to?: string;
+      sort?: "expires_on" | "-created_at";
+      cursor?: string;
+      limit?: number;
+    };
+    headers: Record<string, never>;
+    body: never;
+    responses: {
+      200: {
+        data: {
+          id: string;
+          version: number;
+          level_id: string;
+          material_id: string;
+          lot_no: string;
+          expires_on: string;
+          is_expired: boolean;
+          is_active: boolean;
+        }[];
+        page: {
+          next_cursor?: string;
+          limit: number;
+        };
+      };
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      503: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  listControlMaterials: {
+    params: Record<string, never>;
+    query: {
+      is_active?: boolean;
+      q?: string;
+      sort?: "code" | "-created_at";
+      cursor?: string;
+      limit?: number;
+    };
+    headers: Record<string, never>;
+    body: never;
+    responses: {
+      200: {
+        data: {
+          id: string;
+          version: number;
+          code: string;
+          name: string;
+          manufacturer?: string;
+          matrix?: string;
+          is_active: boolean;
+          levels: {
+            id: string;
+            version: number;
+            material_id: string;
+            level_code: string;
+            display_name: string;
+            sort_order: number;
+            is_active: boolean;
+            lots?: {
+              id: string;
+              version: number;
+              level_id: string;
+              material_id: string;
+              lot_no: string;
+              expires_on: string;
+              is_expired: boolean;
+              is_active: boolean;
+            }[];
+          }[];
+          lots_expiring_30d: number;
+          created_at: string;
+        }[];
+        page: {
+          next_cursor?: string;
+          limit: number;
+        };
+      };
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      503: {
         type: string;
         title: string;
         status: number;
@@ -65882,6 +71885,309 @@ export interface Operations {
       };
     };
   };
+  listQcObservations: {
+    params: Record<string, never>;
+    query: {
+      plan_id?: string;
+      instrument_id?: string;
+      analyte_id?: string;
+      level_id?: string;
+      lot_id?: string;
+      status?: string;
+      observed_at_from?: string;
+      observed_at_to?: string;
+      sort?: "-observed_at" | "observed_at";
+      cursor?: string;
+      limit?: number;
+    };
+    headers: Record<string, never>;
+    body: never;
+    responses: {
+      200: ({
+        data: ({
+          id: string;
+          version: number;
+          plan_id?: string;
+          instrument_id: string;
+          analyte_id?: string;
+          level_id?: string;
+          lot_id?: string;
+          control_id_raw: string;
+          control_lot_raw?: string;
+          control_level_raw?: string;
+          value: string;
+          unit_code?: string;
+          observed_at: string;
+          received_at: string;
+          observed_at_basis: "instrument" | "server";
+          source: "instrument" | "manual";
+          status: "assigned" | "unmapped_analyte" | "non_numeric" | "no_plan" | "unmapped_control" | "level_not_in_plan" | "lot_expired" | "no_target" | "unit_mismatch" | "late_unassigned";
+          qc_run_id?: string;
+          z?: string;
+          target_id?: string;
+          excluded?: {
+            reason_code: string;
+            comment?: string;
+            by_display: string;
+            at: string;
+          };
+        })[];
+        page: {
+          next_cursor?: string;
+          limit: number;
+        };
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      503: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  listQcPlans: {
+    params: Record<string, never>;
+    query: {
+      instrument_id?: string;
+      analyte_id?: string;
+      status?: "active" | "inactive";
+      cursor?: string;
+      limit?: number;
+    };
+    headers: Record<string, never>;
+    body: never;
+    responses: {
+      200: ({
+        data: ({
+          id: string;
+          version: number;
+          instrument_id: string;
+          instrument_label?: string;
+          test_id: string;
+          analyte_id: string;
+          analyte_code: string;
+          analyte_name: string;
+          unit_code?: string;
+          decimals: number;
+          status: "active" | "inactive";
+          current_version_no: number;
+          params: {
+            controls_per_run: 2 | 3 | 4;
+            composition: {
+              level_id: string;
+              count: number;
+            }[];
+            mean_rule?: "8x" | "10x" | "12x" | "6x" | "9x";
+            two_two_s_across_runs?: boolean;
+            count_rules_across_materials?: boolean;
+            exclude_rejected_runs_from_history?: boolean;
+            run_window_minutes?: number;
+            qc_validity_hours?: number;
+            hold_lookback_hours?: number;
+          };
+          rule_set_preview: {
+            warning: string[];
+            rejection: string[];
+          };
+          effective_from: string;
+        })[];
+        page: {
+          next_cursor?: string;
+          limit: number;
+        };
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      503: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
   listQcResults: {
     params: Record<string, never>;
     query: {
@@ -65986,6 +72292,408 @@ export interface Operations {
         }[];
       };
       500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  listQcRuns: {
+    params: Record<string, never>;
+    query: {
+      plan_id?: string;
+      instrument_id?: string;
+      analyte_id?: string;
+      status?: string;
+      outcome?: string;
+      needs_action?: boolean;
+      run_at_from?: string;
+      run_at_to?: string;
+      sort?: "-run_at";
+      cursor?: string;
+      limit?: number;
+    };
+    headers: Record<string, never>;
+    body: never;
+    responses: {
+      200: ({
+        data: ({
+          id: string;
+          version: number;
+          plan_id: string;
+          instrument_id: string;
+          analyte_id: string;
+          run_at: string;
+          status: "collecting" | "evaluated" | "closed";
+          outcome?: "accepted" | "accepted_warning" | "incomplete" | "rejected";
+          is_complete: boolean;
+          observation_count: number;
+          controls_per_run: number;
+          rule_mode: "classic" | "modern";
+          warning_rules: string[];
+          rules_violated: string[];
+          needs_action: boolean;
+          needs_action_reason?: "corrective_action" | "rerun";
+          closed_at?: string;
+        })[];
+        page: {
+          next_cursor?: string;
+          limit: number;
+        };
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      503: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  listQcTargets: {
+    params: Record<string, never>;
+    query: {
+      plan_id?: string;
+      lot_id?: string;
+      status?: string;
+      cursor?: string;
+      limit?: number;
+    };
+    headers: Record<string, never>;
+    body: never;
+    responses: {
+      200: ({
+        data: ({
+          id: string;
+          version: number;
+          plan_id: string;
+          lot_id: string;
+          level_id: string;
+          mean: string;
+          sd: string;
+          cv_pct: string;
+          unit_code: string;
+          source: "manufacturer" | "established";
+          basis?: {
+            n: number;
+            from: string;
+            to: string;
+            observation_ids_sha256: string;
+          };
+          status: "draft" | "active" | "superseded" | "retired" | "discarded";
+          effective_from?: string;
+          effective_to?: string;
+          note?: string;
+          created_by_display: string;
+          activated_by_display?: string;
+        })[];
+        page: {
+          next_cursor?: string;
+          limit: number;
+        };
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      503: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  listQualityCodedSet: {
+    params: {
+      set_name: "corrective_actions" | "exclusion_reasons";
+    };
+    query: Record<string, never>;
+    headers: Record<string, never>;
+    body: never;
+    responses: {
+      200: ({
+        data: ({
+          code: string;
+          display: string;
+          sort_order: number;
+          is_active: boolean;
+          source: "global" | "tenant";
+        })[];
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      503: {
         type: string;
         title: string;
         status: number;
@@ -70198,6 +76906,153 @@ export interface Operations {
         }[];
       };
       500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  listTatAlerts: {
+    params: Record<string, never>;
+    query: {
+      level?: string;
+      acknowledged?: boolean;
+      segment?: "within_lab" | "total";
+      department_id?: string;
+      centre_id?: string;
+      priority?: "routine" | "urgent";
+      sort?: "-alert_level_rank" | "-pct_of_target" | "started_at";
+      cursor?: string;
+      limit?: number;
+    };
+    headers: Record<string, never>;
+    body: never;
+    responses: {
+      200: ({
+        data: ({
+          tat_item_id: string;
+          version: number;
+          order_id: string;
+          order_item_id: string;
+          test_id: string;
+          test_code: string;
+          department_id: string;
+          specimen_id?: string;
+          centre_id: string;
+          priority: "routine" | "urgent";
+          segment: "within_lab" | "total";
+          segment_label: string;
+          start_basis: "specimen_received_at" | "registered_at" | "specimen_ordered_at";
+          target_seconds: number;
+          started_at?: string;
+          elapsed_seconds: number;
+          pct_of_target: number;
+          alert_level: "none" | "warning" | "breached" | "escalated";
+          acknowledged_level?: "warning" | "breached" | "escalated";
+          acknowledged_at?: string;
+          acknowledged_by_display?: string;
+          state: "not_started" | "running" | "stopped" | "cancelled" | "orphan_closed";
+        })[];
+        page: {
+          next_cursor?: string;
+          limit: number;
+        };
+        generated_at: string;
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      503: {
         type: string;
         title: string;
         status: number;
@@ -81118,6 +87973,158 @@ export interface Operations {
       };
     };
   };
+  recordCorrectiveAction: {
+    params: {
+      qc_run_id: string;
+    };
+    query: Record<string, never>;
+    headers: {
+      "Idempotency-Key": string;
+    };
+    body: {
+      action_code: string;
+      description: string;
+      performed_at: string;
+    };
+    responses: {
+      201: {
+        id: string;
+        qc_run_id: string;
+        action_code: string;
+        action_display: string;
+        description: string;
+        performed_at: string;
+        performed_by_display: string;
+        created_at: string;
+      };
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      409: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      422: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      503: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
   recordCreditPartyPayment: {
     params: {
       credit_party_id: string;
@@ -84493,6 +91500,210 @@ export interface Operations {
         }[];
       };
       500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  replaceAutoverifyDraft: {
+    params: {
+      version_id: string;
+    };
+    query: Record<string, never>;
+    headers: {
+      "If-Match": string;
+    };
+    body: {
+      definition: {
+        schema_version: 1;
+        rules: ({
+          key: string;
+          test_id: string;
+          analyte_id: string;
+          instrument_id?: string;
+          enabled: boolean;
+          limits?: {
+            low?: string;
+            high?: string;
+          };
+          allowed_range_flags?: ("N" | "L" | "H")[];
+          instrument_flags_allowed?: string[];
+          qc_allow_warning?: boolean;
+          note?: string;
+        })[];
+      };
+    };
+    responses: {
+      200: ({
+        id: string;
+        rule_set_id: string;
+        version_no: number;
+        version: number;
+        status: "draft" | "simulating" | "stopped" | "active" | "retired" | "discarded";
+        definition: {
+          schema_version: 1;
+          rules: ({
+            key: string;
+            test_id: string;
+            analyte_id: string;
+            instrument_id?: string;
+            enabled: boolean;
+            limits?: {
+              low?: string;
+              high?: string;
+            };
+            allowed_range_flags?: ("N" | "L" | "H")[];
+            instrument_flags_allowed?: string[];
+            qc_allow_warning?: boolean;
+            note?: string;
+          })[];
+        };
+        rule_count: number;
+        created_at: string;
+        created_by_display: string;
+        simulation_started_at?: string;
+        simulation_stopped_at?: string;
+        activated_at?: string;
+        activated_by_display?: string;
+        retired_at?: string;
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      409: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      422: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      428: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      503: {
         type: string;
         title: string;
         status: number;
@@ -90823,6 +98034,179 @@ export interface Operations {
       };
     };
   };
+  retireAutoverifyVersion: {
+    params: {
+      version_id: string;
+    };
+    query: Record<string, never>;
+    headers: {
+      "If-Match": string;
+    };
+    body: {
+      reason: string;
+    };
+    responses: {
+      200: ({
+        id: string;
+        rule_set_id: string;
+        version_no: number;
+        version: number;
+        status: "draft" | "simulating" | "stopped" | "active" | "retired" | "discarded";
+        definition: {
+          schema_version: 1;
+          rules: ({
+            key: string;
+            test_id: string;
+            analyte_id: string;
+            instrument_id?: string;
+            enabled: boolean;
+            limits?: {
+              low?: string;
+              high?: string;
+            };
+            allowed_range_flags?: ("N" | "L" | "H")[];
+            instrument_flags_allowed?: string[];
+            qc_allow_warning?: boolean;
+            note?: string;
+          })[];
+        };
+        rule_count: number;
+        created_at: string;
+        created_by_display: string;
+        simulation_started_at?: string;
+        simulation_stopped_at?: string;
+        activated_at?: string;
+        activated_by_display?: string;
+        retired_at?: string;
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      409: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      428: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      503: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
   retireCriticalLimitSet: {
     params: {
       set_id: string;
@@ -91230,6 +98614,170 @@ export interface Operations {
         }[];
       };
       500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  retireQcTarget: {
+    params: {
+      target_id: string;
+    };
+    query: Record<string, never>;
+    headers: {
+      "If-Match": string;
+    };
+    body: {
+      reason: string;
+    };
+    responses: {
+      200: ({
+        id: string;
+        version: number;
+        plan_id: string;
+        lot_id: string;
+        level_id: string;
+        mean: string;
+        sd: string;
+        cv_pct: string;
+        unit_code: string;
+        source: "manufacturer" | "established";
+        basis?: {
+          n: number;
+          from: string;
+          to: string;
+          observation_ids_sha256: string;
+        };
+        status: "draft" | "active" | "superseded" | "retired" | "discarded";
+        effective_from?: string;
+        effective_to?: string;
+        note?: string;
+        created_by_display: string;
+        activated_by_display?: string;
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      409: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      428: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      503: {
         type: string;
         title: string;
         status: number;
@@ -97190,6 +104738,177 @@ export interface Operations {
       };
     };
   };
+  startAutoverifySimulation: {
+    params: {
+      version_id: string;
+    };
+    query: Record<string, never>;
+    headers: {
+      "If-Match": string;
+    };
+    body: Record<string, never>;
+    responses: {
+      200: ({
+        id: string;
+        rule_set_id: string;
+        version_no: number;
+        version: number;
+        status: "draft" | "simulating" | "stopped" | "active" | "retired" | "discarded";
+        definition: {
+          schema_version: 1;
+          rules: ({
+            key: string;
+            test_id: string;
+            analyte_id: string;
+            instrument_id?: string;
+            enabled: boolean;
+            limits?: {
+              low?: string;
+              high?: string;
+            };
+            allowed_range_flags?: ("N" | "L" | "H")[];
+            instrument_flags_allowed?: string[];
+            qc_allow_warning?: boolean;
+            note?: string;
+          })[];
+        };
+        rule_count: number;
+        created_at: string;
+        created_by_display: string;
+        simulation_started_at?: string;
+        simulation_stopped_at?: string;
+        activated_at?: string;
+        activated_by_display?: string;
+        retired_at?: string;
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      409: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      428: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      503: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
   startInstrumentCommissioning: {
     params: {
       instrument_id: string;
@@ -97975,6 +105694,177 @@ export interface Operations {
         }[];
       };
       500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  stopAutoverifySimulation: {
+    params: {
+      version_id: string;
+    };
+    query: Record<string, never>;
+    headers: {
+      "If-Match": string;
+    };
+    body: Record<string, never>;
+    responses: {
+      200: ({
+        id: string;
+        rule_set_id: string;
+        version_no: number;
+        version: number;
+        status: "draft" | "simulating" | "stopped" | "active" | "retired" | "discarded";
+        definition: {
+          schema_version: 1;
+          rules: ({
+            key: string;
+            test_id: string;
+            analyte_id: string;
+            instrument_id?: string;
+            enabled: boolean;
+            limits?: {
+              low?: string;
+              high?: string;
+            };
+            allowed_range_flags?: ("N" | "L" | "H")[];
+            instrument_flags_allowed?: string[];
+            qc_allow_warning?: boolean;
+            note?: string;
+          })[];
+        };
+        rule_count: number;
+        created_at: string;
+        created_by_display: string;
+        simulation_started_at?: string;
+        simulation_stopped_at?: string;
+        activated_at?: string;
+        activated_by_display?: string;
+        retired_at?: string;
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      409: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      428: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      503: {
         type: string;
         title: string;
         status: number;
@@ -102141,6 +110031,505 @@ export interface Operations {
         }[];
       };
       500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  updateControlLevel: {
+    params: {
+      level_id: string;
+    };
+    query: Record<string, never>;
+    headers: {
+      "If-Match": string;
+    };
+    body: {
+      display_name?: string;
+      sort_order?: number;
+      is_active?: boolean;
+    };
+    responses: {
+      200: {
+        id: string;
+        version: number;
+        material_id: string;
+        level_code: string;
+        display_name: string;
+        sort_order: number;
+        is_active: boolean;
+        lots?: {
+          id: string;
+          version: number;
+          level_id: string;
+          material_id: string;
+          lot_no: string;
+          expires_on: string;
+          is_expired: boolean;
+          is_active: boolean;
+        }[];
+      };
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      409: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      428: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      503: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  updateControlLot: {
+    params: {
+      lot_id: string;
+    };
+    query: Record<string, never>;
+    headers: {
+      "If-Match": string;
+    };
+    body: {
+      expires_on?: string;
+      is_active?: boolean;
+    };
+    responses: {
+      200: {
+        id: string;
+        version: number;
+        level_id: string;
+        material_id: string;
+        lot_no: string;
+        expires_on: string;
+        is_expired: boolean;
+        is_active: boolean;
+      };
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      409: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      422: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      428: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      503: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  updateControlMaterial: {
+    params: {
+      material_id: string;
+    };
+    query: Record<string, never>;
+    headers: {
+      "If-Match": string;
+    };
+    body: {
+      name?: string;
+      manufacturer?: string;
+      matrix?: string;
+      unset?: ("manufacturer" | "matrix")[];
+    };
+    responses: {
+      200: {
+        id: string;
+        version: number;
+        code: string;
+        name: string;
+        manufacturer?: string;
+        matrix?: string;
+        is_active: boolean;
+        levels: {
+          id: string;
+          version: number;
+          material_id: string;
+          level_code: string;
+          display_name: string;
+          sort_order: number;
+          is_active: boolean;
+          lots?: {
+            id: string;
+            version: number;
+            level_id: string;
+            material_id: string;
+            lot_no: string;
+            expires_on: string;
+            is_expired: boolean;
+            is_active: boolean;
+          }[];
+        }[];
+        lots_expiring_30d: number;
+        created_at: string;
+      };
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      409: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      428: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      503: {
         type: string;
         title: string;
         status: number;
@@ -107198,6 +115587,185 @@ export interface Operations {
       };
     };
   };
+  updateQualitySettings: {
+    params: Record<string, never>;
+    query: Record<string, never>;
+    headers: {
+      "If-Match": string;
+    };
+    body: {
+      tat_alerts_enabled: boolean;
+      tat_warn_pct: number;
+      tat_escalate_pct: number;
+      tat_orphan_close_hours: number;
+      target_min_points: number;
+      sim_min_days: number;
+      sim_min_decisions: number;
+      reprocess_window_days: number;
+      default_plan_params: {
+        mean_rule?: "8x" | "10x" | "12x" | "6x" | "9x";
+        two_two_s_across_runs?: boolean;
+        count_rules_across_materials?: boolean;
+        exclude_rejected_runs_from_history?: boolean;
+        run_window_minutes?: number;
+        qc_validity_hours?: number;
+        hold_lookback_hours?: number;
+      };
+    };
+    responses: {
+      200: ({
+        version: number;
+        tat_alerts_enabled: boolean;
+        tat_warn_pct: number;
+        tat_escalate_pct: number;
+        tat_orphan_close_hours: number;
+        target_min_points: number;
+        sim_min_days: number;
+        sim_min_decisions: number;
+        reprocess_window_days: number;
+        default_plan_params: {
+          mean_rule?: "8x" | "10x" | "12x" | "6x" | "9x";
+          two_two_s_across_runs?: boolean;
+          count_rules_across_materials?: boolean;
+          exclude_rejected_runs_from_history?: boolean;
+          run_window_minutes?: number;
+          qc_validity_hours?: number;
+          hold_lookback_hours?: number;
+        };
+        activated_at: string;
+        updated_at?: string;
+        updated_by_display?: string;
+        westgard_mode: "classic" | "modern";
+        auto_verification_enabled: boolean;
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      409: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      428: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      503: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
   updateQueue: {
     params: {
       queue_id: string;
@@ -111660,6 +120228,126 @@ export interface Operations {
         }[];
       };
       500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  upsertQualityCode: {
+    params: {
+      set_name: "corrective_actions" | "exclusion_reasons";
+      code: string;
+    };
+    query: Record<string, never>;
+    headers: Record<string, never>;
+    body: {
+      display: string;
+      sort_order: number;
+      is_active: boolean;
+    };
+    responses: {
+      200: ({
+        code: string;
+        display: string;
+        sort_order: number;
+        is_active: boolean;
+        source: "global" | "tenant";
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      503: {
         type: string;
         title: string;
         status: number;

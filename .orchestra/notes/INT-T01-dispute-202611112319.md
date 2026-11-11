@@ -1,0 +1,6 @@
+TESTS_WRONG (round 2) — `hl7Send` reads only the first ACK segment; spec requirement not in dispute.
+1. Test line 148: `rd.until(CR)` stops at the first CR. An HL7 ACK is `VT MSH...CR MSA|AA|<MSH-10>CR FS CR` (segments are CR-terminated; agent `internal/hl7/ack.go:62`, goldens `mllp/session_test.go:216`). The read returns only `MSH|...|ACK|...`, so `toContain('MSA|AA|MSG…')` (lines 213, 243) can never hold; leftover `MSA…FS CR` bytes also shift every later ACK read by one message. Observed: `Received: "MSH|^~\&|LIMS-BRIDGE||SIM|LAB|…||ACK|…|P|2.3.1"`.
+   Change: read to FS, then the trailing CR: `const ack = await rd.until(FS, 5000); expect(await rd.byte()).toBe(CR);`. Keep every assertion.
+2. Knock-on: test 1 aborts at line 213 before the C5 wait, so test 2 runs ~6 ms later against a half-flushed queue (0 archived). Not judgeable until 1 is fixed.
+3. Teardown still fails with `EPERM` in `rmSync` (lines 197, 265) on Windows after `stop()` awaited exit. The e2e agent applies no ACLs and holds only `state/queue.db`; likely late handle release/AV scan of the fresh exe+db. Suggest `maxRetries: 20` (4 s) or ignore rm errors in teardown — cleanup is not spec behaviour.
+Writer did not edit tests. Re-run `.orchestra\notes\INT-T01-verify.cmd` after the fix.

@@ -398,6 +398,27 @@ describe('T-22 §4.5 step 6: ingest_auto_receive = true on a collected / in_tran
     expect(m.exceptions()[0]).toMatchObject({ reason: 'analyte_not_ordered' });
     expect(m.calls('receiveSpecimen')).toHaveLength(1);
   });
+  // T-23 review CHANGES 1 (03-APP-FLOW S4 "ingest auto-receive" side effect; 02-TRD §8; AC-04.5): the auto-receive is an S4 receive, so it enqueues the reapply job in the same tx.
+  it.each(['collected', 'in_transit'])('T-23 AC-04.5: auto-receive of a %s specimen enqueues exactly one lab.reapply_exceptions_for_specimen (job_key = specimen_id) on the request tx', async (status) => {
+    const m = make({ specimen: { status }, autoReceive: true });
+    const queries: { sql: string; params: unknown[] }[] = [];
+    (m.tx as any).query = async (sql: string, params: unknown[]) => { queries.push({ sql, params }); return { rows: [], rowCount: 0 }; };
+    await applyInstrumentResultEvent(m.ctx, envelope());
+    const jobs = queries.filter((q) => /app\.enqueue_job/.test(q.sql));
+    expect(jobs).toHaveLength(1);
+    expect(jobs[0]!.params[0]).toBe('lab.reapply_exceptions_for_specimen');
+    expect(JSON.parse(jobs[0]!.params[1] as string)).toEqual({ tenant_id: TENANT, specimen_id: SPEC });
+    expect(jobs[0]!.params[2]).toBe(SPEC);
+  });
+  it('T-23 AC-04.5: no S4 (already received, or auto-receive off) -> no reapply job from the ingest path', async () => {
+    for (const o of [{ specimen: { status: 'received' }, autoReceive: true }, { specimen: { status: 'collected' }, autoReceive: false }]) {
+      const m = make(o);
+      const queries: string[] = [];
+      (m.tx as any).query = async (sql: string) => { queries.push(sql); return { rows: [], rowCount: 0 }; };
+      await applyInstrumentResultEvent(m.ctx, envelope());
+      expect(queries.filter((q) => /app\.enqueue_job/.test(q))).toEqual([]);
+    }
+  });
 });
 
 // ------------------------------------------------------------------------------------------------------------------------------------------ step 10

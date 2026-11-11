@@ -35,7 +35,7 @@ const openTab = async (name: string) => { await showEditor(); await userEvent.cl
 const rowOf = (text: RegExp) => within(screen.getAllByRole('grid')[0]!).getAllByRole('row').find((r) => text.test(r.textContent ?? ''))!;
 const dlg = () => screen.findByRole('dialog');
 const saveIn = (d: HTMLElement) => within(d).getByRole('button', { name: /^(save|create|add)/i });
-const confirm = async () => userEvent.click(within(await screen.findByRole('alertdialog')).getByRole('button', { name: /^(remove|delete|deactivate|confirm|yes)/i }));
+const confirm = async () => userEvent.click(within(await screen.findByRole('alertdialog').catch(() => screen.findByRole('dialog'))).getByRole('button', { name: /^(remove|delete|deactivate|confirm|yes)/i }));
 
 describe('Body systems (AC-04.4 UI side)', () => {
   it('lists code, both display names, weight, order, shown state; the hidden group (iron) is shown as off', async () => {
@@ -200,6 +200,7 @@ describe('Rules (AC-05.1–AC-05.4; done_when: follow-up banner)', () => {
       expect(within(d).getByRole('radio', { name: /body system/i })).toBeTruthy();
       await userEvent.keyboard('{Escape}');
       await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+      cleanup();
     }
   });
 

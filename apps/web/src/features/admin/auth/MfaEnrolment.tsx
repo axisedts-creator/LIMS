@@ -10,7 +10,7 @@ import { SecretRevealOnce } from '@lims/ui/components/SecretRevealOnce';
 import { errorCopy, type ActionResult } from './messages';
 
 type Failure = Extract<ActionResult, { ok: false }>;
-type Started = { ok: true; factor_id: string; otpauth_uri: string; qr_svg_base64: string; secret_base32: string };
+type Started = { ok: true; factor_id: string; otpauth_uri: string; qr_svg_base64?: string; secret_base32: string };
 
 export interface MfaEnrolmentProps {
   startAction: (fd: FormData) => Promise<Started | Failure>;
@@ -87,7 +87,9 @@ export function MfaEnrolment({ startAction, completeAction, forced }: MfaEnrolme
         <>
           {enrol ? (
             <>
-              <DataUriImage src={`data:image/svg+xml;base64,${enrol.qr_svg_base64}`} alt="QR code for your authenticator app" />
+              {enrol.qr_svg_base64 ? (
+                <DataUriImage src={`data:image/svg+xml;base64,${enrol.qr_svg_base64}`} alt="QR code for your authenticator app" />
+              ) : null}
               <SecretRevealOnce label="Can't scan? Enter this key" secret={enrol.secret_base32} onAcknowledged={() => {}} />
             </>
           ) : pending ? (

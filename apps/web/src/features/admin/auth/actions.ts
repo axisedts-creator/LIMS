@@ -129,15 +129,16 @@ export async function verifyMfaAction(fd: FormData): Promise<ActionResult> {
 
 export async function startMfaEnrolmentAction(
   fd: FormData,
-): Promise<{ ok: true; factor_id: string; otpauth_uri: string; qr_svg_base64: string; secret_base32: string } | Fail> {
+): Promise<{ ok: true; factor_id: string; otpauth_uri: string; qr_svg_base64?: string; secret_base32: string } | Fail> {
   const name = str(fd, 'friendly_name').trim();
   if (name.length > 40) return invalid();
   const r = await sessionCall('mfa/enrolment', name ? { friendly_name: name } : {});
   if (!r.ok) return r;
   const b = (r.body ?? {}) as Record<string, unknown>;
   const s = (k: string) => (typeof b[k] === 'string' ? (b[k] as string) : '');
-  if (!UUID_RE.test(s('factor_id')) || !s('qr_svg_base64') || !s('secret_base32')) return { ok: false, code: 'common.dependency_unavailable' };
-  return { ok: true, factor_id: s('factor_id'), otpauth_uri: s('otpauth_uri'), qr_svg_base64: s('qr_svg_base64'), secret_base32: s('secret_base32') };
+  if (!UUID_RE.test(s('factor_id')) || !s('secret_base32')) return { ok: false, code: 'common.dependency_unavailable' };
+  const qr = s('qr_svg_base64'); // optional per 02-TRD §5.1; the key is the fallback
+  return { ok: true, factor_id: s('factor_id'), otpauth_uri: s('otpauth_uri'), ...(qr ? { qr_svg_base64: qr } : {}), secret_base32: s('secret_base32') };
 }
 
 export async function completeMfaEnrolmentAction(fd: FormData): Promise<ActionResult> {

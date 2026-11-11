@@ -860,7 +860,7 @@ describe("partners.yaml (T0C-10.C13)", () => {
       for (const { op, path } of Object.values(ops))
         for (const [, r] of Object.entries<any>(op.responses ?? {}))
           walk(deref(r)?.content?.["application/json"]?.schema, (n) => {
-            const bad = path.startsWith("/admin") ? [...FORBIDDEN_ANY, "email"] : FORBIDDEN_PARTNER;
+            const bad = path.startsWith(`${PFX}/admin`) ? [...FORBIDDEN_ANY, "email"] : FORBIDDEN_PARTNER;
             for (const f of bad) {
               // Ruling T0C-10.C13: `consents.email` is a boolean consent flag (TRD §5.2 R/M lines, 204/360); only string `email` is a clear address.
               if (f === "email" && deref(props(n).email)?.type === "boolean") continue;

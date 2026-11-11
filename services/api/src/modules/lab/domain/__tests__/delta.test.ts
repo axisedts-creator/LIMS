@@ -39,7 +39,7 @@ describe('T-12 delta: AC-12.1 / AC-12.2', () => {
     expect(r.abs).toBeUndefined();
   });
   it('no active rule -> no_rule', () => {
-    expect(run('5.2', [cand('4.0', DAY)], undefined).status).toBe('no_rule');
+    expect(evaluateDelta({ value: '5.2', unitCode: 'mmol/L', at: AT, rule: undefined, candidates: [cand('4.0', DAY)] }).status).toBe('no_rule');
   });
 });
 

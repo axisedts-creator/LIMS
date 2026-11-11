@@ -1,11 +1,8 @@
-TESTS_WRONG — admin/duplicates.test.ts:33, :69, :85-86, :107 build "twins" without `phone_e164`, so seedPatient (patients/helpers.ts:108) gives each a different random phone; by the spec predicate two present, different phones are NOT duplicates.
+TESTS_WRONG — admin/duplicates.test.ts:93 `mkPair('2026-11-09T18:29:00Z')` is commented "2026-11-09 23:59" but that instant is 2026-11-10 00:14 Asia/Kathmandu (+05:45); change the stamp to `'2026-11-09T18:14:00Z'` (= 2026-11-09 23:59 local). Assertions at :96 and :99 stay unchanged.
 Reasons:
-- spec/chunks/C4-frontdesk-billing/02-TRD.md:220 (F26) — predicate is "normalised name, birth year ±1, same phone when both present"; different present phones fail it.
-- spec/chunks/C4-frontdesk-billing/01-PRD.md:147 (US-FD-02.2) — duplicate requires "same phone".
-- The test itself asserts this rule at duplicates.test.ts:28-29 (case 3, c1/c2 not listed), so the four fixtures contradict the test's own case.
-What the TESTER changes (duplicates.test.ts only; assertions unchanged):
-1. :33 case 5 — give e1 and e2 one shared phone (or `phone_e164: null` on both).
-2. :69 — the 7 identical people share one phone (e.g. `const ph = phone()` and pass `phone_e164: ph`), or pass `phone_e164: null`.
-3. :85-86 mkPair — x and twin share one phone per pair (or `phone_e164: null`).
-4. :107 — each pair (per `t`) shares one phone (or `phone_e164: null`).
-Implementation unchanged: patients.repo.ts dedupe predicate matches 02-TRD.md:220.
+- spec/chunks/C4-frontdesk-billing/02-TRD.md:220 (F26) — `created_on` is an "A.D. date, tenant tz; default today"; the day is cut at tenant-local midnight.
+- Kathmandu midnight of 2026-11-10 = 2026-11-09T18:15Z, so 18:29Z falls on local 2026-11-10 and correctly appears in the default (today = 2026-11-10, test :82) list; :96 `not.toContain(previous)` then fails by the spec.
+- The test's own edge stamps confirm the offset: :91 18:14Z = 23:59, :92 18:15Z = 00:00, :90 18:30Z = 00:15. With :93 at 18:29Z it is one minute before `justAfterMidnight`, which contradicts its "previous day" role.
+- After the fix, :99 (`d9` contains previous, excludes justAfterMidnight) holds by the same predicate.
+What the TESTER changes: duplicates.test.ts:93 stamp only.
+Implementation unchanged: patients.repo.ts tenant-tz day window matches 02-TRD.md:220.

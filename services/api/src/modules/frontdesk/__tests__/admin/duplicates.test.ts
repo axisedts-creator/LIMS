@@ -90,7 +90,7 @@ describe('F26 created_on is a date in the TENANT timezone (Asia/Kathmandu, +05:4
     const justAfterMidnight = await mkPair('2026-11-09T18:30:00Z');   // 2026-11-10 00:15 in Kathmandu (UTC date is still 11-09)
     const lastMinute = await mkPair('2026-11-10T18:14:00Z');          // 2026-11-10 23:59
     const nextDay = await mkPair('2026-11-10T18:15:00Z');             // 2026-11-11 00:00
-    const previous = await mkPair('2026-11-09T18:29:00Z');            // 2026-11-09 23:59
+    const previous = await mkPair('2026-11-09T18:14:00Z');            // 2026-11-09 23:59
     const dflt = await duplicates({ limit: '200' });
     expect(idsOf(dflt.body)).toEqual(expect.arrayContaining([justAfterMidnight.x.id, lastMinute.x.id]));
     expect(idsOf(dflt.body)).not.toContain(nextDay.x.id); expect(idsOf(dflt.body)).not.toContain(previous.x.id);

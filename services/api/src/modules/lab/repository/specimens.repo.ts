@@ -54,6 +54,21 @@ export const listTestsOfSpecimens = async (rc: RepoCtx, specimenIds: readonly st
   (specimenIds.length === 0 ? [] : query(rc, `SELECT specimen_id, test_id, test_code FROM lab.order_tests WHERE tenant_id = $1 AND specimen_id = ANY($2::uuid[])
                                               ORDER BY ordered_at, test_code, id`, [specimenIds]));
 
+// ---- T-10 label data (#14) ----
+/** Specimens (+ registration_no) by id; ids of other tenants / unknown ids simply do not come back (RLS + tenant filter). */
+export const listSpecimensWithOrderByIds = async (rc: RepoCtx, ids: readonly string[]) =>
+  (ids.length === 0 ? [] : query(rc, `${WITH_ORDER} WHERE s.tenant_id = $1 AND s.id = ANY($2::uuid[])`, [ids]));
+
+/** Test codes + priority of the order tests bound to the specimens, in label order (test_code). */
+export const listTestLabelsOfSpecimens = async (rc: RepoCtx, specimenIds: readonly string[]) =>
+  (specimenIds.length === 0 ? [] : query(rc, `SELECT specimen_id, test_code, priority FROM lab.order_tests WHERE tenant_id = $1 AND specimen_id = ANY($2::uuid[])
+                                              ORDER BY test_code, id`, [specimenIds]));
+
+/** The ONLY label counter write (#14, AC-02.3): atomic increment (no read-modify-write, no lost update); ids sorted by the caller (lock order). Returns the ids written. */
+export const bumpLabelPrint = async (rc: RepoCtx, ids: readonly string[], at: string): Promise<string[]> =>
+  (ids.length === 0 ? [] : (await query(rc, `UPDATE lab.specimens SET label_print_count = label_print_count + 1, last_label_printed_at = $3::timestamptz, version = version + 1,
+      updated_at = now(), updated_by = $2 WHERE tenant_id = $1 AND id = ANY($4::uuid[]) RETURNING id`, [rc.actorId, at, ids])).map((r) => r['id'] as string));
+
 /** [CONV] cumulative: resulted >= verified >= approved (a verified result also counts as resulted). */
 export const resultsSummaryOfSpecimen = async (rc: RepoCtx, specimenId: string) => {
   const r = await first(rc, `SELECT count(*)::int AS total,

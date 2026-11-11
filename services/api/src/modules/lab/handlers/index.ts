@@ -17,10 +17,14 @@ import { handler as requestRecollection } from './requestRecollection.js';
 import { handler as getSpecimen } from './getSpecimen.js';
 import { handler as listSpecimens } from './listSpecimens.js';
 import { handler as lookupSpecimenByBarcode } from './lookupSpecimenByBarcode.js';
+import { handler as printSpecimenLabels } from './printSpecimenLabels.js';
 import { handler as receiveSpecimen } from './receiveSpecimen.js';
+import { handler as requestOrderLabelPrint } from './requestOrderLabelPrint.js';
 import { handler as storeSpecimen } from './storeSpecimen.js';
 import { resultEntryHandlers } from './resultEntry.handlers.js';
 import { verifyHandlers } from './verify.handlers.js';
+import { historyHandlers } from './history.handlers.js';
+import { approveHandlers } from './approve.handlers.js';
 
 const OPERATION_IDS = [
   // specimens
@@ -55,9 +59,12 @@ const notImplemented = (operationId: string): Handler => async () => {
 const REAL: Partial<Record<LabOperationId, Handler>> = {
   lookupSpecimenByBarcode, listSpecimens, getSpecimen, collectSpecimen, bulkCollectSpecimens, bulkDispatchSpecimens, receiveSpecimen, bulkReceiveSpecimens, storeSpecimen, discardSpecimen,
   rejectSpecimen, requestRecollection, createAliquots, // T-08
+  printSpecimenLabels, requestOrderLabelPrint, // T-10
   ...resultEntryHandlers, // T-14: bulkEnterResults, getResult, listOrderResults
   ...criticalHandlers, // T-15: listCriticalValues, getCriticalValue, logCriticalNotification
   ...verifyHandlers, // T-16: verifyResult, bulkVerifyResults, returnResult
+  ...approveHandlers, // T-17: approveResult, bulkApproveResults, amendResult, listResultVersions
+  ...historyHandlers, // T-19: getResultHistory, getAnalyteTrend
 };
 
 export const handlers: Readonly<Record<LabOperationId, Handler>> = Object.freeze(

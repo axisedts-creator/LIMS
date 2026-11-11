@@ -41,6 +41,12 @@ const IMPLEMENTED: readonly string[] = [
   'listCriticalValues', 'getCriticalValue', 'logCriticalNotification',
   // T-16 verify / return
   'verifyResult', 'bulkVerifyResults', 'returnResult',
+  // T-10 labels
+  'printSpecimenLabels', 'requestOrderLabelPrint',
+  // T-17 approve / amend
+  'approveResult', 'bulkApproveResults', 'amendResult', 'listResultVersions',
+  // T-19 history
+  'getResultHistory', 'getAnalyteTrend',
 ];
 
 const FAKE_REQ = { params: {}, query: {}, headers: {}, body: {} };

@@ -67,6 +67,14 @@ import { listOwnSessions } from './listOwnSessions.js';
 import { revokeOwnSession } from './revokeOwnSession.js';
 import { listOwnMfaFactors } from './listOwnMfaFactors.js';
 import { removeOwnMfaFactor } from './removeOwnMfaFactor.js';
+import { listSessions } from './listSessions.js';
+import { revokeSession } from './revokeSession.js';
+import { listTenantSupportSessions } from './listTenantSupportSessions.js';
+import { approveSupportSession } from './approveSupportSession.js';
+import { denySupportSession } from './denySupportSession.js';
+import { revokeSupportSession } from './revokeSupportSession.js';
+import { listAdminNotices } from './listAdminNotices.js';
+import { dismissAdminNotice } from './dismissAdminNotice.js';
 
 const OPERATION_IDS = [
   // auth (identity_auth)
@@ -117,6 +125,8 @@ const implemented: Partial<Record<IdentityOperationId, Handler>> = {
   resolveSession, logoutSession,                                                                                // T8
   requestPasswordRecovery, confirmEmailToken, setPasswordFromSetup,                                             // T9
   getMe, changeOwnPassword, listOwnSessions, revokeOwnSession, listOwnMfaFactors, removeOwnMfaFactor,           // T10
+  listSessions, revokeSession, listTenantSupportSessions, approveSupportSession, denySupportSession, revokeSupportSession,   // T17
+  listAdminNotices, dismissAdminNotice,                                                                         // T17
 };
 
 export const handlers: Readonly<Record<IdentityOperationId, Handler>> = Object.freeze(

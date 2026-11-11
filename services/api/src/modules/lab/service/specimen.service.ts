@@ -53,6 +53,9 @@ const CODE = /^[A-Za-z0-9_.:^+\-]{1,64}$/;
 const BACKENTRY_MAX_HOURS = 72;     // LD-25 default; the tenant setting downtime_backentry_max_hours is not in TenantSettings yet (same as frontdesk FD-T06); requested in CR-C5-T07-001 (.orchestra/cr/C5.T-07.md)
 const BULK_MAX = 200;
 const MAX_VERSION = 2147483647;
+// T-10: label.service.ts reuses the same ctx / validation / centre-scope helpers (declared below; export lists are hoisted).
+export { specimenCtx, bad, strict, uuidParam, scopeOf, visible, role, repoCtx, isObj, UUID, BULK_MAX };
+export type { SpecimenCtx, Obj };
 
 interface SpecimenCtx {
   readonly tenantId: string;

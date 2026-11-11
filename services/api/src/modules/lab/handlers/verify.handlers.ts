@@ -7,13 +7,13 @@ import { toResultDto } from '../mappers/result.mapper.js';
 import { bulkVerifyResults, returnResult, verifyResult, type VerifyItem } from '../service/result.service.js';
 import { authed, fieldError, obj } from './resultEntry.handlers.js';
 
-const MAX_ITEMS = 200;
+export const MAX_ITEMS = 200;
 const FLAGS = ['delta', 'critical', 'unit_mismatch', 'instrument_flag'];
-const MAX_VERSION = 2_147_483_647;
-const invalid = (path: string) => new LimsError('common.validation_failed', undefined, [fieldError(path, 'common.field_invalid', 'Field invalid')]);
+export const MAX_VERSION = 2_147_483_647;
+export const invalid = (path: string) => new LimsError('common.validation_failed', undefined, [fieldError(path, 'common.field_invalid', 'Field invalid')]);
 
 /** If-Match: "<n>" (as specimen.service.ts): missing -> 428, malformed -> 400 /headers/if-match. */
-function ifMatch(headers: unknown): number {
+export function ifMatch(headers: unknown): number {
   const h = obj(headers)['if-match'];
   if (h === undefined) throw new LimsError('common.precondition_required');
   const m = typeof h === 'string' ? /^"([1-9][0-9]{0,9})"$/.exec(h) : null;
@@ -25,7 +25,7 @@ const flagsOf = (v: unknown, path: string): string[] | undefined => {
   if (!Array.isArray(v) || v.some((f) => typeof f !== 'string' || !FLAGS.includes(f))) throw invalid(path);
   return v as string[];
 };
-const resultId = (params: unknown): string => {
+export const resultId = (params: unknown): string => {
   const v = obj(params)['result_id'];
   if (typeof v !== 'string' || v === '') throw invalid('/result_id');
   return v;

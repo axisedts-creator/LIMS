@@ -6,7 +6,7 @@
 // NOT covered (needs a live pg with seeded tenants/centres; no generic seed exists): "DB check as owner shows zero b changes", §6.2 cross-centre probes, consumer probes (b envelopes -> only b rows) — see notes.
 import { describe, expect, it } from 'vitest';
 import { LimsError } from '../../../../core/errors.js';
-import { ALL_OPS, B_ID, ctxFor, run, requestFor, spyTx, TENANT_A, TENANT_B, safeJson } from './probe.kit.js';
+import { ALL_OPS, B_ID, ctxFor, isDeferred, run, requestFor, spyTx, TENANT_A, TENANT_B, safeJson } from './probe.kit.js';
 
 const CATALOG_ID_OPS = new Set(['createRegistration', 'quoteRegistration', 'quoteOrderItemsChange', 'changeOrderItems']);
 const tableStmt = (text: string) => /\b(billing|frontdesk)\.[a-z_]+/i.test(text);
@@ -18,7 +18,30 @@ describe('registry', () => {
   });
 });
 
-describe.each(ALL_OPS.map((o) => [`${o.mod}:${o.id}`, o] as const))('%s', (_n, o) => {
+// LD-98 (BL-T22-ruling b): BL-T21 payment intents are Phase 1.5 and not built in v1; they must never answer 2xx (REQ-SEC-099).
+describe.each(ALL_OPS.filter((o) => isDeferred(o.id)).map((o) => [`${o.mod}:${o.id}`, o] as const))('DEFERRED_PHASE_1_5 %s', (_n, o) => {
+  it('never answers 2xx', async () => {
+    const { tx } = spyTx();
+    const { result } = await run(o, await ctxFor(TENANT_A, tx));
+    expect(result === undefined || result.status >= 400, `answered ${result?.status}`).toBe(true);
+  });
+});
+
+// LD-98 (BL-T22-ruling a): own-tenant CONTROLS. The harness must reach handler logic: tenant A's own read answers 2xx, so a probe cannot pass merely because every port refuses everything.
+describe.each([['frontdesk', 'searchPatients'], ['billing', 'listInvoices']] as const)('control %s:%s (own tenant)', (mod, id) => {
+  it('answers 2xx for tenant A', async () => {
+    const o = ALL_OPS.find((x) => x.mod === mod && x.id === id)!;
+    expect(o, id).toBeDefined();
+    const { tx } = spyTx();
+    const body = id === 'searchPatients' ? { query: 'Demo', mode: 'auto', limit: 20 } : undefined; // the contract's synthetic example; the sample builder's 'x' is below the schema minimum
+    const { result, error } = await run(o, await ctxFor(TENANT_A, tx), requestFor(o, { query: {}, body }));
+    expect(error, `refused with ${error?.code ?? error}`).toBeUndefined();
+    expect(result.status).toBeGreaterThanOrEqual(200);
+    expect(result.status).toBeLessThan(300);
+  });
+});
+
+describe.each(ALL_OPS.filter((o) => !isDeferred(o.id)).map((o) => [`${o.mod}:${o.id}`, o] as const))('%s', (_n, o) => {
   const byId = o.pathParams.some((p) => p.endsWith('_id'));
   const sent = requestFor(o);
   const bodyNamesB = safeJson(sent.body ?? null).includes(B_ID);
@@ -29,6 +52,7 @@ describe.each(ALL_OPS.map((o) => [`${o.mod}:${o.id}`, o] as const))('%s', (_n, o
     const { tx, stmts } = spyTx();
     const { result, error } = await run(o, await ctxFor(TENANT_A, tx));
     expect(error === undefined || error instanceof LimsError, `non-LimsError thrown: ${error?.stack ?? error}`).toBe(true);
+    expect(error?.code, 'stub: common.service_unavailable is a failure for every non-deferred operation (LD-98)').not.toBe('common.service_unavailable');
     const seen = safeJson(result ?? { code: error?.code, detail: error?.detail, errors: error?.errors });
     expect(seen).not.toContain(B_ID);
     expect(seen).not.toContain(TENANT_B);

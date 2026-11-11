@@ -62,7 +62,7 @@ describe('AC-PG-01.1 eSewa createIntent', () => {
 
   it('writes the transition rows (create -> initiated) as the calling actor type, and nothing else', async () => {
     const r = await create();
-    const t = h.db.transitions().filter((x) => x.intent_id === r.intentId);
+    const t = h.db.transitions(A).filter((x) => x.intent_id === r.intentId);
     expect(t.map((x) => x.to_status)).toEqual(expect.arrayContaining(['initiated']));
     expect(t.at(-1)).toMatchObject({ from_status: 'created', to_status: 'initiated', cause: 'create', actor_type: 'system' });
     expect(t.every((x) => x.actor_type === 'system')).toBe(true);
@@ -72,7 +72,7 @@ describe('AC-PG-01.1 eSewa createIntent', () => {
     const r = await create();
     const token = decodeURIComponent(new URL(r.action.launchUrl).pathname.split('/').filter(Boolean).at(-1)!);
     expect(token.length).toBeGreaterThanOrEqual(32);
-    const stored = JSON.stringify([rows(), h.db.transitions(), h.db.gatewayCalls()]) + h.db.sentText();
+    const stored = JSON.stringify([rows(), h.db.transitions(A), h.db.gatewayCalls(A)]) + h.db.sentText();
     expect(stored).not.toContain(token);
     expect(stored).not.toContain(SECRET.esewa);
     expect(JSON.stringify(r)).not.toContain(SECRET.esewa);
@@ -99,7 +99,7 @@ describe('AC-PG-01.2 replay', () => {
     expect(b.action.url).toBe(a.action.url);
     for (const k of ['amount', 'total_amount', 'transaction_uuid', 'product_code', 'signed_field_names', 'signature']) expect(b.action.fields[k], k).toBe(a.action.fields[k]);
     expect(h.jobs).toHaveLength(jobsAfterFirst);
-    expect(h.db.transitions().filter((t) => t.to_status === 'initiated')).toHaveLength(1);
+    expect(h.db.transitions(A).filter((t) => t.to_status === 'initiated')).toHaveLength(1);
   });
 
   it('same key with a different order, gateway, returnUrl or cancelUrl -> common.idempotency_key_reused, nothing changes', async () => {
@@ -289,7 +289,7 @@ describe('AC-PG-02.3 initiate failure rolls everything back', () => {
   it.each([true, 'generic'] as const)('initiate failure (%s) -> payments.gateway_not_available, no intent, no transition, no job, no event', async (mode) => {
     h.gateway.initiateFails = mode;
     expect(await code(create({ gateway: 'khalti' }))).toBe('payments.gateway_not_available');
-    expect(rows()).toHaveLength(0); expect(h.db.transitions()).toHaveLength(0);
+    expect(rows()).toHaveLength(0); expect(h.db.transitions(A)).toHaveLength(0);
     expect(h.jobs).toHaveLength(0); expect(h.events.published).toHaveLength(0);
   });
   it('the order can be paid after the gateway recovers (the failed attempt did not burn the key or the open slot)', async () => {
@@ -330,7 +330,7 @@ describe('AC-PG-05.2 final check closes an unpaid intent', () => {
     const x = row('01900000-0000-7000-8000-0000000c1504');
     expect(x.status).toBe('expired'); expect(x.failure_reason).toBeTruthy(); expect(x.closed_at).toBeInstanceOf(Date);
     expect(h.ledger.calls).toHaveLength(0); expect(settledEvents()).toHaveLength(0);
-    expect(h.db.transitions().at(-1)).toMatchObject({ from_status: 'pending', to_status: 'expired' });
+    expect(h.db.transitions(A).at(-1)).toMatchObject({ from_status: 'pending', to_status: 'expired' });
   });
 });
 
@@ -345,7 +345,7 @@ describe('verify (TRD §6.2)', () => {
     expect(Number(x.verified_amount_paisa)).toBe(DUE);
     expect(x.settled_at.toISOString()).toBe(at(60)); expect(x.ledger_entry_id).toBeTruthy();
     expect(h.ledger.calls).toEqual([{ intentId: r.intentId, orderId: O1, gateway: 'esewa', gatewayTxnRef: r.intentId, amount: npr(DUE), verifiedAt: at(60) }]);
-    expect(h.db.transitions().at(-1)).toMatchObject({ from_status: 'initiated', to_status: 'settled', actor_type: 'system' });
+    expect(h.db.transitions(A).at(-1)).toMatchObject({ from_status: 'initiated', to_status: 'settled', actor_type: 'system' });
   });
 
   it('AC-PG-06.4 / 8.1: one event, key <gateway>:<gateway_txn_ref>:settled, aggregate payment_intent seq = version, snake_case payload with the ledger entry id', async () => {
@@ -389,7 +389,7 @@ describe('verify (TRD §6.2)', () => {
       expect(await code(verify(r.intentId, at(60)))).toBe('common.internal');
       expect(row(r.intentId).status).toBe('initiated'); expect(row(r.intentId).ledger_entry_id).toBeNull();
       expect(h.ledger.calls).toHaveLength(0); expect(settledEvents()).toHaveLength(0);
-      expect(h.db.transitions().filter((t) => t.to_status === 'settled')).toHaveLength(0);
+      expect(h.db.transitions(A).filter((t) => t.to_status === 'settled')).toHaveLength(0);
       h.faults.events = {};
       expect((await verify(r.intentId, at(120))).status).toBe('settled');                  // and the next attempt succeeds once
       expect(h.ledger.calls).toHaveLength(1); expect(settledEvents()).toHaveLength(1);
@@ -439,7 +439,7 @@ describe('verify (TRD §6.2)', () => {
 
   it('calls within VERIFY_MIN_INTERVAL of the last gateway check return the stored status with no gateway call; later calls check again', async () => {
     const r = await create();
-    expect((await verify(r.intentId, at(60))).status).toBe('initiated');
+    expect((await verify(r.intentId, at(60))).status).toBe('pending');
     expect(checks()).toHaveLength(1);
     await verify(r.intentId, at(60 + h.config.verifyMinIntervalSeconds - 1));
     expect(checks()).toHaveLength(1);
@@ -457,7 +457,7 @@ describe('verify (TRD §6.2)', () => {
   it('PENDING moves initiated -> pending (transition row) and the secret opened for the check is the tenant\'s eSewa secret', async () => {
     const r = await create();
     expect((await verify(r.intentId, at(60))).status).toBe('pending');
-    expect(h.db.transitions().at(-1)).toMatchObject({ from_status: 'initiated', to_status: 'pending' });
+    expect(h.db.transitions(A).at(-1)).toMatchObject({ from_status: 'initiated', to_status: 'pending' });
     expect(h.gateway.secretsSeen).toEqual([SECRET.esewa]);
   });
 
@@ -474,7 +474,7 @@ describe('verify (TRD §6.2)', () => {
     const out = await Promise.all(Array.from({ length: 10 }, (_, i) => verify(r.intentId, at(60 + i * 11))));
     expect(out.every((o) => o.status === 'settled')).toBe(true);
     expect(h.ledger.calls).toHaveLength(1); expect(settledEvents()).toHaveLength(1);
-    expect(h.db.transitions().filter((t) => t.to_status === 'settled')).toHaveLength(1);
+    expect(h.db.transitions(A).filter((t) => t.to_status === 'settled')).toHaveLength(1);
     expect(row(r.intentId).version).toBeGreaterThan(1);
   });
 
@@ -495,7 +495,7 @@ describe('verify (TRD §6.2)', () => {
   it('every gateway answer is logged (payments.gateway_calls) without secrets', async () => {
     const r = await create({ gateway: 'khalti' });
     await verify(r.intentId, at(60));
-    const g = h.db.gatewayCalls();
+    const g = h.db.gatewayCalls(A);
     expect(g.length).toBeGreaterThanOrEqual(1);
     expect(g.some((c) => c.intent_id === r.intentId && c.operation === 'khalti_lookup')).toBe(true);
     expect(JSON.stringify(g)).not.toContain(SECRET.khalti);
@@ -538,7 +538,7 @@ describe('AC-PG-13.1 / 13.2 cancelIntent (TRD §6.4)', () => {
     expect(c).toEqual({ intentId: r.intentId, status: 'failed' });
     expect(checks().length).toBeGreaterThanOrEqual(1);                                        // verified before cancelling
     expect(row(r.intentId)).toMatchObject({ status: 'failed', failure_reason: 'abandoned' });
-    expect(h.db.transitions().at(-1)).toMatchObject({ to_status: 'failed', cause: 'cancel', reason_code: 'customer_cancelled', actor_type: 'system' });
+    expect(h.db.transitions(A).at(-1)).toMatchObject({ to_status: 'failed', cause: 'cancel', reason_code: 'customer_cancelled', actor_type: 'system' });
     expect(h.jobs).toHaveLength(jobsBefore);                                                  // Khalti link stays payable: deadline check not cancelled
     expect(h.ledger.calls).toHaveLength(0);
     expect((await create({ gateway: 'khalti', idempotencyKey: 'k2' }, sys(at(40)))).replayed).toBe(false);   // AC-PG-13.2

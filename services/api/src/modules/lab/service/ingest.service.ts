@@ -231,14 +231,17 @@ async function run(ctx: IngestCtx, i: InstrumentResultInput, source: 'event' | '
     mapping = await ctx.ports.CatalogPort.mapInstrumentCode(ctx, { instrumentId: i.instrumentId, direction: 'inbound', instrumentCode: i.instrumentAnalyteCode });
   } catch (e) {
     if (!isLimsError(e, 'catalog.instrument_code_unmapped')) throw e;
-    if (!assign) return refuse('unmatched', 'unmapped_code');   // an assignment does not need the mapping; only the analyte check below does
+    // T-24 (02-TRD §4.5 step 3): the catalog is the fallback only for a record WITHOUT its analyte. A record the instrument module already resolved (mappingStatus mapped + analyteId)
+    // continues on its own analyte, without flagMap / unitConversion; an assignment does not need the mapping either (only the analyte check below does).
+    if (!assign && !(i.mappingStatus === 'mapped' && i.analyteId !== undefined)) return refuse('unmatched', 'unmapped_code');
   }
   if (assign) {   // T-23: the caller picked the target; a different (or unmapped) analyte needs override_analyte (04-UI-UX §3.10)
     if (!assign.overrideAnalyte && mapping?.analyteId !== assign.target.analyteId) {
       throw new LimsError('common.validation_failed', undefined, [{ path: '/override_analyte', code: 'common.field_invalid', message: 'override_analyte is required to apply to a different analyte' }]);
     }
-  } else if (!mapping?.analyteId) return refuse('unmatched', 'unmapped_code');
-  const analyteId = mapping?.analyteId, testId = mapping?.testId;
+  } else if (!mapping?.analyteId && !(i.mappingStatus === 'mapped' && i.analyteId !== undefined)) return refuse('unmatched', 'unmapped_code');
+  const fromPayload = !mapping?.analyteId && i.mappingStatus === 'mapped' && i.analyteId !== undefined;
+  const analyteId = fromPayload ? i.analyteId : mapping?.analyteId, testId = fromPayload ? i.testId : mapping?.testId;
   const known = { ...(analyteId === undefined ? {} : { analyteId }), ...(testId === undefined ? {} : { testId }) };
 
   // steps 4-9: the pure table. The results are read (and locked, 02-TRD §3.2: results before specimen) only once steps 4-6 let the record through.

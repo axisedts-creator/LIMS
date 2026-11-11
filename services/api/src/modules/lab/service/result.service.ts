@@ -189,6 +189,7 @@ export async function bulkEnterResults(rawCtx: unknown, input: EntryInput): Prom
   const results: EntryOutcome[] = [];
 
   for (const e of input.entries) {
+    let rowSaved = false;   // after the save, any failure rolls the whole batch back (no savepoint; critical log/event must not be lost)
     try {
       const row = rows.get(e.resultId);
       if (!row) throw new LimsError('common.not_found');   // P-01: unknown / other tenant / invisible
@@ -233,6 +234,7 @@ export async function bulkEnterResults(rawCtx: unknown, input: EntryInput): Prom
         ...(input.downtime === undefined ? {} : { downtime: input.downtime }),
       });
       touched.add(e.resultId);
+      rowSaved = true;
 
       if (input.downtime) {   // LD-25: audited with the paper serial and the original time; only saved rows are audited
         await ctx.audit.access({
@@ -264,7 +266,7 @@ export async function bulkEnterResults(rawCtx: unknown, input: EntryInput): Prom
       }
       results.push({ resultId: e.resultId, outcome: 'ok', result: out });
     } catch (err) {
-      if (!(err instanceof LimsError)) throw err;   // not a per-row problem: caller rolls back
+      if (!(err instanceof LimsError) || rowSaved) throw err;   // not a per-row problem, or the value is already saved: caller rolls back
       results.push({ resultId: e.resultId, outcome: 'error', code: err.code });   // never the value, never err.detail (S-19)
     }
   }

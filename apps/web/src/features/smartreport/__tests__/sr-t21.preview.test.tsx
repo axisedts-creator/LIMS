@@ -145,16 +145,16 @@ describe('AC-19.2 real order (UI side)', () => {
   });
 
   it('422 smartreport.no_eligible_results -> "Not enough mapped results in this order to build a summary."', async () => {
-    routes[`POST ${URL_PREVIEW}`] = () => problem('smartreport.no_eligible_results', 422);
     const d = await real(ORDER_ID);
+    routes[`POST ${URL_PREVIEW}`] = () => problem('smartreport.no_eligible_results', 422);
     await run(d);
     await waitFor(() => expect(pageText()).toContain(NO_ORDER));
     expect(pageText()).not.toContain('smartreport.no_eligible_results');
   });
 
   it.each([['auth.forbidden', 403], ['common.not_found', 404], ['common.internal', 500]] as const)('API %s (%i) -> role=alert in plain words, no raw code, no summary shown', async (code, status) => {
-    routes[`POST ${URL_PREVIEW}`] = () => problem(code, status, { detail: 'SECRET-DB-HINT' });
     const d = await real(ORDER_ID);
+    routes[`POST ${URL_PREVIEW}`] = () => problem(code, status, { detail: 'SECRET-DB-HINT' });
     await run(d);
     const alert = await screen.findByRole('alert');
     expect(norm(alert.textContent)).not.toMatch(new RegExp(`${code.replace('.', '\\.')}|SECRET-DB-HINT`));

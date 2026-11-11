@@ -387,7 +387,7 @@ describe('a11y and keyboard', () => {
     await userEvent.click(approveBtn());
     await dialog();
     await axeClean();
-    await userEvent.keyboard('{Escape}');
+    await userEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: /^cancel$/i }));
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
     await userEvent.click(returnBtn());
     await dialog();

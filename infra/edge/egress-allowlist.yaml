@@ -5,6 +5,13 @@
 # via: squid (api/worker HTTPS CONNECT :443) | smtp (GoTrue on db_net,
 # nftables set @smtp_relay_ips) | acme (app host output, role acme).
 # fqdn: DNS name or `{{ inventory_var }}`; no IPs, no wildcards.
+# T-35: owner-C15 gateway FQDNs per environment. Role egress_proxy loads an owner-C15
+# entry only if its fqdn is listed for the active `env` (fail closed: unlisted = never
+# loaded). dev uses simulators: no gateway egress. Other owners are not scoped.
+env_scope:
+  dev: []
+  staging: [uat.esewa.com.np, dev.khalti.com]
+  prod: [epay.esewa.com.np, khalti.com]
 destinations:
   - fqdn: "{{ smtp_relay_fqdn }}"
     port: 587
@@ -59,11 +66,11 @@ destinations:
     owner: C15
     purpose: eSewa UAT gateway, staging (CR-C15-008 item 4)
     section_04_11: Payment gateways (eSewa, Khalti, Fonepay)
-    f01_status: pending
+    f01_status: approved  # T-35 done_when: staging worker reaches it
   - fqdn: dev.khalti.com
     port: 443
     via: squid
     owner: C15
     purpose: Khalti UAT gateway, staging (CR-C15-008 item 4)
     section_04_11: Payment gateways (eSewa, Khalti, Fonepay)
-    f01_status: pending
+    f01_status: approved  # T-35 done_when: staging worker reaches it

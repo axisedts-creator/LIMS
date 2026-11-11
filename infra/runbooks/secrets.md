@@ -55,6 +55,8 @@ Ids: `bff_key_staff_web`, `bff_key_partner`, `bff_key_portal` (365 d). By hand w
 
 ## Payments KEK
 Id: `payments_kek` (read-only mount in api and worker). Procedure (02-TRD s7.12, CR-C15-008): add the new KEK next to the old one; render and recreate consumers one at a time; set the new KEK active in the payments settings; run `payments.rewrap_credentials` and wait until it reports every credential rewrapped; only then remove the old KEK from the encrypted file, render and recreate again. Never remove the old KEK before the rewrap has finished: stored credentials become unreadable.
+
+Each environment (dev, staging, prod) has its own distinct KEK; never copy a KEK from one environment to another. The KEK stays in the encrypted secrets file and the read-only mount only: it never enters the database, a backup of the database or a log (D-118).
 **If the rewrap fails:** leave both KEKs in place, keep the old one active, and call the payments owner.
 
 ## pgBackRest cipher pass

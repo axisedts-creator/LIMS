@@ -699,6 +699,7 @@ class EnvLockTest(Base):
 
     def test_standalone_rollback_takes_the_lock_and_refuses_when_held(self):
         _seed(self.rig, "dev")
+        shutil.copy(CI / "rollback.sh", self.rig.ci / "rollback.sh")  # real rollback.sh (LD-90e); smoke stays the stub
         r = self.rig.run("rollback", "dev")
         self.assertEqual(r.returncode, 0, r.stderr)
         self.assertEqual(len(self.rig.flock_calls()), 1)
@@ -800,6 +801,7 @@ class ProdKeyTest(Base):
 
     def test_prod_rollback_needs_and_uses_the_released_key(self):
         _seed(self.rig, "prod")
+        shutil.copy(CI / "rollback.sh", self.rig.ci / "rollback.sh")  # real rollback.sh (LD-90e); smoke stays the stub
         r = self.rig.run("rollback", "prod", env=dict(self.NOKEY))
         self.assertNotEqual(r.returncode, 0)
         self.assertEqual(self.rig.calls("ansible-playbook"), [])

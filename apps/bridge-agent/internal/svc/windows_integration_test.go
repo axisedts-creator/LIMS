@@ -3,7 +3,7 @@
 package svc_test
 
 // AG-T15 Windows integration: the icacls audit of 02-TRD 5.12 against real folders, real DPAPI for the token, and (opt-in) a real SCM round trip.
-// The icacls tests need no elevation: the "service account" here is the current user, so the DACL can be applied and audited without admin rights.
+// The PrepareFolders/icacls tests need an elevated shell; the AG-T15 verify run must be elevated to exercise them (otherwise they skip, not pass).
 // The SCM test changes the machine (registers and removes a throw-away service) and so runs only when LIMS_AG_T15_SCM=1 in an elevated shell.
 
 import (
@@ -16,6 +16,8 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"golang.org/x/sys/windows"
 
 	"lims/apps/bridge-agent/internal/secrets"
 	"lims/apps/bridge-agent/internal/svc"
@@ -90,6 +92,9 @@ func layoutFor(t *testing.T) svc.Layout {
 }
 
 func TestIcaclsAuditMatchesTRD512(t *testing.T) {
+	if !elevated() {
+		t.Skip("PrepareFolders runs only from the elevated installer (04-UI-UX §2, 02-TRD §5.11)")
+	}
 	me := whoami(t)
 	l := layoutFor(t)
 	p := svc.NewWindowsPlatform(l, "")
@@ -113,6 +118,9 @@ func TestIcaclsAuditMatchesTRD512(t *testing.T) {
 
 // The installer must REPLACE the DACL, not add to it: a pre-existing Users grant has to be gone afterwards.
 func TestPrepareFoldersReplacesExistingBroadAndIsIdempotent(t *testing.T) {
+	if !elevated() {
+		t.Skip("PrepareFolders runs only from the elevated installer (04-UI-UX §2, 02-TRD §5.11)")
+	}
 	me := whoami(t)
 	l := layoutFor(t)
 	if err := os.MkdirAll(l.SecretsDir(), 0o700); err != nil {
@@ -130,6 +138,80 @@ func TestPrepareFoldersReplacesExistingBroadAndIsIdempotent(t *testing.T) {
 		}
 		assertAudit(t, l.DataRoot, me, false)
 		assertAudit(t, l.SecretsDir(), me, true)
+	}
+}
+
+func ownerIsAdministrators(t *testing.T, path string) bool {
+	t.Helper()
+	sd, err := windows.GetNamedSecurityInfo(path, windows.SE_FILE_OBJECT, windows.OWNER_SECURITY_INFORMATION)
+	if err != nil {
+		t.Fatalf("GetNamedSecurityInfo(%s): %v", path, err)
+	}
+	owner, _, err := sd.Owner()
+	if err != nil || owner == nil {
+		t.Fatalf("owner of %s: %v", path, err)
+	}
+	admins, err := windows.CreateWellKnownSid(windows.WinBuiltinAdministratorsSid)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return owner.Equals(admins)
+}
+
+// AG-T15 review item 1: an owner keeps implicit WRITE_DAC, so a user who pre-created the data root must not stay its owner.
+// Not elevated: PrepareFolders MUST fail closed (an error), since a non-admin cannot assign BUILTIN\Administrators as owner (AG-T15 ruling).
+// Elevated: BUILTIN\Administrators owns the root and every child.
+func TestPrepareFoldersOwnerIsAdministrators(t *testing.T) {
+	me := whoami(t)
+	l := layoutFor(t)
+	if err := os.MkdirAll(l.SecretsDir(), 0o700); err != nil {
+		t.Fatal(err)
+	}
+	err := svc.NewWindowsPlatform(l, "").PrepareFolders(l, me)
+	if !elevated() {
+		if err == nil {
+			t.Fatal("PrepareFolders succeeded without elevation: it must fail closed")
+		}
+		return
+	}
+	if err != nil {
+		t.Fatalf("PrepareFolders: %v", err)
+	}
+	for _, p := range append([]string{l.DataRoot}, l.Dirs()...) {
+		if !ownerIsAdministrators(t, p) {
+			t.Errorf(`%s: owner is not BUILTIN\Administrators after PrepareFolders`, p)
+		}
+	}
+}
+
+// AG-T15 review item 2: a link entry in a folder must not stop the repair of its later siblings (fs.SkipDir on a non-directory skips the rest of the folder).
+func TestPrepareFoldersLinkDoesNotSkipLaterSiblings(t *testing.T) {
+	if !elevated() {
+		t.Skip("PrepareFolders runs only from the elevated installer (04-UI-UX §2, 02-TRD §5.11)")
+	}
+	me := whoami(t)
+	l := layoutFor(t)
+	if err := os.MkdirAll(l.SecretsDir(), 0o700); err != nil {
+		t.Fatal(err)
+	}
+	target := t.TempDir()
+	link := filepath.Join(l.SecretsDir(), "a") // sorts before "z.bin": WalkDir visits the link first
+	if out, err := exec.Command("cmd", "/c", "mklink", "/J", link, target).CombinedOutput(); err != nil {
+		t.Skipf("cannot create a junction here: %v\n%s", err, out)
+	}
+	later := filepath.Join(l.SecretsDir(), "z.bin")
+	if err := os.WriteFile(later, []byte("synthetic"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if out, err := exec.Command("icacls", later, "/grant", "*S-1-5-32-545:R", "*S-1-5-11:R").CombinedOutput(); err != nil {
+		t.Fatalf("seeding a broad grant: %v\n%s", err, out)
+	}
+	if err := svc.NewWindowsPlatform(l, "").PrepareFolders(l, me); err != nil {
+		t.Fatalf("PrepareFolders: %v", err)
+	}
+	assertAudit(t, later, me, true) // the broad explicit ACEs behind the link entry must be gone
+	if _, err := os.Stat(target); err != nil {
+		t.Errorf("link target damaged: %v", err)
 	}
 }
 

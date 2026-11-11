@@ -73,6 +73,22 @@ export interface QueueItem {
   priority: string;
 }
 export interface QueueFilters { department_id?: string; priority?: string; flagged_only?: 'true' }
+// C5.T-23: instrument exceptions (IngestExceptionDto / IngestExceptionDetail / IngestExceptionActionResponse; GET /v1/lab/orders/{id}/results).
+export type ExceptionStatus = 'open' | 'resolved' | 'discarded';
+export const EXCEPTION_STATUSES: readonly ExceptionStatus[] = ['open', 'resolved', 'discarded'];
+export const EXCEPTION_REASONS = ['unmapped_code', 'unknown_barcode', 'specimen_rejected', 'specimen_not_received', 'analyte_not_ordered', 'result_locked', 'result_already_verified', 'unit_mismatch'] as const;
+export interface IngestException {
+  id: string; status: ExceptionStatus; reason: string; result_key: string; created_at: string;
+  instrument_id?: string; sample_barcode?: string; instrument_analyte_code?: string; result_id?: string; resolved_at?: string; resolution?: string;
+}
+export interface IngestExceptionDetailDto extends IngestException { raw_value?: string; raw_flags?: string[]; unit_raw?: string }
+export interface ExceptionPage { items: IngestException[]; nextCursor?: string }
+export interface ExceptionAction { exception: IngestException; outcome: 'applied' | 'held' | 'unmatched' | 'rejected_state' | 'duplicate' | 'not_applicable'; result?: { id: string; status: string } }
+export interface DiscardBody { reason_code: string; comment?: string }
+export interface AssignBody { result_id: string; override_analyte?: true }
+export interface OrderResult { id: string; analyte_code: string; status: string }
+export interface OrderResultsItem { order_item_id: string; test: { id: string; code: string; name?: string }; results: OrderResult[] }
+
 export interface VerifyItem { id: string; version: number; acknowledged_flags?: AckFlag[] }
 export interface ResultBulkRow { id: string; outcome: 'ok' | 'error'; code?: string }
 

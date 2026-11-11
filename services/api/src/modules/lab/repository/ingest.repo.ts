@@ -1,7 +1,9 @@
 // Instrument ingest + QC + module idempotency: lab.ingest_log, lab.ingest_exceptions, lab.qc_results, lab.qc_holds, lab.module_submissions (05-SCHEMA §1).
 // Generic row operations via base.repo (insertRow/getRow/updateRow); named queries are added by the tasks that use them.
 import { uuidv7 } from '../../../../../../packages/shared-ts/src/uuidv7/index.js';
-import { first, query, table, type RepoCtx } from './base.repo.js';
+import { LimsError } from '../../../core/errors.js';
+import { decodeCursor, encodeCursor } from '../mappers/specimen.mapper.js';
+import { first, isUuid, limitOf, query, table, type RepoCtx } from './base.repo.js';
 
 export const INGEST_LOG = table('lab.ingest_log', 'id', ['id', 'tenant_id', 'centre_id', 'processing_centre_id', 'result_key', 'first_source', 'first_event_id',
   'last_outcome', 'result_id', 'specimen_id', 'exception_id', 'attempts', 'last_attempt_at', 'version', 'created_at', 'created_by', 'updated_at', 'updated_by'], {
@@ -70,10 +72,52 @@ export async function upsertOpenIngestException(rc: RepoCtx, e: Record<string, a
 }
 
 /** Step 12: the open exceptions of the key are resolved as `applied` (ingest_exceptions__closed__ck: resolved_at is set together with the status). */
-export async function closeOpenIngestExceptions(rc: RepoCtx, a: { resultKey: string; resolverMembershipId?: string; occurredAt: string }): Promise<void> {
-  await query(rc, `UPDATE lab.ingest_exceptions SET status = 'resolved', resolution = 'applied', resolved_at = $3, resolved_by_membership_id = $4,
+export async function closeOpenIngestExceptions(rc: RepoCtx, a: { resultKey: string; resolution?: 'applied' | 'assigned'; resolverMembershipId?: string; occurredAt: string }): Promise<void> {
+  await query(rc, `UPDATE lab.ingest_exceptions SET status = 'resolved', resolution = $6, resolved_at = $3, resolved_by_membership_id = $4,
       version = version + 1, updated_at = now(), updated_by = $5 WHERE tenant_id = $1 AND result_key = $2 AND status = 'open'`,
-  [a.resultKey, a.occurredAt, a.resolverMembershipId ?? null, rc.actorId]);
+  [a.resultKey, a.occurredAt, a.resolverMembershipId ?? null, rc.actorId, a.resolution ?? 'applied']);
+}
+// ---- T-23 exception queue queries (02-TRD §5.6 #38-#42). Tenant = $1; filters are bound parameters; the open list is oldest first (stale-age alert, 02-TRD §12).
+const EXC_SORT = 'created_at';
+/** #38: keyset page (created_at, id) on ingest_exceptions__tenant_id_status__idx; limit + 1 rows are read to detect the next page. */
+export async function listIngestExceptionRows(rc: RepoCtx, q: { status: string; reasons?: readonly string[]; instrumentId?: string; cursor?: string; limit: number }):
+  Promise<{ rows: Record<string, any>[]; nextCursor?: string }> {
+  const limit = limitOf(q.limit);
+  const after = q.cursor === undefined ? undefined : decodeCursor(q.cursor, EXC_SORT);
+  const rows = await query(rc, `SELECT e.*, to_char(e.created_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"') AS sort_key FROM lab.ingest_exceptions e
+      WHERE e.tenant_id = $1 AND e.status = $2 AND ($3::text[] IS NULL OR e.reason = ANY($3)) AND ($4::uuid IS NULL OR e.instrument_id = $4)
+        AND ($5::timestamptz IS NULL OR (e.created_at, e.id) > ($5::timestamptz, $6::uuid))
+      ORDER BY e.created_at, e.id LIMIT $7`,
+  [q.status, q.reasons ?? null, q.instrumentId ?? null, after?.key ?? null, after?.id ?? null, limit + 1]);
+  const page = rows.slice(0, limit);
+  const last = page[page.length - 1];
+  return { rows: page.map(({ sort_key: _k, ...r }) => r), ...(rows.length > limit && last ? { nextCursor: encodeCursor(EXC_SORT, last['sort_key'], last['id']) } : {}) };
+}
+export async function getIngestExceptionRow(rc: RepoCtx, id: string, lock = false): Promise<Record<string, any> | undefined> {
+  if (!isUuid(id)) return undefined;
+  return (await first(rc, `SELECT * FROM lab.ingest_exceptions WHERE tenant_id = $1 AND id = $2${lock ? ' FOR UPDATE' : ''}`, [id])) ?? undefined;   // another tenant's id = no row = 404 (P-01)
+}
+/** Worker tasks (§8): open exceptions of the given reasons (+ one barcode), id ascending (uuidv7 = creation order) after `afterId`, so a capped run can continue where it stopped. */
+export async function listOpenIngestExceptionRows(rc: RepoCtx, q: { reasons: readonly string[]; barcode?: string; limit: number; afterId?: string }): Promise<Record<string, any>[]> {
+  return query(rc, `SELECT * FROM lab.ingest_exceptions WHERE tenant_id = $1 AND status = 'open' AND reason = ANY($2::text[]) AND ($3::text IS NULL OR sample_barcode = $3)
+      AND ($4::uuid IS NULL OR id > $4::uuid) ORDER BY id LIMIT $5`, [q.reasons, q.barcode ?? null, q.afterId ?? null, limitOf(q.limit)]);
+}
+export async function getSpecimenBarcodeRow(rc: RepoCtx, specimenId: string): Promise<string | undefined> {
+  if (!isUuid(specimenId)) return undefined;
+  return ((await first(rc, 'SELECT barcode FROM lab.specimens WHERE tenant_id = $1 AND id = $2', [specimenId])) ?? undefined)?.['barcode'];
+}
+/** Tenant rows shadow global rows of the same code (05-SCHEMA coded sets). */
+export async function isActiveExceptionDiscardReason(rc: RepoCtx, code: string): Promise<boolean> {
+  const r = await first(rc, `SELECT COALESCE((SELECT t.is_active FROM lab.cs_exception_discard_reasons t WHERE t.tenant_id = $1 AND t.code = $2),
+      (SELECT g.is_active FROM lab.g_cs_exception_discard_reasons g WHERE g.code = $2), false) AS ok`, [code]);
+  return r?.['ok'] === true;
+}
+/** ingest_exceptions__discard__ck: discarded needs discard_reason_code; closed rows need resolved_at (set together). */
+export async function discardIngestExceptionRow(rc: RepoCtx, a: { id: string; reasonCode: string; comment?: string; resolverMembershipId: string; occurredAt: string }): Promise<void> {
+  const rows = await query(rc, `UPDATE lab.ingest_exceptions SET status = 'discarded', resolution = 'discarded', discard_reason_code = $3, comment = $4, resolved_at = $5,
+      resolved_by_membership_id = $6, version = version + 1, updated_at = now(), updated_by = $7 WHERE tenant_id = $1 AND id = $2 AND status = 'open' RETURNING id`,
+  [a.id, a.reasonCode, a.comment ?? null, a.occurredAt, a.resolverMembershipId, rc.actorId]);
+  if (!rows[0]) throw new LimsError('common.not_found');
 }
 /** Append-only (class A, A1 idempotency). */
 export const MODULE_SUBMISSIONS = table('lab.module_submissions', 'id', ['id', 'tenant_id', 'idempotency_key', 'result_id', 'payload_module', 'payload_entity_id',

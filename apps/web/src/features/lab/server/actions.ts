@@ -3,9 +3,11 @@
 // because a thrown ApiError loses its code across the action boundary in production. Only ApiError is mapped.
 import 'server-only';
 import { ApiError } from '@/core/api/server-fetch';
-import { amendResult, bulkApproveResults, bulkCollect, bulkDispatch, bulkEnterResults, bulkVerifyResults, lookupSpecimens, receiveSpecimen, rejectSpecimen, returnResult } from './write.server';
-import { getAnalyteTrend, getResultHistory, getStatusBoard, listCommentCodes } from './read.server';
-import type { ActionResult, AmendBody, BoardQuery, BulkItem, BulkRow, CommentCodeRow, DowntimeFields, EnterEntry, EnterResponse, GridResult, HistoryRow, LookupKey, RejectBody, RejectResult, ResultBulkRow, ReturnBody, Specimen, StatusBoardPage, TrendResponse, VerifyItem } from './types';
+import { problem } from '@/core/session/types';
+import { amendResult, assignException, bulkApproveResults, bulkCollect, bulkDispatch, bulkEnterResults, bulkVerifyResults, discardException, lookupSpecimens, reapplyException, receiveSpecimen, rejectSpecimen, returnResult } from './write.server';
+import { getAnalyteTrend, getResultHistory, getStatusBoard, listCommentCodes, listOrderResults } from './read.server';
+import { UUID_RE } from './types';
+import type { ActionResult, AmendBody, AssignBody, BoardQuery, BulkItem, BulkRow, CommentCodeRow, DiscardBody, DowntimeFields, EnterEntry, EnterResponse, ExceptionAction, GridResult, HistoryRow, IngestException, LookupKey, OrderResult, RejectBody, RejectResult, ResultBulkRow, ReturnBody, Specimen, StatusBoardPage, TrendResponse, VerifyItem } from './types';
 
 async function run<T>(f: () => Promise<T>): Promise<ActionResult<T>> {
   try {
@@ -19,6 +21,16 @@ async function run<T>(f: () => Promise<T>): Promise<ActionResult<T>> {
   }
 }
 
+export async function reapplyExceptionAction(id: string): Promise<ActionResult<ExceptionAction>> { return run(() => reapplyException(id)); }
+export async function discardExceptionAction(id: string, body: DiscardBody): Promise<ActionResult<IngestException>> { return run(() => discardException(id, body)); }
+export async function assignExceptionAction(id: string, body: AssignBody, key: string): Promise<ActionResult<ExceptionAction>> { return run(() => assignException(id, body, key)); }
+/** Results of an order for the assign dialog (cancelled rows are not offered). Same #listOrderResults read the T-20 grid uses, flattened. */
+export async function listOrderResultsAction(orderId: string): Promise<ActionResult<OrderResult[]>> {
+  return run(async () => {
+    if (!UUID_RE.test(orderId)) throw new ApiError(400, problem('common.validation_failed', 'Validation failed', 400));
+    return (await listOrderResults(orderId)).items.flatMap((i) => i.results).filter((x) => x.status !== 'cancelled');
+  });
+}
 /** T-27: the board poll / filter change (the JWT stays on the server, REQ-SEC-068). */
 export async function getStatusBoardAction(q: BoardQuery): Promise<ActionResult<StatusBoardPage>> { return run(() => getStatusBoard(q)); }
 export async function bulkVerifyAction(list: VerifyItem[], key: string): Promise<ActionResult<ResultBulkRow[]>> { return run(() => bulkVerifyResults(list, key)); }

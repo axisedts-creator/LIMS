@@ -1862,6 +1862,411 @@ export interface Operations {
       };
     };
   };
+  approveSmartLibraryVersion: {
+    params: {
+      library_version_id: string;
+    };
+    query: Record<string, never>;
+    headers: {
+      "If-Match": string;
+    };
+    body: {
+      attestation: true;
+      note?: string;
+    };
+    responses: {
+      200: ({
+        id: string;
+        version_no: number;
+        status: "draft" | "in_review" | "approved" | "retired";
+        language: "en" | "ne";
+        formula_version: "hs-1";
+        params: {
+          score_enabled: boolean;
+          credit_in_range_bp: number;
+          credit_borderline_bp: number;
+          credit_out_of_range_bp: number;
+          credit_critical_bp: number;
+          min_groups_scored: number;
+          band_good_min: number;
+          band_fair_min: number;
+          critical_forces_needs_attention: boolean;
+          borderline_fraction_bp: number;
+          min_mapped_results: number;
+          trend_enabled: boolean;
+          trend_max_points: number;
+          trend_lookback_days: number;
+          trend_stable_bp: number;
+          trends_max: number;
+          advice_max_blocks: number;
+          followup_max: number;
+        };
+        source_version_id?: string;
+        change_summary?: string;
+        content_sha256?: string;
+        submitted_at?: string;
+        submitted_by_membership_id?: string;
+        approved_at?: string;
+        approved_by_membership_id?: string;
+        approved_by_display_name?: string;
+        approval_note?: string;
+        returned_at?: string;
+        return_comment?: string;
+        retired_at?: string;
+        counts: {
+          blocks: number;
+          rules: number;
+          analyte_groups: number;
+          groups_shown: number;
+        };
+        version: number;
+        created_at: string;
+        updated_at: string;
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      409: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      428: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  approveSmartSummary: {
+    params: {
+      summary_id: string;
+    };
+    query: Record<string, never>;
+    headers: {
+      "If-Match": string;
+    };
+    body: {
+      attestation: true;
+      use_llm_text?: boolean;
+    };
+    responses: {
+      200: ({
+        id: string;
+        order_id: string;
+        centre_id: string;
+        status: "draft" | "approved" | "rejected" | "superseded" | "preview";
+        library_version_id: string;
+        template_library_version: number;
+        formula_version: "hs-1";
+        language: "en" | "ne";
+        built_at: string;
+        report_version_nos: number[];
+        approved_at?: string;
+        approved_by_membership_id?: string;
+        approved_by_display_name?: string;
+        rejected_at?: string;
+        rejected_by_display_name?: string;
+        reject_reason_code?: string;
+        reject_comment?: string;
+        superseded_at?: string;
+        superseded_reason?: string;
+        superseded_by_summary_id?: string;
+        health_score?: {
+          value: number;
+          band: "good" | "fair" | "needs_attention";
+          formula_version: "hs-1";
+          panels_scored: number;
+          explanation_text?: string;
+        };
+        panels: ({
+          panel_code: string;
+          display_name: string;
+          status: "in_range" | "borderline" | "out_of_range" | "critical";
+          result_ids: string[];
+        })[];
+        deranged: ({
+          result_id: string;
+          analyte_id: string;
+          analyte_name: string;
+          direction: "low" | "high" | "abnormal";
+          severity: "in_range" | "borderline" | "out_of_range" | "critical";
+          template_block_id: string;
+          text: string;
+          llm_text?: string;
+        })[];
+        advice: {
+          template_block_id: string;
+          text: string;
+          llm_text?: string;
+        }[];
+        follow_ups: {
+          rule_id: string;
+          suggested_test_code: string;
+          suggested_test_name: string;
+          interval_days: number;
+          text: string;
+          llm_text?: string;
+        }[];
+        trends: ({
+          analyte_id: string;
+          analyte_name: string;
+          unit_code?: string;
+          direction: "improved" | "worsened" | "stable";
+          point_result_ids: string[];
+          points: {
+            result_id: string;
+            approved_at: string;
+            value_numeric: string;
+          }[];
+        })[];
+        disclaimer_block_id: string;
+        disclaimer_text: string;
+        counts: {
+          deranged: number;
+          critical: number;
+          unmapped_results: number;
+          ignored_duplicates: number;
+        };
+        llm: {
+          enabled: boolean;
+          use_llm_text: boolean;
+          last_run_id?: string;
+        };
+        registration_no: string;
+        patient_display_name?: string;
+        review_inputs?: ({
+          result_id: string;
+          analyte_id: string;
+          analyte_name: string;
+          value_text: string;
+          unit_code?: string;
+          flag?: string;
+          ref_range_text?: string;
+          band_status: "in_range" | "borderline" | "out_of_range" | "critical";
+          group_code?: string;
+        })[];
+        reviews: ({
+          action: "approved" | "rejected" | "superseded" | "llm_rephrase_requested";
+          actor_display_name?: string;
+          reason_code?: string;
+          at: string;
+        })[];
+        version: number;
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      409: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      428: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
   approveSupportSession: {
     params: {
       support_session_id: string;
@@ -2137,6 +2542,338 @@ export interface Operations {
         }[];
       };
       404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      422: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  buildSmartSummary: {
+    params: {
+      order_id: string;
+    };
+    query: Record<string, never>;
+    headers: {
+      "Idempotency-Key": string;
+    };
+    body: {
+      mode: "current" | "rebuild_with_active_library";
+    };
+    responses: {
+      200: ({
+        id: string;
+        order_id: string;
+        centre_id: string;
+        status: "draft" | "approved" | "rejected" | "superseded" | "preview";
+        library_version_id: string;
+        template_library_version: number;
+        formula_version: "hs-1";
+        language: "en" | "ne";
+        built_at: string;
+        report_version_nos: number[];
+        approved_at?: string;
+        approved_by_membership_id?: string;
+        approved_by_display_name?: string;
+        rejected_at?: string;
+        rejected_by_display_name?: string;
+        reject_reason_code?: string;
+        reject_comment?: string;
+        superseded_at?: string;
+        superseded_reason?: string;
+        superseded_by_summary_id?: string;
+        health_score?: {
+          value: number;
+          band: "good" | "fair" | "needs_attention";
+          formula_version: "hs-1";
+          panels_scored: number;
+          explanation_text?: string;
+        };
+        panels: ({
+          panel_code: string;
+          display_name: string;
+          status: "in_range" | "borderline" | "out_of_range" | "critical";
+          result_ids: string[];
+        })[];
+        deranged: ({
+          result_id: string;
+          analyte_id: string;
+          analyte_name: string;
+          direction: "low" | "high" | "abnormal";
+          severity: "in_range" | "borderline" | "out_of_range" | "critical";
+          template_block_id: string;
+          text: string;
+          llm_text?: string;
+        })[];
+        advice: {
+          template_block_id: string;
+          text: string;
+          llm_text?: string;
+        }[];
+        follow_ups: {
+          rule_id: string;
+          suggested_test_code: string;
+          suggested_test_name: string;
+          interval_days: number;
+          text: string;
+          llm_text?: string;
+        }[];
+        trends: ({
+          analyte_id: string;
+          analyte_name: string;
+          unit_code?: string;
+          direction: "improved" | "worsened" | "stable";
+          point_result_ids: string[];
+          points: {
+            result_id: string;
+            approved_at: string;
+            value_numeric: string;
+          }[];
+        })[];
+        disclaimer_block_id: string;
+        disclaimer_text: string;
+        counts: {
+          deranged: number;
+          critical: number;
+          unmapped_results: number;
+          ignored_duplicates: number;
+        };
+        llm: {
+          enabled: boolean;
+          use_llm_text: boolean;
+          last_run_id?: string;
+        };
+        registration_no: string;
+        patient_display_name?: string;
+        review_inputs?: ({
+          result_id: string;
+          analyte_id: string;
+          analyte_name: string;
+          value_text: string;
+          unit_code?: string;
+          flag?: string;
+          ref_range_text?: string;
+          band_status: "in_range" | "borderline" | "out_of_range" | "critical";
+          group_code?: string;
+        })[];
+        reviews: ({
+          action: "approved" | "rejected" | "superseded" | "llm_rephrase_requested";
+          actor_display_name?: string;
+          reason_code?: string;
+          at: string;
+        })[];
+        version: number;
+      });
+      201: ({
+        id: string;
+        order_id: string;
+        centre_id: string;
+        status: "draft" | "approved" | "rejected" | "superseded" | "preview";
+        library_version_id: string;
+        template_library_version: number;
+        formula_version: "hs-1";
+        language: "en" | "ne";
+        built_at: string;
+        report_version_nos: number[];
+        approved_at?: string;
+        approved_by_membership_id?: string;
+        approved_by_display_name?: string;
+        rejected_at?: string;
+        rejected_by_display_name?: string;
+        reject_reason_code?: string;
+        reject_comment?: string;
+        superseded_at?: string;
+        superseded_reason?: string;
+        superseded_by_summary_id?: string;
+        health_score?: {
+          value: number;
+          band: "good" | "fair" | "needs_attention";
+          formula_version: "hs-1";
+          panels_scored: number;
+          explanation_text?: string;
+        };
+        panels: ({
+          panel_code: string;
+          display_name: string;
+          status: "in_range" | "borderline" | "out_of_range" | "critical";
+          result_ids: string[];
+        })[];
+        deranged: ({
+          result_id: string;
+          analyte_id: string;
+          analyte_name: string;
+          direction: "low" | "high" | "abnormal";
+          severity: "in_range" | "borderline" | "out_of_range" | "critical";
+          template_block_id: string;
+          text: string;
+          llm_text?: string;
+        })[];
+        advice: {
+          template_block_id: string;
+          text: string;
+          llm_text?: string;
+        }[];
+        follow_ups: {
+          rule_id: string;
+          suggested_test_code: string;
+          suggested_test_name: string;
+          interval_days: number;
+          text: string;
+          llm_text?: string;
+        }[];
+        trends: ({
+          analyte_id: string;
+          analyte_name: string;
+          unit_code?: string;
+          direction: "improved" | "worsened" | "stable";
+          point_result_ids: string[];
+          points: {
+            result_id: string;
+            approved_at: string;
+            value_numeric: string;
+          }[];
+        })[];
+        disclaimer_block_id: string;
+        disclaimer_text: string;
+        counts: {
+          deranged: number;
+          critical: number;
+          unmapped_results: number;
+          ignored_duplicates: number;
+        };
+        llm: {
+          enabled: boolean;
+          use_llm_text: boolean;
+          last_run_id?: string;
+        };
+        registration_no: string;
+        patient_display_name?: string;
+        review_inputs?: ({
+          result_id: string;
+          analyte_id: string;
+          analyte_name: string;
+          value_text: string;
+          unit_code?: string;
+          flag?: string;
+          ref_range_text?: string;
+          band_status: "in_range" | "borderline" | "out_of_range" | "critical";
+          group_code?: string;
+        })[];
+        reviews: ({
+          action: "approved" | "rejected" | "superseded" | "llm_rephrase_requested";
+          actor_display_name?: string;
+          reason_code?: string;
+          at: string;
+        })[];
+        version: number;
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      409: {
         type: string;
         title: string;
         status: number;
@@ -15053,6 +15790,605 @@ export interface Operations {
       };
     };
   };
+  createSmartDenyTerm: {
+    params: Record<string, never>;
+    query: Record<string, never>;
+    headers: {
+      "Idempotency-Key": string;
+    };
+    body: {
+      term: string;
+      language: "en" | "ne" | "any";
+      reason?: string;
+    };
+    responses: {
+      201: ({
+        id?: string;
+        term: string;
+        language: "en" | "ne" | "any";
+        scope: "global" | "tenant";
+        reason?: string;
+        is_active: boolean;
+        version?: number;
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      409: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      422: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  createSmartLibraryVersion: {
+    params: Record<string, never>;
+    query: Record<string, never>;
+    headers: {
+      "Idempotency-Key": string;
+    };
+    body: {
+      source: "starter" | "clone_active" | "clone_version";
+      source_version_id?: string;
+      change_summary?: string;
+    };
+    responses: {
+      201: ({
+        id: string;
+        version_no: number;
+        status: "draft" | "in_review" | "approved" | "retired";
+        language: "en" | "ne";
+        formula_version: "hs-1";
+        params: {
+          score_enabled: boolean;
+          credit_in_range_bp: number;
+          credit_borderline_bp: number;
+          credit_out_of_range_bp: number;
+          credit_critical_bp: number;
+          min_groups_scored: number;
+          band_good_min: number;
+          band_fair_min: number;
+          critical_forces_needs_attention: boolean;
+          borderline_fraction_bp: number;
+          min_mapped_results: number;
+          trend_enabled: boolean;
+          trend_max_points: number;
+          trend_lookback_days: number;
+          trend_stable_bp: number;
+          trends_max: number;
+          advice_max_blocks: number;
+          followup_max: number;
+        };
+        source_version_id?: string;
+        change_summary?: string;
+        content_sha256?: string;
+        submitted_at?: string;
+        submitted_by_membership_id?: string;
+        approved_at?: string;
+        approved_by_membership_id?: string;
+        approved_by_display_name?: string;
+        approval_note?: string;
+        returned_at?: string;
+        return_comment?: string;
+        retired_at?: string;
+        counts: {
+          blocks: number;
+          rules: number;
+          analyte_groups: number;
+          groups_shown: number;
+        };
+        version: number;
+        created_at: string;
+        updated_at: string;
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      409: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      422: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  createSmartRule: {
+    params: {
+      library_version_id: string;
+    };
+    query: Record<string, never>;
+    headers: {
+      "Idempotency-Key": string;
+    };
+    body: {
+      rule_kind: "deranged" | "advice" | "followup";
+      trigger_kind: "analyte" | "group" | "any" | "all_in_range";
+      analyte_id?: string;
+      group_code?: string;
+      direction: "low" | "high" | "abnormal" | "any";
+      min_severity?: "borderline" | "out_of_range" | "critical";
+      priority?: number;
+      block_id: string;
+      suggested_test_id?: string;
+      interval_days?: number;
+    };
+    responses: {
+      201: ({
+        id: string;
+        rule_kind: "deranged" | "advice" | "followup";
+        trigger_kind: "analyte" | "group" | "any" | "all_in_range";
+        analyte_id?: string;
+        group_code?: string;
+        direction: "low" | "high" | "abnormal" | "any";
+        min_severity?: "borderline" | "out_of_range" | "critical";
+        priority?: number;
+        block_id: string;
+        suggested_test_id?: string;
+        interval_days?: number;
+        version: number;
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      409: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      422: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  createSmartTemplateBlock: {
+    params: {
+      library_version_id: string;
+    };
+    query: Record<string, never>;
+    headers: {
+      "Idempotency-Key": string;
+    };
+    body: {
+      block_key: string;
+      kind: "deranged" | "advice" | "followup" | "disclaimer" | "score_explanation";
+      text_en?: string;
+      text_ne?: string;
+      note?: string;
+    };
+    responses: {
+      201: ({
+        id: string;
+        block_key: string;
+        kind: "deranged" | "advice" | "followup" | "disclaimer" | "score_explanation";
+        text_en?: string;
+        text_ne?: string;
+        note?: string;
+        placeholders: string[];
+        version: number;
+        updated_at: string;
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      409: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      422: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
   createSpecimenType: {
     params: Record<string, never>;
     query: Record<string, never>;
@@ -18507,6 +19843,139 @@ export interface Operations {
       };
     };
   };
+  deactivateSmartDenyTerm: {
+    params: {
+      term_id: string;
+    };
+    query: Record<string, never>;
+    headers: {
+      "If-Match": string;
+    };
+    body: Record<string, never> | undefined;
+    responses: {
+      200: ({
+        id?: string;
+        term: string;
+        language: "en" | "ne" | "any";
+        scope: "global" | "tenant";
+        reason?: string;
+        is_active: boolean;
+        version?: number;
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      409: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      428: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
   deactivateUser: {
     params: {
       membership_id: string;
@@ -18610,6 +20079,398 @@ export interface Operations {
         }[];
       };
       409: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      428: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  deleteSmartAnalyteGroup: {
+    params: {
+      library_version_id: string;
+      analyte_id: string;
+    };
+    query: Record<string, never>;
+    headers: {
+      "If-Match": string;
+    };
+    body: never;
+    responses: {
+      204: undefined;
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      409: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      428: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  deleteSmartRule: {
+    params: {
+      library_version_id: string;
+      rule_id: string;
+    };
+    query: Record<string, never>;
+    headers: {
+      "If-Match": string;
+    };
+    body: never;
+    responses: {
+      204: undefined;
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      409: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      428: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  deleteSmartTemplateBlock: {
+    params: {
+      library_version_id: string;
+      block_id: string;
+    };
+    query: Record<string, never>;
+    headers: {
+      "If-Match": string;
+    };
+    body: never;
+    responses: {
+      204: undefined;
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      409: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      422: {
         type: string;
         title: string;
         status: number;
@@ -26452,6 +28313,203 @@ export interface Operations {
           recorded_at: string;
         })[];
         referrer_display_name?: string;
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  getCurrentSmartSummary: {
+    params: {
+      order_id: string;
+    };
+    query: Record<string, never>;
+    headers: Record<string, never>;
+    body: never;
+    responses: {
+      200: ({
+        id: string;
+        order_id: string;
+        centre_id: string;
+        status: "draft" | "approved" | "rejected" | "superseded" | "preview";
+        library_version_id: string;
+        template_library_version: number;
+        formula_version: "hs-1";
+        language: "en" | "ne";
+        built_at: string;
+        report_version_nos: number[];
+        approved_at?: string;
+        approved_by_membership_id?: string;
+        approved_by_display_name?: string;
+        rejected_at?: string;
+        rejected_by_display_name?: string;
+        reject_reason_code?: string;
+        reject_comment?: string;
+        superseded_at?: string;
+        superseded_reason?: string;
+        superseded_by_summary_id?: string;
+        health_score?: {
+          value: number;
+          band: "good" | "fair" | "needs_attention";
+          formula_version: "hs-1";
+          panels_scored: number;
+          explanation_text?: string;
+        };
+        panels: ({
+          panel_code: string;
+          display_name: string;
+          status: "in_range" | "borderline" | "out_of_range" | "critical";
+          result_ids: string[];
+        })[];
+        deranged: ({
+          result_id: string;
+          analyte_id: string;
+          analyte_name: string;
+          direction: "low" | "high" | "abnormal";
+          severity: "in_range" | "borderline" | "out_of_range" | "critical";
+          template_block_id: string;
+          text: string;
+          llm_text?: string;
+        })[];
+        advice: {
+          template_block_id: string;
+          text: string;
+          llm_text?: string;
+        }[];
+        follow_ups: {
+          rule_id: string;
+          suggested_test_code: string;
+          suggested_test_name: string;
+          interval_days: number;
+          text: string;
+          llm_text?: string;
+        }[];
+        trends: ({
+          analyte_id: string;
+          analyte_name: string;
+          unit_code?: string;
+          direction: "improved" | "worsened" | "stable";
+          point_result_ids: string[];
+          points: {
+            result_id: string;
+            approved_at: string;
+            value_numeric: string;
+          }[];
+        })[];
+        disclaimer_block_id: string;
+        disclaimer_text: string;
+        counts: {
+          deranged: number;
+          critical: number;
+          unmapped_results: number;
+          ignored_duplicates: number;
+        };
+        llm: {
+          enabled: boolean;
+          use_llm_text: boolean;
+          last_run_id?: string;
+        };
+        registration_no: string;
+        patient_display_name?: string;
+        review_inputs?: ({
+          result_id: string;
+          analyte_id: string;
+          analyte_name: string;
+          value_text: string;
+          unit_code?: string;
+          flag?: string;
+          ref_range_text?: string;
+          band_status: "in_range" | "borderline" | "out_of_range" | "critical";
+          group_code?: string;
+        })[];
+        reviews: ({
+          action: "approved" | "rejected" | "superseded" | "llm_rephrase_requested";
+          actor_display_name?: string;
+          reason_code?: string;
+          at: string;
+        })[];
+        version: number;
       });
       400: {
         type: string;
@@ -35262,6 +37320,551 @@ export interface Operations {
         }[];
       };
       403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  getSmartCodedSet: {
+    params: {
+      set_code: "summary_reject_reasons";
+    };
+    query: Record<string, never>;
+    headers: Record<string, never>;
+    body: never;
+    responses: {
+      200: {
+        set_code: string;
+        items: {
+          code: string;
+          display: string;
+          sort_order: number;
+          is_active: boolean;
+        }[];
+      };
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  getSmartLibraryCodedSet: {
+    params: {
+      set_code: "organ_groups";
+    };
+    query: Record<string, never>;
+    headers: Record<string, never>;
+    body: never;
+    responses: {
+      200: {
+        set_code: string;
+        items: {
+          code: string;
+          display: string;
+          sort_order: number;
+          is_active: boolean;
+        }[];
+      };
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  getSmartLibraryVersion: {
+    params: {
+      library_version_id: string;
+    };
+    query: Record<string, never>;
+    headers: Record<string, never>;
+    body: never;
+    responses: {
+      200: ({
+        id: string;
+        version_no: number;
+        status: "draft" | "in_review" | "approved" | "retired";
+        language: "en" | "ne";
+        formula_version: "hs-1";
+        params: {
+          score_enabled: boolean;
+          credit_in_range_bp: number;
+          credit_borderline_bp: number;
+          credit_out_of_range_bp: number;
+          credit_critical_bp: number;
+          min_groups_scored: number;
+          band_good_min: number;
+          band_fair_min: number;
+          critical_forces_needs_attention: boolean;
+          borderline_fraction_bp: number;
+          min_mapped_results: number;
+          trend_enabled: boolean;
+          trend_max_points: number;
+          trend_lookback_days: number;
+          trend_stable_bp: number;
+          trends_max: number;
+          advice_max_blocks: number;
+          followup_max: number;
+        };
+        source_version_id?: string;
+        change_summary?: string;
+        content_sha256?: string;
+        submitted_at?: string;
+        submitted_by_membership_id?: string;
+        approved_at?: string;
+        approved_by_membership_id?: string;
+        approved_by_display_name?: string;
+        approval_note?: string;
+        returned_at?: string;
+        return_comment?: string;
+        retired_at?: string;
+        counts: {
+          blocks: number;
+          rules: number;
+          analyte_groups: number;
+          groups_shown: number;
+        };
+        version: number;
+        created_at: string;
+        updated_at: string;
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  getSmartSummary: {
+    params: {
+      summary_id: string;
+    };
+    query: Record<string, never>;
+    headers: Record<string, never>;
+    body: never;
+    responses: {
+      200: ({
+        id: string;
+        order_id: string;
+        centre_id: string;
+        status: "draft" | "approved" | "rejected" | "superseded" | "preview";
+        library_version_id: string;
+        template_library_version: number;
+        formula_version: "hs-1";
+        language: "en" | "ne";
+        built_at: string;
+        report_version_nos: number[];
+        approved_at?: string;
+        approved_by_membership_id?: string;
+        approved_by_display_name?: string;
+        rejected_at?: string;
+        rejected_by_display_name?: string;
+        reject_reason_code?: string;
+        reject_comment?: string;
+        superseded_at?: string;
+        superseded_reason?: string;
+        superseded_by_summary_id?: string;
+        health_score?: {
+          value: number;
+          band: "good" | "fair" | "needs_attention";
+          formula_version: "hs-1";
+          panels_scored: number;
+          explanation_text?: string;
+        };
+        panels: ({
+          panel_code: string;
+          display_name: string;
+          status: "in_range" | "borderline" | "out_of_range" | "critical";
+          result_ids: string[];
+        })[];
+        deranged: ({
+          result_id: string;
+          analyte_id: string;
+          analyte_name: string;
+          direction: "low" | "high" | "abnormal";
+          severity: "in_range" | "borderline" | "out_of_range" | "critical";
+          template_block_id: string;
+          text: string;
+          llm_text?: string;
+        })[];
+        advice: {
+          template_block_id: string;
+          text: string;
+          llm_text?: string;
+        }[];
+        follow_ups: {
+          rule_id: string;
+          suggested_test_code: string;
+          suggested_test_name: string;
+          interval_days: number;
+          text: string;
+          llm_text?: string;
+        }[];
+        trends: ({
+          analyte_id: string;
+          analyte_name: string;
+          unit_code?: string;
+          direction: "improved" | "worsened" | "stable";
+          point_result_ids: string[];
+          points: {
+            result_id: string;
+            approved_at: string;
+            value_numeric: string;
+          }[];
+        })[];
+        disclaimer_block_id: string;
+        disclaimer_text: string;
+        counts: {
+          deranged: number;
+          critical: number;
+          unmapped_results: number;
+          ignored_duplicates: number;
+        };
+        llm: {
+          enabled: boolean;
+          use_llm_text: boolean;
+          last_run_id?: string;
+        };
+        registration_no: string;
+        patient_display_name?: string;
+        review_inputs?: ({
+          result_id: string;
+          analyte_id: string;
+          analyte_name: string;
+          value_text: string;
+          unit_code?: string;
+          flag?: string;
+          ref_range_text?: string;
+          band_status: "in_range" | "borderline" | "out_of_range" | "critical";
+          group_code?: string;
+        })[];
+        reviews: ({
+          action: "approved" | "rejected" | "superseded" | "llm_rephrase_requested";
+          actor_display_name?: string;
+          reason_code?: string;
+          at: string;
+        })[];
+        version: number;
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
         type: string;
         title: string;
         status: number;
@@ -51412,6 +54015,888 @@ export interface Operations {
       };
     };
   };
+  listSmartAnalyteGroups: {
+    params: {
+      library_version_id: string;
+    };
+    query: Record<string, never>;
+    headers: Record<string, never>;
+    body: never;
+    responses: {
+      200: {
+        data: {
+          analyte_id: string;
+          group_code: string;
+          include_in_score: boolean;
+          trend_enabled: boolean;
+          borderline_fraction_bp?: number;
+          trend_stable_bp?: number;
+          sort_order: number;
+          version: number;
+        }[];
+      };
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  listSmartDenyTerms: {
+    params: Record<string, never>;
+    query: {
+      include_global?: boolean;
+    };
+    headers: Record<string, never>;
+    body: never;
+    responses: {
+      200: ({
+        data: ({
+          id?: string;
+          term: string;
+          language: "en" | "ne" | "any";
+          scope: "global" | "tenant";
+          reason?: string;
+          is_active: boolean;
+          version?: number;
+        })[];
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  listSmartGroupSettings: {
+    params: {
+      library_version_id: string;
+    };
+    query: Record<string, never>;
+    headers: Record<string, never>;
+    body: never;
+    responses: {
+      200: {
+        data: {
+          group_code: string;
+          display_en: string;
+          display_ne?: string;
+          score_weight: number;
+          sort_order: number;
+          is_shown: boolean;
+          version: number;
+        }[];
+      };
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  listSmartLibraryVersions: {
+    params: Record<string, never>;
+    query: {
+      status?: string;
+      sort?: "-version_no";
+      cursor?: string;
+      limit?: number;
+    };
+    headers: Record<string, never>;
+    body: never;
+    responses: {
+      200: ({
+        data: ({
+          id: string;
+          version_no: number;
+          status: "draft" | "in_review" | "approved" | "retired";
+          language: "en" | "ne";
+          approved_at?: string;
+          approved_by_membership_id?: string;
+          approved_by_display_name?: string;
+          updated_at: string;
+          version: number;
+        })[];
+        page: {
+          next_cursor?: string;
+          limit: number;
+        };
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  listSmartLlmRuns: {
+    params: {
+      summary_id: string;
+    };
+    query: Record<string, never>;
+    headers: Record<string, never>;
+    body: never;
+    responses: {
+      200: ({
+        data: ({
+          id: string;
+          status: "succeeded" | "partially_passed" | "validator_failed" | "failed";
+          prompt_template_version: string;
+          model_ref: string;
+          items: {
+            item_ref: string;
+            template_text: string;
+            output_text?: string;
+            passed: boolean;
+            failure_codes: string[];
+          }[];
+          latency_ms?: number;
+          created_at: string;
+        })[];
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  listSmartRules: {
+    params: {
+      library_version_id: string;
+    };
+    query: {
+      rule_kind?: "deranged" | "advice" | "followup";
+    };
+    headers: Record<string, never>;
+    body: never;
+    responses: {
+      200: ({
+        data: ({
+          id: string;
+          rule_kind: "deranged" | "advice" | "followup";
+          trigger_kind: "analyte" | "group" | "any" | "all_in_range";
+          analyte_id?: string;
+          group_code?: string;
+          direction: "low" | "high" | "abnormal" | "any";
+          min_severity?: "borderline" | "out_of_range" | "critical";
+          priority?: number;
+          block_id: string;
+          suggested_test_id?: string;
+          interval_days?: number;
+          version: number;
+        })[];
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  listSmartSummaries: {
+    params: Record<string, never>;
+    query: {
+      status?: string;
+      centre_id?: string;
+      built_at_from?: string;
+      built_at_to?: string;
+      has_critical?: boolean;
+      sort?: "built_at" | "-built_at";
+      cursor?: string;
+      limit?: number;
+    };
+    headers: Record<string, never>;
+    body: never;
+    responses: {
+      200: ({
+        data: ({
+          id: string;
+          order_id: string;
+          centre_id: string;
+          status: "draft" | "approved" | "rejected" | "superseded";
+          built_at: string;
+          health_score_band?: "good" | "fair" | "needs_attention";
+          deranged_count: number;
+          critical_count: number;
+          registration_no: string;
+          patient_display_name?: string;
+          version: number;
+        })[];
+        page: {
+          next_cursor?: string;
+          limit: number;
+        };
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  listSmartTemplateBlocks: {
+    params: {
+      library_version_id: string;
+    };
+    query: {
+      kind?: "deranged" | "advice" | "followup" | "disclaimer" | "score_explanation";
+    };
+    headers: Record<string, never>;
+    body: never;
+    responses: {
+      200: ({
+        data: ({
+          id: string;
+          block_key: string;
+          kind: "deranged" | "advice" | "followup" | "disclaimer" | "score_explanation";
+          text_en?: string;
+          text_ne?: string;
+          note?: string;
+          placeholders: string[];
+          version: number;
+          updated_at: string;
+        })[];
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
   listSpecimenTypes: {
     params: Record<string, never>;
     query: {
@@ -56768,6 +60253,223 @@ export interface Operations {
       };
     };
   };
+  previewSmartLibraryVersion: {
+    params: {
+      library_version_id: string;
+    };
+    query: Record<string, never>;
+    headers: Record<string, never>;
+    body: ({
+      order_id: string;
+    } | {
+      fixture_code: "synthetic_basic" | "synthetic_all_in_range" | "synthetic_critical";
+    });
+    responses: {
+      200: ({
+        id?: string;
+        order_id?: string;
+        centre_id?: string;
+        status: "draft" | "approved" | "rejected" | "superseded" | "preview";
+        library_version_id: string;
+        template_library_version: number;
+        formula_version: "hs-1";
+        language: "en" | "ne";
+        built_at: string;
+        report_version_nos: number[];
+        approved_at?: string;
+        approved_by_membership_id?: string;
+        approved_by_display_name?: string;
+        rejected_at?: string;
+        rejected_by_display_name?: string;
+        reject_reason_code?: string;
+        reject_comment?: string;
+        superseded_at?: string;
+        superseded_reason?: string;
+        superseded_by_summary_id?: string;
+        health_score?: {
+          value: number;
+          band: "good" | "fair" | "needs_attention";
+          formula_version: "hs-1";
+          panels_scored: number;
+          explanation_text?: string;
+        };
+        panels: ({
+          panel_code: string;
+          display_name: string;
+          status: "in_range" | "borderline" | "out_of_range" | "critical";
+          result_ids: string[];
+        })[];
+        deranged: ({
+          result_id: string;
+          analyte_id: string;
+          analyte_name: string;
+          direction: "low" | "high" | "abnormal";
+          severity: "in_range" | "borderline" | "out_of_range" | "critical";
+          template_block_id: string;
+          text: string;
+          llm_text?: string;
+        })[];
+        advice: {
+          template_block_id: string;
+          text: string;
+          llm_text?: string;
+        }[];
+        follow_ups: {
+          rule_id: string;
+          suggested_test_code: string;
+          suggested_test_name: string;
+          interval_days: number;
+          text: string;
+          llm_text?: string;
+        }[];
+        trends: ({
+          analyte_id: string;
+          analyte_name: string;
+          unit_code?: string;
+          direction: "improved" | "worsened" | "stable";
+          point_result_ids: string[];
+          points: {
+            result_id: string;
+            approved_at: string;
+            value_numeric: string;
+          }[];
+        })[];
+        disclaimer_block_id: string;
+        disclaimer_text: string;
+        counts: {
+          deranged: number;
+          critical: number;
+          unmapped_results: number;
+          ignored_duplicates: number;
+        };
+        llm: {
+          enabled: boolean;
+          use_llm_text: boolean;
+          last_run_id?: string;
+        };
+        registration_no?: string;
+        patient_display_name?: string;
+        review_inputs?: ({
+          result_id: string;
+          analyte_id: string;
+          analyte_name: string;
+          value_text: string;
+          unit_code?: string;
+          flag?: string;
+          ref_range_text?: string;
+          band_status: "in_range" | "borderline" | "out_of_range" | "critical";
+          group_code?: string;
+        })[];
+        reviews: ({
+          action: "approved" | "rejected" | "superseded" | "llm_rephrase_requested";
+          actor_display_name?: string;
+          reason_code?: string;
+          at: string;
+        })[];
+        version?: number;
+        unmapped_result_count: number;
+        ignored_duplicate_count: number;
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      422: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
   previewStaticQrReconciliation: {
     params: Record<string, never>;
     query: {
@@ -58845,6 +62547,284 @@ export interface Operations {
         }[];
       };
       503: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  putSmartAnalyteGroup: {
+    params: {
+      library_version_id: string;
+      analyte_id: string;
+    };
+    query: Record<string, never>;
+    headers: {
+      "If-Match"?: string;
+    };
+    body: {
+      group_code: string;
+      include_in_score?: boolean;
+      trend_enabled?: boolean;
+      borderline_fraction_bp?: number;
+      trend_stable_bp?: number;
+      sort_order?: number;
+    };
+    responses: {
+      200: {
+        analyte_id: string;
+        group_code: string;
+        include_in_score: boolean;
+        trend_enabled: boolean;
+        borderline_fraction_bp?: number;
+        trend_stable_bp?: number;
+        sort_order: number;
+        version: number;
+      };
+      201: {
+        analyte_id: string;
+        group_code: string;
+        include_in_score: boolean;
+        trend_enabled: boolean;
+        borderline_fraction_bp?: number;
+        trend_stable_bp?: number;
+        sort_order: number;
+        version: number;
+      };
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      409: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  putSmartGroupSetting: {
+    params: {
+      library_version_id: string;
+      group_code: string;
+    };
+    query: Record<string, never>;
+    headers: {
+      "If-Match": string;
+    };
+    body: {
+      display_en: string;
+      display_ne?: string;
+      score_weight: number;
+      sort_order: number;
+      is_shown: boolean;
+    };
+    responses: {
+      200: {
+        group_code: string;
+        display_en: string;
+        display_ne?: string;
+        score_weight: number;
+        sort_order: number;
+        is_shown: boolean;
+        version: number;
+      };
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      409: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      428: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
         type: string;
         title: string;
         status: number;
@@ -62803,6 +66783,236 @@ export interface Operations {
       };
     };
   };
+  rejectSmartSummary: {
+    params: {
+      summary_id: string;
+    };
+    query: Record<string, never>;
+    headers: {
+      "If-Match": string;
+    };
+    body: {
+      reason_code: string;
+      comment?: string;
+    };
+    responses: {
+      200: ({
+        id: string;
+        order_id: string;
+        centre_id: string;
+        status: "draft" | "approved" | "rejected" | "superseded" | "preview";
+        library_version_id: string;
+        template_library_version: number;
+        formula_version: "hs-1";
+        language: "en" | "ne";
+        built_at: string;
+        report_version_nos: number[];
+        approved_at?: string;
+        approved_by_membership_id?: string;
+        approved_by_display_name?: string;
+        rejected_at?: string;
+        rejected_by_display_name?: string;
+        reject_reason_code?: string;
+        reject_comment?: string;
+        superseded_at?: string;
+        superseded_reason?: string;
+        superseded_by_summary_id?: string;
+        health_score?: {
+          value: number;
+          band: "good" | "fair" | "needs_attention";
+          formula_version: "hs-1";
+          panels_scored: number;
+          explanation_text?: string;
+        };
+        panels: ({
+          panel_code: string;
+          display_name: string;
+          status: "in_range" | "borderline" | "out_of_range" | "critical";
+          result_ids: string[];
+        })[];
+        deranged: ({
+          result_id: string;
+          analyte_id: string;
+          analyte_name: string;
+          direction: "low" | "high" | "abnormal";
+          severity: "in_range" | "borderline" | "out_of_range" | "critical";
+          template_block_id: string;
+          text: string;
+          llm_text?: string;
+        })[];
+        advice: {
+          template_block_id: string;
+          text: string;
+          llm_text?: string;
+        }[];
+        follow_ups: {
+          rule_id: string;
+          suggested_test_code: string;
+          suggested_test_name: string;
+          interval_days: number;
+          text: string;
+          llm_text?: string;
+        }[];
+        trends: ({
+          analyte_id: string;
+          analyte_name: string;
+          unit_code?: string;
+          direction: "improved" | "worsened" | "stable";
+          point_result_ids: string[];
+          points: {
+            result_id: string;
+            approved_at: string;
+            value_numeric: string;
+          }[];
+        })[];
+        disclaimer_block_id: string;
+        disclaimer_text: string;
+        counts: {
+          deranged: number;
+          critical: number;
+          unmapped_results: number;
+          ignored_duplicates: number;
+        };
+        llm: {
+          enabled: boolean;
+          use_llm_text: boolean;
+          last_run_id?: string;
+        };
+        registration_no: string;
+        patient_display_name?: string;
+        review_inputs?: ({
+          result_id: string;
+          analyte_id: string;
+          analyte_name: string;
+          value_text: string;
+          unit_code?: string;
+          flag?: string;
+          ref_range_text?: string;
+          band_status: "in_range" | "borderline" | "out_of_range" | "critical";
+          group_code?: string;
+        })[];
+        reviews: ({
+          action: "approved" | "rejected" | "superseded" | "llm_rephrase_requested";
+          actor_display_name?: string;
+          reason_code?: string;
+          at: string;
+        })[];
+        version: number;
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      409: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      428: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
   rejectSpecimen: {
     params: {
       specimen_id: string;
@@ -64780,6 +68990,326 @@ export interface Operations {
       };
     };
   };
+  replaceSmartRule: {
+    params: {
+      library_version_id: string;
+      rule_id: string;
+    };
+    query: Record<string, never>;
+    headers: {
+      "If-Match": string;
+    };
+    body: {
+      rule_kind: "deranged" | "advice" | "followup";
+      trigger_kind: "analyte" | "group" | "any" | "all_in_range";
+      analyte_id?: string;
+      group_code?: string;
+      direction: "low" | "high" | "abnormal" | "any";
+      min_severity?: "borderline" | "out_of_range" | "critical";
+      priority?: number;
+      block_id: string;
+      suggested_test_id?: string;
+      interval_days?: number;
+    };
+    responses: {
+      200: ({
+        id: string;
+        rule_kind: "deranged" | "advice" | "followup";
+        trigger_kind: "analyte" | "group" | "any" | "all_in_range";
+        analyte_id?: string;
+        group_code?: string;
+        direction: "low" | "high" | "abnormal" | "any";
+        min_severity?: "borderline" | "out_of_range" | "critical";
+        priority?: number;
+        block_id: string;
+        suggested_test_id?: string;
+        interval_days?: number;
+        version: number;
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      409: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      422: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      428: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  replaceSmartTemplateBlock: {
+    params: {
+      library_version_id: string;
+      block_id: string;
+    };
+    query: Record<string, never>;
+    headers: {
+      "If-Match": string;
+    };
+    body: {
+      block_key: string;
+      kind: "deranged" | "advice" | "followup" | "disclaimer" | "score_explanation";
+      text_en?: string;
+      text_ne?: string;
+      note?: string;
+    };
+    responses: {
+      200: ({
+        id: string;
+        block_key: string;
+        kind: "deranged" | "advice" | "followup" | "disclaimer" | "score_explanation";
+        text_en?: string;
+        text_ne?: string;
+        note?: string;
+        placeholders: string[];
+        version: number;
+        updated_at: string;
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      409: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      422: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      428: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
   replaceStaffAssignments: {
     params: Record<string, never>;
     query: Record<string, never>;
@@ -66531,6 +71061,149 @@ export interface Operations {
         }[];
       };
       422: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  requestSmartLlmRephrase: {
+    params: {
+      summary_id: string;
+    };
+    query: Record<string, never>;
+    headers: {
+      "Idempotency-Key": string;
+      "If-Match": string;
+    };
+    body: Record<string, never> | undefined;
+    responses: {
+      202: {
+        summary_id: string;
+        requested_at: string;
+      };
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      409: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      422: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      428: {
         type: string;
         title: string;
         status: number;
@@ -69787,6 +74460,180 @@ export interface Operations {
           amended_at: string;
           amended_by: string;
         };
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      409: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      428: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  returnSmartLibraryVersion: {
+    params: {
+      library_version_id: string;
+    };
+    query: Record<string, never>;
+    headers: {
+      "If-Match": string;
+    };
+    body: {
+      comment: string;
+    };
+    responses: {
+      200: ({
+        id: string;
+        version_no: number;
+        status: "draft" | "in_review" | "approved" | "retired";
+        language: "en" | "ne";
+        formula_version: "hs-1";
+        params: {
+          score_enabled: boolean;
+          credit_in_range_bp: number;
+          credit_borderline_bp: number;
+          credit_out_of_range_bp: number;
+          credit_critical_bp: number;
+          min_groups_scored: number;
+          band_good_min: number;
+          band_fair_min: number;
+          critical_forces_needs_attention: boolean;
+          borderline_fraction_bp: number;
+          min_mapped_results: number;
+          trend_enabled: boolean;
+          trend_max_points: number;
+          trend_lookback_days: number;
+          trend_stable_bp: number;
+          trends_max: number;
+          advice_max_blocks: number;
+          followup_max: number;
+        };
+        source_version_id?: string;
+        change_summary?: string;
+        content_sha256?: string;
+        submitted_at?: string;
+        submitted_by_membership_id?: string;
+        approved_at?: string;
+        approved_by_membership_id?: string;
+        approved_by_display_name?: string;
+        approval_note?: string;
+        returned_at?: string;
+        return_comment?: string;
+        retired_at?: string;
+        counts: {
+          blocks: number;
+          rules: number;
+          analyte_groups: number;
+          groups_shown: number;
+        };
+        version: number;
+        created_at: string;
+        updated_at: string;
       });
       400: {
         type: string;
@@ -75198,6 +80045,192 @@ export interface Operations {
         }[];
       };
       422: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  submitSmartLibraryVersion: {
+    params: {
+      library_version_id: string;
+    };
+    query: Record<string, never>;
+    headers: {
+      "If-Match": string;
+    };
+    body: Record<string, never> | undefined;
+    responses: {
+      200: ({
+        id: string;
+        version_no: number;
+        status: "draft" | "in_review" | "approved" | "retired";
+        language: "en" | "ne";
+        formula_version: "hs-1";
+        params: {
+          score_enabled: boolean;
+          credit_in_range_bp: number;
+          credit_borderline_bp: number;
+          credit_out_of_range_bp: number;
+          credit_critical_bp: number;
+          min_groups_scored: number;
+          band_good_min: number;
+          band_fair_min: number;
+          critical_forces_needs_attention: boolean;
+          borderline_fraction_bp: number;
+          min_mapped_results: number;
+          trend_enabled: boolean;
+          trend_max_points: number;
+          trend_lookback_days: number;
+          trend_stable_bp: number;
+          trends_max: number;
+          advice_max_blocks: number;
+          followup_max: number;
+        };
+        source_version_id?: string;
+        change_summary?: string;
+        content_sha256?: string;
+        submitted_at?: string;
+        submitted_by_membership_id?: string;
+        approved_at?: string;
+        approved_by_membership_id?: string;
+        approved_by_display_name?: string;
+        approval_note?: string;
+        returned_at?: string;
+        return_comment?: string;
+        retired_at?: string;
+        counts: {
+          blocks: number;
+          rules: number;
+          analyte_groups: number;
+          groups_shown: number;
+        };
+        version: number;
+        created_at: string;
+        updated_at: string;
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      409: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      422: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      428: {
         type: string;
         title: string;
         status: number;
@@ -82090,6 +87123,201 @@ export interface Operations {
       };
     };
   };
+  updateSmartLibraryVersion: {
+    params: {
+      library_version_id: string;
+    };
+    query: Record<string, never>;
+    headers: {
+      "If-Match": string;
+    };
+    body: {
+      language?: "en" | "ne";
+      change_summary?: string;
+      params?: {
+        score_enabled?: boolean;
+        credit_in_range_bp?: number;
+        credit_borderline_bp?: number;
+        credit_out_of_range_bp?: number;
+        credit_critical_bp?: number;
+        min_groups_scored?: number;
+        band_good_min?: number;
+        band_fair_min?: number;
+        critical_forces_needs_attention?: boolean;
+        borderline_fraction_bp?: number;
+        min_mapped_results?: number;
+        trend_enabled?: boolean;
+        trend_max_points?: number;
+        trend_lookback_days?: number;
+        trend_stable_bp?: number;
+        trends_max?: number;
+        advice_max_blocks?: number;
+        followup_max?: number;
+      };
+    };
+    responses: {
+      200: ({
+        id: string;
+        version_no: number;
+        status: "draft" | "in_review" | "approved" | "retired";
+        language: "en" | "ne";
+        formula_version: "hs-1";
+        params: {
+          score_enabled: boolean;
+          credit_in_range_bp: number;
+          credit_borderline_bp: number;
+          credit_out_of_range_bp: number;
+          credit_critical_bp: number;
+          min_groups_scored: number;
+          band_good_min: number;
+          band_fair_min: number;
+          critical_forces_needs_attention: boolean;
+          borderline_fraction_bp: number;
+          min_mapped_results: number;
+          trend_enabled: boolean;
+          trend_max_points: number;
+          trend_lookback_days: number;
+          trend_stable_bp: number;
+          trends_max: number;
+          advice_max_blocks: number;
+          followup_max: number;
+        };
+        source_version_id?: string;
+        change_summary?: string;
+        content_sha256?: string;
+        submitted_at?: string;
+        submitted_by_membership_id?: string;
+        approved_at?: string;
+        approved_by_membership_id?: string;
+        approved_by_display_name?: string;
+        approval_note?: string;
+        returned_at?: string;
+        return_comment?: string;
+        retired_at?: string;
+        counts: {
+          blocks: number;
+          rules: number;
+          analyte_groups: number;
+          groups_shown: number;
+        };
+        version: number;
+        created_at: string;
+        updated_at: string;
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      409: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      428: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
   updateSpecimenType: {
     params: {
       id: string;
@@ -85102,6 +90330,112 @@ export interface Operations {
           message: string;
         }[];
       };
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  validateSmartLibraryVersion: {
+    params: {
+      library_version_id: string;
+    };
+    query: Record<string, never>;
+    headers: Record<string, never>;
+    body: Record<string, never> | undefined;
+    responses: {
+      200: ({
+        valid: boolean;
+        issues: ({
+          code: string;
+          severity: "error" | "warning";
+          path?: string;
+          block_key?: string;
+          rule_id?: string;
+          analyte_id?: string;
+          detail: string;
+        })[];
+      });
       400: {
         type: string;
         title: string;

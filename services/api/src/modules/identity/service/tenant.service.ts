@@ -133,7 +133,8 @@ export function createTenantRepo(): TenantRepo {
         WHERE id = $1 AND version = $2 RETURNING ${T_COLS}`, [id, v, p.status, p.reason ?? null, p.at, p.actorId]))[0];
     },
     async detail(tx, id) {
-      // [CONV] counts / annex readiness via the platform SELECT policies; status history = core.tenants audit rows that changed status.
+      // Open: no __platform SELECT policy on memberships/branches/collection_centres/ird_annex_records/audit_log, so under RLS this yields 0s / [] / 'incomplete'.
+      // CR: .orchestra/cr/C2.T22-detail.md (platform read path, e.g. DEFINER app.platform_tenant_detail(uuid)). Status history = core.tenants audit rows that changed status.
       const r = (await q(tx, `SELECT
           (SELECT count(*)::int FROM core.memberships m WHERE m.tenant_id = $1 AND m.actor_type = 'user') AS users,
           (SELECT count(*)::int FROM core.branches b WHERE b.tenant_id = $1) AS branches,
@@ -360,7 +361,7 @@ export function createTenantService(deps: {
     const users = await repo.revokeTenantSessions(s.tx, t, { reason, actorId: s.actorId });
     for (let n = 0; n * SIGNOUT_BATCH < users.length; n++) {
       const user_ids = users.slice(n * SIGNOUT_BATCH, (n + 1) * SIGNOUT_BATCH);
-      await repo.enqueue(s.tx, SIGNOUT, { tenant_id: t, user_ids }, `signout:tenant:${t}:${toVersion}:${n}`);
+      await repo.enqueue(s.tx, SIGNOUT, { tenant_id: t, user_ids, reason }, `signout:tenant:${t}.${toVersion}.${n}:${reason}`);   // worker needs exactly {tenant_id,user_ids,reason}; key form as role.service (02-TRD §10)
     }
   }
   const setStatus = async (s: S, t: TRow, v: number, status: Status, reason?: string) => {

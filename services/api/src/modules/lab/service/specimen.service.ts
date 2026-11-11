@@ -45,7 +45,7 @@ const ISO_MS = /^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}\.[0-9]{3}
 const BARCODE = /^[A-Z0-9]{1,20}$/;
 const REG_NO = /^[A-Z0-9]{1,40}$/;
 const CODE = /^[A-Za-z0-9_.:^+\-]{1,64}$/;
-const BACKENTRY_MAX_HOURS = 72;     // LD-25 default; the tenant setting downtime_backentry_max_hours is not in TenantSettings yet (same as frontdesk FD-T06)
+const BACKENTRY_MAX_HOURS = 72;     // LD-25 default; the tenant setting downtime_backentry_max_hours is not in TenantSettings yet (same as frontdesk FD-T06); requested in CR-C5-T07-001 (.orchestra/cr/C5.T-07.md)
 const BULK_MAX = 200;
 const MAX_VERSION = 2147483647;
 
@@ -211,7 +211,7 @@ async function emit(c: SpecimenCtx, before: Obj, after: Obj, a: Action): Promise
     from_status: before['status'], to_status: to, changed_at: a.at.toISOString(),
   }, { specimenVersion: Number(after['version']) });
   if (a.downtime) {
-    // [CONV] audit.g_cs_access_actions has no specimen action yet; 'patient.view' is the FD-T06 precedent for LD-25 back-entry audit rows (open point in the impl note).
+    // [CONV] audit.g_cs_access_actions has no specimen action yet; 'patient.view' is the FD-T06 precedent for LD-25 back-entry audit rows; stand-in until C0 rules on CR-C5-T07-001 (.orchestra/cr/C5.T-07.md).
     await c.audit.access({ action: 'patient.view', entityType: 'specimen', entityId: after['id'], centreId: after['centre_id'], outcome: 'allowed',
       detail: { entry_mode: 'downtime_backentry', downtime_ref: a.downtime.downtimeRef, occurred_at: a.downtime.occurredAt, event: `specimen_${to}` } });
   }

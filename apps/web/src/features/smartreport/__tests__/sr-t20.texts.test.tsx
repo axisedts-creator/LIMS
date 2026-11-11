@@ -167,7 +167,7 @@ describe('create / edit / remove (AC-03.1, AC-03.7)', () => {
     const p = callsTo('PUT', `${B}/${BLOCK_DERANGED}`)[0]!;
     expect(p.headers.get('if-match')).toBe('"2"');
     expect(bodyOf(p).text_en).toBe('Higher than your laboratory range.');
-    expect(bodyOf(p)).not.toHaveProperty('kind');
+    expect(bodyOf(p)).toMatchObject({ block_key: 'deranged.alt.high', kind: 'deranged' });
   });
 
   it('remove asks for confirmation, then DELETEs with If-Match (deactivation) and refreshes', async () => {

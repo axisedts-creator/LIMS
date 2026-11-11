@@ -1,0 +1,1 @@
+pnpm --dir services/api exec vitest run src/modules/smartreport/__tests__/llm.service.test.ts src/modules/smartreport/__tests__/SmartReportPort.llm.test.ts src/modules/smartreport/handlers/__tests__/llm.handlers.test.ts && pnpm --dir services/worker exec vitest run src/jobs/smartreport/__tests__/llm_rephrase.test.ts

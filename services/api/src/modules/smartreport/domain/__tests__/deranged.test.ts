@@ -46,7 +46,7 @@ describe('resolveDerangedRule — precedence (§4.5)', () => {
   });
   it('direction: exact or "any" matches, a different direction does not', () => {
     expect(idOf([rule({ id: 'hi', direction: 'high' }), rule({ id: 'g' })])).toBe('g');
-    expect(idOf([rule({ id: 'lo', direction: 'low' }), rule({ id: 'g' })])).toBe('lo');
+    expect(idOf([rule({ id: 'a-lo', direction: 'low' }), rule({ id: 'g' })])).toBe('a-lo');
     expect(idOf([rule({ id: 'dir-any', direction: 'any' })])).toBe('dir-any');
   });
   it('direction mismatch on the analyte rule falls through to the generic rule', () => {

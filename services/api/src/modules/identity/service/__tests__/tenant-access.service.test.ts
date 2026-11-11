@@ -36,7 +36,7 @@ describe('listSessions', () => {
     const { w, svc } = setup(); w.addSession(STAFF1, { support_session_id: idN(0x99) }); expect((await svc['listSessions']!(w.ctxFor(), {})).body.data[0].is_support).toBe(true);
   });
   it('P-3: tenant B sessions are never returned, even when B data exists and even if the repo leaks B rows', async () => {
-    const { w, svc } = setup(); w.addSession(STAFF1); const b = w.addSession(B_STAFF, { tenantId: TENANT_B });
+    const { w, svc } = setup(); w.addSession(STAFF1); const b = w.addSession({ ...B_STAFF, tenantId: TENANT_B });
     expect(JSON.stringify((await svc['listSessions']!(w.ctxFor(), {})).body)).not.toContain(b.id);
     const leaky = createTenantAccessService({ ...w.deps, repo: { ...w.repo, listSessions: async () => [...w.sessions] } } as any) as any;   // repo ignores the tenant
     const r = await leaky.listSessions(w.ctxFor(), {}); expect(r.body.data.map((x: any) => x.session_id)).not.toContain(b.id); expect(r.body.data).toHaveLength(1);
@@ -85,7 +85,7 @@ describe('revokeSession (AC-A5.3, AC-A5.4)', () => {
     const e = await rejection(w.run((c) => svc['revokeSession']!(c, { sessionId: own.id }))); expect(e.code).toBe('identity.self_action_forbidden'); expect(own.state).toBe('active'); noWrites(w); expect(w.audit).not.toHaveBeenCalled();
   });
   it('P-1: a session of tenant B -> 404 common.not_found, identical to a random uuid; B unchanged, nothing written', async () => {
-    const { w, svc } = setup(); const b = w.addSession(B_STAFF, { tenantId: TENANT_B });
+    const { w, svc } = setup(); const b = w.addSession({ ...B_STAFF, tenantId: TENANT_B });
     const e1 = await rejection(w.run((c) => svc['revokeSession']!(c, { sessionId: b.id }))); const e2 = await rejection(w.run((c) => svc['revokeSession']!(c, { sessionId: NOT_A_SESSION })));
     expect(e1.code).toBe('common.not_found'); expect(errBody(e1)).toBe(errBody(e2)); expect(b.state).toBe('active'); noWrites(w); expect(w.audit).not.toHaveBeenCalled();
   });
@@ -225,7 +225,7 @@ describe('denySupportSession (AC-E4.4, SP4)', () => {
   });
   it('E-5: a support-session actor can never deny -> 403 auth.forbidden', async () => {
     const { w, svc } = setup(); const s = w.addSupport(); const actor = { type: 'user', id: ADMIN.userId, supportSessionId: idN(0x55) };
-    expect((await rejection(w.run((c) => svc['denySupportSession']!(c, { supportSessionId: s.id, reasonText: 'no' }), { actor })))).code).toBe('auth.forbidden'); noWrites(w);
+    expect((await rejection(w.run((c) => svc['denySupportSession']!(c, { supportSessionId: s.id, reasonText: 'no' }), { actor }))).code).toBe('auth.forbidden'); noWrites(w);
   });
   it('the admin\'s note and the support reason text stay in the support-session row only: not in logs, access log, events or jobs', async () => {
     const { w, svc } = setup(); const s = w.addSupport(); await w.run((c) => svc['denySupportSession']!(c, { supportSessionId: s.id, reasonText: 'PLANTED-NOTE-77aa' }));

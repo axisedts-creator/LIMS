@@ -16,7 +16,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 import { isLimsError } from '../../../../core/errors.js';
 import { createMerchantService } from '../../service/merchant.service.js';
 import { openSecret, secretFingerprint } from '../../service/credentials.js';
-import { makeMerchantDb, TENANT_A, TENANT_B, USER, UUIDV7, type Row } from '../helpers/merchantDb.js';
+import { makeMerchantDb, NOW, TENANT_A, TENANT_B, USER, UUIDV7, type Row } from '../helpers/merchantDb.js';
 import { captureOutput, esewaSim, failingSim, hangingSim, khaltiSim, makeKek, plantSecret, prodConfig, uatConfig, variants, type FetchSim } from '../helpers/merchantFixtures.js';
 
 const T = 30_000;
@@ -382,6 +382,15 @@ describe('settings.change access log — field names only (TRD §5.1 / §6.9; 07
     const { db, svc } = setup(); const first = await putSettings(db, svc, { refund_two_person_threshold_paisa: 100, purchase_order_label: 'Lab payment', reconciliation_enabled: true });
     await putSettings(db, svc, { refund_two_person_threshold_paisa: 100, purchase_order_label: 'Lab payment', reconciliation_enabled: false }, { expectedVersion: first.version });
     expect(fieldsOf(db.accessRows()[1]!.detail)).toEqual(['reconciliation_enabled']);
+  });
+
+  it('P23: threshold stored as bigint arrives from node-pg as a string — an unchanged value is not logged, a changed one is', { timeout: T }, async () => {
+    const seeded = { tenant_id: TENANT_A, refund_two_person_threshold_paisa: '250000', purchase_order_label: 'Lab payment', reconciliation_enabled: true, version: 1, is_active: true, created_at: NOW, updated_at: NOW, created_by: USER, updated_by: USER };
+    const { db, svc } = setup({ rows: { settings: [seeded] } });
+    await putSettings(db, svc, { refund_two_person_threshold_paisa: 250000, purchase_order_label: 'Lab payment', reconciliation_enabled: false }, { expectedVersion: 1 });
+    expect(fieldsOf(db.accessRows()[0]!.detail)).toEqual(['reconciliation_enabled']);
+    await putSettings(db, svc, { refund_two_person_threshold_paisa: 300000, purchase_order_label: 'Lab payment', reconciliation_enabled: false }, { expectedVersion: 2 });
+    expect(fieldsOf(db.accessRows()[1]!.detail)).toEqual(['refund_two_person_threshold_paisa']);
   });
 
   it('reads (P20 list, P23 get) write no access-log row and no data-changing SQL', { timeout: T }, async () => {

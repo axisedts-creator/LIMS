@@ -1,6 +1,6 @@
 // Result service — T-13: calculated-result recompute (02-TRD §4.3 step 6, §4.4; 08 R3/R5/R7, R12a). Runs in the caller's transaction (ctx.tx).
 // Tenant comes from ctx only; thrown problems never carry values. R7 outputs go only to the NEW result_versions row (store.amendCalculated).
-import { LimsError } from '../../../core/errors.js';
+import { LimsError, type FieldError } from '../../../core/errors.js';
 import type { PublishInput } from '../../../core/events/publish.js';
 import { computeCalculated, formulaRefsOf, orderCalculated, type CalcInput, type CalcOutcome } from '../domain/formulaInputs.js';
 import type { DeltaCandidate, DeltaRule } from '../domain/delta.js';
@@ -144,7 +144,7 @@ export interface Downtime { occurredAt: string; downtimeRef: string }
 export interface EntryValue { numeric?: string; text?: string; ordinalCode?: string }
 export interface SaveEntryInput {
   resultId: string; expectedRowVersion: number; transition?: 'R2' | 'R3'; origin: 'manual'; value?: EntryValue; manualAbnormal?: boolean; commentCodes?: readonly string[];
-  commentText?: string; evaluation?: Evaluation; enteredByMembershipId?: string; downtime?: Downtime;
+  commentText?: string; commentLibVersions?: Record<string, number>; evaluation?: Evaluation; enteredByMembershipId?: string; downtime?: Downtime;
 }
 export interface CriticalLogInput {
   resultId: string; resultVersionNo: number; orderId: string; patientId: string; analyteId: string; centreId: string; direction: 'low' | 'high' | 'abnormal';
@@ -163,9 +163,13 @@ export interface EntryStore extends ResultStore {
   insertCriticalLog(tx: unknown, tenantId: string, a: CriticalLogInput): Promise<{ criticalEventId: string }>;
   markCriticalValueChanged(tx: unknown, tenantId: string, resultId: string): Promise<void>;
 }
+/** CR-C5-001 = CR-C3-001 (03-IC §4.2): CatalogPort.resolveCommentCodes; <= 50 codes per call (C3 02-TRD §4.14); unknown codes come back in `unknown`, never thrown. */
+export interface CommentCatalog {
+  resolveCommentCodes(ctx: unknown, q: { codes: readonly string[]; departmentId?: string; asOf?: string }): Promise<{ resolved: readonly { code: string; version: number; text: string }[]; unknown: readonly string[] }>;
+}
 export interface EntryCtx extends Omit<RecomputeCtx, 'store'> {
   readonly store: EntryStore;
-  readonly ports: EvalCtx['ports'] & { readonly IdentityPort: { assertRole(ctx: unknown, r: { permission: string; centreId: string }): Promise<void> } };
+  readonly ports: Omit<EvalCtx['ports'], 'CatalogPort'> & { readonly CatalogPort: EvalCtx['ports']['CatalogPort'] & CommentCatalog } & { readonly IdentityPort: { assertRole(ctx: unknown, r: { permission: string; centreId: string }): Promise<void> } };
   readonly audit: { access(entry: { action: string; entityType: string; entityId?: string; centreId?: string; outcome: 'allowed' | 'denied'; detail?: Record<string, string | number | boolean> }): Promise<unknown> };
 }
 export interface EntryInput {
@@ -175,6 +179,40 @@ export interface EntryInput {
 export interface EntryOutcome { resultId: string; outcome: 'ok' | 'error'; code?: string; result?: ResultRow }
 
 const invalidValue = () => new LimsError('lab.result_value_invalid');
+const MAX_COMMENT_CODES = 10;      // lab.results CHECK results__comment_codes__ck
+const CATALOG_CODES_PER_CALL = 50; // C3 02-TRD §4.14
+const fieldInvalid = (path: string): FieldError => ({ path, code: 'common.field_invalid', message: 'Field invalid' }); // fixed text: nothing submitted is echoed (S-19)
+
+/**
+ * AC-10.2 / AC-10.3 (CR-C5-001): re-resolve every comment code of the batch up front, so an unknown code saves nothing. Codes are upper-cased and de-duplicated
+ * per entry ([CONV]: order kept, first occurrence wins). Rejects the whole request with common.validation_failed + errors[] paths /entries/n/comment_codes[/k].
+ * Returns, per entry index, the codes, the { code: library version } jsonb and the expanded library text (texts joined by one space, in entry order).
+ */
+async function resolveEntryComments(ctx: EntryCtx, entries: EntryInput['entries']): Promise<Map<number, { codes: string[]; versions: Record<string, number>; text: string }>> {
+  const errors: FieldError[] = [];
+  const wanted = new Map<number, string[]>();
+  entries.forEach((e, n) => {
+    if (!e.commentCodes?.length) return;
+    if (e.commentCodes.length > MAX_COMMENT_CODES) { errors.push(fieldInvalid(`/entries/${n}/comment_codes`)); return; }
+    e.commentCodes.forEach((c, k) => { if (typeof c !== 'string' || !c) errors.push(fieldInvalid(`/entries/${n}/comment_codes/${k}`)); });
+    wanted.set(n, e.commentCodes.map((c) => String(c).toUpperCase()));
+  });
+  if (errors.length) throw new LimsError('common.validation_failed', undefined, errors);
+  const distinct = [...new Set([...wanted.values()].flat())];
+  const lib = new Map<string, { version: number; text: string }>();
+  for (let i = 0; i < distinct.length; i += CATALOG_CODES_PER_CALL) {
+    const r = await ctx.ports.CatalogPort.resolveCommentCodes(ctx, { codes: distinct.slice(i, i + CATALOG_CODES_PER_CALL) });   // tenant from ctx only; a catalog failure propagates (not "unknown")
+    for (const x of r.resolved) lib.set(x.code.toUpperCase(), { version: x.version, text: x.text });
+  }
+  const out = new Map<number, { codes: string[]; versions: Record<string, number>; text: string }>();
+  for (const [n, codes] of wanted) {
+    codes.forEach((c, k) => { if (!lib.has(c)) errors.push(fieldInvalid(`/entries/${n}/comment_codes/${k}`)); });
+    const uniq = [...new Set(codes)];
+    out.set(n, { codes: uniq, versions: Object.fromEntries(uniq.map((c) => [c, lib.get(c)?.version ?? 0])), text: uniq.map((c) => lib.get(c)?.text ?? '').join(' ') });
+  }
+  if (errors.length) throw new LimsError('common.validation_failed', undefined, errors);
+  return out;
+}
 const KIND_FIELD: Record<string, 'numeric' | 'ordinal' | 'text' | undefined> = { numeric: 'numeric', ordinal: 'ordinal', coded: 'ordinal', text: 'text' };
 // [CONV] access-log action for a manual result entry (03-IC §13.1 lists lab_result.view only); needs a seed row in audit.g_cs_access_actions -> CR C5-T14-audit-action.
 export const ENTRY_AUDIT_ACTION = 'lab_result.enter';
@@ -182,6 +220,7 @@ export const ENTRY_AUDIT_ACTION = 'lab_result.enter';
 export async function bulkEnterResults(rawCtx: unknown, input: EntryInput): Promise<{ results: EntryOutcome[]; recomputed: ResultRow[] }> {
   const ctx = rawCtx as EntryCtx;
   const { tx, tenantId, store } = ctx;
+  const comments = await resolveEntryComments(ctx, input.entries);   // AC-10.3: before any lock / save; unknown code -> 400 for the whole request
   const ids = [...new Set(input.entries.map((e) => e.resultId))].sort();   // 02-TRD §3.2: lock order = result id ascending
   const rows = new Map((await store.lockResults(tx, tenantId, ids)).map((r) => [r.resultId, r]));
   const labEvents = createLabEvents(ctx.events as never);
@@ -189,7 +228,7 @@ export async function bulkEnterResults(rawCtx: unknown, input: EntryInput): Prom
   const touched = new Set<string>();           // ids saved in this batch (a second entry for the same row is a lost race)
   const results: EntryOutcome[] = [];
 
-  for (const e of input.entries) {
+  for (const [n, e] of input.entries.entries()) {
     let rowSaved = false;   // after the save, any failure rolls the whole batch back (no savepoint; critical log/event must not be lost)
     try {
       const row = rows.get(e.resultId);
@@ -224,12 +263,13 @@ export async function bulkEnterResults(rawCtx: unknown, input: EntryInput): Prom
         });
       }
 
+      const cm = comments.get(n);
       const out = await store.saveEntry(tx, tenantId, {
         resultId: e.resultId, expectedRowVersion: e.version, origin: 'manual',
         ...(value === undefined ? {} : { transition: row.status === 'pending' ? 'R2' as const : 'R3' as const, value }),
         ...(e.manualAbnormal === undefined ? {} : { manualAbnormal: e.manualAbnormal }),
-        ...(e.commentCodes === undefined ? {} : { commentCodes: e.commentCodes }),
-        ...(e.commentText === undefined ? {} : { commentText: e.commentText }),
+        ...(cm ? { commentCodes: cm.codes, commentLibVersions: cm.versions } : e.commentCodes === undefined ? {} : { commentCodes: e.commentCodes }),
+        ...(e.commentText !== undefined ? { commentText: e.commentText } : cm ? { commentText: cm.text } : {}),   // AC-10.2: sent text kept verbatim (UI expanded it); else the stored expansion
         ...(evaluation === undefined ? {} : { evaluation }),
         ...(ctx.actor.membershipId === undefined ? {} : { enteredByMembershipId: ctx.actor.membershipId }),
         ...(input.downtime === undefined ? {} : { downtime: input.downtime }),

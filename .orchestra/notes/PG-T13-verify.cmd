@@ -1,0 +1,1 @@
+pnpm --dir services/api exec vitest run src/modules/payments/__tests__/integration/reconciliation.service.test.ts src/modules/payments/__tests__/helpers && pnpm --dir services/worker exec vitest run src/jobs/payments/__tests__/integration/reconcile_findings.test.ts src/jobs/payments/__tests__/integration/reconcile_run.test.ts

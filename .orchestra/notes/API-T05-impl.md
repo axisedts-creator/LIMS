@@ -1,0 +1,7 @@
+# API-T05 impl
+- New: repo/instruments.repo.ts, mappers/instruments.mapper.ts, service/{instruments,settings,observedCodes}.service.ts. Edited (export-only): service/agents.service.ts (fail,isUuid,isInt,version,limitOf,enumList,cursorOf,scope,page,UUID,Scope), repo/agents.repo.ts (paging,paged).
+- Tests: after ruling (settings.service.test.ts:74 fixed by tester) 4 API-T05 suites 267/267 pass; no impl change needed. tsc: no errors in instruments files. Full instruments dir: 992/996; boot + pathological-ReDoS timeouts pass when run alone (load flakes).
+- Review fixes: E28 evidence_note 1–9 non-blank chars -> 400 /evidence_note (blank stays checklist_incomplete); qc_sample_id_patterns items must compile and have no lookaround/backreference -> 400 /qc_sample_id_patterns/<i> (syntactic RE2 screen). 4 suites 271/271, tsc clean for instruments.
+- [CONV] go-live stores checklist+evidence_note; DTO strips evidence_note. Retire from any non-retired state publishes a version. Driver must match instrument protocol (400 /driver_code). worklist_download needs a VERIFIED driver that declares it. protocol_options key must equal protocol.
+- [CONV] Update publishes only when an agent-carried field (protocol, driver_code, transport, protocol_options, file_drop, capabilities, timezone, qc patterns) really changes on a non-draft instrument.
+- Open: default `publish` is `unwiredPublisher` (throws common.internal) until API-T06/T08 injects the real publisher; handlers (req->input, ETag) not written; SQL repo untested without Postgres (RLS/FK/CHECK).

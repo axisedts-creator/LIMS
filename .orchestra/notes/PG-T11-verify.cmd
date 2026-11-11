@@ -1,0 +1,1 @@
+pnpm --dir services/worker exec vitest run src/jobs/payments/__tests__/integration/poll_intent.test.ts src/jobs/payments/__tests__/integration/sweep_open_intents.test.ts src/jobs/payments/__tests__/unit/cron.test.ts

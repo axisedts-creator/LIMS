@@ -1,0 +1,343 @@
+---
+# app-1 LIMS runtime (02-TRD s7.4, s7.5, s3.2). Started by role
+# lims_runtime: docker compose -p lims -f compose.app.yml up -d --wait
+# T-08 `migrate` is the one-shot DB step of deploy.yml (s7.9).
+# Profiles (LD-45): services without `profiles:` form `lean`; `full` adds
+# worker-b/web-b; `partner` (W2) adds partner. lims_runtime sets
+# COMPOSE_PROFILES from topology_profile / partner_enabled.
+# Images: ${VAR:?} digests supplied by the role (release lock, T-23).
+# mem_limit of api/worker/web/portal/partner: inventory mem_limit_gib
+# (LD-45 lean budget) via ${VAR}; default = 02-TRD s3.1 full table.
+# Secrets: /run/lims/secrets/<service>/<id> (secrets_render, tmpfs), :ro.
+x-hardening: &hardening
+  restart: unless-stopped
+  read_only: true
+  cap_drop: [ALL]
+  security_opt: [no-new-privileges:true]
+
+x-core-env: &core-env
+  LIMS_CORE_RATELIMIT_BACKEND: redis
+  LIMS_CORE_EGRESS_PROXY_URL: http://squid:3128
+  LIMS_CORE_SCANNER_URL: tcp://clamd:3310
+  LIMS_CORE_SCANNER_TIMEOUT_MS: "30000"
+  LIMS_CORE_METRICS_PORT: "9464"
+  LIMS_CORE_STORAGE_KEY_FILE: /run/secrets/lims/core_storage_service_key
+  LIMS_PAYMENTS_KEK_FILE: /run/secrets/lims/payments_kek
+  LIMS_REPORTING_OTP_HMAC_KEY_FILE: /run/secrets/lims/reporting_otp_hmac_key
+  LIMS_INSTRUMENTS_CONFIG_SIGNING_KEY_FILE: >-
+    /run/secrets/lims/instruments_config_signing_key
+  # key id of the active config-signing key (02-TRD s7.4, s8.2); value from the inventory, rotation = overlap id.
+  # `:-` not `:?`: lims_runtime (T-14) does not set it yet; an empty id makes C7 fail to sign, never to sign wrongly.
+  LIMS_INSTRUMENTS_CONFIG_SIGNING_KEY_ID: ${LIMS_INSTRUMENTS_CONFIG_SIGNING_KEY_ID:-}
+
+x-api: &api
+  <<: *hardening
+  image: ${LIMS_API_IMAGE:?LIMS_API_IMAGE (C0 api image digest) required}
+  environment: &api-env
+    <<: *core-env
+    LIMS_CORE_TRUSTED_PROXY_CIDRS: 172.30.10.10/32  # nginx (P-61)
+    LIMS_CORE_TRUSTED_PROXY_HOPS: "1"
+    LIMS_CORE_BFF_KEY_FILES: >-
+      /run/secrets/bff/staff_web,/run/secrets/bff/partner,/run/secrets/bff/portal
+    LIMS_CORE_JWT_KEY_FILE: /run/secrets/lims/lims_core_jwt_key
+    LIMS_CORE_RATELIMIT_KEY_FILE: /run/secrets/lims/lims_core_ratelimit_key
+    LIMS_INSTRUMENTS_RELEASES_DIR: /run/lims/agent-releases  # api-a/b only (02-TRD s7.4)
+  mem_limit: ${LIMS_API_MEM_LIMIT:-2g}
+  cpus: 2
+  pids_limit: 512
+  tmpfs: [/tmp]
+  healthcheck:
+    test: [CMD, node, -e, "fetch('http://127.0.0.1:8080/v1/core/health/ready')\
+        .then(r=>process.exit(r.ok?0:1),()=>process.exit(1))"]
+    interval: 10s
+    timeout: 5s
+    retries: 3
+    start_period: 30s
+
+x-worker: &worker
+  <<: *hardening
+  # C0 builds /services/worker separately (C0 02-TRD); never the API image
+  image: ${LIMS_WORKER_IMAGE:?LIMS_WORKER_IMAGE (C0 services/worker image digest) required}
+  environment: &worker-env
+    <<: *core-env
+    LIMS_CORE_WORKER_CONCURRENCY: "10"
+    LIMS_REPORTING_RENDERER_URL: http://renderer:8080  # C6 port [CONV]
+    LIMS_REPORTING_SANDBOX_URL: http://pdf-sandbox:8080
+    LIMS_REPORTING_RENDERER_TOKEN_FILE: /run/secrets/lims/renderer_inbound_token
+    LIMS_REPORTING_SANDBOX_TOKEN_FILE: >-
+      /run/secrets/lims/pdf_sandbox_inbound_token
+  mem_limit: ${LIMS_WORKER_MEM_LIMIT:-2g}
+  cpus: 2
+  pids_limit: 512
+  tmpfs: [/tmp]
+  # AC-08.2: SIGTERM drain (C0 LIMS_CORE_SHUTDOWN_GRACE_S 55 < 60)
+  stop_grace_period: 60s
+  healthcheck:
+    test: [CMD, node, -e, "fetch('http://127.0.0.1:9464/health/live')\
+        .then(r=>process.exit(r.ok?0:1),()=>process.exit(1))"]
+    interval: 10s
+    timeout: 5s
+    retries: 3
+    start_period: 30s
+
+# BFFs: TCP check on 3000 until C0/C6 name a health path (s7.4 "else TCP")
+x-bff-health: &bff-health
+  test: [CMD, node, -e, "require('net').connect(3000,'127.0.0.1')\
+      .on('connect',()=>process.exit(0)).on('error',()=>process.exit(1))"]
+  interval: 10s
+  timeout: 5s
+  retries: 3
+  start_period: 20s
+
+x-web: &web
+  <<: *hardening
+  image: ${LIMS_WEB_IMAGE:?LIMS_WEB_IMAGE (C0 web image digest) required}
+  environment:
+    LIMS_WEB_API_BASE_URL: http://api:8080
+    LIMS_WEB_BFF_KEY_FILE: /run/secrets/bff/staff_web
+  volumes:
+    - /run/lims/secrets/web/bff_key_staff_web:/run/secrets/bff/staff_web:ro
+  networks:
+    edge_net: {aliases: [web]}
+    app_net: {}
+  mem_limit: ${LIMS_WEB_MEM_LIMIT:-1g}
+  cpus: 1
+  pids_limit: 256
+  tmpfs: [/tmp]
+  healthcheck: *bff-health
+
+services:
+  migrate:
+    image: ${LIMS_API_IMAGE:?LIMS_API_IMAGE (C0 api image) required}
+    restart: "no"
+    read_only: true
+    tmpfs: [/tmp]
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    # value inherited from deploy.yml's block env, never in argv
+    environment: [PGPASSWORD]
+    networks: [db_net]
+    mem_limit: 1g
+    pids_limit: 256
+
+  api-a:
+    <<: *api
+    env_file: [/run/lims/env/api-a.env]  # LIMS_CORE_REDIS_URL (s8.3)
+    ports: ["${APP_WG_IP:?APP_WG_IP required}:9464:9464"]
+    volumes: &api-a-vols
+      - /run/lims/secrets/api-a:/run/secrets/lims:ro
+      - /run/lims/secrets/api-a/bff_key_staff_web:/run/secrets/bff/staff_web:ro
+      - /run/lims/secrets/api-a/bff_key_partner:/run/secrets/bff/partner:ro
+      - /run/lims/secrets/api-a/bff_key_portal:/run/secrets/bff/portal:ro
+      - /srv/lims/agent-releases:/run/lims/agent-releases:ro  # CR-C7-012: E08 streams from it; keys never here
+    networks:
+      edge_net: {}
+      app_net: {aliases: [api]}
+      auth_net: {}
+      # fixed, outside nftables_render_worker_ips/sandbox: no dynamic IPAM
+      # on render_net, so no member can drift onto .11/.21/.22 [CONV]
+      render_net: {ipv4_address: 172.30.40.31}
+      db_net: {}
+
+  api-b:
+    <<: *api
+    env_file: [/run/lims/env/api-b.env]
+    ports: ["${APP_WG_IP:?APP_WG_IP required}:9465:9464"]
+    volumes:
+      - /run/lims/secrets/api-b:/run/secrets/lims:ro
+      - /run/lims/secrets/api-b/bff_key_staff_web:/run/secrets/bff/staff_web:ro
+      - /run/lims/secrets/api-b/bff_key_partner:/run/secrets/bff/partner:ro
+      - /run/lims/secrets/api-b/bff_key_portal:/run/secrets/bff/portal:ro
+      - /srv/lims/agent-releases:/run/lims/agent-releases:ro
+    networks:
+      edge_net: {}
+      app_net: {aliases: [api]}
+      auth_net: {}
+      render_net: {ipv4_address: 172.30.40.32}  # [CONV] see api-a
+      db_net: {}
+
+  # Fixed render_net IPs: nftables_render_worker_ips (s5.5 rule 6) [CONV]
+  worker-a:
+    <<: *worker
+    env_file: [/run/lims/env/worker-a.env]
+    ports: ["${APP_WG_IP:?APP_WG_IP required}:9466:9464"]
+    volumes: [/run/lims/secrets/worker-a:/run/secrets/lims:ro]
+    networks:
+      app_net: {}
+      render_net: {ipv4_address: 172.30.40.21}
+      db_net: {}
+
+  worker-b:
+    <<: *worker
+    profiles: [full]
+    env_file: [/run/lims/env/worker-b.env]
+    ports: ["${APP_WG_IP:?APP_WG_IP required}:9467:9464"]
+    volumes: [/run/lims/secrets/worker-b:/run/secrets/lims:ro]
+    networks:
+      app_net: {}
+      render_net: {ipv4_address: 172.30.40.22}
+      db_net: {}
+
+  web-a:
+    <<: *web
+
+  web-b:
+    <<: *web
+    profiles: [full]
+
+  portal:
+    <<: *hardening
+    image: ${LIMS_PORTAL_IMAGE:?LIMS_PORTAL_IMAGE (C6 image digest) required}
+    environment:
+      LIMS_WEB_API_BASE_URL: http://api:8080
+      LIMS_PORTAL_BFF_KEY_FILE: /run/secrets/bff/portal
+    volumes:
+      - /run/lims/secrets/portal/bff_key_portal:/run/secrets/bff/portal:ro
+    networks: [edge_net, app_net]
+    mem_limit: ${LIMS_PORTAL_MEM_LIMIT:-1g}
+    cpus: 1
+    pids_limit: 256
+    tmpfs: [/tmp]
+    healthcheck: *bff-health
+
+  partner:
+    <<: *hardening
+    profiles: [partner]
+    image: ${LIMS_PARTNER_IMAGE:?LIMS_PARTNER_IMAGE required}
+    environment:
+      LIMS_WEB_API_BASE_URL: http://api:8080
+      LIMS_PARTNER_BFF_KEY_FILE: /run/secrets/bff/partner
+    volumes:
+      - /run/lims/secrets/partner/bff_key_partner:/run/secrets/bff/partner:ro
+    networks: [edge_net, app_net]
+    mem_limit: ${LIMS_PARTNER_MEM_LIMIT:-1g}
+    cpus: 1
+    pids_limit: 256
+    tmpfs: [/tmp]
+    healthcheck: *bff-health
+
+  # s7.4 / AC-09.1: render_net only (internal), no proxy, no route out.
+  renderer:
+    <<: *hardening
+    image: ${LIMS_RENDERER_IMAGE:?LIMS_RENDERER_IMAGE (C6) required}
+    user: "10001:10001"  # [CONV] numeric non-root
+    environment:
+      LIMS_RENDERER_TOKEN_FILE: /run/secrets/renderer_inbound_token
+    volumes:
+      - /run/lims/secrets/renderer/renderer_inbound_token:/run/secrets/renderer_inbound_token:ro
+    networks:
+      render_net: {ipv4_address: 172.30.40.41}  # [CONV] fixed, see api-a
+    mem_limit: 1536m
+    cpus: 2
+    pids_limit: 512
+    shm_size: 256m
+    tmpfs: ["/tmp:size=512m"]
+    healthcheck:
+      test: [CMD, node, -e, "fetch('http://127.0.0.1:8080/internal/health')\
+          .then(r=>process.exit(r.ok?0:1),()=>process.exit(1))"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+
+  # s7.5 envelope (AC-10.1; asserted by tests/internal/sandbox_envelope.sh)
+  pdf-sandbox:
+    <<: *hardening
+    image: ${LIMS_PDF_SANDBOX_IMAGE:?LIMS_PDF_SANDBOX_IMAGE (C6) required}
+    user: "10001:10001"  # [CONV] numeric non-root
+    environment:
+      LIMS_RENDER_SANDBOX_TOKEN_FILE: /run/secrets/pdf_sandbox_inbound_token
+    volumes:
+      - /run/lims/secrets/pdf-sandbox/pdf_sandbox_inbound_token:/run/secrets/pdf_sandbox_inbound_token:ro
+    networks:
+      render_net: {ipv4_address: 172.30.40.11}
+    mem_limit: 512m
+    cpus: 1
+    pids_limit: 64
+    tmpfs: [/tmp, "/work:size=256m"]
+    healthcheck:
+      test: [CMD, node, -e, "fetch('http://127.0.0.1:8080/internal/health')\
+          .then(r=>process.exit(r.ok?0:1),()=>process.exit(1))"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+
+  # AC-11.1, 04 S11: no persistence, no volume. The image declares
+  # VOLUME /data, so /data is a tmpfs (else Docker adds an anon volume).
+  valkey:
+    <<: *hardening
+    image: ${LIMS_VALKEY_IMAGE:?LIMS_VALKEY_IMAGE (Valkey 9.1.3) required}
+    user: "999:999"  # image's valkey user (UNVERIFIED until pinned)
+    command: [valkey-server, --save, "", --appendonly, "no",
+              --maxmemory, 256mb, --maxmemory-policy, volatile-ttl,
+              --protected-mode, "yes",
+              --aclfile, /run/secrets/valkey/users.acl]
+    volumes:
+      - /run/lims/secrets/valkey/users.acl:/run/secrets/valkey/users.acl:ro
+    networks: [app_net]
+    mem_limit: 320m
+    cpus: 0.5
+    pids_limit: 128
+    tmpfs: [/tmp, "/data:size=64m"]
+    # ACL `default` is off: ping as the no-key `probe` user (role valkey)
+    healthcheck:
+      test: [CMD, valkey-cli, --no-auth-warning, --user, probe,
+             --pass, probe, ping]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+
+  # 02-TRD s7.4 (08 A25 D-209), T-22: INSTREAM on tcp://clamd:3310, app_net only,
+  # no published port, no route out. Signatures: role clamav copies them to
+  # /srv/lims/clamav-db (ro here), the image's own freshclam stays off.
+  clamd:
+    <<: *hardening
+    image: ${LIMS_CLAMD_IMAGE:?LIMS_CLAMD_IMAGE (ClamAV 1.5.4 digest) required}
+    user: "100:101"  # image's clamav user (UNVERIFIED until pinned)
+    environment:
+      CLAMAV_NO_FRESHCLAMD: "true"
+    volumes:
+      - /srv/lims/clamav-db:/var/lib/clamav:ro
+      - /srv/lims/clamav/clamd.conf:/etc/clamav/clamd.conf:ro
+    networks: [app_net]
+    mem_limit: 3g
+    cpus: 1
+    pids_limit: 256
+    tmpfs: [/tmp, /run/clamav]
+    healthcheck:
+      test: [CMD, clamdscan, --ping, "3:1"]
+      interval: 15s
+      timeout: 10s
+      retries: 3
+      start_period: 120s  # loading the signatures takes a while
+
+  # 02-TRD s3.2: the only container on egress_net; FQDN allowlist from
+  # infra/edge/egress-allowlist.yaml (role egress_proxy renders squid.conf).
+  squid:
+    <<: *hardening
+    image: ${LIMS_SQUID_IMAGE:?LIMS_SQUID_IMAGE (C1 pin) required}
+    user: "13:13"  # Debian `proxy` uid (UNVERIFIED until pinned)
+    volumes:
+      - /srv/lims/squid/squid.conf:/etc/squid/squid.conf:ro
+    networks: [app_net, egress_net]
+    mem_limit: 512m
+    cpus: 0.5
+    pids_limit: 256
+    tmpfs: [/tmp, /var/spool/squid, /var/log/squid, /run/squid]
+    # any HTTP answer (manager access is denied by design) = alive
+    healthcheck:
+      test: [CMD-SHELL, "squidclient -h 127.0.0.1 -p 3128 -T 5 mgr:info
+          2>&1 | grep -q '^HTTP/'"]
+      interval: 15s
+      timeout: 10s
+      retries: 3
+
+# Created once by the docker_engine role (docker_engine_networks).
+networks:
+  edge_net: {name: edge_net, external: true}
+  app_net: {name: app_net, external: true}
+  auth_net: {name: auth_net, external: true}
+  render_net: {name: render_net, external: true}
+  db_net: {name: db_net, external: true}
+  egress_net: {name: egress_net, external: true}

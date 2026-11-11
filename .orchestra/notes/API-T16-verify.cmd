@@ -1,0 +1,1 @@
+pnpm --dir services/api exec vitest run src/modules/instruments/__tests__/unit/micro-code.test.ts src/modules/instruments/__tests__/unit/directory-view.contract.test.ts src/modules/instruments/__tests__/calibration.events.test.ts src/modules/instruments/__tests__/calibration.service.test.ts

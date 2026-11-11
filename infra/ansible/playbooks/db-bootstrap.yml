@@ -1,0 +1,114 @@
+---
+# 02-TRD s7.9 step 1 / AC-27.1: first deploy only. Runs db/bootstrap/*.sql
+# (C0) via psql inside the db container as the provisioning superuser, role
+# passwords from the secret store, then writes the host marker. A second run
+# is refused by the marker guard. LD-45: group `data` (data-1 in `full`,
+# prod-1 in `lean`, the dev VM in dev); no host names here.
+# Passwords travel as psql `\set` lines on stdin: never argv, never logged.
+# Container `supabase-db` = pgbackrest_container (same db container).
+- name: DB bootstrap (first deploy only)
+  hosts: data
+  become: true
+  gather_facts: true
+  any_errors_fatal: true
+  vars:
+    bootstrap_sql_dir: "{{ playbook_dir }}/../../../db/bootstrap"
+    bootstrap_ops_note: "{{ playbook_dir }}/../../ci/ops-note.sh"
+    bootstrap_roles:
+      - lims_migrator
+      - lims_api
+      - lims_worker
+      - lims_monitor
+      - lims_replicator
+      - lims_audit_ship
+  tasks:
+    - name: Preconditions (encrypted secrets file of this env set)
+      ansible.builtin.assert:
+        that:
+          - secrets_render_enc_file | default('') | length > 0
+          - app_db_name | default('') | length > 0
+        fail_msg: "db-bootstrap: secrets_render_enc_file/app_db_name unset"
+
+    - name: Look for the bootstrap marker
+      ansible.builtin.stat:
+        path: /srv/lims/pg/bootstrap.done
+      register: bootstrap_marker
+
+    - name: Refuse to bootstrap twice (marker present)
+      ansible.builtin.fail:
+        msg: "db-bootstrap already ran on this host (marker); refusing"
+      when: bootstrap_marker.stat.exists
+
+    - name: Decrypt the six role passwords on the controller (stdout only)
+      ansible.builtin.command:
+        argv:
+          - sops
+          - -d
+          - --extract
+          - '["{{ item }}_password"]'
+          - "{{ secrets_render_enc_file }}"
+      loop: "{{ bootstrap_roles }}"
+      delegate_to: localhost
+      run_once: true
+      changed_when: false
+      register: bootstrap_secrets
+      no_log: true
+
+    - name: ops_audit line for the decrypt (who/what/when only, s8.4)
+      ansible.builtin.command:
+        argv:
+          - "{{ bootstrap_ops_note }}"
+          - >-
+            db-bootstrap decrypted 6 role credentials
+            for {{ ansible_play_hosts | join(',') }}
+      delegate_to: localhost
+      run_once: true
+      changed_when: false
+
+    - name: Map decrypted passwords by role (psql-quoted)
+      ansible.builtin.set_fact:
+        bootstrap_pw: >-
+          {% set m = {} %}{% for r in bootstrap_secrets.results %}{%
+          set _ = m.update({r.item: r.stdout | replace('\\', '\\\\')
+          | replace("'", "\\'")}) %}{% endfor %}{{ m }}
+      no_log: true
+
+    - name: Run 00_roles.sql as the provisioning superuser
+      ansible.builtin.command:
+        cmd: >-
+          docker exec -i supabase-db sh -c
+          'PGPASSWORD="$POSTGRES_PASSWORD" exec psql -X
+          -U supabase_admin -d postgres
+          -v ON_ERROR_STOP=1 -v dbname={{ app_db_name }}'
+        stdin: |
+          \set lims_migrator_pw '{{ bootstrap_pw.lims_migrator }}'
+          \set lims_api_pw '{{ bootstrap_pw.lims_api }}'
+          \set lims_worker_pw '{{ bootstrap_pw.lims_worker }}'
+          \set lims_monitor_pw '{{ bootstrap_pw.lims_monitor }}'
+          \set lims_replicator_pw '{{ bootstrap_pw.lims_replicator }}'
+          \set lims_audit_ship_pw '{{ bootstrap_pw.lims_audit_ship }}'
+          {{ lookup('ansible.builtin.file',
+                    bootstrap_sql_dir ~ '/00_roles.sql') }}
+      no_log: true
+
+    - name: Run 01_database.sql connected to the application database
+      ansible.builtin.command:
+        cmd: >-
+          docker exec -i supabase-db sh -c
+          'PGPASSWORD="$POSTGRES_PASSWORD" exec psql -X
+          -U supabase_admin -d {{ app_db_name }}
+          -v ON_ERROR_STOP=1 -v dbname={{ app_db_name }}'
+        stdin: >-
+          {{ lookup('ansible.builtin.file',
+                    bootstrap_sql_dir ~ '/01_database.sql') }}
+      no_log: true
+
+    - name: Write the bootstrap marker (last; only after every psql passed)
+      ansible.builtin.copy:
+        dest: /srv/lims/pg/bootstrap.done
+        content: >
+          bootstrapped {{ ansible_date_time.iso8601 }} db={{ app_db_name }}
+        owner: root
+        group: root
+        mode: "0600"
+        force: false

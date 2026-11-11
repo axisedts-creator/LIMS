@@ -31,6 +31,25 @@ export async function cancelOrderRow(tx: Tx, tenantId: string, id: string, expec
   return rows[0] ?? null;
 }
 
+/** FD-T12 F12: pre_registered -> registered (registered_at + catalog_revision re-stamped, as the lifecycle guard allows). null when the version or status moved. */
+export async function confirmOrderRow(tx: Tx, tenantId: string, id: string, expectedVersion: number, c: { at: Date; catalogRevision: number }): Promise<any | null> {
+  const { rows } = await tx.query(`UPDATE frontdesk.orders SET status = 'registered', registered_at = $4, catalog_revision = $5,
+      version = version + 1, updated_at = now(), updated_by = (SELECT app.current_actor_id())
+    WHERE tenant_id = $1 AND id = $2 AND version = $3 AND status = 'pre_registered' RETURNING *`, [tenantId, id, expectedVersion, c.at, c.catalogRevision]);
+  return rows[0] ?? null;
+}
+
+/** FD-T11 ageAtOrder: per patient, the age snapshot of the most recent order that carries one. */
+export async function latestAgeByPatients(tx: Tx, tenantId: string, patientIds: readonly string[]): Promise<Map<string, { years: number; months: number; days: number }>> {
+  const out = new Map<string, { years: number; months: number; days: number }>();
+  if (patientIds.length === 0) return out;
+  const { rows } = await tx.query(`SELECT DISTINCT ON (patient_id) patient_id, age_years, age_months, age_days FROM frontdesk.orders
+    WHERE tenant_id = $1 AND patient_id = ANY($2::uuid[]) AND age_years IS NOT NULL
+    ORDER BY patient_id, COALESCE(registered_at, created_at) DESC, id DESC`, [tenantId, patientIds]);
+  for (const r of rows) out.set(r.patient_id, { years: Number(r.age_years), months: Number(r.age_months ?? 0), days: Number(r.age_days ?? 0) });
+  return out;
+}
+
 /** is_first_order_of_patient = NOT this (any status counts: a cancelled order is still a prior visit). */
 export async function patientHasOrder(tx: Tx, tenantId: string, patientId: string): Promise<boolean> {
   const { rows } = await tx.query('SELECT 1 FROM frontdesk.orders WHERE tenant_id = $1 AND patient_id = $2 LIMIT 1', [tenantId, patientId]);

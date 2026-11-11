@@ -31,6 +31,12 @@ export async function cancelActiveItems(tx: Tx, tenantId: string, orderId: strin
     WHERE tenant_id = $1 AND order_id = $2 AND status = 'active'`, [tenantId, orderId]);
 }
 
+/** FD-T12 F12: one active item -> cancelled (a stored pre_registered item replaced at confirm). */
+export async function cancelOrderItem(tx: Tx, tenantId: string, orderId: string, id: string): Promise<void> {
+  await tx.query(`UPDATE frontdesk.order_items SET status = 'cancelled', version = version + 1, updated_at = now(), updated_by = (SELECT app.current_actor_id())
+    WHERE tenant_id = $1 AND order_id = $2 AND id = $3 AND status = 'active'`, [tenantId, orderId, id]);
+}
+
 export async function listOrderItemsByOrder(tx: Tx, tenantId: string, orderId: string): Promise<any[]> {
   const { rows } = await tx.query(`SELECT * FROM frontdesk.order_items WHERE tenant_id = $1 AND order_id = $2 ORDER BY created_at, id`, [tenantId, orderId]);
   return rows;

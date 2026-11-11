@@ -1,0 +1,14 @@
+---
+- name: Reload systemd
+  ansible.builtin.systemd_service:
+    daemon_reload: true
+
+- name: Restart polkit
+  ansible.builtin.systemd_service:
+    name: polkit
+    state: restarted
+
+- name: Restart ci runner
+  ansible.builtin.systemd_service:
+    name: lims-ci-runner
+    state: restarted

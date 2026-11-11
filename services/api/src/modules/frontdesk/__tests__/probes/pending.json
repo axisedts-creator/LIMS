@@ -1,12 +1,6 @@
 [
   "listPossibleDuplicatePatients",
   "anonymisePatient",
-  "confirmPreRegisteredOrder",
-  "uploadTrf",
-  "getTrfAttachment",
-  "getTrfAttachmentContent",
-  "listOrderFlags",
-  "resolveOrderFlag",
   "getFrontdeskSettings",
   "updateFrontdeskSettings",
   "listFrontdeskCodes"

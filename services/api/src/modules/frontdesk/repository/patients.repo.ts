@@ -7,6 +7,12 @@ const COLS = ['id', 'patient_code', 'full_name', 'name_search', 'sex', 'birth_on
 export const insertPatient = (tx: Tx, tenantId: string, row: Record<string, unknown>) => insertRow(tx, 'frontdesk.patients', COLS, tenantId, row);
 export const getPatientById = (tx: Tx, tenantId: string, id: string) => getRow(tx, 'frontdesk.patients', tenantId, id);
 
+/** FD-T11 batch read: rows visible to the tenant for these ids (missing / other-tenant ids simply do not come back). */
+export async function getPatientsByIds(tx: Tx, tenantId: string, ids: readonly string[]): Promise<any[]> {
+  if (ids.length === 0) return [];
+  return (await tx.query('SELECT * FROM frontdesk.patients WHERE tenant_id = $1 AND id = ANY($2::uuid[])', [tenantId, ids])).rows;
+}
+
 // ---- FD-T04 (F1-F5) ----
 const PAGE_ORDER = 'ORDER BY last_visit_at DESC NULLS LAST, id';
 type Rows = Promise<any[]>;

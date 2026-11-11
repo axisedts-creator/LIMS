@@ -6,7 +6,6 @@
 // FD-T09 (below, after F10): F8b quoteOrderItemsChange, F13 changeOrderItems, F14 cancelOrder (02-TRD §5.1 F8b/F13/F14, §6.4, §8.1; 03-APP-FLOW §2.5/§2.6; 07-SECURITY §5/§6).
 import type { IssuedInvoiceRef } from '../../../../../../contracts/ports/BillingCommandPort.js';
 import type { LabPortV1 } from '../../../../../../contracts/ports/LabPort.js';
-import { formatBs, instantToBs, type IsoUtc } from '../../../../../../packages/shared-ts/src/bsdate/index.js';
 import { uuidv7 } from '../../../../../../packages/shared-ts/src/uuidv7/index.js';
 import { LimsError } from '../../../core/errors.js';
 import { checkCancel, deriveOrderStatus, ORDER_STATUSES, type ItemProcessingStatus, type OrderStatus } from '../domain/order.state.js';
@@ -21,7 +20,7 @@ import { getSettings } from '../repository/settings.repo.js';
 import { listTrfByOrder } from '../repository/trf.repo.js';
 import { FRONTDESK_PERMISSIONS as P } from '../permissions.js';
 import { bad, expectedVersion, isObj, patientCtx, strict, type PatientCtx, type Result } from './patient.service.js';
-import { fiscalYearOf, lineDto, priceDraft, quoteCtx, totalsDto, type Draft, type Priced, type QuoteCtx } from './registration.service.js';
+import { fiscalYearOf, invoiceDto, lineDto, priceDraft, quoteCtx, totalsDto, type Draft, type Priced, type QuoteCtx } from './registration.service.js';
 
 type Obj = Record<string, any>;
 type Money = { amountPaisa: number; currency: string };
@@ -51,7 +50,7 @@ const portMoney = (m: Money) => ({ amount_paisa: m.amountPaisa, currency: m.curr
 /** { orderId } is the whole lab input. Iterate over the ACTIVE C4 items (03-IC §10.4 / 08 A13 D-5: "every active item"):
  *  a removed item must neither block `completed` nor start the order, and an active item LabPort does not yet know
  *  (e.g. added by changeOrderItems, not consumed by C5 yet) counts as `not_started` so `completed` is never early. */
-async function derivedStatus(c: OrderCtx, row: Obj, activeIds: ReadonlySet<string>): Promise<OrderStatus> {
+export async function derivedStatus(c: OrderCtx, row: Obj, activeIds: ReadonlySet<string>): Promise<OrderStatus> {
   const stored = row['status'] as OrderStatus;
   if (stored !== 'registered' && stored !== 'in_progress') return stored;
   const pc = portCtx(c);
@@ -299,26 +298,7 @@ export function quoteItemsChange(hctx: unknown, params: unknown, body: unknown):
 }
 
 // ---------------- F13 changeOrderItems ----------------
-/** InvoiceDto of the supplementary invoice. IssuedInvoiceRef carries ids + totals only, so the rest is composed here [CONV] (CR .orchestra/cr/FD-T09-invoice-dto.md):
- *  line ids are generated, invoice_seq = trailing number of invoice_no, series 'INV' (05-SCHEMA invoices__series__ck), cbms_state from ird.cbmsRealtimeRequired. */
-async function supplementaryDto(c: ChangeCtx, inv: IssuedInvoiceRef, p: Priced, o: Obj, buyer: Obj): Promise<Obj> {
-  const t = (await c.ports.IdentityPort.getTenantSettings(c, { keys: ['timezone', 'branding', 'ird'] })) ?? {};
-  const tz = typeof t.timezone === 'string' ? t.timezone : 'Asia/Kathmandu';
-  const seq = Number(/([0-9]+)$/.exec(inv.invoiceNo)?.[1] ?? 1);
-  const zero = { amount_paisa: 0, currency: 'NPR' };
-  return omitNull({
-    id: inv.invoiceId, invoice_no: inv.invoiceNo, invoice_seq: Number.isSafeInteger(seq) && seq >= 1 && seq <= 2147483647 ? seq : 1, series: 'INV', fiscal_year_bs: inv.fiscalYearBs,
-    invoice_kind: 'tax_invoice', status: 'issued', is_active: true, issued_at: inv.issuedAt, invoice_date_bs: formatBs(instantToBs(inv.issuedAt as IsoUtc, tz), 'iso'),
-    branch_id: o['branch_id'], centre_id: o['centre_id'], order_id: o['id'], referrer_id: o['referrer_id'], is_periodic_credit_bill: false, buyer,
-    seller: omitNull({ name: String(t.branding?.legalName ?? ''), pan: t.ird?.pan, address: Array.isArray(t.branding?.addressLines) ? t.branding.addressLines.join(', ') : undefined }),
-    lines: p.q.lines.map((l, i) => omitNull({
-      id: uuidv7(), line_no: i + 1, line_kind: l.lineKind, orderable_id: l.orderableId, code: l.code, name: l.name, department_id: l.departmentId, quantity: 1,
-      unit_price: portMoney(l.lineKind === 'urgent_surcharge' ? l.gross : l.unitPrice), gross: portMoney(l.gross), discount: portMoney(l.discount), exempt: portMoney(l.exempt),
-      taxable: portMoney(l.taxable), vat: portMoney(l.vat), other_tax: portMoney(l.otherTax), other_tax_code: l.otherTaxCode, net: portMoney(l.net), credited: zero,
-    })),
-    totals: totalsDto(inv.totals), credited_total: zero, print_count: 0, cbms_state: t.ird?.cbmsRealtimeRequired === true ? 'pending' : 'not_required', version: 1,
-  });
-}
+const supplementaryDto = (c: ChangeCtx, inv: IssuedInvoiceRef, p: Priced, o: Obj, buyer: Obj): Promise<Obj> => invoiceDto(c, inv, p, o, buyer);
 
 export function changeItems(hctx: unknown, params: unknown, headers: unknown, body: unknown): Promise<Result> {
   return wrap(async () => {

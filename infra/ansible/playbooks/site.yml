@@ -77,6 +77,14 @@
   roles:
     - registry
 
+# 02-TRD s12.2 (T-24, CR-C1-001): self-hosted CI runner on the ops host (lean: the one prod host), after
+# the registry (it pushes there). Unprivileged; the prod key is released by lims-prod-decrypt@<release>.
+- name: CI runner
+  hosts: ops
+  become: true
+  roles:
+    - ci_runner
+
 # 02-TRD s6 (T-13): public edge nginx on the app host. edge_nginx first (it
 # bootstraps placeholder certs so nginx answers HTTP-01), then acme issues the
 # real ECDSA P-256 certificates and reloads nginx through its deploy hook.
@@ -87,6 +95,15 @@
     - edge_nginx
     - fail2ban
     - acme
+
+# 02-TRD s7.4 (T-22): ClamAV. freshclam on the ops host via Squid, copy over wg0
+# to /srv/lims/clamav-db on the app host (lean: the same host). Before the runtime
+# play: clamd needs the populated signature directory when compose starts.
+- name: ClamAV
+  hosts: ops:app
+  become: true
+  roles:
+    - clamav
 
 # 02-TRD s7.4 (T-14): LIMS runtime on the app host. secrets_render first
 # (tmpfs secret files + the valkey password), then the inputs the stack

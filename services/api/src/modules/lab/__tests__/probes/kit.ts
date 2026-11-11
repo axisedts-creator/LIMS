@@ -5,7 +5,7 @@
 // ASSUMED (as T-07 .. T-29 suites): centre scope = IdentityPort.getActor().centreScope / assertRole({ permission, centreId }); privileged permissions need aal2 (REQ-SEC-062/067;
 // contracts/permissions.yaml is the source of "privileged"); the core pipeline (schema, x-permission, Idempotency-Key replay, membership re-validation) is NOT re-run here:
 // the IdentityPort fake models what it hands the handler, and every probe also asserts the handler asked for the CONTRACT's x-permission.
-import { randomUUID } from 'node:crypto';
+import { uuidv7 } from '../../../../../../../packages/shared-ts/src/uuidv7/index.js';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import pg from 'pg';
@@ -30,7 +30,7 @@ export const BRANCH = { a: '01a1a98a-ac40-7000-8000-00000000a101', b: '01a1a98a-
 export const BRANCH_A2 = '01a1a98a-ac40-7000-8000-00000000a102';
 export const NOW = new Date('2026-06-15T05:00:30.000Z');
 export const tenantOf = (side: 'a' | 'b'): string => (side === 'a' ? TENANT_A : TENANT_B);
-export const uid = (): string => randomUUID();                              // unique per call: the live files share one database and run in parallel workers
+export const uid = (): string => uuidv7();                            // unique per call: the live files share one database and run in parallel workers
 
 // ---------------------------------------------------------------- the contract (operations) - from lab.yaml, never from the handlers
 const spec: any = loadSpec(join(REPO_ROOT, 'contracts/openapi/lab.yaml'));

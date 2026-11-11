@@ -138,6 +138,38 @@ describe('T-27 auto-refresh every 30 s by polling, with a pause toggle (03-APP-F
   });
 });
 
+// Review C5.T-27 (CHANGES 1): the board must not silently drop orders beyond the first API page (AC-18.1 "per order").
+// ASSUMED contract (review fix a): a response with page.next_cursor shows a "Load more" button; pressing it calls the action again with { ..., cursor: next_cursor }
+// and APPENDS the returned rows; the button is gone when the last page has no next_cursor. A poll / filter change resets to page 1.
+describe('T-27 paging: page.next_cursor is not ignored (AC-18.1)', () => {
+  const withCursor = (data: unknown[], next_cursor?: string) => ({ ok: true, data: { data, page: { limit: 50, ...(next_cursor ? { next_cursor } : {}) } } });
+  const pickReady = async () => { await act(async () => { fireEvent.click(screen.getByRole('button', { name: /^Ready$/ })); }); };
+
+  it('shows "Load more" when the response has next_cursor and appends the next page with that cursor', async () => {
+    bff.getStatusBoardAction.mockResolvedValueOnce(withCursor([row(1, { board_status: 'ready' })], 'cur-page-2'))
+      .mockResolvedValueOnce(withCursor([row(2, { board_status: 'ready' })]));
+    await show([row(1)]);
+    await pickReady();
+    expect(screen.getByText('REG270001')).toBeTruthy();
+    await act(async () => { fireEvent.click(screen.getByRole('button', { name: /load more/i })); });
+    expect(bff.getStatusBoardAction.mock.calls.at(-1)![0]).toMatchObject({ cursor: 'cur-page-2', board_status: 'ready' });
+    expect(screen.getByText('REG270001')).toBeTruthy();
+    expect(screen.getByText('REG270002')).toBeTruthy();
+    expect(screen.queryByRole('button', { name: /load more/i })).toBeNull();
+  });
+
+  it('no "Load more" when the response has no next_cursor; the next poll starts again at page 1 (no cursor)', async () => {
+    await show([row(1)]);
+    expect(screen.queryByRole('button', { name: /load more/i })).toBeNull();
+    bff.getStatusBoardAction.mockResolvedValueOnce(withCursor([row(1)], 'cur-page-2')).mockResolvedValue(page([row(1)]));
+    await tick(31_000);
+    expect(screen.getByRole('button', { name: /load more/i })).toBeTruthy();
+    await tick(30_000);
+    expect(bff.getStatusBoardAction.mock.calls.at(-1)![0]).not.toHaveProperty('cursor');
+    expect(screen.queryByRole('button', { name: /load more/i })).toBeNull();
+  });
+});
+
 describe('T-27 filters: status chips and centre', () => {
   it('toggling status chips requests board_status as a csv of the chosen statuses (and none when cleared)', async () => {
     await show([row(1)]);

@@ -333,7 +333,8 @@ describe.skipIf(!live)('T-29 #51 versionDeltaCheckRule — effective_from, histo
     expect(rows[0]).toMatchObject({ id: v1.id, rule_id: v1.id, effective_to: NOW, is_active: true });
     expect(rows[1]).toMatchObject({ id: r.body.id, rule_id: v1.id, effective_to: null, is_active: true });
     expect(Number(rows[0]!.abs_threshold)).toBe(1);                          // the old version's numbers are never rewritten
-    const v3 = await version(r.body.id, r.body.version, { abs_threshold: '4', pct_threshold: undefined });
+    // ruling C5.T-29: schema CHECK effective_to > effective_from forbids v3 at the same fixed instant as v2 -> v3 gets a later instant
+    const v3 = await version(r.body.id, r.body.version, { abs_threshold: '4', pct_threshold: undefined, effective_from: iso(NOW.getTime() + DAY) });
     expect(v3.body.rule_version).toBe(3);
     expect((await ruleRows(A, an)).map((x) => x.rule_id)).toEqual([v1.id, v1.id, v1.id]);
   });

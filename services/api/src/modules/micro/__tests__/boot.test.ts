@@ -177,7 +177,13 @@ describe('C10-T01 boot against the real repo (default modulesDir, real micro.yam
     apps.push(app);
     return app;
   };
-  const toUrl = (path: string) => path.replace(/\{[^}]+\}/g, '01950c10-0000-7000-8000-000000000001');
+  // Ruling C10.T-01: substitute a schema-valid value per path param (integer -> 1, uuid $ref -> UUID),
+  // so a 400 common.validation_failed (conventions §422) cannot pre-empt the 401 auth.* assertion.
+  const toUrl = (path: string, op: any) =>
+    path.replace(/\{([^}]+)\}/g, (_m, name: string) => {
+      const p = (op.parameters ?? []).find((q: any) => q.in === 'path' && q.name === name);
+      return p?.schema?.type === 'integer' ? '1' : '01950c10-0000-7000-8000-000000000001';
+    });
 
   it('boots and mounts every micro operation at its spec path and method (49 of 49)', async () => {
     const app = await boot();
@@ -194,7 +200,7 @@ describe('C10-T01 boot against the real repo (default modulesDir, real micro.yam
     const app = await boot();
     const probes = opsOf(SPEC)
       .filter(({ op }) => !(op.parameters ?? []).some((p: any) => p.in === 'query' && p.required) && !op.requestBody?.required)
-      .map(({ method, path }) => ({ method: method.toUpperCase(), url: toUrl(path) }));
+      .map(({ method, path, op }) => ({ method: method.toUpperCase(), url: toUrl(path, op) }));
     expect(probes.length).toBeGreaterThanOrEqual(5);
     for (const { method, url } of probes) {
       const r = await app.inject({ method: method as any, url });

@@ -5,7 +5,6 @@ import assert from 'node:assert/strict';
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { spawnSync } from 'node:child_process';
 import { pathToFileURL } from 'node:url';
 import { parse } from 'yaml';
 
@@ -61,14 +60,19 @@ test('nav.manifest: entries are unique, ascending by order, and each resolves to
   }
 });
 
-test('build-nav CLI passes (done_when) across ALL feature manifests and emits the micro entries with their routes.yaml paths', () => {
-  const r = spawnSync(process.execPath, ['src/core/nav/build-nav.ts'], { cwd: WEB, encoding: 'utf8' });
-  assert.equal(r.status, 0, `build-nav failed:\n${r.stderr}${r.stdout}`);
-  const generated = readFileSync(join(WEB, 'src', 'core', 'nav', 'generated.ts'), 'utf8');
+// Ruling C10.T-01: scoped to micro/nav.manifest.ts only; repo-wide build-nav failures on platform.*/smartreport.* routeIds are C0/C2/C14-owned.
+test('build-nav passes (done_when) over the micro manifest alone against the real routes.yaml, with the EXPECTED entries and paths', async () => {
+  const { buildNav } = await import(pathToFileURL(join(WEB, 'src', 'core', 'nav', 'build-nav.ts')).href);
+  const dir = mkdtempSync(join(tmpdir(), 'c10-t01-'));
+  mkdirSync(join(dir, 'micro'));
+  writeFileSync(join(dir, 'micro', 'nav.manifest.ts'), readFileSync(join(FEATURE, 'nav.manifest.ts'), 'utf8'));
+  const { errors, entries } = await buildNav(dir, readFileSync(ROUTES_YAML, 'utf8'));
+  assert.deepEqual(errors, []);
+  assert.equal(entries.length, EXPECTED.length);
   for (const x of EXPECTED) {
-    assert.ok(generated.includes(`"${x.id}"`), `generated.ts contains ${x.id}`);
-    const path = routes.find((q) => q.id === x.routeId)!.path;
-    assert.ok(generated.includes(`"${path}"`), `generated.ts contains path ${path}`);
+    const e = entries.find((n: { id: string }) => n.id === x.id);
+    assert.ok(e, `entry ${x.id}`);
+    assert.equal(e.path, routes.find((q) => q.id === x.routeId)!.path);
   }
 });
 

@@ -100,7 +100,11 @@ function gated(op: string, h: Handler): Handler {
       if (op === 'amendResult' && e instanceof LimsError && e.code === 'auth.forbidden') throw new LimsError('lab.amend_requires_pathologist');
       throw e;
     }
-    return h(req, ctx);
+    if (op !== 'amendResult') return h(req, ctx);
+    try { return await h(req, ctx); }
+    catch (e) {   // the tenant-wide role passed above, so auth.forbidden from the centre-scoped check = a centre the caller cannot see: 404, never 403 (07 P-02)
+      throw e instanceof LimsError && e.code === 'auth.forbidden' ? new LimsError('common.not_found') : e;
+    }
   };
 }
 

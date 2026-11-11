@@ -50,6 +50,8 @@ export interface HarnessExtras {
   config: ReturnType<typeof loadPaymentsConfig>;
   /** the real port without the tx/db wrapper: for tests that supply their own ctx.tx */
   deps: any;
+  /** PG-T11: the ledger / frontdesk doubles the wrapper injects as ctx.ports, for worker tasks that bring their own ctx */
+  ports: { BillingPort: any; FrontdeskPort: any };
   setOrder(o: { id: string; tenantId?: string; dueAmountPaisa: number; gatewayStatus?: string; gatewayAmountPaisa?: number; status?: string }): void;
   disableAccount(gateway: 'esewa' | 'khalti', tenant?: 'A' | 'B'): void;
 }
@@ -185,7 +187,7 @@ export async function makePortHarness(): Promise<PortHarness> {
   seedAccounts();
 
   const h: PortHarness = {
-    impl: wrapped, events, ctxFor: makeCtxFor(), db, gateway, jobs, ledger, alerts, faults, clock, config, deps,
+    impl: wrapped, events, ctxFor: makeCtxFor(), db, gateway, jobs, ledger, alerts, faults, clock, config, deps, ports: { BillingPort: defaultBilling, FrontdeskPort: frontdesk },
     async seed(f: any) {
       db = makeMerchantDb(); seedAccounts();
       orders.clear(); events.clear(); jobs.length = 0; ledger.calls.length = 0; ledger.refunds.length = 0; alerts.length = 0; gateway.calls.length = 0; gateway.initiateInputs.length = 0; gateway.secretsSeen.length = 0; gateway.initiateFails = false;

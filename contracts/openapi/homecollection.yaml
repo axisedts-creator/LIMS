@@ -294,8 +294,7 @@ paths:
         - frontdesk.consent_required
         - frontdesk.booking_already_converted
         - frontdesk.patient_duplicate_suspected
-        - catalog.test_inactive
-        - catalog.no_price
+        # LD-118 (2026-11-12) option 1b: catalog.test_inactive / catalog.no_price not listed (C17 does not consume CatalogPort)
         - common.not_found
         - common.idempotency_key_required
         - common.idempotency_key_reused

@@ -3,7 +3,7 @@ import 'server-only';
 // Bulk + reject send Idempotency-Key (required); receive sends it too (optional); receive/reject send If-Match "<version>".
 import { ApiError, serverFetch } from '@/core/api/server-fetch';
 import { problem } from '@/core/session/types';
-import { BARCODE_RE, KEY_RE, OCCURRED_AT_RE, REGNO_RE, UUID_RE, type AmendBody, type AssignBody, type BulkItem, type BulkRow, type DiscardBody, type DowntimeFields, type EnterEntry, type EnterResponse, type ExceptionAction, type GridResult, type IngestException, type LookupKey, type RejectBody, type RejectResult, type ResultBulkRow, type ReturnBody, type Specimen, type VerifyItem } from './types';
+import { BARCODE_RE, KEY_RE, OCCURRED_AT_RE, REGNO_RE, UUID_RE, type AliquotBody, type AliquotResult, type AmendBody, type AssignBody, type BulkItem, type BulkRow, type DiscardBody, type DiscardSpecimenBody, type DowntimeFields, type EnterEntry, type EnterResponse, type ExceptionAction, type GridResult, type IngestException, type LookupKey, type RejectBody, type RejectResult, type ResultBulkRow, type ReturnBody, type Specimen, type StoreBody, type VerifyItem } from './types';
 
 const bad = () => new ApiError(400, problem('common.validation_failed', 'Validation failed', 400));
 const uuid = (v: unknown) => {
@@ -130,6 +130,35 @@ export function assignException(id: string, b: AssignBody, key: string) {
 
 export const receiveSpecimen =(id: string, version: number, centreId: string, key: string) =>
   post<Specimen>(`/v1/lab/specimens/${uuid(id)}/receive`, { processing_centre_id: uuid(centreId) }, { key, version });
+
+// ── C5.T-30 #12 store / #13 discard (Idempotency-Key optional) and #10 recollect / #11 aliquots (Idempotency-Key required); all send If-Match.
+const requireKey = (key: unknown) => {
+  if (typeof key !== 'string' || !KEY_RE.test(key)) throw bad();
+  return key;
+};
+const text = (v: unknown, max: number) => {
+  if (typeof v !== 'string' || v.trim() === '' || v.length > max) throw bad();
+  return v;
+};
+export function storeSpecimen(id: string, version: number, b: StoreBody, key?: string) {
+  const location = text(b?.location, 120);
+  return post<Specimen>(`/v1/lab/specimens/${uuid(id)}/store`, { location }, { version, ...(key !== undefined ? { key: requireKey(key) } : {}) });
+}
+export function discardSpecimen(id: string, version: number, b: DiscardSpecimenBody, key?: string) {
+  const discard_reason = text(b?.discard_reason, 200);
+  return post<Specimen>(`/v1/lab/specimens/${uuid(id)}/discard`, { discard_reason }, { version, ...(key !== undefined ? { key: requireKey(key) } : {}) });
+}
+export const requestRecollection = (id: string, version: number, key: string) =>
+  post<RejectResult>(`/v1/lab/specimens/${uuid(id)}/recollect`, {}, { version, key: requireKey(key) });
+export function createAliquots(id: string, version: number, b: AliquotBody, key: string) {
+  if (!Array.isArray(b?.aliquots) || b.aliquots.length < 1 || b.aliquots.length > 10) throw bad();
+  const aliquots = b.aliquots.map((a) => {
+    if (!Array.isArray(a?.test_ids) || a.test_ids.length < 1) throw bad();
+    if (a.specimen_type_code !== undefined && (typeof a.specimen_type_code !== 'string' || !CODE_RE.test(a.specimen_type_code))) throw bad();
+    return { ...(a.specimen_type_code !== undefined ? { specimen_type_code: a.specimen_type_code } : {}), test_ids: a.test_ids.map(uuid) };
+  });
+  return post<AliquotResult>(`/v1/lab/specimens/${uuid(id)}/aliquots`, { aliquots }, { version, key: requireKey(key) });
+}
 
 export function rejectSpecimen(id: string, version: number, b: RejectBody, key: string) {
   if (typeof b?.reason_code !== 'string' || !/^[A-Za-z0-9][A-Za-z0-9_.:-]{0,99}$/.test(b.reason_code)) throw bad();

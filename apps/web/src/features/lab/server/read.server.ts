@@ -3,9 +3,10 @@ import 'server-only';
 // T-27: the status board (#17). The board query carries only the range, centre_id, board_status and the opaque paging cursor/limit (REQ-SEC-098: no patient / order identifier in a URL).
 import { ApiError, serverFetch } from '@/core/api/server-fetch';
 import { problem } from '@/core/session/types';
-import { BOARD_STATUSES, ISO_MS_RE, UUID_RE, type BoardQuery, type RejectionReason, type StatusBoardPage } from './types';
+import { BOARD_STATUSES, ISO_MS_RE, UUID_RE, type BoardQuery, type QueueItem, type RejectionReason, type StatusBoardPage } from './types';
 
 const DAY_MS = 86_400_000;
+const CODE_RE = /^[A-Za-z0-9][A-Za-z0-9_.:-]{0,99}$/;
 
 export async function listRejectionReasons(): Promise<RejectionReason[]> {
   const r = await serverFetch<{ data: { code: string; display: string; sort_order?: number; is_active?: boolean }[] }>('/v1/lab/coded-sets/rejection_reasons');
@@ -13,6 +14,18 @@ export async function listRejectionReasons(): Promise<RejectionReason[]> {
     .filter((c) => c.is_active !== false)
     .sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0))
     .map(({ code, display }) => ({ code, display }));
+}
+
+/** #listVerificationQueue. Only the documented filters are forwarded (a stray param never reaches the API, REQ-SEC-028); invalid values are dropped. A failed read throws (no false "Nothing waiting"). */
+export async function listVerificationQueue(stage: 'verify' | 'approve', sp: Record<string, string | string[] | undefined> = {}): Promise<QueueItem[]> {
+  const one = (k: string) => (typeof sp[k] === 'string' ? (sp[k] as string) : undefined);
+  const q = new URLSearchParams({ stage });
+  const dept = one('department_id');
+  const prio = one('priority');
+  if (dept && UUID_RE.test(dept)) q.set('department_id', dept);
+  if (prio && CODE_RE.test(prio)) q.set('priority', prio);
+  if (one('flagged_only') === 'true') q.set('flagged_only', 'true');
+  return (await serverFetch<{ data: QueueItem[] }>(`/v1/lab/verification-queue?${q}`)).data;
 }
 
 export async function getRecollectionDefault(): Promise<boolean> {

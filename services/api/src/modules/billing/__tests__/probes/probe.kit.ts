@@ -76,13 +76,18 @@ export function sample(spec: any, schema: any, depth = 0, name = ''): any {
   return 'x'.repeat(Math.max(s.minLength ?? 1, 1));
 }
 
+/** LD-105: valid minimal bodies where the sample builder's 'x' / {} fails a handler's own validation before the tenant lookup runs. */
+const BODY_FOR: Record<string, unknown> = {
+  updatePatient: { full_name: 'Synthetic Patient' },
+  searchPatients: { query: 'Demo', mode: 'auto', limit: 20 },
+};
 export function requestFor(o: OpInfo, over: { body?: unknown; query?: Record<string, unknown> } = {}) {
   const params = Object.fromEntries(o.pathParams.map((p, i) => [p, p.endsWith('_id') ? bId(10 + i) : (deref(o.spec, o.op.parameters?.find((x: any) => deref(o.spec, x)?.name === p))?.schema?.enum?.[0] ?? 'x')]));
   const content = deref(o.spec, o.op.requestBody)?.content;
   const schema = content?.['application/json']?.schema ?? content?.['multipart/form-data']?.schema;
   return {
     params, query: over.query ?? {}, headers: { 'idempotency-key': '0190c422-0000-7000-8000-00000000f001', 'if-match': '"1"' },
-    body: over.body !== undefined ? over.body : schema ? sample(o.spec, schema) : undefined,
+    body: over.body !== undefined ? over.body : o.id in BODY_FOR ? BODY_FOR[o.id] : schema ? sample(o.spec, schema) : undefined,
   };
 }
 
@@ -114,14 +119,45 @@ export function captureLogs(): LogCapture & { restore(): void } {
 }
 export const safeJson = (x: unknown): string => { try { return JSON.stringify(x, (_k, v) => (v instanceof Error ? { name: v.name, message: v.message, ...v } : typeof v === 'bigint' ? String(v) : v)); } catch { return String(x); } };
 
+/** BL-T22-ruling a (LD-98): tenant A's OWN working IdentityPort. assertRole resolves; getActor is scoped to CENTRE_A1. Every other port still refuses with common.not_found. */
+export async function tenantAPorts(scope: { all?: boolean; centreIds?: string[] } = { centreIds: [CENTRE_A1] }) {
+  const base: any = await notFoundPorts();
+  // LD-105: readBrandingAsset exists (printInvoice, printCreditNote); tenant B's asset ids are still refused with common.not_found.
+  const identity = { assertRole: async () => undefined, readBrandingAsset: async (_c: unknown, i: { assetId?: string }) => { if (String(i?.assetId ?? '').includes(B_ID)) { const { LimsError } = await import('../../../../core/errors.js'); throw new LimsError('common.not_found'); } return { kind: 'logo', mimeType: 'image/png', base64: 'QUJD' }; }, getTenantSettings: async () => ({ timezone: 'Asia/Kathmandu', releaseRequiresPayment: true }), getActor: async () => ({ displayName: 'Synthetic Tester', centreScope: scope }) };
+  return new Proxy({}, { get: (_t, k) => (k === 'IdentityPort' ? identity : base[k]) });
+}
+/** Tenant-bound core lookups (ctx.core.membership / centre / branch): tenant B's ids (B_ID prefix) are common.not_found, tenant A's resolve. */
+const tenantBound = (make: (id: string) => unknown) => async (_c: unknown, a: Record<string, string>) => {
+  const id = Object.values(a ?? {})[0] ?? '';
+  if (String(id).includes(B_ID)) { const { LimsError } = await import('../../../../core/errors.js'); throw new LimsError('common.not_found'); }
+  return make(String(id));
+};
+
 export async function ctxFor(tenantId: string, tx: unknown, o: Record<string, unknown> = {}) {
   return {
-    operationId: 'probe', tenantId, requestId: '0190c422-0000-7000-8000-0000000000e1', now: () => '2026-11-08T06:00:00.000Z', tx,
-    actor: { type: 'user', id: ACTOR_A, membershipId: MEMBERSHIP_A }, ports: await notFoundPorts(), audit: { access: async () => undefined }, ...o,
+    operationId: 'probe', tenantId, requestId: '0190c422-0000-7000-8000-0000000000e1', now: () => new Date('2026-11-08T06:00:00.000Z'), tx,
+    actor: { type: 'user', id: ACTOR_A, membershipId: MEMBERSHIP_A }, ports: await tenantAPorts(), audit: { access: async () => undefined },
+    events: { publish: async () => undefined },
+    core: {
+      membership: tenantBound(() => ({ displayName: 'Synthetic Tester' })),
+      centre: tenantBound((id) => ({ id, branchId: '0190c422-0000-7000-8000-00000000a301', phoneDisplay: '+977-1-0000000' })),
+      branch: tenantBound(() => ({ branchCode: 'KTM' })),
+    },
+    storage: { delete: async () => undefined },
+    // LD-105: uploads.accept exists (uploadTrf); tenant B ids must still be refused with no DB write.
+    uploads: { accept: async (_f: unknown, opts: { objectPath?: string }) => ({ objectPath: opts?.objectPath ?? 'q/x', sha256: 'a'.repeat(64), byteSize: 3, mime: 'application/pdf' }) },
+    download: { stream: async () => undefined },
+    ...o,
   } as any;
 }
 
+/** BL-T22-ruling b (LD-98): BL-T21 payment intents are Phase 1.5 (06-IMPLEMENTATION-PLAN BL-T21 row), not built in v1. They must never answer 2xx (REQ-SEC-099). */
+export const DEFERRED_PHASE_1_5 = ['createPaymentIntent', 'verifyPaymentIntent'] as const;
+export const isDeferred = (id: string) => (DEFERRED_PHASE_1_5 as readonly string[]).includes(id);
+
 /** Runs one handler; returns {result} or {error}. A non-LimsError (TypeError etc.) is returned as-is so the test names it. */
 export async function run(o: OpInfo, ctx: any, req = requestFor(o)): Promise<{ result?: any; error?: any }> {
+  // LD-105: anonymisePatient fails closed unless centreScope.all === true (REQ-SEC-139); tenant A's actor gets it so the call reaches the tenant lookup (tenant B id => not_found).
+  if (o.id === 'anonymisePatient') ctx = { ...ctx, ports: await tenantAPorts({ all: true }) };
   try { return { result: await handlerMap[o.mod][o.id](req, ctx) }; } catch (error) { return { error }; }
 }

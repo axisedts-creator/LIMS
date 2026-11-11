@@ -63,10 +63,15 @@ describe('TRD §15 rule table', () => {
 });
 
 describe('hand-off: one CR to C1 lists every rule', () => {
-  const cr = join(REPO_ROOT, '.orchestra/cr/BL-T22.md');
-  it('.orchestra/cr/BL-T22.md exists, addresses C1, and names every alert and both rule file locations', () => {
-    expect(existsSync(cr), '.orchestra/cr/BL-T22.md').toBe(true);
-    const t = readFileSync(cr, 'utf8');
+  // LD-95 / LD-75(a): the orchestra renames a non-blocking CR to BL-T22.nonblocking.md (or BL-T22.resolved-*.md) before verify,
+  // so accept whichever of the three names exists.
+  const crDir = join(REPO_ROOT, '.orchestra/cr');
+  const crName = existsSync(crDir)
+    ? readdirSync(crDir).find((f) => f === 'BL-T22.md' || f === 'BL-T22.nonblocking.md' || /^BL-T22\.resolved-.*\.md$/.test(f))
+    : undefined;
+  it('one CR (.orchestra/cr/BL-T22.md | .nonblocking.md | .resolved-*.md) exists, addresses C1, and names every alert and both rule file locations', () => {
+    expect(crName, 'no .orchestra/cr/BL-T22.md, BL-T22.nonblocking.md or BL-T22.resolved-*.md').toBeDefined();
+    const t = readFileSync(join(crDir, crName!), 'utf8');
     expect(t).toMatch(/\bC1\b/);
     for (const d of dirs) expect(t, d).toContain(d);
     for (const { rule } of rules) expect(t, rule.alert).toContain(rule.alert);

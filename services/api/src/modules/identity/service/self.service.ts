@@ -79,13 +79,13 @@ const failAt = (path: string): never => {
 const omitEmpty = <T extends Record<string, unknown>>(o: T) => Object.fromEntries(Object.entries(o).filter(([, v]) => v !== undefined && v !== null));
 const sameId = (a: unknown, b: string) => typeof a === 'string' && a.toLowerCase() === b.toLowerCase();
 
-function limitOf(v: unknown): number {
+export function limitOf(v: unknown): number {
   if (v === undefined) return 50;
   const l = typeof v === 'string' && /^\d{1,4}$/.test(v) ? Number(v) : v;
   return Number.isInteger(l) && (l as number) >= 1 && (l as number) <= 200 ? (l as number) : failAt('/limit');
 }
-const encodeCursor = (r: SessRow) => Buffer.from(JSON.stringify([iso(r.last_seen_at), r.id])).toString('base64url');
-function decodeCursor(c: unknown): Keyset {
+export const encodeCursor = (r: SessRow) => Buffer.from(JSON.stringify([iso(r.last_seen_at), r.id])).toString('base64url');
+export function decodeCursor(c: unknown): Keyset {
   try {
     if (typeof c === 'string' && CURSOR.test(c)) {
       const v = JSON.parse(Buffer.from(c, 'base64url').toString('utf8'));
@@ -97,7 +97,7 @@ function decodeCursor(c: unknown): Keyset {
 }
 
 /** SessionSummary (tenant): whitelisted keys only, IP masked, user agent reduced to its family; no token material. */
-const toSession = (r: SessRow) => omitEmpty({
+export const toSession = (r: SessRow) => omitEmpty({
   session_id: r.id, membership_id: r.membership_id, display_name: r.display_name ?? '', state: r.state, aal: r.aal,
   created_at: iso(r.created_at), last_seen_at: iso(r.last_seen_at), idle_expires_at: iso(r.idle_expires_at), absolute_expires_at: iso(r.absolute_expires_at),
   client_ip_masked: r.client_ip ? maskIp(r.client_ip) : undefined, user_agent_family: r.user_agent ? uaFamily(r.user_agent) : undefined,

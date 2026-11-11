@@ -3,7 +3,7 @@ import 'server-only';
 // Bulk + reject send Idempotency-Key (required); receive sends it too (optional); receive/reject send If-Match "<version>".
 import { ApiError, serverFetch } from '@/core/api/server-fetch';
 import { problem } from '@/core/session/types';
-import { BARCODE_RE, KEY_RE, REGNO_RE, UUID_RE, type BulkItem, type BulkRow, type LookupKey, type RejectBody, type RejectResult, type Specimen } from './types';
+import { BARCODE_RE, KEY_RE, REGNO_RE, UUID_RE, type BulkItem, type BulkRow, type LookupKey, type RejectBody, type RejectResult, type ResultBulkRow, type Specimen, type VerifyItem } from './types';
 
 const bad = () => new ApiError(400, problem('common.validation_failed', 'Validation failed', 400));
 const uuid = (v: unknown) => {
@@ -41,6 +41,24 @@ export async function bulkCollect(list: BulkItem[], key: string): Promise<BulkRo
 export async function bulkDispatch(list: BulkItem[], key: string): Promise<BulkRow[]> {
   return (await post<{ results: BulkRow[] }>('/v1/lab/specimens/bulk-dispatch', { items: items(list) }, { key })).results;
 }
+
+const FLAGS = ['delta', 'critical', 'unit_mismatch', 'instrument_flag'];
+/** #28 bulkVerifyResults / bulk-approve: Idempotency-Key required; 403 auth.mfa_required passes through for the step-up retry with the SAME key. Approve never carries acknowledged_flags. */
+async function bulkResults(op: 'verify' | 'approve', list: VerifyItem[], key: string): Promise<ResultBulkRow[]> {
+  if (!Array.isArray(list) || list.length < 1 || list.length > 200) throw bad();
+  const body = list.map((i) => {
+    const o: VerifyItem = { id: uuid(i?.id), version: i.version };
+    if (!Number.isInteger(o.version) || o.version < 1) throw bad();
+    if (op === 'verify' && i.acknowledged_flags?.length) {
+      if (!Array.isArray(i.acknowledged_flags) || i.acknowledged_flags.some((f) => !FLAGS.includes(f))) throw bad();
+      o.acknowledged_flags = i.acknowledged_flags;
+    }
+    return o;
+  });
+  return (await post<{ results: ResultBulkRow[] }>(`/v1/lab/results/bulk-${op}`, { items: body }, { key })).results;
+}
+export const bulkVerifyResults = (list: VerifyItem[], key: string) => bulkResults('verify', list, key);
+export const bulkApproveResults = (list: VerifyItem[], key: string) => bulkResults('approve', list, key);
 
 export const receiveSpecimen = (id: string, version: number, centreId: string, key: string) =>
   post<Specimen>(`/v1/lab/specimens/${uuid(id)}/receive`, { processing_centre_id: uuid(centreId) }, { key, version });

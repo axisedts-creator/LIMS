@@ -20,7 +20,7 @@ type Obj = Record<string, any>;
 interface Ports { IdentityPort: { assertRole(ctx: unknown, r: { permission: string; centreId?: string }): Promise<void> } }
 interface OrderResults { order: unknown; centreId: string; items: { orderItemId: string; testId: string; testCode: string; results: ResultRow[] }[] }
 type ReadStore = EntryStore & { getOrderResults(tx: unknown, tenantId: string, a: { orderId: string; departmentId?: string }): Promise<OrderResults | undefined> };
-interface Ctx extends HandlerContext { tenantId: string; actor: { id: string }; tx: object; now?: () => Date; store?: ReadStore; ports?: Ports }
+interface Ctx extends HandlerContext { tenantId: string; actor: { id: string }; tx: object; now?: () => Date; store?: ReadStore; ports?: Ports; audit?: { access(e: Obj): Promise<void> } }
 
 export const obj = (v: unknown): Obj => (typeof v === 'object' && v !== null && !Array.isArray(v) ? (v as Obj) : {});
 
@@ -111,6 +111,8 @@ const listOrderResults: Handler = async (req, hctx) => {
   const r = await (ctx.store as ReadStore).getOrderResults(ctx.tx, ctx.tenantId, { orderId, ...(dept === undefined ? {} : { departmentId: dept }) });
   if (!r) throw new LimsError('common.not_found');     // P-01
   await assertRead(ctx, r.centreId);                   // the order's own centre (store fills it from the order row), even when no result rows exist (P-02)
+  // 02-TRD §11 "Access log" #16 (D-11): one row per call, ids only (REQ-SEC-006); after authz so a refused caller writes no row.
+  await (ctx.audit as NonNullable<Ctx['audit']>).access({ action: 'lab_result.view', entityType: 'order', entityId: orderId, centreId: r.centreId, outcome: 'allowed' });
   return {
     status: 200,
     body: { order: r.order, items: r.items.map((i) => ({ order_item_id: i.orderItemId, test: { test_id: i.testId, test_code: i.testCode }, results: i.results.map(toResultDto) })) },

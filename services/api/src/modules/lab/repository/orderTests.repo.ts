@@ -36,6 +36,24 @@ export const copyProcessingToExistingMaterialTests = (rc: RepoCtx, orderId: stri
              WHERE tenant_id = $1 AND order_id = $5 AND uses_existing_material = true AND specimen_id IS NULL AND processing_centre_id IS NULL RETURNING id`,
     [rc.actorId, p.centreId, p.branchId, orderId]);
 
+// ---- T-08 reject / recollection / aliquots (every statement: tenant filter, version bump) ----
+const LIVE = `('awaiting_collection','awaiting_receipt','in_process','resulted','verified')`;
+/** order_tests__tenant_id_specimen__idx */
+export const listOrderTestsOfSpecimen = (rc: RepoCtx, specimenId: string) =>
+  query(rc, 'SELECT id, order_item_id, test_id, status FROM lab.order_tests WHERE tenant_id = $1 AND specimen_id = $2', [specimenId]);
+/** S11 (08 A13 D-5): the specimen's not-yet-approved tests become cancelled (specimen_rejected); approved / excluded / outsourced tests keep their state. */
+export const cancelTestsOfSpecimen = (rc: RepoCtx, specimenId: string, at: string) =>
+  query(rc, `UPDATE lab.order_tests SET status = 'cancelled', cancelled_at = $3::timestamptz, cancel_reason = 'specimen_rejected', version = version + 1, updated_at = now(), updated_by = $2
+             WHERE tenant_id = $1 AND specimen_id = $4 AND status IN ${LIVE} RETURNING id`, [rc.actorId, at, specimenId]);
+/** S12: the tests cancelled by a rejection of `fromId` follow the recollection (re-pointed + re-opened). */
+export const reopenTestsOfSpecimen = (rc: RepoCtx, fromId: string, toId: string) =>
+  query(rc, `UPDATE lab.order_tests SET specimen_id = $3, status = 'awaiting_collection', cancelled_at = NULL, cancel_reason = NULL, version = version + 1, updated_at = now(), updated_by = $2
+             WHERE tenant_id = $1 AND specimen_id = $4 AND status = 'cancelled' AND cancel_reason = 'specimen_rejected' RETURNING id`, [rc.actorId, toId, fromId]);
+/** S5: the tests assigned to an aliquot follow their results. */
+export const moveTestsToSpecimen = (rc: RepoCtx, fromId: string, toId: string, testIds: readonly string[]) =>
+  query(rc, `UPDATE lab.order_tests SET specimen_id = $3, version = version + 1, updated_at = now(), updated_by = $2
+             WHERE tenant_id = $1 AND specimen_id = $4 AND test_id = ANY($5::uuid[]) AND status IN ${LIVE} RETURNING id`, [rc.actorId, toId, fromId, testIds]);
+
 /** order_tests__tenant_id_worklist__p_idx; urgent first ('urgent' > 'routine'), then receipt time. */
 export const listWorklist = async (rc: RepoCtx, o: { departmentId: string; limit: number }) => {
   const limit = limitOf(o?.limit);

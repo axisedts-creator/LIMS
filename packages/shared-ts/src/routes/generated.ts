@@ -250,16 +250,136 @@ export const ROUTES = {
     "path": "/billing/invoices/{invoice_id}",
     "permission": "billing.invoice.read"
   },
+  "staff.catalog.comment_codes": {
+    "origin": "staff_web",
+    "owner": "C3",
+    "path": "/catalog/comment-codes",
+    "permission": "catalog.test.read"
+  },
+  "staff.catalog.credit_parties": {
+    "origin": "staff_web",
+    "owner": "C3",
+    "path": "/catalog/credit-parties",
+    "permission": "catalog.price_list.read"
+  },
+  "staff.catalog.credit_party": {
+    "origin": "staff_web",
+    "owner": "C3",
+    "path": "/catalog/credit-parties/{credit_party_id}",
+    "permission": "catalog.price_list.read"
+  },
+  "staff.catalog.departments": {
+    "origin": "staff_web",
+    "owner": "C3",
+    "path": "/catalog/departments",
+    "permission": "catalog.test.read"
+  },
+  "staff.catalog.doctor": {
+    "origin": "staff_web",
+    "owner": "C3",
+    "path": "/catalog/doctors/{doctor_id}",
+    "permission": "catalog.referrer.read"
+  },
+  "staff.catalog.doctor_verify": {
+    "origin": "staff_web",
+    "owner": "C3",
+    "path": "/catalog/doctors/verify",
+    "permission": "catalog.referrer.read"
+  },
+  "staff.catalog.doctors": {
+    "origin": "staff_web",
+    "owner": "C3",
+    "path": "/catalog/doctors",
+    "permission": "catalog.referrer.read"
+  },
+  "staff.catalog.home": {
+    "origin": "staff_web",
+    "owner": "C3",
+    "path": "/catalog",
+    "permission": "catalog.test.read"
+  },
+  "staff.catalog.import": {
+    "origin": "staff_web",
+    "owner": "C3",
+    "path": "/catalog/imports/{import_id}",
+    "permission": "catalog.test.read"
+  },
+  "staff.catalog.imports": {
+    "origin": "staff_web",
+    "owner": "C3",
+    "path": "/catalog/imports",
+    "permission": "catalog.test.read"
+  },
+  "staff.catalog.methods": {
+    "origin": "staff_web",
+    "owner": "C3",
+    "path": "/catalog/methods",
+    "permission": "catalog.test.read"
+  },
+  "staff.catalog.panel": {
+    "origin": "staff_web",
+    "owner": "C3",
+    "path": "/catalog/panels/{panel_id}",
+    "permission": "catalog.test.read"
+  },
+  "staff.catalog.panels": {
+    "origin": "staff_web",
+    "owner": "C3",
+    "path": "/catalog/panels",
+    "permission": "catalog.test.read"
+  },
   "staff.catalog.price_list": {
     "origin": "staff_web",
     "owner": "C3",
     "path": "/catalog/price-lists/{price_list_id}",
     "permission": "catalog.price_list.read"
   },
+  "staff.catalog.price_list_version": {
+    "origin": "staff_web",
+    "owner": "C3",
+    "path": "/catalog/price-lists/{price_list_id}/versions/{version_id}",
+    "permission": "catalog.price_list.read"
+  },
+  "staff.catalog.price_lists": {
+    "origin": "staff_web",
+    "owner": "C3",
+    "path": "/catalog/price-lists",
+    "permission": "catalog.price_list.read"
+  },
+  "staff.catalog.price_simulator": {
+    "origin": "staff_web",
+    "owner": "C3",
+    "path": "/catalog/price-simulator",
+    "permission": "catalog.price_list.read"
+  },
+  "staff.catalog.specimens": {
+    "origin": "staff_web",
+    "owner": "C3",
+    "path": "/catalog/specimens",
+    "permission": "catalog.test.read"
+  },
+  "staff.catalog.surcharges": {
+    "origin": "staff_web",
+    "owner": "C3",
+    "path": "/catalog/surcharges",
+    "permission": "catalog.price_list.read"
+  },
+  "staff.catalog.tax": {
+    "origin": "staff_web",
+    "owner": "C3",
+    "path": "/catalog/tax",
+    "permission": "catalog.price_list.read"
+  },
   "staff.catalog.test": {
     "origin": "staff_web",
     "owner": "C3",
     "path": "/catalog/tests/{test_id}",
+    "permission": "catalog.test.read"
+  },
+  "staff.catalog.units": {
+    "origin": "staff_web",
+    "owner": "C3",
+    "path": "/catalog/units",
     "permission": "catalog.test.read"
   },
   "staff.engagement.app_access": {

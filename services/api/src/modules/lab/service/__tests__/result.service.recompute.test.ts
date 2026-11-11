@@ -95,7 +95,7 @@ describe('T-13 recomputeDependents — AC-09.1 / 09.2 / 09.3 outcomes', () => {
   });
   it('formula ctx carries ageYears: @age_years formula with ageYears set -> computed (review item 2)', async () => {
     const m = make([target({ expression: 'TC + @age_years', ageYears: 30 })], lipids());
-    await run(m);
+    await run(m, { changedAnalyteCode: 'TC' });
     const o = m.writes()[0]!.arg.outcome;
     expect(o.calcStatus).toBe('computed');
     expect(Number(o.value)).toBe(230);

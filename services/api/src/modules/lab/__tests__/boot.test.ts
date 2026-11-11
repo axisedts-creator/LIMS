@@ -47,6 +47,12 @@ const IMPLEMENTED: readonly string[] = [
   'approveResult', 'bulkApproveResults', 'amendResult', 'listResultVersions',
   // T-19 history
   'getResultHistory', 'getAnalyteTrend',
+  // T-26 worklists, pending, worksheets
+  'listWorklistItems', 'listPendingItems', 'createWorksheet', 'listWorksheets', 'getWorksheet',
+  // T-23 ingest exception queue
+  'listIngestExceptions', 'getIngestException', 'assignIngestException', 'reapplyIngestException', 'discardIngestException',
+  // T-27 status board
+  'getStatusBoard',
 ];
 
 const FAKE_REQ = { params: {}, query: {}, headers: {}, body: {} };

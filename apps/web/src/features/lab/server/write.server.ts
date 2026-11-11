@@ -3,7 +3,7 @@ import 'server-only';
 // Bulk + reject send Idempotency-Key (required); receive sends it too (optional); receive/reject send If-Match "<version>".
 import { ApiError, serverFetch } from '@/core/api/server-fetch';
 import { problem } from '@/core/session/types';
-import { BARCODE_RE, KEY_RE, REGNO_RE, UUID_RE, type BulkItem, type BulkRow, type LookupKey, type RejectBody, type RejectResult, type ResultBulkRow, type Specimen, type VerifyItem } from './types';
+import { BARCODE_RE, KEY_RE, OCCURRED_AT_RE, REGNO_RE, UUID_RE, type AmendBody, type AssignBody, type BulkItem, type BulkRow, type DiscardBody, type DowntimeFields, type EnterEntry, type EnterResponse, type ExceptionAction, type GridResult, type IngestException, type LookupKey, type RejectBody, type RejectResult, type ResultBulkRow, type ReturnBody, type Specimen, type VerifyItem } from './types';
 
 const bad = () => new ApiError(400, problem('common.validation_failed', 'Validation failed', 400));
 const uuid = (v: unknown) => {
@@ -60,7 +60,75 @@ async function bulkResults(op: 'verify' | 'approve', list: VerifyItem[], key: st
 export const bulkVerifyResults = (list: VerifyItem[], key: string) => bulkResults('verify', list, key);
 export const bulkApproveResults = (list: VerifyItem[], key: string) => bulkResults('approve', list, key);
 
-export const receiveSpecimen = (id: string, version: number, centreId: string, key: string) =>
+// ── C5.T-20 result entry. LD-25 (2026-11-07): entry_mode / occurred_at / downtime_ref travel top-level in the bulk-enter body; the API re-checks every limit.
+const CODE_RE = /^[A-Za-z0-9][A-Za-z0-9_.:-]{0,99}$/;
+const DEC_RE = /^-?[0-9]{1,18}(\.[0-9]{1,12})?$/;
+const ORD_RE = /^[A-Z0-9_+-]{1,16}$/;
+const valueOf = (v: Pick<EnterEntry, 'value_numeric' | 'value_text' | 'ordinal_code' | 'comment_codes' | 'comment_text'>) => {
+  const n = [v.value_numeric, v.value_text, v.ordinal_code].filter((x) => x !== undefined).length;
+  if (n > 1) throw bad();
+  if (v.value_numeric !== undefined && !DEC_RE.test(v.value_numeric)) throw bad();
+  if (v.value_text !== undefined && (typeof v.value_text !== 'string' || v.value_text.length > 2000)) throw bad();
+  if (v.ordinal_code !== undefined && !ORD_RE.test(v.ordinal_code)) throw bad();
+  if (v.comment_codes !== undefined && (!Array.isArray(v.comment_codes) || v.comment_codes.length > 10 || v.comment_codes.some((c) => !CODE_RE.test(c)))) throw bad();
+  if (v.comment_text !== undefined && (typeof v.comment_text !== 'string' || v.comment_text.length > 1000)) throw bad();
+  return {
+    ...(v.value_numeric !== undefined ? { value_numeric: v.value_numeric } : {}),
+    ...(v.value_text !== undefined ? { value_text: v.value_text } : {}),
+    ...(v.ordinal_code !== undefined ? { ordinal_code: v.ordinal_code } : {}),
+    ...(v.comment_codes?.length ? { comment_codes: v.comment_codes } : {}),
+    ...(v.comment_text ? { comment_text: v.comment_text } : {}),
+  };
+};
+
+export async function bulkEnterResults(list: EnterEntry[], key: string, downtime?: DowntimeFields): Promise<EnterResponse> {
+  if (!Array.isArray(list) || list.length < 1 || list.length > 200) throw bad();
+  const entries = list.map((e) => {
+    if (!Number.isInteger(e?.version) || e.version < 1) throw bad();
+    return { result_id: uuid(e.result_id), version: e.version, ...valueOf(e) };
+  });
+  let dt = {};
+  if (downtime !== undefined) {
+    if (downtime.entry_mode !== 'downtime_backentry' || typeof downtime.occurred_at !== 'string' || !OCCURRED_AT_RE.test(downtime.occurred_at)
+      || typeof downtime.downtime_ref !== 'string' || downtime.downtime_ref.length < 1 || downtime.downtime_ref.length > 32) throw bad();
+    dt = { entry_mode: downtime.entry_mode, occurred_at: downtime.occurred_at, downtime_ref: downtime.downtime_ref };
+  }
+  return post<EnterResponse>('/v1/lab/results/bulk-enter', { entries, ...dt }, { key });
+}
+
+export function returnResult(id: string, version: number, b: ReturnBody) {
+  if (typeof b?.reason_code !== 'string' || !CODE_RE.test(b.reason_code)) throw bad();
+  if (b.comment !== undefined && (typeof b.comment !== 'string' || b.comment.length > 500)) throw bad();
+  return post<GridResult>(`/v1/lab/results/${uuid(id)}/return`, { reason_code: b.reason_code, ...(b.comment ? { comment: b.comment } : {}) }, { version });
+}
+
+export function amendResult(id: string, version: number, b: AmendBody, key: string) {
+  if (typeof b?.amendment_reason_code !== 'string' || !CODE_RE.test(b.amendment_reason_code)) throw bad();
+  if (b.amendment_reason_text !== undefined && (typeof b.amendment_reason_text !== 'string' || b.amendment_reason_text.length > 500)) throw bad();
+  return post<GridResult>(
+    `/v1/lab/results/${uuid(id)}/amend`,
+    { ...valueOf(b), amendment_reason_code: b.amendment_reason_code, ...(b.amendment_reason_text ? { amendment_reason_text: b.amendment_reason_text } : {}) },
+    { key, version },
+  );
+}
+
+/** C5.T-23 #41 reapply: body {} (the tenant and the actor are never sent). */
+export const reapplyException = (id: string) => post<ExceptionAction>(`/v1/lab/ingest-exceptions/${uuid(id)}/reapply`, {});
+
+/** #42 discard: reason_code from lab.exception_discard_reasons, comment <= 300 (omitted when empty). */
+export function discardException(id: string, b: DiscardBody) {
+  if (typeof b?.reason_code !== 'string' || !/^[A-Za-z0-9][A-Za-z0-9_.:-]{0,99}$/.test(b.reason_code)) throw bad();
+  if (b.comment !== undefined && (typeof b.comment !== 'string' || b.comment.length > 300)) throw bad();
+  return post<IngestException>(`/v1/lab/ingest-exceptions/${uuid(id)}/discard`, { reason_code: b.reason_code, ...(b.comment ? { comment: b.comment } : {}) });
+}
+
+/** #40 assign: Idempotency-Key required; override_analyte only when true. */
+export function assignException(id: string, b: AssignBody, key: string) {
+  const body = { result_id: uuid(b?.result_id), ...(b.override_analyte === true ? { override_analyte: true } : {}) };
+  return post<ExceptionAction>(`/v1/lab/ingest-exceptions/${uuid(id)}/assign`, body, { key });
+}
+
+export const receiveSpecimen =(id: string, version: number, centreId: string, key: string) =>
   post<Specimen>(`/v1/lab/specimens/${uuid(id)}/receive`, { processing_centre_id: uuid(centreId) }, { key, version });
 
 export function rejectSpecimen(id: string, version: number, b: RejectBody, key: string) {

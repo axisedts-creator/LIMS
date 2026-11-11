@@ -43,5 +43,22 @@ export const gotrue = () => (gateway ??= createHttpGoTrueGateway({
 }));
 
 export const q = async (tx: unknown, sql: string, v: unknown[]) => (await (tx as { query(t: string, v: unknown[]): Promise<{ rows: Row[] }> }).query(sql, v)).rows;
+/** T27 platform task guard: payload {} and no job tenant. */
+export const platformOnly = (task: string, payload: unknown, ctx: Pick<JobContext, 'tenantId'>) => {
+  if (!shapeOf(payload, { none: [] }) || ctx.tenantId !== undefined) malformed(task);
+};
+/** T27 per_tenant guard: payload exactly {tenant_id} = the job tenant. Returns the tenant. */
+export const tenantOnly = (task: string, payload: unknown, ctx: Pick<JobContext, 'tenantId'>): string => {
+  const s = shapeOf(payload, { t: ['tenant_id'] });
+  if (!s || !sameTenant(s[1], ctx) || ctx.tenantId === undefined) malformed(task);
+  return ctx.tenantId!;
+};
+/** T27 maintenance cron task: exactly one call of its inventoried DEFINER (the DEFINER sets/resets app.maintenance itself, A15.3 / D-T19). */
+export const definerTask = (task: string, fn: string): TaskHandler => async (payload, ctx) => {
+  platformOnly(task, payload, ctx);
+  const rows = await q(ctx.tx, `SELECT app.${fn}() AS n`, []);
+  ctx.log?.info?.({ event: task, affected: rows[0]?.['n'] ?? rows[0]?.[fn] ?? null });
+};
+
 /** [CONV] platform rows (tenant_id NULL) are not reachable by the worker role and no DEFINER exists for them yet: fail closed (dead letter, visible). */
 export const platformUnwired = (what: string): never => { throw new LimsError('common.internal' as ErrorCode,`identity worker: platform ${what} not wired`); };

@@ -3,4 +3,5 @@
 - [CONV] If-Match via expectedVersion (428/400/409); UPDATE-first in F7 so a race loser has no side effects; TRF objects deleted last via ctx.storage.delete(bucket, path); reason_text validated, never stored/logged.
 - [CONV] retention: max(COALESCE(registered_at, cancelled_at, created_at)) + retentionYears (default 5) strictly < now; no order -> patient created_at. Open order = pre_registered (blocks outright) or registered/in_progress not derived `completed` (needs LabPort, fails closed with service_unavailable).
 - Run 2026-11-11: unit/boot.test.ts 30/30 pass (after ruling). FD-T15.pg.sh admin suites 74/78; the 4 failures (duplicates.test.ts) are fixture bugs -> FD-T15-dispute.md (seedPatient default random phone makes "twins" non-suspects).
+- Run 2026-11-11 09:25 (revised tests): 77/78; the 1 fail (duplicates.test.ts:93 `previous` stamp 18:29Z is 00:14 KTM on 11-10, not 23:59 on 11-09) -> FD-T15-dispute.md. No code change.
 - Open: orders/TRF RLS is tenant+centre, so an admin without all-centre scope cannot see other-centre open orders/TRFs in F7 (would miss a block and leave objects). Needs a DEFINER/all-centre path (C0/schema) - not done.

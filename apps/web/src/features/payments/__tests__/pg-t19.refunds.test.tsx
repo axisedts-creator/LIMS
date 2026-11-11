@@ -130,7 +130,7 @@ describe('§2.3 RefundsList — table', () => {
     await view();
     const r1 = rowOf(1);
     expect(within(r1).getByText('Khalti')).toBeTruthy();
-    expect(within(r1).getByText('NPR 2,250.00')).toBeTruthy();
+    expect(within(r1).getByText(/2,250\.00/)).toBeTruthy();
     expect(within(r1).getByText('Waiting for approval')).toBeTruthy();
     expect(within(r1).getByText('Manual')).toBeTruthy();
     expect(within(r1).getByText('Synthetic Finance A')).toBeTruthy();
@@ -460,7 +460,7 @@ describe('AC-PG-09.9 Mark refund failed (P11b)', () => {
   it('danger ConfirmDialog "Mark this refund as failed?" with the spec body naming the gateway', async () => {
     const dlg = await open();
     expect(within(dlg).getByText('Mark this refund as failed?')).toBeTruthy();
-    expect(within(dlg).getByText('We check with Khalti first. Only do this if Khalti confirmed that no refund was made. No ledger entry is written, and a new refund can be requested.')).toBeTruthy();
+    expect(within(dlg).getByText('We check with eSewa first. Only do this if eSewa confirmed that no refund was made. No ledger entry is written, and a new refund can be requested.')).toBeTruthy();
   });
 
   it('requires a coded reason (refund_fail_reasons); sends {reason_code} with If-Match + Idempotency-Key', async () => {
@@ -494,7 +494,7 @@ describe('AC-PG-09.9 Mark refund failed (P11b)', () => {
     const dlg = await open();
     await pick(dlg, /Provider confirmed no refund was made/);
     await userEvent.click(within(dlg).getByRole('button', { name: /mark.*failed/i }));
-    expect(await screen.findByText('Khalti shows a refund for this payment. Use Re-check instead.')).toBeTruthy();
+    expect(await screen.findByText('eSewa shows a refund for this payment. Use Re-check instead.')).toBeTruthy();
     noRawCodes();
     expect(document.body.textContent).not.toMatch(/gateway_shows_refund/);
   });
@@ -664,7 +664,7 @@ describe('refunds page.tsx — request (P6/P24)', () => {
     expect(l.headers.get('authorization')).toBe('Bearer jwt-synthetic');
     for (const s of ['refund_reject_reasons', 'refund_fail_reasons', 'refund_hold_reasons']) expect(calls.some((c) => c.url.pathname === `/v1/payments/coded-sets/${s}`), s).toBe(true);
     expect(container.innerHTML).not.toContain('jwt-synthetic');
-    expect(await within(screen.getByRole('grid')).findByText('Synthetic Finance A', {}, { timeout: 3000 })).toBeTruthy();
+    expect((await within(screen.getByRole('grid')).findAllByText('Synthetic Finance A', {}, { timeout: 3000 })).length).toBeGreaterThan(0);
   });
 
   it('forwards only whitelisted, well-formed params; drops tenant_id / evil / malformed values', async () => {

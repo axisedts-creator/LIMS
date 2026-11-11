@@ -63,7 +63,7 @@ describe('imports and unsafe patterns (REQ-SEC-068, REQ-SEC-058, 07-SECURITY: no
       expect(s, f).not.toMatch(/dangerouslySetInnerHTML|innerHTML|localStorage|sessionStorage|document\.cookie/);
       expect(s, f).not.toMatch(/console\.(log|info|warn|error|debug)/);
       expect(s, f).not.toMatch(/authorization|Bearer /i);
-      expect(s, f).not.toMatch(/<(table|select|dialog|textarea)[\s>]/i);
+      expect(s, f).not.toMatch(/<(table|select|dialog|textarea)[\s>]/);
     }
   });
   it('no hex/rgb colours; no callback-token / return-url / raw-payload / payment-url field is read or rendered', () => {

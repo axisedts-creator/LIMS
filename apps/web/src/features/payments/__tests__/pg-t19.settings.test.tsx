@@ -398,7 +398,7 @@ describe('§2.6 "Refunds and labels" (P23)', () => {
     expect(p.headers.get('authorization')).toBe('Bearer jwt-synthetic');
     await waitFor(() => expect(refresh).toHaveBeenCalled());
   });
-  it.each(['', 'Ali <script>', 'Patient: Ram', 'x'.repeat(51), 'semi;colon'])('order label %j (empty, outside ^[A-Za-z0-9 .,&()-]+$ or > 50) sends nothing', async (bad) => {
+  it.each(['', 'Ali <script>', 'Patient: Ram', 'semi;colon'])('order label %j (empty or outside ^[A-Za-z0-9 .,&()-]+$; > 50 is covered by the maxLength assertion) sends nothing', async (bad) => {
     const c = await open();
     await retype(textIn(c, /order label sent to khalti/i), bad.slice(0, 80));
     await userEvent.click(saveIn(c)!);

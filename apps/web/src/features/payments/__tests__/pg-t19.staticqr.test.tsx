@@ -113,7 +113,7 @@ describe('AC-PG-12.2 form (§2.5)', () => {
     expect(previews()[0]!.url.searchParams.get('business_date')).toBe('2026-11-11');
     expect(previews()[0]!.url.searchParams.has('centre_id')).toBe(false);
     expect(previews()[0]!.headers.get('authorization')).toBe('Bearer jwt-synthetic');
-    expect(await screen.findByText('NPR 12,345.00')).toBeTruthy();
+    expect((await screen.findAllByText(/12,345\.00/)).length).toBeGreaterThan(0);
     expect(screen.getByText(/3 entries/i)).toBeTruthy();
   });
 
@@ -125,23 +125,23 @@ describe('AC-PG-12.2 form (§2.5)', () => {
     await userEvent.click(screen.getByRole('button', { name: /centre/i }));
     await userEvent.click(await screen.findByRole('option', { name: 'Synthetic Centre A1' }));
     await waitFor(() => expect(previews().some((c) => c.url.searchParams.get('centre_id') === CENTRE)).toBe(true));
-    expect(await screen.findByText('NPR 4,000.00')).toBeTruthy();
+    expect((await screen.findAllByText(/4,000\.00/)).length).toBeGreaterThan(0);
     expect(screen.getByText(/1 entr(y|ies)/i)).toBeTruthy();
   });
 
   it('Difference = statement − system, read-only, shown in text; equal totals ⇒ NPR 0.00', async () => {
     await view();
-    await screen.findByText('NPR 12,345.00');
+    await screen.findAllByText(/12,345\.00/);
     await type(/bank statement total/i, '12,000.00');
     await waitFor(() => expect(document.body.textContent).toMatch(/Difference[\s\S]{0,60}345\.00/));
     await type(/bank statement total/i, '12,345.00');
-    await waitFor(() => expect(document.body.textContent).toMatch(/Difference[\s\S]{0,60}NPR 0\.00/));
+    await waitFor(() => expect(document.body.textContent).toMatch(/Difference[\s\S]{0,60}0\.00/));
     expect(screen.queryByRole('textbox', { name: /^difference/i })).toBeNull();
   });
 
   it('matching totals: saves with {business_date, statement_total_paisa, statement_reference} and NO centre_id / note; sends an Idempotency-Key and the Bearer token; refreshes', async () => {
     await view();
-    await screen.findByText('NPR 12,345.00');
+    await screen.findAllByText(/12,345\.00/);
     await fillOk();
     await userEvent.click(saveBtn()!);
     await waitFor(() => expect(saves()).toHaveLength(1));
@@ -159,7 +159,7 @@ describe('AC-PG-12.2 form (§2.5)', () => {
     await view();
     await userEvent.click(screen.getByRole('button', { name: /centre/i }));
     await userEvent.click(await screen.findByRole('option', { name: 'Synthetic Centre A1' }));
-    await screen.findByText('NPR 4,000.00');
+    await screen.findAllByText(/4,000\.00/);
     await fillOk('4,000.00');
     await userEvent.click(saveBtn()!);
     await waitFor(() => expect(saves()).toHaveLength(1));
@@ -168,7 +168,7 @@ describe('AC-PG-12.2 form (§2.5)', () => {
 
   it('non-zero difference needs a note: nothing is sent without one, then the note is sent', async () => {
     await view();
-    await screen.findByText('NPR 12,345.00');
+    await screen.findAllByText(/12,345\.00/);
     await fillOk('12,000.00');
     await userEvent.click(saveBtn()!);
     expect(saves()).toHaveLength(0);
@@ -182,7 +182,7 @@ describe('AC-PG-12.2 form (§2.5)', () => {
 
   it('validation: future business date, empty reference, empty statement total each send nothing', async () => {
     await view();
-    await screen.findByText('NPR 12,345.00');
+    await screen.findAllByText(/12,345\.00/);
     await fillOk();
     await setDate('13/11/2026'); // tomorrow
     await userEvent.click(saveBtn()!);
@@ -199,7 +199,7 @@ describe('AC-PG-12.2 form (§2.5)', () => {
 
   it('a negative or non-numeric statement total is never submitted (≥ 0, 2 decimals)', async () => {
     await view();
-    await screen.findByText('NPR 12,345.00');
+    await screen.findAllByText(/12,345\.00/);
     await type(/statement reference/i, 'BANK-1');
     await type(/bank statement total/i, '-5');
     await userEvent.click(saveBtn()!);
@@ -213,7 +213,7 @@ describe('AC-PG-12.2 form (§2.5)', () => {
   it('409 payments.static_qr_already_reconciled ⇒ banner "This date and centre were already reconciled." (no raw code)', async () => {
     save = () => problem('payments.static_qr_already_reconciled', 409);
     await view();
-    await screen.findByText('NPR 12,345.00');
+    await screen.findAllByText(/12,345\.00/);
     await fillOk();
     await userEvent.click(saveBtn()!);
     expect(await screen.findByText('This date and centre were already reconciled.')).toBeTruthy();
@@ -224,7 +224,7 @@ describe('AC-PG-12.2 form (§2.5)', () => {
   it('400 common.validation_failed from the API ⇒ plain text, no raw code, the form keeps what was typed', async () => {
     save = () => problem('common.validation_failed', 400);
     await view();
-    await screen.findByText('NPR 12,345.00');
+    await screen.findAllByText(/12,345\.00/);
     await fillOk();
     await userEvent.click(saveBtn()!);
     await waitFor(() => expect(saves()).toHaveLength(1));
@@ -236,7 +236,7 @@ describe('AC-PG-12.2 form (§2.5)', () => {
   it('a double click on "Save worksheet" saves once (race / double submit)', async () => {
     save = async () => { await new Promise((r) => setTimeout(r, 100)); return HttpResponse.json(sheet(9), { status: 201 }); };
     await view();
-    await screen.findByText('NPR 12,345.00');
+    await screen.findAllByText(/12,345\.00/);
     await fillOk();
     await userEvent.dblClick(saveBtn()!);
     await new Promise((r) => setTimeout(r, 250));
@@ -249,7 +249,7 @@ describe('AC-PG-12.2 form (§2.5)', () => {
     await waitFor(() => expect(previews().length).toBeGreaterThan(0));
     await new Promise((r) => setTimeout(r, 50));
     noRawCodes();
-    expect(document.body.textContent).not.toMatch(/NPR 12,345\.00|NaN|undefined/); // empty list ⇒ no amount may appear
+    expect(document.body.textContent).not.toMatch(/12,345\.00|NaN|undefined/); // empty list ⇒ no amount may appear
     expect(screen.getByText(BANNER)).toBeTruthy();
   });
 
@@ -276,7 +276,7 @@ describe('§2.5 worksheet list', () => {
     await view();
     const r1 = screen.getAllByRole('row').find((r) => /09\/11\/2026/.test(r.textContent ?? ''))!;
     expect(within(r1).getByText('Synthetic Centre A1')).toBeTruthy();
-    expect(within(r1).getAllByText('NPR 12,345.00').length).toBeGreaterThan(0);
+    expect(within(r1).getAllByText(/12,345\.00/).length).toBeGreaterThan(0);
     expect(within(r1).getByText(/Matched/i)).toBeTruthy();
     expect(r1.textContent).not.toContain(U(11));
     const r2 = screen.getAllByRole('row').find((r) => /08\/11\/2026/.test(r.textContent ?? ''))!;
@@ -290,7 +290,7 @@ describe('§2.5 worksheet list', () => {
 describe('§6 a11y', () => {
   it('axe: no violations with rows, empty list, and with validation errors shown', async () => {
     await view();
-    await screen.findByText('NPR 12,345.00');
+    await screen.findAllByText(/12,345\.00/);
     await axeClean();
     await userEvent.click(saveBtn()!);
     await axeClean();

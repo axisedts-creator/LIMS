@@ -85,6 +85,12 @@ export interface PortalReport {
   smart_summary?: SmartSummary | null;
   dues?: { balance_due_paisa: number; online_gateways: ('esewa' | 'khalti')[]; open_request?: { id: string; status: string } };
 }
+/** P7 (08 A21.1): the dues-only view; no report content. */
+export interface PortalDues {
+  lab_name: string;
+  dues?: NonNullable<PortalReport['dues']>;
+  report_follows: boolean;
+}
 /** PP1 / PP2 (08 A11.1). `action_url` only while ready and not under review. */
 export interface PortalPayment {
   id: string;

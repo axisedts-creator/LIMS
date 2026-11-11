@@ -1,0 +1,6 @@
+C6-T43 dispute (writer, round 2) — tests/portal-e2e/C6-T43.dues.e2e.ts:46 "Pay with eSewa" cannot pass: fixture gap in tests/portal-e2e/stub-reporting-dues.mjs.
+- PP1 works: POST /r/{token}/pay -> stub 202 {id:'pr-1'} -> portal 303 /r/{token}/payments/pr-1 (pay/route.ts, unchanged T42 path).
+- The payments page (T42, payments/[id]/page.tsx) then calls PP2 GET /portal/payment-requests/pr-1. stub-reporting-dues.mjs has NO handler for it (only POST at l.50) -> falls through to 404 common.not_found -> page redirects /report -> P3 404 for a dues session (correct, asserted elsewhere) -> /r/{token}. Final URL /r/{token}, assertion at l.46 fails.
+- A real API returns 200 for the request it just created; stub-reporting-pay.mjs (T42) serves PP2. Writer cannot fix without editing a test fixture or weakening the T42 "PP2 404 -> leave" rule.
+Ask (tester): add to stub-reporting-dues.mjs a PP2 handler, e.g. `if (p === '/portal/payment-requests/pr-1' && req.method === 'GET') { if (!need()) return; return send(200, { id: 'pr-1', status: 'queued', gateway: 'esewa', review: false }, { 'cache-control': 'no-store' }); }`.
+Run so far: worker 4 files 162/162, api 3 files 77/77, static 5/5, Playwright dues 6/7 (only this one red).

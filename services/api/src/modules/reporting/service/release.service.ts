@@ -4,6 +4,9 @@
 import { LimsError } from '../../../core/errors.js';
 import * as repo from '../repository/releases.repo.js';
 import { findSettings } from '../repository/settings.repo.js';
+import { findQrSnapshot } from '../repository/delivery.repo.js';
+import { labParam } from '../domain/messages.js';
+import { port, startDelivery, resolveRecipient, type FlowCtx } from './delivery.flow.service.js';
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const ENQUEUE = 'SELECT app.enqueue_job($1, $2::jsonb, $3, $4, $5)';
@@ -34,7 +37,7 @@ const iso = (v: unknown): string | null => (v == null ? null : new Date(v as str
 /** Asks BillingPort once and refuses any answer that is forged or self-contradictory (T13: release without payment). */
 async function eligibility(ctx: ReleaseCtx, orderId: string): Promise<{ eligible: boolean; basis: string; overrideId: string | null; balanceDuePaisa: number | null }> {
   const r = await ctx.ports.billing.getReleaseEligibility(ctx, { orderId });
-  const due = r?.balanceDue?.amount_paisa;
+  const due = r?.balanceDue?.amountPaisa;      // contracts/ports/common.ts Money = { amountPaisa, currency }
   const balanceDuePaisa = Number.isSafeInteger(due) ? (due as number) : null;
   if (r?.orderId === orderId && r.eligible === true && ELIGIBLE_BASES.has(r.basis) && (r.basis !== 'override' || (typeof r.overrideId === 'string' && UUID.test(r.overrideId)))) {
     return { eligible: true, basis: r.basis, overrideId: r.basis === 'override' ? r.overrideId : null, balanceDuePaisa };
@@ -55,6 +58,32 @@ async function computedAudiences(ctx: ReleaseCtx, report: Record<string, any>): 
   return out;
 }
 
+/** "NPR " + paisa as rupees, two decimals, no thousands separator (08 A21.1: `NPR 500.00`). */
+const amountText = (paisa: number): string => `NPR ${Math.trunc(paisa / 100)}.${String(paisa % 100).padStart(2, '0')}`;
+
+/**
+ * Rule 8 (08 A21.1, C6-T43): a version held for dues gets ONE dues_reminder per channel (key `<version>:dues:<channel>`, deterministic, so every re-evaluation is a no-op).
+ * Channel = first usable of patient_mobile_channel_order (whatsapp/sms, e-mail never). Nobody reachable -> one `suppressed` row on the first mobile channel (AC-18.11).
+ * The link (purpose dues, bound to this version) is issued by the send task. Params carry no PHI and no report content.
+ */
+async function queueDuesReminder(ctx: ReleaseCtx, r: Record<string, any>, v: Record<string, any>, balanceDuePaisa: number | null, s: Record<string, any> | undefined): Promise<void> {
+  if (balanceDuePaisa === null || balanceDuePaisa < 0) throw new LimsError('common.internal');   // fail closed: no amount, no message
+  const fc = ctx as unknown as FlowCtx;
+  const order = ((s?.patient_mobile_channel_order as string[] | undefined) ?? ['whatsapp', 'sms']).filter((c): c is 'whatsapp' | 'sms' => c === 'whatsapp' || c === 'sms');
+  if (order.length === 0) return;
+  if (!port(fc, 'IdentityPort', 'identity')) return;   // ctx without the delivery ports (release-only callers/tests): no channel can be resolved, so no dues message; the worker ctx always has it
+  const lab = labParam((await findQrSnapshot(ctx.tx, ctx.tenantId, v['report_id']))?.lab_name_snapshot);
+  const start = (channel: 'whatsapp' | 'sms', onlyIfOk: boolean) => startDelivery(fc, {
+    channel, purpose: 'dues_reminder', templateCode: 'reporting.dues_due', kind: 'patient', recipientId: r['patient_id'], patientId: r['patient_id'], centreId: r['centre_id'],
+    params: { lab_name: lab, amount_text: amountText(balanceDuePaisa) }, key: `${v['id']}:dues:${channel}`, reportId: v['report_id'], versionNo: v['version_no'],
+    deferredLink: { report_id: v['report_id'], version_no: v['version_no'], channel, recipient_kind: 'patient', purpose: 'dues' },
+  }, onlyIfOk);
+  for (const channel of order) {
+    if ((await resolveRecipient(fc, { channel, purpose: 'dues_reminder', kind: 'patient', recipientId: r['patient_id'], patientId: r['patient_id'] })).ok) { await start(channel, false); return; }
+  }
+  await start(order[0]!, false);
+}
+
 export async function releaseVersion(ctx: ReleaseCtx, versionId: string, o: ReleaseOpts): Promise<ReleaseOutcome> {
   const { tx, tenantId } = ctx; const auto = o.mode === 'auto'; const bulk = o.mode === 'bulk';
   // auto and bulk report a skip instead of throwing (bulk maps the reason to a per-id outcome; R7 has no If-Match).
@@ -70,9 +99,10 @@ export async function releaseVersion(ctx: ReleaseCtx, versionId: string, o: Rele
   if (v.status !== 'rendered') return stop(bulk && v.status === 'released' ? 'already_released' : 'reporting.release_not_ready');
   if (o.mode === 'manual' && v.version !== o.expectedVersion) throw new LimsError('common.version_conflict');
   if (await repo.hasNewerVersion(tx, tenantId, v.report_id, v.version_no)) return stop('reporting.version_not_latest');
+  let settings: Awaited<ReturnType<typeof findSettings>> | undefined;
   if (auto) {
-    const s = await findSettings(tx, tenantId);
-    if ((s?.auto_release ?? 'when_eligible') !== 'when_eligible') return { kind: 'skipped', reason: 'auto_release_manual' };
+    settings = await findSettings(tx, tenantId);
+    if ((settings?.auto_release ?? 'when_eligible') !== 'when_eligible') return { kind: 'skipped', reason: 'auto_release_manual' };
   }
 
   const el = await eligibility(ctx, r.order_id);
@@ -82,6 +112,7 @@ export async function releaseVersion(ctx: ReleaseCtx, versionId: string, o: Rele
     if (!auto) throw Object.assign(new LimsError('reporting.release_blocked_due'), { extensions: { release_basis: el.basis, balance_due_paisa: el.balanceDuePaisa } });
     // [CONV] the hold columns are system metadata: no `version` bump, so a user's If-Match from the worklist is not invalidated by every sweep.
     await repo.markHeld(tx, tenantId, versionId, el.basis, now, ctx.actor.id);
+    if (el.basis === 'due_outstanding' && (settings as any)?.dues_link_enabled !== false) await queueDuesReminder(ctx, r, v, el.balanceDuePaisa, settings as any);
     return { kind: 'held', basis: el.basis };
   }
 

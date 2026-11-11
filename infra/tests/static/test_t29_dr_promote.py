@@ -491,13 +491,170 @@ class RunbookContent(unittest.TestCase):
 
     def test_switch_back_text(self):
         b = self.heads().get("switch-back", "")
-        for p in (r"standby", r"repo2", r"window"):
+        # repo2 is required only while the playbook archives to repo2 (review item 3; see Repo2ArchiveConflict)
+        for p in (r"standby", r"repo2" if re.search(r"repo2-", read(PLAYBOOK)) else r"interim repo|fresh backup", r"window"):
             self.assertRegex(b, re.compile(p, re.I))
 
     def test_no_secret_values_or_real_hosts_in_runbook(self):
         d = self.doc()
         self.assertNotRegex(d, r"(?i)(password|cipher.?pass|token)\s*[:=]\s*[A-Za-z0-9+/]{12,}")
         self.assertNotRegex(d, r"\b(?:\d{1,3}\.){3}\d{1,3}\b(?<!\.0\.0\.0)", "no literal IPs in the runbook")
+
+
+class InterimRepoAccess(unittest.TestCase):
+    """Review item 1: the interim SFTP account must pass sshd `AllowGroups` and be chrooted (02-TRD s3.3 style).
+    CONTRACT (tester): group `lims-interim-repo`; hardening template `AllowGroups ops lims-interim-repo`; trailing
+    `Match User lims-interim-repo` (ChrootDirectory /srv/lims/interim-repo, ForceCommand internal-sftp,
+    AllowTcpForwarding no); chroot dir root:root 0755 with a user-owned `repo` subdir; `repo1-path` is chroot-relative
+    (/repo/...); sshd validated and reloaded."""
+
+    HARDEN = ROOT / "infra" / "ansible" / "roles" / "hardening" / "templates" / "lims.conf.j2"
+    CHROOT = "/srv/lims/interim-repo"
+
+    def ops_tasks(self):
+        return [e for e in entries() if e["host"] == "ops"]
+
+    def sshd(self):
+        return _J.from_string(read(self.HARDEN)).render(wg_ip="10.79.0.14")
+
+    def test_group_exists_and_account_is_in_it(self):
+        t = self.ops_tasks()
+        g = [e for e in t if module(e["task"]) == "group" and "lims-interim-repo" in e["text"]]
+        self.assertTrue(g, "ansible.builtin.group lims-interim-repo (dedicated group, not ops)")
+        u = [e for e in t if module(e["task"]) == "user"]
+        self.assertTrue(u and re.search(r'"(group|groups)": "lims-interim-repo"|lims-interim-repo"?\]', u[0]["text"]),
+                        "the interim user must be in group lims-interim-repo")
+        self.assertLess(g[0]["i"], u[0]["i"], "group before user")
+        self.assertNotRegex(u[0]["text"], r'"groups?": "[^"]*\bops\b', "interim account must not join the human ops group")
+
+    def test_sshd_allowgroups_lets_the_interim_group_in(self):
+        allow = re.findall(r"(?m)^\s*AllowGroups\s+(.+?)\s*$", self.sshd())
+        self.assertEqual(len(allow), 1, "exactly one global AllowGroups line")
+        self.assertEqual(sorted(allow[0].split()), ["lims-interim-repo", "ops"], "AllowGroups ops lims-interim-repo")
+
+    def test_sshd_match_block_chroots_and_forces_sftp(self):
+        s = self.sshd()
+        m = re.search(r"(?ms)^Match User lims-interim-repo\s*$(.*)", s)
+        self.assertTrue(m, "Match User lims-interim-repo block")
+        blk = m.group(1)
+        self.assertRegex(blk, r"(?m)^\s*ChrootDirectory\s+(%s|%%h)\s*$" % re.escape(self.CHROOT))
+        self.assertRegex(blk, r"(?m)^\s*ForceCommand\s+internal-sftp\s*$")
+        self.assertRegex(blk, r"(?m)^\s*AllowTcpForwarding\s+no\s*$")
+        self.assertNotRegex(s[:m.start()], r"(?m)^\s*Match\b", "only this one Match block")
+        for k in ("ClientAliveInterval", "MaxAuthTries", "AllowGroups"):  # Match swallows every later line
+            self.assertIn(k, s[:m.start()], "global directive %s must come BEFORE the Match block" % k)
+
+    def test_chroot_dir_is_root_owned_and_repo_subdir_is_writable(self):
+        t = self.ops_tasks()
+        user_i = [e["i"] for e in t if module(e["task"]) == "user"]
+        self.assertTrue(user_i)
+        root = [e for e in t if module(e["task"]) == "file" and re.search(r'"(path|dest)": "\{\{ dr_repo_home \}\}"|%s"' % re.escape(self.CHROOT), e["text"])
+                and '"owner": "root"' in e["text"] and re.search(r'"mode": "0?755"', e["text"])]
+        self.assertTrue(root, "chroot dir task: owner root, mode 0755 (sshd refuses a non-root-owned or writable chroot)")
+        self.assertGreater(root[-1]["i"], user_i[0], "chmod/chown after the user task (create_home makes it user-owned)")
+        sub = [e for e in t if module(e["task"]) == "file" and re.search(r"/repo\"|\}\}/repo", e["text"])
+               and re.search(r'"owner": "\{\{ dr_repo_user \}\}"|"owner": "lims-interim-repo"', e["text"])]
+        self.assertTrue(sub, "repo/ subdir owned by the interim user")
+
+    def test_repo1_path_is_chroot_relative(self):
+        m = re.search(r"repo1-path=(\S+)", read(PLAYBOOK))
+        self.assertTrue(m, "repo1-path")
+        self.assertRegex(m.group(1), r"^/repo/", "inside the chroot the path is /repo/... (not the host path)")
+        self.assertNotIn("/srv/lims/interim-repo", m.group(1))
+
+    def test_sshd_validated_and_reloaded_on_the_repo_host(self):
+        t = self.ops_tasks()
+        self.assertTrue([e for e in t if re.search(r"sshd\s*(\"|',|,)?\s*-t|sshd.{0,20}-t\b", e["text"])] or
+                        [e for e in t if "sshd -t" in e["text"]], "sshd -t before reload (lockout guard, as T-03)")
+        r = [e for e in t if re.search(r"(?i)(ssh|sshd)\b.{0,80}(reload|restart)|(reload|restart).{0,80}\bssh", e["text"])]
+        self.assertTrue(r, "sshd reloaded so the Match block is live")
+
+
+class InterimPassEscrow(unittest.TestCase):
+    """Review item 2: the interim cipher pass must survive loss of the promoted host: it is escrowed in the
+    encrypted secrets store (sops, runbooks/secrets.md) from the control host, reused on a rerun, and never held in
+    plaintext on a host of group ops."""
+
+    def escrow(self):
+        return [e for e in entries()
+                if "sops" in e["text"] and re.search(r"interim.{0,40}(cipher|pass)|(cipher|pass).{0,40}interim", e["text"], re.I)]
+
+    def test_pass_is_written_to_the_encrypted_store_from_the_control_host(self):
+        w = [e for e in self.escrow() if "dr_interim_pass" in e["text"]]
+        self.assertTrue(w, "a task stores dr_interim_pass with sops (secrets.md: values live only in the encrypted file)")
+        for e in w:
+            self.assertIn('"delegate_to": "localhost"', e["text"], "escrow runs on the control host, not on dr/ops")
+            self.assertTrue(e["no_log"], "escrow task needs no_log")
+            self.assertNotIn("ansible.builtin.copy", e["text"])
+            self.assertNotIn("ansible.builtin.lineinfile", e["text"])
+            self.assertNotRegex(e["text"], r">\s*\S+\.(ya?ml|txt|conf|pass)|tee ", "no plaintext redirect")
+
+    def test_escrow_happens_before_the_pass_lands_on_the_promoted_host(self):
+        w = [e for e in self.escrow() if "dr_interim_pass" in e["text"]]
+        inc = [e for e in entries() if "repo1-cipher-pass=" in e["text"]]
+        self.assertTrue(w and inc)
+        self.assertLess(w[0]["i"], inc[0]["i"], "escrow first, then render: a crash in between must not lose the pass")
+
+    def test_rerun_reuses_the_escrowed_pass(self):
+        gen = [e for e in entries() if re.search(r"lookup\('password'|password_hash|openssl rand|urandom", e["text"])]
+        self.assertTrue(gen, "pass generation task")
+        reads = [e for e in entries() if re.search(r"sops.{0,80}(-d\b|--decrypt|--extract)|community\.sops\.sops|lookup\('community\.sops", e["text"])
+                 and re.search(r"interim", e["text"], re.I)]
+        self.assertTrue(reads, "a task reads an existing escrow entry (sops decrypt/extract) ...")
+        self.assertLess(reads[0]["i"], gen[0]["i"], "... BEFORE a new pass is generated")
+        self.assertTrue(gen[0]["when"] or "default(" in gen[0]["text"],
+                        "generation is conditional: a rerun must not overwrite the escrowed pass")
+
+    def test_no_plaintext_pass_reaches_an_ops_host(self):
+        for e in entries():
+            if e["host"] == "ops":
+                self.assertNotIn("dr_interim_pass", e["text"], "ops play must not see the pass: %s" % e["task"].get("name"))
+        for e in entries():  # any file-writing task that carries the pass must run on dr, tmpfs only
+            if "dr_interim_pass" in e["text"] and module(e["task"]) in ("copy", "template", "lineinfile", "blockinfile"):
+                self.assertEqual(e["host"], "dr")
+                self.assertRegex(e["text"], r"dr_secret_dir|/run/lims/secrets", "plaintext pass only on tmpfs")
+                self.assertNotIn('"delegate_to"', e["text"], "never delegated to another host")
+
+    def test_runbook_says_where_the_pass_lives_and_how_restore_gets_it(self):
+        b = RunbookContent().heads().get("interim-repo", "")
+        for p in (r"sops|encrypted (secrets )?(store|file)", r"secrets\.md", r"restore", r"escrow|control host|off the (dr|promoted) host"):
+            self.assertRegex(b, re.compile(p, re.I))
+        self.assertNotRegex(b, r"(?i)tmpfs only|lost (on|after) (a )?reboot is accepted|never leaves the promoted host",
+                            "the old 'pass only on dr tmpfs' text must be gone")
+
+
+class Repo2ArchiveConflict(unittest.TestCase):
+    """Review item 3: 03-APP-FLOW s11.1 ('archive to repo2 continues from dr-1') vs 02-TRD s9 ('repo2's host never holds
+    any cipher pass') + T-12 (standby has no pgBackRest). Either the playbook archives to repo2 too (repo2-* from the
+    secrets store, via a tmpfs include) or a blocking CR names the conflict, and then the runbook must not claim a
+    seed from repo2."""
+
+    CR_DIR = ROOT / ".orchestra" / "cr"
+
+    def has_repo2(self):
+        return re.search(r"repo2-", read(PLAYBOOK)) is not None
+
+    def cr(self):
+        return [p for p in self.CR_DIR.glob("C1.T-29*.md") if not p.name.endswith(".nonblocking.md")] if self.CR_DIR.is_dir() else []
+
+    def test_repo2_archiving_or_a_blocking_cr(self):
+        if self.has_repo2():
+            t = read(PLAYBOOK)
+            self.assertRegex(t, r"repo2-type=|repo2-host=|repo2-path=")
+            for e in find(r"repo2-"):
+                self.assertTrue(e["no_log"], "repo2 settings carry a pass: no_log (%s)" % e["task"].get("name"))
+            self.assertNotRegex(t, r"repo2-cipher-pass=[^\s{]", "repo2 pass comes from the secrets store, never literal")
+        else:
+            c = self.cr()
+            self.assertTrue(c, "no repo2-* in the playbook: raise a blocking CR .orchestra/cr/C1.T-29.md (s11.1 vs s9)")
+            t = c[0].read_text(encoding="utf-8")
+            self.assertRegex(t, r"(?s)11\.1.*\b(s|§)?\s*9\b|\b9\b.*11\.1", "CR names 03 s11.1 and 02-TRD s9")
+
+    def test_switch_back_does_not_seed_from_a_repo_nobody_writes(self):
+        b = RunbookContent().heads().get("switch-back", "")
+        if not self.has_repo2():
+            self.assertNotRegex(b, r"(?i)(seed|from)[^.\n]{0,60}repo2", "promoted dr-1 does not archive to repo2 here")
+            self.assertRegex(b, r"(?i)interim repo|fresh backup", "seed from the interim repo or a fresh backup taken after promotion")
 
 
 class GameDayRecord(unittest.TestCase):

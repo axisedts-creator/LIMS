@@ -206,7 +206,15 @@ describe('C14-T01 boot against the real repo (default modulesDir, real smartrepo
       for (const [method, op] of Object.entries<any>(item)) {
         if (!op?.operationId) continue;
         const requiredQuery = (op.parameters ?? []).some((p: any) => p.in === 'query' && p.required);
-        if (!requiredQuery && !op.requestBody?.required) probes.push({ method: method.toUpperCase(), url: toUrl(path) });
+        const requiredHeader = (op.parameters ?? []).some((p: any) => (p.in === 'header' && p.required) || /\/IfMatch$/.test(p.$ref ?? '')); // $ref'd If-Match is unresolved in raw spec
+        if (!requiredQuery && !requiredHeader && !op.requestBody?.required) {
+          // path params with an enum must carry a valid value, else validation (400) precedes auth
+          const url = path.replace(/\{([^}]+)\}/g, (_m, name) => {
+            const prm = (op.parameters ?? []).find((p: any) => p.in === 'path' && p.name === name);
+            return prm?.schema?.enum?.[0] ?? '01a1a98a-ac40-7000-8000-000000090001';
+          });
+          probes.push({ method: method.toUpperCase(), url });
+        }
       }
     }
     expect(probes.length).toBeGreaterThanOrEqual(5);

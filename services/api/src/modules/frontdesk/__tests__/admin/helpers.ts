@@ -23,10 +23,10 @@ export const P = {
 const PRIVILEGED: ReadonlySet<string> = new Set([P.settings, P.anonymise]);
 export const mid = (side: 'a' | 'b', n: number): string => `01a1a98a-ac40-7000-8000-00000000${side}${n}`;
 
-export interface Who { tenant: string; membershipId: string; grants: readonly string[]; mfa: 'aal1' | 'aal2'; centreIds: readonly string[]; retentionYears?: number }
+export interface Who { tenant: string; membershipId: string; grants: readonly string[]; mfa: 'aal1' | 'aal2'; centreIds: readonly string[]; retentionYears?: number; allCentres?: boolean }
 /** tenant_admin at aal2: the only default holder of settings.manage and patient.anonymise (TRD §7). */
-export const ADMIN: Who = { tenant: TENANT_A, membershipId: mid('a', 500), grants: [P.settings, P.anonymise, P.patientRead, P.orderRead, P.create], mfa: 'aal2', centreIds: [CENTRE.a] };
-export const ADMIN_B: Who = { tenant: TENANT_B, membershipId: mid('b', 501), grants: [P.settings, P.anonymise, P.patientRead, P.orderRead, P.create], mfa: 'aal2', centreIds: [CENTRE.b] };
+export const ADMIN: Who = { tenant: TENANT_A, membershipId: mid('a', 500), grants: [P.settings, P.anonymise, P.patientRead, P.orderRead, P.create], mfa: 'aal2', centreIds: [CENTRE.a], allCentres: true };
+export const ADMIN_B: Who = { tenant: TENANT_B, membershipId: mid('b', 501), grants: [P.settings, P.anonymise, P.patientRead, P.orderRead, P.create], mfa: 'aal2', centreIds: [CENTRE.b], allCentres: true };
 /** front desk operator: registration.create + reads, no admin permission. */
 export const DESK: Who = { tenant: TENANT_A, membershipId: mid('a', 501), grants: [P.create, P.patientRead, P.orderRead], mfa: 'aal1', centreIds: [CENTRE.a] };
 export const as = (w: Who, o: Partial<Who>): Who => ({ ...w, ...o });
@@ -43,7 +43,7 @@ function identityOf(w: Who) {
     },
     async getActor() {
       return { actor: { type: 'user', id: SYS_ACTOR, membershipId: w.membershipId }, displayName: 'Synthetic Admin (SYNTHETIC)', roles: [], permissions: [...w.grants],
-        centreScope: { all: false, centreIds: w.centreIds }, branchIds: [BRANCH.a], mfa: { enrolled: w.mfa === 'aal2', level: w.mfa }, isLocked: false };
+        centreScope: { all: w.allCentres === true, centreIds: w.centreIds }, branchIds: [BRANCH.a], mfa: { enrolled: w.mfa === 'aal2', level: w.mfa }, isLocked: false };
     },
     async getTenantSettings() { return { ...TENANT_SETTINGS, ...(w.retentionYears === undefined ? {} : { retentionYears: w.retentionYears }) }; },
   };

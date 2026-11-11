@@ -171,6 +171,18 @@ describe('privileged: frontdesk.patient.anonymise at aal2 (REQ-SEC-062/067, 07-S
     const ok = await anonymise(a.patient.id, '"1"', undefined, ADMIN, { w: a.w });
     expect(ok.probe.identity.calls.map((c) => c.permission)).toContain(P.anonymise);
   });
+
+  // FD-T15 review item 1: frontdesk.orders / trf_attachments are tenant+centre RLS, so a centre-scoped admin cannot see another centre's open order or TRFs.
+  // F7 must fail closed (REQ-SEC-139 / P-12 c) unless IdentityPort.getActor().centreScope.all is true. Nothing may be written.
+  it('centre-scoped aal2 tenant_admin (centreScope.all = false) -> 403 auth.forbidden; patient, consents, TRFs, storage and access_log unchanged', { timeout: T }, async () => {
+    const a = await anonymisable({ trfPerOrder: 2 });
+    const requestId = uid();
+    const e = await anonymiseFails(a.patient.id, '"1"', undefined, as(ADMIN, { allCentres: false }), { w: a.w, requestId });
+    expect(e.code).toBe('auth.forbidden'); expect(e.statusCode).toBe(403);
+    await expectUntouched(a, requestId);
+    expect((await ownerRows('audit.access_log', `action = 'patient.anonymise' AND entity_id = $1`, [a.patient.id]))).toEqual([]);
+    expect((await anonymise(a.patient.id, '"1"', undefined, ADMIN, { w: a.w })).status).toBe(200);   // the all-centre admin still may
+  });
 });
 
 describe('input, concurrency, isolation', () => {

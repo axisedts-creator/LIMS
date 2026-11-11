@@ -1,7 +1,7 @@
 C6-T43 impl (writer). Files: service/release.service.ts (rule 8 `queueDuesReminder`, `amountPaisa` key fix), service/portal.service.ts + handlers/portal.handlers.ts (P7 getDues), apps/portal: app/r/[token]/dues/page.tsx, features/portal/actions.ts (link_purpose routing), pay/route.ts (`from=dues` whitelist), server/api.ts (PortalDues).
 - [CONV] rule 8 runs in releaseVersion auto path only (worker task + sweep); manual/bulk unchanged. Channel = first usable of patient_mobile_channel_order (whatsapp/sms); none usable -> ONE suppressed row on the first mobile channel. Skips quietly when ctx has no IdentityPort (release-only callers/tests).
 - Worker 18/19 green; red: release_dues_link "balance paid" = TEST DEFECT (copy-push), see C6-T43-dispute.md.
-- OPEN/BLOCKED: resolver claim `portal_link_purpose` NOT emitted: core claims.ts (C0) rejects it and would break all portal auth (~100 tests) -> .orchestra/cr/C6-T43.md. Red until C0: portal.dues "direct resolver" + "through the core", portal.resolver "claims carry portal_link_purpose".
+- DONE (LD-96/A37): portal.resolver.ts emits `portal_link_purpose` from the DEFINER row `purpose`. NOT VERIFIED: api test runs timed out (30-100s per test, also on unrelated tests -> machine load/slow world setup); rerun portal.dues + portal.resolver with a quiet machine.
 - OPEN: P7 lab_name for a dues session: qr_tokens invisible under RLS -> falls back to 'Laboratory'; needs a source (CR).
 - Stale tests (tester): manifest.test / settings.handlers "501 stubs" list lacks getPortalDues (+T42 PP1/PP2); no reporting pending.json exists (LD-70 nothing to remove).
 - Not run: Playwright dues e2e (needs stub/browser), pgTAP, A21.4 migration (already present). Static portal 29/29, tsc portal clean.

@@ -1,4 +1,4 @@
-// Khalti KPG-2 adapter: initiate + lookup (PG-T07; TRD §7.1, §7.3.1-7.3.3; REQ-SEC-047/048/056).
+// Khalti KPG-2 adapter: initiate + lookup (PG-T07; TRD §7.1, §7.3.1-7.3.3; REQ-SEC-047/048/056) + refundViaApi (PG-T15; TRD §7.4, UNVERIFIED shape V13).
 // Body `status` is the signal (callGateway ignores the HTTP code when it is present); `Authorization: Key <secret>`;
 // initiate body has the 5 documented fields only (no PII); the secret is only ever read inside SecretHandle.use().
 import { LimsError } from '../../../core/errors.js';
@@ -6,7 +6,8 @@ import { assertAmountSupported } from '../domain/amount.js';
 import type { SecretHandle } from '../service/credentials.js';
 import { callGateway, type GatewayCallInput, type GatewayTimeouts } from './http.js';
 
-export interface KhaltiAdapterConfig { baseUrl: string; publicBaseUrl: string; timeouts: GatewayTimeouts }
+/** refundOrigin = LIMS_PAYMENTS_KHALTI_REFUND_ORIGIN (scheme + host, no path); absent = no refund API call can be made. */
+export interface KhaltiAdapterConfig { baseUrl: string; publicBaseUrl: string; timeouts: GatewayTimeouts; refundOrigin?: string }
 export interface CallContext {
   timeoutClass?: 'inrequest' | 'job';
   sink?: GatewayCallInput['sink'];
@@ -17,6 +18,8 @@ export interface IntentForGateway {
 }
 export interface StoredIntent { intentId: string; gatewayTxnRef: string; amountPaisa: number; paymentUrl?: string }
 export type IntentAction = { kind: 'redirect'; url: string };
+export interface StoredRefund { refundId: string; intentId: string; transactionId: string; amountPaisa: number; fullRefund: boolean }
+export type RefundApiOutcome = { kind: 'accepted' | 'rejected' | 'unknown'; detail?: string };
 export type GatewayCheck =
   | { kind: 'answer'; statusRaw: string; amountPaisa?: number; secondaryRef?: string; refundedFlag: boolean }
   | { kind: 'transient'; reason: string }
@@ -24,6 +27,8 @@ export type GatewayCheck =
   | { kind: 'not_found' };
 
 const MAX_PIDX = 64;
+const TXN_ID = /^[A-Za-z0-9_-]{1,64}$/;   // goes into a URL path: no '.', '/', '?' or '#'
+const REFUND_OK = 'Transaction refund successful.';
 const DEFAULT_TTL_MS = 60 * 60 * 1000; // TRD §6.1 step 10: both expires_at and expires_in absent -> 60 min
 
 const unavailable = (): LimsError => new LimsError('payments.gateway_not_available');
@@ -99,6 +104,26 @@ export function createKhaltiAdapter(cfg: KhaltiAdapterConfig) {
         ...(typeof txn === 'string' && txn !== '' ? { secondaryRef: txn } : {}),
         refundedFlag: j['refunded'] === true,
       };
+    },
+
+    /**
+     * TRD §7.4 [UNVERIFIED V13]: ONE POST, never retried (idempotency undocumented), never throws on transport / HTTP trouble. 'accepted' only for a 2xx answer whose
+     * body.detail is the documented success text; everything else is 'unknown' (no failure body is documented, so 'rejected' is not produced today). Confirmation is by lookup.
+     * Bad input throws before any network call.
+     */
+    async refundViaApi(r: StoredRefund, s: SecretHandle, c: CallContext = {}): Promise<RefundApiOutcome> {
+      if (!cfg.refundOrigin || typeof r.transactionId !== 'string' || !TXN_ID.test(r.transactionId)) throw unavailable();
+      if (!r.fullRefund && !(typeof r.amountPaisa === 'number' && Number.isSafeInteger(r.amountPaisa) && r.amountPaisa >= 1)) throw unavailable();
+      const origin = cfg.refundOrigin.replace(/\/+$/, '');
+      const res = await s.use((key) => callGateway({
+        gateway: 'khalti', operation: 'khalti_refund', url: `${origin}/api/merchant-transaction/${r.transactionId}/refund/`, method: 'POST',
+        headers: headers(key), body: JSON.stringify(r.fullRefund ? {} : { amount: r.amountPaisa }),   // documented fields only: no ids, reason or mobile
+        timeoutClass: c.timeoutClass ?? 'job', timeouts: cfg.timeouts, intentId: r.intentId,
+        ...(c.sink ? { sink: c.sink } : {}), ...(c.log ? { log: c.log } : {}),
+      }));
+      const j = res.json;
+      if (res.outcome === 'answer' && res.httpStatus !== null && res.httpStatus >= 200 && res.httpStatus < 300 && isObj(j) && j['detail'] === REFUND_OK) return { kind: 'accepted', detail: REFUND_OK };
+      return { kind: 'unknown', detail: res.outcome };
     },
   };
 }

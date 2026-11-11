@@ -25,7 +25,7 @@ export interface Ctx {
 export interface PaymentsDeps {
   config: PaymentsConfig;
   kek: Kek;
-  adapters: { esewa: Pick<ReturnType<typeof createEsewaAdapter>, 'buildAction' | 'check'>; khalti: Pick<ReturnType<typeof createKhaltiAdapter>, 'initiate' | 'buildAction' | 'check'> };
+  adapters: { esewa: Pick<ReturnType<typeof createEsewaAdapter>, 'buildAction' | 'check'>; khalti: Pick<ReturnType<typeof createKhaltiAdapter>, 'initiate' | 'buildAction' | 'check'> & Partial<Pick<ReturnType<typeof createKhaltiAdapter>, 'refundViaApi'>> };
   events: { publish(ctx: any, type: string, i: { aggregate: { type: string; id: string; seq: number }; idempotencyKey: string; payload: Record<string, unknown> }): Promise<unknown> };
   jobs: { enqueue(ctx: any, task: string, payload: Record<string, unknown>, opts: { key: string; runAt?: Date }): Promise<void> };
   log?: { error(event: string, fields: Record<string, unknown>): void };

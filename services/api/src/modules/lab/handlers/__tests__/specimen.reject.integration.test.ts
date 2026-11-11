@@ -283,8 +283,13 @@ const eachLive = <R extends { op: string }>(rows: readonly R[], title: string, f
   describe.skipIf(!live)(title, () => { for (const t of rows) describe(t.op, () => fn(t)); });
 
 eachLive(OPS, 'T-08 contract (x-error-codes, If-Match, 07-SECURITY)', (t) => {
+  // C5.T-08 ruling: `??` would turn an explicit `body: null` into the valid default body; use `in` so null/[]/'x'/5 are sent as given.
   const run = (s: Scen, o: Opts = {}, over: { body?: unknown; headers?: object; params?: object } = {}) =>
-    call(t.op, req({ params: over.params ?? { specimen_id: sp(s).id }, headers: over.headers ?? ifm(sp(s).version), body: over.body ?? t.body(s) }), o);
+    call(t.op, req({
+      params: 'params' in over ? over.params : { specimen_id: sp(s).id },
+      headers: 'headers' in over ? over.headers : ifm(sp(s).version),
+      body: 'body' in over ? over.body : t.body(s),
+    }), o);
 
   it('428 common.precondition_required without If-Match; nothing written', async () => {
     const s = await scenario(A, [t.spec]);
@@ -689,10 +694,12 @@ describe.skipIf(!live)('T-08 requestRecollection — late recollection after a r
   });
 
   it('only the tests cancelled with specimen_rejected are re-opened: a test C4 removed (cancel_reason item_removed) stays cancelled on the old specimen and gets no new row', async () => {
-    const { s } = await rejectedWithoutRecollection({ status: 'received', tests: 2 });
+    // C5.T-08 ruling: cancelled result rows are frozen (05-SCHEMA.md:583,1283), so seed the C4 removal BEFORE the reject; the reject skips it.
+    const s = await scenario(A, [{ status: 'received', tests: 2 }]);
     const [kept, removed] = sp(s).tests as [Tst, Tst];
-    await write("UPDATE lab.order_tests SET cancel_reason = 'item_removed' WHERE id = $1", [removed.orderTestId]);
-    await write("UPDATE lab.results SET cancel_reason = 'item_removed' WHERE order_test_id = $1", [removed.orderTestId]);
+    await write("UPDATE lab.results SET status = 'cancelled', cancelled_at = now(), cancel_reason = 'item_removed' WHERE order_test_id = $1", [removed.orderTestId]);
+    await write("UPDATE lab.order_tests SET status = 'cancelled', cancelled_at = now(), cancel_reason = 'item_removed' WHERE id = $1", [removed.orderTestId]);
+    await reject(s, { reason_code: REASON, recollection_required: false });
     const removedBefore = [await orderTestRow(removed.orderTestId), await resultsOfTest(removed.orderTestId)];
     const r = await recollect(s, {}, 0, 2);
     expect(r.status).toBe(200);

@@ -98,7 +98,7 @@ describe('refreshMobileSession: rotation (AU-T15, CR-C2-018)', () => {
     const w = await makeAppWorld(); const { token, row } = w.addSession({ accessExpiresAt: new Date(START_PLUS(w, 60_000)) }); w.gt.st.refuse = true;
     const r = refresh(w, token); expect((await rejection(r.run())).code).toBe('auth.session_expired');
     expect(r.commitOnError).toHaveBeenCalledTimes(1); expect(row.state).toBe('revoked'); expect(row.revokeReason).toBe('refresh_failed');
-    expect(w.eventsOf('refresh_failed')).toHaveLength(1); expect(w.committed('rotateToken')).toHaveLength(0);
+    expect(w.eventsOf('refresh_failed')).toHaveLength(1); expect(otherWrites(w, ['rotateToken', 'updateSession', 'recordTenant', 'enqueue'])).toEqual([]);
   });
   it('absolute lifetime passed -> 401 and the expiry (reason absolute) + event are kept; no rotation, no GoTrue call', async () => {
     const w = await makeAppWorld(); const { token, row } = w.addSession(); w.advance(12 * HOUR + MIN);

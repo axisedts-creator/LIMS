@@ -173,6 +173,8 @@ export async function listQcHolds(c: unknown, rawQuery: unknown): Promise<Result
 export async function releaseQcHold(c: unknown, params: unknown, body: unknown): Promise<Result> {
   const ctx = specimenCtx(c);
   await role(ctx, P.release);   // auth.mfa_required from IdentityPort passes through (REQ-SEC-062/067)
+  // lab.qc_holds is tenant-wide but lab.results is centre-RLS: a centre-scoped release would free only some results (spec silent; .orchestra/cr/C5.T-25.md).
+  if (!(await scopeOf(ctx)).all) throw new LimsError('auth.forbidden');
   const id = uuidParam(params, 'hold_id');
   const b = strict(body, ['comment']);
   const comment = b['comment'];
@@ -184,7 +186,7 @@ export async function releaseQcHold(c: unknown, params: unknown, body: unknown):
       WHERE tenant_id = $1 AND id = $2 AND status = 'active' RETURNING ${HOLD_COLS}`, [id, ctx.now().toISOString(), membership, comment, ctx.actor.id]);
   if (!row) {
     if (!(await first(rc, 'SELECT 1 AS x FROM lab.qc_holds WHERE tenant_id = $1 AND id = $2', [id]))) throw new LimsError('common.not_found');
-    throw new LimsError('common.version_conflict');   // already released
+    throw new LimsError('common.version_conflict');   // already released; 409 not yet declared on #46 in lab.yaml (.orchestra/cr/C5.T-25.md)
   }
   await query(rc, `WITH t AS (SELECT id FROM lab.results WHERE tenant_id = $1 AND hold_id = $2 AND on_hold AND status NOT IN ('approved','cancelled') ORDER BY id FOR UPDATE)
     UPDATE lab.results r SET on_hold = false, version = r.version + 1, updated_at = now(), updated_by = $3 FROM t WHERE r.tenant_id = $1 AND r.id = t.id`, [id, ctx.actor.id]);

@@ -4,7 +4,7 @@ import { LimsError } from '../../../core/errors.js';
 import type { PublishInput } from '../../../core/events/publish.js';
 import { computeCalculated, formulaRefsOf, orderCalculated, type CalcInput, type CalcOutcome } from '../domain/formulaInputs.js';
 import type { DeltaCandidate, DeltaRule } from '../domain/delta.js';
-import { assertResultValueEditable, type ResultStatus } from '../domain/result.state.js';
+import { assertResultValueEditable, resultTransition, type ResultStatus } from '../domain/result.state.js';
 import { createLabEvents } from '../events/publish.js';
 import { criticalAction, evaluateValue, type EvalCtx, type Evaluation } from './evaluation.service.js';
 
@@ -289,4 +289,163 @@ export async function bulkEnterResults(rawCtx: unknown, input: EntryInput): Prom
   for (const s of [...specimens].sort()) await store.rollupSpecimen(tx, tenantId, s);
 
   return { results, recomputed };
+}
+
+// ---------------------------------------------------------------------------------------------------------------------------------------------
+// T-16 verify / bulk verify / return / auto-verify hook (02-TRD §3.3 R4/R5, §4.5 rows 10-11, §5.4 #27-#29; 03-IC §3.9, §4.11, §10.2; 08 A13 D-2, A17.1, CR-C5-005, CR-C9-004).
+// Same rules as bulkEnterResults: caller's tx, tenant from ctx only, per-row LimsError -> error row (code only, S-19), P-01/P-02 -> common.not_found.
+// Check order: not found / no role -> version -> transition table -> on hold -> flag acknowledgement. verify/return never write a value column (S-03).
+// ---------------------------------------------------------------------------------------------------------------------------------------------
+export type AckFlag = 'delta' | 'critical' | 'unit_mismatch' | 'instrument_flag';
+export interface VerifyRow {
+  resultId: string; rowVersion: number; status: ResultStatus; onHold: boolean; unitMismatch: boolean; deltaStatus: 'not_applicable' | 'no_rule' | 'no_previous' | 'pass' | 'fail';
+  isCritical: boolean; instrumentFlags: readonly string[]; origin: 'manual' | 'instrument' | 'calculated' | 'module'; rangeUnavailableAgeUnknown: boolean;
+  orderId: string; orderItemId: string; specimenId?: string | undefined; testId: string; analyteId: string; departmentId: string; instrumentId?: string | undefined; centreId: string;
+  currentVersionNo: number; flag?: string | undefined; valueNumeric?: string | undefined; resultedAt: Date;
+}
+/** Every call takes (tx, tenantId, ...). The production (SQL) store is wired with the core pipeline (as T-14/T-15). */
+export interface VerifyStore {
+  /** ids unique + ascending (02-TRD §3.2); returns the rows visible to the caller only. */
+  lockForVerify(tx: unknown, tenantId: string, ids: readonly string[]): Promise<VerifyRow[]>;
+  /** R4 UPDATE ... WHERE version = expectedRowVersion (throws common.version_conflict on a lost race) + lab.verifications row kind 'verified'. */
+  verify(tx: unknown, tenantId: string, a: { resultId: string; expectedRowVersion: number; mode: 'manual' | 'auto'; membershipId?: string; acknowledgedFlags: readonly string[]; ruleSetVersion?: string; occurredAt: string }): Promise<ResultRow>;
+  /** R5 + lab.verifications row kind 'returned'. */
+  applyReturn(tx: unknown, tenantId: string, a: { resultId: string; expectedRowVersion: number; reasonCode: string; comment?: string; membershipId?: string; occurredAt: string }): Promise<ResultRow>;
+  returnReasonActive(tx: unknown, tenantId: string, code: string): Promise<boolean>;
+  resolveUnitMismatchException(tx: unknown, tenantId: string, a: { resultId: string; resolverMembershipId?: string; resolution: 'assigned' }): Promise<void>;
+  rollupSpecimen(tx: unknown, tenantId: string, specimenId: string): Promise<void>;
+}
+export interface VerifyCtx extends Omit<RecomputeCtx, 'store'> {
+  readonly store: VerifyStore;
+  readonly config: { readonly autoverifyHookEnabled: boolean };
+  readonly ports: {
+    readonly IdentityPort: { assertRole(ctx: unknown, r: { permission: string; centreId: string }): Promise<void> };
+    readonly QualityPort?: { canAutoVerify(ctx: unknown, rc: Record<string, unknown>): Promise<{ decision: 'allow' | 'deny'; reasons: readonly string[]; ruleSetVersion?: string }> };
+  };
+}
+export interface VerifyItem { resultId: string; version: number; acknowledgedFlags?: readonly string[] }
+export interface ReturnInput { resultId: string; version: number; reasonCode: string; comment?: string }
+
+const needed = (r: VerifyRow): AckFlag[] => [
+  ...(r.deltaStatus === 'fail' ? ['delta' as const] : []), ...(r.isCritical ? ['critical' as const] : []),
+  ...(r.unitMismatch ? ['unit_mismatch' as const] : []), ...(r.instrumentFlags.length > 0 ? ['instrument_flag' as const] : []),
+];
+
+/** P-01 / P-02: unknown, foreign or role-less centre is the same 404; any other role-check failure propagates. */
+async function visibleRow(ctx: VerifyCtx, row: VerifyRow | undefined): Promise<VerifyRow> {
+  if (!row) throw new LimsError('common.not_found');
+  try { await ctx.ports.IdentityPort.assertRole(ctx, { permission: 'lab.result.verify', centreId: row.centreId }); }
+  catch (err) { throw err instanceof LimsError && err.code === 'auth.forbidden' ? new LimsError('common.not_found') : err; }
+  return row;
+}
+
+/** R4 for an already checked row. Returns the saved row; any failure after the store call propagates (caller rolls back). */
+async function applyVerify(ctx: VerifyCtx, row: VerifyRow, a: { mode: 'manual' | 'auto'; acknowledgedFlags: readonly string[]; ruleSetVersion?: string }): Promise<ResultRow> {
+  const { tx, tenantId, store } = ctx;
+  const occurredAt = ctx.now().toISOString();   // server clock
+  const manual = a.mode === 'manual';
+  const out = await store.verify(tx, tenantId, {
+    resultId: row.resultId, expectedRowVersion: row.rowVersion, mode: a.mode,
+    ...(manual && ctx.actor.membershipId !== undefined ? { membershipId: ctx.actor.membershipId } : {}),
+    acknowledgedFlags: a.acknowledgedFlags, ...(a.ruleSetVersion === undefined ? {} : { ruleSetVersion: a.ruleSetVersion }), occurredAt,
+  });
+  if (manual && row.unitMismatch && a.acknowledgedFlags.includes('unit_mismatch')) {   // 02-TRD §4.5 row 10: the acknowledgement resolves the open exception
+    await store.resolveUnitMismatchException(tx, tenantId, { resultId: row.resultId, resolution: 'assigned', ...(ctx.actor.membershipId === undefined ? {} : { resolverMembershipId: ctx.actor.membershipId }) });
+  }
+  // 03-IC §3.9 / D-2: no value; no specimen_id when specimen-less; verified_by_membership_id only for mode manual.
+  await createLabEvents(ctx.events as never).resultVerified(ctx as never, {
+    result_id: row.resultId, result_version_no: row.currentVersionNo, order_id: row.orderId, order_item_id: row.orderItemId,
+    ...(row.specimenId === undefined ? {} : { specimen_id: row.specimenId }),
+    test_id: row.testId, analyte_id: row.analyteId, department_id: row.departmentId,
+    ...(row.instrumentId === undefined ? {} : { instrument_id: row.instrumentId }),
+    origin: row.origin, mode: a.mode, verified_at: occurredAt,
+    ...(manual && ctx.actor.membershipId !== undefined ? { verified_by_membership_id: ctx.actor.membershipId } : {}),
+  }, { resultRowVersion: Number(out['version']) });
+  return out;
+}
+
+/** Table -> hold -> flag acknowledgement (CR-C5-005). Returns the de-duplicated acknowledgements to store. */
+function checkVerifiable(row: VerifyRow, acknowledged: readonly string[] | undefined): string[] {
+  resultTransition(row.status, 'verified', { onHold: row.onHold });
+  const acks = [...new Set(acknowledged ?? [])];
+  if (needed(row).some((f) => !acks.includes(f))) throw new LimsError('lab.flag_ack_required');
+  return acks;
+}
+
+export async function verifyResult(rawCtx: unknown, i: VerifyItem): Promise<ResultRow> {
+  const ctx = rawCtx as VerifyCtx;
+  const row = await visibleRow(ctx, (await ctx.store.lockForVerify(ctx.tx, ctx.tenantId, [i.resultId]))[0]);
+  if (i.version !== row.rowVersion) throw new LimsError('common.version_conflict');   // never trust the client number for the write
+  const acks = checkVerifiable(row, i.acknowledgedFlags);
+  const out = await applyVerify(ctx, row, { mode: 'manual', acknowledgedFlags: acks });
+  if (row.specimenId) await ctx.store.rollupSpecimen(ctx.tx, ctx.tenantId, row.specimenId);
+  return out;
+}
+
+export async function bulkVerifyResults(rawCtx: unknown, input: { items: readonly VerifyItem[] }): Promise<{ results: EntryOutcome[] }> {
+  const ctx = rawCtx as VerifyCtx;
+  const ids = [...new Set(input.items.map((x) => x.resultId))].sort();   // 02-TRD §3.2: lock order = result id ascending
+  const rows = new Map((await ctx.store.lockForVerify(ctx.tx, ctx.tenantId, ids)).map((r) => [r.resultId, r]));
+  const done = new Set<string>();   // ids verified in this batch (a second item for the same id is a lost race)
+  const specimens = new Set<string>();
+  const results: EntryOutcome[] = [];
+  for (const it of input.items) {
+    let stored = false;   // once the store call started, a failure rolls the whole batch back
+    try {
+      const row = await visibleRow(ctx, rows.get(it.resultId));
+      if (done.has(it.resultId) || it.version !== row.rowVersion) throw new LimsError('common.version_conflict');
+      const acks = checkVerifiable(row, it.acknowledgedFlags);
+      stored = true;
+      const out = await applyVerify(ctx, row, { mode: 'manual', acknowledgedFlags: acks });
+      done.add(it.resultId);
+      if (row.specimenId) specimens.add(row.specimenId);
+      results.push({ resultId: it.resultId, outcome: 'ok', result: out });
+    } catch (err) {
+      if (!(err instanceof LimsError) || stored) throw err;
+      results.push({ resultId: it.resultId, outcome: 'error', code: err.code });   // never the value, never err.detail (S-19)
+    }
+  }
+  for (const s of [...specimens].sort()) await ctx.store.rollupSpecimen(ctx.tx, ctx.tenantId, s);   // once per specimen, after every save
+  return { results };
+}
+
+/** R5 verified -> resulted (no event, 03-IC §10.2); only a verified row can be returned. */
+export async function returnResult(rawCtx: unknown, i: ReturnInput): Promise<ResultRow> {
+  const ctx = rawCtx as VerifyCtx;
+  const { tx, tenantId, store } = ctx;
+  const row = await visibleRow(ctx, (await store.lockForVerify(tx, tenantId, [i.resultId]))[0]);
+  if (i.version !== row.rowVersion) throw new LimsError('common.version_conflict');
+  if (row.status !== 'verified') throw new LimsError('lab.result_invalid_transition');   // resulted>resulted is R3, not a return
+  if (!(await store.returnReasonActive(tx, tenantId, i.reasonCode))) {
+    throw new LimsError('common.validation_failed', undefined, [{ path: '/reason_code', code: 'common.field_invalid', message: 'Field invalid' }]);
+  }
+  const out = await store.applyReturn(tx, tenantId, {
+    resultId: row.resultId, expectedRowVersion: row.rowVersion, reasonCode: i.reasonCode, ...(i.comment === undefined ? {} : { comment: i.comment }),
+    ...(ctx.actor.membershipId === undefined ? {} : { membershipId: ctx.actor.membershipId }), occurredAt: ctx.now().toISOString(),
+  });
+  if (row.specimenId) await store.rollupSpecimen(tx, tenantId, row.specimenId);   // S15: the specimen drops back
+  return out;
+}
+
+/** Called by the T-22 ingest pipeline after each instrument-origin save. Behind LIMS_LAB_AUTOVERIFY_HOOK_ENABLED (false in Phase 1). A port failure fails closed: the result stays resulted. */
+export async function autoVerifyAfterInstrumentSave(rawCtx: unknown, i: { resultId: string }): Promise<{ verified: boolean; result?: ResultRow }> {
+  const ctx = rawCtx as VerifyCtx;
+  const no = { verified: false };
+  if (!ctx.config.autoverifyHookEnabled) return no;   // AC-15.5: flag false -> the port is never called
+  // CR-C9-004: the tenant autoVerificationEnabled switch is NOT read here; C9 answers deny/feature_disabled.
+  const row = (await ctx.store.lockForVerify(ctx.tx, ctx.tenantId, [i.resultId]))[0];
+  if (!row || row.origin !== 'instrument' || row.status !== 'resulted' || row.onHold || row.unitMismatch) return no;
+  if (row.rangeUnavailableAgeUnknown || !ctx.ports.QualityPort) return no;   // 08 A17.1: never offered, never auto-verified
+  let decision;
+  try {
+    decision = await ctx.ports.QualityPort.canAutoVerify(ctx, {
+      resultId: row.resultId, analyteId: row.analyteId, ...(row.instrumentId === undefined ? {} : { instrumentId: row.instrumentId }),
+      ...(row.valueNumeric === undefined ? {} : { valueNumeric: row.valueNumeric }), instrumentFlags: row.instrumentFlags,
+      ...(row.flag === undefined ? {} : { rangeFlag: row.flag }), deltaCheckFailed: row.deltaStatus === 'fail', isCritical: row.isCritical, resultedAt: row.resultedAt.toISOString(),
+    });
+  } catch { return no; }
+  if (decision.decision !== 'allow') return no;
+  const result = await applyVerify(ctx, row, { mode: 'auto', acknowledgedFlags: [], ...(decision.ruleSetVersion === undefined ? {} : { ruleSetVersion: decision.ruleSetVersion }) });
+  if (row.specimenId) await ctx.store.rollupSpecimen(ctx.tx, ctx.tenantId, row.specimenId);
+  return { verified: true, result };
 }

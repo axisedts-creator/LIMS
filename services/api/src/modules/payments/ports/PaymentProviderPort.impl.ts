@@ -1,10 +1,10 @@
 // PaymentProviderPort module implementation (08 A17 P-20, 02-TRD §5.3).
-// PG-T08: createIntent / verify / getIntent / cancelIntent are real (createPaymentProviderPort). `refund` stays the PG-T01 stub until PG-T14:
-// it rejects payments.gateway_not_available for any actor, tenant or input, with no validation, network, ledger or event side effect.
+// PG-T08: createIntent / verify / getIntent / cancelIntent are real (createPaymentProviderPort). PG-T14: `refund` is real too (service/refund.service.ts).
 // The module-level `paymentProviderPort` (used by index.ts) stays all-stub until the runtime supplies PaymentsDeps (KEK, adapters, events, jobs).
 import { LimsError } from '../../../core/errors.js';
 import { createIntentService } from '../service/intent.service.js';
 import { createOutcomeService, type PaymentsDeps } from '../service/outcome.service.js';
+import { createRefundService } from '../service/refund.service.js';
 
 export type { PaymentsDeps } from '../service/outcome.service.js';
 
@@ -16,7 +16,7 @@ export function createPaymentProviderPort(deps: PaymentsDeps) {
   return Object.freeze({
     createIntent: intents.createIntent, getIntent: intents.getIntent, cancelIntent: intents.cancelIntent,
     verify: outcomes.verify,
-    refund: off as (ctx: unknown, input: unknown) => Promise<never>, // PG-T14
+    refund: createRefundService(deps).refund,
   });
 }
 

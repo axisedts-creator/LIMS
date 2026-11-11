@@ -1,6 +1,7 @@
-# AG-T02 impl — BLOCKED (no change)
-- Files changed: none. `docs/manual/instruments/spikes.md` NOT written.
-- Reason: ruling (AG-T02-ruling.md) requires measured S1/S2/S3 results from Win10/11/Server 2016 VMs; none exist in repo. Writing verdicts without runs = fabricated evidence (ruling line 8).
-- Tests: `node --test tests/spikes/ag-t02.test.mjs` fails ENOENT on spikes.md (expected until results arrive).
-- Open: human runs S1–S3 on 3 VMs, supplies PASS/FAIL/PARTIAL + one-line evidence per OS per spike; writer then fills doc + 3 DECISION: lines (account / DPAPI scope / control path).
-- Downstream AG-T04, AG-T15 stay blocked.
+# AG-T02 impl
+- Files: docs/manual/instruments/spikes.md (new). No code.
+- Figures copied only from .orchestra/notes/AG-T02-evidence-win11.md (LD-94). Win11: S1 PARTIAL, S2 PASS, S3 PASS. Win10 rows: NOT RUN, release gate (A36-4). No Server 2016 (LD-93).
+- [CONV] One `##` section per spike with a per-OS table, then `## Decisions` holding the three DECISION: lines from LD-94 (account S1, DPAPI S1, control S2), with TRD §5.12 and `install --account localservice` named.
+- Left out cert thumbprints and the raw evidence path (no long blobs in the doc).
+- Tests: node --test tests/spikes/ag-t02.test.mjs gives 25/25 pass.
+- Open: Windows 10 run of S1-S3 (pre-pilot release gate); COM open on a machine with a serial port; control from a non-elevated caller.

@@ -26,6 +26,16 @@ let admin: pg.Pool;
 
 const claims = (tenantId: string) => JSON.stringify({ tenant_id: tenantId, sub: SYS, actor_type: 'system' });
 const sql = async (text: string, values: unknown[] = []) => (await admin.query(text, values)).rows;
+/** Fixture writes: lab.barcode_counters is audited by C0 row triggers (02-TRD:501) that raise audit_context_missing without claims sub (08-CR A28.5; 03-IC:3230). See C5.T-05-ruling.md. */
+const setCounter = async (tenant: string, value: number) => {
+  const c = await admin.connect();
+  try {
+    await c.query('BEGIN');
+    await c.query("SELECT set_config('request.jwt.claims', $1, true)", [claims(tenant)]);
+    await c.query('UPDATE lab.barcode_counters SET last_value = $1 WHERE tenant_id = $2', [value, tenant]);
+    await c.query('COMMIT');
+  } catch (e) { await c.query('ROLLBACK').catch(() => undefined); throw e; } finally { c.release(); }
+};
 const counterOf = async (tenant: string): Promise<number | null> => {
   const r = await sql('SELECT last_value FROM lab.barcode_counters WHERE tenant_id = $1', [tenant]);
   return r[0] ? Number(r[0]['last_value']) : null;
@@ -70,7 +80,7 @@ describe('T-05 harness', () => {
 
 describe.skipIf(!live)('T-05 AC-01.3 allocation on the real counter', () => {
   it('prefix E, counter 41, 2026 -> E2600000042; the counter row ends at 42; matches ^[A-Z0-9]{1,20}$', async () => {
-    await sql('UPDATE lab.barcode_counters SET last_value = 41 WHERE tenant_id = $1', [A]);
+    await setCounter(A, 41);
     const v = await alloc(A);
     expect(v).toBe('E2600000042');
     expect(v).toMatch(RE);
@@ -87,7 +97,7 @@ describe.skipIf(!live)('T-05 AC-01.3 allocation on the real counter', () => {
   });
 
   it('settings drive the result: no prefix -> default pattern without letters; custom pattern is honoured', async () => {
-    await sql('UPDATE lab.barcode_counters SET last_value = 41 WHERE tenant_id = $1', [A]);
+    await setCounter(A, 41);
     expect(await alloc(A, {})).toBe('2600000042');
     expect(await alloc(A, { barcodePattern: 'LAB{seq:4}X' })).toBe('LAB0043X');
     expect(await alloc(A, { barcodePrefix: 'Q9', barcodePattern: '{prefix}{yy}{seq:8}' })).toBe('Q2600000044');
@@ -142,12 +152,12 @@ describe.skipIf(!live)('T-05 AC-01.4 failures are atomic (no counter movement, n
   });
 
   it('counter overflow (next value has 9 digits, pattern {seq:8}) -> lab.barcode_pattern_invalid and the counter stays at 99999999', async () => {
-    await sql('UPDATE lab.barcode_counters SET last_value = 99999999 WHERE tenant_id = $1', [A]);
+    await setCounter(A, 99999999);
     const err = await failure(alloc(A));
     expect(isLimsError(err, 'lab.barcode_pattern_invalid')).toBe(true);
     expect(await counterOf(A)).toBe(99999999);
     expect(await alloc(A, { barcodePrefix: 'E', barcodePattern: '{prefix}{yy}{seq:9}' })).toBe('E26100000000');   // wider pattern fits the same value
-    await sql('UPDATE lab.barcode_counters SET last_value = 1000 WHERE tenant_id = $1', [A]);
+    await setCounter(A, 1000);
   });
 
   it('allocation lives in the caller transaction: a later failure in the same tx gives the value back (same-tx S1 guarantee)', async () => {
@@ -176,7 +186,7 @@ describe.skipIf(!live)('T-05 tenant isolation (REQ-SEC-024): the ctx tenant alon
     const client = await admin.connect();
     try {
       await client.query('BEGIN');
-      await client.query("SELECT set_config('request.jwt.claims', $1, true)", [claims(B)]);   // claims say B, ctx says A: the explicit filter must follow ctx
+      await client.query("SELECT set_config('request.jwt.claims', $1, true)", [claims(A)]);   // claims = ctx tenant (audit trigger needs consistent claims, ruling); superuser bypasses RLS, so only the explicit tenant_id filter keeps B untouched
       await client.query("SET LOCAL search_path = ''");
       const ctx = { tenantId: A, actor: { type: 'system', id: SYS }, tx: client, now: () => NOW, ports: { IdentityPort: { getTenantSettings: async () => ({ numbering: { barcodePrefix: 'E' } }) } } };
       expect(seqOf(await allocateBarcode(ctx as never))).toBe(a0 + 1);

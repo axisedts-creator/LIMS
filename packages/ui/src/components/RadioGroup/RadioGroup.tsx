@@ -7,7 +7,7 @@ import type { FieldBase } from '../_shared/TextInputBase';
 export interface RadioGroupProps<V extends string> extends FieldBase {
   value?: V;
   onChange?: (v: V) => void;
-  options: readonly { value: V; label: string }[];
+  options: readonly { value: V; label: string; isDisabled?: boolean }[]; // LD-83 / CR-C8-NEW: per-option disable (additive)
   orientation?: 'horizontal' | 'vertical';
 }
 
@@ -44,7 +44,7 @@ export function RadioGroup<V extends string>({ label, name, description, error: 
       </Label>
       <div className={`lims-radio-options lims-${orientation}`}>
         {options.map((o) => (
-          <Radio key={o.value} value={o.value} className="lims-radio">
+          <Radio key={o.value} value={o.value} className="lims-radio" {...(o.isDisabled ? { isDisabled: true } : {})}>
             <span className="lims-radio-dot" aria-hidden="true" />
             {o.label}
           </Radio>

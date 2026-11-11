@@ -45,7 +45,7 @@ export function paramValueOk(p: TemplateParam, v: unknown, o: Origins, staffLink
   if (typeof v !== 'string') return false;
   switch (p.kind) {
     case 'short_text': return v.length <= Math.min(p.max_length ?? 40, 40) && SHORT_TEXT_RE.test(v);
-    case 'label_text': return v.length >= 1 && v.length <= 80 && !CONTROL_RE.test(v) && !/[<>]/.test(v) && !/(:\/\/|www\.)/i.test(v);
+    case 'label_text': return v.length >= 1 && v.length <= 80 && !CONTROL_RE.test(v) && !/(:\/\/|www\.)/i.test(v);   // [C6-T39 / 08 A4.3] markup accepted + stored raw; HTML-escaped at render (send_delivery)
     case 'time_hhmm': return /^[0-2][0-9]:[0-5][0-9]$/.test(v);
     case 'otp_code': return /^[0-9]{6}$/.test(v);
     case 'minutes': return /^[0-9]{1,2}$/.test(v) && Number(v) >= 1 && Number(v) <= 60;

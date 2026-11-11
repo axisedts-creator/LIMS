@@ -19,6 +19,18 @@ import { startInstrumentCommissioning } from './startInstrumentCommissioning.ser
 import { suspendInstrument } from './suspendInstrument.server';
 import { updateInstrument } from './updateInstrument.server';
 import { updateInstrumentSettings } from './updateInstrumentSettings.server';
+import { createInstrumentCodeMap } from './createInstrumentCodeMap.server';
+import { listInstrumentCodeMaps } from './listInstrumentCodeMaps.server';
+import { updateInstrumentCodeMap } from './updateInstrumentCodeMap.server';
+import { upsertInstrumentCodeMaps } from './upsertInstrumentCodeMaps.server';
+import { getTestRef, listUnitRefs, searchTests } from './catalogLookups.server';
+import { getInstrumentMessage } from './getInstrumentMessage.server';
+import { getInstrumentMessageRaw } from './getInstrumentMessageRaw.server';
+import { rematchInstrumentRecord } from './rematchInstrumentRecord.server';
+import { reprocessInstrumentMessage } from './reprocessInstrumentMessage.server';
+import { searchInstrumentMessages, type SearchMessagesInput } from './searchInstrumentMessages.server';
+import type { MessageDetailDto, MessageRaw, MessageSummary, ReasonFields, RematchResult, ReprocessResult } from './messages';
+import type { CodeMapCreate, CodeMapFields, CodeMapPatch, CodeMapResult, InstrumentCodeMap, TestRef, UnitRef } from './codeMaps';
 import type { InstrumentBody } from '../forms/instrument';
 import type { ActionResult, Agent, AgentCommand, AgentLogBundle,AgentCommandKind, CreateAgentInput, EnrolmentCodeIssued, FieldProblemDto, GoLiveChecklist, InstrumentSettings, InstrumentSettingsBody, ReasonInput, UpdateAgentInput } from './types';
 
@@ -111,6 +123,60 @@ export async function resumeInstrumentAction(instrumentId: string, version: numb
 // ── WEB-T06 SCR-11 settings (E41). Returns the new DTO; the form keeps its version for the next If-Match. ──
 export async function updateInstrumentSettingsAction(version: number, body: InstrumentSettingsBody): Promise<ActionResult<InstrumentSettings>> {
   return run(() => updateInstrumentSettings(version, body));
+}
+
+// ── WEB-T04 SCR-08 mappings (C3 #92–#95 + editor lookups). Each BFF fn checks catalog.instrument_code_map.manage itself. ──
+export async function createInstrumentCodeMapAction(input: CodeMapCreate, idempotencyKey: string): Promise<ActionResult<{ id: string; version: number }>> {
+  return run(async () => {
+    const m = await createInstrumentCodeMap(input, idempotencyKey);
+    return { id: m.id, version: m.version };
+  });
+}
+
+export async function updateInstrumentCodeMapAction(mapId: string, version: number, patch: CodeMapPatch): Promise<ActionResult<{ version: number }>> {
+  return run(async () => versionOf(await updateInstrumentCodeMap(mapId, version, patch)));
+}
+
+export async function upsertInstrumentCodeMapsAction(instrumentId: string, maps: CodeMapFields[], idempotencyKey: string): Promise<ActionResult<{ results: CodeMapResult[] }>> {
+  return run(async () => ({ results: (await upsertInstrumentCodeMaps(instrumentId, maps, idempotencyKey)).results }));
+}
+
+/** Source rows for "Copy from instrument…" (active maps of the other instrument). */
+export async function listInstrumentCodeMapsAction(instrumentId: string): Promise<ActionResult<InstrumentCodeMap[]>> {
+  return run(async () => (await listInstrumentCodeMaps(instrumentId, { isActive: true })).data);
+}
+
+export async function searchTestsAction(q: string): Promise<ActionResult<{ id: string; code: string; name: string }[]>> {
+  return run(() => searchTests(q));
+}
+
+export async function getTestRefAction(testId: string): Promise<ActionResult<TestRef>> {
+  return run(() => getTestRef(testId));
+}
+
+export async function listUnitRefsAction(): Promise<ActionResult<UnitRef[]>> {
+  return run(() => listUnitRefs());
+}
+
+// ── WEB-T05 SCR-09/10 messages (E34–E36, E38, E39). The caller owns the Idempotency-Key so a retry reuses it. The sample barcode is only ever a POST body. ──
+export async function searchInstrumentMessagesAction(input: SearchMessagesInput): Promise<ActionResult<{ data: MessageSummary[] }>> {
+  return run(() => searchInstrumentMessages(input));
+}
+
+export async function getInstrumentMessageRawAction(id: string): Promise<ActionResult<MessageRaw>> {
+  return run(() => getInstrumentMessageRaw(id));
+}
+
+export async function getInstrumentMessageAction(id: string, opts: { previewParse?: boolean } = {}): Promise<ActionResult<MessageDetailDto>> {
+  return run(() => getInstrumentMessage(id, opts));
+}
+
+export async function reprocessInstrumentMessageAction(id: string, input: ReasonFields, idempotencyKey: string): Promise<ActionResult<ReprocessResult>> {
+  return run(() => reprocessInstrumentMessage(id, input, idempotencyKey));
+}
+
+export async function rematchInstrumentRecordAction(recordId: string, input: ReasonFields & { sampleBarcode: string }, idempotencyKey: string): Promise<ActionResult<RematchResult>> {
+  return run(() => rematchInstrumentRecord(recordId, input, idempotencyKey));
 }
 
 export async function retireInstrumentAction(instrumentId: string, version: number, reason: string): Promise<ActionResult<{ version: number }>> {

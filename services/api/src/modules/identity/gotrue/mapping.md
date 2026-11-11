@@ -3,7 +3,7 @@
 Pinned version: GoTrue `v2.197.0` (`infra/compose/supabase/upstream/docker-compose.yml`, digest `sha256:1736a630…` in `override.app.yml`).
 Verified 2026-11-07 against source tag `v2.197.0` (routes in `internal/api/api.go`, handlers `admin.go`, `logout.go`) and live probes on a
 temporary container of the same image on `supabase_network_LIMS` (env of `supabase_auth_LIMS` plus min length 12, TOTP on, autoconfirm off).
-Live contract run: NOT YET RE-RUN after `.orchestra/notes/T1-ruling.md` (2026-11-07). Last live run 36/38; both fails were tests since revised per the ruling.
+Live contract run: PASS 2026-11-11 (39/39 against a real gotrue v2.197.0 container, http.live.test.ts, after .orchestra/notes/T1-ruling.md). Note: on a cold container the first run failed 2 of 39 on the gateway 3 s timeout (first call after start, first mail-sending call); the warmed run passed. See .orchestra/notes/T1-live-run-20261111.md.
 
 Base URL: `LIMS_IDENTITY_GOTRUE_URL` (internal API-network URL; GoTrue routes at root, no `/auth/v1` prefix — that prefix is Kong's).
 Admin auth: `Authorization: Bearer <LIMS_IDENTITY_GOTRUE_SERVICE_KEY>` (service-role JWT; `GOTRUE_JWT_ADMIN_ROLES=service_role`). No key → 401, non-admin bearer → 403 (live).

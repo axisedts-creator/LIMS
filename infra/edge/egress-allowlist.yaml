@@ -27,6 +27,16 @@ destinations:
     purpose: ACME staging directory (acme_mode staging, dev/staging runs)
     section_04_11: none (F-01 register, ACME CA)
     f01_status: pending
+  # T-22, PRD B11: freshclam on the ops host only, through this Squid (F-01 default).
+  # pending until F-01 approves it; until then Squid answers 403 and the signatures
+  # are imported by hand (role clamav, lims-clamav-sync.service).
+  - fqdn: database.clamav.net
+    port: 443
+    via: squid
+    owner: C1
+    purpose: ClamAV signature mirror for freshclam on the ops host (REQ-SEC-084)
+    section_04_11: Foreign touchpoints, ClamAV signature download (B11)
+    f01_status: pending
   # CR-C15-008 item 4: prod gateways; enabled at C15 PG-T23 (T-35)
   - fqdn: epay.esewa.com.np
     port: 443

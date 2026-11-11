@@ -91,25 +91,12 @@ export const expirePortalPaymentRequests: TaskHandler = async (payload, jobCtx) 
       WHERE tenant_id = $1 AND status = 'queued' AND created_at < $4`, [tenantId, now, actorId, new Date(nowMs - QUEUED_TIMEOUT_MS).toISOString()]);
 };
 
-export const PURGE_EPHEMERAL = 'reporting.purge_ephemeral';
-
-/** [CONV] C6-T42 owns only the payment-row part of the 02-TRD §9 purge: `portal_payment_requests` whose `expires_at` has passed (any status; lims_app has no DELETE, the system policy allows it).
- *  The other purge targets (otp_challenges, portal_sessions, print_jobs, quarantined inputs, delivery params) belong to no task yet: extend here, keep the tenant-scoped shape. */
-export const purgeEphemeral: TaskHandler = async (payload, jobCtx) => {
-  const ctx = jobCtx as any;
-  const tenantId = ctx.tenantId;
-  if (typeof tenantId !== 'string' || payload?.tenant_id !== tenantId) {
-    ctx.log?.warn?.({ event: 'purge_ephemeral_skipped', reason: 'bad_payload' });
-    return;
-  }
-  const gone = (await ctx.tx.query(`DELETE FROM reporting.portal_payment_requests WHERE tenant_id = $1 AND expires_at < $2 RETURNING id`, [tenantId, ctx.now()])).rows as unknown[];
-  ctx.log?.info?.({ event: 'purge_ephemeral_done', portal_payment_requests: gone.length });
-};
+export const PURGE_EPHEMERAL = 'reporting.purge_ephemeral';   // body: tasks/purge_ephemeral.ts (C6-T16: print_jobs part)
 
 export const crontab: readonly CronEntry[] = Object.freeze([
+  Object.freeze({ identifier: PURGE_EPHEMERAL, schedule: '17 20 * * *', tenantScope: 'per_tenant' as const, maxAttempts: 5 }),
   Object.freeze({ identifier: SWEEP_ASSEMBLY, schedule: '*/5 * * * *', tenantScope: 'per_tenant' as const, maxAttempts: 5 }),
   Object.freeze({ identifier: SWEEP_RENDERS, schedule: '*/10 * * * *', tenantScope: 'per_tenant' as const, maxAttempts: 5 }),
   Object.freeze({ identifier: SWEEP_HELD, schedule: '*/15 * * * *', tenantScope: 'per_tenant' as const, maxAttempts: 5 }),
   Object.freeze({ identifier: EXPIRE_PAYMENTS, schedule: '*/10 * * * *', tenantScope: 'per_tenant' as const, maxAttempts: 5 }),
-  Object.freeze({ identifier: PURGE_EPHEMERAL, schedule: '17 20 * * *', tenantScope: 'per_tenant' as const, maxAttempts: 5 }),   // 02:02 NPT [CONV]
 ]);

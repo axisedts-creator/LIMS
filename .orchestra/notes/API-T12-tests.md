@@ -1,0 +1,8 @@
+# API-T12 tests (tester)
+Files (api): `__tests__/messages.service.test.ts` (E33-E36, E42 behaviour, preview parse, access_log, tenant/centre probes, PHI-in-logs), `messages.handlers.test.ts` (wiring, no-store on E36), `unit/messages.contract.test.ts` (barcode-never-in-URL spec lint, no raw/barcode in list DTOs), `messages.helpers.ts` (SEAMS in header); `boot.test.ts` IMPLEMENTED += the 5 ops.
+Run all: `.orchestra\notes\API-T12-verify.cmd` (`pnpm --dir services/api exec vitest run ...`).
+Expected now: contract test passes (spec-level); service/handlers/boot fail because `service/messages.service.ts`, `repo/messages.repo.ts`, `handlers/messages.handlers.ts` do not exist and the 5 ops are still stubs.
+Seams to match (or dispute): `MessagesRepo` (listMessages/searchMessages/findMessage/getMessageRawBytes/listRuns/listRecords/findAttachmentByMessage/listRejections, read-only); `createMessagesService({repo,getDriver})` camelCase inputs; E35/E36 load row -> 404 -> assertRole at its centre -> only then raw read; list ops assertRole(centreId filter).
+Assumptions NOT in the spec (dispute if wrong): `records_expired` = received_at older than 90 d (D-11); `raw_text_escaped` has no C0/DEL character at all; E36 sends `cache-control: no-store`; E35 preview of unparseable raw/throwing driver = 200 with records []; preview records are never `emit_status: emitted` and carry no event_id.
+Not covered: real SQL/RLS/indexes (db tests), real HTTP pipeline (query coercion, 31-day check in OpenAPI), alerting on >50 raw views/day (C1 rule), web BFF (WEB-T05).
+Satisfiability: NOT checked against any implementation.

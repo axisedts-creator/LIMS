@@ -1,10 +1,10 @@
 // One handler per catalog.yaml operationId (02-CV §2.2; the core fails boot if one is missing).
 // T-01: every entry is a stub. Each later task swaps its entries for real ./<operationId>.ts handlers and removes
 // them from __tests__/probes/pending.json (CR-C3-008; the list must be empty at M6).
-import { LimsError } from '../../../core/errors.js';
 import type { Handler } from '../../../core/module.js';
 import { analyteVersionsHandlers } from './analyteVersions.handlers.js';
 import { creditPartiesHandlers } from './creditParties.handlers.js';
+import { exportsHandlers } from './exports.handlers.js';
 import { formulasHandlers } from './formulas.handlers.js';
 import { healthHandlers } from './health.handlers.js';
 import { importsHandlers } from './imports.handlers.js';
@@ -16,11 +16,6 @@ import { rangePreviewHandlers } from './rangePreview.handlers.js';
 import { rangesHandlers } from './ranges.handlers.js';
 import { referrersHandlers } from './referrers.handlers.js';
 import { testsHandlers } from './tests.handlers.js';
-
-/** 503 common.service_unavailable, detail not_implemented (06-PLAN T-01). Never echoes the request. */
-const notImplemented: Handler = async () => {
-  throw new LimsError('common.service_unavailable', 'not_implemented');
-};
 
 export const handlers: Readonly<Record<string, Handler>> = Object.freeze({
   ...healthHandlers, // T-30: #1 (revision), #4 (health report)
@@ -36,8 +31,5 @@ export const handlers: Readonly<Record<string, Handler>> = Object.freeze({
   ...pricingHandlers, // T-17: #71–#81 (price lists); T-19: #82 (quotePrices); T-18: #83–#91 (surcharge / tax)
   ...instrumentMapsHandlers, // T-27: #92–#95 (instrument code maps)
   ...importsHandlers,
-  createExport: notImplemented,
-  listExports: notImplemented,
-  getExport: notImplemented,
-  downloadExportFile: notImplemented,
+  ...exportsHandlers, // T-36: #104–#107 (export API)
 });

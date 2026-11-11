@@ -52,7 +52,8 @@ x-api: &api
 
 x-worker: &worker
   <<: *hardening
-  image: ${LIMS_API_IMAGE:?LIMS_API_IMAGE (C0 api image digest) required}
+  # C0 builds /services/worker separately (C0 02-TRD); never the API image
+  image: ${LIMS_WORKER_IMAGE:?LIMS_WORKER_IMAGE (C0 services/worker image digest) required}
   environment: &worker-env
     <<: *core-env
     LIMS_CORE_WORKER_CONCURRENCY: "10"
@@ -124,11 +125,13 @@ services:
       - /run/lims/secrets/api-a/bff_key_staff_web:/run/secrets/bff/staff_web:ro
       - /run/lims/secrets/api-a/bff_key_partner:/run/secrets/bff/partner:ro
       - /run/lims/secrets/api-a/bff_key_portal:/run/secrets/bff/portal:ro
-    networks: &api-nets
+    networks:
       edge_net: {}
       app_net: {aliases: [api]}
       auth_net: {}
-      render_net: {}
+      # fixed, outside nftables_render_worker_ips/sandbox: no dynamic IPAM
+      # on render_net, so no member can drift onto .11/.21/.22 [CONV]
+      render_net: {ipv4_address: 172.30.40.31}
       db_net: {}
 
   api-b:
@@ -140,7 +143,12 @@ services:
       - /run/lims/secrets/api-b/bff_key_staff_web:/run/secrets/bff/staff_web:ro
       - /run/lims/secrets/api-b/bff_key_partner:/run/secrets/bff/partner:ro
       - /run/lims/secrets/api-b/bff_key_portal:/run/secrets/bff/portal:ro
-    networks: *api-nets
+    networks:
+      edge_net: {}
+      app_net: {aliases: [api]}
+      auth_net: {}
+      render_net: {ipv4_address: 172.30.40.32}  # [CONV] see api-a
+      db_net: {}
 
   # Fixed render_net IPs: nftables_render_worker_ips (s5.5 rule 6) [CONV]
   worker-a:
@@ -211,7 +219,8 @@ services:
       LIMS_RENDERER_TOKEN_FILE: /run/secrets/renderer_inbound_token
     volumes:
       - /run/lims/secrets/renderer/renderer_inbound_token:/run/secrets/renderer_inbound_token:ro
-    networks: [render_net]
+    networks:
+      render_net: {ipv4_address: 172.30.40.41}  # [CONV] fixed, see api-a
     mem_limit: 1536m
     cpus: 2
     pids_limit: 512
@@ -272,6 +281,30 @@ services:
       interval: 10s
       timeout: 3s
       retries: 3
+
+  # 02-TRD s7.4 (08 A25 D-209), T-22: INSTREAM on tcp://clamd:3310, app_net only,
+  # no published port, no route out. Signatures: role clamav copies them to
+  # /srv/lims/clamav-db (ro here), the image's own freshclam stays off.
+  clamd:
+    <<: *hardening
+    image: ${LIMS_CLAMD_IMAGE:?LIMS_CLAMD_IMAGE (ClamAV 1.5.4 digest) required}
+    user: "100:101"  # image's clamav user (UNVERIFIED until pinned)
+    environment:
+      CLAMAV_NO_FRESHCLAMD: "true"
+    volumes:
+      - /srv/lims/clamav-db:/var/lib/clamav:ro
+      - /srv/lims/clamav/clamd.conf:/etc/clamav/clamd.conf:ro
+    networks: [app_net]
+    mem_limit: 3g
+    cpus: 1
+    pids_limit: 256
+    tmpfs: [/tmp, /run/clamav]
+    healthcheck:
+      test: [CMD, clamdscan, --ping, "3:1"]
+      interval: 15s
+      timeout: 10s
+      retries: 3
+      start_period: 120s  # loading the signatures takes a while
 
   # 02-TRD s3.2: the only container on egress_net; FQDN allowlist from
   # infra/edge/egress-allowlist.yaml (role egress_proxy renders squid.conf).

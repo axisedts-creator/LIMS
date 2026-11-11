@@ -16,6 +16,10 @@ import { getReferralIncentiveReport } from './getReferralIncentiveReport.js';
 import { getTatReport } from './getTatReport.js';
 import { getAnalyticsDashboard, getAnalyticsFreshness, requestAnalyticsRefresh } from './getAnalyticsDashboard.js';
 import { getPendingTestsSummary, listPendingTests } from './getPendingTests.js';
+import { createAnalyticsExport, downloadAnalyticsExport, getAnalyticsExport, listAnalyticsExports } from './exports.js';
+import {
+  createReportSchedule, deactivateReportSchedule, getReportRun, getReportSchedule, listReportSchedules, updateReportSchedule,
+} from './schedules.js';
 
 const OPERATION_IDS = [
   'getAnalyticsDashboard', 'getIncomeReport', 'getDepartmentIncomeReport', 'getCollectionsReport', 'getVolumeReport',
@@ -40,6 +44,8 @@ const implemented: Partial<Record<AnalyticsOperationId, Handler>> = {
   getTestsDoneReport, getQualityIndicatorsReport, getDeliveryReport, getInterfacesReport, getReferralIncentiveReport,
   getTatReport, getAnalyticsDashboard, getAnalyticsFreshness, requestAnalyticsRefresh,
   getPendingTestsSummary, listPendingTests,
+  createAnalyticsExport, listAnalyticsExports, getAnalyticsExport, downloadAnalyticsExport,
+  listReportSchedules, createReportSchedule, getReportSchedule, updateReportSchedule, deactivateReportSchedule, getReportRun,
 };
 
 export const handlers: Readonly<Record<AnalyticsOperationId, Handler>> = Object.freeze(

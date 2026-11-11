@@ -103,7 +103,14 @@ export function createLedgerService(deps: { repo?: BillingRepo; counter: Counter
     }
 
     // ---- order / invoice / method ----
-    if (!totals || typeof totals.branch_id !== 'string' || typeof totals.centre_id !== 'string') throw new LimsError(manual ? 'billing.order_not_invoiced' : 'common.not_found');
+    // No billing rows yet: ask C6 whether the order exists for this tenant (07-SECURITY §6.1: invisible id -> 404 common.not_found, never order_not_invoiced).
+    // [CONV] ctx without a FrontdeskPort (BL-T08 unit world) keeps the pre-BL-T22 answer; production ctx always carries the port.
+    const fd = (ctx.ports as Record<string, unknown> | undefined)?.['FrontdeskPort'] as { getOrderSummary(c: unknown, a: { orderId: string }): Promise<{ billingMode?: string }> } | undefined;
+    if (!totals && fd) {
+      const summary = await fd.getOrderSummary(ctx, { orderId: i.orderId });   // rejects common.not_found when not visible
+      if (summary?.billingMode === 'credit') throw invalid(fieldError('/orderId', 'Credit orders are paid by the credit party'));
+    }
+    if (!totals ||typeof totals.branch_id !== 'string' || typeof totals.centre_id !== 'string') throw new LimsError(manual ? 'billing.order_not_invoiced' : 'common.not_found');
     if (totals.billing_mode === 'credit') throw invalid(fieldError('/orderId', 'Credit orders are paid by the credit party'));
     if (manual && Number(totals.issued_invoice_count) === 0) throw new LimsError('billing.order_not_invoiced');
     if (i.invoiceId !== undefined) {

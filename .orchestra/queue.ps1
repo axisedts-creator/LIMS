@@ -36,6 +36,7 @@ $Queue = @(
   @{ name="C6b"; chunk="C6-reporting-delivery"; filter='^(C6-T03|C6-T10|C6-T11|C6-T19|C6-T20|C6-T25|C6-T24|C6-T17|C6-T22|C6-T30|C6-T42|C6-T23|C6-T29|C6-T21|C6-T37|C6-T44|C6-T26|C6-T33|C6-T18|C6-T35)$'; after=@($C0) },
   @{ name="C5"; chunk="C5-lab-workflow"; filter='^(T-01|T-02|T-04|T-06|T-07|T-08|T-11|T-30|T-09|T-10|T-28|T-19|T-25|T-20|T-29|T-27|T-31|T-32|T-34)$'; after=@($C0) },
   @{ name="C5b"; chunk="C5-lab-workflow"; filter='^(T-03|T-05|T-12|T-13|T-14|T-22|T-15|T-16|T-17|T-21|T-24|T-18|T-23|T-26|T-33)$'; after=@($C0) },
+  @{ name="C5c"; chunk="C5-lab-workflow"; filter='^(T-10|T-19|T-26|T-28)$'; after=@($C0) },   # 2026-11-11 lead: independent C5 tasks pulled forward; C5 gates C9/C10/C11/C17 (~109 tasks)
   @{ name="C3"; chunk="C3-catalog-pricing"; filter='^(T-01|T-02|T-04|T-05|T-31|T-13|T-15|T-16|T-17|T-18|T-19|T-34|T-30|T-33|T-28b|T-29a|T-29b|T-21|T-22|T-23|T-25|T-36|T-38)$'; after=@($C0) },
   @{ name="C3b"; chunk="C3-catalog-pricing"; filter='^(T-03|T-20|T-26|T-06|T-14|T-07|T-08|T-09|T-10|T-11|T-32|T-12|T-28a|T-27|T-29|T-37|T-24|T-35)$'; after=@($C0) },
   @{ name="C15"; chunk="C15-payment-gateways"; filter='^(PG-T01|PG-T03|PG-T17|PG-T06|PG-T08|PG-T09|PG-T24|PG-T12|PG-T14|PG-T15|PG-T19|PG-T20)$'; after=@($C0,"C4-frontdesk-billing") },
@@ -76,7 +77,10 @@ function Finished($chunk, $filter = '.*') {
 }
 # gate for "after": a chunk counts as finished for the chunks that wait on it when every task is done or blocked, except leaf tasks nothing else needs yet.
 # Those keep running in their own lane while the next chunks start (they still have to reach done before the build is accepted).
-$GateIgnore = @{ "C0-foundation-contracts" = @("T0B-11") }   # per-tenant billing export + live restore proof (AC-0B-6.4): no task depends on it
+$GateIgnore = @{ "C0-foundation-contracts" = @("T0B-11","T0C-10.C9","T0C-10.C10","T0C-10.C11","T0C-10.C12","T0C-10.C13","T0C-10.C14","T0C-10.C15","T0C-10.C16","T0C-10.C17","T0D-12c") }   # per-tenant billing export + live restore proof (AC-0B-6.4): no task depends on it
+# 2026-11-11 lead: wave-2 chunks need their own contracts/openapi file (C0 task T0C-10.Cxx) before a lane may start; GateIgnore keeps these tasks from closing the C0 gate for everyone else
+$Wave2Need = @{ "C9-quality-engine"="T0C-10.C9"; "C10-microbiology"="T0C-10.C10"; "C11-specialty-pathology"="T0C-10.C11"; "C12-inventory"="T0C-10.C12"; "C13-b2b-partner-portal"="T0C-10.C13"; "C14-smart-report"="T0C-10.C14"; "C15-payment-gateways"="T0C-10.C15"; "C16-patient-engagement"="T0C-10.C16"; "C17-home-collection"="T0C-10.C17" }
+function TaskDone($chunk, $id) { $t = Get-Tasks $chunk; if (-not $t) { return $false }; @($t | Where-Object { $_.id -eq $id -and $_.status -eq 'done' }).Count -eq 1 }
 function GateDone($chunk) {
   $t = Get-Tasks $chunk; if (-not $t) { return $false }
   $skip = @($GateIgnore[$chunk])
@@ -142,6 +146,7 @@ while ($true) {
     if (-not $rp -and (Finished $l.chunk $l.filter)) { continue }
     $ready = $true; foreach ($a in $l.after) { if (-not (GateDone $a)) { $ready = $false } }
     if (-not $ready) { continue }
+    $wn = $Wave2Need[$l.chunk]; if ($wn -and -not (TaskDone "C0-foundation-contracts" $wn)) { continue }   # wave-2 chunk waits for its own contract file
     if (-not $rp -and -not (Runnable $l.chunk $l.filter $l.name)) { $waiting++; continue }   # nothing it could run right now: do not hold a slot
     if ($procs.Count -ge $MaxLanes -or $lowDisk) { break }
     $wt = Join-Path $LanesRoot $l.name; $br = "lane/$($l.name)"

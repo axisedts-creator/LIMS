@@ -75,6 +75,21 @@ import { denySupportSession } from './denySupportSession.js';
 import { revokeSupportSession } from './revokeSupportSession.js';
 import { listAdminNotices } from './listAdminNotices.js';
 import { dismissAdminNotice } from './dismissAdminNotice.js';
+import { listUsers } from './listUsers.js';
+import { searchUsers } from './searchUsers.js';
+import { inviteUser } from './inviteUser.js';
+import { getUser } from './getUser.js';
+import { updateUser } from './updateUser.js';
+import { setUserRoles } from './setUserRoles.js';
+import { setUserCentreScope } from './setUserCentreScope.js';
+import { lockUser } from './lockUser.js';
+import { unlockUser } from './unlockUser.js';
+import { deactivateUser } from './deactivateUser.js';
+import { reactivateUser } from './reactivateUser.js';
+import { resendInvitation } from './resendInvitation.js';
+import { resetUserMfa } from './resetUserMfa.js';
+import { revokeUserSessions } from './revokeUserSessions.js';
+import { uploadUserSignature } from './uploadUserSignature.js';
 
 const OPERATION_IDS = [
   // auth (identity_auth)
@@ -127,6 +142,8 @@ const implemented: Partial<Record<IdentityOperationId, Handler>> = {
   getMe, changeOwnPassword, listOwnSessions, revokeOwnSession, listOwnMfaFactors, removeOwnMfaFactor,           // T10
   listSessions, revokeSession, listTenantSupportSessions, approveSupportSession, denySupportSession, revokeSupportSession,   // T17
   listAdminNotices, dismissAdminNotice,                                                                         // T17
+  listUsers, searchUsers, inviteUser, getUser, updateUser, setUserRoles, setUserCentreScope, lockUser, unlockUser,   // T13
+  deactivateUser, reactivateUser, resendInvitation, resetUserMfa, revokeUserSessions, uploadUserSignature,         // T13
 };
 
 export const handlers: Readonly<Record<IdentityOperationId, Handler>> = Object.freeze(

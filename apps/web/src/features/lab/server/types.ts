@@ -32,3 +32,29 @@ export interface BulkRow { id: string; outcome: 'ok' | 'error'; code?: string; s
 export interface RejectBody { reason_code: string; comment?: string; recollection_required: boolean }
 export interface RejectResult { specimen: Specimen; recollection_specimen?: Specimen }
 export interface RejectionReason { code: string; display: string }
+
+// C5.T-21: verification / approval queue (VerificationQueueItem, ResultBulkResponse). Only the ResultDto fields the queues read.
+export type AckFlag = 'delta' | 'critical' | 'unit_mismatch' | 'instrument_flag';
+export interface QueueResult {
+  id: string;
+  version: number;
+  analyte_code: string;
+  status: string;
+  flag?: string;
+  range_unavailable_age_unknown: boolean;
+  critical: { is_critical: boolean; critical_event_id?: string };
+  delta?: { status: string };
+  unit_mismatch: boolean;
+  instrument_flags?: string[];
+  on_hold: boolean;
+}
+export interface QueueItem {
+  result: QueueResult;
+  registration_no: string;
+  barcode?: string;
+  patient_display: { full_name: string; age_sex: string; patient_code: string };
+  priority: string;
+}
+export interface QueueFilters { department_id?: string; priority?: string; flagged_only?: 'true' }
+export interface VerifyItem { id: string; version: number; acknowledged_flags?: AckFlag[] }
+export interface ResultBulkRow { id: string; outcome: 'ok' | 'error'; code?: string }

@@ -1,17 +1,20 @@
 // WorkerManifest of module smartreport (02-TRD §9.1, §9.2). No cron, no purge. systemPermissions live in the API ModuleManifest.
-// SR-T01: every handler is a fail-closed stub (throws) so an event/task is retried or dead-lettered, never silently acked;
-// later tasks replace them (prebuild_summary, llm_rephrase, onResultApproved, onResultAmended).
-import type { ConsumerHandler, TaskHandler, WorkerManifest } from '../../core/manifest.js';
+// llm_rephrase stays a fail-closed stub (throws: retried / dead-lettered, never silently acked) until its task.
+import type { TaskHandler, WorkerManifest } from '../../core/manifest.js';
+import { handle as resultAmended } from './consumers/lab.result.amended.v1.js';
+import { handle as resultApproved } from './consumers/lab.result.approved.v1.js';
+import { PREBUILD, PREBUILD_MAX_ATTEMPTS } from './consumers/supersede.js';
+import { prebuildSummary } from './tasks/prebuild_summary.js';
 
-const task = (id: string): TaskHandler => async () => { throw new Error(`${id} not implemented`); };
-const consumer = (type: string): ConsumerHandler => async () => { throw new Error(`consumer ${type} not implemented`); };
+const llmRephraseStub: TaskHandler = async () => { throw new Error('smartreport.llm_rephrase not implemented'); };
 
 export const manifest: WorkerManifest = {
   module: 'smartreport',
-  tasks: { 'smartreport.prebuild_summary': task('smartreport.prebuild_summary'), 'smartreport.llm_rephrase': task('smartreport.llm_rephrase') },
+  tasks: { [PREBUILD]: prebuildSummary, 'smartreport.llm_rephrase': llmRephraseStub },
+  maxAttempts: { [PREBUILD]: PREBUILD_MAX_ATTEMPTS },
   subscriptions: { // = EVENT_CONSUMERS.smartreport (03-IC §3.10/§3.11)
-    'lab.result.approved.v1': consumer('lab.result.approved.v1'),
-    'lab.result.amended.v1': consumer('lab.result.amended.v1'),
+    'lab.result.approved.v1': resultApproved,
+    'lab.result.amended.v1': resultAmended,
   },
   crontab: [],
 };

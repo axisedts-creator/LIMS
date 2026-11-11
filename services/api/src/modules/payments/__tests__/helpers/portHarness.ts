@@ -37,11 +37,13 @@ export const MERCHANT_ID = (tenant: 'A' | 'B', gateway: 'esewa' | 'khalti') => `
 export const BRANCH = '01900000-0000-7000-8000-0000000b0001', CENTRE = '01900000-0000-7000-8000-0000000ce001';
 export const kek: Kek = { activeId: 'kek-t1', keys: new Map([['kek-t1', randomBytes(32)]]) };
 
-export interface Fault { error?: Error }
+/** PG-T13: `forIntent` limits the fault to one intent id; `marker` makes the faulting call first write a test.markers row on ctx.tx (P-44: it must vanish with the savepoint). */
+export interface Fault { error?: Error; forIntent?: string; marker?: string }
 export interface HarnessExtras {
   db: MerchantDb;
   /** every call the services made to a gateway double */
-  gateway: { calls: { gateway: string; op: 'initiate' | 'check'; intentId: string }[]; initiateInputs: any[]; secretsSeen: string[]; initiateFails: boolean | 'generic'; checkDelayMs: number };
+  /** PG-T13: `script[intentId]` = raw statuses answered by the next checks of that intent, in order ('code:0' = transient); when it is empty the order's gatewayStatus applies */
+  gateway: { calls: { gateway: string; op: 'initiate' | 'check'; intentId: string }[]; initiateInputs: any[]; secretsSeen: string[]; initiateFails: boolean | 'generic'; checkDelayMs: number; script: Record<string, string[]> };
   jobs: { task: string; payload: any; key: string; runAt?: Date }[];
   ledger: { calls: any[]; refunds: any[]; fail?: Error };
   alerts: { event: string; fields: Record<string, unknown> }[];
@@ -68,7 +70,7 @@ export async function makePortHarness(): Promise<PortHarness> {
   let db = makeMerchantDb();
 
   const txSpies: { tx: unknown; drop(): void }[] = [];
-  const gateway: HarnessExtras['gateway'] = { calls: [], initiateInputs: [], secretsSeen: [], initiateFails: false, checkDelayMs: 0 };
+  const gateway: HarnessExtras['gateway'] = { calls: [], initiateInputs: [], secretsSeen: [], initiateFails: false, checkDelayMs: 0, script: {} };
   const jobs: HarnessExtras['jobs'] = [];
   const jobTx = new Map<object, unknown>();
   const alerts: HarnessExtras['alerts'] = [];
@@ -84,7 +86,7 @@ export async function makePortHarness(): Promise<PortHarness> {
     gateway.calls.push({ gateway: gw, op: 'check', intentId: id });
     if (gateway.checkDelayMs) await new Promise((r) => setTimeout(r, gateway.checkDelayMs));
     const row = intentRow(id), order = orders.get(row?.order_id) ?? {};
-    const raw: string = order.gatewayStatus ?? 'PENDING';
+    const raw: string = gateway.script[id]?.shift() ?? order.gatewayStatus ?? 'PENDING';
     if (raw === 'code:0') return { kind: 'transient', reason: 'service_unavailable' };
     const amountPaisa = order.gatewayAmountPaisa ?? Number(row?.amount_paisa);
     return gw === 'khalti'
@@ -137,7 +139,11 @@ export async function makePortHarness(): Promise<PortHarness> {
   const billingFor = () => ({
     getOrderBalance: balanceOf,
     async recordGatewayPayment(c: any, i: any) {
-      if (faults.ledger.error) throw faults.ledger.error;
+      const lf = faults.ledger;
+      if (lf.error && (!lf.forIntent || lf.forIntent === i.intentId)) {
+        if (lf.marker) await c.tx.query('INSERT INTO test.markers (id, tenant_id, label) VALUES ($1, $2, $3)', [uuidv7(), c.tenantId, lf.marker]);
+        throw lf.error;
+      }
       const duplicate = ledger.calls.some((x) => x.gateway === i.gateway && x.gatewayTxnRef === i.gatewayTxnRef);
       const row = structuredClone(i); ledger.calls.push(row); ledgerTx.set(row, c.tx);
       return { ledgerEntryId: `01900000-0000-7000-8000-0000000c80${String(ledger.calls.length).padStart(2, '0')}`, duplicate, balance: await balanceOf(c, i) };
@@ -191,7 +197,7 @@ export async function makePortHarness(): Promise<PortHarness> {
     impl: wrapped, events, ctxFor: makeCtxFor(), db, gateway, jobs, ledger, alerts, faults, clock, config, deps, ports: { BillingPort: defaultBilling, FrontdeskPort: frontdesk },
     async seed(f: any) {
       db = makeMerchantDb(); seedAccounts();
-      orders.clear(); events.clear(); jobs.length = 0; ledger.calls.length = 0; ledger.refunds.length = 0; alerts.length = 0; gateway.calls.length = 0; gateway.initiateInputs.length = 0; gateway.secretsSeen.length = 0; gateway.initiateFails = false;
+      orders.clear(); events.clear(); jobs.length = 0; ledger.calls.length = 0; ledger.refunds.length = 0; alerts.length = 0; gateway.calls.length = 0; gateway.initiateInputs.length = 0; gateway.secretsSeen.length = 0; gateway.initiateFails = false; gateway.script = {};
       faults.events = {}; faults.ledger = {}; txSpies.length = 0;
       if (f.returnUrlHosts) {
         config = loadPaymentsConfig({ ...testEnv, LIMS_PAYMENTS_RETURN_URL_ALLOWLIST: [...f.returnUrlHosts.map((x: string) => `https://${x}/`), 'https://api.lims.test/v1/payments/result'].join(',') });

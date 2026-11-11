@@ -4,7 +4,7 @@
 import { createDecipheriv } from 'node:crypto';
 import type { Tx } from '../../../core/db/tx.js';
 import { LimsError } from '../../../core/errors.js';
-import { sealerFromEnv, type Sealer } from './auth-events.repo.js';
+import { createAuthRepo, sealerFromEnv, type Sealer } from './auth-events.repo.js';
 
 type Q = Pick<Tx, 'query'>;
 export type Opener = (enc: Buffer, keyId: string) => string;
@@ -63,6 +63,18 @@ const PLATFORM_EVENT_SQL = `INSERT INTO identity.platform_events (id, event_type
     request_id, client_ip, created_by)
   VALUES ($1, $2, $3, $4, NULL, $5::jsonb, $6, $7, nullif($8, '')::inet, $9)`;
 
+// T9 (03-APP-FLOW §3.7 SS8 / M2): tenant rows only, under the bound tenant. Platform: see revokeOtherSessions / acceptInvitation.
+const REVOKE_OTHERS_SQL = `UPDATE identity.sessions SET state = 'revoked', revoked_at = now(), revoked_by = $5, revoke_reason = $4,
+    updated_at = now(), updated_by = $5, version = version + 1
+  WHERE tenant_id = $1 AND user_id = $2 AND id <> $3 AND state NOT IN ('revoked', 'expired') RETURNING id, kind`;
+const INVITE_ACCEPT_SQL = `UPDATE identity.invitations SET status = 'accepted', accepted_at = $4, updated_at = now(), updated_by = $5, version = version + 1
+  WHERE tenant_id = $1 AND membership_id = $2 AND user_id = $3 AND status = 'sent' AND expires_at > $4 RETURNING id`;
+// LD-99 / 08 A38-1: platform kind (identityAuthTx, no tenant)
+const REVOKE_OTHERS_DEFINER = 'SELECT app.identity_platform_auth_write_revoke_other_sessions($1::uuid, $2::uuid, $3::text) AS ids';
+const INVITE_ACCEPT_BY_USER_DEFINER = 'SELECT app.identity_platform_auth_write_invitation_accept_by_user($1::uuid) AS n';
+const MEMBERSHIP_ACTIVATE_SQL = `UPDATE core.memberships SET status = 'active', accepted_at = $3, updated_at = now(), updated_by = $4
+  WHERE tenant_id = $1 AND id = $2 AND status = 'invited' RETURNING id`;
+
 const bytea = (b: Buffer) => `\\x${b.toString('hex')}`;   // jsonb_populate_record bytea text form
 const iso = (d: Date) => d.toISOString();
 /** DEFINER integer result: a returned 0 (or no row) is a failed write, never a silent success. */
@@ -75,8 +87,37 @@ function rowsOk(rows: any[], what: string): void { if (!rows.length) throw new L
 export function createMfaRepo(o: { seal?: Sealer; open?: Opener } = {}) {
   const seal = o.seal ?? sealerFromEnv();
   const open = o.open ?? openerFromEnv();
+  const auth = createAuthRepo({ seal });
 
   const repo = {
+    loginContext: auth.loginContext, insertSession: auth.insertSession, insertPlatformSession: auth.insertPlatformSession,   // T9 confirmEmailToken
+
+    /** T9 SS8: every OTHER non-terminal session of the user -> revoked (password_change). */
+    async revokeOtherSessions(tx: Q, a: { tenantId: string | null; userId: string; exceptSessionId: string; reason: 'password_change'; actorId: string }) {
+      if (!a.tenantId) {   // LD-99 / 08 A38-1(a): platform kind through the DEFINER; any error propagates (fail closed)
+        const r = (await tx.query(REVOKE_OTHERS_DEFINER, [a.userId, a.exceptSessionId, a.reason])).rows[0];
+        const ids = r ? r.ids : undefined;
+        if (!Array.isArray(ids)) throw new LimsError('common.internal', 'identity: platform password_change revoke not applied');
+        return ids.map((id: string) => ({ sessionId: id, kind: 'platform' }));
+      }
+      return (await tx.query(REVOKE_OTHERS_SQL, [a.tenantId, a.userId, a.exceptSessionId, a.reason, a.actorId])).rows
+        .map((r: any) => ({ sessionId: r.id as string, kind: r.kind as string }));
+    },
+
+    /** T9 M2: a `sent`, unexpired invitation of the membership -> accepted; membership invited -> active. false = none (recovery). */
+    async acceptInvitation(tx: Q, a: { tenantId: string | null; membershipId: string | null; userId: string; at: Date; actorId: string }): Promise<boolean> {
+      if (!a.tenantId) {   // LD-99 / 08 A38-1(b): platform invitations by user; count 0 = recovery (no invitation)
+        const r = (await tx.query(INVITE_ACCEPT_BY_USER_DEFINER, [a.userId])).rows[0];
+        const n = Number(r ? r.n : NaN);
+        if (!Number.isInteger(n) || n < 0) throw new LimsError('common.internal', 'identity: platform invitation accept not applied');
+        return n > 0;
+      }
+      if (!a.membershipId) return false;
+      if (!(await tx.query(INVITE_ACCEPT_SQL, [a.tenantId, a.membershipId, a.userId, a.at, a.actorId])).rows.length) return false;
+      await tx.query(MEMBERSHIP_ACTIVATE_SQL, [a.tenantId, a.membershipId, a.at, a.actorId]);
+      return true;
+    },
+
     async sessionByToken(tx: Q, sha: Buffer) {
       if (!Buffer.isBuffer(sha) || sha.length !== 32) throw new LimsError('common.internal', 'identity: token hash must be 32 bytes');
       const r = (await tx.query(BY_TOKEN_SQL, [sha])).rows[0];

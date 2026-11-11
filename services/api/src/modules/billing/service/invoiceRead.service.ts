@@ -46,13 +46,14 @@ export function limitOf(raw: unknown): number {
 
 // ---- opaque keyset cursors: base64url(JSON [sort, value, id]) ----
 export const encodeCursor = (sort: string, value: string | number, id: string): string => Buffer.from(JSON.stringify([sort, value, id]), 'utf8').toString('base64url');
-export function decodeCursor(raw: unknown, sort: string, kind: 'time' | 'int'): { value: string | number; id: string } {
+export function decodeCursor(raw: unknown, sort: string, kind: 'time' | 'int' | 'int-or-key'): { value: string | number; id: string } {
   const invalidCursor = (): LimsError => new LimsError('common.invalid_cursor');
   if (typeof raw !== 'string' || !CURSOR.test(raw)) throw invalidCursor();
   let v: unknown;
   try { v = JSON.parse(Buffer.from(raw, 'base64url').toString('utf8')); } catch { throw invalidCursor(); }
   if (!Array.isArray(v) || v.length !== 3 || v[0] !== sort || typeof v[2] !== 'string' || !UUID.test(v[2])) throw invalidCursor();
-  const ok = kind === 'time' ? typeof v[1] === 'string' && UTC_INSTANT.test(v[1]) : Number.isSafeInteger(v[1]) && (v[1] as number) >= 0 && (v[1] as number) <= 2147483647;
+  const ok = kind === 'int-or-key' ? typeof v[1] === 'string' && v[1].length <= 32
+    : kind === 'time' ? typeof v[1] === 'string' && UTC_INSTANT.test(v[1]) : Number.isSafeInteger(v[1]) && (v[1] as number) >= 0 && (v[1] as number) <= 2147483647;
   if (!ok) throw invalidCursor();
   return { value: v[1] as string | number, id: v[2] };
 }
@@ -199,12 +200,41 @@ export function createInvoiceReadService(deps: { repo?: InvoiceReadRepo } = {}) 
     };
   }
 
-  /** CreditNoteDto of one note (B4 / B5 responses); the note and its lines are read in the caller's transaction. */
-  async function getCreditNote(ctx: BalanceCtx, input: { creditNoteId: string }) {
+  /** CreditNoteDto of one note (B4 / B5 responses; B6 get); the note and its lines are read in the caller's transaction. */
+  async function getCreditNote(ctx: BalanceCtx, input: { creditNoteId: unknown }) {
+    const creditNoteId = uuid(input?.creditNoteId, '/credit_note_id');
     const { tx, tenantId } = scope(ctx);
-    const n = await db.getCreditNote(tx, { tenantId, creditNoteId: input.creditNoteId });
+    const n = await db.getCreditNote(tx, { tenantId, creditNoteId });
     if (!n) throw new LimsError('common.not_found');
     const lines = (await db.listCreditNoteLinesByInvoice(tx, { tenantId, invoiceId: String(n['invoice_id']) })).filter((l) => l['credit_note_id'] === n['id']);
+    return creditNoteDto(n, lines);
+  }
+
+  /** B6 listCreditNotes (LD-97): CreditNotePage; keyset (fiscal_year_bs, credit_note_seq, id) = the B26 register order (02-TRD §5.2). Cursor = base64url JSON ['credit_notes', "<fy>|<seq>", id]. */
+  async function listCreditNotes(ctx: BalanceCtx, rawQuery: unknown) {
+    const { tx, tenantId } = scope(ctx);
+    const q = isRec(rawQuery) ? rawQuery : {};
+    const limit = limitOf(q['limit']);
+    const fy = q['fiscal_year_bs'];
+    if (fy !== undefined && (typeof fy !== 'string' || !FY.test(fy))) throw bad('/fiscal_year_bs');
+    const invoiceId = q['invoice_id'] === undefined ? undefined : uuid(q['invoice_id'], '/invoice_id');
+    let after: { fiscalYearBs: string; seq: number; id: string } | undefined;
+    if (q['cursor'] !== undefined) {
+      const c = decodeCursor(q['cursor'], 'credit_notes', 'int-or-key');
+      const m = /^([0-9]{4}\/[0-9]{2})\|([0-9]{1,9})$/.exec(String(c.value));
+      if (!m) throw new LimsError('common.invalid_cursor');
+      after = { fiscalYearBs: m[1]!, seq: Number(m[2]), id: c.id };
+    }
+    const rows = await db.listCreditNotes(tx, { tenantId, limit: limit + 1, ...(invoiceId === undefined ? {} : { invoiceId }), ...(fy === undefined ? {} : { fiscalYearBs: fy }), ...(after === undefined ? {} : { after }) });
+    const data = rows.slice(0, limit);
+    const last = data[data.length - 1];
+    const page: { limit: number; next_cursor?: string } = { limit };
+    if (rows.length > limit && last) page.next_cursor = encodeCursor('credit_notes', `${String(last['fiscal_year_bs'])}|${Number(last['credit_note_seq'])}`, String(last['id']));
+    const lines = await db.listCreditNoteLinesByNotes(tx, { tenantId, creditNoteIds: data.map((n) => String(n['id'])) });
+    return { data: data.map((n) => creditNoteDto(n, lines.filter((l) => l['credit_note_id'] === n['id']))), page };
+  }
+
+  function creditNoteDto(n: Record<string, any>, lines: Record<string, any>[]) {
     return present({
       id: n['id'], credit_note_no: n['credit_note_no'], credit_note_seq: n['credit_note_seq'], kind: n['kind'], invoice_id: n['invoice_id'], invoice_no: n['invoice_no'],
       fiscal_year_bs: n['fiscal_year_bs'], issued_at: iso(n['issued_at']), credit_note_date_bs: n['credit_note_date_bs'], centre_id: n['centre_id'], reason_code: n['reason_code'],
@@ -215,6 +245,6 @@ export function createInvoiceReadService(deps: { repo?: InvoiceReadRepo } = {}) 
     });
   }
 
-  return { listInvoices, getInvoice, getOrderBilling, listInvoicePrints, listCreditNoteTasks, getCreditNote };
+  return { listInvoices, getInvoice, getOrderBilling, listInvoicePrints, listCreditNoteTasks, getCreditNote, listCreditNotes };
 }
 export type InvoiceReadService = ReturnType<typeof createInvoiceReadService>;

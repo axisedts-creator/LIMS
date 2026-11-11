@@ -35,6 +35,10 @@ const IMPLEMENTED: readonly string[] = [
   'receiveSpecimen', 'bulkReceiveSpecimens', 'storeSpecimen', 'discardSpecimen',
   // T-14 result entry
   'bulkEnterResults', 'getResult', 'listOrderResults',
+  // T-15 critical values
+  'listCriticalValues', 'getCriticalValue', 'logCriticalNotification',
+  // T-16 verify / return
+  'verifyResult', 'bulkVerifyResults', 'returnResult',
 ];
 
 const FAKE_REQ = { params: {}, query: {}, headers: {}, body: {} };

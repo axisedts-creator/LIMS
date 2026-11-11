@@ -4,6 +4,7 @@
 // [CONV] stubs are generated here from one list instead of 55 placeholder files; each later task adds its own file.
 import type { Handler } from '../../../core/module.js';
 import { LimsError } from '../../../core/errors.js';
+import { criticalHandlers } from './critical.handlers.js';
 // T-07 specimen actions (each file: `export const handler`); later tasks add their own imports + entries to REAL below.
 import { handler as bulkCollectSpecimens } from './bulkCollectSpecimens.js';
 import { handler as bulkDispatchSpecimens } from './bulkDispatchSpecimens.js';
@@ -16,6 +17,7 @@ import { handler as lookupSpecimenByBarcode } from './lookupSpecimenByBarcode.js
 import { handler as receiveSpecimen } from './receiveSpecimen.js';
 import { handler as storeSpecimen } from './storeSpecimen.js';
 import { resultEntryHandlers } from './resultEntry.handlers.js';
+import { verifyHandlers } from './verify.handlers.js';
 
 const OPERATION_IDS = [
   // specimens
@@ -50,6 +52,8 @@ const notImplemented = (operationId: string): Handler => async () => {
 const REAL: Partial<Record<LabOperationId, Handler>> = {
   lookupSpecimenByBarcode, listSpecimens, getSpecimen, collectSpecimen, bulkCollectSpecimens, bulkDispatchSpecimens, receiveSpecimen, bulkReceiveSpecimens, storeSpecimen, discardSpecimen,
   ...resultEntryHandlers, // T-14: bulkEnterResults, getResult, listOrderResults
+  ...criticalHandlers, // T-15: listCriticalValues, getCriticalValue, logCriticalNotification
+  ...verifyHandlers, // T-16: verifyResult, bulkVerifyResults, returnResult
 };
 
 export const handlers: Readonly<Record<LabOperationId, Handler>> = Object.freeze(

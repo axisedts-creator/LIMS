@@ -81,8 +81,10 @@ export function createSetPasswordFromSetup(deps: SetPasswordDeps) {
         : s.kind === 'platform' || row['mfa_required'] === true ? 'mfa_enrolment_required' : 'active';
       await deps.repo.updateSession(tx, ref, { state, actorId });
       const revoked = await deps.repo.revokeOtherSessions(tx, { tenantId: s.tenantId, userId: s.userId, exceptSessionId: s.sessionId, reason: 'password_change', actorId });
-      for (const o of revoked) {   // 02-TRD §10: per session; platform payload { user_id } only
-        await deps.repo.enqueue(tx, 'identity.gotrue_signout', s.tenantId ? { user_id: s.userId, tenant_id: s.tenantId, session_id: o.sessionId } : { user_id: s.userId },
+      // 02-TRD §10: per session, tenant kinds only. LD-99 / 08 A38-2: no identity.gotrue_signout for platform (adminSignOutUser would
+      // kill the live setup session's GoTrue tokens); the LIMS revocation above suffices (REQ-SEC-065).
+      if (s.kind !== 'platform') for (const o of revoked) {
+        await deps.repo.enqueue(tx, 'identity.gotrue_signout', { user_id: s.userId, tenant_id: s.tenantId, session_id: o.sessionId },
           `signout:${o.sessionId}:password_change`);
       }
       await deps.limits.clearAccountFailures(accountKey);

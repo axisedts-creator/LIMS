@@ -370,6 +370,43 @@ BEGIN
   RETURN v_n;
 END $$;
 
+-- 08 A38-1(a) (LD-99): setPasswordFromSetup for a platform user — revoke the user's other platform sessions (password_change)
+CREATE FUNCTION app.identity_platform_auth_write_revoke_other_sessions(p_user_id uuid, p_except_session_id uuid, p_reason text)
+RETURNS uuid[]
+LANGUAGE plpgsql VOLATILE SECURITY DEFINER SET search_path = '' AS $$
+DECLARE
+  v_ids uuid[];
+BEGIN
+  IF p_reason IS DISTINCT FROM 'password_change' THEN
+    RAISE EXCEPTION USING ERRCODE = 'P0001', MESSAGE = 'identity_platform_auth_write_invalid_input';
+  END IF;
+  PERFORM set_config('app.pre_user_id', coalesce(p_user_id::text, ''), true);   -- sessions__{select,update}__owner_only
+  WITH r AS (
+    UPDATE identity.sessions s SET state = 'revoked', revoked_at = now(), revoked_by = p_user_id, revoke_reason = p_reason,
+           updated_at = now(), updated_by = p_user_id, version = s.version + 1
+     WHERE s.user_id = p_user_id AND s.kind = 'platform' AND s.tenant_id IS NULL AND s.id <> p_except_session_id
+       AND s.state NOT IN ('revoked','expired')
+    RETURNING s.id)
+  SELECT coalesce(array_agg(r.id), '{}') INTO v_ids FROM r;
+  PERFORM set_config('app.pre_user_id', '', true);
+  RETURN v_ids;
+END $$;
+
+-- 08 A38-1(b) (LD-99): setPasswordFromSetup for a platform-staff invite — accept the user's sent, unexpired platform invitations
+CREATE FUNCTION app.identity_platform_auth_write_invitation_accept_by_user(p_user_id uuid) RETURNS integer
+LANGUAGE plpgsql VOLATILE SECURITY DEFINER SET search_path = '' AS $$
+DECLARE
+  v_n integer;
+BEGIN
+  PERFORM set_config('app.pre_user_id', coalesce(p_user_id::text, ''), true);   -- invitations__{select,update}__owner_only
+  UPDATE identity.invitations i SET status = 'accepted', accepted_at = now(), updated_at = now(), updated_by = p_user_id,
+         version = i.version + 1
+   WHERE i.tenant_id IS NULL AND i.user_id = p_user_id AND i.status = 'sent' AND i.expires_at > now();
+  GET DIAGNOSTICS v_n = ROW_COUNT;
+  PERFORM set_config('app.pre_user_id', '', true);
+  RETURN v_n;
+END $$;
+
 CREATE FUNCTION app.identity_platform_auth_write_staff_login(p_user_id uuid) RETURNS integer
 LANGUAGE plpgsql VOLATILE SECURITY DEFINER SET search_path = '' AS $$
 -- successful platform-staff login: platform_staff.last_login_at (platform-only table, no tenant_id column)
@@ -402,6 +439,10 @@ REVOKE ALL ON FUNCTION app.identity_platform_auth_write_session_insert(uuid,json
   app.identity_platform_auth_write_session_update(uuid,uuid,jsonb), app.identity_platform_auth_write_mfa_factor(uuid,uuid,jsonb),
   app.identity_platform_auth_write_invitation_accept(uuid,uuid), app.identity_platform_auth_write_staff_login(uuid),
   app.identity_notify_ip_throttle_hmacs(inet,timestamptz) FROM PUBLIC;
+REVOKE ALL ON FUNCTION app.identity_platform_auth_write_revoke_other_sessions(uuid,uuid,text),
+  app.identity_platform_auth_write_invitation_accept_by_user(uuid) FROM PUBLIC;   -- 08 A38-1
+GRANT EXECUTE ON FUNCTION app.identity_platform_auth_write_revoke_other_sessions(uuid,uuid,text),
+  app.identity_platform_auth_write_invitation_accept_by_user(uuid) TO lims_api;   -- 08 A38-1
 GRANT EXECUTE ON FUNCTION app.identity_platform_auth_write_session_insert(uuid,jsonb),
   app.identity_platform_auth_write_session_update(uuid,uuid,jsonb), app.identity_platform_auth_write_mfa_factor(uuid,uuid,jsonb),
   app.identity_platform_auth_write_invitation_accept(uuid,uuid), app.identity_platform_auth_write_staff_login(uuid) TO lims_api;

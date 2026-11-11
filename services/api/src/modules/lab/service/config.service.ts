@@ -165,11 +165,11 @@ export async function versionRule(c: unknown, params: unknown, headers: unknown,
   const ctx = specimenCtx(c);
   await role(ctx, P.manage);
   const expected = requireIfMatch(headers);
-  const i = parseRule(body, false);
   const id = uuidParam(params, 'rule_id');
   const rc = repoCtx(ctx);
   const prev = await getDeltaRule(rc, id);
-  if (!prev) throw new LimsError('common.not_found');
+  if (!prev) throw new LimsError('common.not_found');   // P-01 (T-32): a foreign / unknown rule is 404 before the body is judged
+  const i = parseRule(body, false);
   if (prev['version'] !== expected || prev['effective_to'] != null) throw new LimsError('common.version_conflict');   // stale, or already superseded
   const from = i.effectiveFrom ?? ctx.now();
   if (from.getTime() <= prev['effective_from'].getTime()) throw bad('/effective_from');

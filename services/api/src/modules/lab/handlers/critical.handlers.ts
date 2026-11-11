@@ -18,7 +18,7 @@ function authed(h: HandlerContext): CriticalCtx {
   const c = h as Partial<CriticalCtx>;
   if (typeof c.tenantId !== 'string' || typeof c.actor?.id !== 'string' || !c.tx) throw new LimsError('auth.unauthenticated');
   if (!c.ports?.IdentityPort || !c.audit) throw new LimsError('common.internal');   // fail closed: port / audit wiring missing (no port is invented)
-  return { ...c, store: c.store ?? labStore(c.tx) } as CriticalCtx;   // LD-124: ctx.store ?? labStore(ctx.tx)
+  return { ...c, store: c.store ?? labStore(c.tx, c as never) } as CriticalCtx;   // LD-124: ctx.store ?? labStore(ctx.tx)
 }
 
 const valueOf = (e: EventRow): string => String(e['value_numeric'] ?? e['value_text'] ?? e['ordinal_code'] ?? '');

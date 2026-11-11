@@ -37,6 +37,7 @@ export const criticalStore = (): CriticalStore => ({
     if (q.detectedAtFrom !== undefined) add((n) => `c.detected_at >= $${n}::timestamptz`, q.detectedAtFrom);
     if (q.detectedAtTo !== undefined) add((n) => `c.detected_at < $${n}::timestamptz`, q.detectedAtTo);
     if (q.centreId !== undefined) { if (!isUuid(q.centreId)) return { rows: [] }; add((n) => `c.centre_id = $${n}`, q.centreId); }
+    if (q.scopeCentreIds !== undefined) add((n) => `(c.centre_id = ANY($${n}::uuid[]) OR c.processing_centre_id = ANY($${n}::uuid[]))`, q.scopeCentreIds.filter(isUuid));
     if (q.cursor !== undefined) { const k = decode(q.cursor); args.push(k.at, k.id); where.push(`(c.detected_at, c.id) < ($${args.length}::timestamptz, $${args.length + 1})`); }
     const rows = await sql(tx, tenantId, `${EVENT_SELECT} WHERE ${where.join(' AND ')} ORDER BY c.detected_at DESC, c.id DESC LIMIT ${limit + 1}`, args);
     const page = rows.slice(0, limit).map(asEvent);

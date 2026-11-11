@@ -5,6 +5,8 @@
 // [CONV] #18 instrument filter is applied after the page is read (cursor stays consistent, a filtered page may be short); the outbound code-map answers are cached per (tenant, instrument, test, analyte, catalog_revision).
 import { uuidv7 } from '../../../../../../packages/shared-ts/src/uuidv7/index.js';
 import { LimsError } from '../../../core/errors.js';
+import { toResultDto } from '../mappers/result.mapper.js';
+import { worklistStore } from '../store/worklist.store.js';
 import { ageSex } from './label.service.js';
 import { bad, isObj, scopeOf, strict, UUID, uuidParam, visible, type Obj } from './specimen.service.js';
 
@@ -16,6 +18,7 @@ interface Store {
   insertWorksheet(tx: unknown, tenantId: string, a: { worksheet: Obj; items: Obj[] }): Promise<{ worksheet: Obj; items: Obj[] }>;
   listWorksheets(tx: unknown, tenantId: string, a: Obj): Promise<Obj[]>;
   getWorksheet(tx: unknown, tenantId: string, id: string): Promise<{ worksheet: Obj; items: Obj[] } | undefined>;
+  listQueueRows(tx: unknown, tenantId: string, a: Obj): Promise<Obj[]>;
 }
 interface Ctx {
   tenantId: string; tx: object; actor: { id: string }; now(): Date; store: Store; audit: { access(e: Obj): Promise<void> };
@@ -38,8 +41,8 @@ const KEY = /^[0-9A-Za-z:.|+ -]{1,64}$/;
 function ctxOf(h: unknown): Ctx {
   const c = h as Partial<Ctx> | null;
   if (typeof c?.tenantId !== 'string' || typeof c.actor?.id !== 'string' || !c.tx) throw new LimsError('auth.unauthenticated');
-  if (!c.store || typeof c.audit?.access !== 'function' || !c.ports?.IdentityPort || typeof c.now !== 'function') throw new LimsError('common.internal');
-  return c as Ctx;
+  if (typeof c.audit?.access !== 'function' || !c.ports?.IdentityPort || typeof c.now !== 'function') throw new LimsError('common.internal');
+  return (c.store ? c : Object.assign(Object.create(c), { store: worklistStore() })) as Ctx;   // LD-124: ctx.store ?? the production store (caller's tx, RLS guard)
 }
 const role = (c: Ctx, permission: string) => c.ports.IdentityPort.assertRole(c, { permission });
 const omit = (o: Obj): Obj => Object.fromEntries(Object.entries(o).filter(([, v]) => v !== undefined && v !== null));
@@ -174,6 +177,27 @@ export async function listWorklistItems(hctx: unknown, query: unknown): Promise<
     test_id: r['test_id'], test_code: r['test_code'], priority: r['priority'], status: r['status'], received_at: iso(r['received_at']),
     result_counts: { total: Number(r['result_total'] ?? 0), resulted: Number(r['result_resulted'] ?? 0), verified: Number(r['result_verified'] ?? 0) },
   }));
+  return { status: 200, body: { data, page } };
+}
+
+// ---- #34 listVerificationQueue (02-TRD §5.4; T-32 / P-03 / P-10): stage verify = resulted rows, approve = verified rows; oldest result first, centre-scoped. ----
+export async function listVerificationQueue(hctx: unknown, query: unknown): Promise<Result> {
+  const c = ctxOf(hctx);
+  await role(c, 'lab.result.read');
+  const q = qOf(query);
+  const stage = q['stage'];
+  if (stage !== 'verify' && stage !== 'approve') throw bad('/stage');
+  const limit = limitOf(q);
+  const f = q['flagged_only'];
+  if (f !== undefined && f !== 'true' && f !== 'false' && typeof f !== 'boolean') throw bad('/flagged_only');
+  const departmentId = uuidQ(q, 'department_id'), priority = priorityQ(q);
+  const after = decode(q['cursor'], stage);
+  const s = await scopeOf(c as never);
+  const raw = await c.store.listQueueRows(c.tx, c.tenantId, omit({ status: stage === 'verify' ? 'resulted' : 'verified', departmentId, priority, flaggedOnly: f === true || f === 'true' ? true : undefined,
+    scopeCentreIds: scopeIds(s), limit: limit + 1, after }));
+  const { rows, page } = paged(raw, c, s, limit, stage, (r) => String(iso(r['queue_at'])));
+  const names = await patientDisplays(c, rows);
+  const data = rows.map((r) => omit({ result: toResultDto(r), registration_no: r['registration_no'], barcode: r['barcode'], patient_display: display(names, r), priority: r['order_priority'] }));
   return { status: 200, body: { data, page } };
 }
 

@@ -2,7 +2,8 @@
 // fails boot on a missing or extra key (AC-0D-1.2). 06-IMPLEMENTATION-PLAN T-01: no 501 stubs — every stub throws
 // common.internal (fail closed) until its task replaces it with handlers/<operationId>.ts.
 // [CONV] stubs are generated here from one list instead of 55 placeholder files; each later task adds its own file.
-import type { Handler } from '../../../core/module.js';
+import { join } from 'node:path';
+import { REPO_ROOT, loadSpec, type Handler } from '../../../core/module.js';
 import { LimsError } from '../../../core/errors.js';
 import { criticalHandlers } from './critical.handlers.js';
 // T-07 specimen actions (each file: `export const handler`); later tasks add their own imports + entries to REAL below.
@@ -16,6 +17,7 @@ import { handler as rejectSpecimen } from './rejectSpecimen.js';
 import { handler as requestRecollection } from './requestRecollection.js';
 import { handler as getSpecimen } from './getSpecimen.js';
 import { handler as getStatusBoard } from './getStatusBoard.js';
+import { handler as getLabOrder } from './getLabOrder.js';
 import { handler as listSpecimens } from './listSpecimens.js';
 import { handler as lookupSpecimenByBarcode } from './lookupSpecimenByBarcode.js';
 import { handler as printSpecimenLabels } from './printSpecimenLabels.js';
@@ -75,8 +77,34 @@ const REAL: Partial<Record<LabOperationId, Handler>> = {
   ...configHandlers, // T-29: getLabSettings, updateLabSettings, list/create/version/deactivate DeltaCheckRule, listLabCodedSet, upsertLabCode (#47-#54)
   ...qcHandlers, // T-25: listQcResults, captureQcResult, listQcHolds, releaseQcHold (#43-#46)
   getStatusBoard, // T-27
+  getLabOrder, // T-32
 };
 
+// 07-SECURITY P-10 / S-01 (T-32): the contract x-permission is asserted (tenant-wide, no centre) BEFORE any handler code, so a role without it gets 403 auth.forbidden
+// (privileged at aal1: auth.mfa_required) and nothing is read or written; the handlers keep their own centre-scoped check (P-02 -> 404). Read from lab.yaml, never hand-copied.
+const spec: any = loadSpec(join(REPO_ROOT, 'contracts/openapi/lab.yaml'));
+const PERMISSION: Readonly<Record<string, string>> = Object.fromEntries(Object.values<any>(spec.paths).flatMap((item) =>
+  ['get', 'post', 'put', 'patch', 'delete'].map((m) => item?.[m]).filter((op) => op?.operationId).map((op) => [op.operationId, op['x-permission']])));
+const ENTER = 'lab.result.enter';
+
+function gated(op: string, h: Handler): Handler {
+  const permission = PERMISSION[op];
+  if (typeof permission !== 'string') throw new Error(`lab.yaml has no x-permission for ${op}`);   // boot fails, never an open operation
+  return async (req, ctx) => {
+    const c = ctx as { tenantId?: unknown; actor?: { id?: unknown }; ports?: { IdentityPort?: { assertRole(c: unknown, r: { permission: string }): Promise<unknown> } } };
+    if (typeof c.tenantId !== 'string' || typeof c.actor?.id !== 'string') return h(req, ctx);   // the handler answers auth.unauthenticated
+    const id = c.ports?.IdentityPort;
+    if (!id) throw new LimsError('common.internal');   // fail closed: no identity port
+    try { await id.assertRole(ctx, { permission }); }
+    catch (e) {
+      // 07 S-04 / AC-17.2: a lab user who may enter results but not amend is told the amendment needs a pathologist; anyone else is plainly forbidden.
+      if (op === 'amendResult' && e instanceof LimsError && e.code === 'auth.forbidden' && await id.assertRole(ctx, { permission: ENTER }).then(() => true, () => false)) throw new LimsError('lab.amend_requires_pathologist');
+      throw e;
+    }
+    return h(req, ctx);
+  };
+}
+
 export const handlers: Readonly<Record<LabOperationId, Handler>> = Object.freeze(
-  Object.fromEntries(OPERATION_IDS.map((op) => [op, REAL[op] ?? notImplemented(op)])) as Record<LabOperationId, Handler>,
+  Object.fromEntries(OPERATION_IDS.map((op) => [op, REAL[op] ? gated(op, REAL[op]) : notImplemented(op)])) as Record<LabOperationId, Handler>,
 );

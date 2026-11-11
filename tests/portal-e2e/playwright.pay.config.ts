@@ -11,7 +11,7 @@ export default defineConfig({
   testDir: here,
   testMatch: /C6-T42\.pay\.e2e\.ts/,
   workers: 1,
-  timeout: 60_000,
+  timeout: 120_000,
   use: { baseURL: PORTAL },
   webServer: [
     { command: `node "${join(here, 'stub-reporting-pay.mjs')}"`, url: `${API}/__health`, reuseExistingServer: false, timeout: 20_000 },

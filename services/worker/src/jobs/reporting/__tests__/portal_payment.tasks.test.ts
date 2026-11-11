@@ -8,7 +8,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { LimsError } from '../../../../../api/src/core/errors.js';
 import { validateManifests } from '../../../core/manifest.js';
 import { manifest } from '../index.js';
-vi.setConfig({ testTimeout: 30_000 });
+vi.setConfig({ testTimeout: 120_000, hookTimeout: 120_000 });   // LD-91: jsdom cold load 25-60 s on shared machine
 
 const P = () => import('../../../../../api/src/modules/reporting/__tests__/portal.payment.helpers.js');
 const H = () => import('../../../../../api/src/modules/reporting/__tests__/portal.helpers.js');

@@ -9,7 +9,7 @@
 import { readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it, vi } from 'vitest';
-vi.setConfig({ testTimeout: 30_000 });   // cold module load (jsdom pre-warm) can exceed the 5 s default, as in the other portal tests
+vi.setConfig({ testTimeout: 120_000, hookTimeout: 120_000 });   // cold module load (jsdom pre-warm) can exceed the 5 s default, as in the other portal tests
 import { REPO_ROOT, loadSpec } from '../../../core/module.js';
 import { DUE, ORDER_A, REPORT_A, doneUrl, idem, makePayWorld, rejection } from './portal.payment.helpers.js';
 import { idN, TENANT_A } from './portal.helpers.js';

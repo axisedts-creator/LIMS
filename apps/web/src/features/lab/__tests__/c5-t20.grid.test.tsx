@@ -186,7 +186,7 @@ describe('C5.T-20 AC-08.1 — keyboard-first entry, one bulkEnterResults per Ctr
     const c = enters()[0]!;
     expect(c.body.entries).toEqual([{ result_id: id(1), version: 1, value_numeric: '13.4' }, { result_id: id(2), version: 1, value_numeric: '7.2' }]);
     expect(c.headers.get('idempotency-key')).toMatch(/^[A-Za-z0-9_-]{8,}$/);
-    expect(c.headers.get('authorization')).toBeNull(); // the JWT stays on the server (REQ-SEC-068)
+    expect(c.headers.get('authorization')).toBe('Bearer jwt-synthetic'); // BFF→API hop carries the JWT (02-CONVENTIONS:798); browser-side absence is covered in c5-t20.static.test.ts
     expect(c.body.entry_mode ?? 'live').toBe('live');
     expect(c.body.occurred_at).toBeUndefined();
   });

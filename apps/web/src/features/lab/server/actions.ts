@@ -4,7 +4,8 @@
 import 'server-only';
 import { ApiError } from '@/core/api/server-fetch';
 import { bulkCollect, bulkDispatch, lookupSpecimens, receiveSpecimen, rejectSpecimen } from './write.server';
-import type { ActionResult, BulkItem, BulkRow, LookupKey, RejectBody, RejectResult, Specimen } from './types';
+import { getStatusBoard } from './read.server';
+import type { ActionResult, BoardQuery, BulkItem, BulkRow, LookupKey, RejectBody, RejectResult, Specimen, StatusBoardPage } from './types';
 
 async function run<T>(f: () => Promise<T>): Promise<ActionResult<T>> {
   try {
@@ -18,6 +19,8 @@ async function run<T>(f: () => Promise<T>): Promise<ActionResult<T>> {
   }
 }
 
+/** T-27: the board poll / filter change (the JWT stays on the server, REQ-SEC-068). */
+export async function getStatusBoardAction(q: BoardQuery): Promise<ActionResult<StatusBoardPage>> { return run(() => getStatusBoard(q)); }
 export async function lookupSpecimenAction(k: LookupKey): Promise<ActionResult<Specimen[]>> { return run(() => lookupSpecimens(k)); }
 export async function bulkCollectAction(list: BulkItem[], key: string): Promise<ActionResult<BulkRow[]>> { return run(() => bulkCollect(list, key)); }
 export async function bulkDispatchAction(list: BulkItem[], key: string): Promise<ActionResult<BulkRow[]>> { return run(() => bulkDispatch(list, key)); }

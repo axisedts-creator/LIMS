@@ -32,3 +32,20 @@ export interface BulkRow { id: string; outcome: 'ok' | 'error'; code?: string; s
 export interface RejectBody { reason_code: string; comment?: string; recollection_required: boolean }
 export interface RejectResult { specimen: Specimen; recollection_specimen?: Specimen }
 export interface RejectionReason { code: string; display: string }
+
+// T-27 status board (lab.yaml StatusBoardRow / StatusBoardPage; getStatusBoard #17)
+export const BOARD_STATUSES = ['waiting', 'collected', 'in_lab', 'ready', 'printed'] as const;
+export type BoardStatus = (typeof BOARD_STATUSES)[number];
+export interface StatusBoardRow {
+  order_id: string;
+  registration_no: string;
+  patient_display: { full_name: string; age_sex: string; patient_code: string };
+  centre_id: string;
+  board_status: BoardStatus;
+  rejected_specimens: number;
+  last_released_at?: string;
+  priority: string;
+}
+export interface StatusBoardPage { data: StatusBoardRow[]; page: { limit: number; next_cursor?: string } }
+export interface BoardQuery { registered_at_from: string; registered_at_to: string; centre_id?: string; board_status?: string }
+export const ISO_MS_RE = /^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}\.[0-9]{3}Z$/;

@@ -337,15 +337,15 @@ describe.skipIf(!live)('holdResultsSince (AC-19.4; 02-TRD §6.1)', () => {
 
 // ================================================================ ingest + exceptions (AC-14.6, CR-C7-011)
 describe.skipIf(!live)('ingestInstrumentResult exceptions (AC-14.6; CR-C7-011; CR-C5-008)', () => {
-  const o1 = L(0xc8), o2 = L(0xc9), ob = L(0xca);
-  const I1 = L(0xc6), I2 = L(0xc7), IB = L(0xcb);
+  const o1 = L(0x3c0), o2 = L(0x3c1), ob = L(0x3c2);
+  const I1 = L(0x3c3), I2 = L(0x3c4), IB = L(0x3c5);
   const fx = (): Fx => ({
     orders: [ord(o1), ord(o2), ord(ob, PB, B, CENB)],
     items: [item(I1, o1), item(I2, o2), { ...item(IB, ob), tenantId: B }],
-    specimens: [spec(L(0xcc), o1, 'SYN-I0001', 'received', [I1]), spec(L(0xcd), o2, 'SYN-I0002', 'received', [I2])],
-    results: [res(L(0xce), I1, AN1, 'pending'), res(L(0xcf), I2, AN1, 'approved', { valueNumeric: '13.40' })],
+    specimens: [spec(L(0x3c6), o1, 'SYN-I0001', 'received', [I1]), spec(L(0x3c7), o2, 'SYN-I0002', 'received', [I2])],
+    results: [res(L(0x3c8), I1, AN1, 'pending'), res(L(0x3c9), I2, AN1, 'approved', { valueNumeric: '13.40' })],
   });
-  const R1 = L(0xce), R2 = L(0xcf);
+  const R1 = L(0x3c8), R2 = L(0x3c9);
   const open = (barcode: string, tenant = A) => q(`SELECT * FROM lab.ingest_exceptions WHERE tenant_id = $1 AND sample_barcode = $2 AND status = 'open'`, [tenant, barcode.replace(/-/g, '')]);
   const logOf = (barcode: string, tenant = A) => q('SELECT * FROM lab.ingest_log WHERE tenant_id = $1 AND result_key LIKE $2', [tenant, `%${barcode.replace(/-/g, '')}%`]);
 

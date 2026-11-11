@@ -27,7 +27,7 @@ describe('T-24 perf harness', () => {
 async function seedLoad(t: 'A' | 'B', count: number): Promise<void> {
   await asAdmin(async (c) => {
     await c.query(`CREATE OR REPLACE FUNCTION pg_temp.pid(kind int, n int) RETURNS uuid LANGUAGE sql IMMUTABLE AS $$ SELECT ('01900000-0000-7000-8000-d' || lpad(kind::text, 3, '0') || lpad(n::text, 8, '0'))::uuid $$`);
-    const P = [TENANT[t], PCEN[t], BRANCH[t], PPAT[t], SYS, 0, count];   // $1 tenant, $2 centre, $3 branch, $4 patient, $5 actor, $6 id base, $7 count
+    const P = [TENANT[t], PCEN[t], BRANCH[t], PPAT[t], SYS, t === 'A' ? 0 : 100000, count];   // $1 tenant, $2 centre, $3 branch, $4 patient, $5 actor, $6 id base, $7 count
     await c.query(`INSERT INTO lab.orders (id, tenant_id, centre_id, branch_id, patient_id, registration_no, visit_type, priority, source, registered_at, patient_sex, patient_age_days, last_order_seq, created_by, updated_by)
       SELECT pg_temp.pid(10, $6::int + n), $1::uuid, $2::uuid, $3::uuid, $4::uuid, 'R-PERF-' || ($6::int + n), 'opd', 'routine', 'front_desk', now(), 'female', 12000, 1, $5::uuid, $5::uuid
       FROM generate_series(1, $7::int) n`, P);
@@ -105,7 +105,7 @@ describe.skipIf(!live).each([1, 10])('host query + worklist at %ix seed', (mult)
 
   it('tenant B load does not leak into the answers: a tenant-B barcode asked in tenant A is lab.specimen_not_found', async () => {
     let c: string | undefined;
-    try { await h.call('getPendingTestsForBarcode', device(), { instrumentId: PINS, barcode: 'PFB0000001' }, { spy: false }); } catch (e: any) { c = e.code; }
+    try { await h.call('getPendingTestsForBarcode', device(), { instrumentId: PINS, barcode: 'PFB' + String(100001).padStart(7, '0') }, { spy: false }); } catch (e: any) { c = e.code; }
     expect(c).toBe('lab.specimen_not_found');
   });
 });

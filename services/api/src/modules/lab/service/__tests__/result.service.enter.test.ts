@@ -44,7 +44,7 @@ const row = (resultId: string, over: Record<string, unknown> = {}) => ({
 });
 const entry = (resultId: string, over: Record<string, unknown> = {}) => ({ resultId, version: 3, valueNumeric: '13.4', ...over });
 
-function make(rows: any[], opt: { range?: any; critical?: any; existingCritical?: any[]; targets?: any[]; inputs?: any[]; assertRole?: (c: any, r: any) => Promise<void>; saveFails?: Record<string, Error>; catalogError?: Error } = {}) {
+function make(rows: any[], opt: { range?: any; critical?: any; existingCritical?: any[]; targets?: any[]; inputs?: any[]; assertRole?: (c: any, r: any) => Promise<void>; saveFails?: Record<string, Error>; catalogError?: Error; insertCriticalLogFails?: Error } = {}) {
   const tx = { id: 'tx-1' };
   const log: { fn: string; tenantId: unknown; arg: any }[] = [];
   const emitted: { type: string; input: any }[] = [];
@@ -65,7 +65,7 @@ function make(rows: any[], opt: { range?: any; critical?: any; existingCritical?
     async rollupSpecimen(_t: unknown, tenantId: unknown, s: string) { rec('rollupSpecimen', tenantId, s); },
     async getResults(_t: unknown, tenantId: unknown, ids: string[]) { rec('getResults', tenantId, ids); return ids.map((i) => ({ id: i, version: 9, status: 'resulted', origin: 'calculated' })); },
     async listCriticalLog(_t: unknown, tenantId: unknown, r: string) { rec('listCriticalLog', tenantId, r); return opt.existingCritical ?? []; },
-    async insertCriticalLog(_t: unknown, tenantId: unknown, a: any) { rec('insertCriticalLog', tenantId, a); return { criticalEventId: 'ce-1' }; },
+    async insertCriticalLog(_t: unknown, tenantId: unknown, a: any) { rec('insertCriticalLog', tenantId, a); if (opt.insertCriticalLogFails) throw opt.insertCriticalLogFails; return { criticalEventId: 'ce-1' }; },
     async markCriticalValueChanged(_t: unknown, tenantId: unknown, r: string) { rec('markCriticalValueChanged', tenantId, r); },
     // T-13 store
     async listCalculatedTargets(_t: unknown, tenantId: unknown, i: string) { rec('listCalculatedTargets', tenantId, i); return opt.targets ?? []; },
@@ -342,6 +342,14 @@ describe('T-14 critical values (02-TRD §4.3 step 4; S-12)', () => {
     await run(m, [entry(id(1), { valueNumeric: '13.4' })]);
     expect(m.calls('markCriticalValueChanged')).toHaveLength(1);
     expect(m.emitted).toHaveLength(0);
+  });
+  it('a LimsError AFTER the row was saved (critical log insert fails) rolls the whole batch back: rejects, no ok/error outcome for the stored row (no value saved without its critical log)', async () => {
+    const m = make([row(id(1))], { insertCriticalLogFails: new LimsError('common.version_conflict') });
+    const e = await fail(run(m, [entry(id(1), { valueNumeric: '6.0' })]));
+    expect(e).toBeInstanceOf(LimsError);
+    expect(e.code).toBe('common.version_conflict');
+    expect(m.saves()).toHaveLength(1);
+    expect(m.emitted.filter((x) => x.type === 'lab.critical_value.detected.v1')).toHaveLength(0);
   });
   it('non-critical value: no log row, no event', async () => {
     const m = make([row(id(1))]);

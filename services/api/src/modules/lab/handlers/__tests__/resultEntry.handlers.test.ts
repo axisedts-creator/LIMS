@@ -228,6 +228,15 @@ describe('T-14 listOrderResults (#16)', () => {
     const e = await fail(run('listOrderResults', req(u(0xdead)), ctxOf().ctx));
     expect(e.code).toBe('common.not_found');
   });
+  it('P-02: order with no result rows (not accessioned / filter matches nothing) is authorised on the ORDER centre (store returns centreId) -> user lacking it gets 404, no order block', async () => {
+    const order = { centreId: CENTRE, order: { order_id: ORDER, registration_no: 'R2606150001', specimens: [], order_tests: [] }, items: [] };
+    const c = ctxOf({ order, assertRole: async (r) => { if (r.centreId === CENTRE) throw new LimsError('auth.forbidden'); } });
+    const e = await fail(run('listOrderResults', req(ORDER), c.ctx));
+    expect(e.code).toBe('common.not_found');
+    expect(e.statusCode).toBe(404);
+    expect(c.asked[0]).toMatchObject({ permission: 'lab.result.read', centreId: CENTRE });
+    expect(JSON.stringify(e.errors ?? [])).not.toContain('R2606150001');
+  });
   it('lab.result.read is asserted (front_desk has none): assertRole rejection surfaces as 404, no results', async () => {
     const c = ctxOf({ assertRole: async () => { throw new LimsError('auth.forbidden'); } });
     const e = await fail(run('listOrderResults', req(ORDER), c.ctx));

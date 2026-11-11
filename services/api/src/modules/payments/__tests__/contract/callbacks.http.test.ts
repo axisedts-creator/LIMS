@@ -52,7 +52,7 @@ describe('P31 eSewa success callback (US-PG-03)', () => {
     await settle(m);
     expect(t.callbacks()).toHaveLength(1);
     expect(t.callbacks()[0]).toMatchObject({ tenant_id: A, intent_id: m.intentId, gateway: 'esewa', kind: 'esewa_success', signature_valid: true, outcome_code: 'ok', created_by: SYSTEM_ACTOR });
-    expect(t.callbacks(B)).toHaveLength(0);
+    expect(t.callbacks('B')).toHaveLength(0);
   });
 
   it('AC-PG-03.2 / ST-02: forged signature + status check PENDING -> not settled, signature_invalid row, no ledger call, redirect outcome=pending', async () => {
@@ -517,7 +517,7 @@ describe('invalid tokens and tenant isolation (AC-PG-14.2, REQ-SEC-052, ST-07, A
     expect(JSON.stringify(probe)).toBe(JSON.stringify(invalid));
     expect(JSON.stringify([t.h.db.intents(B), t.h.db.transitions(B), t.h.db.callbacks(B)])).toBe(before);
     expect(t.h.ledger.calls).toHaveLength(0);
-    expect(t.callbacks(A)).toHaveLength(0);
+    expect(t.callbacks('A')).toHaveLength(0);
   });
 
   it('AC-PG-14.2: a tenant-B token under tenant-B claims resolves only tenant B; tenant A gets no row, no event, no ledger call', async () => {
@@ -525,9 +525,9 @@ describe('invalid tokens and tenant isolation (AC-PG-14.2, REQ-SEC-052, ST-07, A
     const b = await t.make({ tenant: 'B', status: 'COMPLETE' });
     const r = await t.call('esewaSuccessCallback', { token: b.token, query: { data: t.esewaData(b) }, tenant: 'B' });
     expectRedirect(r, RETURN, 'settled', b.intentId);
-    expect(t.callbacks(B)).toHaveLength(1);
-    expect(t.callbacks(B)[0]).toMatchObject({ tenant_id: B, intent_id: b.intentId });
-    expect(t.callbacks(A)).toHaveLength(0);
+    expect(t.callbacks('B')).toHaveLength(1);
+    expect(t.callbacks('B')[0]).toMatchObject({ tenant_id: B, intent_id: b.intentId });
+    expect(t.callbacks('A')).toHaveLength(0);
     expect(t.row(a).status).toBe('initiated');
     expect(t.row(b)).toMatchObject({ status: 'settled' });
     expect(t.h.ledger.calls.every((c) => c.intentId === b.intentId)).toBe(true);

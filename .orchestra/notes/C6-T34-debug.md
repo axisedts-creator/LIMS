@@ -12,3 +12,8 @@ Result: node --test tests/load/C6-T34.static.test.mjs 28/28; tsc strict on the e
 Cause: the 8 failing pins are all in tests/load/reporting-load.js + tests/e2e/reporting-journey.e2e.ts. Both are TRACKED files under tests/, so run.ps1 Enforce (TestPat matches "tests/", not new, not TestExempt) reverts every writer/debugger edit: rounds 1-2 rewrites were silently discarded (files last changed in 19643945).
 Fix: none possible from debugger role. Route harness rewrite to TESTER (apply review fixes 1-10 per round-2 note: R7 bulk-release {ids}+Idempotency-Key, D3, Q1 qr_token, /v1/reporting/portal/ + X-Lims-Portal-Credential, held-dues asserts, R2 search, OTP in PHI scan, empty-qr_tokens throw), or lead adds tests/load + tests/e2e harness files to TestExempt. Static test is spec-correct: no dispute.
 Result: node --test tests/load/C6-T34.static.test.mjs still 20/28 (unchanged tree).
+
+## Round 4
+Cause: unchanged. 8 failing pins target tests/load/reporting-load.js + tests/e2e/reporting-journey.e2e.ts; both match run.ps1 $TestPat and are not in $TestExempt (line 42), so any debugger/writer edit is reverted. No implementation file exists to fix.
+Fix: none from this role. Lead must either add `^tests/(load|e2e)/(?!.*\.test\.)` to $TestExempt or have the TESTER apply review items 1-10 (content in round 2). Static test is spec-correct; see C6-T34-dispute.md.
+Result: node --test tests/load/C6-T34.static.test.mjs 20/28 (unchanged tree). k6 and compose E2E not run.

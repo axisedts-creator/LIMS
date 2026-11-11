@@ -1,0 +1,59 @@
+{
+  "uid": "lims-d15-frontdesk",
+  "title": "D15 Modules / Front desk",
+  "description": "04-UI-UX s3 D15 for C4; panels from the chunk TRD observability section (T-21).",
+  "tags": [
+    "modules",
+    "c4"
+  ],
+  "editable": false,
+  "schemaVersion": 39,
+  "version": 1,
+  "time": {
+    "from": "now-6h",
+    "to": "now"
+  },
+  "refresh": "1m",
+  "templating": {
+    "list": []
+  },
+  "panels": [
+    {
+      "id": 1,
+      "type": "text",
+      "title": "About this dashboard",
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 24,
+        "h": 2
+      },
+      "options": {
+        "mode": "markdown",
+        "content": "Owner C4. Alert rules: `rules/imported/frontdesk.rules.yml`. Runbook: `infra/runbooks/frontdesk.md`."
+      }
+    },
+    {
+      "id": 2,
+      "type": "timeseries",
+      "title": "lims_frontdesk_trf_scans_total",
+      "description": "Owner C4 (Front desk). Metric lims_frontdesk_trf_scans_total from worker-a/b /metrics (02-TRD s11.2). Alerts: FrontdeskTrfQuarantineBurst.",
+      "gridPos": {
+        "x": 0,
+        "y": 2,
+        "w": 12,
+        "h": 8
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum(rate(lims_frontdesk_trf_scans_total{outcome=\"quarantined\"}[5m]))"
+        }
+      ]
+    }
+  ]
+}

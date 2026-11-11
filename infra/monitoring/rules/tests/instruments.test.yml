@@ -1,0 +1,519 @@
+# T-20 / AC-25.1, AC-25.2, AC-17.2: promtool unit tests for the BridgeAgent* rules
+# (rules/instruments.rules.yml) and the imported C7 rules (rules/imported/instruments.rules.yml).
+# Owned by the tester (LD-35, LD-39, LD-44, 2026-11-07): writer/debugger only write rule files.
+# Synthetic series only (tnt-demo-01 / ctr-demo-01 / agt-demo-01); one sample per minute.
+# Every `for` boundary: not firing 1 min before, firing 1 min after. worker-a/b duplicate
+# replicas export identical series; `max by (tenant_id, centre_id, agent_id)` must give ONE alert.
+# C7 expectations keep the source label `route` verbatim (T-20 ruling, 02-TRD s11.3).
+# Run: cd infra/monitoring/rules/tests && promtool test rules instruments.test.yml
+rule_files:
+  - ../instruments.rules.yml
+  - ../imported/instruments.rules.yml
+evaluation_interval: 1m
+tests:
+  - interval: 1m
+    name: "offline agent: BridgeAgentOffline pending until 15m, fires at 16m; Long not yet"
+    input_series:
+      - series: 'lims_instruments_agent_state{state="offline",tenant_id="tnt-demo-01",centre_id="ctr-demo-01",agent_id="agt-demo-01"}'
+        values: "1x70"
+    alert_rule_test:
+      - alertname: BridgeAgentOffline
+        eval_time: 14m
+        exp_alerts: []
+      - alertname: BridgeAgentOffline
+        eval_time: 16m
+        exp_alerts:
+          - exp_labels:
+              tenant_id: "tnt-demo-01"
+              centre_id: "ctr-demo-01"
+              agent_id: "agt-demo-01"
+              severity: "warn"
+              team: "ops"
+            exp_annotations:
+              runbook_url: "infra/runbooks/instruments.md#bridgeagentoffline"
+              summary: "Bridge agent agt-demo-01 (tenant tnt-demo-01, centre ctr-demo-01) offline for 15 min."
+      - alertname: BridgeAgentOfflineLong
+        eval_time: 16m
+        exp_alerts: []
+
+  - interval: 1m
+    name: "offline agent 60m: BridgeAgentOfflineLong not at 59m, page + notify_tenant at 61m"
+    input_series:
+      - series: 'lims_instruments_agent_state{state="offline",tenant_id="tnt-demo-01",centre_id="ctr-demo-01",agent_id="agt-demo-01"}'
+        values: "1x70"
+    alert_rule_test:
+      - alertname: BridgeAgentOfflineLong
+        eval_time: 59m
+        exp_alerts: []
+      - alertname: BridgeAgentOfflineLong
+        eval_time: 61m
+        exp_alerts:
+          - exp_labels:
+              tenant_id: "tnt-demo-01"
+              centre_id: "ctr-demo-01"
+              agent_id: "agt-demo-01"
+              severity: "page"
+              team: "ops"
+              notify_tenant: "true"
+            exp_annotations:
+              runbook_url: "infra/runbooks/instruments.md#bridgeagentofflinelong"
+              summary: "Bridge agent agt-demo-01 (tenant tnt-demo-01, centre ctr-demo-01) offline for 60 min."
+
+  - interval: 1m
+    name: "agent online (offline=0): no offline alerts"
+    input_series:
+      - series: 'lims_instruments_agent_state{state="offline",tenant_id="tnt-demo-01",centre_id="ctr-demo-01",agent_id="agt-demo-01"}'
+        values: "0x70"
+    alert_rule_test:
+      - alertname: BridgeAgentOffline
+        eval_time: 16m
+        exp_alerts: []
+      - alertname: BridgeAgentOfflineLong
+        eval_time: 61m
+        exp_alerts: []
+
+  - interval: 1m
+    name: "agent recovers at 10m: never reaches 15m, no alert"
+    input_series:
+      - series: 'lims_instruments_agent_state{state="offline",tenant_id="tnt-demo-01",centre_id="ctr-demo-01",agent_id="agt-demo-01"}'
+        values: "1x10 0x60"
+    alert_rule_test:
+      - alertname: BridgeAgentOffline
+        eval_time: 16m
+        exp_alerts: []
+      - alertname: BridgeAgentOffline
+        eval_time: 40m
+        exp_alerts: []
+
+  - interval: 1m
+    name: "duplicate worker replicas (worker-a and worker-b) export the same offline agent: ONE alert"
+    input_series:
+      - series: 'lims_instruments_agent_state{state="offline",tenant_id="tnt-demo-01",centre_id="ctr-demo-01",agent_id="agt-demo-01",service="worker-a"}'
+        values: "1x70"
+      - series: 'lims_instruments_agent_state{state="offline",tenant_id="tnt-demo-01",centre_id="ctr-demo-01",agent_id="agt-demo-01",service="worker-b"}'
+        values: "1x70"
+      - series: 'lims_instruments_agent_state{state="offline",tenant_id="tnt-demo-01",centre_id="ctr-demo-01",agent_id="agt-demo-02",service="worker-a"}'
+        values: "0x70"
+      - series: 'lims_instruments_agent_state{state="offline",tenant_id="tnt-demo-01",centre_id="ctr-demo-01",agent_id="agt-demo-02",service="worker-b"}'
+        values: "0x70"
+    alert_rule_test:
+      - alertname: BridgeAgentOffline
+        eval_time: 16m
+        exp_alerts:
+          - exp_labels:
+              tenant_id: "tnt-demo-01"
+              centre_id: "ctr-demo-01"
+              agent_id: "agt-demo-01"
+              severity: "warn"
+              team: "ops"
+            exp_annotations:
+              runbook_url: "infra/runbooks/instruments.md#bridgeagentoffline"
+              summary: "Bridge agent agt-demo-01 (tenant tnt-demo-01, centre ctr-demo-01) offline for 15 min."
+      - alertname: BridgeAgentOfflineLong
+        eval_time: 61m
+        exp_alerts:
+          - exp_labels:
+              tenant_id: "tnt-demo-01"
+              centre_id: "ctr-demo-01"
+              agent_id: "agt-demo-01"
+              severity: "page"
+              team: "ops"
+              notify_tenant: "true"
+            exp_annotations:
+              runbook_url: "infra/runbooks/instruments.md#bridgeagentofflinelong"
+              summary: "Bridge agent agt-demo-01 (tenant tnt-demo-01, centre ctr-demo-01) offline for 60 min."
+
+  - interval: 1m
+    name: "one replica reports offline=0 (stale), the other offline=1: max wins, still fires"
+    input_series:
+      - series: 'lims_instruments_agent_state{state="offline",tenant_id="tnt-demo-01",centre_id="ctr-demo-01",agent_id="agt-demo-01",service="worker-a"}'
+        values: "0x70"
+      - series: 'lims_instruments_agent_state{state="offline",tenant_id="tnt-demo-01",centre_id="ctr-demo-01",agent_id="agt-demo-01",service="worker-b"}'
+        values: "1x70"
+    alert_rule_test:
+      - alertname: BridgeAgentOffline
+        eval_time: 16m
+        exp_alerts:
+          - exp_labels:
+              tenant_id: "tnt-demo-01"
+              centre_id: "ctr-demo-01"
+              agent_id: "agt-demo-01"
+              severity: "warn"
+              team: "ops"
+            exp_annotations:
+              runbook_url: "infra/runbooks/instruments.md#bridgeagentoffline"
+              summary: "Bridge agent agt-demo-01 (tenant tnt-demo-01, centre ctr-demo-01) offline for 15 min."
+      - alertname: BridgeAgentOfflineLong
+        eval_time: 61m
+        exp_alerts:
+          - exp_labels:
+              tenant_id: "tnt-demo-01"
+              centre_id: "ctr-demo-01"
+              agent_id: "agt-demo-01"
+              severity: "page"
+              team: "ops"
+              notify_tenant: "true"
+            exp_annotations:
+              runbook_url: "infra/runbooks/instruments.md#bridgeagentofflinelong"
+              summary: "Bridge agent agt-demo-01 (tenant tnt-demo-01, centre ctr-demo-01) offline for 60 min."
+
+  - interval: 1m
+    name: "both replicas report offline=0: no alert"
+    input_series:
+      - series: 'lims_instruments_agent_state{state="offline",tenant_id="tnt-demo-01",centre_id="ctr-demo-01",agent_id="agt-demo-01",service="worker-a"}'
+        values: "0x70"
+      - series: 'lims_instruments_agent_state{state="offline",tenant_id="tnt-demo-01",centre_id="ctr-demo-01",agent_id="agt-demo-01",service="worker-b"}'
+        values: "0x70"
+    alert_rule_test:
+      - alertname: BridgeAgentOffline
+        eval_time: 16m
+        exp_alerts: []
+
+  - interval: 1m
+    name: "backlog 30m boundary"
+    input_series:
+      - series: 'lims_instruments_agent_state{state="backlog",tenant_id="tnt-demo-01",centre_id="ctr-demo-01",agent_id="agt-demo-01"}'
+        values: "1x40"
+    alert_rule_test:
+      - alertname: BridgeAgentBacklog
+        eval_time: 29m
+        exp_alerts: []
+      - alertname: BridgeAgentBacklog
+        eval_time: 31m
+        exp_alerts:
+          - exp_labels:
+              tenant_id: "tnt-demo-01"
+              centre_id: "ctr-demo-01"
+              agent_id: "agt-demo-01"
+              severity: "warn"
+              team: "ops"
+            exp_annotations:
+              runbook_url: "infra/runbooks/instruments.md#bridgeagentbacklog"
+              summary: "Bridge agent agt-demo-01 (tenant tnt-demo-01) has a backlog for 30 min."
+
+  - interval: 1m
+    name: "no backlog: not firing"
+    input_series:
+      - series: 'lims_instruments_agent_state{state="backlog",tenant_id="tnt-demo-01",centre_id="ctr-demo-01",agent_id="agt-demo-01"}'
+        values: "0x40"
+    alert_rule_test:
+      - alertname: BridgeAgentBacklog
+        eval_time: 31m
+        exp_alerts: []
+
+  - interval: 1m
+    name: "degraded 30m boundary"
+    input_series:
+      - series: 'lims_instruments_agent_state{state="degraded",tenant_id="tnt-demo-01",centre_id="ctr-demo-01",agent_id="agt-demo-01"}'
+        values: "1x40"
+    alert_rule_test:
+      - alertname: BridgeAgentDegraded
+        eval_time: 29m
+        exp_alerts: []
+      - alertname: BridgeAgentDegraded
+        eval_time: 31m
+        exp_alerts:
+          - exp_labels:
+              tenant_id: "tnt-demo-01"
+              centre_id: "ctr-demo-01"
+              agent_id: "agt-demo-01"
+              severity: "warn"
+              team: "ops"
+            exp_annotations:
+              runbook_url: "infra/runbooks/instruments.md#bridgeagentdegraded"
+              summary: "Bridge agent agt-demo-01 (tenant tnt-demo-01) degraded for 30 min."
+
+  - interval: 1m
+    name: "not degraded: not firing"
+    input_series:
+      - series: 'lims_instruments_agent_state{state="degraded",tenant_id="tnt-demo-01",centre_id="ctr-demo-01",agent_id="agt-demo-01"}'
+        values: "0x40"
+    alert_rule_test:
+      - alertname: BridgeAgentDegraded
+        eval_time: 31m
+        exp_alerts: []
+
+  - interval: 1m
+    name: "clock offset +130 s: 30m boundary"
+    input_series:
+      - series: 'lims_instruments_agent_clock_offset_seconds{tenant_id="tnt-demo-01",centre_id="ctr-demo-01",agent_id="agt-demo-01"}'
+        values: "130x40"
+    alert_rule_test:
+      - alertname: BridgeAgentClockOffset
+        eval_time: 29m
+        exp_alerts: []
+      - alertname: BridgeAgentClockOffset
+        eval_time: 31m
+        exp_alerts:
+          - exp_labels:
+              tenant_id: "tnt-demo-01"
+              centre_id: "ctr-demo-01"
+              agent_id: "agt-demo-01"
+              severity: "info"
+              team: "ops"
+            exp_annotations:
+              runbook_url: "infra/runbooks/instruments.md#bridgeagentclockoffset"
+              summary: "Bridge agent agt-demo-01 clock offset above 120 s."
+
+  - interval: 1m
+    name: "clock offset -130 s: abs() fires"
+    input_series:
+      - series: 'lims_instruments_agent_clock_offset_seconds{tenant_id="tnt-demo-01",centre_id="ctr-demo-01",agent_id="agt-demo-01"}'
+        values: "-130x40"
+    alert_rule_test:
+      - alertname: BridgeAgentClockOffset
+        eval_time: 31m
+        exp_alerts:
+          - exp_labels:
+              tenant_id: "tnt-demo-01"
+              centre_id: "ctr-demo-01"
+              agent_id: "agt-demo-01"
+              severity: "info"
+              team: "ops"
+            exp_annotations:
+              runbook_url: "infra/runbooks/instruments.md#bridgeagentclockoffset"
+              summary: "Bridge agent agt-demo-01 clock offset above 120 s."
+
+  - interval: 1m
+    name: "clock offset exactly 120 s: not above threshold"
+    input_series:
+      - series: 'lims_instruments_agent_clock_offset_seconds{tenant_id="tnt-demo-01",centre_id="ctr-demo-01",agent_id="agt-demo-01"}'
+        values: "120x40"
+    alert_rule_test:
+      - alertname: BridgeAgentClockOffset
+        eval_time: 31m
+        exp_alerts: []
+
+  - interval: 1m
+    name: "agent_state series absent (unrelated series present): fires after 10m"
+    input_series:
+      - series: 'up{job="worker-a"}'
+        values: "1x30"
+    alert_rule_test:
+      - alertname: BridgeAgentMetricsAbsent
+        eval_time: 9m
+        exp_alerts: []
+      - alertname: BridgeAgentMetricsAbsent
+        eval_time: 11m
+        exp_alerts:
+          - exp_labels:
+              severity: "warn"
+              team: "ops"
+            exp_annotations:
+              runbook_url: "infra/runbooks/instruments.md#bridgeagentmetricsabsent"
+              summary: "No lims_instruments_agent_state series from worker-a/b for 10 min although c7_metrics_live is true."
+
+  - interval: 1m
+    name: "agent_state series present: not absent"
+    input_series:
+      - series: 'lims_instruments_agent_state{state="online",tenant_id="tnt-demo-01",centre_id="ctr-demo-01",agent_id="agt-demo-01"}'
+        values: "1x30"
+    alert_rule_test:
+      - alertname: BridgeAgentMetricsAbsent
+        eval_time: 11m
+        exp_alerts: []
+
+  - interval: 1m
+    name: "agent update failure counter increases: page immediately (for 0m), resolves after 15m"
+    input_series:
+      - series: 'lims_instruments_agent_update_failures_total'
+        values: "0x10 1x30"
+    alert_rule_test:
+      - alertname: InstrumentsAgentUpdateFailed
+        eval_time: 9m
+        exp_alerts: []
+      - alertname: InstrumentsAgentUpdateFailed
+        eval_time: 12m
+        exp_alerts:
+          - exp_labels:
+              severity: "page"
+              team: "ops"
+              route: "oncall-email"
+            exp_annotations:
+              runbook_url: "infra/runbooks/instruments.md#instrumentsagentupdatefailed"
+              summary: "InstrumentsAgentUpdateFailed is firing"
+      - alertname: InstrumentsAgentUpdateFailed
+        eval_time: 40m
+        exp_alerts: []
+
+  - interval: 1m
+    name: "no update failures: not firing"
+    input_series:
+      - series: 'lims_instruments_agent_update_failures_total'
+        values: "0x40"
+    alert_rule_test:
+      - alertname: InstrumentsAgentUpdateFailed
+        eval_time: 20m
+        exp_alerts: []
+
+  - interval: 1m
+    name: "signed config rejected: page immediately, resolves after 15m"
+    input_series:
+      - series: 'lims_instruments_agent_config_rejections_total'
+        values: "0x10 1x30"
+    alert_rule_test:
+      - alertname: InstrumentsAgentConfigRejected
+        eval_time: 9m
+        exp_alerts: []
+      - alertname: InstrumentsAgentConfigRejected
+        eval_time: 12m
+        exp_alerts:
+          - exp_labels:
+              severity: "page"
+              team: "ops"
+              route: "oncall-email"
+            exp_annotations:
+              runbook_url: "infra/runbooks/instruments.md#instrumentsagentconfigrejected"
+              summary: "Bridge agent rejected a signed configuration (possible tampering)"
+      - alertname: InstrumentsAgentConfigRejected
+        eval_time: 40m
+        exp_alerts: []
+
+  - interval: 1m
+    name: "no config rejections: not firing"
+    input_series:
+      - series: 'lims_instruments_agent_config_rejections_total'
+        values: "0x40"
+    alert_rule_test:
+      - alertname: InstrumentsAgentConfigRejected
+        eval_time: 20m
+        exp_alerts: []
+
+  - interval: 1m
+    name: "device auth failures 0.2/s: pending, then page after 5m"
+    input_series:
+      - series: 'lims_instruments_device_auth_failures_total'
+        values: "0+12x30"
+    alert_rule_test:
+      - alertname: InstrumentsDeviceAuthFailureSpike
+        eval_time: 3m
+        exp_alerts: []
+      - alertname: InstrumentsDeviceAuthFailureSpike
+        eval_time: 10m
+        exp_alerts:
+          - exp_labels:
+              severity: "page"
+              team: "ops"
+              route: "oncall-email"
+            exp_annotations:
+              runbook_url: "infra/runbooks/instruments.md#instrumentsdeviceauthfailurespike"
+              summary: "InstrumentsDeviceAuthFailureSpike is firing"
+
+  - interval: 1m
+    name: "device auth failures 0.05/s: below 0.1/s threshold"
+    input_series:
+      - series: 'lims_instruments_device_auth_failures_total'
+        values: "0+3x30"
+    alert_rule_test:
+      - alertname: InstrumentsDeviceAuthFailureSpike
+        eval_time: 10m
+        exp_alerts: []
+
+  - interval: 1m
+    name: "10 % quarantined for over 1h: warn"
+    input_series:
+      - series: 'lims_instruments_ingest_messages_total{outcome="quarantined"}'
+        values: "0+1x130"
+      - series: 'lims_instruments_ingest_messages_total{outcome="ok"}'
+        values: "0+9x130"
+    alert_rule_test:
+      - alertname: InstrumentsQuarantineRate
+        eval_time: 30m
+        exp_alerts: []
+      - alertname: InstrumentsQuarantineRate
+        eval_time: 100m
+        exp_alerts:
+          - exp_labels:
+              severity: "warn"
+              team: "ops"
+              route: "ops-digest-email"
+            exp_annotations:
+              runbook_url: "infra/runbooks/instruments.md#instrumentsquarantinerate"
+              summary: "InstrumentsQuarantineRate is firing"
+
+  - interval: 1m
+    name: "1 % quarantined: below 5 %"
+    input_series:
+      - series: 'lims_instruments_ingest_messages_total{outcome="quarantined"}'
+        values: "0+1x130"
+      - series: 'lims_instruments_ingest_messages_total{outcome="ok"}'
+        values: "0+99x130"
+    alert_rule_test:
+      - alertname: InstrumentsQuarantineRate
+        eval_time: 100m
+        exp_alerts: []
+
+  - interval: 1m
+    name: "attachment quarantined: page immediately, resolves after 15m"
+    input_series:
+      - series: 'lims_instruments_attachment_scans_total{outcome="quarantined"}'
+        values: "0x10 1x30"
+      - series: 'lims_instruments_attachment_scans_total{outcome="ok"}'
+        values: "0+5x40"
+    alert_rule_test:
+      - alertname: InstrumentsAttachmentQuarantined
+        eval_time: 9m
+        exp_alerts: []
+      - alertname: InstrumentsAttachmentQuarantined
+        eval_time: 12m
+        exp_alerts:
+          - exp_labels:
+              severity: "page"
+              team: "ops"
+              route: "oncall-email"
+            exp_annotations:
+              runbook_url: "infra/runbooks/instruments.md#instrumentsattachmentquarantined"
+              summary: "InstrumentsAttachmentQuarantined is firing"
+      - alertname: InstrumentsAttachmentQuarantined
+        eval_time: 40m
+        exp_alerts: []
+
+  - interval: 1m
+    name: "only clean attachments scanned: not firing"
+    input_series:
+      - series: 'lims_instruments_attachment_scans_total{outcome="quarantined"}'
+        values: "0x40"
+      - series: 'lims_instruments_attachment_scans_total{outcome="ok"}'
+        values: "0+5x40"
+    alert_rule_test:
+      - alertname: InstrumentsAttachmentQuarantined
+        eval_time: 20m
+        exp_alerts: []
+
+  - interval: 1m
+    name: "ingest batches 1-5 s (p95 4.8 s) for over 15m: warn"
+    input_series:
+      - series: 'lims_instruments_ingest_batch_duration_seconds_bucket{le="1"}'
+        values: "0x40"
+      - series: 'lims_instruments_ingest_batch_duration_seconds_bucket{le="5"}'
+        values: "0+10x40"
+      - series: 'lims_instruments_ingest_batch_duration_seconds_bucket{le="+Inf"}'
+        values: "0+10x40"
+    alert_rule_test:
+      - alertname: InstrumentsIngestSlow
+        eval_time: 10m
+        exp_alerts: []
+      - alertname: InstrumentsIngestSlow
+        eval_time: 20m
+        exp_alerts:
+          - exp_labels:
+              severity: "warn"
+              team: "ops"
+              route: "ops-digest-email"
+            exp_annotations:
+              runbook_url: "infra/runbooks/instruments.md#instrumentsingestslow"
+              summary: "InstrumentsIngestSlow is firing"
+
+  - interval: 1m
+    name: "ingest batches under 1 s (p95 0.95 s): not firing"
+    input_series:
+      - series: 'lims_instruments_ingest_batch_duration_seconds_bucket{le="1"}'
+        values: "0+10x40"
+      - series: 'lims_instruments_ingest_batch_duration_seconds_bucket{le="5"}'
+        values: "0+10x40"
+      - series: 'lims_instruments_ingest_batch_duration_seconds_bucket{le="+Inf"}'
+        values: "0+10x40"
+    alert_rule_test:
+      - alertname: InstrumentsIngestSlow
+        eval_time: 20m
+        exp_alerts: []

@@ -1,0 +1,127 @@
+---
+# 02-TRD s8.3: decrypt on the controller (ops-1), copy each secret to tmpfs.
+# file -> <secrets_dir>/<service>/<id> (0400, owner = container UID);
+# env  -> <env_dir>/<service>.env (0400 root; exposure: env ids only, AC-19.1).
+secrets_render_secrets_dir: /run/lims/secrets
+secrets_render_env_dir: /run/lims/env
+secrets_render_mode: "0400"
+
+# Encrypted file of this env in the lims-secrets checkout on ops-1 (s8.1).
+# Required (no default path): the role fails closed when unset.
+secrets_render_enc_file: ""
+secrets_render_ops_note: "{{ playbook_dir }}/../../ci/ops-note.sh"
+
+# Container UID per file-exposure service (s8.3 "owner = container UID").
+# Required for every service placed on the host; no guessed default.
+# LD-67: pgbouncer = UID of the pinned edoburu/pgbouncer image's user (userlist.txt owner).
+# [CONV] 70 is unverified against the digest: check `docker run --rm --entrypoint id <digest>`.
+secrets_render_uids:
+  pgbouncer: 70
+
+# Upstream Supabase compose reads ${VAR} from one env file per host:
+# docker compose --env-file /run/lims/env/supabase.env ... [CONV]
+secrets_render_fixed_env_service: supabase
+
+# AC-05.3: hardened upstream auth settings (non-secret), into supabase.env.
+secrets_render_fixed_env:
+  DISABLE_SIGNUP: "true"
+  ENABLE_PHONE_SIGNUP: "false"
+  ENABLE_PHONE_AUTOCONFIRM: "false"
+  ENABLE_ANONYMOUS_USERS: "false"
+  ENABLE_EMAIL_AUTOCONFIRM: "false"
+  OPENAI_API_KEY: ""
+
+# id -> {hosts: inventory groups, services, exposure: file|env, readonly,
+#        env_name/env_format (env only; default name = id, format = %s)}.
+# Ids not listed here are read by their own role (pgbackrest, monitoring,
+# internal_ca, luks_volumes, wireguard, registry).
+secrets_render_placement:
+  # --- upstream Supabase, exposure: env (02-TRD s8.3 exception list) ---
+  # data-1 runs db + pgbouncer: POSTGRES_PASSWORD only.
+  POSTGRES_PASSWORD: {hosts: [data, app], services: [supabase], exposure: env}
+  JWT_SECRET: &up {hosts: [app], services: [supabase], exposure: env}
+  ANON_KEY: *up
+  SERVICE_ROLE_KEY: *up
+  SUPABASE_PUBLISHABLE_KEY: *up
+  SUPABASE_SECRET_KEY: *up
+  JWT_KEYS: *up
+  JWT_JWKS: *up
+  DASHBOARD_USERNAME: *up
+  DASHBOARD_PASSWORD: *up
+  SECRET_KEY_BASE: *up
+  REALTIME_DB_ENC_KEY: *up
+  VAULT_ENC_KEY: *up
+  PG_META_CRYPTO_KEY: *up
+  LOGFLARE_PUBLIC_ACCESS_TOKEN: *up
+  LOGFLARE_PRIVATE_ACCESS_TOKEN: *up
+  S3_PROTOCOL_ACCESS_KEY_ID: *up
+  S3_PROTOCOL_ACCESS_KEY_SECRET: *up
+  MINIO_ROOT_PASSWORD: *up
+  POOLER_TENANT_ID: *up
+  SMTP_USER: *up
+  SMTP_PASS: *up
+  # 02-TRD s7 LIMS_CORE_REDIS_URL: env until C0 adds _FILE.
+  valkey_lims_api_password:
+    hosts: [app]
+    services: [api-a, api-b, worker-a, worker-b]
+    exposure: env
+    env_name: LIMS_CORE_REDIS_URL
+    env_format: "redis://lims_api:%s@valkey:6379/0"
+
+  # --- LIMS, exposure: file ---
+  lims_api_password: {hosts: [app], services: [api-a, api-b]}
+  lims_worker_password: {hosts: [app], services: [worker-a, worker-b]}
+  lims_core_jwt_key: {hosts: [app], services: [api-a, api-b]}
+  lims_core_ratelimit_key: {hosts: [app], services: [api-a, api-b]}
+  lims_identity_token_enc_key: {hosts: [app], services: [api-a, api-b]}
+  lims_identity_gotrue_service_key: {hosts: [app], services: [api-a, api-b]}
+  core_storage_service_key:
+    hosts: [app]
+    services: [api-a, api-b, worker-a, worker-b]
+  bff_key_staff_web: {hosts: [app], services: [api-a, api-b, web]}
+  bff_key_partner: {hosts: [app], services: [api-a, api-b, partner]}
+  bff_key_portal: {hosts: [app], services: [api-a, api-b, portal]}
+  reporting_otp_hmac_key:
+    hosts: [app]
+    services: [api-a, api-b, worker-a, worker-b]
+  renderer_inbound_token:
+    hosts: [app]
+    services: [worker-a, worker-b, renderer]
+  pdf_sandbox_inbound_token:
+    hosts: [app]
+    services: [worker-a, worker-b, pdf-sandbox]
+  instruments_config_signing_key:
+    hosts: [app]
+    services: [api-a, api-b, worker-a, worker-b]
+  payments_kek:
+    hosts: [app]
+    services: [api-a, api-b, worker-a, worker-b]
+    readonly: true
+  # never on a product host (CR-C7-012)
+  instruments_release_signing_key: {hosts: [ops], services: [release]}
+  instruments_authenticode_cert: {hosts: [ops], services: [release]}
+  tenant_ops_contacts: {hosts: [ops], services: [alertmanager]}
+  alert_contacts: {hosts: [ops], services: [alertmanager]}
+
+# Schema ids `<prefix><secret_ref>` (one id per ref, s8.2 table): every
+# decrypted key with this prefix is placed like a fixed id.
+secrets_render_prefix_placement:
+  reporting_channel_: {hosts: [app], services: [worker-a, worker-b]}
+
+# --- tasks_from: generate (s8.2, once per env on ops-1) ---
+# Pinned snapshot key scripts (upstream docker/utils, see .env.example).
+secrets_render_upstream_dir: >-
+  {{ playbook_dir }}/../../compose/supabase/upstream
+secrets_render_keys_scripts:
+  - "{{ secrets_render_upstream_dir }}/utils/generate-keys.sh"
+  - "{{ secrets_render_upstream_dir }}/utils/add-new-auth-keys.sh"
+secrets_render_schema_dir: "{{ playbook_dir }}/../../secrets/schema"
+secrets_render_tests_dir: "{{ playbook_dir }}/../../tests/internal"
+# sops file of operator-supplied ids (certs, SSH/htpasswd, contacts, relay,
+# reporting_channel_*); "" = none. Decrypted to a pipe only.
+secrets_render_extra_enc_file: ""
+# Encrypted, unchecked output; .yaml so `sops -d` infers the format.
+secrets_render_gen_new: >-
+  {{ secrets_render_enc_file | dirname }}/{{ env }}.generating.yaml
+# Already-encrypted other envs for the cross-env check (AC-21.1).
+secrets_render_other_envs: {}

@@ -1,0 +1,13 @@
+[Unit]
+Description=pgBackRest incremental backup, repo1 then repo2 (02-TRD s9.3)
+After=docker.service
+Requires=docker.service
+# one retry after 30 min (03-APP-FLOW s3.2); second failure -> BackupMissed
+StartLimitIntervalSec=2h
+StartLimitBurst=2
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/lib/lims/lims-pgbackrest-backup.sh --type=incr
+Restart=on-failure
+RestartSec=30min

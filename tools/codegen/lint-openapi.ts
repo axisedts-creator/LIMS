@@ -53,31 +53,48 @@ const nonEmptyStr = (x: unknown) => typeof x === "string" && x.trim().length > 0
 
 // Calls visit(schema, ptr) on every inline (non-$ref) schema node reachable from `s`.
 // `deref` (optional) follows local #/components/schemas refs (rule 7 needs it; cycle-safe).
-function walkSchema(s: unknown, ptr: string, visit: (s: Record<string, any>, ptr: string) => void,
-  deref?: (ref: string) => unknown, seen = new Set<unknown>()) {
+// LD-118 (2026-11-12; ruling: C17 TRD 6.3 puts gps in payload): rule 7 exception, exactly ONE entry, keyed by module +
+// operationId + property path (never the name alone). Path is relative to the enclosing array item, so it matches each
+// mutation of PushRequest.mutations[].
+const STATUS_ALLOWLIST = [{ module: "homecollection", operationId: "pushSyncMutations", path: "payload.gps.status" }] as const;
+const statusAllowed = (module: string, operationId: unknown, path: string) =>
+  STATUS_ALLOWLIST.some((e) => e.module === module && e.operationId === operationId && e.path === path.replace(/^.*\[\]\./, ""));
+// LD-119 (2026-11-12): rule 3 exception, exactly ONE entry (LD-78 opaque signed bytes), keyed by module + operationId +
+// response status + property path (never the name alone). Exempts only additionalProperties: false; all other rules apply.
+const OPEN_OBJECT_ALLOWLIST = [{ module: "instruments", operationId: "getAgentConfig", status: "200", path: "document" }] as const;
+type OpCtx = { operationId: unknown; status: string };
+const openObjectAllowed = (module: string, op: OpCtx | undefined, path: string) =>
+  !!op && OPEN_OBJECT_ALLOWLIST.some((e) => e.module === module && e.operationId === op.operationId && e.status === op.status && e.path === path);
+
+// `path` = data path of the instance (dotted property names, "[]" per array item, "*" for maps); survives $ref.
+function walkSchema(s: unknown, ptr: string, visit: (s: Record<string, any>, ptr: string, path: string) => void,
+  deref?: (ref: string) => unknown, seen = new Set<unknown>(), path = "") {
   if (!isObj(s) || seen.has(s)) return;
   seen.add(s);
   if (typeof s.$ref === "string") {
-    if (deref) walkSchema(deref(s.$ref), s.$ref, visit, deref, seen);
+    if (deref) walkSchema(deref(s.$ref), s.$ref, visit, deref, seen, path);
     return;
   }
-  visit(s, ptr);
-  for (const [k, v] of Object.entries(s.properties ?? {})) walkSchema(v, `${ptr}/properties/${k}`, visit, deref, seen);
-  for (const [k, v] of Object.entries(s.patternProperties ?? {})) walkSchema(v, `${ptr}/patternProperties/${k}`, visit, deref, seen);
-  if (isObj(s.additionalProperties)) walkSchema(s.additionalProperties, `${ptr}/additionalProperties`, visit, deref, seen);
+  visit(s, ptr, path);
+  const sub = (k: string) => (path ? `${path}.${k}` : k);
+  for (const [k, v] of Object.entries(s.properties ?? {})) walkSchema(v, `${ptr}/properties/${k}`, visit, deref, seen, sub(k));
+  for (const [k, v] of Object.entries(s.patternProperties ?? {})) walkSchema(v, `${ptr}/patternProperties/${k}`, visit, deref, seen, sub("*"));
+  if (isObj(s.additionalProperties)) walkSchema(s.additionalProperties, `${ptr}/additionalProperties`, visit, deref, seen, sub("*"));
   const items = Array.isArray(s.items) ? s.items : [s.items];
-  items.forEach((v, i) => walkSchema(v, `${ptr}/items${Array.isArray(s.items) ? `/${i}` : ""}`, visit, deref, seen));
-  for (const k of ["allOf", "oneOf", "anyOf", "prefixItems"])
-    if (Array.isArray(s[k])) s[k].forEach((v: unknown, i: number) => walkSchema(v, `${ptr}/${k}/${i}`, visit, deref, seen));
-  for (const k of ["not", "if", "then", "else"]) walkSchema(s[k], `${ptr}/${k}`, visit, deref, seen);
-  for (const [k, v] of Object.entries(isObj(s.$defs) ? s.$defs : {})) walkSchema(v, `${ptr}/$defs/${k}`, visit, deref, seen);
+  items.forEach((v, i) => walkSchema(v, `${ptr}/items${Array.isArray(s.items) ? `/${i}` : ""}`, visit, deref, seen, `${path}[]`));
+  for (const k of ["allOf", "oneOf", "anyOf"])
+    if (Array.isArray(s[k])) s[k].forEach((v: unknown, i: number) => walkSchema(v, `${ptr}/${k}/${i}`, visit, deref, seen, path));
+  if (Array.isArray(s.prefixItems)) s.prefixItems.forEach((v: unknown, i: number) => walkSchema(v, `${ptr}/prefixItems/${i}`, visit, deref, seen, `${path}[]`));
+  for (const k of ["not", "if", "then", "else"]) walkSchema(s[k], `${ptr}/${k}`, visit, deref, seen, path);
+  for (const [k, v] of Object.entries(isObj(s.$defs) ? s.$defs : {})) walkSchema(v, `${ptr}/$defs/${k}`, visit, deref, seen, "$defs");
 }
 
 // All schema roots of a document: components + every parameter/header/media type under paths.
-function schemaRoots(doc: Record<string, any>): [unknown, string][] {
-  const out: [unknown, string][] = [];
-  const media = (content: unknown, p: string) => {
-    for (const [mt, m] of Object.entries(isObj(content) ? content : {})) if (isObj(m)) out.push([m.schema, `${p}/content/${mt}/schema`]);
+// Operation response media roots carry their operation context (LD-119).
+function schemaRoots(doc: Record<string, any>): [unknown, string, OpCtx?][] {
+  const out: [unknown, string, OpCtx?][] = [];
+  const media = (content: unknown, p: string, op?: OpCtx) => {
+    for (const [mt, m] of Object.entries(isObj(content) ? content : {})) if (isObj(m)) out.push([m.schema, `${p}/content/${mt}/schema`, op]);
   };
   const headers = (h: unknown, p: string) => {
     for (const [n, v] of Object.entries(isObj(h) ? h : {})) if (isObj(v)) { out.push([v.schema, `${p}/headers/${n}/schema`]); media(v.content, `${p}/headers/${n}`); }
@@ -85,8 +102,12 @@ function schemaRoots(doc: Record<string, any>): [unknown, string][] {
   const params = (ps: unknown, p: string) => {
     if (Array.isArray(ps)) ps.forEach((v, i) => { if (isObj(v)) { out.push([v.schema, `${p}/parameters/${i}/schema`]); media(v.content, `${p}/parameters/${i}`); } });
   };
-  const responses = (rs: unknown, p: string) => {
-    for (const [c, r] of Object.entries(isObj(rs) ? rs : {})) if (isObj(r)) { media(r.content, `${p}/responses/${c}`); headers(r.headers, `${p}/responses/${c}`); }
+  const responses = (rs: unknown, p: string, operationId?: unknown) => {
+    for (const [c, r] of Object.entries(isObj(rs) ? rs : {}))
+      if (isObj(r)) {
+        media(r.content, `${p}/responses/${c}`, operationId === undefined ? undefined : { operationId, status: c });
+        headers(r.headers, `${p}/responses/${c}`);
+      }
   };
   const c = isObj(doc.components) ? doc.components : {};
   for (const [n, s] of Object.entries(isObj(c.schemas) ? c.schemas : {})) out.push([s, `#/components/schemas/${n}`]);
@@ -103,7 +124,7 @@ function schemaRoots(doc: Record<string, any>): [unknown, string][] {
       const p = `#/paths/${path}/${m}`;
       params(op.parameters, p);
       if (isObj(op.requestBody)) media(op.requestBody.content, `${p}/requestBody`);
-      responses(op.responses, p);
+      responses(op.responses, p, op.operationId ?? null);
     }
   }
   return out;
@@ -167,13 +188,13 @@ export function lintOpenapi(files: { name: string; text: string }[], ctx: LintCo
       if (typeof o.$ref === "string" && Object.keys(o).length > 1) v("2", `${ptr}: $ref with sibling keys`);
     });
     const roots = schemaRoots(doc);
-    for (const [root, rptr] of roots) {
-      walkSchema(root, rptr, (s, ptr) => {
+    for (const [root, rptr, opCtx] of roots) {
+      walkSchema(root, rptr, (s, ptr, path) => {
         for (const k of FORBIDDEN_SCHEMA_KEYS) if (k in s) v("2", `${ptr}: '${k}' is forbidden in schemas`);
         if (Array.isArray(s.type)) v("2", `${ptr}: type arrays are forbidden`);
         // ---- rule 3: closed, bounded schemas
         if (s.type === "object" || isObj(s.properties)) {
-          if (s.additionalProperties !== false) v("3", `${ptr}: object needs additionalProperties: false`);
+          if (s.additionalProperties !== false && !openObjectAllowed(name, opCtx, path)) v("3", `${ptr}: object needs additionalProperties: false`);
         }
         if (s.type === "string" && typeof s.maxLength !== "number") v("3", `${ptr}: string needs maxLength`);
         if (s.type === "array" && typeof s.maxItems !== "number") v("3", `${ptr}: array needs maxItems`);
@@ -214,8 +235,9 @@ export function lintOpenapi(files: { name: string; text: string }[], ctx: LintCo
         if (hasPerm && !permissions.has(op["x-permission"])) v("4", `${at}: x-permission ${op["x-permission"]} not in permissions.yaml`);
         if (hasPublic && !nonEmptyStr(op["x-public"])) v("4", `${at}: x-public needs a non-empty justification`);
         if (!IDEMPOTENCY.includes(op["x-idempotency"])) v("4", `${at}: x-idempotency must be one of ${IDEMPOTENCY.join("|")}`);
-        if (method === "post" && op["x-idempotency"] === "none" && !/^E[12] /.test(op["x-idempotency-justification"] ?? ""))
-          v("4", `${at}: POST with x-idempotency none needs x-idempotency-justification starting 'E1 ' or 'E2 ' (P-8)`);
+        if (method === "post" && op["x-idempotency"] === "none" && !/^E[1-4] /.test(op["x-idempotency-justification"] ?? ""))
+          // LD-10 (2026-11-07): E3 = read-only POST, E4 = identity pre-auth/session op (response not replayable)
+          v("4", `${at}: POST with x-idempotency none needs x-idempotency-justification starting 'E1 '..'E4 ' (P-8, LD-10)`);
         if (!TIERS.includes(op["x-rate-limit-tier"])) v("4", `${at}: x-rate-limit-tier must be one of ${TIERS.join("|")}`);
         if (!Array.isArray(op["x-error-codes"])) v("4", `${at}: x-error-codes required`);
         else for (const code of op["x-error-codes"]) {
@@ -235,9 +257,12 @@ export function lintOpenapi(files: { name: string; text: string }[], ctx: LintCo
         if (body) {
           const action = isActionEndpoint(method, path);
           for (const m of Object.values(isObj(body.content) ? body.content : {})) {
-            walkSchema(isObj(m) ? m.schema : undefined, `${at} requestBody`, (s, ptr) => {
+            walkSchema(isObj(m) ? m.schema : undefined, `${at} requestBody`, (s, ptr, path) => {
               for (const f of Object.keys(isObj(s.properties) ? s.properties : {}))
-                if (SERVER_AUTHORITY_FIELDS.includes(f) || (f === "status" && !action)) v("7", `${ptr}: request body declares ${f}`);
+                // LD-11 (2026-11-07): tenant_id names the target tenant in x-context: platform bodies only
+                if ((SERVER_AUTHORITY_FIELDS.includes(f) && !(f === "tenant_id" && op["x-context"] === "platform"))
+                  || (f === "status" && !action && !statusAllowed(name, id, path ? `${path}.${f}` : f)))
+                  v("7", `${ptr}: request body declares ${f}`);
             }, deref);
           }
         }
@@ -277,16 +302,25 @@ export function lintOpenapi(files: { name: string; text: string }[], ctx: LintCo
 }
 
 // CM §3 module → owning chunk (api modules) and 02-TRD §6.3 PORT_OWNERS (port → module).
-const MODULE_OWNERS: Record<string, string> = {
+export const MODULE_OWNERS: Record<string, string> = {
   core: "C0", identity: "C2", catalog: "C3", frontdesk: "C4", billing: "C4", lab: "C5", reporting: "C6", instruments: "C7",
   analytics: "C8", quality: "C9", micro: "C10", anatomic: "C11", inventory: "C12", partners: "C13", smartreport: "C14",
   payments: "C15", engagement: "C16", homecollection: "C17",
 };
-const PORT_MODULES: Record<string, string> = {
+export const PORT_MODULES: Record<string, string> = {
   CatalogPort: "catalog", FrontdeskPort: "frontdesk", BillingPort: "billing", LabPort: "lab", ReportingPort: "reporting",
   NotificationPort: "reporting", IdentityPort: "identity", PaymentProviderPort: "payments", SmartReportPort: "smartreport",
   QualityPort: "quality", BillingCommandPort: "billing", RenderPort: "reporting", EngagementPort: "engagement",
 };
+
+// PORT_CONSUMERS from the T0C-05 generated file (`  Port: ["mod", …],` lines); absent file = no port-propagated codes.
+function readPortConsumers(rootDir: string): Record<string, string[]> {
+  let t: string;
+  try { t = readFileSync(join(rootDir, "contracts/ports/generated/port-consumers.ts"), "utf8"); } catch { return {}; }
+  const body = t.split("PORT_CONSUMERS")[1] ?? "";
+  return Object.fromEntries([...body.matchAll(/^\s*([A-Za-z]+Port):\s*\[([^\]]*)\]/gm)]
+    .map(([, port, list]) => [port, [...list.matchAll(/"([a-z]+)"/g)].map((m) => m[1])]));
+}
 
 export async function lintRepo(rootDir: string): Promise<Violation[]> {
   const read = (p: string) => readFileSync(join(rootDir, p), "utf8");
@@ -297,8 +331,7 @@ export async function lintRepo(rootDir: string): Promise<Violation[]> {
     errors: errs.map((e: { code: string; owner: string }) => ({ code: e.code, owner: e.owner })),
     moduleOwners: MODULE_OWNERS,
     portOwners: Object.fromEntries(Object.entries(PORT_MODULES).map(([p, m]) => [p, MODULE_OWNERS[m]])),
-    // ponytail: empty until T0C-05 gen-port-consumers emits contracts/ports/generated/port-consumers.ts; wire it in then.
-    portConsumers: {},
+    portConsumers: readPortConsumers(rootDir),
   };
   const dir = join(rootDir, "contracts/openapi");
   const files = readdirSync(dir).filter((f) => f.endsWith(".yaml")).sort()

@@ -9,7 +9,8 @@ beforeEach(() => {
 afterEach(closeAll);
 
 describe('O1 ajv: unknown body fields are rejected, never silently stripped (REQ-SEC-080)', () => {
-  it('unknown field -> 400 and the handler is not called', async () => {
+  // T-01 ruling: first boot gets 30000 ms headroom (default 5000 ms is a harness assumption under parallel load).
+  it('unknown field -> 400 and the handler is not called', { timeout: 30000 }, async () => {
     const app = await boot('ok');
     const r = await app.inject({ method: 'POST', url: '/v1/catalog/things', payload: { name: 'a', zzz: 1 } });
     expect(r.statusCode).toBe(400);

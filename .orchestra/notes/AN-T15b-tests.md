@@ -1,0 +1,8 @@
+# AN-T15b tests (tester)
+- Files (under `services/renderer/templates/analytics/report/__tests__/`): `report.test.ts` (real `loadRegistry()`, fixture render + table snapshot, kind formatting, escaping/REQ-SEC-086, static scan of `templates/analytics/**`, real-Chromium `/internal/render`), `schema.test.ts` (contract case 2: 28 invalid + 5 valid fixtures vs TRD step 6a), `fixtures.ts`.
+- Run: `.orchestra\notes\AN-T15b-verify.cmd` (= `pnpm --dir services/renderer exec vitest run templates/analytics`).
+- Now: report.test.ts fails in its first hook (`analytics.report` not registered; 32 skipped). schema.test.ts: 34 fail on missing `contracts/render/analytics.report.schema.json` (C0-0C, absent from repo); 33 inline-TRD cases pass. Right reasons. report.test.ts passed 32/32 against a throwaway impl (deleted).
+- Writer creates: `services/renderer/templates/analytics/index.ts` exporting `templates: DataTemplateModule[]` (`analytics.report`) + `report/**`. The schema file is C0-0C's: if still absent, schema.test.ts cannot pass -> raise a CR, do not hand-write it under C8.
+- ASSUMED (header of report.test.ts): data table = `<table>` with labels as first row; paisa lakh `12,34,567.89` (optional Rs./NPR prefix); seconds `42 min` / `5 h 12 min` / `3 d 4 h` (04-UI-UX); bp `12.3%`; schema-breaking data throws -> 422.
+- SPEC CONFLICT (not a template bug): renderer default `LIMS_RENDERER_MAX_PAGES`=60 (C6 TRD §11) vs PDF cap of 5,000 rows (~84 rows/page). The 5,000-row test uses a pool with maxPages 200; deploy config must match.
+- Not covered: pixel layout; RenderPort-side validation with the real file (C6-T36); worker PDF wiring (AN-T15).

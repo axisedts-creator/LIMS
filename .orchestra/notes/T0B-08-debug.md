@@ -12,3 +12,8 @@
 - Cause: round-2 commit held only the notes file; regenerated probes (db/tests/isolation) stayed untracked and vanished, gate-10 failed again (13 missing).
 - Fix: re-ran `node db/tools/gen-isolation-probes.ts`; no code/test edits. `git add` was denied to me, so files are still untracked: orchestrator must commit db/tests/isolation, not only .orchestra/notes.
 - Result: `node --test tests/db/T0B-08.suites.test.mjs` 41/41 pass. Live pgTAP not run.
+
+## Round 4
+- Cause: same as rounds 1-3. Generated probes (db/tests/isolation: _registry.sql + 12 probes) are untracked and get wiped between runs; gate-10 sees 13 missing.
+- Fix: re-ran `node db/tools/gen-isolation-probes.ts`; no code/test edits. `git add` denied again, so files are untracked. Orchestrator MUST `git add db/tests/isolation` and commit before verify.
+- Result: `node --test tests/db/T0B-08.suites.test.mjs` 41/41 pass. Live pgTAP not run.

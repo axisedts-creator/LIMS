@@ -49,9 +49,16 @@ export interface Page<T> { readonly items: readonly T[]; readonly nextCursor?: s
 
 /** Generated from contracts/errors.yaml by tools/codegen (C0). */
 export type ErrorCode = import('./generated/error-codes').ErrorCode;
+// LD-03: no TS parameter properties (Node type stripping); fields declared and assigned explicitly.
 export class LimsError extends Error {
-  constructor(readonly code: ErrorCode, readonly safeDetail?: string, readonly fieldErrors?: readonly FieldError[]) {
+  readonly code: ErrorCode;
+  readonly safeDetail?: string;
+  readonly fieldErrors?: readonly FieldError[];
+  constructor(code: ErrorCode, safeDetail?: string, fieldErrors?: readonly FieldError[]) {
     super(code);
+    this.code = code;
+    if (safeDetail !== undefined) this.safeDetail = safeDetail; // exactOptionalPropertyTypes
+    if (fieldErrors !== undefined) this.fieldErrors = fieldErrors;
   }
 }
 export interface FieldError { readonly path: string; readonly code: ErrorCode; readonly message: string }

@@ -8,6 +8,7 @@ import { LimsError } from '../../../core/errors.js';
 import { uuidv7 } from '../../../../../../packages/shared-ts/src/uuidv7/index.js';
 import { REFUND_STATUSES } from '../domain/refund.state.js';
 import { accountById, findById } from '../repository/intents.repo.js';
+import { findRefund, updateRefund } from '../repository/refunds.repo.js';
 import { CODE, IDEM_KEY, guardActor, invalid, notFound, strict, uuid, type Ctx, type PaymentsDeps, type Row } from '../repository/shared.js';
 
 type Port = { assertRole(c: unknown, r: { permission: string; centreId?: string }): Promise<unknown> };
@@ -32,30 +33,15 @@ async function centreAllowed(ctx: RCtx, permission: string, centreId: string): P
 }
 const roleAt = async (ctx: RCtx, permission: string, centreId: string): Promise<void> => { if (!(await centreAllowed(ctx, permission, centreId))) notFound(); };
 
-interface CodeItem { code: string; requires_text: boolean; is_active: boolean }
+export interface CodeItem { code: string; requires_text: boolean; is_active: boolean }
 /** Global set + the tenant's override shadowing by code (relabel / deactivate only, 05-SCHEMA cs_reasons). */
-async function activeCode(ctx: RCtx, set: string, v: unknown): Promise<CodeItem> {
+export async function activeCode(ctx: Pick<Ctx, 'tenantId' | 'tx'>, set: string, v: unknown): Promise<CodeItem> {
   const code = typeof v === 'string' && CODE.test(v) ? v : invalid('reason_code');
   const g = (await ctx.tx.query('SELECT code, requires_text, is_active FROM payments.g_cs_reasons WHERE set_name = $1 ORDER BY sort_order ASC', [set])).rows.find((r) => r['code'] === code);
   if (!g) return invalid('reason_code');
   const o = (await ctx.tx.query('SELECT code, is_active FROM payments.cs_reasons WHERE tenant_id = $1 AND set_name = $2', [ctx.tenantId, set])).rows.find((r) => r['code'] === code);
   const active = (o ? o['is_active'] : g['is_active']) === true;
   return active ? { code, requires_text: g['requires_text'] === true, is_active: true } : invalid('reason_code');
-}
-
-const findRefund = async (ctx: RCtx, id: string, lock = false): Promise<Row | undefined> =>
-  (await ctx.tx.query(`SELECT * FROM payments.refunds WHERE tenant_id = $1 AND id = $2${lock ? ' FOR UPDATE' : ''}`, [ctx.tenantId, id])).rows[0];
-
-/** Optimistic update on the locked row: version + from-status predicate, bumps version. undefined = nothing updated. */
-async function updateRefund(ctx: RCtx, row: Row, sets: Row, from: readonly string[]): Promise<Row | undefined> {
-  const all: Row = { ...sets, updated_at: ctx.now(), updated_by: ctx.actor.id };
-  const cols = Object.keys(all);
-  const vals: unknown[] = cols.map((c) => all[c]);
-  const n = vals.length;
-  vals.push(ctx.tenantId, row['id'], row['version'], [...from]);
-  return (await ctx.tx.query(
-    `UPDATE payments.refunds SET ${[...cols.map((c, i) => `${c} = $${i + 1}`), 'version = version + 1'].join(', ')} WHERE tenant_id = $${n + 1} AND id = $${n + 2} AND version = $${n + 3} AND status = ANY($${n + 4}) RETURNING *`,
-    vals)).rows[0];
 }
 
 export function createRefundService(deps: PaymentsDeps) {

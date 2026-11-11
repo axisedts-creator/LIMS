@@ -531,3 +531,47 @@ export async function createAliquots(hctx: unknown, params: unknown, headers: un
   for (const kid of kids) aliquotDtos.push(await dto(c, withReg(kid, row)));
   return { status: 200, body: { parent: await dto(c, withReg(s5.updated, row)), aliquots: aliquotDtos } };
 }
+
+// ====================================================================== T-09 home-collection consumer ======================================================================
+// homecollection.collection.synced.v1 (03-IC §3.23; 02-TRD §7.2 row 8; AC-03.2, AC-03.2a). Runs on the worker job tx: any throw rolls the whole job back (retry / dead letter).
+export interface HomeCollectionEnvelope {
+  readonly payload: {
+    readonly visit_id: string; readonly phlebotomist_membership_id?: string; readonly synced_at: string;
+    readonly collections: readonly { readonly specimen_id: string; readonly barcode_verified: boolean; readonly collected_at_device: string }[];
+  };
+}
+export interface HomeCollectionCtx {
+  readonly tenantId: string;
+  readonly actor: { readonly type?: string; readonly id: string };
+  readonly tx: RepoTx;
+  readonly events: SpecimenCtx['events'];
+  now(): Date;
+  readonly log?: { info?(...a: unknown[]): void };
+}
+
+/**
+ * Per collection of a specimen that is `ordered` and active: S2 then S3 (ordered -> collected -> in_transit) in the job tx.
+ * collected_at = min(collected_at_device, synced_at) (device clocks drift; the raw time is kept in collected_at_device); collection_barcode_unverified = !barcode_verified.
+ * Anything else (not ordered, inactive, unknown or of another tenant under RLS) is skipped without a write or an event. booking_id is never read (08 A19 D-120). payments[] is C4's.
+ */
+export async function applyHomeCollectionSynced(ctx: HomeCollectionCtx, env: HomeCollectionEnvelope): Promise<void> {
+  const c = ctx as unknown as SpecimenCtx;
+  const { visit_id: visitId, synced_at: syncedAt, phlebotomist_membership_id: member } = env.payload;
+  const syncedMs = Date.parse(syncedAt);
+  for (const col of env.payload.collections) {
+    const row = await getSpecimenWithOrder(repoCtx(c), col.specimen_id);
+    if (!row || row['status'] !== 'ordered' || row['is_active'] !== true) { ctx.log?.info?.('homecollection: specimen skipped', { specimen_id: col.specimen_id }); continue; }
+    const deviceMs = Date.parse(col.collected_at_device);
+    const collectedMs = Number.isFinite(deviceMs) ? Math.min(deviceMs, syncedMs) : syncedMs;
+    const collectedAt = new Date(collectedMs).toISOString();
+    const inTransitAt = new Date(Math.max(ctx.now().getTime(), collectedMs)).toISOString();   // S3 never precedes S2
+    const s2 = await step(c, row, Number(row['version']), 'collected', {
+      collected_at: collectedAt, collected_at_device: Number.isFinite(deviceMs) ? new Date(deviceMs).toISOString() : null, collected_by_membership_id: member ?? null,
+      collected_via_visit_id: visitId, collection_barcode_unverified: col.barcode_verified !== true,
+    }, collectedAt);
+    await markTestsAwaitingReceipt(repoCtx(c), row['id']);                                     // 02-TRD §3.3, as the manual collect
+    await emitStatus(c, { ...s2.updated, registration_no: row['registration_no'] }, 'ordered', 'collected', collectedAt);
+    const s3 = await step(c, s2.updated, Number(s2.updated['version']), 'in_transit', { in_transit_at: inTransitAt }, inTransitAt);
+    await emitStatus(c, s3.updated, 'collected', 'in_transit', inTransitAt);
+  }
+}

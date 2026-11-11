@@ -44,7 +44,7 @@ export function WorksheetPrintPage({ worksheetId }: { worksheetId: string }) {
     <section aria-label="Worksheet" className="ws-sheet" data-testid="print-region">
       <style>{PRINT_CSS}</style>
       <h1>{sheet.title}</h1>
-      <p>Created {utc(sheet.created_at)} · {sheet.rows.length} tests{instrument ? <> · Instrument: {instrument}</> : null}</p>
+      <p>Created {utc(sheet.created_at)} · {sheet.rows.length} tests{sheet.department_id ? <> · Department: <IdText value={sheet.department_id} /></> : null}{instrument ? <> · Instrument: {instrument}</> : null}</p>
       <div className="ws-noprint"><Button variant="primary" onPress={() => window.print()}>Print</Button></div>
       <table aria-label="Worksheet rows">
         <thead><tr><th scope="col">#</th><th scope="col">Barcode</th><th scope="col">Test</th><th scope="col">Result</th><th scope="col">Remarks</th></tr></thead>

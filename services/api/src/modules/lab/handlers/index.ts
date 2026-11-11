@@ -25,6 +25,7 @@ import { resultEntryHandlers } from './resultEntry.handlers.js';
 import { verifyHandlers } from './verify.handlers.js';
 import { historyHandlers } from './history.handlers.js';
 import { approveHandlers } from './approve.handlers.js';
+import { worklistHandlers } from './worklist.handlers.js';
 
 const OPERATION_IDS = [
   // specimens
@@ -65,6 +66,7 @@ const REAL: Partial<Record<LabOperationId, Handler>> = {
   ...verifyHandlers, // T-16: verifyResult, bulkVerifyResults, returnResult
   ...approveHandlers, // T-17: approveResult, bulkApproveResults, amendResult, listResultVersions
   ...historyHandlers, // T-19: getResultHistory, getAnalyteTrend
+  ...worklistHandlers, // T-26: listWorklistItems, listPendingItems, createWorksheet, listWorksheets, getWorksheet
 };
 
 export const handlers: Readonly<Record<LabOperationId, Handler>> = Object.freeze(

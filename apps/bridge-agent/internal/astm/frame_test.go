@@ -172,25 +172,25 @@ func TestReceiveAcceptsGoldenSequence(t *testing.T) {
 func TestReceiveAC053Defects(t *testing.T) { // every defect -> NAK, nothing appended
 	good := mk('1', "P|1\r", astm.ETX)
 	cases := map[string][]byte{
-		"wrong checksum":         []byte("\x021P|1\r\x033F\r\n"),
-		"checksum off by one":    []byte("\x021P|1\r\x033D\r\n"), // correct is 3E
-		"unexpected FN":          mk('4', "P|1\r", astm.ETX),
-		"FN 8":                   mk('8', "P|1\r", astm.ETX),
-		"FN 9":                   mk('9', "P|1\r", astm.ETX),
-		"FN non-digit":           mk('A', "P|1\r", astm.ETX),
-		"missing CR LF":          good[:len(good)-2],
-		"missing LF":             good[:len(good)-1],
-		"CR only then junk":      append(append([]byte{}, good[:len(good)-1]...), 'X'),
-		"LF CR swapped":          append(append([]byte{}, good[:len(good)-2]...), '\n', '\r'),
-		"missing STX":            good[1:],
-		"wrong leading byte":     append([]byte{astm.ETX}, good[1:]...),
-		"bad terminator":         mk('1', "P|1\r", 'X'),
-		"no terminator":          []byte("\x021P|1\r1C\r\n"),
-		"trailing garbage":       append(append([]byte{}, good...), 'Z'),
-		"empty":                  {},
-		"STX only":               {astm.STX},
-		"STX FN only":            {astm.STX, '1'},
-		"nil":                    nil,
+		"wrong checksum":      []byte("\x021P|1\r\x033F\r\n"),
+		"checksum off by one": []byte("\x021P|1\r\x033D\r\n"), // correct is 3E
+		"unexpected FN":       mk('4', "P|1\r", astm.ETX),
+		"FN 8":                mk('8', "P|1\r", astm.ETX),
+		"FN 9":                mk('9', "P|1\r", astm.ETX),
+		"FN non-digit":        mk('A', "P|1\r", astm.ETX),
+		"missing CR LF":       good[:len(good)-2],
+		"missing LF":          good[:len(good)-1],
+		"CR only then junk":   append(append([]byte{}, good[:len(good)-1]...), 'X'),
+		"LF CR swapped":       append(append([]byte{}, good[:len(good)-2]...), '\n', '\r'),
+		"missing STX":         good[1:],
+		"wrong leading byte":  append([]byte{astm.ETX}, good[1:]...),
+		"bad terminator":      mk('1', "P|1\r", 'X'),
+		"no terminator":       []byte("\x021P|1\r1C\r\n"),
+		"trailing garbage":    append(append([]byte{}, good...), 'Z'),
+		"empty":               {},
+		"STX only":            {astm.STX},
+		"STX FN only":         {astm.STX, '1'},
+		"nil":                 nil,
 	}
 	for name, raw := range cases {
 		fr, v := astm.Receive(raw, 1, -1)
@@ -207,7 +207,7 @@ func TestReceiveAC053Defects(t *testing.T) { // every defect -> NAK, nothing app
 }
 
 func TestReceiveFrameLengthBoundary247(t *testing.T) { // AC-05.3 "longer than 247"
-	at := mk('1', strings.Repeat("A", 240), astm.ETX) // 247
+	at := mk('1', strings.Repeat("A", 240), astm.ETX)   // 247
 	over := mk('1', strings.Repeat("A", 241), astm.ETX) // 248, checksum still correct
 	if len(at) != 247 || len(over) != 248 {
 		t.Fatalf("test setup lengths %d/%d", len(at), len(over))
@@ -289,11 +289,11 @@ func TestReceiveDoesNotPanicOnTruncationsAndMutations(t *testing.T) {
 
 func TestDecodeFrameRejectsDefects(t *testing.T) {
 	for name, raw := range map[string][]byte{
-		"bad checksum":  []byte("\x021P|1\r\x033F\r\n"),
-		"no crlf":       []byte("\x021P|1\r\x033F"),
-		"too short":     {astm.STX, '1'},
-		"over 247":      mk('1', strings.Repeat("A", 241), astm.ETX),
-		"non-digit FN":  mk('Z', "x", astm.ETX),
+		"bad checksum": []byte("\x021P|1\r\x033F\r\n"),
+		"no crlf":      []byte("\x021P|1\r\x033F"),
+		"too short":    {astm.STX, '1'},
+		"over 247":     mk('1', strings.Repeat("A", 241), astm.ETX),
+		"non-digit FN": mk('Z', "x", astm.ETX),
 	} {
 		if _, err := astm.DecodeFrame(raw); err == nil {
 			t.Errorf("%s: DecodeFrame must return an error", name)

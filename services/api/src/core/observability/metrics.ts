@@ -40,6 +40,21 @@ const DEFS = {
   lims_analytics_export_rows: ['histogram', ['report_code'], 'Rows per analytics export by report code'],
   lims_analytics_export_downloads_total: ['counter', ['tenant_id'], 'Analytics export downloads by tenant'],
   lims_analytics_schedule_sends_total: ['counter', ['outcome'], 'Analytics scheduled report sends by outcome'],
+  // C5 lab (LD-120 / C5 02-TRD §11 lines 468-481; names, types, labels verbatim; gauges refreshed every 60 s by the lab module)
+  lims_lab_specimen_transitions_total: ['counter', ['to_status'], 'Specimen status transitions by target status'],
+  lims_lab_specimen_creation_lag_seconds: ['histogram', [], 'Lag between collection and specimen creation in seconds'],
+  lims_lab_results_ingested_total: ['counter', ['outcome'], 'Instrument results ingested by outcome'],
+  lims_lab_ingest_exceptions_open: ['gauge', ['reason', 'tenant_id'], 'Open ingest exceptions by reason and tenant'],
+  lims_lab_ingest_exception_age_seconds: ['histogram', ['reason'], 'Age of ingest exceptions when resolved, in seconds'],
+  lims_lab_ingest_exception_oldest_open_age_seconds: ['gauge', ['reason', 'tenant_id'], 'Age of the oldest open ingest exception in seconds'],
+  lims_lab_critical_unnotified_oldest_age_seconds: ['gauge', ['tenant_id'], 'Age of the oldest unnotified critical value in seconds (0 when none)'],
+  lims_lab_result_transitions_total: ['counter', ['to_status', 'origin'], 'Result status transitions by target status and origin'],
+  lims_lab_critical_detected_total: ['counter', ['direction'], 'Critical values detected by direction'],
+  lims_lab_critical_unnotified_open: ['gauge', ['tenant_id'], 'Open critical values without a recorded notification'],
+  lims_lab_formula_errors_total: ['counter', ['reason'], 'Calculated-result formula errors by reason'],
+  lims_lab_host_query_duration_seconds: ['histogram', ['outcome'], 'Analyser host query duration in seconds by outcome'],
+  lims_lab_readiness_emitted_total: ['counter', ['completeness'], 'Order readiness events emitted by completeness'],
+  lims_lab_barcode_alloc_failures_total: ['counter', ['reason'], 'Specimen barcode allocation failures by reason'],
 } as const satisfies Record<string, readonly [Kind, readonly string[], string]>;
 
 export type MetricName = keyof typeof DEFS;

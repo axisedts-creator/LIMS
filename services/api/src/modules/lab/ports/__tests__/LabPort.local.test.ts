@@ -377,11 +377,11 @@ describe.skipIf(!live)('ingestInstrumentResult exceptions (AC-14.6; CR-C7-011; C
 
   it('unknown barcode: unmatched + exception unknown_barcode; after the specimen exists, a replay of the SAME input is applied and the exception is closed (CR-C7-011)', async () => {
     const h = await boot(fx());
-    const inp = ingestInput('SYN-I0077', AN1, '12.10', {}, L(0xd6));
+    const inp = ingestInput('SYN-I0077', AN1, '12.10', {}, L(0x70));
     expect((await h.impl.ingestInstrumentResult(h.ctxFor('A:device'), inp)).outcome).toBe('unmatched');
     expect((await open('SYN-I0077'))[0]).toMatchObject({ reason: 'unknown_barcode' });
-    const o = L(0xd7), i = L(0xd8), r = L(0xd9);
-    await h.seed({ orders: [ord(o)], items: [item(i, o)], specimens: [spec(L(0xda), o, 'SYN-I0077', 'received', [i])], results: [res(r, i, AN1, 'pending')] });
+    const o = L(0x71), i = L(0x72), r = L(0x73);   // ids unique to this describe (ruling C5.T-24 #2 item 3): frontdesk parents persist across cleanup()
+    await h.seed({ orders: [ord(o)], items: [item(i, o)], specimens: [spec(L(0x74), o, 'SYN-I0077', 'received', [i])], results: [res(r, i, AN1, 'pending')] });
     expect(await h.impl.ingestInstrumentResult(h.ctxFor('A:device'), inp)).toMatchObject({ outcome: 'applied', resultId: r });
     expect(await open('SYN-I0077')).toHaveLength(0);
   });

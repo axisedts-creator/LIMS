@@ -39,7 +39,7 @@ async function seedLoad(t: 'A' | 'B', count: number): Promise<void> {
         specimen_id, status, ordered_at, received_at, created_by, updated_by)
       SELECT pg_temp.pid(12, $6::int + n), $1::uuid, $2::uuid, $2::uuid, $3::uuid, pg_temp.pid(10, $6::int + n), pg_temp.pid(13, $6::int + n), $8::uuid, 'PERF', 1, 1, $9::uuid, 'standard', 'routine', pg_temp.pid(11, $6::int + n),
              CASE WHEN n % 10 = 0 THEN 'approved' ELSE 'in_process' END, now(), now() - interval '1 hour', $5::uuid, $5::uuid
-      FROM generate_series(1, $7::int) n`, [...P, TEST, DEPT]);
+      FROM generate_series(1, $7::int) n WHERE $4::uuid IS NOT NULL`, [...P, TEST, DEPT]);
     await c.query(`INSERT INTO lab.results (id, tenant_id, centre_id, processing_centre_id, processing_branch_id, order_id, order_item_id, order_test_id, specimen_id, patient_id, test_id, analyte_id, analyte_code, department_id,
         is_reportable, result_type, status, origin, value_numeric, resulted_at, first_resulted_at, approved_at, approved_by_membership_id, created_by, updated_by)
       SELECT pg_temp.pid(14 + a.k, $6::int + n), $1::uuid, $2::uuid, $2::uuid, $3::uuid, pg_temp.pid(10, $6::int + n), pg_temp.pid(13, $6::int + n), pg_temp.pid(12, $6::int + n), pg_temp.pid(11, $6::int + n), $4::uuid, $8::uuid,

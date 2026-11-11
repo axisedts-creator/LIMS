@@ -62,6 +62,11 @@ async function ins(c: pg.PoolClient, table: string, row: Obj): Promise<void> {
   const keys = Object.keys(r);
   await c.query(`INSERT INTO ${table} (${keys.join(',')}) VALUES (${keys.map((_, i) => `$${i + 1}`).join(',')}) ON CONFLICT DO NOTHING`,
     keys.map((k) => (r[k] !== null && typeof r[k] === 'object' && !Array.isArray(r[k]) && !(r[k] instanceof Date) ? JSON.stringify(r[k]) : r[k])));
+  // ON CONFLICT DO NOTHING hides a stale/other-tenant frontdesk parent (cleanup() keeps them): fail loudly instead of an FK error later (ruling C5.T-24 #2 item 3)
+  if (table.startsWith('frontdesk.') && r['id'] && r['tenant_id']) {
+    const got = await c.query(`SELECT 1 FROM ${table} WHERE id = $1 AND tenant_id = $2`, [r['id'], r['tenant_id']]);
+    if (!got.rowCount) throw new Error(`harness: ${table} id ${String(r['id'])} already exists with a different tenant/parent; use fixture ids unique to the describe`);
+  }
 }
 export async function asAdmin<T>(fn: (c: pg.PoolClient) => Promise<T>, replica = false): Promise<T> {
   const c = await admin().connect();

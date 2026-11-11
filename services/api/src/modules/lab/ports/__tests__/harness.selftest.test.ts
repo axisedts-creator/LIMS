@@ -19,7 +19,7 @@ const fx = () => ({
     { id: ids.IB, tenantId: B, orderId: ids.OB, testId: T1, departmentId: DEP, workflowType: 'standard' },
   ],
   specimens: [
-    { id: ids.S1, tenantId: A, orderId: ids.O1, barcode: 'SYN-0001', status: 'received', itemIds: [ids.I1] },
+    { id: ids.S1, tenantId: A, orderId: ids.O1, barcode: 'SYN-0001', status: 'received', itemIds: [] },
     { id: ids.S2, tenantId: A, orderId: ids.O1, barcode: 'SYN-0002-OLD', status: 'rejected', itemIds: [ids.I1] },
     { id: ids.S3, tenantId: A, orderId: ids.O1, barcode: 'SYN-0002-NEW', status: 'received', itemIds: [ids.I1], replacesSpecimenId: ids.S2 },
   ],

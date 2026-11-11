@@ -9,9 +9,10 @@ import type { paths as IdentityPaths } from "./identity.js";
 import type { paths as InstrumentsPaths } from "./instruments.js";
 import type { paths as InventoryPaths } from "./inventory.js";
 import type { paths as LabPaths } from "./lab.js";
+import type { paths as PaymentsPaths } from "./payments.js";
 import type { paths as ReportingPaths } from "./reporting.js";
 
-export type paths = AnalyticsPaths & BillingPaths & CatalogPaths & CorePaths & FrontdeskPaths & IdentityPaths & InstrumentsPaths & InventoryPaths & LabPaths & ReportingPaths;
+export type paths = AnalyticsPaths & BillingPaths & CatalogPaths & CorePaths & FrontdeskPaths & IdentityPaths & InstrumentsPaths & InventoryPaths & LabPaths & PaymentsPaths & ReportingPaths;
 
 export type ApiClientOptions = Pick<ClientOptions, "fetch"> & { baseUrl: string };
 

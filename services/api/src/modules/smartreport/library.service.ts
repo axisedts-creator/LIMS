@@ -60,7 +60,7 @@ export async function validateLibraryVersion(ctx: LibraryCtx, libraryVersionId: 
 
   return validateLibrary(
     { language: version.language, scoreEnabled: version.score_enabled, blocks, rules, mappings },
-    // ponytail: V13 has no catalog source in the spec (no CatalogPort analyte-status method); empty set until a CR adds one.
+    // ponytail: V13 has no catalog source in the spec (no CatalogPort analyte-status method); empty set until CR-C14-T10a (.orchestra/cr/C14.T10.md) adds one.
     { denyTerms: [...globalTerms, ...tenantTerms].map((t) => ({ term: t.term })), inactiveTestIds, inactiveAnalyteIds: new Set() },
   );
 }

@@ -177,6 +177,13 @@ describe('T01 config (02-TRD §10.1, LIMS_PARTNERS_*)', () => {
   });
 });
 
+const COMMON = loadSpec(join(REPO_ROOT, 'contracts', 'openapi', '_common.yaml'));
+/** Resolves `_common.yaml#/components/parameters/<Name>` refs (and passes inline params through). */
+const resolveParam = (p: any): any => {
+  const name = /#\/components\/parameters\/(\w+)$/.exec(p?.$ref ?? '')?.[1];
+  return name ? (COMMON as any).components?.parameters?.[name] ?? {} : p ?? {};
+};
+
 describe('T01 boot against the real repo (default modulesDir, real partners.yaml)', () => {
   const ks = makeKeys('ES256');
   const apps: FastifyInstance[] = [];
@@ -192,7 +199,8 @@ describe('T01 boot against the real repo (default modulesDir, real partners.yaml
     apps.push(app);
     return app;
   };
-  const toUrl = (path: string) => path.replace(/\{[^}]+\}/g, '01940e00-0000-7000-8000-c13000000001');
+  // version_no is an integer path param (partners.yaml:1800), period_month is YYYY-MM (partners.yaml:7879); a UUID there would 400 before auth.
+  const toUrl = (path: string) => path.replace(/\{version_no\}/g, '1').replace(/\{period_month\}/g, '2026-01').replace(/\{[^}]+\}/g, '01940e00-0000-7000-8000-c13000000001');
 
   it('boots and mounts every partners operation at its spec path and method (68 of 68)', async () => {
     const app = await boot();
@@ -209,7 +217,10 @@ describe('T01 boot against the real repo (default modulesDir, real partners.yaml
     const probes: { method: string; url: string }[] = [];
     for (const { path, method, op } of allOps()) {
       const requiredQuery = (op.parameters ?? []).some((p: any) => p.in === 'query' && p.required);
-      if (!requiredQuery && !op.requestBody?.required) probes.push({ method: method.toUpperCase(), url: toUrl(path) });
+      // ruling C13.T01-ruling: a required header (x-idempotency: required / IdempotencyKey $ref) makes 400 common.idempotency_key_required a spec-listed outcome, same class as required query/body.
+      const requiredHeader = op['x-idempotency'] === 'required'
+        || (op.parameters ?? []).some((p: any) => { const r = resolveParam(p); return r.in === 'header' && r.required; });
+      if (!requiredQuery && !requiredHeader && !op.requestBody?.required) probes.push({ method: method.toUpperCase(), url: toUrl(path) });
     }
     expect(probes.length).toBeGreaterThanOrEqual(10);
     for (const { method, url } of probes) {

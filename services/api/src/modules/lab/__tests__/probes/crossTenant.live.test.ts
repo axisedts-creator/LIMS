@@ -62,7 +62,8 @@ describe.skipIf(!live)('P-01 operation names a tenant-B object', () => {
 // ---------------------------------------------------------------- P-03 lists
 describe.skipIf(!live)('P-03 list operations with B data present => zero B rows (and an A control row where the list must show one)', () => {
   const OWN: Record<string, (X: Objs) => string> = { listSpecimens: (X) => X.specimenId, listCriticalValues: (X) => X.criticalId, listIngestExceptions: (X) => X.exceptionId, listWorksheets: (X) => X.worksheetId,
-    listQcHolds: (X) => X.holdId, listDeltaCheckRules: (X) => X.ruleRowId,   // LD-126: the DTO id is the row id listLabCodedSet: (X) => X.codeOnlyHere, getStatusBoard: (X) => X.regNo };
+    // LD-126: the listDeltaCheckRules DTO id is the row id
+    listQcHolds: (X) => X.holdId, listDeltaCheckRules: (X) => X.ruleRowId, listLabCodedSet: (X) => X.codeOnlyHere, getStatusBoard: (X) => X.regNo };
   it.each([...LISTS].map((id) => [id] as const))('%s', { timeout: T }, async (id) => {
     const rq = (X: Objs) => (id === 'listSpecimens' ? req({ query: { order_id: X.orderId } }) : requestFor(id, X));
     const own = await fire(id, rq(A), FULL_A);

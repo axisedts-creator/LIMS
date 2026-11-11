@@ -201,6 +201,7 @@ describe('T-28 withCatalogCache: the CatalogPort wrapper', () => {
     const fn = vi.fn(() => new Promise((r) => { release = r; }));
     const port = withCatalogCache({ getTest: fn } as Record<string, Fn>, cache, revs(417)) as Record<string, Fn>;
     const inflight = port.getTest!(ctxOf(A), { id: 1 });
+    await vi.waitFor(() => expect(fn).toHaveBeenCalled());   // revision read (417) precedes the port call (ruling, TRD:363)
     cache.invalidate(A, { revision: 418, entityType: 'test' });   // event lands while the port call is in flight
     release({ catalogRevision: 417 });
     await inflight;

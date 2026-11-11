@@ -47,6 +47,8 @@ const IMPLEMENTED: readonly string[] = [
   'approveResult', 'bulkApproveResults', 'amendResult', 'listResultVersions',
   // T-19 history
   'getResultHistory', 'getAnalyteTrend',
+  // T-26 worklists, pending, worksheets
+  'listWorklistItems', 'listPendingItems', 'createWorksheet', 'listWorksheets', 'getWorksheet',
 ];
 
 const FAKE_REQ = { params: {}, query: {}, headers: {}, body: {} };

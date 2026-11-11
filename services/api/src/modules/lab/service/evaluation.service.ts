@@ -1,6 +1,6 @@
 // Value evaluation (02-TRD §4.3 steps 1-5; 08 A17.1 / CR-C5-012 unknown age; 08 A13 D-9 ordinal). Runs in the caller's transaction (ctx.tx).
 // Tenant comes from ctx only. Thrown problems never carry the submitted value (clinical data stays out of error bodies).
-// R7 (amendment) outputs go ONLY to lab.result_versions: the approved lab.results row is locked.
+// R7 (amendment) outputs go ONLY to the NEW lab.result_versions row at INSERT time (evaluationColumns): the approved lab.results row is locked.
 import { LimsError, isLimsError } from '../../../core/errors.js';
 import { evaluateDelta, type DeltaCandidate, type DeltaOutcome, type DeltaRule } from '../domain/delta.js';
 import { DECIMAL_RE, computeFlag, criticalDecision, fractionDigits, valueSha256Prefix16, validateOrdinalCode, type Flag, type ValueKind } from '../domain/flags.js';
@@ -111,17 +111,20 @@ function columnValues(e: Evaluation, withUnit: boolean): unknown[] {
   return withUnit ? [...vals, s?.unitCode ?? null] : vals;
 }
 
-export async function persistEvaluation(ctx: EvalCtx, i: { stage: 'R2' | 'R3' | 'R7'; resultId: string; versionNo: number; evaluation: Evaluation }): Promise<void> {
-  const { stage } = i;
+/** Column/value pairs for the evaluation outputs. R7: bound into the amendment INSERT INTO lab.result_versions (T-18);
+ *  that table is immutable-by-trigger (05-SCHEMA result_versions__mutable_columns), so R7 outputs go in at INSERT time only. */
+export function evaluationColumns(e: Evaluation, stage: 'R2' | 'R3' | 'R7'): { cols: string[]; values: unknown[] } {
   if (stage !== 'R2' && stage !== 'R3' && stage !== 'R7') throw new LimsError('common.internal');
-  const r7 = stage === 'R7';
-  const cols = r7 ? [...COLS] : [...COLS, ...RESULT_ONLY];
-  const vals = columnValues(i.evaluation, !r7);
+  const withUnit = stage !== 'R7';
+  return { cols: withUnit ? [...COLS, ...RESULT_ONLY] : [...COLS], values: columnValues(e, withUnit) };
+}
+
+/** R2/R3 only: UPDATE lab.results. R7 is rejected (use evaluationColumns in the amendment INSERT). */
+export async function persistEvaluation(ctx: EvalCtx, i: { stage: 'R2' | 'R3' | 'R7'; resultId: string; versionNo: number; evaluation: Evaluation }): Promise<void> {
+  if (i.stage !== 'R2' && i.stage !== 'R3') throw new LimsError('common.internal');
+  const { cols, values } = evaluationColumns(i.evaluation, i.stage);
   const set = cols.map((c, n) => `${c} = $${n + 1}`).join(', ');
   const p = cols.length;
-  const sql = r7
-    ? `UPDATE lab.result_versions SET ${set}, updated_at = now(), updated_by = $${p + 1} WHERE result_id = $${p + 2} AND version_no = $${p + 3} AND tenant_id = $${p + 4}`
-    : `UPDATE lab.results SET ${set}, updated_at = now(), updated_by = $${p + 1}, version = version + 1 WHERE id = $${p + 2} AND tenant_id = $${p + 3}`;
-  const tail = r7 ? [ctx.actor.id, i.resultId, i.versionNo, ctx.tenantId] : [ctx.actor.id, i.resultId, ctx.tenantId];
-  await ctx.tx.query(sql, [...vals, ...tail]);
+  const sql = `UPDATE lab.results SET ${set}, updated_at = now(), updated_by = $${p + 1}, version = version + 1 WHERE id = $${p + 2} AND tenant_id = $${p + 3}`;
+  await ctx.tx.query(sql, [...values, ctx.actor.id, i.resultId, ctx.tenantId]);
 }

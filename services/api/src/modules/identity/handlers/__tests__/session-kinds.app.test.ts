@@ -69,6 +69,17 @@ describe('refreshMobileSession: rotation (AU-T15, CR-C2-018)', () => {
     expect((await rejection(refresh(w, t1).run())).code).toBe('auth.session_expired');
     expect((await rejection(refresh(w, t0).run())).code).toBe('auth.session_expired');
   });
+  it('AU-T15 lost race: the rotate guard matches 0 rows (a parallel refresh already rotated) -> 401 auth.session_expired, NOT 500; revoke (token_reuse) + session_token_reused + sign-out job kept via commitOnError; no GoTrue refresh spent', async () => {
+    const w = await makeAppWorld(); const { token, row } = w.addSession({ accessExpiresAt: new Date(START_PLUS(w, 60_000)) });   // GoTrue refresh would be due
+    w.rot.miss = true;
+    const r = refresh(w, token); const e = await rejection(r.run());
+    expect(e.code).toBe('auth.session_expired'); expect(r.commitOnError).toHaveBeenCalledTimes(1);
+    expect(row.state).toBe('revoked'); expect(row.revokeReason).toBe('token_reuse');
+    expect(w.eventsOf('session_token_reused')).toHaveLength(1);
+    expect(w.committed('enqueue').map((x) => x.arg.identifier)).toEqual(['identity.gotrue_signout']);
+    expect(w.committed('rotateToken')).toHaveLength(0); expect(w.gt.calls).toHaveLength(0);
+    expect(otherWrites(w, ['updateSession', 'recordTenant', 'enqueue'])).toEqual([]);
+  });
   it('the reuse is also detected when the old token is presented to the PATIENT resolve path (patient row): revoke + event + 401, and NO GoTrue sign-out job (LD-81)', async () => {
     const w = await makeAppWorld(); const { token: cur, row } = w.addSession({ kind: 'patient' }); const old = tokenN(0x7777);
     row.prevHex = sha(old).toString('hex');

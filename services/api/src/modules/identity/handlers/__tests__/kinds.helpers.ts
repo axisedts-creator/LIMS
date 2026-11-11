@@ -13,7 +13,8 @@
 //               mintPatientAccessToken({ sub, sessionId, aal, issuedAt: Date, expiresAt: Date }) => string }   (LD-81: the EdDSA signer is a seam here; claims are exactly these five)
 //   Call = (req, hctx) with hctx as in session.helpers.ts (ctx.db.identityAuthTx only; ctx.bffKey, commitOnError, clientIp, requestId, actor, log). One identityAuthTx per request.
 //   AppSessionRepo = T8 SessionRepo (sessionByToken, loadSession, updateSession, touchSession, expireSession, enqueue) PLUS
-//        rotateToken(tx, ref, { tokenSha256: Buffer, previousTokenSha256: Buffer, actorId })   token_sha256 := new, previous_token_sha256 := old (CR-C2-018; one previous kept)
+//        rotateToken(tx, ref, { tokenSha256: Buffer, previousTokenSha256: Buffer, actorId }) -> boolean   token_sha256 := new, previous_token_sha256 := old (CR-C2-018; one previous kept)
+//      false (0 rows matched the token_sha256 = old guard: a parallel refresh won the race) is treated as reuse, called BEFORE the GoTrue refresh (no refresh token is spent)
 //      and loadSession additionally returns { appInstanceId, appPlatform }. sessionByToken behaves like app.identity_session_by_token: a token matching previous_token_sha256 of a
 //      NON-terminal session returns tokenReused = true; the current token matches in every state.
 //   Kind <-> endpoint family (AU-T13): refreshMobileSession / logoutMobileSession serve kind staff_mobile ONLY; resolvePatientSession / logoutPatientSession serve kind patient ONLY;
@@ -80,6 +81,7 @@ export async function makeAppWorld() {
     const w: W = { seq: seq++, m, arg, committed: false }; writes.push(w); order.push(m);
     const l = pending.get(tx) ?? []; l.push({ w, ...(apply ? { apply } : {}) }); pending.set(tx, l);
   };
+  const rot = { miss: false };   // test switch: the rotateToken guard matches 0 rows
   const repo = {
     async sessionByToken(_tx: unknown, sha256: Buffer) {
       order.push('sessionByToken'); const hex = sha256.toString('hex');
@@ -109,8 +111,11 @@ export async function makeAppWorld() {
         if (patch.revoked) { s.state = 'revoked'; s.revokeReason = patch.revoked.reason; }
       });
     },
-    async rotateToken(tx: object, ref: { sessionId: string }, a: { tokenSha256: Buffer; previousTokenSha256: Buffer; actorId: string }) {
+    // returns true = the guarded UPDATE (WHERE token_sha256 = old) matched a row; false = 0 rows (a parallel refresh already rotated the token: lost race = reuse, AU-T15)
+    async rotateToken(tx: object, ref: { sessionId: string }, a: { tokenSha256: Buffer; previousTokenSha256: Buffer; actorId: string }): Promise<boolean> {
+      if (rot.miss) return false;
       rec(tx, 'rotateToken', { ref, ...a }, () => { const s = byId(ref.sessionId); if (s) { s.tokenHex = a.tokenSha256.toString('hex'); s.prevHex = a.previousTokenSha256.toString('hex'); } });
+      return true;
     },
     async touchSession(tx: object, ref: { sessionId: string }, a: { lastSeenAt: Date; idleExpiresAt: Date; actorId: string }) {
       rec(tx, 'touchSession', { ref, ...a }, () => { const s = byId(ref.sessionId); if (s) { s.lastSeenAt = a.lastSeenAt; s.idleExpiresAt = a.idleExpiresAt; } });
@@ -177,7 +182,7 @@ export async function makeAppWorld() {
     if (a.token && a.as === 'cookie') headers['cookie'] = `__Host-lims_sid=${a.token}`;
     return { params: {}, query: {}, body: a.as === 'body' ? { session_token: a.token, ...(a.body as object ?? {}) } : a.body, headers };
   };
-  return { clock, rows, writes, order, repo, events, deps, committed, eventsOf, byId, addSession, makeHctx, req, gt, mint, txCalls, advance: (ms: number) => { clock.ms += ms; } };
+  return { rot, clock, rows, writes, order, repo, events, deps, committed, eventsOf, byId, addSession, makeHctx, req, gt, mint, txCalls, advance: (ms: number) => { clock.ms += ms; } };
 }
 export type AppWorld = Awaited<ReturnType<typeof makeAppWorld>>;
 /** committed writes whose method is NOT in `allowed` (P-42 "no other write of that request survives") */

@@ -1,10 +1,8 @@
-IMPLEMENTATION_WRONG — the test is right; the implementation must deliver `docs/manual/instruments/spikes.md` with measured S1/S2/S3 results on Win10/11/Server 2016 and three DECISION: lines. Blocked until a human runs the spikes on the VMs.
-- Dispute does not challenge any assertion; it reports the writer cannot run VMs. That is an environment blocker, not a test or spec defect.
-- Plan row requires spike "on Windows 10, 11, Server 2016 VMs" with "written results; fallbacks chosen (LocalService / machine-scope DPAPI / request.json)": spec/chunks/C7-instrument-integration/06-IMPLEMENTATION-PLAN.md:26. Tests check exactly per-OS verdicts + 3 decisions.
-- S1 checks (virtual account, COM, DPAPI user scope, CRYPTPROTECT_LOCAL_MACHINE fallback) trace to 02-TRD.md:351, 02-TRD.md:450, 06-PLAN:126 (R4), 07-SECURITY.md:29 (REQ-SEC-116).
-- S2 checks (codes 128/129, x/sys/windows/svc, status\request.json 5 s poll) trace to 02-TRD.md:456.
-- S3 checks (WinVerifyTrustEx, test-signed exe, publisher check) trace to 06-PLAN:26 and 07-SECURITY.md:32 (REQ-SEC-119); negative cases are the minimal proof a publisher check works.
-- Spec not contradictory or missing, so no CR.
-- Writer was right to refuse: writing verdicts without runs is fabricated evidence. Do not fill the doc with placeholders to pass the tests.
-- Next step: a human runs S1–S3 on the 3 VMs and supplies verdict + one-line evidence per OS per spike; the writer then fills the doc and the DECISION: lines (cite S1/S2/S3 and TRD §5.12 / `install --account localservice`).
-- Downstream AG-T04 and AG-T15 depend on AG-T02 (06-PLAN:28, :39); they stay blocked on these decisions.
+TESTS_WRONG — tests/spikes/ag-t02.test.mjs:17-21 and :43-48 require a PASS|FAIL|PARTIAL verdict for Server 2016 and for Windows 10; per LD-93/LD-94 (binding for this task) remove the Server 2016 entry and let Windows 10 pass with either a verdict or a line naming Windows 10 that has `NOT RUN` and `release gate`.
+
+Reasons:
+- The spec text still says Win10/11/Server 2016 (spec/chunks/C7-instrument-integration/06-IMPLEMENTATION-PLAN.md:26; spec/research/04-consolidated-decisions.md:32 S16; 02-TRD.md:36). The inbox says the lead decisions override the spec text for this task. LD-93 removes Server 2016. LD-94 (A36-4) makes Windows 10 NOT RUN, a pre-pilot release gate.
+- Test changes, and nothing else changes: (1) drop `['Server 2016', …]` from OSES (line 20). (2) In perOs (lines 43-48), Windows 11 still needs a line with VERDICT. Windows 10 needs a line matching its regex AND (VERDICT OR (/\bNOT RUN\b/ AND /release gate/i)). (3) In the test at line 55, rename it to "two target OS versions" and loop over the two OSes. (4) Change the message on line 53 from "three OSes" to two; keep the 1500-char threshold.
+- Keep every other assertion as it is: S1/S2/S3 content, the Decisions tests (lines 122-140), the hygiene tests (lines 142-151), and the no-TODO/TBD/UNVERIFIED test (line 61).
+- Open issue: Addendum A36 is cited by LD-93/94 but is NOT in this lane's spec/program/08-CR-REGISTER.md (the last entry is A35 at line 3100). The lead must make sure A36 lands in the register (this may be lane lag from main). No CR from the arbiter, because the binding LDs settle the question.
+- The implementation (docs/manual/instruments/spikes.md) is written only after the test change, and only from .orchestra/notes/AG-T02-evidence-win11.md, with the verdicts set out in LD-94.

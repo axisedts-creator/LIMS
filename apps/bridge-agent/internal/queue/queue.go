@@ -7,8 +7,8 @@ import (
 	"crypto/aes"
 	"crypto/cipher"
 	"crypto/rand"
-	_ "embed"
 	"database/sql"
+	_ "embed"
 	"errors"
 	"fmt"
 	"path/filepath"
@@ -27,7 +27,7 @@ const (
 	// defaultMinFree is the disk-guard threshold: 500 MB [CONV]. Binary MiB is used (the larger reading, so the guard errs safe).
 	defaultMinFree = 500 << 20
 	// tsFormat: every agent timestamp is UTC text in this form, so text order is time order.
-	tsFormat ="2006-01-02T15:04:05.000Z"
+	tsFormat = "2006-01-02T15:04:05.000Z"
 )
 
 var (

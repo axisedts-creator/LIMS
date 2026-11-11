@@ -68,8 +68,6 @@ export const llmRephrase: TaskHandler = async (payload, jobCtx) => {
     return;
   }
   const rephraser = resolveRephraser(cfg, ctx);                                    // throws (alert) for a host off the allowlist: no client is built
-  if (llmCircuit.isOpen(ctx)) throw new Error('smartreport.llm_rephrase: circuit open');
-
   const items = await candidates(rc, s);
   if (items.length === 0) return;
   const language: 'en' | 'ne' = s['language'] === 'ne' ? 'ne' : 'en';
@@ -77,6 +75,12 @@ export const llmRephrase: TaskHandler = async (payload, jobCtx) => {
   const inputSha = createHash('sha256').update(JSON.stringify(input)).digest('hex');
   const model = cfg.llmModelRef ?? cfg.llmAdapter;
   const base = { id: uuidv7(), centre_id: s['centre_id'], summary_id: s['id'], prompt_template_version: 'p1', input_sha256: inputSha };
+  if (llmCircuit.isOpen(ctx)) {                                                    // 02-TRD §9.1: final failure -> run row `failed`, also while the breaker is open
+    if (ctx['attempt'] < ctx['maxAttempts']) throw new Error('smartreport.llm_rephrase: circuit open');
+    await llmRunsRepo.insertLlmRun(rc, { ...base, status: 'failed', model_ref: clip(model, 100), items: [], latency_ms: 0, error_code: 'llm_call_failed' });
+    ctx['metrics']?.inc?.('lims_smartreport_llm_runs_total', { outcome: 'failed' });
+    return;
+  }
   const started = Date.now();
   const latency = (): number => Math.max(0, Math.round(Date.now() - started));
 

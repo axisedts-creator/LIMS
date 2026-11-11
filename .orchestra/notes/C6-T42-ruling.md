@@ -1,10 +1,11 @@
-TESTS_WRONG — fix all 7 in the tests: (1) portal_payment.tasks.test.ts: `beforeEach(() => vi.stubEnv('LIMS_ORIGIN_PORTAL', PORTAL_ORIGIN))` as assemble_report.test.ts:17; (2) same file l.184 E2E: gateway `khalti` needs `gatewayStatus: 'Completed'` (or use `esewa` with 'COMPLETE'); (3) portal.payment.test.ts l.188: drop `providerCalls).toEqual([])` or snapshot `providerCalls.length` after `seedReady` and assert no new calls; (4) portal.payment.test.ts l.233: keep `tenant_id = $n` for select/update/delete; for `insert` assert the `tenant_id` column is bound to a parameter whose value is TENANT_A; (5) stub-reporting-pay.mjs + C6-T42.pay.e2e.ts: rename link `pay0` (e.g. `paynone`) so `name()` round-trips; (6) C6-T42.pay.e2e.ts l.97: assert on rendered text (`page.locator('body').innerText()`) not `page.content()`; keep l.101-102 log checks; (7) login(): wait for hydration / raise navigation expect timeouts (or run `next start`), as the T30 review already routed to the tester.
-
+TESTS_WRONG — the test timeouts (30 s vitest, 60 s Playwright) are not spec requirements and fail on cold module load only, never on an assertion.
 Reasons:
-1. 02-TRD.md:664 step 2 fixes `returnUrl: LIMS_ORIGIN_PORTAL + '/r/payments/' + <id> + '/done'`; 02-TRD.md:845 makes it an env from C1. The impl failing closed when unset is correct; the test must supply the env.
-2. 02-TRD.md:664 step 3 maps `settled` -> completed; the C15 fake (packages/fakes/src/PaymentProviderPort.fake.ts:48-60) settles Khalti only on `Completed`; `COMPLETE` is an eSewa value, so Khalti stays held_for_review. Fixture error, not impl.
-3. `seedReady` (portal.payment.helpers.ts:85) calls `provider.createIntent` through the recording wrapper, so `providerCalls` can never be empty; 07-SECURITY.md:28 (REQ-SEC-046/059) forbids portal-path calls only.
-4. REQ-SEC-024 = tenant always bound; portal-payment.repo.ts:36-37 binds tenant_id as `$2` in INSERT … VALUES (the only INSERT form the T20 fake supports, portal.helpers.ts:206). An INSERT has no predicate, so the regex over-reaches.
-5. `'pay0'.padEnd(22,'0')` then `replace(/0+$/,'')` = `pay`, which is not in LINKS. AC-18.2 (01-PRD.md:265) cannot run. Harness bug.
-6. AC-18.6 (01-PRD.md:269), 02-TRD.md:666 and 07-SECURITY.md:88,118 require that `outcome` is never trusted and the query is never logged. They do not require that the raw HTML omits the URL. Next's flight payload echoes the request URL outside app code (same reasoning as the C6-T30 ruling on framework-emitted bytes). The rendered-text and API-log checks still test the spec.
-7. The login() race is in navigation timing under `next dev` (C6-T30-debug.md:8, C6-T30-review.md:15). It is not payment code and no AC is involved. Not a spec gap, so no CR.
+1. LD-91 (2026-11-11, binding for C6-T42, in task brief) rules TESTS_WRONG on timeouts only; it overrides spec text for this task.
+2. Spec sets no test timeout: grep `testTimeout|test timeout` over spec/ returns only the PDF render timeout (spec/research/03-backend-architecture.md:205, :410; spec/research/04-consolidated-decisions.md:30), unrelated to test harness limits.
+3. Done-when (spec/chunks/C6-reporting-delivery/06-IMPLEMENTATION-PLAN.md:50, :113) requires 02-TRD s14 "Review fix pass" (n) green; it sets no wall-clock budget. api 31/31, worker 23/23, static 5/5 pass on assertions.
+4. Cause is the jsdom pre-warm in domain/sanitise.ts (C6-T33 [CONV]), 25-60 s cold on a shared machine; not an implementation defect.
+TESTER changes ONLY these lines:
+- services/api/src/modules/reporting/__tests__/portal.payment.test.ts:12 -> `vi.setConfig({ testTimeout: 120_000, hookTimeout: 120_000 });`
+- services/worker/src/jobs/reporting/__tests__/portal_payment.tasks.test.ts:11 -> `vi.setConfig({ testTimeout: 120_000, hookTimeout: 120_000 });`
+- tests/portal-e2e/playwright.pay.config.ts:14 -> `timeout: 120_000,` (webServer timeouts at :17 and :22 unchanged)
+No assertion, fixture or other test line changes. sanitise.ts and the implementation stay unchanged.

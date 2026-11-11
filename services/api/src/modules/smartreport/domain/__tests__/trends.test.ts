@@ -40,6 +40,10 @@ describe('T-vectors: direction (AC-13.2, AC-13.3)', () => {
     expect(dir({ valueNumeric: '131' }, '130', { trendStableBp: 0 })).toBe('worsened'); // d 31 > 30
     expect(dir({ valueNumeric: '130' }, '130', { trendStableBp: 0 })).toBe('stable'); // equal
   });
+  it('per-analyte candidate trendStableBp overrides the library param (05-SCHEMA §2.4 analyte_groups.trend_stable_bp)', () => {
+    expect(dir({ valueNumeric: '115' }, '110')).toBe('stable'); // library 1000 alone
+    expect(dir({ valueNumeric: '115', trendStableBp: 0 }, '110')).toBe('worsened'); // override 0 wins: d 15 > 10
+  });
   it('T-04 stable: both inside range, change beyond threshold', () => expect(dir({ valueNumeric: '95' }, '80')).toBe('stable'));
   it('T-05 p = 0, c = 0 -> stable', () => expect(dir({ valueNumeric: '0', referenceRangeSnapshot: { low: '0', high: '10' } }, '0')).toBe('stable'));
   it('T-05b p = 0, c != 0 is never stable-by-threshold; distance decides', () =>

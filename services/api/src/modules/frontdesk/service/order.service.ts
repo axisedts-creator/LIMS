@@ -207,7 +207,8 @@ async function wrap<T>(fn: () => Promise<T>): Promise<T> {
 const uuidIn = (v: unknown, path: string): string => { if (typeof v !== 'string' || !UUID.test(v)) throw bad(path); return v; };
 const codeIn = (v: unknown, path: string): string => { if (typeof v !== 'string' || !CODE.test(v)) throw bad(path); return v; };
 
-function parseAdds(raw: unknown, min: number): Array<{ orderableId: string; priority: Priority }> {
+/** `priority` is optional (contract RegistrationItem): missing = the stored order's priority, as F9 defaults an item to the draft's priority (see withPriority). */
+function parseAdds(raw: unknown, min: number): Array<{ orderableId: string; priority?: Priority }> {
   if (!Array.isArray(raw) || raw.length < min || raw.length > 50) throw bad('/add');
   const seen = new Set<string>();
   return raw.map((x: unknown, i) => {
@@ -215,13 +216,16 @@ function parseAdds(raw: unknown, min: number): Array<{ orderableId: string; prio
     const orderableId = uuidIn(o['orderable_id'], `/add/${i}/orderable_id`);
     if (seen.has(orderableId)) throw bad(`/add/${i}/orderable_id`);                    // one line per orderable (as F9): a line carries one priority
     seen.add(orderableId);
+    if (o['priority'] === undefined) return { orderableId };
     if (o['priority'] !== 'routine' && o['priority'] !== 'urgent') throw bad(`/add/${i}/priority`);
     return { orderableId, priority: o['priority'] as Priority };
   });
 }
+const withPriority = (adds: ReturnType<typeof parseAdds>, o: Obj): Array<{ orderableId: string; priority: Priority }> =>
+  adds.map((a) => ({ orderableId: a.orderableId, priority: a.priority ?? (o['priority'] as Priority) }));
 
 interface ChangeIn {
-  add: Array<{ orderableId: string; priority: Priority }>; remove: Array<{ itemId: string; reasonCode: string }>;
+  add: Array<{ orderableId: string; priority?: Priority }>; remove: Array<{ itemId: string; reasonCode: string }>;
   fingerprint?: string; payments: Array<{ methodCode: string; amountPaisa: number; reference?: string }>;
 }
 function parseChange(body: unknown): ChangeIn {
@@ -270,7 +274,7 @@ function assertEditable(o: Obj): void {
 }
 
 /** F8b / F13 step 3: price `adds` in the STORED order's context (centre, referrer, credit party; precedence is C3's). Fingerprint = over exactly these lines, no discounts. */
-async function priceAdds(c: ChangeCtx, o: Obj, adds: ChangeIn['add']): Promise<Priced> {
+async function priceAdds(c: ChangeCtx, o: Obj, adds: ReturnType<typeof withPriority>): Promise<Priced> {
   const d: Draft = {
     centreId: o['centre_id'], billingMode: o['billing_mode'], visitType: o['visit_type'], priority: o['priority'], collectionMode: o['collection_mode'],
     ...(o['credit_party_id'] ? { creditPartyId: o['credit_party_id'] } : {}), ...(o['referrer_id'] ? { referrerId: o['referrer_id'] } : {}),
@@ -287,7 +291,7 @@ export function quoteItemsChange(hctx: unknown, params: unknown, body: unknown):
     const adds = parseAdds(strict(body, ['add'])['add'], 1);
     const o = await loadOrder(c, params, false);
     assertEditable(o);
-    const { resolved, q, limits, verdict } = await priceAdds(c, o, adds);
+    const { resolved, q, limits, verdict } = await priceAdds(c, o, withPriority(adds, o));
     const tz = ((await c.ports.IdentityPort.getTenantSettings(c, { keys: ['timezone'] })) ?? {}).timezone;
     return { status: 200, body: {
       lines: q.lines.map(lineDto), totals: totalsDto(q.totals),
@@ -332,7 +336,7 @@ export function changeItems(hctx: unknown, params: unknown, headers: unknown, bo
     // stale-quote guard: the fingerprint must equal the F8b quote over exactly `add`, re-priced now inside this tx (nothing is written and no counter touched before this)
     let p: Priced | undefined;
     if (r.add.length > 0) {
-      p = await priceAdds(c, o, r.add);
+      p = await priceAdds(c, o, withPriority(r.add, o));
       if (p.q.fingerprint !== r.fingerprint) throw new LimsError('common.version_conflict', 'Prices changed');     // fresh `quote` extension: same CR as F9 (FD-T06-retry-quote-ext.md)
     }
 

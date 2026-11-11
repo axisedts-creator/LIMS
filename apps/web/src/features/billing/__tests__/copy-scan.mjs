@@ -6,7 +6,8 @@ import { join, relative, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const root = fileURLToPath(new URL('../../../../../../', import.meta.url));
-const BANNED = [/IRD[ -]approved/i, /IRD certified/i, /approved by IRD/i, /commission/i];
+// [CONV] whitespace-tolerant (\s covers newline/tab/nbsp) and matched over whole file text so wrapped phrases cannot slip through.
+const BANNED = [/IRD[\s-]+approved/gi, /IRD\s+certified/gi, /approved\s+by\s+IRD/gi, /commission/gi];
 const ROOTS = [
   'apps/web/src/features/billing', 'apps/web/src/features/frontdesk', 'apps/web/src/app/(staff)/billing', 'apps/web/src/app/(staff)/frontdesk',
   'services/renderer/templates/billing', 'docs/manual/billing', 'docs/manual/frontdesk',
@@ -15,7 +16,10 @@ const SKIP = (p) => p.split(sep).includes('__tests__') || p.split(sep).includes(
 const walk = (d) => (existsSync(d) ? readdirSync(d).flatMap((n) => { const p = join(d, n); return SKIP(p) ? [] : statSync(p).isDirectory() ? walk(p) : [p]; }) : []);
 
 const files = ROOTS.flatMap((r) => walk(join(root, r)));
-const hits = files.flatMap((f) => readFileSync(f, 'utf8').split(/\r?\n/).flatMap((line, i) => BANNED.filter((re) => re.test(line)).map((re) => `${relative(root, f)}:${i + 1}: ${re}`)));
+const hits = files.flatMap((f) => {
+  const text = readFileSync(f, 'utf8');
+  return BANNED.flatMap((re) => [...text.matchAll(re)].map((m) => `${relative(root, f)}:${text.slice(0, m.index).split('\n').length}: ${re}`));
+});
 // Billing screens must exist for the scan to mean anything (BL-T20 owns these).
 const screens = files.filter((f) => /[\\/]app[\\/]\(staff\)[\\/]billing[\\/].*page\.tsx$/.test(f)).length;
 const comps = files.filter((f) => /features[\\/]billing[\\/]components[\\/].*\.tsx$/.test(f)).length;

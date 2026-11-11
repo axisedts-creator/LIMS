@@ -116,12 +116,12 @@ const maskEmail = (e: string) => {
   const [local = '', domain = ''] = e.split('@');
   return `${local.slice(0, 1)}***@${domain.slice(0, 1)}***`;
 };
-const maskIp = (ip: string) => {
+export const maskIp = (ip: string) => {
   if (isIP(ip) === 4) return ip.split('.').slice(0, 2).join('.') + '.x.x';
   if (isIP(ip) === 6) return ip.split(':').slice(0, 2).join(':') + ':x:x';
   return undefined;
 };
-function uaFamily(ua: string): string {
+export function uaFamily(ua: string): string {
   for (const [re, name] of [[/Edg\//, 'Edge'], [/OPR\/|Opera/, 'Opera'], [/Firefox\//, 'Firefox'], [/Chrome\//, 'Chrome'], [/Safari\//, 'Safari']] as const) {
     if (re.test(ua)) return name;
   }

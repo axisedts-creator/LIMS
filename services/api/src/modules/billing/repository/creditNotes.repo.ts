@@ -51,6 +51,25 @@ export async function insertCreditNoteLines(tx: Q, rows: ReadonlyArray<Row>): Pr
   await tx.query('INSERT INTO billing.credit_note_lines (' + LINE_COLUMNS.join(', ') + ') VALUES ' + tuples.join(', '), values);
 }
 
+/** B6 listCreditNotes: keyset (fiscal_year_bs, credit_note_seq, id) like the B26 register; every value bound, tenant first. */
+export async function listCreditNotes(tx: Q, a: { tenantId: string; invoiceId?: string; fiscalYearBs?: string; after?: { fiscalYearBs: string; seq: number; id: string }; limit: number }): Promise<Row[]> {
+  const p: unknown[] = [a.tenantId];
+  const add = (v: unknown) => { p.push(v); return '$' + p.length; };
+  let w = 'tenant_id = $1';
+  if (a.invoiceId !== undefined) w += ' AND invoice_id = ' + add(a.invoiceId) + '::uuid';
+  if (a.fiscalYearBs !== undefined) w += ' AND fiscal_year_bs = ' + add(a.fiscalYearBs);
+  if (a.after !== undefined) w += ' AND (fiscal_year_bs, credit_note_seq, id) > (' + add(a.after.fiscalYearBs) + ', ' + add(a.after.seq) + '::integer, ' + add(a.after.id) + '::uuid)';
+  p.push(a.limit);
+  return (await tx.query('SELECT * FROM billing.credit_notes WHERE ' + w + ' ORDER BY fiscal_year_bs, credit_note_seq, id LIMIT $' + p.length, p)).rows;
+}
+
+/** Lines of several credit notes (B6 list page); tenant bound on both tables. */
+export async function listCreditNoteLinesByNotes(tx: Q, a: { tenantId: string; creditNoteIds: ReadonlyArray<string> }): Promise<Row[]> {
+  if (a.creditNoteIds.length === 0) return [];
+  return (await tx.query(
+    'SELECT cl.* FROM billing.credit_note_lines cl WHERE cl.tenant_id = $1 AND cl.credit_note_id = ANY($2::uuid[]) ORDER BY cl.created_at, cl.id', [a.tenantId, a.creditNoteIds])).rows;
+}
+
 /** Every credit note line of the invoice (all its credit notes); tenant bound on both tables. */
 export async function listCreditNoteLinesByInvoice(tx: Q, a: { tenantId: string; invoiceId: string }): Promise<Row[]> {
   const { rows } = await tx.query(

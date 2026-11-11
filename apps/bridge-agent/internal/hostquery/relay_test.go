@@ -203,9 +203,26 @@ func TestRelay_RecentUnreachableServerFailsFastFor30Seconds(t *testing.T) {
 	if r.rel.Unavailable() != 2 {
 		t.Errorf("counter = %d, want 2", r.rel.Unavailable())
 	}
+	// a probe after the window that fails again must re-arm the 30 s window (03-APP-FLOW 3.4 step 2)
 	r.now = t0.Add(31 * time.Second)
+	r.snd.err = errBoom
+	if got := r.handle(query(itemB)); got != hostquery.OutcomeUnavailable {
+		t.Errorf("failed probe after the window: outcome = %q, want unavailable", got)
+	}
+	if r.snd.n() != 2 {
+		t.Fatalf("E05 called %d times, want 2 (one probe after the window)", r.snd.n())
+	}
+	r.snd.err = nil
+	r.now = t0.Add(45 * time.Second)
+	if got := r.handle(query(itemB)); got != hostquery.OutcomeUnavailable {
+		t.Errorf("14 s after a failed probe: outcome = %q, want unavailable (window re-armed)", got)
+	}
+	if r.snd.n() != 2 {
+		t.Errorf("E05 called %d times, want 2 (no call inside the re-armed window)", r.snd.n())
+	}
+	r.now = t0.Add(62 * time.Second)
 	if got := r.handle(query(itemB)); got != hostquery.OutcomeReplied {
-		t.Errorf("after the window the relay must try again, outcome = %q", got)
+		t.Errorf("after the re-armed window the relay must try again, outcome = %q", got)
 	}
 }
 
@@ -241,6 +258,7 @@ func TestRelay_SameItemRetryReusesKeyDifferentItemGetsNewKey(t *testing.T) {
 	r.snd.err = errBoom
 	r.handle(query(itemA))
 	r.now = t0.Add(40 * time.Second)
+	r.snd.err = nil // retry succeeds: server reachable again, so itemB is not failed fast
 	r.handle(query(itemA))
 	r.handle(query(itemB))
 	k := r.snd.calls

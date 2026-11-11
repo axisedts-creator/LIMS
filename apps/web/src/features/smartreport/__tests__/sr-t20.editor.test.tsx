@@ -225,8 +225,8 @@ describe('Check & submit (AC-02.5)', () => {
     ] });
     await showEditor();
     await run();
-    const g = await waitFor(() => gridNamed(/issues|checks/i));
-    const acts = () => within(g).getAllByRole('button');
+    await waitFor(() => gridNamed(/issues|checks/i));
+    const acts = () => within(gridNamed(/issues|checks/i)).getAllByRole('button');
     await userEvent.click(acts()[0]!); expect(tab('Texts').getAttribute('aria-selected')).toBe('true');
     await userEvent.click(tab('Check & submit')); await userEvent.click(acts()[1]!); expect(tab('Rules').getAttribute('aria-selected')).toBe('true');
     await userEvent.click(tab('Check & submit')); await userEvent.click(acts()[2]!); expect(tab('Analyte mapping').getAttribute('aria-selected')).toBe('true');

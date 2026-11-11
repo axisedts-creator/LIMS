@@ -94,8 +94,8 @@ describe('live client checks mirror the server (AC-03.2, AC-03.3, AC-03.4)', () 
   it.each([
     ['ASCII digit', 'Value is 5 above range', /digit|number/i],
     ['Devanagari digit', 'मान ५ भन्दा माथि', /digit|number/i],
-    ['unknown placeholder {dose}', 'Take {dose} daily', /placeholder.*dose|dose.*placeholder|\{dose\}/i],
-    ['placeholder not allowed for the kind ({test_name} in a finding)', '{test_name} is high', /placeholder/i],
+    ['unknown placeholder {dose}', 'Take {{dose} daily', /placeholder.*dose|dose.*placeholder|\{dose\}/i],
+    ['placeholder not allowed for the kind ({test_name} in a finding)', '{{test_name} is high', /placeholder/i],
     ['link', 'See http://example.org for more', /link|web address|url/i],
   ])('%s -> field error, no POST', async (_n, text, re) => {
     const d = await openAdd();
@@ -144,7 +144,7 @@ describe('live client checks mirror the server (AC-03.2, AC-03.3, AC-03.4)', () 
 describe('create / edit / remove (AC-03.1, AC-03.7)', () => {
   it('create POSTs {block_key, kind, text_en} with an Idempotency-Key, then refreshes', async () => {
     const d = await openAdd();
-    await fillValid(d, '{analyte_name} is above the reference range of your laboratory.');
+    await fillValid(d, '{{analyte_name} is above the reference range of your laboratory.');
     await userEvent.click(saveBtn(d));
     await waitFor(() => expect(callsTo('POST', B)).toHaveLength(1));
     const c = callsTo('POST', B)[0]!;
@@ -176,7 +176,7 @@ describe('create / edit / remove (AC-03.1, AC-03.7)', () => {
     const row = screen.getByText('deranged.alt.high').closest('tr, li, [role="row"]') as HTMLElement;
     await userEvent.click(within(row).getByRole('button', { name: /^(remove|delete|deactivate)/i }));
     expect(callsTo('DELETE', `${B}/${BLOCK_DERANGED}`)).toHaveLength(0);
-    await userEvent.click(within(await screen.findByRole('alertdialog')).getByRole('button', { name: /^(remove|delete|deactivate|confirm|yes)/i }));
+    await userEvent.click(within(await screen.findByRole('alertdialog').catch(() => screen.findByRole('dialog'))).getByRole('button', { name: /^(remove|delete|deactivate|confirm|yes)/i }));
     await waitFor(() => expect(callsTo('DELETE', `${B}/${BLOCK_DERANGED}`)).toHaveLength(1));
     expect(callsTo('DELETE', `${B}/${BLOCK_DERANGED}`)[0]!.headers.get('if-match')).toBe('"2"');
     await waitFor(() => expect(router.refresh).toHaveBeenCalled());

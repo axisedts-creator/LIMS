@@ -98,6 +98,7 @@ export function createExportService(deps: { repo?: ExportRepo; config?: Pick<Bil
     const job = await db.insertExportJob(tx, {
       id: uuidv7(), tenant_id: tenantId, kind, format, filters, status: 'queued', requested_by_membership_id: ctx.actor.membershipId, created_at: now, updated_at: now, created_by: actorId, updated_by: actorId,
     });
+    if (!job) throw new LimsError('common.internal'); // fail closed like every other insert (RETURNING gave no row): no enqueue, no audit on a job that was not stored
     const id = String(job['id']);
     await db.enqueueExportRender(tx, { tenantId, exportId: id });
     await access({ action: 'data.export', entityType: 'billing_export', entityId: id, outcome: 'allowed', detail: { stage: 'create' } });

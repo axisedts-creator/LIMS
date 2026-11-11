@@ -8,6 +8,7 @@ import { LimsError, type FieldError } from '../../../core/errors.js';
 import { DEFAULT_BARCODE_PATTERN, renderBarcode } from '../domain/barcode.js';
 import { assertSpecimenReceivable, specimenTransition, type SpecimenStatus, SPECIMEN_STATUSES } from '../domain/specimen.state.js';
 import { createLabEvents } from '../events/publish.js';
+import { enqueueReapplyForSpecimen } from './exception.service.js';
 import { decodeCursor, encodeCursor, groupTests, specimenDetailDto, specimenDto } from '../mappers/specimen.mapper.js';
 import { allocateBarcodeSeq } from '../repository/barcodeCounters.repo.js';
 import type { RepoCtx, RepoTx } from '../repository/base.repo.js';
@@ -53,6 +54,9 @@ const CODE = /^[A-Za-z0-9_.:^+\-]{1,64}$/;
 const BACKENTRY_MAX_HOURS = 72;     // LD-25 default; the tenant setting downtime_backentry_max_hours is not in TenantSettings yet (same as frontdesk FD-T06); requested in CR-C5-T07-001 (.orchestra/cr/C5.T-07.md)
 const BULK_MAX = 200;
 const MAX_VERSION = 2147483647;
+// T-10: label.service.ts reuses the same ctx / validation / centre-scope helpers (declared below; export lists are hoisted).
+export { specimenCtx, bad, strict, uuidParam, scopeOf, visible, role, repoCtx, isObj, UUID, BULK_MAX, ISO_MS, step, emitStatus };
+export type { SpecimenCtx, Obj };
 
 interface SpecimenCtx {
   readonly tenantId: string;
@@ -206,6 +210,7 @@ async function move(c: SpecimenCtx, row: Obj, version: number, a: Action, centre
     await copyProcessingToResultsOfSpecimen(rc, row['id'], p);
     await copyProcessingToExistingMaterialTests(rc, row['order_id'], p);
     await copyProcessingToExistingMaterialResults(rc, row['order_id'], p);
+    await enqueueReapplyForSpecimen(c, row['id']);                                  // AC-04.5: re-run open exceptions of this specimen (T-23), same tx
   }
   return { updated: { ...updated, registration_no: row['registration_no'] }, code };
 }

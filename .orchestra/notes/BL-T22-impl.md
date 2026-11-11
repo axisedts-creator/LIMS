@@ -1,7 +1,5 @@
-BL-T22 impl (writer, round 2 after ruling). Owned paths only.
-Files: worker billing/alerts/integrity.rules.yaml + frontdesk/alerts/frontdesk.rules.yaml (round 1); billing/service/ledger.service.ts recordPayment: no billing rows -> ctx.ports.FrontdeskPort.getOrderSummary (not visible -> 404 common.not_found; credit -> 400 validation_failed; visible cash manual -> 409 order_not_invoiced).
-[CONV] ctx with no FrontdeskPort (BL-T08 t08.helpers world, test file I may not edit) keeps the old answer; production ctx always has the port.
-Tests: crossTenant recordPayment probe now passes; ledger.payment + BillingCommandPort.contract 110/110; billing suite 1718 pass / 46 fail.
-46 fails = 45 handler stubs of unbuilt tasks (FD-T05..T15, BL-T13..T19, service_unavailable) + alerts.rules CR check: orchestra renamed .orchestra/cr/BL-T22.md -> BL-T22.nonblocking.md (8d2437c0); not recreated.
-tenant-export-restore manifest test timed out under full-suite load once; passes alone (15/15).
-Open: ruling's assertRole(billing.payment.record, {centreId}) not added in service — t08 ctx has no IdentityPort.assertRole, would break BL-T08 suite; core pipeline gates the permission.
+# BL-T22 impl (writer) — 2026-11-11
+- Files changed: none. Per LD-105, implementation stays unchanged (fail-closed guards A6/A11, REQ-SEC-017/139). The tester's harness fixes to probe.kit.ts and the sample builder (60e3efc7) clear the 8 probe failures. Alert rule files and the CR (.orchestra/cr/BL-T22.nonblocking.md) were already in HEAD.
+- Verify run (`pnpm --dir services/api exec vitest run src/modules/billing/__tests__/probes`): 5 files passed, 1 skipped; 359 tests passed, 7 skipped, 1 todo, 0 failed.
+- [CONV] There is no billing probes/pending.json, so nothing needed removing (LD-70). createPaymentIntent/verifyPaymentIntent stay `notYet` (BL-T21, LD-98).
+- Open: none for BL-T22. The tables.live suite is skipped (needs a live DB). The it.todo for PDF-with-JS is tracked as RG-5 (FD-T10 gap).

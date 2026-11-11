@@ -11,6 +11,20 @@ const iso = (v: unknown): string | undefined => (v instanceof Date ? v.toISOStri
 const text = (v: unknown): string | undefined => (present(v) ? String(v) : undefined);
 const put = (o: Dto, k: string, v: unknown): void => { if (present(v)) o[k] = v; };
 
+/** ResultVersionDto (lab.yaml) from a lab.result_versions row: allowlist only (no tenant/centre/actor ids, no approver, no superseded_*; `superseded` = superseded_at set). */
+export function toResultVersionDto(row: Row): Dto {
+  const dto: Dto = { result_id: row['result_id'], version_no: row['version_no'], recorded_at: iso(row['created_at'] ?? row['approved_at']), superseded: present(row['superseded_at']) };
+  put(dto, 'value_numeric', text(row['value_numeric']));
+  for (const k of ['value_text', 'ordinal_code', 'unit_code', 'flag', 'comment_text', 'amendment_reason_code', 'amendment_reason_text']) put(dto, k, row[k]);
+  if (present(row['ref_range_id'])) {
+    const s: Dto = { range_id: row['ref_range_id'], range_version: row['ref_range_version'] };
+    put(s, 'low', text(row['ref_low'])); put(s, 'high', text(row['ref_high'])); put(s, 'text', row['ref_text']);
+    dto['reference_range_snapshot'] = s;
+  }
+  if (Array.isArray(row['comment_codes']) && row['comment_codes'].length > 0) dto['comment_codes'] = row['comment_codes'];
+  return dto;
+}
+
 export function toResultDto(row: Row): Dto {
   const cur = row['status'] === 'approved';
   // approved: cur_<col> when the view supplied it (even null = "no value in the current version"), else the row column.

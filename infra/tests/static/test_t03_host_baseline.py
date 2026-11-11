@@ -157,10 +157,13 @@ class Ssh(unittest.TestCase):  # AC-29.3, TRD 5.2, REQ-SEC-132
         return only("hardening", "lims.conf*") if find("hardening", "lims.conf*") else only("base_os", "lims.conf*")
 
     def test_lims_conf_directives(self):
-        c = self.conf()
+        c = re.split(r"(?m)^Match\b", self.conf())[0]  # global part only; a trailing Match block (T-29) has its own keys
         d = kv_lines(c, r"\s+")
+        # T-29 review item 1: the DR interim SFTP account (group lims-interim-repo, chrooted by a Match block) must pass
+        # AllowGroups; humans stay `ops`. Any other group still fails this test.
+        self.assertIn(d.get("AllowGroups"), ("ops", "ops lims-interim-repo"), "AllowGroups must be ops [+ lims-interim-repo]")
         want = {"PasswordAuthentication": "no", "KbdInteractiveAuthentication": "no", "PermitRootLogin": "no",
-                "AllowGroups": "ops", "MaxAuthTries": "3", "LoginGraceTime": "20", "X11Forwarding": "no",
+                "MaxAuthTries": "3", "LoginGraceTime": "20", "X11Forwarding": "no",
                 "AllowTcpForwarding": "local", "ClientAliveInterval": "300"}
         for k, v in want.items():
             self.assertEqual(d.get(k), v, f"{k} must be {v!r}")

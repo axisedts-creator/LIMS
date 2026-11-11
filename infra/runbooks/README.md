@@ -23,7 +23,7 @@ Owner C1. Every alert has a section named after it (anchor = lower-case alert na
 [analytics.md](analytics.md), [anatomic.md](anatomic.md), [billing.md](billing.md), [catalog.md](catalog.md), [core.md](core.md), [frontdesk.md](frontdesk.md), [identity.md](identity.md), [instruments.md](instruments.md), [inventory.md](inventory.md), [lab.md](lab.md), [micro.md](micro.md), [partners.md](partners.md), [payments.md](payments.md), [quality.md](quality.md), [reporting.md](reporting.md), [smartreport.md](smartreport.md).
 
 ## Procedure files written by other tasks
-`patching.md`, `dr.md`, `secrets.md`, `deploy.md`, `studio.md` (patching, disaster recovery, secret rotation, deploy and rollback, Studio break-glass). Runbooks refer to them by name; each is added to this index when its file lands.
+[patching.md](patching.md), `dr.md`, `secrets.md`, `deploy.md`, `studio.md` (patching, disaster recovery, secret rotation, deploy and rollback, Studio break-glass). Runbooks refer to them by name; each is added to this index when its file lands.
 
 ## Severity matrix
 | SEV | Meaning | Response |

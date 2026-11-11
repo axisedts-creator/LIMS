@@ -218,10 +218,10 @@ export const logText = (ctx: any): string => JSON.stringify([ctx.log.info.mock.c
 const R = (n: number): string => uid(0x3000 + n);
 export const T_APPROVED = '2026-11-05T04:00:00.000Z';
 /** One approved ResultView. flag N unless given. numeric analytes only unless text. */
-export function result(n: number, a: AnalyteKey, flag: string | undefined = 'N', o: Row = {}): Row {
+export function result(n: number, a: AnalyteKey, flag: string | null = 'N', o: Row = {}): Row {
   const text = a === 'TXT';
   return { resultId: R(n), orderItemId: uid(0x4000 + Object.keys(AN).indexOf(a)), testId: TEST_OF[a], analyteId: AN[a], versionNo: 1, status: 'approved', origin: 'manual', commentCodes: [], attachments: [],
-    onHold: false, qcReviewRequired: false, approvedAt: T_APPROVED, ...(text ? { valueText: 'see comment' } : { valueNumeric: '13.40', unitCode: 'g/dL' }), ...(flag ? { flag } : {}), ...o };
+    onHold: false, qcReviewRequired: false, approvedAt: T_APPROVED, ...(text ? { valueText: 'see comment' } : { valueNumeric: '13.40', unitCode: 'g/dL' }), ...(flag != null ? { flag } : {}), ...o };
 }
 /** AC-08.1 order: HGB L, WBC/PLT/ALT/AST/CREAT N. */
 export const ac081 = (): Row[] => [result(1, 'HGB', 'L'), result(2, 'WBC'), result(3, 'PLT'), result(4, 'ALT'), result(5, 'AST'), result(6, 'CREAT')];

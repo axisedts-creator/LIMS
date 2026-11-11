@@ -113,7 +113,7 @@ const uid0 = (): string => '01900000-7200-7000-8000-000000007500';
 
 describe('C14-T12 buildOrGet — input_result_versions (05-SCHEMA §2.8, 02-TRD §4.10)', () => {
   it('= EVERY approved result:version (mapped or not, text included), sorted ascending, exactly the set hashed', async () => {
-    setResults(ORDER.a, [...ac081(), result(7, 'TXT', undefined)]);                          // an unmapped text result is in the hashed set
+    setResults(ORDER.a, [...ac081(), result(7, 'TXT', null)]);                          // an unmapped text result is in the hashed set
     const { summary } = await build(makeCtx());
     const all = (w.results.get(ORDER.a) ?? []).map((r) => `${r.resultId}:${r.versionNo}`);
     expect(summary.input_result_versions).toHaveLength(7);
@@ -126,12 +126,12 @@ describe('C14-T12 buildOrGet — input_result_versions (05-SCHEMA §2.8, 02-TRD 
     expect(summary.input_result_versions.filter((s: string) => s.endsWith(':2'))).toHaveLength(1);
   });
   it('2,000 approved results build; the stored array has 2,000 elements', async () => {
-    setResults(ORDER.a, [...ac081(), ...Array.from({ length: 1994 }, (_, i) => result(100 + i, 'TXT', undefined))]);
+    setResults(ORDER.a, [...ac081(), ...Array.from({ length: 1994 }, (_, i) => result(100 + i, 'TXT', null))]);
     const { summary } = await build(makeCtx());
     expect(summary.input_result_versions).toHaveLength(2000);
   });
   it('2,001 approved results -> smartreport.no_eligible_results, reason too_many_results logged, no insert, no CHECK violation (E19)', async () => {
-    setResults(ORDER.a, [...ac081(), ...Array.from({ length: 1995 }, (_, i) => result(100 + i, 'TXT', undefined))]);
+    setResults(ORDER.a, [...ac081(), ...Array.from({ length: 1995 }, (_, i) => result(100 + i, 'TXT', null))]);
     const ctx = makeCtx();
     const e = await fails(build(ctx));
     expect(e).toBeInstanceOf(LimsError); expect(e.code).toBe('smartreport.no_eligible_results');
@@ -152,7 +152,7 @@ describe('C14-T12 buildOrGet — refusals (AC-08.3, AC-08.4, template, tenant)',
     expect((await fails(build(makeCtx()))).code).toBe('smartreport.no_eligible_results');
   });
   it('AC-08.4 fewer mapped eligible results than min_mapped_results (3) -> no_eligible_results; no insert, no binding', async () => {
-    setResults(ORDER.a, [result(1, 'HGB', 'L'), result(2, 'WBC'), result(7, 'TXT', undefined), result(8, 'TXT', undefined)]);
+    setResults(ORDER.a, [result(1, 'HGB', 'L'), result(2, 'WBC'), result(7, 'TXT', null), result(8, 'TXT', null)]);
     expect((await fails(build(makeCtx(), { reportVersionNo: 1 }))).code).toBe('smartreport.no_eligible_results');
     expect(w.writes).toEqual([]);
   });
@@ -162,7 +162,7 @@ describe('C14-T12 buildOrGet — refusals (AC-08.3, AC-08.4, template, tenant)',
     expect((await build(makeCtx())).summary.status).toBe('draft');
   });
   it('AC-08.4 a result with neither flag nor reference snapshot is not eligible (AC-08.7) and does not count toward the minimum', async () => {
-    setResults(ORDER.a, [result(1, 'HGB', 'L'), result(2, 'WBC'), result(3, 'PLT', undefined)]);
+    setResults(ORDER.a, [result(1, 'HGB', 'L'), result(2, 'WBC'), result(3, 'PLT', null)]);
     expect((await fails(build(makeCtx()))).code).toBe('smartreport.no_eligible_results');
   });
   it('no approved library -> smartreport.template_not_approved; nothing written', async () => {

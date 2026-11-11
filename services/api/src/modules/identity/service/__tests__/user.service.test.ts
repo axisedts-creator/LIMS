@@ -581,3 +581,32 @@ describe('cross-cutting', () => {
     expect(e.code).toBe('common.not_found'); expect(fake.writes).toEqual([]); expect(fake.row(T1).locked_at).toBeNull();
   });
 });
+
+// 03-APP-FLOW 2.1 SS9: admin revoke, lock, deactivate, role/centre change and MFA reset each record auth event `session_revoked` (reason) per revoked session.
+describe('session_revoked auth events (one per live session; none on conflict)', () => {
+  const S = [idN(0x5001), idN(0x5002)];
+  const CALLERS: Array<[string, string, Record<string, unknown>]> = [
+    ['setUserRoles', 'role_change', { roleIds: [R_FD, R_ADMIN2] }],
+    ['setUserCentreScope', 'role_change', { allCentres: false, centreIds: [C1, C2] }],
+    ['lockUser', 'lock', { reasonCode: 'security_concern' }],
+    ['deactivateUser', 'deactivate', { reasonCode: 'security_concern' }],
+    ['resetUserMfa', 'mfa_reset', { reasonText: 'Synthetic' }],
+    ['revokeUserSessions', 'admin_revoke', {}],
+  ];
+  it.each(CALLERS)('%s -> two session_revoked events, reasonCode %s', async (op, reason, extra) => {
+    const { svc, ctx, fake, authEvents, events } = await mk([target({ mfa_enrolled: true })]);
+    await svc[op]!(ctx, op === 'revokeUserSessions' ? { membershipId: T1 } : { membershipId: T1, expectedVersion: 1, ...extra });
+    expect(authEvents).toHaveLength(2); expect(events.recordTenant).toHaveBeenCalledTimes(2); expect(events.recordTenant.mock.calls.every((c) => c[0] === ctx.tx)).toBe(true);
+    expect(authEvents.map((e) => e['sessionId']).sort()).toEqual(S);
+    for (const e of authEvents) expect(e).toMatchObject({ eventType: 'session_revoked', reasonCode: reason, tenantId: TENANT_A, userId: fake.row(T1).user_id, membershipId: T1, actorId: USER });
+    expect(typeof authEvents[0]!['id']).toBe('string'); expect(authEvents[0]!['id']).not.toBe(authEvents[1]!['id']);
+  });
+  it.each(CALLERS.filter(([op]) => op !== 'revokeUserSessions'))('%s with a stale version -> 409, no session_revoked event', async (op, _reason, extra) => {
+    const { svc, ctx, authEvents } = await mk([target({ mfa_enrolled: true })]);
+    expect((await rejection(svc[op]!(ctx, { membershipId: T1, expectedVersion: 99, ...extra }))).code).toBe('common.version_conflict'); expect(authEvents).toEqual([]);
+  });
+  it('no events dep -> the sign-out path fails closed with common.internal', async () => {
+    const d = await mk([target()]); const svc = createUserService({ ...(d.deps as any), events: undefined }) as Record<string, (ctx: any, input: any) => Promise<any>>;
+    expect((await rejection(svc['revokeUserSessions']!(d.ctx, { membershipId: T1 }))).code).toBe('common.internal');
+  });
+});

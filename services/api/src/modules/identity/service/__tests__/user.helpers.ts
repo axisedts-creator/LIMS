@@ -1,7 +1,7 @@
 // T13 test helpers (not a test file). Synthetic data only. Fixes the SEAMS the spec leaves open - the writer must match them or raise a dispute:
 //
 //   ../user.service.ts  exports `createUserService(deps?: { repo?: UserRepo; gotrue?: Pick<GoTrueGateway,'adminCreateUser'>; userExists?: (tx, userId) => Promise<boolean>;
-//                       emailHmac?: (emailNormalized: string) => Buffer; clearAccountFailures?: (emailNormalized: string) => Promise<void>; newId?: () => string })`
+//                       emailHmac?: (emailNormalized: string) => Buffer; clearAccountFailures?: (emailNormalized: string) => Promise<void>; newId?: () => string; events?: { recordTenant(tx, e: AuthEvent): Promise<void> } })` (events absent -> sign-out paths fail closed common.internal; revokeSessions returns the revoked rows [{id,user_id}], one session_revoked auth event is recorded per row)
 //                       -> { listUsers, searchUsers, inviteUser, getUser, updateUser, setUserRoles, setUserCentreScope, lockUser, unlockUser, deactivateUser,
 //                            reactivateUser, resendInvitation, resetUserMfa, revokeUserSessions, uploadUserSignature }, each `(ctx, input) => Promise<{ status, body, version? }>`.
 //                       The DEFAULT repo (SQL on ctx.tx, explicit `tenant_id = $n` on every statement) lives in user.service.ts and repository/{invitations,assets}.repo.ts;
@@ -78,7 +78,7 @@ export interface UserRepo {
   replaceScope(tx: unknown, tenantId: string, membershipId: string, s: { centreIds: string[]; branchIds: string[] }, actorId: string): Promise<void>;
   insertInvitation(tx: unknown, tenantId: string, i: { id: string; membershipId: string; userId: string; email: string; expiresAt: Date; actorId: string }): Promise<void>;
   revokeOpenInvitations(tx: unknown, tenantId: string, membershipId: string, actorId: string): Promise<void>;
-  revokeSessions(tx: unknown, tenantId: string, a: { membershipId: string; userId: string; reason: string; actorId: string }): Promise<number>;
+  revokeSessions(tx: unknown, tenantId: string, a: { membershipId: string; userId: string; reason: string; actorId: string }): Promise<Array<{ id: string; user_id: string }>>;
   removeMfaFactors(tx: unknown, tenantId: string, a: { userId: string; actorId: string }): Promise<number>;
   insertSignatureAsset(tx: unknown, tenantId: string, a: { id: string; membershipId: string; bucket: string; objectPath: string; contentType: string; sizeBytes: number; widthPx: number; heightPx: number; sha256: string; scanState: string; actorId: string }): Promise<void>;
   deactivateOtherSignatureAssets(tx: unknown, tenantId: string, membershipId: string, keepId: string, actorId: string): Promise<void>;
@@ -149,7 +149,7 @@ export function makeRepo(seed: Seed = defaultSeed(), tenantId = TENANT_A) {
       const m = mine(t).find((x) => x.id === i.membershipId); if (m) m.invitation = { status: 'pending', expires_at: i.expiresAt.toISOString() };
     },
     async revokeOpenInvitations(tx, t, id, actorId) { rec('revokeOpenInvitations', tx, t, id, actorId); w('revokeOpenInvitations'); for (const i of st.invitations) if (i.membershipId === id && ['pending', 'sent'].includes(i.status)) i.status = 'revoked'; const m = mine(t).find((x) => x.id === id); if (m?.invitation) m.invitation = { ...m.invitation, status: 'revoked' }; },
-    async revokeSessions(tx, t, a) { rec('revokeSessions', tx, t, a); w('revokeSessions'); st.sessionsRevoked.push({ ...a }); return 2; },
+    async revokeSessions(tx, t, a) { rec('revokeSessions', tx, t, a); w('revokeSessions'); st.sessionsRevoked.push({ ...a }); return [{ id: idN(0x5001), user_id: a.userId }, { id: idN(0x5002), user_id: a.userId }]; },   // RETURNING id, user_id: two live sessions
     async removeMfaFactors(tx, t, a) { rec('removeMfaFactors', tx, t, a); w('removeMfaFactors'); st.mfaRemoved.push({ ...a }); for (const m of st.members) if (m.user_id === a.userId) m.mfa_enrolled = false; return 1; },
     async insertSignatureAsset(tx, t, a) { rec('insertSignatureAsset', tx, t, a); w('insertSignatureAsset'); st.assets.push({ ...a, tenantId: t, is_active: true }); const m = mine(t).find((x) => x.id === a.membershipId); if (m) m.signature_asset_id = a.id; },
     async deactivateOtherSignatureAssets(tx, t, id, keep, actorId) { rec('deactivateOtherSignatureAssets', tx, t, id, keep, actorId); w('deactivateOtherSignatureAssets'); for (const a of st.assets) if (a.membershipId === id && a.id !== keep) a.is_active = false; },
@@ -179,8 +179,10 @@ export async function makeDeps(o: { seed?: Seed; gotrue?: Parameters<typeof make
   let n = 0x9000; const newId = () => idN(n++);
   const base = await makeUploadCtx({ tenantId: TENANT_A });
   const ctx: any = { ...base.ctx, actor: { type: 'user', id: USER, membershipId: ADMIN }, tx: { __tx: 'T13-request-tx', query: vi.fn(async () => ({ rows: [], rowCount: 0 })) } };
-  const deps = { repo: fake.repo, gotrue: g.gotrue, userExists, emailHmac, clearAccountFailures, newId };
-  return { fake, g, deps, ctx, access: base.ctx.audit.access, userExists, clearAccountFailures, emailHmac, mode: base.mode, scan: base.scan, storageKeys: base.storageKeys, raw: base.raw };
+  const authEvents: Array<Record<string, any>> = [];   // auth events recorded through deps.events.recordTenant (03-APP-FLOW 2.1 SS9: session_revoked per revoked session)
+  const events = { recordTenant: vi.fn(async (_tx: unknown, e: Record<string, any>) => { authEvents.push(e); }) };
+  const deps = { repo: fake.repo, gotrue: g.gotrue, userExists, emailHmac, clearAccountFailures, newId, events };
+  return { fake, g, deps, ctx, events, authEvents, access: base.ctx.audit.access, userExists, clearAccountFailures, emailHmac, mode: base.mode, scan: base.scan, storageKeys: base.storageKeys, raw: base.raw };
 }
 
 // ---------------------------------------------------------------------------------------------- wire-shape check against contracts/openapi/identity.yaml

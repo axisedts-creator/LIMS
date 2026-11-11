@@ -9,7 +9,6 @@ import { ConfirmDialog } from '@lims/ui/components/ConfirmDialog';
 import { DataTable, type ColumnDef } from '@lims/ui/components/DataTable';
 import { DateText, type DateTextProps } from '@lims/ui/components/DateText';
 import { DescriptionList } from '@lims/ui/components/DescriptionList';
-import { Dialog } from '@lims/ui/components/Dialog';
 import { IdText } from '@lims/ui/components/IdText';
 import { MoneyText } from '@lims/ui/components/MoneyText';
 import { PageHeader } from '@lims/ui/components/PageHeader';
@@ -19,7 +18,8 @@ import { Timeline } from '@lims/ui/components/Timeline';
 import { useToast } from '@lims/ui/components/Toast';
 import { cancelAction, recheckAction, resolveAction, type ActionResult } from '../server/actions';
 import { gatewayLabel, hasPerm, humanize, lower, nprText, statusLabel, statusTone } from '../labels';
-import type { CodedValue, IntentCodes, PaymentCallback, PaymentGatewayCheck, PaymentIntentDetail, PaymentRefund } from '../types';
+import { RefundRequestDialog } from './RefundRequestDialog';
+import type { CodedValue, IntentCodes, PaymentCallback, PaymentGatewayCheck, PaymentIntentDetail, PaymentMoney, PaymentRefund } from '../types';
 
 type Iso = DateTextProps['value'];
 type Fail = Extract<ActionResult, { ok: false }>;
@@ -54,7 +54,7 @@ const yesNo = (v: boolean | undefined) => (v === undefined ? '—' : v ? 'Yes' :
 const when = (v: string) => <DateText value={v as Iso} withTime />;
 const withIds = <T,>(rows: readonly T[] | undefined) => (rows ?? []).map((r, i) => ({ ...r, _id: String(i) }));
 
-export function IntentDetailView({ intent, permissions, codes }: { intent: PaymentIntentDetail; permissions: readonly string[]; codes: IntentCodes }) {
+export function IntentDetailView({ intent, permissions, codes, overpaid }: { intent: PaymentIntentDetail; permissions: readonly string[]; codes: IntentCodes; overpaid?: PaymentMoney | undefined }) {
   const router = useRouter();
   const toast = useToast();
   const canResolve = hasPerm(permissions, 'payments.intent.resolve');
@@ -225,10 +225,7 @@ export function IntentDetailView({ intent, permissions, codes }: { intent: Payme
           onConfirm={(r) => submit(dialog, r)}
         />
       ) : null}
-      <Dialog title="Request refund" isOpen={refundOpen} onClose={() => setRefundOpen(false)}>
-        <p>Refunds are requested and followed on the Gateway refunds screen.</p>
-        <p><a href="/payments/refunds">Open Gateway refunds</a></p>
-      </Dialog>
+      {canRefund ? <RefundRequestDialog intent={intent} overpaid={overpaid} refundReasons={codes.refund_reasons ?? []} isOpen={refundOpen} onClose={() => setRefundOpen(false)} /> : null}
     </>
   );
 }

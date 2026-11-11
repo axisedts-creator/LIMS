@@ -82,6 +82,7 @@ describe('T-27 status board table (AC-18.1)', () => {
   it('shows "Updated {time}" text and has no axe violations', async () => {
     const { container } = await show([row(1, { rejected_specimens: 1 }), row(2, { priority: 'urgent', board_status: 'printed', last_released_at: '2026-11-11T04:30:00.000Z' })]);
     expect(document.body.textContent).toMatch(/Updated\s+\S+/);
+    vi.useRealTimers(); // ruling: axe.run uses setTimeout internally
     const res = await axe.run(container, { rules: { 'color-contrast': { enabled: false } } });
     expect(res.violations.map((v) => `${v.id}: ${v.nodes.map((n) => n.html).join(' | ')}`)).toEqual([]);
   });

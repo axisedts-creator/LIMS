@@ -178,7 +178,7 @@ async function board(query: Record<string, unknown>, o: Opts = {}): Promise<{ st
         FrontdeskPort: {
           async getPatientDemographicsBatch(_c: unknown, x: { patientIds: string[]; purpose: string }) {
             probe.demographics.push(x);
-            return x.patientIds.map((patientId) => ({ patientId, patientCode: 'P-T27', fullName: 'Test Patient T27', sex: 'female', ageAtOrder: { years: 30, months: 0, days: 0 }, status: 'active',
+            return x.patientIds.map((patientId) => ({ patientId, patientCode: 'P-T27B', fullName: 'Test Patient T27', sex: 'female', ageAtOrder: { years: 30, months: 0, days: 0 }, status: 'active',
               consents: { sms: false, whatsapp: false, email: false, shareWithReferrer: false, consentTextVersion: '1' } }));
           },
         },
@@ -200,7 +200,7 @@ beforeAll(async () => {
   if (!live) return;
   api = new pg.Pool({ connectionString: API_URL, max: 12 });
   admin = new pg.Pool({ connectionString: ADMIN_URL, max: 4 });
-  for (const t of [A, B]) await asAdmin(t, (c) => ins(c, 'frontdesk.patients', { id: PATIENT[t], tenant_id: t, patient_code: 'P-T27', full_name: 'Test Patient T27', name_search: 'test patient t27',
+  for (const t of [A, B]) await asAdmin(t, (c) => ins(c, 'frontdesk.patients', { id: PATIENT[t], tenant_id: t, patient_code: 'P-T27B', full_name: 'Test Patient T27', name_search: 'test patient t27',
     sex: 'female', registered_centre_id: CENTRE[t] }));
 }, 120_000);
 afterAll(async () => { await Promise.all([api?.end(), admin?.end()]); });
@@ -243,7 +243,7 @@ describe.skipIf(!live)('T-27 AC-18.1 board_status projection (03-APP-FLOW §1.5)
     expect(r.body.data).toHaveLength(2);
     expect(rowOf(r, s1)).toMatchObject({ registration_no: s1.regNo, centre_id: CENTRE[A], board_status: 'collected', rejected_specimens: 0, priority: 'urgent' });
     expect(rowOf(r, s2)).toMatchObject({ registration_no: s2.regNo, board_status: 'ready', priority: 'routine' });
-    expect(rowOf(r, s1).patient_display).toMatchObject({ full_name: 'Test Patient T27', patient_code: 'P-T27' });
+    expect(rowOf(r, s1).patient_display).toMatchObject({ full_name: 'Test Patient T27', patient_code: 'P-T27B' });
     expect(rowOf(r, s1).patient_display.age_sex).toMatch(/30/);
     expect(rowOf(r, s1).patient_display.age_sex).toMatch(/F/i);
     expect(r.probe.demographics).toHaveLength(1);

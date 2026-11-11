@@ -19,9 +19,8 @@ const (
 const DefaultMaxMessageBytes = 1 << 20
 
 const (
-	ReasonNewStartBlock    = "new_start_block"
-	ReasonConnectionClosed = "connection_closed"
-	ReasonMSHUnparseable   = "msh_unparseable"
+	ReasonNewStartBlock  = "new_start_block"
+	ReasonMSHUnparseable = "msh_unparseable"
 )
 
 // ErrOversize: a block exceeded the maximum; the caller must reset the connection.
@@ -49,7 +48,7 @@ const (
 	KindIncomplete
 )
 
-// Event is one complete message, or a partial one (Reason set).
+// Event is one complete message, or a partial one (Reason set, or empty for a mid-block close).
 type Event struct {
 	Kind   Kind
 	Data   []byte
@@ -79,7 +78,7 @@ func NewReader(r io.Reader, maxMessageBytes int, st *Stats) *Reader {
 }
 
 // Next returns the next event. io.EOF (or the read error) ends the stream, after a final
-// incomplete(connection_closed) event if a block was open. ErrOversize is sticky.
+// incomplete event with empty Reason (E04 has no enum value for a mid-block close) if a block was open. ErrOversize is sticky.
 func (r *Reader) Next() (Event, error) {
 	if r.err != nil {
 		return Event{}, r.err
@@ -89,7 +88,7 @@ func (r *Reader) Next() (Event, error) {
 		if err != nil {
 			r.err = err
 			if r.inBlock {
-				return r.incomplete(ReasonConnectionClosed, true), nil
+				return r.incomplete("", true), nil
 			}
 			return Event{}, err
 		}

@@ -15,7 +15,7 @@ import (
 type Sink interface {
 	// CommitMessage must make raw durable BEFORE returning nil (D-02); an error → AR/CR, not received.
 	CommitMessage(raw []byte, msh hl7.MSH) error
-	// CommitIncomplete stores raw as an `incomplete` item; reason is a Reason* constant.
+	// CommitIncomplete stores raw as an `incomplete` item; reason is a Reason* constant, or "" for a mid-block close (uploader omits it).
 	CommitIncomplete(raw []byte, reason string) error
 }
 
@@ -53,7 +53,7 @@ func Serve(conn io.ReadWriteCloser, cfg Config) error {
 		}
 		if err != nil {
 			// EOF or a peer reset/abort: the link ended, any open partial was already emitted as
-			// incomplete(connection_closed). Not a receiver fault. ponytail: read-error cause is dropped; add a logger hook if ops needs it.
+			// incomplete (empty reason). Not a receiver fault. ponytail: read-error cause is dropped; add a logger hook if ops needs it.
 			return nil
 		}
 		if ev.Kind == KindIncomplete {

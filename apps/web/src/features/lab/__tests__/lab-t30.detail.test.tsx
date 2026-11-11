@@ -74,6 +74,23 @@ describe('T-30 header, timeline, tests (04-UI-UX §3.14)', () => {
     expect(text).toMatch(/label prints?\D*2|2\D*label prints?/i);
   });
 
+  // review C5.T-30 item 1: 04-UI-UX §3.14 description list shows "centre, processing centre" (processing centre only when present).
+  it('shows the centre and the processing centre', async () => {
+    await show();
+    const text = document.body.textContent ?? '';
+    expect(text).toMatch(/processing centre/i);
+    expect(text).toContain(uuid(2, 1));
+    expect(text).toContain(uuid(2, 2));
+    expect(text.replace(/processing centre/gi, '')).toMatch(/centre/i);
+  });
+
+  it('omits the processing centre when the specimen has none', async () => {
+    await show({ processing_centre_id: undefined });
+    const text = document.body.textContent ?? '';
+    expect(text).not.toMatch(/processing centre/i);
+    expect(text).toContain(uuid(2, 1));
+  });
+
   it('links to the parent specimen and to the specimen it replaces', async () => {
     const parent = uuid(5, 29), replaced = uuid(5, 28);
     await show({ parent_specimen_id: parent, replaces_specimen_id: replaced });

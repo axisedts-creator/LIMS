@@ -52,6 +52,22 @@ const EXPECTED: Record<string, 'counter' | 'gauge' | 'histogram'> = {
   lims_lab_host_query_duration_seconds: 'histogram',
   lims_lab_readiness_emitted_total: 'counter',
   lims_lab_barcode_alloc_failures_total: 'counter',
+  // C14 additions — CR-C14-T17-001 / lead T17-01, names+types verbatim from C14 02-TRD §12 lines 573-586.
+  lims_smartreport_builds_total: 'counter',
+  lims_smartreport_build_duration_seconds: 'histogram',
+  lims_smartreport_supersede_total: 'counter',
+  lims_smartreport_drafts_pending: 'gauge',
+  lims_smartreport_draft_age_seconds: 'histogram',
+  lims_smartreport_reviews_total: 'counter',
+  lims_smartreport_library_transitions_total: 'counter',
+  lims_smartreport_followup_skipped_total: 'counter',
+  lims_smartreport_trend_unavailable_total: 'counter',
+  lims_smartreport_llm_runs_total: 'counter',
+  lims_smartreport_llm_items_total: 'counter',
+  lims_smartreport_llm_calls_while_disabled_total: 'counter',
+  lims_smartreport_drafts_oldest_age_seconds: 'gauge',
+  lims_smartreport_llm_circuit_open: 'gauge',
+  lims_smartreport_llm_endpoint_refused_total: 'counter',
 };
 
 // LD-88: TRD §13 fixes this C8 histogram as a row count, so it cannot end in _seconds.

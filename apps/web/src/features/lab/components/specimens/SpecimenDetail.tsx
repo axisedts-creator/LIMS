@@ -8,12 +8,14 @@ import { useRouter } from 'next/navigation';
 import { Banner } from '@lims/ui/components/Banner';
 import { Button } from '@lims/ui/components/Button';
 import { Checkbox } from '@lims/ui/components/Checkbox';
+import { DescriptionList } from '@lims/ui/components/DescriptionList';
 import { Dialog } from '@lims/ui/components/Dialog';
 import { IntegerField } from '@lims/ui/components/IntegerField';
 import { PageHeader } from '@lims/ui/components/PageHeader';
 import { RadioGroup } from '@lims/ui/components/RadioGroup';
 import { TextArea } from '@lims/ui/components/TextArea';
 import { TextField } from '@lims/ui/components/TextField';
+import { Timeline } from '@lims/ui/components/Timeline';
 import { createAliquotsAction, discardSpecimenAction, rejectSpecimenAction, requestRecollectionAction, storeSpecimenAction } from '../../server/actions';
 import type { ActionResult, RejectionReason, SpecimenDetail as Detail } from '../../server/types';
 import { FAILED, call, newKey, plural, statusText, utc } from '../shared';
@@ -138,18 +140,21 @@ export function SpecimenDetail({ specimen: s, rejectionReasons, recollectionDefa
       {!s.is_active ? <Banner tone="danger" title="Order cancelled — do not process" /> : null}
       {s.collection_barcode_unverified ? <Banner tone="warning" title="Collection barcode was not verified on the phlebotomy app" /> : null}
 
-      <dl>
-        <dt>Status</dt><dd>{label(st)}</dd>
-        <dt>Registration no</dt><dd>{s.registration_no}</dd>
-        <dt>Specimen type</dt><dd>{s.specimen_type_code}</dd>
-        {s.container_code ? <><dt>Container</dt><dd>{s.container_code}</dd></> : null}
-        <dt>Priority</dt><dd>{label(s.priority)}</dd>
-        <dt>Label prints</dt><dd>{s.label_print_count}</dd>
-        {s.parent_specimen_id ? <><dt>Parent specimen</dt><dd><a href={`/lab/specimens/${encodeURIComponent(s.parent_specimen_id)}`}>Open parent specimen</a></dd></> : null}
-        {s.replaces_specimen_id ? <><dt>Replaces</dt><dd><a href={`/lab/specimens/${encodeURIComponent(s.replaces_specimen_id)}`}>Open replaced specimen</a></dd></> : null}
-        {s.rejection_reason_code ? <><dt>Rejection</dt><dd>{reasonText(s.rejection_reason_code)}{s.rejected_at ? <> (<time dateTime={s.rejected_at}>{utc(s.rejected_at)}</time>)</> : null}</dd></> : null}
-        {s.rejection_comment ? <><dt>Rejection comment</dt><dd>{s.rejection_comment}</dd></> : null}
-      </dl>
+      {/* review C5.T-30 #1/#2: 04-UI-UX §3.14 DescriptionList incl. centre + processing centre (when present) */}
+      <DescriptionList items={[
+        { term: 'Status', value: label(st) },
+        { term: 'Registration no', value: s.registration_no },
+        { term: 'Specimen type', value: s.specimen_type_code },
+        ...(s.container_code ? [{ term: 'Container', value: s.container_code }] : []),
+        { term: 'Priority', value: label(s.priority) },
+        { term: 'Centre', value: s.centre_id },
+        ...(s.processing_centre_id ? [{ term: 'Processing centre', value: s.processing_centre_id }] : []),
+        { term: 'Label prints', value: s.label_print_count },
+        ...(s.parent_specimen_id ? [{ term: 'Parent specimen', value: <a href={`/lab/specimens/${encodeURIComponent(s.parent_specimen_id)}`}>Open parent specimen</a> }] : []),
+        ...(s.replaces_specimen_id ? [{ term: 'Replaces', value: <a href={`/lab/specimens/${encodeURIComponent(s.replaces_specimen_id)}`}>Open replaced specimen</a> }] : []),
+        ...(s.rejection_reason_code ? [{ term: 'Rejection', value: <>{reasonText(s.rejection_reason_code)}{s.rejected_at ? <> (<time dateTime={s.rejected_at}>{utc(s.rejected_at)}</time>)</> : null}</> }] : []),
+        ...(s.rejection_comment ? [{ term: 'Rejection comment', value: s.rejection_comment }] : []),
+      ]} />
 
       <div role="group" aria-label="Actions">
         {canReceive && STORE.includes(st) ? <Button variant="secondary" onPress={() => open('store')}>Store</Button> : null}
@@ -175,11 +180,7 @@ export function SpecimenDetail({ specimen: s, rejectionReasons, recollectionDefa
       </table>
 
       <h2>Timeline</h2>
-      <ol aria-label="Timeline">
-        {timeline.map((t, i) => (
-          <li key={`${t.at}-${i}`}><time dateTime={t.at}>{utc(t.at)}</time> {label(t.to_status)}</li>
-        ))}
-      </ol>
+      <Timeline aria-label="Timeline" items={timeline.map((t) => ({ at: t.at, label: label(t.to_status) }))} />
 
       {kind === 'store' ? (
         <Dialog title="Store specimen" isOpen onClose={close} footer={confirmBtn('Store', confirmStore)}>

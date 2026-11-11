@@ -53,9 +53,10 @@ const nonEmptyStr = (x: unknown) => typeof x === "string" && x.trim().length > 0
 
 // Calls visit(schema, ptr) on every inline (non-$ref) schema node reachable from `s`.
 // `deref` (optional) follows local #/components/schemas refs (rule 7 needs it; cycle-safe).
-// LD-118 (2026-11-12): rule 7 exception, exactly ONE entry, keyed by module + operationId + property path (never the
-// name alone). Path is relative to the enclosing array item, so it matches each mutation of PushRequest.mutations[].
-const STATUS_ALLOWLIST = [{ module: "homecollection", operationId: "pushSyncMutations", path: "captured.gps.status" }] as const;
+// LD-118 (2026-11-12; ruling: C17 TRD 6.3 puts gps in payload): rule 7 exception, exactly ONE entry, keyed by module +
+// operationId + property path (never the name alone). Path is relative to the enclosing array item, so it matches each
+// mutation of PushRequest.mutations[].
+const STATUS_ALLOWLIST = [{ module: "homecollection", operationId: "pushSyncMutations", path: "payload.gps.status" }] as const;
 const statusAllowed = (module: string, operationId: unknown, path: string) =>
   STATUS_ALLOWLIST.some((e) => e.module === module && e.operationId === operationId && e.path === path.replace(/^.*\[\]\./, ""));
 

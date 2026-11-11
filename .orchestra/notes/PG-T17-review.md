@@ -1,5 +1,9 @@
-CHANGES
-1. services/api/src/modules/payments/service/merchant.service.ts:224 — `payments.settings.refund_two_person_threshold_paisa` is `bigint` (05-SCHEMA); node-pg returns int8 as a string and no int8 type parser is registered in services/. `body[k] !== before[k]` compares number vs string ("0"), so every PUT on an existing row logs `refund_two_person_threshold_paisa` in the `settings.change` detail even when unchanged (TRD §6.9/§5.1: "changed field names only"; ST-24). Fix: `const fields = SETTINGS_KEYS.filter((k) => (k === 'refund_two_person_threshold_paisa' ? Number(before[k]) !== body[k] : body[k] !== before[k]));` and add a test where the fake returns the threshold as a string (e.g. `'0'`) and a PUT with the same value logs no threshold field.
+APPROVE
 
-Checked, no defect: names (routes P20–P23, outcomes, `settings.change`, entity types, error codes) verbatim; write-only secret (DTO shows is_set/set_at/fingerprint only; fixed error messages); env guard (uat/EPAYTEST in prod, production in non-prod); fonepay enable -> 503 `payments.gateway_not_available`; every P22 outcome 200 and stored; lazy settings row (P-22) with race handling; rewrap only rows with `secret_kek_id <> active`, AAD bound, fail-closed skip; tenant_id in every WHERE. Tests: api 94/94, worker 9/9 (run by reviewer).
-Not verifiable here: RLS/row-audit (no payments migration in this task), route/permission wiring and cron registration (later tasks).
+Re-review after fixes (1e9b06f7..HEAD):
+- Prior finding 1 resolved: merchant.service.ts:224 now compares `refund_two_person_threshold_paisa` numerically (`Number(before[k]) !== body[k]`), so a node-pg int8 string no longer logs an unchanged threshold in `settings.change`. New test seeds the threshold as the string '250000': an unchanged PUT logs only `reconciliation_enabled`, and a changed PUT logs only `refund_two_person_threshold_paisa`.
+- No other code changes. All diff paths are owned (payments module/jobs + PG-T17 notes).
+- Tests (run by reviewer): api 95/95, worker 9/9.
+
+Earlier checks still hold: names verbatim; write-only secret; env guard; every P22 outcome returns 200; lazy settings row (P-22); field-names-only access log; rewrap is AAD-bound and fail-closed.
+Not verifiable here: RLS/row-audit (no payments migration in this task); route/permission wiring and cron registration come in later tasks.

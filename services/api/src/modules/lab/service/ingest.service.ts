@@ -18,7 +18,9 @@ import {
 } from './result.service.js';
 
 export type IngestOutcome = 'applied' | 'duplicate' | 'unmatched' | 'rejected_state' | 'held' | 'not_applicable';
-export interface IngestResult { outcome: IngestOutcome; resultId?: string; specimenId?: string; reasonCode?: string }
+export interface IngestResult { outcome: IngestOutcome; resultId?: string; specimenId?: string; reasonCode?: string; saved?: ResultRow }   // `saved` (T-23): the row after the save, for the assign response
+/** T-23 (§4.5 replay): `resultKey` keeps the stored key of an exception; `assign` replaces steps 4-9 by the caller's target row (override_analyte lets the analyte differ). */
+export interface RunOptions { resultKey?: string; assign?: { target: EntryRow; overrideAnalyte: boolean } }
 
 /** InstrumentResultInput (03-IC §4.5) = the instruments.result.received.v1 payload camelCased (08 A13 D-10). */
 export interface InstrumentResultInput {
@@ -60,7 +62,7 @@ export interface IngestStore extends Pick<EntryStore, 'deltaInputs' | 'listCriti
   insertAttachment(tx: unknown, tenantId: string, a: { resultId: string; bucket: string; objectPath: string; sha256: string; mimeType: string }): Promise<void>;
   /** upsert on the open key (tenant_id, result_key) WHERE status = 'open'. */
   upsertOpenException(tx: unknown, tenantId: string, a: ExceptionInput): Promise<{ exceptionId: string }>;
-  closeOpenExceptions(tx: unknown, tenantId: string, a: { resultKey: string; resolution: 'applied'; resolverMembershipId?: string; occurredAt: string }): Promise<void>;
+  closeOpenExceptions(tx: unknown, tenantId: string, a: { resultKey: string; resolution: 'applied' | 'assigned'; resolverMembershipId?: string; occurredAt: string }): Promise<void>;
   finishLog(tx: unknown, tenantId: string, logId: string, a: { lastOutcome: IngestOutcome; resultId?: string; specimenId?: string; processingCentreId?: string; exceptionId?: string; occurredAt: string }): Promise<void>;
 }
 
@@ -171,10 +173,11 @@ function mulDecimal(a: string, b: string): string {
 const KIND_FIELD: Record<string, 'numeric' | 'ordinal' | 'text' | undefined> = { numeric: 'numeric', ordinal: 'ordinal', coded: 'ordinal', text: 'text' };
 
 // ----------------------------------------------------------------------------------------------------------------------------------------- pipeline
-async function run(ctx: IngestCtx, i: InstrumentResultInput, source: 'event' | 'port', eventId?: string): Promise<IngestResult> {
+async function run(ctx: IngestCtx, i: InstrumentResultInput, source: 'event' | 'port', eventId?: string, opts: RunOptions = {}): Promise<IngestResult> {
   const { tx, tenantId, store } = ctx;
   checkInput(i);
-  const key = resultKey(i);
+  const key = opts.resultKey ?? resultKey(i);
+  const assign = opts.assign;
   const at = ctx.now().toISOString();
   const flags = [...(i.instrumentFlags ?? [])];
 
@@ -221,31 +224,49 @@ async function run(ctx: IngestCtx, i: InstrumentResultInput, source: 'event' | '
   }
 
   // step 3: the analyte, from the catalog (always: it also carries flagMap and unitConversion). Only `unmapped` is an outcome; any other failure propagates.
-  let mapping: Awaited<ReturnType<IngestCtx['ports']['CatalogPort']['mapInstrumentCode']>>;
+  type Mapping = Awaited<ReturnType<IngestCtx['ports']['CatalogPort']['mapInstrumentCode']>>;
+  let mapping: Mapping | undefined;
   try {
     mapping = await ctx.ports.CatalogPort.mapInstrumentCode(ctx, { instrumentId: i.instrumentId, direction: 'inbound', instrumentCode: i.instrumentAnalyteCode });
   } catch (e) {
-    if (isLimsError(e, 'catalog.instrument_code_unmapped')) return refuse('unmatched', 'unmapped_code');
-    throw e;
+    if (!isLimsError(e, 'catalog.instrument_code_unmapped')) throw e;
+    if (!assign) return refuse('unmatched', 'unmapped_code');   // an assignment does not need the mapping; only the analyte check below does
   }
-  const analyteId = mapping.analyteId, testId = mapping.testId;
-  if (!analyteId) return refuse('unmatched', 'unmapped_code');
-  const known = { analyteId, ...(testId === undefined ? {} : { testId }) };
+  if (assign) {   // T-23: the caller picked the target; a different (or unmapped) analyte needs override_analyte (04-UI-UX §3.10)
+    if (!assign.overrideAnalyte && mapping?.analyteId !== assign.target.analyteId) {
+      throw new LimsError('common.validation_failed', undefined, [{ path: '/override_analyte', code: 'common.field_invalid', message: 'override_analyte is required to apply to a different analyte' }]);
+    }
+  } else if (!mapping?.analyteId) return refuse('unmatched', 'unmapped_code');
+  const analyteId = mapping?.analyteId, testId = mapping?.testId;
+  const known = { ...(analyteId === undefined ? {} : { analyteId }), ...(testId === undefined ? {} : { testId }) };
 
   // steps 4-9: the pure table. The results are read (and locked, 02-TRD §3.2: results before specimen) only once steps 4-6 let the record through.
-  const specimen = await store.findSpecimen(tx, tenantId, i.sampleBarcode);
-  const waiting = specimen !== undefined && (specimen.status === 'collected' || specimen.status === 'in_transit');
-  const autoReceive = waiting ? await store.getIngestAutoReceive(tx, tenantId) : false;
-  const view = specimen && { status: specimen.status, isActive: specimen.isActive };
-  const first = decideMatch({ specimen: view, autoReceive, analyteId, testId, results: [] });
-  let decision: MatchDecision = first;
+  let specimen: IngestSpecimen | undefined;
+  let decision: MatchDecision;
   let rows: EntryRow[] = [];
-  if (specimen && first.outcome === 'unmatched' && first.exception === 'analyte_not_ordered') {   // steps 4-6 passed
-    rows = await store.lockSpecimenResults(tx, tenantId, specimen.specimenId);
-    decision = decideMatch({
-      specimen: view, autoReceive, analyteId, testId,
-      results: rows.map((r) => ({ resultId: r.resultId, analyteId: r.analyteId, testId: r.testId, status: r.status })),
-    });
+  if (assign) {   // steps 4-7 are the caller's choice; 8-9 still protect approved / verified rows (04 R1)
+    const t = assign.target;
+    if (!t.specimenId) throw new LimsError('common.validation_failed', undefined, [{ path: '/result_id', code: 'common.field_invalid', message: 'result has no specimen' }]);
+    specimen = { specimenId: t.specimenId, status: 'received', isActive: true, centreId: t.centreId };
+    rows = [t];
+    if (t.status === 'approved') decision = { outcome: 'rejected_state', exception: 'result_locked', reasonCode: 'result_locked', resultId: t.resultId };
+    else if (t.status === 'verified') decision = { outcome: 'unmatched', exception: 'result_already_verified', resultId: t.resultId };
+    else if (t.status === 'pending' || t.status === 'resulted') decision = { outcome: 'apply', resultId: t.resultId, receive: false };
+    else throw new LimsError('common.not_found');   // cancelled / unknown: not a target
+  } else {
+    specimen = await store.findSpecimen(tx, tenantId, i.sampleBarcode);
+    const waiting = specimen !== undefined && (specimen.status === 'collected' || specimen.status === 'in_transit');
+    const autoReceive = waiting ? await store.getIngestAutoReceive(tx, tenantId) : false;
+    const view = specimen && { status: specimen.status, isActive: specimen.isActive };
+    const first = decideMatch({ specimen: view, autoReceive, analyteId: analyteId as string, testId, results: [] });
+    decision = first;
+    if (specimen && first.outcome === 'unmatched' && first.exception === 'analyte_not_ordered') {   // steps 4-6 passed
+      rows = await store.lockSpecimenResults(tx, tenantId, specimen.specimenId);
+      decision = decideMatch({
+        specimen: view, autoReceive, analyteId: analyteId as string, testId,
+        results: rows.map((r) => ({ resultId: r.resultId, analyteId: r.analyteId, testId: r.testId, status: r.status })),
+      });
+    }
   }
   let processingCentreId = specimen?.processingCentreId;
   if (specimen && decision.receive === true) {   // S4 as system, processing centre = the event centre; stays done even if the analyte turns out not to be ordered (same tx)
@@ -268,7 +289,8 @@ async function run(ctx: IngestCtx, i: InstrumentResultInput, source: 'event' | '
 
   // step 10: unit
   assertManualValueAllowed(row);   // a calculated analyte never takes a measured value (AC-09.7)
-  const unit = decideUnit({ unitRaw: i.unitRaw, unitCode: i.unitCode, analyteUnitCode: row.unitCode, unitConversion: mapping.unitConversion });
+  const map = mapping && mapping.analyteId === row.analyteId ? mapping : undefined;   // conversion / flag map belong to the mapped analyte only (assign with override_analyte)
+  const unit = decideUnit({ unitRaw: i.unitRaw, unitCode: i.unitCode, analyteUnitCode: row.unitCode, unitConversion: map?.unitConversion });
   const field = KIND_FIELD[row.analyte.resultType];
   if (field === undefined) throw new LimsError('lab.result_value_invalid');   // narrative / attachment analytes take no value
   const raw = field === 'numeric' ? i.valueNumeric : i.valueRaw;
@@ -282,7 +304,7 @@ async function run(ctx: IngestCtx, i: InstrumentResultInput, source: 'event' | '
   const value: EntryValue = field === 'numeric' ? { numeric: text } : field === 'ordinal' ? { ordinalCode: text } : { text };
 
   // step 11: hold, evaluation (skipped on a unit mismatch), save
-  const onHold = await store.isOnQcHold(tx, tenantId, { instrumentId: i.instrumentId, analyteId, at: i.instrumentResultTime ?? i.receivedAt });
+  const onHold = await store.isOnQcHold(tx, tenantId, { instrumentId: i.instrumentId, analyteId: row.analyteId, at: i.instrumentResultTime ?? i.receivedAt });
   let evaluation: Evaluation | undefined;
   if (!unit.unitMismatch) {
     const delta = await store.deltaInputs(tx, tenantId, row);
@@ -294,7 +316,7 @@ async function run(ctx: IngestCtx, i: InstrumentResultInput, source: 'event' | '
       ...(delta.rule === undefined ? {} : { deltaRule: delta.rule }), deltaCandidates: delta.candidates,
     });
   }
-  const mappedFlags = flags.map((f) => (mapping.flagMap && Object.hasOwn(mapping.flagMap, f) ? (mapping.flagMap[f] as string) : f));
+  const mappedFlags = flags.map((f) => (map?.flagMap && Object.hasOwn(map.flagMap, f) ? (map.flagMap[f] as string) : f));
   const saved = await store.saveInstrumentResult(tx, tenantId, {
     resultId: row.resultId, expectedRowVersion: row.rowVersion, transition: row.status === 'pending' ? 'R2' : 'R3', origin: 'instrument', instrumentId: i.instrumentId, value,
     ...(unit.storedUnitCode === undefined ? {} : { unitCode: unit.storedUnitCode }), unitMismatch: unit.unitMismatch, onHold, instrumentFlags: mappedFlags, rawInstrumentFlags: flags,
@@ -326,13 +348,16 @@ async function run(ctx: IngestCtx, i: InstrumentResultInput, source: 'event' | '
 
   // step 12 (+ unit mismatch exception, which must outlive the close): close the open exceptions of this key, then open unit_mismatch for the saved result
   const outcome = onHold ? 'held' : 'applied';
-  const result = await finishApplied(row, outcome, unit.unitMismatch);
+  const result = await finishApplied(row, outcome, unit.unitMismatch, saved);
   // step 11 hook: only a result that is not held, has no unit mismatch (and, inside, no unknown-age range) is ever offered to canAutoVerify (CR-C9-004, 08 A17.1)
-  if (!onHold && !unit.unitMismatch) await autoVerifyAfterInstrumentSave(ctx, { resultId: row.resultId });
+  if (!onHold && !unit.unitMismatch) {
+    const av = await autoVerifyAfterInstrumentSave(ctx, { resultId: row.resultId });
+    if (av.verified && av.result) return { ...result, saved: av.result };
+  }
   return result;
 
-  async function finishApplied(target: EntryRow, out: 'applied' | 'held', mismatch = false): Promise<IngestResult> {
-    await store.closeOpenExceptions(tx, tenantId, { resultKey: key, resolution: 'applied', ...(source === 'port' && ctx.actor.membershipId !== undefined ? { resolverMembershipId: ctx.actor.membershipId } : {}), occurredAt: at });
+  async function finishApplied(target: EntryRow, out: 'applied' | 'held', mismatch = false, savedRow?: ResultRow): Promise<IngestResult> {
+    await store.closeOpenExceptions(tx, tenantId, { resultKey: key, resolution: assign ? 'assigned' : 'applied', ...(source === 'port' && ctx.actor.membershipId !== undefined ? { resolverMembershipId: ctx.actor.membershipId } : {}), occurredAt: at });
     let exceptionId: string | undefined;
     if (mismatch) ({ exceptionId } = await store.upsertOpenException(tx, tenantId, exceptionFor('unit_mismatch', { ...spec, resultId: target.resultId, ...known })));
     await store.finishLog(tx, tenantId, claim.logId, {
@@ -340,8 +365,15 @@ async function run(ctx: IngestCtx, i: InstrumentResultInput, source: 'event' | '
       ...(processingCentreId === undefined ? {} : { processingCentreId }), ...(exceptionId === undefined ? {} : { exceptionId }),
     });
     ctx.log?.info({ msg: 'lab.ingest', outcome: out, ...(mismatch ? { reason: 'unit_mismatch' } : {}) });
-    return { outcome: out, resultId: target.resultId, specimenId: (specimen as IngestSpecimen).specimenId };
+    return { outcome: out, resultId: target.resultId, specimenId: (specimen as IngestSpecimen).specimenId, ...(savedRow === undefined ? {} : { saved: savedRow }) };
   }
+}
+
+/** T-23 replay of a stored exception (reapply / assign): port path under the exception's own result key (CR-C7-011); the caller actor resolves it. */
+export async function reapplyInstrumentResult(rawCtx: unknown, input: InstrumentResultInput, opts: RunOptions): Promise<IngestResult> {
+  const ctx = rawCtx as IngestCtx;
+  if (typeof ctx?.tenantId !== 'string' || !ctx.tenantId) throw new LimsError('common.internal');
+  return run(ctx, input, 'port', undefined, opts);
 }
 
 /** Port path (LabPort.ingestInstrumentResult): caller actor, first_source 'port'. Never throws lab.result_locked: an approved target is returned as rejected_state (CR-C5-008). */

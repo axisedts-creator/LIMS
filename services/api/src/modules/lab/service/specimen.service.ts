@@ -8,6 +8,7 @@ import { LimsError, type FieldError } from '../../../core/errors.js';
 import { DEFAULT_BARCODE_PATTERN, renderBarcode } from '../domain/barcode.js';
 import { assertSpecimenReceivable, specimenTransition, type SpecimenStatus, SPECIMEN_STATUSES } from '../domain/specimen.state.js';
 import { createLabEvents } from '../events/publish.js';
+import { enqueueReapplyForSpecimen } from './exception.service.js';
 import { decodeCursor, encodeCursor, groupTests, specimenDetailDto, specimenDto } from '../mappers/specimen.mapper.js';
 import { allocateBarcodeSeq } from '../repository/barcodeCounters.repo.js';
 import type { RepoCtx, RepoTx } from '../repository/base.repo.js';
@@ -209,6 +210,7 @@ async function move(c: SpecimenCtx, row: Obj, version: number, a: Action, centre
     await copyProcessingToResultsOfSpecimen(rc, row['id'], p);
     await copyProcessingToExistingMaterialTests(rc, row['order_id'], p);
     await copyProcessingToExistingMaterialResults(rc, row['order_id'], p);
+    await enqueueReapplyForSpecimen(c, row['id']);                                  // AC-04.5: re-run open exceptions of this specimen (T-23), same tx
   }
   return { updated: { ...updated, registration_no: row['registration_no'] }, code };
 }

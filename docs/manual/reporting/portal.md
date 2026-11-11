@@ -12,7 +12,27 @@ The code page never shows the masked phone number or address.
 
 ## Dues
 
-If a report is held for payment, the patient sees "Payment due" with "Amount due: NPR {amount}". The page does not show the report status, test names, or a download. When online payments are live the patient sees a button for each gateway turned on in the settings ([settings.md](settings.md)): Pay with eSewa or Pay with Khalti. Otherwise the page says to pay at the lab counter or in the app. After payment the patient is told the report will be sent once it is released.
+**Dues page `/r/{token}/dues`** (dues links only). Title "Payment due" with "Amount due: NPR {amount}" and "Your report will be sent once payment is complete." The page does not show the report status, test names, or a download. When online payments are live the patient sees a button for each gateway turned on in the settings ([settings.md](settings.md)): Pay with eSewa or Pay with Khalti. Otherwise the page says "Please pay at the lab counter or in the app." When the balance is 0 the page says "Payment received — your report will be sent once it is released."
+
+**Report page dues card.** Shown only for patient links with an amount due: "Amount due: NPR {amount}" and the note "The exact amount is confirmed when you pay." The pay buttons follow the same rule as the dues page. If a payment is already open the card says "A payment is in progress." with a "See payment status" link.
+
+**Payment status `/r/{token}/payments/{id}`.** The patient sees one of:
+
+- "Preparing your payment…" — the page refreshes itself.
+- "Continue to eSewa" / "Continue to Khalti" — the payment is ready; the button opens the gateway.
+- "We are confirming your payment. This can take a few minutes."
+- "Online payment is not available right now. Please pay at the lab counter or in the app."
+- "Nothing is due on this report."
+- "A payment for this order is already in progress."
+
+**Payment return `/r/payments/{id}/done`.** Where the gateway sends the patient back:
+
+- "Payment received. Thank you." with a "Back to your report" link.
+- "Checking your payment…", then after a minute "We have not received confirmation yet. If you paid, it will show at the lab shortly."
+- "The payment was not completed." with "Back to your report".
+- "Open your report link again to see your payment status." — the browser session has ended; no data is shown.
+
+The gateway's outcome value is never shown or trusted. Staff confirm a payment in billing, not from the patient's screen.
 
 ## Problems patients report
 

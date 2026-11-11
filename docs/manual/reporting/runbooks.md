@@ -44,7 +44,7 @@ Action: on the settings screen put SMS first in the patient mobile channel order
 
 When: the callback URL was shown to the wrong person, or the provider account changed.
 
-Action: open the [Messages screen](messages.md) and generate a new callback URL for the channel. It is shown once. Copy it into the provider's settings straight away; the old URL stops working. The server keeps only a hash of the token, so a lost URL cannot be looked up again, only replaced. Rotation needs the channel manage permission.
+Action: open the [Messages screen](messages.md) and generate a new callback URL for the channel. It is shown once. Copy it into the provider's settings straight away; the old URL stops working. The server keeps only a hash of the token, so a lost URL cannot be looked up again, only replaced. Rotation needs `reporting.channel.manage`.
 
 ## Revoke links after a mis-send
 

@@ -28,6 +28,7 @@ import { historyHandlers } from './history.handlers.js';
 import { approveHandlers } from './approve.handlers.js';
 import { worklistHandlers } from './worklist.handlers.js';
 import { ingestExceptionHandlers } from './ingestException.handlers.js';
+import { configHandlers } from './config.handlers.js';
 
 const OPERATION_IDS = [
   // specimens
@@ -70,6 +71,7 @@ const REAL: Partial<Record<LabOperationId, Handler>> = {
   ...historyHandlers, // T-19: getResultHistory, getAnalyteTrend
   ...worklistHandlers, // T-26: listWorklistItems, listPendingItems, createWorksheet, listWorksheets, getWorksheet
   ...ingestExceptionHandlers, // T-23: list/get/assign/reapply/discard IngestException (#38-#42)
+  ...configHandlers, // T-29: getLabSettings, updateLabSettings, list/create/version/deactivate DeltaCheckRule, listLabCodedSet, upsertLabCode (#47-#54)
   getStatusBoard, // T-27
 };
 

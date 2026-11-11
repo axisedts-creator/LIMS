@@ -53,6 +53,8 @@ const IMPLEMENTED: readonly string[] = [
   'listIngestExceptions', 'getIngestException', 'assignIngestException', 'reapplyIngestException', 'discardIngestException',
   // T-27 status board
   'getStatusBoard',
+  // T-29 configuration (#47-#54)
+  'getLabSettings', 'updateLabSettings', 'listDeltaCheckRules', 'createDeltaCheckRule', 'versionDeltaCheckRule', 'deactivateDeltaCheckRule', 'listLabCodedSet', 'upsertLabCode',
 ];
 
 const FAKE_REQ = { params: {}, query: {}, headers: {}, body: {} };

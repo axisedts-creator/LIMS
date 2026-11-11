@@ -12,6 +12,7 @@ import { gw } from './verifyMfaChallenge.js';
 type Svc = ReturnType<typeof createSelfService>;
 const gotrue: NonNullable<SelfDeps['gotrue']> = {
   signInWithPassword: (e, p) => gw().signInWithPassword(e, p),
+  signOut: (t, s) => gw().signOut(t, s),
   adminUpdatePassword: (u, p) => gw().adminUpdatePassword(u, p),
   adminDeleteFactor: (u, f) => gw().adminDeleteFactor(u, f),
 };

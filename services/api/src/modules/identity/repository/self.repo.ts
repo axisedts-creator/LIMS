@@ -27,6 +27,13 @@ const PROFILE_SQL = `SELECT m.id AS membership_id, m.user_id, m.last_login_at, m
   FROM core.memberships m JOIN core.users u ON u.tenant_id = m.tenant_id AND u.id = m.user_id
   WHERE m.tenant_id = $1 AND m.id = $2 AND m.user_id = $3 AND m.actor_type = $4`;
 
+// Partner: no role / permission / centre read (02-TRD s7.1, 08 A28.3: the role comes from the claims; partner claims cannot read core roles).
+// [CONV] core.users / core.memberships reads under partner claims are still a spec gap (CR C2.T10).
+const PARTNER_PROFILE_SQL = `SELECT m.id AS membership_id, m.user_id, m.last_login_at, u.display_name, u.email_normalized AS email,
+    EXISTS (SELECT 1 FROM identity.mfa_factors f WHERE f.tenant_id = m.tenant_id AND f.user_id = m.user_id AND f.status = $5) AS has_verified_factor
+  FROM core.memberships m JOIN core.users u ON u.tenant_id = m.tenant_id AND u.id = m.user_id
+  WHERE m.tenant_id = $1 AND m.id = $2 AND m.user_id = $3 AND m.actor_type = $4`;
+
 const SESSION_COLS = `s.id, s.tenant_id, s.kind, s.user_id, s.membership_id, s.state, s.aal, s.created_at, s.last_seen_at, s.idle_expires_at,
     s.absolute_expires_at, host(s.client_ip) AS client_ip, s.user_agent, s.support_session_id`;
 const LIST_SESSIONS_SQL = `SELECT ${SESSION_COLS}, u.display_name FROM identity.sessions s
@@ -59,8 +66,13 @@ const TERMINAL = ['revoked', 'expired'];
 export function createSelfRepo(): SelfRepo {
   return {
     async getProfile(tx, t, a) {
-      const r = (await q(tx, PROFILE_SQL, [t, a.membershipId, a.userId, a.actorType, 'verified']))[0];
+      const partner = a.actorType === 'partner';
+      const r = (await q(tx, partner ? PARTNER_PROFILE_SQL : PROFILE_SQL, [t, a.membershipId, a.userId, a.actorType, 'verified']))[0];
       if (!r) return undefined;
+      if (partner) {   // roles / permissions / centres are the service's, from the claims
+        return { membershipId: r.membership_id, userId: r.user_id, email: r.email, displayName: r.display_name, roles: [], permissions: [],
+          allCentres: false, centreIds: [], lastLoginAt: r.last_login_at ?? null, hasVerifiedFactor: r.has_verified_factor === true };
+      }
       const ids: string[] = r.role_ids ?? [], codes: string[] = r.role_codes ?? [], names: string[] = r.role_names ?? [];
       return {
         membershipId: r.membership_id, userId: r.user_id, email: r.email, displayName: r.display_name,

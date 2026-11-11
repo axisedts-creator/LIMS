@@ -7,6 +7,7 @@ import { LimsError, type FieldError } from '../../../core/errors.js';
 // [CONV] relative import until @lims/shared-ts is a services/api dependency (same as role.service).
 import { uuidv7 } from '../../../../../../packages/shared-ts/src/uuidv7/index.js';
 import { evaluatePassword } from '../domain/password-policy.js';
+import { fixedActorPermissions } from '../domain/permission-set.js';
 import type { GoTrueGateway } from '../gotrue/gateway.js';
 import type { AuthEvent } from '../repository/auth-events.repo.js';
 import { maskIp, uaFamily } from './platform-staff.service.js';
@@ -36,8 +37,8 @@ export interface SelfRepo {
   roleRequiresMfa(tx: unknown, tenantId: string, a: { membershipId: string }): Promise<boolean>;
   markFactorRemoved(tx: unknown, tenantId: string, a: { userId: string; factorId: string; reason: 'self'; at: Date; actorId: string }): Promise<void>;
   enqueue(tx: unknown, taskIdentifier: string, payload: Record<string, unknown>, jobKey: string): Promise<void>;
-  /** tenant password_min_length (AC-A6.1); absent -> the 12 floor */
-  passwordMinLength?(tx: unknown, tenantId: string): Promise<number | undefined>;
+  /** tenant password_min_length (AC-A6.1); undefined (no settings row) -> the service fails closed (common.internal) */
+  passwordMinLength(tx: unknown, tenantId: string): Promise<number | undefined>;
 }
 export interface SelfCtx {
   readonly tenantId: string;
@@ -50,13 +51,14 @@ export interface SelfCtx {
   readonly tx: unknown;
   readonly now?: () => Date;
   readonly commitOnError: () => void;
+  readonly log?: { warn(o: object, m?: string): void };
   readonly audit: { access(entry: { action: string; entityType: string; entityId?: string; outcome: 'allowed' | 'denied' }): Promise<void> };
 }
 export interface Result { status: number; body?: unknown }
 type In = Record<string, unknown>;
 export interface SelfDeps {
   repo?: SelfRepo;
-  gotrue?: Pick<GoTrueGateway, 'signInWithPassword' | 'adminUpdatePassword' | 'adminDeleteFactor'>;
+  gotrue?: Pick<GoTrueGateway, 'signInWithPassword' | 'signOut' | 'adminUpdatePassword' | 'adminDeleteFactor'>;
   breached?: { isBreached(tx: any, sha1: Buffer): Promise<boolean> };
   events?: { recordTenant(tx: any, e: AuthEvent): Promise<void> };
   newId?: () => string;
@@ -130,15 +132,20 @@ export function createSelfService(deps: SelfDeps = {}) {
   async function gotrue<T>(fn: () => Promise<T>): Promise<T> {
     try { return await fn(); } catch (e) { if (e instanceof LimsError) throw e; throw new LimsError('common.dependency_unavailable'); }
   }
-  async function profile(w: Who): Promise<Profile> {
+  async function profile(ctx: SelfCtx, w: Who): Promise<Profile> {
+    // 02-TRD s5.2 / s7.1 (08 A28.3): a partner's role comes from the claims (ctx.partnerRole), permissions from the fixed set; no core role read.
+    const partnerPerms = w.actorType === 'partner' && typeof ctx.partnerRole === 'string' ? fixedActorPermissions('partner', ctx.partnerRole) : [];
+    if (w.actorType === 'partner' && partnerPerms.length === 0) throw new LimsError('auth.unauthenticated');
     const p = await w.repo.getProfile(w.tx, w.tenantId, { membershipId: w.membershipId, userId: w.userId, actorType: w.actorType });
     if (!p || p.userId !== w.userId || p.membershipId !== w.membershipId) throw new LimsError('auth.unauthenticated');
-    return p;
+    if (w.actorType !== 'partner') return p;
+    // [CONV] RoleRef.role_id is required but a partner role has no core.roles row: the membership id stands in (CR C2.T10).
+    return { ...p, roles: [{ role_id: p.membershipId, code: ctx.partnerRole!, name: ctx.partnerRole! }], permissions: partnerPerms, allCentres: false, centreIds: [] };
   }
 
   return {
     async getMe(ctx: SelfCtx, _input: In = {}): Promise<Result> {
-      const w = who(ctx); const p = await profile(w);
+      const w = who(ctx); const p = await profile(ctx, w);
       const partner = w.actorType === 'partner';   // 08 A19 D-101: a partner has no centre scope
       return {
         status: 200,
@@ -155,7 +162,7 @@ export function createSelfService(deps: SelfDeps = {}) {
       const cur = input?.['currentPassword'], next = input?.['newPassword'];
       if (typeof cur !== 'string' || cur.length < 1 || cur.length > PASSWORD_MAX) failAt('/current_password');
       if (typeof next !== 'string' || next.length < 1 || next.length > PASSWORD_MAX) failAt('/new_password');
-      const p = await profile(w);
+      const p = await profile(ctx, w);
       const gt = need(deps.gotrue);
       // GoTrue has no verify-only call: a password sign-in proves the current password.
       const check = await gotrue(() => gt.signInWithPassword(p.email, cur as string));
@@ -164,9 +171,13 @@ export function createSelfService(deps: SelfDeps = {}) {
         ctx.commitOnError();
         throw new LimsError('auth.login_failed');
       }
-      const minLength = w.repo.passwordMinLength ? await w.repo.passwordMinLength(w.tx, w.tenantId) : undefined;
+      // the verifying sign-in opened a GoTrue session: close it now, best-effort (a failure is logged, never fatal, never silent)
+      try { await gt.signOut(check.tokens.accessToken, 'local'); }
+      catch (e) { ctx.log?.warn({ err: e instanceof Error ? e.name : 'unknown', requestId: ctx.requestId }, 'identity.self.verify_signout_failed'); }
+      const minLength = await w.repo.passwordMinLength(w.tx, w.tenantId);
+      if (typeof minLength !== 'number') throw new LimsError('common.internal');   // fail closed: never fall back to the floor
       const breached = need(deps.breached);
-      const verdict = await evaluatePassword(next as string, { ...(minLength === undefined ? {} : { minLength }), isBreached: (sha1) => breached.isBreached(w.tx, sha1) });
+      const verdict = await evaluatePassword(next as string, { minLength, isBreached: (sha1) => breached.isBreached(w.tx, sha1) });
       if (!verdict.ok) throw new LimsError(verdict.code);
 
       const revoked = await w.repo.revokeOtherSessions(w.tx, { tenantId: w.tenantId, userId: w.userId, exceptSessionId: w.sessionId, reason: 'password_change', actorId: w.userId });

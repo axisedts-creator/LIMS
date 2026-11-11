@@ -34,7 +34,8 @@ vi.mock('@/core/session/server', () => ({
 const ORIGIN = 'http://api.test';
 process.env.LIMS_ORIGIN_API = ORIGIN;
 const U = (n: number) => `01a1a98a-ac40-7000-8000-${String(n).padStart(12, '0')}`;
-const DEPT = U(0xd1), INSTR = U(0x1a), INSTR2 = U(0x1b), WS = U(0xb1);
+const DEPT = '0d1d1d1d-ac40-7000-8000-0000000000d1'; // distinct 8-char prefix: ruling C5.T-26 (print header shows dept + instrument IdText)
+const INSTR = U(0x1a), INSTR2 = U(0x1b), WS = U(0xb1);
 const problem = (code: string, status: number) => HttpResponse.json({ type: `urn:lims:error:${code}`, title: code, status, code, request_id: 'req-synthetic-26' }, { status });
 
 const item = (n: number, o: Record<string, unknown> = {}) => ({

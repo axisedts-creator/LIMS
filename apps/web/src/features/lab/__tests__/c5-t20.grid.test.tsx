@@ -191,6 +191,16 @@ describe('C5.T-20 AC-08.1 — keyboard-first entry, one bulkEnterResults per Ctr
     expect(c.body.occurred_at).toBeUndefined();
   });
 
+  it('an ordinal analyte (from the page-built `analytes` map) saves `ordinal_code`, not value_numeric (review item 1)', async () => {
+    show({ props: { analytes: { ...analytes, [id(101)]: { name: 'Culture growth', value_type: 'ordinal' as const } } } });
+    const u = user();
+    await enterValue(u, 'HB', 'POS');
+    expect(within(rowOf('HB')).queryByText(/Enter a number/)).toBeNull();
+    await u.keyboard('{Control>}s{/Control}');
+    await waitFor(() => expect(enters()).toHaveLength(1));
+    expect(enters()[0]!.body.entries).toEqual([{ result_id: id(1), version: 1, ordinal_code: 'POS' }]);
+  });
+
   it('after a successful save the rows show Resulted and are no longer "edited": a second Ctrl+S sends nothing; the new row version is used by the next edit', async () => {
     show();
     const u = user();

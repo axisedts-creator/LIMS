@@ -2,7 +2,7 @@
 // in-memory GoTrue fake with REAL TOTP (the code is generated from the enrolment secret) and an identityAuthTx envelope that commits only when the callback returns.
 // Expected now: fail (handlers/verifyMfaChallenge.ts is the common.internal stub and exports no createVerifyMfaChallenge).
 import { describe, expect, it } from 'vitest';
-import { badCode, EMAIL, hmacHex, otherWrites, rejection, sha256, tokenN, totp, type MfaWorld, makeMfaWorld, STAFF_ID, TENANT_A, MEMB_A } from './mfa.helpers.js';
+import { LimsError, badCode, EMAIL, hmacHex, otherWrites, rejection, sha256, tokenN, totp, type MfaWorld, makeMfaWorld, STAFF_ID, TENANT_A, MEMB_A } from './mfa.helpers.js';
 import { createVerifyMfaChallenge } from '../verifyMfaChallenge.js';
 
 const run = async (w: MfaWorld, token: string | undefined, code: unknown, hc: Record<string, unknown> = {}) => {
@@ -166,5 +166,21 @@ describe('hygiene', () => {
   it('the error body carries no detail that echoes the code or the e-mail', async () => {
     const w = await makeMfaWorld({ email: EMAIL }); const a = await w.addSession({ verifiedFactor: true, email: EMAIL }); const code = badCode(a.secret!);
     const e = await fail(w, a.token, code); expect(JSON.stringify({ m: e.message, d: e.detail, f: e.errors })).not.toMatch(new RegExp(`${code}|ana\\.demo`));
+  });
+});
+
+describe('x-rate-limit-tier: login (LD-10, 02-CV 10.3): per-account consumeAttempt on every verifyMfaChallenge', () => {
+  it('consumes one attempt keyed hmac(email) before any GoTrue call', async () => {
+    const w = await makeMfaWorld(); const a = await w.addSession({ verifiedFactor: true }); const g = w.calls.length;
+    await ok(w, a.token, totp(a.secret!));
+    expect(w.lim.calls.filter((c) => c.m === 'consumeAttempt').map((c) => c.key)).toEqual([hmacHex(a.email)]);
+    expect(w.calls.length).toBeGreaterThan(g);
+  });
+  it('a rejecting consumeAttempt -> 429 common.rate_limited with Retry-After; GoTrue not called; nothing written', async () => {
+    const w = await makeMfaWorld(); const a = await w.addSession({ verifiedFactor: true }); const g = w.calls.length;
+    (w.deps.limits as any).consumeAttempt = async () => { throw Object.assign(new LimsError('common.rate_limited'), { retryAfterSeconds: 42 }); };
+    const e = await fail(w, a.token, totp(a.secret!));
+    expect(e.code).toBe('common.rate_limited'); expect(e.statusCode).toBe(429); expect(e.retryAfterSeconds).toBe(42);
+    expect(w.calls.length).toBe(g); expect(w.store.committed('updateSession')).toEqual([]); expect(w.store.byId(a.row.sessionId)!.state).toBe('mfa_pending');
   });
 });

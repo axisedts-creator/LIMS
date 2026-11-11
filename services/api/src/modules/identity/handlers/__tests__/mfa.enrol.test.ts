@@ -2,7 +2,8 @@
 // Behaviour via createStartMfaEnrolment / createCompleteMfaEnrolment (seams: mfa.helpers.ts header) against the GoTrue fake with real TOTP generated from the returned secret.
 // Expected now: fail (both handlers are the common.internal stub and export no factory).
 import { describe, expect, it } from 'vitest';
-import { badCode, idN, MEMB_A, otherWrites, rejection, SECRET_RE, STAFF_ID, TENANT_A, totp, type MfaWorld, makeMfaWorld } from './mfa.helpers.js';
+import { GoTrueError } from '../../gotrue/gateway.js';
+import { LimsError, badCode, idN, MEMB_A, otherWrites, rejection, SECRET_RE, STAFF_ID, TENANT_A, totp, type MfaWorld, makeMfaWorld } from './mfa.helpers.js';
 import { createCompleteMfaEnrolment } from '../completeMfaEnrolment.js';
 import { createStartMfaEnrolment } from '../startMfaEnrolment.js';
 
@@ -44,6 +45,20 @@ describe('startMfaEnrolment (SS3 state -> secret shown once)', () => {
     expect(del).toBeGreaterThan(-1); expect(del).toBeLessThan(enr); expect(w.calls[del]!.args).toEqual([a.userId, staleGotrue]);
     expect(w.store.committed('removeFactor').map((x) => x.arg)).toEqual([expect.objectContaining({ id: first.body.factor_id, reason: 're_enrol', userId: a.userId, tenantId: TENANT_A })]);
     expect(w.store.factors.filter((f) => !f.removedReason && f.status === 'unverified')).toHaveLength(1);
+  });
+  it('re-enrol after a lost GoTrue delete: adminDeleteFactor -> GoTrue 404 (factor already gone) is treated as removed; enrolment succeeds and the stale mirror row is marked `removed`', async () => {
+    const w = await makeMfaWorld(); const a = await w.addSession({ state: 'mfa_enrolment_required' });
+    const first = await okStart(w, a.token); const stale = w.store.factors.find((f) => f.id === first.body.factor_id)!;
+    (w.deps.gotrue as any).adminDeleteFactor = async () => { throw new GoTrueError('adminDeleteFactor', 404, 'mfa_factor_not_found'); };
+    const second = await okStart(w, a.token);
+    expect(second.status).toBe(200); expect(second.body.factor_id).not.toBe(first.body.factor_id); expect(stale.removedReason).toBe('re_enrol');
+    expect(w.store.factors.filter((f) => !f.removedReason && f.status === 'unverified')).toHaveLength(1);
+  });
+  it('x-rate-limit-tier login: a rejecting consumeAttempt -> 429 common.rate_limited; GoTrue not called; nothing written', async () => {
+    const w = await makeMfaWorld(); const a = await w.addSession({ state: 'mfa_enrolment_required' }); const g = w.calls.length;
+    (w.deps.limits as any).consumeAttempt = async () => { throw Object.assign(new LimsError('common.rate_limited'), { retryAfterSeconds: 7 }); };
+    const e = await rejection((await start(w, a.token)).p); expect(e.code).toBe('common.rate_limited'); expect(e.statusCode).toBe(429);
+    expect(w.calls.length).toBe(g); expect(w.store.committed()).toEqual([]);
   });
   it('409 common.version_conflict when the user already has a verified factor (OpenAPI); GoTrue not called, nothing written', async () => {
     const w = await makeMfaWorld(); const a = await w.addSession({ state: 'active', verifiedFactor: true });
@@ -164,9 +179,15 @@ describe('completeMfaEnrolment - isolation, state, validation', () => {
     const w = await makeMfaWorld(); const a = await w.addSession({ state: 'mfa_enrolment_required' });
     const e = await failComplete(w, a.token, 'not-a-uuid', '123456'); expect(e.code).toBe('common.validation_failed'); expect(w.txCalls).toHaveLength(0);
   });
-  it.each(['mfa_pending', 'password_setup'])('session in %s -> 409 common.version_conflict; nothing written', async (state) => {
-    const w = await makeMfaWorld(); const a = await w.addSession({ state, verifiedFactor: true }); const n = w.store.committed().length;
-    const e = await failComplete(w, a.token, w.store.factors[0]!.id, '123456'); expect(e.code).toBe('common.version_conflict'); expect(w.store.committed().length).toBe(n);
+  it.each(['mfa_pending', 'password_setup'])('session in %s -> 404 common.not_found (OpenAPI declares no 409; same answer as an unusable factor); nothing written, GoTrue not called', async (state) => {
+    const w = await makeMfaWorld(); const a = await w.addSession({ state, verifiedFactor: true }); const n = w.store.committed().length; const g = w.calls.length;
+    const e = await failComplete(w, a.token, w.store.factors[0]!.id, '123456'); expect(e.code).toBe('common.not_found'); expect(e.statusCode).toBe(404); expect(w.store.committed().length).toBe(n); expect(w.calls.length).toBe(g);
+  });
+  it('x-rate-limit-tier login: a rejecting consumeAttempt -> 429 common.rate_limited; GoTrue not called; nothing written', async () => {
+    const w = await makeMfaWorld(); const a = await w.addSession({ state: 'mfa_enrolment_required' }); const s = await okStart(w, a.token); const n = w.store.committed().length; const g = w.calls.length;
+    (w.deps.limits as any).consumeAttempt = async () => { throw Object.assign(new LimsError('common.rate_limited'), { retryAfterSeconds: 7 }); };
+    const e = await failComplete(w, a.token, s.body.factor_id, totp(s.body.secret_base32)); expect(e.code).toBe('common.rate_limited'); expect(e.statusCode).toBe(429);
+    expect(w.calls.length).toBe(g); expect(w.store.committed().length).toBe(n);
   });
   it('cookie rules: unknown / malformed token, partner key -> 401 auth.session_expired; nothing written', async () => {
     const w = await makeMfaWorld(); const a = await w.addSession({ state: 'mfa_enrolment_required' }); const s = await okStart(w, a.token); const n = w.store.committed().length;

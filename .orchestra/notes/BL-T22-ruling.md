@@ -1,9 +1,9 @@
-TESTS_WRONG — uploads.handlers.test.ts assumes ctx.uploads.accept runs before identity/centre-scope checks; the spec does not require that order and its harness ctx cannot reach accept().
-- Spec for F20 uploadTrf (02-TRD.md:213, :42) names permission `frontdesk.trf.upload`, `ctx.uploads.accept` options and the 413/415 codes; it states no ordering of accept vs. role/scope/order checks.
-- 07-SECURITY.md:15 (REQ-SEC-017) requires centre scoping on TRFs; 07-SECURITY.md:94 (A11) requires foreign ids => `404 common.not_found`, no side effects. accept() stores bytes, so checking scope first (trf.service.ts:78-93) is consistent with spec; the test's ordering assumption (uploads.handlers.test.ts:4-5) is not a spec requirement.
-- 07-SECURITY.md:35, :150 (§6.6) define only the hostile-file outcomes; those assertions (uploads.handlers.test.ts:44-75) stay unchanged.
-Change in the test (upload() helper, uploads.handlers.test.ts:22-32) ONLY:
-1. Pass `ports` with an IdentityPort whose `assertRole` resolves and whose `getActor` returns `{ displayName: 'Synthetic Tester', centreScope: { centreIds: [CENTRE_A1] } }` (other ports may stay notFound proxies; body has no order_id so no order lookup runs).
-2. Add `download: { stream: async () => undefined }` and `storage.delete: async () => undefined` to the ctx (trf.service.ts:35 requires them), keeping the recording `storage.put`.
-3. Give `spyTx` / ctx what the 201 path needs (insert/enqueue) only if a clean-path case reaches it; do not alter expected codes or the `stored` checks.
-4. Update the header comment (lines 4-5) to drop the accept-first ordering claim. Implementation unchanged.
+TESTS_WRONG — the probes assert things the spec does not require of BL-T22 handlers. Make exactly these test changes (LD-98), nothing else:
+a. probe.kit.ts ctxFor (117-121): give tenant A its own working IdentityPort (assertRole resolves; getActor returns centreScope CENTRE_A1) and stubs for events.publish, core.membership/centre, storage.delete, download.stream. Ports keep refusing tenant B's ids. Existing crossTenant assertions stay unchanged. Add exactly two own-tenant CONTROL cases (one frontdesk read, one billing read) that must answer 2xx.
+b. Add DEFERRED_PHASE_1_5 = [createPaymentIntent, verifyPaymentIntent]. These must never answer 2xx. For every other operation, common.service_unavailable is a failure.
+c. uploads.handlers.test.ts: 'PDF with JavaScript' becomes it.todo('qpdf sanitise runs in frontdesk.trf_scan - release gate RG-5'). Nothing else in that file changes.
+Reasons:
+- probe.kit.ts:97-101 makes every port throw common.not_found, including tenant A's own IdentityPort, and ctxFor (117-121) lacks the ctx services the handlers need. Handlers fail closed before any tenant B id is looked at, so the 16 crossTenant failures say nothing about isolation (07-SECURITY.md:144 requires cross-tenant refusal, not a harness where every call fails). The control cases show the harness reaches handler logic.
+- 06-IMPLEMENTATION-PLAN.md:54 puts BL-T21 (payment intents) in Phase 1.5, so it is not v1 scope. 07-SECURITY.md:42 (REQ-SEC-099) still applies: they must not be reachable with a 2xx.
+- 07-SECURITY.md:150 requires the "PDF with JavaScript (sanitised by qpdf)" test. 02-TRD.md:556 assigns qpdf sanitising to the worker job frontdesk.trf_scan, not the uploadTrf handler. Asserting it on the handler is the wrong place. The missing qpdf step is an FD-T10 gap (RG-5), so it.todo keeps the §6.6 item visible without blaming BL-T22.
+- The 9 BL-T15/B6 stub failures are not test or BL-T22 defects. They clear when BL-T15 is reopened and done (LD-97). No implementation change for BL-T22 unless a probe still fails in C4-owned code after that (LD-75: no faked handlers).

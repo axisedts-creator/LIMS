@@ -1,7 +1,9 @@
-TESTS_WRONG — the test requires the hand-off CR to live at the literal path `.orchestra/cr/BL-T22.md`; the spec requires only that the TRD §15 alert rules be "handed to C1 by one CR", not a file name.
-- spec/chunks/C4-frontdesk-billing/06-IMPLEMENTATION-PLAN.md:55 (row BL-T22): done-when = "alert rules listed in TRD §15 handed to C1 by one CR". No file name is mandated; spec/program has no rule naming `.orchestra/cr/<task>.md` as the only valid location at verify time.
-- .orchestra/run.ps1:254 moves a non-blocking CR to `.orchestra/cr/<id>.nonblocking.md` after the writer pass and before verify (the inbox/dispute cite :330; the actual line in HEAD is 254). So `existsSync('.orchestra/cr/BL-T22.md')` can never pass. The CR exists today as `.orchestra/cr/BL-T22.nonblocking.md`.
-- Binding lead decision LD-95 (2026-11-11) rules the same way and limits the change scope. LD-75(a) also allows `BL-T22.resolved-*.md`.
-- Change to make (TESTER only), services/api/src/modules/billing/__tests__/probes/alerts.rules.test.ts:66-68: resolve `cr` to the first file that exists among `.orchestra/cr/BL-T22.md`, `.orchestra/cr/BL-T22.nonblocking.md`, `.orchestra/cr/BL-T22.resolved-*.md` (LD-75a). Fail with a clear message if none exist. Update the `it`/`expect` labels to match.
-- The assertions on that file stay as they are: it matches `\bC1\b`, contains both rule dirs, and contains every `rule.alert`. No other test changes.
-- The 45 stub-handler probe failures are out of scope for this ruling. LD-95(1) says they come from a stale worktree, and handlers must not be faked.
+TESTS_WRONG — uploads.handlers.test.ts assumes ctx.uploads.accept runs before identity/centre-scope checks; the spec does not require that order and its harness ctx cannot reach accept().
+- Spec for F20 uploadTrf (02-TRD.md:213, :42) names permission `frontdesk.trf.upload`, `ctx.uploads.accept` options and the 413/415 codes; it states no ordering of accept vs. role/scope/order checks.
+- 07-SECURITY.md:15 (REQ-SEC-017) requires centre scoping on TRFs; 07-SECURITY.md:94 (A11) requires foreign ids => `404 common.not_found`, no side effects. accept() stores bytes, so checking scope first (trf.service.ts:78-93) is consistent with spec; the test's ordering assumption (uploads.handlers.test.ts:4-5) is not a spec requirement.
+- 07-SECURITY.md:35, :150 (§6.6) define only the hostile-file outcomes; those assertions (uploads.handlers.test.ts:44-75) stay unchanged.
+Change in the test (upload() helper, uploads.handlers.test.ts:22-32) ONLY:
+1. Pass `ports` with an IdentityPort whose `assertRole` resolves and whose `getActor` returns `{ displayName: 'Synthetic Tester', centreScope: { centreIds: [CENTRE_A1] } }` (other ports may stay notFound proxies; body has no order_id so no order lookup runs).
+2. Add `download: { stream: async () => undefined }` and `storage.delete: async () => undefined` to the ctx (trf.service.ts:35 requires them), keeping the recording `storage.put`.
+3. Give `spyTx` / ctx what the 201 path needs (insert/enqueue) only if a clean-path case reaches it; do not alter expected codes or the `stored` checks.
+4. Update the header comment (lines 4-5) to drop the accept-first ordering claim. Implementation unchanged.

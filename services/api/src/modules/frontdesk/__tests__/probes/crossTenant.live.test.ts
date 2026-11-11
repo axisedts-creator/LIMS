@@ -7,7 +7,7 @@
 import { beforeAll, describe, expect, it } from 'vitest';
 import { LimsError } from '../../../../core/errors.js';
 import { frontdeskPort } from '../../ports/FrontdeskPort.impl.js';
-import { ALL_USER_PERMS, asUser, booking, createFails, creator, fails as portFails, fullPatient } from '../contract/helpers.js';
+import { ALL_USER_PERMS, asUser, booking, createFails, creator, fails as portFails, fullPatient, run as portRun } from '../contract/helpers.js';
 import { edit } from '../orderchange/helpers.js';
 import { scenario } from '../orders/helpers.js';
 import { seedPatient } from '../patients/helpers.js';
@@ -104,18 +104,23 @@ describe('tenant-level operations never read or write the other tenant', () => {
     expect(await snapshot(TENANT_B)).toEqual(before);
   });
   it('F24 get returns A\'s settings (B holds distinct values); PUT changes only A\'s row', { timeout: T }, async () => {
-    await superTx(async (tx) => { await tx.query(`UPDATE frontdesk.settings SET discount_self_limit_bp = 777 WHERE tenant_id = $1`, [TENANT_B]); }, TENANT_B);
-    const g = await fire('getFrontdeskSettings', requestFor('getFrontdeskSettings', B), FULL_A);
-    expect(g.reply?.status, JSON.stringify(g.error?.code)).toBe(200);
-    expect(g.reply!.body.discount_self_limit_bp).not.toBe(777);
-    const before = await snapshot(TENANT_B);
-    const aRow = (await ownerRows('frontdesk.settings', 'tenant_id = $1', [TENANT_A]))[0];
-    const put = await fire('updateFrontdeskSettings', { ...requestFor('updateFrontdeskSettings', B), headers: { 'if-match': `"${aRow.version}"` } }, FULL_A);
-    expect(put.reply?.status, JSON.stringify([put.error?.code, put.error?.message])).toBe(200);
-    expect(await snapshot(TENANT_B)).toEqual(before);
-    expect((await ownerRows('frontdesk.settings', 'tenant_id = $1', [TENANT_B]))[0].discount_self_limit_bp).toBe(777);
-    await superTx(async (tx) => { await tx.query(`UPDATE frontdesk.settings SET discount_self_limit_bp = 0, discount_self_limit_paisa = 0, discount_absolute_max_bp = 10000, require_referrer = false, registration_sms_enabled = true,
-      label_autoprint = true, buyer_pan_pattern = '^[0-9]{9}$', patient_search_min_chars = 3, version = 1 WHERE tenant_id IN ($1, $2)`, [TENANT_A, TENANT_B]); }, TENANT_A);
+    try {
+      await superTx(async (tx) => { await tx.query(`UPDATE frontdesk.settings SET discount_self_limit_bp = 777 WHERE tenant_id = $1`, [TENANT_B]); }, TENANT_B);
+      const g = await fire('getFrontdeskSettings', requestFor('getFrontdeskSettings', B), FULL_A);
+      expect(g.reply?.status, JSON.stringify(g.error?.code)).toBe(200);
+      expect(g.reply!.body.discount_self_limit_bp).not.toBe(777);
+      const before = await snapshot(TENANT_B);
+      const aRow = (await ownerRows('frontdesk.settings', 'tenant_id = $1', [TENANT_A]))[0];
+      const put = await fire('updateFrontdeskSettings', { ...requestFor('updateFrontdeskSettings', B), headers: { 'if-match': `"${aRow.version}"` } }, FULL_A);
+      expect(put.reply?.status, JSON.stringify([put.error?.code, put.error?.message])).toBe(200);
+      expect(await snapshot(TENANT_B)).toEqual(before);
+      expect((await ownerRows('frontdesk.settings', 'tenant_id = $1', [TENANT_B]))[0].discount_self_limit_bp).toBe(777);
+    } finally {   // FD-T16 ruling: one superTx per tenant (the audit row is written under that tenant's claims); in finally so a failed assert cannot leak values into later tests
+      for (const tenant of [TENANT_A, TENANT_B]) {
+        await superTx(async (tx) => { await tx.query(`UPDATE frontdesk.settings SET discount_self_limit_bp = 0, discount_self_limit_paisa = 0, discount_absolute_max_bp = 10000, require_referrer = false, registration_sms_enabled = true,
+          label_autoprint = true, buyer_pan_pattern = '^[0-9]{9}$', patient_search_min_chars = 3, version = 1 WHERE tenant_id = $1`, [tenant]); }, tenant);
+      }
+    }
   });
   it('F25 listFrontdeskCodes: a code that exists only in tenant B is not listed for A', { timeout: T }, async () => {
     const code = `b_only_${tag()}`.toLowerCase();
@@ -177,10 +182,12 @@ describe('FrontdeskPort (03-IC §4.3) with tenant B ids under tenant A\'s ctx =>
     expect(e).toBeInstanceOf(LimsError);
     expect((e as any).code).toBe('common.not_found');
   });
-  it('getPatientDemographicsBatch [A, B]: B id is not_found (never silently dropped into the result)', { timeout: T }, async () => {
+  // FD-T16 ruling: 03-INTERFACE-CATALOG.md:1371 says getPatientDemographicsBatch "Missing/invisible ids omitted"; only auth.forbidden is a documented throw.
+  it('getPatientDemographicsBatch [A, B]: B id is omitted from the result, A id is present', { timeout: T }, async () => {
     const a = await fullPatient('a');
-    const e = await portFails(asUser(ALL_USER_PERMS), (p, c) => (p as any).getPatientDemographicsBatch(c, { patientIds: [a.id, B.patient.id], purpose: 'notification' }));
-    expect((e as any).code).toBe('common.not_found');
+    const result = await portRun(asUser(ALL_USER_PERMS), (p, c) => (p as any).getPatientDemographicsBatch(c, { patientIds: [a.id, B.patient.id], purpose: 'notification' }));
+    expect(JSON.stringify(result)).toContain(a.id);
+    expect(JSON.stringify(result)).not.toContain(B.patient.id);
   });
   it('createOrderFromBooking naming a B patient => not_found and B untouched', { timeout: T }, async () => {
     const before = await snapshot(TENANT_B);

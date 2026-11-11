@@ -97,8 +97,10 @@ export async function fire(operationId: string, r: ReturnType<typeof req>, who: 
   const run = async (rawTx: any) => {
     rawTx.startedAt = NOW;                                                       // core events.publish stamps occurred_at from tx.startedAt
     const tx = { query: async (text: string, values?: unknown[]) => {
-      if (/app\.enqueue_job/i.test(text) && typeof values?.[0] === 'string') {   // the job registry is C0's: capture, do not run
-        trf.jobs.push({ identifier: values[0], payload: typeof values[1] === 'string' ? JSON.parse(values[1]) : values[1], jobKey: (values[2] as string | null) ?? null });
+      // FD-T16 ruling: capture ONLY the frontdesk shape (trf.service.ts:103); core events FANOUT_SQL (identifier 'core.event_fanout', uuid args) and anything else passes through
+      if (text.trim() === 'SELECT app.enqueue_job($1, $2::jsonb, $3)' && typeof values?.[0] === 'string') {   // the job registry is C0's: capture, do not run
+        const parse = (v: unknown) => { if (typeof v !== 'string') return v; try { return JSON.parse(v); } catch { return v; } };
+        trf.jobs.push({ identifier: values[0], payload: parse(values[1]), jobKey: (values[2] as string | null) ?? null });
         return { rows: [{ enqueue_job: null }], rowCount: 1 };
       }
       if (WRITE.test(text)) probe.writes.push(text);

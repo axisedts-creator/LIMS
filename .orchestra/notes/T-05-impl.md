@@ -1,0 +1,8 @@
+# C3 T-05 impl (writer) — units + value sets #17–#22
+- Files: service/masters.service.ts (+setsService: list/create/update Unit|ValueSet; shared checkUpdate/lockAt/kindOf now also used by T-04 masters), repo/masters.repo.ts (+selectRows equality/ANY helper, cs_* in MasterTable), mappers/masters.mapper.ts (+unitDto/setDto/global*), handlers/masters.handlers.ts (+Unit/ValueSet with `unit_id`/`value_set_id`), handlers/index.ts (stubs removed), __tests__/probes/pending.json (6 ids removed).
+- Tests: T-05-verify.cmd 208/208 pass; whole catalog module 1479/1479. `tsc` only error is pre-existing packages/shared-ts/src/bsdate (TS5097), not touched.
+- [CONV] value codes accept a-z and are upper-cased (like set/master codes); unit codes kept as sent. Missing value display -> its code; missing sort_order -> highest known + 10 (clamped 9999).
+- [CONV] global ∪ tenant = two SELECTs merged in code; tenant row shadows global by code even when inactive; scope=global returns the raw global list (no shadowing).
+- In-use check runs only when a PATCH changes an existing value's sort_order (removal is impossible: omitted codes are kept); reads analyte_versions status=published, tenant + code bound.
+- Open: concurrent publish (T-07) vs sort_order edit — T-07 publish should lock the cs_value_sets row (FOR UPDATE) before checking, else a narrow race remains. Case-insensitive unit look-alikes (G_DL vs g_dl) allowed (spec silent). Starter unit `none` display "" vs Unit.display minLength 1 (tester CR candidate).
+- Review fix: listUnits `is_active` per catalog.yaml enum true|false|all, default true (active only); ruling file concerns C1 compose, not applicable.

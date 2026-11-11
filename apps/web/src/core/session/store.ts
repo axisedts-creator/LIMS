@@ -74,7 +74,7 @@ export function devResolver(store: ReturnType<typeof createDevBffSessionStore>):
           sessionId: sid, kind: 'tenant_staff', aal: 'aal2',
           idleExpiresAt: new Date(lastSeen + idleMs).toISOString(),
           absoluteExpiresAt: new Date(Date.parse(s.createdAt) + absoluteMs).toISOString(),
-          actor: s.actor,
+          actor: { ...s.actor, membershipId: s.membershipId }, // LD-89
         },
       };
     },

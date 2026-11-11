@@ -1,0 +1,1 @@
+cd /d "%~dp0..\.." && node node_modules\vitest\vitest.mjs run --config apps/web/src/features/lab/__tests__/vitest.lab-t29.config.ts && set "LIMS_T03_CMD=pnpm --dir services/api exec vitest run src/modules/lab/handlers/__tests__/config.handlers.integration.test.ts src/modules/lab/__tests__/boot.test.ts" && "C:\Program Files\Git\bin\bash.exe" tests/db/c5-t03/run.sh

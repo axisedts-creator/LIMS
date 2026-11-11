@@ -1,0 +1,5 @@
+# AN-T16 impl (writer)
+- Files: api `domain/schedule.ts`, `repository/schedules.repo.ts` (16 fns, SQL not run against PG), `service/schedule.service.ts` (+ dispatcher logic), `mappers/schedules.dto.ts`, `handlers/schedules.ts` (+ `handlers/index.ts`); worker `tasks/dispatch_schedules.ts` (+ manifest entry).
+- [CONV] one slot per due schedule per tick (a loop would send a 1 ms-late slot behind a skipped_late one); all-centres snapshot refused (400 `scope.all_centres`) for a centre-restricted creator; editing a deactivated schedule -> 400 path ''; recipient whose every pack report is omitted -> `skipped_ineligible`; failed send = code matching `ns.code`, anything else rethrows.
+- Create takes `pg_advisory_xact_lock` before the cap count (race of two creates); dispatcher `advanceSchedule` does not bump `version`.
+- Disputes resolved (ruling TESTS_WRONG, tests revised 64497bc1); re-run: verify set + boot 359/359, worker 30/30, no impl change. Full analytics suite: 2 timeouts (boot 30-of-30, no-commission) under load only, both pass alone (ruling item 3). Not run: real PG, pgTAP, tsc (project tsconfig errors pre-exist in contracts/shared-ts, none in new files).

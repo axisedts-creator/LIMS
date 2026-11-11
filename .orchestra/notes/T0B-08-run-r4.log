@@ -1,0 +1,90 @@
+(node:30260) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/LIMS-lanes/C0-0B/db/tools/gen-isolation-probes.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to C:\LIMS-lanes\C0-0B\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+gen-isolation-probes: wrote 31 probe files + _registry.sql to C:\LIMS-lanes\C0-0B\db\tests\isolation
+psql:/repo/db/migrations/20261105001200_app__create_queue_wrapper.sql:12: WARNING:  graphile_worker not installed: app.enqueue_job / app.queue_depth created without body validation (SP-2 runner step missing)
+# --- db/tests/app/T0B-02_helpers.test.sql
+not ok 56 - lims_owner default ACL for tables has no PUBLIC rights
+# Failed test 56: "lims_owner default ACL for tables has no PUBLIC rights"
+# --- db/tests/audit/T0B-04_audit.test.sql
+# --- db/tests/core/T0B-03_audit.test.sql
+# --- db/tests/core/T0B-03_isolation.test.sql
+not ok 39 - AC-0B-3.2: tenant A claims inserting a tenant B row into core.membership_centres -> 42501
+# Failed test 39: "AC-0B-3.2: tenant A claims inserting a tenant B row into core.membership_centres -> 42501"
+# --- db/tests/core/T0B-03_schema.test.sql
+# --- db/tests/core/T0B-05_platform.test.sql
+# --- db/tests/core/T0B-05_queue.test.sql
+not ok 1 - enqueue per_tenant job with matching tenant claims
+# Failed test 1: "enqueue per_tenant job with matching tenant claims"
+#         have: E3F000:schema "graphile_worker" does not exist
+#         want: 
+psql:db/tests/core/T0B-05_queue.test.sql:46: ERROR:  relation "graphile_worker.jobs" does not exist
+LINE 1: SELECT is((SELECT count(*) FROM graphile_worker.jobs WHERE k...
+                                        ^
+psql failed: db/tests/core/T0B-05_queue.test.sql
+# --- db/tests/core/T0B-06_membership_branches.test.sql
+# --- db/tests/definers/T0B-08_contracts_helpers.test.sql
+ok 24 # SKIP object not present yet: current_partner_id (touches partners.partner_users, partners.partners; relforcerowsecurity) returns NULL for a partner claim with no partner_users row
+ok 25 # SKIP object not present yet: engagement_account_id (touches engagement.accounts, core.memberships; relforcerowsecurity) returns NULL for a patient claim with no account
+ok 26 # SKIP object not present yet: engagement_patient_ids (touches engagement.account_patient_links; relforcerowsecurity) returns no ids without links
+ok 27 # SKIP object not present yet: engagement_patient_visible (touches engagement.account_patient_links; relforcerowsecurity) is false without a link
+# --- db/tests/definers/T0B-08_contracts_platform.test.sql
+# --- db/tests/definers/T0B-08_inventory.test.sql
+# --- db/tests/definers/T0B-08_owner_policies.test.sql
+not ok 50 - schema test 15: lims_worker with app.maintenance = purge_dead_letters sees no expired row of core.dead_letters
+# Failed test 50: "schema test 15: lims_worker with app.maintenance = purge_dead_letters sees no expired row of core.dead_letters"
+# --- db/tests/grants/T0B-08_grants.test.sql
+# --- db/tests/identity/T0B-06_definers.test.sql
+# --- db/tests/immutability/T0B-08_immutability.test.sql
+# --- db/tests/isolation/T0B-08_step9_fixed.test.sql
+# --- db/tests/isolation/analytics.event_inbox.test.sql
+# --- db/tests/isolation/anatomic.event_inbox.test.sql
+# --- db/tests/isolation/audit.access_log.test.sql
+not ok 12 - probe step 5: centre A1 claims INSERT a centre A2 row into audit.access_log -> 42501
+# Failed test 12: "probe step 5: centre A1 claims INSERT a centre A2 row into audit.access_log -> 42501"
+# --- db/tests/isolation/audit.audit_log.test.sql
+# --- db/tests/isolation/billing.event_inbox.test.sql
+# --- db/tests/isolation/core.branches.test.sql
+# --- db/tests/isolation/core.collection_centres.test.sql
+# --- db/tests/isolation/core.dead_letters.test.sql
+# --- db/tests/isolation/core.event_log.test.sql
+# --- db/tests/isolation/core.idempotency_keys.test.sql
+# --- db/tests/isolation/core.membership_branches.test.sql
+not ok 4 - probe step 3: INSERT of a tenant B row into core.membership_branches -> 42501
+# Failed test 4: "probe step 3: INSERT of a tenant B row into core.membership_branches -> 42501"
+not ok 8 - probe step 6: membership_branches__membership__fk on core.membership_branches refuses a tenant B parent (23503/42501)
+# Failed test 8: "probe step 6: membership_branches__membership__fk on core.membership_branches refuses a tenant B parent (23503/42501)"
+not ok 11 - probe step 8: lims_worker system claims INSERT of a tenant B row into core.membership_branches -> 42501
+# Failed test 11: "probe step 8: lims_worker system claims INSERT of a tenant B row into core.membership_branches -> 42501"
+# --- db/tests/isolation/core.membership_centres.test.sql
+not ok 4 - probe step 3: INSERT of a tenant B row into core.membership_centres -> 42501
+# Failed test 4: "probe step 3: INSERT of a tenant B row into core.membership_centres -> 42501"
+not ok 8 - probe step 6: membership_centres__membership__fk on core.membership_centres refuses a tenant B parent (23503/42501)
+# Failed test 8: "probe step 6: membership_centres__membership__fk on core.membership_centres refuses a tenant B parent (23503/42501)"
+not ok 11 - probe step 8: lims_worker system claims INSERT of a tenant B row into core.membership_centres -> 42501
+# Failed test 11: "probe step 8: lims_worker system claims INSERT of a tenant B row into core.membership_centres -> 42501"
+# --- db/tests/isolation/core.membership_roles.test.sql
+# --- db/tests/isolation/core.memberships.test.sql
+# --- db/tests/isolation/core.role_permissions.test.sql
+# --- db/tests/isolation/core.roles.test.sql
+# --- db/tests/isolation/core.tenants.test.sql
+# --- db/tests/isolation/core.users.test.sql
+# --- db/tests/isolation/engagement.event_inbox.test.sql
+# --- db/tests/isolation/frontdesk.event_inbox.test.sql
+# --- db/tests/isolation/homecollection.event_inbox.test.sql
+# --- db/tests/isolation/identity.event_inbox.test.sql
+# --- db/tests/isolation/instruments.event_inbox.test.sql
+# --- db/tests/isolation/inventory.event_inbox.test.sql
+# --- db/tests/isolation/lab.event_inbox.test.sql
+# --- db/tests/isolation/micro.event_inbox.test.sql
+# --- db/tests/isolation/partners.event_inbox.test.sql
+# --- db/tests/isolation/payments.event_inbox.test.sql
+# --- db/tests/isolation/quality.event_inbox.test.sql
+# --- db/tests/isolation/reporting.event_inbox.test.sql
+# --- db/tests/isolation/smartreport.event_inbox.test.sql
+# --- db/tests/policy/T0B-08_policy_shape.test.sql
+# --- db/tests/roles/00_bootstrap_roles.test.sql
+# --- db/tests/roles/T0B-08_roles.test.sql
+# --- db/tests/views/T0B-08_views.test.sql
+# elapsed 163s

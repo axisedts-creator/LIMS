@@ -1,0 +1,7 @@
+---
+# status_page (T-31, REQ-SEC-142, 03-APP-FLOW s15): renders infra/status/status.yaml into one static HTML file.
+# nginx serves it at `^~ /status/` on the portal origin (that location is the edge_nginx role's, T-13).
+status_page_source: "{{ role_path }}/../../../status/status.yaml"
+status_page_root: /var/www/lims-status
+status_page_owner: root
+status_page_group: root

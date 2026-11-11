@@ -1,0 +1,28 @@
+---
+# 02-TRD s7.4 (T-14): LIMS runtime on the app host, compose project `lims`.
+lims_runtime_project: lims
+lims_runtime_dir: /srv/lims/compose/lims  # = deploy.yml deploy_compose_dir
+lims_runtime_compose_src: >-
+  {{ playbook_dir }}/../../compose/lims/compose.app.yml
+lims_runtime_tests_src: "{{ playbook_dir }}/../../tests/internal"
+lims_runtime_tests_dir: /usr/local/lib/lims/tests
+# Digests from the release lock (T-23), every value `<repo>@sha256:<hex>`:
+# api (api + migrate), worker, web, portal, renderer, pdf_sandbox, valkey,
+# squid; partner only when partner_enabled. No default: fail closed.
+lims_runtime_images: {}
+# AC-30.1: Sum mem_limit <= this % of host RAM (D-207, LD-45)
+lims_runtime_max_pct: 85
+# LD-45: per-service GiB from the host's `mem_limit_gib` (inventory); hosts
+# without it keep the compose defaults (02-TRD s3.1 full table).
+lims_runtime_mem_keys:
+  api: LIMS_API_MEM_LIMIT
+  worker: LIMS_WORKER_MEM_LIMIT
+  web: LIMS_WEB_MEM_LIMIT
+  portal: LIMS_PORTAL_MEM_LIMIT
+  partner: LIMS_PARTNER_MEM_LIMIT
+# egress_probe.sh proxy mode: a name Squid must refuse (403)
+lims_runtime_denied_fqdn: denied.invalid
+# every wg IP of the active profile (egress_probe.sh peer probes)
+lims_runtime_wg_peers: >-
+  {{ groups['all'] | map('extract', hostvars, 'wg_ip')
+  | select('defined') | unique | join(' ') }}

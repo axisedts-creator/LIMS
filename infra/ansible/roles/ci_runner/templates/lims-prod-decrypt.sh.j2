@@ -1,0 +1,27 @@
+#!/bin/sh
+# Managed by Ansible (role ci_runner) - run by lims-prod-decrypt@<release>.service as root.
+# start: validate RELEASE_ID (vX.Y.Z), copy the prod key to tmpfs for the runner group, log it to ops_audit,
+#        schedule the removal. stop: remove the copy. The key copy never lives on disk.
+set -eu
+src={{ ci_runner_prod_key_src | quote }}
+dir={{ ci_runner_prod_key_dir | quote }}
+case "${RELEASE_ID:-}" in
+  v[0-9]*.[0-9]*.[0-9]*) ;;
+  *) echo "lims-prod-decrypt: bad release id" >&2; exit 2 ;;
+esac
+case "$RELEASE_ID" in *[!0-9v.]*) echo "lims-prod-decrypt: bad release id" >&2; exit 2 ;; esac
+case "${1:-}" in
+  start)
+    [ -r "$src" ] || { echo "lims-prod-decrypt: no prod key at $src" >&2; exit 1; }
+    umask 077
+    mkdir -p "$dir"
+    install -m 0440 -o root -g {{ ci_runner_group | quote }} "$src" "$dir/age.key"
+    /usr/local/lib/lims/ops-note.sh "prod key released for release $RELEASE_ID for {{ ci_runner_prod_key_ttl }}"
+    systemd-run --quiet --on-active={{ ci_runner_prod_key_ttl }} --unit="lims-prod-decrypt-expire-$RELEASE_ID" \
+      systemctl stop "lims-prod-decrypt@$RELEASE_ID.service"
+    ;;
+  stop)
+    rm -f "$dir/age.key"
+    ;;
+  *) echo "usage: lims-prod-decrypt start|stop" >&2; exit 2 ;;
+esac

@@ -5,6 +5,14 @@ import type { Handler } from '../../../core/module.js';
 import { LimsError } from '../../../core/errors.js';
 import { getSmartCodedSet, getSmartLibraryCodedSet } from './codedSets.js';
 import { createSmartDenyTerm, deactivateSmartDenyTerm, listSmartDenyTerms } from './denyTerms.js';
+import {
+  approveSmartLibraryVersion, createSmartLibraryVersion, getSmartLibraryVersion, listSmartLibraryVersions, returnSmartLibraryVersion, submitSmartLibraryVersion, updateSmartLibraryVersion,
+  validateSmartLibraryVersion,
+} from './library.js';
+import {
+  createSmartRule, createSmartTemplateBlock, deleteSmartAnalyteGroup, deleteSmartRule, deleteSmartTemplateBlock, listSmartAnalyteGroups, listSmartGroupSettings, listSmartRules,
+  listSmartTemplateBlocks, putSmartAnalyteGroup, putSmartGroupSetting, replaceSmartRule, replaceSmartTemplateBlock,
+} from './libraryChildren.js';
 
 const OPERATION_IDS = [
   'listSmartLibraryVersions', 'createSmartLibraryVersion', 'getSmartLibraryVersion', 'updateSmartLibraryVersion',
@@ -25,6 +33,11 @@ const stub = (operationId: string): Handler => async () => {
 };
 
 const implemented: Partial<Record<SmartreportOperationId, Handler>> = {
+  listSmartLibraryVersions, createSmartLibraryVersion, getSmartLibraryVersion, updateSmartLibraryVersion,
+  listSmartTemplateBlocks, createSmartTemplateBlock, replaceSmartTemplateBlock, deleteSmartTemplateBlock,
+  listSmartRules, createSmartRule, replaceSmartRule, deleteSmartRule,
+  listSmartAnalyteGroups, putSmartAnalyteGroup, deleteSmartAnalyteGroup, listSmartGroupSettings, putSmartGroupSetting,
+  validateSmartLibraryVersion, submitSmartLibraryVersion, approveSmartLibraryVersion, returnSmartLibraryVersion,
   listSmartDenyTerms, createSmartDenyTerm, deactivateSmartDenyTerm, getSmartCodedSet, getSmartLibraryCodedSet,
 };
 

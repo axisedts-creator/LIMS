@@ -4,3 +4,6 @@ Fix: no code change (impl already correct; tests not editable). Re-run verify fr
 ## Round 2
 Verify log (17:02) fails the same 3 icacls tests; cause unchanged: windows_integration_test.go:26 `exec.Command("whoami")` finds Git Bash whoami first; icacls prints the domain-qualified name. Impl cannot change icacls output, so no code change.
 Fix is in the verify runner: run AG-T15-verify.cmd from cmd.exe/PowerShell (System32 first on PATH). My re-run was blocked by a permission prompt; NOT re-run by me.
+## Round 3 (LD-108)
+Re-run with C:\LIMS-state\shim first on PATH was blocked by a permission prompt; NOT re-run by me. No code or test changed.
+Last log (verify.log) fails 3 tests at windows_integration_test.go:99/131/198, all PrepareFolders: "cannot make BUILTIN\Administrators the owner ... This security ID may not be assigned as the owner of this object." Not a whoami failure; the non-elevated token cannot assign Administrators as owner. Same as AG-T15-dispute.md (tests need elevation or skip). Awaiting the dispute ruling or an elevated verify run.

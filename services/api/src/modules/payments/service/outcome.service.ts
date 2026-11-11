@@ -39,10 +39,13 @@ export function createOutcomeService(deps: PaymentsDeps) {
   const newId = (): string => deps.newId?.() ?? uuidv7();
 
   /** Gateway call evidence (TRD §6.2 step 2): the adapter's sink writes the redacted row; if the adapter did not, a minimal row is written here. */
-  const gatewayLog = (ctx: Ctx, gateway: 'esewa' | 'khalti', intentId: string, acct: Row, operation: string) => {
+  // PG-T15: `refundId` tags the row; `queue` defers the INSERT (the caller flushes it only when it goes on to write, so a refused / unanswered read-only check leaves no write).
+  const gatewayLog = (ctx: Ctx, gateway: 'esewa' | 'khalti', intentId: string, acct: Row, operation: string, o: { refundId?: string; queue?: (() => Promise<void>)[] } = {}) => {
     let logged = false;
-    const write = (r: Pick<GatewayCallRecord, 'attempt' | 'httpStatus' | 'outcome' | 'gatewayStatusRaw' | 'responseRedacted' | 'durationMs'>) => insertGatewayCall(ctx.tx, {
-      id: newId(), tenantId: ctx.tenantId, intentId, merchantAccountId: acct['id'], gateway, operation, createdBy: ctx.actor.id, ...r });
+    const write = async (r: Pick<GatewayCallRecord, 'attempt' | 'httpStatus' | 'outcome' | 'gatewayStatusRaw' | 'responseRedacted' | 'durationMs'>): Promise<void> => {
+      const go = (): Promise<void> => insertGatewayCall(ctx.tx, { id: newId(), tenantId: ctx.tenantId, intentId, refundId: o.refundId ?? null, merchantAccountId: acct['id'], gateway, operation, createdBy: ctx.actor.id, ...r });
+      if (o.queue) o.queue.push(go); else await go();
+    };
     return {
       sink: async (r: GatewayCallRecord): Promise<void> => { logged = true; await write(r); },
       async fallback(outcome: string, statusRaw: string | null = null): Promise<void> {
@@ -52,9 +55,9 @@ export function createOutcomeService(deps: PaymentsDeps) {
     };
   };
 
-  async function callGateway(ctx: Ctx, row: Row, acct: Row, handle: ReturnType<typeof usable>['handle']): Promise<Check> {
+  async function callGateway(ctx: Ctx, row: Row, acct: Row, handle: ReturnType<typeof usable>['handle'], o: { refundId?: string; queue?: (() => Promise<void>)[] } = {}): Promise<Check> {
     const gateway = row['gateway'] as 'esewa' | 'khalti';
-    const log = gatewayLog(ctx, gateway, row['id'], acct, OPERATION[gateway]);
+    const log = gatewayLog(ctx, gateway, row['id'], acct, OPERATION[gateway], o);
     let res: Check | undefined;    try {
       res = gateway === 'esewa'
         ? await deps.adapters.esewa.check({ id: row['id'], gatewayTxnRef: row['gateway_txn_ref'], amountPaisa: Number(row['amount_paisa']), productCode: acct['esewa_product_code'], callbackToken: '' }, handle,
@@ -168,5 +171,14 @@ export function createOutcomeService(deps: PaymentsDeps) {
     return callGateway(ctx, row, acct, handle);
   }
 
-  return { verify, applyCheck, probe, gatewayLog };
+  /** PG-T15: the refund checks' gateway call. The evidence row is QUEUED, not written: the caller runs `flush()` once it decides to write (a refused / transient read stays write-free). */
+  async function probeDeferred(ctx: Ctx, intentId: string, refundId: string): Promise<{ res: Check; flush(): Promise<void> }> {
+    const row = await findById(ctx, intentId) ?? notFound();
+    const { acct, handle } = usable(deps.kek, ctx, await accountById(ctx, row['merchant_account_id']));
+    const queue: (() => Promise<void>)[] = [];
+    const res = await callGateway(ctx, row, acct, handle, { refundId, queue });
+    return { res, async flush() { for (const go of queue.splice(0)) await go(); } };
+  }
+
+  return { verify, applyCheck, probe, probeDeferred, gatewayLog };
 }

@@ -23,7 +23,12 @@ const SPEC = loadSpec(join(REPO_ROOT, 'contracts', 'openapi', 'smartreport.yaml'
 const OPS = operationIds(SPEC);
 const PERMS = ['smartreport.summary.approve', 'smartreport.summary.read', 'smartreport.template.approve', 'smartreport.template.manage'];
 /** operationIds whose stub a later task has replaced; that task moves its ids here (tester-owned list). Empty at T01. */
-const IMPLEMENTED: readonly string[] = ['listSmartDenyTerms', 'createSmartDenyTerm', 'deactivateSmartDenyTerm', 'getSmartCodedSet', 'getSmartLibraryCodedSet']; // C14-T03
+const IMPLEMENTED: readonly string[] = ['listSmartDenyTerms', 'createSmartDenyTerm', 'deactivateSmartDenyTerm', 'getSmartCodedSet', 'getSmartLibraryCodedSet', // C14-T03
+  'listSmartLibraryVersions', 'createSmartLibraryVersion', 'getSmartLibraryVersion', 'updateSmartLibraryVersion', 'listSmartTemplateBlocks', 'createSmartTemplateBlock',
+  'replaceSmartTemplateBlock', 'deleteSmartTemplateBlock', 'listSmartRules', 'createSmartRule', 'replaceSmartRule', 'deleteSmartRule', 'listSmartAnalyteGroups',
+  'putSmartAnalyteGroup', 'deleteSmartAnalyteGroup', 'listSmartGroupSettings', 'putSmartGroupSetting', 'validateSmartLibraryVersion', 'submitSmartLibraryVersion',
+  'approveSmartLibraryVersion', 'returnSmartLibraryVersion', // C14-T11 (#1-#21)
+  'listSmartSummaries', 'getSmartSummary', 'getCurrentSmartSummary', 'buildSmartSummary', 'approveSmartSummary', 'rejectSmartSummary']; // C14-T15 (#27-#32)
 
 const FAKE_REQ = { params: {}, query: {}, headers: {}, body: {} };
 const noop = () => undefined;

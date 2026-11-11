@@ -7,7 +7,7 @@ export interface SrCtx extends HandlerContext {
   readonly tenantId: string;
   readonly actor: { readonly id: string };
   readonly tx: RepoCtx['tx'];
-  readonly ports: { readonly IdentityPort: { assertRole(ctx: never, req: { permission: string }): Promise<unknown> } };
+  readonly ports: { readonly IdentityPort: { assertRole(ctx: never, req: { permission: string; centreId?: string }): Promise<unknown> } };
 }
 
 export const isObj = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null && !Array.isArray(v);
@@ -16,10 +16,10 @@ export const isObj = (v: unknown): v is Record<string, unknown> => typeof v === 
 export const invalidField = (path: string): LimsError =>
   new LimsError('common.validation_failed', `Invalid ${path}`, [{ path, code: 'common.field_invalid', message: 'Field invalid' }]);
 
-/** Tenant-wide permission check (no centreId). Port errors keep their code but become the API's LimsError. */
-export async function authorise(ctx: SrCtx, permission: string): Promise<RepoCtx> {
+/** Permission check, tenant-wide unless `centreId` is given. Port errors keep their code but become the API's LimsError. */
+export async function authorise(ctx: SrCtx, permission: string, centreId?: string): Promise<RepoCtx> {
   try {
-    await ctx.ports.IdentityPort.assertRole(ctx as never, { permission });
+    await ctx.ports.IdentityPort.assertRole(ctx as never, centreId === undefined ? { permission } : { permission, centreId });
   } catch (e) {
     const o = e as { code?: unknown; detail?: unknown } | null;
     if (!(e instanceof LimsError) && typeof o?.code === 'string') throw new LimsError(o.code, typeof o.detail === 'string' ? o.detail : undefined);

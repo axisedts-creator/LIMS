@@ -84,6 +84,23 @@ func TestRecoverLRecordMustBeTheLastChunk(t *testing.T) {
 	}
 }
 
+// An ETB continuation chunk (first 240 bytes of a longer record, no trailing CR) that happens to start with "L|" is not
+// an L record ending with ETX, so the message is incomplete (03-APP-FLOW §3.1 rule 4).
+func TestRecoverLRecordLookalikeEtbChunkIsIncompleteProcessRestart(t *testing.T) {
+	r := newLkRig(t)
+	lkSeed(t, r, "crashed-1", lkGoldTexts[0], "L|"+strings.Repeat("x", 238))
+	if n, err := r.rx.Recover(); err != nil || n != 1 {
+		t.Fatalf("Recover = %d, %v, want 1, nil", n, err)
+	}
+	it := r.oneItem()
+	if it.Kind != "incomplete" {
+		t.Fatalf("kind = %q, want incomplete", it.Kind)
+	}
+	if m := lkMeta(t, it); m.IncompleteReason != "process_restart" {
+		t.Errorf("link_meta = %+v, want incomplete_reason process_restart", m)
+	}
+}
+
 func TestRecoverFinalisesEveryOpenSession(t *testing.T) {
 	r := newLkRig(t)
 	lkSeed(t, r, "crashed-1", lkGoldTexts[:2]...)

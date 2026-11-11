@@ -1,6 +1,7 @@
-CHANGES
+APPROVE
 
-1. apps/bridge-agent/internal/heartbeat/client.go:151-153 (SubmitLogBundle) and :92-108 (post) — E07 `POST /v1/instruments/agent/log-bundles` has Idempotency **required** (02-TRD §7.2 row E07; 02-CONVENTIONS §4.5), but no `Idempotency-Key` header is sent, so the server will reject every bundle and `upload_logs` (AC-24.1) can never complete. Fix: give `post` an `idemKey string` parameter; when non-empty, `req.Header.Set("Idempotency-Key", idemKey)`. Heartbeat passes `""` (E03 = optional). SubmitLogBundle passes `b.CommandID` (UUID, fits 1–64 `[A-Za-z0-9_-]`; stable per command so a retried send replays instead of creating a second bundle) and returns an error without sending if `b.CommandID` is empty.
-2. apps/bridge-agent/internal/heartbeat/client_test.go:274 — the E07 contract test checks method+path only, so defect 1 passed. Fix: also assert `r.Header.Get("Idempotency-Key") == <the bundle's command_id>` (tester role).
+Re-review after 19a43417 + 4a3597c6. Both prior defects fixed:
+1. client.go `post` takes `idemKey`; SubmitLogBundle sends `Idempotency-Key: <command_id>` (E07 required, 02-TRD §7.2 / 02-CONVENTIONS §4.5) and refuses empty command_id; Heartbeat (E03 optional) sends none. command_id non-empty also enforced in service.go:79.
+2. client_test.go:280 asserts `Idempotency-Key == cmdA` on the E07 contract test.
 
-Checked, no defect: E03/E07 paths and field names verbatim to 02-TRD §7.2/§7.4; no nulls (nil slices → []); command_results ≤20, result_code sanitized ≤64, never error text; logs redacted before cut, ≤20000 lines/≤1000/≤4 MiB, newest kept; reupload since clamped to 72 h, bad/future → failed; once-per-command_id via `started` persisted before side effects, restart_service `completed` persisted before restart; https-only TLS ≥1.2, no redirects, no token-less send; only owned paths touched; RLS/permissions N/A (agent side). `go test ./internal/heartbeat/...` passes.
+Earlier checks stand (names verbatim, no PHI/secrets, limits, once-per-command_id, TLS, owned paths only, RLS/permissions N/A agent side). `go test -count=1 ./internal/heartbeat/...` ok; `go vet` clean. gofmt not run this round (permission prompt).

@@ -236,6 +236,14 @@ describe.skipIf(!live)('T02 inserts (as lims_api, RLS on; rolled back)', () => {
     expect(r['items']).toEqual([{ k: 1 }, { k: 2 }]);
   });
 
+  it('insertLibraryVersion refuses lifecycle columns (status / approved_*): a library is created draft only, approval goes through review', async () => {
+    const lib = INSERTS[0]![5] as () => Row;
+    const before = (await sql('SELECT count(*)::int AS n FROM smartreport.library_versions'))[0]!['n'];
+    const extras: Row[] = [{ status: 'approved' }, { status: 'draft' }, { approved_at: new Date().toISOString() }, { approved_by_membership_id: MEMBER_A }, { submitted_at: new Date().toISOString() }, { retired_at: new Date().toISOString() }];
+    for (const extra of extras) await rejection(asApi(B, (rc) => library.insertLibraryVersion(rc, { ...lib(), ...extra })));
+    expect((await sql('SELECT count(*)::int AS n FROM smartreport.library_versions'))[0]!['n']).toBe(before);
+  });
+
   it('a duplicate of a unique key surfaces as an error and leaves nothing behind (determinism key, active block key)', async () => {
     const dupSummary = { ...INSERTS[6]![5](), order_id: uid(11), approved_set_hash: hex(801), library_version_id: uid(102), id: uid(9101) };
     await rejection(asApiRb(A, (rc) => summaries.insertSummary(rc, dupSummary)));

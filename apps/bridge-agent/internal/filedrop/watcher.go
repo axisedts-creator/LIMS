@@ -32,12 +32,15 @@ var allowedExt = map[string]bool{".pdf": true, ".png": true, ".jpg": true}
 
 type Config struct {
 	InstrumentID, Folder string
-	FilenamePattern      string        // filepath.Match glob on the base name, case-insensitive; "" = "*"
+	FilenamePattern      string        // Go RE2 (TRD 5.8, <=200 chars) on the base name; "" = match all
+	AllowedTypes         []string      // subset of {pdf,png,jpg}; nil = all three
 	StableFor            time.Duration // TRD stable_seconds; <=0 = 5s
 	BarcodeRegex         string        // optional; must contain the named group "barcode"
 	MoveAfterCapture     bool
-	CapturedSubdirectory string // one segment inside Folder; required when MoveAfterCapture
+	CapturedSubdirectory string // ^[A-Za-z0-9_-]{1,60}$, one segment inside Folder; "" = "captured"
 }
+
+var subdirRe = regexp.MustCompile(`^[A-Za-z0-9_-]{1,60}$`)
 
 type SeenRecord struct {
 	InstrumentID, PathSHA256 string
@@ -71,7 +74,8 @@ type obs struct {
 type Watcher struct {
 	cfg     Config
 	folder  string // absolute, cleaned
-	pattern string // lower-case
+	nameRe  *regexp.Regexp // nil = match all
+	exts    map[string]bool
 	stable  time.Duration
 	poll    time.Duration
 	barcode *regexp.Regexp
@@ -116,12 +120,23 @@ func New(o Options) (*Watcher, error) {
 	if w.poll <= 0 {
 		w.poll = DefaultPollInterval
 	}
-	w.pattern = strings.ToLower(c.FilenamePattern)
-	if w.pattern == "" {
-		w.pattern = "*"
+	if c.FilenamePattern != "" {
+		if len(c.FilenamePattern) > 200 {
+			return nil, errors.New("filedrop: filename pattern longer than 200 chars")
+		}
+		if w.nameRe, err = regexp.Compile(c.FilenamePattern); err != nil {
+			return nil, fmt.Errorf("filedrop: filename pattern: %w", err)
+		}
 	}
-	if _, err := filepath.Match(w.pattern, ""); err != nil {
-		return nil, fmt.Errorf("filedrop: filename pattern: %w", err)
+	w.exts = allowedExt
+	if len(c.AllowedTypes) > 0 {
+		w.exts = map[string]bool{}
+		for _, t := range c.AllowedTypes {
+			if !allowedExt["."+t] {
+				return nil, errors.New("filedrop: unknown allowed type")
+			}
+			w.exts["."+t] = true
+		}
 	}
 	if c.BarcodeRegex != "" {
 		if w.barcode, err = regexp.Compile(c.BarcodeRegex); err != nil {
@@ -131,11 +146,12 @@ func New(o Options) (*Watcher, error) {
 			return nil, errors.New(`filedrop: barcode regex needs a named group "barcode"`)
 		}
 	}
-	if sub := c.CapturedSubdirectory; c.MoveAfterCapture || sub != "" {
-		// AB14: one plain segment. Trailing dots/spaces are stripped by Windows (".. " == ".."), so refuse them too.
-		if sub == "" || strings.ContainsAny(sub, "/\\:\x00") || strings.TrimRight(sub, ". ") != sub {
-			return nil, errors.New("filedrop: unsafe CapturedSubdirectory")
-		}
+	if w.cfg.CapturedSubdirectory == "" {
+		w.cfg.CapturedSubdirectory = "captured" // TRD 5.8 default
+	}
+	// AB14: the spec pattern admits no separators, dots, colons or spaces, so no traversal or device tricks.
+	if !subdirRe.MatchString(w.cfg.CapturedSubdirectory) {
+		return nil, errors.New("filedrop: unsafe CapturedSubdirectory")
 	}
 	return w, nil
 }
@@ -185,11 +201,7 @@ func (w *Watcher) Scan(ctx context.Context) error {
 }
 
 func (w *Watcher) wanted(name string) bool {
-	if !allowedExt[strings.ToLower(filepath.Ext(name))] {
-		return false
-	}
-	ok, _ := filepath.Match(w.pattern, strings.ToLower(name))
-	return ok
+	return w.exts[strings.ToLower(filepath.Ext(name))] && (w.nameRe == nil || w.nameRe.MatchString(name))
 }
 
 func (w *Watcher) visit(name string, now time.Time) {

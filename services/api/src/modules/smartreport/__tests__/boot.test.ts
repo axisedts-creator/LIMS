@@ -23,7 +23,7 @@ const SPEC = loadSpec(join(REPO_ROOT, 'contracts', 'openapi', 'smartreport.yaml'
 const OPS = operationIds(SPEC);
 const PERMS = ['smartreport.summary.approve', 'smartreport.summary.read', 'smartreport.template.approve', 'smartreport.template.manage'];
 /** operationIds whose stub a later task has replaced; that task moves its ids here (tester-owned list). Empty at T01. */
-const IMPLEMENTED: readonly string[] = [];
+const IMPLEMENTED: readonly string[] = ['listSmartDenyTerms', 'createSmartDenyTerm', 'deactivateSmartDenyTerm', 'getSmartCodedSet', 'getSmartLibraryCodedSet']; // C14-T03
 
 const FAKE_REQ = { params: {}, query: {}, headers: {}, body: {} };
 const noop = () => undefined;

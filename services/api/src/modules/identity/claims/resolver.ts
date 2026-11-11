@@ -33,7 +33,7 @@ const elapsed = (at: Date | string | null, now: number) => {
 };
 
 /** pg returns cidr[] as '{a,b}' unless a type parser is registered; accept both. */
-const cidrList = (v: ResolveSessionRow['platform_allowed_cidrs']): string[] => {
+export const cidrList = (v: ResolveSessionRow['platform_allowed_cidrs']): string[] => {
   if (Array.isArray(v)) return v;
   if (typeof v !== 'string') return [];
   const inner = v.replace(/^\{|\}$/g, '').trim();
@@ -41,7 +41,7 @@ const cidrList = (v: ResolveSessionRow['platform_allowed_cidrs']): string[] => {
 };
 
 /** US-E6: empty list = no restriction; otherwise the client IP must fall in an entry. Unparsable IP/entry never matches. */
-function ipAllowed(cidrs: string[], clientIp: string): boolean {
+export function ipAllowed(cidrs: string[], clientIp: string): boolean {
   if (cidrs.length === 0) return true;
   let ip = String(clientIp ?? '');
   if (/^::ffff:\d+\.\d+\.\d+\.\d+$/i.test(ip)) ip = ip.slice(7); // IPv4-mapped IPv6 from a dual-stack socket

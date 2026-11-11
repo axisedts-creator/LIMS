@@ -1,13 +1,24 @@
 import 'server-only';
-// BFF writes for the front-desk order, patient, worklist and approvals pages: F14 cancelOrder, F13 changeOrderItems, F8b quoteOrderItemsChange,
+// BFF writes for the registration page: F8 quote, F9 register (Idempotency-Key), F6b approval request, C5 #14a label readiness.
+// B3 printInvoice is reused from the billing BFF.
+// Plus writes for the front-desk order, patient, worklist and approvals pages: F14 cancelOrder, F13 changeOrderItems, F8b quoteOrderItemsChange,
 // F7 updatePatient, F7b recordPatientConsent, F16 approve/reject, F18 resolveOrderFlag.
 // Every write sends Idempotency-Key (02-CONVENTIONS §4.5); versioned writes send If-Match `"<version>"` (OpenAPI IfMatch).
 import { ApiError, serverFetch } from '@/core/api/server-fetch';
 import { problem } from '@/core/session/types';
-import { UUID_RE, type Consents, type DiscountApproval, type Order, type OrderFlag, type Patient, type Quote } from './types';
+import {
+  KEY_RE, UUID_RE,
+  type Consents, type DiscountApproval, type DiscountApprovalIn, type ItemsChangeQuote, type LabelReadiness, type Order, type OrderFlag, type Patient,
+  type Quote, type RegisterBody, type RegistrationDraft, type RegistrationResult,
+} from './types';
 
-const KEY_RE = /^[A-Za-z0-9_-]{1,64}$/;
+/** Key shape accepted by the order/patient/approval writes (FD-T14). The registration writes use the stricter KEY_RE. */
+const WRITE_KEY_RE = /^[A-Za-z0-9_-]{1,64}$/;
 const bad = () => new ApiError(400, problem('common.validation_failed', 'Validation failed', 400));
+const post = <T>(path: string, body: unknown, key?: string) => {
+  if (key !== undefined && !KEY_RE.test(key)) throw bad();
+  return serverFetch<T>(path, { method: 'POST', headers: { 'content-type': 'application/json', ...(key ? { 'idempotency-key': key } : {}) }, body: JSON.stringify(body) });
+};
 const uuid = (v: string) => {
   if (!UUID_RE.test(v)) throw bad();
   return v;
@@ -17,7 +28,7 @@ const version = (v: number) => {
   return v;
 };
 function send<T>(method: 'POST' | 'PATCH', path: string, body: unknown, key: string | undefined, v?: number): Promise<T> {
-  if (key !== undefined && !KEY_RE.test(key)) throw bad();
+  if (key !== undefined && !WRITE_KEY_RE.test(key)) throw bad();
   return serverFetch<T>(path, {
     method,
     headers: { 'content-type': 'application/json', ...(key ? { 'idempotency-key': key } : {}), ...(v !== undefined ? { 'if-match': `"${version(v)}"` } : {}) },
@@ -29,12 +40,21 @@ const text = (s: string, max: number) => {
   return s;
 };
 
+export const quoteRegistration = (draft: RegistrationDraft) => post<Quote>('/v1/frontdesk/registrations/quote', draft);
+export const createRegistration = (body: RegisterBody, key: string) => post<RegistrationResult>('/v1/frontdesk/registrations', body, key);
+export const requestDiscountApproval = (b: DiscountApprovalIn, key: string) =>
+  post<{ id: string; state?: string; status?: string }>('/v1/frontdesk/discount-approvals', { centre_id: b.centre_id, base_fingerprint: b.base_fingerprint, discounts: b.discounts, reason_code: b.reason_code, ...(b.reason_text ? { reason_text: b.reason_text } : {}), patient_ref: b.patient_id ? { patient_id: b.patient_id } : undefined }, key);
+/** C5 #14a: 200 once the specimens exist, 409 common.version_conflict while they do not. Body is `{}`. x-idempotency: none — no key (C5 02-TRD:227, 08 A13 D-4). */
+export function requestLabelPrints(orderId: string) {
+  return post<LabelReadiness>(`/v1/lab/orders/${uuid(orderId)}/label-prints`, {});
+}
+
 export const cancelOrder = (orderId: string, v: number, r: { reason_code: string; reason_text?: string }, key: string) =>
   send<Order>('POST', `/v1/frontdesk/orders/${uuid(orderId)}/cancel`, { ...r, reason_code: text(r.reason_code, 64) }, key, v);
 
 export const quoteOrderItemsChange = (orderId: string, add: { orderable_id: string; priority: 'routine' | 'urgent' }[]) => {
   if (add.length < 1 || add.length > 50) throw bad();
-  return send<Quote>('POST', `/v1/frontdesk/orders/${uuid(orderId)}/items-changes/quote`, { add: add.map((a) => ({ orderable_id: uuid(a.orderable_id), priority: a.priority })) }, undefined);
+  return send<ItemsChangeQuote>('POST', `/v1/frontdesk/orders/${uuid(orderId)}/items-changes/quote`, { add: add.map((a) => ({ orderable_id: uuid(a.orderable_id), priority: a.priority })) }, undefined);
 };
 
 export const changeOrderItems = (orderId: string, v: number, r: { add?: { orderable_id: string; priority: 'routine' | 'urgent' }[]; remove?: { order_item_id: string; reason_code: string }[]; quote_fingerprint?: string }, key: string) => {
@@ -58,7 +78,7 @@ export const recordPayment = (orderId: string, r: { method_code: string; amount_
 
 /** F21 uploadTrf; TrfUploadForm.order_id links the file to the order so it shows in that order's trf_attachments. */
 export function uploadTrf(centreId: string, orderId: string, file: File, key: string) {
-  if (!KEY_RE.test(key)) throw bad();
+  if (!WRITE_KEY_RE.test(key)) throw bad();
   const form = new FormData();
   form.set('centre_id', uuid(centreId));
   form.set('order_id', uuid(orderId));

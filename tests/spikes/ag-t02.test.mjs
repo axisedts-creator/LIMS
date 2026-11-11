@@ -17,9 +17,11 @@ const text = () => readFileSync(DOC, 'utf8');
 const OSES = [
   ['Windows 10', /(Windows 10|Win10|Win 10)\b/i],
   ['Windows 11', /(Windows 11|Win11|Win 11)\b/i],
-  ['Server 2016', /(Server 2016|Win(dows)? ?Server ?2016)/i],
 ];
 const VERDICT = /\b(PASS|FAIL|PARTIAL)\b/;
+// LD-93/LD-94 (A36-4): Windows 10 is NOT RUN, a pre-pilot release gate; Server 2016 removed from v1.
+const NOT_RUN_GATE = (l) => /\bNOT RUN\b/.test(l) && /release gate/i.test(l);
+const osOk = (name, l) => (name === 'Windows 10' ? VERDICT.test(l) || NOT_RUN_GATE(l) : VERDICT.test(l));
 
 function sections() {
   const out = {};
@@ -42,17 +44,17 @@ const DEC = () => find(/^decisions?$/i);
 
 function perOs(body, label) {
   for (const [name, re] of OSES) {
-    const line = body.split('\n').find((l) => re.test(l) && VERDICT.test(l));
-    assert.ok(line, `${label}: no line naming ${name} with a PASS|FAIL|PARTIAL verdict`);
+    const line = body.split('\n').find((l) => re.test(l) && osOk(name, l));
+    assert.ok(line, `${label}: no line naming ${name} with a PASS|FAIL|PARTIAL verdict${name === 'Windows 10' ? ' (or NOT RUN + release gate)' : ''}`);
   }
 }
 
 describe('doc exists and is well-formed', () => {
   test('docs/manual/instruments/spikes.md exists and is non-trivial', () => {
     assert.ok(existsSync(DOC), 'docs/manual/instruments/spikes.md missing');
-    assert.ok(text().length > 1500, 'spikes.md too short to hold three spikes x three OSes');
+    assert.ok(text().length > 1500, 'spikes.md too short to hold three spikes x two OSes');
   });
-  test('names AG-T02 and the three target OS versions', () => {
+  test('names AG-T02 and the two target OS versions', () => {
     const t = text();
     assert.match(t, /AG-T02/);
     for (const [name, re] of OSES) assert.match(t, re, `doc never mentions ${name}`);

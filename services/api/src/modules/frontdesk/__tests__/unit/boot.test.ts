@@ -149,7 +149,6 @@ describe('done_when: unimplemented handlers throw common.service_unavailable', (
     const { manifest } = await load(FILES.index);
     const ctx = { operationId: 'x', clientIp: '203.0.113.9', log: { info() {}, warn() {}, error() {} } };
     const req = { params: {}, query: {}, headers: {}, body: {} };
-    expect(stubOps().length, 'stub inventory must not be empty while later tasks are unmerged').toBeGreaterThan(0);
     for (const op of stubOps()) {
       let err: unknown;
       try { await manifest.handlers[op](req, { ...ctx, operationId: op }); } catch (e) { err = e; }
@@ -162,6 +161,8 @@ describe('done_when: unimplemented handlers throw common.service_unavailable', (
     const { manifest } = await load(FILES.index);
     const secret = 'SYNTHETIC-PATIENT-Sita-Test-9800000000';
     const req = { params: { patient_id: secret }, query: { q: secret }, headers: { authorization: `Bearer ${secret}` }, body: { full_name: secret } };
+    // Ruling FD-T15-ruling.md (TESTS_WRONG): an empty stub inventory is the required end state after FD-T15.
+    if (stubOps().length === 0) return;
     const stub = stubOps().includes('anonymisePatient') ? 'anonymisePatient' : stubOps()[0]!;
     const ctx = { operationId: stub, clientIp: '203.0.113.9', log: { info() {}, warn() {}, error() {} } };
     let err: any;

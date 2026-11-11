@@ -81,13 +81,13 @@
           deploy_{api,worker,web,portal,renderer,pdf_sandbox}_image (each by digest) or
           secrets_render_enc_file unset
 
-    # AC-21.2: dev/staging never mail through a real relay. `mail_sink_fqdn` and the staging case
-    # (02-TRD s7 line 495 says smtp_relay_fqdn) are pending CR .orchestra/cr/C1.T-24.md.
+    # AC-21.2 / LD-90 (a,d): dev AND staging mail only to the local Mailpit sink `mail_sink_fqdn`
+    # (overrides the staging half of 02-TRD s7 line 495); a real smtp_relay_fqdn there fails the deploy.
     - name: Non-prod GoTrue mail goes to the local sink, not a real relay
       ansible.builtin.assert:
         that:
           - mail_sink_fqdn | default('') | length > 0
-          - smtp_relay_fqdn | default('') == mail_sink_fqdn
+          - smtp_relay_fqdn | default(mail_sink_fqdn) == mail_sink_fqdn
         fail_msg: >-
           deploy: env {{ env }} must set smtp_relay_fqdn equal to mail_sink_fqdn
           (non-prod never uses a real SMTP relay)
@@ -256,6 +256,27 @@
           docker compose -p lims -f {{ deploy_compose_dir }}/compose.app.yml
           up -d --no-deps --wait --wait-timeout 300 pdf-sandbox
       environment: "{{ deploy_compose_env }}"
+
+    # LD-90 (b): staging runs one Mailpit container (dev uses the C0 dev-stack sink; prod the relay).
+    # After the rolls: every `compose up` here is a health-gated roll step (marker semantics).
+    - name: Staging mail sink (Mailpit on auth_net, nothing published)
+      when: env == 'staging'
+      block:
+        - name: Install the staging mail-sink compose file
+          ansible.builtin.copy:
+            src: "{{ playbook_dir }}/../../compose/lims/compose.mailsink.yml"
+            dest: "{{ deploy_compose_dir }}/compose.mailsink.yml"
+            owner: root
+            group: root
+            mode: "0640"
+
+        - name: Start the staging mail sink (wait healthy)
+          ansible.builtin.command:
+            cmd: >-
+              docker compose -p lims-mailsink -f {{ deploy_compose_dir }}/compose.mailsink.yml
+              up -d --wait --wait-timeout 300
+          environment: "{{ deploy_compose_env }}"  # no vars in this file; uniform for every compose task
+          changed_when: false
 
     - name: ops_audit release record (what/who/when only, s8.4)
       ansible.builtin.command:

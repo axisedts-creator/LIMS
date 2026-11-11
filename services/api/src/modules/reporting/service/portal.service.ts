@@ -9,6 +9,7 @@ import { uuidv7 } from '../../../../../../packages/shared-ts/src/uuidv7/index.js
 import { loadReportingConfig, type ReportingConfig } from '../config.js';
 import { OTP_MAX_ATTEMPTS, verifyOtp } from '../domain/otp.js';
 import { issueToken } from '../domain/tokens.js';
+import { findLinkRecipient, findOpenRequestOfLink, findPortalPaymentGateways, findReportForPayment, findRequestOfLink, insertQueuedRequest } from '../repository/portal-payment.repo.js';
 
 type Row = Record<string, any>;
 type Tx = { query(sql: string, values?: unknown[]): Promise<{ rows: Row[] }> };
@@ -25,6 +26,13 @@ const SEND_TASK = 'reporting.send_portal_otp';
 const REISSUE_TASK = 'reporting.reissue_portal_link';
 const TASK_MAX_ATTEMPTS = 8;                                             // 02-TRD §9
 const REPORT_BUCKET = 'reports';
+const PAY_CREATE_TASK = 'reporting.create_portal_payment_intent';       // PP1 (08 A11.1)
+const PAY_REFRESH_TASK = 'reporting.refresh_portal_payment_request';    // PP2
+const PAY_TASK_MAX_ATTEMPTS = 3;                                         // 02-TRD §9
+const PAY_GATEWAYS = ['esewa', 'khalti'];                               // Fonepay is BLOCKED B8
+const PAY_REQUEST_TTL_DAYS = 90;                                         // row retention [CONV]
+const PAY_REFRESH_AFTER_MS = 3_000;                                      // PP2 enqueues a refresh when last_checked_at is at least this old
+const NO_STORE = { 'cache-control': 'no-store' };
 const KATHMANDU = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kathmandu' });   // P-15: yyyy-mm-dd
 const STATUS_LABEL: Readonly<Record<string, string>> = { final: 'Final report', partial: 'Partial report', preliminary: 'Preliminary report', amended: 'Amended report', addendum: 'Addendum' };   // [CONV]
 
@@ -49,6 +57,16 @@ const invalidField = (path: string): never => {
 };
 const iso = (v: unknown): string => new Date(v as string).toISOString();
 const ms = (v: unknown): number => Date.parse(iso(v));
+
+/** PortalPaymentRequest (02-TRD §6.6): never an amount input; `action_url` only while ready and not under review (the DB CHECK scrubs action_json otherwise). */
+function paymentView(r: Row): Row {
+  const out: Row = { id: r['id'], status: r['status'], gateway: r['gateway'], review: !!r['review'] };
+  if (r['amount_paisa'] !== null && r['amount_paisa'] !== undefined) out['amount_paisa'] = Number(r['amount_paisa']);
+  if (r['status'] === 'ready' && !r['review'] && typeof r['action_json']?.url === 'string') out['action_url'] = r['action_json'].url;
+  if (r['failure_code']) out['failure_code'] = r['failure_code'];
+  if (r['intent_expires_at']) out['intent_expires_at'] = iso(r['intent_expires_at']);
+  return out;
+}
 
 function scope(ctx: PortalCtx) {
   if (typeof ctx?.tenantId !== 'string' || !UUID.test(ctx.tenantId) || typeof ctx.actor?.id !== 'string' || !ctx.tx) throw new LimsError('auth.unauthenticated');
@@ -199,7 +217,10 @@ export function createPortalService(deps: { env: Env; newId?: () => string }) {
       if (summary !== null && summary !== undefined) body['smart_summary'] = summary;
       if (link['recipient_kind'] === 'patient' && Number(r['billing_balance_due_paisa']) > 0) {
         const st = (await tx.query(`SELECT portal_payment_gateways FROM reporting.settings WHERE tenant_id = $1`, [tenantId])).rows[0];
-        body['dues'] = { balance_due_paisa: Number(r['billing_balance_due_paisa']), online_gateways: Array.isArray(st?.['portal_payment_gateways']) ? st['portal_payment_gateways'] : [] };
+        const dues: Row = { balance_due_paisa: Number(r['billing_balance_due_paisa']), online_gateways: Array.isArray(st?.['portal_payment_gateways']) ? st['portal_payment_gateways'] : [] };
+        const open = await findOpenRequestOfLink(tx, tenantId, s.linkId);               // this link's request only (AC-18.4)
+        if (open) dues['open_request'] = { id: open['id'], status: open['status'] };
+        body['dues'] = dues;
       }
       await audit(ctx).access({ action: 'report.portal_view', entityType: 'report_version', entityId: v['id'], outcome: 'allowed', detail: { link_id: s.linkId } });
       return { status: 200, body };
@@ -238,6 +259,50 @@ export function createPortalService(deps: { env: Env; newId?: () => string }) {
       await tx.query(`UPDATE reporting.portal_links SET reissue_count_day = $3, reissue_day = $4::date WHERE tenant_id = $1 AND id = $2`, [tenantId, actorId, n, day]);
       await tx.query(ENQUEUE, [REISSUE_TASK, JSON.stringify({ tenant_id: tenantId, link_id: actorId, reissue_day: day, n }), `reissue:${actorId}:${day}:${n}`, null, TASK_MAX_ATTEMPTS]);
       return done;
+    },
+
+    /** PP1 — stage session, `report` or `dues` link (08 A21.1). Request path only: no money port, no amount (REQ-SEC-046); the worker task creates the intent.
+     *  The request is the gateway name and nothing else. This link's open request -> 200 with it; another link's open request surfaces as the unique-index violation -> 409. */
+    async createPaymentRequest(ctx: PortalCtx, input: { body: unknown }) {
+      const s = await liveSession(ctx, true);
+      const body = typeof input?.body === 'object' && input.body !== null ? (input.body as Row) : {};
+      for (const k of Object.keys(body)) if (k !== 'gateway') invalidField(`/${k}`);   // amount / amount_paisa / anything else is rejected, never read
+      const gateway = body['gateway'];
+      if (typeof gateway !== 'string' || !PAY_GATEWAYS.includes(gateway)) invalidField('/gateway');
+      const { tx, tenantId } = s;
+
+      const link = await findLinkRecipient(tx, tenantId, s.linkId);
+      if (!link || link.recipient_kind !== 'patient') throw new LimsError('common.not_found');   // [CONV] no dues for referrer / centre / partner links
+      const report = await findReportForPayment(tx, tenantId, s.reportId);
+      if (!report) throw new LimsError('common.not_found');
+      if (report.state !== 'open') throw new LimsError('reporting.report_cancelled');
+      if (!(await findPortalPaymentGateways(tx, tenantId)).includes(gateway as string)) invalidField('/gateway');   // [] until C15 is live (AC-18.2)
+
+      const open = await findOpenRequestOfLink(tx, tenantId, s.linkId);
+      if (open) return { status: 200, body: paymentView(open), headers: NO_STORE };
+
+      const id = newId(); const now = ctx.now();
+      try {
+        await insertQueuedRequest(tx, { id, tenantId, linkId: s.linkId, reportId: s.reportId, orderId: report.order_id, gateway: gateway as string, now,
+          expiresAt: new Date(Date.parse(now) + PAY_REQUEST_TTL_DAYS * DAY).toISOString() });
+      } catch (e) {
+        if ((e as Row)?.['code'] === '23505') throw new LimsError('common.version_conflict', 'payment_in_progress');   // open request through another link: nothing of it is exposed
+        throw e;
+      }
+      await tx.query(ENQUEUE, [PAY_CREATE_TASK, JSON.stringify({ tenant_id: tenantId, portal_payment_request_id: id }), `ppay:${id}`, null, PAY_TASK_MAX_ATTEMPTS]);
+      return { status: 202, body: { id, status: 'queued', gateway, review: false }, headers: NO_STORE };
+    },
+
+    /** PP2 — stage session. Reads this link's row only (any other id is `not_found`); never writes (the session is not slid). A `ready` row not checked for 3 s gets a keyed refresh task. */
+    async getPaymentRequest(ctx: PortalCtx, input: { id: unknown }) {
+      const s = await liveSession(ctx, false);
+      if (typeof input?.id !== 'string' || !UUID.test(input.id)) throw new LimsError('common.not_found');
+      const r = await findRequestOfLink(s.tx, s.tenantId, s.linkId, input.id);
+      if (!r) throw new LimsError('common.not_found');
+      if (r['status'] === 'ready' && (!r['last_checked_at'] || Date.parse(s.now) - ms(r['last_checked_at']) >= PAY_REFRESH_AFTER_MS)) {
+        await s.tx.query(ENQUEUE, [PAY_REFRESH_TASK, JSON.stringify({ tenant_id: s.tenantId, portal_payment_request_id: r['id'] }), `ppref:${r['id']}`, null, PAY_TASK_MAX_ATTEMPTS]);
+      }
+      return { status: 200, body: paymentView(r), headers: NO_STORE };
     },
 
     /** P6 — stage session. Ends this session only; the link and its OTP budget are untouched. */

@@ -1,0 +1,220 @@
+// Staff login (03-APP-FLOW §3.1/§3.3; 01-PRD AC-A1.1-7; 07-SECURITY AU-T1/T2/T2a-c/T10/T14/T19/T22/T23; 08 A1, A6.6, A8.1, A19 P-42,
+// A25 D-212/D-217/P-61, A28.1). Runs inside ctx.db.identityAuthTx: tenant, membership and kind come only from
+// app.identity_login_context; tx.bindTenant runs once, after the membership is known and before any tenant write.
+// Every 4xx: its auth event (+ job), ctx.commitOnError() once, nothing else, then the throw. Failures are padded to a floor (rule 2).
+// No SQL here: repo / events / limits are seams (auth-events.repo.ts, AuthLimits adapter in handlers/loginStaff.ts).
+import { createHash, createHmac, randomBytes } from 'node:crypto';
+import { LimsError, isLimsError } from '../../../core/errors.js';
+// [CONV] relative import until @lims/shared-ts is a services/api dependency (same as core/errors.ts).
+import { uuidv7 } from '../../../../../../packages/shared-ts/src/uuidv7/index.js';
+import type { GoTrueGateway, GoTrueTokens } from '../gotrue/gateway.js';
+import { cidrList, ipAllowed } from '../claims/resolver.js';
+import type { AuthEvent, NewSession } from '../repository/auth-events.repo.js';
+
+type Row = Record<string, any>;
+export interface AuthTx { query(text: string, values?: unknown[]): Promise<{ rows: any[] }>; bindTenant?: (tenantId: string) => Promise<void> }
+export interface AuthCtx {
+  actor: { type: string; id: string }; requestId: string; clientIp: string; userAgent?: string | undefined; bffKey?: string | undefined;
+  tx: AuthTx; now(): Date; commitOnError(): void; log: { info(o: object, m?: string): void; warn(o: object, m?: string): void; error(o: object, m?: string): void };
+}
+export interface AuthRepo {
+  loginContext(tx: AuthTx, sub: string): Promise<Row | undefined>;
+  insertSession(tx: AuthTx, s: NewSession): Promise<void>;
+  insertPlatformSession(tx: AuthTx, s: NewSession): Promise<void>;
+  touchMembershipLogin(tx: AuthTx, a: { tenantId: string; membershipId: string; at: Date; actorId: string }): Promise<void>;
+  platformStaffLogin(tx: AuthTx, a: { platformStaffId: string; userId: string; at: Date }): Promise<void>;
+  enqueue(tx: AuthTx, taskIdentifier: string, payload: Record<string, unknown>, jobKey: string): Promise<void>;
+}
+export interface AuthEvents { recordTenantless(tx: AuthTx, e: AuthEvent): Promise<void>; recordTenant(tx: AuthTx, e: AuthEvent): Promise<void> }
+/** Account key = HMAC hex (a:), IP key = ctx.clientIp (f:). Throwing common.rate_limited carries retryAfterSeconds. */
+export interface AuthLimits {
+  consumeAttempt(accountKey: string): Promise<void>;
+  accountState(accountKey: string): Promise<{ failures: number; lastFailureAt: Date | null }>;
+  recordAccountFailure(accountKey: string): Promise<void>;
+  clearAccountFailures(accountKey: string): Promise<void>;
+  checkIp(ip: string): Promise<void>;
+  recordIpFailure(ip: string): Promise<{ engaged: boolean; windowStart: Date }>;
+}
+export type AlertCode = 'identity_multi_membership' | 'login_ip_throttled' | 'platform_ip_denied';
+export interface AuthDeps {
+  gotrue: Pick<GoTrueGateway, 'signInWithPassword'>; repo: AuthRepo; events: AuthEvents; limits: AuthLimits;
+  hmac?: (normalisedEmail: string) => string; newId?: () => string; newToken?: () => string;
+  sleep?: (ms: number) => Promise<void>; floorMs?: number; alert?: (code: AlertCode, detail: Record<string, unknown>) => void;
+  /** LIMS_IDENTITY_PLATFORM_ALLOWED_CIDRS (global list, intersected with the per-staff list; empty = no global restriction). */
+  platformAllowedCidrs?: readonly string[];
+  /** LIMS_IDENTITY_PLATFORM_IDLE_MINUTES / _ABSOLUTE_HOURS (02-TRD §11 defaults 15 / 8). */
+  platformIdleMinutes?: number; platformAbsoluteHours?: number;
+}
+export interface LoginResult { status: 200; body: { session_token: string; session: Record<string, unknown> } }
+
+const EMAIL_MAX = 254; const PASSWORD_MAX = 128;
+const BACKOFF_BASE_S = 30; const BACKOFF_CAP_S = 900; const STEP_UP_FAILS = 5;   // 03-APP-FLOW §3.3 [CONV]
+
+function envHmac(email: string): string {
+  const key = process.env['LIMS_IDENTITY_EMAIL_HMAC_KEY'];
+  if (!key) throw new LimsError('common.internal', 'identity: email HMAC key missing');
+  return createHmac('sha256', key).update(email).digest('hex');
+}
+const envList = (v: string | undefined) => (v ?? '').split(',').map((s) => s.trim()).filter(Boolean);
+const envInt = (v: string | undefined, d: number) => { const n = Number(v); return Number.isInteger(n) && n > 0 ? n : d; };
+const sha256 = (s: string) => createHash('sha256').update(s).digest();
+const invalid = () => new LimsError('common.validation_failed');
+const normalise = (e: string) => e.trim().normalize('NFC').toLowerCase();
+
+export function createAuthService(deps: AuthDeps) {
+  const hmac = deps.hmac ?? envHmac;
+  const newId = deps.newId ?? uuidv7;
+  const newToken = deps.newToken ?? (() => randomBytes(32).toString('base64url'));   // 43 chars
+  const sleep = deps.sleep ?? ((ms: number) => new Promise<void>((r) => setTimeout(r, ms)));
+  const floorMs = deps.floorMs ?? 400;
+  const alert = deps.alert ?? (() => undefined);
+  const globalCidrs = deps.platformAllowedCidrs ?? envList(process.env['LIMS_IDENTITY_PLATFORM_ALLOWED_CIDRS']);
+  const pIdle = deps.platformIdleMinutes ?? envInt(process.env['LIMS_IDENTITY_PLATFORM_IDLE_MINUTES'], 15);
+  const pAbs = deps.platformAbsoluteHours ?? envInt(process.env['LIMS_IDENTITY_PLATFORM_ABSOLUTE_HOURS'], 8);
+
+  async function loginStaff(ctx: AuthCtx, input: { email: unknown; password: unknown }): Promise<LoginResult> {
+    const start = ctx.now().getTime();
+    const { email, password } = input ?? ({} as never);
+    if (typeof email !== 'string' || typeof password !== 'string' || password.length < 1 || password.length > PASSWORD_MAX) throw invalid();
+    const norm = normalise(email);
+    if (norm.length < 3 || norm.length > EMAIL_MAX) throw invalid();
+    const k = hmac(norm);
+    const tx = ctx.tx;
+    const base = { clientIp: ctx.clientIp, userAgent: ctx.userAgent, requestId: ctx.requestId, actorId: ctx.actor.id };
+    const ev = (eventType: string, o: Partial<AuthEvent> = {}): AuthEvent => ({ id: newId(), eventType, ...base, ...o });
+
+    /** P-42 exit: writes already done by the caller; keep them, pad, throw. */
+    const deny = async (err: LimsError): Promise<never> => {
+      ctx.commitOnError();
+      const left = floorMs - (ctx.now().getTime() - start);
+      if (left > 0) await sleep(left);
+      throw err;
+    };
+    const tenantless = async (eventType: string, err: LimsError, o: Partial<AuthEvent> = {}) => {
+      await deps.events.recordTenantless(tx, ev(eventType, { emailHmacHex: k, ...o }));
+      return deny(err);
+    };
+    const limited = (e: unknown) => (isLimsError(e, 'common.rate_limited') ? tenantless('login_rate_limited', e) : Promise.reject(e));
+
+    // AU-T14: this operation serves the staff_web BFF only; the password is not checked for any other key.
+    if (ctx.bffKey !== 'staff_web') return tenantless('login_failed', new LimsError('auth.login_failed'), { reasonCode: 'wrong_bff' });
+
+    // 1. per-IP throttle (only bites once engaged), 2. hourly account cap, 3. backoff / step-up (password not checked)
+    try { await deps.limits.checkIp(ctx.clientIp); } catch (e) { return limited(e); }
+    try { await deps.limits.consumeAttempt(k); } catch (e) { return limited(e); }
+    const st = await deps.limits.accountState(k);
+    if (st.failures >= STEP_UP_FAILS) {
+      const backoffMs = Math.min(BACKOFF_BASE_S * 2 ** (st.failures - STEP_UP_FAILS), BACKOFF_CAP_S) * 1000;
+      const since = st.lastFailureAt ? ctx.now().getTime() - st.lastFailureAt.getTime() : backoffMs;
+      if (since < backoffMs) {
+        const e = new LimsError('common.rate_limited'); e.retryAfterSeconds = Math.max(1, Math.ceil((backoffMs - since) / 1000));
+        return tenantless('login_rate_limited', e);
+      }
+      return tenantless('login_step_up_required', new LimsError('auth.step_up_required'));
+    }
+
+    let r: Awaited<ReturnType<AuthDeps['gotrue']['signInWithPassword']>>;
+    try { r = await deps.gotrue.signInWithPassword(norm, password); } catch (e) {
+      if (isLimsError(e)) throw e;
+      throw new LimsError('common.dependency_unavailable');   // outage: never a credential failure, never 200
+    }
+
+    if (!r.ok) {
+      await deps.limits.recordAccountFailure(k);
+      const ip = await deps.limits.recordIpFailure(ctx.clientIp);
+      await deps.events.recordTenantless(tx, ev('login_failed', { emailHmacHex: k }));
+      if (ip.engaged) {
+        const now = ctx.now();
+        await deps.events.recordTenantless(tx, ev('login_ip_throttled'));
+        await deps.repo.enqueue(tx, 'identity.notify_ip_throttle', { client_ip: ctx.clientIp, window_start: ip.windowStart.toISOString() },
+          `ipthrottle:${sha256(ctx.clientIp).toString('hex')}:${now.toISOString().slice(0, 16)}`);
+        alert('login_ip_throttled', { request_id: ctx.requestId });
+      }
+      return deny(new LimsError('auth.login_failed'));
+    }
+
+    const t = r.tokens;
+    const row = (await deps.repo.loginContext(tx, t.userId)) ?? {};
+    const signOut = (reason: string, tenantId?: string) => deps.repo.enqueue(tx, 'identity.gotrue_signout',
+      { user_id: t.userId, ...(tenantId ? { tenant_id: tenantId } : {}) }, `signout:${t.userId}:${reason}`);
+    const who = { userId: t.userId };
+
+    if (row['platform_staff_id'] && !row['tenant_id']) return platformLogin(ctx, row, t, k, ev, deny, signOut);
+
+    if (Number(row['membership_count']) > 1) {   // 08 A6.6: data error, never a 403 leak
+      alert('identity_multi_membership', { user_id: t.userId, request_id: ctx.requestId });
+      return tenantless('login_failed', new LimsError('auth.login_failed'), { ...who, reasonCode: 'multi_membership' });
+    }
+    const tenantId = row['tenant_id'] as string | null | undefined; const membershipId = row['membership_id'] as string | null | undefined;
+    if (!tenantId || !membershipId) return tenantless('login_failed', new LimsError('auth.login_failed'), who);   // no staff membership
+
+    if (!tx.bindTenant) throw new LimsError('common.internal');
+    await tx.bindTenant(tenantId);
+    const blocked = async (eventType: string, code: string) => {
+      await deps.events.recordTenant(tx, ev(eventType, { ...who, tenantId, membershipId, emailHmacHex: k }));
+      await signOut(eventType, tenantId);
+      return deny(new LimsError(code));
+    };
+    if (row['membership_status'] !== 'active') return blocked('login_blocked_inactive', 'identity.membership_inactive');
+    if (row['membership_locked'] !== false) return blocked('login_blocked_locked', 'auth.account_locked');
+    if (row['tenant_status'] !== 'active') return blocked('login_blocked_tenant_suspended', 'identity.tenant_suspended');
+
+    const idle = Number(row['idle_timeout_minutes']); const abs = Number(row['absolute_session_hours']);
+    if (!(idle > 0) || !(abs > 0)) throw new LimsError('common.internal', 'identity: tenant session settings missing');
+    const state = row['has_verified_factor'] === true ? 'mfa_pending' : row['mfa_required'] === true ? 'mfa_enrolment_required' : 'active';
+    const now = ctx.now();
+    const { s, token } = session(ctx, t, { tenantId, kind: 'tenant_staff', membershipId, platformStaffId: null, state, idle, abs, now });
+    await deps.repo.insertSession(tx, s);
+    if (state === 'active') await deps.repo.touchMembershipLogin(tx, { tenantId, membershipId, at: now, actorId: ctx.actor.id });
+    await deps.events.recordTenant(tx, ev(state === 'active' ? 'login_succeeded' : 'login_password_ok', { ...who, tenantId, membershipId, sessionId: s.id, emailHmacHex: k }));
+    await deps.limits.clearAccountFailures(k);
+    return result(s, token);
+  }
+
+  async function platformLogin(ctx: AuthCtx, row: Row, t: GoTrueTokens, k: string, ev: (e: string, o?: Partial<AuthEvent>) => AuthEvent,
+    deny: (e: LimsError) => Promise<never>, signOut: (reason: string) => Promise<void>): Promise<LoginResult> {
+    const tx = ctx.tx; const platformStaffId = row['platform_staff_id'] as string;
+    const who = { userId: t.userId, platformStaffId, emailHmacHex: k };
+    if (row['platform_active'] !== true) {   // deactivated platform staff: no oracle, plain login failure [CONV]
+      await deps.events.recordTenantless(tx, ev('login_failed', { ...who, reasonCode: 'platform_inactive' }));
+      await signOut('platform_inactive');
+      return deny(new LimsError('auth.login_failed'));
+    }
+    if (!ipAllowed([...globalCidrs], ctx.clientIp) || !ipAllowed(cidrList(row['platform_allowed_cidrs']), ctx.clientIp)) {   // AU-T10
+      await deps.events.recordTenantless(tx, ev('login_blocked_ip', who));
+      await signOut('login_blocked_ip');
+      alert('platform_ip_denied', { platform_staff_id: platformStaffId, request_id: ctx.requestId });
+      return deny(new LimsError('identity.platform_ip_denied'));
+    }
+    const state = row['has_verified_factor'] === true ? 'mfa_pending' : 'mfa_enrolment_required';   // MFA always required (08 A28.1)
+    const now = ctx.now();
+    const { s, token } = session(ctx, t, { tenantId: null, kind: 'platform', membershipId: null, platformStaffId, state, idle: pIdle, abs: pAbs, now });
+    await deps.repo.insertPlatformSession(tx, s);
+    await deps.repo.platformStaffLogin(tx, { platformStaffId, userId: t.userId, at: now });
+    await deps.events.recordTenantless(tx, ev('login_password_ok', { ...who, sessionId: s.id }));
+    await deps.limits.clearAccountFailures(k);
+    return result(s, token);
+  }
+
+  function session(ctx: AuthCtx, t: GoTrueTokens, o: { tenantId: string | null; kind: string; membershipId: string | null; platformStaffId: string | null;
+    state: string; idle: number; abs: number; now: Date }) {
+    const token = newToken();
+    const absolute = new Date(o.now.getTime() + o.abs * 3_600_000);
+    const s: NewSession = {
+      id: newId(), tenantId: o.tenantId, kind: o.kind, userId: t.userId, membershipId: o.membershipId, platformStaffId: o.platformStaffId,
+      gotrueSessionId: t.sessionId, tokenSha256: sha256(token), state: o.state, aal: t.aal, accessToken: t.accessToken, refreshToken: t.refreshToken,
+      accessExpiresAt: new Date(t.expiresAt * 1000), idleTimeoutMinutes: o.idle, idleExpiresAt: new Date(o.now.getTime() + o.idle * 60_000),
+      absoluteExpiresAt: absolute, expiresAt: absolute, clientIp: ctx.clientIp, userAgent: ctx.userAgent, actorId: ctx.actor.id,
+    };
+    return { s, token };
+  }
+
+  // SessionState.actor (display_name, roles) has no source in app.identity_login_context: omitted, see .orchestra/cr/T6.md.
+  const result = (s: NewSession, token: string): LoginResult => ({
+    status: 200,
+    body: { session_token: token, session: { session_id: s.id, kind: s.kind, state: s.state, aal: s.aal,
+      idle_expires_at: s.idleExpiresAt.toISOString(), absolute_expires_at: s.absoluteExpiresAt.toISOString() } },
+  });
+
+  return { loginStaff };
+}

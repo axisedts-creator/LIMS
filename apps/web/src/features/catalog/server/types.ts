@@ -119,6 +119,24 @@ export interface MethodInput { code: string; name: string; is_active?: boolean }
 export interface UnitInput { code: string; display: string }
 export interface ValueSetInput { code: string; display: string; is_ordered: boolean; values?: { code: string; display: string; sort_order?: number; is_active?: boolean }[] }
 
+// ---- SCR-18 / SCR-19 (T-35): contracts/openapi/catalog.yaml Import, ImportIssue, Export (#96–#107). [CONV] hand-mirrored.
+export const IMPORT_KINDS = ['price_list', 'catalog_master', 'referrers', 'credit_parties'] as const;
+export type ImportKind = (typeof IMPORT_KINDS)[number];
+export const EXPORT_KINDS = ['price_list', 'catalog_master', 'referrers'] as const;
+export type ExportKind = (typeof EXPORT_KINDS)[number];
+export const IMPORT_STATUSES = ['uploaded', 'scanning', 'validating', 'validated', 'invalid', 'quarantined', 'committing', 'committed', 'commit_failed', 'discarded', 'expired', 'failed'] as const;
+export type ImportStatus = (typeof IMPORT_STATUSES)[number];
+export const EXPORT_STATUSES = ['queued', 'building', 'ready', 'failed', 'expired'] as const;
+export type ExportStatus = (typeof EXPORT_STATUSES)[number];
+export interface ImportSummary { rows: number; added: number; changed: number; removed: number; unchanged: number; errors: number; warnings: number }
+export interface Import {
+  id: string; kind: ImportKind; target_price_list_id?: string | undefined; base_version_no?: number | undefined; status: ImportStatus; file_name: string; file_sha256: string;
+  summary: ImportSummary; deduplicated?: boolean; result_price_list_version_id?: string | undefined; expires_at: string; created_at: string; created_by: string; version: number;
+}
+export interface ImportIssue { seq: number; severity: 'error' | 'warning'; sheet: string; row_no?: number | undefined; column?: string | undefined; issue_code: string; message: string }
+export interface ExportRow { id: string; kind: ExportKind; status: ExportStatus; file_name?: string | undefined; byte_size?: number | undefined; expires_at?: string | undefined; version: number }
+export interface PriceListLite { id: string; code: string; name: string; current_version?: { id: string; version_no: number } | null | undefined }
+export interface ImportCommitBody { effective_from?: string; change_reason: string; accept_stale_base?: boolean; publish?: boolean; replace_draft?: boolean }
 // ---- Pricing (SCR-13…17; contracts/openapi/catalog.yaml PriceList…TaxRule, identity.yaml Centre) ----
 export const PRICE_LIST_CODE_RE = /^[A-Z0-9][A-Z0-9_\-]{0,31}$/;
 export const TAX_CODE_RE = /^[A-Z0-9_]{1,16}$/;

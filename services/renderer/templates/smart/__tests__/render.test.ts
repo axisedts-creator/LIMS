@@ -54,7 +54,10 @@ describe('AC-16.1 — order, shape and allowed markup of the fragment', () => {
     expect(tags(html).filter((t) => t.name === 'section' && !t.close)).toHaveLength(1);
     const t = textOf(html);
     expect(ascending(pos(t, 'Smart summary', NOTICE, 'Health score (not a diagnosis)', 'SYNTH Blood count', 'Results outside the reference range', 'SYNTH-FIND-1',
-      'Your results over time', 'Glucose', 'Suggestions', 'SYNTH-ADVICE-1', 'Tests your doctor may consider', 'SYNTH-FOLLOW-1', DISCLAIMER_EN, 'Reviewed and approved by'))).toBe(true);
+      'Your results over time', 'Suggestions', 'SYNTH-ADVICE-1', 'Tests your doctor may consider', 'SYNTH-FOLLOW-1', DISCLAIMER_EN, 'Reviewed and approved by'))).toBe(true);
+    const trendAt = t.indexOf('Glucose', t.indexOf('Your results over time'));
+    expect(trendAt).toBeGreaterThanOrEqual(0);
+    expect(trendAt).toBeLessThan(t.indexOf('Suggestions'));
     expect(html).toMatch(/<h2\b[^>]*class="smart-title"[^>]*>\s*Smart summary\s*<\/h2>/);
     expect(html).toMatch(/<p\b[^>]*class="smart-notice"/);
     expect(html).toMatch(/<p\b[^>]*class="smart-disclaimer"/);

@@ -24,6 +24,7 @@
     "mock:analytics": "prism mock contracts/openapi/analytics.yaml --host 127.0.0.1 --port 4108",
     "mock:quality": "prism mock contracts/openapi/quality.yaml --host 127.0.0.1 --port 4109",
     "mock:micro": "prism mock contracts/openapi/micro.yaml --host 127.0.0.1 --port 4110",
+    "mock:anatomic": "prism mock contracts/openapi/anatomic.yaml --host 127.0.0.1 --port 4111",
     "mock:inventory": "prism mock contracts/openapi/inventory.yaml --host 127.0.0.1 --port 4112",
     "mock:partners": "prism mock contracts/openapi/partners.yaml --host 127.0.0.1 --port 4113",
     "mock:payments": "prism mock contracts/openapi/payments.yaml --host 127.0.0.1 --port 4115",

@@ -100,7 +100,7 @@ describe.skipIf(!live)('T-05 AC-01.3 allocation on the real counter', () => {
     await setCounter(A, 41);
     expect(await alloc(A, {})).toBe('2600000042');
     expect(await alloc(A, { barcodePattern: 'LAB{seq:4}X' })).toBe('LAB0043X');
-    expect(await alloc(A, { barcodePrefix: 'Q9', barcodePattern: '{prefix}{yy}{seq:8}' })).toBe('Q2600000044');
+    expect(await alloc(A, { barcodePrefix: 'Q9', barcodePattern: '{prefix}{yy}{seq:8}' })).toBe('Q92600000044');
   });
 });
 

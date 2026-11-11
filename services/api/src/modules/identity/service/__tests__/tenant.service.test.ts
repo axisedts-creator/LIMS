@@ -211,6 +211,7 @@ describe('suspendTenant - US-E2 (T3): sessions fail on the next request, logins 
     await svc.suspendTenant(ctx, { tenantId: TENANT_A, reasonText: REASON, expectedVersion: 3 });
     const j = f.jobs.filter((x) => x.identifier === 'identity.gotrue_signout'); expect(j.map((x) => x.payload.user_ids.length)).toEqual([200, 200, 50]); expect(new Set(j.map((x) => x.jobKey)).size).toBe(3);
     expect(j.every((x) => x.payload.tenant_id === TENANT_A)).toBe(true); expect(j.flatMap((x) => x.payload.user_ids).sort()).toEqual([...users].sort());
+    expect(j.every((x) => x.payload.reason === 'tenant_suspended')).toBe(true);
   });
   it('access log tenant.lifecycle_change inside the scope; reason text is NOT in the log detail or any logger', async () => {
     const { svc, ctx, f, log } = setup(); await svc.suspendTenant(ctx, { tenantId: TENANT_A, reasonText: REASON, expectedVersion: 3 });
@@ -254,6 +255,7 @@ describe('terminateTenant - T5, 08 A8.3 / A9.5, 07-SECURITY D-T13', () => {
     const { svc, ctx, f, scopes } = setup('provisioning'); await svc.terminateTenant(ctx, BODY);
     expect(f.data(TENANT_A).sessions.every((s) => s.state === 'revoked')).toBe(true); expect(scopes).toEqual([TENANT_A]); expect(f.by('accessLog')[0]!.args[1]).toMatchObject({ action: 'tenant.lifecycle_change', entityType: 'tenant' });
     expect(f.jobs.some((j) => j.identifier === 'identity.gotrue_signout')).toBe(true);
+    expect(f.jobs.filter((j) => j.identifier === 'identity.gotrue_signout').every((j) => j.payload.reason === 'deactivate')).toBe(true);
   });
   it.each([['wrong code', 'synthetic_beta'], ['empty', ''], ['upper-case', 'SYNTHETIC_ALPHA'], ['padded', ' synthetic_alpha']])('confirm_code %s -> 400 at /confirm_code; nothing written, no membership touched', async (_n, confirmCode) => {
     const { svc, ctx, f } = setup('suspended'); const e = await rejection(svc.terminateTenant(ctx, { ...BODY, confirmCode })); expect(e.code).toBe('common.validation_failed'); expect(paths(e)).toEqual(['/confirm_code']);

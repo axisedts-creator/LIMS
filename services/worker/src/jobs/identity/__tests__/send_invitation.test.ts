@@ -16,8 +16,9 @@ import { TENANT, OTHER_TENANT, NOW, idN, mk, makeCtx, down, gt, err } from './t1
 
 const INV = idN(0x1a1);
 const row = (o: Record<string, unknown> = {}) => ({ id: INV, status: 'pending', email: mk('invitee'), expires_at: '2026-11-18T04:00:00.000Z', ...o });
-function world(r: Record<string, unknown> | undefined = row(), o: { tenantId?: string | undefined; sendInvite?: (e: string, p: string) => Promise<void> } = {}) {
-  const c = makeCtx({ tenantId: 'tenantId' in o ? o.tenantId : TENANT }); const order: string[] = [];
+function world(...a: [r?: Record<string, unknown> | undefined, o?: { tenantId?: string | undefined; sendInvite?: (e: string, p: string) => Promise<void> }]) {
+  const r = a.length ? a[0] : row(); const o = a[1] ?? {};
+  const c =makeCtx({ tenantId: 'tenantId' in o ? o.tenantId : TENANT }); const order: string[] = [];
   const sendInvite = vi.fn(async (e: string, p: string) => { order.push('sendInvite'); await o.sendInvite?.(e, p); });
   const loadInvitation = vi.fn(async () => { order.push('load'); return r; });
   const markSent = vi.fn(async () => { order.push('markSent'); }); const markFailed = vi.fn(async () => { order.push('markFailed'); });

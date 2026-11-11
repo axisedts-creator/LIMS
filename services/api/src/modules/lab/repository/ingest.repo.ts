@@ -33,7 +33,7 @@ export async function claimIngestKey(rc: RepoCtx, a: { resultKey: string; centre
   if (ins) return { inserted: true, logId: ins['id'], lastOutcome: 'unmatched' };
   const row = await first(rc, `SELECT l.id, l.last_outcome, l.result_id, l.specimen_id,
       (SELECT e.id FROM lab.ingest_exceptions e WHERE e.tenant_id = l.tenant_id AND e.result_key = l.result_key AND e.status = 'open') AS open_exception_id
-      FROM lab.ingest_log l WHERE l.tenant_id = $1 AND l.result_key = $2`, [a.resultKey]);
+      FROM lab.ingest_log l WHERE l.tenant_id = $1 AND l.result_key = $2 FOR UPDATE OF l`, [a.resultKey]);   // row lock: a concurrent replay waits for the first apply to commit, then re-reads last_outcome (one apply per key, 04 N10)
   if (!row) throw new Error('lab.ingest_log key vanished after conflict');   // no DELETE grant, cannot happen: fail closed
   return {
     inserted: false, logId: row['id'], lastOutcome: row['last_outcome'],

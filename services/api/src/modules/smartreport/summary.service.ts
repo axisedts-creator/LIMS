@@ -80,6 +80,22 @@ export async function buildOrGet(ctx: BuildCtx, input: BuildInput): Promise<{ su
   // step 7c
   version ??= await libraryRepo.getApprovedLibraryVersion(rc);
   if (version === null) return refuse('smartreport.template_not_approved');
+  const { content, eligible, distinctEligible, mapByAnalyte } = await computeContent(ctx, rc, version, order, orderId, results);
+  const score = content.healthScore;
+  const summary = await summariesRepo.insertSummary(rc, {
+    id: uuidv7(), centre_id: order.centreId, order_id: orderId, patient_id: order.patientId, library_version_id: version.id, template_library_version: String(version.version_no),
+    formula_version: version.formula_version, language: version.language, approved_set_hash: hash, input_result_versions: results.map((r) => `${r.resultId}:${r.versionNo}`).sort(),
+    content, content_sha256: contentSha256(content),
+    ...(score !== undefined && { health_score_value: score.value, health_score_band: score.band }),
+    panels_scored: score?.panelsScored ?? 0, deranged_count: content.deranged.length, critical_count: content.deranged.filter((d) => d.severity === 'critical').length,
+    unmapped_result_count: results.filter((r) => !mapByAnalyte.has(r.analyteId)).length, ignored_duplicate_count: eligible.length - distinctEligible, built_at: content.builtAt,
+  });
+  if (old !== null) await summariesRepo.updateSummary(rc, old.id, old.version, { superseded_by_summary_id: summary.id });   // S6: once, NULL -> id, after the insert
+  return finish(summary, true);
+}
+
+/** §7.1 step 7c shared by buildOrGet and the preview (#22): library reads, analytes, eligibility, follow-ups, history, engine. Read-only; throws like buildOrGet. */
+export async function computeContent(ctx: BuildCtx, rc: RepoCtx, version: Row, order: Row, orderId: string, results: Row[], fixtureAnalytes?: Row[]): Promise<{ content: ReturnType<typeof buildContent>; eligible: Row[]; distinctEligible: number; mapByAnalyte: Map<string, Row> }> {
   const [blockRows, ruleRows, mappingRows, groupRows] = await Promise.all([
     blocksRepo.listBlocks(rc, version.id), rulesRepo.listRules(rc, version.id), mappingsRepo.listMappings(rc, version.id), groupsRepo.listGroupSettings(rc, version.id)]);
   const disclaimer = blockRows.find((b) => b.kind === 'disclaimer');
@@ -92,7 +108,8 @@ export async function buildOrGet(ctx: BuildCtx, input: BuildInput): Promise<{ su
     if (cur === undefined || Date.parse(r.approvedAt) > Date.parse(cur)) latestApproval.set(r.testId, r.approvedAt);
   }
   const analytes = new Map<string, Row>();
-  for (const [testId, asOf] of latestApproval) {
+  for (const a of fixtureAnalytes ?? []) analytes.set(a.analyteId, { ...a, id: a.analyteId });   // preview fixture: no CatalogPort, follow-ups or history
+  for (const [testId, asOf] of fixtureAnalytes === undefined ? latestApproval : []) {
     const t = await ctx.ports.CatalogPort.getTest(ctx, { testId, asOf });
     for (const a of t.analytes as Row[]) analytes.set(a.id, a);
   }
@@ -115,7 +132,7 @@ export async function buildOrGet(ctx: BuildCtx, input: BuildInput): Promise<{ su
 
   // follow-up tests: active only; inactive/unknown -> suggestion skipped (savepoint, P-44)
   const tests: { testId: string; code: string; name: string }[] = [];
-  for (const testId of new Set(ruleRows.flatMap((r) => (r.rule_kind === 'followup' && r.suggested_test_id != null ? [r.suggested_test_id as string] : [])))) {
+  for (const testId of new Set(fixtureAnalytes !== undefined ? [] : ruleRows.flatMap((r) => (r.rule_kind === 'followup' && r.suggested_test_id != null ? [r.suggested_test_id as string] : [])))) {
     try {
       const t = await inSavepoint<Row>(ctx, (c) => c.ports.CatalogPort.getTest(c, { testId, requireActive: true }));
       tests.push({ testId, code: t.code, name: t.name });
@@ -129,7 +146,7 @@ export async function buildOrGet(ctx: BuildCtx, input: BuildInput): Promise<{ su
   const trendOn = (id: string): boolean => version!.trend_enabled === true && mapByAnalyte.get(id)?.trend_enabled === true;
   const trendIds = [...new Set(eligible.filter((r) => trendOn(r.analyteId) && r.valueNumeric !== undefined && (r.referenceRangeSnapshot?.low != null || r.referenceRangeSnapshot?.high != null)).map((r) => r.analyteId as string))].slice(0, 100);
   let history: EngineInputs['history'];
-  if (trendIds.length > 0) {
+  if (trendIds.length > 0 && fixtureAnalytes === undefined) {
     const now = ctx.now();
     try {
       history = await inSavepoint(ctx, (c) => c.ports.LabPort.getAnalyteHistory(c, {
@@ -175,15 +192,5 @@ export async function buildOrGet(ctx: BuildCtx, input: BuildInput): Promise<{ su
     analytes: [...analytes.values()].map((a) => ({ analyteId: a.id, name: a.name, sortOrder: a.sortOrder, resultType: a.resultType, ...(opt(a.printName) !== undefined && { printName: a.printName }) })),
   }, library);
 
-  const score = content.healthScore;
-  const summary = await summariesRepo.insertSummary(rc, {
-    id: uuidv7(), centre_id: order.centreId, order_id: orderId, patient_id: order.patientId, library_version_id: v.id, template_library_version: String(v.version_no),
-    formula_version: v.formula_version, language: v.language, approved_set_hash: hash, input_result_versions: results.map((r) => `${r.resultId}:${r.versionNo}`).sort(),
-    content, content_sha256: contentSha256(content),
-    ...(score !== undefined && { health_score_value: score.value, health_score_band: score.band }),
-    panels_scored: score?.panelsScored ?? 0, deranged_count: content.deranged.length, critical_count: content.deranged.filter((d) => d.severity === 'critical').length,
-    unmapped_result_count: results.filter((r) => !mapByAnalyte.has(r.analyteId)).length, ignored_duplicate_count: eligible.length - distinctEligible, built_at: builtAt,
-  });
-  if (old !== null) await summariesRepo.updateSummary(rc, old.id, old.version, { superseded_by_summary_id: summary.id });   // S6: once, NULL -> id, after the insert
-  return finish(summary, true);
+  return { content, eligible, distinctEligible, mapByAnalyte };
 }

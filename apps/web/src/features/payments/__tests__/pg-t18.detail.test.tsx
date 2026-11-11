@@ -272,11 +272,11 @@ describe('AC-PG-07.1 Mark as paid (P4 settle)', () => {
     await view();
     await userEvent.click(btn(/mark as paid/i)!);
     const dlg = await screen.findByRole('dialog');
-    await userEvent.click(within(dlg).getByRole('button', { name: /mark as paid|confirm/i }));
+    await userEvent.click(within(dlg).getByRole('button', { name: /mark as paid/i }));
     expect(posts('resolve')).toHaveLength(0);
     expect(screen.getByRole('dialog')).toBeTruthy();
     await pick(dlg, /Provider confirmed paid/);
-    await userEvent.click(within(dlg).getByRole('button', { name: /mark as paid|confirm/i }));
+    await userEvent.click(within(dlg).getByRole('button', { name: /mark as paid/i }));
     await waitFor(() => expect(posts('resolve')).toHaveLength(1));
     const c = posts('resolve')[0]!;
     expect(c.body.resolution).toBe('settle');
@@ -292,7 +292,7 @@ describe('AC-PG-07.1 Mark as paid (P4 settle)', () => {
     await userEvent.click(btn(/mark as paid/i)!);
     const dlg = await screen.findByRole('dialog');
     await pick(dlg, /Provider confirmed paid/);
-    const ok = within(dlg).getByRole('button', { name: /mark as paid|confirm/i });
+    const ok = within(dlg).getByRole('button', { name: /mark as paid/i });
     await userEvent.dblClick(ok);
     await waitFor(() => expect(posts('resolve').length).toBeGreaterThan(0));
     await new Promise((r) => setTimeout(r, 200));
@@ -319,7 +319,7 @@ describe('AC-PG-07.2 Mark as failed (P4 fail)', () => {
     const dlg = await screen.findByRole('dialog');
     expect(within(dlg).getByText('Only do this if the provider confirmed that no money was taken.')).toBeTruthy();
     await pick(dlg, /Provider confirmed not paid/);
-    await userEvent.click(within(dlg).getByRole('button', { name: /mark as failed|confirm/i }));
+    await userEvent.click(within(dlg).getByRole('button', { name: /mark as failed/i }));
     await waitFor(() => expect(posts('resolve')).toHaveLength(1));
     expect(posts('resolve')[0]!.body).toMatchObject({ resolution: 'fail', reason_code: 'gateway_confirmed_unpaid' });
   });
@@ -329,10 +329,10 @@ describe('AC-PG-07.2 Mark as failed (P4 fail)', () => {
     await userEvent.click(btn(/mark as failed/i)!);
     const dlg = await screen.findByRole('dialog');
     await pick(dlg, /^Other$/);
-    await userEvent.click(within(dlg).getByRole('button', { name: /mark as failed|confirm/i }));
+    await userEvent.click(within(dlg).getByRole('button', { name: /mark as failed/i }));
     expect(posts('resolve')).toHaveLength(0);
     await userEvent.type(within(dlg).getByRole('textbox'), 'Provider support ticket 42 says no money taken');
-    await userEvent.click(within(dlg).getByRole('button', { name: /mark as failed|confirm/i }));
+    await userEvent.click(within(dlg).getByRole('button', { name: /mark as failed/i }));
     await waitFor(() => expect(posts('resolve')).toHaveLength(1));
     expect(posts('resolve')[0]!.body.reason_code).toBe('other');
     expect(String(posts('resolve')[0]!.body.note ?? '')).toMatch(/ticket 42/);
@@ -346,7 +346,7 @@ describe('AC-PG-07.3 not verifiable', () => {
     await userEvent.click(btn(/mark as paid/i)!);
     const dlg = await screen.findByRole('dialog');
     await pick(dlg, /Provider confirmed paid/);
-    await userEvent.click(within(dlg).getByRole('button', { name: /mark as paid|confirm/i }));
+    await userEvent.click(within(dlg).getByRole('button', { name: /mark as paid/i }));
     expect(await screen.findByText(/The provider has not confirmed this payment \(latest answer: .+\)\. It cannot be marked paid\./)).toBeTruthy();
     expect(document.body.textContent).not.toMatch(/payments\.intent_not_verifiable/);
     expect(screen.queryByText(/^Paid$/)).toBeNull();
@@ -360,7 +360,7 @@ describe('AC-PG-07.4 Record although it exceeds the due (P4 record_exceeding_due
     const dlg = await screen.findByRole('dialog');
     expect(within(dlg).getByText(/The provider confirmed NPR 1,23,456\.00\. The order now owes less\. The full amount will be recorded and Finance will get a review item to refund or keep as advance\./)).toBeTruthy();
     await pick(dlg, /Provider confirmed paid/);
-    await userEvent.click(within(dlg).getByRole('button', { name: /record|confirm/i }));
+    await userEvent.click(within(dlg).getByRole('button', { name: /record/i }));
     await waitFor(() => expect(posts('resolve')).toHaveLength(1));
     expect(posts('resolve')[0]!.body.resolution).toBe('record_exceeding_due');
     expect(posts('resolve')[0]!.headers.get('if-match')).toMatch(/7/);
@@ -377,7 +377,7 @@ describe('AC-PG-07.5 permission / step-up failures', () => {
     await userEvent.click(btn(/mark as paid/i)!);
     const dlg = await screen.findByRole('dialog');
     await pick(dlg, /Provider confirmed paid/);
-    await userEvent.click(within(dlg).getByRole('button', { name: /mark as paid|confirm/i }));
+    await userEvent.click(within(dlg).getByRole('button', { name: /mark as paid/i }));
     await waitFor(() => expect(posts('resolve')).toHaveLength(1));
     await new Promise((r) => setTimeout(r, 50));
     expect(screen.queryByText(/^Paid$/)).toBeNull();
@@ -393,7 +393,7 @@ describe('AC-PG-07.6 stale version', () => {
     await userEvent.click(btn(/mark as paid/i)!);
     const dlg = await screen.findByRole('dialog');
     await pick(dlg, /Provider confirmed paid/);
-    await userEvent.click(within(dlg).getByRole('button', { name: /mark as paid|confirm/i }));
+    await userEvent.click(within(dlg).getByRole('button', { name: /mark as paid/i }));
     expect(await screen.findByText('This payment changed. Reload to see the latest.')).toBeTruthy();
     const reload = screen.getByRole('button', { name: /reload/i });
     await userEvent.click(reload);
@@ -409,7 +409,7 @@ describe('Cancel payment (P5)', () => {
     const dlg = await screen.findByRole('dialog');
     expect(within(dlg).getByText('We check with the provider first. If the patient already paid, the payment is recorded instead.')).toBeTruthy();
     await pick(dlg, /Patient changed method/);
-    await userEvent.click(within(dlg).getByRole('button', { name: /cancel payment|confirm/i }));
+    await userEvent.click(within(dlg).getByRole('button', { name: /cancel payment/i }));
     await waitFor(() => expect(posts('cancel')).toHaveLength(1));
     expect(posts('cancel')[0]!.body.reason_code).toBe('patient_changed_method');
     expect(posts('cancel')[0]!.headers.get('idempotency-key')).toBeTruthy();

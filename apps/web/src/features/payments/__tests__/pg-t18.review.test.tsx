@@ -78,7 +78,7 @@ describe('§2.1 ReviewQueue — table', () => {
   it('title "Payment review", caption "Payments needing review", the eight columns in spec order, no header actions', async () => {
     await view();
     expect(screen.getByRole('heading', { name: 'Payment review' })).toBeTruthy();
-    expect(screen.getByRole('table', { name: /Payments needing review/ })).toBeTruthy();
+    expect(screen.getByRole('grid', { name: /Payments needing review/ })).toBeTruthy();
     const heads = screen.getAllByRole('columnheader').map((h) => (h.textContent ?? '').trim().toLowerCase());
     const want = ['created', 'gateway', 'amount', 'status', 'reason', 'last checked', 'order', 'intent'];
     let at = -1;
@@ -146,7 +146,7 @@ describe('§2.1 ReviewQueue — filters', () => {
 
   it('status filter offers the six spec options with spec labels', async () => {
     await view();
-    await userEvent.click(screen.getByRole('button', { name: /^status/i }));
+    await userEvent.click(screen.getByRole('button', { name: /status/i }));
     for (const l of ['Under review', 'Waiting for provider', 'Started', 'Failed', 'Expired', 'Paid']) expect(await screen.findByRole('option', { name: new RegExp(l, 'i') })).toBeTruthy();
   });
 });
@@ -204,7 +204,7 @@ describe('review page.tsx — request (P1/P24)', () => {
     expect((to - from) / 86_400_000).toBeLessThan(8.1);
     expect(headers.get('authorization')).toBe('Bearer jwt-synthetic');
     expect(container.innerHTML).not.toContain('jwt-synthetic');
-    expect(await screen.findByText('Amount does not match')).toBeTruthy();
+    expect(await within(screen.getByRole('grid')).findByText('Amount does not match')).toBeTruthy();
   });
 
   it('forwards only whitelisted, well-formed params and drops everything else (tenant_id, evil, injected query)', async () => {

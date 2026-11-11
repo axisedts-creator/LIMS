@@ -72,6 +72,25 @@ export const sweepHeldReleases: TaskHandler = async (payload, jobCtx) => {
   }
 };
 
+export const EXPIRE_PAYMENTS = 'reporting.expire_portal_payment_requests';
+const READY_GRACE_MS = 30 * 60_000;     // `ready` expires 30 min after the gateway intent's own expiry (02-TRD §9, 08 A11.1)
+const QUEUED_TIMEOUT_MS = 15 * 60_000;  // a `queued` request nobody picked up in 15 min fails `timeout` [CONV]
+
+/** Frees the order's open slot: stale `ready` -> expired and `queued` too long -> failed `timeout`. Table writes only: no BillingPort / PaymentProviderPort call (as C16 expire_payment_requests). */
+export const expirePortalPaymentRequests: TaskHandler = async (payload, jobCtx) => {
+  const ctx = jobCtx as any;
+  const tenantId = ctx.tenantId;
+  if (typeof tenantId !== 'string' || payload?.tenant_id !== tenantId) {
+    ctx.log?.warn?.({ event: 'expire_portal_payment_requests_skipped', reason: 'bad_payload' });
+    return;
+  }
+  const now: string = ctx.now(); const nowMs = Date.parse(now); const actorId: string = ctx.actor.id;
+  await ctx.tx.query(`UPDATE reporting.portal_payment_requests SET status = 'expired', review = false, action_json = NULL, updated_at = $2, updated_by = $3, version = version + 1
+      WHERE tenant_id = $1 AND status = 'ready' AND intent_expires_at < $4`, [tenantId, now, actorId, new Date(nowMs - READY_GRACE_MS).toISOString()]);
+  await ctx.tx.query(`UPDATE reporting.portal_payment_requests SET status = 'failed', failure_code = 'timeout', updated_at = $2, updated_by = $3, version = version + 1
+      WHERE tenant_id = $1 AND status = 'queued' AND created_at < $4`, [tenantId, now, actorId, new Date(nowMs - QUEUED_TIMEOUT_MS).toISOString()]);
+};
+
 export const PURGE_EPHEMERAL = 'reporting.purge_ephemeral';   // body: tasks/purge_ephemeral.ts (C6-T16: print_jobs part)
 
 export const crontab: readonly CronEntry[] = Object.freeze([
@@ -79,4 +98,5 @@ export const crontab: readonly CronEntry[] = Object.freeze([
   Object.freeze({ identifier: SWEEP_ASSEMBLY, schedule: '*/5 * * * *', tenantScope: 'per_tenant' as const, maxAttempts: 5 }),
   Object.freeze({ identifier: SWEEP_RENDERS, schedule: '*/10 * * * *', tenantScope: 'per_tenant' as const, maxAttempts: 5 }),
   Object.freeze({ identifier: SWEEP_HELD, schedule: '*/15 * * * *', tenantScope: 'per_tenant' as const, maxAttempts: 5 }),
+  Object.freeze({ identifier: EXPIRE_PAYMENTS, schedule: '*/10 * * * *', tenantScope: 'per_tenant' as const, maxAttempts: 5 }),
 ]);

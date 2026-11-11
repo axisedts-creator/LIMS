@@ -10,7 +10,9 @@ import { handle as readyForReport } from './consumers/lab.order.ready_for_report
 import { handle as resultAmended } from './consumers/lab.result.amended.v1.js';
 import { handle as resultApproved } from './consumers/lab.result.approved.v1.js';
 import { handle as specimenStatus } from './consumers/lab.specimen.status_changed.v1.js';
-import { crontab, PURGE_EPHEMERAL, SWEEP_ASSEMBLY, SWEEP_HELD, SWEEP_RENDERS, sweepAssembly, sweepHeldReleases, sweepStuckRenders } from './cron.js';
+import { crontab, EXPIRE_PAYMENTS, expirePortalPaymentRequests, PURGE_EPHEMERAL, SWEEP_ASSEMBLY, SWEEP_HELD, SWEEP_RENDERS, sweepAssembly, sweepHeldReleases, sweepStuckRenders } from './cron.js';
+import { createPortalPaymentIntent } from './tasks/create_portal_payment_intent.js';
+import { refreshPortalPaymentRequest } from './tasks/refresh_portal_payment_request.js';
 import { createAssembleReport } from './tasks/assemble_report.js';
 import { applyProviderEvents } from './tasks/apply_provider_events.js';
 import { checkWhatsappFallback } from './tasks/check_whatsapp_fallback.js';
@@ -53,11 +55,14 @@ export const manifest: WorkerManifest = Object.freeze({
     'reporting.send_portal_otp': createSendPortalOtp(),
     'reporting.reissue_portal_link': reissuePortalLinkStub,
     'reporting.apply_provider_events': applyProviderEvents,
+    'reporting.create_portal_payment_intent': createPortalPaymentIntent,
+    'reporting.refresh_portal_payment_request': refreshPortalPaymentRequest,
+    [EXPIRE_PAYMENTS]: expirePortalPaymentRequests,
     [SWEEP_HELD]: sweepHeldReleases,
     [SWEEP_ASSEMBLY]: sweepAssembly,
     [SWEEP_RENDERS]: sweepStuckRenders,
   }),
-  maxAttempts: Object.freeze({ 'reporting.process_input_file': 5, 'reporting.assemble_report': 10, 'reporting.render_report_version': 5, 'reporting.render_print': 5, 'reporting.build_bulk_print': 5, [PURGE_EPHEMERAL]: 5, 'reporting.release_if_eligible': 10, 'reporting.dispatch_release_deliveries': 10, 'reporting.send_delivery': 8, 'reporting.check_whatsapp_fallback': 8, 'reporting.send_portal_otp': 8, 'reporting.reissue_portal_link': 8, 'reporting.apply_provider_events': 10, [SWEEP_ASSEMBLY]: 5, [SWEEP_RENDERS]: 5, [SWEEP_HELD]: 5 }),
+  maxAttempts: Object.freeze({ 'reporting.process_input_file': 5, 'reporting.assemble_report': 10, 'reporting.render_report_version': 5, 'reporting.render_print': 5, 'reporting.build_bulk_print': 5, [PURGE_EPHEMERAL]: 5, 'reporting.release_if_eligible': 10, 'reporting.dispatch_release_deliveries': 10, 'reporting.send_delivery': 8, 'reporting.check_whatsapp_fallback': 8, 'reporting.send_portal_otp': 8, 'reporting.reissue_portal_link': 8, 'reporting.apply_provider_events': 10, 'reporting.create_portal_payment_intent': 3, 'reporting.refresh_portal_payment_request': 3, [EXPIRE_PAYMENTS]: 5, [SWEEP_ASSEMBLY]: 5, [SWEEP_RENDERS]: 5, [SWEEP_HELD]: 5 }),
   subscriptions: Object.freeze({
     'frontdesk.order.created.v1': orderCreated,
     'frontdesk.order.items_changed.v1': itemsChanged,

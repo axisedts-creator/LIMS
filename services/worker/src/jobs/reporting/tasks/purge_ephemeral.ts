@@ -1,6 +1,8 @@
 // Cron reporting.purge_ephemeral (02-TRD §9; 05-SCHEMA §2.14 / §6; 08 A13 P-6, P-12 (a)): per tenant, system actor, through the `__tenant_expired` policies.
 // C6-T16 part: print_jobs past expires_at (24 h) and their files in reporting-prints. The canonical `reports` bucket is never touched (letterhead prints own no file).
 // A file that cannot be deleted keeps its row (the next daily run retries); a file that is already gone does not block the row.
+// [CONV] C6-T42 part: portal_payment_requests whose expires_at has passed (any status; lims_app has no DELETE, the system policy allows it).
+// The other purge targets (otp_challenges, portal_sessions, quarantined inputs, delivery params) belong to no task yet: extend here, keep the tenant-scoped shape.
 import type { TaskHandler } from '../../../core/manifest.js';
 import { UUID } from './render_report_version.js';
 
@@ -24,5 +26,6 @@ export const purgeEphemeral: TaskHandler = async (payload, jobCtx) => {
     gone.push(r.id);
   }
   if (gone.length) await ctx.tx.query('DELETE FROM reporting.print_jobs WHERE tenant_id = $1 AND id = ANY($2::uuid[]) AND expires_at < $3', [tenantId, gone, now]);
-  ctx.log?.info?.({ event: 'purge_ephemeral_done', print_jobs: gone.length });
+  const payments = (await ctx.tx.query('DELETE FROM reporting.portal_payment_requests WHERE tenant_id = $1 AND expires_at < $2 RETURNING id', [tenantId, now])).rows as unknown[];   // C6-T42
+  ctx.log?.info?.({ event: 'purge_ephemeral_done', print_jobs: gone.length, portal_payment_requests: payments.length });
 };

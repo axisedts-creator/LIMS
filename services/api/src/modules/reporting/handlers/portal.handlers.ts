@@ -31,4 +31,7 @@ export const portalHandlers: Readonly<Record<string, Handler>> = Object.freeze({
   },
   requestPortalLinkReissue: async (_req: HandlerRequest, hctx: HandlerContext) => svc.requestReissue(ctxOf(hctx)),
   endPortalSession: async (_req: HandlerRequest, hctx: HandlerContext) => svc.endSession(ctxOf(hctx)),
+  // PP1 / PP2 (08 A11.1): the body is {gateway} only; the amount is never read from the request.
+  createPortalPaymentRequest: async (req: HandlerRequest, hctx: HandlerContext) => svc.createPaymentRequest(ctxOf(hctx), { body: req.body }),
+  getPortalPaymentRequest: async (req: HandlerRequest, hctx: HandlerContext) => svc.getPaymentRequest(ctxOf(hctx), { id: obj(req.params)['portal_payment_request_id'] }),
 });

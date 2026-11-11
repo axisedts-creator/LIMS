@@ -37,7 +37,7 @@ export interface ReviewQueueProps {
 export function ReviewQueue({ intents, centres, holdReasons, filter, nextCursor, hasPrevious }: ReviewQueueProps) {
   const router = useRouter();
   const root = useRef<HTMLDivElement>(null);
-  const f: ReviewFilter = filter ?? { status: 'held_for_review', created: ['', ''] };
+  const f: ReviewFilter = filter ?? { status: ['held_for_review'], created: ['', ''] };
   const reasonName = new Map(holdReasons.map((r) => [r.code, r.display]));
 
   // Alt+R focuses the filter reset control (04-UI-UX §2.1 [CONV]).
@@ -52,7 +52,8 @@ export function ReviewQueue({ intents, centres, holdReasons, filter, nextCursor,
   }, []);
 
   const filters: FilterDef[] = [
-    { id: 'status', label: 'Status', kind: 'select', options: STATUS_OPTIONS },
+    { id: 'status', label: 'Status', kind: 'select', multiple: true, options: STATUS_OPTIONS },
+    // Gateway stays a single select: kit MultiSelect has no disabled options for the Fonepay entry (.orchestra/cr/PG-T18.md).
     { id: 'gateway', label: 'Gateway', kind: 'select', options: GATEWAY_OPTIONS },
     { id: 'hold_reason', label: 'Hold reason', kind: 'coded', codedSet: 'payments.hold_reasons', options: [{ code: ALL, display: 'All' }, ...holdReasons.map((r) => ({ code: r.code, display: r.display }))] },
     { id: 'created', label: 'Created', kind: 'date_range' },
@@ -64,7 +65,10 @@ export function ReviewQueue({ intents, centres, holdReasons, filter, nextCursor,
   };
   const go = (v: FilterValue, cursor?: string) => {
     const p = new URLSearchParams();
-    const one = (k: string, x: string | readonly string[] | undefined) => { if (typeof x === 'string' && x !== ALL && x) p.set(k, x); };
+    const one = (k: string, x: string | readonly string[] | undefined) => {
+      const j = typeof x === 'string' ? x : x?.join(',');
+      if (j && j !== ALL) p.set(k, j);
+    };
     one('status', v['status']); one('gateway', v['gateway']); one('hold_reason', v['hold_reason']); one('centre_id', v['centre_id']);
     const c = v['created'];
     if (Array.isArray(c) && c.length === 2) { p.set('created_at_from', String(c[0])); p.set('created_at_to', String(c[1])); }

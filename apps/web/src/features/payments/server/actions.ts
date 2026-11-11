@@ -19,7 +19,12 @@ async function run(call: () => Promise<{ status?: string }>): Promise<ActionResu
   }
 }
 
-export const recheckAction = (id: string) => run(() => recheckIntent(id));
-export const resolveAction = (id: string, version: number, resolution: Resolution, reasonCode: string, note: string | undefined, key: string) =>
-  run(() => resolveIntent(id, version, resolution, reasonCode, note, key));
-export const cancelAction = (id: string, reasonCode: string, key: string) => run(() => cancelIntent(id, reasonCode, key));
+export async function recheckAction(id: string): Promise<ActionResult> {
+  return run(() => recheckIntent(id));
+}
+export async function resolveAction(id: string, version: number, resolution: Resolution, reasonCode: string, note: string | undefined, key: string): Promise<ActionResult> {
+  return run(() => resolveIntent(id, version, resolution, reasonCode, note, key));
+}
+export async function cancelAction(id: string, reasonCode: string, key: string): Promise<ActionResult> {
+  return run(() => cancelIntent(id, reasonCode, key));
+}

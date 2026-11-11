@@ -31,7 +31,7 @@ const dayOf = (ms: number) => new Date(ms + NEPAL_OFFSET_MS).toISOString().slice
 
 /** What the filter bar shows. `created` is [from, to] inclusive A.D. days. */
 export interface ReviewFilter {
-  status: string; gateway?: string; hold_reason?: string; centre_id?: string; created: readonly [string, string];
+  status: readonly string[]; gateway?: string; hold_reason?: string; centre_id?: string; created: readonly [string, string];
 }
 
 export function reviewQuery(sp: SP, now: number): { query: URLSearchParams; filter: ReviewFilter } {
@@ -66,7 +66,7 @@ export function reviewQuery(sp: SP, now: number): { query: URLSearchParams; filt
   return {
     query: q,
     filter: {
-      status: statuses[0]!, ...(gateway[0] ? { gateway: gateway[0] } : {}), ...(hold[0] ? { hold_reason: hold[0] } : {}),
+      status: statuses, ...(gateway[0] ? { gateway: gateway[0] } : {}), ...(hold[0] ? { hold_reason: hold[0] } : {}),
       ...(q.has('centre_id') ? { centre_id: q.get('centre_id')! } : {}), created: [dayOf(from), dayOf(to! - 1)],
     },
   };

@@ -45,8 +45,11 @@ const TABLES = {
   // the staff intent detail only reads it, so this fake models just enough columns to SELECT).
   'payments.g_cs_reasons': ['id', 'set_name', 'code', 'display', 'requires_text', 'sort_order', 'is_active', 'created_at'],
   'payments.cs_reasons': ['id', 'tenant_id', 'set_name', 'code', 'display', 'requires_text', 'sort_order', 'version', 'is_active', 'created_at', 'created_by', 'updated_at', 'updated_by'],
-  'payments.refunds': ['id', 'tenant_id', 'intent_id', 'order_id', 'centre_id', 'gateway', 'mode', 'status', 'amount_paisa', 'reason_code', 'reason_text', 'requested_by_membership_id',
-    'requested_at', 'version', 'created_at', 'created_by', 'updated_at', 'updated_by'],
+  // PG-T14: the full 05-SCHEMA §6 column list (CHECKs, in-flight unique index, mutable-columns + transition trigger modelled below).
+  'payments.refunds': ['id', 'tenant_id', 'intent_id', 'order_id', 'centre_id', 'gateway', 'mode', 'status', 'amount_paisa', 'reason_code', 'reason_text', 'idempotency_key',
+    'requested_by_membership_id', 'requested_at', 'approved_by_membership_id', 'approved_at', 'rejected_by_membership_id', 'rejected_at', 'reject_reason_code', 'decision_note',
+    'gateway_refund_reference', 'refunded_on', 'confirmed_by_membership_id', 'confirmed_at', 'completed_at', 'ledger_entry_id', 'failure_reason', 'failure_note', 'held_reason',
+    'last_checked_at', 'unconfirmed_run_count', 'version', 'created_at', 'created_by', 'updated_at', 'updated_by'],
 } as const;
 const GLOBAL_TABLES: readonly string[] = ['payments.g_cs_reasons'];
 type Table = keyof typeof TABLES;
@@ -62,7 +65,8 @@ const NOT_NULL: Record<Table, string[]> = {
   'payments.callbacks': ['id', 'tenant_id', 'intent_id', 'gateway', 'kind', 'outcome_code', 'created_by'],
   'payments.g_cs_reasons': ['id', 'set_name', 'code', 'display'],
   'payments.cs_reasons': ['id', 'tenant_id', 'set_name', 'code', 'display', 'created_by', 'updated_by'],
-  'payments.refunds': ['id', 'tenant_id', 'intent_id', 'order_id', 'centre_id', 'gateway', 'mode', 'status', 'amount_paisa', 'reason_code', 'requested_by_membership_id', 'requested_at', 'version', 'created_by', 'updated_by'],
+  'payments.refunds': ['id', 'tenant_id', 'intent_id', 'order_id', 'centre_id', 'gateway', 'mode', 'status', 'amount_paisa', 'reason_code', 'idempotency_key', 'requested_by_membership_id',
+    'requested_at', 'unconfirmed_run_count', 'version', 'created_by', 'updated_by'],
 };
 const DEFAULTS: Record<Table, () => Row> = {
   'payments.merchant_accounts': () => ({ is_enabled: false, api_refunds_enabled: false, version: 1, is_active: true }),
@@ -74,7 +78,7 @@ const DEFAULTS: Record<Table, () => Row> = {
   'payments.callbacks': () => ({}),
   'payments.g_cs_reasons': () => ({ requires_text: false, sort_order: 0, is_active: true }),
   'payments.cs_reasons': () => ({ requires_text: false, sort_order: 0, version: 1, is_active: true }),
-  'payments.refunds': () => ({ version: 1 }),
+  'payments.refunds': () => ({ status: 'pending_approval', unconfirmed_run_count: 0, version: 1 }),
 };
 const nn = (v: unknown): boolean => v !== null && v !== undefined;
 
@@ -109,6 +113,22 @@ function checks(t: Table, r: Row): string | undefined {            // returns th
     if (!(rf >= 0 && rf <= am && (r.status !== 'refunded' || rf === am) && (r.status !== 'partially_refunded' || (rf > 0 && rf < am)))) return 'intents__refunded__ck';
     if (nn(r.resolution_note) && r.resolution_note.length > 500) return 'intents__note__ck';
     if (!['user', 'system'].includes(r.created_actor_type)) return 'intents__actor__ck';
+    return undefined;
+  }
+  if (t === 'payments.refunds') {                                   // PG-T14: 05-SCHEMA §6 refunds__*__ck (names copied)
+    const st = ['pending_approval', 'approved', 'rejected', 'requested', 'held_for_review', 'completed', 'failed'];
+    if (!(['manual', 'api'].includes(r.mode) && (r.mode === 'manual' || r.gateway === 'khalti'))) return 'refunds__mode__ck';
+    if (!st.includes(r.status)) return 'refunds__status__ck';
+    if (!(Number(r.amount_paisa) > 0)) return 'refunds__amount__ck';
+    if ([r.reason_text, r.decision_note, r.failure_note].some((x) => nn(x) && String(x).length > 500)) return 'refunds__text__ck';
+    if (!/^[A-Za-z0-9_.:-]{1,200}$/.test(String(r.idempotency_key))) return 'refunds__idem__ck';
+    if (nn(r.gateway_refund_reference) && !/^[A-Za-z0-9_.:/-]{1,100}$/.test(r.gateway_refund_reference)) return 'refunds__ref__ck';
+    if (!['pending_approval', 'rejected'].includes(r.status) && !nn(r.approved_by_membership_id)) return 'refunds__approved__ck';
+    if (r.status === 'completed' && !(nn(r.completed_at) && nn(r.ledger_entry_id))) return 'refunds__completed__ck';
+    if ((nn(r.held_reason) && !['refund_not_visible', 'refund_kind_mismatch', 'api_outcome_unknown'].includes(r.held_reason)) || (r.status === 'held_for_review' && !nn(r.held_reason))) return 'refunds__held__ck';
+    if (r.status === 'failed' && !nn(r.failure_reason)) return 'refunds__failed__ck';
+    if (nn(r.failure_reason) && !/^[a-z0-9_]{1,64}$/.test(r.failure_reason)) return 'refunds__failure_code__ck';
+    if (!(Number(r.unconfirmed_run_count) >= 0)) return 'refunds__unconfirmed__ck';
     return undefined;
   }
   if (t === 'payments.intent_transitions') {
@@ -161,6 +181,12 @@ const uniq = (t: Table, rows: Row[], r: Row, self?: Row): string | undefined => 
     if (dup((x) => same(x.callback_token_sha256, r.callback_token_sha256))) return 'intents__callback_token_sha256__uq';
   }
   if ((t === 'payments.intent_transitions' || t === 'payments.gateway_calls' || t === 'payments.callbacks') && dup((x) => x.id === r.id)) return `${t.split('.')[1]}__pk`;
+  if (t === 'payments.refunds') {                                   // PG-T14: pk, in-flight partial unique (one per intent), unique (tenant, idempotency_key)
+    const inflight = ['pending_approval', 'approved', 'requested', 'held_for_review'];
+    if (dup((x) => x.id === r.id)) return 'refunds__pk';
+    if (dup((x) => x.tenant_id === r.tenant_id && x.idempotency_key === r.idempotency_key)) return 'refunds__tenant_id_idempotency_key__uq';
+    if (inflight.includes(r.status) && dup((x) => x.tenant_id === r.tenant_id && x.intent_id === r.intent_id && inflight.includes(x.status))) return 'refunds__tenant_id_intent_inflight__p_uq';
+  }
   return undefined;
 };
 
@@ -170,8 +196,18 @@ const MUTABLE = new Set(['status', 'gateway_txn_ref', 'gateway_secondary_ref', '
   'resolution_reason_code', 'resolution_note', 'resolved_by', 'resolved_at', 'ledger_entry_id', 'refunded_paisa', 'updated_at', 'updated_by', 'version']);
 const TRANSITIONS: [string[], string[]][] = [[['created'], ['initiated', 'failed']], [['initiated', 'pending'], ['pending', 'settled', 'failed', 'expired', 'held_for_review']],
   [['held_for_review'], ['settled', 'failed']], [['failed', 'expired'], ['held_for_review']], [['settled'], ['partially_refunded', 'refunded']], [['partially_refunded'], ['refunded']]];
+// refunds__mutable_columns + refunds__transition_guard (05-SCHEMA §6).
+const REFUND_MUTABLE = new Set(['status', 'approved_by_membership_id', 'approved_at', 'rejected_by_membership_id', 'rejected_at', 'reject_reason_code', 'decision_note', 'gateway_refund_reference',
+  'refunded_on', 'confirmed_by_membership_id', 'confirmed_at', 'completed_at', 'ledger_entry_id', 'failure_reason', 'failure_note', 'held_reason', 'last_checked_at', 'unconfirmed_run_count',
+  'updated_at', 'updated_by', 'version']);
+const REFUND_TRANSITIONS: [string[], string[]][] = [[['pending_approval'], ['rejected', 'approved']], [['approved'], ['requested']], [['requested'], ['completed', 'held_for_review', 'failed']], [['held_for_review'], ['completed', 'failed']]];
 function guard(t: Table, old: Row, next: Row): void {
   if (t === 'payments.intent_transitions' || t === 'payments.gateway_calls' || t === 'payments.callbacks') throw pgError('42501', `permission denied for table ${t.split('.')[1]}`); // append-only: INSERT + SELECT only
+  if (t === 'payments.refunds') {
+    for (const c of TABLES[t]) if (!REFUND_MUTABLE.has(c) && !same(old[c], next[c])) throw pgError('P0001', 'immutable_row');
+    if (old.status !== next.status && !REFUND_TRANSITIONS.some(([from, to]) => from.includes(old.status) && to.includes(next.status))) throw pgError('P0001', 'invalid_transition');
+    return;
+  }
   if (t !== 'payments.intents') return;
   for (const c of TABLES[t]) if (!MUTABLE.has(c) && !same(old[c], next[c])) throw pgError('P0001', 'immutable_row');
   for (const c of ['gateway_txn_ref', 'gateway_payment_url', 'expires_at']) if (nn(old[c]) && !same(old[c], next[c])) throw pgError('P0001', 'immutable_row');
@@ -181,7 +217,7 @@ function guard(t: Table, old: Row, next: Row): void {
 // node-pg typing: timestamptz -> Date on the way out of the store (strings the service wrote are parsed), bigint -> decimal STRING (pg's default for int8).
 const BIGINT_COLS = new Set(['amount_paisa', 'verified_amount_paisa', 'refunded_paisa']);
 const toDates = (row: Row): void => { for (const c of Object.keys(row)) if (/_at$/.test(c) && typeof row[c] === 'string') row[c] = new Date(row[c]); };
-const pgOut = (t: Table, rows: Row[]): Row[] => (t !== 'payments.intents' ? rows : rows.map((r) => Object.fromEntries(Object.entries(r).map(([k, v]) => [k, BIGINT_COLS.has(k) && v !== null && v !== undefined ? String(v) : v]))));
+const pgOut = (t: Table, rows: Row[]): Row[] => (t !== 'payments.intents' && t !== 'payments.refunds' ? rows : rows.map((r) => Object.fromEntries(Object.entries(r).map(([k, v]) => [k, BIGINT_COLS.has(k) && v !== null && v !== undefined ? String(v) : v]))));
 
 // ---------------------------------------------------------------- expression / condition evaluation
 const unsupported = (sql: string): never => { throw new Error(`fake: unsupported SQL: ${sql.slice(0, 160)}`); };
@@ -301,6 +337,8 @@ export function makeMerchantDb(seed: { merchant_accounts?: Row[]; settings?: Row
           const nul = NOT_NULL[t].find((c) => !nn(row[c]));
           if (nul) throw pgError('23502', `null value in column "${nul}"`);
           if (t === 'payments.callbacks' && !work['payments.intents'].some((i) => i.tenant_id === row.tenant_id && i.id === row.intent_id)) throw pgError('23503', 'violates foreign key callbacks__intent__fk', 'callbacks__intent__fk');
+          if (t === 'payments.refunds' && !work['payments.intents'].some((i) => i.tenant_id === row.tenant_id && i.id === row.intent_id)) throw pgError('23503', 'violates foreign key refunds__intent__fk', 'refunds__intent__fk');
+          if (t === 'payments.refunds') { const bad0 = checks(t, row); if (bad0) throw pgError('23514', `violates check constraint ${bad0}`, bad0); }   // PG checks CHECKs before unique indexes
           const dupe = uniq(t, work[t], row);
           if (dupe) { if (/on conflict/i.test(sql)) return { rows: [], rowCount: 0 }; throw pgError('23505', `duplicate key ${dupe}`, dupe); }
           const bad = checks(t, row);
@@ -371,7 +409,11 @@ export function makeMerchantDb(seed: { merchant_accounts?: Row[]; settings?: Row
     callbacks: (tenantId = TENANT_A) => store['payments.callbacks'].filter((r) => r.tenant_id === tenantId),
     refunds: (tenantId = TENANT_A) => store['payments.refunds'].filter((r) => r.tenant_id === tenantId),
     /** Test seeding of any table row (tenant defaults to A); bypasses CHECKs on purpose (arrange step). */
-    put: (table: Table, row: Row) => { store[table].push({ ...Object.fromEntries((TABLES[table] as readonly string[]).map((c) => [c, null])), ...DEFAULTS[table](), ...row }); },
+    put: (table: Table, row: Row) => {
+      const r = { ...Object.fromEntries((TABLES[table] as readonly string[]).map((c) => [c, null])), ...DEFAULTS[table](), ...row };
+      if (table === 'payments.refunds') r.idempotency_key ??= `refund:${r.id}`;           // PG-T14: seeded rows get the real key shape ('refund:' || id)
+      store[table].push(r);
+    },
     settings: (tenantId = TENANT_A) => store['payments.settings'].filter((r) => r.tenant_id === tenantId),
     /** Every value the service ever sent to the database, flattened (Buffers also as utf8/base64/hex text) — for planted-secret scans. */
     sentText: (): string => stmts.map((s) => JSON.stringify(s.values.map((v) => (Buffer.isBuffer(v) ? `${v.toString('utf8')}|${v.toString('base64')}|${v.toString('hex')}` : v)))).join('\n'),

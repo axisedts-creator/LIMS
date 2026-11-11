@@ -21,6 +21,7 @@ import { handler as receiveSpecimen } from './receiveSpecimen.js';
 import { handler as storeSpecimen } from './storeSpecimen.js';
 import { resultEntryHandlers } from './resultEntry.handlers.js';
 import { verifyHandlers } from './verify.handlers.js';
+import { approveHandlers } from './approve.handlers.js';
 
 const OPERATION_IDS = [
   // specimens
@@ -58,6 +59,7 @@ const REAL: Partial<Record<LabOperationId, Handler>> = {
   ...resultEntryHandlers, // T-14: bulkEnterResults, getResult, listOrderResults
   ...criticalHandlers, // T-15: listCriticalValues, getCriticalValue, logCriticalNotification
   ...verifyHandlers, // T-16: verifyResult, bulkVerifyResults, returnResult
+  ...approveHandlers, // T-17: approveResult, bulkApproveResults, amendResult, listResultVersions
 };
 
 export const handlers: Readonly<Record<LabOperationId, Handler>> = Object.freeze(

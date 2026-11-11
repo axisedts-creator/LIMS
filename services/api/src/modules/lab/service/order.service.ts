@@ -8,6 +8,7 @@
 // [CONV] approved results are never touched (02-TRD §7.2 "non-approved"); an order test with an approved result is not cancelled.
 import { uuidv7 } from '../../../../../../packages/shared-ts/src/uuidv7/index.js';
 import { LimsError } from '../../../core/errors.js';
+import { evaluateReadiness, type ReadinessDecision, type ReadinessInput } from '../domain/readiness.js';
 import { createLabEvents } from '../events/publish.js';
 import { insertOrderIfAbsent, lockOrder, updateOrder } from '../repository/orders.repo.js';
 import { insertOrderTest, listOrderTestsByOrder, updateOrderTest } from '../repository/orderTests.repo.js';
@@ -183,4 +184,44 @@ export async function applyOrderCancelled(ctx: OrderCtx, env: OrderEnvelope): Pr
   await updateOrder(rc, orderId, order['version'], { lab_status: 'cancelled', cancelled_at: p['cancelled_at'], last_order_seq: Math.max(order['last_order_seq'], seq) });
   await cancelOrderTests(rc, orderId, () => true, 'order_cancelled', p['cancelled_at']);
   await inactivateIdleSpecimens(rc, orderId);
+}
+
+// ---------------------------------------------------------------------------------------------------------------------------------------------
+// T-17 readiness (02-TRD §4.7, §7.1 key `<order_id>:ready:<approved_set_hash>`; 03-IC §3.12; 08 A13 D-5; PRD AC-16.5, AC-16.6, AC-17.1).
+// Called by approve / bulk approve / amend after all their writes, once per order, in the same transaction. The lab.order_readiness row is locked first
+// (serialises two approvals of one order), the pure rules are domain/readiness.ts; bookkeeping is written only when an event was emitted.
+// ---------------------------------------------------------------------------------------------------------------------------------------------
+export interface ReadinessStore {
+  /** Locks the lab.order_readiness row (defaults when absent: seq 0, no hashes). */
+  lockReadiness(tx: unknown, tenantId: string, orderId: string): Promise<{ readinessSeq: number; lastEmittedHash?: string | undefined; lastCompleteness?: 'complete' | 'partial' | undefined; departmentHashes: Record<string, string> }>;
+  listReadinessInputs(tx: unknown, tenantId: string, orderId: string): Promise<{ orderTests: ReadinessInput['orderTests']; results: ReadinessInput['results'] }>;
+  saveReadiness(tx: unknown, tenantId: string, a: { orderId: string; readinessSeq: number; lastEmittedHash: string; lastCompleteness: 'complete' | 'partial'; departmentHashes: Record<string, string>; emittedAt: string }): Promise<void>;
+}
+export interface ReadinessCtx {
+  readonly tenantId: string; readonly tx: object; now(): Date; readonly store: ReadinessStore;
+  readonly events: OrderCtx['events'];
+  readonly ports: { readonly IdentityPort: { getTenantSettings(ctx: unknown, i: { keys: readonly string[] }): Promise<{ partialReleaseAllowed?: boolean }> } };
+}
+
+export async function evaluateOrderReadiness(rawCtx: unknown, orderId: string): Promise<ReadinessDecision | null> {
+  const ctx = rawCtx as ReadinessCtx;
+  const { tx, tenantId, store } = ctx;
+  const last = await store.lockReadiness(tx, tenantId, orderId);
+  const inputs = await store.listReadinessInputs(tx, tenantId, orderId);
+  if (!inputs.results.some((r) => r.status === 'approved')) return null;   // nothing approved: neither complete nor partial, the tenant setting is not needed
+  const settings = await ctx.ports.IdentityPort.getTenantSettings(ctx, { keys: ['partialReleaseAllowed'] });
+  const d = evaluateReadiness({
+    ...inputs, partialReleaseAllowed: settings.partialReleaseAllowed === true,
+    last: { hash: last.lastEmittedHash, completeness: last.lastCompleteness, departmentHashes: last.departmentHashes },
+  });
+  if (!d) return null;
+  const readyAt = ctx.now().toISOString();
+  const seq = last.readinessSeq + 1;
+  // 03-IC §3.12: ids + hash only; approved_set_hash is added by the publisher from the set (same function as the hash stored below).
+  await createLabEvents(ctx.events as never).orderReadyForReport(ctx as never, {
+    order_id: orderId, completeness: d.completeness, order_item_ids: d.orderItemIds, ...(d.departmentIds === undefined ? {} : { department_ids: d.departmentIds }),
+    contains_amendment: d.containsAmendment, ready_at: readyAt,
+  }, { approvedSet: d.approvedSet, readinessSeq: seq });
+  await store.saveReadiness(tx, tenantId, { orderId, readinessSeq: seq, lastEmittedHash: d.approvedSetHash, lastCompleteness: d.completeness, departmentHashes: d.departmentHashes, emittedAt: readyAt });
+  return d;
 }

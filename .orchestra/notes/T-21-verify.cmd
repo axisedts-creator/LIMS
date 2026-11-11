@@ -1,1 +1,1 @@
-cd /d "%~dp0..\.." && python -B -m unittest discover -s infra/tests/static -p "test_t21_*.py"
+pnpm --dir services/worker exec vitest run src/jobs/catalog/__tests__/unit/xlsx

@@ -1,0 +1,10 @@
+---
+# 02-TRD s5.5 / s7.4: Squid egress for api/worker + GoTrue SMTP relay set.
+egress_proxy_allowlist: "{{ playbook_dir }}/../../edge/egress-allowlist.yaml"
+egress_proxy_dir: /srv/lims/squid
+egress_proxy_src_cidr: "{{ docker_subnets.app }}"
+# pinned Squid image (same digest as compose service squid, T-23)
+egress_proxy_image: "{{ lims_runtime_images.squid | default('') }}"
+egress_proxy_compose: >-
+  docker compose -p lims -f /srv/lims/compose/lims/compose.app.yml
+egress_proxy_refresh: /usr/local/sbin/lims-smtp-relay-ips

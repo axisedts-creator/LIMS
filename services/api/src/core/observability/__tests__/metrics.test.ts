@@ -27,7 +27,20 @@ const EXPECTED: Record<string, 'counter' | 'gauge' | 'histogram'> = {
   lims_core_retention_purge_capped_total: 'counter',
   lims_core_storage_deletes_total: 'counter',
   lims_core_port_consumer_not_listed_total: 'counter',
+  // C8 additions — LD-88 / CR-C8-016, names+types verbatim from C8 02-TRD §13 lines 846-854.
+  lims_analytics_refresh_duration_seconds: 'histogram',
+  lims_analytics_refresh_failures_total: 'counter',
+  lims_analytics_family_stale: 'gauge',
+  lims_analytics_dirty_partitions: 'gauge',
+  lims_analytics_reconciliation_mismatch_total: 'counter',
+  lims_analytics_exports_total: 'counter',
+  lims_analytics_export_rows: 'histogram',
+  lims_analytics_export_downloads_total: 'counter',
+  lims_analytics_schedule_sends_total: 'counter',
 };
+
+// LD-88: TRD §13 fixes this C8 histogram as a row count, so it cannot end in _seconds.
+const NOT_A_DURATION = new Set(['lims_analytics_export_rows']);
 
 describe('required metrics exist (CV §9.4, 02-TRD §13)', () => {
   it('REQUIRED_METRICS lists exactly the spec names', () => {
@@ -50,7 +63,7 @@ describe('required metrics exist (CV §9.4, 02-TRD §13)', () => {
       if (!name!.startsWith('lims_')) continue;
       expect(name).toMatch(/^lims_[a-z0-9_]+$/);
       if (type === 'counter') expect(name).toMatch(/_total$/);
-      if (type === 'histogram') expect(name).toMatch(/_seconds$/);
+      if (type === 'histogram' && !NOT_A_DURATION.has(name!)) expect(name).toMatch(/_seconds$/);
     }
   });
 

@@ -1,0 +1,20 @@
+---
+# 02-TRD s10.1, s2 (pins). Fluent Bit runs on every host; VictoriaLogs only on the
+# first host of group `ops` (LD-45: whichever host the active profile puts there).
+# No host name or wg IP here: both come from the active inventory.
+logging_images:
+  # Digests are added by the release lock (T-23).
+  fluent_bit: cr.fluentbit.io/fluent/fluent-bit:5.1.5
+  victoria_logs: victoriametrics/victoria-logs:v1.53.0
+
+logging_dir: /srv/lims/logging
+logging_etc: /etc/lims/logging
+# Disk buffer + tail offsets (survive restarts; 1 GiB cap is in the output section)
+logging_fluent_state: /srv/lims/logging/fluent-bit
+# VictoriaLogs data (ops host only)
+logging_vl_data: /srv/lims/logging/victoria-logs
+
+# mem_limit is literal in the compose templates: Fluent Bit 256m, VictoriaLogs 1g
+# (TRD s7.2 / LD-45 budget; the test and container_hardening.py read the literal).
+
+logging_src: "{{ role_path }}/../../../logging"

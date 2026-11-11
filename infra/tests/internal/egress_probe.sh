@@ -4,8 +4,57 @@
 #   allowed: data-1 wg IP :5432, SMTP relay :587.   Everything else must fail.
 # Env: DATA_WG_IP, SMTP_RELAY_HOST (required); APP_WG_IP (optional); AUTH_CONTAINER (default supabase-auth-1).
 # Output TAP; exit 0 all as expected, 1 mismatch, 2 usage.  Deploy-time test (needs the running stack).
+# T-14 (LD-68, tester-implemented): modes `db|edge|proxy <container>`, through probe_lib.sh, fail-closed.
+#   db    <c>: db_net member (api, worker, rest, storage): DATA_WG_IP :5432/:6432 only, nothing else.   Env: DATA_WG_IP.
+#   edge  <c>: web/portal: no TCP egress at all.                                                        Env: DATA_WG_IP.
+#   proxy <c>: api/worker: only path out is Squid: PROXY_ALLOWED_FQDN returns its status (not 000/403/407/5xx),
+#              PROXY_DENIED_FQDN gets exactly 403 on CONNECT, direct egress denied.  Env: PROXY_ALLOWED_FQDN, PROXY_DENIED_FQDN;
+#              DATA_WG_IP optional (adds the :5432/:6432 allow).
 set -u
-[ "${1:-}" = auth ] || { echo "usage: egress_probe.sh auth" >&2; exit 2; }
+case "${1:-}" in
+  db | edge | proxy)
+    MODE=$1; C=${2:-}
+    [ -n "$C" ] || { echo "usage: egress_probe.sh db|edge|proxy <container>" >&2; exit 2; }
+    case $MODE in
+      proxy) [ -n "${PROXY_ALLOWED_FQDN:-}" ] && [ -n "${PROXY_DENIED_FQDN:-}" ] || { echo "need PROXY_ALLOWED_FQDN and PROXY_DENIED_FQDN" >&2; exit 2; } ;;
+      *) [ -n "${DATA_WG_IP:-}" ] || { echo "need DATA_WG_IP" >&2; exit 2; } ;;
+    esac
+    # shellcheck source=probe_lib.sh
+    . "$(dirname "${BASH_SOURCE[0]}")/probe_lib.sh"
+    need_running "$C"
+    need_tool "$C" nc
+    if [ "$MODE" = proxy ]; then
+      if docker exec "$C" sh -c 'command -v curl' >/dev/null 2>&1; then tap ok "curl available in $C"; else tap fail "curl available in $C"; finish; fi
+    fi
+    if [ "$MODE" = db ]; then
+      allow "$C" "$DATA_WG_IP" 5432
+      allow "$C" "$DATA_WG_IP" 6432
+      for p in 22 9100 9187; do deny "$C" "$DATA_WG_IP" "$p"; done
+      pre=$(prefix24 "$DATA_WG_IP"); [ -z "$pre" ] || sweep "$C" "$pre" 443
+    elif [ "$MODE" = proxy ] && [ -n "${DATA_WG_IP:-}" ]; then
+      allow "$C" "$DATA_WG_IP" 5432
+      allow "$C" "$DATA_WG_IP" 6432
+    elif [ "$MODE" = edge ]; then
+      deny "$C" "$DATA_WG_IP" 5432
+      deny "$C" "$DATA_WG_IP" 6432
+    fi
+    deny "$C" 1.1.1.1 443
+    deny "$C" 8.8.8.8 53
+    deny "$C" 169.254.169.254 80
+    if [ "$MODE" = proxy ]; then
+      st=$(docker exec "$C" curl -sS -o /dev/null -w '%{http_code}' --max-time 10 "https://$PROXY_ALLOWED_FQDN/" 2>/dev/null)
+      case $st in
+        000 | 403 | 407 | 5?? | "") tap fail "allowed $PROXY_ALLOWED_FQDN via Squid: status '${st:-none}'" ;;
+        [1-4]??) tap ok "allowed $PROXY_ALLOWED_FQDN via Squid: $st" ;;
+        *) tap fail "allowed $PROXY_ALLOWED_FQDN via Squid: unparseable '$st'" ;;
+      esac
+      st=$(docker exec "$C" curl -sS -o /dev/null -w '%{http_connect}' --max-time 10 "https://$PROXY_DENIED_FQDN/" 2>/dev/null)
+      if [ "$st" = 403 ]; then tap ok "denied $PROXY_DENIED_FQDN: 403 on CONNECT"; else tap fail "denied $PROXY_DENIED_FQDN must be 403 on CONNECT, got '${st:-none}'"; fi
+    fi
+    finish
+    ;;
+esac
+[ "${1:-}" = auth ] || { echo "usage: egress_probe.sh auth|db|edge|proxy" >&2; exit 2; }
 [ -n "${DATA_WG_IP:-}" ] && [ -n "${SMTP_RELAY_HOST:-}" ] || { echo "need DATA_WG_IP and SMTP_RELAY_HOST" >&2; exit 2; }
 C=${AUTH_CONTAINER:-supabase-auth-1}
 n=0; rc=0

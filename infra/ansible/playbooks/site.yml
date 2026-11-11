@@ -24,6 +24,15 @@
   roles:
     - pgbackrest
 
+# 02-TRD s10.3 (T-15): append-only audit store + subscription audit_ship.
+# LD-45: full = own instance on the dr host; lean/dev = database lims_audit
+# on the data host. The role gates on auditstore_host_group.
+- name: Audit store
+  hosts: data:dr
+  become: true
+  roles:
+    - auditstore
+
 # 02-TRD s9.5 (T-12): streaming standby on the dr host, seeded by
 # pg_basebackup (CR-C1-T09 (a)). Gated by standby_enabled: LD-45 `lean`
 # and dev install nothing.
@@ -51,6 +60,15 @@
     - internal_ca
     - monitoring
 
+# 02-TRD s10.1 (T-17): Fluent Bit on every host (incl. lean backup); VictoriaLogs
+# on groups['ops'][0] of the active profile (LD-45). Shippers buffer to disk and
+# retry, so host order inside the play does not matter.
+- name: Logging
+  hosts: all
+  become: true
+  roles:
+    - logging
+
 # 02-TRD s12.2: Nepal registry. Server on ops-1 (uses the internal_ca
 # registry leaf above); client trust + name on every host that pulls.
 - name: Registry
@@ -58,6 +76,14 @@
   become: true
   roles:
     - registry
+
+# 02-TRD s12.2 (T-24, CR-C1-001): self-hosted CI runner on the ops host (lean: the one prod host), after
+# the registry (it pushes there). Unprivileged; the prod key is released by lims-prod-decrypt@<release>.
+- name: CI runner
+  hosts: ops
+  become: true
+  roles:
+    - ci_runner
 
 # 02-TRD s6 (T-13): public edge nginx on the app host. edge_nginx first (it
 # bootstraps placeholder certs so nginx answers HTTP-01), then acme issues the
@@ -67,4 +93,29 @@
   become: true
   roles:
     - edge_nginx
+    - fail2ban
     - acme
+
+# 02-TRD s7.4 (T-22): ClamAV. freshclam on the ops host via Squid, copy over wg0
+# to /srv/lims/clamav-db on the app host (lean: the same host). Before the runtime
+# play: clamd needs the populated signature directory when compose starts.
+- name: ClamAV
+  hosts: ops:app
+  become: true
+  roles:
+    - clamav
+
+# 02-TRD s7.4 (T-14): LIMS runtime on the app host. secrets_render first
+# (tmpfs secret files + the valkey password), then the inputs the stack
+# mounts (Valkey ACL, squid.conf + SMTP relay set, envelope probes), then
+# lims_runtime starts compose.app.yml for the active profile (LD-45) and
+# runs the deploy-time probes.
+- name: LIMS runtime
+  hosts: app
+  become: true
+  roles:
+    - secrets_render
+    - valkey
+    - egress_proxy
+    - renderer_runtime
+    - lims_runtime

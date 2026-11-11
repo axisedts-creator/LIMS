@@ -22,3 +22,7 @@
 - Cause: unchanged. `infra/monitoring/rules/tests/instruments.test.yml` absent (rules/tests empty); sole failure = PromtoolTestFileTest.setUpClass assert.
 - Fix: none possible in impl. Test file owned by tester (LD-35, LD-39); debugger may not create `*.test.*`. Dispute stands in `T-20-dispute.md`.
 - Result: not re-run; log shows 1 ERROR, rest OK. Tester must write+commit the file.
+## Round 7
+- Cause: (1) rules/tests/instruments.test.yml still absent (tester-owned, LD-44). (2) C7 source now present: import InstrumentsAgentConfigRejected summary differed from source.
+- Fix: summary set to source text in imported/instruments.rules.yml. Remaining drift = `route` label, contradicts test_import_adds_only_allowed_keys; see `C1.T-20-dispute.md`.
+- Result: test_t20_* 26 run: 1 ERROR (missing test file), 1 FAIL (route label); rest OK.

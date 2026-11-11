@@ -6,6 +6,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { beforeAll, describe, expect, it } from 'vitest';
 import { REPO_ROOT, loadSpec, operationIds, validateManifest } from '../../../core/module.js';
+import { IMPLEMENTED } from './implemented-ops.js';
 
 const spec = loadSpec(join(REPO_ROOT, 'contracts/openapi/reporting.yaml'));
 const ops = operationIds(spec);
@@ -66,13 +67,17 @@ describe('501 stubs in dev', () => {
 
   it('the spec has operations (guards against an empty parametrisation)', () => expect(ops.length).toBeGreaterThan(50));
   it('handler keys == spec operationIds', () => expect(Object.keys(manifest.handlers).sort()).toEqual([...ops].sort()));
-  it.each(ops)('%s answers 501', async (op) => {
+  // The set of already-implemented operations (they leave the 501 list) lives in implemented-ops.ts, shared with settings.handlers.test.ts.
+  // Each later task must add its operationIds there. Nothing else is weakened: all other operations still must answer 501.
+  const stubOps = ops.filter((o: string) => !IMPLEMENTED.has(o));
+  it('only already-implemented operations are excluded from the 501 list', () => expect(ops.length - stubOps.length).toBe(IMPLEMENTED.size));
+  it.each(stubOps)('%s answers 501', async (op) => {
     const r = await manifest.handlers[op]({ params: {}, query: {}, headers: {}, body: undefined }, ctx(op));
     expect(r.status).toBe(501);
   });
   it('a 501 never echoes request input (no PHI / token reflection)', async () => {
     const planted = 'PLANTED-TOKEN-9f3a';
-    for (const op of ops) {
+    for (const op of stubOps) {
       const r = await manifest.handlers[op]({ params: { id: planted }, query: { q: planted }, headers: { authorization: planted }, body: { name: planted } }, ctx(op));
       expect(JSON.stringify(r)).not.toContain(planted);
     }

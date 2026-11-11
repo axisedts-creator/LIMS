@@ -149,3 +149,36 @@
     mode: "{{ secrets_render_mode }}"
   loop: "{{ secrets_render_env_services }}"
   no_log: true
+
+# LD-67 (2026-11-08, CR-C1-T07): PgBouncer auth_file for auth_user `pgbouncer`,
+# derived from POSTGRES_PASSWORD (no new id). Plaintext: auth_user logs in to
+# the server itself. tmpfs only, 0400, container UID; '"' is doubled in the template.
+- name: PgBouncer password is usable in userlist.txt (set, single line)
+  ansible.builtin.assert:
+    that:
+      - secrets_render_values.POSTGRES_PASSWORD is defined
+      - (secrets_render_values.POSTGRES_PASSWORD | string | trim) | length > 0
+      - (secrets_render_values.POSTGRES_PASSWORD | string) is not search("[\r\n]")
+    fail_msg: "secrets_render: POSTGRES_PASSWORD missing, empty or multi-line"
+  when: "'data' in group_names"
+  no_log: true
+
+- name: PgBouncer secret directory (data hosts)
+  ansible.builtin.file:
+    path: "{{ secrets_render_secrets_dir }}/pgbouncer"
+    state: directory
+    owner: root
+    group: root
+    mode: "0711"
+  when: "'data' in group_names"
+
+- name: PgBouncer auth_file pgbouncer/userlist.txt (0400, owner = pgbouncer UID)
+  ansible.builtin.template:
+    src: userlist.txt.j2
+    dest: "{{ secrets_render_secrets_dir }}/pgbouncer/userlist.txt"
+    owner: "{{ secrets_render_uids['pgbouncer'] }}"
+    group: "{{ secrets_render_uids['pgbouncer'] }}"
+    mode: "{{ secrets_render_mode }}"
+  when: "'data' in group_names"
+  notify: Reload pgbouncer
+  no_log: true

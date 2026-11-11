@@ -1,0 +1,1 @@
+pnpm --dir services/api exec vitest run src/modules/instruments/__tests__/reprocess.service.test.ts src/modules/instruments/__tests__/reprocess.handlers.test.ts src/modules/instruments/__tests__/boot.test.ts

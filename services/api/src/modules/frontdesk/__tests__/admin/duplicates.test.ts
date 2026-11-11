@@ -30,7 +30,7 @@ describe('F26 the dedupe predicate (US-FD-02.2 reused over a day of registration
     // 4: one phone missing -> yes
     const t4 = tag(); const d1 = await mk('a', D, { full_name: nm(t4), birth_on: '1975-03-03', phone_e164: phone() }); const d2 = await mk('a', D, { full_name: nm(t4), birth_on: '1975-03-03', phone_e164: null });
     // 5: twin created on ANOTHER date still counts as the candidate; the twin itself is not listed for D
-    const t5 = tag(); const e1 = await mk('a', D, { full_name: nm(t5), birth_on: '1985-07-07' }); const e2 = await mk('a', D2, { full_name: nm(t5), birth_on: '1985-07-07' });
+    const t5 = tag(); const ph5 = phone(); const e1 = await mk('a', D, { full_name: nm(t5), birth_on: '1985-07-07', phone_e164: ph5 }); const e2 = await mk('a', D2, { full_name: nm(t5), birth_on: '1985-07-07', phone_e164: ph5 });
     // 6: anonymised twin never matches (and an anonymised patient is never listed)
     const t6 = tag();
     const f1 = await mk('a', D, { full_name: nm(t6), birth_on: '1970-01-01' });
@@ -65,8 +65,8 @@ describe('F26 the dedupe predicate (US-FD-02.2 reused over a day of registration
   });
 
   it('at most 5 candidates per patient (7 identical people -> every entry has exactly 5, none is the patient itself)', { timeout: T }, async () => {
-    const D = freshDate(); const t = tag();
-    const all = await Promise.all(Array.from({ length: 7 }, () => mk('a', D, { full_name: nm(t), birth_on: '1990-01-01' })));
+    const D = freshDate(); const t = tag(); const ph = phone();
+    const all = await Promise.all(Array.from({ length: 7 }, () => mk('a', D, { full_name: nm(t), birth_on: '1990-01-01', phone_e164: ph })));
     const r = await duplicates({ created_on: D, limit: '200' });
     expect(idsOf(r.body).sort()).toEqual(all.map((p) => p.id).sort());
     for (const p of all) {
@@ -82,8 +82,9 @@ describe('F26 created_on is a date in the TENANT timezone (Asia/Kathmandu, +05:4
   it('default = tenant-local today of ctx.now() (2026-11-10 11:45); the day edges follow Kathmandu midnight, not UTC', { timeout: T }, async () => {
     const twinDate = freshDate(); const t = tag();
     const mkPair = async (stamp: string) => {
-      const x = await seedPatient('a', { full_name: nm(`${t}${tag()}`), birth_on: '1990-01-01', created_at: stamp });
-      const twin = await seedPatient('a', { full_name: x.full_name, birth_on: '1990-01-01', created_at: at(twinDate) });
+      const ph = phone();
+      const x = await seedPatient('a', { full_name: nm(`${t}${tag()}`), birth_on: '1990-01-01', phone_e164: ph, created_at: stamp });
+      const twin = await seedPatient('a', { full_name: x.full_name, birth_on: '1990-01-01', phone_e164: ph, created_at: at(twinDate) });
       return { x, twin };
     };
     const justAfterMidnight = await mkPair('2026-11-09T18:30:00Z');   // 2026-11-10 00:15 in Kathmandu (UTC date is still 11-09)
@@ -104,7 +105,7 @@ describe('F26 created_on is a date in the TENANT timezone (Asia/Kathmandu, +05:4
 describe('F26 paging (02-CV §4.3 keyset cursor)', () => {
   it('limit 4 over 6 listed patients -> 4 + cursor, then 2 and no cursor; no overlap, nothing missing; page.limit echoed; an exact-fit page has no cursor', { timeout: T }, async () => {
     const D = freshDate(); const ids: string[] = [];
-    for (let i = 0; i < 3; i++) { const t = tag(); for (let j = 0; j < 2; j++) ids.push((await mk('a', D, { full_name: nm(t), birth_on: '1990-01-01' })).id); }
+    for (let i = 0; i < 3; i++) { const t = tag(); const ph = phone(); for (let j = 0; j < 2; j++) ids.push((await mk('a', D, { full_name: nm(t), birth_on: '1990-01-01', phone_e164: ph })).id); }
     const p1 = await duplicates({ created_on: D, limit: '4' });
     expect(p1.body.data).toHaveLength(4); expect(p1.body.page.limit).toBe(4); expect(typeof p1.body.page.next_cursor).toBe('string');
     const p2 = await duplicates({ created_on: D, limit: '4', cursor: p1.body.page.next_cursor });

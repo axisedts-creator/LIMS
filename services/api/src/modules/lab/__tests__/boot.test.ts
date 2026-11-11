@@ -41,6 +41,8 @@ const IMPLEMENTED: readonly string[] = [
   'verifyResult', 'bulkVerifyResults', 'returnResult',
   // T-10 labels
   'printSpecimenLabels', 'requestOrderLabelPrint',
+  // T-19 history
+  'getResultHistory', 'getAnalyteTrend',
 ];
 
 const FAKE_REQ = { params: {}, query: {}, headers: {}, body: {} };

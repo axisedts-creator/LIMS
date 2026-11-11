@@ -133,10 +133,10 @@ describe('T-19 getResultHistory (#25) (AC-11.1, AC-11.3, P-01, P-02)', () => {
     const c = ctxOf({
       leaky: true,
       hist: [hrow(u(0x11), 10), hrow(u(0x31), 11, { tenant_id: OTHER_TENANT, value_numeric: '77.7' }), hrow(u(0x32), 12, { patient_id: OTHER_PATIENT, value_numeric: '88.8' }),
-        hrow(u(0x33), 13, { analyte_id: OTHER_ANALYTE, value_numeric: '66.6' }), hrow(u(0x34), 14, { status: 'resulted', value_numeric: '55.5' }), hrow(u(0x12), 30)],
+        hrow(u(0x33), 13, { analyte_id: OTHER_ANALYTE, value_numeric: '66.6' }), hrow(u(0x34), 14, { status: 'resulted', value_numeric: '55.5' }), hrow(u(0x12), 9)],
     });
     const r = await run('getResultHistory', histReq(CUR), c.ctx);
-    expect(r.body.data.map((d: any) => d.result_id)).toEqual([u(0x11), u(0x12)]);
+    expect(r.body.data.map((d: any) => d.result_id)).toEqual([u(0x12), u(0x11)]);
     expect(JSON.stringify(r.body)).not.toMatch(/77\.7|88\.8|66\.6|55\.5/);
   });
 

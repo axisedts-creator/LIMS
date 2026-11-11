@@ -5,11 +5,12 @@ package filedrop_test
 //
 //	type Config struct {
 //	    InstrumentID, Folder string
-//	    FilenamePattern      string        // filepath.Match glob on the base name; "" = "*"
+//	    FilenamePattern      string        // Go RE2 (TRD 5.8, <=200 chars) matched against the base name; "" = match all
+//	    AllowedTypes         []string      // subset of {pdf,png,jpg}; nil = all three; unknown value => New error
 //	    StableFor            time.Duration // TRD stable_seconds; 0 = 5s
 //	    BarcodeRegex         string        // optional; named group "barcode"
 //	    MoveAfterCapture     bool
-//	    CapturedSubdirectory string        // relative, one segment inside Folder; required when MoveAfterCapture
+//	    CapturedSubdirectory string        // ^[A-Za-z0-9_-]{1,60}$, one segment inside Folder; "" = "captured"
 //	}
 //	type SeenRecord struct { InstrumentID, PathSHA256 string; SizeBytes int64; MTime time.Time; FileSHA256, ItemID string }
 //	type Store interface {                  // the queue adapter; Capture = item insert + file_drop_seen row in ONE SQLite tx
@@ -24,7 +25,7 @@ package filedrop_test
 //	}
 //	const DefaultPollInterval = 5 * time.Second
 //	const MaxFileBytes = 15 << 20
-//	func New(Options) (*Watcher, error)     // error: empty InstrumentID/Folder/Store, bad regex, unsafe CapturedSubdirectory
+//	func New(Options) (*Watcher, error)     // error: empty InstrumentID/Folder/Store, bad regex (filename or barcode), unknown AllowedTypes, unsafe CapturedSubdirectory
 //	func (*Watcher) Scan(ctx) error         // ONE poll pass; stability is judged across Scan calls using Now
 //	func (*Watcher) Run(ctx) error          // Scan every PollInterval until ctx is done; returns nil on cancel
 //

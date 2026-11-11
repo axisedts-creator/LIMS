@@ -19,16 +19,15 @@ const moduleHarness = (): (() => Promise<ContractHarness>) => async () => {
   return { impl: impl(), events, ctxFor: makeCtxFor(), async seed() {}, rollback(tx: unknown) { events.rollback(tx); } };
 };
 
-runPaymentProviderPortContract(moduleHarness(), { phase1Stub: true });
+// PG-T08 (06-PLAN "each later task replaces one method"): createIntent / verify / getIntent / cancelIntent are real now and are covered by
+// PaymentProviderPort.real.contract.test.ts (shared suite cases 1-18) and integration/intent.service.test.ts, so the shared phase-stub subset
+// (case 10 through the module harness, which has no DB) and the stub-equality cases for those four methods are retired. `refund` stays the stub until PG-T14.
+void runPaymentProviderPortContract;
 
 const U = '01900000-0000-7000-8000-0000000c1501';
 const money = { amountPaisa: 1000, currency: 'NPR' } as const;
 const INPUTS: Record<string, unknown> = {
-  createIntent: { orderId: U, gateway: 'esewa', idempotencyKey: 'k1', returnUrl: 'https://app.lims.test/pay/done', cancelUrl: 'https://app.lims.test/pay/cancel' },
-  verify: { intentId: U },
-  refund: { intentId: U, amount: money, reasonCode: 'duplicate_payment', idempotencyKey: 'rf-1', approvalId: U },
-  getIntent: { intentId: U },
-  cancelIntent: { intentId: U, reasonCode: 'customer_cancelled' },
+  refund: { intentId: U, amount: money, reasonCode: 'duplicate_payment', idempotencyKey: 'rf-1', approvalId: U },   // PG-T14 replaces this one
 };
 const code = async (p: Promise<unknown>): Promise<string> => p.then(() => 'resolved', (e: any) => e?.code ?? `non_lims_error:${e?.message}`);
 

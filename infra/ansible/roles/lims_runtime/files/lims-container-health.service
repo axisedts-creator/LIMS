@@ -1,0 +1,9 @@
+[Unit]
+Description=Container health textfile metric (02-TRD s11.1, AC-10.1)
+After=docker.service
+
+[Service]
+Type=oneshot
+User=root
+Environment=TEXTFILE_DIR=/var/lib/node_exporter/textfile
+ExecStart=/bin/bash /usr/local/lib/lims/container_health.sh

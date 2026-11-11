@@ -1,0 +1,1 @@
+pnpm --dir services/api exec vitest run src/modules/payments/__tests__/contract/staff.contract.test.ts src/modules/payments/__tests__/contract/staff.http.test.ts src/modules/payments/__tests__/unit/mappers/intent.mapper.test.ts src/modules/payments/__tests__/helpers/merchantDb.test.ts src/modules/payments/__tests__/helpers/portHarness.test.ts

@@ -1,0 +1,169 @@
+{
+  "uid": "lims-d15-smartreport",
+  "title": "D15 Modules / Smart report",
+  "description": "04-UI-UX s3 D15 for C14; panels from the chunk TRD observability section (T-21).",
+  "tags": [
+    "modules",
+    "c14"
+  ],
+  "editable": false,
+  "schemaVersion": 39,
+  "version": 1,
+  "time": {
+    "from": "now-6h",
+    "to": "now"
+  },
+  "refresh": "1m",
+  "templating": {
+    "list": []
+  },
+  "panels": [
+    {
+      "id": 1,
+      "type": "text",
+      "title": "About this dashboard",
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 24,
+        "h": 2
+      },
+      "options": {
+        "mode": "markdown",
+        "content": "Owner C14. Alert rules: `rules/imported/smartreport.rules.yml`. Runbook: `infra/runbooks/smartreport.md`."
+      }
+    },
+    {
+      "id": 2,
+      "type": "timeseries",
+      "title": "lims_queue_depth",
+      "description": "Owner C14 (Smart report). Metric lims_queue_depth from worker-a/b /metrics (02-TRD s11.2). Alerts: SmartConsumerLag.",
+      "gridPos": {
+        "x": 0,
+        "y": 2,
+        "w": 12,
+        "h": 8
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "max(lims_queue_depth{task=~\"evt\\\\.smartreport\\\\..*\"})"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "type": "timeseries",
+      "title": "lims_smartreport_builds_total",
+      "description": "Owner C14 (Smart report). Metric lims_smartreport_builds_total from worker-a/b /metrics (02-TRD s11.2). Alerts: SmartBuildErrors.",
+      "gridPos": {
+        "x": 12,
+        "y": 2,
+        "w": 12,
+        "h": 8
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum(rate(lims_smartreport_builds_total{outcome=\"error\"}[5m]))"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "type": "timeseries",
+      "title": "lims_smartreport_drafts_oldest_age_seconds",
+      "description": "Owner C14 (Smart report). Metric lims_smartreport_drafts_oldest_age_seconds from worker-a/b /metrics (02-TRD s11.2). Alerts: SmartDraftsStale.",
+      "gridPos": {
+        "x": 0,
+        "y": 10,
+        "w": 12,
+        "h": 8
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "max(lims_smartreport_drafts_oldest_age_seconds)"
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "type": "timeseries",
+      "title": "lims_smartreport_llm_calls_while_disabled_total",
+      "description": "Owner C14 (Smart report). Metric lims_smartreport_llm_calls_while_disabled_total from worker-a/b /metrics (02-TRD s11.2). Alerts: SmartLlmCallWhileDisabled.",
+      "gridPos": {
+        "x": 12,
+        "y": 10,
+        "w": 12,
+        "h": 8
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum(rate(lims_smartreport_llm_calls_while_disabled_total[5m]))"
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "type": "timeseries",
+      "title": "lims_smartreport_llm_circuit_open",
+      "description": "Owner C14 (Smart report). Metric lims_smartreport_llm_circuit_open from worker-a/b /metrics (02-TRD s11.2). Alerts: SmartLlmFailing.",
+      "gridPos": {
+        "x": 0,
+        "y": 18,
+        "w": 12,
+        "h": 8
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "max(lims_smartreport_llm_circuit_open)"
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "type": "timeseries",
+      "title": "lims_smartreport_llm_endpoint_refused_total",
+      "description": "Owner C14 (Smart report). Metric lims_smartreport_llm_endpoint_refused_total from worker-a/b /metrics (02-TRD s11.2). Alerts: SmartLlmEndpointNotAllowed.",
+      "gridPos": {
+        "x": 12,
+        "y": 18,
+        "w": 12,
+        "h": 8
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum(rate(lims_smartreport_llm_endpoint_refused_total[5m]))"
+        }
+      ]
+    }
+  ]
+}

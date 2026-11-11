@@ -12,6 +12,8 @@ export interface ShellSession {
     readonly roles: readonly string[];
     /** ASSUMED source (C2 SessionState gap): session.actor.permissions — see .orchestra/cr/T0D-14.md */
     readonly permissions: readonly string[];
+    /** LD-89 / CR-C8-001: optional until C2 resolveSession carries the actor's membership id. */
+    readonly membershipId?: string;
   };
 }
 

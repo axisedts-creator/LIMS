@@ -2290,6 +2290,21 @@ routes:
   - { id: staff.reporting.delivery,         origin: staff_web, path: "/reporting/deliveries/{delivery_id}",       owner: C6,  permission: reporting.delivery.read }
   - { id: staff.catalog.test,               origin: staff_web, path: "/catalog/tests/{test_id}",                  owner: C3,  permission: catalog.test.read }
   - { id: staff.catalog.price_list,         origin: staff_web, path: "/catalog/price-lists/{price_list_id}",      owner: C3,  permission: catalog.price_list.read }
+  # LD-71 / CR-C3-031-a: SCR-01..05 (C3 04-UI-UX section 1)
+  - { id: staff.catalog.home,               origin: staff_web, path: /catalog,                                  owner: C3,  permission: catalog.test.read }
+  - { id: staff.catalog.departments,        origin: staff_web, path: /catalog/departments,                      owner: C3,  permission: catalog.test.read }
+  - { id: staff.catalog.specimens,          origin: staff_web, path: /catalog/specimens,                        owner: C3,  permission: catalog.test.read }
+  - { id: staff.catalog.methods,            origin: staff_web, path: /catalog/methods,                          owner: C3,  permission: catalog.test.read }
+  - { id: staff.catalog.units,              origin: staff_web, path: /catalog/units,                            owner: C3,  permission: catalog.test.read }
+  # LD-76 / CR-C3-033-a: SCR-09..12 (C3 04-UI-UX section 1)
+  - { id: staff.catalog.panels,             origin: staff_web, path: /catalog/panels,                           owner: C3,  permission: catalog.test.read }
+  - { id: staff.catalog.panel,              origin: staff_web, path: "/catalog/panels/{panel_id}",                owner: C3,  permission: catalog.test.read }
+  - { id: staff.catalog.comment_codes,      origin: staff_web, path: /catalog/comment-codes,                    owner: C3,  permission: catalog.test.read }
+  - { id: staff.catalog.doctors,            origin: staff_web, path: /catalog/doctors,                          owner: C3,  permission: catalog.referrer.read }
+  - { id: staff.catalog.doctor_verify,      origin: staff_web, path: /catalog/doctors/verify,                   owner: C3,  permission: catalog.referrer.read }
+  - { id: staff.catalog.doctor,             origin: staff_web, path: "/catalog/doctors/{doctor_id}",              owner: C3,  permission: catalog.referrer.read }
+  - { id: staff.catalog.credit_parties,     origin: staff_web, path: /catalog/credit-parties,                   owner: C3,  permission: catalog.price_list.read }
+  - { id: staff.catalog.credit_party,       origin: staff_web, path: "/catalog/credit-parties/{credit_party_id}", owner: C3,  permission: catalog.price_list.read }
   - { id: staff.instruments.agent,          origin: staff_web, path: "/instruments/agents/{agent_id}",            owner: C7,  permission: instruments.agent.read }
   - { id: staff.instruments.message,        origin: staff_web, path: "/instruments/messages/{instrument_message_id}", owner: C7, permission: instruments.message.read }
   - { id: staff.analytics.dashboard,        origin: staff_web, path: /analytics,                                owner: C8,  permission: analytics.dashboard.read }
@@ -2297,6 +2312,27 @@ routes:
   - { id: staff.admin.audit_entry,          origin: staff_web, path: "/admin/audit/{audit_id}",                   owner: C2,  permission: audit.log.read }
   - { id: staff.platform.tenant,            origin: staff_web, path: "/platform/tenants/{tenant_id}",             owner: C2,  permission: platform.tenant.read }
   - { id: staff.platform.dead_letter,       origin: staff_web, path: "/platform/dead-letters/{dead_letter_id}",   owner: C2,  permission: platform.dead_letter.manage }
+  # LD-112 / CR-C2-T20, CR-C2-T26: nav routes for AD-1..AD-15 and ME-1, PL-1..PL-8 (C2 04-UI-UX section 1); no parameterised row, no role editor row
+  - { id: staff.admin.me,                origin: staff_web, path: /admin/me,                     owner: C2,  permission: identity.self.manage }
+  - { id: staff.admin.users,             origin: staff_web, path: /admin/users,                  owner: C2,  permission: identity.user.read }
+  - { id: staff.admin.user_new,          origin: staff_web, path: /admin/users/new,              owner: C2,  permission: identity.user.manage }
+  - { id: staff.admin.roles,             origin: staff_web, path: /admin/roles,                  owner: C2,  permission: identity.user.read }
+  - { id: staff.admin.branches,          origin: staff_web, path: /admin/branches,               owner: C2,  permission: identity.user.read }
+  - { id: staff.admin.centres,           origin: staff_web, path: /admin/centres,                owner: C2,  permission: identity.centre.read }
+  - { id: staff.admin.settings,          origin: staff_web, path: /admin/settings,               owner: C2,  permission: identity.settings.manage }
+  - { id: staff.admin.sessions,          origin: staff_web, path: /admin/sessions,               owner: C2,  permission: identity.session.revoke }
+  - { id: staff.admin.audit,             origin: staff_web, path: /admin/audit,                  owner: C2,  permission: audit.log.read }
+  - { id: staff.admin.access_log,        origin: staff_web, path: /admin/access-log,             owner: C2,  permission: audit.log.read }
+  - { id: staff.admin.exports,           origin: staff_web, path: /admin/exports,                owner: C2,  permission: audit.log.export }
+  - { id: staff.admin.support_access,    origin: staff_web, path: /admin/support-access,         owner: C2,  permission: audit.log.read }
+  - { id: staff.admin.access_review,     origin: staff_web, path: /admin/access-review,          owner: C2,  permission: identity.user.read }
+  - { id: staff.platform.home,           origin: staff_web, path: /platform,                     owner: C2,  permission: platform.tenant.read }
+  - { id: staff.platform.tenants,        origin: staff_web, path: /platform/tenants,             owner: C2,  permission: platform.tenant.read }
+  - { id: staff.platform.ird,            origin: staff_web, path: /platform/ird,                 owner: C2,  permission: platform.tenant.read }
+  - { id: staff.platform.support_sessions, origin: staff_web, path: /platform/support-sessions,    owner: C2,  permission: platform.tenant.read }
+  - { id: staff.platform.dead_letters,   origin: staff_web, path: /platform/dead-letters,        owner: C2,  permission: platform.dead_letter.manage }
+  - { id: staff.platform.staff,          origin: staff_web, path: /platform/staff,               owner: C2,  permission: platform.staff.manage }
+  - { id: staff.platform.auth_events,    origin: staff_web, path: /platform/auth-events,         owner: C2,  permission: platform.tenant.read }
   - { id: staff.quality.qc_run,             origin: staff_web, path: "/quality/qc-runs/{qc_run_id}",              owner: C9,  permission: quality.qc_run.read }
   - { id: staff.micro.culture,              origin: staff_web, path: "/micro/cultures/{culture_id}",              owner: C10, permission: micro.culture.read }
   - { id: staff.anatomic.case,              origin: staff_web, path: "/anatomic/cases/{case_id}",                 owner: C11, permission: anatomic.case.read }

@@ -1,0 +1,10 @@
+{"name": "filedrop-unstable-file", "protocol": "file_drop", "transport": "folder", "instrument_profile": "file_drop_generic", "options": {"stable_seconds": 5},
+ "steps": [
+  {"file": {"write": "report-E2600000042.pdf", "text": "%PDF-1.4 synthetic report E2600000042"}},
+  {"wait_ms": 0, "note": "first look"},
+  {"file": {"append": "report-E2600000042.pdf", "text": " page two"}},
+  {"wait_ms": 5000, "note": "size changed since the first look: the stable timer restarts"},
+  {"expect_queue": {"items": 0, "note": "nothing queued while the instrument is still writing"}},
+  {"wait_ms": 5000, "note": "unchanged for stable_seconds"},
+  {"expect_queue": {"items": 1, "kind": "attachment", "raw_sha256": "6bf48bfd958d2068003873a0e22105e8263ae88215e08ca22c2573fe3cc2f086"}}
+ ]}

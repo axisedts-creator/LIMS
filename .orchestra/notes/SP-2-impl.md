@@ -5,4 +5,4 @@
 - [CONV] dead-letter wrapper detects permanent failure via helpers.job.attempts >= max_attempts (events not awaited).
 - Finding: text crontab rejects '.' in task ids, so T0D-09 must use parsedCronItems/parseCronItems.
 - Open: D-201 window must be 3 steps (install on separate connection); permafailed-job cleanup owner; re-check on supabase/postgres:17.6.1.136 + PgBouncer.
-- Tests: node --test db/tests/spikes/SP-2.decision.test.mjs 15/15 pass; SP-1 8/8 pass. Open: old unowned tests/spikes/SP-2.decision.test.mjs still present; tester must git rm it (writer may not touch tests).
+- Tests: node --test db/tests/spikes/SP-2.decision.test.mjs 15/15 pass; SP-1 8/8 pass. Review item 1 (root duplicate) resolved by tester per LD-18; no implementation changes needed this round.

@@ -1,0 +1,9 @@
+[Unit]
+Description=pgBackRest verify, Sunday 03:30 NPT (02-TRD s9.3)
+
+[Timer]
+OnCalendar=Sat *-*-* 21:45:00 UTC
+Persistent=true
+
+[Install]
+WantedBy=timers.target

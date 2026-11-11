@@ -1,0 +1,7 @@
+# FD-T12 impl
+- Files: worker `consumers/*.v1.ts` + `index.ts`; api `service/flags.service.ts` (raise flags + F22 listOrderFlags + F23 resolveOrderFlag), `service/booking.service.ts`, `service/registration.service.ts` (F12 `confirm` runs createInTx over the stored order; `invoiceDto` moved here from order.service), `handlers/{confirmPreRegisteredOrder,listOrderFlags,resolveOrderFlag}.ts` + index.ts, `repository/{flags,orders,orderItems,bookingLinks}.repo.ts`; pending.json minus the 3 ops (LD-70).
+- [CONV] F12: stored item kept only if orderable+priority+price snapshot equal the live line, else status `cancelled` + re-inserted (no removal reason code exists for this); registration_no/age/first-order flag kept from pre-registration; event/response carry stored source + source_ref_id.
+- [CONV] F12/F9 `invoice` now the full InvoiceDto (same composition as F13 supplementary, CR FD-T09-invoice-dto). F23: resolved_by = actor membership id; resolution_code coded-set membership not checked (no owner named). F22 sort (created_at, id) DESC.
+- [CONV] consumers: `ctx.tenantId` only; SMS best-effort; registered-order cancel flag keeps link `converted`.
+- Verified on real PG17: FD-T12 113/113, FD-T03 109/109, FD-T06 89/89, FD-T08 71/71, FD-T09 80/80, FD-T11 51/51; tsc clean on frontdesk.
+- OPEN: worker jobContext has no ports/core (C0 wiring). F12 retry-once on counter_busy/40P01 not done (same CR as F9: FD-T06-retry-quote-ext).

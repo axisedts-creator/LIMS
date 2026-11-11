@@ -1,0 +1,184 @@
+# T-21 (tester, LD-39): promtool tests for ../imported/reporting.rules.yml. Synthetic series only (no real tenant or patient data).
+# Per alert one firing case (labels carry the rule's severity and team), one not-firing case, and for rules with a
+# `for` clause a pending-before-`for` + firing-after-`for` check. Thresholds are the owner's (02-TRD s11.3).
+rule_files:
+  - ../imported/reporting.rules.yml
+evaluation_interval: 1m
+tests:
+
+  - interval: 1m
+    name: "ReportingRenderFailureRate fires"
+    input_series:
+      - series: 'lims_reporting_render_failures_total'
+        values: "0+10x40"
+      - series: 'lims_reporting_versions_total'
+        values: "0+100x40"
+    alert_rule_test:
+      - alertname: ReportingRenderFailureRate
+        eval_time: 14m
+        exp_alerts: []
+      - alertname: ReportingRenderFailureRate
+        eval_time: 37m
+        exp_alerts:
+          - exp_labels: {severity: "warn", team: "ops"}
+            exp_annotations: {summary: "More than 5 % of report renders failed over 15 min.", runbook_url: "infra/runbooks/reporting.md#reportingrenderfailurerate"}
+
+  - interval: 1m
+    name: "ReportingRenderFailureRate quiet"
+    input_series:
+      - series: 'lims_reporting_render_failures_total'
+        values: "0+0x40"
+      - series: 'lims_reporting_versions_total'
+        values: "0+100x40"
+    alert_rule_test:
+      - alertname: ReportingRenderFailureRate
+        eval_time: 37m
+        exp_alerts: []
+
+  - interval: 1m
+    name: "ReportingDeliveryFailureRate fires"
+    input_series:
+      - series: 'lims_reporting_deliveries_total{channel="ch1",status="failed"}'
+        values: "0+30x75"
+      - series: 'lims_reporting_deliveries_total{channel="ch1",status="ok"}'
+        values: "0+70x75"
+    alert_rule_test:
+      - alertname: ReportingDeliveryFailureRate
+        eval_time: 59m
+        exp_alerts: []
+      - alertname: ReportingDeliveryFailureRate
+        eval_time: 72m
+        exp_alerts:
+          - exp_labels: {severity: "warn", team: "ops", channel: "ch1"}
+            exp_annotations: {summary: "More than 20 % of report deliveries failed on one channel over 1 h.", runbook_url: "infra/runbooks/reporting.md#reportingdeliveryfailurerate"}
+
+  - interval: 1m
+    name: "ReportingDeliveryFailureRate quiet"
+    input_series:
+      - series: 'lims_reporting_deliveries_total{channel="ch1",status="failed"}'
+        values: "0+10x75"
+      - series: 'lims_reporting_deliveries_total{channel="ch1",status="ok"}'
+        values: "0+90x75"
+    alert_rule_test:
+      - alertname: ReportingDeliveryFailureRate
+        eval_time: 72m
+        exp_alerts: []
+
+  - interval: 1m
+    name: "ReportingOtpVerifyBruteForce fires"
+    input_series:
+      - series: 'lims_reporting_otp_verify_failures_total{tenant_id="t1"}'
+        values: "0+2x75"
+    alert_rule_test:
+      - alertname: ReportingOtpVerifyBruteForce
+        eval_time: 72m
+        exp_alerts:
+          - exp_labels: {severity: "warn", team: "ops", tenant_id: "t1"}
+            exp_annotations: {summary: "More than 50 OTP verify failures for one tenant in 1 h.", runbook_url: "infra/runbooks/reporting.md#reportingotpverifybruteforce"}
+
+  - interval: 1m
+    name: "ReportingOtpVerifyBruteForce quiet"
+    input_series:
+      - series: 'lims_reporting_otp_verify_failures_total{tenant_id="t1"}'
+        values: "0+0x75"
+    alert_rule_test:
+      - alertname: ReportingOtpVerifyBruteForce
+        eval_time: 72m
+        exp_alerts: []
+
+  - interval: 1m
+    name: "ReportingQrEnumeration fires"
+    input_series:
+      - series: 'lims_reporting_qr_verify_total{outcome="not_found"}'
+        values: "0+20x75"
+    alert_rule_test:
+      - alertname: ReportingQrEnumeration
+        eval_time: 72m
+        exp_alerts:
+          - exp_labels: {severity: "warn", team: "ops"}
+            exp_annotations: {summary: "More than 500 QR verify lookups not found in 1 h (enumeration).", runbook_url: "infra/runbooks/reporting.md#reportingqrenumeration"}
+
+  - interval: 1m
+    name: "ReportingQrEnumeration quiet"
+    input_series:
+      - series: 'lims_reporting_qr_verify_total{outcome="not_found"}'
+        values: "0+0x75"
+      - series: 'lims_reporting_qr_verify_total{outcome="ok"}'
+        values: "0+50x75"
+    alert_rule_test:
+      - alertname: ReportingQrEnumeration
+        eval_time: 72m
+        exp_alerts: []
+
+  - interval: 1m
+    name: "ReportingRendererBlockedRequest fires"
+    input_series:
+      - series: 'lims_renderer_blocked_requests_total'
+        values: "0+1x15"
+    alert_rule_test:
+      - alertname: ReportingRendererBlockedRequest
+        eval_time: 12m
+        exp_alerts:
+          - exp_labels: {severity: "page", team: "ops"}
+            exp_annotations: {summary: "The renderer blocked an outbound request (possible template injection).", runbook_url: "infra/runbooks/reporting.md#reportingrendererblockedrequest"}
+
+  - interval: 1m
+    name: "ReportingRendererBlockedRequest quiet"
+    input_series:
+      - series: 'lims_renderer_blocked_requests_total'
+        values: "0+0x15"
+    alert_rule_test:
+      - alertname: ReportingRendererBlockedRequest
+        eval_time: 12m
+        exp_alerts: []
+
+  - interval: 1m
+    name: "ReportingSandboxRejectionSpike fires"
+    input_series:
+      - series: 'lims_reporting_sandbox_rejections_total'
+        values: "0+1x75"
+    alert_rule_test:
+      - alertname: ReportingSandboxRejectionSpike
+        eval_time: 72m
+        exp_alerts:
+          - exp_labels: {severity: "warn", team: "ops"}
+            exp_annotations: {summary: "More than 20 PDF sandbox rejections in 1 h.", runbook_url: "infra/runbooks/reporting.md#reportingsandboxrejectionspike"}
+
+  - interval: 1m
+    name: "ReportingSandboxRejectionSpike quiet"
+    input_series:
+      - series: 'lims_reporting_sandbox_rejections_total'
+        values: "0+0x75"
+    alert_rule_test:
+      - alertname: ReportingSandboxRejectionSpike
+        eval_time: 72m
+        exp_alerts: []
+
+  - interval: 1m
+    name: "ReportingRendererDown fires"
+    input_series:
+      - series: 'lims_ops_container_health{service="renderer"}'
+        values: "0x17"
+    alert_rule_test:
+      - alertname: ReportingRendererDown
+        eval_time: 1m
+        exp_alerts: []
+      - alertname: ReportingRendererDown
+        eval_time: 14m
+        exp_alerts:
+          - exp_labels: {severity: "page", team: "ops", service: "renderer"}
+            exp_annotations: {summary: "Renderer or PDF sandbox container unhealthy for 2 min.", runbook_url: "infra/runbooks/reporting.md#reportingrendererdown"}
+
+  - interval: 1m
+    name: "ReportingRendererDown quiet"
+    input_series:
+      - series: 'lims_ops_container_health{service="renderer"}'
+        values: "1x17"
+      - series: 'lims_ops_container_health{service="pdf-sandbox"}'
+        values: "1x17"
+      - series: 'lims_ops_container_health{service="api"}'
+        values: "0x17"
+    alert_rule_test:
+      - alertname: ReportingRendererDown
+        eval_time: 14m
+        exp_alerts: []

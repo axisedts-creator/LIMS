@@ -1,0 +1,1003 @@
+[
+  {
+    "id": "T-01",
+    "title": "Module skeleton + manifest + permissions + config",
+    "depends": [
+      "C0 core runtime (C0-0D)"
+    ],
+    "files": [
+      "services/api/src/modules/catalog/index.ts",
+      "services/api/src/modules/catalog/permissions.ts",
+      "services/api/src/modules/catalog/config.ts",
+      "services/api/src/modules/catalog/handlers/index.ts",
+      "services/api/src/modules/catalog/__tests__/probes/pending.json"
+    ],
+    "done_when": "Module autoloads; one handler per catalog.yaml operationId (stubs throw LimsError common.service_unavailable/not_implemented, 503); config keys typed with defaults (02-TRD §11); stub inventory unit test; stubbed operationIds listed in probes/pending.json (empty required at M6)",
+    "tests": "unit: config parsing, stub inventory",
+    "acs": [],
+    "verify": "pnpm -s verify"
+  },
+  {
+    "id": "T-02",
+    "title": "Domain primitives: code normalisation, versioning + import state machines",
+    "depends": [
+      "T-01"
+    ],
+    "files": [
+      "services/api/src/modules/catalog/domain/codes.ts",
+      "services/api/src/modules/catalog/domain/versioning.state.ts",
+      "services/api/src/modules/catalog/domain/import.state.ts"
+    ],
+    "done_when": "100% branch coverage of transition tables",
+    "tests": "unit: every allowed + forbidden transition (03-APP-FLOW §2)",
+    "acs": [
+      "AC-01.2",
+      "AC-03.2",
+      "AC-03.3",
+      "AC-03.4"
+    ],
+    "verify": "pnpm -s verify"
+  },
+  {
+    "id": "T-03",
+    "title": "Revision service + catalog.changed.v1 publisher",
+    "depends": [
+      "T-01",
+      "C0 outbox"
+    ],
+    "files": [
+      "services/api/src/modules/catalog/service/revision.service.ts",
+      "services/api/src/modules/catalog/events/publish.ts",
+      "services/api/src/modules/catalog/repo/catalogState.repo.ts"
+    ],
+    "done_when": "Bump increments by 1, stamps root, publishes key <tenant>:catalog:<rev>; rollback publishes nothing; 20 concurrent writers give strictly increasing gapless revisions",
+    "tests": "integration (concurrency), event contract test",
+    "acs": [
+      "AC-19.2",
+      "AC-19.3",
+      "AC-01.1"
+    ],
+    "verify": "pnpm -s verify"
+  },
+  {
+    "id": "T-04",
+    "title": "Masters: departments, specimen types, containers, methods (#5–#16)",
+    "depends": [
+      "T-02",
+      "T-03"
+    ],
+    "files": [
+      "services/api/src/modules/catalog/handlers/",
+      "services/api/src/modules/catalog/service/masters.service.ts",
+      "services/api/src/modules/catalog/repo/",
+      "services/api/src/modules/catalog/mappers/"
+    ],
+    "done_when": "CRUD + is_active; If-Match; events; removes operationIds from pending.json",
+    "tests": "integration, HTTP contract, probes",
+    "acs": [
+      "AC-01.1",
+      "AC-01.2",
+      "AC-01.3",
+      "AC-01.4",
+      "AC-01.5",
+      "AC-01.6"
+    ],
+    "verify": "pnpm -s verify"
+  },
+  {
+    "id": "T-05",
+    "title": "Units + value sets (#17–#22) incl. global shadowing and in-use rule",
+    "depends": [
+      "T-04"
+    ],
+    "files": [
+      "services/api/src/modules/catalog/handlers/",
+      "services/api/src/modules/catalog/service/masters.service.ts",
+      "services/api/src/modules/catalog/repo/",
+      "services/api/src/modules/catalog/mappers/"
+    ],
+    "done_when": "Global rows read-only; in-use value-set protection",
+    "tests": "integration",
+    "acs": [
+      "AC-02.6"
+    ],
+    "verify": "pnpm -s verify"
+  },
+  {
+    "id": "T-06",
+    "title": "Orderables + tests + specimen requirements + search (#2, #23–#27)",
+    "depends": [
+      "T-04"
+    ],
+    "files": [
+      "services/api/src/modules/catalog/service/tests.service.ts",
+      "services/api/src/modules/catalog/domain/",
+      "services/api/src/modules/catalog/repo/"
+    ],
+    "done_when": "Code unique across tests/panels; workflow-type rules; ranking §7.9; LIKE escaping",
+    "tests": "unit (ranking), integration, probes, perf (<=150 ms at 1x/10x)",
+    "acs": [
+      "AC-02.1",
+      "AC-02.2",
+      "AC-02.3",
+      "AC-02.4",
+      "AC-02.5",
+      "AC-08.1",
+      "AC-08.2",
+      "AC-08.3",
+      "AC-08.4"
+    ],
+    "verify": "pnpm -s verify"
+  },
+  {
+    "id": "T-07",
+    "title": "Analytes + analyte versions draft/publish/discard (#29–#35) without formula validation",
+    "depends": [
+      "T-06"
+    ],
+    "files": [
+      "services/api/src/modules/catalog/service/analyteVersions.service.ts"
+    ],
+    "done_when": "Publish supersedes predecessor; publish needs catalog.reference_range.publish + catalog.test.manage; ordinal needs ordered value set; immutability (API 409 + DB P0001); no back-dating; one draft; bumps stamp orderables.revision",
+    "tests": "unit, integration (trigger), probes",
+    "acs": [
+      "AC-02.6",
+      "AC-03.1",
+      "AC-03.2",
+      "AC-03.3",
+      "AC-03.4",
+      "AC-03.5"
+    ],
+    "verify": "pnpm -s verify"
+  },
+  {
+    "id": "T-08",
+    "title": "Reference-range + critical-limit sets (#37–#50) + domain/rangeMatch.ts",
+    "depends": [
+      "T-07"
+    ],
+    "files": [
+      "services/api/src/modules/catalog/service/ranges.service.ts",
+      "services/api/src/modules/catalog/domain/rangeMatch.ts"
+    ],
+    "done_when": "Overlap validation; unit/method snapshot; publish/retire need catalog.reference_range.publish; V4 guard includes retired siblings; age unknown (ageDays absent) matches only age-unrestricted bands",
+    "tests": "unit: boundary matrix (day 0, exact years via birthOn and ageDays approximation, age unknown, sex other, specimen specificity, text/ordinal kinds); integration",
+    "acs": [
+      "AC-05.1",
+      "AC-05.2",
+      "AC-05.3",
+      "AC-05.4",
+      "AC-05.5",
+      "AC-05.6",
+      "AC-05.7",
+      "AC-05.8",
+      "AC-05.9",
+      "AC-05.10",
+      "AC-06.1",
+      "AC-06.2",
+      "AC-06.3",
+      "AC-06.4"
+    ],
+    "verify": "pnpm -s verify"
+  },
+  {
+    "id": "T-09",
+    "title": "Publish bundle (analyte version + range set + critical set in one tx)",
+    "depends": [
+      "T-07",
+      "T-08"
+    ],
+    "files": [
+      "services/api/src/modules/catalog/service/analyteVersions.service.ts"
+    ],
+    "done_when": "AC-03.5 enforced; three events; formula_dependencies inserted before status UPDATE",
+    "tests": "integration",
+    "acs": [
+      "AC-03.5",
+      "AC-03.6",
+      "AC-05.9"
+    ],
+    "verify": "pnpm -s verify"
+  },
+  {
+    "id": "T-10",
+    "title": "Range preview (#51)",
+    "depends": [
+      "T-08"
+    ],
+    "files": [
+      "services/api/src/modules/catalog/handlers/"
+    ],
+    "done_when": "Returns match/none",
+    "tests": "integration",
+    "acs": [
+      "AC-05.1",
+      "AC-05.2",
+      "AC-05.3",
+      "AC-05.4",
+      "AC-05.5",
+      "AC-05.6",
+      "AC-05.7",
+      "AC-05.8",
+      "AC-05.9",
+      "AC-05.10",
+      "AC-05.11"
+    ],
+    "verify": "pnpm -s verify"
+  },
+  {
+    "id": "T-11",
+    "title": "Formula validation + dependency graph + validate endpoint (#36)",
+    "depends": [
+      "T-07",
+      "CR-C3-002 merged (C0-0A shared-ts/formula)"
+    ],
+    "files": [
+      "services/api/src/modules/catalog/service/formulas.service.ts",
+      "services/api/src/modules/catalog/domain/formulaGraph.ts"
+    ],
+    "done_when": "Grammar errors, unknown refs, non-numeric target, cycle path, chain depth, dependency order; formula_dependencies written at publish",
+    "tests": "unit (graph), vectors G1–G10, integration",
+    "acs": [
+      "AC-04.1",
+      "AC-04.2",
+      "AC-04.3",
+      "AC-04.4",
+      "AC-04.5",
+      "AC-04.6",
+      "AC-04.7",
+      "AC-04.8"
+    ],
+    "verify": "pnpm -s verify"
+  },
+  {
+    "id": "T-12",
+    "title": "Panels + packages (#52–#56) + resolveOrderablesPreview (#3) + domain/panelGraph.ts",
+    "depends": [
+      "T-06"
+    ],
+    "files": [
+      "services/api/src/modules/catalog/service/panels.service.ts",
+      "services/api/src/modules/catalog/domain/panelGraph.ts"
+    ],
+    "done_when": "Cycle + depth + inactive member checks; #3 returns the port shape",
+    "tests": "unit, integration",
+    "acs": [
+      "AC-07.1",
+      "AC-07.2",
+      "AC-07.3",
+      "AC-07.4"
+    ],
+    "verify": "pnpm -s verify"
+  },
+  {
+    "id": "T-13",
+    "title": "Comment codes (#57–#59)",
+    "depends": [
+      "T-04"
+    ],
+    "files": [
+      "services/api/src/modules/catalog/service/comments.service.ts"
+    ],
+    "done_when": "Department/tenant-wide uniqueness via expression index",
+    "tests": "integration",
+    "acs": [
+      "AC-09.1",
+      "AC-09.2",
+      "AC-09.3"
+    ],
+    "verify": "pnpm -s verify"
+  },
+  {
+    "id": "T-14",
+    "title": "TAT targets (#28)",
+    "depends": [
+      "T-06"
+    ],
+    "files": [
+      "services/api/src/modules/catalog/service/tests.service.ts"
+    ],
+    "done_when": "End-and-insert; open-row unique",
+    "tests": "integration",
+    "acs": [
+      "AC-10.1",
+      "AC-10.2",
+      "AC-10.3"
+    ],
+    "verify": "pnpm -s verify"
+  },
+  {
+    "id": "T-15",
+    "title": "Doctors (#60–#66) incl. quick-add, duplicate hints, verify, merge with chain flattening",
+    "depends": [
+      "T-04"
+    ],
+    "files": [
+      "services/api/src/modules/catalog/service/referrers.service.ts"
+    ],
+    "done_when": "Mapper hides contacts without catalog.referrer.manage; auto codes via code_counters; search match/rank rule (02-TRD #60); price-list reassignment at merge is T-17",
+    "tests": "unit (normalisation), integration, probes, wording grep",
+    "acs": [
+      "AC-11.1",
+      "AC-11.2",
+      "AC-11.3",
+      "AC-11.4",
+      "AC-11.5"
+    ],
+    "verify": "pnpm -s verify"
+  },
+  {
+    "id": "T-16",
+    "title": "Credit parties (#67–#70)",
+    "depends": [
+      "T-04"
+    ],
+    "files": [
+      "services/api/src/modules/catalog/service/creditParties.service.ts"
+    ],
+    "done_when": "Auto party_code; mapper hides pan/contacts/address without catalog.price_list.manage",
+    "tests": "integration, probes",
+    "acs": [
+      "AC-12.1",
+      "AC-12.2",
+      "AC-12.3",
+      "AC-12.4"
+    ],
+    "verify": "pnpm -s verify"
+  },
+  {
+    "id": "T-17",
+    "title": "Price lists, assignments, versions, items (#71–#81) + price-list reassignment in doctor merge",
+    "depends": [
+      "T-06",
+      "T-15",
+      "T-16"
+    ],
+    "files": [
+      "services/api/src/modules/catalog/service/pricing.service.ts",
+      "services/api/src/modules/catalog/service/referrers.service.ts"
+    ],
+    "done_when": "One default list; one list per owner; draft-only item edits; publish supersedes; merge moves/drops merged doctor assignment",
+    "tests": "integration (trigger), probes incl. tenant-B centre/doctor ids in assignments",
+    "acs": [
+      "AC-13.3",
+      "AC-13.4",
+      "AC-13.5",
+      "AC-13.6",
+      "AC-13.7",
+      "AC-13.8"
+    ],
+    "verify": "pnpm -s verify"
+  },
+  {
+    "id": "T-18",
+    "title": "Surcharge + tax rules + tax types (#83–#91) + domain/surcharge.ts, domain/tax.ts",
+    "depends": [
+      "T-17"
+    ],
+    "files": [
+      "services/api/src/modules/catalog/service/pricing.service.ts",
+      "services/api/src/modules/catalog/domain/surcharge.ts",
+      "services/api/src/modules/catalog/domain/tax.ts"
+    ],
+    "done_when": "Overlap rejection after catalog_state lock; tenant-default successor ends predecessor; open-rule unique index + mutable-column triggers; panel department rule; tax type without rate unusable; VAT row read-only; tax-type rates effective-dated",
+    "tests": "unit golden rounding cases, integration",
+    "acs": [
+      "AC-14.1",
+      "AC-14.2",
+      "AC-14.3",
+      "AC-14.4",
+      "AC-14.5",
+      "AC-15.1",
+      "AC-15.2",
+      "AC-15.3",
+      "AC-15.4",
+      "AC-15.5"
+    ],
+    "verify": "pnpm -s verify"
+  },
+  {
+    "id": "T-19",
+    "title": "Quote engine + quotePrices (#82)",
+    "depends": [
+      "T-17",
+      "T-18"
+    ],
+    "files": [
+      "services/api/src/modules/catalog/service/quote.service.ts",
+      "services/api/src/modules/catalog/domain/priceMatch.ts"
+    ],
+    "done_when": "Precedence x5, fall-through, effective windows, explicit inactive list -> not_found",
+    "tests": "unit (matrix), integration",
+    "acs": [
+      "AC-13.1",
+      "AC-13.2",
+      "AC-07.6",
+      "AC-14.1",
+      "AC-14.2",
+      "AC-14.3",
+      "AC-14.4",
+      "AC-14.5",
+      "AC-15.1",
+      "AC-15.2",
+      "AC-15.3",
+      "AC-15.4",
+      "AC-15.5"
+    ],
+    "verify": "pnpm -s verify"
+  },
+  {
+    "id": "T-20",
+    "title": "Import API: template download, createImport, list/get/issues/report/discard (#96–#101, #103)",
+    "depends": [
+      "T-03",
+      "CR-C2-011 merged (absorbs CR-C3-005)"
+    ],
+    "files": [
+      "services/api/src/modules/catalog/service/imports.service.ts",
+      "services/api/src/modules/catalog/handlers/"
+    ],
+    "done_when": "File stored in catalog.files with expires_at; dedupe on (kind,target,sha256); validate job enqueued in same tx; 2-active-import limit; per-kind permissions in handler (P-10)",
+    "tests": "integration, probes, 413/415/429 tests",
+    "acs": [
+      "AC-16.1",
+      "AC-16.3",
+      "AC-16.8",
+      "AC-16.9",
+      "AC-16.11"
+    ],
+    "verify": "pnpm -s verify"
+  },
+  {
+    "id": "T-21",
+    "title": "ZipInspector + XlsxReader/XlsxWriter wrappers + templates",
+    "depends": [
+      "T-01",
+      "@lims/shared-ts/spreadsheet (C0-0A)"
+    ],
+    "files": [
+      "services/worker/src/jobs/catalog/xlsx/"
+    ],
+    "done_when": "Rejects all crafted fixtures (02-TRD §14); parse timeout; row cap; writer passes every text cell through neutraliseFormula; reader applies restoreNeutralised",
+    "tests": "unit with malicious fixtures (EICAR string, zip bomb ratio, 201 entries, .. paths, vbaProject, externalLinks, ZIP64, encrypted flag)",
+    "acs": [
+      "AC-16.9"
+    ],
+    "verify": "pnpm -s verify"
+  },
+  {
+    "id": "T-22",
+    "title": "catalog.import_validate for price_list",
+    "depends": [
+      "T-19",
+      "T-20",
+      "T-21"
+    ],
+    "files": [
+      "services/worker/src/jobs/catalog/tasks/catalog.import_validate.ts"
+    ],
+    "done_when": "Issues + summary + report file; duplicate job no-op; scan mandatory in staging/prod, unavailable -> retry then quarantined",
+    "tests": "worker integration",
+    "acs": [
+      "AC-16.3",
+      "AC-16.4",
+      "AC-16.5",
+      "AC-16.10"
+    ],
+    "verify": "pnpm -s verify"
+  },
+  {
+    "id": "T-23",
+    "title": "commitImport API + catalog.import_commit for price_list",
+    "depends": [
+      "T-22"
+    ],
+    "files": [
+      "services/api/src/modules/catalog/service/imports.service.ts",
+      "services/worker/src/jobs/catalog/tasks/catalog.import_commit.ts"
+    ],
+    "done_when": "Single-tx apply via services; stale-base rule; replay/duplicate handling; crash-retry test",
+    "tests": "worker integration (kill between enqueue and commit)",
+    "acs": [
+      "AC-16.5",
+      "AC-16.6",
+      "AC-16.7"
+    ],
+    "verify": "pnpm -s verify"
+  },
+  {
+    "id": "T-24",
+    "title": "Exports (#104–#107 incl. listExports) + catalog.export_build",
+    "depends": [
+      "T-21",
+      "T-17"
+    ],
+    "files": [
+      "services/api/src/modules/catalog/service/exports.service.ts",
+      "services/worker/src/jobs/catalog/tasks/catalog.export_build.ts"
+    ],
+    "done_when": "Export -> import round-trip gives 0 changes with neutralised text cells; no <f> element; access log on download; file_not_ready 409 detail",
+    "tests": "worker integration",
+    "acs": [
+      "AC-16.2",
+      "AC-17.6"
+    ],
+    "verify": "pnpm -s verify"
+  },
+  {
+    "id": "T-25",
+    "title": "catalog_master, referrers and credit_parties import kinds (validate + commit)",
+    "depends": [
+      "T-05",
+      "T-08",
+      "T-09",
+      "T-11",
+      "T-12",
+      "T-13",
+      "T-14",
+      "T-15",
+      "T-16",
+      "T-22",
+      "T-23"
+    ],
+    "files": [
+      "services/worker/src/jobs/catalog/tasks/"
+    ],
+    "done_when": "Starter workbook import into empty tenant; idempotent re-import; formula cycle invalid; catalog.reference_range.publish when clinical versions published; one revision bump + one catalog_import event per commit; committed_by as actor + source_import_id; file.draft_exists / replace_draft",
+    "tests": "worker integration with packages/test-fixtures/catalog starter workbooks",
+    "acs": [
+      "AC-17.1",
+      "AC-17.2",
+      "AC-17.3",
+      "AC-17.4",
+      "AC-17.5",
+      "AC-17.6"
+    ],
+    "verify": "pnpm -s verify"
+  },
+  {
+    "id": "T-26",
+    "title": "Cron tasks: expire imports/exports, purge files, global release fan-out",
+    "depends": [
+      "T-03",
+      "T-20",
+      "C0 per_tenant cron (P-6)"
+    ],
+    "files": [
+      "services/worker/src/jobs/catalog/tasks/",
+      "services/worker/src/jobs/catalog/cron.ts"
+    ],
+    "done_when": "All three declared tenantScope per_tenant; run under tenant claims; purge by expires_at (files + issues) and NULL file references; idempotent",
+    "tests": "worker integration",
+    "acs": [
+      "AC-19.5"
+    ],
+    "verify": "pnpm -s verify"
+  },
+  {
+    "id": "T-27",
+    "title": "Instrument code maps (#92–#95) + CatalogPort.mapInstrumentCode",
+    "depends": [
+      "T-07",
+      "T-28a"
+    ],
+    "files": [
+      "services/api/src/modules/catalog/service/instrumentMaps.service.ts",
+      "services/api/src/modules/catalog/ports/CatalogPort.impl.ts"
+    ],
+    "done_when": "Analyte in test via composite FK; partial uniques; bulk per-row outcomes; privileged permission (aal2); 03-IC cases 11–12",
+    "tests": "integration, probes, contract",
+    "acs": [
+      "AC-18.1",
+      "AC-18.2",
+      "AC-18.3",
+      "AC-18.4",
+      "AC-18.5"
+    ],
+    "verify": "pnpm -s verify"
+  },
+  {
+    "id": "T-28a",
+    "title": "CatalogPort.impl non-price methods + cache",
+    "depends": [
+      "T-06",
+      "T-07",
+      "T-08",
+      "T-12"
+    ],
+    "files": [
+      "services/api/src/modules/catalog/ports/CatalogPort.impl.ts",
+      "services/api/src/modules/catalog/cache/catalogCache.ts"
+    ],
+    "done_when": "03-IC §4.2 cases 1–5, 9, 10, 13 and C3 cases 31–33 against real impl; revision-keyed cache; revision = orderables.revision",
+    "tests": "contract suite, perf test",
+    "acs": [
+      "AC-19.1",
+      "AC-19.4",
+      "AC-02.7",
+      "AC-07.1",
+      "AC-07.2",
+      "AC-07.3",
+      "AC-07.4",
+      "AC-07.5"
+    ],
+    "verify": "pnpm -s verify"
+  },
+  {
+    "id": "T-28b",
+    "title": "CatalogPort.priceFor",
+    "depends": [
+      "T-28a",
+      "T-17",
+      "T-18",
+      "T-19"
+    ],
+    "files": [
+      "services/api/src/modules/catalog/ports/CatalogPort.impl.ts"
+    ],
+    "done_when": "03-IC §4.2 cases 6–8 against real impl",
+    "tests": "contract suite",
+    "acs": [
+      "AC-13.1",
+      "AC-13.2",
+      "AC-13.3",
+      "AC-14.1",
+      "AC-14.2",
+      "AC-14.3",
+      "AC-14.4",
+      "AC-14.5",
+      "AC-15.1",
+      "AC-15.2",
+      "AC-15.3",
+      "AC-15.4",
+      "AC-15.5"
+    ],
+    "verify": "pnpm -s verify"
+  },
+  {
+    "id": "T-29",
+    "title": "CR-C3-001 port additions (getReferrer, getCreditParty, resolveCommentCodes, optional fields)",
+    "depends": [
+      "T-28a",
+      "T-28b",
+      "CR-C3-001 merged"
+    ],
+    "files": [
+      "services/api/src/modules/catalog/ports/CatalogPort.impl.ts"
+    ],
+    "done_when": "Contract cases 14–23",
+    "tests": "contract",
+    "acs": [
+      "AC-05.5",
+      "AC-05.6",
+      "AC-09.1",
+      "AC-09.2",
+      "AC-10.1",
+      "AC-11.3",
+      "AC-11.4",
+      "AC-12.2",
+      "AC-15.1"
+    ],
+    "verify": "pnpm -s verify"
+  },
+  {
+    "id": "T-29a",
+    "title": "CatalogPort.getTaxRate (08 A2.2, A4.1)",
+    "depends": [
+      "T-18",
+      "T-28a"
+    ],
+    "files": [
+      "services/api/src/modules/catalog/ports/CatalogPort.impl.ts",
+      "services/api/src/modules/catalog/domain/tax.ts"
+    ],
+    "done_when": "02-TRD §7.6a; reads only C3 tax-rule data; RequestContext; kind vat/other only; VAT effectiveFrom null",
+    "tests": "contract cases 27–30 on fake and real",
+    "acs": [
+      "02-TRD §7.6a"
+    ],
+    "verify": "pnpm -s verify"
+  },
+  {
+    "id": "T-29b",
+    "title": "CatalogPort.getPriceListStatus (08 A24.1)",
+    "depends": [
+      "T-17",
+      "T-28a"
+    ],
+    "files": [
+      "services/api/src/modules/catalog/ports/CatalogPort.impl.ts",
+      "services/api/src/modules/catalog/domain/priceMatch.ts"
+    ],
+    "done_when": "02-TRD §7.4a; status set draft|published|superseded|discarded; derived status; common.not_found for unknown/other-tenant ids",
+    "tests": "contract cases 34–35 on fake and real; probe S-19",
+    "acs": [
+      "AC-19.6"
+    ],
+    "verify": "pnpm -s verify"
+  },
+  {
+    "id": "T-30",
+    "title": "Health report (#4) + revision (#1)",
+    "depends": [
+      "T-19",
+      "T-08"
+    ],
+    "files": [
+      "services/api/src/modules/catalog/handlers/"
+    ],
+    "done_when": "Lists computed from tenant data with truncated flag",
+    "tests": "integration",
+    "acs": [
+      "PRD §7 metric"
+    ],
+    "verify": "pnpm -s verify"
+  },
+  {
+    "id": "T-31",
+    "title": "Web: nav manifest, catalog home (SCR-01), masters screens (SCR-02…05)",
+    "depends": [
+      "T-04",
+      "T-05",
+      "CR-C3-006 merged"
+    ],
+    "files": [
+      "apps/web/src/features/catalog/",
+      "apps/web/src/app/(staff)/catalog/"
+    ],
+    "done_when": "All states per 03-APP-FLOW §5; keyboard shortcuts",
+    "tests": "component tests with MSW, a11y checks",
+    "acs": [
+      "AC-01.1",
+      "AC-01.2",
+      "AC-01.3",
+      "AC-01.4",
+      "AC-01.5",
+      "AC-01.6"
+    ],
+    "verify": "pnpm -s verify"
+  },
+  {
+    "id": "T-32",
+    "title": "Web: tests, analytes, versions, formula editor, ranges (SCR-06…08)",
+    "depends": [
+      "T-07",
+      "T-08",
+      "T-09",
+      "T-10",
+      "T-11",
+      "T-14"
+    ],
+    "files": [
+      "apps/web/src/features/catalog/",
+      "apps/web/src/app/(staff)/catalog/"
+    ],
+    "done_when": "Publish dialog bundle; preview panel",
+    "tests": "component + E2E (nightly)",
+    "acs": [
+      "AC-02.1",
+      "AC-02.2",
+      "AC-02.3",
+      "AC-02.4",
+      "AC-02.5",
+      "AC-02.6",
+      "AC-02.7",
+      "AC-03.1",
+      "AC-03.2",
+      "AC-03.3",
+      "AC-03.4",
+      "AC-03.5",
+      "AC-03.6",
+      "AC-04.8",
+      "AC-05.1",
+      "AC-05.2",
+      "AC-05.3",
+      "AC-05.4",
+      "AC-05.5",
+      "AC-05.6",
+      "AC-05.7",
+      "AC-05.8",
+      "AC-05.9",
+      "AC-05.10",
+      "AC-05.11"
+    ],
+    "verify": "pnpm -s verify"
+  },
+  {
+    "id": "T-33",
+    "title": "Web: panels, comment codes, doctors, credit parties (SCR-09…12)",
+    "depends": [
+      "T-12",
+      "T-13",
+      "T-15",
+      "T-16"
+    ],
+    "files": [
+      "apps/web/src/features/catalog/",
+      "apps/web/src/app/(staff)/catalog/"
+    ],
+    "done_when": "Merge dialog with typed confirmation; contact fields hidden by permission",
+    "tests": "component tests",
+    "acs": [
+      "AC-07.1",
+      "AC-07.2",
+      "AC-07.3",
+      "AC-07.4",
+      "AC-07.5",
+      "AC-07.6",
+      "AC-09.1",
+      "AC-09.2",
+      "AC-09.3",
+      "AC-11.1",
+      "AC-11.2",
+      "AC-11.3",
+      "AC-11.4",
+      "AC-11.5",
+      "AC-12.1",
+      "AC-12.2",
+      "AC-12.3",
+      "AC-12.4"
+    ],
+    "verify": "pnpm -s verify"
+  },
+  {
+    "id": "T-34",
+    "title": "Web: price lists, version editor, simulator, surcharges, tax (SCR-13…17)",
+    "depends": [
+      "T-17",
+      "T-18",
+      "T-19"
+    ],
+    "files": [
+      "apps/web/src/features/catalog/",
+      "apps/web/src/app/(staff)/catalog/"
+    ],
+    "done_when": "Grid batching <=200; unsaved guard; tax disclaimer everywhere",
+    "tests": "component + E2E",
+    "acs": [
+      "AC-13.1",
+      "AC-13.2",
+      "AC-13.3",
+      "AC-13.4",
+      "AC-13.5",
+      "AC-13.6",
+      "AC-13.7",
+      "AC-13.8",
+      "AC-14.1",
+      "AC-14.2",
+      "AC-14.3",
+      "AC-14.4",
+      "AC-14.5",
+      "AC-15.4"
+    ],
+    "verify": "pnpm -s verify"
+  },
+  {
+    "id": "T-35",
+    "title": "Web: imports/exports (SCR-18, SCR-19)",
+    "depends": [
+      "T-20",
+      "T-21",
+      "T-22",
+      "T-23",
+      "T-24",
+      "T-25"
+    ],
+    "files": [
+      "apps/web/src/features/catalog/",
+      "apps/web/src/app/(staff)/catalog/"
+    ],
+    "done_when": "Polling 2 s, stop at 15 min; stale-base checkbox; typed confirmation",
+    "tests": "component + E2E (export -> edit -> import -> commit)",
+    "acs": [
+      "AC-16.1",
+      "AC-16.2",
+      "AC-16.3",
+      "AC-16.4",
+      "AC-16.5",
+      "AC-16.6",
+      "AC-16.7",
+      "AC-16.8",
+      "AC-16.9",
+      "AC-16.10",
+      "AC-16.11",
+      "AC-16.12",
+      "AC-17.1",
+      "AC-17.2",
+      "AC-17.3",
+      "AC-17.4",
+      "AC-17.5",
+      "AC-17.6"
+    ],
+    "verify": "pnpm -s verify"
+  },
+  {
+    "id": "T-36",
+    "title": "Security test pack (07-SECURITY §6) + log-scan + wording grep + CI/alert files (CR-C3-009)",
+    "depends": [
+      "T-04",
+      "T-05",
+      "T-06",
+      "T-07",
+      "T-08",
+      "T-09",
+      "T-10",
+      "T-11",
+      "T-12",
+      "T-13",
+      "T-14",
+      "T-15",
+      "T-16",
+      "T-17",
+      "T-18",
+      "T-19",
+      "T-20",
+      "T-21",
+      "T-22",
+      "T-23",
+      "T-24",
+      "T-25",
+      "T-26",
+      "T-27",
+      "T-28a",
+      "T-28b",
+      "T-29",
+      "T-29a",
+      "T-29b",
+      "T-30"
+    ],
+    "files": [
+      "services/api/src/modules/catalog/__tests__/probes/",
+      "services/api/src/modules/catalog/__tests__/ci/",
+      "services/api/src/modules/catalog/ops/alerts.yaml",
+      "services/worker/src/jobs/catalog/__tests__/"
+    ],
+    "done_when": "Every listed test present and green; hand-written permission tests for every conditional branch (#34, #96–#107 per kind, #102 range publication); pending.json empty",
+    "tests": "security pack: probes, log-scan, wording grep",
+    "acs": [
+      "AC-20.1",
+      "AC-20.2",
+      "AC-11.5"
+    ],
+    "verify": "pnpm -s verify"
+  },
+  {
+    "id": "T-37",
+    "title": "Load test at 1x and 10x + tuning",
+    "depends": [
+      "T-28a",
+      "T-28b"
+    ],
+    "files": [
+      "services/api/src/modules/catalog/__tests__/perf/"
+    ],
+    "done_when": "Targets 02-TRD §12 met",
+    "tests": "load",
+    "acs": [
+      "AC-19.4",
+      "AC-08.4"
+    ],
+    "verify": "pnpm -s verify"
+  },
+  {
+    "id": "T-38",
+    "title": "User manual + in-app help for every screen; integration guide for consumer chunks",
+    "depends": [
+      "T-31",
+      "T-32",
+      "T-33",
+      "T-34",
+      "T-35"
+    ],
+    "files": [
+      "docs/manual/catalog/",
+      "apps/web/src/features/catalog/help/"
+    ],
+    "done_when": "One page per screen; integration guide (04-UI-UX §7)",
+    "tests": "docs review",
+    "acs": [
+      "05-DoD §3.8"
+    ],
+    "verify": "pnpm -s verify"
+  }
+]

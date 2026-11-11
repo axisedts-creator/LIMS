@@ -1,0 +1,6 @@
+# Managed by Ansible (role pgbackrest). tmpfs only - never copy to disk (AC-12.3).
+[global]
+repo1-cipher-pass={{ pgbackrest_repo1_cipher_pass }}
+{% if groups['dr'] | default([]) | length > 0 %}
+repo2-cipher-pass={{ pgbackrest_repo2_cipher_pass }}
+{% endif %}

@@ -1,0 +1,5399 @@
+# contracts/openapi/frontdesk.yaml (C4) — transcription of spec/chunks/C4-frontdesk-billing/02-TRD.md §5.1 (T0C-10.C4; AC-0C-1.4/1.5).
+# Generated once from the TRD tables, then owned by C4. Notes:
+# - Examples are synthetic. E-mail fields show the placeholder "<synthetic-email>" (lint AB-20); phones use +1555 test numbers.
+# - [CONV] IM rows also list common.version_conflict + common.precondition_required (02-CV §4.2); required-idem rows list common.idempotency_key_reused.
+# - [CONV] shapes the TRD names without fields are marked [CONV] in their description.
+# - P-8: read-only POSTs carry E3 per LD-10 (2026-11-07).
+openapi: 3.0.3
+info:
+  title: LIMS frontdesk (C4)
+  version: 1.0.0
+  description: Transcribed from spec/chunks/C4-frontdesk-billing/02-TRD.md §5 (T0C-10.C4).
+paths:
+  /v1/frontdesk/patients/search:
+    post:
+      operationId: searchPatients
+      tags:
+        - frontdesk
+      summary: Search patients (max 20, no cursor)
+      description: Access log patient.search (detail mode, result_count; no query text).
+      security:
+        - bearerJwt: []
+      x-permission: frontdesk.patient.read
+      x-context: tenant
+      x-idempotency: none
+      x-idempotency-justification: "E3 read-only POST (LD-10): query/quote in the body, no state written, nothing to replay."
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - common.not_found
+        - auth.forbidden
+        - auth.unauthenticated
+        - common.rate_limited
+        - common.internal
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SearchPatientsRequest"
+            examples:
+              synthetic:
+                value:
+                  query: Demo
+                  mode: auto
+                  limit: 20
+      responses:
+        "200":
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PatientSummaryList"
+              examples:
+                synthetic:
+                  value:
+                    data:
+                      - id: 0193c4a0-0000-7000-8000-000000000001
+                        patient_code: P-000001
+                        full_name: Demo Patient A
+                        sex: male
+                        age_display: 43 Years
+                        phone_masked: 15xxxxxx00
+                        last_visit_at: 2026-11-05T04:15:00.000Z
+                        is_anonymised: false
+        "400":
+          $ref: _common.yaml#/components/responses/BadRequest
+        "401":
+          $ref: _common.yaml#/components/responses/Unauthorized
+        "403":
+          $ref: _common.yaml#/components/responses/Forbidden
+        "404":
+          $ref: _common.yaml#/components/responses/NotFound
+        "429":
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        "500":
+          $ref: _common.yaml#/components/responses/Internal
+  /v1/frontdesk/patients:
+    post:
+      operationId: createPatient
+      tags:
+        - frontdesk
+      summary: Create a patient
+      description: frontdesk.patient_duplicate_suspected carries candidates:[PatientSummary].
+      security:
+        - bearerJwt: []
+      x-permission: frontdesk.registration.create
+      x-context: tenant
+      x-idempotency: required
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - common.not_found
+        - auth.forbidden
+        - auth.unauthenticated
+        - common.rate_limited
+        - common.internal
+        - frontdesk.patient_duplicate_suspected
+        - frontdesk.consent_required
+        - common.idempotency_key_reused
+      parameters:
+        - $ref: _common.yaml#/components/parameters/IdempotencyKey
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/NewPatient"
+            examples:
+              synthetic:
+                value:
+                  full_name: Demo Patient A
+                  sex: male
+                  birth_on: 2026-11-05
+                  age:
+                    years: 1
+                    months: 1
+                    days: 1
+                  phone_e164: "+15555550100"
+                  email: <synthetic-email>
+                  address_text: Synthetic Street 1
+                  consents:
+                    processing: true
+                    sms: true
+                    whatsapp: true
+                    email: true
+                    share_with_referrer: true
+                    consent_text_version: Synthetic consent_text_version
+                  duplicate_override:
+                    reason_code: SYN_CODE
+      responses:
+        "201":
+          description: Created.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Patient"
+              examples:
+                synthetic:
+                  value:
+                    id: 0193c4a0-0000-7000-8000-000000000002
+                    patient_code: P-000001
+                    full_name: Demo Patient A
+                    sex: male
+                    age_display: 43 Years
+                    phone_masked: 15xxxxxx00
+                    last_visit_at: 2026-11-05T04:15:00.000Z
+                    is_anonymised: false
+                    birth_on: 2026-11-05
+                    is_birth_on_estimated: false
+                    phone_e164: "+15555550100"
+                    email: <synthetic-email>
+                    address_text: Synthetic Street 1
+                    consents:
+                      processing: true
+                      sms: true
+                      whatsapp: true
+                      email: true
+                      share_with_referrer: true
+                      consent_text_version: Synthetic consent_text_version
+                    version: 1
+        "400":
+          $ref: _common.yaml#/components/responses/BadRequest
+        "401":
+          $ref: _common.yaml#/components/responses/Unauthorized
+        "403":
+          $ref: _common.yaml#/components/responses/Forbidden
+        "404":
+          $ref: _common.yaml#/components/responses/NotFound
+        "409":
+          $ref: _common.yaml#/components/responses/Conflict
+        "422":
+          $ref: _common.yaml#/components/responses/Unprocessable
+        "429":
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        "500":
+          $ref: _common.yaml#/components/responses/Internal
+  /v1/frontdesk/patients/possible-duplicates:
+    get:
+      operationId: listPossibleDuplicatePatients
+      tags:
+        - frontdesk
+      summary: List patients created on a date with possible duplicates
+      security:
+        - bearerJwt: []
+      x-permission: frontdesk.registration.create
+      x-context: tenant
+      x-idempotency: none
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - common.not_found
+        - auth.forbidden
+        - auth.unauthenticated
+        - common.rate_limited
+        - common.internal
+        - common.invalid_cursor
+      parameters:
+        - name: created_on
+          in: query
+          required: false
+          schema:
+            $ref: _common.yaml#/components/schemas/IsoDate
+          description: A.D. date, tenant timezone; default today.
+        - $ref: _common.yaml#/components/parameters/Cursor
+        - $ref: _common.yaml#/components/parameters/Limit
+      responses:
+        "200":
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PossibleDuplicatePage"
+              examples:
+                synthetic:
+                  value:
+                    data:
+                      - patient:
+                          id: 0193c4a0-0000-7000-8000-000000000003
+                          patient_code: P-000001
+                          full_name: Demo Patient A
+                          sex: male
+                          age_display: 43 Years
+                          phone_masked: 15xxxxxx00
+                          last_visit_at: 2026-11-05T04:15:00.000Z
+                          is_anonymised: false
+                        candidates:
+                          - id: 0193c4a0-0000-7000-8000-000000000004
+                            patient_code: P-000001
+                            full_name: Demo Patient A
+                            sex: male
+                            age_display: 43 Years
+                            phone_masked: 15xxxxxx00
+                            last_visit_at: 2026-11-05T04:15:00.000Z
+                            is_anonymised: false
+                    page:
+                      limit: 50
+        "400":
+          $ref: _common.yaml#/components/responses/BadRequest
+        "401":
+          $ref: _common.yaml#/components/responses/Unauthorized
+        "403":
+          $ref: _common.yaml#/components/responses/Forbidden
+        "404":
+          $ref: _common.yaml#/components/responses/NotFound
+        "429":
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        "500":
+          $ref: _common.yaml#/components/responses/Internal
+  /v1/frontdesk/patients/{patient_id}:
+    get:
+      operationId: getPatient
+      tags:
+        - frontdesk
+      summary: Get a patient
+      security:
+        - bearerJwt: []
+      x-permission: frontdesk.patient.read
+      x-context: tenant
+      x-idempotency: none
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - common.not_found
+        - auth.forbidden
+        - auth.unauthenticated
+        - common.rate_limited
+        - common.internal
+      parameters:
+        - name: patient_id
+          in: path
+          required: true
+          schema:
+            $ref: _common.yaml#/components/schemas/Uuid
+      responses:
+        "200":
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Patient"
+              examples:
+                synthetic:
+                  value:
+                    id: 0193c4a0-0000-7000-8000-000000000005
+                    patient_code: P-000001
+                    full_name: Demo Patient A
+                    sex: male
+                    age_display: 43 Years
+                    phone_masked: 15xxxxxx00
+                    last_visit_at: 2026-11-05T04:15:00.000Z
+                    is_anonymised: false
+                    birth_on: 2026-11-05
+                    is_birth_on_estimated: false
+                    phone_e164: "+15555550100"
+                    email: <synthetic-email>
+                    address_text: Synthetic Street 1
+                    consents:
+                      processing: true
+                      sms: true
+                      whatsapp: true
+                      email: true
+                      share_with_referrer: true
+                      consent_text_version: Synthetic consent_text_version
+                    version: 1
+        "400":
+          $ref: _common.yaml#/components/responses/BadRequest
+        "401":
+          $ref: _common.yaml#/components/responses/Unauthorized
+        "403":
+          $ref: _common.yaml#/components/responses/Forbidden
+        "404":
+          $ref: _common.yaml#/components/responses/NotFound
+        "429":
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        "500":
+          $ref: _common.yaml#/components/responses/Internal
+    patch:
+      operationId: updatePatient
+      tags:
+        - frontdesk
+      summary: Update patient demographics
+      security:
+        - bearerJwt: []
+      x-permission: frontdesk.registration.create
+      x-context: tenant
+      x-idempotency: optional
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - common.not_found
+        - auth.forbidden
+        - auth.unauthenticated
+        - common.rate_limited
+        - common.internal
+        - common.version_conflict
+        - common.precondition_required
+      parameters:
+        - name: patient_id
+          in: path
+          required: true
+          schema:
+            $ref: _common.yaml#/components/schemas/Uuid
+        - $ref: _common.yaml#/components/parameters/IfMatch
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PatientUpdate"
+            examples:
+              synthetic:
+                value:
+                  full_name: Demo Patient A
+                  sex: male
+                  birth_on: 2026-11-05
+                  age:
+                    years: 1
+                    months: 1
+                    days: 1
+                  phone_e164: "+15555550100"
+                  email: <synthetic-email>
+                  address_text: Synthetic Street 1
+                  unset:
+                    - birth_on
+      responses:
+        "200":
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Patient"
+              examples:
+                synthetic:
+                  value:
+                    id: 0193c4a0-0000-7000-8000-000000000006
+                    patient_code: P-000001
+                    full_name: Demo Patient A
+                    sex: male
+                    age_display: 43 Years
+                    phone_masked: 15xxxxxx00
+                    last_visit_at: 2026-11-05T04:15:00.000Z
+                    is_anonymised: false
+                    birth_on: 2026-11-05
+                    is_birth_on_estimated: false
+                    phone_e164: "+15555550100"
+                    email: <synthetic-email>
+                    address_text: Synthetic Street 1
+                    consents:
+                      processing: true
+                      sms: true
+                      whatsapp: true
+                      email: true
+                      share_with_referrer: true
+                      consent_text_version: Synthetic consent_text_version
+                    version: 1
+        "400":
+          $ref: _common.yaml#/components/responses/BadRequest
+        "401":
+          $ref: _common.yaml#/components/responses/Unauthorized
+        "403":
+          $ref: _common.yaml#/components/responses/Forbidden
+        "404":
+          $ref: _common.yaml#/components/responses/NotFound
+        "409":
+          $ref: _common.yaml#/components/responses/Conflict
+        "428":
+          $ref: _common.yaml#/components/responses/PreconditionRequired
+        "429":
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        "500":
+          $ref: _common.yaml#/components/responses/Internal
+  /v1/frontdesk/patients/{patient_id}/consents:
+    post:
+      operationId: recordPatientConsent
+      tags:
+        - frontdesk
+      summary: Record patient consents
+      security:
+        - bearerJwt: []
+      x-permission: frontdesk.registration.create
+      x-context: tenant
+      x-idempotency: required
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - common.not_found
+        - auth.forbidden
+        - auth.unauthenticated
+        - common.rate_limited
+        - common.internal
+        - common.idempotency_key_reused
+      parameters:
+        - name: patient_id
+          in: path
+          required: true
+          schema:
+            $ref: _common.yaml#/components/schemas/Uuid
+        - $ref: _common.yaml#/components/parameters/IdempotencyKey
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Consents"
+            examples:
+              synthetic:
+                value:
+                  processing: true
+                  sms: true
+                  whatsapp: true
+                  email: true
+                  share_with_referrer: true
+                  consent_text_version: Synthetic consent_text_version
+      responses:
+        "201":
+          description: Created.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ConsentRecord"
+              examples:
+                synthetic:
+                  value:
+                    id: 0193c4a0-0000-7000-8000-000000000007
+                    patient_id: 0193c4a0-0000-7000-8000-000000000008
+                    consents:
+                      processing: true
+                      sms: true
+                      whatsapp: true
+                      email: true
+                      share_with_referrer: true
+                      consent_text_version: Synthetic consent_text_version
+                    recorded_at: 2026-11-05T04:15:00.000Z
+                    recorded_by:
+                      membership_id: 0193c4a0-0000-7000-8000-000000000009
+                      display_name: Synthetic display_name
+        "400":
+          $ref: _common.yaml#/components/responses/BadRequest
+        "401":
+          $ref: _common.yaml#/components/responses/Unauthorized
+        "403":
+          $ref: _common.yaml#/components/responses/Forbidden
+        "404":
+          $ref: _common.yaml#/components/responses/NotFound
+        "422":
+          $ref: _common.yaml#/components/responses/Unprocessable
+        "429":
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        "500":
+          $ref: _common.yaml#/components/responses/Internal
+  /v1/frontdesk/patients/{patient_id}/orders:
+    get:
+      operationId: listPatientOrders
+      tags:
+        - frontdesk
+      summary: List a patient's orders
+      security:
+        - bearerJwt: []
+      x-permission: frontdesk.order.read
+      x-context: tenant
+      x-idempotency: none
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - common.not_found
+        - auth.forbidden
+        - auth.unauthenticated
+        - common.rate_limited
+        - common.internal
+        - common.invalid_cursor
+      parameters:
+        - name: patient_id
+          in: path
+          required: true
+          schema:
+            $ref: _common.yaml#/components/schemas/Uuid
+        - name: sort
+          in: query
+          required: false
+          schema:
+            type: string
+            maxLength: 14
+            enum:
+              - -registered_at
+              - registered_at
+          description: Leading `-` = descending; `id` is always appended (02-CV §4.4).
+        - $ref: _common.yaml#/components/parameters/Cursor
+        - $ref: _common.yaml#/components/parameters/Limit
+      responses:
+        "200":
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OrderSummaryPage"
+              examples:
+                synthetic:
+                  value:
+                    data:
+                      - id: 0193c4a0-0000-7000-8000-000000000010
+                        registration_no: R-0001-000001
+                        patient_id: 0193c4a0-0000-7000-8000-000000000011
+                        patient_display: Demo Patient A
+                        centre_id: 0193c4a0-0000-7000-8000-000000000012
+                        status: pre_registered
+                        billing_mode: cash
+                        source: counter
+                        registered_at: 2026-11-05T04:15:00.000Z
+                        item_count: 1
+                        has_open_flag: false
+                        version: 1
+                    page:
+                      limit: 50
+        "400":
+          $ref: _common.yaml#/components/responses/BadRequest
+        "401":
+          $ref: _common.yaml#/components/responses/Unauthorized
+        "403":
+          $ref: _common.yaml#/components/responses/Forbidden
+        "404":
+          $ref: _common.yaml#/components/responses/NotFound
+        "429":
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        "500":
+          $ref: _common.yaml#/components/responses/Internal
+  /v1/frontdesk/patients/{patient_id}/anonymise:
+    post:
+      operationId: anonymisePatient
+      tags:
+        - frontdesk
+      summary: Anonymise a patient
+      security:
+        - bearerJwt: []
+      x-permission: frontdesk.patient.anonymise
+      x-context: tenant
+      x-idempotency: required
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - common.not_found
+        - auth.forbidden
+        - auth.unauthenticated
+        - common.rate_limited
+        - common.internal
+        - frontdesk.retention_not_elapsed
+        - common.version_conflict
+        - common.precondition_required
+        - common.idempotency_key_reused
+      parameters:
+        - name: patient_id
+          in: path
+          required: true
+          schema:
+            $ref: _common.yaml#/components/schemas/Uuid
+        - $ref: _common.yaml#/components/parameters/IdempotencyKey
+        - $ref: _common.yaml#/components/parameters/IfMatch
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AnonymisePatientRequest"
+            examples:
+              synthetic:
+                value:
+                  reason_code: SYN_CODE
+                  reason_text: Synthetic reason_text
+      responses:
+        "200":
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Patient"
+              examples:
+                synthetic:
+                  value:
+                    id: 0193c4a0-0000-7000-8000-000000000013
+                    patient_code: P-000001
+                    full_name: Demo Patient A
+                    sex: male
+                    age_display: 43 Years
+                    phone_masked: 15xxxxxx00
+                    last_visit_at: 2026-11-05T04:15:00.000Z
+                    is_anonymised: false
+                    birth_on: 2026-11-05
+                    is_birth_on_estimated: false
+                    phone_e164: "+15555550100"
+                    email: <synthetic-email>
+                    address_text: Synthetic Street 1
+                    consents:
+                      processing: true
+                      sms: true
+                      whatsapp: true
+                      email: true
+                      share_with_referrer: true
+                      consent_text_version: Synthetic consent_text_version
+                    version: 1
+        "400":
+          $ref: _common.yaml#/components/responses/BadRequest
+        "401":
+          $ref: _common.yaml#/components/responses/Unauthorized
+        "403":
+          $ref: _common.yaml#/components/responses/Forbidden
+        "404":
+          $ref: _common.yaml#/components/responses/NotFound
+        "409":
+          $ref: _common.yaml#/components/responses/Conflict
+        "422":
+          $ref: _common.yaml#/components/responses/Unprocessable
+        "428":
+          $ref: _common.yaml#/components/responses/PreconditionRequired
+        "429":
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        "500":
+          $ref: _common.yaml#/components/responses/Internal
+  /v1/frontdesk/registrations/quote:
+    post:
+      operationId: quoteRegistration
+      tags:
+        - frontdesk
+      summary: Quote a registration draft
+      description: catalog.* codes are thrown by CatalogPort and propagated unchanged (08 R18).
+      security:
+        - bearerJwt: []
+      x-permission: frontdesk.registration.create
+      x-context: tenant
+      x-idempotency: none
+      x-idempotency-justification: "E3 read-only POST (LD-10): query/quote in the body, no state written, nothing to replay."
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - common.not_found
+        - auth.forbidden
+        - auth.unauthenticated
+        - common.rate_limited
+        - common.internal
+        - catalog.test_inactive
+        - catalog.no_price
+        - catalog.tax_config_missing
+        - frontdesk.discount_exceeds_limit
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RegistrationDraft"
+            examples:
+              synthetic:
+                value:
+                  patient:
+                    patient_id: 0193c4a0-0000-7000-8000-000000000014
+                  centre_id: 0193c4a0-0000-7000-8000-000000000015
+                  visit_type: opd
+                  billing_mode: cash
+                  credit_party_id: 0193c4a0-0000-7000-8000-000000000016
+                  referrer_id: 0193c4a0-0000-7000-8000-000000000017
+                  priority: routine
+                  collection_mode: walk_in
+                  items:
+                    - orderable_id: 0193c4a0-0000-7000-8000-000000000018
+                      priority: routine
+                  discounts:
+                    - scope: line
+                      orderable_id: 0193c4a0-0000-7000-8000-000000000019
+                      kind: amount
+                      amount_paisa: 1
+                      percent_bp: 1
+                      reason_code: SYN_CODE
+                      reason_text: Synthetic reason_text
+                  buyer_pan: "000000000"
+      responses:
+        "200":
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Quote"
+              examples:
+                synthetic:
+                  value:
+                    lines:
+                      - line_ref: L1
+                        orderable_id: 0193c4a0-0000-7000-8000-000000000020
+                        orderable_kind: test
+                        code: CBC
+                        name: Demo Complete Blood Count
+                        priority: routine
+                        kind: orderable
+                        unit_price:
+                          amount_paisa: 150000
+                          currency: NPR
+                        discount:
+                          amount_paisa: 150000
+                          currency: NPR
+                        taxable:
+                          amount_paisa: 150000
+                          currency: NPR
+                        exempt:
+                          amount_paisa: 150000
+                          currency: NPR
+                        vat:
+                          amount_paisa: 150000
+                          currency: NPR
+                        other_tax:
+                          amount_paisa: 150000
+                          currency: NPR
+                        other_tax_code: Synthetic other_tax_code
+                        net:
+                          amount_paisa: 150000
+                          currency: NPR
+                        price_source: base
+                        price_list_id: 0193c4a0-0000-7000-8000-000000000021
+                        price_list_version: 1
+                    totals:
+                      gross:
+                        amount_paisa: 150000
+                        currency: NPR
+                      discount:
+                        amount_paisa: 150000
+                        currency: NPR
+                      exempt:
+                        amount_paisa: 150000
+                        currency: NPR
+                      taxable:
+                        amount_paisa: 150000
+                        currency: NPR
+                      vat:
+                        amount_paisa: 150000
+                        currency: NPR
+                      other_tax:
+                        amount_paisa: 150000
+                        currency: NPR
+                      net:
+                        amount_paisa: 150000
+                        currency: NPR
+                    discount_evaluation:
+                      within_limit: true
+                      approval_required: false
+                      limit_percent_bp: 1
+                      limit_paisa: 1
+                    catalog_revision: 1
+                    quote_fingerprint: abababababababababababababababababababababababababababababababab
+                    base_fingerprint: abababababababababababababababababababababababababababababababab
+                    credit_status:
+                      state: ok
+                    fiscal_year_bs: 2082/83
+        "400":
+          $ref: _common.yaml#/components/responses/BadRequest
+        "401":
+          $ref: _common.yaml#/components/responses/Unauthorized
+        "403":
+          $ref: _common.yaml#/components/responses/Forbidden
+        "404":
+          $ref: _common.yaml#/components/responses/NotFound
+        "409":
+          $ref: _common.yaml#/components/responses/Conflict
+        "422":
+          $ref: _common.yaml#/components/responses/Unprocessable
+        "429":
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        "500":
+          $ref: _common.yaml#/components/responses/Internal
+  /v1/frontdesk/registrations:
+    post:
+      operationId: createRegistration
+      tags:
+        - frontdesk
+      summary: Register an order with payments
+      description: common.version_conflict = stale quote.
+      security:
+        - bearerJwt: []
+      x-permission: frontdesk.registration.create
+      x-context: tenant
+      x-idempotency: required
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - common.not_found
+        - auth.forbidden
+        - auth.unauthenticated
+        - common.rate_limited
+        - common.internal
+        - frontdesk.patient_duplicate_suspected
+        - frontdesk.consent_required
+        - frontdesk.referrer_required
+        - frontdesk.discount_approval_required
+        - frontdesk.discount_exceeds_limit
+        - catalog.test_inactive
+        - catalog.no_price
+        - catalog.tax_config_missing
+        - billing.credit_limit_exceeded
+        - billing.credit_party_locked
+        - billing.payment_exceeds_due
+        - billing.counter_busy
+        - billing.fiscal_year_closed
+        - billing.numbering_pattern_invalid
+        - common.version_conflict
+        - common.idempotency_key_reused
+      parameters:
+        - $ref: _common.yaml#/components/parameters/IdempotencyKey
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateRegistrationRequest"
+            examples:
+              synthetic:
+                value:
+                  patient:
+                    patient_id: 0193c4a0-0000-7000-8000-000000000022
+                  centre_id: 0193c4a0-0000-7000-8000-000000000023
+                  visit_type: opd
+                  billing_mode: cash
+                  credit_party_id: 0193c4a0-0000-7000-8000-000000000024
+                  referrer_id: 0193c4a0-0000-7000-8000-000000000025
+                  priority: routine
+                  collection_mode: walk_in
+                  items:
+                    - orderable_id: 0193c4a0-0000-7000-8000-000000000026
+                      priority: routine
+                  discounts:
+                    - scope: line
+                      orderable_id: 0193c4a0-0000-7000-8000-000000000027
+                      kind: amount
+                      amount_paisa: 1
+                      percent_bp: 1
+                      reason_code: SYN_CODE
+                      reason_text: Synthetic reason_text
+                  buyer_pan: "000000000"
+                  quote_fingerprint: abababababababababababababababababababababababababababababababab
+                  payments:
+                    - method_code: SYN_CODE
+                      amount_received_paisa: 1
+                      reference: Synthetic reference
+                      tendered_paisa: 1
+                  trf_attachment_ids:
+                    - 0193c4a0-0000-7000-8000-000000000028
+                  discount_approval_id: 0193c4a0-0000-7000-8000-000000000029
+      responses:
+        "201":
+          description: Created.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RegistrationResult"
+              examples:
+                synthetic:
+                  value:
+                    order:
+                      id: 0193c4a0-0000-7000-8000-000000000030
+                      registration_no: R-0001-000001
+                      patient:
+                        id: 0193c4a0-0000-7000-8000-000000000031
+                        patient_code: P-000001
+                        full_name: Demo Patient A
+                        sex: male
+                        age_at_order: 43 Years
+                      branch_id: 0193c4a0-0000-7000-8000-000000000032
+                      centre_id: 0193c4a0-0000-7000-8000-000000000033
+                      visit_type: opd
+                      billing_mode: cash
+                      credit_party_id: 0193c4a0-0000-7000-8000-000000000034
+                      referrer_id: 0193c4a0-0000-7000-8000-000000000035
+                      priority: routine
+                      collection_mode: walk_in
+                      source: counter
+                      source_ref_id: 0193c4a0-0000-7000-8000-000000000036
+                      status: pre_registered
+                      items:
+                        - id: 0193c4a0-0000-7000-8000-000000000037
+                          orderable_id: 0193c4a0-0000-7000-8000-000000000038
+                          orderable_kind: test
+                          code: CBC
+                          name: Demo Complete Blood Count
+                          priority: routine
+                          status: active
+                          unit_price:
+                            amount_paisa: 150000
+                            currency: NPR
+                          urgent_surcharge:
+                            amount_paisa: 150000
+                            currency: NPR
+                          outsourced: false
+                      discounts:
+                        - scope: line
+                          orderable_id: 0193c4a0-0000-7000-8000-000000000039
+                          kind: amount
+                          amount_paisa: 1
+                          percent_bp: 1
+                          reason_code: SYN_CODE
+                          reason_text: Synthetic reason_text
+                      trf_attachments:
+                        - id: 0193c4a0-0000-7000-8000-000000000040
+                          order_id: 0193c4a0-0000-7000-8000-000000000041
+                          mime_type: image/jpeg
+                          size_bytes: 1
+                          scan_state: pending
+                          uploaded_at: 2026-11-05T04:15:00.000Z
+                          uploaded_by:
+                            membership_id: 0193c4a0-0000-7000-8000-000000000042
+                            display_name: Synthetic display_name
+                          original_filename: synthetic-trf.pdf
+                      flags:
+                        - id: 0193c4a0-0000-7000-8000-000000000043
+                          order_id: 0193c4a0-0000-7000-8000-000000000044
+                          kind: recollection_required
+                          status: open
+                          specimen_id: 0193c4a0-0000-7000-8000-000000000045
+                          created_at: 2026-11-05T04:15:00.000Z
+                          resolved_at: 2026-11-05T04:15:00.000Z
+                          resolved_by:
+                            membership_id: 0193c4a0-0000-7000-8000-000000000046
+                            display_name: Synthetic display_name
+                          resolution_code: Synthetic resolution_code
+                          version: 1
+                      requires_credit_note: false
+                      registered_at: 2026-11-05T04:15:00.000Z
+                      cancelled_at: 2026-11-05T04:15:00.000Z
+                      cancel_reason_code: Synthetic cancel_reason_code
+                      billing:
+                        order_id: 0193c4a0-0000-7000-8000-000000000047
+                        invoiced:
+                          amount_paisa: 150000
+                          currency: NPR
+                        paid:
+                          amount_paisa: 150000
+                          currency: NPR
+                        credited:
+                          amount_paisa: 150000
+                          currency: NPR
+                        balance_due:
+                          amount_paisa: 150000
+                          currency: NPR
+                        balance_version: 1
+                        as_of: 2026-11-05T04:15:00.000Z
+                      version: 1
+                    invoice:
+                      id: 0193c4a0-0000-7000-8000-000000000048
+                      invoice_no: Synthetic invoice_no
+                      invoice_seq: 1
+                      series: Synthetic series
+                      fiscal_year_bs: 2082/83
+                      invoice_kind: Synthetic invoice_kind
+                      status: Synthetic status
+                      is_active: true
+                      issued_at: 2026-11-05T04:15:00.000Z
+                      invoice_date_bs: 2082-07-19
+                      branch_id: 0193c4a0-0000-7000-8000-000000000049
+                      centre_id: 0193c4a0-0000-7000-8000-000000000050
+                      order_id: 0193c4a0-0000-7000-8000-000000000051
+                      credit_party_id: 0193c4a0-0000-7000-8000-000000000052
+                      is_periodic_credit_bill: false
+                      referrer_id: 0193c4a0-0000-7000-8000-000000000053
+                      buyer:
+                        name: Synthetic name
+                        pan: Synthetic pan
+                        address: Synthetic address
+                      seller:
+                        name: Synthetic name
+                        pan: Synthetic pan
+                        address: Synthetic address
+                      lines:
+                        - id: 0193c4a0-0000-7000-8000-000000000054
+                          line_no: 1
+                          line_kind: Synthetic line_kind
+                          orderable_id: 0193c4a0-0000-7000-8000-000000000055
+                          code: Synthetic code
+                          name: Synthetic name
+                          department_id: 0193c4a0-0000-7000-8000-000000000056
+                          hs_code: Synthetic hs_cod
+                          quantity: 1
+                          unit_price:
+                            amount_paisa: 150000
+                            currency: NPR
+                          gross:
+                            amount_paisa: 150000
+                            currency: NPR
+                          discount:
+                            amount_paisa: 150000
+                            currency: NPR
+                          exempt:
+                            amount_paisa: 150000
+                            currency: NPR
+                          taxable:
+                            amount_paisa: 150000
+                            currency: NPR
+                          vat:
+                            amount_paisa: 150000
+                            currency: NPR
+                          other_tax:
+                            amount_paisa: 150000
+                            currency: NPR
+                          other_tax_code: Synthetic other_tax_code
+                          net:
+                            amount_paisa: 150000
+                            currency: NPR
+                          credited:
+                            amount_paisa: 150000
+                            currency: NPR
+                      totals:
+                        gross:
+                          amount_paisa: 150000
+                          currency: NPR
+                        discount:
+                          amount_paisa: 150000
+                          currency: NPR
+                        exempt:
+                          amount_paisa: 150000
+                          currency: NPR
+                        taxable:
+                          amount_paisa: 150000
+                          currency: NPR
+                        vat:
+                          amount_paisa: 150000
+                          currency: NPR
+                        other_tax:
+                          amount_paisa: 150000
+                          currency: NPR
+                        net:
+                          amount_paisa: 150000
+                          currency: NPR
+                      credited_total:
+                        amount_paisa: 150000
+                        currency: NPR
+                      cancellation:
+                        cancelled_at: 2026-11-05T04:15:00.000Z
+                        cancelled_by_display: Synthetic cancelled_by_display
+                        reason_code: Synthetic reason_code
+                        reason_text: Synthetic reason_text
+                        credit_note_id: 0193c4a0-0000-7000-8000-000000000057
+                        credit_note_no: Synthetic credit_note_no
+                      print_count: 1
+                      last_printed_at: 2026-11-05T04:15:00.000Z
+                      cbms_state: Synthetic cbms_state
+                      cbms_cancel_state: Synthetic cbms_cancel_state
+                      version: 1
+                    credit_charges:
+                      - id: 0193c4a0-0000-7000-8000-000000000058
+                        credit_party_id: 0193c4a0-0000-7000-8000-000000000059
+                        order_id: 0193c4a0-0000-7000-8000-000000000060
+                        invoice_id: 0193c4a0-0000-7000-8000-000000000061
+                        amount:
+                          amount_paisa: 150000
+                          currency: NPR
+                        period_month: 2026-10
+                        status: Synthetic status
+                        created_at: 2026-11-05T04:15:00.000Z
+                    ledger_entries:
+                      - id: 0193c4a0-0000-7000-8000-000000000062
+                        entry_kind: payment
+                        capture_kind: manual
+                        order_id: 0193c4a0-0000-7000-8000-000000000063
+                        invoice_id: 0193c4a0-0000-7000-8000-000000000064
+                        credit_party_id: 0193c4a0-0000-7000-8000-000000000065
+                        method_code: CASH
+                        amount:
+                          amount_paisa: 150000
+                          currency: NPR
+                        reference_masked: Synthetic reference_masked
+                        receipt_no: Synthetic receipt_no
+                        reverses_entry_id: 0193c4a0-0000-7000-8000-000000000066
+                        collected_by:
+                          membership_id: 0193c4a0-0000-7000-8000-000000000067
+                          display_name: Synthetic display_name
+                        cash_session_id: 0193c4a0-0000-7000-8000-000000000068
+                        created_at: 2026-11-05T04:15:00.000Z
+                        business_date_bs: 2082-07-19
+                    balance:
+                      order_id: 0193c4a0-0000-7000-8000-000000000069
+                      invoiced:
+                        amount_paisa: 150000
+                        currency: NPR
+                      paid:
+                        amount_paisa: 150000
+                        currency: NPR
+                      credited:
+                        amount_paisa: 150000
+                        currency: NPR
+                      balance_due:
+                        amount_paisa: 150000
+                        currency: NPR
+                      balance_version: 1
+                      as_of: 2026-11-05T04:15:00.000Z
+                    print:
+                      invoice_id: 0193c4a0-0000-7000-8000-000000000070
+                      receipt_ledger_entry_ids:
+                        - 0193c4a0-0000-7000-8000-000000000071
+                    notifications:
+                      registration_sms: queued
+                    label_print:
+                      autoprint: true
+        "400":
+          $ref: _common.yaml#/components/responses/BadRequest
+        "401":
+          $ref: _common.yaml#/components/responses/Unauthorized
+        "403":
+          $ref: _common.yaml#/components/responses/Forbidden
+        "404":
+          $ref: _common.yaml#/components/responses/NotFound
+        "409":
+          $ref: _common.yaml#/components/responses/Conflict
+        "422":
+          $ref: _common.yaml#/components/responses/Unprocessable
+        "429":
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        "500":
+          $ref: _common.yaml#/components/responses/Internal
+        "503":
+          $ref: _common.yaml#/components/responses/ServiceUnavailable
+  /v1/frontdesk/orders:
+    get:
+      operationId: listOrders
+      tags:
+        - frontdesk
+      summary: List orders
+      security:
+        - bearerJwt: []
+      x-permission: frontdesk.order.read
+      x-context: tenant
+      x-idempotency: none
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - common.not_found
+        - auth.forbidden
+        - auth.unauthenticated
+        - common.rate_limited
+        - common.internal
+        - common.invalid_cursor
+      parameters:
+        - name: status
+          in: query
+          required: false
+          schema:
+            type: string
+            maxLength: 14
+            enum:
+              - pre_registered
+              - registered
+              - in_progress
+              - completed
+              - cancelled
+        - name: centre_id
+          in: query
+          required: false
+          schema:
+            $ref: _common.yaml#/components/schemas/Uuid
+        - name: registered_at_from
+          in: query
+          required: false
+          schema:
+            $ref: _common.yaml#/components/schemas/IsoUtc
+        - name: registered_at_to
+          in: query
+          required: false
+          schema:
+            $ref: _common.yaml#/components/schemas/IsoUtc
+        - name: source
+          in: query
+          required: false
+          schema:
+            type: string
+            maxLength: 32
+        - name: has_open_flag
+          in: query
+          required: false
+          schema:
+            type: boolean
+        - name: sort
+          in: query
+          required: false
+          schema:
+            type: string
+            maxLength: 14
+            enum:
+              - -registered_at
+              - registered_at
+          description: Leading `-` = descending; `id` is always appended (02-CV §4.4).
+        - $ref: _common.yaml#/components/parameters/Cursor
+        - $ref: _common.yaml#/components/parameters/Limit
+      responses:
+        "200":
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OrderSummaryPage"
+              examples:
+                synthetic:
+                  value:
+                    data:
+                      - id: 0193c4a0-0000-7000-8000-000000000072
+                        registration_no: R-0001-000001
+                        patient_id: 0193c4a0-0000-7000-8000-000000000073
+                        patient_display: Demo Patient A
+                        centre_id: 0193c4a0-0000-7000-8000-000000000074
+                        status: pre_registered
+                        billing_mode: cash
+                        source: counter
+                        registered_at: 2026-11-05T04:15:00.000Z
+                        item_count: 1
+                        has_open_flag: false
+                        version: 1
+                    page:
+                      limit: 50
+        "400":
+          $ref: _common.yaml#/components/responses/BadRequest
+        "401":
+          $ref: _common.yaml#/components/responses/Unauthorized
+        "403":
+          $ref: _common.yaml#/components/responses/Forbidden
+        "404":
+          $ref: _common.yaml#/components/responses/NotFound
+        "429":
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        "500":
+          $ref: _common.yaml#/components/responses/Internal
+  /v1/frontdesk/orders/{order_id}:
+    get:
+      operationId: getOrder
+      tags:
+        - frontdesk
+      summary: Get an order
+      security:
+        - bearerJwt: []
+      x-permission: frontdesk.order.read
+      x-context: tenant
+      x-idempotency: none
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - common.not_found
+        - auth.forbidden
+        - auth.unauthenticated
+        - common.rate_limited
+        - common.internal
+      parameters:
+        - name: order_id
+          in: path
+          required: true
+          schema:
+            $ref: _common.yaml#/components/schemas/Uuid
+      responses:
+        "200":
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OrderDto"
+              examples:
+                synthetic:
+                  value:
+                    id: 0193c4a0-0000-7000-8000-000000000075
+                    registration_no: R-0001-000001
+                    patient:
+                      id: 0193c4a0-0000-7000-8000-000000000076
+                      patient_code: P-000001
+                      full_name: Demo Patient A
+                      sex: male
+                      age_at_order: 43 Years
+                    branch_id: 0193c4a0-0000-7000-8000-000000000077
+                    centre_id: 0193c4a0-0000-7000-8000-000000000078
+                    visit_type: opd
+                    billing_mode: cash
+                    credit_party_id: 0193c4a0-0000-7000-8000-000000000079
+                    referrer_id: 0193c4a0-0000-7000-8000-000000000080
+                    priority: routine
+                    collection_mode: walk_in
+                    source: counter
+                    source_ref_id: 0193c4a0-0000-7000-8000-000000000081
+                    status: pre_registered
+                    items:
+                      - id: 0193c4a0-0000-7000-8000-000000000082
+                        orderable_id: 0193c4a0-0000-7000-8000-000000000083
+                        orderable_kind: test
+                        code: CBC
+                        name: Demo Complete Blood Count
+                        priority: routine
+                        status: active
+                        unit_price:
+                          amount_paisa: 150000
+                          currency: NPR
+                        urgent_surcharge:
+                          amount_paisa: 150000
+                          currency: NPR
+                        outsourced: false
+                    discounts:
+                      - scope: line
+                        orderable_id: 0193c4a0-0000-7000-8000-000000000084
+                        kind: amount
+                        amount_paisa: 1
+                        percent_bp: 1
+                        reason_code: SYN_CODE
+                        reason_text: Synthetic reason_text
+                    trf_attachments:
+                      - id: 0193c4a0-0000-7000-8000-000000000085
+                        order_id: 0193c4a0-0000-7000-8000-000000000086
+                        mime_type: image/jpeg
+                        size_bytes: 1
+                        scan_state: pending
+                        uploaded_at: 2026-11-05T04:15:00.000Z
+                        uploaded_by:
+                          membership_id: 0193c4a0-0000-7000-8000-000000000087
+                          display_name: Synthetic display_name
+                        original_filename: synthetic-trf.pdf
+                    flags:
+                      - id: 0193c4a0-0000-7000-8000-000000000088
+                        order_id: 0193c4a0-0000-7000-8000-000000000089
+                        kind: recollection_required
+                        status: open
+                        specimen_id: 0193c4a0-0000-7000-8000-000000000090
+                        created_at: 2026-11-05T04:15:00.000Z
+                        resolved_at: 2026-11-05T04:15:00.000Z
+                        resolved_by:
+                          membership_id: 0193c4a0-0000-7000-8000-000000000091
+                          display_name: Synthetic display_name
+                        resolution_code: Synthetic resolution_code
+                        version: 1
+                    requires_credit_note: false
+                    registered_at: 2026-11-05T04:15:00.000Z
+                    cancelled_at: 2026-11-05T04:15:00.000Z
+                    cancel_reason_code: Synthetic cancel_reason_code
+                    billing:
+                      order_id: 0193c4a0-0000-7000-8000-000000000092
+                      invoiced:
+                        amount_paisa: 150000
+                        currency: NPR
+                      paid:
+                        amount_paisa: 150000
+                        currency: NPR
+                      credited:
+                        amount_paisa: 150000
+                        currency: NPR
+                      balance_due:
+                        amount_paisa: 150000
+                        currency: NPR
+                      balance_version: 1
+                      as_of: 2026-11-05T04:15:00.000Z
+                    version: 1
+        "400":
+          $ref: _common.yaml#/components/responses/BadRequest
+        "401":
+          $ref: _common.yaml#/components/responses/Unauthorized
+        "403":
+          $ref: _common.yaml#/components/responses/Forbidden
+        "404":
+          $ref: _common.yaml#/components/responses/NotFound
+        "429":
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        "500":
+          $ref: _common.yaml#/components/responses/Internal
+  /v1/frontdesk/orders/{order_id}/items-changes/quote:
+    post:
+      operationId: quoteOrderItemsChange
+      tags:
+        - frontdesk
+      summary: Quote items added to an order
+      security:
+        - bearerJwt: []
+      x-permission: frontdesk.order.edit
+      x-context: tenant
+      x-idempotency: none
+      x-idempotency-justification: "E3 read-only POST (LD-10): query/quote in the body, no state written, nothing to replay."
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - common.not_found
+        - auth.forbidden
+        - auth.unauthenticated
+        - common.rate_limited
+        - common.internal
+        - frontdesk.order_not_editable
+        - frontdesk.order_already_cancelled
+        - catalog.test_inactive
+        - catalog.no_price
+        - catalog.tax_config_missing
+      parameters:
+        - name: order_id
+          in: path
+          required: true
+          schema:
+            $ref: _common.yaml#/components/schemas/Uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/QuoteOrderItemsChangeRequest"
+            examples:
+              synthetic:
+                value:
+                  add:
+                    - orderable_id: 0193c4a0-0000-7000-8000-000000000093
+                      priority: routine
+      responses:
+        "200":
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Quote"
+              examples:
+                synthetic:
+                  value:
+                    lines:
+                      - line_ref: L1
+                        orderable_id: 0193c4a0-0000-7000-8000-000000000094
+                        orderable_kind: test
+                        code: CBC
+                        name: Demo Complete Blood Count
+                        priority: routine
+                        kind: orderable
+                        unit_price:
+                          amount_paisa: 150000
+                          currency: NPR
+                        discount:
+                          amount_paisa: 150000
+                          currency: NPR
+                        taxable:
+                          amount_paisa: 150000
+                          currency: NPR
+                        exempt:
+                          amount_paisa: 150000
+                          currency: NPR
+                        vat:
+                          amount_paisa: 150000
+                          currency: NPR
+                        other_tax:
+                          amount_paisa: 150000
+                          currency: NPR
+                        other_tax_code: Synthetic other_tax_code
+                        net:
+                          amount_paisa: 150000
+                          currency: NPR
+                        price_source: base
+                        price_list_id: 0193c4a0-0000-7000-8000-000000000095
+                        price_list_version: 1
+                    totals:
+                      gross:
+                        amount_paisa: 150000
+                        currency: NPR
+                      discount:
+                        amount_paisa: 150000
+                        currency: NPR
+                      exempt:
+                        amount_paisa: 150000
+                        currency: NPR
+                      taxable:
+                        amount_paisa: 150000
+                        currency: NPR
+                      vat:
+                        amount_paisa: 150000
+                        currency: NPR
+                      other_tax:
+                        amount_paisa: 150000
+                        currency: NPR
+                      net:
+                        amount_paisa: 150000
+                        currency: NPR
+                    discount_evaluation:
+                      within_limit: true
+                      approval_required: false
+                      limit_percent_bp: 1
+                      limit_paisa: 1
+                    catalog_revision: 1
+                    quote_fingerprint: abababababababababababababababababababababababababababababababab
+                    base_fingerprint: abababababababababababababababababababababababababababababababab
+                    credit_status:
+                      state: ok
+                    fiscal_year_bs: 2082/83
+        "400":
+          $ref: _common.yaml#/components/responses/BadRequest
+        "401":
+          $ref: _common.yaml#/components/responses/Unauthorized
+        "403":
+          $ref: _common.yaml#/components/responses/Forbidden
+        "404":
+          $ref: _common.yaml#/components/responses/NotFound
+        "409":
+          $ref: _common.yaml#/components/responses/Conflict
+        "422":
+          $ref: _common.yaml#/components/responses/Unprocessable
+        "429":
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        "500":
+          $ref: _common.yaml#/components/responses/Internal
+  /v1/frontdesk/orders/{order_id}/confirm:
+    post:
+      operationId: confirmPreRegisteredOrder
+      tags:
+        - frontdesk
+      summary: Confirm a pre-registered order
+      security:
+        - bearerJwt: []
+      x-permission: frontdesk.registration.create
+      x-context: tenant
+      x-idempotency: required
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - common.not_found
+        - auth.forbidden
+        - auth.unauthenticated
+        - common.rate_limited
+        - common.internal
+        - frontdesk.patient_duplicate_suspected
+        - frontdesk.consent_required
+        - frontdesk.referrer_required
+        - frontdesk.discount_approval_required
+        - frontdesk.discount_exceeds_limit
+        - catalog.test_inactive
+        - catalog.no_price
+        - catalog.tax_config_missing
+        - billing.credit_limit_exceeded
+        - billing.credit_party_locked
+        - billing.payment_exceeds_due
+        - billing.counter_busy
+        - billing.fiscal_year_closed
+        - billing.numbering_pattern_invalid
+        - common.version_conflict
+        - common.immutable_record
+        - common.precondition_required
+        - common.idempotency_key_reused
+      parameters:
+        - name: order_id
+          in: path
+          required: true
+          schema:
+            $ref: _common.yaml#/components/schemas/Uuid
+        - $ref: _common.yaml#/components/parameters/IdempotencyKey
+        - $ref: _common.yaml#/components/parameters/IfMatch
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ConfirmOrderRequest"
+            examples:
+              synthetic:
+                value:
+                  quote_fingerprint: abababababababababababababababababababababababababababababababab
+                  payments:
+                    - method_code: SYN_CODE
+                      amount_received_paisa: 1
+                      reference: Synthetic reference
+                      tendered_paisa: 1
+                  discounts:
+                    - scope: line
+                      orderable_id: 0193c4a0-0000-7000-8000-000000000096
+                      kind: amount
+                      amount_paisa: 1
+                      percent_bp: 1
+                      reason_code: SYN_CODE
+                      reason_text: Synthetic reason_text
+                  discount_approval_id: 0193c4a0-0000-7000-8000-000000000097
+                  items_override:
+                    items:
+                      - orderable_id: 0193c4a0-0000-7000-8000-000000000098
+                        priority: routine
+      responses:
+        "200":
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RegistrationResult"
+              examples:
+                synthetic:
+                  value:
+                    order:
+                      id: 0193c4a0-0000-7000-8000-000000000099
+                      registration_no: R-0001-000001
+                      patient:
+                        id: 0193c4a0-0000-7000-8000-000000000100
+                        patient_code: P-000001
+                        full_name: Demo Patient A
+                        sex: male
+                        age_at_order: 43 Years
+                      branch_id: 0193c4a0-0000-7000-8000-000000000101
+                      centre_id: 0193c4a0-0000-7000-8000-000000000102
+                      visit_type: opd
+                      billing_mode: cash
+                      credit_party_id: 0193c4a0-0000-7000-8000-000000000103
+                      referrer_id: 0193c4a0-0000-7000-8000-000000000104
+                      priority: routine
+                      collection_mode: walk_in
+                      source: counter
+                      source_ref_id: 0193c4a0-0000-7000-8000-000000000105
+                      status: pre_registered
+                      items:
+                        - id: 0193c4a0-0000-7000-8000-000000000106
+                          orderable_id: 0193c4a0-0000-7000-8000-000000000107
+                          orderable_kind: test
+                          code: CBC
+                          name: Demo Complete Blood Count
+                          priority: routine
+                          status: active
+                          unit_price:
+                            amount_paisa: 150000
+                            currency: NPR
+                          urgent_surcharge:
+                            amount_paisa: 150000
+                            currency: NPR
+                          outsourced: false
+                      discounts:
+                        - scope: line
+                          orderable_id: 0193c4a0-0000-7000-8000-000000000108
+                          kind: amount
+                          amount_paisa: 1
+                          percent_bp: 1
+                          reason_code: SYN_CODE
+                          reason_text: Synthetic reason_text
+                      trf_attachments:
+                        - id: 0193c4a0-0000-7000-8000-000000000109
+                          order_id: 0193c4a0-0000-7000-8000-000000000110
+                          mime_type: image/jpeg
+                          size_bytes: 1
+                          scan_state: pending
+                          uploaded_at: 2026-11-05T04:15:00.000Z
+                          uploaded_by:
+                            membership_id: 0193c4a0-0000-7000-8000-000000000111
+                            display_name: Synthetic display_name
+                          original_filename: synthetic-trf.pdf
+                      flags:
+                        - id: 0193c4a0-0000-7000-8000-000000000112
+                          order_id: 0193c4a0-0000-7000-8000-000000000113
+                          kind: recollection_required
+                          status: open
+                          specimen_id: 0193c4a0-0000-7000-8000-000000000114
+                          created_at: 2026-11-05T04:15:00.000Z
+                          resolved_at: 2026-11-05T04:15:00.000Z
+                          resolved_by:
+                            membership_id: 0193c4a0-0000-7000-8000-000000000115
+                            display_name: Synthetic display_name
+                          resolution_code: Synthetic resolution_code
+                          version: 1
+                      requires_credit_note: false
+                      registered_at: 2026-11-05T04:15:00.000Z
+                      cancelled_at: 2026-11-05T04:15:00.000Z
+                      cancel_reason_code: Synthetic cancel_reason_code
+                      billing:
+                        order_id: 0193c4a0-0000-7000-8000-000000000116
+                        invoiced:
+                          amount_paisa: 150000
+                          currency: NPR
+                        paid:
+                          amount_paisa: 150000
+                          currency: NPR
+                        credited:
+                          amount_paisa: 150000
+                          currency: NPR
+                        balance_due:
+                          amount_paisa: 150000
+                          currency: NPR
+                        balance_version: 1
+                        as_of: 2026-11-05T04:15:00.000Z
+                      version: 1
+                    invoice:
+                      id: 0193c4a0-0000-7000-8000-000000000117
+                      invoice_no: Synthetic invoice_no
+                      invoice_seq: 1
+                      series: Synthetic series
+                      fiscal_year_bs: 2082/83
+                      invoice_kind: Synthetic invoice_kind
+                      status: Synthetic status
+                      is_active: true
+                      issued_at: 2026-11-05T04:15:00.000Z
+                      invoice_date_bs: 2082-07-19
+                      branch_id: 0193c4a0-0000-7000-8000-000000000118
+                      centre_id: 0193c4a0-0000-7000-8000-000000000119
+                      order_id: 0193c4a0-0000-7000-8000-000000000120
+                      credit_party_id: 0193c4a0-0000-7000-8000-000000000121
+                      is_periodic_credit_bill: false
+                      referrer_id: 0193c4a0-0000-7000-8000-000000000122
+                      buyer:
+                        name: Synthetic name
+                        pan: Synthetic pan
+                        address: Synthetic address
+                      seller:
+                        name: Synthetic name
+                        pan: Synthetic pan
+                        address: Synthetic address
+                      lines:
+                        - id: 0193c4a0-0000-7000-8000-000000000123
+                          line_no: 1
+                          line_kind: Synthetic line_kind
+                          orderable_id: 0193c4a0-0000-7000-8000-000000000124
+                          code: Synthetic code
+                          name: Synthetic name
+                          department_id: 0193c4a0-0000-7000-8000-000000000125
+                          hs_code: Synthetic hs_cod
+                          quantity: 1
+                          unit_price:
+                            amount_paisa: 150000
+                            currency: NPR
+                          gross:
+                            amount_paisa: 150000
+                            currency: NPR
+                          discount:
+                            amount_paisa: 150000
+                            currency: NPR
+                          exempt:
+                            amount_paisa: 150000
+                            currency: NPR
+                          taxable:
+                            amount_paisa: 150000
+                            currency: NPR
+                          vat:
+                            amount_paisa: 150000
+                            currency: NPR
+                          other_tax:
+                            amount_paisa: 150000
+                            currency: NPR
+                          other_tax_code: Synthetic other_tax_code
+                          net:
+                            amount_paisa: 150000
+                            currency: NPR
+                          credited:
+                            amount_paisa: 150000
+                            currency: NPR
+                      totals:
+                        gross:
+                          amount_paisa: 150000
+                          currency: NPR
+                        discount:
+                          amount_paisa: 150000
+                          currency: NPR
+                        exempt:
+                          amount_paisa: 150000
+                          currency: NPR
+                        taxable:
+                          amount_paisa: 150000
+                          currency: NPR
+                        vat:
+                          amount_paisa: 150000
+                          currency: NPR
+                        other_tax:
+                          amount_paisa: 150000
+                          currency: NPR
+                        net:
+                          amount_paisa: 150000
+                          currency: NPR
+                      credited_total:
+                        amount_paisa: 150000
+                        currency: NPR
+                      cancellation:
+                        cancelled_at: 2026-11-05T04:15:00.000Z
+                        cancelled_by_display: Synthetic cancelled_by_display
+                        reason_code: Synthetic reason_code
+                        reason_text: Synthetic reason_text
+                        credit_note_id: 0193c4a0-0000-7000-8000-000000000126
+                        credit_note_no: Synthetic credit_note_no
+                      print_count: 1
+                      last_printed_at: 2026-11-05T04:15:00.000Z
+                      cbms_state: Synthetic cbms_state
+                      cbms_cancel_state: Synthetic cbms_cancel_state
+                      version: 1
+                    credit_charges:
+                      - id: 0193c4a0-0000-7000-8000-000000000127
+                        credit_party_id: 0193c4a0-0000-7000-8000-000000000128
+                        order_id: 0193c4a0-0000-7000-8000-000000000129
+                        invoice_id: 0193c4a0-0000-7000-8000-000000000130
+                        amount:
+                          amount_paisa: 150000
+                          currency: NPR
+                        period_month: 2026-10
+                        status: Synthetic status
+                        created_at: 2026-11-05T04:15:00.000Z
+                    ledger_entries:
+                      - id: 0193c4a0-0000-7000-8000-000000000131
+                        entry_kind: payment
+                        capture_kind: manual
+                        order_id: 0193c4a0-0000-7000-8000-000000000132
+                        invoice_id: 0193c4a0-0000-7000-8000-000000000133
+                        credit_party_id: 0193c4a0-0000-7000-8000-000000000134
+                        method_code: CASH
+                        amount:
+                          amount_paisa: 150000
+                          currency: NPR
+                        reference_masked: Synthetic reference_masked
+                        receipt_no: Synthetic receipt_no
+                        reverses_entry_id: 0193c4a0-0000-7000-8000-000000000135
+                        collected_by:
+                          membership_id: 0193c4a0-0000-7000-8000-000000000136
+                          display_name: Synthetic display_name
+                        cash_session_id: 0193c4a0-0000-7000-8000-000000000137
+                        created_at: 2026-11-05T04:15:00.000Z
+                        business_date_bs: 2082-07-19
+                    balance:
+                      order_id: 0193c4a0-0000-7000-8000-000000000138
+                      invoiced:
+                        amount_paisa: 150000
+                        currency: NPR
+                      paid:
+                        amount_paisa: 150000
+                        currency: NPR
+                      credited:
+                        amount_paisa: 150000
+                        currency: NPR
+                      balance_due:
+                        amount_paisa: 150000
+                        currency: NPR
+                      balance_version: 1
+                      as_of: 2026-11-05T04:15:00.000Z
+                    print:
+                      invoice_id: 0193c4a0-0000-7000-8000-000000000139
+                      receipt_ledger_entry_ids:
+                        - 0193c4a0-0000-7000-8000-000000000140
+                    notifications:
+                      registration_sms: queued
+                    label_print:
+                      autoprint: true
+        "400":
+          $ref: _common.yaml#/components/responses/BadRequest
+        "401":
+          $ref: _common.yaml#/components/responses/Unauthorized
+        "403":
+          $ref: _common.yaml#/components/responses/Forbidden
+        "404":
+          $ref: _common.yaml#/components/responses/NotFound
+        "409":
+          $ref: _common.yaml#/components/responses/Conflict
+        "422":
+          $ref: _common.yaml#/components/responses/Unprocessable
+        "428":
+          $ref: _common.yaml#/components/responses/PreconditionRequired
+        "429":
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        "500":
+          $ref: _common.yaml#/components/responses/Internal
+        "503":
+          $ref: _common.yaml#/components/responses/ServiceUnavailable
+  /v1/frontdesk/orders/{order_id}/items-changes:
+    post:
+      operationId: changeOrderItems
+      tags:
+        - frontdesk
+      summary: Add or remove order items
+      security:
+        - bearerJwt: []
+      x-permission: frontdesk.order.edit
+      x-context: tenant
+      x-idempotency: required
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - common.not_found
+        - auth.forbidden
+        - auth.unauthenticated
+        - common.rate_limited
+        - common.internal
+        - frontdesk.order_not_editable
+        - frontdesk.order_already_cancelled
+        - catalog.test_inactive
+        - catalog.no_price
+        - catalog.tax_config_missing
+        - common.version_conflict
+        - billing.counter_busy
+        - common.precondition_required
+        - common.idempotency_key_reused
+      parameters:
+        - name: order_id
+          in: path
+          required: true
+          schema:
+            $ref: _common.yaml#/components/schemas/Uuid
+        - $ref: _common.yaml#/components/parameters/IdempotencyKey
+        - $ref: _common.yaml#/components/parameters/IfMatch
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ChangeOrderItemsRequest"
+            examples:
+              synthetic:
+                value:
+                  add:
+                    - orderable_id: 0193c4a0-0000-7000-8000-000000000141
+                      priority: routine
+                  remove:
+                    - order_item_id: 0193c4a0-0000-7000-8000-000000000142
+                      reason_code: SYN_CODE
+                  quote_fingerprint: abababababababababababababababababababababababababababababababab
+                  payments:
+                    - method_code: SYN_CODE
+                      amount_received_paisa: 1
+                      reference: Synthetic reference
+                      tendered_paisa: 1
+      responses:
+        "200":
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ChangeOrderItemsResult"
+              examples:
+                synthetic:
+                  value:
+                    id: 0193c4a0-0000-7000-8000-000000000143
+                    registration_no: R-0001-000001
+                    patient:
+                      id: 0193c4a0-0000-7000-8000-000000000144
+                      patient_code: P-000001
+                      full_name: Demo Patient A
+                      sex: male
+                      age_at_order: 43 Years
+                    branch_id: 0193c4a0-0000-7000-8000-000000000145
+                    centre_id: 0193c4a0-0000-7000-8000-000000000146
+                    visit_type: opd
+                    billing_mode: cash
+                    credit_party_id: 0193c4a0-0000-7000-8000-000000000147
+                    referrer_id: 0193c4a0-0000-7000-8000-000000000148
+                    priority: routine
+                    collection_mode: walk_in
+                    source: counter
+                    source_ref_id: 0193c4a0-0000-7000-8000-000000000149
+                    status: pre_registered
+                    items:
+                      - id: 0193c4a0-0000-7000-8000-000000000150
+                        orderable_id: 0193c4a0-0000-7000-8000-000000000151
+                        orderable_kind: test
+                        code: CBC
+                        name: Demo Complete Blood Count
+                        priority: routine
+                        status: active
+                        unit_price:
+                          amount_paisa: 150000
+                          currency: NPR
+                        urgent_surcharge:
+                          amount_paisa: 150000
+                          currency: NPR
+                        outsourced: false
+                    discounts:
+                      - scope: line
+                        orderable_id: 0193c4a0-0000-7000-8000-000000000152
+                        kind: amount
+                        amount_paisa: 1
+                        percent_bp: 1
+                        reason_code: SYN_CODE
+                        reason_text: Synthetic reason_text
+                    trf_attachments:
+                      - id: 0193c4a0-0000-7000-8000-000000000153
+                        order_id: 0193c4a0-0000-7000-8000-000000000154
+                        mime_type: image/jpeg
+                        size_bytes: 1
+                        scan_state: pending
+                        uploaded_at: 2026-11-05T04:15:00.000Z
+                        uploaded_by:
+                          membership_id: 0193c4a0-0000-7000-8000-000000000155
+                          display_name: Synthetic display_name
+                        original_filename: synthetic-trf.pdf
+                    flags:
+                      - id: 0193c4a0-0000-7000-8000-000000000156
+                        order_id: 0193c4a0-0000-7000-8000-000000000157
+                        kind: recollection_required
+                        status: open
+                        specimen_id: 0193c4a0-0000-7000-8000-000000000158
+                        created_at: 2026-11-05T04:15:00.000Z
+                        resolved_at: 2026-11-05T04:15:00.000Z
+                        resolved_by:
+                          membership_id: 0193c4a0-0000-7000-8000-000000000159
+                          display_name: Synthetic display_name
+                        resolution_code: Synthetic resolution_code
+                        version: 1
+                    requires_credit_note: false
+                    registered_at: 2026-11-05T04:15:00.000Z
+                    cancelled_at: 2026-11-05T04:15:00.000Z
+                    cancel_reason_code: Synthetic cancel_reason_code
+                    billing:
+                      order_id: 0193c4a0-0000-7000-8000-000000000160
+                      invoiced:
+                        amount_paisa: 150000
+                        currency: NPR
+                      paid:
+                        amount_paisa: 150000
+                        currency: NPR
+                      credited:
+                        amount_paisa: 150000
+                        currency: NPR
+                      balance_due:
+                        amount_paisa: 150000
+                        currency: NPR
+                      balance_version: 1
+                      as_of: 2026-11-05T04:15:00.000Z
+                    version: 1
+                    supplementary_invoice:
+                      id: 0193c4a0-0000-7000-8000-000000000161
+                      invoice_no: Synthetic invoice_no
+                      invoice_seq: 1
+                      series: Synthetic series
+                      fiscal_year_bs: 2082/83
+                      invoice_kind: Synthetic invoice_kind
+                      status: Synthetic status
+                      is_active: true
+                      issued_at: 2026-11-05T04:15:00.000Z
+                      invoice_date_bs: 2082-07-19
+                      branch_id: 0193c4a0-0000-7000-8000-000000000162
+                      centre_id: 0193c4a0-0000-7000-8000-000000000163
+                      order_id: 0193c4a0-0000-7000-8000-000000000164
+                      credit_party_id: 0193c4a0-0000-7000-8000-000000000165
+                      is_periodic_credit_bill: false
+                      referrer_id: 0193c4a0-0000-7000-8000-000000000166
+                      buyer:
+                        name: Synthetic name
+                        pan: Synthetic pan
+                        address: Synthetic address
+                      seller:
+                        name: Synthetic name
+                        pan: Synthetic pan
+                        address: Synthetic address
+                      lines:
+                        - id: 0193c4a0-0000-7000-8000-000000000167
+                          line_no: 1
+                          line_kind: Synthetic line_kind
+                          orderable_id: 0193c4a0-0000-7000-8000-000000000168
+                          code: Synthetic code
+                          name: Synthetic name
+                          department_id: 0193c4a0-0000-7000-8000-000000000169
+                          hs_code: Synthetic hs_cod
+                          quantity: 1
+                          unit_price:
+                            amount_paisa: 150000
+                            currency: NPR
+                          gross:
+                            amount_paisa: 150000
+                            currency: NPR
+                          discount:
+                            amount_paisa: 150000
+                            currency: NPR
+                          exempt:
+                            amount_paisa: 150000
+                            currency: NPR
+                          taxable:
+                            amount_paisa: 150000
+                            currency: NPR
+                          vat:
+                            amount_paisa: 150000
+                            currency: NPR
+                          other_tax:
+                            amount_paisa: 150000
+                            currency: NPR
+                          other_tax_code: Synthetic other_tax_code
+                          net:
+                            amount_paisa: 150000
+                            currency: NPR
+                          credited:
+                            amount_paisa: 150000
+                            currency: NPR
+                      totals:
+                        gross:
+                          amount_paisa: 150000
+                          currency: NPR
+                        discount:
+                          amount_paisa: 150000
+                          currency: NPR
+                        exempt:
+                          amount_paisa: 150000
+                          currency: NPR
+                        taxable:
+                          amount_paisa: 150000
+                          currency: NPR
+                        vat:
+                          amount_paisa: 150000
+                          currency: NPR
+                        other_tax:
+                          amount_paisa: 150000
+                          currency: NPR
+                        net:
+                          amount_paisa: 150000
+                          currency: NPR
+                      credited_total:
+                        amount_paisa: 150000
+                        currency: NPR
+                      cancellation:
+                        cancelled_at: 2026-11-05T04:15:00.000Z
+                        cancelled_by_display: Synthetic cancelled_by_display
+                        reason_code: Synthetic reason_code
+                        reason_text: Synthetic reason_text
+                        credit_note_id: 0193c4a0-0000-7000-8000-000000000170
+                        credit_note_no: Synthetic credit_note_no
+                      print_count: 1
+                      last_printed_at: 2026-11-05T04:15:00.000Z
+                      cbms_state: Synthetic cbms_state
+                      cbms_cancel_state: Synthetic cbms_cancel_state
+                      version: 1
+                    credit_note_required: false
+        "400":
+          $ref: _common.yaml#/components/responses/BadRequest
+        "401":
+          $ref: _common.yaml#/components/responses/Unauthorized
+        "403":
+          $ref: _common.yaml#/components/responses/Forbidden
+        "404":
+          $ref: _common.yaml#/components/responses/NotFound
+        "409":
+          $ref: _common.yaml#/components/responses/Conflict
+        "422":
+          $ref: _common.yaml#/components/responses/Unprocessable
+        "428":
+          $ref: _common.yaml#/components/responses/PreconditionRequired
+        "429":
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        "500":
+          $ref: _common.yaml#/components/responses/Internal
+        "503":
+          $ref: _common.yaml#/components/responses/ServiceUnavailable
+  /v1/frontdesk/orders/{order_id}/cancel:
+    post:
+      operationId: cancelOrder
+      tags:
+        - frontdesk
+      summary: Cancel an order
+      security:
+        - bearerJwt: []
+      x-permission: frontdesk.order.cancel
+      x-context: tenant
+      x-idempotency: required
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - common.not_found
+        - auth.forbidden
+        - auth.unauthenticated
+        - common.rate_limited
+        - common.internal
+        - frontdesk.order_cancel_not_allowed
+        - frontdesk.order_already_cancelled
+        - common.version_conflict
+        - common.precondition_required
+        - common.idempotency_key_reused
+      parameters:
+        - name: order_id
+          in: path
+          required: true
+          schema:
+            $ref: _common.yaml#/components/schemas/Uuid
+        - $ref: _common.yaml#/components/parameters/IdempotencyKey
+        - $ref: _common.yaml#/components/parameters/IfMatch
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CancelOrderRequest"
+            examples:
+              synthetic:
+                value:
+                  reason_code: SYN_CODE
+                  reason_text: Synthetic reason_text
+      responses:
+        "200":
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OrderDto"
+              examples:
+                synthetic:
+                  value:
+                    id: 0193c4a0-0000-7000-8000-000000000171
+                    registration_no: R-0001-000001
+                    patient:
+                      id: 0193c4a0-0000-7000-8000-000000000172
+                      patient_code: P-000001
+                      full_name: Demo Patient A
+                      sex: male
+                      age_at_order: 43 Years
+                    branch_id: 0193c4a0-0000-7000-8000-000000000173
+                    centre_id: 0193c4a0-0000-7000-8000-000000000174
+                    visit_type: opd
+                    billing_mode: cash
+                    credit_party_id: 0193c4a0-0000-7000-8000-000000000175
+                    referrer_id: 0193c4a0-0000-7000-8000-000000000176
+                    priority: routine
+                    collection_mode: walk_in
+                    source: counter
+                    source_ref_id: 0193c4a0-0000-7000-8000-000000000177
+                    status: pre_registered
+                    items:
+                      - id: 0193c4a0-0000-7000-8000-000000000178
+                        orderable_id: 0193c4a0-0000-7000-8000-000000000179
+                        orderable_kind: test
+                        code: CBC
+                        name: Demo Complete Blood Count
+                        priority: routine
+                        status: active
+                        unit_price:
+                          amount_paisa: 150000
+                          currency: NPR
+                        urgent_surcharge:
+                          amount_paisa: 150000
+                          currency: NPR
+                        outsourced: false
+                    discounts:
+                      - scope: line
+                        orderable_id: 0193c4a0-0000-7000-8000-000000000180
+                        kind: amount
+                        amount_paisa: 1
+                        percent_bp: 1
+                        reason_code: SYN_CODE
+                        reason_text: Synthetic reason_text
+                    trf_attachments:
+                      - id: 0193c4a0-0000-7000-8000-000000000181
+                        order_id: 0193c4a0-0000-7000-8000-000000000182
+                        mime_type: image/jpeg
+                        size_bytes: 1
+                        scan_state: pending
+                        uploaded_at: 2026-11-05T04:15:00.000Z
+                        uploaded_by:
+                          membership_id: 0193c4a0-0000-7000-8000-000000000183
+                          display_name: Synthetic display_name
+                        original_filename: synthetic-trf.pdf
+                    flags:
+                      - id: 0193c4a0-0000-7000-8000-000000000184
+                        order_id: 0193c4a0-0000-7000-8000-000000000185
+                        kind: recollection_required
+                        status: open
+                        specimen_id: 0193c4a0-0000-7000-8000-000000000186
+                        created_at: 2026-11-05T04:15:00.000Z
+                        resolved_at: 2026-11-05T04:15:00.000Z
+                        resolved_by:
+                          membership_id: 0193c4a0-0000-7000-8000-000000000187
+                          display_name: Synthetic display_name
+                        resolution_code: Synthetic resolution_code
+                        version: 1
+                    requires_credit_note: false
+                    registered_at: 2026-11-05T04:15:00.000Z
+                    cancelled_at: 2026-11-05T04:15:00.000Z
+                    cancel_reason_code: Synthetic cancel_reason_code
+                    billing:
+                      order_id: 0193c4a0-0000-7000-8000-000000000188
+                      invoiced:
+                        amount_paisa: 150000
+                        currency: NPR
+                      paid:
+                        amount_paisa: 150000
+                        currency: NPR
+                      credited:
+                        amount_paisa: 150000
+                        currency: NPR
+                      balance_due:
+                        amount_paisa: 150000
+                        currency: NPR
+                      balance_version: 1
+                      as_of: 2026-11-05T04:15:00.000Z
+                    version: 1
+        "400":
+          $ref: _common.yaml#/components/responses/BadRequest
+        "401":
+          $ref: _common.yaml#/components/responses/Unauthorized
+        "403":
+          $ref: _common.yaml#/components/responses/Forbidden
+        "404":
+          $ref: _common.yaml#/components/responses/NotFound
+        "409":
+          $ref: _common.yaml#/components/responses/Conflict
+        "422":
+          $ref: _common.yaml#/components/responses/Unprocessable
+        "428":
+          $ref: _common.yaml#/components/responses/PreconditionRequired
+        "429":
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        "500":
+          $ref: _common.yaml#/components/responses/Internal
+  /v1/frontdesk/discount-approvals:
+    post:
+      operationId: requestDiscountApproval
+      tags:
+        - frontdesk
+      summary: Request a discount approval
+      security:
+        - bearerJwt: []
+      x-permission: frontdesk.discount.apply
+      x-context: tenant
+      x-idempotency: required
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - common.not_found
+        - auth.forbidden
+        - auth.unauthenticated
+        - common.rate_limited
+        - common.internal
+        - frontdesk.discount_exceeds_limit
+        - common.idempotency_key_reused
+      parameters:
+        - $ref: _common.yaml#/components/parameters/IdempotencyKey
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DiscountApprovalRequest"
+            examples:
+              synthetic:
+                value:
+                  centre_id: 0193c4a0-0000-7000-8000-000000000189
+                  base_fingerprint: abababababababababababababababababababababababababababababababab
+                  discounts:
+                    - scope: line
+                      orderable_id: 0193c4a0-0000-7000-8000-000000000190
+                      kind: amount
+                      amount_paisa: 1
+                      percent_bp: 1
+                      reason_code: SYN_CODE
+                      reason_text: Synthetic reason_text
+                  reason_code: SYN_CODE
+                  reason_text: Synthetic reason_text
+                  patient_ref:
+                    patient_id: 0193c4a0-0000-7000-8000-000000000191
+      responses:
+        "201":
+          description: Created.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DiscountApproval"
+              examples:
+                synthetic:
+                  value:
+                    id: 0193c4a0-0000-7000-8000-000000000192
+                    status: pending
+                    centre_id: 0193c4a0-0000-7000-8000-000000000193
+                    requested_by:
+                      membership_id: 0193c4a0-0000-7000-8000-000000000194
+                      display_name: Synthetic display_name
+                    discounts:
+                      - scope: line
+                        orderable_id: 0193c4a0-0000-7000-8000-000000000195
+                        kind: amount
+                        amount_paisa: 1
+                        percent_bp: 1
+                        reason_code: SYN_CODE
+                        reason_text: Synthetic reason_text
+                    computed_discount:
+                      amount_paisa: 150000
+                      currency: NPR
+                    gross:
+                      amount_paisa: 150000
+                      currency: NPR
+                    percent_of_gross_bp: 1
+                    reason_code: SYN_CODE
+                    reason_text: Synthetic reason_text
+                    decided_by:
+                      membership_id: 0193c4a0-0000-7000-8000-000000000196
+                      display_name: Synthetic display_name
+                    decided_at: 2026-11-05T04:15:00.000Z
+                    note: Synthetic note
+                    expires_at: 2026-11-05T04:15:00.000Z
+                    consumed_order_id: 0193c4a0-0000-7000-8000-000000000197
+                    version: 1
+        "400":
+          $ref: _common.yaml#/components/responses/BadRequest
+        "401":
+          $ref: _common.yaml#/components/responses/Unauthorized
+        "403":
+          $ref: _common.yaml#/components/responses/Forbidden
+        "404":
+          $ref: _common.yaml#/components/responses/NotFound
+        "422":
+          $ref: _common.yaml#/components/responses/Unprocessable
+        "429":
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        "500":
+          $ref: _common.yaml#/components/responses/Internal
+    get:
+      operationId: listDiscountApprovals
+      tags:
+        - frontdesk
+      summary: List discount approvals (approver inbox)
+      security:
+        - bearerJwt: []
+      x-permission: frontdesk.discount.approve
+      x-context: tenant
+      x-idempotency: none
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - common.not_found
+        - auth.forbidden
+        - auth.unauthenticated
+        - common.rate_limited
+        - common.internal
+      parameters:
+        - name: status
+          in: query
+          required: false
+          schema:
+            type: string
+            maxLength: 8
+            enum:
+              - pending
+              - approved
+              - rejected
+              - expired
+              - consumed
+            default: pending
+        - name: centre_id
+          in: query
+          required: false
+          schema:
+            $ref: _common.yaml#/components/schemas/Uuid
+        - $ref: _common.yaml#/components/parameters/Cursor
+        - $ref: _common.yaml#/components/parameters/Limit
+      responses:
+        "200":
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DiscountApprovalPage"
+              examples:
+                synthetic:
+                  value:
+                    data:
+                      - id: 0193c4a0-0000-7000-8000-000000000198
+                        status: pending
+                        centre_id: 0193c4a0-0000-7000-8000-000000000199
+                        requested_by:
+                          membership_id: 0193c4a0-0000-7000-8000-000000000200
+                          display_name: Synthetic display_name
+                        discounts:
+                          - scope: line
+                            orderable_id: 0193c4a0-0000-7000-8000-000000000201
+                            kind: amount
+                            amount_paisa: 1
+                            percent_bp: 1
+                            reason_code: SYN_CODE
+                            reason_text: Synthetic reason_text
+                        computed_discount:
+                          amount_paisa: 150000
+                          currency: NPR
+                        gross:
+                          amount_paisa: 150000
+                          currency: NPR
+                        percent_of_gross_bp: 1
+                        reason_code: SYN_CODE
+                        reason_text: Synthetic reason_text
+                        decided_by:
+                          membership_id: 0193c4a0-0000-7000-8000-000000000202
+                          display_name: Synthetic display_name
+                        decided_at: 2026-11-05T04:15:00.000Z
+                        note: Synthetic note
+                        expires_at: 2026-11-05T04:15:00.000Z
+                        consumed_order_id: 0193c4a0-0000-7000-8000-000000000203
+                        version: 1
+                    page:
+                      limit: 50
+        "400":
+          $ref: _common.yaml#/components/responses/BadRequest
+        "401":
+          $ref: _common.yaml#/components/responses/Unauthorized
+        "403":
+          $ref: _common.yaml#/components/responses/Forbidden
+        "404":
+          $ref: _common.yaml#/components/responses/NotFound
+        "429":
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        "500":
+          $ref: _common.yaml#/components/responses/Internal
+  /v1/frontdesk/discount-approvals/{approval_id}:
+    get:
+      operationId: getDiscountApproval
+      tags:
+        - frontdesk
+      summary: Get a discount approval (requester sees only own)
+      security:
+        - bearerJwt: []
+      x-permission: frontdesk.discount.apply
+      x-context: tenant
+      x-idempotency: none
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - common.not_found
+        - auth.forbidden
+        - auth.unauthenticated
+        - common.rate_limited
+        - common.internal
+      parameters:
+        - name: approval_id
+          in: path
+          required: true
+          schema:
+            $ref: _common.yaml#/components/schemas/Uuid
+      responses:
+        "200":
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DiscountApproval"
+              examples:
+                synthetic:
+                  value:
+                    id: 0193c4a0-0000-7000-8000-000000000204
+                    status: pending
+                    centre_id: 0193c4a0-0000-7000-8000-000000000205
+                    requested_by:
+                      membership_id: 0193c4a0-0000-7000-8000-000000000206
+                      display_name: Synthetic display_name
+                    discounts:
+                      - scope: line
+                        orderable_id: 0193c4a0-0000-7000-8000-000000000207
+                        kind: amount
+                        amount_paisa: 1
+                        percent_bp: 1
+                        reason_code: SYN_CODE
+                        reason_text: Synthetic reason_text
+                    computed_discount:
+                      amount_paisa: 150000
+                      currency: NPR
+                    gross:
+                      amount_paisa: 150000
+                      currency: NPR
+                    percent_of_gross_bp: 1
+                    reason_code: SYN_CODE
+                    reason_text: Synthetic reason_text
+                    decided_by:
+                      membership_id: 0193c4a0-0000-7000-8000-000000000208
+                      display_name: Synthetic display_name
+                    decided_at: 2026-11-05T04:15:00.000Z
+                    note: Synthetic note
+                    expires_at: 2026-11-05T04:15:00.000Z
+                    consumed_order_id: 0193c4a0-0000-7000-8000-000000000209
+                    version: 1
+        "400":
+          $ref: _common.yaml#/components/responses/BadRequest
+        "401":
+          $ref: _common.yaml#/components/responses/Unauthorized
+        "403":
+          $ref: _common.yaml#/components/responses/Forbidden
+        "404":
+          $ref: _common.yaml#/components/responses/NotFound
+        "429":
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        "500":
+          $ref: _common.yaml#/components/responses/Internal
+  /v1/frontdesk/discount-approvals/{approval_id}/approve:
+    post:
+      operationId: approveDiscount
+      tags:
+        - frontdesk
+      summary: Approve a discount
+      security:
+        - bearerJwt: []
+      x-permission: frontdesk.discount.approve
+      x-context: tenant
+      x-idempotency: required
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - common.not_found
+        - auth.forbidden
+        - auth.unauthenticated
+        - common.rate_limited
+        - common.internal
+        - frontdesk.discount_self_approval_forbidden
+        - common.immutable_record
+        - common.version_conflict
+        - common.precondition_required
+        - common.idempotency_key_reused
+      parameters:
+        - name: approval_id
+          in: path
+          required: true
+          schema:
+            $ref: _common.yaml#/components/schemas/Uuid
+        - $ref: _common.yaml#/components/parameters/IdempotencyKey
+        - $ref: _common.yaml#/components/parameters/IfMatch
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ApproveDiscountRequest"
+            examples:
+              synthetic:
+                value:
+                  note: Synthetic note
+      responses:
+        "200":
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DiscountApproval"
+              examples:
+                synthetic:
+                  value:
+                    id: 0193c4a0-0000-7000-8000-000000000210
+                    status: pending
+                    centre_id: 0193c4a0-0000-7000-8000-000000000211
+                    requested_by:
+                      membership_id: 0193c4a0-0000-7000-8000-000000000212
+                      display_name: Synthetic display_name
+                    discounts:
+                      - scope: line
+                        orderable_id: 0193c4a0-0000-7000-8000-000000000213
+                        kind: amount
+                        amount_paisa: 1
+                        percent_bp: 1
+                        reason_code: SYN_CODE
+                        reason_text: Synthetic reason_text
+                    computed_discount:
+                      amount_paisa: 150000
+                      currency: NPR
+                    gross:
+                      amount_paisa: 150000
+                      currency: NPR
+                    percent_of_gross_bp: 1
+                    reason_code: SYN_CODE
+                    reason_text: Synthetic reason_text
+                    decided_by:
+                      membership_id: 0193c4a0-0000-7000-8000-000000000214
+                      display_name: Synthetic display_name
+                    decided_at: 2026-11-05T04:15:00.000Z
+                    note: Synthetic note
+                    expires_at: 2026-11-05T04:15:00.000Z
+                    consumed_order_id: 0193c4a0-0000-7000-8000-000000000215
+                    version: 1
+        "400":
+          $ref: _common.yaml#/components/responses/BadRequest
+        "401":
+          $ref: _common.yaml#/components/responses/Unauthorized
+        "403":
+          $ref: _common.yaml#/components/responses/Forbidden
+        "404":
+          $ref: _common.yaml#/components/responses/NotFound
+        "409":
+          $ref: _common.yaml#/components/responses/Conflict
+        "422":
+          $ref: _common.yaml#/components/responses/Unprocessable
+        "428":
+          $ref: _common.yaml#/components/responses/PreconditionRequired
+        "429":
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        "500":
+          $ref: _common.yaml#/components/responses/Internal
+  /v1/frontdesk/discount-approvals/{approval_id}/reject:
+    post:
+      operationId: rejectDiscount
+      tags:
+        - frontdesk
+      summary: Reject a discount
+      security:
+        - bearerJwt: []
+      x-permission: frontdesk.discount.approve
+      x-context: tenant
+      x-idempotency: required
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - common.not_found
+        - auth.forbidden
+        - auth.unauthenticated
+        - common.rate_limited
+        - common.internal
+        - frontdesk.discount_self_approval_forbidden
+        - common.immutable_record
+        - common.version_conflict
+        - common.precondition_required
+        - common.idempotency_key_reused
+      parameters:
+        - name: approval_id
+          in: path
+          required: true
+          schema:
+            $ref: _common.yaml#/components/schemas/Uuid
+        - $ref: _common.yaml#/components/parameters/IdempotencyKey
+        - $ref: _common.yaml#/components/parameters/IfMatch
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RejectDiscountRequest"
+            examples:
+              synthetic:
+                value:
+                  note: Synthetic note
+      responses:
+        "200":
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DiscountApproval"
+              examples:
+                synthetic:
+                  value:
+                    id: 0193c4a0-0000-7000-8000-000000000216
+                    status: pending
+                    centre_id: 0193c4a0-0000-7000-8000-000000000217
+                    requested_by:
+                      membership_id: 0193c4a0-0000-7000-8000-000000000218
+                      display_name: Synthetic display_name
+                    discounts:
+                      - scope: line
+                        orderable_id: 0193c4a0-0000-7000-8000-000000000219
+                        kind: amount
+                        amount_paisa: 1
+                        percent_bp: 1
+                        reason_code: SYN_CODE
+                        reason_text: Synthetic reason_text
+                    computed_discount:
+                      amount_paisa: 150000
+                      currency: NPR
+                    gross:
+                      amount_paisa: 150000
+                      currency: NPR
+                    percent_of_gross_bp: 1
+                    reason_code: SYN_CODE
+                    reason_text: Synthetic reason_text
+                    decided_by:
+                      membership_id: 0193c4a0-0000-7000-8000-000000000220
+                      display_name: Synthetic display_name
+                    decided_at: 2026-11-05T04:15:00.000Z
+                    note: Synthetic note
+                    expires_at: 2026-11-05T04:15:00.000Z
+                    consumed_order_id: 0193c4a0-0000-7000-8000-000000000221
+                    version: 1
+        "400":
+          $ref: _common.yaml#/components/responses/BadRequest
+        "401":
+          $ref: _common.yaml#/components/responses/Unauthorized
+        "403":
+          $ref: _common.yaml#/components/responses/Forbidden
+        "404":
+          $ref: _common.yaml#/components/responses/NotFound
+        "409":
+          $ref: _common.yaml#/components/responses/Conflict
+        "422":
+          $ref: _common.yaml#/components/responses/Unprocessable
+        "428":
+          $ref: _common.yaml#/components/responses/PreconditionRequired
+        "429":
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        "500":
+          $ref: _common.yaml#/components/responses/Internal
+  /v1/frontdesk/trf-attachments:
+    post:
+      operationId: uploadTrf
+      tags:
+        - frontdesk
+      summary: Upload a test request form
+      description: Stored in bucket frontdesk-trf via ctx.uploads.accept (images re-encoded, metadata stripped, scan required); ≤ 15728640 bytes.
+      security:
+        - bearerJwt: []
+      x-permission: frontdesk.trf.upload
+      x-context: tenant
+      x-idempotency: required
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - common.not_found
+        - auth.forbidden
+        - auth.unauthenticated
+        - common.rate_limited
+        - common.internal
+        - common.payload_too_large
+        - common.unsupported_media_type
+        - common.idempotency_key_reused
+      x-upload:
+        - image/jpeg
+        - image/png
+        - application/pdf
+      parameters:
+        - $ref: _common.yaml#/components/parameters/IdempotencyKey
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              $ref: "#/components/schemas/TrfUploadForm"
+            encoding:
+              file:
+                contentType: image/jpeg, image/png, application/pdf
+            examples:
+              synthetic:
+                value:
+                  file: synthetic-trf.pdf
+                  centre_id: 0193c4a0-0000-7000-8000-000000000999
+      responses:
+        "201":
+          description: Created.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TrfAttachment"
+              examples:
+                synthetic:
+                  value:
+                    id: 0193c4a0-0000-7000-8000-000000000222
+                    order_id: 0193c4a0-0000-7000-8000-000000000223
+                    mime_type: image/jpeg
+                    size_bytes: 1
+                    scan_state: pending
+                    uploaded_at: 2026-11-05T04:15:00.000Z
+                    uploaded_by:
+                      membership_id: 0193c4a0-0000-7000-8000-000000000224
+                      display_name: Synthetic display_name
+                    original_filename: synthetic-trf.pdf
+        "400":
+          $ref: _common.yaml#/components/responses/BadRequest
+        "401":
+          $ref: _common.yaml#/components/responses/Unauthorized
+        "403":
+          $ref: _common.yaml#/components/responses/Forbidden
+        "404":
+          $ref: _common.yaml#/components/responses/NotFound
+        "413":
+          $ref: _common.yaml#/components/responses/PayloadTooLarge
+        "415":
+          $ref: _common.yaml#/components/responses/UnsupportedMediaType
+        "422":
+          $ref: _common.yaml#/components/responses/Unprocessable
+        "429":
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        "500":
+          $ref: _common.yaml#/components/responses/Internal
+  /v1/frontdesk/trf-attachments/{attachment_id}:
+    get:
+      operationId: getTrfAttachment
+      tags:
+        - frontdesk
+      summary: Get TRF attachment metadata
+      security:
+        - bearerJwt: []
+      x-permission: frontdesk.order.read
+      x-context: tenant
+      x-idempotency: none
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - common.not_found
+        - auth.forbidden
+        - auth.unauthenticated
+        - common.rate_limited
+        - common.internal
+      parameters:
+        - name: attachment_id
+          in: path
+          required: true
+          schema:
+            $ref: _common.yaml#/components/schemas/Uuid
+      responses:
+        "200":
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TrfAttachment"
+              examples:
+                synthetic:
+                  value:
+                    id: 0193c4a0-0000-7000-8000-000000000225
+                    order_id: 0193c4a0-0000-7000-8000-000000000226
+                    mime_type: image/jpeg
+                    size_bytes: 1
+                    scan_state: pending
+                    uploaded_at: 2026-11-05T04:15:00.000Z
+                    uploaded_by:
+                      membership_id: 0193c4a0-0000-7000-8000-000000000227
+                      display_name: Synthetic display_name
+                    original_filename: synthetic-trf.pdf
+        "400":
+          $ref: _common.yaml#/components/responses/BadRequest
+        "401":
+          $ref: _common.yaml#/components/responses/Unauthorized
+        "403":
+          $ref: _common.yaml#/components/responses/Forbidden
+        "404":
+          $ref: _common.yaml#/components/responses/NotFound
+        "429":
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        "500":
+          $ref: _common.yaml#/components/responses/Internal
+  /v1/frontdesk/trf-attachments/{attachment_id}/content:
+    get:
+      operationId: getTrfAttachmentContent
+      tags:
+        - frontdesk
+      summary: Download TRF attachment content
+      description: 422 common.upload_quarantined unless scan_state = clean. Access log trf.view on every call (P-2).
+      security:
+        - bearerJwt: []
+      x-permission: frontdesk.order.read
+      x-context: tenant
+      x-idempotency: none
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - common.not_found
+        - auth.forbidden
+        - auth.unauthenticated
+        - common.rate_limited
+        - common.internal
+        - common.upload_quarantined
+      parameters:
+        - name: attachment_id
+          in: path
+          required: true
+          schema:
+            $ref: _common.yaml#/components/schemas/Uuid
+      responses:
+        "200":
+          description: File stream (core streaming download helper; BFF proxies; 08 A13 P-2).
+          headers:
+            Content-Disposition:
+              description: attachment; filename=…
+              required: true
+              schema:
+                type: string
+                maxLength: 255
+            X-Content-Type-Options:
+              required: true
+              schema:
+                type: string
+                maxLength: 7
+                enum:
+                  - nosniff
+            Cache-Control:
+              required: true
+              schema:
+                type: string
+                maxLength: 8
+                enum:
+                  - no-store
+          content:
+            image/jpeg:
+              schema:
+                type: string
+                maxLength: 15728640
+                format: binary
+              examples:
+                synthetic:
+                  value: synthetic-file-bytes
+            image/png:
+              schema:
+                type: string
+                maxLength: 15728640
+                format: binary
+              examples:
+                synthetic:
+                  value: synthetic-file-bytes
+            application/pdf:
+              schema:
+                type: string
+                maxLength: 15728640
+                format: binary
+              examples:
+                synthetic:
+                  value: synthetic-file-bytes
+        "400":
+          $ref: _common.yaml#/components/responses/BadRequest
+        "401":
+          $ref: _common.yaml#/components/responses/Unauthorized
+        "403":
+          $ref: _common.yaml#/components/responses/Forbidden
+        "404":
+          $ref: _common.yaml#/components/responses/NotFound
+        "422":
+          $ref: _common.yaml#/components/responses/Unprocessable
+        "429":
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        "500":
+          $ref: _common.yaml#/components/responses/Internal
+  /v1/frontdesk/order-flags:
+    get:
+      operationId: listOrderFlags
+      tags:
+        - frontdesk
+      summary: List order flags
+      security:
+        - bearerJwt: []
+      x-permission: frontdesk.order.read
+      x-context: tenant
+      x-idempotency: none
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - common.not_found
+        - auth.forbidden
+        - auth.unauthenticated
+        - common.rate_limited
+        - common.internal
+      parameters:
+        - name: status
+          in: query
+          required: false
+          schema:
+            type: string
+            maxLength: 8
+            enum:
+              - open
+              - resolved
+            default: open
+        - name: kind
+          in: query
+          required: false
+          schema:
+            type: string
+            maxLength: 36
+            enum:
+              - recollection_required
+              - booking_cancelled_after_registration
+        - name: centre_id
+          in: query
+          required: false
+          schema:
+            $ref: _common.yaml#/components/schemas/Uuid
+        - $ref: _common.yaml#/components/parameters/Cursor
+        - $ref: _common.yaml#/components/parameters/Limit
+      responses:
+        "200":
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OrderFlagPage"
+              examples:
+                synthetic:
+                  value:
+                    data:
+                      - id: 0193c4a0-0000-7000-8000-000000000228
+                        order_id: 0193c4a0-0000-7000-8000-000000000229
+                        kind: recollection_required
+                        status: open
+                        specimen_id: 0193c4a0-0000-7000-8000-000000000230
+                        created_at: 2026-11-05T04:15:00.000Z
+                        resolved_at: 2026-11-05T04:15:00.000Z
+                        resolved_by:
+                          membership_id: 0193c4a0-0000-7000-8000-000000000231
+                          display_name: Synthetic display_name
+                        resolution_code: Synthetic resolution_code
+                        version: 1
+                    page:
+                      limit: 50
+        "400":
+          $ref: _common.yaml#/components/responses/BadRequest
+        "401":
+          $ref: _common.yaml#/components/responses/Unauthorized
+        "403":
+          $ref: _common.yaml#/components/responses/Forbidden
+        "404":
+          $ref: _common.yaml#/components/responses/NotFound
+        "429":
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        "500":
+          $ref: _common.yaml#/components/responses/Internal
+  /v1/frontdesk/order-flags/{flag_id}/resolve:
+    post:
+      operationId: resolveOrderFlag
+      tags:
+        - frontdesk
+      summary: Resolve an order flag
+      security:
+        - bearerJwt: []
+      x-permission: frontdesk.order.edit
+      x-context: tenant
+      x-idempotency: required
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - common.not_found
+        - auth.forbidden
+        - auth.unauthenticated
+        - common.rate_limited
+        - common.internal
+        - common.immutable_record
+        - common.version_conflict
+        - common.precondition_required
+        - common.idempotency_key_reused
+      parameters:
+        - name: flag_id
+          in: path
+          required: true
+          schema:
+            $ref: _common.yaml#/components/schemas/Uuid
+        - $ref: _common.yaml#/components/parameters/IdempotencyKey
+        - $ref: _common.yaml#/components/parameters/IfMatch
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ResolveOrderFlagRequest"
+            examples:
+              synthetic:
+                value:
+                  resolution_code: SYN_CODE
+                  note: Synthetic note
+      responses:
+        "200":
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OrderFlag"
+              examples:
+                synthetic:
+                  value:
+                    id: 0193c4a0-0000-7000-8000-000000000232
+                    order_id: 0193c4a0-0000-7000-8000-000000000233
+                    kind: recollection_required
+                    status: open
+                    specimen_id: 0193c4a0-0000-7000-8000-000000000234
+                    created_at: 2026-11-05T04:15:00.000Z
+                    resolved_at: 2026-11-05T04:15:00.000Z
+                    resolved_by:
+                      membership_id: 0193c4a0-0000-7000-8000-000000000235
+                      display_name: Synthetic display_name
+                    resolution_code: Synthetic resolution_code
+                    version: 1
+        "400":
+          $ref: _common.yaml#/components/responses/BadRequest
+        "401":
+          $ref: _common.yaml#/components/responses/Unauthorized
+        "403":
+          $ref: _common.yaml#/components/responses/Forbidden
+        "404":
+          $ref: _common.yaml#/components/responses/NotFound
+        "409":
+          $ref: _common.yaml#/components/responses/Conflict
+        "422":
+          $ref: _common.yaml#/components/responses/Unprocessable
+        "428":
+          $ref: _common.yaml#/components/responses/PreconditionRequired
+        "429":
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        "500":
+          $ref: _common.yaml#/components/responses/Internal
+  /v1/frontdesk/settings:
+    get:
+      operationId: getFrontdeskSettings
+      tags:
+        - frontdesk
+      summary: Get front-desk settings
+      security:
+        - bearerJwt: []
+      x-permission: frontdesk.settings.manage
+      x-context: tenant
+      x-idempotency: none
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - common.not_found
+        - auth.forbidden
+        - auth.unauthenticated
+        - common.rate_limited
+        - common.internal
+      responses:
+        "200":
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FrontdeskSettings"
+              examples:
+                synthetic:
+                  value:
+                    discount_self_limit_bp: 0
+                    discount_self_limit_paisa: 1
+                    discount_absolute_max_bp: 10000
+                    require_referrer: false
+                    consent_text_version: Synthetic consent_text_version
+                    registration_sms_enabled: true
+                    label_autoprint: true
+                    buyer_pan_pattern: Synthetic buyer_pan_pattern
+                    patient_search_min_chars: 3
+                    version: 1
+        "400":
+          $ref: _common.yaml#/components/responses/BadRequest
+        "401":
+          $ref: _common.yaml#/components/responses/Unauthorized
+        "403":
+          $ref: _common.yaml#/components/responses/Forbidden
+        "404":
+          $ref: _common.yaml#/components/responses/NotFound
+        "429":
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        "500":
+          $ref: _common.yaml#/components/responses/Internal
+    put:
+      operationId: updateFrontdeskSettings
+      tags:
+        - frontdesk
+      summary: Update front-desk settings
+      security:
+        - bearerJwt: []
+      x-permission: frontdesk.settings.manage
+      x-context: tenant
+      x-idempotency: optional
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - common.not_found
+        - auth.forbidden
+        - auth.unauthenticated
+        - common.rate_limited
+        - common.internal
+        - common.version_conflict
+        - common.precondition_required
+      parameters:
+        - $ref: _common.yaml#/components/parameters/IfMatch
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/FrontdeskSettings"
+            examples:
+              synthetic:
+                value:
+                  discount_self_limit_bp: 0
+                  discount_self_limit_paisa: 1
+                  discount_absolute_max_bp: 10000
+                  require_referrer: false
+                  consent_text_version: Synthetic consent_text_version
+                  registration_sms_enabled: true
+                  label_autoprint: true
+                  buyer_pan_pattern: Synthetic buyer_pan_pattern
+                  patient_search_min_chars: 3
+                  version: 1
+      responses:
+        "200":
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FrontdeskSettings"
+              examples:
+                synthetic:
+                  value:
+                    discount_self_limit_bp: 0
+                    discount_self_limit_paisa: 1
+                    discount_absolute_max_bp: 10000
+                    require_referrer: false
+                    consent_text_version: Synthetic consent_text_version
+                    registration_sms_enabled: true
+                    label_autoprint: true
+                    buyer_pan_pattern: Synthetic buyer_pan_pattern
+                    patient_search_min_chars: 3
+                    version: 1
+        "400":
+          $ref: _common.yaml#/components/responses/BadRequest
+        "401":
+          $ref: _common.yaml#/components/responses/Unauthorized
+        "403":
+          $ref: _common.yaml#/components/responses/Forbidden
+        "404":
+          $ref: _common.yaml#/components/responses/NotFound
+        "409":
+          $ref: _common.yaml#/components/responses/Conflict
+        "428":
+          $ref: _common.yaml#/components/responses/PreconditionRequired
+        "429":
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        "500":
+          $ref: _common.yaml#/components/responses/Internal
+  /v1/frontdesk/coded-sets/{set_name}:
+    get:
+      operationId: listFrontdeskCodes
+      tags:
+        - frontdesk
+      summary: List a front-desk coded set
+      security:
+        - bearerJwt: []
+      x-permission: frontdesk.order.read
+      x-context: tenant
+      x-idempotency: none
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - common.not_found
+        - auth.forbidden
+        - auth.unauthenticated
+        - common.rate_limited
+        - common.internal
+      parameters:
+        - name: set_name
+          in: path
+          required: true
+          schema:
+            type: string
+            maxLength: 26
+            enum:
+              - order_cancel_reasons
+              - item_removal_reasons
+              - discount_reasons
+              - duplicate_override_reasons
+              - anonymise_reasons
+              - flag_resolutions
+      responses:
+        "200":
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CodedSetList"
+              examples:
+                synthetic:
+                  value:
+                    data:
+                      - code: SYN_CODE
+                        display: Synthetic display
+                        sort_order: 1
+        "400":
+          $ref: _common.yaml#/components/responses/BadRequest
+        "401":
+          $ref: _common.yaml#/components/responses/Unauthorized
+        "403":
+          $ref: _common.yaml#/components/responses/Forbidden
+        "404":
+          $ref: _common.yaml#/components/responses/NotFound
+        "429":
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        "500":
+          $ref: _common.yaml#/components/responses/Internal
+components:
+  schemas:
+    Actor:
+      type: object
+      additionalProperties: false
+      required:
+        - membership_id
+        - display_name
+      properties:
+        membership_id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        display_name:
+          type: string
+          maxLength: 200
+    Totals:
+      type: object
+      additionalProperties: false
+      required:
+        - gross
+        - discount
+        - exempt
+        - taxable
+        - vat
+        - other_tax
+        - net
+      properties:
+        gross:
+          $ref: _common.yaml#/components/schemas/Money
+        discount:
+          $ref: _common.yaml#/components/schemas/Money
+        exempt:
+          $ref: _common.yaml#/components/schemas/Money
+        taxable:
+          $ref: _common.yaml#/components/schemas/Money
+        vat:
+          $ref: _common.yaml#/components/schemas/Money
+        other_tax:
+          $ref: _common.yaml#/components/schemas/Money
+        net:
+          $ref: _common.yaml#/components/schemas/Money
+    CodedSetEntry:
+      type: object
+      additionalProperties: false
+      required:
+        - code
+        - display
+        - sort_order
+      properties:
+        code:
+          type: string
+          maxLength: 64
+          minLength: 1
+        display:
+          type: string
+          maxLength: 200
+        sort_order:
+          type: integer
+          minimum: 0
+          maximum: 32767
+    CodedSetList:
+      type: object
+      additionalProperties: false
+      required:
+        - data
+      properties:
+        data:
+          type: array
+          maxItems: 500
+          items:
+            $ref: "#/components/schemas/CodedSetEntry"
+    OrderBalanceDto:
+      type: object
+      additionalProperties: false
+      required:
+        - order_id
+        - invoiced
+        - paid
+        - credited
+        - balance_due
+        - balance_version
+        - as_of
+      properties:
+        order_id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        invoiced:
+          $ref: _common.yaml#/components/schemas/Money
+        paid:
+          $ref: _common.yaml#/components/schemas/Money
+        credited:
+          $ref: _common.yaml#/components/schemas/Money
+        balance_due:
+          $ref: _common.yaml#/components/schemas/Money
+        balance_version:
+          type: integer
+          minimum: 0
+          maximum: 2147483647
+        as_of:
+          $ref: _common.yaml#/components/schemas/IsoUtc
+    Party:
+      type: object
+      additionalProperties: false
+      required:
+        - name
+      properties:
+        name:
+          type: string
+          maxLength: 200
+        pan:
+          type: string
+          maxLength: 32
+        address:
+          type: string
+          maxLength: 300
+    InvoiceLine:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - line_no
+        - line_kind
+        - code
+        - name
+        - quantity
+        - unit_price
+        - gross
+        - discount
+        - exempt
+        - taxable
+        - vat
+        - other_tax
+        - net
+        - credited
+      properties:
+        id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        line_no:
+          type: integer
+          minimum: 1
+          maximum: 1000
+        line_kind:
+          type: string
+          maxLength: 32
+        orderable_id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        code:
+          type: string
+          maxLength: 32
+        name:
+          type: string
+          maxLength: 200
+        department_id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        hs_code:
+          type: string
+          maxLength: 16
+        quantity:
+          type: integer
+          minimum: 1
+          maximum: 1000
+        unit_price:
+          $ref: _common.yaml#/components/schemas/Money
+        gross:
+          $ref: _common.yaml#/components/schemas/Money
+        discount:
+          $ref: _common.yaml#/components/schemas/Money
+        exempt:
+          $ref: _common.yaml#/components/schemas/Money
+        taxable:
+          $ref: _common.yaml#/components/schemas/Money
+        vat:
+          $ref: _common.yaml#/components/schemas/Money
+        other_tax:
+          $ref: _common.yaml#/components/schemas/Money
+        other_tax_code:
+          type: string
+          maxLength: 32
+        net:
+          $ref: _common.yaml#/components/schemas/Money
+        credited:
+          $ref: _common.yaml#/components/schemas/Money
+    InvoiceDto:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - invoice_no
+        - invoice_seq
+        - series
+        - fiscal_year_bs
+        - invoice_kind
+        - status
+        - is_active
+        - issued_at
+        - invoice_date_bs
+        - branch_id
+        - is_periodic_credit_bill
+        - buyer
+        - seller
+        - lines
+        - totals
+        - credited_total
+        - print_count
+        - cbms_state
+        - version
+      properties:
+        id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        invoice_no:
+          type: string
+          maxLength: 64
+        invoice_seq:
+          type: integer
+          minimum: 1
+          maximum: 2147483647
+        series:
+          type: string
+          maxLength: 64
+        fiscal_year_bs:
+          type: string
+          maxLength: 9
+          pattern: ^[0-9]{4}/[0-9]{2}$
+        invoice_kind:
+          type: string
+          maxLength: 32
+        status:
+          type: string
+          maxLength: 32
+        is_active:
+          type: boolean
+        issued_at:
+          $ref: _common.yaml#/components/schemas/IsoUtc
+        invoice_date_bs:
+          type: string
+          maxLength: 10
+          pattern: ^[0-9]{4}-[0-9]{2}-[0-9]{2}$
+        branch_id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        centre_id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        order_id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        credit_party_id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        is_periodic_credit_bill:
+          type: boolean
+          default: false
+        referrer_id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        buyer:
+          $ref: "#/components/schemas/Party"
+        seller:
+          $ref: "#/components/schemas/Party"
+        lines:
+          type: array
+          maxItems: 200
+          items:
+            $ref: "#/components/schemas/InvoiceLine"
+        totals:
+          $ref: "#/components/schemas/Totals"
+        credited_total:
+          $ref: _common.yaml#/components/schemas/Money
+        cancellation:
+          type: object
+          additionalProperties: false
+          required:
+            - cancelled_at
+            - cancelled_by_display
+            - reason_code
+            - credit_note_id
+            - credit_note_no
+          properties:
+            cancelled_at:
+              $ref: _common.yaml#/components/schemas/IsoUtc
+            cancelled_by_display:
+              type: string
+              maxLength: 200
+            reason_code:
+              type: string
+              maxLength: 64
+            reason_text:
+              type: string
+              maxLength: 500
+            credit_note_id:
+              $ref: _common.yaml#/components/schemas/Uuid
+            credit_note_no:
+              type: string
+              maxLength: 64
+        print_count:
+          type: integer
+          minimum: 0
+          maximum: 2147483647
+        last_printed_at:
+          $ref: _common.yaml#/components/schemas/IsoUtc
+        cbms_state:
+          type: string
+          maxLength: 32
+        cbms_cancel_state:
+          type: string
+          maxLength: 32
+        version:
+          $ref: _common.yaml#/components/schemas/Version
+    LedgerEntryDto:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - entry_kind
+        - capture_kind
+        - method_code
+        - amount
+        - created_at
+        - business_date_bs
+      properties:
+        id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        entry_kind:
+          type: string
+          maxLength: 8
+          enum:
+            - payment
+            - reversal
+            - refund
+        capture_kind:
+          type: string
+          maxLength: 15
+          enum:
+            - manual
+            - gateway
+            - home_collection
+        order_id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        invoice_id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        credit_party_id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        method_code:
+          type: string
+          maxLength: 64
+        amount:
+          $ref: _common.yaml#/components/schemas/Money
+        reference_masked:
+          type: string
+          maxLength: 100
+        receipt_no:
+          type: string
+          maxLength: 64
+        reverses_entry_id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        collected_by:
+          $ref: "#/components/schemas/Actor"
+        cash_session_id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        created_at:
+          $ref: _common.yaml#/components/schemas/IsoUtc
+        business_date_bs:
+          type: string
+          maxLength: 10
+          pattern: ^[0-9]{4}-[0-9]{2}-[0-9]{2}$
+    CreditChargeDto:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - credit_party_id
+        - amount
+        - period_month
+        - status
+        - created_at
+      properties:
+        id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        credit_party_id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        order_id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        invoice_id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        amount:
+          $ref: _common.yaml#/components/schemas/Money
+        period_month:
+          type: string
+          maxLength: 7
+          minLength: 7
+          pattern: ^[0-9]{4}-(0[1-9]|1[0-2])$
+        status:
+          type: string
+          maxLength: 32
+        created_at:
+          $ref: _common.yaml#/components/schemas/IsoUtc
+    PaymentInput:
+      type: object
+      additionalProperties: false
+      required:
+        - method_code
+        - amount_received_paisa
+      properties:
+        method_code:
+          type: string
+          maxLength: 64
+          minLength: 1
+          x-coded-set: billing.payment_methods
+        amount_received_paisa:
+          type: integer
+          minimum: 1
+          maximum: 9007199254740991
+          format: int64
+        reference:
+          type: string
+          maxLength: 100
+        tendered_paisa:
+          type: integer
+          minimum: 1
+          maximum: 9007199254740991
+          format: int64
+      description: "02-CV §4.7 interpretation: CR-C4-012. tendered_paisa: cash only, UI change display."
+    Fingerprint:
+      type: string
+      maxLength: 64
+      minLength: 64
+      pattern: ^[0-9a-f]{64}$
+    Age:
+      type: object
+      additionalProperties: false
+      required:
+        - years
+      properties:
+        years:
+          type: integer
+          minimum: 0
+          maximum: 150
+        months:
+          type: integer
+          minimum: 0
+          maximum: 11
+        days:
+          type: integer
+          minimum: 0
+          maximum: 31
+    Consents:
+      type: object
+      additionalProperties: false
+      required:
+        - processing
+        - sms
+        - whatsapp
+        - email
+        - share_with_referrer
+        - consent_text_version
+      properties:
+        processing:
+          type: boolean
+        sms:
+          type: boolean
+        whatsapp:
+          type: boolean
+        email:
+          type: boolean
+        share_with_referrer:
+          type: boolean
+        consent_text_version:
+          type: string
+          maxLength: 32
+          minLength: 1
+      description: processing must be true; consent_text_version must equal the current settings value (else common.validation_failed).
+    NewPatient:
+      type: object
+      additionalProperties: false
+      required:
+        - full_name
+        - sex
+        - consents
+      properties:
+        full_name:
+          type: string
+          maxLength: 200
+          minLength: 1
+        sex:
+          type: string
+          maxLength: 7
+          enum:
+            - male
+            - female
+            - other
+            - unknown
+        birth_on:
+          $ref: _common.yaml#/components/schemas/IsoDate
+        age:
+          $ref: "#/components/schemas/Age"
+        phone_e164:
+          type: string
+          maxLength: 16
+          pattern: ^\+[1-9][0-9]{7,14}$
+        email:
+          type: string
+          maxLength: 254
+        address_text:
+          type: string
+          maxLength: 300
+        consents:
+          $ref: "#/components/schemas/Consents"
+        duplicate_override:
+          type: object
+          additionalProperties: false
+          required:
+            - reason_code
+          properties:
+            reason_code:
+              type: string
+              maxLength: 64
+              minLength: 1
+              x-coded-set: frontdesk.duplicate_override_reasons
+      description: birth_on xor age (server-validated).
+    PatientUpdate:
+      type: object
+      additionalProperties: false
+      properties:
+        full_name:
+          type: string
+          maxLength: 200
+          minLength: 1
+        sex:
+          type: string
+          maxLength: 7
+          enum:
+            - male
+            - female
+            - other
+            - unknown
+        birth_on:
+          $ref: _common.yaml#/components/schemas/IsoDate
+        age:
+          $ref: "#/components/schemas/Age"
+        phone_e164:
+          type: string
+          maxLength: 16
+          pattern: ^\+[1-9][0-9]{7,14}$
+        email:
+          type: string
+          maxLength: 254
+        address_text:
+          type: string
+          maxLength: 300
+        unset:
+          type: array
+          maxItems: 4
+          items:
+            type: string
+            maxLength: 12
+            enum:
+              - birth_on
+              - phone_e164
+              - email
+              - address_text
+      description: Subset of NewPatient demographics; unset[] clears optional fields.
+    PatientSummary:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - patient_code
+        - full_name
+        - sex
+        - age_display
+        - phone_masked
+        - is_anonymised
+      properties:
+        id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        patient_code:
+          type: string
+          maxLength: 32
+        full_name:
+          type: string
+          maxLength: 200
+        sex:
+          type: string
+          maxLength: 7
+          enum:
+            - male
+            - female
+            - other
+            - unknown
+        age_display:
+          type: string
+          maxLength: 32
+        phone_masked:
+          type: string
+          maxLength: 20
+        last_visit_at:
+          $ref: _common.yaml#/components/schemas/IsoUtc
+        is_anonymised:
+          type: boolean
+          default: false
+    PatientSummaryList:
+      type: object
+      additionalProperties: false
+      required:
+        - data
+      properties:
+        data:
+          type: array
+          maxItems: 20
+          items:
+            $ref: "#/components/schemas/PatientSummary"
+    Patient:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - patient_code
+        - full_name
+        - sex
+        - age_display
+        - phone_masked
+        - is_anonymised
+        - is_birth_on_estimated
+        - consents
+        - version
+      properties:
+        id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        patient_code:
+          type: string
+          maxLength: 32
+        full_name:
+          type: string
+          maxLength: 200
+        sex:
+          type: string
+          maxLength: 7
+          enum:
+            - male
+            - female
+            - other
+            - unknown
+        age_display:
+          type: string
+          maxLength: 32
+        phone_masked:
+          type: string
+          maxLength: 20
+        last_visit_at:
+          $ref: _common.yaml#/components/schemas/IsoUtc
+        is_anonymised:
+          type: boolean
+          default: false
+        birth_on:
+          $ref: _common.yaml#/components/schemas/IsoDate
+        is_birth_on_estimated:
+          type: boolean
+          default: false
+        phone_e164:
+          type: string
+          maxLength: 16
+          pattern: ^\+[1-9][0-9]{7,14}$
+          description: Only for roles with frontdesk.registration.create.
+        email:
+          type: string
+          maxLength: 254
+        address_text:
+          type: string
+          maxLength: 300
+        consents:
+          $ref: "#/components/schemas/Consents"
+        version:
+          $ref: _common.yaml#/components/schemas/Version
+    ConsentRecord:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - patient_id
+        - consents
+        - recorded_at
+        - recorded_by
+      properties:
+        id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        patient_id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        consents:
+          $ref: "#/components/schemas/Consents"
+        recorded_at:
+          $ref: _common.yaml#/components/schemas/IsoUtc
+        recorded_by:
+          $ref: "#/components/schemas/Actor"
+    SearchPatientsRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - query
+      properties:
+        query:
+          type: string
+          maxLength: 100
+          minLength: 1
+        mode:
+          type: string
+          maxLength: 15
+          enum:
+            - auto
+            - name
+            - phone
+            - code
+            - registration_no
+          default: auto
+        limit:
+          type: integer
+          minimum: 1
+          maximum: 20
+          default: 20
+    AnonymisePatientRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - reason_code
+      properties:
+        reason_code:
+          type: string
+          maxLength: 64
+          minLength: 1
+          x-coded-set: frontdesk.anonymise_reasons
+        reason_text:
+          type: string
+          maxLength: 500
+    OrderSummaryDto:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - registration_no
+        - patient_id
+        - patient_display
+        - centre_id
+        - status
+        - billing_mode
+        - source
+        - item_count
+        - has_open_flag
+        - version
+      properties:
+        id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        registration_no:
+          type: string
+          maxLength: 32
+        patient_id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        patient_display:
+          type: string
+          maxLength: 200
+        centre_id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        status:
+          type: string
+          maxLength: 14
+          enum:
+            - pre_registered
+            - registered
+            - in_progress
+            - completed
+            - cancelled
+        billing_mode:
+          type: string
+          maxLength: 6
+          enum:
+            - cash
+            - credit
+        source:
+          type: string
+          maxLength: 32
+        registered_at:
+          $ref: _common.yaml#/components/schemas/IsoUtc
+        item_count:
+          type: integer
+          minimum: 0
+          maximum: 200
+        has_open_flag:
+          type: boolean
+          default: false
+        version:
+          $ref: _common.yaml#/components/schemas/Version
+      description: "[CONV] TRD names OrderSummaryDto without fields."
+    OrderSummaryPage:
+      type: object
+      additionalProperties: false
+      required:
+        - data
+        - page
+      properties:
+        data:
+          type: array
+          maxItems: 200
+          items:
+            $ref: "#/components/schemas/OrderSummaryDto"
+        page:
+          $ref: _common.yaml#/components/schemas/PageInfo
+    RegistrationItem:
+      type: object
+      additionalProperties: false
+      required:
+        - orderable_id
+      properties:
+        orderable_id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        priority:
+          type: string
+          maxLength: 7
+          enum:
+            - routine
+            - urgent
+    Discount:
+      type: object
+      additionalProperties: false
+      required:
+        - scope
+        - kind
+        - reason_code
+      properties:
+        scope:
+          type: string
+          maxLength: 4
+          enum:
+            - line
+            - bill
+        orderable_id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        kind:
+          type: string
+          maxLength: 7
+          enum:
+            - amount
+            - percent
+        amount_paisa:
+          type: integer
+          minimum: 0
+          maximum: 9007199254740991
+          format: int64
+        percent_bp:
+          type: integer
+          minimum: 0
+          maximum: 10000
+        reason_code:
+          type: string
+          maxLength: 64
+          minLength: 1
+          x-coded-set: frontdesk.discount_reasons
+        reason_text:
+          type: string
+          maxLength: 500
+    PatientRef:
+      oneOf:
+        - type: object
+          additionalProperties: false
+          required:
+            - patient_id
+          properties:
+            patient_id:
+              $ref: _common.yaml#/components/schemas/Uuid
+        - type: object
+          additionalProperties: false
+          required:
+            - new_patient
+          properties:
+            new_patient:
+              $ref: "#/components/schemas/NewPatient"
+    RegistrationDraft:
+      type: object
+      additionalProperties: false
+      required:
+        - patient
+        - centre_id
+        - visit_type
+        - billing_mode
+        - items
+      properties:
+        patient:
+          $ref: "#/components/schemas/PatientRef"
+        centre_id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        visit_type:
+          type: string
+          maxLength: 3
+          enum:
+            - opd
+            - ipd
+        billing_mode:
+          type: string
+          maxLength: 6
+          enum:
+            - cash
+            - credit
+        credit_party_id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        referrer_id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        priority:
+          type: string
+          maxLength: 7
+          enum:
+            - routine
+            - urgent
+          default: routine
+        collection_mode:
+          type: string
+          maxLength: 7
+          enum:
+            - walk_in
+            - home
+            - centre
+            - partner
+          default: walk_in
+        items:
+          type: array
+          maxItems: 50
+          minItems: 1
+          items:
+            $ref: "#/components/schemas/RegistrationItem"
+        discounts:
+          type: array
+          maxItems: 20
+          items:
+            $ref: "#/components/schemas/Discount"
+        buyer_pan:
+          type: string
+          maxLength: 32
+          description: Validated server-side against setting buyer_pan_pattern (default ^[0-9]{9}$; PAN format UNVERIFIED).
+    CreateRegistrationRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - patient
+        - centre_id
+        - visit_type
+        - billing_mode
+        - items
+        - quote_fingerprint
+        - payments
+      properties:
+        patient:
+          $ref: "#/components/schemas/PatientRef"
+        centre_id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        visit_type:
+          type: string
+          maxLength: 3
+          enum:
+            - opd
+            - ipd
+        billing_mode:
+          type: string
+          maxLength: 6
+          enum:
+            - cash
+            - credit
+        credit_party_id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        referrer_id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        priority:
+          type: string
+          maxLength: 7
+          enum:
+            - routine
+            - urgent
+          default: routine
+        collection_mode:
+          type: string
+          maxLength: 7
+          enum:
+            - walk_in
+            - home
+            - centre
+            - partner
+          default: walk_in
+        items:
+          type: array
+          maxItems: 50
+          minItems: 1
+          items:
+            $ref: "#/components/schemas/RegistrationItem"
+        discounts:
+          type: array
+          maxItems: 20
+          items:
+            $ref: "#/components/schemas/Discount"
+        buyer_pan:
+          type: string
+          maxLength: 32
+          description: Validated server-side against setting buyer_pan_pattern (default ^[0-9]{9}$; PAN format UNVERIFIED).
+        quote_fingerprint:
+          $ref: "#/components/schemas/Fingerprint"
+        payments:
+          type: array
+          maxItems: 5
+          items:
+            $ref: "#/components/schemas/PaymentInput"
+        trf_attachment_ids:
+          type: array
+          maxItems: 5
+          items:
+            $ref: _common.yaml#/components/schemas/Uuid
+        discount_approval_id:
+          $ref: _common.yaml#/components/schemas/Uuid
+    QuoteLine:
+      type: object
+      additionalProperties: false
+      required:
+        - line_ref
+        - orderable_id
+        - orderable_kind
+        - code
+        - name
+        - priority
+        - kind
+        - unit_price
+        - discount
+        - taxable
+        - exempt
+        - vat
+        - other_tax
+        - net
+        - price_source
+        - price_list_id
+        - price_list_version
+      properties:
+        line_ref:
+          type: string
+          maxLength: 64
+        orderable_id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        orderable_kind:
+          type: string
+          maxLength: 5
+          enum:
+            - test
+            - panel
+        code:
+          type: string
+          maxLength: 32
+        name:
+          type: string
+          maxLength: 200
+        priority:
+          type: string
+          maxLength: 7
+          enum:
+            - routine
+            - urgent
+        kind:
+          type: string
+          maxLength: 16
+          enum:
+            - orderable
+            - urgent_surcharge
+        unit_price:
+          $ref: _common.yaml#/components/schemas/Money
+        discount:
+          $ref: _common.yaml#/components/schemas/Money
+        taxable:
+          $ref: _common.yaml#/components/schemas/Money
+        exempt:
+          $ref: _common.yaml#/components/schemas/Money
+        vat:
+          $ref: _common.yaml#/components/schemas/Money
+        other_tax:
+          $ref: _common.yaml#/components/schemas/Money
+        other_tax_code:
+          type: string
+          maxLength: 32
+        net:
+          $ref: _common.yaml#/components/schemas/Money
+        price_source:
+          type: string
+          maxLength: 32
+        price_list_id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        price_list_version:
+          type: integer
+          minimum: 1
+          maximum: 2147483647
+    Quote:
+      type: object
+      additionalProperties: false
+      required:
+        - lines
+        - totals
+        - discount_evaluation
+        - catalog_revision
+        - quote_fingerprint
+        - base_fingerprint
+        - fiscal_year_bs
+      properties:
+        lines:
+          type: array
+          maxItems: 100
+          items:
+            $ref: "#/components/schemas/QuoteLine"
+        totals:
+          $ref: "#/components/schemas/Totals"
+        discount_evaluation:
+          type: object
+          additionalProperties: false
+          required:
+            - within_limit
+            - approval_required
+            - limit_percent_bp
+            - limit_paisa
+          properties:
+            within_limit:
+              type: boolean
+            approval_required:
+              type: boolean
+              default: false
+            limit_percent_bp:
+              type: integer
+              minimum: 0
+              maximum: 10000
+            limit_paisa:
+              type: integer
+              minimum: 0
+              maximum: 9007199254740991
+              format: int64
+        catalog_revision:
+          type: integer
+          minimum: 0
+          maximum: 2147483647
+        quote_fingerprint:
+          $ref: "#/components/schemas/Fingerprint"
+        base_fingerprint:
+          $ref: "#/components/schemas/Fingerprint"
+        credit_status:
+          type: object
+          additionalProperties: false
+          required:
+            - state
+          properties:
+            state:
+              type: string
+              maxLength: 10
+              enum:
+                - ok
+                - locked
+                - over_limit
+          description: Present iff billing_mode = credit.
+        fiscal_year_bs:
+          type: string
+          maxLength: 9
+          pattern: ^[0-9]{4}/[0-9]{2}$
+    QuoteOrderItemsChangeRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - add
+      properties:
+        add:
+          type: array
+          maxItems: 50
+          minItems: 1
+          items:
+            $ref: "#/components/schemas/RegistrationItem"
+    TrfAttachment:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - mime_type
+        - size_bytes
+        - scan_state
+        - uploaded_at
+        - uploaded_by
+        - original_filename
+      properties:
+        id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        order_id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        mime_type:
+          type: string
+          maxLength: 15
+          enum:
+            - image/jpeg
+            - image/png
+            - application/pdf
+        size_bytes:
+          type: integer
+          minimum: 1
+          maximum: 15728640
+        scan_state:
+          type: string
+          maxLength: 11
+          enum:
+            - pending
+            - clean
+            - quarantined
+            - failed
+        uploaded_at:
+          $ref: _common.yaml#/components/schemas/IsoUtc
+        uploaded_by:
+          $ref: "#/components/schemas/Actor"
+        original_filename:
+          type: string
+          maxLength: 255
+      description: Metadata only (never a URL); content only through getTrfAttachmentContent.
+    OrderFlag:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - order_id
+        - kind
+        - status
+        - created_at
+        - version
+      properties:
+        id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        order_id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        kind:
+          type: string
+          maxLength: 36
+          enum:
+            - recollection_required
+            - booking_cancelled_after_registration
+        status:
+          type: string
+          maxLength: 8
+          enum:
+            - open
+            - resolved
+        specimen_id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        created_at:
+          $ref: _common.yaml#/components/schemas/IsoUtc
+        resolved_at:
+          $ref: _common.yaml#/components/schemas/IsoUtc
+        resolved_by:
+          $ref: "#/components/schemas/Actor"
+        resolution_code:
+          type: string
+          maxLength: 64
+        version:
+          $ref: _common.yaml#/components/schemas/Version
+    OrderFlagPage:
+      type: object
+      additionalProperties: false
+      required:
+        - data
+        - page
+      properties:
+        data:
+          type: array
+          maxItems: 200
+          items:
+            $ref: "#/components/schemas/OrderFlag"
+        page:
+          $ref: _common.yaml#/components/schemas/PageInfo
+    OrderDto:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - registration_no
+        - patient
+        - branch_id
+        - centre_id
+        - visit_type
+        - billing_mode
+        - priority
+        - collection_mode
+        - source
+        - status
+        - items
+        - discounts
+        - trf_attachments
+        - flags
+        - requires_credit_note
+        - version
+      properties:
+        id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        registration_no:
+          type: string
+          maxLength: 32
+        patient:
+          type: object
+          additionalProperties: false
+          required:
+            - id
+            - patient_code
+            - full_name
+            - sex
+            - age_at_order
+          properties:
+            id:
+              $ref: _common.yaml#/components/schemas/Uuid
+            patient_code:
+              type: string
+              maxLength: 32
+            full_name:
+              type: string
+              maxLength: 200
+            sex:
+              type: string
+              maxLength: 7
+              enum:
+                - male
+                - female
+                - other
+                - unknown
+            age_at_order:
+              type: string
+              maxLength: 32
+        branch_id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        centre_id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        visit_type:
+          type: string
+          maxLength: 3
+          enum:
+            - opd
+            - ipd
+        billing_mode:
+          type: string
+          maxLength: 6
+          enum:
+            - cash
+            - credit
+        credit_party_id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        referrer_id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        priority:
+          type: string
+          maxLength: 7
+          enum:
+            - routine
+            - urgent
+        collection_mode:
+          type: string
+          maxLength: 7
+          enum:
+            - walk_in
+            - home
+            - centre
+            - partner
+        source:
+          type: string
+          maxLength: 32
+        source_ref_id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        status:
+          type: string
+          maxLength: 14
+          enum:
+            - pre_registered
+            - registered
+            - in_progress
+            - completed
+            - cancelled
+          description: in_progress/completed derived from LabPort.getOrderItemProcessingState (03-IC §10.4).
+        items:
+          type: array
+          maxItems: 200
+          items:
+            type: object
+            additionalProperties: false
+            required:
+              - id
+              - orderable_id
+              - orderable_kind
+              - code
+              - name
+              - priority
+              - status
+              - unit_price
+              - outsourced
+            properties:
+              id:
+                $ref: _common.yaml#/components/schemas/Uuid
+              orderable_id:
+                $ref: _common.yaml#/components/schemas/Uuid
+              orderable_kind:
+                type: string
+                maxLength: 5
+                enum:
+                  - test
+                  - panel
+              code:
+                type: string
+                maxLength: 32
+              name:
+                type: string
+                maxLength: 200
+              priority:
+                type: string
+                maxLength: 7
+                enum:
+                  - routine
+                  - urgent
+              status:
+                type: string
+                maxLength: 32
+              unit_price:
+                $ref: _common.yaml#/components/schemas/Money
+              urgent_surcharge:
+                $ref: _common.yaml#/components/schemas/Money
+              outsourced:
+                type: boolean
+                default: false
+        discounts:
+          type: array
+          maxItems: 20
+          items:
+            $ref: "#/components/schemas/Discount"
+        trf_attachments:
+          type: array
+          maxItems: 20
+          items:
+            $ref: "#/components/schemas/TrfAttachment"
+        flags:
+          type: array
+          maxItems: 50
+          items:
+            $ref: "#/components/schemas/OrderFlag"
+        requires_credit_note:
+          type: boolean
+          default: false
+        registered_at:
+          $ref: _common.yaml#/components/schemas/IsoUtc
+        cancelled_at:
+          $ref: _common.yaml#/components/schemas/IsoUtc
+        cancel_reason_code:
+          type: string
+          maxLength: 64
+        billing:
+          $ref: "#/components/schemas/OrderBalanceDto"
+        version:
+          $ref: _common.yaml#/components/schemas/Version
+    ChangeOrderItemsResult:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - registration_no
+        - patient
+        - branch_id
+        - centre_id
+        - visit_type
+        - billing_mode
+        - priority
+        - collection_mode
+        - source
+        - status
+        - items
+        - discounts
+        - trf_attachments
+        - flags
+        - requires_credit_note
+        - version
+        - credit_note_required
+      properties:
+        id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        registration_no:
+          type: string
+          maxLength: 32
+        patient:
+          type: object
+          additionalProperties: false
+          required:
+            - id
+            - patient_code
+            - full_name
+            - sex
+            - age_at_order
+          properties:
+            id:
+              $ref: _common.yaml#/components/schemas/Uuid
+            patient_code:
+              type: string
+              maxLength: 32
+            full_name:
+              type: string
+              maxLength: 200
+            sex:
+              type: string
+              maxLength: 7
+              enum:
+                - male
+                - female
+                - other
+                - unknown
+            age_at_order:
+              type: string
+              maxLength: 32
+        branch_id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        centre_id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        visit_type:
+          type: string
+          maxLength: 3
+          enum:
+            - opd
+            - ipd
+        billing_mode:
+          type: string
+          maxLength: 6
+          enum:
+            - cash
+            - credit
+        credit_party_id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        referrer_id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        priority:
+          type: string
+          maxLength: 7
+          enum:
+            - routine
+            - urgent
+        collection_mode:
+          type: string
+          maxLength: 7
+          enum:
+            - walk_in
+            - home
+            - centre
+            - partner
+        source:
+          type: string
+          maxLength: 32
+        source_ref_id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        status:
+          type: string
+          maxLength: 14
+          enum:
+            - pre_registered
+            - registered
+            - in_progress
+            - completed
+            - cancelled
+          description: in_progress/completed derived from LabPort.getOrderItemProcessingState (03-IC §10.4).
+        items:
+          type: array
+          maxItems: 200
+          items:
+            type: object
+            additionalProperties: false
+            required:
+              - id
+              - orderable_id
+              - orderable_kind
+              - code
+              - name
+              - priority
+              - status
+              - unit_price
+              - outsourced
+            properties:
+              id:
+                $ref: _common.yaml#/components/schemas/Uuid
+              orderable_id:
+                $ref: _common.yaml#/components/schemas/Uuid
+              orderable_kind:
+                type: string
+                maxLength: 5
+                enum:
+                  - test
+                  - panel
+              code:
+                type: string
+                maxLength: 32
+              name:
+                type: string
+                maxLength: 200
+              priority:
+                type: string
+                maxLength: 7
+                enum:
+                  - routine
+                  - urgent
+              status:
+                type: string
+                maxLength: 32
+              unit_price:
+                $ref: _common.yaml#/components/schemas/Money
+              urgent_surcharge:
+                $ref: _common.yaml#/components/schemas/Money
+              outsourced:
+                type: boolean
+                default: false
+        discounts:
+          type: array
+          maxItems: 20
+          items:
+            $ref: "#/components/schemas/Discount"
+        trf_attachments:
+          type: array
+          maxItems: 20
+          items:
+            $ref: "#/components/schemas/TrfAttachment"
+        flags:
+          type: array
+          maxItems: 50
+          items:
+            $ref: "#/components/schemas/OrderFlag"
+        requires_credit_note:
+          type: boolean
+          default: false
+        registered_at:
+          $ref: _common.yaml#/components/schemas/IsoUtc
+        cancelled_at:
+          $ref: _common.yaml#/components/schemas/IsoUtc
+        cancel_reason_code:
+          type: string
+          maxLength: 64
+        billing:
+          $ref: "#/components/schemas/OrderBalanceDto"
+        version:
+          $ref: _common.yaml#/components/schemas/Version
+        supplementary_invoice:
+          $ref: "#/components/schemas/InvoiceDto"
+        credit_note_required:
+          type: boolean
+          default: false
+    RegistrationResult:
+      type: object
+      additionalProperties: false
+      required:
+        - order
+        - ledger_entries
+        - balance
+        - print
+        - notifications
+        - label_print
+      properties:
+        order:
+          $ref: "#/components/schemas/OrderDto"
+        invoice:
+          $ref: "#/components/schemas/InvoiceDto"
+        credit_charges:
+          type: array
+          maxItems: 50
+          items:
+            $ref: "#/components/schemas/CreditChargeDto"
+        ledger_entries:
+          type: array
+          maxItems: 20
+          items:
+            $ref: "#/components/schemas/LedgerEntryDto"
+        balance:
+          $ref: "#/components/schemas/OrderBalanceDto"
+        print:
+          type: object
+          additionalProperties: false
+          required:
+            - receipt_ledger_entry_ids
+          properties:
+            invoice_id:
+              $ref: _common.yaml#/components/schemas/Uuid
+            receipt_ledger_entry_ids:
+              type: array
+              maxItems: 5
+              items:
+                $ref: _common.yaml#/components/schemas/Uuid
+        notifications:
+          type: object
+          additionalProperties: false
+          required:
+            - registration_sms
+          properties:
+            registration_sms:
+              type: string
+              maxLength: 27
+              enum:
+                - queued
+                - suppressed_no_consent
+                - suppressed_no_contact
+                - suppressed_channel_disabled
+                - not_attempted
+        label_print:
+          type: object
+          additionalProperties: false
+          required:
+            - autoprint
+          properties:
+            autoprint:
+              type: boolean
+    ConfirmOrderRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - quote_fingerprint
+        - payments
+      properties:
+        quote_fingerprint:
+          $ref: "#/components/schemas/Fingerprint"
+        payments:
+          type: array
+          maxItems: 5
+          items:
+            $ref: "#/components/schemas/PaymentInput"
+        discounts:
+          type: array
+          maxItems: 20
+          items:
+            $ref: "#/components/schemas/Discount"
+        discount_approval_id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        items_override:
+          type: object
+          additionalProperties: false
+          required:
+            - items
+          properties:
+            items:
+              type: array
+              maxItems: 50
+              minItems: 1
+              items:
+                $ref: "#/components/schemas/RegistrationItem"
+    ChangeOrderItemsRequest:
+      type: object
+      additionalProperties: false
+      properties:
+        add:
+          type: array
+          maxItems: 50
+          items:
+            type: object
+            additionalProperties: false
+            required:
+              - orderable_id
+              - priority
+            properties:
+              orderable_id:
+                $ref: _common.yaml#/components/schemas/Uuid
+              priority:
+                type: string
+                maxLength: 7
+                enum:
+                  - routine
+                  - urgent
+        remove:
+          type: array
+          maxItems: 50
+          items:
+            type: object
+            additionalProperties: false
+            required:
+              - order_item_id
+              - reason_code
+            properties:
+              order_item_id:
+                $ref: _common.yaml#/components/schemas/Uuid
+              reason_code:
+                type: string
+                maxLength: 64
+                minLength: 1
+                x-coded-set: frontdesk.item_removal_reasons
+        quote_fingerprint:
+          $ref: "#/components/schemas/Fingerprint"
+        payments:
+          type: array
+          maxItems: 5
+          items:
+            $ref: "#/components/schemas/PaymentInput"
+      description: quote_fingerprint = F8b quote over exactly `add`; omitted when add is empty.
+    CancelOrderRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - reason_code
+      properties:
+        reason_code:
+          type: string
+          maxLength: 64
+          minLength: 1
+          x-coded-set: frontdesk.order_cancel_reasons
+        reason_text:
+          type: string
+          maxLength: 500
+    DiscountApprovalRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - centre_id
+        - base_fingerprint
+        - discounts
+        - reason_code
+        - patient_ref
+      properties:
+        centre_id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        base_fingerprint:
+          $ref: "#/components/schemas/Fingerprint"
+        discounts:
+          type: array
+          maxItems: 20
+          minItems: 1
+          items:
+            $ref: "#/components/schemas/Discount"
+        reason_code:
+          type: string
+          maxLength: 64
+          minLength: 1
+          x-coded-set: frontdesk.discount_reasons
+        reason_text:
+          type: string
+          maxLength: 500
+        patient_ref:
+          oneOf:
+            - type: object
+              additionalProperties: false
+              required:
+                - patient_id
+              properties:
+                patient_id:
+                  $ref: _common.yaml#/components/schemas/Uuid
+            - type: object
+              additionalProperties: false
+              required:
+                - draft_hash
+              properties:
+                draft_hash:
+                  $ref: "#/components/schemas/Fingerprint"
+    DiscountApproval:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - status
+        - centre_id
+        - requested_by
+        - discounts
+        - computed_discount
+        - gross
+        - percent_of_gross_bp
+        - reason_code
+        - expires_at
+        - version
+      properties:
+        id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        status:
+          type: string
+          maxLength: 8
+          enum:
+            - pending
+            - approved
+            - rejected
+            - expired
+            - consumed
+        centre_id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        requested_by:
+          $ref: "#/components/schemas/Actor"
+        discounts:
+          type: array
+          maxItems: 20
+          items:
+            $ref: "#/components/schemas/Discount"
+        computed_discount:
+          $ref: _common.yaml#/components/schemas/Money
+        gross:
+          $ref: _common.yaml#/components/schemas/Money
+        percent_of_gross_bp:
+          type: integer
+          minimum: 0
+          maximum: 10000
+        reason_code:
+          type: string
+          maxLength: 64
+        reason_text:
+          type: string
+          maxLength: 500
+        decided_by:
+          $ref: "#/components/schemas/Actor"
+        decided_at:
+          $ref: _common.yaml#/components/schemas/IsoUtc
+        note:
+          type: string
+          maxLength: 500
+        expires_at:
+          $ref: _common.yaml#/components/schemas/IsoUtc
+        consumed_order_id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        version:
+          $ref: _common.yaml#/components/schemas/Version
+    DiscountApprovalPage:
+      type: object
+      additionalProperties: false
+      required:
+        - data
+        - page
+      properties:
+        data:
+          type: array
+          maxItems: 200
+          items:
+            $ref: "#/components/schemas/DiscountApproval"
+        page:
+          $ref: _common.yaml#/components/schemas/PageInfo
+    ApproveDiscountRequest:
+      type: object
+      additionalProperties: false
+      properties:
+        note:
+          type: string
+          maxLength: 500
+    RejectDiscountRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - note
+      properties:
+        note:
+          type: string
+          maxLength: 500
+          minLength: 1
+    TrfUploadForm:
+      type: object
+      additionalProperties: false
+      required:
+        - file
+        - centre_id
+      properties:
+        file:
+          type: string
+          maxLength: 15728640
+          format: binary
+        centre_id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        order_id:
+          $ref: _common.yaml#/components/schemas/Uuid
+    ResolveOrderFlagRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - resolution_code
+      properties:
+        resolution_code:
+          type: string
+          maxLength: 64
+          minLength: 1
+          x-coded-set: frontdesk.flag_resolutions
+        note:
+          type: string
+          maxLength: 500
+    FrontdeskSettings:
+      type: object
+      additionalProperties: false
+      required:
+        - discount_self_limit_bp
+        - discount_self_limit_paisa
+        - discount_absolute_max_bp
+        - require_referrer
+        - consent_text_version
+        - registration_sms_enabled
+        - label_autoprint
+        - buyer_pan_pattern
+        - patient_search_min_chars
+      properties:
+        discount_self_limit_bp:
+          type: integer
+          minimum: 0
+          maximum: 10000
+          default: 0
+        discount_self_limit_paisa:
+          type: integer
+          minimum: 0
+          maximum: 9007199254740991
+          format: int64
+        discount_absolute_max_bp:
+          type: integer
+          minimum: 0
+          maximum: 10000
+          default: 10000
+        require_referrer:
+          type: boolean
+          default: false
+        consent_text_version:
+          type: string
+          maxLength: 32
+          minLength: 1
+        registration_sms_enabled:
+          type: boolean
+          default: true
+        label_autoprint:
+          type: boolean
+          default: true
+        buyer_pan_pattern:
+          type: string
+          maxLength: 200
+          default: ^[0-9]{9}$
+        patient_search_min_chars:
+          type: integer
+          minimum: 1
+          maximum: 100
+          default: 3
+        version:
+          $ref: _common.yaml#/components/schemas/Version
+      description: 02-TRD §11.2. version is server-set (ignored on PUT; If-Match carries the version).
+    PossibleDuplicate:
+      type: object
+      additionalProperties: false
+      required:
+        - patient
+        - candidates
+      properties:
+        patient:
+          $ref: "#/components/schemas/PatientSummary"
+        candidates:
+          type: array
+          maxItems: 5
+          items:
+            $ref: "#/components/schemas/PatientSummary"
+    PossibleDuplicatePage:
+      type: object
+      additionalProperties: false
+      required:
+        - data
+        - page
+      properties:
+        data:
+          type: array
+          maxItems: 200
+          items:
+            $ref: "#/components/schemas/PossibleDuplicate"
+        page:
+          $ref: _common.yaml#/components/schemas/PageInfo

@@ -51,15 +51,20 @@ const sheet = (n: number, o: Record<string, unknown> = {}) => ({
   rows: Array.from({ length: n }, (_, i) => ({ order_test_id: U(0x700 + i), position: i + 1, barcode: `E26000002${String(i).padStart(2, '0')}`, test_code: i % 2 ? 'GLU' : 'CBC' })), ...o,
 });
 
+const summary = (n: number, o: Record<string, unknown> = {}) => ({ // WorksheetSummary (lab.yaml): WorksheetDto without rows + row_count
+  id: U(0xb00 + n), title: 'Morning haematology', centre_id: U(0xa1), processing_centre_id: U(0xa2), department_id: DEPT, created_at: '2026-11-05T04:15:00.000Z', row_count: 30, ...o,
+});
+
 interface Call { op: string; url: URL; headers: Headers; body?: any }
 const calls: Call[] = [];
 const rec = async (op: string, r: Request) => { calls.push({ op, url: new URL(r.url), headers: r.headers, body: r.method === 'GET' ? undefined : await r.clone().json().catch(() => undefined) }); };
 const ops = (op: string) => calls.filter((c) => c.op === op);
-let worklistReply: () => Response, pendingReply: () => Response, sheetReply: () => Response, createReply: () => Response, instrumentsReply: () => Response;
+let worklistReply: () => Response, pendingReply: () => Response, sheetReply: () => Response, createReply: () => Response, instrumentsReply: () => Response, sheetsReply: (u: URL) => Response;
 
 const api = setupServer(
   http.get(`${ORIGIN}/v1/lab/worklist-items`, async ({ request }) => { await rec('worklist', request); return worklistReply(); }),
   http.get(`${ORIGIN}/v1/lab/pending-items`, async ({ request }) => { await rec('pending', request); return pendingReply(); }),
+  http.get(`${ORIGIN}/v1/lab/worksheets`, async ({ request }) => { await rec('listSheets', request); return sheetsReply(new URL(request.url)); }),
   http.post(`${ORIGIN}/v1/lab/worksheets`, async ({ request }) => { await rec('create', request); return createReply(); }),
   http.get(`${ORIGIN}/v1/lab/worksheets/:id`, async ({ request }) => { await rec('getSheet', request); return sheetReply(); }),
   http.get(`${ORIGIN}/v1/instruments/instruments`, async ({ request }) => { await rec('instruments', request); return instrumentsReply(); }),
@@ -71,6 +76,7 @@ beforeEach(() => {
   pendingReply = () => page([pend(1), pend(2, { item_status: 'awaiting_receipt', age_anchor: 'registered', age_seconds: 5400, over_target: true, tat_target_seconds: 3600 })]);
   sheetReply = () => HttpResponse.json(sheet(30));
   createReply = () => HttpResponse.json(sheet(2), { status: 201 });
+  sheetsReply = () => HttpResponse.json({ data: [summary(1), summary(2, { title: 'Evening biochemistry', row_count: 0 })], page: { limit: 50 } });
   instrumentsReply = () => HttpResponse.json({ data: [{ id: INSTR, display_name: 'Synthetic Analyser A' }, { id: INSTR2, display_name: 'Synthetic Analyser B' }], page: { limit: 50 } });
   Object.values(nav).forEach((f) => f.mockReset());
 });
@@ -84,6 +90,7 @@ const openWorklist = async (permissions: readonly string[] = ['lab.worklist.read
 };
 const openPending = async () => { const { PendingPage } = await load('pending', 'PendingPage'); return render(<ToastProvider><PendingPage permissions={['lab.worklist.read']} /></ToastProvider>); };
 const openSheet = async () => { const { WorksheetPrintPage } = await load('worksheets', 'WorksheetPrintPage'); return render(<ToastProvider><WorksheetPrintPage worksheetId={WS} /></ToastProvider>); };
+const openSheets = async () => { const { WorksheetListPage } = await load('worksheets', 'WorksheetListPage'); return render(<ToastProvider><WorksheetListPage permissions={['lab.worklist.read']} /></ToastProvider>); };
 const rowsOf = () => screen.getAllByRole('row').slice(1);
 
 describe('AC-07.1 — worklist of one department, urgent first with "★ Urgent" text', () => {
@@ -274,6 +281,73 @@ describe('AC-07.3 — pending list: anchors are always named, awaiting rows incl
   it('no axe violations (pending list)', async () => {
     await openPending();
     await screen.findByText('R2611050001');
+    const r = await axe.run(document.body, { rules: { 'color-contrast': { enabled: false } } });
+    expect(r.violations.map((v) => `${v.id}: ${v.nodes[0]?.html}`)).toEqual([]);
+  });
+});
+
+// Review item 1 (T-26 review): nav row "Worksheets | /lab/worksheets | lab.worklist.read" (04-UI-UX §1) calls #21 listWorksheets.
+// ASSUMED (spec silent): export WorksheetListPage({ permissions? }) in components/worksheets/WorksheetListPage.tsx; empty text "No worksheets."; paging control = a button named /next|more/i that re-asks #21 with cursor=next_cursor.
+describe('AC-07.4 — worksheets list (#21): title, created at, row count, link to the worksheet', () => {
+  it('asks #21 once with the bearer token and lists title, created at and row_count; each title links to /lab/worksheets/{id}', async () => {
+    await openSheets();
+    await screen.findByText('Evening biochemistry');
+    expect(ops('listSheets')).toHaveLength(1);
+    expect(ops('listSheets')[0]!.headers.get('authorization')).toBe('Bearer jwt-synthetic');
+    const rows = rowsOf();
+    expect(rows).toHaveLength(2);
+    expect(rows[0]!.textContent).toContain('Morning haematology');
+    expect(rows[0]!.textContent).toMatch(/\b30\b/);
+    expect(rows[0]!.textContent).toMatch(/2026|05|Nov/);                                 // created_at rendered, not dropped
+    expect(rows[1]!.textContent).toMatch(/\b0\b/);
+    expect(within(rows[0]!).getByRole('link', { name: /Morning haematology/ }).getAttribute('href')).toBe(`/lab/worksheets/${U(0xb01)}`);
+    const heads = screen.getAllByRole('columnheader').map((h) => h.textContent ?? '');
+    for (const h of [/Title/, /Created/, /Rows|Row count|Tests/]) expect(heads.some((t) => h.test(t))).toBe(true);
+  });
+  it('shows no raw centre / department UUIDs (D-14: ids only as IdText)', async () => {
+    await openSheets();
+    await screen.findByText('Evening biochemistry');
+    for (const id of [U(0xa1), U(0xa2), DEPT]) expect(document.body.textContent).not.toContain(id);
+  });
+  it('empty: "No worksheets." and no data rows', async () => {
+    sheetsReply = () => page([]);
+    await openSheets();
+    expect(await screen.findByText(/No worksheets/i)).toBeTruthy();
+    expect(screen.queryAllByRole('row').length).toBeLessThanOrEqual(1);                   // header row at most
+  });
+  it('403 from #21: "You don\'t have access to this screen." without Retry and no row data', async () => {
+    sheetsReply = () => problem('auth.forbidden', 403);
+    await openSheets();
+    expect(await screen.findByText("You don't have access to this screen.")).toBeTruthy();
+    expect(screen.queryByRole('button', { name: /retry/i })).toBeNull();
+    expect(screen.queryAllByRole('row')).toHaveLength(0);
+  });
+  it('500 from #21: ErrorState "Something went wrong" with the request_id and Retry', async () => {
+    sheetsReply = () => problem('common.internal', 500);
+    await openSheets();
+    expect(await screen.findByText('Something went wrong')).toBeTruthy();
+    expect(screen.getByText(/req-synthetic-26/)).toBeTruthy();
+    expect(screen.getByRole('button', { name: /retry/i })).toBeTruthy();
+  });
+  it('paging: next_cursor shows a next/more control that re-asks #21 with cursor=<next_cursor> and shows the next rows', async () => {
+    sheetsReply = (u) => u.searchParams.get('cursor') === 'CUR2'
+      ? HttpResponse.json({ data: [summary(3, { title: 'Night serology' })], page: { limit: 50 } })
+      : HttpResponse.json({ data: [summary(1)], page: { limit: 1, next_cursor: 'CUR2' } });
+    await openSheets();
+    await screen.findByText('Morning haematology');
+    await userEvent.click(screen.getByRole('button', { name: /next|more/i }));
+    await waitFor(() => expect(ops('listSheets').at(-1)!.url.searchParams.get('cursor')).toBe('CUR2'));
+    expect(await screen.findByText('Night serology')).toBeTruthy();
+  });
+  it('attack: a title with markup is rendered as text (S-14), no injected element', async () => {
+    sheetsReply = () => page([summary(1, { title: '<img src=x onerror=alert(1)>' })]);
+    await openSheets();
+    await waitFor(() => expect(within(document.body).getAllByText(/onerror/).length).toBeGreaterThan(0));
+    expect(document.querySelector('img[src="x"]')).toBeNull();
+  });
+  it('no axe violations (worksheets list)', async () => {
+    await openSheets();
+    await screen.findByText('Evening biochemistry');
     const r = await axe.run(document.body, { rules: { 'color-contrast': { enabled: false } } });
     expect(r.violations.map((v) => `${v.id}: ${v.nodes[0]?.html}`)).toEqual([]);
   });

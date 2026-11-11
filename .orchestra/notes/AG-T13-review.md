@@ -1,6 +1,10 @@
-CHANGES
+APPROVE
 
-Scope note: `git diff 023df200..HEAD` is empty (HEAD = 023df200); AG-T13 commits eb0f698d + 4c8f6a39 are already in the base, so those were reviewed. Contract (E05 path, 7 body keys, Idempotency-Key required, 200 body), TLS rules, budget class, log codes (no PHI), owned paths, no secrets: OK. `go test -count=1 ./internal/hostquery/...` ok, `go vet` clean (no -race: no cgo on host).
+Scope: `git diff 023df200..HEAD` = review-fix round (relay.go, relay_test.go, impl note). Prior round's contract/TLS/budget/log/paths/secrets checks stand (no change to those areas).
 
-1. apps/bridge-agent/internal/hostquery/relay.go:136-138 — the fail-fast window is armed only on the first failure of an outage and never re-armed. 03-APP-FLOW §3.4 step 2 says "the server was unreachable in the last 30 s → no reply": after the first 30 s, every query of an ongoing outage calls E05 again and blocks up to `ReplyTimeout − 1 s` (and burns the 20/min budget). Fix: drop the `if r.unreachable.IsZero()` guard and set `r.unreachable = r.o.Now()` on every unreachable result (keep clearing it in `reachable()`).
-2. apps/bridge-agent/internal/hostquery/relay_test.go:241-248 (`TestRelay_SameItemRetryReusesKeyDifferentItemGetsNewKey`) — the test expects itemB to be sent at t0+40 s right after itemA's retry FAILED at t0+40 s, which contradicts §3.4 step 2 and is what forced defect 1. Fix: set `r.snd.err = nil` before the second `r.handle(query(itemA))` (retry succeeds, server reachable), keep the 3-call/key assertions unchanged. Add an assertion to `TestRelay_RecentUnreachableServerFailsFastFor30Seconds` that a failed probe at t0+31 s re-arms the window (query at t0+45 s → unavailable, no call).
+1. Previous defect 1 fixed: relay.go:136 re-arms `r.unreachable` on every unreachable result; `reachable()` still clears it on any server answer (03-APP-FLOW §3.4 step 2).
+2. Previous defect 2 fixed: relay_test.go:261 retry of itemA now succeeds before itemB; 3-call/key assertions unchanged. relay_test.go:206-226 asserts a failed probe at t0+31 s re-arms the window (t0+45 s → unavailable, no call; t0+62 s → replied).
+3. Done_when covered: round trip with server stub (replied path) and offline → no reply (unavailable, nothing enqueued, item pending). AC-10.3 / AC-10.6 OK.
+
+Verified: `go test -count=1 ./internal/hostquery/...` ok (25.6 s); `go vet ./internal/hostquery/...` clean. NOT run: `-race` (no CGO/C compiler on host).
+Open (not a defect of this task): Outbound.Enqueue has no real queue.outbound writer yet; Items wiring to *queue.DB.MarkUploaded unverified — track in integration.

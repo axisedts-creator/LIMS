@@ -24,8 +24,8 @@ export interface EvalCtx {
 
 export interface Evaluation {
   flag?: Flag;
-  rangeSnapshot?: { referenceRangeId: string; version: number; low?: string; high?: string; text?: string; unitCode?: string };
-  critical: { isCritical: boolean; direction?: 'low' | 'high' | 'abnormal'; criticalLimitId?: string; version?: number };
+  rangeSnapshot?: { referenceRangeId: string; version: number; low?: string | undefined; high?: string | undefined; text?: string | undefined; unitCode?: string | undefined };
+  critical: { isCritical: boolean; direction?: 'low' | 'high' | 'abnormal' | undefined; criticalLimitId?: string; version?: number };
   rangeUnavailableAgeUnknown: boolean;
   valueSha256Prefix16: string;
   delta: DeltaOutcome | { status: 'not_applicable' };

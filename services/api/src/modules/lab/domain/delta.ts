@@ -15,7 +15,7 @@ function fmt(n: bigint, scale: number): string {
   return (n < 0n ? '-' : '') + (scale ? `${s.slice(0, -scale)}.${s.slice(-scale)}` : s);
 }
 
-export function evaluateDelta(i: { value: string; unitCode?: string; at: Date; rule?: DeltaRule; candidates: readonly DeltaCandidate[] }): DeltaOutcome {
+export function evaluateDelta(i: { value: string; unitCode?: string | undefined; at: Date; rule?: DeltaRule | undefined; candidates: readonly DeltaCandidate[] }): DeltaOutcome {
   const { rule } = i;
   if (!rule) return { status: 'no_rule' };
   const echo = { ruleId: rule.ruleId, ruleVersion: rule.ruleVersion };

@@ -27,9 +27,9 @@ export function compareDecimal(a: string, b: string): -1 | 0 | 1 {
 export interface FlagInput {
   kind: 'numeric' | 'code';
   value: string;
-  range?: { low?: string; high?: string; normalCodes?: readonly string[] };
-  critical?: { low?: string; high?: string; abnormalCodes?: readonly string[] };
-  manualAbnormal?: boolean;
+  range?: { low?: string | undefined; high?: string | undefined; normalCodes?: readonly string[] | undefined } | undefined;
+  critical?: { low?: string | undefined; high?: string | undefined; abnormalCodes?: readonly string[] | undefined } | undefined;
+  manualAbnormal?: boolean | undefined;
 }
 
 /** 02-TRD §4.3 step 3. undefined = no flag (no bound to compare against is never a guess). */
@@ -49,7 +49,7 @@ export function computeFlag(i: FlagInput): Flag | undefined {
 }
 
 /** 02-TRD §4.3 step 4: critical iff LL / HH, or an abnormal code listed in critical.abnormalCodes. */
-export function criticalDecision(i: { flag?: Flag; code?: string; abnormalCodes?: readonly string[] }): { critical: boolean; direction?: 'low' | 'high' | 'abnormal' } {
+export function criticalDecision(i: { flag?: Flag | undefined; code?: string | undefined; abnormalCodes?: readonly string[] | undefined }): { critical: boolean; direction?: 'low' | 'high' | 'abnormal' } {
   if (i.flag === 'LL') return { critical: true, direction: 'low' };
   if (i.flag === 'HH') return { critical: true, direction: 'high' };
   if (i.flag === 'A' && i.code !== undefined && i.abnormalCodes?.includes(i.code)) return { critical: true, direction: 'abnormal' };

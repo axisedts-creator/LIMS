@@ -304,3 +304,221 @@ func endsWithL(parts [][]byte) bool {
 	last := parts[len(parts)-1]
 	return len(last) >= 2 && last[0] == 'L' && (last[1] == delim || last[1] == '\r') && last[len(last)-1] == '\r'
 }
+
+// ---- Sender state machine (03-APP-FLOW §3.2, TRD §5.2.2/§5.2.4; AC-06.1..AC-06.5) ----
+// One outbound message (its records) is retained until it is sent or given up. No I/O and no sleeping: the owner writes
+// the bytes returned by Tick/Feed, calls Tick on a timer and feeds the bytes read from the line (one event per call;
+// the first byte is the event, except while deferred where a trailing EOT ends the deferral). Not safe for concurrent use.
+
+// Sender timer and limit defaults (TRD §5.2.4); every one is overridable per instrument (AC-06.5).
+const (
+	defEstablishReply     = 15 * time.Second // establish_reply_s
+	defNakRetryDelay      = 10 * time.Second // nak_retry_delay_s
+	defContentionDefer    = 20 * time.Second // host_contention_defer_s
+	defTransferReply      = 15 * time.Second // transfer_reply_s
+	defInterruptBackoff   = 15 * time.Second // receiver_interrupt_backoff_s
+	defOutboundRetryCycle = 60 * time.Second // outbound_retry_cycle_s
+	defMaxFrameSends      = 6                // max_frame_sends
+	defMaxEstablish       = 6                // max_establish_attempts
+	defMaxOutboundCycles  = 3                // max_outbound_cycles
+)
+
+// SendState is the sender's link state.
+type SendState int
+
+const (
+	SendNeutral SendState = iota
+	SendEstablishing
+	SendNakWait
+	SendTransfer
+	SendDeferred
+)
+
+func (s SendState) String() string {
+	switch s {
+	case SendEstablishing:
+		return "establishing"
+	case SendNakWait:
+		return "nak_wait"
+	case SendTransfer:
+		return "transfer"
+	case SendDeferred:
+		return "deferred"
+	}
+	return "neutral"
+}
+
+// SendResult is the outcome of the current message.
+type SendResult int
+
+const (
+	ResultPending SendResult = iota // none submitted, or retained for a later attempt
+	ResultSent
+	ResultFailed
+)
+
+// SenderConfig configures a Sender. Clock is required; 0 = default.
+type SenderConfig struct {
+	Clock                                                         Clock
+	EstablishReply, NakRetryDelay, ContentionDefer, TransferReply time.Duration
+	InterruptBackoff, OutboundRetryCycle                          time.Duration
+	MaxFrameSends, MaxEstablishAttempts, MaxOutboundCycles        int
+}
+
+// Sender is the ASTM E1381 sender for one instrument link.
+type Sender struct {
+	cfg      SenderConfig
+	state    SendState
+	result   SendResult
+	frames   [][]byte
+	idx      int // frame being sent
+	sends    int // sends of frames[idx]
+	attempts int // ENQs sent in this cycle
+	cycles   int
+	deadline time.Time // timer of the current state
+	notUntil time.Time // Neutral: no ENQ before this
+}
+
+// NewSender returns an idle Sender; zero config values take the TRD defaults.
+func NewSender(cfg SenderConfig) *Sender {
+	d := func(v *time.Duration, def time.Duration) {
+		if *v <= 0 {
+			*v = def
+		}
+	}
+	n := func(v *int, def int) {
+		if *v <= 0 {
+			*v = def
+		}
+	}
+	d(&cfg.EstablishReply, defEstablishReply)
+	d(&cfg.NakRetryDelay, defNakRetryDelay)
+	d(&cfg.ContentionDefer, defContentionDefer)
+	d(&cfg.TransferReply, defTransferReply)
+	d(&cfg.InterruptBackoff, defInterruptBackoff)
+	d(&cfg.OutboundRetryCycle, defOutboundRetryCycle)
+	n(&cfg.MaxFrameSends, defMaxFrameSends)
+	n(&cfg.MaxEstablishAttempts, defMaxEstablish)
+	n(&cfg.MaxOutboundCycles, defMaxOutboundCycles)
+	return &Sender{cfg: cfg}
+}
+
+func (s *Sender) State() SendState   { return s.state }
+func (s *Sender) Result() SendResult { return s.result }
+func (s *Sender) Cycles() int        { return s.cycles }
+
+func (s *Sender) now() time.Time { return s.cfg.Clock.Now().UTC() }
+
+// Submit retains one outbound message (records incl. trailing CR; the input is copied) and encodes its frames.
+// It fails for no/empty records or while a message is still retained.
+func (s *Sender) Submit(records [][]byte) error {
+	if s.frames != nil {
+		return errors.New("astm: outbound message already retained")
+	}
+	if len(records) == 0 {
+		return errArg
+	}
+	cp := make([][]byte, len(records))
+	for i, r := range records {
+		cp[i] = append([]byte(nil), r...)
+	}
+	frames, _, err := EncodeRecords(cp, 1)
+	if err != nil {
+		return err
+	}
+	*s = Sender{cfg: s.cfg, frames: frames}
+	return nil
+}
+
+// Tick applies timers and starts establishing for a retained message. Idempotent; returns bytes to write.
+func (s *Sender) Tick() []byte {
+	now := s.now()
+	switch s.state {
+	case SendEstablishing, SendTransfer:
+		if now.Before(s.deadline) {
+			return nil
+		}
+		s.endCycle(now)
+		return []byte{EOT}
+	case SendNakWait, SendDeferred:
+		if now.Before(s.deadline) {
+			return nil
+		}
+		return s.establish(now)
+	}
+	if s.frames == nil || now.Before(s.notUntil) {
+		return nil
+	}
+	return s.establish(now)
+}
+
+// establish sends ENQ, or ends the cycle (no bytes) when the attempts are used up.
+func (s *Sender) establish(now time.Time) []byte {
+	if s.attempts >= s.cfg.MaxEstablishAttempts {
+		s.endCycle(now)
+		return nil
+	}
+	s.attempts++
+	s.state, s.deadline = SendEstablishing, now.Add(s.cfg.EstablishReply)
+	return []byte{ENQ}
+}
+
+// endCycle: the message stays retained for a new cycle from frame 1, or fails after max_outbound_cycles.
+func (s *Sender) endCycle(now time.Time) {
+	s.state, s.attempts, s.idx, s.sends = SendNeutral, 0, 0, 0
+	s.cycles++
+	if s.cycles >= s.cfg.MaxOutboundCycles {
+		s.frames, s.result = nil, ResultFailed
+		return
+	}
+	s.notUntil = now.Add(s.cfg.OutboundRetryCycle)
+}
+
+// Feed handles one line event and returns bytes to write.
+func (s *Sender) Feed(b []byte) []byte {
+	if len(b) == 0 {
+		return nil
+	}
+	now := s.now()
+	switch s.state {
+	case SendDeferred: // the instrument's message is the Receiver's business; its EOT ends the deferral
+		if b[len(b)-1] == EOT {
+			s.state, s.notUntil = SendNeutral, now
+		}
+	case SendEstablishing:
+		switch b[0] {
+		case ACK:
+			s.state, s.idx, s.sends, s.deadline = SendTransfer, 0, 1, now.Add(s.cfg.TransferReply)
+			return append([]byte(nil), s.frames[0]...)
+		case NAK:
+			s.state, s.deadline = SendNakWait, now.Add(s.cfg.NakRetryDelay)
+		case ENQ: // contention: the instrument wins
+			s.state, s.deadline = SendDeferred, now.Add(s.cfg.ContentionDefer)
+			return []byte{ACK}
+		}
+	case SendTransfer:
+		switch b[0] {
+		case ACK:
+			s.idx++
+			if s.idx >= len(s.frames) {
+				s.state, s.frames, s.result = SendNeutral, nil, ResultSent
+				return []byte{EOT}
+			}
+			s.sends, s.deadline = 1, now.Add(s.cfg.TransferReply)
+			return append([]byte(nil), s.frames[s.idx]...)
+		case EOT: // receiver interrupt: keep the message, restart from frame 1 after the backoff
+			s.state, s.attempts, s.idx, s.sends = SendNeutral, 0, 0, 0
+			s.notUntil = now.Add(s.cfg.InterruptBackoff)
+			return []byte{EOT}
+		}
+		// NAK or any other character: resend, up to max_frame_sends
+		if s.sends >= s.cfg.MaxFrameSends {
+			s.endCycle(now)
+			return []byte{EOT}
+		}
+		s.sends++
+		s.deadline = now.Add(s.cfg.TransferReply)
+		return append([]byte(nil), s.frames[s.idx]...)
+	}
+	return nil
+}

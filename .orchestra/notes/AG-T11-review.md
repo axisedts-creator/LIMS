@@ -1,10 +1,7 @@
-CHANGES
-1. .gitignore:10 (`*.pem`) — LD-73 step 4 not done. No negation exists despite AG-T11-tests.md claiming one was added; `git status --ignored` shows all four PEMs ignored and `git ls-files` lists none of them:
-   services/api/src/modules/instruments/__tests__/fixtures/config/test-key.{pkcs8,spki}.pem and apps/bridge-agent/testdata/config/test-key.{pkcs8,spki}.pem.
-   Go tests pass locally only because the untracked files are on disk. On a clean checkout, helpers_test.go:80/89 (`pemBlock`) and canonical_test.go:42-69 fail, and the TS API-T08 vector tests fail the same way (the LD-73 regression again).
-   Fix: after line 10 add
-     !services/api/src/modules/instruments/__tests__/fixtures/config/*.pem
-     !apps/bridge-agent/testdata/config/*.pem
-   Then run plain `git add` on the four PEMs (no -f), check that `git check-ignore` matches none of them and `git ls-files '*config/*.pem'` lists all 4, and commit.
+APPROVE
 
-Checked OK: config_state values match 05-SCHEMA agent_status__config_state__ck verbatim; schema `lims.bridge.config.v1` and envelope fields match 02-TRD 5.10; Verify is fail-closed (signature checked before any document field is read); rollback/equal/no-op handling in apply.go is under the mutex; persist is atomic; keys.go embeds no test key; only owned paths plus testdata copy; `go test ./internal/config/...` = ok (17.5s, local only, because of item 1). RLS/permissions/idempotency/rate tier: not applicable (agent-side Go). No PHI or secrets (synthetic test key only).
+Re-review after b2e32c53 ([writer] AG-T11 review fixes). Note: the brief's range 50557636..HEAD is empty (HEAD = 50557636); reviewed AG-T11 commits aa281ff5, 4882d71b, b2e32c53 (all ancestors of HEAD).
+
+Prior item 1 resolved: .gitignore:11-12 adds the two `!…/config/*.pem` negations (LD-73 step 4); `git ls-files "*config/*.pem"` lists all 4 PEMs. apps/bridge-agent/testdata/config/* is byte-identical (sha256) to services/api/.../__tests__/fixtures/config/* for the vector, expected.bin, sha256.txt, signature and both PEMs.
+
+Checked OK: config_state values verbatim (05-SCHEMA agent_status__config_state__ck); schema `lims.bridge.config.v1` and envelope fields per 02-TRD 5.10; Verify is fail-closed (alg, key_id, strict base64url Ed25519 signature over canonical document before any document field is read; then agent_id, schema, config_version, instruments); Apply rejects lower version as rollback_rejected, equal = no-op, all under mutex; persist atomic (temp, fsync, rename); restored file re-verified; keys.go embeds no test key; done_when (bad signature / wrong agent / rollback rejected and reported via Report()) covered by signed_test.go and apply_test.go. `go test ./internal/config/...` ok (3.6s). RLS/permissions/idempotency/rate tier not applicable (agent-side Go). No PHI, no secrets (synthetic seed-derived test key only).

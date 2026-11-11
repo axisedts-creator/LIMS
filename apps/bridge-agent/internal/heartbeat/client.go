@@ -91,7 +91,7 @@ func NewClient(cfg uploader.Config) (*Client, error) {
 }
 
 // post sends body and returns the raw reply when the status equals want; any other status is an *uploader.HTTPError.
-func (c *Client) post(ctx context.Context, path string, body any, want int) ([]byte, error) {
+func (c *Client) post(ctx context.Context, path, idemKey string, body any, want int) ([]byte, error) {
 	tok := c.token()
 	if tok == "" {
 		return nil, errors.New("heartbeat: device token required")
@@ -107,6 +107,9 @@ func (c *Client) post(ctx context.Context, path string, body any, want int) ([]b
 	req.Header.Set("Authorization", "Bearer "+tok)
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Accept", "application/json")
+	if idemKey != "" {
+		req.Header.Set("Idempotency-Key", idemKey)
+	}
 	resp, err := c.http.Do(req)
 	if err != nil {
 		return nil, err
@@ -140,7 +143,7 @@ func (c *Client) Heartbeat(ctx context.Context, r Report) (Response, error) {
 	if r.CommandResults == nil {
 		r.CommandResults = []CommandResult{}
 	}
-	reply, err := c.post(ctx, heartbeatPath, r, http.StatusOK)
+	reply, err := c.post(ctx, heartbeatPath, "", r, http.StatusOK)
 	if err != nil {
 		return Response{}, err
 	}
@@ -151,9 +154,13 @@ func (c *Client) Heartbeat(ctx context.Context, r Report) (Response, error) {
 	return out, nil
 }
 
-// SubmitLogBundle POSTs E07 and returns the bundle id.
+// SubmitLogBundle POSTs E07 and returns the bundle id. E07 requires Idempotency-Key; the
+// command_id is used so a retried send replays instead of creating a second bundle.
 func (c *Client) SubmitLogBundle(ctx context.Context, b LogBundle) (string, error) {
-	reply, err := c.post(ctx, bundlePath, b, http.StatusCreated)
+	if b.CommandID == "" {
+		return "", errors.New("heartbeat: log bundle needs command_id for Idempotency-Key")
+	}
+	reply, err := c.post(ctx, bundlePath, b.CommandID, b, http.StatusCreated)
 	if err != nil {
 		return "", err
 	}

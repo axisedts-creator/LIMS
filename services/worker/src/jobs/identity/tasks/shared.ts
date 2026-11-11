@@ -32,8 +32,9 @@ export const sameTenant = (p: Row, ctx: Pick<JobContext, 'tenantId'>) =>
 
 /** GoTrue says the thing is already gone. */
 export const gone = (e: unknown, codes: readonly string[]) => e instanceof GoTrueError && codes.includes(e.errorCode);
-/** GoTrue 4xx other than 429: retrying cannot help. */
-export const permanent = (e: unknown): e is GoTrueError => e instanceof GoTrueError && e.status >= 400 && e.status < 500 && e.status !== 429;
+/** GoTrue 4xx other than 401/403 (bad/rotated service key: operator must see a dead letter) and 429: retrying cannot help. */
+export const permanent = (e: unknown): e is GoTrueError =>
+  e instanceof GoTrueError && e.status >= 400 && e.status < 500 && ![401, 403, 429].includes(e.status);
 
 let gateway: GoTrueGateway | undefined;
 /** Lazy: nothing is built at import time. */

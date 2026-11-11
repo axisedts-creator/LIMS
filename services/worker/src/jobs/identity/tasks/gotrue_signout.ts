@@ -13,7 +13,7 @@ const GONE = ['user_not_found', 'session_not_found'];
 
 export interface GotrueSignoutDeps {
   gotrue: Pick<GoTrueGateway, 'adminSignOutUser' | 'signOut'>;
-  repo: { sessionAccessToken(tx: unknown, tenantId: string, sessionId: string): Promise<string | null> };
+  repo: { sessionAccessToken(tx: unknown, tenantId: string, sessionId: string, userId: string): Promise<string | null> };
 }
 
 const SHAPES = {
@@ -38,20 +38,20 @@ export function createGotrueSignout(deps: GotrueSignoutDeps): TaskHandler {
     }
     if (!isUuid(p['user_id']) || ('session_id' in p && !isUuid(p['session_id']))) return malformed(GOTRUE_SIGNOUT);
     if (shape !== 'session') return signOutUser(p['user_id']);           // platform kind: always the whole user (stray session_id ignored)
-    const token = await deps.repo.sessionAccessToken(ctx.tx, ctx.tenantId!, p['session_id'] as string);
+    const token = await deps.repo.sessionAccessToken(ctx.tx, ctx.tenantId!, p['session_id'] as string, p['user_id'] as string);
     if (token === null) return;                                         // row gone: nothing left to sign out
     await deps.gotrue.signOut(token, 'local').catch((e) => { if (!gone(e, GONE)) throw e; });
   });
 }
 
 // ---------- default wiring ----------
-const TOKEN_SQL = 'SELECT access_token_enc, enc_key_id FROM identity.sessions WHERE tenant_id = $1 AND id = $2';
+const TOKEN_SQL = 'SELECT access_token_enc, enc_key_id FROM identity.sessions WHERE tenant_id = $1 AND id = $2 AND user_id = $3';
 const open = openerFromEnv();
 export const gotrueSignout: TaskHandler = createGotrueSignout({
   gotrue: { adminSignOutUser: (id) => gotrue().adminSignOutUser(id), signOut: (t, sc) => gotrue().signOut(t, sc) },
   repo: {
-    sessionAccessToken: async (tx, tenantId, sessionId) => {
-      const r = (await q(tx, TOKEN_SQL, [tenantId, sessionId]))[0];
+    sessionAccessToken: async (tx, tenantId, sessionId, userId) => {
+      const r = (await q(tx, TOKEN_SQL, [tenantId, sessionId, userId]))[0];
       return r?.['access_token_enc'] && r['enc_key_id'] ? open(r['access_token_enc'] as Buffer, String(r['enc_key_id'])) : null;
     },
   },

@@ -164,6 +164,12 @@ describe('MFA enrolment (AU-3, AC-A3.1/3.2)', () => {
     expect(r.result).toMatchObject({ ok: true, factor_id: FACTOR, secret_base32: 'ABCDEFGH', qr_svg_base64: 'PHN2Zy8+' });
   });
 
+  it('qr_svg_base64 is optional (02-TRD §5.1): a 200 reply without it is still ok:true', async () => {
+    reply['/mfa/enrolment'] = () => json(200, { factor_id: FACTOR, otpauth_uri: 'otpauth://totp/LIMS:u?secret=ABCDEFGH', secret_base32: 'ABCDEFGH' });
+    const r = await run(() => A.startMfaEnrolmentAction(form({})));
+    expect(r.result).toMatchObject({ ok: true, factor_id: FACTOR, secret_base32: 'ABCDEFGH' });
+  });
+
   it('rejects a friendly_name over 40 characters before calling the API', async () => {
     expect((await run(() => A.startMfaEnrolmentAction(form({ friendly_name: 'x'.repeat(41) })))).result).toMatchObject({ ok: false, code: 'common.validation_failed' });
     expect(seen).toHaveLength(0);

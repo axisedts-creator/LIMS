@@ -1,4 +1,4 @@
-// C2.T12 nightly E2E config (C2-owned). Run: pnpm exec playwright test --config apps/web/tests/e2e/auth/playwright.config.ts
+// C2.T12 nightly E2E config (C2-owned). Run: pnpm exec playwright test --config apps/web/tests/e2e/identity/playwright.config.ts
 // Needs a running staff web + a stubbed /v1/identity/auth/* origin (see C2.T12.auth.spec.ts header); set LIMS_E2E_WEB_URL.
 import { defineConfig } from '@playwright/test';
 

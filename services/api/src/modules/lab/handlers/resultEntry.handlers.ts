@@ -22,16 +22,16 @@ interface OrderResults { order: unknown; centreId: string; items: { orderItemId:
 type ReadStore = EntryStore & { getOrderResults(tx: unknown, tenantId: string, a: { orderId: string; departmentId?: string }): Promise<OrderResults | undefined> };
 interface Ctx extends HandlerContext { tenantId: string; actor: { id: string }; tx: object; now?: () => Date; store?: ReadStore; ports?: Ports }
 
-const obj = (v: unknown): Obj => (typeof v === 'object' && v !== null && !Array.isArray(v) ? (v as Obj) : {});
+export const obj = (v: unknown): Obj => (typeof v === 'object' && v !== null && !Array.isArray(v) ? (v as Obj) : {});
 
-function authed(h: HandlerContext): Ctx {
+export function authed(h: HandlerContext): Ctx {
   const c = h as Partial<Ctx>;
   if (typeof c.tenantId !== 'string' || typeof c.actor?.id !== 'string' || !c.tx) throw new LimsError('auth.unauthenticated');
   if (!c.store || !c.ports?.IdentityPort) throw new LimsError('common.internal');   // fail closed: production wiring missing
   return c as Ctx;
 }
 
-const fieldError = (path: string, code: 'common.field_required' | 'common.field_invalid', message: string): FieldError => ({ path, code, message });
+export const fieldError = (path: string, code: 'common.field_required' | 'common.field_invalid', message: string): FieldError => ({ path, code, message });
 
 /** LD-25: returns the downtime block for the service (original strings, unchanged) or undefined for a live entry. Throws 400 common.validation_failed at the field path. */
 function downtimeOf(b: Obj, now: Date): { occurredAt: string; downtimeRef: string } | undefined {

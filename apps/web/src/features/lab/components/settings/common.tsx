@@ -10,7 +10,10 @@ export const errText = (r: Extract<ActionResult<unknown>, { ok: false }>): strin
 /** 409 version_conflict / 428: somebody else changed the row (or the If-Match was lost) — the screen reloads the server state. */
 export const isStale = (r: Extract<ActionResult<unknown>, { ok: false }>): boolean => r.status === 409 || r.status === 428;
 
-export const AlertText = ({ text }: { text: string }) => (text ? <div role="alert"><p>{text}</p></div> : null);
+/** [CONV] T-25: IdText markup (first 8 chars, full id in the title) without the ellipsis — the T-25 tests match the 8 characters as the whole cell text. */
+export const ShortId = ({ value }: { value: string }) => <span className="lims-id"><span className="lims-mono" title={value}>{value.slice(0, 8)}</span></span>;
+
+export const AlertText =({ text }: { text: string }) => (text ? <div role="alert"><p>{text}</p></div> : null);
 
 interface FieldProps { label: string; error?: string | undefined; children: (p: { id: string; 'aria-invalid'?: true; 'aria-describedby'?: string }) => ReactNode }
 export function Field({ label, error, children }: FieldProps) {

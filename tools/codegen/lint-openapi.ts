@@ -59,6 +59,12 @@ const nonEmptyStr = (x: unknown) => typeof x === "string" && x.trim().length > 0
 const STATUS_ALLOWLIST = [{ module: "homecollection", operationId: "pushSyncMutations", path: "payload.gps.status" }] as const;
 const statusAllowed = (module: string, operationId: unknown, path: string) =>
   STATUS_ALLOWLIST.some((e) => e.module === module && e.operationId === operationId && e.path === path.replace(/^.*\[\]\./, ""));
+// LD-119 (2026-11-12): rule 3 exception, exactly ONE entry (LD-78 opaque signed bytes), keyed by module + operationId +
+// response status + property path (never the name alone). Exempts only additionalProperties: false; all other rules apply.
+const OPEN_OBJECT_ALLOWLIST = [{ module: "instruments", operationId: "getAgentConfig", status: "200", path: "document" }] as const;
+type OpCtx = { operationId: unknown; status: string };
+const openObjectAllowed = (module: string, op: OpCtx | undefined, path: string) =>
+  !!op && OPEN_OBJECT_ALLOWLIST.some((e) => e.module === module && e.operationId === op.operationId && e.status === op.status && e.path === path);
 
 // `path` = data path of the instance (dotted property names, "[]" per array item, "*" for maps); survives $ref.
 function walkSchema(s: unknown, ptr: string, visit: (s: Record<string, any>, ptr: string, path: string) => void,
@@ -84,10 +90,11 @@ function walkSchema(s: unknown, ptr: string, visit: (s: Record<string, any>, ptr
 }
 
 // All schema roots of a document: components + every parameter/header/media type under paths.
-function schemaRoots(doc: Record<string, any>): [unknown, string][] {
-  const out: [unknown, string][] = [];
-  const media = (content: unknown, p: string) => {
-    for (const [mt, m] of Object.entries(isObj(content) ? content : {})) if (isObj(m)) out.push([m.schema, `${p}/content/${mt}/schema`]);
+// Operation response media roots carry their operation context (LD-119).
+function schemaRoots(doc: Record<string, any>): [unknown, string, OpCtx?][] {
+  const out: [unknown, string, OpCtx?][] = [];
+  const media = (content: unknown, p: string, op?: OpCtx) => {
+    for (const [mt, m] of Object.entries(isObj(content) ? content : {})) if (isObj(m)) out.push([m.schema, `${p}/content/${mt}/schema`, op]);
   };
   const headers = (h: unknown, p: string) => {
     for (const [n, v] of Object.entries(isObj(h) ? h : {})) if (isObj(v)) { out.push([v.schema, `${p}/headers/${n}/schema`]); media(v.content, `${p}/headers/${n}`); }
@@ -95,8 +102,12 @@ function schemaRoots(doc: Record<string, any>): [unknown, string][] {
   const params = (ps: unknown, p: string) => {
     if (Array.isArray(ps)) ps.forEach((v, i) => { if (isObj(v)) { out.push([v.schema, `${p}/parameters/${i}/schema`]); media(v.content, `${p}/parameters/${i}`); } });
   };
-  const responses = (rs: unknown, p: string) => {
-    for (const [c, r] of Object.entries(isObj(rs) ? rs : {})) if (isObj(r)) { media(r.content, `${p}/responses/${c}`); headers(r.headers, `${p}/responses/${c}`); }
+  const responses = (rs: unknown, p: string, operationId?: unknown) => {
+    for (const [c, r] of Object.entries(isObj(rs) ? rs : {}))
+      if (isObj(r)) {
+        media(r.content, `${p}/responses/${c}`, operationId === undefined ? undefined : { operationId, status: c });
+        headers(r.headers, `${p}/responses/${c}`);
+      }
   };
   const c = isObj(doc.components) ? doc.components : {};
   for (const [n, s] of Object.entries(isObj(c.schemas) ? c.schemas : {})) out.push([s, `#/components/schemas/${n}`]);
@@ -113,7 +124,7 @@ function schemaRoots(doc: Record<string, any>): [unknown, string][] {
       const p = `#/paths/${path}/${m}`;
       params(op.parameters, p);
       if (isObj(op.requestBody)) media(op.requestBody.content, `${p}/requestBody`);
-      responses(op.responses, p);
+      responses(op.responses, p, op.operationId ?? null);
     }
   }
   return out;
@@ -177,13 +188,13 @@ export function lintOpenapi(files: { name: string; text: string }[], ctx: LintCo
       if (typeof o.$ref === "string" && Object.keys(o).length > 1) v("2", `${ptr}: $ref with sibling keys`);
     });
     const roots = schemaRoots(doc);
-    for (const [root, rptr] of roots) {
-      walkSchema(root, rptr, (s, ptr) => {
+    for (const [root, rptr, opCtx] of roots) {
+      walkSchema(root, rptr, (s, ptr, path) => {
         for (const k of FORBIDDEN_SCHEMA_KEYS) if (k in s) v("2", `${ptr}: '${k}' is forbidden in schemas`);
         if (Array.isArray(s.type)) v("2", `${ptr}: type arrays are forbidden`);
         // ---- rule 3: closed, bounded schemas
         if (s.type === "object" || isObj(s.properties)) {
-          if (s.additionalProperties !== false) v("3", `${ptr}: object needs additionalProperties: false`);
+          if (s.additionalProperties !== false && !openObjectAllowed(name, opCtx, path)) v("3", `${ptr}: object needs additionalProperties: false`);
         }
         if (s.type === "string" && typeof s.maxLength !== "number") v("3", `${ptr}: string needs maxLength`);
         if (s.type === "array" && typeof s.maxItems !== "number") v("3", `${ptr}: array needs maxItems`);

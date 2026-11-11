@@ -1,12 +1,14 @@
 // Result service — T-13: calculated-result recompute (02-TRD §4.3 step 6, §4.4; 08 R3/R5/R7, R12a). Runs in the caller's transaction (ctx.tx).
 // Tenant comes from ctx only; thrown problems never carry values. R7 outputs go only to the NEW result_versions row (store.amendCalculated).
 import { LimsError } from '../../../core/errors.js';
+import type { PublishInput } from '../../../core/events/publish.js';
 import { computeCalculated, formulaRefsOf, orderCalculated, type CalcInput, type CalcOutcome } from '../domain/formulaInputs.js';
 
 type Sex = 'female' | 'male' | 'other' | 'unknown';
 export interface CalcTarget {
   resultId: string; analyteCode: string; expression: string; status: string; versionNo: number; rowVersion: number;
-  decimals: number; testRevision: number; catalogRevision: number; sex: Sex; ageDays?: number;
+  decimals: number; testRevision: number; catalogRevision: number; sex: Sex; ageDays?: number; ageYears?: number;
+  orderId: string; testId: string; analyteId: string; // 03-IC §3.11 payload fields (review C5.T-13 item 1)
 }
 export interface ResultStore {
   listCalculatedTargets(tx: unknown, tenantId: string, orderItemId: string): Promise<CalcTarget[]>;
@@ -22,11 +24,13 @@ export interface ResultStore {
 }
 export interface RecomputeCtx {
   readonly tenantId: string;
-  readonly actor: { readonly type?: string; readonly id: string };
+  readonly requestId?: string;
+  readonly actor: { readonly type?: string; readonly id: string; readonly membershipId?: string };
   readonly tx: object;
   now(): Date;
   readonly store: ResultStore;
-  readonly events: { emit(type: string, payload: { result_id: string; version_no: number }): Promise<void> };
+  /** core ctx.events.publish (services/api/src/core/events/publish.ts). */
+  readonly events: { publish(ctx: RecomputeCtx, type: string, input: PublishInput): Promise<unknown> };
 }
 export interface RecomputeInput {
   orderItemId: string; changedAnalyteCode: string; trigger: 'enter' | 'amend';
@@ -71,7 +75,7 @@ export async function recomputeDependents(ctx: RecomputeCtx, i: RecomputeInput):
       ? { calcStatus: 'not_computable', reason: 'formula_cycle' }
       : computeCalculated({
         expression: t.expression, inputs, inputUnitByCode: units, outputDecimals: t.decimals,
-        ctx: { sex: t.sex, ...(t.ageDays === undefined ? {} : { ageDays: t.ageDays }) },
+        ctx: { sex: t.sex, ...(t.ageDays === undefined ? {} : { ageDays: t.ageDays }), ...(t.ageYears === undefined ? {} : { ageYears: t.ageYears }) }, // 02-TRD §4.4
         testRevision: t.testRevision, catalogRevision: t.catalogRevision, evaluatedAt: ctx.now(),
       });
     let versionNo = t.versionNo;
@@ -83,7 +87,17 @@ export async function recomputeDependents(ctx: RecomputeCtx, i: RecomputeInput):
         reasonCode: (i.amendmentReason as { reasonCode: string }).reasonCode,
         ...(i.amendmentReason?.reasonText === undefined ? {} : { reasonText: i.amendmentReason.reasonText }),
       });
-      await ctx.events.emit('lab.result.amended.v1', { result_id: t.resultId, version_no: versionNo });
+      // 03-IC §3.11: no value and no reason text in the payload (P3).
+      await ctx.events.publish(ctx, 'lab.result.amended.v1', {
+        aggregate: { type: 'result', id: t.resultId, seq: versionNo },
+        idempotencyKey: `${t.resultId}:amended:${versionNo}`,
+        payload: {
+          result_id: t.resultId, previous_version_no: t.versionNo, new_version_no: versionNo,
+          order_id: t.orderId, order_item_id: i.orderItemId, test_id: t.testId, analyte_id: t.analyteId,
+          amendment_reason_code: (i.amendmentReason as { reasonCode: string }).reasonCode,
+          amended_at: ctx.now().toISOString(), amended_by_membership_id: ctx.actor.membershipId,
+        },
+      });
     } else {
       await store.applyComputed(tx, tenantId, {
         resultId: t.resultId, expectedRowVersion: t.rowVersion, outcome, origin: 'calculated',

@@ -20,7 +20,7 @@ type Obj = Record<string, any>;
 interface Ports { IdentityPort: { assertRole(ctx: unknown, r: { permission: string; centreId?: string }): Promise<void> } }
 interface OrderResults { order: unknown; centreId: string; items: { orderItemId: string; testId: string; testCode: string; results: ResultRow[] }[] }
 type ReadStore = EntryStore & { getOrderResults(tx: unknown, tenantId: string, a: { orderId: string; departmentId?: string }): Promise<OrderResults | undefined> };
-interface Ctx extends HandlerContext { tenantId: string; actor: { id: string }; tx: object; now?: () => Date; store?: ReadStore; ports?: Ports }
+interface Ctx extends HandlerContext { tenantId: string; actor: { id: string }; tx: object; now?: () => Date; store?: ReadStore; ports?: Ports; audit?: { access(e: Obj): Promise<void> } }
 
 export const obj = (v: unknown): Obj => (typeof v === 'object' && v !== null && !Array.isArray(v) ? (v as Obj) : {});
 

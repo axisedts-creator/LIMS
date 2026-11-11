@@ -7,3 +7,6 @@ Fix is in the verify runner: run AG-T15-verify.cmd from cmd.exe/PowerShell (Syst
 ## Round 3 (LD-108)
 Re-run with C:\LIMS-state\shim first on PATH was blocked by a permission prompt; NOT re-run by me. No code or test changed.
 Last log (verify.log) fails 3 tests at windows_integration_test.go:99/131/198, all PrepareFolders: "cannot make BUILTIN\Administrators the owner ... This security ID may not be assigned as the owner of this object." Not a whoami failure; the non-elevated token cannot assign Administrators as owner. Same as AG-T15-dispute.md (tests need elevation or skip). Awaiting the dispute ruling or an elevated verify run.
+## Round 4 (after ruling, writer re-run)
+Verify (non-elevated Git Bash): status ok, cli ok; svc: 3 PrepareFolders tests SKIP (ruling), TestPrepareFoldersOwnerIsAdministrators PASS (fails closed), one FAIL: windows_integration_test.go:234 `status.json readable by "raunak\rauna"` (TestStatusFileACLAppliedNoUsers).
+`whoami` inside the test printed `rauna`: Git Bash prepends /usr/bin, so `which -a whoami` = /usr/bin/whoami, /bin/whoami, then /c/LIMS-state/shim/whoami. Shim is on PATH but not first. icacls prints `raunak\rauna`. Env-prefixed re-run with shim first was blocked by a permission prompt. No code or test changed (LD-108).

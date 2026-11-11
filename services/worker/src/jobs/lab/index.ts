@@ -10,6 +10,8 @@ import { handle as cancelledHandler } from './consumers/frontdesk.order.cancelle
 import { handle as homeCollectionHandler } from './consumers/homecollection.collection.synced.v1.js';
 import { handle as instrumentResultHandler } from './consumers/instruments.result.received.v1.js';
 
+import { handle as reportReleasedHandler } from './consumers/reporting.report.released.v1.js';
+
 const CONSUMED = [
   'frontdesk.order.created.v1',
   'frontdesk.order.items_changed.v1',
@@ -32,6 +34,7 @@ const IMPLEMENTED: Readonly<Record<string, ConsumerHandler>> = {
   'frontdesk.order.items_changed.v1': itemsChangedHandler,
   'frontdesk.order.cancelled.v1': cancelledHandler,
   'homecollection.collection.synced.v1': homeCollectionHandler,
+  'reporting.report.released.v1': reportReleasedHandler,   // T-27
   'instruments.result.received.v1': instrumentResultHandler,   // T-22
 };
 

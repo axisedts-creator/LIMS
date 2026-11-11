@@ -11,7 +11,7 @@
 //     emitted by tools/codegen/codegen.ts generateAll() (path "packages/fakes/src/msw/handlers.generated.ts"),
 //     byte-equal to the committed file. Handlers match ANY origin (e.g. `*/v1/...`) and every `{param}` value.
 //   packages/fakes/src/msw/server.ts: `export const server` = setupServer(...handlers) (msw/node)
-//   Response = lowest 2xx status in the spec, first `examples` entry (or `example`) of application/json; no body if none.
+//   Response = lowest 2xx, else lowest 3xx status in the spec (ruling T0C-10.C15), first `examples` entry (or `example`) of application/json; no body if none.
 import { readFileSync, readdirSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
@@ -40,7 +40,11 @@ const ops: Op[] = domains.flatMap((dom) => {
   return Object.entries<any>(doc.paths ?? {}).flatMap(([path, item]) =>
     METHODS.filter((m) => item[m]?.operationId).map((method) => {
       const responses = item[method].responses ?? {};
-      const status = Math.min(...Object.keys(responses).filter((s) => /^2\d\d$/.test(s)).map(Number));
+      const codes = (re: RegExp) => Object.keys(responses).filter((s) => re.test(s)).map(Number);
+      const c2 = codes(/^2\d\d$/), c3 = codes(/^3\d\d$/);
+      // Ruling T0C-10.C15: lowest 2xx, else lowest 3xx (303-only callbacks); neither = explicit failure.
+      if (!c2.length && !c3.length) throw new Error(`${item[method].operationId}: no 2xx or 3xx response`);
+      const status = Math.min(...(c2.length ? c2 : c3));
       const res = resolveRef(doc, responses[String(status)], dom);
       const json = res?.content?.["application/json"];
       const ex = json?.examples ? resolveRef(doc, Object.values<any>(json.examples)[0], dom)?.value : json?.example;

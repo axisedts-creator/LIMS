@@ -39,8 +39,9 @@ describe('T-01 worker manifest (lab)', () => {
   // Each consumer task replaces its stub (06-IMPLEMENTATION-PLAN); add its event type here when it lands. T-06: the three frontdesk.order.* consumers
   // (behaviour: consumers.order.test.ts and service/__tests__/order.service.integration.test.ts). T-09: homecollection.collection.synced.v1
   // (consumers.homecollection.test.ts and service/__tests__/homecollection.consumer.integration.test.ts).
+  // T-27: reporting.report.released.v1 (consumers.reportreleased.test.ts and service/__tests__/reportreleased.consumer.integration.test.ts).
   // T-22: instruments.result.received.v1 (consumers.instruments.test.ts and service/__tests__/ingest.service.test.ts).
-  const IMPLEMENTED = new Set(['frontdesk.order.created.v1', 'frontdesk.order.items_changed.v1', 'frontdesk.order.cancelled.v1', 'homecollection.collection.synced.v1', 'instruments.result.received.v1']);
+  const IMPLEMENTED = new Set(['frontdesk.order.created.v1', 'frontdesk.order.items_changed.v1', 'frontdesk.order.cancelled.v1', 'homecollection.collection.synced.v1', 'reporting.report.released.v1', 'instruments.result.received.v1']);
 
   it('every not-yet-implemented subscription handler is a stub that rejects with common.internal (no silent success, no 501)', async () => {
     const all = Object.entries(manifest.subscriptions ?? {});

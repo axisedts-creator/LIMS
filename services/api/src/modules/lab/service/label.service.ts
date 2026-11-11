@@ -18,7 +18,7 @@ type Ctx = SpecimenCtx & { readonly ports: SpecimenCtx['ports'] & { readonly Ide
 } } };
 
 /** "43Y/F": years, else months, else days (+ sex initial). Only FrontdeskPort data (never stored by C5, 02-TRD §4 patient_display). */
-function ageSex(d: Demo): string {
+export function ageSex(d: Demo): string {
   const a = d.ageAtOrder ?? {};
   const age = (a.years ?? 0) > 0 ? `${a.years}Y` : (a.months ?? 0) > 0 ? `${a.months}M` : a.days !== undefined ? `${a.days}D` : '';
   const s = typeof d.sex === 'string' && d.sex ? d.sex[0]!.toUpperCase() : '';

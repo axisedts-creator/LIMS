@@ -1112,6 +1112,184 @@ export interface Operations {
       };
     };
   };
+  approvePaymentRefund: {
+    params: {
+      refund_id: string;
+    };
+    query: Record<string, never>;
+    headers: {
+      "Idempotency-Key": string;
+      "If-Match": string;
+    };
+    body: {
+      note?: string;
+    };
+    responses: {
+      200: ({
+        id: string;
+        intent_id: string;
+        order_id: string;
+        gateway: "esewa" | "khalti" | "fonepay";
+        mode: "manual" | "api";
+        status: "pending_approval" | "approved" | "rejected" | "requested" | "held_for_review" | "completed" | "failed";
+        amount: {
+          amount_paisa: number;
+          currency: "NPR";
+        };
+        reason_code: string;
+        reason_text?: string;
+        requested_by: {
+          membership_id: string;
+          display_name: string;
+        };
+        requested_at: string;
+        approved_by?: {
+          membership_id: string;
+          display_name: string;
+        };
+        approved_at?: string;
+        rejected_by?: {
+          membership_id: string;
+          display_name: string;
+        };
+        rejected_at?: string;
+        gateway_refund_reference?: string;
+        completed_at?: string;
+        ledger_entry_id?: string;
+        failure_reason?: string;
+        failure_note?: string;
+        held_reason?: string;
+        last_checked_at?: string;
+        version: number;
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      409: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      422: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      428: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
   approvePurchaseOrder: {
     params: {
       po_id: string;
@@ -4032,6 +4210,136 @@ export interface Operations {
       };
     };
   };
+  cancelPaymentIntent: {
+    params: {
+      intent_id: string;
+    };
+    query: Record<string, never>;
+    headers: {
+      "Idempotency-Key": string;
+    };
+    body: {
+      reason_code: string;
+    };
+    responses: {
+      200: ({
+        intent_id: string;
+        status: "created" | "initiated" | "pending" | "settled" | "failed" | "expired" | "held_for_review" | "refunded" | "partially_refunded";
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      409: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      422: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
   cancelPurchaseOrder: {
     params: {
       po_id: string;
@@ -6004,6 +6312,185 @@ export interface Operations {
         }[];
       };
       401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  confirmManualPaymentRefund: {
+    params: {
+      refund_id: string;
+    };
+    query: Record<string, never>;
+    headers: {
+      "Idempotency-Key": string;
+      "If-Match": string;
+    };
+    body: {
+      gateway_refund_reference: string;
+      refunded_on: string;
+    };
+    responses: {
+      200: ({
+        id: string;
+        intent_id: string;
+        order_id: string;
+        gateway: "esewa" | "khalti" | "fonepay";
+        mode: "manual" | "api";
+        status: "pending_approval" | "approved" | "rejected" | "requested" | "held_for_review" | "completed" | "failed";
+        amount: {
+          amount_paisa: number;
+          currency: "NPR";
+        };
+        reason_code: string;
+        reason_text?: string;
+        requested_by: {
+          membership_id: string;
+          display_name: string;
+        };
+        requested_at: string;
+        approved_by?: {
+          membership_id: string;
+          display_name: string;
+        };
+        approved_at?: string;
+        rejected_by?: {
+          membership_id: string;
+          display_name: string;
+        };
+        rejected_at?: string;
+        gateway_refund_reference?: string;
+        completed_at?: string;
+        ledger_entry_id?: string;
+        failure_reason?: string;
+        failure_note?: string;
+        held_reason?: string;
+        last_checked_at?: string;
+        version: number;
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      409: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      422: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      428: {
         type: string;
         title: string;
         status: number;
@@ -12025,6 +12512,171 @@ export interface Operations {
       };
     };
   };
+  createPaymentRefundRequest: {
+    params: {
+      intent_id: string;
+    };
+    query: Record<string, never>;
+    headers: {
+      "Idempotency-Key": string;
+    };
+    body: {
+      refund_amount_paisa: number;
+      reason_code: string;
+      reason_text?: string;
+    };
+    responses: {
+      201: ({
+        id: string;
+        intent_id: string;
+        order_id: string;
+        gateway: "esewa" | "khalti" | "fonepay";
+        mode: "manual" | "api";
+        status: "pending_approval" | "approved" | "rejected" | "requested" | "held_for_review" | "completed" | "failed";
+        amount: {
+          amount_paisa: number;
+          currency: "NPR";
+        };
+        reason_code: string;
+        reason_text?: string;
+        requested_by: {
+          membership_id: string;
+          display_name: string;
+        };
+        requested_at: string;
+        approved_by?: {
+          membership_id: string;
+          display_name: string;
+        };
+        approved_at?: string;
+        rejected_by?: {
+          membership_id: string;
+          display_name: string;
+        };
+        rejected_at?: string;
+        gateway_refund_reference?: string;
+        completed_at?: string;
+        ledger_entry_id?: string;
+        failure_reason?: string;
+        failure_note?: string;
+        held_reason?: string;
+        last_checked_at?: string;
+        version: number;
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      409: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      422: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
   createPlatformIrdAnnex: {
     params: Record<string, never>;
     query: Record<string, never>;
@@ -14424,6 +15076,160 @@ export interface Operations {
         updated_at: string;
         report_label: string;
       };
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      409: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      422: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  createStaticQrReconciliation: {
+    params: Record<string, never>;
+    query: Record<string, never>;
+    headers: {
+      "Idempotency-Key": string;
+    };
+    body: {
+      business_date: string;
+      centre_id?: string;
+      statement_total_paisa: number;
+      statement_reference: string;
+      note?: string;
+    };
+    responses: {
+      201: ({
+        id: string;
+        business_date: string;
+        centre_id?: string;
+        system_entries: number;
+        system_total: {
+          amount_paisa: number;
+          currency: "NPR";
+        };
+        statement_total: {
+          amount_paisa: number;
+          currency: "NPR";
+        };
+        difference: {
+          amount_paisa: number;
+          currency: "NPR";
+        };
+        statement_reference: string;
+        status: "matched" | "accepted_with_difference";
+        note?: string;
+        reconciled_by: {
+          membership_id: string;
+          display_name: string;
+        };
+        created_at: string;
+      });
       400: {
         type: string;
         title: string;
@@ -21542,6 +22348,114 @@ export interface Operations {
       };
     };
   };
+  esewaFailureCallback: {
+    params: {
+      callback_token: string;
+    };
+    query: Record<string, never>;
+    headers: Record<string, never>;
+    body: never;
+    responses: {
+      303: undefined;
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  esewaSuccessCallback: {
+    params: {
+      callback_token: string;
+    };
+    query: {
+      data?: string;
+    };
+    headers: Record<string, never>;
+    body: never;
+    responses: {
+      303: undefined;
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
   exportGoodsReceiptsCsv: {
     params: Record<string, never>;
     query: {
@@ -21758,6 +22672,199 @@ export interface Operations {
         }[];
       };
       500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  failManualPaymentRefund: {
+    params: {
+      refund_id: string;
+    };
+    query: Record<string, never>;
+    headers: {
+      "Idempotency-Key": string;
+      "If-Match": string;
+    };
+    body: {
+      reason_code: string;
+      note?: string;
+    };
+    responses: {
+      200: ({
+        id: string;
+        intent_id: string;
+        order_id: string;
+        gateway: "esewa" | "khalti" | "fonepay";
+        mode: "manual" | "api";
+        status: "pending_approval" | "approved" | "rejected" | "requested" | "held_for_review" | "completed" | "failed";
+        amount: {
+          amount_paisa: number;
+          currency: "NPR";
+        };
+        reason_code: string;
+        reason_text?: string;
+        requested_by: {
+          membership_id: string;
+          display_name: string;
+        };
+        requested_at: string;
+        approved_by?: {
+          membership_id: string;
+          display_name: string;
+        };
+        approved_at?: string;
+        rejected_by?: {
+          membership_id: string;
+          display_name: string;
+        };
+        rejected_at?: string;
+        gateway_refund_reference?: string;
+        completed_at?: string;
+        ledger_entry_id?: string;
+        failure_reason?: string;
+        failure_note?: string;
+        held_reason?: string;
+        last_checked_at?: string;
+        version: number;
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      409: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      422: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      428: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      503: {
         type: string;
         title: string;
         status: number;
@@ -30572,6 +31679,477 @@ export interface Operations {
       };
     };
   };
+  getPaymentIntent: {
+    params: {
+      intent_id: string;
+    };
+    query: Record<string, never>;
+    headers: Record<string, never>;
+    body: never;
+    responses: {
+      200: ({
+        id: string;
+        order_id: string;
+        centre_id: string;
+        gateway: "esewa" | "khalti" | "fonepay";
+        environment: "uat" | "production";
+        status: "created" | "initiated" | "pending" | "settled" | "failed" | "expired" | "held_for_review" | "refunded" | "partially_refunded";
+        amount: {
+          amount_paisa: number;
+          currency: "NPR";
+        };
+        hold_reason?: string;
+        failure_reason?: string;
+        created_at: string;
+        expires_at?: string;
+        settled_at?: string;
+        last_checked_at?: string;
+        version: number;
+        gateway_txn_ref: string;
+        gateway_secondary_ref?: string;
+        last_gateway_status_raw?: string;
+        verified_amount?: {
+          amount_paisa: number;
+          currency: "NPR";
+        };
+        verification_method?: "esewa_status_check" | "khalti_lookup";
+        refunded_amount: {
+          amount_paisa: number;
+          currency: "NPR";
+        };
+        ledger_entry_id?: string;
+        created_by_actor_type: "user" | "system";
+        transitions: ({
+          from_status?: "created" | "initiated" | "pending" | "settled" | "failed" | "expired" | "held_for_review" | "refunded" | "partially_refunded";
+          to_status: "created" | "initiated" | "pending" | "settled" | "failed" | "expired" | "held_for_review" | "refunded" | "partially_refunded";
+          cause: "create" | "callback" | "poll" | "verify_call" | "recheck" | "resolve" | "cancel" | "reconciliation" | "refund" | "sweep";
+          reason_code?: string;
+          actor_type: "user" | "system";
+          at: string;
+        })[];
+        gateway_checks: ({
+          operation: "khalti_initiate" | "khalti_lookup" | "esewa_status" | "khalti_refund" | "credential_test";
+          outcome: "answer" | "service_unavailable" | "timeout" | "network_error" | "http_error" | "auth_error" | "not_found" | "invalid_response";
+          gateway_status_raw?: string;
+          http_status?: number;
+          at: string;
+        })[];
+        callbacks: ({
+          kind: "esewa_success" | "esewa_failure" | "khalti_return" | "launch";
+          outcome_code: "ok" | "payments.signature_invalid" | "payments.callback_mismatch" | "payments.callback_stale" | "rate_limited";
+          signature_valid?: boolean;
+          at: string;
+        })[];
+        refunds: ({
+          id: string;
+          intent_id: string;
+          order_id: string;
+          gateway: "esewa" | "khalti" | "fonepay";
+          mode: "manual" | "api";
+          status: "pending_approval" | "approved" | "rejected" | "requested" | "held_for_review" | "completed" | "failed";
+          amount: {
+            amount_paisa: number;
+            currency: "NPR";
+          };
+          reason_code: string;
+          reason_text?: string;
+          requested_by: {
+            membership_id: string;
+            display_name: string;
+          };
+          requested_at: string;
+          approved_by?: {
+            membership_id: string;
+            display_name: string;
+          };
+          approved_at?: string;
+          rejected_by?: {
+            membership_id: string;
+            display_name: string;
+          };
+          rejected_at?: string;
+          gateway_refund_reference?: string;
+          completed_at?: string;
+          ledger_entry_id?: string;
+          failure_reason?: string;
+          failure_note?: string;
+          held_reason?: string;
+          last_checked_at?: string;
+          version: number;
+        })[];
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  getPaymentRefund: {
+    params: {
+      refund_id: string;
+    };
+    query: Record<string, never>;
+    headers: Record<string, never>;
+    body: never;
+    responses: {
+      200: ({
+        id: string;
+        intent_id: string;
+        order_id: string;
+        gateway: "esewa" | "khalti" | "fonepay";
+        mode: "manual" | "api";
+        status: "pending_approval" | "approved" | "rejected" | "requested" | "held_for_review" | "completed" | "failed";
+        amount: {
+          amount_paisa: number;
+          currency: "NPR";
+        };
+        reason_code: string;
+        reason_text?: string;
+        requested_by: {
+          membership_id: string;
+          display_name: string;
+        };
+        requested_at: string;
+        approved_by?: {
+          membership_id: string;
+          display_name: string;
+        };
+        approved_at?: string;
+        rejected_by?: {
+          membership_id: string;
+          display_name: string;
+        };
+        rejected_at?: string;
+        gateway_refund_reference?: string;
+        completed_at?: string;
+        ledger_entry_id?: string;
+        failure_reason?: string;
+        failure_note?: string;
+        held_reason?: string;
+        last_checked_at?: string;
+        version: number;
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  getPaymentResultPage: {
+    params: Record<string, never>;
+    query: {
+      outcome: "settled" | "pending" | "failed" | "unknown";
+      intent_id?: string;
+    };
+    headers: Record<string, never>;
+    body: never;
+    responses: {
+      200: string;
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  getPaymentSettings: {
+    params: Record<string, never>;
+    query: Record<string, never>;
+    headers: Record<string, never>;
+    body: never;
+    responses: {
+      200: {
+        refund_two_person_threshold: {
+          amount_paisa: number;
+          currency: "NPR";
+        };
+        purchase_order_label: string;
+        reconciliation_enabled: boolean;
+        version: number;
+      };
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
   getPendingTestsSummary: {
     params: Record<string, never>;
     query: {
@@ -31681,6 +33259,115 @@ export interface Operations {
           ratelimit: "ok" | "degraded" | "down";
         };
       });
+    };
+  };
+  getReconciliationRun: {
+    params: {
+      run_id: string;
+    };
+    query: Record<string, never>;
+    headers: Record<string, never>;
+    body: never;
+    responses: {
+      200: ({
+        id: string;
+        business_date: string;
+        trigger: "cron" | "manual";
+        status: "running" | "completed" | "failed";
+        started_at: string;
+        finished_at?: string;
+        counts: {
+          checked: number;
+          ok: number;
+          findings: number;
+          critical: number;
+        };
+        version: number;
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
     };
   };
   getReferenceRangeSet: {
@@ -37190,6 +38877,124 @@ export interface Operations {
         }[];
       };
       503: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  khaltiReturnCallback: {
+    params: {
+      callback_token: string;
+    };
+    query: {
+      pidx?: string;
+      status?: string;
+      transaction_id?: string;
+      tidx?: string;
+      txnId?: string;
+      amount?: string;
+      total_amount?: string;
+      mobile?: string;
+      purchase_order_id?: string;
+      purchase_order_name?: string;
+    };
+    headers: Record<string, never>;
+    body: never;
+    responses: {
+      303: undefined;
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  launchEsewaPayment: {
+    params: {
+      callback_token: string;
+    };
+    query: Record<string, never>;
+    headers: Record<string, never>;
+    body: never;
+    responses: {
+      200: string;
+      303: undefined;
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
         type: string;
         title: string;
         status: number;
@@ -44035,6 +45840,118 @@ export interface Operations {
       };
     };
   };
+  listMerchantAccounts: {
+    params: Record<string, never>;
+    query: Record<string, never>;
+    headers: Record<string, never>;
+    body: never;
+    responses: {
+      200: ({
+        data: ({
+          gateway: "esewa" | "khalti" | "fonepay";
+          environment: "uat" | "production";
+          is_enabled: boolean;
+          esewa_product_code?: string;
+          khalti_website_url?: string;
+          secret: {
+            is_set: boolean;
+            set_at?: string;
+            fingerprint?: string;
+          };
+          api_refunds_enabled: boolean;
+          last_test?: {
+            outcome: "reachable_key_valid" | "reachable_key_unverifiable" | "auth_failed" | "unreachable";
+            at: string;
+          };
+          version: number;
+        })[];
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
   listMessageRejections: {
     params: Record<string, never>;
     query: {
@@ -46034,6 +47951,480 @@ export interface Operations {
       };
     };
   };
+  listPaymentCancelReasons: {
+    params: Record<string, never>;
+    query: Record<string, never>;
+    headers: Record<string, never>;
+    body: never;
+    responses: {
+      200: {
+        data: {
+          code: string;
+          display: string;
+          requires_text: boolean;
+          is_active: boolean;
+        }[];
+      };
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  listPaymentCodes: {
+    params: {
+      set_name: "hold_reasons" | "failure_reasons" | "cancel_reasons" | "resolution_reasons" | "refund_reasons" | "refund_reject_reasons" | "refund_fail_reasons" | "refund_hold_reasons" | "finding_kinds" | "finding_resolutions";
+    };
+    query: Record<string, never>;
+    headers: Record<string, never>;
+    body: never;
+    responses: {
+      200: {
+        data: {
+          code: string;
+          display: string;
+          requires_text: boolean;
+          is_active: boolean;
+        }[];
+      };
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  listPaymentIntents: {
+    params: Record<string, never>;
+    query: {
+      status?: ("created" | "initiated" | "pending" | "settled" | "failed" | "expired" | "held_for_review" | "refunded" | "partially_refunded")[];
+      gateway?: ("esewa" | "khalti" | "fonepay")[];
+      hold_reason?: string;
+      order_id?: string;
+      centre_id?: string;
+      created_at_from?: string;
+      created_at_to?: string;
+      sort?: "-created_at" | "created_at";
+      cursor?: string;
+      limit?: number;
+    };
+    headers: Record<string, never>;
+    body: never;
+    responses: {
+      200: ({
+        data: ({
+          id: string;
+          order_id: string;
+          centre_id: string;
+          gateway: "esewa" | "khalti" | "fonepay";
+          environment: "uat" | "production";
+          status: "created" | "initiated" | "pending" | "settled" | "failed" | "expired" | "held_for_review" | "refunded" | "partially_refunded";
+          amount: {
+            amount_paisa: number;
+            currency: "NPR";
+          };
+          hold_reason?: string;
+          failure_reason?: string;
+          created_at: string;
+          expires_at?: string;
+          settled_at?: string;
+          last_checked_at?: string;
+          version: number;
+        })[];
+        page: {
+          next_cursor?: string;
+          limit: number;
+        };
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  listPaymentRefunds: {
+    params: Record<string, never>;
+    query: {
+      status?: ("pending_approval" | "approved" | "rejected" | "requested" | "held_for_review" | "completed" | "failed")[];
+      gateway?: ("esewa" | "khalti" | "fonepay")[];
+      intent_id?: string;
+      created_at_from?: string;
+      created_at_to?: string;
+      sort?: "-created_at" | "created_at";
+      cursor?: string;
+      limit?: number;
+    };
+    headers: Record<string, never>;
+    body: never;
+    responses: {
+      200: ({
+        data: ({
+          id: string;
+          intent_id: string;
+          order_id: string;
+          gateway: "esewa" | "khalti" | "fonepay";
+          mode: "manual" | "api";
+          status: "pending_approval" | "approved" | "rejected" | "requested" | "held_for_review" | "completed" | "failed";
+          amount: {
+            amount_paisa: number;
+            currency: "NPR";
+          };
+          reason_code: string;
+          reason_text?: string;
+          requested_by: {
+            membership_id: string;
+            display_name: string;
+          };
+          requested_at: string;
+          approved_by?: {
+            membership_id: string;
+            display_name: string;
+          };
+          approved_at?: string;
+          rejected_by?: {
+            membership_id: string;
+            display_name: string;
+          };
+          rejected_at?: string;
+          gateway_refund_reference?: string;
+          completed_at?: string;
+          ledger_entry_id?: string;
+          failure_reason?: string;
+          failure_note?: string;
+          held_reason?: string;
+          last_checked_at?: string;
+          version: number;
+        })[];
+        page: {
+          next_cursor?: string;
+          limit: number;
+        };
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
   listPendingItems: {
     params: Record<string, never>;
     query: {
@@ -47697,6 +50088,261 @@ export interface Operations {
       };
     };
   };
+  listReconciliationFindings: {
+    params: Record<string, never>;
+    query: {
+      status?: "open" | "resolved";
+      kind?: string;
+      severity?: "info" | "warning" | "critical";
+      run_id?: string;
+      sort?: "-created_at" | "severity";
+      cursor?: string;
+      limit?: number;
+    };
+    headers: Record<string, never>;
+    body: never;
+    responses: {
+      200: ({
+        data: ({
+          id: string;
+          run_id: string;
+          kind: string;
+          severity: "info" | "warning" | "critical";
+          intent_id?: string;
+          refund_id?: string;
+          our_status?: string;
+          gateway_status_raw?: string;
+          our_amount?: {
+            amount_paisa: number;
+            currency: "NPR";
+          };
+          gateway_amount?: {
+            amount_paisa: number;
+            currency: "NPR";
+          };
+          auto_action: "none" | "settled" | "held" | "ledger_repaired";
+          status: "open" | "resolved";
+          resolution_code?: string;
+          note?: string;
+          resolved_by?: {
+            membership_id: string;
+            display_name: string;
+          };
+          resolved_at?: string;
+          created_at: string;
+          version: number;
+        })[];
+        page: {
+          next_cursor?: string;
+          limit: number;
+        };
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  listReconciliationRuns: {
+    params: Record<string, never>;
+    query: {
+      business_date_from?: string;
+      business_date_to?: string;
+      status?: "running" | "completed" | "failed";
+      sort?: "-business_date";
+      cursor?: string;
+      limit?: number;
+    };
+    headers: Record<string, never>;
+    body: never;
+    responses: {
+      200: ({
+        data: ({
+          id: string;
+          business_date: string;
+          trigger: "cron" | "manual";
+          status: "running" | "completed" | "failed";
+          started_at: string;
+          finished_at?: string;
+          counts: {
+            checked: number;
+            ok: number;
+            findings: number;
+            critical: number;
+          };
+          version: number;
+        })[];
+        page: {
+          next_cursor?: string;
+          limit: number;
+        };
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
   listReferenceRangeSets: {
     params: {
       analyte_id: string;
@@ -48925,6 +51571,136 @@ export interface Operations {
             test_id: string;
             test_code: string;
           }[];
+        })[];
+        page: {
+          next_cursor?: string;
+          limit: number;
+        };
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  listStaticQrReconciliations: {
+    params: Record<string, never>;
+    query: {
+      business_date_from?: string;
+      business_date_to?: string;
+      centre_id?: string;
+      cursor?: string;
+      limit?: number;
+    };
+    headers: Record<string, never>;
+    body: never;
+    responses: {
+      200: ({
+        data: ({
+          id: string;
+          business_date: string;
+          centre_id?: string;
+          system_entries: number;
+          system_total: {
+            amount_paisa: number;
+            currency: "NPR";
+          };
+          statement_total: {
+            amount_paisa: number;
+            currency: "NPR";
+          };
+          difference: {
+            amount_paisa: number;
+            currency: "NPR";
+          };
+          statement_reference: string;
+          status: "matched" | "accepted_with_difference";
+          note?: string;
+          reconciled_by: {
+            membership_id: string;
+            display_name: string;
+          };
+          created_at: string;
         })[];
         page: {
           next_cursor?: string;
@@ -53992,6 +56768,110 @@ export interface Operations {
       };
     };
   };
+  previewStaticQrReconciliation: {
+    params: Record<string, never>;
+    query: {
+      business_date: string;
+      centre_id?: string;
+    };
+    headers: Record<string, never>;
+    body: never;
+    responses: {
+      200: {
+        business_date: string;
+        centre_id?: string;
+        system_entries: number;
+        system_total: {
+          amount_paisa: number;
+          currency: "NPR";
+        };
+      };
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
   printCreditNote: {
     params: {
       credit_note_id: string;
@@ -55816,6 +58696,155 @@ export interface Operations {
         }[];
       };
       500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  putMerchantAccount: {
+    params: {
+      gateway: "esewa" | "khalti" | "fonepay";
+      environment: "uat" | "production";
+    };
+    query: Record<string, never>;
+    headers: {
+      "If-Match"?: string;
+    };
+    body: {
+      is_enabled: boolean;
+      esewa_product_code?: string;
+      khalti_website_url?: string;
+      secret?: string;
+      api_refunds_enabled?: boolean;
+    };
+    responses: {
+      200: ({
+        gateway: "esewa" | "khalti" | "fonepay";
+        environment: "uat" | "production";
+        is_enabled: boolean;
+        esewa_product_code?: string;
+        khalti_website_url?: string;
+        secret: {
+          is_set: boolean;
+          set_at?: string;
+          fingerprint?: string;
+        };
+        api_refunds_enabled: boolean;
+        last_test?: {
+          outcome: "reachable_key_valid" | "reachable_key_unverifiable" | "auth_failed" | "unreachable";
+          at: string;
+        };
+        version: number;
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      409: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      503: {
         type: string;
         title: string;
         status: number;
@@ -57752,6 +60781,378 @@ export interface Operations {
       };
     };
   };
+  recheckPaymentIntent: {
+    params: {
+      intent_id: string;
+    };
+    query: Record<string, never>;
+    headers: Record<string, never>;
+    body: never;
+    responses: {
+      200: ({
+        id: string;
+        order_id: string;
+        centre_id: string;
+        gateway: "esewa" | "khalti" | "fonepay";
+        environment: "uat" | "production";
+        status: "created" | "initiated" | "pending" | "settled" | "failed" | "expired" | "held_for_review" | "refunded" | "partially_refunded";
+        amount: {
+          amount_paisa: number;
+          currency: "NPR";
+        };
+        hold_reason?: string;
+        failure_reason?: string;
+        created_at: string;
+        expires_at?: string;
+        settled_at?: string;
+        last_checked_at?: string;
+        version: number;
+        gateway_txn_ref: string;
+        gateway_secondary_ref?: string;
+        last_gateway_status_raw?: string;
+        verified_amount?: {
+          amount_paisa: number;
+          currency: "NPR";
+        };
+        verification_method?: "esewa_status_check" | "khalti_lookup";
+        refunded_amount: {
+          amount_paisa: number;
+          currency: "NPR";
+        };
+        ledger_entry_id?: string;
+        created_by_actor_type: "user" | "system";
+        transitions: ({
+          from_status?: "created" | "initiated" | "pending" | "settled" | "failed" | "expired" | "held_for_review" | "refunded" | "partially_refunded";
+          to_status: "created" | "initiated" | "pending" | "settled" | "failed" | "expired" | "held_for_review" | "refunded" | "partially_refunded";
+          cause: "create" | "callback" | "poll" | "verify_call" | "recheck" | "resolve" | "cancel" | "reconciliation" | "refund" | "sweep";
+          reason_code?: string;
+          actor_type: "user" | "system";
+          at: string;
+        })[];
+        gateway_checks: ({
+          operation: "khalti_initiate" | "khalti_lookup" | "esewa_status" | "khalti_refund" | "credential_test";
+          outcome: "answer" | "service_unavailable" | "timeout" | "network_error" | "http_error" | "auth_error" | "not_found" | "invalid_response";
+          gateway_status_raw?: string;
+          http_status?: number;
+          at: string;
+        })[];
+        callbacks: ({
+          kind: "esewa_success" | "esewa_failure" | "khalti_return" | "launch";
+          outcome_code: "ok" | "payments.signature_invalid" | "payments.callback_mismatch" | "payments.callback_stale" | "rate_limited";
+          signature_valid?: boolean;
+          at: string;
+        })[];
+        refunds: ({
+          id: string;
+          intent_id: string;
+          order_id: string;
+          gateway: "esewa" | "khalti" | "fonepay";
+          mode: "manual" | "api";
+          status: "pending_approval" | "approved" | "rejected" | "requested" | "held_for_review" | "completed" | "failed";
+          amount: {
+            amount_paisa: number;
+            currency: "NPR";
+          };
+          reason_code: string;
+          reason_text?: string;
+          requested_by: {
+            membership_id: string;
+            display_name: string;
+          };
+          requested_at: string;
+          approved_by?: {
+            membership_id: string;
+            display_name: string;
+          };
+          approved_at?: string;
+          rejected_by?: {
+            membership_id: string;
+            display_name: string;
+          };
+          rejected_at?: string;
+          gateway_refund_reference?: string;
+          completed_at?: string;
+          ledger_entry_id?: string;
+          failure_reason?: string;
+          failure_note?: string;
+          held_reason?: string;
+          last_checked_at?: string;
+          version: number;
+        })[];
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      409: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      503: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  recheckPaymentRefund: {
+    params: {
+      refund_id: string;
+    };
+    query: Record<string, never>;
+    headers: Record<string, never>;
+    body: Record<string, never>;
+    responses: {
+      200: ({
+        id: string;
+        intent_id: string;
+        order_id: string;
+        gateway: "esewa" | "khalti" | "fonepay";
+        mode: "manual" | "api";
+        status: "pending_approval" | "approved" | "rejected" | "requested" | "held_for_review" | "completed" | "failed";
+        amount: {
+          amount_paisa: number;
+          currency: "NPR";
+        };
+        reason_code: string;
+        reason_text?: string;
+        requested_by: {
+          membership_id: string;
+          display_name: string;
+        };
+        requested_at: string;
+        approved_by?: {
+          membership_id: string;
+          display_name: string;
+        };
+        approved_at?: string;
+        rejected_by?: {
+          membership_id: string;
+          display_name: string;
+        };
+        rejected_at?: string;
+        gateway_refund_reference?: string;
+        completed_at?: string;
+        ledger_entry_id?: string;
+        failure_reason?: string;
+        failure_note?: string;
+        held_reason?: string;
+        last_checked_at?: string;
+        version: number;
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      409: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      503: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
   recordAccessReview: {
     params: Record<string, never>;
     query: Record<string, never>;
@@ -58904,6 +62305,185 @@ export interface Operations {
         note?: string;
         expires_at: string;
         consumed_order_id?: string;
+        version: number;
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      409: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      422: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      428: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  rejectPaymentRefund: {
+    params: {
+      refund_id: string;
+    };
+    query: Record<string, never>;
+    headers: {
+      "Idempotency-Key": string;
+      "If-Match": string;
+    };
+    body: {
+      reason_code: string;
+      note?: string;
+    };
+    responses: {
+      200: ({
+        id: string;
+        intent_id: string;
+        order_id: string;
+        gateway: "esewa" | "khalti" | "fonepay";
+        mode: "manual" | "api";
+        status: "pending_approval" | "approved" | "rejected" | "requested" | "held_for_review" | "completed" | "failed";
+        amount: {
+          amount_paisa: number;
+          currency: "NPR";
+        };
+        reason_code: string;
+        reason_text?: string;
+        requested_by: {
+          membership_id: string;
+          display_name: string;
+        };
+        requested_at: string;
+        approved_by?: {
+          membership_id: string;
+          display_name: string;
+        };
+        approved_at?: string;
+        rejected_by?: {
+          membership_id: string;
+          display_name: string;
+        };
+        rejected_at?: string;
+        gateway_refund_reference?: string;
+        completed_at?: string;
+        ledger_entry_id?: string;
+        failure_reason?: string;
+        failure_note?: string;
+        held_reason?: string;
+        last_checked_at?: string;
         version: number;
       });
       400: {
@@ -64110,6 +67690,411 @@ export interface Operations {
         }[];
       };
       401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  resolvePaymentIntent: {
+    params: {
+      intent_id: string;
+    };
+    query: Record<string, never>;
+    headers: {
+      "Idempotency-Key": string;
+      "If-Match": string;
+    };
+    body: {
+      resolution: "settle" | "fail" | "record_exceeding_due";
+      reason_code: string;
+      note?: string;
+    };
+    responses: {
+      200: ({
+        id: string;
+        order_id: string;
+        centre_id: string;
+        gateway: "esewa" | "khalti" | "fonepay";
+        environment: "uat" | "production";
+        status: "created" | "initiated" | "pending" | "settled" | "failed" | "expired" | "held_for_review" | "refunded" | "partially_refunded";
+        amount: {
+          amount_paisa: number;
+          currency: "NPR";
+        };
+        hold_reason?: string;
+        failure_reason?: string;
+        created_at: string;
+        expires_at?: string;
+        settled_at?: string;
+        last_checked_at?: string;
+        version: number;
+        gateway_txn_ref: string;
+        gateway_secondary_ref?: string;
+        last_gateway_status_raw?: string;
+        verified_amount?: {
+          amount_paisa: number;
+          currency: "NPR";
+        };
+        verification_method?: "esewa_status_check" | "khalti_lookup";
+        refunded_amount: {
+          amount_paisa: number;
+          currency: "NPR";
+        };
+        ledger_entry_id?: string;
+        created_by_actor_type: "user" | "system";
+        transitions: ({
+          from_status?: "created" | "initiated" | "pending" | "settled" | "failed" | "expired" | "held_for_review" | "refunded" | "partially_refunded";
+          to_status: "created" | "initiated" | "pending" | "settled" | "failed" | "expired" | "held_for_review" | "refunded" | "partially_refunded";
+          cause: "create" | "callback" | "poll" | "verify_call" | "recheck" | "resolve" | "cancel" | "reconciliation" | "refund" | "sweep";
+          reason_code?: string;
+          actor_type: "user" | "system";
+          at: string;
+        })[];
+        gateway_checks: ({
+          operation: "khalti_initiate" | "khalti_lookup" | "esewa_status" | "khalti_refund" | "credential_test";
+          outcome: "answer" | "service_unavailable" | "timeout" | "network_error" | "http_error" | "auth_error" | "not_found" | "invalid_response";
+          gateway_status_raw?: string;
+          http_status?: number;
+          at: string;
+        })[];
+        callbacks: ({
+          kind: "esewa_success" | "esewa_failure" | "khalti_return" | "launch";
+          outcome_code: "ok" | "payments.signature_invalid" | "payments.callback_mismatch" | "payments.callback_stale" | "rate_limited";
+          signature_valid?: boolean;
+          at: string;
+        })[];
+        refunds: ({
+          id: string;
+          intent_id: string;
+          order_id: string;
+          gateway: "esewa" | "khalti" | "fonepay";
+          mode: "manual" | "api";
+          status: "pending_approval" | "approved" | "rejected" | "requested" | "held_for_review" | "completed" | "failed";
+          amount: {
+            amount_paisa: number;
+            currency: "NPR";
+          };
+          reason_code: string;
+          reason_text?: string;
+          requested_by: {
+            membership_id: string;
+            display_name: string;
+          };
+          requested_at: string;
+          approved_by?: {
+            membership_id: string;
+            display_name: string;
+          };
+          approved_at?: string;
+          rejected_by?: {
+            membership_id: string;
+            display_name: string;
+          };
+          rejected_at?: string;
+          gateway_refund_reference?: string;
+          completed_at?: string;
+          ledger_entry_id?: string;
+          failure_reason?: string;
+          failure_note?: string;
+          held_reason?: string;
+          last_checked_at?: string;
+          version: number;
+        })[];
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      409: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      422: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      428: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  resolveReconciliationFinding: {
+    params: {
+      finding_id: string;
+    };
+    query: Record<string, never>;
+    headers: {
+      "Idempotency-Key": string;
+      "If-Match": string;
+    };
+    body: {
+      resolution_code: string;
+      note?: string;
+    };
+    responses: {
+      200: ({
+        id: string;
+        run_id: string;
+        kind: string;
+        severity: "info" | "warning" | "critical";
+        intent_id?: string;
+        refund_id?: string;
+        our_status?: string;
+        gateway_status_raw?: string;
+        our_amount?: {
+          amount_paisa: number;
+          currency: "NPR";
+        };
+        gateway_amount?: {
+          amount_paisa: number;
+          currency: "NPR";
+        };
+        auto_action: "none" | "settled" | "held" | "ledger_repaired";
+        status: "open" | "resolved";
+        resolution_code?: string;
+        note?: string;
+        resolved_by?: {
+          membership_id: string;
+          display_name: string;
+        };
+        resolved_at?: string;
+        created_at: string;
+        version: number;
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      409: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      422: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      428: {
         type: string;
         title: string;
         status: number;
@@ -70318,6 +74303,143 @@ export interface Operations {
       };
     };
   };
+  startReconciliationRun: {
+    params: Record<string, never>;
+    query: Record<string, never>;
+    headers: {
+      "Idempotency-Key": string;
+    };
+    body: Record<string, never>;
+    responses: {
+      202: ({
+        id: string;
+        business_date: string;
+        trigger: "cron" | "manual";
+        status: "running" | "completed" | "failed";
+        started_at: string;
+        finished_at?: string;
+        counts: {
+          checked: number;
+          ok: number;
+          findings: number;
+          critical: number;
+        };
+        version: number;
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      409: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      422: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
   storeSpecimen: {
     params: {
       specimen_id: string;
@@ -71778,6 +75900,105 @@ export interface Operations {
         }[];
       };
       428: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  testMerchantAccount: {
+    params: {
+      gateway: "esewa" | "khalti" | "fonepay";
+      environment: "uat" | "production";
+    };
+    query: Record<string, never>;
+    headers: Record<string, never>;
+    body: never;
+    responses: {
+      200: ({
+        outcome: "reachable_key_valid" | "reachable_key_unverifiable" | "auth_failed" | "unreachable";
+        checked_at: string;
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
         type: string;
         title: string;
         status: number;
@@ -76372,6 +80593,141 @@ export interface Operations {
         };
         version: number;
       });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      409: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      428: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  updatePaymentSettings: {
+    params: Record<string, never>;
+    query: Record<string, never>;
+    headers: {
+      "If-Match": string;
+    };
+    body: {
+      refund_two_person_threshold_paisa: number;
+      purchase_order_label: string;
+      reconciliation_enabled: boolean;
+    };
+    responses: {
+      200: {
+        refund_two_person_threshold: {
+          amount_paisa: number;
+          currency: "NPR";
+        };
+        purchase_order_label: string;
+        reconciliation_enabled: boolean;
+        version: number;
+      };
       400: {
         type: string;
         title: string;

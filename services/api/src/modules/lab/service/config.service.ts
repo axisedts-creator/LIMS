@@ -124,7 +124,7 @@ function parseRule(body: unknown, withAnalyte: boolean): RuleInput {
 }
 const ruleCols = (i: RuleInput): Row => ({ unit_code: i.unitCode, window_seconds: i.windowSeconds, ...(i.abs === undefined ? {} : { abs_threshold: i.abs }), ...(i.pct === undefined ? {} : { pct_threshold: i.pct }) });
 
-/** The delta rule IN FORCE at `at` (AC-12.4): active, effective_from <= at < effective_to. result.service's deltaInputs uses this, not getActiveDeltaRule. */
+/** The delta rule IN FORCE at `at` (AC-12.4): active, effective_from <= at < effective_to. T-12/T-14 delta wiring must use this, not getActiveDeltaRule (deltaRules.repo.ts:29), so that a future-dated version is not applied early (AC-12.4). */
 export async function getEffectiveDeltaRule(rc: RepoCtx, analyteId: string, at: Date): Promise<DeltaRule | undefined> {
   const r = await getEffectiveDeltaRuleRow(rc, analyteId, at);
   if (!r) return undefined;

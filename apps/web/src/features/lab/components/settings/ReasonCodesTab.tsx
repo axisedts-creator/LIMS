@@ -1,6 +1,6 @@
 'use client';
 // Reason codes tab (04-UI-UX §3.13; 02-TRD §5.8 #53-#54): one of the four coded sets; tenant rows shadow global rows of the same code. Add code / override a GLOBAL code = PUT without If-Match.
-// SPEC GAP (CR-C5-T29-001): LabCodeDto has no `version`, so an existing TENANT row cannot be edited from here (#54 needs its If-Match) — only global rows offer Edit.
+// SPEC GAP (CR-C5-T29-001, .orchestra/cr/C5.T-29.md): LabCodeDto has no `version`, so an existing TENANT row cannot be edited from here (#54 needs its If-Match) — only global rows offer Edit.
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Button } from '@lims/ui/components/Button';
 import { Dialog } from '@lims/ui/components/Dialog';

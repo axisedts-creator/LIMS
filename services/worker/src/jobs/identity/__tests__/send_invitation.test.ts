@@ -60,6 +60,8 @@ describe('failures: permanent -> row failed, transient -> retry then dead letter
   it.each([
     ['dependency outage', down, 'common.dependency_unavailable'],
     ['GoTrue 429 over_email_send_rate_limit', () => gt('sendInvite', 429, 'over_email_send_rate_limit'), undefined],
+    ['GoTrue 401 no_authorization (bad/rotated service key: operator must see it, not a silent failed row)', () => gt('sendInvite', 401, 'no_authorization'), undefined],
+    ['GoTrue 403 not_admin', () => gt('sendInvite', 403, 'not_admin'), undefined],
     ['GoTrue 500', () => gt('sendInvite', 500, 'unexpected_failure'), undefined],
     ['GoTrue 503', () => gt('sendInvite', 503, 'unexpected_failure'), undefined],
   ] as const)('%s is transient: rethrown for the queue (max_attempts 8), nothing marked, e-mail not in the message', async (_n, mkErr, code) => {

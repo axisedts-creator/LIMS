@@ -2,7 +2,7 @@
 // ASSUMED seams (spec silent; writer: dispute if wrong):
 //  - ../tasks/gotrue_signout.ts exports `GOTRUE_SIGNOUT = 'identity.gotrue_signout'`, `gotrueSignout: TaskHandler` (default wiring, lazy gateway) and
 //    `createGotrueSignout(deps) -> TaskHandler`, deps = { gotrue: Pick<GoTrueGateway,'adminSignOutUser'|'signOut'>,
-//    repo: { sessionAccessToken(tx, tenantId, sessionId) -> Promise<string | null> } } (the repo reads identity.sessions under tenant claims and decrypts; null = row gone).
+//    repo: { sessionAccessToken(tx, tenantId, sessionId, userId) -> Promise<string | null> } (userId = payload user_id; the lookup must be scoped to it, review #4) } (the repo reads identity.sessions under tenant claims and decrypts; null = row gone).
 //  - payload shapes are the ones the C2 enqueuers already use: { user_id } (platform kind, ctx.tenantId undefined) | { user_id, tenant_id } | { user_id, tenant_id, session_id }
 //    | { tenant_id, user_ids: uuid[<=200], reason } (role change / tenant suspend fan-out, 03-APP-FLOW §9.2). Any other shape is a bug: the job REJECTS (-> retries -> dead letter), it never silently succeeds.
 //  - session_id + tenant -> repo token -> signOut(token,'local') ONLY (the user's other sessions stay); token null -> nothing to do (the LIMS session row is already revoked/gone), resolves.
@@ -14,7 +14,7 @@ import { TENANT, OTHER_TENANT, idN, makeCtx, makeGotrue, signedInUser, alive, do
 
 function world(o: { tenantId?: string | undefined; token?: string | null; fail?: Parameters<typeof makeGotrue>[0]; attempt?: number } = {}) {
   const g = makeGotrue(o.fail); const c = makeCtx({ tenantId: 'tenantId' in o ? o.tenantId : TENANT, ...(o.attempt ? { attempt: o.attempt } : {}) });
-  const sessionAccessToken = vi.fn(async (_tx: unknown, _t: string, _s: string) => (o.token === undefined ? null : o.token));
+  const sessionAccessToken = vi.fn(async (_tx: unknown, _t: string, _s: string, _u: string) => (o.token === undefined ? null : o.token));
   const task = createGotrueSignout({ gotrue: g.gotrue, repo: { sessionAccessToken } } as any);
   return { ...g, ...c, sessionAccessToken, run: (p: unknown) => task(p as any, c.ctx) };
 }
@@ -65,7 +65,7 @@ describe('sign-out of ONE session (self-service revoke / logout / password chang
   it('{user_id, tenant_id, session_id}: reads the token under the job tenant and calls signOut(token, local); the user\'s other sessions survive', async () => {
     const w = world(); const u = await signedInUser(w.gw); const second: any = (await w.gw.signInWithPassword(u.email, 'Old-pass-Lims!9xyz')).tokens; const sid = idN(0x5e);
     w.sessionAccessToken.mockResolvedValue(u.tokens.accessToken); await w.run({ user_id: u.userId, tenant_id: TENANT, session_id: sid });
-    expect(w.sessionAccessToken).toHaveBeenCalledWith(w.tx, TENANT, sid); expect(w.of('signOut')).toEqual([{ m: 'signOut', a: [u.tokens.accessToken, 'local'] }]); expect(w.of('adminSignOutUser')).toHaveLength(0);
+    expect(w.sessionAccessToken).toHaveBeenCalledWith(w.tx, TENANT, sid, u.userId); expect(w.of('signOut')).toEqual([{ m: 'signOut', a: [u.tokens.accessToken, 'local'] }]); expect(w.of('adminSignOutUser')).toHaveLength(0);
     expect(await alive(w.gw, u.tokens.accessToken)).toBe(false); expect(await alive(w.gw, second.accessToken)).toBe(true);
   });
   it('session row gone (token null) -> resolves, no GoTrue call at all', async () => {

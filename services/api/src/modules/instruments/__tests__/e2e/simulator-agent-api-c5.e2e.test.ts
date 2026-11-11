@@ -78,7 +78,7 @@ async function startStack(dir: string, rounds: number): Promise<Stack> {
     '-addext', 'subjectAltName=DNS:localhost,IP:127.0.0.1'], { encoding: 'utf8' });
   if (ossl.status !== 0) throw new Error(`openssl (needed for the throwaway test CA) failed: ${ossl.stderr || ossl.error}`);
   const world = makeWorld();
-  const service = createIngestService();
+  const service = createIngestService({ repo: world.repo } as any);
   const lab = createFakeLabPort({ seed: SEED, fixtures: labFixtures(rounds) });
   const applied = new Map<string, number[]>();             // barcode -> epoch ms of each `applied` outcome (C5: result is now `resulted`)
   const batches: Stack['batches'] = [];

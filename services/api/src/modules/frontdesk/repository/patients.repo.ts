@@ -49,6 +49,39 @@ export async function updatePatientRow(tx: Tx, tenantId: string, id: string, exp
   return rows[0] ?? null;
 }
 
+/** FD-T15 F7: erase the demographics. null when the row is missing, already anonymised or its version != expectedVersion (a race loser). */
+export async function anonymisePatientRow(tx: Tx, tenantId: string, id: string, expectedVersion: number, a: { at: Date; by: string; reasonCode: string }): Promise<any | null> {
+  const { rows } = await tx.query(`UPDATE frontdesk.patients SET full_name = NULL, name_search = NULL, birth_on = NULL, is_birth_on_estimated = false,
+      phone_e164 = NULL, email = NULL, address_text = NULL, anonymised_at = $4, anonymised_by = $5, anonymise_reason_code = $6,
+      version = version + 1, updated_at = now(), updated_by = (SELECT app.current_actor_id())
+    WHERE tenant_id = $1 AND id = $2 AND version = $3 AND anonymised_at IS NULL RETURNING *`, [tenantId, id, expectedVersion, a.at, a.by, a.reasonCode]);
+  return rows[0] ?? null;
+}
+
+// F26: the US-FD-02.2 predicate in SQL (same normalised name, birth year +-1, same phone when both present, never anonymised, never the row itself).
+const SUSPECT = `c.tenant_id = p.tenant_id AND c.id <> p.id AND c.anonymised_at IS NULL AND c.birth_on IS NOT NULL AND c.name_search = p.name_search
+  AND abs(extract(year FROM c.birth_on) - extract(year FROM p.birth_on)) <= 1 AND (c.phone_e164 IS NULL OR p.phone_e164 IS NULL OR c.phone_e164 = p.phone_e164)`;
+
+/** Keyset page (created_at, id) of the patients created on `date` (a calendar date in `tz`) that have at least one suspect. `after` = [sort_key text, id]. */
+export async function pageDuplicatePatients(tx: Tx, tenantId: string, date: string, tz: string, o: { limit: number; after?: readonly [string, string] }): Promise<any[]> {
+  const { rows } = await tx.query(`SELECT p.*, to_char(p.created_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"') AS sort_key FROM frontdesk.patients p
+    WHERE p.tenant_id = $1 AND p.anonymised_at IS NULL AND p.birth_on IS NOT NULL AND p.name_search IS NOT NULL
+      AND p.created_at >= ($3::date)::timestamp AT TIME ZONE $2::text AND p.created_at < ($3::date + 1)::timestamp AT TIME ZONE $2::text
+      AND EXISTS (SELECT 1 FROM frontdesk.patients c WHERE ${SUSPECT})
+      ${o.after ? 'AND (p.created_at, p.id) > ($5::timestamptz, $6::uuid)' : ''}
+    ORDER BY p.created_at, p.id LIMIT $4`, [tenantId, tz, date, o.limit + 1, ...(o.after ?? [])]);
+  return rows;
+}
+
+/** At most 5 suspects per listed patient (for_id = the listed patient). */
+export async function duplicateCandidates(tx: Tx, tenantId: string, ids: readonly string[]): Promise<any[]> {
+  if (ids.length === 0) return [];
+  const { rows } = await tx.query(`SELECT p.id AS for_id, c.* FROM frontdesk.patients p CROSS JOIN LATERAL
+      (SELECT c.* FROM frontdesk.patients c WHERE ${SUSPECT} ORDER BY c.created_at, c.id LIMIT 5) c
+    WHERE p.tenant_id = $1 AND p.id = ANY($2::uuid[]) ORDER BY p.id, c.created_at, c.id`, [tenantId, ids]);
+  return rows;
+}
+
 /** Same normalisation as name_search (NFC, case-folded, single-spaced). */
 export const normaliseName = (s: string): string => s.normalize('NFC').toLowerCase().replace(/\s+/g, ' ').trim();
 

@@ -336,11 +336,11 @@ describe("rule 7 — server-authority fields in request bodies (CV §4.7)", () =
       parameters: [{ name: "id", in: "path", required: true, schema: { type: "string", maxLength: 36 } }],
       requestBody: { required: true, ...json(s) } }) } }))]);
   });
-  // LD-118 (2026-11-12): ONE allowlisted path: pushSyncMutations (homecollection.yaml) captured.gps.status; keyed by operationId + property path
-  describe("LD-118 captured.gps.status allowlist", () => {
-    const syncBody = (opId: string, captured: any, root: any = {}) => {
+  // LD-118 (2026-11-12, ruling: C17 TRD 6.3 puts gps in payload): ONE allowlisted path: pushSyncMutations (homecollection.yaml) payload.gps.status; keyed by operationId + property path
+  describe("LD-118 payload.gps.status allowlist", () => {
+    const syncBody = (opId: string, payload: any, root: any = {}) => {
       const s = itemSchema();
-      s.properties.captured = captured;
+      s.properties.payload = payload;
       Object.assign(s.properties, root);
       return file("homecollection", spec({ "/v1/homecollection/sync/mutations": { post: postOp({
         operationId: opId, tags: ["homecollection"], requestBody: { required: true, ...json(s) } }) } }));
@@ -348,7 +348,7 @@ describe("rule 7 — server-authority fields in request bodies (CV §4.7)", () =
     const gps = (extra: any = {}) => ({ type: "object", additionalProperties: false, properties: {
       gps: { type: "object", additionalProperties: false, properties: { status: { type: "string", maxLength: 12, enum: ["off", "denied", "unavailable", "ok"] }, ...extra } } } });
     const sev = async (f: any) => rulesOf(await run([f]));
-    it("pushSyncMutations captured.gps.status accepted (no rule 7)", async () =>
+    it("pushSyncMutations payload.gps.status accepted (no rule 7)", async () =>
       expect(await sev(syncBody("pushSyncMutations", gps()))).not.toContain("7"));
     it("same path under a different operationId rejected", async () =>
       expect(await sev(syncBody("pushOtherMutations", gps()))).toContain("7"));
@@ -359,7 +359,7 @@ describe("rule 7 — server-authority fields in request bodies (CV §4.7)", () =
     });
     it("root status in pushSyncMutations still rejected", async () =>
       expect(await sev(syncBody("pushSyncMutations", gps(), { status: { type: "string", maxLength: 12 } }))).toContain("7"));
-    it("captured.gps.status plus a sibling status under captured still rejected", async () => {
+    it("payload.gps.status plus a sibling status under payload still rejected", async () => {
       const c = gps(); c.properties.status = { type: "string", maxLength: 12 };
       expect(await sev(syncBody("pushSyncMutations", c))).toContain("7");
     });

@@ -53,24 +53,34 @@ const nonEmptyStr = (x: unknown) => typeof x === "string" && x.trim().length > 0
 
 // Calls visit(schema, ptr) on every inline (non-$ref) schema node reachable from `s`.
 // `deref` (optional) follows local #/components/schemas refs (rule 7 needs it; cycle-safe).
-function walkSchema(s: unknown, ptr: string, visit: (s: Record<string, any>, ptr: string) => void,
-  deref?: (ref: string) => unknown, seen = new Set<unknown>()) {
+// LD-118 (2026-11-12; ruling: C17 TRD 6.3 puts gps in payload): rule 7 exception, exactly ONE entry, keyed by module +
+// operationId + property path (never the name alone). Path is relative to the enclosing array item, so it matches each
+// mutation of PushRequest.mutations[].
+const STATUS_ALLOWLIST = [{ module: "homecollection", operationId: "pushSyncMutations", path: "payload.gps.status" }] as const;
+const statusAllowed = (module: string, operationId: unknown, path: string) =>
+  STATUS_ALLOWLIST.some((e) => e.module === module && e.operationId === operationId && e.path === path.replace(/^.*\[\]\./, ""));
+
+// `path` = data path of the instance (dotted property names, "[]" per array item, "*" for maps); survives $ref.
+function walkSchema(s: unknown, ptr: string, visit: (s: Record<string, any>, ptr: string, path: string) => void,
+  deref?: (ref: string) => unknown, seen = new Set<unknown>(), path = "") {
   if (!isObj(s) || seen.has(s)) return;
   seen.add(s);
   if (typeof s.$ref === "string") {
-    if (deref) walkSchema(deref(s.$ref), s.$ref, visit, deref, seen);
+    if (deref) walkSchema(deref(s.$ref), s.$ref, visit, deref, seen, path);
     return;
   }
-  visit(s, ptr);
-  for (const [k, v] of Object.entries(s.properties ?? {})) walkSchema(v, `${ptr}/properties/${k}`, visit, deref, seen);
-  for (const [k, v] of Object.entries(s.patternProperties ?? {})) walkSchema(v, `${ptr}/patternProperties/${k}`, visit, deref, seen);
-  if (isObj(s.additionalProperties)) walkSchema(s.additionalProperties, `${ptr}/additionalProperties`, visit, deref, seen);
+  visit(s, ptr, path);
+  const sub = (k: string) => (path ? `${path}.${k}` : k);
+  for (const [k, v] of Object.entries(s.properties ?? {})) walkSchema(v, `${ptr}/properties/${k}`, visit, deref, seen, sub(k));
+  for (const [k, v] of Object.entries(s.patternProperties ?? {})) walkSchema(v, `${ptr}/patternProperties/${k}`, visit, deref, seen, sub("*"));
+  if (isObj(s.additionalProperties)) walkSchema(s.additionalProperties, `${ptr}/additionalProperties`, visit, deref, seen, sub("*"));
   const items = Array.isArray(s.items) ? s.items : [s.items];
-  items.forEach((v, i) => walkSchema(v, `${ptr}/items${Array.isArray(s.items) ? `/${i}` : ""}`, visit, deref, seen));
-  for (const k of ["allOf", "oneOf", "anyOf", "prefixItems"])
-    if (Array.isArray(s[k])) s[k].forEach((v: unknown, i: number) => walkSchema(v, `${ptr}/${k}/${i}`, visit, deref, seen));
-  for (const k of ["not", "if", "then", "else"]) walkSchema(s[k], `${ptr}/${k}`, visit, deref, seen);
-  for (const [k, v] of Object.entries(isObj(s.$defs) ? s.$defs : {})) walkSchema(v, `${ptr}/$defs/${k}`, visit, deref, seen);
+  items.forEach((v, i) => walkSchema(v, `${ptr}/items${Array.isArray(s.items) ? `/${i}` : ""}`, visit, deref, seen, `${path}[]`));
+  for (const k of ["allOf", "oneOf", "anyOf"])
+    if (Array.isArray(s[k])) s[k].forEach((v: unknown, i: number) => walkSchema(v, `${ptr}/${k}/${i}`, visit, deref, seen, path));
+  if (Array.isArray(s.prefixItems)) s.prefixItems.forEach((v: unknown, i: number) => walkSchema(v, `${ptr}/prefixItems/${i}`, visit, deref, seen, `${path}[]`));
+  for (const k of ["not", "if", "then", "else"]) walkSchema(s[k], `${ptr}/${k}`, visit, deref, seen, path);
+  for (const [k, v] of Object.entries(isObj(s.$defs) ? s.$defs : {})) walkSchema(v, `${ptr}/$defs/${k}`, visit, deref, seen, "$defs");
 }
 
 // All schema roots of a document: components + every parameter/header/media type under paths.
@@ -236,11 +246,12 @@ export function lintOpenapi(files: { name: string; text: string }[], ctx: LintCo
         if (body) {
           const action = isActionEndpoint(method, path);
           for (const m of Object.values(isObj(body.content) ? body.content : {})) {
-            walkSchema(isObj(m) ? m.schema : undefined, `${at} requestBody`, (s, ptr) => {
+            walkSchema(isObj(m) ? m.schema : undefined, `${at} requestBody`, (s, ptr, path) => {
               for (const f of Object.keys(isObj(s.properties) ? s.properties : {}))
                 // LD-11 (2026-11-07): tenant_id names the target tenant in x-context: platform bodies only
                 if ((SERVER_AUTHORITY_FIELDS.includes(f) && !(f === "tenant_id" && op["x-context"] === "platform"))
-                  || (f === "status" && !action)) v("7", `${ptr}: request body declares ${f}`);
+                  || (f === "status" && !action && !statusAllowed(name, id, path ? `${path}.${f}` : f)))
+                  v("7", `${ptr}: request body declares ${f}`);
             }, deref);
           }
         }

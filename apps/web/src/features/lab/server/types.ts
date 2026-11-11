@@ -54,6 +54,23 @@ export interface RejectBody { reason_code: string; comment?: string; recollectio
 export interface RejectResult { specimen: Specimen; recollection_specimen?: Specimen }
 export interface RejectionReason { code: string; display: string }
 
+// T-30 specimen detail (lab.yaml SpecimenDetailDto = SpecimenDto + transitions, tests, results summary; 02-TRD §5.1 #3, #10–#13)
+export interface SpecimenTransition { from_status?: string; to_status: string; at: string }
+export interface SpecimenDetail extends Specimen {
+  parent_specimen_id?: string;
+  replaces_specimen_id?: string;
+  in_transit_at?: string;
+  received_at?: string;
+  rejection_comment?: string;
+  label_print_count: number;
+  transitions: SpecimenTransition[];
+  results_summary?: { total: number; resulted: number; verified: number; approved: number };
+}
+export interface StoreBody { location: string }
+export interface DiscardSpecimenBody { discard_reason: string }
+export interface AliquotBody { aliquots: { specimen_type_code?: string; test_ids: string[] }[] }
+export interface AliquotResult { parent: Specimen; aliquots: Specimen[] }
+
 // T-27 status board (lab.yaml StatusBoardRow / StatusBoardPage; getStatusBoard #17)
 export const BOARD_STATUSES = ['waiting', 'collected', 'in_lab', 'ready', 'printed'] as const;
 export type BoardStatus = (typeof BOARD_STATUSES)[number];

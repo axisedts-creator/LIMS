@@ -6,7 +6,7 @@
 //   SELECT <cols|*> FROM <table> [WHERE c AND c ...] [ORDER BY col [ASC|DESC][, ...]] [LIMIT n] [FOR UPDATE]
 //   INSERT INTO <table> (cols) VALUES (exprs) [ON CONFLICT [(cols)] DO NOTHING] [RETURNING cols|*]
 //   UPDATE <table> SET col = expr[, ...] WHERE c AND c ... [RETURNING cols|*]
-//   cond  := col (=|<>|!=) expr | col IS [NOT] NULL | col IS [NOT] DISTINCT FROM expr | col = ANY($n)   (no OR, no parentheses, no sub-selects)
+//   cond  := col (=|<>|!=|<|<=|>|>=) expr | col IS [NOT] NULL | col IS [NOT] DISTINCT FROM expr | col = ANY($n)   (no OR, no parentheses, no sub-selects)
 //   expr  := $n[::type] | now() | NULL | true | false | integer | 'text' | col | col + integer
 // Modelled: RLS (rows of other tenants invisible; INSERT with a foreign tenant_id -> 42501), NOT NULL (23502), UNIQUE (23505), CHECK (23514), version/defaults,
 // writes private to the transaction until COMMIT (run() with rollback:true discards them), node-pg types (timestamptz -> Date, bytea -> Buffer).
@@ -193,6 +193,11 @@ const same = (a: unknown, b: unknown): boolean => {
   if (a instanceof Date && b instanceof Date) return a.getTime() === b.getTime();
   return a === b;
 };
+const order = (a: unknown, b: unknown): number => {
+  if (a instanceof Date || b instanceof Date) return new Date(a as any).getTime() - new Date(b as any).getTime();
+  if (!Number.isNaN(Number(a)) && !Number.isNaN(Number(b))) return Number(a) - Number(b);
+  return String(a) < String(b) ? -1 : String(a) > String(b) ? 1 : 0;
+};
 function matches(where: string | undefined, vals: readonly unknown[], row: Row, now: Date, sql: string): boolean {
   if (!where) return true;
   return splitTop(stripCasts(where), /\s+and\s+/i).every((c) => {
@@ -201,10 +206,13 @@ function matches(where: string | undefined, vals: readonly unknown[], row: Row, 
     if ((m = c.match(/^([\w.]+)\s+IS\s+(NOT\s+)?NULL$/i))) return (m[2] ? nn(col(m[1]!)) : !nn(col(m[1]!)));
     if ((m = c.match(/^([\w.]+)\s+IS\s+(NOT\s+)?DISTINCT\s+FROM\s+(.+)$/i))) { const eq = same(col(m[1]!) ?? null, evalExpr(m[3]!, vals, row, now, sql) ?? null); return m[2] ? eq : !eq; }
     if ((m = c.match(/^([\w.]+)\s*=\s*ANY\s*\(\s*\$(\d+)\s*\)$/i))) return ((vals[Number(m[2]) - 1] as unknown[]) ?? []).some((v) => same(col(m![1]!), v));
-    if ((m = c.match(/^([\w.]+)\s*(=|<>|!=)\s*(.+)$/))) {
+    if ((m = c.match(/^([\w.]+)\s*(<>|!=|<=|>=|=|<|>)\s*(.+)$/))) {
       const l = col(m[1]!); const r = evalExpr(m[3]!, vals, row, now, sql);
       if (!nn(l) || !nn(r)) return false;                                  // SQL three-valued logic: comparison with NULL is never true
-      return m[2] === '=' ? same(l, r) : !same(l, r);
+      if (m[2] === '=') return same(l, r);
+      if (m[2] === '<>' || m[2] === '!=') return !same(l, r);
+      const cmp = order(l, r);                                             // PG-T11: ordering comparisons (timestamptz / bigint-as-text / text)
+      return m[2] === '<' ? cmp < 0 : m[2] === '<=' ? cmp <= 0 : m[2] === '>' ? cmp > 0 : cmp >= 0;
     }
     return unsupported(sql);
   });

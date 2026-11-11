@@ -4,11 +4,17 @@ import 'server-only';
 import { ApiError, serverFetch } from '@/core/api/server-fetch';
 import { problem } from '@/core/session/types';
 import type { AnalyteInfo, AnalyteMap } from '../components/grid/resultModel';
-import { BOARD_STATUSES, EXCEPTION_REASONS, EXCEPTION_STATUSES, ISO_MS_RE, UUID_RE, type BoardQuery, type CodedOption, type CommentCodeRow, type ExceptionPage, type HistoryRow, type IngestException, type IngestExceptionDetailDto, type OrderResults, type QueueItem, type RejectionReason, type StatusBoardPage, type TrendResponse } from './types';
+import { BOARD_STATUSES, EXCEPTION_REASONS, EXCEPTION_STATUSES, ISO_MS_RE, UUID_RE, type BoardQuery, type CodedOption, type CommentCodeRow, type ExceptionPage, type HistoryRow, type IngestException, type IngestExceptionDetailDto, type OrderResults, type QueueItem, type RejectionReason, type SpecimenDetail, type StatusBoardPage, type TrendResponse } from './types';
 
 const DAY_MS = 86_400_000;
 const CODE_RE = /^[A-Za-z0-9][A-Za-z0-9_.:-]{0,99}$/;
 const CURSOR_RE = /^[A-Za-z0-9_-]{1,512}$/;
+
+/** C7 E23 instruments as { id, name } for the QC screen (T-25, 08 A13 D-14: names come from C7, never from lab.yaml). A refused read is the caller's "none". */
+export async function listInstrumentOptions(): Promise<{ id: string; name: string }[]> {
+  const r = await serverFetch<{ data: { id: string; display_name: string }[] }>('/v1/instruments/instruments?limit=200');
+  return r.data.map((i) => ({ id: i.id, name: i.display_name }));
+}
 
 /** C5 coded set (#53), active only, in sort_order. */
 export async function listCodedSet(set: 'rejection_reasons' | 'return_reasons' | 'amendment_reasons'): Promise<CodedOption[]> {
@@ -99,6 +105,12 @@ export async function getIngestException(id: string): Promise<IngestExceptionDet
 export async function listDiscardReasons(): Promise<RejectionReason[]> {
   const r = await serverFetch<{ data: { code: string; display: string; sort_order?: number; is_active?: boolean }[] }>('/v1/lab/coded-sets/exception_discard_reasons');
   return r.data.filter((c) => c.is_active !== false).sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0)).map(({ code, display }) => ({ code, display }));
+}
+
+/** #3 getSpecimen (T-30). The id is validated here: a malformed id never reaches the request path (REQ-SEC-028). 404/403/5xx throw to the page. */
+export async function getSpecimen(id: string): Promise<SpecimenDetail> {
+  if (!UUID_RE.test(id)) throw new ApiError(404, problem('common.not_found', 'Not found', 404));
+  return serverFetch<SpecimenDetail>(`/v1/lab/specimens/${id}`);
 }
 
 export async function getRecollectionDefault(): Promise<boolean> {

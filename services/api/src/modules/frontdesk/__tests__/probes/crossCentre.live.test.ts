@@ -27,7 +27,11 @@ describe.each(ID_OPS_ON_A2_OBJECT.map((id) => [id] as const))('%s on an A2 objec
     expect(await snapshot(TENANT_A)).toEqual(before);
   });
   it('control: the same call on an A1 object is NOT a 404 (the probe measures scope, not a broken request)', { timeout: T }, async () => {
-    const out = await fire(id, requestFor(id, A1), A1_ONLY);
+    // FD-T16 ruling (2): the kit's default lab fake knows no A1 order; seed it so a lab not_found cannot masquerade as a scope 404
+    const shared = sharedFakes();
+    shared.lab.__seed({ orders: [{ id: A1.order.id, tenantId: TENANT_A, patientId: A1.patient.id, centreId: A1.centre, priority: 'routine', patient: { sex: 'female', ageDays: 15000 } }] });
+    shared.billing.__seed({ orders: [{ id: A1.order.id, tenantId: TENANT_A }] });
+    const out = await fire(id, requestFor(id, A1), A1_ONLY, { lab: shared.lab, billing: shared.billing });
     expect(codeOf(out), `${out.error?.message}`).not.toBe('common.not_found');
   });
 });
@@ -70,14 +74,16 @@ describe('lists exclude A2 rows for an A1-only user; an all-centre user sees the
     expect(JSON.stringify(r.reply!.body)).not.toContain(A2.order.registration_no);
   });
   it.each([['F16 listDiscountApprovals', 'listDiscountApprovals', 'approval'], ['F22 listOrderFlags', 'listOrderFlags', 'flag']] as const)('%s (centre filter = A2)', { timeout: T }, async (_n, id, key) => {
+    // FD-T16 ruling (4): the ID_OPS controls above approve/reject and resolve A1/A2's approval and flag, so the status filter rightly excludes them: use fresh objects
+    const F1 = await objs('a', { centre: CENTRE.a }); const F2 = await objs('a', { centre: CENTRE_A2 });
     const q = (o: Objs) => ({ ...requestFor(id, o), query: { status: id === 'listOrderFlags' ? 'open' : 'pending', centre_id: o.centre } });
-    const hidden = await fire(id, q(A2), A1_ONLY);
-    expect(hidden.reply ? idsOf(hidden.reply.body) : [], hidden.error ? `refused with ${codeOf(hidden)}` : '').not.toContain(A2[key].id);
+    const hidden = await fire(id, q(F2), A1_ONLY);
+    expect(hidden.reply ? idsOf(hidden.reply.body) : [], hidden.error ? `refused with ${codeOf(hidden)}` : '').not.toContain(F2[key].id);
     if (hidden.error) expect(['auth.forbidden', 'common.not_found']).toContain(codeOf(hidden));
-    const mine = await fire(id, q(A1), A1_ONLY);
-    expect(idsOf(mine.reply!.body)).toContain(A1[key].id);                                                     // control
-    const all = await fire(id, q(A2), FULL_A);
-    expect(idsOf(all.reply!.body)).toContain(A2[key].id);                                                      // an all-centre user sees A2
+    const mine = await fire(id, q(F1), A1_ONLY);
+    expect(idsOf(mine.reply!.body)).toContain(F1[key].id);                                                     // control
+    const all = await fire(id, q(F2), FULL_A);
+    expect(idsOf(all.reply!.body)).toContain(F2[key].id);                                                      // an all-centre user sees A2
   });
   it('without a centre filter no A2 row leaks into F16 / F22 for the A1-only user', { timeout: T }, async () => {
     for (const [id, key, status] of [['listDiscountApprovals', 'approval', 'pending'], ['listOrderFlags', 'flag', 'open']] as const) {

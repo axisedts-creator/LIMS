@@ -86,14 +86,20 @@ export const req = (o: { params?: object; query?: object; headers?: object; body
 const WRITE = /^\s*(insert|update|delete|truncate)\b/i;
 const H = handlers as unknown as Record<string, (r: any, ctx: any) => Promise<{ status: number; body?: any; headers?: Record<string, string> }>>;
 
+// FD-T16 ruling (1): §6.4 "nothing changes" is about the HANDLER, so the harness seeds (seedLimits UPDATEs frontdesk.settings) ONCE, before any snapshot() - never inside fire().
+let readyP: Promise<void> | undefined;
+export const ready = (): Promise<void> => (readyP ??= (async () => { await seedLimits(); await seedSettings(); await ensureTaskRegistry(); })());
+
 /** One request = one committed tx under `who.tenant`'s claims (RLS on); on a throw the tx rolls back and the error is returned, never thrown. */
 export async function fire(operationId: string, r: ReturnType<typeof req>, who: Who, o: FireOpts = {}): Promise<Outcome> {
-  await seedLimits(); await seedSettings(); await ensureTaskRegistry();
+  await ready();
   const side = who.tenant === TENANT_B ? 'b' : 'a';
   const w = o.w ?? rworld({ creditList: true });
   const trf = o.trf ?? makeWorld(who.tenant);
   const probe: Probe = { logs: [], accessCalls: [], writes: [], requestId: o.requestId ?? uid(), identity: identityOf(who), w, trf, ctx: undefined };
   const lab = o.lab ?? sharedFakes().lab;
+  // FD-T16 ruling (3), as the FD-T11 ruling (contract/helpers.ts:50-52): the LabPort fake grants user actors only via fixtures.grants[actor.id]
+  lab.__seed?.({ grants: { [SYS_ACTOR]: [...who.grants] } });
   const run = async (rawTx: any) => {
     rawTx.startedAt = NOW;                                                       // core events.publish stamps occurred_at from tx.startedAt
     const tx = { query: async (text: string, values?: unknown[]) => {
@@ -136,7 +142,7 @@ export interface Objs {
 let seq = 0;
 /** One full object graph of `side` at `centre`. `at` = a registered_at instant unique to this graph (so list probes can window on it). */
 export async function objs(side: 'a' | 'b', o: { centre?: string; at?: string; patient?: any } = {}): Promise<Objs> {
-  await seedSettings();
+  await ready();
   const centre = o.centre ?? CENTRE[side];
   const branch = centre === CENTRE_A2 ? BRANCH_A2 : BRANCH[side];
   const at = o.at ?? `2026-0${3 + (side === 'a' ? 0 : 1)}-0${1 + (++seq % 8)}T03:03:00.000Z`;
@@ -187,7 +193,7 @@ export function requestFor(id: string, S: Objs): ReturnType<typeof req> {
     case 'listOrderFlags': return req({ query: { status: 'open' } });
     case 'resolveOrderFlag': return req({ params: { flag_id: S.flag.id }, headers: im, body: { resolution_code: 'recollected' } });
     case 'getFrontdeskSettings': return req();
-    case 'updateFrontdeskSettings': return req({ headers: { 'if-match': '"1"' }, body: { discount_self_limit_bp: 500, discount_self_limit_paisa: 100000, discount_absolute_max_bp: 2000, require_referrer: true, consent_text_version: 'v1',
+    case 'updateFrontdeskSettings': return req({ headers: { 'if-match': '"1"' }, body: { discount_self_limit_bp: 500, discount_self_limit_paisa: 100000, discount_absolute_max_bp: 2000, require_referrer: false, consent_text_version: 'v1',
       registration_sms_enabled: false, label_autoprint: false, buyer_pan_pattern: '^[0-9]{10}$', patient_search_min_chars: 4 } });
     case 'listFrontdeskCodes': return req({ params: { set_name: 'order_cancel_reasons' } });
     default: throw new Error(`no probe request for ${id}`);
@@ -199,6 +205,7 @@ export const TENANT_TABLES = ['settings', 'number_counters', 'patients', 'patien
   'booking_links', 'cs_reasons', 'event_inbox'] as const;
 /** md5 over every row of every tenant table of `tenant` (superuser, no RLS): a probe that must not touch tenant B compares this before and after. */
 export async function snapshot(tenant: string): Promise<Record<string, string>> {
+  await ready();
   return superTx(async (tx) => {
     const out: Record<string, string> = {};
     for (const t of TENANT_TABLES) out[t] = (await tx.query(`SELECT coalesce(md5(string_agg(x::text, '|' ORDER BY x::text)), '-') AS h FROM frontdesk.${t} x WHERE tenant_id = $1`, [tenant])).rows[0].h;

@@ -24,7 +24,7 @@ export interface PatientCtx {
   readonly audit: { access(e: object): Promise<void> };
   readonly ports: { readonly IdentityPort: {
     assertRole(ctx: unknown, r: { permission: string; centreId?: string }): Promise<void>;
-    getActor(ctx: unknown): Promise<{ displayName: string; permissions: readonly string[]; centreScope?: { centreIds: readonly string[] } }>;
+    getActor(ctx: unknown): Promise<{ displayName: string; permissions: readonly string[]; centreScope?: { all?: boolean; centreIds: readonly string[] } }>;
     getTenantSettings(ctx: unknown, i: { keys: readonly string[] }): Promise<any>;
   } };
 }
@@ -334,6 +334,9 @@ export async function anonymisePatient(hctx: unknown, params: unknown, headers: 
   const c = patientCtx(hctx);
   const storage = (c as unknown as { storage?: { delete?: (bucket: string, path: string) => Promise<void> } }).storage;
   await role(c, P.patientAnonymise);   // privileged: IdentityPort enforces aal2 (auth.mfa_required)
+  // REQ-SEC-139 / P-12 c (FD-T15 review): orders + trf_attachments RLS is tenant+centre, so a centre-scoped admin would miss other-centre
+  // open orders and TRF objects. Fail closed before any write until C0 gives an all-centre path (.orchestra/cr/FD-T15.md).
+  if ((await c.ports.IdentityPort.getActor(c)).centreScope?.all !== true) throw new LimsError('auth.forbidden');
   const version = expectedVersion(headers);
   const b = strict(body, ['reason_code', 'reason_text']);
   if (typeof b['reason_code'] !== 'string' || !CODE.test(b['reason_code'])) throw bad('/reason_code');   // ponytail: format only, membership of anonymise_reasons is not checked (as duplicate_override)

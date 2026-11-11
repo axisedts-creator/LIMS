@@ -1,13 +1,12 @@
 // BL-T22 / 07-SECURITY §6.6 upload probes (REQ-SEC-083/084/085) through the F21 uploadTrf HANDLER with the REAL core ctx.uploads.accept (fake clamd-style scanner, recording storage),
 // plus the P-2 sweep: no response body/header of any C4 operation contains a Storage URL.
 // Given tenant A uploads a hostile file, Then it is refused with the 413/415/422 code the spec names, or sanitised, and no unsafe byte is ever stored.
-// Fails now (right reason): FD-T01 stub answers common.service_unavailable. Ordering assumption (writer: dispute via .orchestra/notes if wrong): the file is validated by ctx.uploads.accept
-// BEFORE any DB lookup of centre_id / order_id (the multipart edge check), so a hostile file never depends on the DB fake.
+// The handler checks role and centre scope before ctx.uploads.accept (07-SECURITY REQ-SEC-017, A11; BL-T22-ruling), so the ctx here grants both; the body has no order_id, so no order lookup runs.
 // Clean-file happy path, F21a/B29a response HEADERS and the real-clamd run belong to FD-T10 / BL-T19 (integration with scanner); the header contract itself is pinned in securityContracts.static.test.ts.
 import { describe, expect, it } from 'vitest';
 import { createUploads } from '../../../../core/uploads/index.js';
 import { PDF, png } from '../../../../core/storage/__tests__/helpers.js';
-import { ALL_OPS, CENTRE_A1, ctxFor, run, requestFor, spyTx, TENANT_A, safeJson } from './probe.kit.js';
+import { ALL_OPS, CENTRE_A1, ctxFor, notFoundPorts, run, requestFor, spyTx, TENANT_A, safeJson } from './probe.kit.js';
 
 const EICAR = 'X5O!P%@AP[4\\PZX54(P^)7CC)7}$EICAR-STANDARD-ANTIVIRUS-TEST-FILE!$H+H*';
 const uploadOp = ALL_OPS.find((o) => o.id === 'uploadTrf')!;
@@ -24,8 +23,19 @@ async function upload(file: { filename: string; mimeType: string; bytes: Uint8Ar
   const storage = { put: async (_b: string, _p: string, bytes: Uint8Array) => { stored.push(Buffer.from(bytes)); return { sha256: 'a'.repeat(64), byteSize: bytes.length }; } };
   const files = { scan: async (b: Uint8Array) => (Buffer.from(b).includes(EICAR) ? ('infected' as const) : ('clean' as const)) };
   const uploads = createUploads({ files, storage: storage as never, module: 'frontdesk', tenantId: TENANT_A });
-  const { tx } = spyTx();
-  const ctx = await ctxFor(TENANT_A, tx, { uploads, files, storage });
+  // clean-path (201) cases reach insertTrfAttachment, which reads the inserted row back: answer INSERTs with a synthetic row; every other statement stays empty.
+  const { tx } = spyTx((text) => (/^\s*INSERT/i.test(text)
+    ? [{ id: 'r1', order_id: null, mime_type: 'application/pdf', size_bytes: 1, scan_state: 'pending', created_at: new Date('2026-11-08T06:00:00.000Z'), created_by: 'm1', original_filename: 'trf.pdf' }]
+    : []));
+  // BL-T22-ruling: the handler checks role + centre scope (REQ-SEC-017, A11) before ctx.uploads.accept, so the ctx carries an allowed IdentityPort, an actor scoped to CENTRE_A1,
+  // download/storage.delete (trf.service.ts:35), and a Date clock (the service builds the quarantine key from ctx.now()).
+  const identity = { assertRole: async () => undefined, getActor: async () => ({ displayName: 'Synthetic Tester', centreScope: { centreIds: [CENTRE_A1] } }) };
+  const base = await notFoundPorts();
+  const ports = new Proxy({}, { get: (_t, k) => (k === 'IdentityPort' ? identity : (base as any)[k]) });
+  const ctx = await ctxFor(TENANT_A, tx, {
+    uploads, files, ports, now: () => new Date('2026-11-08T06:00:00.000Z'),
+    storage: { ...storage, delete: async () => undefined }, download: { stream: async () => undefined },
+  });
   const req = { ...requestFor(uploadOp), body: { file, centre_id: CENTRE_A1 } };
   const { result, error } = await run(uploadOp, ctx, req as never);
   return { result, error, stored };

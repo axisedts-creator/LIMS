@@ -3,6 +3,8 @@
 // Stub: LIMS_CORE_ENV=dev (and NODE_ENV != production) -> 501 with no body (never echoes request input); anything else -> common.internal (fail closed).
 import type { Handler } from '../../../core/module.js';
 import { LimsError } from '../../../core/errors.js';
+import { getSmartCodedSet, getSmartLibraryCodedSet } from './codedSets.js';
+import { createSmartDenyTerm, deactivateSmartDenyTerm, listSmartDenyTerms } from './denyTerms.js';
 
 const OPERATION_IDS = [
   'listSmartLibraryVersions', 'createSmartLibraryVersion', 'getSmartLibraryVersion', 'updateSmartLibraryVersion',
@@ -22,7 +24,9 @@ const stub = (operationId: string): Handler => async () => {
   throw new LimsError('common.internal', `smartreport ${operationId} not implemented`);
 };
 
-const implemented: Partial<Record<SmartreportOperationId, Handler>> = {};
+const implemented: Partial<Record<SmartreportOperationId, Handler>> = {
+  listSmartDenyTerms, createSmartDenyTerm, deactivateSmartDenyTerm, getSmartCodedSet, getSmartLibraryCodedSet,
+};
 
 export const handlers: Readonly<Record<SmartreportOperationId, Handler>> = Object.freeze(
   Object.fromEntries(OPERATION_IDS.map((op) => [op, implemented[op] ?? stub(op)])) as Record<SmartreportOperationId, Handler>,

@@ -187,13 +187,13 @@ C3 errors: `409 catalog.code_duplicate` → field error on Instrument code "This
 
 | Page | Keys | Action |
 |---|---|---|
-| SCR-01 | `Alt+N` | New agent |
+| SCR-01 | `Alt+A` | New agent |
 | SCR-02 | `Alt+E` | Issue enrolment code |
-| SCR-05 | `Alt+N` | New instrument |
+| SCR-05 | `Alt+I` | New instrument |
 | SCR-07 | `Alt+M` is global (focus main) → use `Alt+P` | Open mappings |
 | SCR-09 | `/` | focus barcode search |
 | SCR-10 | `Alt+R` | Show raw · `Alt+P` Reprocess |
-Global keys (C0 §4) unchanged; tables use the kit keyboard model.
+Global keys (C0 §4) unchanged; a page key never reuses a global key (C0 AC-0D-7.5), so SCR-01 and SCR-05 use `Alt+A` and `Alt+I`, not the global `Alt+N`; tables use the kit keyboard model.
 
 ## 5. Accessibility and responsive
 - Chips always carry text; offline/backlog warnings use icon + text.

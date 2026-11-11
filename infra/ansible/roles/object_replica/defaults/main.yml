@@ -1,0 +1,14 @@
+---
+# 02-TRD s9.5 (AC-14.1..14.3). Runs on `app` (Storage host, sync side) and
+# `dr` (replica target). LD-45: the replica host is the first host of group
+# `dr` in the active inventory profile (dr-1 in `full`, backup-1 in
+# `lean`); no host names or addresses in this role.
+# Inventory (all.yml): object_replica_interval_min (15).
+# Inventory, required when groups['dr'] is not empty [CONV]:
+#   object_replica_host_key: "<keytype> <base64>" of the dr sshd on :2222
+# Secret from secrets_render (s8): object_replica_ssh_key.
+object_replica_src: /srv/lims/storage/
+# On dr the `replica` disk mounts at /srv/lims/replica (luks_volumes).
+object_replica_dest_dir: /replica/storage/
+object_replica_dr_dir: /srv/lims/replica/storage
+object_replica_verify_time: "03:30"

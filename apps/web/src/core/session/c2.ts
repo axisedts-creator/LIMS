@@ -24,7 +24,7 @@ interface C2Resolved {
   access_token: string;
   session: {
     session_id: string; kind: string; aal: string; idle_expires_at: string; absolute_expires_at: string;
-    actor: { display_name: string; tenant_code: string; roles?: string[]; permissions?: string[] };
+    actor: { display_name: string; tenant_code: string; roles?: string[]; permissions?: string[]; membership_id?: string };
   };
 }
 
@@ -72,6 +72,7 @@ export const c2Resolver: SessionResolver = {
         actor: {
           displayName: s.actor.display_name, tenantCode: s.actor.tenant_code,
           roles: s.actor.roles ?? [], permissions: Array.isArray(s.actor.permissions) ? s.actor.permissions : [],
+          ...(typeof s.actor.membership_id === 'string' ? { membershipId: s.actor.membership_id } : {}), // LD-89
         },
       },
     };

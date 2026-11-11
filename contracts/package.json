@@ -2,6 +2,10 @@
   "name": "@lims/contracts",
   "private": true,
   "type": "module",
+  "exports": {
+    "./ports/common": "./ports/common.ts",
+    "./ports/generated/error-codes": "./ports/generated/error-codes.ts"
+  },
   "scripts": {
     "test": "vitest run"
   },

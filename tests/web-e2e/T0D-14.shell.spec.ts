@@ -10,7 +10,7 @@ const LAB = '/lab/status-board'; // routes.yaml staff.lab.status_board  (lab.sta
 const CASH = '/billing/daily-cash'; // routes.yaml staff.billing.daily_cash (billing.cash_report.read)
 
 const useSid = (ctx: BrowserContext, sid: string) =>
-  ctx.addCookies([{ name: '__Host-lims_sid', value: sid, url: WEB, httpOnly: true, secure: true, sameSite: 'Lax' }]);
+  ctx.addCookies([{ name: '__Host-lims_sid', value: sid, domain: 'localhost', path: '/', httpOnly: true, secure: true, sameSite: 'Lax' }]);
 const c2Log = async (): Promise<any[]> => (await fetch(`${C2}/__requests`)).json();
 const c2Reset = () => fetch(`${C2}/__requests`, { method: 'DELETE' });
 const c2Control = (sid: string, mode: 'expired' | 'ok') =>

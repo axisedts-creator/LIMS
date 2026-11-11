@@ -1,0 +1,27 @@
+---
+# 02-TRD s5.3 (AC-29.1, REQ-SEC-125). Devices come only from the host's
+# `disks` map in hosts.yml (/dev/disk/by-id names). One LUKS2 container
+# per disk; each disk key maps to its data-class VG; on dr hosts every
+# disk joins vg_dr. XFS on vg_storage (grow online with lvextend -r),
+# ext4 elsewhere [CONV]. Mount points /srv/lims/<disk key> [CONV].
+luks_volumes_classes:
+  db: {vg: vg_db, fs: ext4}
+  repo1: {vg: vg_repo, fs: ext4}
+  storage: {vg: vg_storage, fs: xfs}
+  replica: {vg: vg_dr, fs: ext4}
+  data: {vg: vg_ops, fs: ext4}
+# ops-1 volumes: passphrase at boot only (manual, provider console).
+# Others: key fetched from ops-1 over wg0, console passphrase fallback.
+luks_volumes_passphrase_only: "{{ 'ops' in group_names }}"
+# Where ops-1 keeps and serves the age-encrypted per-volume keys. The ops
+# nginx on <ops-1 wg IP>:443 (role monitoring, T-18) serves this directory
+# at /luks-keys/ with the internal CA certificate below.
+luks_volumes_keystore_dir: /srv/lims/data/luks-keys
+luks_volumes_ca_cert: /etc/lims/pki/internal-ca.crt
+luks_volumes_key_url: >-
+  https://{{ hostvars[groups['ops'][0]].wg_ip }}/luks-keys/{{
+  inventory_hostname }}
+# Passphrases are held by the founder/ops lead (07-SECURITY key table) and
+# are needed only when a blank disk is formatted: pass them at run time as
+# luks_volumes_passphrases: {<disk key>: <passphrase>} (never in git).
+luks_volumes_passphrases: {}

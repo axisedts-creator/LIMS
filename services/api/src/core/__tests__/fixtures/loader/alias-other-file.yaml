@@ -1,0 +1,8 @@
+openapi: 3.0.3
+info: { title: fixture alias of one file, ref to another file, version: 1.0.0 }
+paths: {}
+components:
+  securitySchemes:
+    bffSession: { $ref: _other.yaml#/components/securitySchemes/bffSession }
+  responses:
+    Err: { $ref: _common.yaml#/components/securitySchemes/bffSession }

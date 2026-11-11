@@ -1,0 +1,100 @@
+[core] WARNING: Executable file detection not yet supported on 'win32'.
+Schema updated
+psql:/repo/db/migrations/20261105001300_identity__create_identity_schema.sql:7: NOTICE:  schema "identity" already exists, skipping
+psql:/repo/db/migrations/20261105001500_catalog__create_catalog_schema.sql:10: NOTICE:  schema "catalog" already exists, skipping
+psql:/repo/db/migrations/20261105001600_frontdesk__create_frontdesk_schema.sql:7: NOTICE:  schema "frontdesk" already exists, skipping
+psql:/repo/db/migrations/20261105001700_billing__create_billing_schema.sql:7: NOTICE:  schema "billing" already exists, skipping
+psql:/repo/db/migrations/20261105001800_lab__create_lab_schema.sql:10: NOTICE:  schema "lab" already exists, skipping
+psql:/repo/db/migrations/20261105001900_reporting__create_reporting_schema.sql:145: NOTICE:  identifier "message_template_texts__tenant_id_template_code_channel_language__uq" will be truncated to "message_template_texts__tenant_id_template_code_channel_languag"
+psql:/repo/db/migrations/20261105001900_reporting__create_reporting_schema.sql:177: NOTICE:  identifier "report_template_versions__tenant_id_template_id__published__p_uq" will be truncated to "report_template_versions__tenant_id_template_id__published__p_u"
+psql:/repo/db/migrations/20261105001900_reporting__create_reporting_schema.sql:443: NOTICE:  identifier "deliveries__tenant_id_channel_account_id_provider_message_id__p_uq" will be truncated to "deliveries__tenant_id_channel_account_id_provider_message_id__p"
+psql:/repo/db/migrations/20261105001900_reporting__create_reporting_schema.sql:682: NOTICE:  identifier "narrative_versions__tenant_id_narrative_report_id_version_no__uq" will be truncated to "narrative_versions__tenant_id_narrative_report_id_version_no__u"
+                                                       set_config                                                        
+-------------------------------------------------------------------------------------------------------------------------
+ {"tenant_id":"01a1a98a-ac40-7000-8000-00000000a001","sub":"01a1b34e-1000-7eee-9d29-d7ca59a102b5","actor_type":"system"}
+(1 row)
+
+                                                       set_config                                                        
+-------------------------------------------------------------------------------------------------------------------------
+ {"tenant_id":"01a1a98a-ac40-7000-8000-00000000b001","sub":"01a1b34e-1000-7eee-9d29-d7ca59a102b5","actor_type":"system"}
+(1 row)
+
+ set_config 
+------------
+ 
+(1 row)
+
+
+ RUN  v5.1.0 C:/LIMS-lanes/C4/services/api
+
+ ❯ src/modules/frontdesk/__tests__/contract/FrontdeskPort.contract.test.ts (20 tests | 3 failed) 1592ms
+   ❯ getOrderSummary: cases (1) (2) (19) (20), shape, derived status (7)
+     × (2) a centre-scoped user cannot read another centre's order (common.not_found); a user scoped to both can 90ms
+     × returns the OrderSummary of 03-IC §4.3: ids, branch/centre, visitType, billingMode, priority, source front_desk without sourceRefId, active items with testIds, version, registeredAt 46ms
+     × (19) C14 caller: patientId, centreId, registrationNo, status; works for a system actor and for a user holding frontdesk.order.read 75ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 3 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/modules/frontdesk/__tests__/contract/FrontdeskPort.contract.test.ts > getOrderSummary: cases (1) (2) (19) (20), shape, derived status > (2) a centre-scoped user cannot read another centre's order (common.not_found); a user scoped to both can
+Error: auth.forbidden
+ ❯ forbidden ../../packages/fakes/src/base.ts:52:58
+     50| export const notFound = (): LimsError => new LimsError("common.not_fou…
+     51| export const invalid = (detail?: string): LimsError => new LimsError("…
+     52| export const forbidden = (detail?: string): LimsError => new LimsError…
+       |                                                          ^
+     53|
+     54| export const clone = <T>(v: T): T => (v === undefined ? v : JSON.parse…
+ ❯ Object.getOrderItemProcessingState ../../packages/fakes/src/LabPort.fake.ts:195:134
+ ❯ Object.fake.<computed> [as getOrderItemProcessingState] ../../packages/fakes/src/base.ts:129:38
+ ❯ derivedStatus src/modules/frontdesk/service/order.service.ts:58:40
+ ❯ Object.getOrderSummary src/modules/frontdesk/ports/FrontdeskPort.impl.ts:139:24
+ ❯ src/modules/frontdesk/__tests__/contract/helpers.ts:61:18
+ ❯ appTx src/modules/frontdesk/__tests__/integration/helpers.ts:41:17
+ ❯ src/modules/frontdesk/__tests__/contract/FrontdeskPort.contract.test.ts:28:13
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/3]⎯
+
+ FAIL  src/modules/frontdesk/__tests__/contract/FrontdeskPort.contract.test.ts > getOrderSummary: cases (1) (2) (19) (20), shape, derived status > returns the OrderSummary of 03-IC §4.3: ids, branch/centre, visitType, billingMode, priority, source front_desk without sourceRefId, active items with testIds, version, registeredAt
+Error: auth.forbidden
+ ❯ forbidden ../../packages/fakes/src/base.ts:52:58
+     50| export const notFound = (): LimsError => new LimsError("common.not_fou…
+     51| export const invalid = (detail?: string): LimsError => new LimsError("…
+     52| export const forbidden = (detail?: string): LimsError => new LimsError…
+       |                                                          ^
+     53|
+     54| export const clone = <T>(v: T): T => (v === undefined ? v : JSON.parse…
+ ❯ Object.getOrderItemProcessingState ../../packages/fakes/src/LabPort.fake.ts:195:134
+ ❯ Object.fake.<computed> [as getOrderItemProcessingState] ../../packages/fakes/src/base.ts:129:38
+ ❯ derivedStatus src/modules/frontdesk/service/order.service.ts:58:40
+ ❯ Object.getOrderSummary src/modules/frontdesk/ports/FrontdeskPort.impl.ts:139:24
+ ❯ src/modules/frontdesk/__tests__/contract/helpers.ts:61:18
+ ❯ appTx src/modules/frontdesk/__tests__/integration/helpers.ts:41:17
+ ❯ src/modules/frontdesk/__tests__/contract/FrontdeskPort.contract.test.ts:33:15
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/3]⎯
+
+ FAIL  src/modules/frontdesk/__tests__/contract/FrontdeskPort.contract.test.ts > getOrderSummary: cases (1) (2) (19) (20), shape, derived status > (19) C14 caller: patientId, centreId, registrationNo, status; works for a system actor and for a user holding frontdesk.order.read
+Error: auth.forbidden
+ ❯ forbidden ../../packages/fakes/src/base.ts:52:58
+     50| export const notFound = (): LimsError => new LimsError("common.not_fou…
+     51| export const invalid = (detail?: string): LimsError => new LimsError("…
+     52| export const forbidden = (detail?: string): LimsError => new LimsError…
+       |                                                          ^
+     53|
+     54| export const clone = <T>(v: T): T => (v === undefined ? v : JSON.parse…
+ ❯ Object.getOrderItemProcessingState ../../packages/fakes/src/LabPort.fake.ts:195:134
+ ❯ Object.fake.<computed> [as getOrderItemProcessingState] ../../packages/fakes/src/base.ts:129:38
+ ❯ derivedStatus src/modules/frontdesk/service/order.service.ts:58:40
+ ❯ Object.getOrderSummary src/modules/frontdesk/ports/FrontdeskPort.impl.ts:139:24
+ ❯ src/modules/frontdesk/__tests__/contract/helpers.ts:61:18
+ ❯ appTx src/modules/frontdesk/__tests__/integration/helpers.ts:41:17
+ ❯ src/modules/frontdesk/__tests__/contract/FrontdeskPort.contract.test.ts:49:17
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/3]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  3 failed | 17 passed (20)
+   Start at  01:40:29
+   Duration  2.85s (tests 61%, import 28%, transform 10%, setup 1%)
+

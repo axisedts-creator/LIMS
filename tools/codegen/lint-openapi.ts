@@ -214,8 +214,9 @@ export function lintOpenapi(files: { name: string; text: string }[], ctx: LintCo
         if (hasPerm && !permissions.has(op["x-permission"])) v("4", `${at}: x-permission ${op["x-permission"]} not in permissions.yaml`);
         if (hasPublic && !nonEmptyStr(op["x-public"])) v("4", `${at}: x-public needs a non-empty justification`);
         if (!IDEMPOTENCY.includes(op["x-idempotency"])) v("4", `${at}: x-idempotency must be one of ${IDEMPOTENCY.join("|")}`);
-        if (method === "post" && op["x-idempotency"] === "none" && !/^E[12] /.test(op["x-idempotency-justification"] ?? ""))
-          v("4", `${at}: POST with x-idempotency none needs x-idempotency-justification starting 'E1 ' or 'E2 ' (P-8)`);
+        if (method === "post" && op["x-idempotency"] === "none" && !/^E[1-4] /.test(op["x-idempotency-justification"] ?? ""))
+          // LD-10 (2026-11-07): E3 = read-only POST, E4 = identity pre-auth/session op (response not replayable)
+          v("4", `${at}: POST with x-idempotency none needs x-idempotency-justification starting 'E1 '..'E4 ' (P-8, LD-10)`);
         if (!TIERS.includes(op["x-rate-limit-tier"])) v("4", `${at}: x-rate-limit-tier must be one of ${TIERS.join("|")}`);
         if (!Array.isArray(op["x-error-codes"])) v("4", `${at}: x-error-codes required`);
         else for (const code of op["x-error-codes"]) {
@@ -237,7 +238,9 @@ export function lintOpenapi(files: { name: string; text: string }[], ctx: LintCo
           for (const m of Object.values(isObj(body.content) ? body.content : {})) {
             walkSchema(isObj(m) ? m.schema : undefined, `${at} requestBody`, (s, ptr) => {
               for (const f of Object.keys(isObj(s.properties) ? s.properties : {}))
-                if (SERVER_AUTHORITY_FIELDS.includes(f) || (f === "status" && !action)) v("7", `${ptr}: request body declares ${f}`);
+                // LD-11 (2026-11-07): tenant_id names the target tenant in x-context: platform bodies only
+                if ((SERVER_AUTHORITY_FIELDS.includes(f) && !(f === "tenant_id" && op["x-context"] === "platform"))
+                  || (f === "status" && !action)) v("7", `${ptr}: request body declares ${f}`);
             }, deref);
           }
         }
@@ -277,16 +280,25 @@ export function lintOpenapi(files: { name: string; text: string }[], ctx: LintCo
 }
 
 // CM §3 module → owning chunk (api modules) and 02-TRD §6.3 PORT_OWNERS (port → module).
-const MODULE_OWNERS: Record<string, string> = {
+export const MODULE_OWNERS: Record<string, string> = {
   core: "C0", identity: "C2", catalog: "C3", frontdesk: "C4", billing: "C4", lab: "C5", reporting: "C6", instruments: "C7",
   analytics: "C8", quality: "C9", micro: "C10", anatomic: "C11", inventory: "C12", partners: "C13", smartreport: "C14",
   payments: "C15", engagement: "C16", homecollection: "C17",
 };
-const PORT_MODULES: Record<string, string> = {
+export const PORT_MODULES: Record<string, string> = {
   CatalogPort: "catalog", FrontdeskPort: "frontdesk", BillingPort: "billing", LabPort: "lab", ReportingPort: "reporting",
   NotificationPort: "reporting", IdentityPort: "identity", PaymentProviderPort: "payments", SmartReportPort: "smartreport",
   QualityPort: "quality", BillingCommandPort: "billing", RenderPort: "reporting", EngagementPort: "engagement",
 };
+
+// PORT_CONSUMERS from the T0C-05 generated file (`  Port: ["mod", …],` lines); absent file = no port-propagated codes.
+function readPortConsumers(rootDir: string): Record<string, string[]> {
+  let t: string;
+  try { t = readFileSync(join(rootDir, "contracts/ports/generated/port-consumers.ts"), "utf8"); } catch { return {}; }
+  const body = t.split("PORT_CONSUMERS")[1] ?? "";
+  return Object.fromEntries([...body.matchAll(/^\s*([A-Za-z]+Port):\s*\[([^\]]*)\]/gm)]
+    .map(([, port, list]) => [port, [...list.matchAll(/"([a-z]+)"/g)].map((m) => m[1])]));
+}
 
 export async function lintRepo(rootDir: string): Promise<Violation[]> {
   const read = (p: string) => readFileSync(join(rootDir, p), "utf8");
@@ -297,8 +309,7 @@ export async function lintRepo(rootDir: string): Promise<Violation[]> {
     errors: errs.map((e: { code: string; owner: string }) => ({ code: e.code, owner: e.owner })),
     moduleOwners: MODULE_OWNERS,
     portOwners: Object.fromEntries(Object.entries(PORT_MODULES).map(([p, m]) => [p, MODULE_OWNERS[m]])),
-    // ponytail: empty until T0C-05 gen-port-consumers emits contracts/ports/generated/port-consumers.ts; wire it in then.
-    portConsumers: {},
+    portConsumers: readPortConsumers(rootDir),
   };
   const dir = join(rootDir, "contracts/openapi");
   const files = readdirSync(dir).filter((f) => f.endsWith(".yaml")).sort()

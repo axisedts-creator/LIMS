@@ -1,0 +1,7 @@
+# T-18 tests (tester)
+- `infra/tests/static/test_t18_monitoring.py` (23 tests, stdlib+jinja2+PyYAML): Prometheus render (30s/10s, 90d, pinned versions, every TRD s3.3 port on its wg IP, label drop list, blackbox jobs), Alertmanager route simulator (page 24/7, warn digest 30m, finance, Watchdog 6h to a separate mailbox, per-tenant no cross-leak, lab_hours gating, inhibitions, SMTP password by file, no PHI in lims.tmpl), rules (Watchdog, TargetDown 2m, summary+runbook_url), Grafana/blackbox/ops nginx, roles on `ops` only, CA key tmpfs/no_log/removed, no e-mail in git, `ops-note.sh` behaviour (JSON record, forging, empty, no exec).
+- `infra/tests/integration/test_t18_live.py`: targets up, test page within 120 s, Watchdog mailbox (LIMS_T18_LIVE=1; CI/ops VM only).
+- Run: `.orchestra\notes\T-18-verify.cmd`. Now 19 fail/error (files missing, ops-note.sh is a stub); 4 pass already (secret schema, no key material, no e-mail in existing files, empty-text vs stub exit 2).
+- CONTRACTS (docstring): ops.rules.yml holds Watchdog+TargetDown; Jinja vars `alert_contacts{oncall,escalation,finance_oncall,watchdog}`, `tenant_ops_contacts`, `smtp_from`, `smtp_relay_fqdn`; finance route by `team="finance"`; tenant receivers `tenant-admin-email*`; ops-note JSON `{stream:"ops_audit",who,what,when}`.
+- NOT run: `promtool`/`amtool` (not installed here; tests skip with reason, CI must have them), real SMTP delivery, issuance, `up==1` (live file).
+- UNVERIFIED: label name `team="finance"` and the alert_contacts key names are my choice (spec silent) - writer disputes if wrong.

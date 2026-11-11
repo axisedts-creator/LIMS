@@ -1,0 +1,22 @@
+---
+# 02-TRD s8.2 (secret id internal_ca_key), s3.3. ops-1 only.
+# The CA private key exists only in the secret store (lims-secrets, SOPS)
+# and, while signing, on tmpfs under /run/lims/pki; removed afterwards.
+# Public CA certificate + leaf keys/certs: /srv/lims/pki (ops-1 LUKS volume).
+internal_ca_dir: /srv/lims/pki
+internal_ca_tmp: /run/lims/pki
+internal_ca_subject: "/CN=LIMS internal CA ({{ env }})"
+internal_ca_days: 1825       # 5 years [CONV]
+internal_ca_leaf_days: 365   # 1 year [CONV]
+internal_ca_renew_before_s: 2592000  # re-issue when < 30 days left
+# Leaf key: EC prime256v1 (secp256r1). CA key: secp384r1 (infra/pki).
+internal_ca_leaf_curve: prime256v1
+# SAN = wg IP of ops-1 (ops nginx :443, registry :5000 - 02-TRD s3.3);
+# registry clients dial registry.lims.internal:5000 (s12.2) -> DNS SAN too.
+# owner = uid that reads key.pem (registry runs non-root: registry_uid).
+internal_ca_leaves:
+  - name: ops-nginx
+    san: "IP:{{ wg_ip }}"
+  - name: registry
+    san: "IP:{{ wg_ip }},DNS:registry.lims.internal"
+    owner: 10500

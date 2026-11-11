@@ -1,0 +1,6 @@
+# C6-T34 tests (tester)
+File: tests/load/C6-T34.static.test.mjs (node:test, no deps). Run: `.orchestra\notes\C6-T34-verify.cmd` (= `node --test tests/load/C6-T34.static.test.mjs` from repo root).
+Pins the harness contract: tests/load/reporting-load.js (k6: 42/min x 15m renders, 200-id bulk, 1/s deliveries, p95 thresholds 5s/60s/8s/1s/100ms, fail<1%, 10x seed, TARGET_ENV guard) + tests/load/README.md; tests/e2e/reporting-journey.e2e.ts (register..QR verify, amendment, outsourced, narrative, bulk, rejection, cancel/credit note, cross-tenant, PHI scan) + tests/e2e/README.md.
+ASSUMED (dispute if wrong): file names above; k6 + compose stack cannot run in this gate, so the check is static; .github/workflows/nightly.yml is not edited (not C6-owned) — READMEs say how nightly runs it.
+Red now: tests/load and tests/e2e do not exist.
+Not covered: the real 15-min load run and the compose-stack E2E execution (need k6 + staging/compose; run nightly), actual p95 values at 10x seed.

@@ -2,7 +2,8 @@
 // /lab/status-board (04-UI-UX §3.11, 03-APP-FLOW §3.11 + §1.5; PRD AC-18.1): one row per order, board status as StatusChip (generic), "Sample rejected" badge, urgent ★, released at.
 // Auto-refresh every 30 s by polling through the server action (the JWT never reaches the browser, REQ-SEC-068) with "Updated {time}" and a pause toggle.
 // No patient / order identifier is ever placed in a URL or in browser storage (REQ-SEC-098).
-// [CONV] "(partial)" / "(preliminary)" chip variants and the "last change" column wait for a release-kind / change-time field in StatusBoardRow (CR .orchestra/cr/C5.T-27.md).
+// [CONV] "(partial)" / "(preliminary)" chip variants and the "last change" column wait for a release-kind / change-time field in StatusBoardRow (CR-C5-T27-001, .orchestra/cr/C5.T-27.nonblocking.md).
+// Paging (review C5.T-27 #1, AC-18.1 "per order"): page.next_cursor shows "Load more", which appends the next page; a poll or filter change restarts at page 1..
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Badge } from '@lims/ui/components/Badge';
 import { Button } from '@lims/ui/components/Button';
@@ -23,6 +24,7 @@ const RANGE_ERROR = 'Choose a period of at most 7 days, ending on or after the s
 export interface StatusBoardProps {
   centres: readonly { id: string; name: string }[];
   initialRows: readonly StatusBoardRow[];
+  initialNextCursor?: string;
   initialRange: { from: string; to: string };
   permissions: readonly string[];
 }
@@ -39,8 +41,9 @@ export function StatusBoard(props: StatusBoardProps) {
   return props.permissions.includes('lab.status_board.read') ? <Board {...props} /> : <p role="alert">{"You don't have access to this screen."}</p>;
 }
 
-function Board({ centres, initialRows, initialRange }: StatusBoardProps) {
+function Board({ centres, initialRows, initialNextCursor, initialRange }: StatusBoardProps) {
   const [rows, setRows] = useState<readonly StatusBoardRow[]>(initialRows);
+  const [next, setNext] = useState<string | undefined>(initialNextCursor);
   const [centreId, setCentreId] = useState('');
   const [statuses, setStatuses] = useState<readonly BoardStatus[]>([]);
   const [range, setRange] = useState(initialRange);
@@ -55,15 +58,21 @@ function Board({ centres, initialRows, initialRange }: StatusBoardProps) {
   live.current = { centreId, statuses, range };
 
   /** One refresh with the given (or current) filters; only the newest answer is applied. A failure keeps the rows on screen. */
-  const refresh = useCallback(async (over: Partial<{ centreId: string; statuses: readonly BoardStatus[]; range: { from: string; to: string } }> = {}) => {
+  /** With a cursor the page is appended ("Load more"); without one the board restarts at page 1. */
+  const refresh = useCallback(async (over: Partial<{ centreId: string; statuses: readonly BoardStatus[]; range: { from: string; to: string } }> = {}, cursor?: string) => {
     const f = { ...live.current, ...over };
     const n = ++seq.current;
     const r = await call(getStatusBoardAction({
       registered_at_from: f.range.from, registered_at_to: f.range.to,
       ...(f.centreId ? { centre_id: f.centreId } : {}), ...(f.statuses.length ? { board_status: f.statuses.join(',') } : {}),
+      ...(cursor ? { cursor } : {}),
     }));
     if (n !== seq.current) return;
-    if (r.ok) { setRows(r.data.data); setError(''); setUpdated(clock(new Date())); } else setError(r.title ?? FAILED);
+    if (r.ok) {
+      const got = r.data.data;
+      setRows((prev) => (cursor ? [...prev, ...got.filter((g) => !prev.some((p) => p.order_id === g.order_id))] : got));
+      setNext(r.data.page?.next_cursor); setError(''); setUpdated(clock(new Date()));
+    } else setError(r.title ?? FAILED);
   }, []);
 
   useEffect(() => { setUpdated(clock(new Date())); }, []);
@@ -135,6 +144,7 @@ function Board({ centres, initialRows, initialRange }: StatusBoardProps) {
           </tbody>
         </table>
       )}
+      {next ? <Button size="sm" onPress={() => { void refresh({}, next); }}>Load more</Button> : null}
     </div>
   );
 }

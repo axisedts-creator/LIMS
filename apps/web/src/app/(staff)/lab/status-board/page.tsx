@@ -17,9 +17,9 @@ export default async function StatusBoardPage({ searchParams }: { searchParams: 
   const from = new Date(Math.floor((Date.now() - 24 * HOUR_MS) / MINUTE_MS) * MINUTE_MS);
   const initialRange = { from: from.toISOString(), to: new Date(from.getTime() + 7 * 24 * HOUR_MS).toISOString() };
   const allowed = permissions.includes('lab.status_board.read');
-  const [centres, initialRows] = await Promise.all([
+  const [centres, first] = await Promise.all([
     allowed ? listCentres().catch(() => []) : [],
-    allowed ? getStatusBoard({ registered_at_from: initialRange.from, registered_at_to: initialRange.to }).then((p) => p.data).catch(() => []) : [],
+    allowed ? getStatusBoard({ registered_at_from: initialRange.from, registered_at_to: initialRange.to }).catch(() => undefined) : undefined,
   ]);
-  return <StatusBoard centres={centres} initialRows={initialRows} initialRange={initialRange} permissions={permissions} />;
+  return <StatusBoard centres={centres} initialRows={first?.data ?? []} {...(first?.page.next_cursor ? { initialNextCursor: first.page.next_cursor } : {})}initialRange={initialRange} permissions={permissions} />;
 }

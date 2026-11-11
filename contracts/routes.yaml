@@ -172,3 +172,5 @@ routes:
   - { id: staff.homecollection.handovers, origin: staff_web, path: /homecollection/handovers, owner: C17, permission: homecollection.handover.receive }
   - { id: staff.homecollection.devices, origin: staff_web, path: /homecollection/devices, owner: C17, permission: homecollection.device.manage }
   - { id: staff.homecollection.settings, origin: staff_web, path: /homecollection/settings, owner: C17, permission: homecollection.settings.manage }
+  - { id: staff.catalog.imports, origin: staff_web, path: /catalog/imports, owner: C3, permission: catalog.test.read }
+  - { id: staff.catalog.import, origin: staff_web, path: "/catalog/imports/{import_id}", owner: C3, permission: catalog.test.read }

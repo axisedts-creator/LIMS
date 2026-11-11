@@ -27,7 +27,7 @@ const FAIL_OPEN: ReadonlySet<RateLimitTier> = new Set(['general']);
 
 const PAYMENTS_CB = 'payments:cb:';
 
-type Rule =(b: RateLimitBackend, h: string) => Promise<RateLimitDecision>;
+type Rule = (b: RateLimitBackend, h: string) => Promise<RateLimitDecision>;
 
 export function createRateLimiter(opts: RateLimiterOptions): RateLimiter {
   const { backend, hmacKey, log, metrics } = opts;

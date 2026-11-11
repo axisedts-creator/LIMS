@@ -111,6 +111,8 @@ const listOrderResults: Handler = async (req, hctx) => {
   const r = await (ctx.store as ReadStore).getOrderResults(ctx.tx, ctx.tenantId, { orderId, ...(dept === undefined ? {} : { departmentId: dept }) });
   if (!r) throw new LimsError('common.not_found');     // P-01
   await assertRead(ctx, r.centreId);                   // the order's own centre (store fills it from the order row), even when no result rows exist (P-02)
+  // 02-TRD §11 "Access log" #16 (D-11): one row per call, ids only (REQ-SEC-006); after authz so a refused caller writes no row.
+  await (ctx.audit as NonNullable<Ctx['audit']>).access({ action: 'lab_result.view', entityType: 'order', entityId: orderId, centreId: r.centreId, outcome: 'allowed' });
   return {
     status: 200,
     body: { order: r.order, items: r.items.map((i) => ({ order_item_id: i.orderItemId, test: { test_id: i.testId, test_code: i.testCode }, results: i.results.map(toResultDto) })) },

@@ -6,8 +6,8 @@ import { loadLabConfig } from '../config.js';
 export interface CatalogCache {
   /** Ignored when `revision` <= the tenant's invalidation floor (a read that started before the event must not re-fill the cache). */
   set(tenantId: string, method: string, input: unknown, value: unknown, revision: number): void;
-  /** A hit refreshes LRU recency; the box distinguishes a cached null/undefined from a miss. */
-  get(tenantId: string, method: string, input: unknown): { value: unknown } | undefined;
+  /** A hit refreshes LRU recency; the box distinguishes a cached null/undefined from a miss. With `revision`, an entry read at another revision is a miss. */
+  get(tenantId: string, method: string, input: unknown, revision?: number): { value: unknown } | undefined;
   invalidate(tenantId: string, ev: { revision: number; entityType: string }): void;
   size(): number;
 }
@@ -42,10 +42,10 @@ export function createCatalogCache(opts: { maxEntries: number }): CatalogCache {
       entries.set(k, { tenantId, value, revision });
       while (entries.size > max) entries.delete(entries.keys().next().value as string);
     },
-    get(tenantId, method, input) {
+    get(tenantId, method, input, revision) {
       const k = keyOf(tenantId, method, input);
       const e = entries.get(k);
-      if (!e) return undefined;
+      if (!e || (revision !== undefined && e.revision !== revision)) return undefined;
       entries.delete(k);
       entries.set(k, e);
       return { value: e.value };
@@ -72,9 +72,25 @@ const CACHED_METHODS: ReadonlySet<string> = new Set([
 ]);
 
 type AnyFn = (...args: unknown[]) => unknown;
+interface Tx { query(text: string, values?: unknown[]): Promise<{ rows: Array<Record<string, unknown>> }> }
+export type ReadRevision = (ctx: { tenantId: string; tx?: unknown }) => Promise<number>;
 
-/** Wraps the read methods of a CatalogPort with the cache. Tenant = ctx.tenantId only; a ctx without a tenant bypasses; rejections are never cached. */
-export function withCatalogCache<P extends object>(port: P, cache: CatalogCache = getCatalogCache()): P {
+/** The tenant's current catalog revision (0 before the first catalog write), read in the caller's transaction (RLS-scoped).
+ *  [CONV] R1 forbids importing catalog code and CatalogPort has no revision read, so this is one read-only SELECT on catalog.catalog_state;
+ *  see .orchestra/cr/C5.T-28.md (asks for a CatalogPort revision read to replace it). */
+export async function currentRevision(tx: unknown, tenantId: string): Promise<number> {
+  const { rows } = await (tx as Tx).query('SELECT catalog_revision FROM catalog.catalog_state WHERE tenant_id = $1', [tenantId]);
+  return rows[0] ? Number(rows[0].catalog_revision) : 0;
+}
+
+/** Wraps the read methods of a CatalogPort with the cache. Tenant = ctx.tenantId only; a ctx without a tenant bypasses; rejections are never cached.
+ *  REVIEW T-28 items 1+2 (02-TRD §6.2 key = tenant, method, input, catalogRevision): the revision is read BEFORE each port call, a hit needs that same revision and
+ *  a fill is stored at it, so the API process stays correct with no invalidate() from the worker. A non-integer or failed revision read bypasses the cache. */
+export function withCatalogCache<P extends object>(
+  port: P,
+  cache: CatalogCache = getCatalogCache(),
+  readRevision: ReadRevision = (ctx) => currentRevision(ctx.tx, ctx.tenantId),
+): P {
   return new Proxy(port, {
     get(target, prop, receiver) {
       const orig = Reflect.get(target, prop, receiver) as unknown;
@@ -84,11 +100,13 @@ export function withCatalogCache<P extends object>(port: P, cache: CatalogCache 
       return async (ctx: unknown, input: unknown, ...rest: unknown[]) => {
         const tenantId = (ctx as { tenantId?: unknown } | null | undefined)?.tenantId;
         if (typeof tenantId !== 'string' || !tenantId) return bound(ctx, input, ...rest);
-        const hit = cache.get(tenantId, prop, input);
+        let rev: number;
+        try { rev = await readRevision(ctx as { tenantId: string; tx?: unknown }); } catch { return bound(ctx, input, ...rest); }
+        if (!Number.isInteger(rev)) return bound(ctx, input, ...rest);
+        const hit = cache.get(tenantId, prop, input, rev);
         if (hit) return hit.value;
         const result = await bound(ctx, input, ...rest);
-        const rev = (result as { catalogRevision?: unknown } | null | undefined)?.catalogRevision;
-        cache.set(tenantId, prop, input, result, Number.isInteger(rev) ? (rev as number) : 0);
+        cache.set(tenantId, prop, input, result, rev);
         return result;
       };
     },

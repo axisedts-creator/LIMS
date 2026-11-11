@@ -1,0 +1,13 @@
+{"name": "astm-nak-to-enq-retry-10s", "protocol": "astm", "transport": "pipe", "instrument_profile": "astm_generic_e1394", "options": {},
+ "steps": [
+  {"outbound": ["H|\\^&|||SIM-HOST^0.1|||||||P|1<CR>", "L|1|N<CR>"]},
+  {"expect": "agent", "bytes": "<ENQ>", "within_ms": 200},
+  {"from": "instrument", "bytes": "<NAK>"},
+  {"wait_ms": 9999, "note": "1 ms short of nak_retry_delay_s"},
+  {"expect": "agent", "bytes": "", "within_ms": 200},
+  {"wait_ms": 1, "note": "10 s since the NAK = nak_retry_delay_s default"},
+  {"expect": "agent", "bytes": "<ENQ>", "within_ms": 200},
+  {"from": "instrument", "bytes": "<NAK>"},
+  {"wait_ms": 10000, "note": "second NAK: retry again after exactly nak_retry_delay_s"},
+  {"expect": "agent", "bytes": "<ENQ>", "within_ms": 200}
+ ]}

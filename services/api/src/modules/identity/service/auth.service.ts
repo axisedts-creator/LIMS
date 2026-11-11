@@ -19,6 +19,8 @@ export interface AuthCtx {
 }
 export interface AuthRepo {
   loginContext(tx: AuthTx, sub: string): Promise<Row | undefined>;
+  /** T31 openMobileSession (AU-T17): does the membership hold the permission through an active role? Runs after tx.bindTenant. */
+  membershipHasPermission?(tx: AuthTx, a: { tenantId: string; membershipId: string; permission: string }): Promise<boolean>;
   insertSession(tx: AuthTx, s: NewSession): Promise<void>;
   insertPlatformSession(tx: AuthTx, s: NewSession): Promise<void>;
   touchMembershipLogin(tx: AuthTx, a: { tenantId: string; membershipId: string; at: Date; actorId: string }): Promise<void>;
@@ -44,7 +46,15 @@ export interface AuthDeps {
   platformAllowedCidrs?: readonly string[];
   /** LIMS_IDENTITY_PLATFORM_IDLE_MINUTES / _ABSOLUTE_HOURS (02-TRD §11 defaults 15 / 8). */
   platformIdleMinutes?: number; platformAbsoluteHours?: number;
+  /** T31: LIMS_IDENTITY_MOBILE_ABSOLUTE_HOURS (02-TRD s11; staff_mobile idle = absolute, sessions__idle__ck 60..720 min). */
+  mobileAbsoluteHours?: number;
+  /** T31: request clock seam used by the login handler envelope (default new Date()) */
+  now?: () => Date;
 }
+/** T31 (08 R10): which login family. staff = loginStaff (staff_web BFF), partner = loginPartner (partner BFF), mobile = openMobileSession (no BFF). */
+export type LoginMode = 'staff' | 'partner' | 'mobile';
+export interface MobileLoginInput { email: unknown; password: unknown; appInstanceId: string; appPlatform: 'android' | 'ios' }
+export interface MobileSessionResult { status: 200; body: { session_token: string; access_token: string; access_expires_at: string; session_expires_at: string; session: Record<string, unknown> } }
 export interface LoginResult { status: 200; body: { session_token: string; session: Record<string, unknown> } }
 
 const EMAIL_MAX = 254; const PASSWORD_MAX = 128;
@@ -57,6 +67,7 @@ function envHmac(email: string): string {
 }
 const envList = (v: string | undefined) => (v ?? '').split(',').map((s) => s.trim()).filter(Boolean);
 const envInt = (v: string | undefined, d: number) => { const n = Number(v); return Number.isInteger(n) && n > 0 ? n : d; };
+const MOBILE_PERMISSION = 'homecollection.sync.upload';   // 02-TRD s4 item 10 / AU-T17
 const sha256 = (s: string) => createHash('sha256').update(s).digest();
 const invalid = () => new LimsError('common.validation_failed');
 const normalise = (e: string) => e.trim().normalize('NFC').toLowerCase();
@@ -72,7 +83,13 @@ export function createAuthService(deps: AuthDeps) {
   const pIdle = deps.platformIdleMinutes ?? envInt(process.env['LIMS_IDENTITY_PLATFORM_IDLE_MINUTES'], 15);
   const pAbs = deps.platformAbsoluteHours ?? envInt(process.env['LIMS_IDENTITY_PLATFORM_ABSOLUTE_HOURS'], 8);
 
-  async function loginStaff(ctx: AuthCtx, input: { email: unknown; password: unknown }): Promise<LoginResult> {
+  /** mobile hours read per call (env may change between tests / deploys); out of range -> the 12 h default (CHECK 60..720 min) [CONV] */
+  const mobileHours = () => {
+    const h = deps.mobileAbsoluteHours ?? envInt(process.env['LIMS_IDENTITY_MOBILE_ABSOLUTE_HOURS'], 12);
+    return h >= 1 && h <= 12 ? h : 12;
+  };
+
+  async function login(ctx: AuthCtx, input: { email: unknown; password: unknown }, mode: LoginMode, app?: { appInstanceId: string; appPlatform: string }): Promise<LoginResult | MobileSessionResult> {
     const start = ctx.now().getTime();
     const { email, password } = input ?? ({} as never);
     if (typeof email !== 'string' || typeof password !== 'string' || password.length < 1 || password.length > PASSWORD_MAX) throw invalid();
@@ -96,8 +113,9 @@ export function createAuthService(deps: AuthDeps) {
     };
     const limited = (e: unknown) => (isLimsError(e, 'common.rate_limited') ? tenantless('login_rate_limited', e) : Promise.reject(e));
 
-    // AU-T14: this operation serves the staff_web BFF only; the password is not checked for any other key.
-    if (ctx.bffKey !== 'staff_web') return tenantless('login_failed', new LimsError('auth.login_failed'), { reasonCode: 'wrong_bff' });
+    // AU-T14: loginStaff serves the staff_web BFF only, loginPartner the partner BFF only; the password is not checked for any other key.
+    // openMobileSession is a public app route (no BFF): the key is ignored.
+    if (mode !== 'mobile' && ctx.bffKey !== (mode === 'partner' ? 'partner' : 'staff_web')) return tenantless('login_failed', new LimsError('auth.login_failed'), { reasonCode: 'wrong_bff' });
 
     // 1. per-IP throttle (only bites once engaged), 2. hourly account cap, 3. backoff / step-up (password not checked)
     try { await deps.limits.checkIp(ctx.clientIp); } catch (e) { return limited(e); }
@@ -139,7 +157,13 @@ export function createAuthService(deps: AuthDeps) {
       { user_id: t.userId, ...(tenantId ? { tenant_id: tenantId } : {}) }, `signout:${t.userId}:${reason}`);
     const who = { userId: t.userId };
 
-    if (row['platform_staff_id'] && !row['tenant_id']) return platformLogin(ctx, row, t, k, ev, deny, signOut);
+    if (row['platform_staff_id'] && !row['tenant_id']) {
+      if (mode !== 'staff') return tenantless('login_failed', new LimsError('auth.login_failed'), who);   // platform staff: staff_web only
+      return platformLogin(ctx, row, t, k, ev, deny, signOut);
+    }
+    // AU-T14 (08 R10): loginPartner accepts only actor_type 'partner'; the staff / mobile families never a partner membership.
+    // [CONV] a row without actor_type is a user membership (05-SCHEMA s6 DEFINER returns staff memberships; see .orchestra/cr/T31.md).
+    if (mode === 'partner' ? row['actor_type'] !== 'partner' : row['actor_type'] === 'partner') return tenantless('login_failed', new LimsError('auth.login_failed'), who);
 
     if (Number(row['membership_count']) > 1) {   // 08 A6.6: data error, never a 403 leak
       alert('identity_multi_membership', { user_id: t.userId, request_id: ctx.requestId });
@@ -159,15 +183,33 @@ export function createAuthService(deps: AuthDeps) {
     if (row['membership_locked'] !== false) return blocked('login_blocked_locked', 'auth.account_locked');
     if (row['tenant_status'] !== 'active') return blocked('login_blocked_tenant_suspended', 'identity.tenant_suspended');
 
-    const idle = Number(row['idle_timeout_minutes']); const abs = Number(row['absolute_session_hours']);
+    if (mode === 'mobile') {   // AU-T17: read only after the password is verified and the tenant is bound (no oracle for unknown accounts)
+      const ok = deps.repo.membershipHasPermission
+        ? await deps.repo.membershipHasPermission(tx, { tenantId, membershipId, permission: MOBILE_PERMISSION }) : false;
+      if (!ok) {
+        await deps.events.recordTenant(tx, ev('login_failed', { ...who, tenantId, membershipId, emailHmacHex: k, reasonCode: 'mobile_permission' }));
+        await signOut('mobile_permission', tenantId);
+        return deny(new LimsError('auth.forbidden'));
+      }
+    }
+
+    let idle = Number(row['idle_timeout_minutes']); let abs = Number(row['absolute_session_hours']);
+    if (mode === 'mobile') { abs = mobileHours(); idle = abs * 60; }   // staff_mobile: no idle timeout, idle = absolute (04 A16, 05-SCHEMA s4.1)
     if (!(idle > 0) || !(abs > 0)) throw new LimsError('common.internal', 'identity: tenant session settings missing');
     const state = row['has_verified_factor'] === true ? 'mfa_pending' : row['mfa_required'] === true ? 'mfa_enrolment_required' : 'active';
     const now = ctx.now();
-    const { s, token } = session(ctx, t, { tenantId, kind: 'tenant_staff', membershipId, platformStaffId: null, state, idle, abs, now });
+    const kind = mode === 'partner' ? 'partner' : mode === 'mobile' ? 'staff_mobile' : 'tenant_staff';
+    const { s, token } = session(ctx, t, { tenantId, kind, membershipId, platformStaffId: null, state, idle, abs, now });
+    if (app) { s.appInstanceId = app.appInstanceId; s.appPlatform = app.appPlatform; }
     await deps.repo.insertSession(tx, s);
     if (state === 'active') await deps.repo.touchMembershipLogin(tx, { tenantId, membershipId, at: now, actorId: ctx.actor.id });
     await deps.events.recordTenant(tx, ev(state === 'active' ? 'login_succeeded' : 'login_password_ok', { ...who, tenantId, membershipId, sessionId: s.id, emailHmacHex: k }));
     await deps.limits.clearAccountFailures(k);
+    if (mode === 'mobile') {
+      const r = result(s, token);
+      return { status: 200, body: { session_token: token, access_token: t.accessToken, access_expires_at: s.accessExpiresAt.toISOString(),
+        session_expires_at: s.absoluteExpiresAt.toISOString(), session: r.body.session } };
+    }
     return result(s, token);
   }
 
@@ -216,5 +258,12 @@ export function createAuthService(deps: AuthDeps) {
       idle_expires_at: s.idleExpiresAt.toISOString(), absolute_expires_at: s.absoluteExpiresAt.toISOString() } },
   });
 
-  return { loginStaff };
+  return {
+    loginStaff: (ctx: AuthCtx, input: { email: unknown; password: unknown }) => login(ctx, input, 'staff') as Promise<LoginResult>,
+    /** T31 loginPartner: session kind partner (AU-T14, 03-APP-FLOW s3.5a) */
+    loginPartner: (ctx: AuthCtx, input: { email: unknown; password: unknown }) => login(ctx, input, 'partner') as Promise<LoginResult>,
+    /** T31 openMobileSession: session kind staff_mobile (AU-T17) */
+    openMobileSession: (ctx: AuthCtx, input: MobileLoginInput) =>
+      login(ctx, input, 'mobile', { appInstanceId: input.appInstanceId, appPlatform: input.appPlatform }) as Promise<MobileSessionResult>,
+  };
 }

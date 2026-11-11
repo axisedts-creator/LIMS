@@ -52,6 +52,8 @@ export interface NewSession {
   gotrueSessionId: string; tokenSha256: Buffer; state: string; aal: string; accessToken: string; refreshToken: string;
   accessExpiresAt: Date; idleTimeoutMinutes: number; idleExpiresAt: Date; absoluteExpiresAt: Date; expiresAt: Date;
   clientIp: string; userAgent?: string | undefined; actorId: string;
+  /** T31: required iff kind staff_mobile (sessions__app__ck; patient sessions are written by the port, not here) */
+  appInstanceId?: string; appPlatform?: string;
 }
 
 /** LIMS_IDENTITY_TOKEN_ENC_KEYS = JSON { "<key_id>": "<base64 32 bytes>" }; the last id listed encrypts [CONV "newest"].
@@ -78,6 +80,16 @@ const SESSION_SQL = `INSERT INTO identity.sessions (id, tenant_id, kind, user_id
   refresh_token_enc, access_token_enc, enc_key_id, access_expires_at, idle_timeout_minutes, idle_expires_at, absolute_expires_at,
   client_ip, user_agent, expires_at, created_by, updated_by)
   VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, nullif($17, '')::inet, $18, $19, $20, $20)`;
+// T31 staff_mobile: same row + app_instance_id / app_platform (sessions__app__ck)
+const APP_SESSION_SQL = `INSERT INTO identity.sessions (id, tenant_id, kind, user_id, membership_id, gotrue_session_id, token_sha256, state, aal,
+  refresh_token_enc, access_token_enc, enc_key_id, access_expires_at, idle_timeout_minutes, idle_expires_at, absolute_expires_at,
+  client_ip, user_agent, expires_at, created_by, updated_by, app_instance_id, app_platform)
+  VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, nullif($17, '')::inet, $18, $19, $20, $20, $21, $22)`;
+// T31 AU-T17: permission through an active role of the membership (tenant bound; plain SQL under the tenant policies)
+const MEMBERSHIP_PERMISSION_SQL = `SELECT EXISTS (SELECT 1 FROM core.membership_roles mr
+    JOIN core.roles r ON r.tenant_id = mr.tenant_id AND r.id = mr.role_id AND r.is_active
+    JOIN core.role_permissions rp ON rp.tenant_id = r.tenant_id AND rp.role_id = r.id
+  WHERE mr.tenant_id = $1 AND mr.membership_id = $2 AND rp.permission_code = $3) AS ok`;
 const PLATFORM_SESSION_SQL = 'SELECT app.identity_platform_auth_write_session_insert($1::uuid, $2::jsonb)';
 const STAFF_LOGIN_SQL = 'SELECT app.identity_platform_auth_write_staff_login($1::uuid)';
 const TOUCH_SQL = `UPDATE core.memberships SET last_login_at = $3, updated_at = now(), updated_by = $4 WHERE tenant_id = $1 AND id = $2`;
@@ -98,9 +110,14 @@ export function createAuthRepo(o: { seal?: Sealer } = {}) {
     },
     async insertSession(tx: Q, s: NewSession): Promise<void> {
       const k = sealBoth(s);
-      await tx.query(SESSION_SQL, [s.id, s.tenantId, s.kind, s.userId, s.membershipId, s.gotrueSessionId, s.tokenSha256, s.state, s.aal,
+      const p = [s.id, s.tenantId, s.kind, s.userId, s.membershipId, s.gotrueSessionId, s.tokenSha256, s.state, s.aal,
         k.refresh, k.access, k.keyId, s.accessExpiresAt, s.idleTimeoutMinutes, s.idleExpiresAt, s.absoluteExpiresAt, s.clientIp ?? '',
-        ua(s.userAgent), s.expiresAt, s.actorId]);
+        ua(s.userAgent), s.expiresAt, s.actorId];
+      if (s.appInstanceId) await tx.query(APP_SESSION_SQL, [...p, s.appInstanceId, s.appPlatform]);
+      else await tx.query(SESSION_SQL, p);
+    },
+    async membershipHasPermission(tx: Q, a: { tenantId: string; membershipId: string; permission: string }): Promise<boolean> {
+      return (await tx.query(MEMBERSHIP_PERMISSION_SQL, [a.tenantId, a.membershipId, a.permission])).rows[0]?.ok === true;
     },
     /** 08 A28.1: jsonb_populate_record + INSERT SELECT v.* means every NOT NULL column (defaults included) is sent explicitly. */
     async insertPlatformSession(tx: Q, s: NewSession): Promise<void> {

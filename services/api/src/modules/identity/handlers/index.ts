@@ -102,6 +102,12 @@ import { getTenantSettingsAsPlatform } from './getTenantSettingsAsPlatform.js';
 import { updateTenantSettingsAsPlatform } from './updateTenantSettingsAsPlatform.js';
 import { setFeatureFlagAsPlatform } from './setFeatureFlagAsPlatform.js';
 import { inviteTenantAdmin } from './inviteTenantAdmin.js';
+import { loginPartner } from './loginPartner.js';
+import { openMobileSession } from './openMobileSession.js';
+import { refreshMobileSession } from './refreshMobileSession.js';
+import { logoutMobileSession } from './logoutMobileSession.js';
+import { resolvePatientSession } from './resolvePatientSession.js';
+import { logoutPatientSession } from './logoutPatientSession.js';
 
 const OPERATION_IDS = [
   // auth (identity_auth)
@@ -158,6 +164,7 @@ const implemented: Partial<Record<IdentityOperationId, Handler>> = {
   deactivateUser, reactivateUser, resendInvitation, resetUserMfa, revokeUserSessions, uploadUserSignature,         // T13
   listTenants, provisionTenant, getTenant, updateTenant, activateTenant, suspendTenant, reactivateTenant, terminateTenant,   // T22
   getTenantSettingsAsPlatform, updateTenantSettingsAsPlatform, setFeatureFlagAsPlatform, inviteTenantAdmin,                 // T22
+  loginPartner, openMobileSession, refreshMobileSession, logoutMobileSession, resolvePatientSession, logoutPatientSession,   // T31
 };
 
 export const handlers: Readonly<Record<IdentityOperationId, Handler>> = Object.freeze(

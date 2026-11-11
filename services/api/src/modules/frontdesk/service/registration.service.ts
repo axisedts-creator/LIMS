@@ -20,6 +20,8 @@ import { cancelOrderItem, insertOrderItem, listOrderItemsByOrder } from '../repo
 import { confirmOrderRow, insertOrder, lockOrderById, patientHasOrder } from '../repository/orders.repo.js';
 import { getPatientById } from '../repository/patients.repo.js';
 import { getSettings } from '../repository/settings.repo.js';
+import { linkTrfToOrder, lockLinkableTrfDrafts } from '../repository/trf.repo.js';
+import { loadFrontdeskConfig } from '../config.js';
 import { FRONTDESK_PERMISSIONS as P } from '../permissions.js';
 import { lockApprovalForRegistration, markConsumed, toApiDiscount } from './discount.service.js';
 import { bad, createPatient, expectedVersion, isObj, patientCtx, strict, todayIn, type PatientCtx, type Result } from './patient.service.js';
@@ -199,7 +201,7 @@ export async function priceDraft(c: QuoteCtx, d: Draft, settings: any): Promise<
 
 interface PaymentIn { methodCode: string; amountPaisa: number; reference?: string }
 interface Downtime { occurredAt: string; downtimeRef: string }
-interface CreateIn { draft: Draft; fingerprint: string; payments: PaymentIn[]; trfCount: number; approvalId?: string; buyerPan?: string; downtime?: Downtime }
+interface CreateIn { draft: Draft; fingerprint: string; payments: PaymentIn[]; trfIds: string[]; approvalId?: string; buyerPan?: string; downtime?: Downtime }
 
 // LD-25 (2026-11-07, A33-2 downtime mode): back-entry window default. ponytail: constant, not the tenant setting `downtime_backentry_max_hours`
 // (TenantSettings has no such key yet, see .orchestra/cr/FD-T06-ld25-gaps.md); switch to the setting when C2 adds it.
@@ -247,7 +249,7 @@ function parseCreate(b: unknown, now: Date): CreateIn {
   const approvalId = o['discount_approval_id'] === undefined ? undefined : uuid(o['discount_approval_id'], '/discount_approval_id');
   if (o['buyer_pan'] !== undefined && (typeof o['buyer_pan'] !== 'string' || o['buyer_pan'].length > 32)) throw bad('/buyer_pan');
   const downtime = parseDowntime(o, now);
-  return { draft, fingerprint: fp, payments, trfCount: (trf as unknown[] | undefined)?.length ?? 0, ...(approvalId ? { approvalId } : {}), ...(typeof o['buyer_pan'] === 'string' ? { buyerPan: o['buyer_pan'] } : {}), ...(downtime ? { downtime } : {}) };
+  return { draft, fingerprint: fp, payments, trfIds: [...new Set((trf as string[] | undefined) ?? [])], ...(approvalId ? { approvalId } : {}), ...(typeof o['buyer_pan'] === 'string' ? { buyerPan: o['buyer_pan'] } : {}), ...(downtime ? { downtime } : {}) };
 }
 
 function createCtx(c: unknown): CreateCtx {
@@ -343,7 +345,6 @@ async function createInTx(hctx: unknown, body: unknown, pre?: Pre): Promise<Resu
   const r = parseCreate(body, c.now());
   const d = r.draft;
   if (d.billingMode === 'cash') await identity.assertRole(c, { permission: INVOICE_ISSUE, centreId: d.centreId });     // checked before any write
-  if (r.trfCount > 0) throw new LimsError('common.service_unavailable');    // TRF linking is not built yet (needs the upload task's uploader/TTL rules): fail loud, never drop silently
 
   const actor = await identity.getActor(c);
   const scope = actor.centreScope as { all?: boolean; centreIds: readonly string[] } | undefined;
@@ -358,6 +359,12 @@ async function createInTx(hctx: unknown, body: unknown, pre?: Pre): Promise<Resu
   // 1. patient
   const patient = await resolvePatient(c, (body as Record<string, unknown>)['patient'], d.centreId);
   const isFirst = pre ? pre.order['is_first_order_of_patient'] === true : !(await patientHasOrder(c.tx, c.tenantId, patient['id']));
+
+  // 1a. TRF drafts (03-APP-FLOW §3 step 5): same tenant+centre, unlinked, uploaded by this user, inside the TTL. Any foreign/stale id refuses the whole call (404) before any counter is touched.
+  if (r.trfIds.length > 0) {
+    const found = await lockLinkableTrfDrafts(c.tx, c.tenantId, r.trfIds, d.centreId, c.actor.membershipId ?? c.actor.id, loadFrontdeskConfig().trfDraftTtlHours);
+    if (found.length !== r.trfIds.length) throw new LimsError('common.not_found');
+  }
 
   // 2. referrer
   if (!d.referrerId && settings?.require_referrer === true) throw new LimsError('frontdesk.referrer_required');
@@ -442,6 +449,7 @@ async function createInTx(hctx: unknown, body: unknown, pre?: Pre): Promise<Resu
     }));
   }
   if (approval) await markConsumed(c, approval['id'], orderId);
+  if (r.trfIds.length > 0) await linkTrfToOrder(c.tx, c.tenantId, r.trfIds, orderId);
 
   // 6. billing, same tx (the lines are exactly the ones the fingerprint was computed over)
   const nowIso = registeredAt.toISOString();

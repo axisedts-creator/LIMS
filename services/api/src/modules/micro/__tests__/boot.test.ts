@@ -195,7 +195,7 @@ describe('C10-T01 boot against the real repo (default modulesDir, real micro.yam
     }
     expect(all.length).toBe(49);
     expect(unmounted).toEqual([]);
-  }, 30_000);
+  });
 
   it('fails closed: operations without required query/body answer 401 auth.* without credentials (never 200/501/500); non-spec path is 404', async () => {
     const app = await boot();
@@ -209,5 +209,5 @@ describe('C10-T01 boot against the real repo (default modulesDir, real micro.yam
       expect(JSON.parse(r.body).code).toMatch(/^auth\./);
     }
     expect((await app.inject({ method: 'GET', url: '/v1/micro/not-in-spec' })).statusCode).toBe(404);
-  }, 60_000);
+  });
 });

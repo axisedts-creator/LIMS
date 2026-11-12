@@ -2,6 +2,7 @@
 // Boot checks (TRD §10.1): config is validated at import, so a bad LIMS_ENGAGEMENT_* set stops the process before it serves.
 // Handlers not yet built are placeholders; the tasks that implement them replace them.
 import type { ModuleManifest } from '../../core/module.js';
+import { queueDisplayToken } from './auth/display.resolver.js';
 import { loadEngagementConfig } from './config.js';
 import { handlers } from './handlers/index.js';
 import { engagementPort } from './ports/EngagementPort.impl.js';
@@ -27,5 +28,5 @@ export const manifest: ModuleManifest = {
     'engagement.self.read', 'engagement.booking.manage', 'engagement.booking.cancel', 'engagement.reminder.manage',
     'engagement.link.read', 'engagement.link.revoke', 'engagement.bookable_item.manage', 'engagement.membership.enrol',
   ],
-  authResolvers: { patientPreAuth: resolver(), queueDisplayToken: resolver() },
+  authResolvers: { patientPreAuth: resolver(), queueDisplayToken }, // queueDisplayToken: T-Q3
 };

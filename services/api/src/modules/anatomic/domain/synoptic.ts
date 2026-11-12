@@ -199,8 +199,9 @@ function valueOk(f: FieldDef, v: unknown): boolean {
     case 'date': {
       const m = typeof v === 'string' ? ISO_DATE.exec(v) : null;
       if (!m) return false;
-      const d = new Date(Date.UTC(+m[1], +m[2] - 1, +m[3]));
-      return d.getUTCFullYear() === +m[1] && d.getUTCMonth() === +m[2] - 1 && d.getUTCDate() === +m[3];
+      const [y, mo, da] = [Number(m[1]), Number(m[2]), Number(m[3])];
+      const d = new Date(Date.UTC(y, mo - 1, da));
+      return d.getUTCFullYear() === y && d.getUTCMonth() === mo - 1 && d.getUTCDate() === da;
     }
   }
 }

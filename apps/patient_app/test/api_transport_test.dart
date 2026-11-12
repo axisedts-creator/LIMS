@@ -6,6 +6,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lims_shared/lims_shared.dart';
 import 'package:patient_app/core/api/api_client_factory.dart';
+import 'package:patient_app/core/session/session_controller.dart';
 
 import 'support/rig.dart';
 
@@ -137,6 +138,26 @@ void main() {
       await expectLater(send('GET', '/x'), throwsA(isA<LimsException>()));
       expect(rig.identity.resolveCalls, 0);
       expect(calls.length, 1);
+    });
+  });
+
+  group('failures on the single retry after a refresh (review item 1)', () {
+    test('retry answers auth.session_expired -> store wiped, status signedOut, error surfaced', () async {
+      await rig.signIn();
+      innerBehaviour = (n, c) async => n == 1 ? throw tokenExpired() : throw LimsException(LimsErrorCodes.authSessionExpired);
+      await expectLater(send('GET', '/x'), throwsA(isA<LimsException>().having((e) => e.code, 'code', 'auth.session_expired')));
+      expect(calls.length, 2);
+      expect(await rig.storage.readAll(), isEmpty);
+      expect(rig.controller.status.value, SessionStatus.signedOut);
+    });
+
+    test('retry answers 426 -> update-required signal set, error surfaced, session kept', () async {
+      await rig.signIn();
+      innerBehaviour = (n, c) async => n == 1 ? throw tokenExpired() : throw LimsException(LimsErrorCodes.engagementAppVersionUnsupported);
+      await expectLater(send('GET', '/x'), throwsA(isA<LimsException>().having((e) => e.code, 'code', 'engagement.app_version_unsupported')));
+      expect(updateRequired.value, isTrue);
+      expect(calls.length, 2);
+      expect(await rig.store.read(), tok('S1'));
     });
   });
 

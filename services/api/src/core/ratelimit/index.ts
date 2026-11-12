@@ -25,6 +25,8 @@ const OTP_LIFETIME_SECONDS = 600;
 /** Fail open only for `general`; every other tier is a brute-force / flood surface (REQ-SEC-078). */
 const FAIL_OPEN: ReadonlySet<RateLimitTier> = new Set(['general']);
 
+const PAYMENTS_CB = 'payments:cb:';
+
 type Rule = (b: RateLimitBackend, h: string) => Promise<RateLimitDecision>;
 
 export function createRateLimiter(opts: RateLimiterOptions): RateLimiter {
@@ -49,7 +51,11 @@ export function createRateLimiter(opts: RateLimiterOptions): RateLimiter {
   return {
     async consume(tier, key) {
       const rules = Object.hasOwn(RULES, tier) ? RULES[tier] : undefined;
-      const rule = typeof key === 'string' && key.length > 2 ? rules?.[key.slice(0, 2)] : undefined;
+      // LD-121 (C15 PG-T09): tier `general` also accepts `payments:cb:<intent_id>` (02-TRD §6.3 step 2, D-116),
+      // same per-key bucket as `u:` (10/s, burst 20). Every other key/tier keeps the 2-char prefix lookup.
+      const rule = typeof key === 'string' && key.length > 2
+        ? (tier === 'general' && key.startsWith(PAYMENTS_CB) && key.length > PAYMENTS_CB.length ? rules?.['u:'] : rules?.[key.slice(0, 2)])
+        : undefined;
       if (!rule) throw new Error('ratelimit: unknown tier or key prefix'); // programmer error, never fails open
       // Tier in the MAC input: the same key under two tiers never shares a counter.
       const keyHash = createHmac('sha256', hmacKey).update(`${tier}|${key}`).digest('hex');

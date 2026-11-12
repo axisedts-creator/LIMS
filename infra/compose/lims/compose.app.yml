@@ -26,6 +26,9 @@ x-core-env: &core-env
   LIMS_REPORTING_OTP_HMAC_KEY_FILE: /run/secrets/lims/reporting_otp_hmac_key
   LIMS_INSTRUMENTS_CONFIG_SIGNING_KEY_FILE: >-
     /run/secrets/lims/instruments_config_signing_key
+  # key id of the active config-signing key (02-TRD s7.4, s8.2); value from the inventory, rotation = overlap id.
+  # `:-` not `:?`: lims_runtime (T-14) does not set it yet; an empty id makes C7 fail to sign, never to sign wrongly.
+  LIMS_INSTRUMENTS_CONFIG_SIGNING_KEY_ID: ${LIMS_INSTRUMENTS_CONFIG_SIGNING_KEY_ID:-}
 
 x-api: &api
   <<: *hardening
@@ -38,6 +41,7 @@ x-api: &api
       /run/secrets/bff/staff_web,/run/secrets/bff/partner,/run/secrets/bff/portal
     LIMS_CORE_JWT_KEY_FILE: /run/secrets/lims/lims_core_jwt_key
     LIMS_CORE_RATELIMIT_KEY_FILE: /run/secrets/lims/lims_core_ratelimit_key
+    LIMS_INSTRUMENTS_RELEASES_DIR: /run/lims/agent-releases  # api-a/b only (02-TRD s7.4)
   mem_limit: ${LIMS_API_MEM_LIMIT:-2g}
   cpus: 2
   pids_limit: 512
@@ -125,6 +129,7 @@ services:
       - /run/lims/secrets/api-a/bff_key_staff_web:/run/secrets/bff/staff_web:ro
       - /run/lims/secrets/api-a/bff_key_partner:/run/secrets/bff/partner:ro
       - /run/lims/secrets/api-a/bff_key_portal:/run/secrets/bff/portal:ro
+      - /srv/lims/agent-releases:/run/lims/agent-releases:ro  # CR-C7-012: E08 streams from it; keys never here
     networks:
       edge_net: {}
       app_net: {aliases: [api]}
@@ -143,6 +148,7 @@ services:
       - /run/lims/secrets/api-b/bff_key_staff_web:/run/secrets/bff/staff_web:ro
       - /run/lims/secrets/api-b/bff_key_partner:/run/secrets/bff/partner:ro
       - /run/lims/secrets/api-b/bff_key_portal:/run/secrets/bff/portal:ro
+      - /srv/lims/agent-releases:/run/lims/agent-releases:ro
     networks:
       edge_net: {}
       app_net: {aliases: [api]}

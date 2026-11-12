@@ -20,8 +20,11 @@ function modulesDir(...owners: string[]) {
 afterEach(() => { while (dirs.length) rmSync(dirs.pop()!, { recursive: true, force: true }); });
 
 describe('committed list (08 R9)', () => {
-  it('is exactly QualityPort, SmartReportPort, PaymentProviderPort, EngagementPort', () => {
-    expect([...PHASE_STUBS].sort()).toEqual([...STUB_PORTS].sort());
+  // PG-T01 / 08 A17 P-20: the PR that creates modules/payments removes PaymentProviderPort from phase-stubs.ts (AC-0D-6.3), so the committed
+  // list is the 08 R9 initial list minus the ports whose owner module has shipped (payments, smartreport: C14-T01 / 06-PLAN T01).
+  // C16-T01 (06-PLAN T-01) likewise removes EngagementPort.
+  it('is exactly the 08 R9 initial list minus shipped owners: PaymentProviderPort, SmartReportPort, EngagementPort', () => {
+    expect([...PHASE_STUBS].sort()).toEqual(STUB_PORTS.filter((p) => p !== 'PaymentProviderPort' && p !== 'SmartReportPort' && p !== 'EngagementPort').sort());
   });
   it('never lists RenderPort, BillingCommandPort or a Legacy*ImportPort', () => {
     for (const p of PHASE_STUBS) expect(p).not.toMatch(/^(RenderPort|BillingCommandPort|Legacy)/);

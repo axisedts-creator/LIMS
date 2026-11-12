@@ -72,23 +72,26 @@ export async function upsertOpenIngestException(rc: RepoCtx, e: Record<string, a
 }
 
 /** Step 12: the open exceptions of the key are resolved as `applied` (ingest_exceptions__closed__ck: resolved_at is set together with the status). */
-export async function closeOpenIngestExceptions(rc: RepoCtx, a: { resultKey: string; resolution?: 'applied' | 'assigned'; resolverMembershipId?: string; occurredAt: string }): Promise<void> {
-  await query(rc, `UPDATE lab.ingest_exceptions SET status = 'resolved', resolution = $6, resolved_at = $3, resolved_by_membership_id = $4,
+export async function closeOpenIngestExceptions(rc: RepoCtx, a: { resultKey: string; resolution?: 'applied' | 'assigned'; resolverMembershipId?: string; resultId?: string; occurredAt: string }): Promise<void> {
+  // result_id: an unmapped/unknown-barcode exception has none until the replay applies; keep an existing one (T-24 debug)
+  await query(rc, `UPDATE lab.ingest_exceptions SET status = 'resolved', resolution = $6, resolved_at = $3, resolved_by_membership_id = $4, result_id = COALESCE($7::uuid, result_id),
       version = version + 1, updated_at = now(), updated_by = $5 WHERE tenant_id = $1 AND result_key = $2 AND status = 'open'`,
-  [a.resultKey, a.occurredAt, a.resolverMembershipId ?? null, rc.actorId, a.resolution ?? 'applied']);
+  [a.resultKey, a.occurredAt, a.resolverMembershipId ?? null, rc.actorId, a.resolution ?? 'applied', a.resultId ?? null]);
 }
 // ---- T-23 exception queue queries (02-TRD §5.6 #38-#42). Tenant = $1; filters are bound parameters; the open list is oldest first (stale-age alert, 02-TRD §12).
 const EXC_SORT = 'created_at';
 /** #38: keyset page (created_at, id) on ingest_exceptions__tenant_id_status__idx; limit + 1 rows are read to detect the next page. */
-export async function listIngestExceptionRows(rc: RepoCtx, q: { status: string; reasons?: readonly string[]; instrumentId?: string; cursor?: string; limit: number }):
+/** scopeCentreIds: the caller's centres (absent = all); REQ-SEC-017 / P-02 (T-32). */
+export async function listIngestExceptionRows(rc: RepoCtx, q: { status: string; reasons?: readonly string[]; instrumentId?: string; cursor?: string; limit: number; scopeCentreIds?: readonly string[] }):
   Promise<{ rows: Record<string, any>[]; nextCursor?: string }> {
   const limit = limitOf(q.limit);
   const after = q.cursor === undefined ? undefined : decodeCursor(q.cursor, EXC_SORT);
   const rows = await query(rc, `SELECT e.*, to_char(e.created_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"') AS sort_key FROM lab.ingest_exceptions e
       WHERE e.tenant_id = $1 AND e.status = $2 AND ($3::text[] IS NULL OR e.reason = ANY($3)) AND ($4::uuid IS NULL OR e.instrument_id = $4)
         AND ($5::timestamptz IS NULL OR (e.created_at, e.id) > ($5::timestamptz, $6::uuid))
+        AND ($8::uuid[] IS NULL OR e.centre_id = ANY($8) OR e.processing_centre_id = ANY($8))
       ORDER BY e.created_at, e.id LIMIT $7`,
-  [q.status, q.reasons ?? null, q.instrumentId ?? null, after?.key ?? null, after?.id ?? null, limit + 1]);
+  [q.status, q.reasons ?? null, q.instrumentId ?? null, after?.key ?? null, after?.id ?? null, limit + 1, q.scopeCentreIds ? [...q.scopeCentreIds] : null]);
   const page = rows.slice(0, limit);
   const last = page[page.length - 1];
   return { rows: page.map(({ sort_key: _k, ...r }) => r), ...(rows.length > limit && last ? { nextCursor: encodeCursor(EXC_SORT, last['sort_key'], last['id']) } : {}) };

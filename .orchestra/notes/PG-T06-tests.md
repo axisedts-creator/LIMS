@@ -1,0 +1,7 @@
+# PG-T06 tests (tester) — services/api/src/modules/payments/__tests__/
+Files: unit/gateways/esewa.adapter.test.ts (sign, buildAction, verifyCallbackSignature, source guards), unit/gateways/esewa.adapter.ct.test.ts (timingSafeEqual spy), sim/esewa.adapter.sim.test.ts (check vs PG-T05 sim + AC-PG-03.1-6 composed with mapEsewaStatus). Run: `.orchestra/notes/PG-T06-verify.cmd`.
+Fail now: `gateways/esewa.adapter.ts` does not exist. ACs: 01.1, 03.1-03.6; REQ-SEC-049 (constant-time, 3 signed fields, identity), no floats (REQ-SEC-048).
+Seam (tester contract; TRD fixes method names, not types): exports `createEsewaAdapter({formUrl,statusUrl,publicBase,timeouts,allowFractionalRupees?})` and `esewaSign(secret,fields,names)`; StoredIntent `{id,gatewayTxnRef,amountPaisa,productCode,callbackToken}`; ctx `{timeoutClass:'inrequest'|'job',sink?,log?}`.
+GatewayCheck: answer `{kind,statusRaw verbatim,amountPaisa?,secondaryRef?}` | `{kind:'transient',reason}` (code 0, 5xx, timeout, network, non-JSON, >1 MiB). Tests `await`, so sync or async buildAction/verify both pass.
+Not covered: `initiate()` (IntentForGateway/expiresAt undefined in spec); scd mismatch only asserted as "not settle" (no identity field on GatewayCheck; hold_reason gateway_identity_mismatch is the service's, PG-T14); launch page HTML/CSP (PG-T14+); EPAYTEST prod guard (credentials/config).
+Constant-time spy uses vi.mock of node:crypto and crypto; the source guard strips comments before grepping.

@@ -13,6 +13,7 @@ import { claimIngestKey, closeOpenIngestExceptions, finishIngestLog, upsertOpenI
 import { getLabSettings } from '../repository/labSettings.repo.js';
 import { findSpecimenByBarcode } from '../repository/specimens.repo.js';
 import { enqueueReapplyForSpecimen } from './exception.service.js';
+import { labMetrics } from './metrics.js';
 import { evaluateValue, criticalAction, type EvalCtx, type Evaluation } from './evaluation.service.js';
 import {
   assertManualValueAllowed, autoVerifyAfterInstrumentSave, type EntryRow, type EntryStore, type EntryValue, type ResultRow, type VerifyStore,
@@ -63,7 +64,7 @@ export interface IngestStore extends Pick<EntryStore, 'deltaInputs' | 'listCriti
   insertAttachment(tx: unknown, tenantId: string, a: { resultId: string; bucket: string; objectPath: string; sha256: string; mimeType: string }): Promise<void>;
   /** upsert on the open key (tenant_id, result_key) WHERE status = 'open'. */
   upsertOpenException(tx: unknown, tenantId: string, a: ExceptionInput): Promise<{ exceptionId: string }>;
-  closeOpenExceptions(tx: unknown, tenantId: string, a: { resultKey: string; resolution: 'applied' | 'assigned'; resolverMembershipId?: string; occurredAt: string }): Promise<void>;
+  closeOpenExceptions(tx: unknown, tenantId: string, a: { resultKey: string; resolution: 'applied' | 'assigned'; resolverMembershipId?: string; resultId?: string; occurredAt: string }): Promise<void>;
   finishLog(tx: unknown, tenantId: string, logId: string, a: { lastOutcome: IngestOutcome; resultId?: string; specimenId?: string; processingCentreId?: string; exceptionId?: string; occurredAt: string }): Promise<void>;
 }
 
@@ -231,14 +232,17 @@ async function run(ctx: IngestCtx, i: InstrumentResultInput, source: 'event' | '
     mapping = await ctx.ports.CatalogPort.mapInstrumentCode(ctx, { instrumentId: i.instrumentId, direction: 'inbound', instrumentCode: i.instrumentAnalyteCode });
   } catch (e) {
     if (!isLimsError(e, 'catalog.instrument_code_unmapped')) throw e;
-    if (!assign) return refuse('unmatched', 'unmapped_code');   // an assignment does not need the mapping; only the analyte check below does
+    // T-24 (02-TRD §4.5 step 3): the catalog is the fallback only for a record WITHOUT its analyte. A record the instrument module already resolved (mappingStatus mapped + analyteId)
+    // continues on its own analyte, without flagMap / unitConversion; an assignment does not need the mapping either (only the analyte check below does).
+    if (!assign && !(i.mappingStatus === 'mapped' && i.analyteId !== undefined)) return refuse('unmatched', 'unmapped_code');
   }
   if (assign) {   // T-23: the caller picked the target; a different (or unmapped) analyte needs override_analyte (04-UI-UX §3.10)
     if (!assign.overrideAnalyte && mapping?.analyteId !== assign.target.analyteId) {
       throw new LimsError('common.validation_failed', undefined, [{ path: '/override_analyte', code: 'common.field_invalid', message: 'override_analyte is required to apply to a different analyte' }]);
     }
-  } else if (!mapping?.analyteId) return refuse('unmatched', 'unmapped_code');
-  const analyteId = mapping?.analyteId, testId = mapping?.testId;
+  } else if (!mapping?.analyteId && !(i.mappingStatus === 'mapped' && i.analyteId !== undefined)) return refuse('unmatched', 'unmapped_code');
+  const fromPayload = !mapping?.analyteId && i.mappingStatus === 'mapped' && i.analyteId !== undefined;
+  const analyteId = fromPayload ? i.analyteId : mapping?.analyteId, testId = fromPayload ? i.testId : mapping?.testId;
   const known = { ...(analyteId === undefined ? {} : { analyteId }), ...(testId === undefined ? {} : { testId }) };
 
   // steps 4-9: the pure table. The results are read (and locked, 02-TRD §3.2: results before specimen) only once steps 4-6 let the record through.
@@ -359,7 +363,7 @@ async function run(ctx: IngestCtx, i: InstrumentResultInput, source: 'event' | '
   return result;
 
   async function finishApplied(target: EntryRow, out: 'applied' | 'held', mismatch = false, savedRow?: ResultRow): Promise<IngestResult> {
-    await store.closeOpenExceptions(tx, tenantId, { resultKey: key, resolution: assign ? 'assigned' : 'applied', ...(source === 'port' && ctx.actor.membershipId !== undefined ? { resolverMembershipId: ctx.actor.membershipId } : {}), occurredAt: at });
+    await store.closeOpenExceptions(tx, tenantId, { resultKey: key, resolution: assign ? 'assigned' : 'applied', resultId: target.resultId, ...(source === 'port' && ctx.actor.membershipId !== undefined ? { resolverMembershipId: ctx.actor.membershipId } : {}), occurredAt: at });
     let exceptionId: string | undefined;
     if (mismatch) ({ exceptionId } = await store.upsertOpenException(tx, tenantId, exceptionFor('unit_mismatch', { ...spec, resultId: target.resultId, ...known })));
     await store.finishLog(tx, tenantId, claim.logId, {
@@ -371,23 +375,26 @@ async function run(ctx: IngestCtx, i: InstrumentResultInput, source: 'event' | '
   }
 }
 
+/** T-31 (02-TRD §11): one lims_lab_results_ingested_total{outcome} per finished ingest call; outcome is the IngestOutcome code only. A thrown ingest counts nothing. */
+const counted = (ctx: unknown, r: IngestResult): IngestResult => { labMetrics.resultIngested(ctx, r.outcome); return r; };
+
 /** T-23 replay of a stored exception (reapply / assign): port path under the exception's own result key (CR-C7-011); the caller actor resolves it. */
 export async function reapplyInstrumentResult(rawCtx: unknown, input: InstrumentResultInput, opts: RunOptions): Promise<IngestResult> {
   const ctx = rawCtx as IngestCtx;
   if (typeof ctx?.tenantId !== 'string' || !ctx.tenantId) throw new LimsError('common.internal');
-  return run(ctx, input, 'port', undefined, opts);
+  return counted(ctx, await run(ctx, input, 'port', undefined, opts));
 }
 
 /** Port path (LabPort.ingestInstrumentResult): caller actor, first_source 'port'. Never throws lab.result_locked: an approved target is returned as rejected_state (CR-C5-008). */
 export async function ingestInstrumentResult(rawCtx: unknown, input: InstrumentResultInput): Promise<IngestResult> {
   const ctx = rawCtx as IngestCtx;
   if (typeof ctx?.tenantId !== 'string' || !ctx.tenantId) throw new LimsError('common.internal');
-  return run(ctx, input, 'port');   // the tenant is ctx.tenantId only; a tenant field in the input is never read
+  return counted(ctx, await run(ctx, input, 'port'));   // the tenant is ctx.tenantId only; a tenant field in the input is never read
 }
 
 /** Bulk path (instruments.result.received.v1 consumer): system actor, first_source 'event'. An envelope of another tenant is refused before any store/port call (REQ-SEC-024, P-08). */
 export async function applyInstrumentResultEvent(rawCtx: unknown, envelope: InstrumentResultEnvelope): Promise<IngestResult> {
   const ctx = rawCtx as IngestCtx;
   if (typeof ctx?.tenantId !== 'string' || !ctx.tenantId || envelope?.tenant_id !== ctx.tenantId) throw new LimsError('common.internal');
-  return run(ctx, fromPayload(envelope.payload), 'event', envelope.event_id);
+  return counted(ctx, await run(ctx, fromPayload(envelope.payload), 'event', envelope.event_id));
 }

@@ -6,8 +6,8 @@
 import { LimsError, type FieldError } from '../../../core/errors.js';
 // [CONV] relative imports until @lims/shared-ts is a services/api dependency (same as role.service).
 import { uuidv7 } from '../../../../../../packages/shared-ts/src/uuidv7/index.js';
-import { instantToBs } from '../../../../../../packages/shared-ts/src/bsdate/index.js';
 import { validateSettingsPatch } from '../domain/settings.ranges.js';
+import { ASSET_COLUMNS, BOOLS, BRANDING_KINDS, DEFERRED, EDITABLE, PATTERNS, PATTERN_MAX, PLATFORM_ONLY, UNSETTABLE, nextFiscalYear, toDto } from '../domain/settings.fields.js';
 import { validateNumberingPattern, type NumberingKind } from '../domain/numbering-pattern.js';
 import { createSettingsRepo } from '../repository/settings.repo.js';
 import { createFlagsRepo } from '../repository/flags.repo.js';
@@ -59,24 +59,6 @@ const BUCKET = 'identity-assets';
 const MAX_BRANDING_BYTES = 2 * 1024 * 1024;   // 02-TRD §5.6 PNG/JPEG <= 2 MB = DB branding_assets__size__ck
 const MAX_DIM = 4000;                          // 02-TRD §5.6 [CONV] <= 4000x4000 px = branding_assets__dims__ck
 const RESCAN_TASK = 'identity.rescan_upload';
-const BRANDING_KINDS: Readonly<Record<string, string>> = { logo: 'logo_asset_id', letterhead_header: 'letterhead_header_asset_id', letterhead_footer: 'letterhead_footer_asset_id' };
-
-// 05-SCHEMA §4.6 "editable by": platform-only columns -> 403; system / std / unknown columns -> 400 (mass assignment).
-const PLATFORM_ONLY = new Set(['ird_pan', 'ird_annex_1_record_id']);
-const BOOLS = new Set(['release_requires_payment', 'partial_release_allowed', 'whatsapp_enabled', 'sms_enabled', 'email_enabled', 'auto_verification_enabled', 'cbms_realtime_required']);
-const PATTERNS = new Set(['patient_code_pattern', 'registration_no_pattern', 'barcode_pattern', 'invoice_no_pattern', 'credit_note_no_pattern', 'receipt_no_pattern', 'accession_no_pattern']);
-const PATTERN_MAX = 40;   // DB tenant_settings__patterns_len__ck
-const DEFERRED = ['invoice_no_pattern', 'credit_note_no_pattern'] as const;   // AC-C3.3 / 08 A13 P-6
-const ASSET_COLUMNS = new Set(Object.values(BRANDING_KINDS));
-const OTHER_EDITABLE = ['calendar_display', 'timezone', 'idle_timeout_minutes', 'absolute_session_hours', 'password_min_length', 'support_access_mode', 'report_link_ttl_days',
-  'letterhead_default', 'numbering_prefix', 'barcode_prefix', 'accession_prefix_histology', 'accession_prefix_cytology', 'accession_prefix_ihc', 'accession_prefix_molecular',
-  'sms_sender_id', 'retention_clinical_years', 'retention_audit_years', 'retention_raw_instrument_years', 'westgard_mode', 'abbreviated_invoice_limit_paisa', 'display_name',
-  'address_lines', 'phones', 'contact_email', 'website', 'receipt_footer_note', 'accent_color'];
-const EDITABLE = new Set([...BOOLS, ...PATTERNS, ...ASSET_COLUMNS, ...OTHER_EDITABLE]);
-const UNSETTABLE = new Set(['barcode_prefix', 'sms_sender_id', 'abbreviated_invoice_limit_paisa', 'contact_email', 'website', 'logo_asset_id', 'letterhead_header_asset_id',
-  'letterhead_footer_asset_id', 'receipt_footer_note', 'accent_color']);
-// TenantSettingsDto properties (contracts/openapi/identity.yaml) read from the row; pending_numbering is built separately.
-const DTO_KEYS = [...EDITABLE, 'ird_pan', 'ird_annex_1_record_id', 'legal_name_snapshot'];
 
 const fieldErr = (path: string, code = 'common.field_invalid'): FieldError => ({ path, code, message: 'Field invalid' });
 const fail = (errors: FieldError[]): never => { throw new LimsError('common.validation_failed', undefined, errors); };
@@ -92,26 +74,6 @@ function expected(v: unknown): number {
   if (v === undefined || v === null) throw new LimsError('common.precondition_required');
   if (!Number.isSafeInteger(v) || (v as number) < 1 || (v as number) > 2147483647) failAt('/If-Match');
   return v as number;
-}
-/** Fiscal year after the one containing `now` (Asia/Kathmandu date; FY starts Shrawan 1, 04 L16). */
-function nextFiscalYear(now: string): string {
-  const bs = instantToBs(now as any);
-  const y = (bs.month >= 4 ? bs.year : bs.year - 1) + 1;
-  return `${y}/${String((y + 1) % 100).padStart(2, '0')}`;
-}
-
-function toDto(r: Row) {
-  const out: Row = {};
-  for (const k of DTO_KEYS) if (r[k] !== null && r[k] !== undefined) out[k] = r[k];
-  if (r['pending_effective_fy_bs']) {
-    out['pending_numbering'] = {
-      ...(r['pending_invoice_no_pattern'] ? { invoice_no_pattern: r['pending_invoice_no_pattern'] } : {}),
-      ...(r['pending_credit_note_no_pattern'] ? { credit_note_no_pattern: r['pending_credit_note_no_pattern'] } : {}),
-      effective_fy_bs: r['pending_effective_fy_bs'],
-    };
-  }
-  out['version'] = r['version'];
-  return out;
 }
 const toFlag = (f: FlagRow) => ({
   code: f.code, description: f.description, scope: f.scope, settable_by: f.settable_by, is_enabled: f.is_enabled,

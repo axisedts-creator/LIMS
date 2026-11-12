@@ -1,0 +1,68 @@
+# C15 payment-gateway alert rules (02-TRD §11 "Alert rules for C1"; 08 A13 P-14, A22.4). Wired by C1 via CR-C15-008 item (6).
+# severity: page -> oncall-email, warn -> ops-digest-email (C1 receivers). C1 adds team + runbook_url (infra/runbooks/payments.md#<alert>).
+groups:
+  - name: payments
+    rules:
+      - alert: PaymentsAmountMismatch
+        expr: sum(increase(lims_payments_intents_held_total{reason="amount_mismatch"}[15m])) > 0 or sum(increase(lims_payments_reconciliation_findings_total{kind="amount_mismatch"}[15m])) > 0
+        for: 0m
+        labels:
+          severity: page
+        annotations:
+          summary: Payment amount mismatch (hold or reconciliation finding), runbook RB-3
+      - alert: PaymentsCriticalFinding
+        expr: sum by (kind) (increase(lims_payments_reconciliation_findings_total{kind=~"ledger_entry_missing|late_payment_found|gateway_refund_unrecorded|status_divergence"}[15m])) > 0 or sum(increase(lims_payments_intents_held_total{reason="late_payment_found"}[15m])) > 0
+        for: 0m
+        labels:
+          severity: page
+        annotations:
+          summary: Critical payment reconciliation finding, runbook RB-4
+      - alert: PaymentsReconciliationMissing
+        expr: time() - max by (tenant_id) (lims_payments_reconciliation_last_success_timestamp_seconds) > 93600
+        for: 0m
+        labels:
+          severity: page
+        annotations:
+          summary: No successful reconciliation for 26 h, runbook RB-4
+      - alert: PaymentsReconciliationStalled
+        expr: max by (tenant_id) (lims_payments_reconciliation_stalled_runs) > 0
+        for: 0m
+        labels:
+          severity: warn
+        annotations:
+          summary: Reconciliation run stalled in running for over 2 h, runbook RB-4
+      - alert: PaymentsHeldForReviewStale
+        expr: max by (tenant_id, kind) (lims_payments_held_for_review_oldest_age_seconds) > 86400
+        for: 0m
+        labels:
+          severity: warn
+        annotations:
+          summary: Payment or refund held for review for over 24 h, runbook RB-2
+      - alert: PaymentsCallbackSignatureInvalid
+        expr: sum by (gateway) (increase(lims_payments_callbacks_total{outcome="payments.signature_invalid"}[15m])) > 0
+        for: 0m
+        labels:
+          severity: warn
+        annotations:
+          summary: Gateway callback with invalid signature, runbook RB-6
+      - alert: PaymentsGatewayErrorRatio
+        expr: sum by (gateway) (rate(lims_payments_gateway_requests_total{outcome=~"service_unavailable|timeout|network_error|http_error|invalid_response|auth_error"}[10m])) / sum by (gateway) (rate(lims_payments_gateway_requests_total[10m])) > 0.2
+        for: 10m
+        labels:
+          severity: warn
+        annotations:
+          summary: Gateway error ratio above 20% over 10 min, runbook RB-4
+      - alert: PaymentsCredentialRejected
+        expr: sum by (gateway) (increase(lims_payments_gateway_requests_total{outcome="auth_error"}[15m])) > 0
+        for: 0m
+        labels:
+          severity: warn
+        annotations:
+          summary: Gateway rejected the merchant credentials, runbook RB-6
+      - alert: PaymentsOpenIntentsPastDeadline
+        expr: max by (gateway) (lims_payments_open_intents_past_deadline) > 0
+        for: 30m
+        labels:
+          severity: warn
+        annotations:
+          summary: Open payment intents past deadline for 30 min, runbook RB-2

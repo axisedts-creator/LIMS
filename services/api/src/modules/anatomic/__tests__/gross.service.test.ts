@@ -268,7 +268,7 @@ describe('C11-T08 AC-03.1 A8 save gross', () => {
     const { caseId, partId } = build(1);
     expect((await saveGross(caseId, partId, { pieces_count: 0, dimensions_mm: ['0.1'], weight_g: '0.01', gross_text: 'x'.repeat(20000) })).status).toBe(200);
     expect((await saveGross(caseId, partId, { pieces_count: 999, dimensions_mm: ['9999.9', '1', '2'], weight_g: '99999.99' }, 1)).status).toBe(200);
-    expect(grossOf(partId)).toMatchObject({ pieces_count: 999, weight_g: '99999.99', version: 3 });
+    expect(grossOf(partId)).toMatchObject({ pieces_count: 999, weight_g: '99999.99', version: 2 });
   });
 
   it('If-Match "<n>" updates the same row (no second row for the part); version + 1', async () => {

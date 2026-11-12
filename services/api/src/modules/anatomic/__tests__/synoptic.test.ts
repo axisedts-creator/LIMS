@@ -117,7 +117,12 @@ describe('C11 synoptic — definition validator (AC-08.2)', () => {
     expect(paths(bad((d) => (f(d, 0, 2).options = Array.from({ length: 101 }, (_, i) => ({ code: `c${i}`, display: 'x' })))))).toEqual([
       '/definition/sections/0/fields/2/options',
     ]);
-    expect(bad((d) => (f(d, 0, 2).options = Array.from({ length: 100 }, (_, i) => ({ code: `c${i}`, display: 'x' }))))).toEqual({ ok: true });
+    expect(
+      bad((d) => {
+        f(d, 0, 2).options = Array.from({ length: 100 }, (_, i) => ({ code: `c${i}`, display: 'x' }));
+        f(d, 1, 3).show_if.equals = 'c0'; // keep show_if.equals a valid option code (TRD:303)
+      }),
+    ).toEqual({ ok: true });
     expect(paths(bad((d) => (f(d, 0, 2).options[0].code = 'c'.repeat(65))))).toEqual(['/definition/sections/0/fields/2/options/0/code']);
     expect(paths(bad((d) => (f(d, 0, 2).options[0].display = 'd'.repeat(201))))).toEqual(['/definition/sections/0/fields/2/options/0/display']);
   });

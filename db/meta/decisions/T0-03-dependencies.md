@@ -76,3 +76,5 @@ Versions that 04/CV or a spike fixed are copied, not re-chosen: fastify (SP-8), 
 | trivy | 0.76.2 | Apache-2.0 | container image scan, CI gate 14 | 2026-11-05 (GitHub release v0.76.2) | grype |
 | Mailpit | 1.33.0 | MIT | local mail sink; dev never calls the 04 S20 relay | 2026-10-31 (GitHub release v1.33.0) | MailHog (unmaintained) |
 | staticcheck | 2026.2.2 | MIT | Go lint (CV §1.3), dominikh/go-tools | 2026-10-12 (GitHub release 2026.2.2) | golangci-lint |
+
+sqlite3 3.8.0 (HC-T22, LD-129): hook source: sqlcipher (SQLCipher build hook, not SQLite3MultipleCiphers; no sqlcipher_flutter_libs).

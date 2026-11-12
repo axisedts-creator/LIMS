@@ -68,8 +68,8 @@ describe('C11 plaintext — properties', () => {
   });
   it('large input (1 MB) normalises quickly', () => {
     const t0 = Date.now();
-    const out = n(('line with é and \u0000 ctl\r\n').repeat(40_000));
-    expect(out.length).toBeGreaterThan(1_000_000 - 100_000);
+    const out = n(('line with é and \u0000 ctl\r\n').repeat(50_000));
+    expect(out.length).toBe(50_000 * 21 - 1);
     expect(Date.now() - t0).toBeLessThan(2000);
   });
 });

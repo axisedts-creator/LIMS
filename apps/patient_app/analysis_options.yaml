@@ -1,0 +1,4 @@
+analyzer:
+  exclude:
+    - build/**
+include: ../../packages/shared-dart/analysis_options.yaml

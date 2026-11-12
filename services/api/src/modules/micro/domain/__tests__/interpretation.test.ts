@@ -64,12 +64,8 @@ describe('AC-06.3 — standard and standard_version required with a category', (
     expect(validateInterpretation(entry({ standard_version: v }), CAT)).toEqual({ ok: true });
   });
 
-  it('unknown standard is refused (not a silent pass)', () => {
-    const r = validateInterpretation(entry({ standard: 'WHO' }), CAT);
-    expect(r.ok).toBe(false);
-  });
-  it('lower-case standard is not normalised', () => {
-    expect(validateInterpretation(entry({ standard: 'clsi' }), CAT).ok).toBe(false);
+  it.each(['WHO', 'clsi', 'unknown'])('standard %j is outside {CLSI,EUCAST,ECOFF} → micro.ast_standard_required', (standard) => {
+    expect(validateInterpretation(entry({ standard }), CAT)).toEqual({ ok: false, code: 'micro.ast_standard_required' });
   });
 });
 

@@ -31,7 +31,8 @@ describe('isolate state table', () => {
       bad(() => initialIsolateStatus({ cultureStatus: 'awaiting_setup', organismId: 'org-1' } as never), 'micro.culture_invalid_transition'));
     it('forbidden: cancelled -> micro.culture_invalid_transition', () =>
       bad(() => initialIsolateStatus({ cultureStatus: 'cancelled' } as never), 'micro.culture_invalid_transition'));
-    it('forbidden: final_submitted is rejected', () => expect(() => initialIsolateStatus({ cultureStatus: 'final_submitted' } as never)).toThrow(LimsError));
+    it('forbidden: final_submitted -> micro.report_final_locked', () =>
+      bad(() => initialIsolateStatus({ cultureStatus: 'final_submitted' } as never), 'micro.report_final_locked'));
   });
 
   it('I2 identify: pending_id -> identified', () => expect(nextIsolateStatus('pending_id', 'identify')).toBe('identified'));

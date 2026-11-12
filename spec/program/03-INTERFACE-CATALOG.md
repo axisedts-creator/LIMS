@@ -2305,6 +2305,12 @@ routes:
   - { id: staff.catalog.doctor,             origin: staff_web, path: "/catalog/doctors/{doctor_id}",              owner: C3,  permission: catalog.referrer.read }
   - { id: staff.catalog.credit_parties,     origin: staff_web, path: /catalog/credit-parties,                   owner: C3,  permission: catalog.price_list.read }
   - { id: staff.catalog.credit_party,       origin: staff_web, path: "/catalog/credit-parties/{credit_party_id}", owner: C3,  permission: catalog.price_list.read }
+  # LD-84 / CR-C3-034-a: SCR-13…17 (04-UI-UX §1)
+  - { id: staff.catalog.price_lists,         origin: staff_web, path: /catalog/price-lists,                       owner: C3,  permission: catalog.price_list.read }
+  - { id: staff.catalog.price_list_version,  origin: staff_web, path: "/catalog/price-lists/{price_list_id}/versions/{version_id}", owner: C3, permission: catalog.price_list.read }
+  - { id: staff.catalog.price_simulator,     origin: staff_web, path: /catalog/price-simulator,                   owner: C3,  permission: catalog.price_list.read }
+  - { id: staff.catalog.surcharges,          origin: staff_web, path: /catalog/surcharges,                        owner: C3,  permission: catalog.price_list.read }
+  - { id: staff.catalog.tax,                 origin: staff_web, path: /catalog/tax,                               owner: C3,  permission: catalog.price_list.read }
   - { id: staff.instruments.agent,          origin: staff_web, path: "/instruments/agents/{agent_id}",            owner: C7,  permission: instruments.agent.read }
   - { id: staff.instruments.message,        origin: staff_web, path: "/instruments/messages/{instrument_message_id}", owner: C7, permission: instruments.message.read }
   - { id: staff.analytics.dashboard,        origin: staff_web, path: /analytics,                                owner: C8,  permission: analytics.dashboard.read }
@@ -2452,6 +2458,8 @@ routes:
   - { id: staff.homecollection.handovers, origin: staff_web, path: /homecollection/handovers, owner: C17, permission: homecollection.handover.receive }
   - { id: staff.homecollection.devices, origin: staff_web, path: /homecollection/devices, owner: C17, permission: homecollection.device.manage }
   - { id: staff.homecollection.settings, origin: staff_web, path: /homecollection/settings, owner: C17, permission: homecollection.settings.manage }
+  - { id: staff.catalog.imports, origin: staff_web, path: /catalog/imports, owner: C3, permission: catalog.test.read }
+  - { id: staff.catalog.import, origin: staff_web, path: "/catalog/imports/{import_id}", owner: C3, permission: catalog.test.read }
 ```
 
 API operations recorded in the final sweep (2026-11-06). They are HTTP operations, not app routes, so they have no entry above; C0-0C transcribes them into `contracts/openapi/<domain>.yaml` from the owner TRD:

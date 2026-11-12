@@ -5,11 +5,13 @@
 import { join } from 'node:path';
 import { LimsError } from '../../../core/errors.js';
 import { REPO_ROOT, loadSpec, operationIds, type Handler } from '../../../core/module.js';
+import { breakpointHandlers } from './breakpoint.handlers.js';
 import { configHandlers } from './config.handlers.js';
 
 /** Implemented operations; each later task adds its own import + entry. */
 const REAL: Readonly<Record<string, Handler>> = {
   ...configHandlers, // T-05: M23–M28, M39, M40
+  ...breakpointHandlers, // T-11: M41–M45, M49
 };
 
 const notImplemented = (op: string): Handler => async () => {

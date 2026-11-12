@@ -965,11 +965,59 @@ export const ROUTES = {
     "path": "/platform/tenants",
     "permission": "platform.tenant.read"
   },
+  "staff.quality.autoverify": {
+    "origin": "staff_web",
+    "owner": "C9",
+    "path": "/quality/autoverify",
+    "permission": "quality.autoverify.read"
+  },
+  "staff.quality.lj_chart": {
+    "origin": "staff_web",
+    "owner": "C9",
+    "path": "/quality/lj",
+    "permission": "quality.qc_run.read"
+  },
+  "staff.quality.observations": {
+    "origin": "staff_web",
+    "owner": "C9",
+    "path": "/quality/observations",
+    "permission": "quality.qc_run.read"
+  },
   "staff.quality.qc_run": {
     "origin": "staff_web",
     "owner": "C9",
     "path": "/quality/qc-runs/{qc_run_id}",
     "permission": "quality.qc_run.read"
+  },
+  "staff.quality.runs": {
+    "origin": "staff_web",
+    "owner": "C9",
+    "path": "/quality/runs",
+    "permission": "quality.qc_run.read"
+  },
+  "staff.quality.settings": {
+    "origin": "staff_web",
+    "owner": "C9",
+    "path": "/quality/settings",
+    "permission": "quality.qc_run.read"
+  },
+  "staff.quality.setup": {
+    "origin": "staff_web",
+    "owner": "C9",
+    "path": "/quality/setup/materials",
+    "permission": "quality.qc_run.read"
+  },
+  "staff.quality.status": {
+    "origin": "staff_web",
+    "owner": "C9",
+    "path": "/quality",
+    "permission": "quality.qc_run.read"
+  },
+  "staff.quality.tat_alerts": {
+    "origin": "staff_web",
+    "owner": "C9",
+    "path": "/quality/tat-alerts",
+    "permission": "quality.tat_alert.read"
   },
   "staff.reporting.delivery": {
     "origin": "staff_web",
@@ -1019,11 +1067,29 @@ export const ROUTES = {
     "path": "/reporting",
     "permission": "reporting.report.read"
   },
+  "staff.smartreport.library": {
+    "origin": "staff_web",
+    "owner": "C14",
+    "path": "/smartreport/library",
+    "permission": "smartreport.template.manage"
+  },
+  "staff.smartreport.summaries": {
+    "origin": "staff_web",
+    "owner": "C14",
+    "path": "/smartreport/summaries",
+    "permission": "smartreport.summary.read"
+  },
   "staff.smartreport.summary": {
     "origin": "staff_web",
     "owner": "C14",
     "path": "/smartreport/summaries/{summary_id}",
     "permission": "smartreport.summary.read"
+  },
+  "staff.smartreport.wording": {
+    "origin": "staff_web",
+    "owner": "C14",
+    "path": "/smartreport/wording",
+    "permission": "smartreport.template.manage"
   }
 } as const;
 

@@ -17,6 +17,7 @@ import { readFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
+import { TENANTS } from '../../../../../../../packages/fakes/src/base';
 import { makeCtxFor } from '../../../../../../../packages/fakes/src/harness';
 import { LimsError } from '../../../../core/errors.js';
 import { REPO_ROOT, loadSpec } from '../../../../core/module.js';
@@ -32,8 +33,8 @@ const schemaErrors = (name: string, x: unknown): string[] => {
 };
 const opOf = (id: string): any => { for (const p of Object.values<any>(spec.paths)) for (const m of Object.values<any>(p)) if (m?.operationId === id) return m; };
 
-const A = '01900000-0000-7000-8000-00000000aaaa'; // tenants of packages/fakes (TENANTS.A / TENANTS.B)
-const B = '01900000-0000-7000-8000-00000000bbbb';
+const A: string = TENANTS.A; // tenants of packages/fakes; ctx.tenantId comes from makeCtxFor (tenant_id from tx context, 02-CONVENTIONS)
+const B: string = TENANTS.B;
 const CENTRE = '01950c16-0000-7000-8000-000000000285';
 const BOOKING_READ = 'engagement.booking.read', MANAGE = 'engagement.settings.manage', SELF_READ = 'engagement.self.read';
 const PRIVILEGED = new Set([MANAGE]); // contracts/permissions.yaml: engagement.settings.manage privileged:true
@@ -247,7 +248,7 @@ describe('T2 updateEngagementSettings — happy path, If-Match, lazy row', () =>
   });
   it('no If-Match -> 428 common.precondition_required, no DB access', async () => {
     const db = asA();
-    const e = await rej(put(db, BASE, { ifMatch: undefined as never }));
+    const e = await rej(run('updateEngagementSettings', req({ body: BASE, headers: {} }), hctx(db, identity([MANAGE]))));
     expect(e.code).toBe('common.precondition_required');
     expect(db.calls).toEqual([]);
   });

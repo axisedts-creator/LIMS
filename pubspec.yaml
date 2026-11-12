@@ -8,4 +8,3 @@ environment:
 workspace:
   - packages/shared-dart
   - packages/ui-flutter
-  - apps/phlebo_app

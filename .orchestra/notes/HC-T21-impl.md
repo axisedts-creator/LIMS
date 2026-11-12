@@ -1,5 +1,5 @@
 # HC-T21 impl (writer)
-- Added apps/phlebo_app: pubspec.yaml (exact pins sentry_flutter 10.3.0, go_router 18.1.3), lib/main.dart, lib/app/{flavor,error_tracking,routes,router,app}.dart, lib/core/net/{pinned_http,api_factory}.dart, android/ (flutter create + productFlavors dev/staging/prod, INTERNET, no cleartext). Root pubspec.yaml: workspace += apps/phlebo_app.
+- Added apps/phlebo_app: pubspec.yaml (exact pins sentry_flutter 10.3.0, go_router 18.1.3), lib/main.dart, lib/app/{flavor,error_tracking,routes,router,app}.dart, lib/core/net/{pinned_http,api_factory}.dart, android/ (flutter create + productFlavors dev/staging/prod, INTERNET, no cleartext). Root pubspec.yaml NOT edited (owned by C0-0A, per review): reverted; filed .orchestra/cr/HC-T21.md (CR-C17-015) asking C0-0A to add `apps/phlebo_app` to `workspace:`. BLOCKED on that CR: without it `flutter pub get` fails ("Failed to update packages").
 - [CONV] pinned_http: SecurityContext(withTrustedRoots:false), empty/garbage PEM -> ArgumentError; only file with `HttpClient(`. No badCertificateCallback.
 - [CONV] api_factory: TlsException -> ApiTransportException(isTlsFailure) never retried; non-registered code/HTML/bad JSON -> common.internal, no server text. Idempotency-Key validated synchronously.
 - LD-24: error_tracking.dart delegates to lims_ui LimsErrorTracking (DSN unset -> off).

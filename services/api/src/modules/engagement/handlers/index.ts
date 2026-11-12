@@ -4,6 +4,7 @@ import { LimsError } from '../../../core/errors.js';
 import type { Handler } from '../../../core/module.js';
 import { queueHandlers } from './queue.handlers.js';
 import { settingsHandlers } from './settings.handlers.js';
+import { tokenHandlers } from './token.handlers.js';
 
 const notYet: Handler = async () => { throw new LimsError('common.service_unavailable'); };
 
@@ -31,4 +32,5 @@ export const handlers: Readonly<Record<(typeof OPERATION_IDS)[number], Handler>>
   ...(Object.fromEntries(OPERATION_IDS.map((op) => [op, notYet])) as Record<(typeof OPERATION_IDS)[number], Handler>),
   ...settingsHandlers, // T-03: T1, T2, T3a, T3b
   ...queueHandlers, // T-Q1: Q1a-c, Q2a-c
+  ...tokenHandlers, // T-Q2: Q3-Q7
 });

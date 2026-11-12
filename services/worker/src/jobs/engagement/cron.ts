@@ -1,0 +1,23 @@
+// engagement cron rows (02-TRD §8.2, REQ-ARCH-042: cron entries live in code) and their task handlers.
+// close_queue_day: daily 23:50 Asia/Kathmandu (UTC+05:45) = 18:05 UTC -> schedule fields are UTC (core/manifest.ts), so `5 18 * * *`; per_tenant (08 A13 P-6).
+import type { CronEntry, TaskHandler } from '../../core/manifest.js';
+import { businessDate } from '../../../../api/src/modules/engagement/domain/queueToken.state.js';
+
+export const CLOSE_QUEUE_DAY = 'engagement.close_queue_day';
+const TENANT_TZ = 'Asia/Kathmandu'; // [CONV] 05-SCHEMA P-15: the only v1 tenant timezone
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+export const crontab: readonly CronEntry[] = Object.freeze([
+  Object.freeze({ identifier: CLOSE_QUEUE_DAY, schedule: '5 18 * * *', tenantScope: 'per_tenant' as const, maxAttempts: 3 }),
+]);
+
+/** T-10 (03-APP-FLOW §4.3): still-open tokens (waiting/called/serving) of today's business day -> expired. Idempotent (a rerun matches nothing); counters are never touched.
+ *  Tenant guard (REQ-SEC-024): acts only when payload.tenant_id is a uuid equal to the job's tenant; otherwise it resolves without running a statement. */
+export const closeQueueDay: TaskHandler = async (payload, ctx) => {
+  const tenantId = payload?.tenant_id;
+  if (typeof tenantId !== 'string' || !UUID.test(tenantId) || ctx.tenantId !== tenantId) return;
+  await ctx.tx.query(
+    `UPDATE engagement.queue_tokens SET status = 'expired', version = version + 1, updated_at = now(), updated_by = $2
+     WHERE tenant_id = $1 AND business_date = $3::date AND status IN ('waiting', 'called', 'serving')`,
+    [tenantId, ctx.actor.id, businessDate(new Date(ctx.now()), TENANT_TZ)]);
+};

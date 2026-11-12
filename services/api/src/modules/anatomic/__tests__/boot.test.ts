@@ -28,7 +28,7 @@ const SYSTEM_PERMS = ['anatomic.case.work', 'catalog.test.read', 'frontdesk.orde
 const MB15 = 15 * 1024 * 1024; // 15728640
 
 /** operationIds whose stub a later task has replaced; that task moves its ids here (tester-owned list). Empty at T-01. */
-const IMPLEMENTED: readonly string[] = [];
+const IMPLEMENTED: readonly string[] = ['accessionAnatomicCase', 'updateAnatomicCaseDetails', 'addAnatomicPart', 'updateAnatomicPart', 'listAnatomicAssignees'];
 
 const FAKE_REQ = { params: {}, query: {}, headers: {}, body: {} };
 const noop = () => undefined;

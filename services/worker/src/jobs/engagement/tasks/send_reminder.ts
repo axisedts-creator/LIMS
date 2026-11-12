@@ -39,7 +39,7 @@ export function createSendReminder(): TaskHandler {
     if (!rem || rem['status'] !== 'scheduled') { ctx.log?.info?.({ event: 'send_reminder_noop' }); return; }
     const isBooking = rem['kind'] === 'booking';
 
-    const finish = async (status: 'sent' | 'suppressed', a: { deliveryId?: string; failureCode?: string }) => {
+    const finish = async (status: 'sent' | 'suppressed' | 'failed', a: { deliveryId?: string; failureCode?: string }) => {
       await tx.query(
         `UPDATE engagement.reminders SET status = $3, sent_at = $4, delivery_id = $5, failure_code = $6, version = version + 1, updated_at = $7, updated_by = $8
          WHERE tenant_id = $1 AND id = $2 AND status = 'scheduled'`,
@@ -71,16 +71,26 @@ export function createSendReminder(): TaskHandler {
       const tz: string = tenantSettings?.timezone ?? 'UTC';
       const params: Record<string, string> = { lab_name: labParam(tenantSettings?.branding?.displayName), datetime: isBooking ? formatAt(booking!['slot_start'], tz, true) : formatAt(rem['due_at'], tz, false) };
       if (isBooking) params['booking_no'] = String(booking!['booking_no']);
-      const sent = await ctx.ports.NotificationPort.sendSms(ctx, {
-        recipient: { kind: 'patient', patientId: rem['patient_id'] },
-        templateCode: isBooking ? 'engagement.booking_reminder' : 'engagement.follow_up_reminder',
-        purpose: isBooking ? 'booking_reminder' : 'follow_up_reminder',
-        params, idempotencyKey: `rem:${reminderId}`,
-        ...(isBooking ? { related: { entityType: 'booking', entityId: booking!['id'] } } : {}),
-      });
-      if (sent?.status === 'queued') await finish('sent', { deliveryId: sent.deliveryId });
-      else if (PORT_SUPPRESSED.has(sent?.status)) await finish('suppressed', { failureCode: sent.status });
-      else throw new Error('send_reminder: unexpected NotificationPort status');   // fail closed: retry, never record an unknown outcome
+      let failure: unknown;
+      try {
+        const sent = await ctx.ports.NotificationPort.sendSms(ctx, {
+          recipient: { kind: 'patient', patientId: rem['patient_id'] },
+          templateCode: isBooking ? 'engagement.booking_reminder' : 'engagement.follow_up_reminder',
+          purpose: isBooking ? 'booking_reminder' : 'follow_up_reminder',
+          params, idempotencyKey: `rem:${reminderId}`,
+          ...(isBooking ? { related: { entityType: 'booking', entityId: booking!['id'] } } : {}),
+        });
+        if (sent?.status === 'queued') await finish('sent', { deliveryId: sent.deliveryId });
+        else if (PORT_SUPPRESSED.has(sent?.status)) await finish('suppressed', { failureCode: sent.status });
+        else throw new Error('send_reminder: unexpected NotificationPort status');   // fail closed: retry, never record an unknown outcome
+      } catch (e) { failure = e; }
+      if (failure !== undefined) {
+        // 03-APP-FLOW reminder states: scheduled -> failed (port error after retries). Earlier attempts throw (tx rolls back, queue retries).
+        if (!(ctx.attempt >= ctx.maxAttempts)) throw failure;
+        const code = (failure as { code?: unknown })?.code;
+        await finish('failed', { failureCode: typeof code === 'string' && /^[a-z_.]{1,64}$/.test(code) ? code : 'common.internal' });
+        return;
+      }
     }
 
     for (const a of accounts) {

@@ -17,8 +17,17 @@ dependencies:
   # LD-24: GlitchTip, DSN from runtime config
   sentry_flutter: 10.3.0
   go_router: 18.1.3
+  # HC-T22: encrypted offline stores (TRD §2; sqlcipher_flutter_libs banned, 02-CV §15.3)
+  drift: 2.35.3
+  sqlite3: 3.8.0
+  flutter_secure_storage: 11.2.0
 dev_dependencies:
   flutter_test:
     sdk: flutter
 flutter:
   uses-material-design: true
+# HC-T22: package:sqlite3 build hook -> SQLCipher (TRD §2 / 04 A15). [CONV] C0 picks sqlcipher over sqlite3mc.
+hooks:
+  user_defines:
+    sqlite3:
+      source: sqlcipher

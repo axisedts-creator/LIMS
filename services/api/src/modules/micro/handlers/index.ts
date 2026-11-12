@@ -5,9 +5,12 @@
 import { join } from 'node:path';
 import { LimsError } from '../../../core/errors.js';
 import { REPO_ROOT, loadSpec, operationIds, type Handler } from '../../../core/module.js';
+import { configHandlers } from './config.handlers.js';
 
 /** Implemented operations; each later task adds its own import + entry. */
-const REAL: Readonly<Record<string, Handler>> = {};
+const REAL: Readonly<Record<string, Handler>> = {
+  ...configHandlers, // T-05: M23–M28, M39, M40
+};
 
 const notImplemented = (op: string): Handler => async () => {
   throw new LimsError('common.internal', `micro operation ${op} not implemented`);

@@ -2,6 +2,7 @@
 // T-01: every handler is a fail-closed stub (throws) so an event/task is retried or dead-lettered, never silently acked;
 // each later task replaces its own entry. [CONV] LIMS_ENGAGEMENT_* is validated by the API module at import; worker bootstrap calls loadEngagementConfig() when it exists (no worker test env yet). The §8.2 crontab rows (and their tasks) are added by the tasks that implement them.
 import type { ConsumerHandler, TaskHandler, WorkerManifest } from '../../core/manifest.js';
+import { CLOSE_QUEUE_DAY, closeQueueDay, crontab } from './cron.js';
 import { createDispatchDueReminders } from './tasks/dispatch_due_reminders.js';
 import { createSendReminder } from './tasks/send_reminder.js';
 
@@ -25,10 +26,11 @@ export const manifest: WorkerManifest = Object.freeze({
   module: 'engagement',
   tasks: Object.freeze({
     ...Object.fromEntries(Object.keys(TASKS).map((id) => [id, task(id)])),
+    [CLOSE_QUEUE_DAY]: closeQueueDay, // T-Q2: close_queue_day
     'engagement.send_reminder': createSendReminder(), // T-R1
     'engagement.dispatch_due_reminders': createDispatchDueReminders(), // T-R1 (cron-only task: no §8.1 row)
   }),
   subscriptions: Object.freeze(Object.fromEntries(SUBSCRIPTIONS.map((type) => [type, consumer(type)]))),
-  crontab: Object.freeze([Object.freeze({ identifier: 'engagement.dispatch_due_reminders', schedule: '*/5 * * * *', tenantScope: 'per_tenant' as const, maxAttempts: 5 })]), // TRD §8.2
+  crontab, // TRD §8.2 rows live in cron.ts (close_queue_day, dispatch_due_reminders)
   maxAttempts: TASKS,
 });

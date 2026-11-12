@@ -47,7 +47,7 @@ export async function onSpecimenStatusChanged(ctx: IntakeCtx, env: Obj): Promise
   let target: Target = { kind: (link?.['link_kind'] as LinkKind | undefined) ?? 'not_anatomic', caseId: link?.['case_id'] ?? null, partId: link?.['part_id'] ?? null };
 
   if (toStatus === 'received') {
-    target = await onReceived(ctx, p, link, target);
+    target = await onReceived(ctx, p, link);
   } else if (toStatus === 'rejected' && link?.['link_kind'] === 'part' && link['part_id']) { // AC-01.9
     const part = await getPart(tx, { tenantId, id: link['part_id'] });
     if (part && part['specimen_state'] !== 'rejected') {
@@ -63,7 +63,7 @@ export async function onSpecimenStatusChanged(ctx: IntakeCtx, env: Obj): Promise
   }
 }
 
-async function onReceived(ctx: IntakeCtx, p: Obj, link: Row | undefined, current: Target): Promise<Target> {
+async function onReceived(ctx: IntakeCtx, p: Obj, link: Row | undefined): Promise<Target> {
   const tenantId = ctx.tenantId as string;
   const tx = ctx.tx;
 
@@ -91,8 +91,8 @@ async function onReceived(ctx: IntakeCtx, p: Obj, link: Row | undefined, current
   }
   if (kept.length === 0) { // AC-01.4
     metric(ctx, 'no_anatomic_items');
-    // a specimen that is already a part/addon keeps its link rather than losing the case mapping [CONV]
-    return link && (link['link_kind'] === 'part' || link['link_kind'] === 'addon') ? current : { kind: 'not_anatomic', caseId: null, partId: null };
+    // 02-TRD §4.1 3d: none kept → kind := 'not_anatomic' (parts.specimen_id keeps the part→specimen mapping)
+    return { kind: 'not_anatomic', caseId: null, partId: null };
   }
 
   const groups = new Map<CaseKind, typeof kept>();

@@ -35,13 +35,31 @@ const LD112: Array<[string, string, string]> = [
   ["staff.platform.staff", "/platform/staff", "platform.staff.manage"],
   ["staff.platform.auth_events", "/platform/auth-events", "platform.tenant.read"],
 ];
+// LD-130 (scope widened to 11 more rows), verbatim from IC §7: [id, path, owner, permission]
+const LD130_SMARTREPORT: Array<[string, string, string, string]> = [
+  ["staff.smartreport.summaries", "/smartreport/summaries", "C14", "smartreport.summary.read"],
+  ["staff.smartreport.library", "/smartreport/library", "C14", "smartreport.template.manage"],
+  ["staff.smartreport.wording", "/smartreport/wording", "C14", "smartreport.template.manage"],
+];
+const LD130_QUALITY: Array<[string, string, string, string]> = [
+  ["staff.quality.status", "/quality", "C9", "quality.qc_run.read"],
+  ["staff.quality.runs", "/quality/runs", "C9", "quality.qc_run.read"],
+  ["staff.quality.lj_chart", "/quality/lj", "C9", "quality.qc_run.read"],
+  ["staff.quality.observations", "/quality/observations", "C9", "quality.qc_run.read"],
+  ["staff.quality.setup", "/quality/setup/materials", "C9", "quality.qc_run.read"],
+  ["staff.quality.autoverify", "/quality/autoverify", "C9", "quality.autoverify.read"],
+  ["staff.quality.tat_alerts", "/quality/tat-alerts", "C9", "quality.tat_alert.read"],
+  ["staff.quality.settings", "/quality/settings", "C9", "quality.qc_run.read"],
+];
 const BASELINE_ROUTE_COUNT = 143; // contracts/routes.yaml before T0D-12d
 const BASELINE_INVENTORY_SCHEMA_COUNT = 47; // components.schemas in inventory.yaml before T0D-12d (Code swapped for InventoryCodedSetEntry)
 
 describe("LD-112: 20 staff_web rows in contracts/routes.yaml", () => {
-  it("has exactly 20 new rows, 163 routes in total (143 + 20, no other route added)", () => {
+  it("has exactly 20 LD-112 rows; 174 routes in total (143 + 20 + 11 LD-130, no other route added)", () => {
     expect(LD112).toHaveLength(20);
-    expect(routes).toHaveLength(BASELINE_ROUTE_COUNT + 20);
+    expect(LD130_SMARTREPORT).toHaveLength(3);
+    expect(LD130_QUALITY).toHaveLength(8);
+    expect(routes).toHaveLength(BASELINE_ROUTE_COUNT + 20 + 11);
   });
 
   it("each row has the LD-112 id, path, permission, origin staff_web, owner C2", () => {
@@ -90,6 +108,37 @@ describe("LD-112: 20 staff_web rows in contracts/routes.yaml", () => {
     expect(by.get("staff.admin.audit_entry")).toEqual({ id: "staff.admin.audit_entry", origin: "staff_web", path: "/admin/audit/{audit_id}", owner: "C2", permission: "audit.log.read" });
     expect(by.get("staff.platform.tenant")).toEqual({ id: "staff.platform.tenant", origin: "staff_web", path: "/platform/tenants/{tenant_id}", owner: "C2", permission: "platform.tenant.read" });
     expect(by.get("staff.platform.dead_letter")).toEqual({ id: "staff.platform.dead_letter", origin: "staff_web", path: "/platform/dead-letters/{dead_letter_id}", owner: "C2", permission: "platform.dead_letter.manage" });
+  });
+});
+
+describe("LD-130: 3 smartreport + 8 quality staff_web rows (CR-C14-T18a, CR-C9-T01)", () => {
+  const ids = routes.map((r) => r.id);
+  const check = (after: string, rows: Array<[string, string, string, string]>, comment: RegExp) => {
+    const at = ids.indexOf(after);
+    expect(at, `${after} present`).toBeGreaterThanOrEqual(0);
+    expect(ids.slice(at + 1, at + 1 + rows.length)).toEqual(rows.map(([id]) => id));
+    const byId = new Map(routes.map((r) => [r.id, r]));
+    for (const [id, path, owner, permission] of rows) {
+      expect(byId.get(id), `missing ${id}`).toEqual({ id, origin: "staff_web", path, owner, permission });
+      expect(perms.has(permission), `${id}: ${permission}`).toBe(true);
+      expect(path, id).not.toMatch(/[{}]/);
+    }
+    const lines = read("contracts/routes.yaml").split("\n");
+    const first = lines.findIndex((l) => l.includes(`id: ${rows[0][0]},`));
+    expect(lines[first - 1]).toMatch(comment);
+  };
+
+  it("smartreport rows sit right after staff.smartreport.summary, in catalog order, with an LD-130 comment line", () => {
+    check("staff.smartreport.summary", LD130_SMARTREPORT, /^\s*#.*LD-130/);
+  });
+
+  it("quality rows sit right after staff.quality.qc_run, in catalog order, with an LD-130 comment line", () => {
+    check("staff.quality.qc_run", LD130_QUALITY, /^\s*#.*LD-130/);
+  });
+
+  it("qc_run and summary stay the only parameterised rows of their families", () => {
+    expect(routes.filter((r) => /^staff\.quality\./.test(r.id) && /[{}]/.test(r.path)).map((r) => r.id)).toEqual(["staff.quality.qc_run"]);
+    expect(routes.filter((r) => /^staff\.smartreport\./.test(r.id) && /[{}]/.test(r.path)).map((r) => r.id)).toEqual(["staff.smartreport.summary"]);
   });
 });
 

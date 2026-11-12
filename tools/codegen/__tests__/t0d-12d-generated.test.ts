@@ -12,6 +12,10 @@ const NEW = [
   "staff.admin.settings", "staff.admin.sessions", "staff.admin.audit", "staff.admin.access_log", "staff.admin.exports",
   "staff.admin.support_access", "staff.admin.access_review", "staff.platform.home", "staff.platform.tenants", "staff.platform.ird",
   "staff.platform.support_sessions", "staff.platform.dead_letters", "staff.platform.staff", "staff.platform.auth_events",
+  // LD-130
+  "staff.smartreport.summaries", "staff.smartreport.library", "staff.smartreport.wording",
+  "staff.quality.status", "staff.quality.runs", "staff.quality.lj_chart", "staff.quality.observations", "staff.quality.setup",
+  "staff.quality.autoverify", "staff.quality.tat_alerts", "staff.quality.settings",
 ];
 const doc: any = parse(read("contracts/routes.yaml"));
 const routes: any[] = doc.routes;
@@ -21,11 +25,11 @@ describe("LD-112 generated route files", () => {
   const ts = read("packages/shared-ts/src/routes/generated.ts");
   const dart = read("packages/shared-dart/lib/src/routes.g.dart");
 
-  it("generated.ts has every new id with origin, owner C2, path and permission from routes.yaml", () => {
+  it("generated.ts has every new id with origin, owner, path and permission from routes.yaml", () => {
     for (const id of NEW) {
       const r = routes.find((x) => x.id === id);
       expect(r, `routes.yaml ${id}`).toBeDefined();
-      const block = `  "${id}": {\n    "origin": "staff_web",\n    "owner": "C2",\n    "path": "${r.path}",\n    "permission": "${r.permission}"\n  }`;
+      const block = `  "${id}": {\n    "origin": "staff_web",\n    "owner": "${r.owner}",\n    "path": "${r.path}",\n    "permission": "${r.permission}"\n  }`;
       expect(ts, id).toContain(block);
     }
   });

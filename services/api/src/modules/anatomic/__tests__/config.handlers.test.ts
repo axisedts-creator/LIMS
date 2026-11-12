@@ -41,12 +41,19 @@ const mine = (m: Map<string, Row>, i: Row) => [...m.values()].filter((r) => r['t
 const win = (rows: Row[], i: Row) => rows.slice(off(i), off(i) + lim(i)).map((r) => ({ ...r }));
 const cmp = (a: Row, b: Row, keys: string[]) => { for (const k of keys) { if (a[k] < b[k]) return -1; if (a[k] > b[k]) return 1; } return 0; };
 const undo = (tx: unknown, f: () => void) => { (tx as { undo?: (() => void)[] } | undefined)?.undo?.push(f); };
-function mkInsert(m: Map<string, Row>, uniq: string[], defaults: Row = {}) {
+// INSCOLS = exactly the columns of the real INSERT lists (repository/*.repo.ts); like the SQL, anything else (notably is_active) is dropped and the column default applies.
+const INSCOLS: Record<string, string[]> = {
+  profiles: ['test_id', 'case_kind', 'is_addon', 'requires_gross', 'default_stain_code', 'default_synoptic_template_keys'], stains: ['code', 'display', 'kind', 'addon_test_id', 'sort_order'],
+  assays: ['code', 'display', 'method_text_default'], targets: ['assay_id', 'code', 'display', 'allows_quantitative', 'unit_code', 'decimals', 'sort_order'],
+  values: ['target_id', 'code', 'display', 'is_abnormal', 'sort_order'], coded: ['code', 'display', 'system', 'system_version', 'sort_order'], templates: ['short_code', 'section', 'title', 'body'],
+};
+function mkInsert(m: Map<string, Row>, uniq: string[], cols: string[], defaults: Row = {}) {
+  const keep = ['id', 'tenant_id', 'created_by', 'updated_by', ...cols];
   return async (tx: unknown, row: Row) => {
     touch('repo', true);
     const dup = [...m.values()].some((r) => r['tenant_id'] === row['tenant_id'] && uniq.every((k) => r[k] === row[k]));
     if (dup) throw pgErr(`dup_${uniq.join('_')}`);
-    const r = { is_active: true, sort_order: 0, version: 1, created_at: '2026-11-12T00:00:00Z', updated_at: '2026-11-12T00:00:00Z', ...defaults, ...Object.fromEntries(Object.entries(row).filter(([, v]) => v !== undefined)) };
+    const r = { is_active: true, sort_order: 0, version: 1, created_at: '2026-11-12T00:00:00Z', updated_at: '2026-11-12T00:00:00Z', ...defaults, ...Object.fromEntries(Object.entries(row).filter(([k, v]) => v !== undefined && keep.includes(k))) };
     m.set(r['id'], r); undo(tx, () => m.delete(r['id'])); return { ...r };
   };
 }
@@ -81,26 +88,26 @@ vi.mock('../repository/config.repo.js', () => ({
     if (!r || r['id'] !== i.id || r['version'] !== i.expectedVersion) return undefined;
     const next = { ...r, ...i.patch, version: r['version'] + 1, updated_by: i.actorId }; S.settings.set(i.tenantId, next); undo(tx, () => S.settings.set(i.tenantId, r)); return { ...next };
   },
-  insertTestProfile: mkInsert(S.profiles, ['test_id'], { is_addon: false, requires_gross: true, default_synoptic_template_keys: [] }), getTestProfile: mkGet(S.profiles), listTestProfiles: mkList(S.profiles, ['created_at', 'id']),
+  insertTestProfile: mkInsert(S.profiles, ['test_id'], INSCOLS['profiles']!, { is_addon: false, requires_gross: true, default_synoptic_template_keys: [] }), getTestProfile: mkGet(S.profiles), listTestProfiles: mkList(S.profiles, ['created_at', 'id']),
   updateTestProfile: mkUpdate(S.profiles, SETCOLS['profiles']!),
-  insertStain: mkInsert(S.stains, ['code']), getStain: mkGet(S.stains), listStains: mkList(S.stains, ['sort_order', 'code', 'id']), updateStain: mkUpdate(S.stains, SETCOLS['stains']!),
-  insertAssay: mkInsert(S.assays, ['code']), getAssay: mkGet(S.assays), listAssays: mkList(S.assays, ['code', 'id']), updateAssay: mkUpdate(S.assays, SETCOLS['assays']!),
-  insertAssayTarget: mkInsert(S.targets, ['assay_id', 'code'], { allows_quantitative: false }), getAssayTarget: mkGet(S.targets), updateAssayTarget: mkUpdate(S.targets, SETCOLS['targets']!),
+  insertStain: mkInsert(S.stains, ['code'], INSCOLS['stains']!), getStain: mkGet(S.stains), listStains: mkList(S.stains, ['sort_order', 'code', 'id']), updateStain: mkUpdate(S.stains, SETCOLS['stains']!),
+  insertAssay: mkInsert(S.assays, ['code'], INSCOLS['assays']!), getAssay: mkGet(S.assays), listAssays: mkList(S.assays, ['code', 'id']), updateAssay: mkUpdate(S.assays, SETCOLS['assays']!),
+  insertAssayTarget: mkInsert(S.targets, ['assay_id', 'code'], INSCOLS['targets']!, { allows_quantitative: false }), getAssayTarget: mkGet(S.targets), updateAssayTarget: mkUpdate(S.targets, SETCOLS['targets']!),
   listAssayTargets: async (_tx: unknown, i: Row) => { touch('repo'); return mine(S.targets, i).filter((r) => r['assay_id'] === i['assayId'] && (!i['activeOnly'] || r['is_active'])).sort((a, b) => cmp(a, b, ['sort_order', 'code', 'id'])).map((r) => ({ ...r })); },
-  insertAssayTargetValue: mkInsert(S.values, ['target_id', 'code'], { is_abnormal: false }), getAssayTargetValue: mkGet(S.values), updateAssayTargetValue: mkUpdate(S.values, SETCOLS['values']!),
+  insertAssayTargetValue: mkInsert(S.values, ['target_id', 'code'], INSCOLS['values']!, { is_abnormal: false }), getAssayTargetValue: mkGet(S.values), updateAssayTargetValue: mkUpdate(S.values, SETCOLS['values']!),
   listAssayTargetValues: async (_tx: unknown, i: Row) => { touch('repo'); return mine(S.values, i).filter((r) => r['target_id'] === i['targetId'] && (!i['activeOnly'] || r['is_active'])).sort((a, b) => cmp(a, b, ['sort_order', 'code', 'id'])).map((r) => ({ ...r })); },
 }));
 const codedList = (set: string) => mkList(S.coded[set]!, ['sort_order', 'code', 'id'], (r, i) => !i['q'] || String(r['display']).toLowerCase().includes(String(i['q']).toLowerCase()));
 vi.mock('../repository/codedValues.repo.js', () => ({
-  insertCodedDiagnosis: mkInsert(S.coded['diagnoses']!, ['code'], { system: 'local' }), getCodedDiagnosis: mkGet(S.coded['diagnoses']!), listCodedDiagnoses: codedList('diagnoses'), updateCodedDiagnosis: mkUpdate(S.coded['diagnoses']!, SETCOLS['coded']!),
-  insertCodedCytologyAdequacy: mkInsert(S.coded['cytology_adequacy']!, ['code'], { system: 'local' }), getCodedCytologyAdequacy: mkGet(S.coded['cytology_adequacy']!),
+  insertCodedDiagnosis: mkInsert(S.coded['diagnoses']!, ['code'], INSCOLS['coded']!, { system: 'local' }), getCodedDiagnosis: mkGet(S.coded['diagnoses']!), listCodedDiagnoses: codedList('diagnoses'), updateCodedDiagnosis: mkUpdate(S.coded['diagnoses']!, SETCOLS['coded']!),
+  insertCodedCytologyAdequacy: mkInsert(S.coded['cytology_adequacy']!, ['code'], INSCOLS['coded']!, { system: 'local' }), getCodedCytologyAdequacy: mkGet(S.coded['cytology_adequacy']!),
   listCodedCytologyAdequacies: codedList('cytology_adequacy'), updateCodedCytologyAdequacy: mkUpdate(S.coded['cytology_adequacy']!, SETCOLS['coded']!),
-  insertCodedCancelReason: mkInsert(S.coded['cancel_reasons']!, ['code'], { system: 'local' }), getCodedCancelReason: mkGet(S.coded['cancel_reasons']!), listCodedCancelReasons: codedList('cancel_reasons'),
+  insertCodedCancelReason: mkInsert(S.coded['cancel_reasons']!, ['code'], INSCOLS['coded']!, { system: 'local' }), getCodedCancelReason: mkGet(S.coded['cancel_reasons']!), listCodedCancelReasons: codedList('cancel_reasons'),
   updateCodedCancelReason: mkUpdate(S.coded['cancel_reasons']!, SETCOLS['coded']!),
   async listGlobalCancelReasons() { touch('repo'); return S.globalCancel.map((r) => ({ ...r })); },
 }));
 vi.mock('../repository/templates.repo.js', () => ({
-  insertTextTemplate: mkInsert(S.templates, ['section', 'short_code']), getTextTemplate: mkGet(S.templates), updateTextTemplate: mkUpdate(S.templates, SETCOLS['templates']!),
+  insertTextTemplate: mkInsert(S.templates, ['section', 'short_code'], INSCOLS['templates']!), getTextTemplate: mkGet(S.templates), updateTextTemplate: mkUpdate(S.templates, SETCOLS['templates']!),
   listTextTemplates: mkList(S.templates, ['section', 'short_code', 'id'], (r, i) => !i['section'] || r['section'] === i['section']),
   async insertSynopticTemplate() { S.writes++; }, async getSynopticTemplate() { return undefined; }, async listSynopticTemplates() { return []; }, async updateSynopticTemplate() { S.writes++; return undefined; },
 }));
@@ -435,6 +442,11 @@ describe('K7 upsertAnatomicTestProfile — CatalogPort check (workflowType ∈ {
     expect(hasNoNulls(r.body)).toBe(true); expect(calls.getTest[0]).toMatchObject({ testId: TEST_MOL });
     expect([...S.profiles.values()].find((p) => p['test_id'] === TEST_MOL)).toMatchObject({ tenant_id: T, created_by: ACTOR });
   });
+  it('create with is_active:false → stored and returned inactive (the real INSERT has no is_active column, so the service must follow up with an update)', async () => {
+    seed();
+    const r = await call('upsertAnatomicTestProfile', { params: { test_id: TEST_MOL }, headers: ifm(0), body: mk({ case_kind: 'molecular', requires_gross: false, default_stain_code: undefined, is_active: false }) });
+    expect(r.body).toMatchObject({ test_id: TEST_MOL, is_active: false }); expect([...S.profiles.values()].find((p) => p['test_id'] === TEST_MOL)?.['is_active']).toBe(false);
+  });
   it('AC-14.1: set test X to case_kind cytology with default stain PAP → stored; existing cases are unchanged (no case row touched)', async () => {
     seed(); const caseBefore = JSON.stringify(S.cases.get(CASE_1));
     const r = await call('upsertAnatomicTestProfile', { params: { test_id: TEST_HISTO }, headers: ifm(1), body: mk({ case_kind: 'cytology', default_stain_code: 'PAP' }) });
@@ -640,6 +652,10 @@ describe('K12 upsertAnatomicCodedValue', () => {
   });
   it('system and system_version are stored when given', async () => {
     seed(); const r = await put('diagnoses', 'D123', 0, mk({ system: 'icd-o', system_version: '3.2' })); expect(r.body).toMatchObject({ system: 'icd-o', system_version: '3.2' });
+  });
+  it('create with is_active:false → stored and returned inactive (the real INSERT has no is_active column, so the service must follow up with an update)', async () => {
+    seed(); const r = await put('diagnoses', 'D-OFF', 0, mk({ is_active: false }));
+    expect(r.body).toMatchObject({ code: 'D-OFF', is_active: false }); expect([...S.coded['diagnoses']!.values()].find((v) => v['code'] === 'D-OFF')?.['is_active']).toBe(false);
   });
   it('routes by set_name: cytology_adequacy and cancel_reasons write their own tables only', async () => {
     seed();

@@ -64,4 +64,19 @@ describe.skipIf(!LIVE)('C11-T11 configuration over a real DB', () => {
     expect((await asA('listAnatomicCodedValues', { params: { set_name: 'diagnoses' }, query: { q: 'T-11' } })).body.data.map((v: any) => v.code).sort()).toEqual(['T11-0001', 'T11-0002']);
     expect((await asB('listAnatomicCodedValues', { params: { set_name: 'diagnoses' }, query: { q: 'T-11' } })).body.data).toEqual([]);
   });
+  it('create with is_active:false is stored inactive (the real INSERT lists have no is_active column): K12 coded value and K7 test profile read back inactive', async () => {
+    const r = await asA('upsertAnatomicCodedValue', { params: { set_name: 'diagnoses', code: 'T11-0003' }, headers: ifm(0), body: { display: 'Synthetic inactive (T-11)', sort_order: 3, is_active: false } });
+    expect(r.body).toMatchObject({ code: 'T11-0003', is_active: false });
+    const rows = (await asA('listAnatomicCodedValues', { params: { set_name: 'diagnoses' }, query: { q: 'inactive (T-11)' } })).body.data;
+    expect(rows.find((v: any) => v.code === 'T11-0003')?.is_active).toBe(false);
+    const TEST_ID = '0190c411-0000-7000-8000-000000007099';
+    const ctx = ctxFor(null, TENANT_A, String(CLAIMS.allA['sub']));
+    const p = await h.asApp(CLAIMS.allA, (tx) => (manifest.handlers as any)['upsertAnatomicTestProfile'](
+      { params: { test_id: TEST_ID }, query: {}, headers: ifm(0), body: { case_kind: 'molecular', is_addon: false, requires_gross: false, is_active: false } },
+      { ...ctx, tx, ports: { ...ctx.ports, CatalogPort: { async getTest() { return { id: TEST_ID, code: 'SYN-PCR-T11', name: 'Synthetic PCR', workflowType: 'molecular', isActive: true }; } } } }));
+    expect(p.body).toMatchObject({ test_id: TEST_ID, is_active: false });
+    const stored = await h.asSuperuser(async (tx) => (await tx.query(`SELECT is_active FROM anatomic.test_profiles WHERE tenant_id = $1 AND test_id = $2`, [TENANT_A, TEST_ID])).rows);
+    expect(stored).toEqual([{ is_active: false }]);
+    await h.asSuperuser((tx) => tx.query(`DELETE FROM anatomic.test_profiles WHERE tenant_id = $1 AND test_id = $2`, [TENANT_A, TEST_ID]));
+  });
 });

@@ -30,7 +30,7 @@ async function anatomicSetup(env: any = envelope()) {
 }
 beforeEach(() => { intake.onSpecimenStatusChanged.mockReset(); intake.onSpecimenStatusChanged.mockResolvedValue(undefined); });
 // pay the lazy worker-graph transform (setup() imports tasklist) outside a test's 5s budget
-beforeAll(async () => { await import('../../../core/tasklist.js'); }, 60_000);
+beforeAll(async () => { await import('../../../core/tasklist.js'); const w = await anatomicSetup(); await w.run(task, jobPayload); }, 120_000);
 
 describe('lab.specimen.status_changed.v1 consumer (03-IC §3.7)', () => {
   it('registers as evt.anatomic.lab.specimen.status_changed.v1 and delegates the §3.7 example once, with the verified tenant context and aggregate.seq', async () => {

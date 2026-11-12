@@ -47,6 +47,17 @@ describe.skipIf(!LIVE)('C11-T06 accession over a real DB', () => {
     expect(Number(rows[0].last_value)).toBe(20);
   }, 60_000);
 
+  it('A6: two parallel addAnatomicPart on one case (own transactions) → letters B and C, both 201, no 409/500 (case row lock serialises)', async () => {
+    const c = await seedCase(20, { status: 'accessioned', accession_no: 'S99-9020' }); // seeded part is letter A
+    const add = (site: string) => h.asApp(CLAIMS.allA, (tx) => (manifest.handlers as any)['addAnatomicPart'](
+      { params: { case_id: c.caseId }, query: {}, headers: {}, body: { site_text: site } }, ctxFor(tx, NOW_2199)));
+    const rs: any[] = await Promise.all([add('left'), add('right')]);
+    expect(rs.map((r) => r.status)).toEqual([201, 201]);
+    expect(rs.map((r) => r.body.letter).sort()).toEqual(['B', 'C']);
+    const { rows } = await h.asSuperuser((tx) => tx.query(`SELECT letter, letter_seq FROM anatomic.parts WHERE case_id = $1 ORDER BY letter_seq`, [c.caseId]));
+    expect(rows.map((r: any) => r.letter)).toEqual(['A', 'B', 'C']);
+  }, 30_000);
+
   it('AC-02.4: first accession of the new tenant-timezone year restarts at 1 for that series (counter row year 2200)', async () => {
     const c = await seedCase(30);
     const r: any = await accession(c.caseId, c.partId, NOW_NEXT_YEAR);

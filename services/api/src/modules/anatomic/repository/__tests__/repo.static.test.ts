@@ -106,7 +106,9 @@ const input = () => new Proxy({}, {
 });
 describe('every exported repo function binds the tenant it is given (REQ-SEC-024, fake tx)', () => {
   for (const n of NAMES) it(`${n}.repo: all queries carry tenant_id and the tenant value; at least one function queried`, async () => {
-    const mod: Record<string, unknown> = await import(`../${n}.repo.js`);
+    const loaders = import.meta.glob('../*.repo.ts') as Record<string, () => Promise<Record<string, unknown>>>;
+    expect(loaders[`../${n}.repo.ts`], `${n}.repo.ts must exist`).toBeDefined();
+    const mod: Record<string, unknown> = await loaders[`../${n}.repo.ts`]();
     const fns = Object.entries(mod).filter(([, v]) => typeof v === 'function') as Array<[string, (...a: unknown[]) => Promise<unknown>]>;
     expect(fns.length).toBeGreaterThan(0);
     let queried = 0;

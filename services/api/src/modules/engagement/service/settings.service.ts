@@ -136,10 +136,10 @@ export function createSettingsService(deps: { repo?: SettingsRepo; listCodedSet?
 
     /** `allowed` = the sets this surface may read; the name never reaches SQL unless it is in that closed list. */
     async listCodedSet(ctx: SettingsCtx, input: { setName: unknown; allowed: readonly CodedSetName[] }) {
-      const { tx } = scope(ctx);
+      const { tx, tenantId } = scope(ctx);
       const n = input.setName;
       if (!isCodedSetName(n) || !input.allowed.includes(n)) return invalid('/set_name');
-      const rows = await listSet(tx, { setName: n });
+      const rows = await listSet(tx, { tenantId, setName: n });
       return { data: rows.filter((r) => r['is_active'] !== false).map((r) => ({ code: r['code'] as string, display: r['display'] as string, sort_order: r['sort_order'] as number })) };
     },
   };

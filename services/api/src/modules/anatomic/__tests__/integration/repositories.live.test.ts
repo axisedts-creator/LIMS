@@ -12,7 +12,8 @@ import { getCase, insertCase, insertCaseTransition, listCases, listCaseTransitio
 import { bumpAccessionCounter } from '../../repository/counters.repo.js';
 import { insertStain, listStains } from '../../repository/config.repo.js';
 import { insertPart, listParts } from '../../repository/parts.repo.js';
-import { caseRow, CENTRE_A1, CENTRE_A2, CENTRE_B1, CLAIMS, ID, LIVE, openHarness, partRow, stainRow, SYS, TENANT_A, TENANT_B, transitionRow, YEAR, type Harness } from './setup.js';
+import { crudSuite } from './crud.cases.js';
+import { caseRow,CENTRE_A1, CENTRE_A2, CENTRE_B1, CLAIMS, ID, LIVE, openHarness, partRow, stainRow, SYS, TENANT_A, TENANT_B, transitionRow, YEAR, type Harness } from './setup.js';
 
 const ids = (rows: Array<{ id: string }>) => rows.map((r) => r.id).sort();
 const why = async (p: Promise<unknown>) => { try { await p; } catch (e: any) { return [e?.code, e?.message, e?.cause?.code, e?.cause?.message, e?.statusCode].join('|'); } return 'NO_ERROR'; };
@@ -137,6 +138,10 @@ describe.skipIf(!LIVE)('anatomic repositories over a real DB (tenants A/B, centr
       await expect(h.asApp(CLAIMS.sysA, async (tx) => { await bumpAccessionCounter(tx, { tenantId: TENANT_A, seriesKey: 'molecular', yearAd: YEAR, actorId: SYS }); throw new Error('boom'); })).rejects.toThrow('boom');
       expect(await h.asApp(CLAIMS.sysA, (tx) => bumpAccessionCounter(tx, { tenantId: TENANT_A, seriesKey: 'molecular', yearAd: YEAR, actorId: SYS }))).toBe(1);
     });
+  });
+
+  describe('one live CRUD case per repository (plan row T-04 "integration per repo"; optimistic version lock; other-tenant isolation)', () => {
+    crudSuite(() => h);
   });
 
   describe('grants the repositories rely on (05-SCHEMA §7): no DELETE, class-A tables insert-only', () => {

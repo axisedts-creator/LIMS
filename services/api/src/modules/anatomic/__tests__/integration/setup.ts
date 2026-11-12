@@ -56,7 +56,11 @@ export interface Harness {
   close(): Promise<void>;
 }
 
-const FIXTURE_TABLES = ['case_transitions', 'parts', 'cases', 'stains', 'accession_counters'] as const; // FK-safe delete order
+const FIXTURE_TABLES = [
+  'batch_members', 'molecular_results', 'batches', 'item_submissions', 'report_versions', 'addenda', 'report_drafts', 'images', 'object_movements', 'slides', 'stain_orders',
+  'blocks', 'gross_records', 'specimen_links', 'case_items', 'case_transitions', 'parts', 'cases', 'stains',
+  'synoptic_templates', 'text_templates', 'cs_cancel_reasons', 'cs_diagnoses', 'cs_cytology_adequacy', 'accession_counters',
+] as const; // FK-safe delete order (children first)
 
 export async function openHarness(): Promise<Harness> {
   const pg: any = await import(['p', 'g'].join(''));

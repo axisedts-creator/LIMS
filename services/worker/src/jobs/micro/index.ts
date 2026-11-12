@@ -4,6 +4,7 @@
 import { LimsError } from '../../../../api/src/core/errors.js';
 import type { ConsumerHandler, TaskHandler, WorkerManifest } from '../../core/manifest.js';
 import { cron } from './cron.js';
+import { onSpecimenStatusChanged } from './consumers/lab.specimen.status_changed.v1.js';
 
 const TASKS = ['micro.breakpoint_import_validate', 'micro.reconcile_chain_status', 'micro.refresh_metrics', 'micro.purge_instrument_records'] as const;
 const CONSUMED = ['instruments.result.received.v1', 'lab.specimen.status_changed.v1'] as const;
@@ -13,6 +14,9 @@ const stub = (what: string) => async (): Promise<void> => { throw new LimsError(
 export const manifest: WorkerManifest = {
   module: 'micro',
   tasks: Object.freeze(Object.fromEntries(TASKS.map((t) => [t, stub(`task ${t}`) as TaskHandler]))),
-  subscriptions: Object.freeze(Object.fromEntries(CONSUMED.map((t) => [t, stub(`consumer ${t}`) as ConsumerHandler]))),
+  subscriptions: Object.freeze({
+    ...Object.fromEntries(CONSUMED.map((t) => [t, stub(`consumer ${t}`) as ConsumerHandler])),
+    'lab.specimen.status_changed.v1': onSpecimenStatusChanged,
+  }),
   crontab: cron,
 };

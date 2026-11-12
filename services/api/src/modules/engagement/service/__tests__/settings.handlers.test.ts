@@ -75,7 +75,8 @@ const SETS: Record<string, Array<Record<string, unknown>>> = {
 
 interface Call { text: string; values: unknown[] }
 /** Fake Postgres for one request. `rows` = settings rows per tenant; the session tenant (RLS) is `session`. */
-function fakeDb(session: string, rows: Record<string, Record<string, any>> = {}, failUpdate?: Record<string, unknown>) {
+function fakeDb(session: string, rows: Record<string, Record<string, any>> = {}, failUpdate?: Record<string, unknown>,
+  tenantSets: Record<string, Record<string, Array<Record<string, unknown>>>> = {}) {
   const calls: Call[] = [];
   const tables: Record<string, Record<string, any>> = { ...rows };
   return {
@@ -96,7 +97,14 @@ function fakeDb(session: string, rows: Record<string, Record<string, any>> = {},
         }
         if (/engagement\.settings/i.test(text)) { const r = tables[session]; return { rows: r ? [r] : [], rowCount: r ? 1 : 0 }; }
         const m = /engagement\.g_cs_(\w+)/i.exec(text);
-        if (m && SETS[m[1]!]) { const r = SETS[m[1]!]!.map((x) => ({ ...x, is_active: true, tenant_id: null })); return { rows: r, rowCount: r.length }; }
+        if (m && SETS[m[1]!]) {
+          const glob = SETS[m[1]!]!.map((x) => ({ ...x, is_active: true, tenant_id: null }));
+          // tenant table `engagement.cs_<set>` (RLS: session tenant only) shadows the global row by code (02-CONVENTIONS §5.5); only if the SQL reads it
+          const own = new RegExp(`(?<!g_)\\bcs_${m[1]}\\b`, 'i').test(text) ? (tenantSets[session]?.[m[1]!] ?? []) : [];
+          const r = [...own, ...glob.filter((g) => !own.some((t) => t['code'] === g['code']))]
+            .sort((a, b) => (a['sort_order'] as number) - (b['sort_order'] as number) || String(a['code']).localeCompare(String(b['code'])));
+          return { rows: r, rowCount: r.length };
+        }
         throw new Error(`fake: unsupported SQL: ${text.slice(0, 80)}`);
       },
     },
@@ -424,6 +432,36 @@ describe('T3a listEngagementCodedSet / T3b listMyCodedSet', () => {
     expect(out.status).toBe(200);
     expect(out.body).toEqual({ data: SETS[set_name]!.map(({ code, display, sort_order }) => ({ code, display, sort_order })) });
     expect(id.asserted).toEqual([SELF_READ]);
+  });
+  describe('tenant additions / overrides shadow the global rows by code (05-SCHEMA §3 cs_*; 02-CONVENTIONS §5.5)', () => {
+    const tRow = (code: string, display: string, sort_order: number, is_active = true) => ({ code, display, sort_order, is_active, tenant_id: A });
+    const listA = (tenantSets: Record<string, Array<Record<string, unknown>>>, extra: Record<string, typeof tenantSets> = {}) => {
+      const db = fakeDb(A, { [A]: { ...STORED_A } }, undefined, { [A]: tenantSets, ...extra });
+      return { db, out: run('listEngagementCodedSet', req({ params: { set_name: 'booking_cancel_reasons' } }), hctx(db, identity([BOOKING_READ]))) };
+    };
+    it('(a) tenant row with a global code overrides display / sort_order', async () => {
+      const { out } = listA({ booking_cancel_reasons: [tRow('duplicate', 'Dup (tenant)', 0)] });
+      expect((await out).body).toEqual({ data: [{ code: 'duplicate', display: 'Dup (tenant)', sort_order: 0 }, { code: 'patient_request', display: 'Patient request', sort_order: 1 }] });
+    });
+    it('(b) tenant row is_active=false hides the global code', async () => {
+      const { out } = listA({ booking_cancel_reasons: [tRow('duplicate', 'Duplicate booking', 2, false)] });
+      expect((await out).body).toEqual({ data: [{ code: 'patient_request', display: 'Patient request', sort_order: 1 }] });
+    });
+    it('(c) tenant-only code appears, T3b too', async () => {
+      const { db, out } = listA({ booking_cancel_reasons: [tRow('moved_city', 'Moved city', 3)] });
+      expect(((await out).body.data as any[]).map((x) => x.code)).toEqual(['patient_request', 'duplicate', 'moved_city']);
+      const id = identity([SELF_READ]);
+      const mine = await run('listMyCodedSet', req({ params: { set_name: 'booking_cancel_reasons' } }), hctx(db, id, {}, 'A:patient'));
+      expect(mine.body.data.map((x: any) => x.code)).toEqual(['patient_request', 'duplicate', 'moved_city']);
+    });
+    it('(d) PROBE tenant: the coded-set query reads the tenant table, binds ctx.tenantId (A) and never B; B\'s additions do not leak', async () => {
+      const { db, out } = listA({}, { [B]: { booking_cancel_reasons: [{ ...tRow('b_only', 'B only', 1), tenant_id: B }] } });
+      expect(JSON.stringify((await out).body)).not.toContain('b_only');
+      const q = db.calls.at(-1)!;
+      expect(q.text).toMatch(/engagement\.cs_booking_cancel_reasons\b/);
+      expect(q.values).toContain(A);
+      expect(JSON.stringify(db.calls)).not.toContain(B);
+    });
   });
   it('T3b is NOT open to reminder_reasons (staff-only set) and unknown / injected set names: refused before any query', async () => {
     for (const set_name of ['reminder_reasons', 'nope', '', 'booking_cancel_reasons; DROP TABLE engagement.settings', '../settings', 'BOOKING_CANCEL_REASONS', undefined]) {

@@ -34,24 +34,27 @@ PatientTransport buildPatientTransport({
           if (!ownCredential && jwt != null) 'Authorization': 'Bearer $jwt',
         }, body: body);
 
+    // 426 -> A1 (no refresh, no retry, session kept); auth.session_expired -> wipe. Applies to the first try AND the retry.
+    Future<void> onFailure(LimsException e) async {
+      if (e.code == LimsErrorCodes.engagementAppVersionUnsupported) updateRequired.value = true;
+      if (e.code == LimsErrorCodes.authSessionExpired) await session.expire();
+    }
+
     final jwt = ownCredential ? null : await session.freshAccessToken();
     try {
       return await attempt(jwt);
     } on LimsException catch (e) {
-      switch (e.code) {
-        case LimsErrorCodes.engagementAppVersionUnsupported:
-          updateRequired.value = true; // 426: router shows A1; no refresh, no retry, session kept
-          rethrow;
-        case LimsErrorCodes.authSessionExpired:
-          await session.expire();
-          rethrow;
-        case LimsErrorCodes.authTokenExpired:
-          if (ownCredential || session.status.value != SessionStatus.signedIn) rethrow;
-          // Another call may have refreshed already; only hit resolve when the JWT we sent is still the current one.
-          if (session.accessToken == null || session.accessToken == jwt) await session.refresh(); // session_expired: wiped + thrown
-          return attempt(session.accessToken); // exactly one retry; a second failure is surfaced
-        default:
-          rethrow;
+      await onFailure(e);
+      if (e.code != LimsErrorCodes.authTokenExpired || ownCredential || session.status.value != SessionStatus.signedIn) {
+        rethrow;
+      }
+      // Another call may have refreshed already; only hit resolve when the JWT we sent is still the current one.
+      if (session.accessToken == null || session.accessToken == jwt) await session.refresh(); // session_expired: wiped + thrown
+      try {
+        return await attempt(session.accessToken); // exactly one retry; a second failure is surfaced
+      } on LimsException catch (e2) {
+        await onFailure(e2);
+        rethrow;
       }
     }
   };

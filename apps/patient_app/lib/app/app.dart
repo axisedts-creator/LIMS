@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:lims_ui/lims_ui.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../core/session/session_controller.dart';
 import 'app_lock_gate.dart';
 import 'providers.dart';
 import 'router.dart';
@@ -28,7 +29,11 @@ class _PatientAppState extends ConsumerState<PatientApp> {
       storeUrl: Uri.parse(ref.read(flavourProvider).storeUrl),
       openUrl: (u) => launchUrl(u, mode: LaunchMode.externalApplication),
     );
-    session.restore();
+    // REQ-SEC-110 / US-EN-02.4: the background clock is in memory only, so a process killed while backgrounded must not
+    // reopen onto PHI. Fail closed: a stored session at cold start starts locked. Runs before the router can rebuild.
+    session.restore().then((_) {
+      if (mounted && session.status.value == SessionStatus.signedIn) ref.read(backgroundTimerProvider).locked.value = true;
+    });
   }
 
   @override

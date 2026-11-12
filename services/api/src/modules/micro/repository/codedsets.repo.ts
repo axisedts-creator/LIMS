@@ -14,19 +14,15 @@ export type SetName = (typeof SET_NAMES)[number];
 export interface Extra {
   readonly name: string;
   readonly sql: 'text' | 'boolean';
-  /** Column of the DTO (MicroCodeDto); columns the DTO does not carry are write-only here. */
-  readonly dto: boolean;
-  /** Value stored when a NEW tenant row omits it and the column is NOT NULL. */
-  readonly dflt?: string | boolean;
 }
-const x = (name: string, sql: Extra['sql'], dto = true, dflt?: string | boolean): Extra => ({ name, sql, dto, ...(dflt === undefined ? {} : { dflt }) });
+const x = (name: string, sql: Extra['sql']): Extra => ({ name, sql });
 
 export const EXTRAS: Readonly<Record<Exclude<SetName, 'ast_interpretations'>, readonly Extra[]>> = {
   organisms: [x('organism_group_code', 'text'), x('gram_class', 'text'), x('is_alert', 'boolean'), x('snomed_ct_concept_id', 'text')],
   organism_groups: [], media: [], specimen_sites: [], isolate_withdraw_reasons: [], culture_cancel_reasons: [], record_ignore_reasons: [],
   antibiotics: [x('antibiotic_class', 'text')],
-  growth_codes: [x('indicates_growth', 'boolean', false, false)],
-  culture_outcomes: [x('result_flag', 'text', false, 'N'), x('requires_isolate', 'boolean', false, false)],
+  growth_codes: [x('indicates_growth', 'boolean')],
+  culture_outcomes: [x('result_flag', 'text'), x('requires_isolate', 'boolean')],
 };
 
 const VIEW: Readonly<Record<Exclude<SetName, 'ast_interpretations'>, string>> = {
@@ -36,7 +32,7 @@ const VIEW: Readonly<Record<Exclude<SetName, 'ast_interpretations'>, string>> = 
 };
 
 type Plain = Exclude<SetName, 'ast_interpretations'>;
-const dtoCols = (s: Plain): string => ['code', 'display', 'sort_order', 'is_active', 'source', ...EXTRAS[s].filter((e) => e.dto).map((e) => e.name)].join(', ');
+const dtoCols = (s: Plain): string => ['code', 'display', 'sort_order', 'is_active', 'source', ...EXTRAS[s].map((e) => e.name)].join(', ');
 
 /** Global + tenant rows of one set (tenant shadows global); `q` = case-insensitive code prefix. */
 export async function listCodes(tx: Q, a: { setName: SetName; includeInactive: boolean; q?: string | undefined }): Promise<Array<Record<string, any>>> {
@@ -71,7 +67,7 @@ export async function insertTenantCode(tx: Q, a: {
 }): Promise<Record<string, any> | undefined> {
   const ex = EXTRAS[a.setName];
   const cols = ['id', 'tenant_id', 'code', 'display', 'sort_order', 'is_active', ...ex.map((e) => e.name), 'created_by', 'updated_by'];
-  const vals = [a.id, a.tenantId, a.code, a.display, a.sortOrder, a.isActive, ...ex.map((e) => a.values[e.name] ?? e.dflt ?? null), a.userId, a.userId];
+  const vals = [a.id, a.tenantId, a.code, a.display, a.sortOrder, a.isActive, ...ex.map((e) => a.values[e.name] ?? null), a.userId, a.userId];
   const { rows } = await tx.query(
     `INSERT INTO micro.cs_${a.setName} (${cols.join(', ')}) VALUES (${cols.map((_, i) => `$${i + 1}`).join(', ')})
      ON CONFLICT (tenant_id, code) DO NOTHING RETURNING *`, vals);

@@ -106,6 +106,8 @@ const EXTRA_RULES: Readonly<Record<string, (v: unknown) => unknown>> = {
   requires_isolate: (v) => bool(v, '/requires_isolate'),
 };
 
+const INSERT_REQUIRED: readonly string[] = ['indicates_growth', 'result_flag', 'requires_isolate'];
+
 export async function upsertCode(ctx: ConfigCtx, input: { params: unknown; ifMatch: number | undefined; body: unknown }): Promise<{ body: Obj; version: number }> {
   const { tx, tenantId, userId } = scope(ctx);
   const p = isObj(input.params) ? input.params : {};
@@ -130,6 +132,8 @@ export async function upsertCode(ctx: ConfigCtx, input: { params: unknown; ifMat
     // Updating a tenant row (incl. the one that shadows a global code) is optimistic-locked; the global row is never written.
     row = await sets.updateTenantCode(tx, { tenantId, userId, expectedVersion: needVersion(input.ifMatch), setName: set, code: c, display, sortOrder, isActive, values });
   } else {
+    // 05-SCHEMA §8: these extras are NOT NULL with no DEFAULT, so a new tenant row must supply them (updates keep the stored value).
+    for (const e of extras) if (INSERT_REQUIRED.includes(e.name)) need(e.name);
     row = await sets.insertTenantCode(tx, { tenantId, userId, id: uuidv7(), setName: set, code: c, display, sortOrder, isActive, values });
   }
   if (!row) return conflict();

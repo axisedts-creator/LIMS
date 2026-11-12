@@ -7,7 +7,7 @@ const iso = (v: unknown): string => new Date(v as string | number | Date).toISOS
 export function codeDto(setName: SetName, row: Row): Record<string, unknown> {
   const out: Record<string, unknown> = { code: row['code'], display: row['display'], sort_order: row['sort_order'], is_active: row['is_active'], source: row['source'] };
   if (setName === 'ast_interpretations') out['standard'] = row['standard'];
-  else for (const e of EXTRAS[setName]) if (e.dto && row[e.name] !== null && row[e.name] !== undefined) out[e.name] = row[e.name];
+  else for (const e of EXTRAS[setName]) if (row[e.name] !== null && row[e.name] !== undefined) out[e.name] = row[e.name];
   return out;
 }
 

@@ -4,6 +4,9 @@
 // Produces one event, owns no port, bearerJwt-only (no authResolvers / claimsResolver).
 import type { Handler, ModuleManifest } from '../../core/module.js';
 import { LimsError } from '../../core/errors.js';
+import { handler as getHomecollectionSettings } from './handlers/getHomecollectionSettings.js';
+import { handler as listHomecollectionReasons } from './handlers/listHomecollectionReasons.js';
+import { handler as updateHomecollectionSettings } from './handlers/updateHomecollectionSettings.js';
 
 const OPERATION_IDS = [
   'listHomeVisits', 'getHomeVisit', 'assignHomeVisit', 'unassignHomeVisit', 'scheduleHomeVisit', 'cancelHomeVisit', 'createHomeRevisit',
@@ -20,7 +23,10 @@ const stub = (operationId: string): Handler => async () => {
   throw new LimsError('common.internal', `homecollection ${operationId} not implemented`);
 };
 
-const implemented: Partial<Record<HomecollectionOperationId, Handler>> = {};
+// HC-T04: H18-H20 are real handlers.
+const implemented: Partial<Record<HomecollectionOperationId, Handler>> = {
+  getHomecollectionSettings, updateHomecollectionSettings, listHomecollectionReasons,
+};
 
 const handlers = Object.freeze(
   Object.fromEntries(OPERATION_IDS.map((op) => [op, implemented[op] ?? stub(op)])) as Record<HomecollectionOperationId, Handler>,

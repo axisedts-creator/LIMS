@@ -5,4 +5,4 @@
 - [CONV] update*(tx,t,id,expectedVersion,patch): patch keys allow-listed (= DB mutable-column trigger lists where one exists), unknown/tenant_id/id keys throw HC_PATCH_COLUMN before SQL; bumps version/updated_at; null on stale version or other tenant.
 - shared.repo.ts is a helper (insertRow/getRowById/updateRow) named *.repo.ts like frontdesk's, so it also passes the static check; devices/syncBatches get-by-id are written out explicitly because static.test requires a literal `tenant_id = $1` in every repo file.
 - getVisitByOrderId returns the oldest visit of the order (revisit/recollection visits share order_id).
-- Ran: static.test 4/4 pass; tsc clean for repository/. NOT run: repositories.test (needs docker/PG17 via HC-T03-verify.cmd; docker command not approvable here). Expect small fixes on first DB run (e.g. lims_api grants on g_cs_reasons, P-1 stand-in DDL).
+- Ran (after ruling + revised tests, no impl change): tests/homecollection/HC-T03.pg.sh on PG17 -> 2 files, 186/186 pass. Open: P-1 stand-in DDL lacks C0 transition_guard triggers; cross-centre scoping untested (handler layer).

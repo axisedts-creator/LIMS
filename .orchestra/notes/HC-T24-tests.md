@@ -1,0 +1,8 @@
+# HC-T24 tests (tester)
+- apps/phlebo_app/__tests__/outbox_mutation_log_test.dart — B.2 schema/CHECKs, US-07-1 (7 mutations, seq 1..7, UUIDv7, anchor, elapsed), inv 1+2 (kill-app: 2nd connection sees row+seq; failed enqueue = no gap; 40 concurrent), canonical payload+sha256, PHI-key refusal.
+- .../outbox_batching_test.dart — inv 3 (PushRequest shape, ≤100, ≤512 KB, one batch in flight, body_json byte-for-byte across retries/restart, 422 key_reused re-form), responses, inv 4 purge (24 h, anchors), inv 5 canLogout.
+- .../clock_anchor_test.dart — anchor record/latest, monotonic-only elapsed (wall clock rewound, 8 h sleep), boot-id channel (reboot, 1..64).
+- .../outbox_ci_guards_test.dart — files exist, no UPDATE of immutable cols/batches/anchors, no print/Sentry, no DateTime.now/Stopwatch in platform/, android .kt uses elapsedRealtime + BOOT_COUNT, `.orchestra/notes/HC-T24-spike.md` records both UNVERIFIED/VERIFIED verdicts.
+- support/outbox_fixture.dart, support/sha256.dart (independent SHA-256 oracle).
+Run: .orchestra\notes\HC-T24-verify.cmd (NOT RUN: shell approval denied here; expected now = compile failure, lib/core/{platform,sync}, lib/features/outbox missing).
+ASSUMED API (names are mine, spec has only file names): headers of each test + fixture. Notable impositions: OutboxSchema.ensure, ClockAnchorStore, OutboxRepository.{enqueue,formBatch,outstandingBatch,recordAttempt,applyResponse,reformAfterKeyReused,purge,canLogout,integrityViolations}, MonotonicClock.nowMs, BootIdSource.read, PHI-key denylist enforced in enqueue. Real process-kill not tested (in-process 2nd connection instead).

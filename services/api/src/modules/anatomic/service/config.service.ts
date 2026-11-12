@@ -73,6 +73,13 @@ async function findAll(list: (tx: any, i: any) => Promise<Row[]>, c: Ctx, extra:
     if (hit || rows.length < MAX) return hit;
   }
 }
+/** repo INSERTs default is_active to true and take no is_active column; flip it after insert when the input asks for inactive */
+async function deactivate(c: Ctx, update: (tx: any, i: any) => Promise<Row | undefined>, row: Row, isActive: boolean): Promise<Row> {
+  if (isActive) return row;
+  const r = await update(c.tx, { tenantId: c.tenantId, id: row['id'], expectedVersion: ver(row), actorId: c.actor.id, patch: { is_active: false } });
+  if (!r) throw new LimsError('common.version_conflict');
+  return r;
+}
 const findStain = (c: Ctx, code: string) => findAll(cfg.listStains, c, {}, (r) => r['code'] === code);
 
 // ---- lazy defaults ----
@@ -198,7 +205,10 @@ export async function upsertTestProfile(hctx: unknown, params: unknown, headers:
   const cur = await findAll(cfg.listTestProfiles, c, {}, (r) => r['test_id'] === testId);
   if (version === 0) {
     if (cur) throw new LimsError('common.version_conflict');
-    try { return { status: 201, body: profileDto(await cfg.insertTestProfile(c.tx, { ...audit(c), test_id: testId, ...fields }), test.name) }; } catch (e) { throw dup(e) ? new LimsError('common.version_conflict') : e; }
+    let row: Row;
+    try { row = await cfg.insertTestProfile(c.tx, { ...audit(c), test_id: testId, ...fields }); } catch (e) { throw dup(e) ? new LimsError('common.version_conflict') : e; }
+    row = await deactivate(c, cfg.updateTestProfile, row, fields['is_active'] as boolean);
+    return { status: 201, body: profileDto(row, test.name) };
   }
   if (!cur) throw new LimsError('common.not_found');
   if (ver(cur) !== version) throw new LimsError('common.version_conflict');
@@ -259,6 +269,10 @@ function parseAssay(body: unknown): { code: string; display: string; method?: st
 }
 const targetFields = (t: TargetIn): Row => ({ display: t.display, allows_quantitative: t.allows_quantitative, unit_code: t.unit_code ?? null, decimals: t.decimals ?? null, sort_order: t.sort_order, is_active: t.is_active });
 const valueFields = (v: ValueIn): Row => ({ display: v.display, is_abnormal: v.is_abnormal, sort_order: v.sort_order, is_active: v.is_active });
+const insertTarget = async (c: Ctx, assayId: unknown, t: TargetIn): Promise<Row> =>
+  deactivate(c, cfg.updateAssayTarget, await cfg.insertAssayTarget(c.tx, { ...audit(c), assay_id: assayId, code: t.code, ...targetFields(t) }), t.is_active);
+const insertValue = async (c: Ctx, targetId: unknown, v: ValueIn): Promise<Row> =>
+  deactivate(c, cfg.updateAssayTargetValue, await cfg.insertAssayTargetValue(c.tx, { ...audit(c), target_id: targetId, code: v.code, ...valueFields(v) }), v.is_active);
 /** patch only when something differs, so untouched rows keep their version */
 const changed = (cur: Row, next: Row): Row | undefined => (Object.entries(next).some(([k, v]) => (cur[k] ?? null) !== v) ? next : undefined);
 
@@ -275,10 +289,10 @@ export async function createAssay(hctx: unknown, body: unknown): Promise<Result>
   const a = parseAssay(body);
   let row: Row;
   try { row = await cfg.insertAssay(c.tx, { ...audit(c), code: a.code, display: a.display, method_text_default: a.method ?? null }); } catch (e) { throw dup(e) ? bad('/code') : e; }
-  if (!a.is_active) row = (await cfg.updateAssay(c.tx, { tenantId: c.tenantId, id: row['id'], expectedVersion: ver(row), actorId: c.actor.id, patch: { is_active: false } })) ?? row;
+  row = await deactivate(c, cfg.updateAssay, row, a.is_active);
   for (const t of a.targets) {
-    const tr = await cfg.insertAssayTarget(c.tx, { ...audit(c), assay_id: row['id'], code: t.code, ...targetFields(t) });
-    for (const v of t.values) await cfg.insertAssayTargetValue(c.tx, { ...audit(c), target_id: tr['id'], code: v.code, ...valueFields(v) });
+    const tr = await insertTarget(c, row['id'], t);
+    for (const v of t.values) await insertValue(c, tr['id'], v);
   }
   return { status: 201, body: await assayDto(c, row, false) };
 }
@@ -308,14 +322,14 @@ export async function updateAssay(hctx: unknown, params: unknown, headers: unkno
   if (!updated) throw new LimsError('common.version_conflict');
   for (const { t, row, values } of plan) {
     let tr = row;
-    if (!tr) tr = await cfg.insertAssayTarget(c.tx, { ...audit(c), assay_id: cur['id'], code: t.code, ...targetFields(t) });
+    if (!tr) tr = await insertTarget(c, cur['id'], t);
     else {
       const patch = changed(tr, targetFields(t));
       if (patch && !(await cfg.updateAssayTarget(c.tx, { tenantId: c.tenantId, id: tr['id'], expectedVersion: ver(tr), actorId: c.actor.id, patch }))) throw new LimsError('common.version_conflict');
     }
     for (const v of t.values) {
       const vr = values.get(v.code);
-      if (!vr) await cfg.insertAssayTargetValue(c.tx, { ...audit(c), target_id: tr['id'], code: v.code, ...valueFields(v) });
+      if (!vr) await insertValue(c, tr['id'], v);
       else {
         const patch = changed(vr, valueFields(v));
         if (patch && !(await cfg.updateAssayTargetValue(c.tx, { tenantId: c.tenantId, id: vr['id'], expectedVersion: ver(vr), actorId: c.actor.id, patch }))) throw new LimsError('common.version_conflict');
@@ -368,10 +382,10 @@ export async function listCodedValues(hctx: unknown, params: unknown, query: unk
   const more = rows.length > limit;
   return { status: 200, body: { data: rows.slice(0, limit).map(codedDto), page: { limit, ...(more ? { next_cursor: encodeCursor(offset + limit) } : {}) } } };
 }
-async function findAllRows(list: (tx: any, i: any) => Promise<Row[]>, c: Ctx): Promise<Row[]> {
+async function findAllRows(list: (tx: any, i: any) => Promise<Row[]>, c: Ctx, extra: Row = {}): Promise<Row[]> {
   const out: Row[] = [];
   for (let offset = 0; ; offset += MAX) {
-    const rows = await list(c.tx, { tenantId: c.tenantId, limit: MAX, offset });
+    const rows = await list(c.tx, { tenantId: c.tenantId, limit: MAX, offset, ...extra });
     out.push(...rows);
     if (rows.length < MAX) return out;
   }
@@ -390,7 +404,9 @@ export async function upsertCodedValue(hctx: unknown, params: unknown, headers: 
   const cur = await findAll(r.list, c, {}, (x) => x['code'] === code);
   if (version === 0) {
     if (cur) throw new LimsError('common.version_conflict');
-    try { return { status: 201, body: codedDto(await r.insert(c.tx, { ...audit(c), code, ...fields })) }; } catch (e) { throw dup(e) ? new LimsError('common.version_conflict') : e; }
+    let row: Row;
+    try { row = await r.insert(c.tx, { ...audit(c), code, ...fields }); } catch (e) { throw dup(e) ? new LimsError('common.version_conflict') : e; }
+    return { status: 201, body: codedDto(await deactivate(c, r.update, row, fields['is_active'] as boolean)) };
   }
   if (!cur) throw new LimsError('common.not_found');
   if (ver(cur) !== version) throw new LimsError('common.version_conflict');
@@ -405,8 +421,9 @@ export async function listTextTemplates(hctx: unknown, query: unknown): Promise<
   const q = strict(query ?? {}, ['section', 'include_inactive']);
   const section = opt(q, 'section', (v, p) => oneOf(v, p, SECTIONS), '');
   const all = qflag(q['include_inactive'], '/include_inactive');
-  const rows = await tpl.listTextTemplates(c.tx, { tenantId: c.tenantId, activeOnly: !all, limit: MAX });
-  return { status: 200, body: { data: rows.filter((r) => !section || r['section'] === section).map(templateDto) } };
+  // 02-TRD §5.6 K20: up to 1000 templates; filter by section before the cap so no section loses rows
+  const rows = (await findAllRows(tpl.listTextTemplates, c, { activeOnly: !all })).filter((r) => !section || r['section'] === section);
+  return { status: 200, body: { data: rows.slice(0, 1000).map(templateDto) } };
 }
 export async function createTextTemplate(hctx: unknown, body: unknown): Promise<Result> {
   const c = await gate(hctx, 'anatomic.config.manage');

@@ -2,6 +2,7 @@
 // Every placeholder refuses with common.service_unavailable (503) until its task replaces it; never a 2xx (REQ-SEC-099).
 import { LimsError } from '../../../core/errors.js';
 import type { Handler } from '../../../core/module.js';
+import { settingsHandlers } from './settings.handlers.js';
 
 const notYet: Handler = async () => { throw new LimsError('common.service_unavailable'); };
 
@@ -25,6 +26,7 @@ const OPERATION_IDS = [
   'getEngagementSettings', 'updateEngagementSettings', 'listEngagementCodedSet',
 ] as const;
 
-export const handlers: Readonly<Record<(typeof OPERATION_IDS)[number], Handler>> = Object.freeze(
-  Object.fromEntries(OPERATION_IDS.map((op) => [op, notYet])) as Record<(typeof OPERATION_IDS)[number], Handler>,
-);
+export const handlers: Readonly<Record<(typeof OPERATION_IDS)[number], Handler>> = Object.freeze({
+  ...(Object.fromEntries(OPERATION_IDS.map((op) => [op, notYet])) as Record<(typeof OPERATION_IDS)[number], Handler>),
+  ...settingsHandlers, // T-03: T1, T2, T3a, T3b
+});

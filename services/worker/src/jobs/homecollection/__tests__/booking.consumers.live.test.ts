@@ -364,7 +364,11 @@ describe('HC-T05 engagement.booking.cancelled.v1 -> visit (US-10)', () => {
     const v = (await visitsOf(w.tenant, bookingId))[0];
     expect(v).toMatchObject({ status: 'cancelled', status_reason_code: 'booking_cancelled', status_reason_text: 'patient_request', order_id: w.order.id,
       route_id: route.id, route_sequence: 1 });
-    expect(String(v.route_date).slice(0, 10)).toBe(String(visit.route_date).slice(0, 10));
+    // pg parses DATE as local midnight: compare local y-m-d, not toISOString (ruling HC-T05-ruling.md)
+    const ymd = (d: unknown) => d instanceof Date
+      ? `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+      : String(d).slice(0, 10);
+    expect(ymd(v.route_date)).toBe(ymd(visit.route_date));
     const fl = await flagsOf(w.tenant, visit.id, 'order_cancel_required');
     expect(fl).toHaveLength(1);
     expect(fl[0]).toMatchObject({ status: 'open', centre_id: HC_CENTRE[w.s] });

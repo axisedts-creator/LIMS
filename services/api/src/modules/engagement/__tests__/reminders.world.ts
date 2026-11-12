@@ -95,8 +95,12 @@ export function makeWorld(opts: { remindersEnabled?: boolean } = {}) {
           const lim = /limit\s+(\d+)/i.exec(sql)?.[1] ? Number(/limit\s+(\d+)/i.exec(sql)![1]) : (values.find((v) => v === 500) as number | undefined) ?? 1e9;
           return ok(mine().filter((r) => r['status'] === 'scheduled' && Date.parse(r['due_at']) <= cutoff).sort((a, b) => Date.parse(a['due_at']) - Date.parse(b['due_at']) || (a['id'] < b['id'] ? -1 : 1)).slice(0, lim).map((r) => ({ ...r })));
         }
-        const byId = values.filter((v) => typeof v === 'string' && /^[0-9a-f-]{36}$/i.test(v));
-        let rows = mine(); if (byId.length) rows = rows.filter((r) => byId.includes(r['id']) || byId.includes(r['patient_id']));
+        // Only `id = $n` / `patient_id = $n` refs are id filters: the tenant bind and the keyset-cursor id are NOT (REQ-SEC-024: repos bind tenant_id explicitly).
+        const colEq = (col: string) => [...sql.matchAll(new RegExp(`(?<![\\w.])${col}\\s*=\\s*\\$(\\d+)`, 'gi'))].map((m) => values[Number(m[1]) - 1]);
+        const ids = colEq('id'), pids = colEq('patient_id');
+        let rows = mine(); if (ids.length) rows = rows.filter((r) => ids.includes(r['id'])); if (pids.length) rows = rows.filter((r) => pids.includes(r['patient_id']));
+        const cur = /\(due_at,\s*id\)\s*>\s*\(\s*\$(\d+)(?:::\w+)?\s*,\s*\$(\d+)/i.exec(sql);
+        if (cur) { const d = Date.parse(values[Number(cur[1]) - 1] as string), cid = values[Number(cur[2]) - 1] as string; rows = rows.filter((r) => Date.parse(r['due_at']) > d || (Date.parse(r['due_at']) === d && r['id'] > cid)); }
         const st = values.find((v) => typeof v === 'string' && ['scheduled', 'sent', 'suppressed', 'failed', 'cancelled'].includes(v)); if (st) rows = rows.filter((r) => r['status'] === st);
         return ok(rows.map((r) => ({ ...r })));
       }

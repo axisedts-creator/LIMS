@@ -186,6 +186,24 @@ describe('replay / retry: same delivery, never a second SMS', () => {
     expect(w.get(r['id'])['status']).toBe('scheduled'); expect(w.t['notifications']).toEqual([]);
     await run(r['id']); expect(w.get(r['id'])['status']).toBe('sent');                                  // next retry succeeds
   });
+  // 03-APP-FLOW reminder states: scheduled -> failed (port error after retries). Without it the row stays scheduled and the */5 dispatcher re-enqueues rem:<id> forever.
+  it('port error on the LAST attempt (8/8): no throw, reminder failed with failure_code set (LimsError code, else common.internal); earlier attempts (7/8) still throw and stay scheduled', async () => {
+    const { w, run } = await setup(); const r = w.reminder();
+    w.notif.failNext = new Error('provider down'); await expect(run(r['id'], { attempt: 7, maxAttempts: 8 })).rejects.toThrow();
+    expect(w.get(r['id'])['status']).toBe('scheduled');
+    w.notif.failNext = new Error('provider down'); await expect(run(r['id'], { attempt: 8, maxAttempts: 8 })).resolves.toBeUndefined();
+    expect(w.get(r['id'])).toMatchObject({ status: 'failed', sent_at: null, failure_code: 'common.internal' });
+    const r2 = w.reminder(); w.notif.failNext = Object.assign(new Error('x'), { code: 'reporting.notification_template_unknown' });
+    await expect(run(r2['id'], { attempt: 8, maxAttempts: 8 })).resolves.toBeUndefined();
+    expect(w.get(r2['id'])['status']).toBe('failed'); expect(String(w.get(r2['id'])['failure_code'])).toMatch(/^[a-z_.]{1,64}$/);
+  });
+  it('after failed the dispatcher never re-enqueues it and a duplicate send_reminder job is a no-op (no second port call)', async () => {
+    const { w, run, cron } = await setup(); const r = w.reminder();
+    w.notif.failNext = new Error('provider down'); await run(r['id'], { attempt: 8, maxAttempts: 8 });
+    const jobsBefore = w.jobs('engagement.send_reminder').length; const calls = w.notif.calls.length;
+    w.advance(5 * 60_000); await cron(); await cron(); await run(r['id']);
+    expect(w.jobs('engagement.send_reminder')).toHaveLength(jobsBefore); expect(w.notif.calls).toHaveLength(calls); expect(w.get(r['id'])['status']).toBe('failed');
+  });
 });
 
 describe('isolation + hostile payloads', () => {

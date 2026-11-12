@@ -71,7 +71,7 @@ const DEFS = {
   lims_smartreport_drafts_oldest_age_seconds: ['gauge', ['tenant_id'], 'Age of the oldest pending smart-report draft in seconds (0 when none)'],
   lims_smartreport_llm_circuit_open: ['gauge', [], 'Smart-report LLM circuit breaker open (1) or closed (0)'],
   lims_smartreport_llm_endpoint_refused_total: ['counter', [], 'Smart-report LLM endpoint refusals'],
-  // C15 payments (PG-T20; 02-TRD §11 incl. the 08 A22.4 backing gauges; names, types, labels verbatim)
+  // C15 payments (PG-T20; LD-127 2026-11-12; 02-TRD §11 incl. the 08 A22.4 backing gauges; names, types, labels verbatim)
   lims_payments_intents_created_total: ['counter', ['gateway'], 'Payment intents created by gateway'],
   lims_payments_intents_transitions_total: ['counter', ['gateway', 'to_status'], 'Payment intent transitions by gateway and target status'],
   lims_payments_intents_held_total: ['counter', ['gateway', 'reason'], 'Payment intents held for review by gateway and reason'],

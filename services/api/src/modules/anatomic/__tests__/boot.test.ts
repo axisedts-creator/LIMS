@@ -225,7 +225,7 @@ describe('C11-T01 boot against the real repo (default modulesDir, real anatomic.
       for (const [method, op] of Object.entries<any>(item)) {
         if (!op?.operationId) continue;
         const requiredQuery = (op.parameters ?? []).some((p: any) => p.in === 'query' && p.required);
-        const requiredHeader = (op.parameters ?? []).some((p: any) => (p.in === 'header' && p.required) || /\/IfMatch$/.test(p.$ref ?? '')); // $ref'd If-Match is unresolved in raw spec
+        const requiredHeader = (op.parameters ?? []).some((p: any) => (p.in === 'header' && p.required) || /\/(IfMatch|IdempotencyKey)$/.test(p.$ref ?? '')); // $ref'd If-Match/Idempotency-Key are unresolved in raw spec (ruling C11.T-01-ruling)
         if (!requiredQuery && !requiredHeader && !op.requestBody?.required) {
           // path params with an enum or integer type must carry a valid value, else validation (400) precedes auth (ruling C11.T-01-ruling)
           const url = path.replace(/\{([^}]+)\}/g, (_m, name) => {

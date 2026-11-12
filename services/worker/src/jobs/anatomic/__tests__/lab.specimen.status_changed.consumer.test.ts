@@ -4,7 +4,7 @@
 // SEAMS: services/worker/src/jobs/anatomic/consumers/lab.specimen.status_changed.v1.ts exports `handle: ConsumerHandler` (same shape as jobs/reporting/consumers/*.ts) and calls
 //        onSpecimenStatusChanged(ctx, event) of services/api/src/modules/anatomic/service/intake.service.ts exactly once per delivery, with the validated envelope.
 // Fails now: neither the consumer file nor intake.service.ts exists.
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { EVENT_ID, OCCURRED_AT, TENANT_A, evtId, rejects, setup } from '../../../core/__tests__/helpers.js';
 
 vi.mock('../../../../../api/src/modules/anatomic/service/intake.service.js', () => ({ onSpecimenStatusChanged: vi.fn(async () => undefined) }));
@@ -29,6 +29,8 @@ async function anatomicSetup(env: any = envelope()) {
   return s;
 }
 beforeEach(() => { intake.onSpecimenStatusChanged.mockReset(); intake.onSpecimenStatusChanged.mockResolvedValue(undefined); });
+// pay the lazy worker-graph transform (setup() imports tasklist) outside a test's 5s budget
+beforeAll(async () => { await import('../../../core/tasklist.js'); }, 60_000);
 
 describe('lab.specimen.status_changed.v1 consumer (03-IC §3.7)', () => {
   it('registers as evt.anatomic.lab.specimen.status_changed.v1 and delegates the §3.7 example once, with the verified tenant context and aggregate.seq', async () => {

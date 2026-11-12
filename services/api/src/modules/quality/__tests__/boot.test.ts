@@ -16,7 +16,6 @@ import { afterAll, afterEach, describe, expect, it, vi } from 'vitest';
 import { PERMISSION_CODES } from '../../../../../../contracts/ports/generated/permissions.js';
 import { bootstrap } from '../../../core/bootstrap.js';
 import { loadConfig } from '../../../core/config.js';
-import { toProblem } from '../../../core/errors.js';
 import { eventProducers, loadSpec, operationIds, REPO_ROOT, validateManifest } from '../../../core/module.js';
 import { AUD, ISS, makeKeys, tmpFile } from '../../../core/auth/__tests__/helpers.js';
 import { loadQualityConfig } from '../config.js';
@@ -55,8 +54,8 @@ const withEnv = async (coreEnv: string, enabled: string | undefined) => {
   vi.stubEnv('LIMS_QUALITY_ENABLED', enabled as string); // undefined => unset
   if (enabled === undefined) delete process.env['LIMS_QUALITY_ENABLED'];
   const m = (await import('../index.js')).manifest;
-  const { isLimsError } = await import('../../../core/errors.js');
-  return { m, isLimsError };
+  const { isLimsError, toProblem } = await import('../../../core/errors.js'); // same module instance the handlers throw from (instanceof)
+  return { m, isLimsError, toProblem };
 };
 const outcome = (p: Promise<unknown> | unknown) =>
   Promise.resolve(p).then((v) => ({ ok: true as const, v }), (e: unknown) => ({ ok: false as const, e }));
@@ -133,7 +132,7 @@ describe('C9 T-01 phase switch LIMS_QUALITY_ENABLED (02-TRD §12.2)', () => {
   it.each([['dev', undefined], ['dev', 'false'], ['ci', undefined], ['staging', 'false'], ['production', undefined], ['production', 'false']] as const)(
     'LIMS_CORE_ENV=%s LIMS_QUALITY_ENABLED=%s: every one of the 54 operations rejects common.feature_disabled (HTTP 403), never 501/200',
     async (coreEnv, enabled) => {
-      const { m, isLimsError } = await withEnv(coreEnv, enabled);
+      const { m, isLimsError, toProblem } = await withEnv(coreEnv, enabled);
       for (const op of OPS) {
         const out = await outcome(m.handlers[op]!(plantedReq, fakeCtx(op)));
         expect(out.ok, `${op} resolved: ${JSON.stringify(out)}`).toBe(false);
@@ -258,7 +257,10 @@ describe('C9 T-01 boot against the real repo (default modulesDir, real quality.y
     apps.push(app);
     return app;
   };
-  const toUrl = (path: string) => path.replace(/\{[^}]+\}/g, '01a1a98a-ac40-7000-8000-000000090001');
+  // set_name is an enum path param (quality.yaml components.parameters.SetName) and {code} a Code: core validates these before auth, so use valid values.
+  const SET_NAME = (SPEC.components.parameters.SetName.schema.enum as string[])[0]!;
+  const toUrl = (path: string) => path.replace(/\{([^}]+)\}/g, (_m, name: string) =>
+    name === 'set_name' ? SET_NAME : name === 'code' ? 'CODE-1' : '01a1a98a-ac40-7000-8000-000000090001');
 
   it('boots and mounts every quality operation at its spec path and method (54 of 54)', async () => {
     const app = await boot();

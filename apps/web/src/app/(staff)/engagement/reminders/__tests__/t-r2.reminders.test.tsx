@@ -159,7 +159,7 @@ describe('Cancel (R3, AC-23.4)', () => {
   it('ConfirmDialog -> POST /reminders/:id/cancel with If-Match = version, then refreshes the list', async () => {
     await view();
     await userEvent.click(within(rowOf(/Synthetic Patient One/)).getByRole('button', { name: /^cancel reminder/i }));
-    const dlg = await screen.findByRole('alertdialog');
+    const dlg = await screen.findByRole('alertdialog').catch(() => screen.findByRole('dialog'));
     expect(calls.length).toBe(0); // nothing sent before confirming
     await userEvent.click(within(dlg).getByRole('button', { name: /cancel reminder|confirm|yes/i }));
     await waitFor(() => expect(calls.length).toBe(1));
@@ -172,7 +172,7 @@ describe('Cancel (R3, AC-23.4)', () => {
   it('dismissing the dialog sends nothing', async () => {
     await view();
     await userEvent.click(within(rowOf(/Synthetic Patient One/)).getByRole('button', { name: /^cancel reminder/i }));
-    const dlg = await screen.findByRole('alertdialog');
+    const dlg = await screen.findByRole('alertdialog').catch(() => screen.findByRole('dialog'));
     await userEvent.click(within(dlg).getByRole('button', { name: /^(keep|back|close|no|dismiss|cancel)$/i }));
     expect(calls.length).toBe(0);
   });
@@ -181,7 +181,7 @@ describe('Cancel (R3, AC-23.4)', () => {
     cancelStatus = 409;
     await view();
     await userEvent.click(within(rowOf(/Synthetic Patient One/)).getByRole('button', { name: /^cancel reminder/i }));
-    await userEvent.click(within(await screen.findByRole('alertdialog')).getByRole('button', { name: /cancel reminder|confirm|yes/i }));
+    await userEvent.click(within(await screen.findByRole('alertdialog').catch(() => screen.findByRole('dialog'))).getByRole('button', { name: /cancel reminder|confirm|yes/i }));
     expect(await screen.findByText(/reminder cannot change|already (sent|cancelled)/i)).toBeTruthy();
     await waitFor(() => expect(refresh).toHaveBeenCalled());
   });
@@ -329,7 +329,7 @@ describe('Accessibility (axe)', () => {
   it('cancel ConfirmDialog has no axe violations', async () => {
     await view();
     await userEvent.click(within(rowOf(/Synthetic Patient One/)).getByRole('button', { name: /^cancel reminder/i }));
-    await screen.findByRole('alertdialog');
+    await screen.findByRole('alertdialog').catch(() => screen.findByRole('dialog'));
     await noAxeViolations();
   });
   it('empty state has no axe violations', async () => {

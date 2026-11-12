@@ -24,7 +24,7 @@ const tok = (n: number, status: string, over: Row = {}): Row => ({
   serving_started_at: null, completed_at: null, transferred_to_token_id: null, transferred_from_token_id: null, version: 3, created_at: '2026-11-05T04:00:00.000Z', created_by: SYSTEM,
   updated_at: '2026-11-05T04:00:00.000Z', updated_by: SYSTEM, ...over });
 
-function setup(nowIso: string, tenantId: string | undefined = TA) {
+function setup(nowIso: string, tenantId?: string | null) {
   const clock = { iso: nowIso };
   const tokens: Row[] = [
     tok(1, 'waiting'), tok(2, 'called', { call_count: 1 }), tok(3, 'serving', { call_count: 1 }),                       // open -> expired
@@ -39,7 +39,7 @@ function setup(nowIso: string, tenantId: string | undefined = TA) {
   }, queueSchemaDefs(clock), clock);
   const s = db.session(TA, { all: true, centres: [] }, SYSTEM);
   const ctx: any = {
-    tenantId, tx: s.tx, actor: { type: 'system', id: SYSTEM }, requestId: 'r', attempt: 1, maxAttempts: 3, jobId: '1',
+    tenantId: tenantId === null ? undefined : (tenantId ?? TA), tx: s.tx, actor: { type: 'system', id: SYSTEM }, requestId: 'r', attempt: 1, maxAttempts: 3, jobId: '1',
     now: () => clock.iso, isNewer: () => true, events: {}, core: {}, storage: {}, files: {}, audit: {},
     log: { info() {}, warn() {}, error() {}, debug() {}, child() { return this; } }, metrics: { inc() {}, set() {}, observe() {} },
   };
@@ -109,7 +109,7 @@ describe('tenant guard (REQ-SEC-024): the job acts only on the tenant it was enq
   for (const [name, payload, tenantId] of [
     ['payload without tenant_id', {}, TA],
     ['payload tenant_id of another tenant', { tenant_id: TB }, TA],
-    ['payload tenant_id but ctx without tenant', { tenant_id: TA }, undefined],
+    ['payload tenant_id but ctx without tenant', { tenant_id: TA }, null],
     ['payload tenant_id that is not a uuid', { tenant_id: "x' OR '1'='1" }, TA],
   ] as const) {
     it(`${name}: no statement runs and the task resolves`, async () => {

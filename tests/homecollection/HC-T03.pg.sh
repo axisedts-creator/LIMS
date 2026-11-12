@@ -5,7 +5,7 @@
 # from the normative blocks of spec/chunks/C17-home-collection/05-SCHEMA.md §4 and §4.1 (extracted verbatim; no hand copy). Once P-1 lands this step is a no-op.
 # If both URLs are already exported, no container is started (point them at any migrated + seeded PG17 that has the homecollection tables).
 set -euo pipefail
-SUITE="src/modules/homecollection/repository/__tests__"
+SUITE="${HC_SUITE:-src/modules/homecollection/repository/__tests__}"   # HC_SUITE: later tasks (HC-T04) reuse this bootstrap for their own folder
 run_vitest() { pnpm --dir services/api exec vitest run "$SUITE"; }
 if [ -n "${LIMS_TEST_APP_URL:-}" ] && [ -n "${LIMS_TEST_SUPER_URL:-}" ]; then run_vitest; exit $?; fi
 

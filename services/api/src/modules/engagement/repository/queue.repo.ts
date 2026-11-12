@@ -11,7 +11,7 @@ const KINDS = {
   queue: {
     list: `SELECT id, centre_id, code, display_name, token_prefix, sort_order, is_active, version FROM engagement.queue_definitions
            WHERE tenant_id = $1 AND ($2::uuid IS NULL OR centre_id = $2::uuid) AND ($3::boolean IS NULL OR is_active = $3::boolean)
-           ORDER BY sort_order, display_name, id LIMIT 500`,
+           ORDER BY sort_order, display_name, id LIMIT 200` /* contract maxItems 200 */,
     get: 'SELECT id, centre_id, code, display_name, token_prefix, sort_order, is_active, version FROM engagement.queue_definitions WHERE tenant_id = $1 AND id = $2',
     insert: `INSERT INTO engagement.queue_definitions (id, tenant_id, centre_id, code, display_name, token_prefix, sort_order, is_active, created_by, updated_by)
              VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $9)
@@ -25,7 +25,7 @@ const KINDS = {
   counter: {
     list: `SELECT id, centre_id, display_name, sort_order, is_active, version FROM engagement.queue_counters
            WHERE tenant_id = $1 AND ($2::uuid IS NULL OR centre_id = $2::uuid) AND ($3::boolean IS NULL OR is_active = $3::boolean)
-           ORDER BY sort_order, display_name, id LIMIT 500`,
+           ORDER BY sort_order, display_name, id LIMIT 200` /* contract maxItems 200 */,
     get: 'SELECT id, centre_id, display_name, sort_order, is_active, version FROM engagement.queue_counters WHERE tenant_id = $1 AND id = $2',
     insert: `INSERT INTO engagement.queue_counters (id, tenant_id, centre_id, display_name, sort_order, is_active, created_by, updated_by)
              VALUES ($1, $2, $3, $4, $5, $6, $7, $7)

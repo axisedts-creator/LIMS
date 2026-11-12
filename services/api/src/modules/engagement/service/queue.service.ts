@@ -86,11 +86,14 @@ function toBody(kind: QueueKind, row: Record<string, any>): Record<string, unkno
 }
 
 /** Unique-key violation (23505) -> 400 on the key field; anything else unexpected fails closed without SQL text. */
-function mapDbError(kind: QueueKind, e: unknown): never {
+function mapDbError(kind: QueueKind, e: unknown, op: 'create' | 'update'): never {
   if (e instanceof LimsError) throw e;
   const code = (e as { code?: unknown } | null)?.code;
-  if (code === '23505') return invalid(DUP_PATH[kind], 'common.field_duplicate', 'Already exists in this centre');
-  if (code === '42501' || code === '23503') throw new LimsError('common.not_found'); // RLS WITH CHECK / FK: target not visible to this actor
+  if (code === '23505') return invalid(DUP_PATH[kind], 'common.field_invalid', 'Already exists in this centre');
+  if (code === '42501' || code === '23503') { // RLS WITH CHECK / FK: target not visible to this actor
+    if (op === 'create') return invalid('/centre_id', 'common.field_invalid', 'Centre not found'); // create declares no 404
+    throw new LimsError('common.not_found');
+  }
   throw new LimsError('common.internal');
 }
 
@@ -116,7 +119,7 @@ export function createQueueService(deps: { repo?: QueueRepo } = {}) {
         const row = await repo.insertRow(tx, kind, { tenantId, userId, centreId: values['centre_id'], values });
         if (!row) throw new LimsError('common.internal');
         return toBody(kind, row);
-      } catch (e) { return mapDbError(kind, e); }
+      } catch (e) { return mapDbError(kind, e, 'create'); }
     },
 
     /** Order: If-Match shape (428/400) -> body shape (400) -> row lookup (404, scope-hidden rows included) -> `authorizeRow(centre)` -> version (409) -> UPDATE. */
@@ -129,12 +132,12 @@ export function createQueueService(deps: { repo?: QueueRepo } = {}) {
         const current = await repo.getRow(tx, kind, { tenantId, id: input.id });
         if (!current) throw new LimsError('common.not_found');
         await input.authorizeRow(current['centre_id']);
-        if (values['centre_id'] !== current['centre_id']) return invalid('/centre_id', 'common.field_immutable', 'Centre cannot be changed'); // a row never moves between centres
+        if (values['centre_id'] !== current['centre_id']) return invalid('/centre_id', 'common.field_invalid', 'Centre cannot be changed'); // a row never moves between centres
         if (current['version'] !== expectedVersion) throw new LimsError('common.version_conflict');
         const row = await repo.updateRow(tx, kind, { tenantId, userId, id: input.id, expectedVersion, values });
         if (!row) throw new LimsError('common.version_conflict'); // lost a race between the read and the write
         return toBody(kind, row);
-      } catch (e) { return mapDbError(kind, e); }
+      } catch (e) { return mapDbError(kind, e, 'update'); }
     },
   };
 }

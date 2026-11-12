@@ -1,6 +1,5 @@
 // T-A1 — US-EN-02.4 (REQ-SEC-110): app lock after > 300 s in background, fake clock; no device lock -> OTP re-login.
 import 'package:flutter/material.dart';
-import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:patient_app/app/app_lock_gate.dart';
 import 'package:patient_app/core/lifecycle/background_timer.dart';

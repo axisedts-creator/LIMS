@@ -1,6 +1,5 @@
 // T-A1 review item 2 — REQ-SEC-110 / US-EN-02.4: the background clock is in memory only, so a process killed while
 // backgrounded must come back LOCKED when a session token is stored (fail closed on cold start). Synthetic data only.
-import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:patient_app/app/app.dart';

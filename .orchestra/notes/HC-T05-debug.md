@@ -6,3 +6,7 @@
 ## Round 2
 - Cause unchanged: verify.log still only the docker pipe error; `docker info` re-checked, daemon still unreachable. No test output exists, so no code root cause to fix.
 - Fix: none; impl/tests untouched, no dispute. Blocked on Docker Desktop running; rerun HC-T05-verify.cmd after.
+
+## Round 3
+- Cause unchanged: docker client OK but daemon pipe (`dockerDesktopLinuxEngine`) still missing; no test output exists, so no code root cause.
+- Fix: none; impl/tests untouched, no dispute. Blocked on Docker Desktop running; then rerun HC-T05-verify.cmd.

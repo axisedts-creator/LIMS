@@ -24,7 +24,10 @@ const SPEC = loadSpec(join(REPO_ROOT, 'contracts', 'openapi', 'micro.yaml'));
 const OPS = operationIds(SPEC);
 const PERMS = ['micro.breakpoint.manage', 'micro.config.manage', 'micro.culture.read', 'micro.culture.work'];
 /** operationIds whose stub a later task has replaced; that task moves its ids here (tester-owned list). */
-const IMPLEMENTED: readonly string[] = [];
+const IMPLEMENTED: readonly string[] = [
+  // T-05: M23–M28, M39, M40
+  'listMicroCodedSet', 'upsertMicroCode', 'listPlatingProtocols', 'createPlatingProtocol', 'versionPlatingProtocol', 'deactivatePlatingProtocol', 'getMicroSettings', 'updateMicroSettings',
+];
 
 const FAKE_REQ = { params: {}, query: {}, headers: {}, body: {} };
 const noop = () => undefined;

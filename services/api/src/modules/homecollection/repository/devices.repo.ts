@@ -9,6 +9,9 @@ const UPDATE_COLS = ['os_version', 'app_version', 'model', 'status', 'last_seen_
   'max_device_seq_received', 'wipe_requested_at', 'wipe_requested_by', 'wipe_reason_code', 'wipe_reason_text', 'wiped_at', 'signed_off_at', 'is_active', 'updated_by'] as const;
 
 export const insertDevice = (tx: Tx, tenantId: string, row: Record<string, unknown>) => insertRow(tx, T, INSERT_COLS, tenantId, row);
+/** Register race (HC-T10): null when the id already exists (any tenant) — the caller re-reads inside its own tenant. No unique-violation leaves the tx aborted. */
+export const insertDeviceIfAbsent = (tx: Tx, tenantId: string, row: Record<string, unknown>) =>
+  insertRow(tx, T, INSERT_COLS, tenantId, row, { doNothingOnConflict: 'id' });
 export async function getDeviceById(tx: Tx, tenantId: string, deviceId: string): Promise<any | null> {
   const { rows } = await tx.query('SELECT * FROM homecollection.devices WHERE tenant_id = $1 AND id = $2', [tenantId, deviceId]);
   return rows[0] ?? null;

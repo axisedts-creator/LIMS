@@ -12,6 +12,7 @@ const isoInvalid = (): never => { throw new LimsError('micro.isolate_invalid_tra
 
 /** I1: isolates exist only once plates exist and the culture is not closed. */
 export function initialIsolateStatus(i: { cultureStatus: string; organismId?: string | null }): 'identified' | 'pending_id' {
+  if (i.cultureStatus === 'final_submitted') throw new LimsError('micro.report_final_locked');
   if (!['incubating', 'growth_detected', 'amending'].includes(i.cultureStatus)) throw new LimsError('micro.culture_invalid_transition');
   return i.organismId ? 'identified' : 'pending_id';
 }

@@ -54,8 +54,7 @@ const BAD: [Method, string][] = [
   ['mic', '1234567'], // > 6 integer digits
   ['mic', '0.1234567'], // > 6 fraction digits
   ['mic', '8/1234567'],
-  ['mic', '≤'], ['mic', '<= '], ['mic', '０.５'] /* fullwidth digits are not [0-9] */, ['mic', '1
-2'],
+  ['mic', '≤'], ['mic', '<= '], ['mic', '０.５'] /* fullwidth digits are not [0-9] */, ['mic', '1\n2'],
   ['zone_diameter', ''], ['zone_diameter', 'abc'], ['zone_diameter', '100.01'], ['zone_diameter', '101'],
   ['zone_diameter', '1000'], ['zone_diameter', '18.123'], ['zone_diameter', '8/4'], ['zone_diameter', '-5'],
   ['zone_diameter', '18mm'],

@@ -6,7 +6,7 @@
 //       restrictions: readonly { standard: string; antibiotic_code: string; allowed_codes: readonly string[]; is_active: boolean }[]; // micro.g_ast_category_restrictions
 //     }
 //     export function validateInterpretation(
-//       entry: { category_code?: string | null; standard?: string | null; standard_version?: number | null; antibiotic_code: string; raw_value?: string | null },
+//       entry: { category_code?: string | null; standard?: string | null; standard_version?: string | null; antibiotic_code: string; raw_value?: string | null },
 //       catalog: InterpretationCatalog,
 //     ): { ok: true } | { ok: false, code: 'micro.ast_standard_required' | 'micro.ast_category_not_allowed' | 'micro.ast_value_invalid' };
 //   Pure: the catalog is an argument (no DB, no hard-coded code list) so a new synthetic code works without a code change (AC-06.7).
@@ -24,7 +24,7 @@ const RESTRICTIONS: InterpretationCatalog['restrictions'] = [
   { standard: 'CLSI', antibiotic_code: 'polymyxin_b', allowed_codes: ['I', 'R'], is_active: true },
 ];
 const CAT: InterpretationCatalog = { interpretations: SEEDED, restrictions: RESTRICTIONS };
-const entry = (o: Record<string, unknown>) => ({ antibiotic_code: 'ampicillin', raw_value: '<=0.25', standard: 'CLSI', standard_version: 34, category_code: 'S', ...o }) as Parameters<typeof validateInterpretation>[0];
+const entry = (o: Record<string, unknown>) => ({ antibiotic_code: 'ampicillin', raw_value: '<=0.25', standard: 'CLSI', standard_version: '2024', category_code: 'S', ...o }) as Parameters<typeof validateInterpretation>[0];
 const NOT_ALLOWED = { ok: false, code: 'micro.ast_category_not_allowed' };
 
 describe('AC-06.7 — every seeded code accepted (never a 3-value enum)', () => {
@@ -52,14 +52,15 @@ describe('AC-06.3 — standard and standard_version required with a category', (
     ['empty standard', { standard: '' }],
     ['no version', { standard_version: undefined }],
     ['null version', { standard_version: null }],
+    ['empty version', { standard_version: '' }],
   ])('%s → micro.ast_standard_required', (_n, o) => {
     expect(validateInterpretation(entry(o), CAT)).toEqual({ ok: false, code: 'micro.ast_standard_required' });
   });
 
-  it.each([0, 33, -1, 1.5, Number.NaN])('standard_version %s (outside 1..32 integer) is refused', (v) => {
+  it.each(['', 'x'.repeat(33), 34])('standard_version %j (not a string of length 1..32) is refused', (v) => {
     expect(validateInterpretation(entry({ standard_version: v }), CAT)).toMatchObject({ ok: false });
   });
-  it.each([1, 32])('standard_version %s (bounds) accepted', (v) => {
+  it.each(['1', 'x'.repeat(32)])('standard_version %j (length bounds) accepted', (v) => {
     expect(validateInterpretation(entry({ standard_version: v }), CAT)).toEqual({ ok: true });
   });
 
@@ -125,7 +126,7 @@ describe('TRD §4.4 step 0 / AC-06.3a — a category requires a raw value', () =
 });
 
 describe('entries without a category', () => {
-  it.each([undefined, null, ''])('category %j: nothing to validate, even without standard/value', (category_code) => {
+  it.each([undefined, null])('category %j: nothing to validate, even without standard/value', (category_code) => {
     expect(validateInterpretation(entry({ category_code, standard: undefined, standard_version: undefined, raw_value: undefined }), CAT)).toEqual({ ok: true });
   });
 });

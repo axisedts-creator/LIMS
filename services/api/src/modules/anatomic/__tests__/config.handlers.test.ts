@@ -588,7 +588,7 @@ describe('K11 listAnatomicCodedValues (set_name enum: diagnoses, cytology_adequa
     const r = await call('listAnatomicCodedValues', { params: { set_name: 'diagnoses' } });
     expect(r.status).toBe(200); expect(codes(r)).toEqual(['LOC-0001', 'LOC-0002']);
     expect(r.body.data[0]).toMatchObject({ code: 'LOC-0001', display: 'Synthetic diagnosis 1', system: 'local', sort_order: 1, is_active: true, version: 1 });
-    expect(hasNoNulls(r.body)).toBe(true); expect(keysDeep(r.body.data).filter((k) => FORBIDDEN_KEYS.includes(k))).toEqual([]); expect(r.body.page).toMatchObject({ next_cursor: null });
+    expect(hasNoNulls(r.body)).toBe(true); expect(keysDeep(r.body.data).filter((k) => FORBIDDEN_KEYS.includes(k))).toEqual([]); expect(r.body.page).not.toHaveProperty('next_cursor'); expect(r.body.page.limit).toBe(50);
   });
   it('each set reads its own table', async () => {
     seed();
@@ -621,7 +621,7 @@ describe('K11 listAnatomicCodedValues (set_name enum: diagnoses, cytology_adequa
     const p1 = await call('listAnatomicCodedValues', { params: { set_name: 'diagnoses' }, query: { limit: 2 } });
     expect(codes(p1)).toEqual(['LOC-0001', 'LOC-0002']); expect(p1.body.page.limit).toBe(2); expect(typeof p1.body.page.next_cursor).toBe('string');
     const p2 = await call('listAnatomicCodedValues', { params: { set_name: 'diagnoses' }, query: { limit: 2, cursor: p1.body.page.next_cursor } }); expect(codes(p2)).toEqual(['LOC-0003', 'LOC-0004']);
-    const p3 = await call('listAnatomicCodedValues', { params: { set_name: 'diagnoses' }, query: { limit: 2, cursor: p2.body.page.next_cursor } }); expect(codes(p3)).toEqual(['LOC-0005']); expect(p3.body.page.next_cursor).toBeNull();
+    const p3 = await call('listAnatomicCodedValues', { params: { set_name: 'diagnoses' }, query: { limit: 2, cursor: p2.body.page.next_cursor } }); expect(codes(p3)).toEqual(['LOC-0005']); expect(p3.body.page).not.toHaveProperty('next_cursor');
   });
   it.each([['garbage', 'not-a-cursor'], ['letters only', 'AAAA'], ['json of the wrong shape', Buffer.from('{"x":1}').toString('base64url')]])('malformed cursor (%s) → 400 common.invalid_cursor', async (_n, cursor) => {
     seed(); expect(isLimsError(await rejects(call('listAnatomicCodedValues', { params: { set_name: 'diagnoses' }, query: { cursor } })), 'common.invalid_cursor')).toBe(true);

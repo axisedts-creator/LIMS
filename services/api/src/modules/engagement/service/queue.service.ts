@@ -26,7 +26,7 @@ const DUP_PATH: Readonly<Record<QueueKind, string>> = { queue: '/code', counter:
 
 const isObj = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null && !Array.isArray(v);
 const fe = (path: string, code: string, message: string): FieldError => ({ path, code, message });
-const invalid = (path: string, code = 'common.field_invalid', message = 'Field invalid'): never => {
+export const invalid = (path: string, code = 'common.field_invalid', message = 'Field invalid'): never => {
   throw new LimsError('common.validation_failed', undefined, [fe(path, code, message)]);
 };
 
@@ -56,7 +56,7 @@ function parseInput(kind: QueueKind, body: unknown): Record<string, any> {
 }
 
 /** If-Match arrives as the raw header '"<version>"' (02-CV §4.2): absent -> 428, malformed -> 400. */
-function parseIfMatch(headers: unknown): number {
+export function parseIfMatch(headers: unknown): number {
   const h = isObj(headers) ? headers['if-match'] : undefined;
   if (h === undefined) throw new LimsError('common.precondition_required');
   const m = typeof h === 'string' ? /^"([1-9][0-9]{0,9})"$/.exec(h) : null;

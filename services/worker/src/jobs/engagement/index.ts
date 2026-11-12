@@ -2,6 +2,7 @@
 // T-01: every handler is a fail-closed stub (throws) so an event/task is retried or dead-lettered, never silently acked;
 // each later task replaces its own entry. [CONV] LIMS_ENGAGEMENT_* is validated by the API module at import; worker bootstrap calls loadEngagementConfig() when it exists (no worker test env yet). The §8.2 crontab rows (and their tasks) are added by the tasks that implement them.
 import type { ConsumerHandler, TaskHandler, WorkerManifest } from '../../core/manifest.js';
+import { CLOSE_QUEUE_DAY, closeQueueDay, crontab } from './cron.js';
 
 const task = (id: string): TaskHandler => async () => { throw new Error(`${id} not implemented`); };
 const consumer = (type: string): ConsumerHandler => async () => { throw new Error(`consumer ${type} not implemented`); };
@@ -21,8 +22,8 @@ const SUBSCRIPTIONS = [
 
 export const manifest: WorkerManifest = Object.freeze({
   module: 'engagement',
-  tasks: Object.freeze(Object.fromEntries(Object.keys(TASKS).map((id) => [id, task(id)]))),
+  tasks: Object.freeze({ ...Object.fromEntries(Object.keys(TASKS).map((id) => [id, task(id)])), [CLOSE_QUEUE_DAY]: closeQueueDay }), // T-Q2: close_queue_day
   subscriptions: Object.freeze(Object.fromEntries(SUBSCRIPTIONS.map((type) => [type, consumer(type)]))),
-  crontab: [],
+  crontab,
   maxAttempts: TASKS,
 });

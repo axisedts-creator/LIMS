@@ -27,6 +27,8 @@ const PERMS = ['micro.breakpoint.manage', 'micro.config.manage', 'micro.culture.
 const IMPLEMENTED: readonly string[] = [
   // T-05: M23–M28, M39, M40
   'listMicroCodedSet', 'upsertMicroCode', 'listPlatingProtocols', 'createPlatingProtocol', 'versionPlatingProtocol', 'deactivatePlatingProtocol', 'getMicroSettings', 'updateMicroSettings',
+  // T-11: M41–M45, M49
+  'listBreakpointSets', 'createBreakpointImport', 'getBreakpointSet', 'listBreakpointImportIssues', 'listBreakpointRows', 'downloadBreakpointTemplate',
 ];
 
 const FAKE_REQ = { params: {}, query: {}, headers: {}, body: {} };

@@ -366,7 +366,7 @@ export async function listCodedValues(hctx: unknown, params: unknown, query: unk
       .slice(offset, offset + limit + 1);
   } else rows = await SET_REPO[set].list(c.tx, { tenantId: c.tenantId, activeOnly: !all, q: needle, limit: limit + 1, offset });
   const more = rows.length > limit;
-  return { status: 200, body: { data: rows.slice(0, limit).map(codedDto), page: { next_cursor: more ? encodeCursor(offset + limit) : null, limit } } };
+  return { status: 200, body: { data: rows.slice(0, limit).map(codedDto), page: { limit, ...(more ? { next_cursor: encodeCursor(offset + limit) } : {}) } } };
 }
 async function findAllRows(list: (tx: any, i: any) => Promise<Row[]>, c: Ctx): Promise<Row[]> {
   const out: Row[] = [];

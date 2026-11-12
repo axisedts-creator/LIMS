@@ -254,6 +254,15 @@ for (const K of KINDS) {
       const r = await run(K.listS, { query: { is_active: false } }, MANAGER_ALL);
       expect(r.out.body.data.every((x: any) => x.is_active === false)).toBe(true); expect(r.out.body.data.length).toBe(1);
     });
+    it('list SELECTs are capped at 200 rows (contract maxItems: 200), never 500', async () => {
+      const c = await run(K.listC, { query: { centre_id: C1 } }, FRONT_DESK_C1);
+      const s = await run(K.listS, {}, MANAGER_ALL);
+      for (const calls of [c.calls, s.calls]) {
+        const sel = calls.filter((x) => verb(x) === 'select' && /engagement\.queue_(definitions|counters)/i.test(x.text));
+        expect(sel.length).toBeGreaterThan(0);
+        for (const x of sel) { expect(x.text).toMatch(/\bLIMIT\s+200\b/i); expect(x.text).not.toMatch(/\bLIMIT\s+(?!200\b)\d+/i); }
+      }
+    });
   });
 
   describe(`${K.name}s — create (${K.create})`, () => {
@@ -291,13 +300,14 @@ for (const K of KINDS) {
     it(`PROBE ${Rm}3: manager of C1 creates at C2 -> auth.forbidden or common.not_found, no row stored (07 §6.4, REQ-SEC-017)`, async () => {
       const db = fakeDb(A, { all: false, centres: [C1] });
       const r = await run(K.create, { body: K.bodyForC2 }, MANAGER_C1, { db });
-      expect(['auth.forbidden', 'common.not_found']).toContain(r.error?.code);
+      expect(['auth.forbidden', 'common.validation_failed']).toContain(r.error?.code); // no 404 declared on create (x-error-codes)
+      if (r.error?.code === 'common.validation_failed') expect(JSON.stringify(r.error)).toContain('/centre_id');
       expect(db.rows[K.table].some((x: any) => x.id === NEW_ID)).toBe(false);
     });
     it('centre of ANOTHER tenant cannot be targeted (FK / RLS) -> forbidden / not_found / validation, nothing stored', async () => {
       const db = fakeDb(A, { all: true, centres: [] });
       const r = await run(K.create, { body: { ...K.body, centre_id: CB } }, MANAGER_ALL, { db });
-      expect(['auth.forbidden', 'common.not_found', 'common.validation_failed']).toContain(r.error?.code);
+      expect(['auth.forbidden', 'common.validation_failed']).toContain(r.error?.code); // no 404 declared on create (x-error-codes)
       expect(db.rows[K.table].some((x: any) => x.id === NEW_ID && x.tenant_id !== A)).toBe(false);
     });
   });

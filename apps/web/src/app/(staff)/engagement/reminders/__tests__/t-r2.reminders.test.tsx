@@ -64,9 +64,14 @@ const rec = async (r: Request) => { calls.push({ method: r.method, url: new URL(
 let cancelStatus = 200;
 const api = setupServer(
   http.get(`${ORIGIN}/v1/engagement/reminders`, async ({ request }) => { await rec(request); return HttpResponse.json({ data: rows, page: { limit: 50 } }); }),
+  http.get(`${ORIGIN}/v1/engagement/coded-sets/reminder_reasons`, async ({ request }) => {
+    await rec(request); // T3a listEngagementCodedSet; tenant override of the display text
+    return HttpResponse.json({ data: [{ code: 'follow_up_test', display: 'Tenant follow-up label', sort_order: 1 }, { code: 'collect_report', display: 'Collect report', sort_order: 2 }] });
+  }),
   http.post(`${ORIGIN}/v1/engagement/reminders`, async ({ request }) => { await rec(request); return HttpResponse.json(row(U(20), { patient_display: undefined }), { status: 201 }); }),
   http.post(`${ORIGIN}/v1/engagement/reminders/:id/cancel`, async ({ request }) => {
     await rec(request);
+    if (cancelStatus === 412) return HttpResponse.json({ type: 'urn:lims:error:common.version_conflict', title: 'Version conflict', status: 409, code: 'common.version_conflict' }, { status: 409 });
     return cancelStatus === 200
       ? HttpResponse.json(row(R_SCHED, { status: 'cancelled', version: 4 }))
       : HttpResponse.json({ type: 'urn:lims:error:engagement.reminder_invalid_transition', title: 'Reminder cannot change', status: 409, code: 'engagement.reminder_invalid_transition' }, { status: 409 });
@@ -185,6 +190,17 @@ describe('Cancel (R3, AC-23.4)', () => {
     expect(await screen.findByText(/reminder cannot change|already (sent|cancelled)/i)).toBeTruthy();
     await waitFor(() => expect(refresh).toHaveBeenCalled());
   });
+
+  it('409 common.version_conflict shows the spec Banner "Someone else changed this. Reload to see the latest." with a [Reload] button (04-UI-UX §1)', async () => {
+    cancelStatus = 412; // sentinel: handler answers 409 common.version_conflict
+    await view();
+    await userEvent.click(within(rowOf(/Synthetic Patient One/)).getByRole('button', { name: /^cancel reminder/i }));
+    await userEvent.click(within(await screen.findByRole('alertdialog').catch(() => screen.findByRole('dialog'))).getByRole('button', { name: /cancel reminder|confirm|yes/i }));
+    expect(await screen.findByText('Someone else changed this. Reload to see the latest.')).toBeTruthy();
+    refresh.mockClear();
+    await userEvent.click(screen.getByRole('button', { name: /^reload$/i }));
+    expect(refresh).toHaveBeenCalled();
+  });
 });
 
 describe('New reminder (R2, AC-23.1)', () => {
@@ -280,7 +296,18 @@ describe('Filters (R1: due range ≤ 92 days)', () => {
     const url = new URL(String(replace.mock.calls.at(-1)![0]), 'http://x');
     expect(url.searchParams.get('due_from')).toMatch(/^\d{4}-\d{2}-\d{2}/);
     expect(url.searchParams.get('due_to')).toMatch(/^\d{4}-\d{2}-\d{2}/);
-    expect((Date.parse(url.searchParams.get('due_to')!) - Date.parse(url.searchParams.get('due_from')!)) / 86_400_000).toBeLessThanOrEqual(92);
+    expect((Date.parse(url.searchParams.get('due_to')!) - Date.parse(url.searchParams.get('due_from')!)) / 86_400_000).toBeLessThanOrEqual(91); // inclusive calendar days: 92 days = 91-day difference
+  });
+
+  it('92 calendar days inclusive is accepted; 93 is rejected', async () => {
+    await view();
+    await range(hours(0), hours(24 * 91));
+    await waitFor(() => expect(replace).toHaveBeenCalled());
+    expect(screen.queryByText(/92 days/i)).toBeNull();
+    replace.mockReset();
+    await range(hours(0), hours(24 * 92));
+    expect(await screen.findByText(/92 days/i)).toBeTruthy();
+    expect(replace).not.toHaveBeenCalled();
   });
 });
 
@@ -295,23 +322,55 @@ describe('Server page (R1 wiring)', () => {
     const get = calls.find((c) => c.method === 'GET')!;
     expect(get.url.pathname).toBe('/v1/engagement/reminders');
     const [f, t] = [get.url.searchParams.get('due_from'), get.url.searchParams.get('due_to')];
-    expect(f).toBeTruthy(); expect(t).toBeTruthy();
+    const ISO = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/; // R1 accepts only instants, never date-only (else 400 common.validation_failed)
+    expect(f).toMatch(ISO); expect(t).toMatch(ISO);
     expect((Date.parse(t!) - Date.parse(f!)) / 86_400_000).toBeLessThanOrEqual(92);
     expect(await screen.findByText('Synthetic Patient One')).toBeTruthy();
   });
 
-  it('forwards status and kind filters; a range > 92 days or a malformed value never reaches the API', async () => {
-    wrap(await page({ due_from: '2026-11-01', due_to: '2026-12-01', status: 'sent', kind: 'follow_up' }));
-    const get = calls.find((c) => c.method === 'GET')!;
+  it('URL dates become Asia/Kathmandu day bounds as instants; 92 calendar days inclusive stays ≤ 92 d for the API', async () => {
+    wrap(await page({ due_from: '2026-11-01', due_to: '2026-11-30' }));
+    const get = calls.find((c) => c.method === 'GET' && c.url.pathname === '/v1/engagement/reminders')!;
+    expect(get.url.searchParams.get('due_from')).toBe('2026-10-31T18:15:00.000Z'); // 2026-11-01 00:00 +05:45
+    expect(get.url.searchParams.get('due_to')).toBe('2026-11-30T18:14:59.999Z'); // 2026-11-30 23:59:59.999 +05:45
+    cleanup(); calls.length = 0;
+    wrap(await page({ due_from: '2026-11-01', due_to: '2027-01-31' })); // 92 calendar days inclusive
+    const g2 = calls.find((c) => c.method === 'GET' && c.url.pathname === '/v1/engagement/reminders')!;
+    expect((Date.parse(g2.url.searchParams.get('due_to')!) - Date.parse(g2.url.searchParams.get('due_from')!)) / 86_400_000).toBeLessThanOrEqual(92);
+  });
+
+  it('forwards status; a range > 92 days or a malformed value never reaches the API', async () => {
+    wrap(await page({ due_from: '2026-11-01', due_to: '2026-12-01', status: 'sent' }));
+    const get = calls.find((c) => c.method === 'GET' && c.url.pathname === '/v1/engagement/reminders')!;
     expect(get.url.searchParams.get('status')).toBe('sent');
-    expect(get.url.searchParams.get('kind')).toBe('follow_up');
     calls.length = 0;
     for (const sp of [{ due_from: '2026-01-01', due_to: '2026-12-31' }, { due_from: "2026-11-01'; DROP", due_to: '2026-11-02' }, { status: 'sent&limit=9999' }]) {
       await page(sp).then((el) => wrap(el)).catch(() => undefined);
       cleanup();
     }
     expect(calls.filter((c) => c.method === 'GET').every((c) => !/DROP|9999/.test(c.url.search))).toBe(true);
-    expect(calls.filter((c) => c.url.searchParams.get('due_from') === '2026-01-01').length).toBe(0);
+    expect(calls.filter((c) => c.url.searchParams.get('due_from')?.startsWith('2026-01-01') || c.url.searchParams.get('due_from')?.startsWith('2025-12-31')).length).toBe(0);
+  });
+
+  it('Kind filter has an effect although R1 has no `kind` param: not sent to R1, rows filtered by kind', async () => {
+    api.use(http.get(`${ORIGIN}/v1/engagement/reminders`, async ({ request }) => {
+      await rec(request);
+      return HttpResponse.json({ data: [row(U(31), { kind: 'custom', patient_display: 'Synthetic Patient Custom' }), row(U(32), { kind: 'follow_up', patient_display: 'Synthetic Patient Followup' })], page: { limit: 50 } });
+    }));
+    wrap(await page({ due_from: '2026-11-01', due_to: '2026-12-01', kind: 'follow_up' }));
+    const get = calls.find((c) => c.method === 'GET' && c.url.pathname === '/v1/engagement/reminders')!;
+    expect(get.url.searchParams.has('kind')).toBe(false);
+    expect(await screen.findByText('Synthetic Patient Followup')).toBeTruthy();
+    expect(screen.queryByText('Synthetic Patient Custom')).toBeNull();
+  });
+
+  it('reason options come from T3a GET /v1/engagement/coded-sets/reminder_reasons (tenant display), not a hard-coded list', async () => {
+    wrap(await page());
+    expect(calls.some((c) => c.method === 'GET' && c.url.pathname === '/v1/engagement/coded-sets/reminder_reasons')).toBe(true);
+    await userEvent.click(await screen.findByRole('button', { name: /new reminder/i }));
+    const dlg = await screen.findByRole('dialog', { name: /new reminder/i });
+    await userEvent.click(within(dlg).getByRole('button', { name: /reason/i }));
+    expect(await screen.findByRole('option', { name: 'Tenant follow-up label' })).toBeTruthy();
   });
 });
 

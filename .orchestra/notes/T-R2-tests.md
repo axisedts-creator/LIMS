@@ -5,3 +5,4 @@
 - Seams ASSUMED (header of the .tsx): `RemindersView({reminders (Reminder+patient_display), permissions, reasons, searchPatients})`, `page.tsx`, `actions.ts` via serverFetch; row button "Cancel reminder"; dialog "New reminder"/"Create reminder"; group "Due date range".
 - Not tested: R4 suggestions panel (T-P4 missing; US-EN-24.3 outside ACs); SMS dispatch/in-app/opt-out ACs 23.1–3 are API-side (T-R1), here only the UI rendering of their outcomes.
 - Fails now: all (modules ../RemindersView and ../page do not exist).
+- Review round 1 (tests only): R1 due_from/due_to must be ISO instants (Kathmandu day bounds, 92 calendar days inclusive); reasons via T3a coded-sets; Kind not sent to R1, rows filtered; 409 common.version_conflict Banner + Reload. alertdialog lookup accepts dialog (ruling).

@@ -1,6 +1,5 @@
 // R1 listReminders, R2 createReminder, R3 cancelReminder (02-TRD §4.11, §5; 05-SCHEMA reminders; US-EN-23.1, 23.4; REQ-SEC-017/-080).
 // Tenant and actor come from ctx only. Errors carry fixed text: no submitted value is echoed. Creating never sends: the dispatcher cron does.
-// [CONV] R1 lists by the RLS tenant policy (no bound tenant_id): the T-R1 world fake filters rows by every uuid-looking bound value, so a bound tenant id would empty the list.
 import { LimsError, type FieldError } from '../../../core/errors.js';
 import { isUuid } from './queue.service.js';
 import { listCodedSet as defaultListCodedSet } from '../repository/codedsets.repo.js';
@@ -71,7 +70,7 @@ export function createReminderService(deps: { repo?: ReminderRepo; listCodedSet?
 
   return {
     async list(ctx: ReminderCtx, q: unknown) {
-      const { tx } = scope(ctx);
+      const { tx, tenantId } = scope(ctx);
       const query = isObj(q) ? q : {};
       const from = isoMs(query['due_from']), to = isoMs(query['due_to']);
       if (!Number.isFinite(from)) invalid('/due_from', query['due_from'] === undefined ? 'common.field_required' : 'common.field_invalid');
@@ -85,7 +84,7 @@ export function createReminderService(deps: { repo?: ReminderRepo; listCodedSet?
       const limit = rawLimit === undefined ? 50 : Number(rawLimit);
       if (!Number.isInteger(limit) || limit < 1 || limit > 200) invalid('/limit');
       const after = decodeCursor(query['cursor']);
-      const rows = await repo.listReminders(tx, { from: query['due_from'] as string, to: query['due_to'] as string, patientId: patientId as string | undefined, status: status as string | undefined, ...(after ? { after } : {}), limit: limit + 1 });
+      const rows = await repo.listReminders(tx, { tenantId, from: query['due_from'] as string, to: query['due_to'] as string, patientId: patientId as string | undefined, status: status as string | undefined, ...(after ? { after } : {}), limit: limit + 1 });
       const page = rows.slice(0, limit);
       return { data: page.map(toBody), page: { limit, ...(rows.length > limit ? { next_cursor: encodeCursor(page[page.length - 1]!) } : {}) } };
     },

@@ -1,5 +1,5 @@
 // engagement.reminders (05-SCHEMA §2.x; 02-TRD §4.11). Static SQL only; values are always parameters; no DELETE (reminders are never deleted).
-// REQ-SEC-024: statements by id/tenant bind tenant_id; the R1 window listing relies on the RLS tenant policy alone (see service header) [CONV].
+// REQ-SEC-024: all statements bind tenant_id.
 import { uuidv7 } from '../../../../../../packages/shared-ts/src/uuidv7/index.js';
 import type { Tx } from '../../../core/db/tx.js';
 
@@ -30,9 +30,9 @@ export async function cancelReminder(tx: Q, a: { tenantId: string; id: string; e
 }
 
 /** Keyset page (due_at, id). Optional filters add fixed SQL fragments; their values are parameters. Fetches `limit` rows as given (caller asks for limit + 1). */
-export async function listReminders(tx: Q, a: { from: string; to: string; patientId?: string | undefined; status?: string | undefined; after?: { dueAt: string; id: string }; limit: number }): Promise<Row[]> {
-  const v: unknown[] = [a.from, a.to];
-  let where = 'due_at BETWEEN $1 AND $2';
+export async function listReminders(tx: Q, a: { tenantId: string; from: string; to: string; patientId?: string | undefined; status?: string | undefined; after?: { dueAt: string; id: string }; limit: number }): Promise<Row[]> {
+  const v: unknown[] = [a.tenantId, a.from, a.to];
+  let where = 'tenant_id = $1 AND due_at BETWEEN $2 AND $3';
   if (a.patientId) { v.push(a.patientId); where += ` AND patient_id = $${v.length}`; }
   if (a.status) { v.push(a.status); where += ` AND status = $${v.length}`; }
   if (a.after) { v.push(a.after.dueAt, a.after.id); where += ` AND (due_at, id) > ($${v.length - 1}::timestamptz, $${v.length}::uuid)`; }

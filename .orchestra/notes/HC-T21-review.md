@@ -1,5 +1,10 @@
-CHANGES
+APPROVE
 
-1. `pubspec.yaml:11` (repo root): path owned by C0-0A (spec/chunks/C0-foundation-contracts/02-TRD.md:14 "`/pubspec.yaml` (Dart workspace root)"; 01-CHUNK-MAP §3 "No path is shared"). C17 may not edit it. Fix: revert the added line `  - apps/phlebo_app` and write `.orchestra/cr/HC-T21.md` (CR template, spec/program/04-CHANGE-REQUESTS.md) asking C0-0A to add `apps/phlebo_app` to the root `workspace:` list; HC-T21 stays blocked on that CR until it is applied, since `resolution: workspace` in apps/phlebo_app/pubspec.yaml needs it.
-
-Checked, no defect: SecurityContext(withTrustedRoots:false), only bundled pins, no badCertificateCallback/HttpOverrides (CI-grep test); TLS failure never retried unpinned; MITM test (same-DN CA, other key) refused; headers `X-Lims-App-Version`, `X-Lims-Device-Id`, `Idempotency-Key` (CV §4.5 grammar) verbatim; error codes only from limsErrorHttpStatus, unknown/HTML -> common.internal; LD-24 delegated to lims_ui LimsErrorTracking (beforeSend scrubber, off when DSN unset); exact dependency pins; no secrets/PHI. RLS/permissions/rate tier: N/A (client-only task). `flutter test __tests__`: 50/50 pass (reviewer run). Not verified: real `flutter build apk` for dev/staging (no Android SDK).
+Scope: `git diff f7929d1f..HEAD` = root pubspec.yaml +1 line, impl note, CR file renamed to resolved.
+- pubspec.yaml: exactly `  - apps/phlebo_app` under `workspace:` after `  - packages/ui-flutter`; nothing else touched. Matches LD-128 (CR-C17-015 approved).
+- No new package/version: apps/phlebo_app pins sentry_flutter 10.3.0, go_router 18.1.3 (already in packages/ui-flutter). 
+- Reviewer re-ran `flutter pub get` at repo root: "Got dependencies!", git status clean, so pubspec.lock unchanged (writer claim confirmed).
+- Reviewer re-ran `flutter test __tests__` in apps/phlebo_app: 50/50 pass (incl. pinned_http MITM-refused test, ci_guards).
+- grep `badCertificateCallback` in apps/phlebo_app/lib: none.
+- No PHI, no secrets, no RLS/DB surface in this diff.
+Not verified: real `flutter build apk` for dev/staging (no Android SDK here). That is left to CI, as the impl note says.

@@ -1,8 +1,5 @@
-# T-A1 impl (writer) — review round 1
-Files: lib/core/api/api_client_factory.dart (review 1: retry failure goes through the same 426/session_expired handling); lib/app/app.dart (review 2: stored session at cold start -> locked, fail closed); android/ via `flutter create --platforms=android --org invalid.lims` + analysis_options exclude android/**; android/app/build.gradle.kts (flavours dev/staging/prod, minSdk 26, release = debug signing); MainActivity -> FlutterFragmentActivity (local_auth). Tests untouched.
-Result: `flutter test test` 69/69 pass; `flutter analyze`: 2 issues, both in tester files (unused import test/cold_start_lock_test.dart:3, unnecessary import test/app_lock_test.dart:3).
-[CONV] applicationId `invalid.lims.patient_app` (+.dev/.staging) is a placeholder like the `.invalid` URLs; the spec names no app id.
-[CONV] minSdk 26: sentry_flutter (LD-24 via lims_ui) refuses lower; the spec names no minimum Android version.
-[CONV] release signing = debug keys until the C1 signing secret exists (T-REL1). Never ship.
-Build (review 3): `flutter build apk --debug --flavor dev -t lib/main_dev.dart` FAILED on this machine after 11.5 min. Gradle could not start NDK llvm-strip (:app:stripDevDebugDebugSymbols), then the flutter tool crashed with "Could not start thread DartWorker" (host could not start processes/threads). Dart compile and Gradle config got that far. Release `--obfuscate --split-debug-info=build/symbols --flavor prod -t lib/main_prod.dart` NOT run. Re-run both on a healthy host or in CI.
-Open: pubspec.lock was rewritten by flutter create (transitive downgrades); restoring it with `git checkout` was denied, so it needs reverting before commit. Also open: CR-C16-016/017 generated client, CR-C16-004 session_token, `.invalid` placeholders.
+# T-A1 impl (writer) — review round 2
+Files: pubspec.lock restored from 6b2618ee (review 1; `flutter pub get --enforce-lockfile` resolves); android/app/src/main/AndroidManifest.xml allowBackup=false + fullBackupContent=false (review 3, 07-SECURITY "token in logs/backups"); android/.gitignore `.kotlin/` (review 4). Review 2 = tester files, already fixed.
+Result: `flutter analyze` No issues; `flutter test test` 69/69 pass. Android builds not re-run (manifest change only; reviewer built both OK in round 2).
+[CONV] (round 1, unchanged) applicationId `invalid.lims.patient_app` placeholder; minSdk 26 (sentry_flutter, LD-24); release = debug signing until T-REL1, never ship.
+Open: CR-C16-016/017 generated lims_api_client, CR-C16-004 session_token, `.invalid` placeholders.

@@ -5,6 +5,7 @@
 // tx = { query(text, values) -> { rows } }, returns RAW snake_case rows / null / [] (global-table fns drop tenantId). insertX(tx, tenantId, row) ignores row.tenant_id.
 // updateX(tx, tenantId, id, expectedVersion, patch) -> updated row | null; version is bumped by the repo; patch keys are allow-listed column names.
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { rows as fd, BRANCH } from '../../../frontdesk/__tests__/integration/helpers.js';
 import { HC_CENTRE, MEMBER, T0, TENANT, TENANT_A, TENANT_B, SYS_ACTOR, appTx, closePools, hc, ownerRows, seed, superTx, uid, seedWorld, type Side, type World } from './helpers.js';
 
 const load = (n: string): Promise<any> => import(/* @vite-ignore */ `../${n}.repo.js`);
@@ -139,7 +140,8 @@ describe.each(specs)('$name.repo — integration + cross-tenant probes', (sp) =>
       const m = await load(sp.file);
       for (const s of ['a', 'b'] as Side[]) {
         const o = other(s);
-        expect(await superTx((tx) => m[sp.list!](tx, TENANT[s], ...sp.listArg!(W[o])))).toEqual([]); // A's tenantId + B's parent ids, RLS bypassed
+        if (sp.listArg!(W[o]).length) // no parent id to swap (e.g. listHeldCollections) -> nothing to probe here; the tenantId-swap line below still runs
+          expect(await superTx((tx) => m[sp.list!](tx, TENANT[s], ...sp.listArg!(W[o])))).toEqual([]); // A's tenantId + B's parent ids, RLS bypassed
         expect((await appTx(TENANT[s], (tx) => m[sp.list!](tx, TENANT[o], ...sp.listArg!(W[o])))).filter((r: any) => r.tenant_id === TENANT[o])).toEqual([]);
       }
     });
@@ -263,7 +265,11 @@ describe('natural-key lookups (05-SCHEMA §5 query→index map)', () => {
   it('listVisitsByRoute(tx, tenantId, routeId) is ordered by route_sequence and tenant-scoped', async () => {
     const m = await load('visits');
     const r = hc.route('a'); await seed('homecollection.routes', r);
-    const mk = (seq: number) => hc.visit('a', W.a, { kind: 'booking', order_id: null, booking_id: uid(), orderable_ids: [uid()], status: 'assigned', route_id: r.id,
+    // 05-SCHEMA.md:267 visits__order_when_active__ck: an assigned visit needs order_id -> seed a fresh tenant-A order (not W.a.order, keeps getVisitByOrderId unambiguous)
+    const o = fd.order('a', W.a.patient.id, { centre_id: HC_CENTRE.a, collection_mode: 'home' }); await seed('frontdesk.orders', o);
+    await seed('lab.orders', { id: o.id, tenant_id: TENANT_A, centre_id: HC_CENTRE.a, branch_id: BRANCH.a, patient_id: W.a.patient.id, registration_no: o.registration_no, visit_type: 'opd',
+      priority: 'routine', collection_mode: 'home', source: 'home_collection', registered_at: T0, patient_sex: 'female', last_order_seq: 1 });
+    const mk = (seq: number) => hc.visit('a', W.a, { kind: 'booking', order_id: o.id, booking_id: uid(), orderable_ids: [uid()], status: 'assigned', route_id: r.id,
       route_date: r.route_date, assigned_membership_id: MEMBER.a, route_sequence: seq });
     const [v2, v1] = [mk(2), mk(1)]; await seed('homecollection.visits', v2); await seed('homecollection.visits', v1);
     expect((await appTx(TENANT_A, (tx) => m.listVisitsByRoute(tx, TENANT_A, r.id))).map((x: any) => x.id)).toEqual([v1.id, v2.id]);

@@ -10,7 +10,9 @@ import { handler as listEligiblePhlebotomists } from './handlers/listEligiblePhl
 import { handler as listHomeRoutes } from './handlers/listHomeRoutes.js';
 import { handler as listHomeVisits } from './handlers/listHomeVisits.js';
 import { handler as listHomecollectionReasons } from './handlers/listHomecollectionReasons.js';
+import { handler as registerPhleboDevice } from './handlers/registerPhleboDevice.js';
 import { handler as revealHomeVisitPhone } from './handlers/revealHomeVisitPhone.js';
+import { handler as signOffPhleboDevice } from './handlers/signOffPhleboDevice.js';
 import { handler as updateHomecollectionSettings } from './handlers/updateHomecollectionSettings.js';
 
 const OPERATION_IDS = [
@@ -32,6 +34,7 @@ const stub = (operationId: string): Handler => async () => {
 const implemented: Partial<Record<HomecollectionOperationId, Handler>> = {
   getHomecollectionSettings, updateHomecollectionSettings, listHomecollectionReasons,
   listHomeVisits, getHomeVisit, listHomeRoutes, listEligiblePhlebotomists, revealHomeVisitPhone,
+  registerPhleboDevice, signOffPhleboDevice,   // HC-T10: A1, A5
 };
 
 const handlers = Object.freeze(

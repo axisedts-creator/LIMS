@@ -24,8 +24,9 @@ export function validateInterpretation(entry: InterpretationEntry, catalog: Inte
   if (cat == null) return { ok: true };
 
   if (blank(entry.raw_value)) return fail('micro.ast_value_invalid'); // §4.4 step 0
+  // standard ∈ {CLSI, EUCAST, ECOFF} — fixed enum (05-SCHEMA.md:186/302), not catalog data; 'unknown' is refused here.
   // standard_version is a string, char_length 1..32 (05-SCHEMA.md:187/898).
-  if (blank(standard) || typeof version !== 'string' || [...version].length < 1 || [...version].length > 32) return fail('micro.ast_standard_required');
+  if (!(standard === 'CLSI' || standard === 'EUCAST' || standard === 'ECOFF') || typeof version !== 'string' || [...version].length < 1 || [...version].length > 32) return fail('micro.ast_standard_required');
 
   const known = catalog.interpretations.some((r) => r.is_active && r.standard === standard && r.code === cat);
   if (!known) return fail('micro.ast_category_not_allowed');

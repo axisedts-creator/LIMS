@@ -109,6 +109,22 @@ describe('C10-T05 permission is checked first, with the operation\'s x-permissio
     });
 });
 
+describe('C10-T05 review: no invented defaults for the NOT NULL set extras on insert (05-SCHEMA §8)', () => {
+  it.each([
+    ['growth_codes', { display: 'x', sort_order: 1, is_active: true }, '/indicates_growth'],
+    ['culture_outcomes', { display: 'x', sort_order: 1, is_active: true, requires_isolate: false }, '/result_flag'],
+    ['culture_outcomes', { display: 'x', sort_order: 1, is_active: true, result_flag: 'N' }, '/requires_isolate'],
+  ])('M24 %s, no existing tenant row, missing extra -> 400 common.validation_failed %s / common.field_required, nothing inserted', async (set, body, path) => {
+    const req = { ...REQ.upsertMicroCode, params: { set_name: set, code: 'zt05_x' }, body };
+    const { p, queries } = run('upsertMicroCode', ['micro.config.manage'], req);
+    const e = await failure(p);
+    expect(isLimsError(e, 'common.validation_failed'), `${e?.code ?? e}`).toBe(true);
+    expect(e.statusCode).toBe(400);
+    expect(e.errors?.[0]).toMatchObject({ path, code: 'common.field_required' });
+    expect(JSON.stringify(queries)).not.toMatch(/insert/i);
+  });
+});
+
 describe('C10-T05 S-24 / T-E2: ast_interpretations is not writable', () => {
   it('PUT /coded-sets/ast_interpretations/codes/S with micro.config.manage -> 403 auth.forbidden, nothing queried for writing', async () => {
     const req = { ...REQ.upsertMicroCode, params: { set_name: 'ast_interpretations', code: 'S' }, body: { display: 'Susceptible', sort_order: 1, is_active: true } };

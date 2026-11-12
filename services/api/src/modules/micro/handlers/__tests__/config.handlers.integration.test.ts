@@ -255,19 +255,21 @@ describe.skipIf(!live && !REQUIRE)('C10-T05 config handlers (live database)', ()
 
     it('a tenant-only code is invisible to the other tenant (RLS + explicit tenant filter)', async () => {
       const code = newCode('c');
-      await putCode('growth_codes', code, { display: 'Tenant only', sort_order: 1, is_active: true });
+      await putCode('growth_codes', code, { display: 'Tenant only', sort_order: 1, is_active: true, indicates_growth: true });
       expect((await listSet('growth_codes')).body.data.some((x: any) => x.code === code)).toBe(true);
       expect((await listSet('growth_codes', {}, { tenant: B })).body.data.some((x: any) => x.code === code)).toBe(false);
     });
 
     it('updating an existing tenant row needs If-Match: missing -> 428, stale -> 409, current -> 200 with version+1; creating needs none', async () => {
       const code = newCode('c');
-      const created = await putCode('growth_codes', code, { display: 'First', sort_order: 1, is_active: true });
+      const created = await putCode('growth_codes', code, { display: 'First', sort_order: 1, is_active: true, indicates_growth: true });
       expect(created.status).toBe(200);
       const [row] = await sql('SELECT version FROM micro.cs_growth_codes WHERE tenant_id = $1 AND code = $2', [A, code]);
       expectCode(await failure(putCode('growth_codes', code, { display: 'Second', sort_order: 1, is_active: true })), 'common.precondition_required', 428);
       expectCode(await failure(putCode('growth_codes', code, { display: 'Second', sort_order: 1, is_active: true }, ifm(row.version + 3))), 'common.version_conflict', 409);
+      // update keeps the COALESCE behaviour: the omitted extra keeps its stored value
       const ok = await putCode('growth_codes', code, { display: 'Second', sort_order: 1, is_active: true }, ifm(row.version));
+      expect(ok.body.indicates_growth).toBe(true);
       expect(ok.body.display).toBe('Second');
       expect((await sql('SELECT version FROM micro.cs_growth_codes WHERE tenant_id = $1 AND code = $2', [A, code]))[0].version).toBe(row.version + 1);
     });
@@ -308,7 +310,46 @@ describe.skipIf(!live && !REQUIRE)('C10-T05 config handlers (live database)', ()
     });
 
     it('a code that passes the Code schema but violates the DB CHECK ^[a-z0-9_]{2,64}$ -> 400 /code (never a 500)', async () => {
-      badPath(await failure(putCode('growth_codes', 'Bad-Code.1', { display: 'x', sort_order: 1, is_active: true })), '/code');
+      badPath(await failure(putCode('growth_codes', 'Bad-Code.1', { display: 'x', sort_order: 1, is_active: true, indicates_growth: true })), '/code');
+    });
+
+    // review item 1: MicroCodeDto declares the set extras, so M23 and M24 must return them
+    it('M23/M24 return indicates_growth (growth_codes) and result_flag + requires_isolate (culture_outcomes), schema-valid; a stored false/N is returned, not omitted', async () => {
+      const g = newCode('c');
+      const gp = await putCode('growth_codes', g, { display: 'Grows', sort_order: 1, is_active: true, indicates_growth: true });
+      expect(schemaErrors('MicroCodeDto', gp.body)).toEqual([]);
+      expect(gp.body.indicates_growth).toBe(true);
+      const g0 = newCode('c');
+      expect((await putCode('growth_codes', g0, { display: 'No growth', sort_order: 2, is_active: true, indicates_growth: false })).body.indicates_growth).toBe(false);
+      const gl = (await listSet('growth_codes')).body.data;
+      expect(gl.find((x: any) => x.code === g).indicates_growth).toBe(true);
+      expect(gl.find((x: any) => x.code === g0).indicates_growth).toBe(false);
+      const o = newCode('c');
+      const op = await putCode('culture_outcomes', o, { display: 'Alert outcome', sort_order: 1, is_active: true, result_flag: 'A', requires_isolate: true });
+      expect(schemaErrors('MicroCodeDto', op.body)).toEqual([]);
+      expect(op.body).toMatchObject({ result_flag: 'A', requires_isolate: true });
+      const ol = (await listSet('culture_outcomes')).body.data;
+      expect(ol.find((x: any) => x.code === o)).toMatchObject({ result_flag: 'A', requires_isolate: true });
+      for (const row of ol) expect(schemaErrors('MicroCodeDto', row), row.code).toEqual([]);
+      // seeded globals (05-SCHEMA §8): no_growth = N,false ; growth_reported = A,true
+      expect(ol.find((x: any) => x.code === 'growth_reported')).toMatchObject({ result_flag: 'A', requires_isolate: true });
+    });
+
+    // review item 2: no invented defaults — 05-SCHEMA §8 declares these NOT NULL with no DEFAULT
+    it.each([
+      ['growth_codes', { display: 'x', sort_order: 1, is_active: true }, '/indicates_growth'],
+      ['culture_outcomes', { display: 'x', sort_order: 1, is_active: true, requires_isolate: false }, '/result_flag'],
+      ['culture_outcomes', { display: 'x', sort_order: 1, is_active: true, result_flag: 'N' }, '/requires_isolate'],
+    ])('new tenant row in %s without its required extra -> 400 common.validation_failed %s (common.field_required); no row is stored', async (set, body, path) => {
+      const code = newCode('c');
+      const e = await failure(putCode(set, code, body));
+      badPath(e, path);
+      expect(e.errors[0].code).toBe('common.field_required');
+      expect(await sql(`SELECT 1 FROM micro.cs_${set} WHERE tenant_id = $1 AND code = $2`, [A, code])).toHaveLength(0);
+    });
+
+    it('a tenant shadow of a GLOBAL growth code (no tenant row yet) is an insert: it must state indicates_growth too', async () => {
+      badPath(await failure(putCode('growth_codes', 'growth', { display: 'Tenant growth', sort_order: 1, is_active: true })), '/indicates_growth');
     });
   });
 

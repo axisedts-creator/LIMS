@@ -4,6 +4,7 @@
 // Stub: LIMS_CORE_ENV=dev (and NODE_ENV != production) -> 501 with no body (never echoes request input); anything else -> common.internal (fail closed).
 import type { Handler } from '../../../core/module.js';
 import { LimsError } from '../../../core/errors.js';
+import { accessionAnatomicCase, addAnatomicPart, listAnatomicAssignees, updateAnatomicCaseDetails, updateAnatomicPart } from './case.handlers.js';
 
 const OPERATION_IDS = [
   'listAnatomicCases', 'lookupAnatomicObject', 'getAnatomicCase', 'accessionAnatomicCase',
@@ -34,7 +35,9 @@ const stub = (operationId: string): Handler => async () => {
 };
 
 // later tasks register their real handlers here
-const implemented: Partial<Record<AnatomicOperationId, Handler>> = {};
+const implemented: Partial<Record<AnatomicOperationId, Handler>> = {
+  accessionAnatomicCase, updateAnatomicCaseDetails, addAnatomicPart, updateAnatomicPart, listAnatomicAssignees, // C11 T-06
+};
 
 export const handlers: Readonly<Record<AnatomicOperationId, Handler>> = Object.freeze(
   Object.fromEntries(OPERATION_IDS.map((op) => [op, implemented[op] ?? stub(op)])) as Record<AnatomicOperationId, Handler>,

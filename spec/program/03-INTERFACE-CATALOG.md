@@ -2340,10 +2340,23 @@ routes:
   - { id: staff.platform.staff,          origin: staff_web, path: /platform/staff,               owner: C2,  permission: platform.staff.manage }
   - { id: staff.platform.auth_events,    origin: staff_web, path: /platform/auth-events,         owner: C2,  permission: platform.tenant.read }
   - { id: staff.quality.qc_run,             origin: staff_web, path: "/quality/qc-runs/{qc_run_id}",              owner: C9,  permission: quality.qc_run.read }
+  # LD-130 / CR-C9-T01: nav routes for the quality nav manifest (C9 04-UI-UX section 1.1); qc_run stays the only parameterised row
+  - { id: staff.quality.status,               origin: staff_web, path: "/quality",                        owner: C9, permission: quality.qc_run.read }
+  - { id: staff.quality.runs,                 origin: staff_web, path: "/quality/runs",                   owner: C9, permission: quality.qc_run.read }
+  - { id: staff.quality.lj_chart,             origin: staff_web, path: "/quality/lj",                     owner: C9, permission: quality.qc_run.read }
+  - { id: staff.quality.observations,         origin: staff_web, path: "/quality/observations",           owner: C9, permission: quality.qc_run.read }
+  - { id: staff.quality.setup,                origin: staff_web, path: "/quality/setup/materials",        owner: C9, permission: quality.qc_run.read }
+  - { id: staff.quality.autoverify,           origin: staff_web, path: "/quality/autoverify",             owner: C9, permission: quality.autoverify.read }
+  - { id: staff.quality.tat_alerts,           origin: staff_web, path: "/quality/tat-alerts",             owner: C9, permission: quality.tat_alert.read }
+  - { id: staff.quality.settings,             origin: staff_web, path: "/quality/settings",               owner: C9, permission: quality.qc_run.read }
   - { id: staff.micro.culture,              origin: staff_web, path: "/micro/cultures/{culture_id}",              owner: C10, permission: micro.culture.read }
   - { id: staff.anatomic.case,              origin: staff_web, path: "/anatomic/cases/{case_id}",                 owner: C11, permission: anatomic.case.read }
   - { id: staff.inventory.item,             origin: staff_web, path: "/inventory/items/{item_id}",                owner: C12, permission: inventory.item.read }
   - { id: staff.smartreport.summary,        origin: staff_web, path: "/smartreport/summaries/{summary_id}",       owner: C14, permission: smartreport.summary.read }
+  # LD-130 / CR-C14-T18a: nav routes for the smartreport nav manifest (C14 04-UI-UX section 1); summary stays the only parameterised row
+  - { id: staff.smartreport.summaries,        origin: staff_web, path: "/smartreport/summaries",          owner: C14, permission: smartreport.summary.read }
+  - { id: staff.smartreport.library,          origin: staff_web, path: "/smartreport/library",            owner: C14, permission: smartreport.template.manage }
+  - { id: staff.smartreport.wording,          origin: staff_web, path: "/smartreport/wording",            owner: C14, permission: smartreport.template.manage }
   - { id: staff.engagement.booking,         origin: staff_web, path: "/engagement/bookings/{booking_id}",         owner: C16, permission: engagement.booking.read }
   - { id: staff.homecollection.visit,       origin: staff_web, path: "/homecollection/visits/{visit_id}",         owner: C17, permission: homecollection.visit.read }
   # ---- portal (public + OTP-gated) ----

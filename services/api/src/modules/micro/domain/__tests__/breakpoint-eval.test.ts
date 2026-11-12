@@ -30,7 +30,7 @@ const run = (o: Over = {}) => {
     request: {
       antibiotic_code: 'synthetic_abx_1', method: o.method ?? 'mic', qualifier_code: o.qualifier_code ?? null,
       parsed: parsed(o.value ?? '3', o.method ?? 'mic'),
-      organism_code: o.organism_code ?? 'synthetic_org_a', organism_group_code: o.organism_group_code ?? 'synthetic_grp_x',
+      organism_code: o.organism_code ?? 'synthetic_org_a', organism_group_code: 'organism_group_code' in o ? o.organism_group_code : 'synthetic_grp_x',
       specimen_site_code: o.site ?? null,
     },
   });

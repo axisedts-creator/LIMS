@@ -37,6 +37,8 @@ const IMPLEMENTED: readonly string[] = [
   'rejectSpecimen', 'requestRecollection', 'createAliquots',
   // T-14 result entry
   'bulkEnterResults', 'getResult', 'listOrderResults',
+  // T-32 / LD-124 (ruling C5.T-32-ruling.md F): handlers now real, stub assertion was stale
+  'getLabOrder', 'listVerificationQueue',
   // T-15 critical values
   'listCriticalValues', 'getCriticalValue', 'logCriticalNotification',
   // T-16 verify / return

@@ -20,12 +20,12 @@ import { emitStatus, step } from './specimen.service.js';
 const SPECIMEN_STAMP: Readonly<Record<string, string>> = { in_process: 'in_process_at', resulted: 'first_resulted_at', verified: 'first_verified_at', approved: 'all_approved_at' };
 
 /** Specimen status = min over its non-cancelled results (domain/rollup.ts); one S-transition + one lab.specimen.status_changed.v1 per status passed through. Locks the specimen after its results (02-TRD §3.2). */
-export async function rollupOf(c: PortCtx, specimenId: string): Promise<void> {
-  const rc = rcOf(c), sc = labCtx(c);
+export async function rollupOf(c: PortCtx, specimenId: string, sc: any = labCtx(c)): Promise<void> {   // sc: a handler ctx (its own events / Date clock) when called from a request (LD-124)
+  const rc = rcOf(c);
   const s = await first(rc, 'SELECT * FROM lab.specimens WHERE tenant_id = $1 AND id = $2 FOR UPDATE', [specimenId]);
   if (!s) return;
   const statuses = (await query(rc, 'SELECT status FROM lab.results WHERE tenant_id = $1 AND specimen_id = $2', [specimenId])).map((r) => r['status']);
-  const at = c.now();
+  const at = new Date(sc.now()).toISOString();
   let cur: Obj = s;
   for (const to of rollupStatuses(s['status'], statuses)) {
     const col = SPECIMEN_STAMP[to];
@@ -47,7 +47,7 @@ export async function insertCriticalLogRow(rc: RepoCtx, a: CriticalLogInput): Pr
   return { criticalEventId: id };
 }
 
-const entryRow = (r: Obj): EntryRow => ({
+export const entryRow = (r: Obj): EntryRow => ({
   resultId: r['id'], rowVersion: Number(r['version']), status: r['status'], orderId: r['order_id'], orderItemId: r['order_item_id'], specimenId: r['specimen_id'] ?? undefined, patientId: r['patient_id'],
   testId: r['test_id'], analyteId: r['analyte_id'], centreId: r['centre_id'], currentVersionNo: Number(r['current_version_no']), sex: r['patient_sex'] ?? 'unknown', patientAgeDays: r['patient_age_days'] ?? null,
   ...(r['specimen_type_code'] ? { specimenTypeCode: r['specimen_type_code'] } : {}), ...(r['collected_at'] ? { collectedAt: new Date(r['collected_at']) } : {}), ...(r['unit_code'] ? { unitCode: r['unit_code'] } : {}),

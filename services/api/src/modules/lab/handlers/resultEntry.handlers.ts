@@ -8,6 +8,7 @@
 import { LimsError, type FieldError } from '../../../core/errors.js';
 import type { Handler, HandlerContext, HandlerRequest, HandlerResult } from '../../../core/module.js';
 import { toResultDto } from '../mappers/result.mapper.js';
+import { labStore } from '../store/labStore.js';
 import { bulkEnterResults, type EntryInput, type EntryStore, type ResultRow } from '../service/result.service.js';
 
 const MAX_ENTRIES = 200;
@@ -27,9 +28,12 @@ export const obj = (v: unknown): Obj => (typeof v === 'object' && v !== null && 
 export function authed(h: HandlerContext): Ctx {
   const c = h as Partial<Ctx>;
   if (typeof c.tenantId !== 'string' || typeof c.actor?.id !== 'string' || !c.tx) throw new LimsError('auth.unauthenticated');
-  if (!c.store || !c.ports?.IdentityPort) throw new LimsError('common.internal');   // fail closed: production wiring missing
-  return c as Ctx;
+  if (!c.ports?.IdentityPort) throw new LimsError('common.internal');   // fail closed: port wiring missing (no port is invented)
+  return withStore(c) as Ctx;
 }
+
+/** LD-124 (2026-11-12): ctx.store ?? labStore(ctx.tx, ctx) — a view of the ctx (prototype = ctx), the caller's object is not mutated. */
+export const withStore = <C extends object>(c: C): C => ((c as { store?: unknown }).store ? c : Object.assign(Object.create(c), { store: labStore((c as any).tx, c as never) }));
 
 export const fieldError = (path: string, code: 'common.field_required' | 'common.field_invalid', message: string): FieldError => ({ path, code, message });
 
@@ -67,8 +71,12 @@ const bulkEnter: Handler = async (req: HandlerRequest, hctx: HandlerContext): Pr
     throw new LimsError('common.validation_failed', undefined, [fieldError('/entries', 'common.field_invalid', `entries must hold 1..${MAX_ENTRIES} items`)]);
   }
   const downtime = downtimeOf(b, (ctx.now ?? (() => new Date()))());
-  const entries: EntryInput['entries'][number][] = raw.map((x) => {
+  const entries: EntryInput['entries'][number][] = raw.map((x, n) => {
     const e = obj(x);
+    // lab.yaml: value_numeric is a DecimalString, value_text / ordinal_code strings; anything else is a 400 at the field (never reaches the evaluator).
+    for (const k of ['value_numeric', 'value_text', 'ordinal_code']) {
+      if (e[k] !== undefined && typeof e[k] !== 'string') throw new LimsError('common.validation_failed', undefined, [fieldError(`/entries/${n}/${k}`, 'common.field_invalid', 'Field invalid')]);
+    }
     return {
       resultId: e['result_id'], version: e['version'],
       ...(e['value_numeric'] === undefined ? {} : { valueNumeric: e['value_numeric'] }),
@@ -100,7 +108,9 @@ const getResult: Handler = async (req, hctx) => {
   const id = obj(req.params)['result_id'];
   const row = (await (ctx.store as ReadStore).getResults(ctx.tx, ctx.tenantId, [id]))[0];
   if (!row) throw new LimsError('common.not_found');   // P-01: unknown / other tenant / invisible
-  await assertRead(ctx, row['centre_id']);              // authz after the object load (P-02)
+  // authz after the object load (P-02); 08 A13 D-13 hub lab: the processing centre also sees the result (T-32 P-12)
+  try { await assertRead(ctx, row['centre_id']); }
+  catch (e) { if (!(e instanceof LimsError && e.code === 'common.not_found' && typeof row['processing_centre_id'] === 'string')) throw e; await assertRead(ctx, row['processing_centre_id']); }
   return { status: 200, body: toResultDto(row) };
 };
 

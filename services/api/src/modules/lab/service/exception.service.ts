@@ -9,7 +9,7 @@ import { reapplyInstrumentResult, sqlIngestStore, type IngestCtx, type IngestOut
 import type { EntryRow, ResultRow } from './result.service.js';
 
 export type ExceptionRow = Record<string, any>;
-export interface ExceptionListQuery { status: 'open' | 'resolved' | 'discarded'; reasons?: string[]; instrumentId?: string; cursor?: string; limit: number }
+export interface ExceptionListQuery { status: 'open' | 'resolved' | 'discarded'; reasons?: string[]; instrumentId?: string; cursor?: string; limit: number; scopeCentreIds?: string[] }
 
 /** The T-22 IngestStore plus the exception queue members (the SQL store is wired with the core pipeline; a ctx without them fails closed). */
 export interface ExceptionStore extends IngestStore {
@@ -49,20 +49,34 @@ const invalid = (path: string, message: string): LimsError => new LimsError('com
 const MAX_COMMENT = 300;
 
 export async function listIngestExceptions(ctx: ExceptionCtx, q: ExceptionListQuery): Promise<{ rows: ExceptionRow[]; nextCursor?: string }> {
-  return ctx.store.listExceptions(ctx.tx, ctx.tenantId, q);   // tenant-filtered in SQL (P-03); the list DTO carries no raw instrument value
+  // P-02 (T-32): centre scope from IdentityPort.getActor; unknown scope = fail closed (500), never "all centres".
+  const id = (ctx as { ports?: { IdentityPort?: { getActor?(c: unknown): Promise<{ centreScope?: { all?: boolean; centreIds?: readonly string[] } }> } } }).ports?.IdentityPort;
+  if (typeof id?.getActor !== 'function') throw new LimsError('common.internal');
+  const s = (await id.getActor(ctx)).centreScope;
+  return ctx.store.listExceptions(ctx.tx, ctx.tenantId, { ...q, ...(s?.all === true ? {} : { scopeCentreIds: [...(s?.centreIds ?? [])] }) });   // tenant-filtered in SQL (P-03); the list DTO carries no raw instrument value
 }
 
 /** #39: raw value, flags and unit are P3 data: one `ingest_exception.view` access-log row naming the record, never its content (REQ-SEC-096/098). */
 export async function getIngestException(ctx: ExceptionCtx, id: string): Promise<ExceptionRow> {
   const row = await ctx.store.getExceptionRow(ctx.tx, ctx.tenantId, id);
   if (!row) throw new LimsError('common.not_found');
+  await atCentre(ctx, 'lab.result.read', row['centre_id']);
   await ctx.audit.access({ action: 'ingest_exception.view', entityType: 'ingest_exception', entityId: id, outcome: 'allowed' });
   return row;
+}
+
+/** P-02 (T-32): the caller's role at the object's centre; a centre outside the scope is reported as not found (404), other refusals (mfa, revoked) pass through. */
+async function atCentre(ctx: ExceptionCtx, permission: string, centreId: unknown): Promise<void> {
+  const id = (ctx as { ports?: { IdentityPort?: { assertRole(c: unknown, r: { permission: string; centreId?: string }): Promise<unknown> } } }).ports?.IdentityPort;
+  if (!id) throw new LimsError('common.internal');   // fail closed: no identity port
+  try { await id.assertRole(ctx, { permission, ...(typeof centreId === 'string' ? { centreId } : {}) }); }
+  catch (e) { throw e instanceof LimsError && e.code === 'auth.forbidden' ? new LimsError('common.not_found') : e; }
 }
 
 async function lockOpen(ctx: ExceptionCtx, id: string): Promise<ExceptionRow> {
   const row = await ctx.store.lockException(ctx.tx, ctx.tenantId, id);
   if (!row) throw new LimsError('common.not_found');
+  await atCentre(ctx, 'lab.result.enter', row['centre_id']);   // P-02: before any state check, so another centre's exception is indistinguishable from a missing one
   if (row['status'] !== 'open') throw invalid('/status', 'exception is not open');   // resolved / discarded are terminal (03-APP-FLOW §1.3)
   return row;
 }
@@ -109,6 +123,7 @@ export async function assignIngestException(ctx: ExceptionCtx, id: string, a: { 
   const row = await lockOpen(ctx, id);
   const target = await ctx.store.getResultForAssign(ctx.tx, ctx.tenantId, a.resultId);
   if (!target) throw new LimsError('common.not_found');
+  await atCentre(ctx, 'lab.result.enter', target.centreId);   // P-02 / P-07: the target result's own centre
   const out = await reapplyInstrumentResult(ctx, exceptionToInput(row), { resultKey: row['result_key'], assign: { target, overrideAnalyte: a.overrideAnalyte === true } });
   return finish(ctx, id, row, out.outcome, out.saved);
 }

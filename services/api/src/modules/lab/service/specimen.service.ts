@@ -263,9 +263,9 @@ async function single(hctx: unknown, kind: Exclude<Kind, 'dispatch'>, params: un
   const id = uuidParam(params, 'specimen_id');
   const version = expectedVersion(headers);
   const a = parseAction(kind, body, c.now());
-  const centre = a.processingCentreId ? await resolveCentre(c, a.processingCentreId) : undefined;
   const row = await getSpecimenWithOrder(repoCtx(c), id);
-  if (!row || !visible(await scopeOf(c), row)) throw new LimsError('common.not_found');
+  if (!row || !visible(await scopeOf(c), row)) throw new LimsError('common.not_found');   // P-01 / P-02 first (T-32): a foreign specimen is 404 whatever centre the body names
+  const centre = a.processingCentreId ? await resolveCentre(c, a.processingCentreId) : undefined;
   const { updated } = await move(c, row, version, a, centre);
   await emit(c, row, updated, a);
   return { status: 200, body: await dto(c, updated) };

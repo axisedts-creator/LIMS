@@ -14,7 +14,8 @@ const NOTIFIED_AT_SKEW_MS = 5 * 60_000;                 // S-06: clock skew allo
 const READ_BACK_MAX = 300;
 const ISO_INSTANT = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?(Z|[+-]\d{2}:\d{2})$/;
 
-export interface ListQuery { status?: string; detectedAtFrom?: string; detectedAtTo?: string; centreId?: string; cursor?: string; limit: number }
+/** scopeCentreIds: the caller's centre scope (absent = all centres); set by the service from IdentityPort.getActor, never from the request (P-02, REQ-SEC-017). */
+export interface ListQuery { status?: string; detectedAtFrom?: string; detectedAtTo?: string; centreId?: string; cursor?: string; limit: number; scopeCentreIds?: readonly string[] }
 export interface NotificationInput {
   notifiedPartyKind: string; notifiedPartyName: string; contactMethod: string; contactDetail?: string; notifiedAt: string;
   outcome: string; readBackConfirmed: boolean; readBackText?: string; comment?: string;
@@ -31,7 +32,7 @@ export interface CriticalCtx {
   tenantId: string; actor: { id: string; membershipId?: string }; tx: unknown; now(): Date; store: CriticalStore;
   ports: {
     CatalogPort: { getReferrer(ctx: unknown, i: { referrerId: string; purpose: 'display' }): Promise<{ displayName: string }> };
-    IdentityPort: { assertRole(ctx: unknown, r: { permission: string; centreId?: string }): Promise<void> };
+    IdentityPort: { assertRole(ctx: unknown, r: { permission: string; centreId?: string }): Promise<void>; getActor?(ctx: unknown): Promise<{ centreScope?: { all?: boolean; centreIds?: readonly string[] } }> };
   };
   audit: { access(e: Record<string, unknown>): Promise<void> };
 }
@@ -56,7 +57,10 @@ function validate(i: NotificationInput, now: Date): void {
 }
 
 export async function listCriticalValues(ctx: CriticalCtx, q: ListQuery): Promise<{ rows: EventRow[]; nextCursor?: string }> {
-  const page = await ctx.store.listCriticalEvents(ctx.tx, ctx.tenantId, q);
+  // P-02 (T-32): only events of the caller's centres; no getActor = no known scope = fail closed (500), never "all centres".
+  if (typeof ctx.ports.IdentityPort.getActor !== 'function') throw new LimsError('common.internal');
+  const s = (await ctx.ports.IdentityPort.getActor(ctx)).centreScope;
+  const page = await ctx.store.listCriticalEvents(ctx.tx, ctx.tenantId, { ...q, ...(s?.all === true ? {} : { scopeCentreIds: [...(s?.centreIds ?? [])] }) });
   await ctx.audit.access({ action: 'critical_value.view', entityType: 'critical_value', outcome: 'allowed', detail: { count: page.rows.length } });   // one row per call, ids/counts only (REQ-SEC-006)
   return { rows: page.rows, ...(page.nextCursor === undefined ? {} : { nextCursor: page.nextCursor }) };
 }

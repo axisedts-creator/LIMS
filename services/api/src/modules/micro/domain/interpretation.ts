@@ -7,7 +7,7 @@ export interface InterpretationCatalog {
 export interface InterpretationEntry {
   category_code?: string | null;
   standard?: string | null;
-  standard_version?: number | null;
+  standard_version?: string | null;
   antibiotic_code: string;
   raw_value?: string | null;
 }
@@ -20,12 +20,12 @@ const blank = (v: string | null | undefined) => v == null || v.trim() === '';
 
 export function validateInterpretation(entry: InterpretationEntry, catalog: InterpretationCatalog): InterpretationResult {
   const { category_code: cat, standard, standard_version: version } = entry;
-  // No category: nothing to validate. An empty-string category counts as absent only when the
-  // rest of the interpretation is absent too; otherwise it falls through and is not an allowed code.
-  if (cat == null || (cat === '' && blank(standard) && version == null && blank(entry.raw_value))) return { ok: true };
+  // No category (null/undefined only): nothing to validate. '' is not a category and fails closed below.
+  if (cat == null) return { ok: true };
 
   if (blank(entry.raw_value)) return fail('micro.ast_value_invalid'); // §4.4 step 0
-  if (blank(standard) || !Number.isInteger(version) || version! < 1 || version! > 32) return fail('micro.ast_standard_required');
+  // standard_version is a string, char_length 1..32 (05-SCHEMA.md:187/898).
+  if (blank(standard) || typeof version !== 'string' || [...version].length < 1 || [...version].length > 32) return fail('micro.ast_standard_required');
 
   const known = catalog.interpretations.some((r) => r.is_active && r.standard === standard && r.code === cat);
   if (!known) return fail('micro.ast_category_not_allowed');

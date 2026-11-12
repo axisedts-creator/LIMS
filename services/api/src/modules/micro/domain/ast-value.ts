@@ -26,8 +26,8 @@ export function parseAstValue(input: string, method: AstMethod): AstParseResult 
   if (method === 'other') return { ok: true, value: { raw_value: input } };
 
   const m = (method === 'mic' ? MIC : method === 'zone_diameter' ? ZONE : null)?.exec(s);
-  if (!m) return INVALID;
-  const raw_numeric = m[2];
+  const raw_numeric = m?.[2];
+  if (!m || raw_numeric === undefined) return INVALID; // group 2 is mandatory in both grammars
   if (method === 'zone_diameter' && compareDecimal(raw_numeric, '100') > 0) return INVALID;
   return {
     ok: true,

@@ -127,7 +127,7 @@ void main() {
       await tester.pump();
       final app = tester.widget<MaterialApp>(find.byType(MaterialApp));
       expect(app.theme?.colorScheme.primary, LimsTheme.light().colorScheme.primary);
-      expect(app.theme?.fontFamily, LimsTheme.light().fontFamily);
+      expect(app.theme?.textTheme.bodyMedium?.fontFamily, LimsTheme.light().textTheme.bodyMedium?.fontFamily);
     });
   });
 }

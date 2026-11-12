@@ -457,7 +457,6 @@ describe('M42 strict metadata/body validation -> 400 common.validation_failed; n
     ['forged tenant_id in metadata', { metadata: { tenant_id: TENANT_B } }],
     ['forged created_by in metadata', { metadata: { created_by: USER_A } }],
     ['unknown top-level field', { extra: { status: 'validated' } }],
-    ['file missing', { file: undefined }],
     ['file not an object', { file: 'a,b,c' }],
     ['file bytes not binary', { file: { filename: 'a.csv', mimeType: 'text/csv', bytes: 'a,b,c' } }],
   ];
@@ -471,6 +470,12 @@ describe('M42 strict metadata/body validation -> 400 common.validation_failed; n
   it('metadata missing entirely -> 400', async () => {
     const s = setup();
     await expectErr(handlers['createBreakpointImport']!(reqFor({ file: fileOf() }), { ...s.ctx, operationId: 'createBreakpointImport' }), 'common.validation_failed');
+    untouched(s);
+  }, T);
+
+  it('file missing entirely -> 400', async () => {
+    const s = setup();
+    await expectErr(handlers['createBreakpointImport']!(reqFor({ metadata: META }), { ...s.ctx, operationId: 'createBreakpointImport' }), 'common.validation_failed');
     untouched(s);
   }, T);
 

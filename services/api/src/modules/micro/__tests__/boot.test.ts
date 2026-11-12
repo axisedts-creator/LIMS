@@ -177,11 +177,12 @@ describe('C10-T01 boot against the real repo (default modulesDir, real micro.yam
     apps.push(app);
     return app;
   };
-  // Ruling C10.T-01: substitute a schema-valid value per path param (integer -> 1, uuid $ref -> UUID),
-  // so a 400 common.validation_failed (conventions §422) cannot pre-empt the 401 auth.* assertion.
+  // Ruling C10.T-01 (#1, #2): substitute a schema-valid value per path param (enum -> enum[0], integer -> 1,
+  // else UUID), so a 400 common.validation_failed (conventions §422) cannot pre-empt the 401 auth.* assertion.
   const toUrl = (path: string, op: any) =>
     path.replace(/\{([^}]+)\}/g, (_m, name: string) => {
       const p = (op.parameters ?? []).find((q: any) => q.in === 'path' && q.name === name);
+      if (Array.isArray(p?.schema?.enum)) return String(p.schema.enum[0]);
       return p?.schema?.type === 'integer' ? '1' : '01950c10-0000-7000-8000-000000000001';
     });
 

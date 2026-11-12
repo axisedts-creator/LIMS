@@ -5,6 +5,7 @@
 import type { Handler } from '../../../core/module.js';
 import { LimsError } from '../../../core/errors.js';
 import { accessionAnatomicCase, addAnatomicPart, listAnatomicAssignees, updateAnatomicCaseDetails, updateAnatomicPart } from './case.handlers.js';
+import { cancelAnatomicCase, markAnatomicCaseReady, saveAnatomicGross, startAnatomicProcessing } from './gross.handlers.js';
 
 const OPERATION_IDS = [
   'listAnatomicCases', 'lookupAnatomicObject', 'getAnatomicCase', 'accessionAnatomicCase',
@@ -37,6 +38,7 @@ const stub = (operationId: string): Handler => async () => {
 // later tasks register their real handlers here
 const implemented: Partial<Record<AnatomicOperationId, Handler>> = {
   accessionAnatomicCase, updateAnatomicCaseDetails, addAnatomicPart, updateAnatomicPart, listAnatomicAssignees, // C11 T-06
+  saveAnatomicGross, startAnatomicProcessing, markAnatomicCaseReady, cancelAnatomicCase, // C11 T-08
 };
 
 export const handlers: Readonly<Record<AnatomicOperationId, Handler>> = Object.freeze(

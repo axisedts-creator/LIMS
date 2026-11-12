@@ -27,11 +27,11 @@ export function anatomicCtx(c: unknown): AnatomicCtx {
   }
   return x as AnatomicCtx;
 }
-const bad = (...paths: string[]): LimsError => new LimsError('common.validation_failed', undefined,
+export const bad = (...paths: string[]): LimsError => new LimsError('common.validation_failed', undefined,
   paths.map((path): FieldError => ({ path, code: 'common.field_invalid', message: 'Field invalid' })));
-const isObj = (v: unknown): v is Obj => typeof v === 'object' && v !== null && !Array.isArray(v);
+export const isObj =(v: unknown): v is Obj => typeof v === 'object' && v !== null && !Array.isArray(v);
 /** Closed object (AB-5): any key outside `allowed` -> 400 common.unknown_field, the value is never echoed. */
-function strict(v: unknown, allowed: readonly string[], path = ''): Obj {
+export function strict(v: unknown, allowed: readonly string[], path = ''): Obj {
   if (!isObj(v)) throw bad(path);
   for (const k of Object.keys(v)) {
     if (!allowed.includes(k)) throw new LimsError('common.validation_failed', undefined, [{ path: `${path}/${k}`, code: 'common.unknown_field', message: 'Unknown field' }]);
@@ -39,7 +39,7 @@ function strict(v: unknown, allowed: readonly string[], path = ''): Obj {
   return v;
 }
 const uuid = (v: unknown, path: string): string => { if (typeof v !== 'string' || !UUID.test(v)) throw bad(path); return v; };
-function text(v: unknown, path: string, max: number, min = 0): string {
+export function text(v: unknown, path: string, max: number, min = 0): string {
   if (typeof v !== 'string' || v.includes('\u0000') || v.length > max || [...v].length < min) throw bad(path);
   return v;
 }
@@ -52,17 +52,17 @@ function expectedVersion(headers: unknown): number {
   return Number(m[1]);
 }
 
-async function loadCase(c: AnatomicCtx, caseId: unknown, forUpdate = false): Promise<Row> {
+export async function loadCase(c: AnatomicCtx, caseId: unknown, forUpdate = false): Promise<Row> {
   if (typeof caseId !== 'string' || !UUID.test(caseId)) throw new LimsError('common.not_found');
   const row = await getCase(c.tx, { tenantId: c.tenantId, caseId, forUpdate });
   if (!row) throw new LimsError('common.not_found'); // RLS / other tenant look the same
   return row;
 }
-const assertAt = (c: AnatomicCtx, permission: 'anatomic.case.work' | 'anatomic.case.read', cs: Row) =>
+export const assertAt =(c: AnatomicCtx, permission: 'anatomic.case.work' | 'anatomic.case.read', cs: Row) =>
   c.ports.IdentityPort.assertRole(c, { permission, centreId: cs['centre_id'] });
 
-const iso = (v: unknown): string | undefined => (v instanceof Date ? v.toISOString() : typeof v === 'string' ? v : undefined);
-const put = (o: Obj, k: string, v: unknown): void => { if (v !== null && v !== undefined) o[k] = v; }; // no null on the wire
+export const iso = (v: unknown): string | undefined => (v instanceof Date ? v.toISOString() : typeof v === 'string' ? v : undefined);
+export const put = (o: Obj, k: string, v: unknown): void => { if (v !== null && v !== undefined) o[k] = v; }; // no null on the wire
 
 export function partDto(p: Row): Obj {
   const o: Obj = { id: p['id'], letter: p['letter'], specimen_state: p['specimen_state'] ?? 'none', version: Number(p['version']) };

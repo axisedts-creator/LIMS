@@ -50,6 +50,12 @@ export async function getTestProfile(tx: Q, i: { tenantId: string; id: string })
   return rows[0];
 }
 
+/** Profile of a catalog test (unique per tenant + test_id). */
+export async function getTestProfileByTestId(tx: Q, i: { tenantId: string; testId: string }): Promise<Row | undefined> {
+  const { rows } = await tx.query(`SELECT * FROM anatomic.test_profiles WHERE tenant_id = $1 AND test_id = $2`, [i.tenantId, i.testId]);
+  return rows[0];
+}
+
 export async function listTestProfiles(tx: Q, i: { tenantId: string; activeOnly?: boolean; limit?: number; offset?: number }): Promise<Row[]> {
   const p = page(i);
   const { rows } = await tx.query(

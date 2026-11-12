@@ -401,9 +401,11 @@ describe('unexpected database failures never leak (fail closed)', () => {
   it('an unknown pg error on INSERT surfaces as a non-validation error without SQL text', async () => {
     const db = fakeDb(A, { all: false, centres: [C1] });
     const q = db.tx.query;
-    db.tx.query = async (text: string, values?: unknown[]) => { if (verb({ text, values: values ?? [] }) === 'insert') throw Object.assign(new Error('boom: relation secret_table'), { code: '08006' }); return q(text, values); };
+    let reachedInsert = false;
+    db.tx.query = async (text: string, values?: unknown[]) => { if (verb({ text, values: values ?? [] }) === 'insert') { reachedInsert = true; throw Object.assign(new Error('boom: relation secret_table'), { code: '08006' }); } return q(text, values); };
     const r = await run('createCounter', { body: KBODY }, MANAGER_C1, { db });
-    expect(db.calls.some((c) => verb(c) === 'insert')).toBe(true); // the handler really reached the INSERT (not the T-01 placeholder)
+    expect(reachedInsert).toBe(true); // the handler really reached the INSERT (not the T-01 placeholder)
     expect(r.error).toBeDefined(); expect(['common.validation_failed', 'common.service_unavailable']).not.toContain(r.error.code); expect(JSON.stringify(r.error.errors ?? [])).not.toContain('secret_table');
+    expect(r.error.code).toBe('common.internal'); // 02-CONVENTIONS.md:416
   });
 });

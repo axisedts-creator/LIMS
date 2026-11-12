@@ -16,8 +16,12 @@ export async function insertCase(tx: Q, row: Row): Promise<Row> {
   return rows[0] as Row;
 }
 
-export async function getCase(tx: Q, i: { tenantId: string; caseId: string }): Promise<Row | undefined> {
-  const { rows } = await tx.query(`SELECT * FROM anatomic.cases WHERE tenant_id = $1 AND id = $2`, [i.tenantId, i.caseId]);
+/** forUpdate: take the case row lock (serialises A6 part-letter allocation per case). */
+export async function getCase(tx: Q, i: { tenantId: string; caseId: string; forUpdate?: boolean }): Promise<Row | undefined> {
+  const sql = i.forUpdate
+    ? `SELECT * FROM anatomic.cases WHERE tenant_id = $1 AND id = $2 FOR UPDATE`
+    : `SELECT * FROM anatomic.cases WHERE tenant_id = $1 AND id = $2`;
+  const { rows } = await tx.query(sql, [i.tenantId, i.caseId]);
   return rows[0];
 }
 

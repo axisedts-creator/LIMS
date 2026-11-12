@@ -52,9 +52,9 @@ function expectedVersion(headers: unknown): number {
   return Number(m[1]);
 }
 
-async function loadCase(c: AnatomicCtx, caseId: unknown): Promise<Row> {
+async function loadCase(c: AnatomicCtx, caseId: unknown, forUpdate = false): Promise<Row> {
   if (typeof caseId !== 'string' || !UUID.test(caseId)) throw new LimsError('common.not_found');
-  const row = await getCase(c.tx, { tenantId: c.tenantId, caseId });
+  const row = await getCase(c.tx, { tenantId: c.tenantId, caseId, forUpdate });
   if (!row) throw new LimsError('common.not_found'); // RLS / other tenant look the same
   return row;
 }
@@ -157,7 +157,8 @@ export async function updateCaseDetails(hctx: unknown, params: unknown, headers:
 // ---- A6 addAnatomicPart ----
 export async function addPart(hctx: unknown, params: unknown, _headers: unknown, body: unknown): Promise<Result> {
   const c = anatomicCtx(hctx);
-  const cs = await loadCase(c, isObj(params) ? params['case_id'] : undefined);
+  // case row lock (FOR UPDATE) serialises concurrent A6 on one case, so two calls never pick the same letter
+  const cs = await loadCase(c, isObj(params) ? params['case_id'] : undefined, true);
   await assertAt(c, 'anatomic.case.work', cs);
   if (cs['status'] === 'signed_out') throw new LimsError('anatomic.signout_locked'); // never add parts after sign-out (D-66 (c))
   if (cs['status'] === 'cancelled') throw new LimsError('anatomic.case_invalid_transition');
@@ -179,14 +180,7 @@ export async function addPart(hctx: unknown, params: unknown, _headers: unknown,
   };
   if (description !== undefined) row['description_text'] = description;
   if (specimenId !== undefined) row['specimen_id'] = specimenId;
-  let inserted: Row;
-  try {
-    inserted = await insertPart(c.tx, row);
-  } catch (e) {
-    if ((e as { code?: unknown } | null)?.code === '23505') throw new LimsError('common.version_conflict'); // concurrent A6 took the same letter: retry
-    throw e;
-  }
-  return { status: 201, body: partDto(inserted) };
+  return { status: 201, body: partDto(await insertPart(c.tx, row)) }; // any 23505 rethrows (common.internal)
 }
 
 // ---- A7 updateAnatomicPart ----

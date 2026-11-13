@@ -1,0 +1,8 @@
+# T-B6 impl (writer)
+Files: features/engagement/components/{BookingsList,BookingDetail,BookingNew,SlotsAdmin,BookableCatalogue,BookingDialogs,BookingHosts}.tsx, booking-model.ts; server/{booking.server.ts,booking-actions.ts,booking-pages.tsx}; app/(staff)/engagement/{bookings,bookings/[booking_id],bookings/new,slots,bookable-items}/{page,loading,error}.tsx. Kit WeekdayTimeRangeEditor (+stories) is from round 1 (LD-146).
+[CONV] W1 status filter = kit Checkbox group next to FilterBar: FilterBar's `select multiple` renders `.lims-chip` options with no tone, and LD-140/test requires every chip to carry a tone.
+[CONV] W3 Tests = single-value kit Combobox + chosen list (max 20, exact match first, 8 options); the last pick stays as the combobox value so the list closes after a pick.
+[CONV] Blackout note is uncontrolled with an input cap of 2000, checked at ≤200 on Save, so an over-long note is refused with a message (an input maxLength would cut it silently). W1 date window = Kathmandu midnight from–(to+1), at most 31 days. Kathmandu offset fixed at +05:45 (ponytail note in booking-model).
+Server actions re-check permission, ids, keys, body shapes. Idempotency-Key on S3/S4/S5/S7/S10/S13; If-Match on S4/S5/S8/S9/S11 (S13 when a version is known). Patient names come from C4 only with frontdesk.patient.read, else "—".
+Open: (a) see T-B6-dispute.md (1 timeout, 2 T-Q4 source scope). (b) W3 Tests list uses S12 (needs bookable_item.manage); staff without it see an empty list. (c) Queue list for check-in needs queue.operate, else check-in without a token only.
+Checks: t-b6 91/92 (the timeout); kit editor 16/16; tsc clean for T-B6 files (166 errors elsewhere, existing); ESLint not installed in the repo, not run.

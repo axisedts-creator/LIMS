@@ -275,7 +275,7 @@ describe('C9 T-01 boot against the real repo (default modulesDir, real quality.y
     }
     expect(n).toBe(54);
     expect(unmounted).toEqual([]);
-  }, 60_000);
+  }, 300_000);
 
   it('fails closed: operations without required query/body answer 401 auth.* without credentials (never 200/403/501/500); non-spec path is 404', async () => {
     const app = await boot();

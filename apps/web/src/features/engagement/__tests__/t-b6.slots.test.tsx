@@ -17,13 +17,14 @@ const grid = (re: RegExp) => screen.getByRole('grid', { name: re });
 const openTemplateForm = async (user: U) => { await user.click(screen.getByRole('button', { name: /new template/i })); return screen.findByRole('dialog'); };
 const openBlackoutForm = async (user: U) => { await user.click(screen.getByRole('button', { name: /add blackout/i })); return screen.findByRole('dialog'); };
 const fill = async (user: U, scope: HTMLElement, label: RegExp, value: string) => {
-  const f = within(scope).getByLabelText(label);
+  // T-B6-ruling: kit DateFieldBase adds a button aria-label "Open calendar for {label}" → match the field itself (input/textarea), not the button.
+  const f = within(scope).getByLabelText(label, { selector: 'input,textarea' });
   await user.clear(f);
   if (value) await user.type(f, value);
   await user.tab(); // commit pickers on blur
 };
 const save = (d: HTMLElement) => within(d).getByRole('button', { name: /^(save|create|add)/i });
-const chip = (d: HTMLElement, name: RegExp) => within(d).getAllByRole(/^(button|checkbox)$/).find((e) => name.test(H.norm(e.textContent) || e.getAttribute('aria-label') || ''))!;
+const chip = (d: HTMLElement, name: RegExp) => [...within(d).queryAllByRole('button'), ...within(d).queryAllByRole('checkbox')].find((e) => name.test(H.norm(e.textContent) || e.getAttribute('aria-label') || ''))!;
 const on = (e: Element) => e.getAttribute('aria-pressed') === 'true' || e.getAttribute('aria-checked') === 'true' || (e as HTMLInputElement).checked === true;
 const hasInvalid = (d: HTMLElement) => within(d).queryAllByRole('alert').length > 0 || d.querySelectorAll('[aria-invalid="true"]').length > 0 || /invalid|required|must|at least|after|between|at most/i.test(H.norm(d.textContent));
 

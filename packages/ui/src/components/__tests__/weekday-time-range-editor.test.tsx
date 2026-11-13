@@ -15,7 +15,7 @@ import { seriousViolations, user } from './helpers';
 type V = { weekdays: number[]; start: string; end: string };
 const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 const WORK: V = { weekdays: [1, 2, 3, 4, 5], start: '07:00', end: '11:00' };
-const chips = () => DAYS.map((d) => screen.getAllByRole(/^(button|checkbox)$/).find((e) => new RegExp(`^${d}`, 'i').test((e.textContent ?? '').trim() || e.getAttribute('aria-label') || ''))!);
+const chips = () => DAYS.map((d) => [...screen.queryAllByRole('button'), ...screen.queryAllByRole('checkbox')].find((e) => new RegExp(`^${d}`, 'i').test((e.textContent ?? '').trim() || e.getAttribute('aria-label') || ''))!);
 const isOn = (e: Element) => e.getAttribute('aria-pressed') === 'true' || e.getAttribute('aria-checked') === 'true' || (e as HTMLInputElement).checked === true;
 const start = () => screen.getByLabelText(/start/i) as HTMLInputElement;
 const end = () => screen.getByLabelText(/end/i) as HTMLInputElement;

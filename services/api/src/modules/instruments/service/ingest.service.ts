@@ -4,7 +4,9 @@
 // published first, then the run and its records are inserted once with final values (step 12).
 // Logs, metrics and persisted warnings carry codes, ids and field NAMES only: never a barcode, value, raw byte or result key (02-CV §9.2).
 import { createHash } from 'node:crypto';
+import { uuidv7 } from '../../../../../../packages/shared-ts/src/uuidv7/index.js';
 import { LimsError } from '../../../core/errors.js';
+import type { IncomingFile } from '../../../core/uploads/index.js';
 import { eventValidators } from '../../../core/events/publish.js';
 import { loadInstrumentsConfig, type InstrumentsConfig } from '../config.js';
 import { toDecimalString } from '../domain/decimal.js';
@@ -21,6 +23,9 @@ export interface IngestCtx extends DeviceCtx {
   readonly events: EventsPort;
   readonly ports?: { readonly CatalogPort?: { mapInstrumentCode(ctx: unknown, input: { instrumentId: string; direction: 'inbound'; instrumentCode: string }): Promise<Row> } };
   readonly log?: { error(o: Record<string, unknown>, msg: string): void };
+  /** CR-C7-015: same port as attachments.service (§6.8 step 2); `storage` is only used to drop an object that will not be referenced. */
+  readonly uploads?: { accept(file: IncomingFile, opts: Row): Promise<{ sha256: string; mime: string; objectPath: string; bucket: string; scanState: string }> };
+  readonly storage?: { delete(bucket: any, path: string): Promise<void> };
   readonly metrics?: { inc(name: string, labels?: Record<string, string>): void };
 }
 export interface IngestDeps {
@@ -33,7 +38,12 @@ const MAX_MESSAGES = 100;
 const B64 = /^[A-Za-z0-9+/]*={0,2}$/;
 const SAFE_WARNING = /^[a-z0-9_.:-]{1,64}$/i;       // driver warnings are persisted only when they look like codes
 const REUSED_PREFIX = 16;
-const META_INTS = ['frames', 'retransmits', 'naks_sent', 'mllp_discarded_bytes'];
+const ATT_BUCKET = 'instruments-attachments' as const;
+const ATT_ALLOW = ['image/jpeg', 'image/png'] as const;          // LD-139 / CR-C7-015: the inline picture is never a PDF
+const ATT_EXT: Readonly<Record<string, string>> = { 'image/jpeg': 'jpg', 'image/png': 'png' };
+const ATT_MAX_BYTES = 15 * 1024 * 1024;                             // core uploads hard cap (02-CV §10.2); the ingest cap below is the tighter one
+const ATT_REJECT = ['common.unsupported_media_type', 'common.payload_too_large', 'common.upload_quarantined'];
+const META_INTS =['frames', 'retransmits', 'naks_sent', 'mllp_discarded_bytes'];
 const META_REASONS = ['frame_timeout', 'new_enq', 'new_start_block', 'msh_unparseable', 'process_restart'];
 const sha256 = (b: Uint8Array | string) => createHash('sha256').update(b).digest('hex');
 const iso = (v: unknown) => new Date(v as string).toISOString();
@@ -227,6 +237,9 @@ export function createIngestService(deps: IngestDeps = {}) {
         }
         if (r.unitRaw !== undefined && r.unitRaw.length > 32) bad.push('unit_raw');
         if (!flagsOk) bad.push('instrument_flags');
+        const inline = cls === 'patient' && r.recordKind === 'attachment' ? r.inlineAttachment : undefined;      // CR-C7-015: ignored on any other record
+        const inlineB64 = inline?.base64;
+        if (inline && !(typeof inlineB64 === 'string' && inlineB64.length > 0 && inlineB64.length % 4 === 0 && B64.test(inlineB64))) bad.push('inline_attachment');
 
         const mapping = codeOk ? await mapCode(B, ins['id'], code) : undefined;
         if (mapping?.status === 'unmapped') counters.unmapped_records++;
@@ -249,6 +262,25 @@ export function createIngestService(deps: IngestDeps = {}) {
         else status = outcome === 'parsed' ? 'emit' : 'shadow';
 
         let eventId: string | undefined; let resultKey: string | undefined;
+        let attachment: Row | undefined; const upWarnings: string[] = [];
+        if (inline && status === 'emit') {                    // shadow instruments store nothing (no object without an event)
+          if (!ctx.uploads) throw new LimsError('common.internal');                                  // fail closed: retry, never a silent drop
+          const id = uuidv7(); const now = new Date(ctx.now?.() ?? new Date());
+          const objectPath = `${tenantId}/${now.getUTCFullYear()}/${String(now.getUTCMonth() + 1).padStart(2, '0')}/${id}.${ATT_EXT[inline.mimeType] ?? 'bin'}`;   // [CONV] scanned clean here, so not under the q/ prefix of E06
+          try {
+            const up = await ctx.uploads.accept({ filename: `${id}.${ATT_EXT[inline.mimeType] ?? 'bin'}`, mimeType: inline.mimeType, bytes: Buffer.from(inlineB64!, 'base64') },
+              { allow: ATT_ALLOW, maxBytes: Math.min(B.maxBytes, ATT_MAX_BYTES), bucket: ATT_BUCKET, objectPath, images: { reencode: true, stripMetadata: true }, scan: 'required' });
+            if (up.scanState !== 'clean') {                                                          // scanner down: fail closed, retry the message
+              await ctx.storage?.delete(ATT_BUCKET, up.objectPath).catch(() => undefined);
+              throw new LimsError('common.internal');
+            }
+            attachment = { bucket: up.bucket, object_path: up.objectPath, sha256: up.sha256, mime_type: up.mime };
+          } catch (e) {
+            const code = e instanceof LimsError ? e.code : undefined;
+            if (!code || !ATT_REJECT.includes(code)) throw e;
+            status = code === 'common.upload_quarantined' ? 'quarantined_attachment' : 'skipped_invalid'; upWarnings.push(code);   // the message stays accepted: a retry cannot succeed
+          }
+        }
         if (status === 'emit' || status === 'shadow') {
           const common: Row = { instrument_message_id: messageId, instrument_id: ins['id'], centre_id: ins['centre_id'], instrument_analyte_code: code, mapping_status: mapping!.status,
             ...(mapping!.analyteId ? { analyte_id: mapping!.analyteId } : {}), ...(r.valueRaw !== undefined ? { value_raw: r.valueRaw } : {}), ...(numeric ? { value_numeric: numeric } : {}),
@@ -257,7 +289,7 @@ export function createIngestService(deps: IngestDeps = {}) {
           if (cls === 'patient') {
             payload = { ...common, agent_id: agentId, protocol: ins['protocol'], sample_barcode: barcode, record_kind: r.recordKind,
               ...(mapping!.testId ? { test_id: mapping!.testId } : {}), ...(offset !== undefined ? { instrument_clock_offset_seconds: offset } : {}), is_rerun: r.isRerun ?? false,
-              ...(r.organism ? { organism: mapOrganism(r.organism) } : {}), ...(r.ast ? { ast: mapAst(r.ast) } : {}) };
+              ...(r.organism ? { organism: mapOrganism(r.organism) } : {}), ...(r.ast ? { ast: mapAst(r.ast) } : {}), ...(attachment ? { attachment } : {}) };
             resultKey = resultIdempotencyKey(payload);
           } else {
             payload = { ...common, control_id_raw: controlId, ...(r.controlLotRaw !== undefined ? { control_lot_raw: r.controlLotRaw } : {}), ...(r.controlLevel !== undefined ? { control_level: r.controlLevel } : {}) };
@@ -267,12 +299,13 @@ export function createIngestService(deps: IngestDeps = {}) {
             const out = cls === 'patient' ? await B.events.resultReceived(ctx, payload) : await B.events.qcReceived(ctx, payload, { rawSha256: sha });
             eventId = out.eventId; status = out.duplicate ? 'duplicate_event' : 'emitted';
             if (status === 'emitted') counters.emitted_events++;
+            else if (attachment) await ctx.storage?.delete(ATT_BUCKET, attachment['object_path']).catch(() => undefined);   // the first event keeps its own object
           }
         }
-        if (status === 'skipped_invalid') counters.skipped_records++;
+        if (status === 'skipped_invalid' || status === 'quarantined_attachment') counters.skipped_records++;
         else if (status === 'skipped_no_barcode' && mapping?.status === 'mapped') counters.skipped_no_barcode_records++;
 
-        const rowWarnings = [...bad.map((f) => `invalid_field:${f}`), ...r.warnings.filter((w) => SAFE_WARNING.test(w))].slice(0, 20);
+        const rowWarnings = [...bad.map((f) => `invalid_field:${f}`), ...upWarnings, ...r.warnings.filter((w) => SAFE_WARNING.test(w))].slice(0, 20);
         Object.assign(row, { sample_barcode: fit(r.sampleBarcode, 40) ?? null, control_id_raw: cls === 'qc' ? fit(controlId, 64) ?? null : null, control_lot_raw: fit(r.controlLotRaw, 64) ?? null,
           control_level: fit(r.controlLevel, 16) ?? null, record_kind: r.recordKind ?? null, instrument_analyte_code: codeOk ? code : null, mapping_status: mapping?.status ?? null,
           analyte_id: mapping?.analyteId ?? null, test_id: mapping?.testId ?? null, value_raw: fit(r.valueRaw, 200) ?? null, value_numeric: numeric ?? null, unit_raw: fit(r.unitRaw, 32) ?? null,

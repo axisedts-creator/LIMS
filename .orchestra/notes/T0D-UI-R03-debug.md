@@ -20,3 +20,7 @@ Fix: none in code (nothing to change). Orchestrator: free memory / stop stale no
 ## Round 5
 Cause: unchanged from round 4. Environment, not code: vitest "Failed to start forks worker ... Timeout waiting for worker to respond", 0 tests ran (re-ran verify.cmd, same 60s timeout). Snapshot tracked.
 Fix: none in code. Orchestrator must free host memory / stop stale node+vitest processes before re-running verify.cmd; re-dispatching the debugger will not help until then.
+
+## Round 6
+Cause: unchanged, environment. Re-ran verify.cmd: vitest hung >200s, 0 tests reported (same forks-worker startup stall as rounds 4-5). No impl/test defect found; snapshot tracked.
+Fix: none in code. Orchestrator must free host memory / kill stale node+vitest before re-running verify.cmd.

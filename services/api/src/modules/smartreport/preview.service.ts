@@ -15,7 +15,6 @@ export type PreviewCtx = BuildCtx & {
 };
 
 const FIXTURE_CODES: readonly string[] = ['synthetic_basic', 'synthetic_all_in_range', 'synthetic_critical'];
-const FIXTURES = '../../../../../packages/test-fixtures/src/smartreport/index.js';   // synthetic only (REQ-SEC 136); imported lazily so the order path never loads it
 
 class Rollback { out?: { results: Row[]; content: Awaited<ReturnType<typeof computeContent>> } }
 
@@ -49,7 +48,7 @@ export async function previewLibraryVersion(ctx: PreviewCtx, input: PreviewInput
     } catch (e) { if (e !== done) throw e; }
     ({ results, content } = done.out!);
   } else {
-    const fx = ((await import(/* @vite-ignore */ FIXTURES)) as { SMART_PREVIEW_FIXTURES: Record<string, { results: Row[]; analytes: Row[] }> }).SMART_PREVIEW_FIXTURES[fixtureCode as string]!;
+    const fx = ((await import('../../../../../packages/test-fixtures/src/smartreport/index.js')) as unknown as { SMART_PREVIEW_FIXTURES: Record<string, { results: Row[]; analytes: Row[] }> }).SMART_PREVIEW_FIXTURES[fixtureCode as string]!;   // LD-135: literal path (a variable path does not resolve under vitest)
     results = fx.results;
     content = await computeContent(ctx, rc, version, {}, '', results, fx.analytes);
   }

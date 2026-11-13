@@ -84,6 +84,20 @@ const DEFS = {
   lims_payments_refunds_total: ['counter', ['gateway', 'mode', 'status'], 'Refunds by gateway, mode and status'],
   lims_payments_held_for_review_oldest_age_seconds: ['gauge', ['tenant_id', 'kind'], 'Age of the oldest held_for_review intent or refund in seconds (0 when none)'],
   lims_payments_reconciliation_stalled_runs: ['gauge', ['tenant_id'], 'Reconciliation runs stalled in running for over 2 h'],
+  // C16 patient engagement (CR-C16-T-OPS1; LD-142 2026-11-13; 02-TRD §13 lines 812-824; names, types, labels verbatim)
+  lims_engagement_otp_requests_total: ['counter', ['outcome'], 'Patient OTP requests by outcome'],
+  lims_engagement_otp_verifications_total: ['counter', ['outcome'], 'Patient OTP verifications by outcome'],
+  lims_engagement_link_events_total: ['counter', ['method', 'outcome'], 'Patient link events by method and outcome'],
+  lims_engagement_projection_lag_seconds: ['histogram', ['event_type'], 'Engagement projection lag in seconds by event type'],
+  lims_engagement_projection_drift_total: ['counter', ['table'], 'Engagement projection drift detections by table'],
+  lims_engagement_bookings_total: ['counter', ['kind', 'outcome'], 'Bookings by kind and outcome'],
+  lims_engagement_slot_conflicts_total: ['counter', [], 'Booking slot conflicts'],
+  lims_engagement_queue_tokens_total: ['counter', ['event'], 'Queue token events by event'],
+  lims_engagement_queue_wait_seconds: ['histogram', [], 'Queue wait time in seconds'],
+  lims_engagement_displays_stale: ['gauge', [], 'Queue displays currently stale'],
+  lims_engagement_payment_requests_total: ['counter', ['gateway', 'outcome'], 'Patient payment requests by gateway and outcome'],
+  lims_engagement_reminders_total: ['counter', ['kind', 'outcome'], 'Reminders by kind and outcome'],
+  lims_engagement_report_downloads_total: ['counter', ['outcome'], 'Patient report downloads by outcome'],
 } as const satisfies Record<string, readonly [Kind, readonly string[], string]>;
 
 export type MetricName = keyof typeof DEFS;

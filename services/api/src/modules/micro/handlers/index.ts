@@ -9,6 +9,7 @@ import { astHandlers } from './ast.handlers.js';
 import { breakpointHandlers } from './breakpoint.handlers.js';
 import { configHandlers } from './config.handlers.js';
 import { cultureHandlers } from './culture.handlers.js';
+import { instrumentRecordHandlers } from './instrument-record.handlers.js';
 import { isolateHandlers } from './isolate.handlers.js';
 
 /** Implemented operations; each later task adds its own import + entry. */
@@ -17,6 +18,7 @@ const REAL: Readonly<Record<string, Handler>> = {
   ...isolateHandlers, // T-09: M7–M10
   ...astHandlers, // T-10: M11, M12, M29–M32
   ...configHandlers, // T-05: M23–M28, M39, M40
+  ...instrumentRecordHandlers, // T-14: M19–M22, M33–M38
   ...breakpointHandlers, // T-11: M41–M45, M49; T-13: M13, M46–M48
 };
 

@@ -4,13 +4,13 @@
 // ASSUMED contract (names not fixed by the spec; see actions.test.ts header):
 //   src/core/session.ts      PARTNER_SESSION_COOKIE, partnerSessionCookieOptions, readPartnerSessionId(cookieHeader),
 //                            resolvePartnerSession({touch}) -> { ok:true, session, accessToken } | { ok:false, status, problem }
-//                            (POST ${LIMS_PARTNER_BFF_API_URL}/v1/identity/auth/session/resolve with X-Lims-Bff-Key + cookie __Host-lims_psid; 'server-only')
+//                            (POST ${LIMS_PARTNER_BFF_API_URL}/v1/identity/auth/session/resolve with X-Lims-Bff-Key + cookie __Host-lims_sid (bffSession wire name); browser cookie stays __Host-lims_psid; 'server-only')
 //   src/core/auth-guard.ts   requirePartnerSession() -> { session, accessToken } for state 'active', else redirect() (throws)
 //   src/core/api.ts          partnerApi(path, { method?, body?, headers? }) -> { ok, status, data?, problem? }; path must be /v1/partners/**
 //   src/core/csrf.ts         checkCsrf({ method, headers }) -> { ok:true } | { ok:false, status:403, code:'auth.csrf_failed' }
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
-  AUTH, BFF_KEY, COOKIE, JWT, NEW_TOKEN, ORIGIN, SID, headerStore, installFetch, jar, json, networkError, problem, reply, resetApi, resolved, restoreFetch, run,
+  AUTH, BFF_COOKIE, BFF_KEY, COOKIE, JWT, NEW_TOKEN, ORIGIN, SID, headerStore, installFetch, jar, json, networkError, problem, reply, resetApi, resolved, restoreFetch, run,
   seen, setEnv,
 } from './harness';
 
@@ -60,7 +60,8 @@ describe('session.ts', () => {
     expect(c?.method).toBe('POST');
     expect(c?.body).toEqual({ touch: true });
     expect(c?.headers.get('x-lims-bff-key')).toBe(BFF_KEY);
-    expect(c?.headers.get('cookie')).toContain(`${COOKIE}=${SID}`);
+    expect(c?.headers.get('cookie')).toContain(`${BFF_COOKIE}=${SID}`);
+    expect(c?.headers.get('cookie')).not.toContain(COOKIE);
     expect(c?.headers.get('x-lims-origin')).toBeNull(); // kind is bound by the key, never by a client header (08 R10)
     expect(r).toMatchObject({ ok: true, accessToken: JWT });
   });

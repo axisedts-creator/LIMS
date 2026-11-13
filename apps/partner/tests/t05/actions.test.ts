@@ -10,11 +10,11 @@
 //   where code is the API problem code (or common.validation_failed for rejections made BEFORE any API call, auth.csrf_failed for CSRF).
 //   Plain success = { ok:true } (+ for startMfaEnrolment: factor_id, secret_base32, qr_svg_base64, otpauth_uri).
 //   The BFF calls C2 with X-Lims-Bff-Key (file LIMS_PARTNER_BFF_KEY_FILE) on LIMS_PARTNER_BFF_API_URL, forwards the client IP as
-//   X-Forwarded-For, forwards the opaque cookie as `cookie: __Host-lims_psid=<v>` on bffSession operations, and checks Origin against
+//   X-Forwarded-For, forwards the opaque cookie as `cookie: __Host-lims_sid=<v>` (bffSession wire name) on bffSession operations, and checks Origin against
 //   LIMS_ORIGIN_PARTNER. The session token goes ONLY into the cookie (never a redirect URL, never a return value).
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
-  AUTH, BFF_KEY, CLIENT_IP, COOKIE, FACTOR, JWT, NEW_TOKEN, ORIGIN, SID, apiCalls, form, headerStore, installFetch, jar, json, networkError,
+  AUTH, BFF_COOKIE, BFF_KEY, CLIENT_IP, COOKIE, FACTOR, JWT, NEW_TOKEN, ORIGIN, SID, apiCalls, form, headerStore, installFetch, jar, json, networkError,
   problem, reply, resetApi, restoreFetch, run, seen, sessionState, setEnv,
 } from './harness';
 
@@ -179,7 +179,8 @@ describe('verifyMfaAction (PA-2, US-02.7 / US-03.1 for admins)', () => {
     const r = await run(() => A.verifyMfaAction(form({ code: '123456' })));
     const [c] = apiCalls('/mfa/verify');
     expect(c?.body).toEqual({ code: '123456' });
-    expect(c?.headers.get('cookie')).toContain(`${COOKIE}=${SID}`);
+    expect(c?.headers.get('cookie')).toContain(`${BFF_COOKIE}=${SID}`);
+    expect(c?.headers.get('cookie')).not.toContain(COOKIE);
     expect(c?.headers.get('x-lims-bff-key')).toBe(BFF_KEY);
     expect(r.redirect).toBe('/');
   });
@@ -221,7 +222,8 @@ describe('MFA enrolment (PA-3, US-02.7: invited partner admin must enrol before 
     const r = await run(() => A.startMfaEnrolmentAction(form({ friendly_name: 'Phone' })));
     const [c] = apiCalls('/mfa/enrolment');
     expect(c?.body).toEqual({ friendly_name: 'Phone' });
-    expect(c?.headers.get('cookie')).toContain(`${COOKIE}=${SID}`);
+    expect(c?.headers.get('cookie')).toContain(`${BFF_COOKIE}=${SID}`);
+    expect(c?.headers.get('cookie')).not.toContain(COOKIE);
     expect(c?.headers.get('x-lims-bff-key')).toBe(BFF_KEY);
     expect(r.result).toMatchObject({ ok: true, factor_id: FACTOR, secret_base32: 'ABCDEFGH', qr_svg_base64: 'PHN2Zy8+' });
   });
@@ -259,7 +261,8 @@ describe('setPasswordAction (PA-6; invitation accept -> US-02.7)', () => {
     const r = await run(() => A.setPasswordAction(form({ new_password: PW, confirm_password: PW })));
     const [c] = apiCalls('/password/set');
     expect(c?.body).toEqual({ new_password: PW });
-    expect(c?.headers.get('cookie')).toContain(`${COOKIE}=${SID}`);
+    expect(c?.headers.get('cookie')).toContain(`${BFF_COOKIE}=${SID}`);
+    expect(c?.headers.get('cookie')).not.toContain(COOKIE);
     expect(r.redirect).toBe('/auth/mfa/enrol');
     reply[`${AUTH}/password/set`] = () => json(200, sessionState('active'));
     expect((await run(() => A.setPasswordAction(form({ new_password: PW, confirm_password: PW })))).redirect).toBe('/');
@@ -286,7 +289,8 @@ describe('logoutAction (US-03.5 / PX-1 Sign out)', () => {
     reply[`${AUTH}/logout`] = () => json(204, null);
     const r = await run(() => A.logoutAction());
     const [c] = apiCalls('/logout');
-    expect(c?.headers.get('cookie')).toContain(`${COOKIE}=${SID}`);
+    expect(c?.headers.get('cookie')).toContain(`${BFF_COOKIE}=${SID}`);
+    expect(c?.headers.get('cookie')).not.toContain(COOKIE);
     expect(c?.headers.get('x-lims-bff-key')).toBe(BFF_KEY);
     expect(jar.cleared).toContain(COOKIE);
     expect(r.redirect).toBe('/auth/login');

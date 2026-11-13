@@ -80,9 +80,9 @@ describe('no JWT / secret in the browser (US-03.1)', () => {
 describe('cookie attributes and session-kind binding (US-03.1, US-03.2/03.3, 08 R10)', () => {
   const all = () => files.map((f) => strip(read(f))).join('\n');
 
-  it('uses the partner cookie name; never the staff cookie name __Host-lims_sid or an unprefixed cookie', () => {
+  it('uses the partner cookie name in the browser; __Host-lims_sid only as the server-to-server bffSession wire name, never in Set-Cookie; no unprefixed cookie', () => {
     expect(all()).toContain('__Host-lims_psid');
-    expect(all()).not.toContain('__Host-lims_sid');
+    expect(all()).toContain('__Host-lims_sid'); // wire name of the forwarded cookie header (contracts/openapi/_common.yaml bffSession)
     expect(all()).not.toMatch(/['"]lims_p?sid['"]/);
   });
 

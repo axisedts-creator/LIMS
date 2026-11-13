@@ -7,7 +7,8 @@ import { join } from 'node:path';
 export const API = 'http://api.t05.test';
 export const BFF_KEY = 'bff-key-partner-t05-synthetic';
 export const ORIGIN = 'https://partner.t05.test'; // LIMS_ORIGIN_PARTNER
-export const COOKIE = '__Host-lims_psid';
+export const COOKIE = '__Host-lims_psid'; // browser-facing partner cookie (C13 02-TRD §4 item 2)
+export const BFF_COOKIE = '__Host-lims_sid'; // server-to-server wire cookie of bffSession ops (contracts/openapi/_common.yaml, 08 R10)
 export const SID = 'psid-existing-opaque-token-0123456789abcdefghijkl'; // opaque cookie value already in the browser
 export const NEW_TOKEN = 'newptoken_abcdefghijklmnopqrstuvwxyz0123456789AB'; // LoginResult.session_token
 export const JWT = 'eyJhbGciOiJFUzI1NiJ9.eyJzeW50aGV0aWMiOnRydWV9.c2lnbmF0dXJlc3ludGhldGlj'; // resolveSession.access_token

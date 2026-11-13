@@ -275,7 +275,7 @@ describe('visit.completed / visit.failed (V9, V10)', () => {
     expect([v.status, v.outcome]).toEqual(['completed', 'collected']);
     expect(new Date(v.completed_at).toISOString()).toBe(at(w.date, '04:20'));
     expect((await transitionRows(w.visit.id)).map((t) => `${t.from_status}>${t.to_status}`)).toEqual(['assigned>in_progress', 'in_progress>completed']);
-    expect((await mutRows(w)).map((m) => m.device_seq)).toEqual([1, 2, 3, 4, 5, 6, 7]);
+    expect((await mutRows(w)).map((m) => Number(m.device_seq))).toEqual([1, 2, 3, 4, 5, 6, 7]);
   });
   it('0 applied collections -> completed with outcome none', { timeout: T }, async () => {
     const w = await pushWorld({ file: FILE });

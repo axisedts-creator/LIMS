@@ -17,7 +17,7 @@ import { DISPATCHER, DISPATCHER_B, HC_CENTRE, LONG_ADDRESS, MEMBER, MEMBER2, NOB
   failure, hc, nameOf, ownerRows, phoneOf, req, responseErrors, schemaErrors, seed, spec, staffName, superTx, uid, userName, type Fx, type Who } from '../visits/helpers.js';
 
 export { DISPATCHER, DISPATCHER_B, HC_CENTRE, LONG_ADDRESS, MEMBER, MEMBER2, NOBODY, NOT_ELIGIBLE, NOW, OTHER_CENTRE, P, PHLEBO, ROSTER, SYS_ACTOR, T, TENANT_A, TENANT_B, addActiveVisits, as, failure, hc, ownerRows,
-  req, responseErrors, schemaErrors, seed, seedWorld, spec, staffName, superTx, uid, type Who, type World };
+  req, responseErrors, schemaErrors, seed, spec, staffName, superTx, uid, type Who, type World };
 
 // ---- fakes ----
 export interface DFx extends Fx {

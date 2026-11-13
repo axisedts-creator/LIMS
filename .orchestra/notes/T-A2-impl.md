@@ -1,6 +1,6 @@
 # T-A2 impl (writer) — BLOCKED on test-world bug, see T-A2-dispute.md
 Files: api engagement `auth/preauth.resolver.ts`, `repository/otp.repo.ts`, `service/auth.service.ts`, `handlers/auth.handlers.ts` (+ `handlers/index.ts`, `index.ts` wiring); worker `tasks/send_login_otp.ts` (+ `index.ts`).
-Run: api 49/49 pass (resolver + E1/E2). worker send_login_otp 7/16 pass; 9 fail only on otp.world.ts challengeCheck self-uniqueness (UPDATE of otp_challenges), not on task logic.
+Run (re-run 2026-11-13): api 49/49 pass (resolver + E1/E2). worker send_login_otp 17/18 pass; 1 fails: otp.world.ts seedChallenge gives all seeded rows the same token_sha256 (violates UNIQUE), so supersede UPDATE collides. Test-world artefact, not task logic.
 [CONV] newest enc key = last entry of OTP_ENC_KEYS_FILE; ciphertext iv(12)|ct|tag(16), aad = challenge_id; features.payments = app_gateways non-empty; supersede = same phone_hmac+app_instance, created_at <= this one, id <> this one (a faster later request stays live); job payload {tenant_id, challenge_id}.
 [CONV] E2 order: shape -> app_enabled -> prefix -> otp_request limiter -> daily cap upsert (conditional ON CONFLICT .. WHERE last_value < cap, 1 statement) -> insert + enqueue; cap hit -> 429 with Retry-After to tenant midnight.
 Open: packages/fakes NotificationPort fake template `engagement.login_otp` still declares {otp_code} only; packages/fakes is not a C16 path -> needs lead/CR to add lab_name, minutes (short_text). Not run: db pgTAP (needs live DB), lint/tsc of full repo.

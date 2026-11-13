@@ -1,7 +1,7 @@
 'use client';
 // C16.T-Q4 W6 queue console (04-UI-UX W6; 03-APP-FLOW §7.1; US-EN-21.1–21.6). Props are injected (see __tests__/t-q4.harness.tsx header); the BFF adds the bearer token.
 // LD-138: tester/writer reset. No patient data is read or shown: tokens carry at most booking_id (AC-21.6). "My counter" lives in memory only.
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type ComponentProps } from 'react';
 import { Button } from '@lims/ui/components/Button';
 import { Dialog } from '@lims/ui/components/Dialog';
 import { DataTable } from '@lims/ui/components/DataTable';
@@ -12,7 +12,7 @@ import { Tabs } from '@lims/ui/components/Tabs';
 import { TokenSlip } from '@lims/ui/components/TokenSlip';
 import { useToast } from '@lims/ui/components/Toast';
 import { shortcuts } from '@/core/shortcuts/registry';
-import { MAX_RECALLS, SUGGEST_SKIP_AFTER, mmss, problemMessage, slipDateTime, upsertToken, waitingOrder, type Queue, type QueueCounter, type QueueToken } from './queue-model';
+import { MAX_RECALLS, SUGGEST_SKIP_AFTER, mmss, problemMessage, upsertToken, waitingOrder, type Queue, type QueueCounter, type QueueToken } from './queue-model';
 
 const PAGE_ID = 'staff.engagement.queue';
 const DEFAULT_POLL_MS = 5_000; // W6 Polling: Q4 every 5 s
@@ -193,7 +193,7 @@ export function QueueConsole({ labName, queues, counters, tokens: initial, actio
 
       {slip ? (
         <div className="lims-queue-slip">
-          <TokenSlip labName={labName} heading={slip.queue} big={slip.token.token_label} lines={[slipDateTime(slip.token.issued_at)]} issuedAt={slip.token.issued_at} />
+          <TokenSlip labName={labName} heading={slip.queue} big={slip.token.token_label} lines={[]} issuedAt={slip.token.issued_at as ComponentProps<typeof TokenSlip>['issuedAt']} /* kit prints the date/time (LD-143) */ />
           <Button onPress={() => window.print()}>Print slip</Button>
           <Button variant="ghost" onPress={() => setSlip(null)}>Close slip</Button>
         </div>

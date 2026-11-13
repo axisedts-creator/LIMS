@@ -19,7 +19,7 @@ async function openForm(user: ReturnType<typeof userEvent.setup>, label: RegExp)
 const fill = async (user: ReturnType<typeof userEvent.setup>, scope: HTMLElement, label: RegExp, value: string) => {
   const f = within(scope).getByLabelText(label);
   await user.clear(f);
-  if (value) await user.type(f, value, { delay: null });
+  if (value) await user.type(f, value);
 };
 const submit = (scope: HTMLElement) => within(scope).getByRole('button', { name: /^(save|create)/i });
 
@@ -174,7 +174,7 @@ describe('displays: pair and revoke (Q8; AC-22.1)', () => {
     await user.click(within(d).getByRole('checkbox', { name: /A — Registration/ }));
     await user.click(within(d).getByRole('button', { name: /^pair$/i }));
     expect(actions.pairDisplay).toHaveBeenCalledTimes(1);
-    const body = actions.pairDisplay.mock.calls[0]![0] as { display_name: string; queue_ids: string[] };
+    const body = actions.pairDisplay.mock.calls[0]![0];
     expect(body).toEqual({ display_name: 'Lobby TV', queue_ids: [H.QA] });
   });
 

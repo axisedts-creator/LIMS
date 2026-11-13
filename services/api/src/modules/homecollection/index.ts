@@ -4,6 +4,15 @@
 // Produces one event, owns no port, bearerJwt-only (no authResolvers / claimsResolver).
 import type { Handler, ModuleManifest } from '../../core/module.js';
 import { LimsError } from '../../core/errors.js';
+import { handler as assignHomeVisit } from './handlers/assignHomeVisit.js';
+import { handler as cancelHomeVisit } from './handlers/cancelHomeVisit.js';
+import { handler as createHomeRevisit } from './handlers/createHomeRevisit.js';
+import { handler as resequenceHomeRoute } from './handlers/resequenceHomeRoute.js';
+import { handler as resolveHomeVisitFlag } from './handlers/resolveHomeVisitFlag.js';
+import { handler as scheduleHomeVisit } from './handlers/scheduleHomeVisit.js';
+import { handler as unassignHomeVisit } from './handlers/unassignHomeVisit.js';
+import { handler as ackSync } from './handlers/ackSync.js';
+import { handler as getSyncSnapshot } from './handlers/getSyncSnapshot.js';
 import { handler as getHomecollectionSettings } from './handlers/getHomecollectionSettings.js';
 import { handler as getHomeVisit } from './handlers/getHomeVisit.js';
 import { handler as listEligiblePhlebotomists } from './handlers/listEligiblePhlebotomists.js';
@@ -38,6 +47,8 @@ const implemented: Partial<Record<HomecollectionOperationId, Handler>> = {
   listHomeVisits, getHomeVisit, listHomeRoutes, listEligiblePhlebotomists, revealHomeVisitPhone,
   registerPhleboDevice, signOffPhleboDevice,   // HC-T10: A1, A5
   listPhleboDevices, requestDeviceWipe,   // HC-T15: H16, H17
+  assignHomeVisit, unassignHomeVisit, scheduleHomeVisit, cancelHomeVisit, createHomeRevisit, resolveHomeVisitFlag, resequenceHomeRoute,   // HC-T09: H3-H8, H11
+  getSyncSnapshot, ackSync,   // HC-T11: A2, A4
 };
 
 const handlers = Object.freeze(

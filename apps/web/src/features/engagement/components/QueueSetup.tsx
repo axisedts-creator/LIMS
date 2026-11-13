@@ -8,6 +8,7 @@ import { ConfirmDialog } from '@lims/ui/components/ConfirmDialog';
 import { DataTable } from '@lims/ui/components/DataTable';
 import { DateText, type DateTextProps } from '@lims/ui/components/DateText';
 import { Dialog } from '@lims/ui/components/Dialog';
+import { StatusChip } from '@lims/ui/components/StatusChip';
 import { Tabs } from '@lims/ui/components/Tabs';
 import { TextField } from '@lims/ui/components/TextField';
 import { checkCode, checkName, checkOrder, checkPrefix, problemMessage, type Queue, type QueueCounter, type QueueDisplayRow } from './queue-model';
@@ -31,7 +32,9 @@ export interface QueueSetupProps {
 }
 
 type Errors = Record<string, string | undefined>;
-const yesNo = (b: boolean) => (b ? 'Active' : 'Inactive');
+// LD-140: statuses show tone + word via the kit StatusChip (10-DESIGN-SYSTEM §6).
+const chip = (on: boolean, off: string) => <StatusChip kind="generic" status={on ? 'active' : off.toLowerCase()} tone={on ? 'success' : 'neutral'} label={on ? 'Active' : off} />;
+const yesNo = (b: boolean) => chip(b, 'Inactive');
 /** [CONV] The kit TextField needs a maxLength. The real limits (W7: code 32, name 60/40, prefix 2) are checked in queue-model so an over-long entry is
  *  rejected with a message instead of being silently cut by the input; this cap only bounds pasted junk. */
 const INPUT_CAP = 255;
@@ -201,7 +204,7 @@ export function QueueSetup({ centreId, queues, counters, displays, actions }: Qu
               columns={[
                 { id: 'name', header: 'Name', isRowHeader: true, cell: (d) => d.display_name },
                 { id: 'queues', header: 'Queues', cell: (d) => d.queue_ids.map((id) => queueNames.get(id) ?? '—').join(', ') },
-                { id: 'status', header: 'Status', cell: (d) => (d.status === 'active' ? 'Active' : 'Revoked') },
+                { id: 'status', header: 'Status', cell: (d) => chip(d.status === 'active', 'Revoked') },
                 { id: 'seen', header: 'Last seen', cell: (d) => (d.last_seen_at ? <DateText value={d.last_seen_at as DateTextProps['value']} withTime /> : '—') },
                 { id: 'revoke', header: 'Revoke', cell: (d) => (d.status === 'active' ? <Button size="sm" variant="danger" onPress={() => setRevoking(d)}>Revoke</Button> : null) },
               ]}

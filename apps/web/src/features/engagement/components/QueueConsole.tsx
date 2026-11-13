@@ -7,6 +7,7 @@ import { Dialog } from '@lims/ui/components/Dialog';
 import { DataTable } from '@lims/ui/components/DataTable';
 import { KeyboardShortcutsDialog } from '@lims/ui/components/KeyboardShortcutsDialog';
 import { Select } from '@lims/ui/components/Select';
+import { StatusChip } from '@lims/ui/components/StatusChip';
 import { Tabs } from '@lims/ui/components/Tabs';
 import { TokenSlip } from '@lims/ui/components/TokenSlip';
 import { useToast } from '@lims/ui/components/Toast';
@@ -38,7 +39,11 @@ export interface QueueConsoleProps {
   pollMs?: number;
 }
 
-const STATUS_TEXT: Record<string, string> = { waiting: 'Waiting', called: 'Called', serving: 'Being served', completed: 'Done', skipped: 'Skipped', cancelled: 'Cancelled', transferred: 'Transferred', expired: 'Expired' };
+// LD-140: every status shows tone + word via the kit StatusChip (10-DESIGN-SYSTEM §6).
+const STATUS: Record<string, readonly ['neutral' | 'info' | 'success', string]> = {
+  waiting: ['neutral', 'Waiting'], called: ['info', 'Called'], serving: ['info', 'Being served'], completed: ['success', 'Done'],
+  skipped: ['neutral', 'Skipped'], cancelled: ['neutral', 'Cancelled'], transferred: ['info', 'Transferred'], expired: ['neutral', 'Expired'],
+};
 const PRIORITIES = [{ value: 'normal', label: 'Normal' }, { value: 'priority', label: 'Priority' }] as const;
 
 export function QueueConsole({ labName, queues, counters, tokens: initial, actions, pollMs = DEFAULT_POLL_MS }: QueueConsoleProps) {
@@ -124,7 +129,7 @@ export function QueueConsole({ labName, queues, counters, tokens: initial, actio
   const latest = useRef({ callNext, recall, serve, done, skip, openTransfer, openIssue });
   latest.current = { callNext, recall, serve, done, skip, openTransfer, openIssue };
   useEffect(() => {
-    // [CONV] Call next is Alt+C: W6 says Alt+N, but Alt+N is a global key and register() throws on it (AC-0D-7.5) — see .orchestra/notes/T-Q4-impl.md.
+    // STOPGAP pending CR .orchestra/cr/T-Q4.md: Call next is Alt+C. W6 (04-UI-UX:227/:231) says Alt+N, but Alt+N is a global key and register() throws on it (AC-0D-7.5).
     return shortcuts.register(
       PAGE_ID,
       { key: 'Alt+C', description: 'Call next', run: () => void latest.current.callNext() },
@@ -170,7 +175,7 @@ export function QueueConsole({ labName, queues, counters, tokens: initial, actio
         {shown ? (
           <>
             <p className="lims-queue-big">{shown.token_label}</p>
-            <p>{STATUS_TEXT[shown.status] ?? shown.status}</p>
+            <p><StatusChip kind="generic" status={shown.status} tone={STATUS[shown.status]?.[0] ?? 'neutral'} label={STATUS[shown.status]?.[1] ?? shown.status} /></p>
             <p>{`Calls: ${calls}`}</p>
             {calls >= SUGGEST_SKIP_AFTER ? <p>{`Suggest: skip after ${SUGGEST_SKIP_AFTER} calls.`}</p> : null}
           </>

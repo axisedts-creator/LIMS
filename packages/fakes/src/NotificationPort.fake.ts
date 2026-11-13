@@ -31,6 +31,9 @@ const defaults = (seed: number): NotificationFixtures => {
       tpl(3, "engagement.login_otp", "otp", ["sms"], { otp_code: "otp_code" }),
       tpl(4, "homecollection.visit_assigned", "visit_assignment", ["sms"], { route_date: "short_text", visit_count: "short_text" }),
       tpl(5, "reporting.dues_due", "dues_reminder", ["sms", "whatsapp"], { lab_name: "short_text", amount_text: "short_text", url: "url" }),
+      // CR-C16-009 (as modified by 08 R13): C16 reminder templates, TRD §4.11. Params are non-PHI: lab, date(-time), booking number.
+      tpl(6, "engagement.follow_up_reminder", "follow_up_reminder", ["sms"], { lab_name: "short_text", datetime: "short_text" }),
+      tpl(7, "engagement.booking_reminder", "booking_reminder", ["sms"], { lab_name: "short_text", datetime: "short_text", booking_no: "short_text" }),
     ],
     recipients: [
       { id: idFor(seed, 0x811), tenantId: TENANT_A, kind: "patient", phoneE164: "+9779800000011", email: "patient-0011@example.com", consent: all },

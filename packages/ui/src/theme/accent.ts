@@ -1,7 +1,8 @@
 // Tenant accent derivation (04-UI-UX §1.6, AC-0D-8.2).
-export const DEFAULT_ACCENT = '#1D4ED8';
+// LD-140 (10-DESIGN-SYSTEM s2.1): Metro Green default; dark fg = tokens color.neutral.900.
+export const DEFAULT_ACCENT = '#0E4B3B';
 const WHITE = '#FFFFFF';
-const DARK = '#0F172A';
+const DARK = '#13241D';
 const HEX = /^#[0-9A-Fa-f]{6}$/;
 const STEP = 0.02;
 
@@ -82,7 +83,7 @@ export function deriveAccent(input?: unknown): DerivedAccent {
     accent = darkenUntilWhitePasses(accentIn);
     fg = WHITE;
   }
-  // [CONV] subtle = color-mix(in srgb, accent 8%, white): a light tint, matching the default token #EFF6FF.
+  // [CONV] subtle = color-mix(in srgb, accent 8%, white): a light tint (tenant accents; the default uses token accent.subtle).
   const subtle = toHex(toRgb(accent).map((c) => 255 + (c - 255) * 0.08) as Rgb);
   return { accent, fg, subtle, link: darkenUntilWhitePasses(accent) };
 }

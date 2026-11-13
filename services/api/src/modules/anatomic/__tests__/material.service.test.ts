@@ -132,13 +132,13 @@ const NOW = new Date('2026-11-12T01:30:00Z');
 const MARKER = 'PHI-MARKER-MATERIAL';
 const ACC = 'S26-0042';
 
-interface Setup { kind?: 'histology' | 'cytology' | 'ihc'; status?: string; parts?: number; tenant?: string; centre?: string; draft?: boolean; n?: number }
+interface Setup { kind?: 'histology' | 'cytology' | 'ihc'; status?: string; parts?: number; tenant?: string; centre?: string; draft?: boolean; n?: number; acc?: string }
 let seq = 0;
 /** one case with `parts` parts (letters A, B, ...) */
 function mkCase(o: Setup = {}) {
   const n = o.n ?? ++seq, t = o.tenant ?? T;
   const caseId = uid(1000 + n * 100);
-  S.cases.set(caseId, { id: caseId, tenant_id: t, centre_id: o.centre ?? CENTRE, case_kind: o.kind ?? 'histology', status: o.status ?? 'accessioned', accession_no: o.kind === 'cytology' ? 'C26-0007' : ACC, order_id: uid(1001 + n * 100), version: 1 });
+  S.cases.set(caseId, { id: caseId, tenant_id: t, centre_id: o.centre ?? CENTRE, case_kind: o.kind ?? 'histology', status: o.status ?? 'accessioned', accession_no: o.kind === 'cytology' ? 'C26-0007' : (o.acc ?? ACC), order_id: uid(1001 + n * 100), version: 1 });
   const partIds: string[] = [];
   for (let i = 0; i < (o.parts ?? 1); i++) {
     const id = uid(1010 + n * 100 + i); partIds.push(id);
@@ -277,11 +277,12 @@ describe('C11-T09 M1 create blocks (AC-04.1, AC-04.2)', () => {
   });
 
   it('works in in_processing and ready_for_reporting; signed_out -> 409 anatomic.signout_locked, but allowed with an open change draft', async () => {
-    for (const status of ['in_processing', 'ready_for_reporting']) { const c = mkCase({ status }); expect((await mkBlocks(c.caseId, { part_id: c.partId, count: 1 })).status).toBe(201); }
-    const locked = mkCase({ status: 'signed_out' });
+    // distinct accession_no per case: cases__tenant_id_accession_no__p_uq + blocks__tenant_id_label__uq (ruling T-09)
+    for (const [i, status] of ['in_processing', 'ready_for_reporting'].entries()) { const c = mkCase({ status, acc: `S26-005${i}` }); expect((await mkBlocks(c.caseId, { part_id: c.partId, count: 1 })).status).toBe(201); }
+    const locked = mkCase({ status: 'signed_out', acc: 'S26-0052' });
     expect(await rejects(mkBlocks(locked.caseId, { part_id: locked.partId, count: 1 }))).toMatchObject({ code: 'anatomic.signout_locked' });
     expect(blocksOf(locked.caseId)).toHaveLength(0);
-    const open = mkCase({ status: 'signed_out', draft: true });
+    const open = mkCase({ status: 'signed_out', draft: true, acc: 'S26-0053' });
     expect((await mkBlocks(open.caseId, { part_id: open.partId, count: 1 })).status).toBe(201);
   });
 

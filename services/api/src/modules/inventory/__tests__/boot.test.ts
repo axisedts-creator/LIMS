@@ -92,9 +92,13 @@ describe('handler map (02-TRD §3.1, §5): one handler per operationId, stubs th
   // ponytail: narrow this list per task as handlers are implemented (T-06+); every op must be a stub until then.
   it('every not-yet-implemented handler rejects with an error whose code is common.internal (no silent success, no 200)', async () => {
     const { handlers } = await importApi('handlers/index.ts');
+    // Ruling C12.T-07-ruling: ops #1-#10 are implemented by T-07 (06-IMPLEMENTATION-PLAN.md:24,30); their behaviour is covered by T-07 tests.
+    const { itemHandlers } = await importApi('handlers/items.ts');
+    const implemented = new Set(Object.keys(itemHandlers));
     const noop = () => {};
     const ctx = { log: { info: noop, warn: noop, error: noop } };
     for (const [op, h] of Object.entries<any>(handlers)) {
+      if (implemented.has(op)) continue;
       const err = await h({ params: {}, query: {}, headers: {}, body: {} }, { operationId: op, ...ctx }).then(() => null, (e: unknown) => e);
       expect(err, `${op} must reject`).not.toBeNull();
       expect((err as any).code, `${op} error code`).toBe('common.internal');

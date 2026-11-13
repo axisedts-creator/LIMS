@@ -39,6 +39,21 @@ describe('T10 world self-check', () => {
     expect(ok.threw).toBeUndefined(); expect(w.tracking).toHaveLength(1);
   });
 
+  it('row lock is atomic (C13.T10 ruling): two concurrent SELECT … FOR UPDATE + UPDATE version + 1 callers serialise; B sees A\'s committed version', async () => {
+    const w = makeWorld10(); const v0 = w.lines.find((l) => l['id'] === L.xs)!['version'];
+    const bump = async (hold: number) => {
+      const tx = wrapTx(w, 'all');
+      try {
+        const seen = (await tx.query('SELECT version FROM partners.manifest_lines WHERE tenant_id = $1 AND id = $2 FOR UPDATE', [T_A, L.xs])).rows[0]['version'];
+        for (let i = 0; i < hold; i++) await Promise.resolve(); // widen the race window between the lock and the write
+        await tx.query('UPDATE partners.manifest_lines SET version = version + 1 WHERE tenant_id = $1 AND id = $2', [T_A, L.xs]);
+        return seen;
+      } finally { release({ tx }); }
+    };
+    const [a, b] = await Promise.all([bump(10), bump(0)]);
+    expect([a, b].sort()).toEqual([v0, v0 + 1]); expect(w.lines.find((l) => l['id'] === L.xs)!['version']).toBe(v0 + 2);
+  });
+
   it('staff scope: statements on manifests / manifest_lines only see the staff centres (SELECT, FOR UPDATE, UPDATE); all-centres sees everything', async () => {
     const w = makeWorld10();
     const sel = async (centres: string[] | 'all') => { const tx = wrapTx(w, centres); try { return (await tx.query('SELECT id FROM partners.manifests WHERE tenant_id = $1 AND id = $2 FOR UPDATE', [T_A, M.xs])).rows; } finally { release({ tx }); } };

@@ -120,7 +120,8 @@ describe('T10 SI3 receiveManifest — mode on_receipt (US-06.1, LS3/LS4, MS6)', 
     const jobs = jobsOf(w); expect(jobs).toHaveLength(2);
     expect(jobs.map((j) => [j.task, j.key]).sort()).toEqual([0, 1].map((i) => ['partners.convert_manifest_line', `convert:${ls[i]!['id']}:1`]).sort());
     for (const j of jobs) expect(j.payload).toEqual({ tenant_id: T_A, line_id: expect.any(String), attempt: 1 });
-    expect(r.body).toMatchObject({ id: m['id'], state: 'partially_received', version: 5, line_count: 4, lines_converted: 0, lines_failed: 0, received_at: null });
+    expect(r.body).toMatchObject({ id: m['id'], state: 'partially_received', version: 5, line_count: 4, lines_converted: 0, lines_failed: 0 });
+    expect(r.body).not.toHaveProperty('received_at'); // 02-CONVENTIONS:474 omit optional fields; InboundManifest.received_at is non-nullable IsoUtc (C13.T10 ruling)
     expect(r.body.lines.map((l: Row) => l['state'])).toEqual(['converting', 'converting', 'not_received', 'submitted']);
     expect(r.body.lines[2].not_received_reason_code).toBe('sample_missing');
     expect(r.body.partner).toEqual({ id: P.x, partner_code: 'SYN-X', name: 'Synthetic Partner SYN-X' });

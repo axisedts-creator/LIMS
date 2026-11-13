@@ -27,7 +27,10 @@ $Queue = @(
   @{ name="C0-0A"; chunk=$C0; filter='^(T0A-|SP-|T0-)'; after=@() },
   @{ name="C0-0B"; chunk=$C0; filter='^T0B-'; after=@() },
   @{ name="C0-0C"; chunk=$C0; filter='^T0C-'; after=@() },
-  @{ name="C0-0D"; chunk=$C0; filter='^T0D-'; after=@() },
+  @{ name="C0-0D"; chunk=$C0; filter='^T0D-(?!UI-)'; after=@() },
+  # 2026-11-13 lead: the restyle tasks (T0D-UI-R*) were split off C0-0D so they run in parallel with T0D-18 (they touch packages/ui and apps/web/src/core/shell, T0D-18 touches services/api/src/core). R05 (Flutter) is not on the critical path of the RS lanes, so it has its own lane.
+  @{ name="C0-0E"; chunk=$C0; filter='^(T0D-UI-R01|T0D-UI-R02|T0D-UI-R03|T0D-UI-R04|T0D-UI-R07)$'; after=@() },
+  @{ name="C0-0F"; chunk=$C0; filter='^T0D-UI-R05$'; after=@() },
   @{ name="C1";  chunk="C1-infrastructure-ops"; filter='.*'; after=@() },
   @{ name="C4"; chunk="C4-frontdesk-billing"; filter='^(FD-T01|FD-T03|FD-T04|FD-T05|FD-T06|FD-T13|FD-T07|FD-T10|FD-T15|FD-T08|FD-T09|FD-T11|FD-T12|FD-T16|FD-T17|J-T03)$'; after=@($C0) },
   @{ name="C4b"; chunk="C4-frontdesk-billing"; filter='^(FD-T02|BL-T02|BL-T05|BL-T06|BL-T08|BL-T07|BL-T11|BL-T09|BL-T12|BL-T16|BL-T22|J-T01|FD-T14)$'; after=@($C0) },
@@ -87,7 +90,7 @@ function Finished($chunk, $filter = '.*') {
 }
 # gate for "after": a chunk counts as finished for the chunks that wait on it when every task is done or blocked, except leaf tasks nothing else needs yet.
 # Those keep running in their own lane while the next chunks start (they still have to reach done before the build is accepted).
-$GateIgnore = @{ "C0-foundation-contracts" = @("T0B-11","T0C-10.C9","T0C-10.C10","T0C-10.C11","T0C-10.C12","T0C-10.C13","T0C-10.C14","T0C-10.C15","T0C-10.C16","T0C-10.C17","T0D-12c","T0D-12d","T0D-UI-R01","T0D-UI-R02","T0D-UI-R03","T0D-UI-R04","T0D-UI-R05","T0D-UI-R07") }   # per-tenant billing export + live restore proof (AC-0B-6.4): no task depends on it
+$GateIgnore = @{ "C0-foundation-contracts" = @("T0B-11","T0C-10.C9","T0C-10.C10","T0C-10.C11","T0C-10.C12","T0C-10.C13","T0C-10.C14","T0C-10.C15","T0C-10.C16","T0C-10.C17","T0D-12c","T0D-12d","T0D-UI-R01","T0D-UI-R02","T0D-UI-R03","T0D-UI-R04","T0D-UI-R05","T0D-UI-R07"); "C2-identity-admin" = @("RS-C2"); "C3-catalog-pricing" = @("RS-C3"); "C4-frontdesk-billing" = @("RS-C4"); "C5-lab-workflow" = @("RS-C5"); "C6-reporting-delivery" = @("RS-C6"); "C7-instrument-integration" = @("RS-C7"); "C8-analytics-mis" = @("RS-C8"); "C15-payment-gateways" = @("RS-C15") }   # C0: per-tenant billing export + live restore proof (AC-0B-6.4): no task depends on it. RS-*: the restyle passes (LD-140) do not hold up the chunks that wait on these chunks (2026-11-13 lead; without this C9-C17 waited for RS-C3..RS-C15)
 # 2026-11-11 lead: wave-2 chunks need their own contracts/openapi file (C0 task T0C-10.Cxx) before a lane may start; GateIgnore keeps these tasks from closing the C0 gate for everyone else
 $Wave2Need = @{ "C9-quality-engine"="T0C-10.C9"; "C10-microbiology"="T0C-10.C10"; "C11-specialty-pathology"="T0C-10.C11"; "C12-inventory"="T0C-10.C12"; "C13-b2b-partner-portal"="T0C-10.C13"; "C14-smart-report"="T0C-10.C14"; "C15-payment-gateways"="T0C-10.C15"; "C16-patient-engagement"="T0C-10.C16"; "C17-home-collection"="T0C-10.C17" }
 function TaskDone($chunk, $id) { $t = Get-Tasks $chunk; if (-not $t) { return $false }; @($t | Where-Object { $_.id -eq $id -and $_.status -eq 'done' }).Count -eq 1 }

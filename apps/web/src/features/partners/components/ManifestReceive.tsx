@@ -2,20 +2,20 @@
 // SM-2 Receive manifest (04-UI-UX §4, 03-APP-FLOW §2.1; US-06.1/.3/.5/.6/.7/.11). Scanning a partner reference ticks that line locally, nothing is written until
 // "Confirm receipt" (SI3). Partner references are not lab barcodes: the pattern allows / . _ - and lower case, and the value never leaves the browser except as
 // the matching line id. Failed lines offer Retry (SI4), Choose existing patient (C4 search, needs frontdesk.patient.read) and Mark not received (SI5).
-import { useRef, useState, type KeyboardEvent } from 'react';
+import { useEffect, useRef, useState, type KeyboardEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import { Badge } from '@lims/ui/components/Badge';
 import { Banner } from '@lims/ui/components/Banner';
 import { BarcodeInput } from '@lims/ui/components/BarcodeInput';
 import { Button } from '@lims/ui/components/Button';
 import { CodedSelect } from '@lims/ui/components/CodedSelect';
-import { Combobox } from '@lims/ui/components/Combobox';
 import { ConfirmDialog } from '@lims/ui/components/ConfirmDialog';
 import { DataTable, type ColumnDef } from '@lims/ui/components/DataTable';
 import { DescriptionList } from '@lims/ui/components/DescriptionList';
 import { Dialog } from '@lims/ui/components/Dialog';
 import { PageHeader } from '@lims/ui/components/PageHeader';
 import { RadioGroup } from '@lims/ui/components/RadioGroup';
+import { TextField } from '@lims/ui/components/TextField';
 import { useToast } from '@lims/ui/components/Toast';
 import { markLineNotReceivedAction, receiveManifestAction, retryLineAction, searchPatientsAction } from '../server/actions';
 import type { ActionResult, Manifest, ManifestLine, PatientHit } from '../server/types';
@@ -27,12 +27,25 @@ const REF_PATTERN = /^[A-Za-z0-9_./-]{1,40}$/;
 const OUTCOMES = [{ value: 'received', label: 'Received' }, { value: 'not_received', label: 'Not received' }] as const;
 const reasonText = (code?: string) => REASONS.line_not_received_reasons.find((r) => r.code === code)?.display;
 const note = (s?: string) => (s && s.length > 80 ? `${s.slice(0, 80)}…` : s);
-const patientLabel = (p: PatientHit) => `${p.full_name} · ${p.patient_code}`;
 
 function PatientDialog({ onClose, onPick }: { onClose: () => void; onPick: (p: PatientHit) => Promise<void> }) {
   const [hit, setHit] = useState<PatientHit>();
   const [error, setError] = useState<string>();
   const [busy, setBusy] = useState(false);
+  const [query, setQuery] = useState('');
+  const [hits, setHits] = useState<readonly PatientHit[]>([]);
+  useEffect(() => {
+    const q = query.trim();
+    if (!q) { setHits([]); setError(undefined); return; }
+    let live = true; // drop stale responses when the query changes
+    const t = setTimeout(async () => {
+      const r = await searchPatientsAction(q);
+      if (!live) return;
+      setError(r.ok ? undefined : 'The patient search is not available right now. Try again.');
+      setHits(r.ok ? r.data : []);
+    }, 300);
+    return () => { live = false; clearTimeout(t); };
+  }, [query]);
   return (
     <Dialog
       title="Choose existing patient"
@@ -56,21 +69,17 @@ function PatientDialog({ onClose, onPick }: { onClose: () => void; onPick: (p: P
         </>
       }
     >
-      <Combobox<PatientHit>
-        label="Search by name, code or phone"
-        name="patient_query"
-        value={hit}
-        onChange={setHit}
-        debounceMs={300}
-        loadOptions={async (q) => {
-          const r = await searchPatientsAction(q);
-          setError(r.ok ? undefined : 'The patient search is not available right now. Try again.');
-          return r.ok ? r.data : [];
-        }}
-        getKey={(p) => p.id}
-        renderOption={(p) => <><span>{p.full_name}</span> <span className="lims-mono">{p.patient_code}</span> <span>{p.phone_masked ?? ''}</span> <span>{p.age_display}</span></>}
-        renderValue={patientLabel}
-      />
+      {/* Ruling C13.T16 (C13 04-UI-UX:218): kit TextField + in-dialog results list, not a Combobox popover (LD-140). */}
+      <TextField label="Search by name, code or phone" name="patient_query" maxLength={100} value={query} onChange={setQuery} />
+      {hits.length ? (
+        <RadioGroup<string>
+          label="Results"
+          name="patient_hit"
+          options={hits.map((p) => ({ value: p.id, label: [p.full_name, p.patient_code, p.phone_masked, p.age_display].filter(Boolean).join(' · ') }))}
+          value={hit?.id ?? ''}
+          onChange={(id) => setHit(hits.find((p) => p.id === id))}
+        />
+      ) : null}
       <DialogError text={error} />
     </Dialog>
   );

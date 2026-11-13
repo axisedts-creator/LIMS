@@ -4,4 +4,5 @@
 - cr16_widgets.dart: LimsBottomNav current tab = accent.highlight pill (radiusFull) around icon+label, accent.default text; each item press-scaled.
 - Goldens re-recorded: status_chips, cr16_widgets; new restyle_buttons, restyle_card_nav.
 - Verify set (6 files): 80/80 pass. Full `flutter test`: 99 pass, 2 fail = dependency_pins_test.dart (pre-existing, per tester note).
+- LD-155: added packages/ui-flutter/.gitignore = `test/failures/`; verify set re-run 80/80 pass.
 - Open: LimsPressScale is exported publicly (apps may reuse); dark mode out of scope.

@@ -14,8 +14,9 @@ import * as dto from '../mappers/culture.dto.js';
 import * as cfg from '../repository/config.repo.js';
 import * as cultureRepo from '../repository/cultures.repo.js';
 import * as repo from '../repository/reports.repo.js';
-import { memberNames } from './chain.service.js';
-import { bad, code, guarded, isObj, nowOf, str, strictKeys, uuid, WORK, type WriteCtx } from './culture.service.js';
+import * as sets from '../repository/codedsets.repo.js';
+import { cultureDetail, memberNames, testLookup } from './chain.service.js';
+import { bad, code, conflict, guarded, isObj, needVersion, nowOf, str, strictKeys, uuid, WORK, type WriteCtx } from './culture.service.js';
 
 type Row = Record<string, any>;
 type Lab = { getOrderResults(c: unknown, i: Row): Promise<Row>; submitModuleResult(c: unknown, i: Row): Promise<Row> };
@@ -145,4 +146,63 @@ export async function submitCultureReport(c: WriteCtx, input: { params: unknown;
   });
   const name = await memberNames(c, [membershipId]);
   return dto.versionDto(stored, name(membershipId));
+}
+
+// ================================================================ T-16: M17 reopenCulture (C8), M18 cancelCulture (C9)
+// (02-TRD §4.7, §5 M17/M18; 03-APP-FLOW §2.1; PRD AC-11.1–11.6, AC-01.6; 07-SECURITY S-05, S-30; 08 R1 / CR-C10-001, A17 D-62). Order: culture FOR UPDATE (404) -> micro.culture.work with its centre (403)
+// -> body (400; M17 without a code = 422) -> If-Match (428 / 409) -> state (409). The request transaction rolls back on any throw; nothing is logged.
+// [CONV] M17 checks the reason code's FORMAT only (the micro.yaml pattern); whether C5 accepts it is decided at M14 and surfaces there as lab.module_result_invalid (D-62).
+// [CONV] M18 on a culture with a submitted version needs the C5 line `cancelled` (getOrderResults all_visible; a port error propagates), else micro.culture_invalid_transition.
+// [CONV] system cancel codes are written by the consumer / reconciliation only; a person cannot send them.
+type Out = { body: Row; version: number };
+const AMENDMENT_CODE = /^[A-Za-z0-9][A-Za-z0-9_.:-]{0,99}$/;
+const SYSTEM_CANCEL_CODES = ['specimen_rejected', 'order_item_cancelled'];
+
+export async function reopenCulture(c: WriteCtx, input: { params: unknown; ifMatch: number | undefined; body: unknown }): Promise<Out> {
+  const { tx, tenantId, userId, row } = await loadReportCulture(c, input.params);
+  const b = isObj(input.body) ? input.body : bad('/');
+  strictKeys(b, ['amendment_reason_code', 'amendment_reason_text']);
+  const raw = b['amendment_reason_code'];
+  if (raw === undefined || raw === '') throw new LimsError('micro.amendment_reason_required');           // AC-11.4
+  const reasonCode = typeof raw === 'string' && AMENDMENT_CODE.test(raw) ? raw : bad('/amendment_reason_code');
+  const reasonText = b['amendment_reason_text'] === undefined ? null : str(b['amendment_reason_text'], '/amendment_reason_text', 500);
+  const expected = needVersion(input.ifMatch);
+  if (Number(row['version']) !== expected) conflict();
+  nextCultureStatus(row['status'] as CultureStatus, 'reopen', { reasonCode });                           // C8: only final_submitted
+
+  const cultureId = row['id'] as string;
+  await guarded(async () => {
+    if (!await cultureRepo.reopenCulture(tx, { tenantId, id: cultureId, expectedVersion: expected, userId, reasonCode, reasonText })) conflict();
+    await cultureRepo.insertTransition(tx, { id: uuidv7(), tenantId, centreId: row['centre_id'], cultureId, from: 'final_submitted', to: 'amending', reason: reasonCode, occurredAt: nowOf(c).toISOString(), userId });
+  });
+  const fresh = (await cultureRepo.reloadCulture(tx, { tenantId, id: cultureId }))!;
+  return { body: await cultureDetail(c, tx, tenantId, fresh), version: Number(fresh['version']) };
+}
+
+export async function cancelCulture(c: WriteCtx, input: { params: unknown; ifMatch: number | undefined; body: unknown }): Promise<Out> {
+  const { tx, tenantId, userId, row } = await loadReportCulture(c, input.params);
+  const b = isObj(input.body) ? input.body : bad('/');
+  strictKeys(b, ['reason_code', 'comment']);
+  const reasonCode = code(b['reason_code'], '/reason_code');
+  const comment = b['comment'] === undefined ? null : str(b['comment'], '/comment', 500);
+  const reason = (await sets.codeRows(tx, { view: 'culture_cancel_reasons', tenantId, codes: [reasonCode] })).get(reasonCode);
+  if (reason?.['is_active'] !== true || SYSTEM_CANCEL_CODES.includes(reasonCode)) bad('/reason_code');
+  const expected = needVersion(input.ifMatch);
+  if (Number(row['version']) !== expected) conflict();
+  const status = row['status'] as CultureStatus;
+  nextCultureStatus(status, 'cancel');                                                                    // C9: open states only
+
+  if (Number(row['current_report_version_no']) > 0) {                                                     // a submitted version: only a cancelled C5 line releases it
+    const lab = c.ports?.LabPort as Lab | undefined;
+    if (!lab) throw new LimsError('common.internal');
+    if (labLine(await lab.getOrderResults(c, { orderId: row['order_id'], scope: 'all_visible' }), row)?.['status'] !== 'cancelled') throw new LimsError('micro.culture_invalid_transition');
+  }
+  const cultureId = row['id'] as string;
+  await guarded(async () => {
+    if (!await cultureRepo.cancelCulture(tx, { tenantId, id: cultureId, expectedVersion: expected, userId, reasonCode, comment })) conflict();
+    await cultureRepo.insertTransition(tx, { id: uuidv7(), tenantId, centreId: row['centre_id'], cultureId, from: status, to: 'cancelled', reason: reasonCode, occurredAt: nowOf(c).toISOString(), userId });
+    await cultureRepo.releaseOpenRecords(tx, { tenantId, cultureId, userId });
+  });
+  const fresh = (await cultureRepo.reloadCulture(tx, { tenantId, id: cultureId }))!;
+  return { body: dto.cultureSummaryDto(fresh, await testLookup(c)(fresh['test_id']), nowOf(c)), version: Number(fresh['version']) };
 }

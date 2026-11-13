@@ -45,6 +45,8 @@ const IMPLEMENTED: readonly string[] = [
   'listInstrumentAstDefaults', 'putInstrumentAstDefault',
   // T-15: M14
   'submitCultureReport',
+  // T-16: M17, M18
+  'reopenCulture', 'cancelCulture',
 ];
 
 const FAKE_REQ = { params: {}, query: {}, headers: {}, body: {} };

@@ -11,7 +11,7 @@ export interface PartnerUserDto {
 }
 
 // [CONV] mfa_enrolled / last_login_at have no source in C13 (05-SCHEMA §3.2 has no column, IdentityPort has no per-membership read): the boolean is
-// reported false and last_login_at is omitted until a CR gives a source (see .orchestra/notes/C13.T06-impl.md).
+// reported false and last_login_at is omitted — interim behaviour of CR-C13-T06 (.orchestra/cr/C13.T06.md) until it gives a source.
 export const toPartnerUserDto = (r: PartnerUserRow): PartnerUserDto => ({
   id: r.id, display_name: r.display_name, email_masked: r.email_masked, partner_role: r.partner_role, status: r.status,
   mfa_enrolled: false, version: Number(r.version),

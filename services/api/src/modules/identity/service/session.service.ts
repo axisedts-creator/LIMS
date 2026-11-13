@@ -7,6 +7,7 @@
 // resolvePatientSession / logoutPatientSession kind patient ONLY (AU-T13: any other kind = 401, nothing written). App tokens rotate on
 // refresh; a rotated-out token presented again revokes the session (token_reuse) + session_token_reused, kept through the 401 via
 // ctx.commitOnError() (P-42). LD-81: the patient kind has no GoTrue session: LIMS mints the 1 h access JWT (mintPatientAccessToken).
+import { idMetrics } from '../metrics.js';
 import { createHash, randomBytes } from 'node:crypto';
 import { LimsError, isLimsError } from '../../../core/errors.js';
 import type { Tx, TxFn, TxInput } from '../../../core/db/tx.js';
@@ -121,6 +122,7 @@ export function createSessionService(deps: SessionDeps) {
     await deps.repo.updateSession(l.tx, l.ref, { revoked: { reason: 'token_reuse' }, actorId: c.actorId });
     await l.record(l.ev('session_token_reused'));
     await l.signOut('token_reuse');
+    idMetrics.sessionResolve(c, 'revoked');
     return l.deny(expired());
   }
 
@@ -131,6 +133,7 @@ export function createSessionService(deps: SessionDeps) {
     if (!lapsed) return;
     await deps.repo.expireSession(l.tx, l.ref, { reason: lapsed, actorId: c.actorId });
     await l.record(l.ev(`session_expired_${lapsed}`));
+    idMetrics.sessionResolve(c, 'expired');
     l.deny(expired());
   }
 
@@ -149,6 +152,7 @@ export function createSessionService(deps: SessionDeps) {
       await deps.repo.updateSession(l.tx, l.ref, { revoked: { reason: 'refresh_failed' }, actorId: c.actorId });
       await l.record(l.ev('refresh_failed'));
       await l.signOut('refresh_failed');
+      idMetrics.sessionResolve(c, 'refresh_failed');
       return l.deny(expired());
     }
     if (r) {
@@ -195,6 +199,7 @@ export function createSessionService(deps: SessionDeps) {
       blocked(l);
       const { accessToken, accessExpiresAt } = await gotrueRefresh(c, l);
       const idleExpiresAt = await touched(c, l, touch);
+      idMetrics.sessionResolve(c, accessToken === l.load.accessToken ? 'ok' : 'refreshed');   // T28 (02-TRD §13)
       // SessionState.actor has no source on this path: omitted (.orchestra/cr/T6.md)
       return { status: 200 as const, body: { access_token: accessToken, access_expires_at: accessExpiresAt.toISOString(), session: sessionBody(l, idleExpiresAt) } };
     }),
@@ -204,6 +209,7 @@ export function createSessionService(deps: SessionDeps) {
       await lapse(c, l);
       blocked(l);
       const idleExpiresAt = await touched(c, l, touch);
+      idMetrics.sessionResolve(c, 'ok');
       if (!deps.mintPatientAccessToken) throw new LimsError('common.internal', 'identity: patient JWT signer not wired');
       const expiresAt = new Date(Math.min(l.now.getTime() + PATIENT_JWT_MS, l.load.absoluteExpiresAt.getTime(), idleExpiresAt.getTime()));
       const accessToken = deps.mintPatientAccessToken({ sub: l.s.userId, sessionId: l.s.sessionId, aal: l.load.aal, issuedAt: l.now, expiresAt });

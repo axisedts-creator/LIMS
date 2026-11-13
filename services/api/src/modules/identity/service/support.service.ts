@@ -2,6 +2,7 @@
 // Acting identity comes from the platform ctx only (CR-C2-004). Every operation runs PlatformAuthz.assertPlatform before any repo call.
 // Writes into the TARGET tenant (access log, admin notice) happen only inside ctx.db.withTenantScope (08 R10 item 4 / A25 D-214).
 // The reason text (P2) is never logged nor written to the access-log detail or notice (07-SECURITY threat 6).
+import { idMetrics } from '../metrics.js';
 import { access, type AccessLogEntry } from '../../../core/audit/access.js';
 import { LimsError, type FieldError } from '../../../core/errors.js';
 // [CONV] relative import until @lims/shared-ts is a services/api dependency (same as role.service).
@@ -209,6 +210,7 @@ export function createSupportService(deps: { repo?: SupportRepo; newId?: () => s
       await logSuperseded(ctx, ended);
       await logIn(ctx, tenantId, 'support_session.open', id, () =>
         repo.insertNotice(ctx.tx, tenantId, { kind: 'support_session_started', subjectType: 'support_session', subjectId: id }, meta(ctx)));
+      idMetrics.supportOpened(ctx, scope);   // T28 (02-TRD §13): opened = became active (SP1 here, SP3 in activate)
       return { status: 201, body: toBody(row), version: row.version };
     },
 
@@ -227,6 +229,7 @@ export function createSupportService(deps: { repo?: SupportRepo; newId?: () => s
       await repo.bindPlatformSession(s.tx, s.psid, id);
       await logSuperseded(ctx, ended);
       await logIn(ctx, up.tenant_id, 'support_session.activate', id);
+      idMetrics.supportOpened(ctx, up.scope);
       return { status: 200, body: toBody(up), version: up.version };
     },
 

@@ -8,6 +8,7 @@ import { gotrueGatewayFromEnv } from '../gotrue/gateway.http.js';
 import type { GoTrueGateway } from '../gotrue/gateway.js';
 import { createAuthEventsRepo, createAuthRepo } from '../repository/auth-events.repo.js';
 import { createAuthService, type AuthCtx, type AuthDeps, type AuthLimits } from '../service/auth.service.js';
+import { idMetrics } from '../metrics.js';
 
 export interface LoginHctx extends HandlerContext {
   requestId: string; bffKey?: string; actor?: { type: string; id: string }; commitOnError?: () => void;
@@ -25,6 +26,7 @@ const fails = new Map<string, number[]>();      // a:<hmac> failure times, slidi
 const ipFails = new Map<string, number[]>();    // f:<ip> failure times, sliding 10 min (08 A1)
 const ipAttempts = new Map<string, number[]>(); // f:<ip> attempts while throttled, sliding 60 s
 const ipUntil = new Map<string, number>();      // f:<ip> throttle end
+const ipLast = new Map<string, number>();       // f:<ip> last failure (T28 stuffing gauge, 15 min)
 const MAX_KEYS = 100_000;
 
 function window(m: Map<string, number[]>, key: string, now: number, ms: number): number[] {
@@ -32,6 +34,16 @@ function window(m: Map<string, number[]>, key: string, now: number, ms: number):
   if (a.length) m.set(key, a); else m.delete(key);
   if (m.size > MAX_KEYS) m.delete(m.keys().next().value as string); // bound memory under key spraying: oldest key goes
   return a;
+}
+const Q = 15 * 60_000;
+/** T28 backing gauges (02-TRD §13) from the same process-local windows [CONV; the auth_events sample is CR-C2-T28-002].
+ *  ponytail: O(keys) scan per failure, bounded by MAX_KEYS; fine for login traffic. */
+function gauges(t: number) {
+  let throttled = 0; for (const u of ipUntil.values()) if (u > t) throttled += 1;
+  let accounts = 0; for (const a of fails.values()) if ((a[a.length - 1] ?? 0) > t - Q) accounts += 1;
+  let ips = 0; for (const l of ipLast.values()) if (l > t - Q) ips += 1;
+  idMetrics.ipThrottlesActive(undefined, throttled);
+  idMetrics.stuffing(undefined, accounts, ips);
 }
 const limitedFor = (ms: number) => Object.assign(new LimsError('common.rate_limited'), { retryAfterSeconds: Math.max(1, Math.ceil(ms / 1000)) });
 
@@ -49,7 +61,7 @@ export function createAuthLimits(rateLimit: LoginHctx['rateLimit'], now: () => n
     async clearAccountFailures(k) { fails.delete(`a:${k}`); },
     async checkIp(ip) {
       const key = `f:${ip}`; const t = now();
-      if ((ipUntil.get(key) ?? 0) <= t) { ipUntil.delete(key); return; }
+      if ((ipUntil.get(key) ?? 0) <= t) { if (ipUntil.delete(key)) gauges(t); return; }
       const a = window(ipAttempts, key, t, 60_000);
       if (a.length >= 5) throw limitedFor(a[0]! + 60_000 - t);
       a.push(t); ipAttempts.set(key, a);
@@ -59,6 +71,9 @@ export function createAuthLimits(rateLimit: LoginHctx['rateLimit'], now: () => n
       const a = window(ipFails, key, t, 600_000); a.push(t); ipFails.set(key, a);
       const engaged = a.length >= 10 && (ipUntil.get(key) ?? 0) <= t;
       if (engaged) ipUntil.set(key, t + 30 * 60_000);
+      ipLast.delete(key); ipLast.set(key, t);                                  // re-insert: Map order = recency
+      if (ipLast.size > MAX_KEYS) ipLast.delete(ipLast.keys().next().value as string);
+      gauges(t);
       return { engaged, windowStart: new Date(a[0]!) };
     },
   };

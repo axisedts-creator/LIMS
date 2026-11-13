@@ -3,6 +3,7 @@
 // 3 s timeout per call; refresh gets 1 retry after 200 ms on a network error; 5 consecutive outages open a 30 s circuit (02-TRD §8).
 import { LimsError } from '../../../core/errors.js';
 import { GoTrueError, type GoTrueGateway, type GoTrueTokens } from './gateway.js';
+import { idMetrics } from '../metrics.js';
 
 export interface HttpGoTrueGatewayOptions {
   url: string;          // LIMS_IDENTITY_GOTRUE_URL (internal API-network URL)
@@ -217,5 +218,26 @@ export function createHttpGoTrueGateway(opts: HttpGoTrueGatewayOptions): GoTrueG
         }));
     },
   };
-  return gw;
+  return metered(gw);
+}
+
+/** T28 lims_identity_gotrue_requests_total / _duration_seconds{op, outcome} (02-TRD §13): op = gateway method; outcome ok, rejected
+ *  (GoTrue answered no: wrong password / code, 4xx) or error (outage, open circuit, malformed answer) = IdentityGoTrueUnavailable input. */
+function metered(gw: GoTrueGateway): GoTrueGateway {
+  const out = {} as Record<string, unknown>;
+  for (const [op, fn] of Object.entries(gw) as Array<[string, (...a: unknown[]) => Promise<unknown>]>) {
+    out[op] = async (...a: unknown[]) => {
+      const t0 = performance.now();
+      const done = (o: 'ok' | 'rejected' | 'error') => idMetrics.gotrue(undefined, op, o, (performance.now() - t0) / 1000);
+      try {
+        const r = await fn(...a);
+        done(r && typeof r === 'object' && (r as { ok?: unknown }).ok === false ? 'rejected' : 'ok');
+        return r;
+      } catch (e) {
+        done(e instanceof GoTrueError && e.status >= 400 && e.status < 500 ? 'rejected' : 'error');
+        throw e;
+      }
+    };
+  }
+  return out as unknown as GoTrueGateway;
 }

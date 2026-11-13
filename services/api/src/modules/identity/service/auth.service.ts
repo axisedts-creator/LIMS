@@ -10,6 +10,7 @@ import { uuidv7 } from '../../../../../../packages/shared-ts/src/uuidv7/index.js
 import type { GoTrueGateway, GoTrueTokens } from '../gotrue/gateway.js';
 import { cidrList, ipAllowed } from '../claims/resolver.js';
 import type { AuthEvent, NewSession } from '../repository/auth-events.repo.js';
+import { idMetrics, loginOutcomeOf } from '../metrics.js';
 
 type Row = Record<string, any>;
 export interface AuthTx { query(text: string, values?: unknown[]): Promise<{ rows: any[] }>; bindTenant?: (tenantId: string) => Promise<void> }
@@ -72,6 +73,19 @@ const sha256 = (s: string) => createHash('sha256').update(s).digest();
 const invalid = () => new LimsError('common.validation_failed');
 const normalise = (e: string) => e.trim().normalize('NFC').toLowerCase();
 
+// T28 (02-TRD §13): checkIp refusals are the same common.rate_limited as the account cap; marked here so the counter says ip_throttled.
+const ipThrottled = new WeakSet<object>();
+// T28 backing gauge lims_identity_login_failures_by_tenant_5m [CONV]: failures this process can attribute to a tenant (blocked / forbidden
+// after the password matched). A wrong password names no tenant here (GoTrue says only "no"): the auth_events sample is CR-C2-T28-002.
+// ponytail: process-local window like the login limiter (handlers/loginStaff.ts); the DB sampler replaces it.
+const tenantFails = new Map<string, number[]>();
+function tenantFailure(ctx: unknown, tenantId: string, now: number) {
+  const a = (tenantFails.get(tenantId) ?? []).filter((t) => t > now - 300_000);
+  a.push(now); tenantFails.set(tenantId, a);
+  if (tenantFails.size > 10_000) tenantFails.delete(tenantFails.keys().next().value as string);
+  idMetrics.tenantFailures5m(ctx, tenantId, a.length);
+}
+
 export function createAuthService(deps: AuthDeps) {
   const hmac = deps.hmac ?? envHmac;
   const newId = deps.newId ?? uuidv7;
@@ -118,7 +132,7 @@ export function createAuthService(deps: AuthDeps) {
     if (mode !== 'mobile' && ctx.bffKey !== (mode === 'partner' ? 'partner' : 'staff_web')) return tenantless('login_failed', new LimsError('auth.login_failed'), { reasonCode: 'wrong_bff' });
 
     // 1. per-IP throttle (only bites once engaged), 2. hourly account cap, 3. backoff / step-up (password not checked)
-    try { await deps.limits.checkIp(ctx.clientIp); } catch (e) { return limited(e); }
+    try { await deps.limits.checkIp(ctx.clientIp); } catch (e) { if (e && typeof e === 'object') ipThrottled.add(e); return limited(e); }
     try { await deps.limits.consumeAttempt(k); } catch (e) { return limited(e); }
     const st = await deps.limits.accountState(k);
     if (st.failures >= STEP_UP_FAILS) {
@@ -177,6 +191,7 @@ export function createAuthService(deps: AuthDeps) {
     const blocked = async (eventType: string, code: string) => {
       await deps.events.recordTenant(tx, ev(eventType, { ...who, tenantId, membershipId, emailHmacHex: k }));
       await signOut(eventType, tenantId);
+      tenantFailure(ctx, tenantId, ctx.now().getTime());
       return deny(new LimsError(code));
     };
     if (row['membership_status'] !== 'active') return blocked('login_blocked_inactive', 'identity.membership_inactive');
@@ -189,6 +204,7 @@ export function createAuthService(deps: AuthDeps) {
       if (!ok) {
         await deps.events.recordTenant(tx, ev('login_failed', { ...who, tenantId, membershipId, emailHmacHex: k, reasonCode: 'auth.forbidden' }));
         await signOut('mobile_permission', tenantId);
+        tenantFailure(ctx, tenantId, ctx.now().getTime());
         return deny(new LimsError('auth.forbidden'));
       }
     }
@@ -258,12 +274,26 @@ export function createAuthService(deps: AuthDeps) {
       idle_expires_at: s.idleExpiresAt.toISOString(), absolute_expires_at: s.absoluteExpiresAt.toISOString() } },
   });
 
+  /** T28 lims_identity_logins_total{outcome, kind}: kind = login family [CONV]. A 400 (bad input) and an outage are not login attempts. */
+  async function counted<T>(ctx: AuthCtx, mode: LoginMode, run: Promise<T>): Promise<T> {
+    try {
+      const out = await run;
+      idMetrics.login(ctx, 'success', mode);
+      return out;
+    } catch (e) {
+      if (isLimsError(e) && e.code !== 'common.validation_failed' && e.code !== 'common.dependency_unavailable' && e.code !== 'common.internal') {
+        idMetrics.login(ctx, ipThrottled.has(e) ? 'ip_throttled' : loginOutcomeOf(e.code), mode);
+      }
+      throw e;
+    }
+  }
+
   return {
-    loginStaff: (ctx: AuthCtx, input: { email: unknown; password: unknown }) => login(ctx, input, 'staff') as Promise<LoginResult>,
+    loginStaff: (ctx: AuthCtx, input: { email: unknown; password: unknown }) => counted(ctx, 'staff', login(ctx, input, 'staff') as Promise<LoginResult>),
     /** T31 loginPartner: session kind partner (AU-T14, 03-APP-FLOW s3.5a) */
-    loginPartner: (ctx: AuthCtx, input: { email: unknown; password: unknown }) => login(ctx, input, 'partner') as Promise<LoginResult>,
+    loginPartner: (ctx: AuthCtx, input: { email: unknown; password: unknown }) => counted(ctx, 'partner', login(ctx, input, 'partner') as Promise<LoginResult>),
     /** T31 openMobileSession: session kind staff_mobile (AU-T17) */
     openMobileSession: (ctx: AuthCtx, input: MobileLoginInput) =>
-      login(ctx, input, 'mobile', { appInstanceId: input.appInstanceId, appPlatform: input.appPlatform }) as Promise<MobileSessionResult>,
+      counted(ctx, 'mobile', login(ctx, input, 'mobile', { appInstanceId: input.appInstanceId, appPlatform: input.appPlatform }) as Promise<MobileSessionResult>),
   };
 }

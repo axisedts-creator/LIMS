@@ -6,6 +6,7 @@ import { readFile } from 'node:fs/promises';
 import { LimsError, type ErrorCode } from '../../../../../../packages/shared-ts/src/errors/index.js';
 import type { TaskHandler } from '../../../core/manifest.js';
 import { platformOnly } from './shared.js';
+import { idMetrics } from '../../../../../api/src/modules/identity/metrics.js';
 
 export const IMPORT_BREACHED_PASSWORDS = 'identity.import_breached_passwords';
 const ENV = 'LIMS_IDENTITY_BREACHED_LIST_PATH';
@@ -38,5 +39,7 @@ export const importBreachedPasswords: TaskHandler = async (payload, ctx) => {
     await ctx.tx.query('SELECT app.identity_load_breached_batch($1, $2)', [batch, version]);
   }
   await ctx.tx.query('SELECT app.identity_finish_breached_import($1)', [version]);
+  // T28 (02-TRD §13 IdentityBreachedListMissing): list present after this run. [CONV] set before commit; a rolled-back run retries.
+  idMetrics.breachedListLoaded(ctx, true);
   ctx.log?.info?.({ event: IMPORT_BREACHED_PASSWORDS, hashes: all.length, batches: Math.ceil(all.length / BATCH), version });
 };

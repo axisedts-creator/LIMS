@@ -3,6 +3,7 @@
 // app.identity_session_by_token(sha256(cookie token)); tx.bindTenant(session.tenant_id) once for tenant kinds; client IP = ctx.clientIp.
 // A wrong code keeps its counter / event / revoke: ctx.commitOnError(), the 4xx is RETURNED out of the tx callback (COMMIT) and re-thrown.
 // [CONV] The request plumbing shared by the three T7 handlers (mfaOperation, failCode, …) lives here: the plan lists no service file.
+import { idMetrics } from '../metrics.js';
 import { createHash, createHmac } from 'node:crypto';
 import { LimsError, isLimsError } from '../../../core/errors.js';
 import type { Handler, HandlerContext, HandlerRequest } from '../../../core/module.js';
@@ -151,9 +152,10 @@ export async function failCode(c: MfaCtx): Promise<never> {
   return c.deny(new LimsError('auth.mfa_invalid'));
 }
 
-/** verify the code at GoTrue; wrong code -> failCode (throws) */
-export async function checkCode(c: MfaCtx, gotrueFactorId: string, code: string): Promise<GoTrueTokens> {
+/** verify the code at GoTrue; wrong code -> failCode (throws). T28: lims_identity_mfa_verifications_total{outcome, flow} (outage not counted). */
+export async function checkCode(c: MfaCtx, gotrueFactorId: string, code: string, flow: 'challenge' | 'enrol'): Promise<GoTrueTokens> {
   const r = await gotrueCall(() => c.deps.gotrue.mfaChallengeAndVerify(c.load.accessToken, gotrueFactorId, code));
+  idMetrics.mfa(c, r.ok ? 'success' : 'failed', flow);
   if (!r.ok) return failCode(c);
   return r.tokens;
 }
@@ -201,7 +203,7 @@ export const createVerifyMfaChallenge = mfaOperation('verifyMfaChallenge', (req)
   // [CONV] several verified factors: the most recently verified one is challenged; none (data error) -> 409
   const f = verified.sort((a, b) => (b.verifiedAt?.getTime() ?? 0) - (a.verifiedAt?.getTime() ?? 0))[0];
   if (!f) throw new LimsError('common.version_conflict');
-  const t = await checkCode(c, f.gotrueFactorId, code);
+  const t = await checkCode(c, f.gotrueFactorId, code, 'challenge');
   await activate(c, t);
   await c.record(c.ev('mfa_verified'));
   await loginSucceeded(c);

@@ -2,6 +2,7 @@
 // Tenant, actor, membership and centre scope come from ctx only. x-permission audit.log.export is the pipeline's floor; create also needs
 // all_centres = true [CONV]. Bodies follow the AuditExport schema (null fields omitted; no object_path / sha256 / filters / tenant_id).
 // Error messages never carry input values.
+import { idMetrics } from '../metrics.js';
 import { LimsError, type FieldError } from '../../../core/errors.js';
 import { uuidv7 } from '../../../../../../packages/shared-ts/src/uuidv7/index.js';
 import { createExportRepo, type ExportSource, type Filters } from '../repository/exports.repo.js';
@@ -138,10 +139,10 @@ export function createAuditExportService(deps: { repo?: Repo; newId?: () => stri
       const { tx, tenantId } = ctx;
       await repo.lockQuota(tx, tenantId, mem);
       const since = new Date(nowMs(ctx) - DAY_MS);
-      if ((await repo.countSince(tx, tenantId, { membershipId: mem, since })) >= USER_PER_DAY
-        || (await repo.countSince(tx, tenantId, { since })) >= TENANT_PER_DAY) {
-        const e = new LimsError('common.rate_limited'); e.retryAfterSeconds = 3600; throw e;   // [CONV] coarse Retry-After
-      }
+      const limited = () => { const e = new LimsError('common.rate_limited'); e.retryAfterSeconds = 3600; return e; };   // [CONV] coarse Retry-After
+      if ((await repo.countSince(tx, tenantId, { membershipId: mem, since })) >= USER_PER_DAY) throw limited();
+      const tenantDay = await repo.countSince(tx, tenantId, { since });
+      if (tenantDay >= TENANT_PER_DAY) throw limited();
       if ((await repo.estimateRows(tx, tenantId, { source: b.source, from: b.from, to: b.to, filters: b.filters, cap: ROW_CAP })) > ROW_CAP) {
         throw new LimsError('identity.export_too_large');
       }
@@ -151,6 +152,8 @@ export function createAuditExportService(deps: { repo?: Repo; newId?: () => stri
       await repo.insertNotice(tx, tenantId, { kind: 'audit_export_created', subjectType: 'audit_export', subjectId: id, excludeMembershipId: mem, actorId: ctx.actor.id });
       await repo.enqueueJob(tx, { taskIdentifier: TASK, payload: { tenant_id: tenantId, export_id: id }, jobKey: `export:${id}` });
       ctx.metrics?.inc('lims_identity_audit_exports_total', { tenant_id: tenantId, source: b.source });
+      // T28 backing gauge (02-TRD §13) [CONV]: "today" = the same rolling 24 h window as the rate limit above, this export included.
+      idMetrics.auditExportsTenantDay(ctx, tenantId, tenantDay + 1);
       return { status: 202, body: toApi(row) };
     },
 

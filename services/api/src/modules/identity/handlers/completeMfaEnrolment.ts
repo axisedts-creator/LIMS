@@ -19,7 +19,7 @@ export const createCompleteMfaEnrolment = mfaOperation('completeMfaEnrolment', p
   const f = (await c.deps.repo.factors(c.tx, { tenantId: c.s.tenantId, userId: c.s.userId }))
     .find((x) => x.id.toLowerCase() === factorId && x.status === 'unverified');
   if (!f) throw new LimsError('common.not_found');
-  const t = await checkCode(c, f.gotrueFactorId, code);
+  const t = await checkCode(c, f.gotrueFactorId, code, 'enrol');
   await c.deps.repo.markFactorVerified(c.tx, { id: f.id, tenantId: c.s.tenantId, userId: c.s.userId, at: c.now, actorId: c.actorId });
   await activate(c, t);
   await c.record(c.ev('mfa_enrolled'));

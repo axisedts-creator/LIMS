@@ -61,7 +61,7 @@ describe('SM-1 inbox (US-06)', () => {
     expect(r.textContent).toMatch(/Synthetic Partner Lab/);
     expect(r.textContent).toMatch(/2/); // lines_failed
     expect(within(r).getByText(/needs attention|2 need/i)).toBeTruthy();
-    expect(screen.getByRole('table').querySelector('caption')).toBeTruthy();
+    expect(screen.getByRole('grid', { name: /\S/ })).toBeTruthy(); // kit DataTable `caption` prop = accessible table name (C0 04-UI-UX:196; C13 04-UI-UX:257)
   });
 
   it('default request: state=submitted,partially_received, sort -submitted_at, limit ≤ 200; no centre filter forced (scope is the API\'s job — US-06.2)', async () => {
@@ -152,7 +152,7 @@ describe('SK-1 pickups (US-10.3, US-10.4)', () => {
     await user.click(within(dlg).getByRole('button', { name: /^schedule/i }));
     expect(of('POST', /\/schedule$/)).toHaveLength(0); // required fields empty
     const from = new Date(Date.now() + 3600_000), to = new Date(Date.now() + 2 * 3600_000);
-    await user.type(within(dlg).getByLabelText(/from/i), kathmandu(from));
+    await user.type(within(dlg).getByLabelText(/^from/i), kathmandu(from));
     await user.type(within(dlg).getByLabelText(/^to/i), kathmandu(to));
     const who = within(dlg).getByLabelText(/assignee/i) as HTMLInputElement;
     expect(who.maxLength).toBe(80);
@@ -173,7 +173,7 @@ describe('SK-1 pickups (US-10.3, US-10.4)', () => {
     const user = userEvent.setup({ delay: null });
     await user.click(within(screen.getByText(/^requested$/i).closest('tr')!).getByRole('button', { name: /^schedule$/i }));
     const dlg = await screen.findByRole('dialog');
-    await user.type(within(dlg).getByLabelText(/from/i), kathmandu(new Date(Date.now() + 2 * 3600_000)));
+    await user.type(within(dlg).getByLabelText(/^from/i), kathmandu(new Date(Date.now() + 2 * 3600_000)));
     await user.type(within(dlg).getByLabelText(/^to/i), kathmandu(new Date(Date.now() + 3600_000)));
     await user.type(within(dlg).getByLabelText(/assignee/i), 'Rider Synthetic');
     await user.click(within(dlg).getByRole('button', { name: /^schedule/i }));

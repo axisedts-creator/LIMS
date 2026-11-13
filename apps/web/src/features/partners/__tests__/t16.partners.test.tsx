@@ -68,7 +68,7 @@ describe('SP-1 list', () => {
     expect(r.textContent).toMatch(/Synthetic Receiving Centre/);
     expect(within(r).getByText(/^active$/i)).toBeTruthy();
     expect(within(screen.getByText('SYN-LAB-02').closest('tr')!).getByText(/^suspended$/i)).toBeTruthy();
-    expect(screen.getByRole('table').querySelector('caption')).toBeTruthy();
+    expect(screen.getByRole('grid', { name: /\S/ })).toBeTruthy(); // kit DataTable `caption` prop = accessible table name (C0 04-UI-UX:196; C13 04-UI-UX:257)
     expect(within(r).getByRole('link', { name: /Synthetic Partner Lab|SYN-LAB-01/ }).getAttribute('href')).toBe(`/partners/${PARTNER}`);
   });
 

@@ -41,7 +41,7 @@ const open = async (perms: string[] = RECEIVER_PERMS) => { session.perms = perms
 const row = (name: RegExp | string) => screen.getByText(name).closest('tr')!;
 const radio = (r: HTMLElement, name: RegExp) => within(r).getByRole('radio', { name }) as HTMLInputElement;
 const scan = (text: string) => userEvent.setup({ delay: null }).type(screen.getByLabelText(/scan or type the partner.s sample reference/i), `${text}{Enter}`);
-const searchField = (dlg: HTMLElement) => within(dlg).queryByRole('searchbox') ?? within(dlg).getByRole('combobox');
+const searchField = (dlg: HTMLElement) => within(dlg).queryByRole('searchbox') ?? within(dlg).queryByRole('combobox') ?? within(dlg).getByRole('textbox', { name: /search/i }); // kit TextField accepted (C13 04-UI-UX:218 names no role)
 const pickReason = async (scope: HTMLElement, option: RegExp) => {
   await userEvent.click(within(scope).getByRole('button', { name: /reason/i }));
   await userEvent.click(await screen.findByRole('option', { name: option }));
@@ -60,8 +60,7 @@ describe('SM-2 header + lines (04-UI-UX §4)', () => {
     expect(within(r).getByText('REF-002')).toBeTruthy();
     expect(within(r).getByText(/urgent/i)).toBeTruthy(); // Priority Badge carries the word, not just a colour
     expect(within(r).getByText(/Synthetic Test 2|T2/)).toBeTruthy();
-    expect(screen.getByRole('table')).toBeTruthy();
-    expect(screen.getAllByRole('table')[0]!.querySelector('caption')).toBeTruthy(); // 04-UI-UX §7: every table has a caption
+    expect(screen.getAllByRole('grid', { name: /\S/ })[0]).toBeTruthy(); // kit DataTable `caption` prop = accessible table name (C0 04-UI-UX:196; C13 04-UI-UX:257)
   });
 
   it('an unconfirmed referring doctor shows a "Not confirmed" warning badge; clinical note is visible (truncated) per line (D-102)', async () => {

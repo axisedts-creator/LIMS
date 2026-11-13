@@ -84,6 +84,57 @@ export async function revokeLink(tx: Q, a: { tenantId: string; userId: string; i
   return rows[0];
 }
 
+// ---- E14 redeemLinkCode (patient actor, 02-TRD §4.3.2). The patient has no policy on link_codes: only the DEFINER reads / redeems it. ----
+
+/** The caller's own live account (patient RLS shows no other). */
+export async function myAccount(tx: Q, a: { tenantId: string; membershipId: string }): Promise<Row | undefined> {
+  const { rows } = await tx.query("SELECT id FROM engagement.accounts WHERE tenant_id = $1 AND membership_id = $2 AND status <> 'deleted'", [a.tenantId, a.membershipId]);
+  return rows[0];
+}
+
+export async function redeemLimits(tx: Q, tenantId: string): Promise<Row | undefined> {
+  const { rows } = await tx.query('SELECT max_profiles_per_account, max_accounts_per_patient FROM engagement.settings WHERE tenant_id = $1', [tenantId]);
+  return rows[0];
+}
+
+export async function failureCount(tx: Q, a: { tenantId: string; key: string }): Promise<number> {
+  const { rows } = await tx.query('SELECT last_value FROM engagement.number_counters WHERE tenant_id = $1 AND counter_key = $2', [a.tenantId, a.key]);
+  return Number(rows[0]?.['last_value'] ?? 0);
+}
+
+/** One failed redemption (the only write of that request; persisted by ctx.commitOnError()). The row is a rate key: expires_at lets the purge task drop it. */
+export async function countFailure(tx: Q, a: { tenantId: string; key: string; expiresAt: string; createdBy: string }): Promise<void> {
+  await tx.query(
+    `INSERT INTO engagement.number_counters (tenant_id, counter_key, last_value, expires_at, created_by) VALUES ($1, $2, 1, $3, $4)
+     ON CONFLICT (tenant_id, counter_key) DO UPDATE SET last_value = number_counters.last_value + 1, updated_at = now()`,
+    [a.tenantId, a.key, a.expiresAt, a.createdBy]);
+}
+
+export async function activeLinksOfAccount(tx: Q, a: { tenantId: string; accountId: string }): Promise<number> {
+  const { rows } = await tx.query("SELECT count(*) FROM engagement.account_patient_links WHERE tenant_id = $1 AND account_id = $2 AND status = 'active'", [a.tenantId, a.accountId]);
+  return Number(rows[0]?.['count'] ?? 0);
+}
+
+/** An active or suspended `self` link of the account (account_self__p_uq). */
+export async function liveSelfLinks(tx: Q, a: { tenantId: string; accountId: string }): Promise<number> {
+  const { rows } = await tx.query("SELECT count(*) FROM engagement.account_patient_links WHERE tenant_id = $1 AND account_id = $2 AND relationship = 'self' AND status IN ('active', 'suspended')", [a.tenantId, a.accountId]);
+  return Number(rows[0]?.['count'] ?? 0);
+}
+
+/** PAT_LINK_INS: a link_code link needs a code redeemed by the caller for this patient, status active, visible_from NULL. */
+export async function insertRedeemedLink(tx: Q, a: { tenantId: string; userId: string; accountId: string; patientId: string; relationship: string; codeId: string; consentId: string; recordPhoneHmac: Uint8Array | null; displayName: string; sex: string | null }): Promise<Row> {
+  const { rows } = await tx.query(
+    `INSERT INTO engagement.account_patient_links (id, tenant_id, account_id, patient_id, relationship, method, link_code_id, consent_id, status, visible_from, record_phone_hmac_at_link, display_name, sex_snapshot, created_by, updated_by)
+     VALUES ($1, $2, $3, $4, $5, 'link_code', $6, $7, 'active', NULL, $8, $9, $10, $11, $11)
+     RETURNING ${LINK_COLS}`,
+    [uuidv7(), a.tenantId, a.accountId, a.patientId, a.relationship, a.codeId, a.consentId, a.recordPhoneHmac, a.displayName, a.sex, a.userId]);
+  return rows[0]!;
+}
+
+export async function enqueueBackfill(tx: Q, a: { tenantId: string; linkId: string }): Promise<void> {
+  await tx.query('SELECT app.enqueue_job($1, $2::jsonb, $3)', ['engagement.backfill_link', JSON.stringify({ tenant_id: a.tenantId, link_id: a.linkId }), `backfill:${a.linkId}`]);
+}
+
 /** account_id -> phone_e164, for the masked phone of L3 / L4 (the full number never leaves the service). */
 export async function accountPhones(tx: Q, a: { tenantId: string; accountIds: readonly string[] }): Promise<Row[]> {
   if (a.accountIds.length === 0) return [];

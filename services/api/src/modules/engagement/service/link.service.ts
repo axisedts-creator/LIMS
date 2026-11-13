@@ -8,8 +8,7 @@ import { createHmac, randomBytes } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { LimsError, type FieldError } from '../../../core/errors.js';
 import { loadEngagementConfig, type EngagementConfig } from '../config.js';
-import { LINK_CODE_ALPHABET, LINK_CODE_LENGTH, formatLinkCode, normalizeLinkCode } from '../domain/linkCode.js';
-import { canTransition, type LinkStatus } from '../domain/link.state.js';
+import { LINK_CODE_ALPHABET, LINK_CODE_LENGTH, formatLinkCode, normalizeLinkCode } from '../domain/linkCode.js';import { canTransition, type LinkStatus } from '../domain/link.state.js';
 import { hasAllowedPrefix, isE164, maskPhone } from '../domain/phone.js';
 import { engagementMetrics } from '../metrics.js';
 import * as consents from '../repository/consents.repo.js';
@@ -19,6 +18,8 @@ import { invalid, isUuid, parseIfMatch, type SlotCtx } from './slot.service.js';
 
 export interface LinkCtx extends SlotCtx {
   readonly audit?: { access(entry: Record<string, unknown>): Promise<void> };
+  readonly claims?: { readonly membership_id?: unknown };
+  readonly commitOnError?: () => void;
   readonly ports?: { FrontdeskPort?: { getPatientDemographics(ctx: unknown, i: { patientId: string; purpose: string }): Promise<{ sex?: unknown; fullName?: unknown; phoneE164?: unknown; status?: unknown }> } } | any;
 }
 type Out = { status: number; body?: Record<string, unknown> };
@@ -30,6 +31,7 @@ const CHECKS = ['photo_id', 'guardian_photo_id', 'known_patient'];
 const REVOKE_REASONS = ['patient_request', 'suspected_misuse', 'staff_error', 'other'];
 const CODE_ETAG = 1;
 const HOUR = 3_600_000;
+const SHAPE = new RegExp(`^[0-9A-Z]{${LINK_CODE_LENGTH}}$`); // shape only (400); a symbol outside the alphabet (U) is a normal 422, never a validity oracle
 
 const isObj = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null && !Array.isArray(v);
 const iso = (v: unknown): string => new Date(v as string).toISOString();
@@ -103,6 +105,20 @@ function toLink(l: Row, phone: unknown): Record<string, unknown> {
   return o;
 }
 
+/** E14 body: exactly {code}; the patient id comes only from the code (never from the client). */
+function parseRedeem(body: unknown): string {
+  const code = strict(body, ['code'])['code'];
+  if (typeof code !== 'string' || code.length > 32 || !SHAPE.test(normalizeLinkCode(code))) invalid('/code');
+  return code as string;
+}
+
+/** Profile wire shape (additionalProperties false): link_id / patient_id / phone stay out. */
+function toProfile(l: Row): Record<string, unknown> {
+  const o: Record<string, unknown> = { profile_id: l['id'], display_name: String(l['display_name']).slice(0, 120), relationship: l['relationship'], method: l['method'], status: l['status'] };
+  if (l['visible_from']) o['history_from'] = iso(l['visible_from']);
+  return o;
+}
+
 export function createLinkService() {
   const phonesOf = async (tx: any, tenantId: string, links: Row[]) =>
     new Map((await repo.accountPhones(tx, { tenantId, accountIds: [...new Set(links.map((l) => l['account_id'] as string))] })).map((a) => [a['id'], a['phone_e164']]));
@@ -137,6 +153,56 @@ export function createLinkService() {
         await ctx.audit?.access({ action: 'link_code.issue', entityType: 'patient', entityId: v.patientId, outcome: 'allowed' }); // no code, no phone
         engagementMetrics.linkEvent(ctx, 'link_code', 'issued');
         return { status: 201, body: { link_code_id: id, code, expires_at: expiresAt, bound_phone_masked: maskPhone(bound) } };
+      } catch (e) { return mapDbError(e); }
+    },
+
+    /**
+     * E14 (TRD §4.3.2): body (400) -> account -> failure counter (429) -> DEFINER redeem (the redemption AND the widening / reactivation of an existing link happen only inside it)
+     * -> no row: counter + ctx.commitOnError() + 422 -> existing link: 200 -> limits (409, NO commitOnError: the redemption rolls back) -> insert link (201). Backfill enqueue + access log.
+     */
+    async redeem(ctx: LinkCtx, input: { body: unknown }): Promise<Out> {
+      const { tx, tenantId, userId, now } = scope(ctx);
+      const code = parseRedeem(input.body);
+      const commitOnError = ctx.commitOnError;
+      const membershipId = ctx.claims?.membership_id;
+      if (typeof commitOnError !== 'function' || typeof membershipId !== 'string') throw new LimsError('auth.unauthenticated'); // never redeem without the means to persist a failure
+      try {
+        const acct = await repo.myAccount(tx, { tenantId, membershipId });
+        if (!acct) throw new LimsError('auth.unauthenticated');
+        const nowMs = Date.parse(now);
+        const key = `linkfail:${acct['id']}:${now.slice(0, 13).replace(/\D/g, '')}`; // yyyymmddhh (UTC)
+        if ((await repo.failureCount(tx, { tenantId, key })) >= config().linkRedeemFailuresPerHour) {
+          throw Object.assign(new LimsError('common.rate_limited'), { retryAfterSeconds: Math.max(1, Math.ceil((HOUR - (nowMs % HOUR)) / 1000)) });
+        }
+
+        // SECURITY DEFINER (05-SCHEMA §6.1; named here, in the service, on purpose: this is the one statement that redeems): raw 32-byte bytea (08 A2.4, A5.5). No row = unknown / expired / used / other phone.
+        const r = (await tx.query('SELECT * FROM app.engagement_redeem_link_code($1::bytea)', [linkHmac(tenantId, code)])).rows[0] as Row | undefined;
+        if (!r) { // unknown, expired, used, other phone: one identical answer; the counter is the only write and survives the 422 (08 A19 P-42)
+          await repo.countFailure(tx, { tenantId, key, expiresAt: new Date(nowMs + 24 * HOUR).toISOString(), createdBy: userId });
+          commitOnError();
+          engagementMetrics.linkEvent(ctx, 'link_code', 'invalid');
+          throw new LimsError('engagement.link_code_invalid');
+        }
+
+        let link: Row | undefined; let status = 200;
+        if (r['existing_link_id']) link = await repo.getLink(tx, { tenantId, id: r['existing_link_id'] as string });
+        if (!link) { // new link: limits first (a throw rolls the DEFINER's redemption back)
+          // CR-pending (.orchestra/cr/T-L2.md #1): activeLinkCount runs under PAT_ACC RLS, so as a patient actor it sees only own links; max_accounts_per_patient needs a DEFINER count.
+          const s = await repo.redeemLimits(tx, tenantId);
+          if (!s || (await repo.activeLinksOfAccount(tx, { tenantId, accountId: acct['id'] })) >= s['max_profiles_per_account']
+            || (await repo.activeLinkCount(tx, { tenantId, patientId: r['patient_id'] })) >= s['max_accounts_per_patient']) {
+            engagementMetrics.linkEvent(ctx, 'link_code', 'limit');
+            throw new LimsError('engagement.link_limit_reached');
+          }
+          const relationship = r['relationship'] === 'self' && (await repo.liveSelfLinks(tx, { tenantId, accountId: acct['id'] })) > 0 ? 'other' : r['relationship']; // review C16 #12
+          link = await repo.insertRedeemedLink(tx, { tenantId, userId, accountId: acct['id'], patientId: r['patient_id'], relationship, codeId: r['link_code_id'], consentId: r['consent_id'],
+            recordPhoneHmac: r['record_phone_hmac'] ?? null, displayName: r['display_name_snapshot'], sex: r['sex_snapshot'] ?? null });
+          status = 201;
+        }
+        await repo.enqueueBackfill(tx, { tenantId, linkId: link['id'] });
+        await ctx.audit?.access({ action: 'app_link.redeem', entityType: 'app_link', entityId: link['id'], outcome: 'allowed' }); // no code, no phone
+        engagementMetrics.linkEvent(ctx, 'link_code', 'redeemed');
+        return { status, body: toProfile(link) };
       } catch (e) { return mapDbError(e); }
     },
 

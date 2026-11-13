@@ -248,11 +248,17 @@ export async function suspend(req: Req, ctx: HandlerContext): Promise<HandlerRes
   const id = partnerId(req);
   const b = body(req);
   const reason = str(b['reason_code']) ?? invalid();
+  const reasonText = str(b['reason_text']) ?? null;
+  // x-coded-set is annotation-only in core and the DDL has no CHECK/FK on suspend_reason_code (05-SCHEMA §7): validate here as payments refund.service activeCode
+  const coded = (await tx(ctx).query('SELECT code, requires_text, is_active FROM partners.g_cs_reasons WHERE set_name = $1 AND code = $2',
+    ['partner_suspend_reasons', reason])).rows.find((r) => r['code'] === reason);
+  if (!coded || coded['is_active'] !== true) invalid();
+  if (coded!['requires_text'] === true && !reasonText?.trim()) invalid();
   const cur = await lock(ctx, tenantId, id, expected);
   assertTransition(cur['status'] as PartnerStatus, 'suspended');
   // only the status flips: users, pickups and manifests stay as they are (03-APP-FLOW §2.4); partnerContext then answers 403 partners.partner_inactive
   await bump(ctx, ["status = 'suspended'", 'suspended_at = now()', 'suspended_by = $4', 'suspend_reason_code = $5', 'suspend_reason_text = $6', 'updated_by = $4'],
-    [tenantId, id, expected, actorId, reason, str(b['reason_text']) ?? null]);
+    [tenantId, id, expected, actorId, reason, reasonText]);
   return { status: 200, body: await toDto(ctx, await loadDetail(ctx, tenantId, id)) };
 }
 

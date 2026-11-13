@@ -7,6 +7,7 @@ type Q = Pick<Tx, 'query'>;
 export type Row = Record<string, any>;
 
 const LINK_COLS = 'id, account_id, patient_id, relationship, method, display_name, status, suspend_reason, visible_from, revoked_reason_code, revoked_at, version';
+const SELECT_LINKS = 'SELECT ' + LINK_COLS + ' FROM engagement.account_patient_links'; // constant column list only; values are always $n parameters
 
 /** No settings row = feature never switched on = off. */
 export async function settings(tx: Q, tenantId: string): Promise<Row | undefined> {
@@ -65,12 +66,12 @@ export async function codesOf(tx: Q, a: { tenantId: string; patientId: string })
 }
 
 export async function linksOf(tx: Q, a: { tenantId: string; patientId: string }): Promise<Row[]> {
-  const { rows } = await tx.query(`SELECT ${LINK_COLS} FROM engagement.account_patient_links WHERE tenant_id = $1 AND patient_id = $2 ORDER BY created_at DESC, id DESC LIMIT 50`, [a.tenantId, a.patientId]);
+  const { rows } = await tx.query(SELECT_LINKS + ' WHERE tenant_id = $1 AND patient_id = $2 ORDER BY created_at DESC, id DESC LIMIT 50', [a.tenantId, a.patientId]);
   return rows;
 }
 
 export async function getLink(tx: Q, a: { tenantId: string; id: string }): Promise<Row | undefined> {
-  const { rows } = await tx.query(`SELECT ${LINK_COLS} FROM engagement.account_patient_links WHERE tenant_id = $1 AND id = $2`, [a.tenantId, a.id]);
+  const { rows } = await tx.query(SELECT_LINKS + ' WHERE tenant_id = $1 AND id = $2', [a.tenantId, a.id]);
   return rows[0];
 }
 

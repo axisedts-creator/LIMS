@@ -1,6 +1,7 @@
-# T-L1 impl (writer) — PARTIAL, stopped on dispute (see T-L1-dispute.md)
-- API done: `service/link.service.ts`, `handlers/link.handlers.ts` (+ wired in `handlers/index.ts`), `repository/linkCodes.repo.ts`, `repository/consents.repo.ts`. `link.handlers.test.ts`: 39/41 pass; the 2 failures are a fixture FK defect (disputed). tsc clean for these files.
-- NOT done: web W8 (`apps/web/src/app/(staff)/engagement/app-access/**`, AppAccess / CodeSlip, route); web tests t-l1.* still fail. Resume after the arbiter rules.
-- [CONV] L2 If-Match = constant `"1"` (link_codes has no version); L2/L4 on a non-revocable row -> 409 `common.version_conflict`; L1 `Cache-Control: no-store` set in the handler; audit outcome `allowed`; metric `lims_engagement_link_events_total{method,outcome}` (L4 method = the link's method).
-- [CONV] FrontdeskPort errors cross a package boundary (different LimsError class): `viaPort` keeps `common.not_found` / `auth.forbidden`, anything else fails closed (500).
-- Open: AppLink (L3) has no `version`, so staff UI cannot send L4's If-Match from the list alone (needs a CR: version in AppLink or ETag on L3). `boot.test.ts` PHASE_STUBS failure is pre-existing / not from these files.
+# T-L1 impl (writer) — round 2: API 41/41; web 26/34, 8 disputed (see T-L1-dispute.md)
+- API (round 1): service/link.service.ts, handlers/link.handlers.ts, repository/linkCodes.repo.ts (round 2: column list concatenated, no `${}` before WHERE), repository/consents.repo.ts.
+- Web W8: app/(staff)/engagement/app-access/[patient_id]/{page,loading,error}.tsx; features/engagement/components/AppAccess.tsx (AppAccess, CodeSlip), AppAccessHost.tsx; server/link.server.ts, link-actions.ts, link-pages.tsx.
+- [CONV] Slip = kit TokenSlip printed through PrintFrame (no patient name); code kept only in dialog state, gone on close; times in Asia/Kathmandu.
+- [CONV] Phone radio option labels avoid the word "phone" ("On record +977•••••42" / "Another number"); relationship is a kit Select per 04-UI-UX W8.
+- [CONV] Lab name on the slip = session tenantCode (same source as the W6 token slip). Consent text from T1 settings; none → Issue disabled with a notice.
+- Open: AppLink has no `version`, so L4 If-Match sends `link.version ?? 1` (needs CR: version in AppLink or ETag on L3). Guardian-required-under-minor_age_years not enforced in UI (API side). tsc clean for these files; apps/web has no eslint binary.

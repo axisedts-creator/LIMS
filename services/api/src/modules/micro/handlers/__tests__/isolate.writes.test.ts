@@ -56,7 +56,7 @@ const isolate = (id: string, cultureId: string, specimen: string, seq: number, o
 const identified = (id: string, cultureId: string, specimen: string, seq: number, over: Row = {}): Row =>
   isolate(id, cultureId, specimen, seq, { status: 'identified', organism_code: ECOLI, organism_source: 'manual', identified_at: new Date('2026-11-04T09:00:00.000Z'), identified_by_membership_id: ACTOR_M, version: 3, ...over });
 const counter = (specimen: string, last: number, tenant = A): Row => ({ tenant_id: tenant, specimen_id: specimen, last_seq: last, created_by: ACTOR_USER, updated_by: ACTOR_USER });
-const ast = (id: string, isolateId: string): Row => ({ id, tenant_id: A, centre_id: CENTRE_A1, culture_id: C.inc, isolate_id: isolateId, antibiotic_code: 'syn_amp', method: 'mic', raw_value: '2', category_code: 'syn_s', version: 1, is_reportable: true, report_visibility: 'shown' });
+const ast = (id: string, isolateId: string): Row => ({ id, tenant_id: A, centre_id: CENTRE_A1, culture_id: C.inc, isolate_id: isolateId, antibiotic_code: 'syn_amp', method: 'mic', raw_value: '2', category_code: 'S', standard: 'CLSI', standard_version: '2026', suggestion_overridden: false, source: 'manual', off_panel: false, version: 1, is_reportable: true, report_visibility: 'shown' });
 
 function mkWorld(): World {
   return {
@@ -386,7 +386,7 @@ describe('C10-T09 M8 identifyIsolate: AC-05.2 identify, AC-05.3 re-identify (I2,
     const res = await run('identifyIsolate', identify(I.a1, 3, { organism_code: STAPH }), s.ctx);
     expect(row(w, 'isolates', I.a1)).toMatchObject({ status: 'identified', organism_code: STAPH, organism_source: 'manual', version: 4, isolate_seq: 1 });
     expect(res.body).toMatchObject({ organism_code: STAPH, organism_display: 'Synthetic S. aureus', status: 'identified' });
-    expect(row(w, 'ast_results', AST.a1)).toMatchObject({ raw_value: '2', category_code: 'syn_s', version: 1 });
+    expect(row(w, 'ast_results', AST.a1)).toMatchObject({ raw_value: '2', category_code: 'S', version: 1 });
     expect(row(w, 'ast_results', AST.a1b)).toMatchObject({ version: 1 });
     expect(writesOf(s.log).map((l) => l.table)).toEqual(['isolates']);
   });

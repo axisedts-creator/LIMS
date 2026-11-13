@@ -69,6 +69,25 @@ export function createReminderService(deps: { repo?: ReminderRepo; listCodedSet?
   const listSet = deps.listCodedSet ?? defaultListCodedSet;
 
   return {
+    /** T-B5 (TRD §4.8 create step 7, §4.11 row `booking`; US-EN-25.1): a reminder due at slot_start - H, only when slot_start - now > H (strictly). Never sends. undefined = none scheduled (or already there). */
+    async scheduleBookingReminder(ctx: ReminderCtx, input: { bookingId: unknown; patientId: unknown; slotStart: unknown }) {
+      const { tx, tenantId, userId } = scope(ctx);
+      if (!isUuid(input?.bookingId)) return invalid('/bookingId');
+      if (!isUuid(input.patientId)) return invalid('/patientId');
+      const slot = isoMs(input.slotStart);
+      if (!Number.isFinite(slot)) return invalid('/slotStart');
+      const hours = (await repo.bookingReminderHours(tx, { tenantId })) ?? 24;   // [CONV] 05-SCHEMA default; no settings row cannot happen on a booking path
+      if (!(slot - Date.parse(ctx.now()) > hours * HOUR)) return undefined;
+      return repo.insertBookingReminder(tx, { tenantId, userId, patientId: input.patientId, bookingId: input.bookingId, dueAt: new Date(slot - hours * HOUR).toISOString() });
+    },
+
+    /** T-B5 (TRD §4.8 cancel; US-EN-25.2): pending booking reminders of that booking -> cancelled. Returns the number cancelled. */
+    async cancelBookingReminders(ctx: ReminderCtx, input: { bookingId: unknown }) {
+      const { tx, tenantId, userId } = scope(ctx);
+      if (!isUuid(input?.bookingId)) return invalid('/bookingId');
+      return repo.cancelBookingReminders(tx, { tenantId, userId, bookingId: input.bookingId });
+    },
+
     async list(ctx: ReminderCtx, q: unknown) {
       const { tx, tenantId } = scope(ctx);
       const query = isObj(q) ? q : {};

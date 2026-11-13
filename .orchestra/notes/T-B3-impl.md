@@ -1,0 +1,7 @@
+# T-B3 impl (writer) — 102/102 pass after review item 1 (S4 reason_code coded-set membership)
+Files: service/booking.service.ts, repository/booking.repo.ts, events/publish.ts (confirmed seq 1 / cancelled seq = version; keys `<id>:confirmed|cancelled`), handlers/booking.handlers.ts (+ handlers/index.ts wiring S1-S5).
+[CONV] order S4/S5: If-Match -> id -> body -> row(404) -> authorizeRow -> state(409) -> version(409) -> [S4: cs_booking_cancel_reasons active-code check, 400 /reason_code, no echo] -> conditional UPDATE; staff cancel ignores the patient cutoff; strict bodies, unknown key -> fixed path '/'.
+[CONV] occupancy release = compare-and-set on the value just read; reserve = SELECT fast-path (no DML when full) then INSERT ON CONFLICT DO NOTHING + `UPDATE booked = booked + 1 WHERE booked < capacity`; booking_no `BK{yy}{seq:6}` from number_counters 'booking_no:<yy>' (tenant-tz year) only after reserve.
+[CONV] centre read precedes bookings_enabled check (no cross-tenant probe); sex lookup purpose 'patient_app_link'; S5 token via token.service.issue in same tx; listCodedSet injected as dep (same as reminder.service).
+Open: home_collection 422 address_required / else 503 (T-BK1); issue_token:true without queue_id -> 400; list `slot_start_to` exclusive; reminders on create/cancel are T-B5.
+Checks: vitest booking.handlers.test.ts 102/102 pass; tsc --noEmit: 0 errors in modules/engagement (25 pre-existing elsewhere); not run: full suite, lint, real Postgres.

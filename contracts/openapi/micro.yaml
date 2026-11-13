@@ -6200,7 +6200,7 @@ components:
         observed_at:
           $ref: _common.yaml#/components/schemas/IsoUtc
         hours_since_planting:
-          type: integer
+          type: number
           minimum: 0
           maximum: 100000
         recorded_by_display:

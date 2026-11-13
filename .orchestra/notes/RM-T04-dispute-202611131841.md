@@ -1,0 +1,5 @@
+# RM-T04 dispute (writer)
+Verdict sought: TESTS_WRONG (2 of 39 fail, one root cause). Run: 37 pass, 2 fail.
+Failing: `R2 ... frontdesk.discount.approve is held only by the overlay roles` and `API refuses a decision authority to every role outside the overlay` -> extra holders corp_admin, std_admin for `frontdesk.discount.approve`.
+Why the test is wrong: spec/program/11-ROLE-MATRIX.md §7 D3 default = "`corp_accounts` plus Admin (discount approve only)". LD-141: D1-D12 defaults stand until a lead decision changes them. So the overlay allowlist for `frontdesk.discount.approve` must include `corp_admin` and `std_admin`. R5 agrees (Admin = tenant_admin ∪ screens; permissions.yaml gives tenant_admin discount approve; discount approve is not a clinical sign-off). Data file (copied verbatim, LD-141) is consistent with D3.
+Fix (test side): add `corp_admin`, `std_admin` to OVERLAY['frontdesk.discount.approve'] in escalation.test.ts. No code/data change needed; all other 37 tests already pass on existing code.

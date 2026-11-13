@@ -34,10 +34,11 @@ import (
 	"time"
 )
 
-func TestCodesAreExactlyTheFiveProfiles(t *testing.T) {
+// H80-T01 (LD-139, 08-ADDENDUM-TRUTH-H80E §7) adds truth_h80e: the registered set grows from five to six.
+func TestCodesAreExactlyTheSixProfiles(t *testing.T) {
 	want := []string{
 		"astm_generic_e1394", "file_drop_generic", "hl7v2_generic_oru",
-		"mindray_bc5380_sketch", "mindray_bs200_sketch",
+		"mindray_bc5380_sketch", "mindray_bs200_sketch", "truth_h80e",
 	}
 	got := Codes()
 	if !sort.StringsAreSorted(got) {
@@ -51,7 +52,7 @@ func TestCodesAreExactlyTheFiveProfiles(t *testing.T) {
 func TestEveryRegisteredCodeResolvesKnownAndSelfConsistent(t *testing.T) {
 	protoOf := map[string]string{
 		"astm_generic_e1394": "astm", "hl7v2_generic_oru": "hl7v2", "file_drop_generic": "file_drop",
-		"mindray_bc5380_sketch": "hl7v2", "mindray_bs200_sketch": "hl7v2",
+		"mindray_bc5380_sketch": "hl7v2", "mindray_bs200_sketch": "hl7v2", "truth_h80e": "hl7v2",
 	}
 	for _, code := range Codes() {
 		r := Resolve(code, protoOf[code])

@@ -1,4 +1,4 @@
-# T-L1 impl (writer) — round 2: API 41/41; web 26/34, 8 disputed (see T-L1-dispute.md)
+# T-L1 impl (writer) — round 3: API 41/41; web 35/35 after ruling (no impl change needed)
 - API (round 1): service/link.service.ts, handlers/link.handlers.ts, repository/linkCodes.repo.ts (round 2: column list concatenated, no `${}` before WHERE), repository/consents.repo.ts.
 - Web W8: app/(staff)/engagement/app-access/[patient_id]/{page,loading,error}.tsx; features/engagement/components/AppAccess.tsx (AppAccess, CodeSlip), AppAccessHost.tsx; server/link.server.ts, link-actions.ts, link-pages.tsx.
 - [CONV] Slip = kit TokenSlip printed through PrintFrame (no patient name); code kept only in dialog state, gone on close; times in Asia/Kathmandu.

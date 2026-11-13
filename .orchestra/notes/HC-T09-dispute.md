@@ -6,3 +6,6 @@
 - Fix (test side): in `services/api/src/modules/homecollection/__tests__/dispatch/helpers.ts` (beforeAll / world setup) run as superuser, idempotent:
   `INSERT INTO core.g_task_registry (identifier,module,kind,scope,max_attempts) VALUES ('homecollection.refresh_visit_specimens','homecollection','task','per_tenant',<n>) ON CONFLICT DO NOTHING` (max_attempts = value HC-T06's worker manifest declares).
 - No other implementation change expected; rerun after the fixture fix.
+
+## Debugger confirmation (2026-11-13)
+Verify log: 22 failed / 183 passed, all `unknown_task_identifier` from enqueueRefreshVisitSpecimens. Spec: 02-TRD.md:484 (refresh at assign) requires the enqueue; registry row is a test-DB fixture gap. Tester must seed `homecollection.refresh_visit_specimens` in dispatch/helpers.ts. No implementation change.

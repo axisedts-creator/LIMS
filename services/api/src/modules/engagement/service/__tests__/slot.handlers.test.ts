@@ -382,6 +382,14 @@ describe('US-EN-16.3 capacity reduction below booked counts: save succeeds, slot
     expect(touches(r.calls, 'bookings')).toEqual([]); expect(JSON.stringify(w.db.tables['bookings'])).toBe(before);
     expect((w.db.tables['bookings'] as Row[]).filter((b) => b['status'] === 'confirmed').length).toBe(10);
   });
+  it('review T-B2 #1: S9 capacity change reaches slot_occupancy.capacity of the template\'s FUTURE rows (reserve path uses it); past row, other template and other centre rows unchanged; booked untouched', async () => {
+    const w = newDb(); const occ = () => w.db.tables['slot_occupancy'] as Row[]; const cap = (id: string) => occ().find((x) => x['id'] === id)!['capacity'];
+    const bookedBefore = occ().map((x) => x['booked']);
+    await put(2, w);
+    for (const id of [O_A, O_B, O_C, O_D]) expect(cap(id), id).toBe(2);
+    expect(cap(O_PAST)).toBe(3); expect(cap(O_H)).toBe(2); expect(cap(O_C2)).toBe(3);
+    expect(occ().map((x) => x['booked'])).toEqual(bookedBefore);
+  });
   it('S6 shows the flag with the CURRENT capacity: before, the full slot is booked=3 of 3 (not overbooked); after 3 -> 2 it is capacity 2, booked 3, overbooked true, remaining 0; the 2-booked slot is full but not overbooked', async () => {
     const w = newDb(); const q = { query: { centre_id: C1, booking_kind: 'centre_visit', date_from: MON, date_to: MON } };
     const slot = (res: any, h: string) => res.out.body.data.find((x: any) => x.slot_start === S(h));

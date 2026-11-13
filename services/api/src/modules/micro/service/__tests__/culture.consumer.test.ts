@@ -185,7 +185,7 @@ describe('AC-01.8 aliquot with NO culture for (I, parent) = a normal received sp
     expect(h.cultureInserts()).toHaveLength(1);
     expect(hasValue(h.cultureInserts()[0]!, SP_AL)).toBe(true);
     expect(h.cultureUpdates()).toEqual([]);
-    expect(h.metrics.inc).not.toHaveBeenCalledWith('lims_micro_aliquot_after_setup_total', expect.anything());
+    expect(h.metrics.inc).not.toHaveBeenCalledWith('lims_micro_aliquot_after_setup_total');
   });
 });
 
@@ -212,7 +212,7 @@ describe('statuses that need no culture', () => {
     const h = harness();
     await expect(run(h, envelope(payload({ to_status: 'rejected', from_status: 'received' })))).resolves.toBeUndefined();
     expect(h.cultureInserts()).toEqual([]);
-    expect(h.metrics.inc).not.toHaveBeenCalledWith('lims_micro_specimen_rejected_after_report_total', expect.anything());
+    expect(h.metrics.inc).not.toHaveBeenCalledWith('lims_micro_specimen_rejected_after_report_total');
   });
   it('an unknown future to_status (x-extensible enum) is inbox-only: resolves, writes no culture', async () => {
     const h = harness();

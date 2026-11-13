@@ -4,6 +4,16 @@
 // Produces one event, owns no port, bearerJwt-only (no authResolvers / claimsResolver).
 import type { Handler, ModuleManifest } from '../../core/module.js';
 import { LimsError } from '../../core/errors.js';
+import { handler as getHomecollectionSettings } from './handlers/getHomecollectionSettings.js';
+import { handler as getHomeVisit } from './handlers/getHomeVisit.js';
+import { handler as listEligiblePhlebotomists } from './handlers/listEligiblePhlebotomists.js';
+import { handler as listHomeRoutes } from './handlers/listHomeRoutes.js';
+import { handler as listHomeVisits } from './handlers/listHomeVisits.js';
+import { handler as listHomecollectionReasons } from './handlers/listHomecollectionReasons.js';
+import { handler as registerPhleboDevice } from './handlers/registerPhleboDevice.js';
+import { handler as revealHomeVisitPhone } from './handlers/revealHomeVisitPhone.js';
+import { handler as signOffPhleboDevice } from './handlers/signOffPhleboDevice.js';
+import { handler as updateHomecollectionSettings } from './handlers/updateHomecollectionSettings.js';
 
 const OPERATION_IDS = [
   'listHomeVisits', 'getHomeVisit', 'assignHomeVisit', 'unassignHomeVisit', 'scheduleHomeVisit', 'cancelHomeVisit', 'createHomeRevisit',
@@ -20,7 +30,12 @@ const stub = (operationId: string): Handler => async () => {
   throw new LimsError('common.internal', `homecollection ${operationId} not implemented`);
 };
 
-const implemented: Partial<Record<HomecollectionOperationId, Handler>> = {};
+// HC-T04: H18-H20 are real handlers. HC-T08: H1, H2, H10, H12, H21.
+const implemented: Partial<Record<HomecollectionOperationId, Handler>> = {
+  getHomecollectionSettings, updateHomecollectionSettings, listHomecollectionReasons,
+  listHomeVisits, getHomeVisit, listHomeRoutes, listEligiblePhlebotomists, revealHomeVisitPhone,
+  registerPhleboDevice, signOffPhleboDevice,   // HC-T10: A1, A5
+};
 
 const handlers = Object.freeze(
   Object.fromEntries(OPERATION_IDS.map((op) => [op, implemented[op] ?? stub(op)])) as Record<HomecollectionOperationId, Handler>,

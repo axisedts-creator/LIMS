@@ -248,7 +248,7 @@ describe.skipIf(!live && !REQUIRE)('T-06 consumer lab.specimen.status_changed.v1
       const id = await seedCulture(w, { status: 'incubating', reported: true });
       const { metrics } = await deliver(w, payload(w, { to_status: 'rejected', from_status: 'received' }), { seq: 5 });
       expect((await q('SELECT status, cancel_reason_code FROM micro.cultures WHERE id = $1', [id]))[0]).toMatchObject({ status: 'incubating', cancel_reason_code: null });
-      expect(metrics).toHaveBeenCalledWith('lims_micro_specimen_rejected_after_report_total', expect.anything());
+      expect(metrics).toHaveBeenCalledWith('lims_micro_specimen_rejected_after_report_total');
       expect(await transitionsOf(id)).toEqual([]);
     });
     it('final_submitted culture + rejected: unchanged (cancelled/final never overwritten)', async () => {
@@ -278,6 +278,16 @@ describe.skipIf(!live && !REQUIRE)('T-06 consumer lab.specimen.status_changed.v1
       await deliver(w, payload(w, { specimen_id: w.sp.aliquot, to_status: 'rejected', from_status: 'received' }), { seq: 9 });
       expect((await q('SELECT status, cancel_reason_code FROM micro.cultures WHERE id = $1', [id]))[0]).toMatchObject({ status: 'cancelled', cancel_reason_code: 'specimen_rejected' });
     });
+    it('aliquot seq is per-specimen: parent culture seq 5, aliquot event seq 1 still re-points (last_specimen_seq = 1), then aliquot rejected (seq 2) cancels', async () => {
+      const w = await world();
+      const id = await seedCulture(w, { specimen: w.sp.parent, seq: 5 });
+      await deliver(w, aliquot(w), { seq: 1 });
+      const rows = await culturesOf(w);
+      expect(rows).toHaveLength(1);
+      expect(rows[0]).toMatchObject({ id, specimen_id: w.sp.aliquot, status: 'awaiting_setup', last_specimen_seq: 1 });
+      await deliver(w, payload(w, { specimen_id: w.sp.aliquot, to_status: 'rejected', from_status: 'received' }), { seq: 2 });
+      expect((await q('SELECT status, cancel_reason_code FROM micro.cultures WHERE id = $1', [id]))[0]).toMatchObject({ status: 'cancelled', cancel_reason_code: 'specimen_rejected' });
+    });
     it('a re-delivered / older aliquot event (seq <= last_specimen_seq) does not re-point again', async () => {
       const w = await world();
       const id = await seedCulture(w, { specimen: w.sp.aliquot, seq: 8 });
@@ -295,7 +305,7 @@ describe.skipIf(!live && !REQUIRE)('T-06 consumer lab.specimen.status_changed.v1
         const after = (await q('SELECT * FROM micro.cultures WHERE id = $1', [id]))[0];
         expect({ specimen_id: after.specimen_id, status: after.status, last_specimen_seq: after.last_specimen_seq }).toEqual({ specimen_id: before.specimen_id, status: before.status, last_specimen_seq: before.last_specimen_seq });
         expect(await q('SELECT 1 FROM micro.cultures WHERE tenant_id = $1 AND specimen_id = $2', [w.tenant, w.sp.aliquot])).toEqual([]);
-        expect(metrics).toHaveBeenCalledWith('lims_micro_aliquot_after_setup_total', expect.anything());
+        expect(metrics).toHaveBeenCalledWith('lims_micro_aliquot_after_setup_total');
       });
     }
     it('aliquot after setup stays inert on a LATER delivery too (still no culture for (I, aliquot))', async () => {

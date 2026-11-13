@@ -72,5 +72,13 @@ void main() {
         expect(RegExp(r'termsUrl:\s*String\.fromEnvironment').hasMatch(s), isTrue, reason: 'terms URL must come from the build config');
       });
     }
+
+    test('lib/main_prod.dart has no default for PRIVACY_URL / TERMS_URL (required in production, LD-28)', () {
+      final s = File('lib/main_prod.dart').readAsStringSync();
+      for (final k in ['PRIVACY_URL', 'TERMS_URL']) {
+        expect(s, contains("'$k'"));
+        expect(RegExp("'$k'\\s*,\\s*defaultValue").hasMatch(s), isFalse, reason: '$k must not have a placeholder default in prod');
+      }
+    });
   });
 }

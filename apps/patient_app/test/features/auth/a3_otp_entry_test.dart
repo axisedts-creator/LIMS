@@ -36,6 +36,8 @@ void main() {
       expect(text, contains('78'), reason: 'last digits identify the number');
       expect(text, isNot(contains(phone)));
       expect(text, isNot(contains('123456')), reason: 'middle digits are masked');
+      // 07-SECURITY.md:179 / 02-TRD.md:407: prefix + exactly five bullets + last 2 digits (never reveals the length).
+      expect(RegExp(r'\+\d+•{5}78\.$').hasMatch(text), isTrue, reason: 'masked form is prefix•••••NN, got: $text');
       expect(find.textContaining(phone), findsNothing);
     });
 

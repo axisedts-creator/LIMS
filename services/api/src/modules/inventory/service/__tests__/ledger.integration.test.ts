@@ -86,10 +86,10 @@ async function mkItem(tracked = true): Promise<string> {
   touched.push(id);
   return id;
 }
-async function mkLot(item: string, o: { lastQty?: number; lastValue?: number } = {}): Promise<string> {
+async function mkLot(item: string, o: { lastQty?: number; lastValue?: number; expiry?: string } = {}): Promise<string> {
   const id = nid();
   await admin.query(`INSERT INTO inventory.lots (id, tenant_id, item_id, lot_no, expiry_on, last_receipt_qty_base, last_receipt_value_paisa, created_by, updated_by)
-    VALUES ($1, $2, $3, $4, '2031-01-01', $5, $6, $7, $7)`, [id, A, item, `LOT-${seq}`, o.lastQty ?? null, o.lastValue ?? null, SYS]);
+    VALUES ($1, $2, $3, $4, $8, $5, $6, $7, $7)`, [id, A, item, `LOT-${seq}`, o.lastQty ?? null, o.lastValue ?? null, SYS, o.expiry ?? '2031-01-01']);
   return id;
 }
 async function setReorder(store: string, item: string, level: number | null, active = true): Promise<void> {
@@ -282,6 +282,26 @@ describe('inbound valuation', () => {
     expect(Number(d[0]!['qty_consumed'])).toBe(0);
     expect(Number(d[0]!['value_consumed_paisa'])).toBe(0);
   });
+  // review T-05 item 2 (TRD §4.3 step 2): the reversed movement must be the same store/item/lot and exactly the negated qty, else common.validation_failed and nothing written
+  const MISMATCH: Array<[string, 'item' | 'lot' | 'qty']> = [['a different item', 'item'], ['a different lot of the same item', 'lot'], ['a different quantity', 'qty']];
+  for (const [label, how] of MISMATCH) {
+    dbIt(`consume_reversal of a movement of ${label} is refused (common.validation_failed) and moves no value`, async () => {
+      const itemA = await mkItem(); const lotA = await mkLot(itemA);
+      const itemB = await mkItem(); const lotB = await mkLot(itemB); const lotA2 = await mkLot(itemA);
+      await receive(S1, itemA, lotA, 10, 1000);
+      await receive(S1, itemA, lotA2, 10, 5000);
+      await receive(S1, itemB, lotB, 10, 9000);
+      const ex = { instrument_id: INSTR, attributed_test_id: TEST7, rule_id: RULE };
+      const [c] = await post1('consume_test', S1, itemA, lotA, -2, ex);       // -200 on lotA
+      const target = { item: [itemB, lotB, 2], lot: [itemA, lotA2, 2], qty: [itemA, lotA, 1] }[how] as [string, string, number];
+      const e = await rejection(post1('consume_reversal', S1, target[0], target[1], target[2], { ...ex, reverses_movement_id: c!['id'] }));
+      expect(isLimsError(e, 'common.validation_failed')).toBe(true);
+      expect(await nMovements(itemB)).toBe(1);
+      expect(await bal(S1, itemA, lotA)).toMatchObject({ qty: 8, value: 800 });
+      expect(await bal(S1, itemA, lotA2)).toMatchObject({ qty: 10, value: 5000 });
+      expect(await bal(S1, itemB, lotB)).toMatchObject({ qty: 10, value: 9000 });
+    });
+  }
   dbIt('transfer_in keeps the value given by the source (value_hint), basis transfer', async () => {
     const item = await mkItem(); const lot = await mkLot(item);
     const [m] = await post1('transfer_in', S2, item, lot, 98, { value_hint: 49_000 });
@@ -408,6 +428,29 @@ describe('outbound: insufficient stock, split, unlotted (TRD §4.3 steps 3-4)', 
     await receive(S1, item, lot, 10, 1000);
     await post1('consume_test', S1, item, lot, -10);
     expect(await alertsOf('negative_stock', S1, item)).toHaveLength(0);
+  });
+  // review T-05 item 1 (TRD §4.3 step 7, third bullet): consume_* (not consume_reversal) on a lot expired before business_date
+  dbIt('expired_lot_in_use: consume_test on a lot with expiry_on before business_date opens ONE alert (store, item, lot set); a repeat raises occurrences to 2', async () => {
+    const item = await mkItem(); const lot = await mkLot(item, { expiry: '2020-01-01' });
+    await receive(S1, item, lot, 10, 1000);
+    expect(await alertsOf('expired_lot_in_use', S1, item)).toHaveLength(0);   // receive is not a consumption
+    await post1('consume_test', S1, item, lot, -1);
+    let al = await alertsOf('expired_lot_in_use', S1, item);
+    expect(al).toHaveLength(1);
+    expect(al[0]).toMatchObject({ status: 'open', store_id: S1, item_id: item, lot_id: lot, alert_kind: 'expired_lot_in_use' });
+    expect(Number(al[0]!['occurrences'])).toBe(1);
+    await post1('consume_test', S1, item, lot, -1);
+    al = await alertsOf('expired_lot_in_use', S1, item);
+    expect(al).toHaveLength(1);
+    expect(Number(al[0]!['occurrences'])).toBe(2);
+  });
+  dbIt('no expired_lot_in_use for a lot that has not expired, nor for a non-consume outbound (issue) on an expired lot', async () => {
+    const item = await mkItem(); const fresh = await mkLot(item); const old = await mkLot(item, { expiry: '2020-01-01' });
+    await receive(S1, item, fresh, 10, 1000);
+    await receive(S1, item, old, 10, 1000);
+    await post1('consume_test', S1, item, fresh, -1);
+    await post1('issue', S1, item, old, -1);
+    expect(await alertsOf('expired_lot_in_use', S1, item)).toHaveLength(0);
   });
 });
 

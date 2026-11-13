@@ -111,6 +111,15 @@ function makeWorld() {
       { id: id(53), tenant_id: T_A, partner_id: P.x, membership_id: id(63), partner_role: 'partner_member', status: 'deactivated', display_name: 'Synthetic User Four' },
     ] as Row[],
     openManifests: new Map<string, number>([[P.x, 4]]),
+    /** partners.g_cs_reasons (05-SCHEMA §7): x-coded-set is annotation-only in core and the DDL has no CHECK/FK, so the service must validate (review item 1). */
+    reasons: [
+      { set_name: 'partner_suspend_reasons', code: 'credit_hold', requires_text: false, is_active: true, sort_order: 1 },
+      { set_name: 'partner_suspend_reasons', code: 'agreement_ended', requires_text: false, is_active: true, sort_order: 2 },
+      { set_name: 'partner_suspend_reasons', code: 'security_concern', requires_text: false, is_active: true, sort_order: 3 },
+      { set_name: 'partner_suspend_reasons', code: 'other', requires_text: true, is_active: true, sort_order: 4 },
+      { set_name: 'partner_suspend_reasons', code: 'retired_reason', requires_text: false, is_active: false, sort_order: 5 },
+      { set_name: 'other_set', code: 'foreign_set_code', requires_text: false, is_active: true, sort_order: 1 },
+    ] as Row[],
     branches: [
       { id: BR.a1, tenant: T_A, code: 'BR-A1', name: 'Synthetic Branch A1', active: true }, { id: BR.a2, tenant: T_A, code: 'BR-A2', name: 'Synthetic Branch A2', active: true },
       { id: BR.ax, tenant: T_A, code: 'BR-AX', name: 'Synthetic Branch AX (inactive)', active: false }, { id: BR.b1, tenant: T_B, code: 'BR-B1', name: 'Synthetic Branch B1', active: true },
@@ -231,6 +240,10 @@ function makeWorld() {
               w.check(next, 'UPDATE'); Object.assign(r, next); out.push({ ...r });
             }
             return { rows: /RETURNING/i.test(text) ? out : [], rowCount: out.length };
+          }
+          if (/^\s*SELECT\b/i.test(text) && /\bFROM\s+partners\.g_cs_reasons\b/i.test(text)) { // set_name / code may be literal or bound
+            const rows = w.reasons.filter((r) => (text.includes(`'${r['set_name']}'`) || values.includes(r['set_name'])) && (!/\bcode\s*=\s*\$\d+/i.test(text) || values.includes(r['code'])));
+            return { rows: rows.map((r) => ({ ...r })) };
           }
           if (/^\s*SELECT\b/i.test(text) && /\bpartners\.partners\b/i.test(text)) {
             const wm = /\bWHERE\b([\s\S]*)$/i.exec(text);
@@ -696,6 +709,28 @@ describe('T07 SA5 suspendPartner — US-01.5', () => {
     await fails(call(suspendPartner, ctx, req({ partner_id: P.x, headers: IFM(1), body: { reason_code: 'credit_hold' } })), 'common.version_conflict', 409);
     await fails(call(suspendPartner, ctx, req({ partner_id: P.b, headers: IFM(1), body: { reason_code: 'credit_hold' } })), 'common.not_found', 404);
     expect(w.snapshot()).toBe(before);
+  });
+
+  it('unknown / inactive / other-set reason_code -> 400 common.validation_failed; nothing written', async () => {
+    const w = makeWorld(); const { ctx } = makeCtx(w); const before = w.snapshot();
+    for (const reason_code of ['bogus', 'retired_reason', 'foreign_set_code', '', 'CREDIT_HOLD', "x'; DROP TABLE partners.partners;--"]) {
+      await fails(call(suspendPartner, ctx, req({ partner_id: P.x, headers: IFM(3), body: { reason_code, reason_text: 'note' } })), 'common.validation_failed', 400);
+    }
+    await fails(call(suspendPartner, ctx, req({ partner_id: P.x, headers: IFM(3), body: { reason_text: 'no code' } })), 'common.validation_failed', 400);
+    expect(w.partnerWrites).toEqual([]); expect(row(w, P.x)).toMatchObject({ status: 'active', suspend_reason_code: null, version: 3 });
+    expect(w.snapshot()).toBe(before);
+  });
+
+  it("'other' (requires_text) without reason_text, or blank after trim -> 400 common.validation_failed; with text -> 200; a code that needs no text stays 200 without it", async () => {
+    const w = makeWorld(); const { ctx } = makeCtx(w); const before = w.snapshot();
+    for (const body of [{ reason_code: 'other' }, { reason_code: 'other', reason_text: '' }, { reason_code: 'other', reason_text: '   \t ' }]) {
+      await fails(call(suspendPartner, ctx, req({ partner_id: P.x, headers: IFM(3), body })), 'common.validation_failed', 400);
+    }
+    expect(w.partnerWrites).toEqual([]); expect(w.snapshot()).toBe(before);
+    const ok = await call(suspendPartner, ctx, req({ partner_id: P.x, headers: IFM(3), body: { reason_code: 'other', reason_text: 'Synthetic reason' } }));
+    expect(ok.status).toBe(200); expect(row(w, P.x)).toMatchObject({ status: 'suspended', suspend_reason_code: 'other', suspend_reason_text: 'Synthetic reason' });
+    const w2 = makeWorld();
+    expect((await call(suspendPartner, makeCtx(w2).ctx, req({ partner_id: P.x, headers: IFM(3), body: { reason_code: 'security_concern' } }))).status).toBe(200);
   });
 
   it('suspend reason text is not logged', async () => {

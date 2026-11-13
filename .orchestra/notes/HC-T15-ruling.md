@@ -1,0 +1,6 @@
+TESTS_WRONG — list.test.ts:142-146 asserts whole-tenant id sequences are equal across walks, but the DB is shared with wipe.test.ts (23 tenant-A seedDevice calls) running in parallel (vitest.config.ts:10 maxWorkers 3), so the walks legitimately differ in membership.
+- Spec requires only a keyset cursor over "sort key + id" with no gaps/duplicates, and explicitly expects concurrent inserts: spec/program/02-CONVENTIONS.md:356, :360. It does not require two walks of a mutable tenant to be identical.
+- Test file's own contract (list.test.ts:2-3) says assertions are on seeded ids, "never on totals"; line 144-145 breaks that.
+- Implementation already gives a total order: devices.repo.ts:26 `ORDER BY registered_at DESC, id DESC`.
+Change in the test (both lines 144 and 145): keep `const s = await seedMix()`; for each walk compute `w.ids.filter((i) => s.all.some((d) => d.id === i))`; assert each filtered list has length 5 (all seeded rows present once) and that the filtered sequences are equal (walk3 vs walk3, limit 2 vs limit 200). Optionally also assert the filtered sequence equals `s.all` ids sorted by the (registered_at DESC, id DESC) key if seedDevice exposes registered_at.
+Do not fix by disabling file parallelism globally; the filter is the spec-faithful assertion.

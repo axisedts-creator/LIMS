@@ -74,8 +74,10 @@ describe('security (07-SECURITY; 03-APP-FLOW §7.2)', () => {
     }
   });
   it('no patient fields in any queue source (tokens carry only booking_id — AC-21.6)', () => {
-    expect(all().length).toBeGreaterThan(0);
-    expect(text(all())).not.toMatch(/patient_(name|display_name|id)|phone_e164|\bphone\b|full_?name|registration_no/i);
+    // ruling T-B6: queue sources only; W1-W3 (T-B6) legitimately carry patient fields (04-UI-UX.md:189,197)
+    const q = all().filter((p) => /queue/i.test(p));
+    expect(q.length).toBeGreaterThan(0);
+    expect(text(q)).not.toMatch(/patient_(name|display_name|id)|phone_e164|\bphone\b|full_?name|registration_no/i);
   });
   it('the display token never reaches client code: no "use client" file mentions display_token / qdisp / NEXT_PUBLIC_', () => {
     for (const p of all().filter(isClient)) expect(strip(read(p)), p).not.toMatch(/display_token|qdisp|NEXT_PUBLIC_|setDisplayCookie/);
@@ -107,8 +109,9 @@ describe('polling and shortcuts', () => {
     expect(t).toMatch(/staff\.engagement\.queue/);
   });
   it('every Alt+<letter> key declared in the queue sources is unique and none is a global key (C0 AC-0D-7.5)', () => {
-    const t = text(featFiles().filter(isClient));
-    const keys = [...t.matchAll(/key\s*:\s*['"](Alt\+[A-Za-z])['"]/g)].map((m) => m[1]!.replace(/\+([a-z])$/, (_, c: string) => `+${c.toUpperCase()}`));
+    // ruling T-B6: queue sources only; registry checks are per page id, W1 (Alt+C) is a different page
+    const t = text(featFiles().filter((p) => /queue/i.test(p)).filter(isClient));
+    const keys =[...t.matchAll(/key\s*:\s*['"](Alt\+[A-Za-z])['"]/g)].map((m) => m[1]!.replace(/\+([a-z])$/, (_, c: string) => `+${c.toUpperCase()}`));
     for (const k of ['Alt+R', 'Alt+S', 'Alt+D', 'Alt+K', 'Alt+T', 'Alt+I']) expect(keys, k).toContain(k);
     expect(new Set(keys).size).toBe(keys.length);
     for (const k of keys) expect(GLOBAL_KEYS as readonly string[], k).not.toContain(k);

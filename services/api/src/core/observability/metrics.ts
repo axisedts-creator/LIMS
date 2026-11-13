@@ -98,6 +98,25 @@ const DEFS = {
   lims_engagement_payment_requests_total: ['counter', ['gateway', 'outcome'], 'Patient payment requests by gateway and outcome'],
   lims_engagement_reminders_total: ['counter', ['kind', 'outcome'], 'Reminders by kind and outcome'],
   lims_engagement_report_downloads_total: ['counter', ['outcome'], 'Patient report downloads by outcome'],
+  // C2 identity (CR-C2-T28-001; LD-147 2026-11-13; C2 02-TRD §13 lines 607-621 incl. the four backing gauges; names, types, labels verbatim)
+  lims_identity_logins_total: ['counter', ['outcome', 'kind'], 'Staff login attempts by outcome and login kind'],
+  lims_identity_login_ip_throttles_active: ['gauge', [], 'Client IPs currently under the login IP throttle'],
+  lims_identity_mfa_verifications_total: ['counter', ['outcome', 'flow'], 'MFA code verifications by outcome and flow'],
+  lims_identity_session_resolves_total: ['counter', ['outcome'], 'Session resolves by outcome'],
+  lims_identity_claims_resolve_duration_seconds: ['histogram', [], 'Bearer claims resolve duration in seconds'],
+  lims_identity_authz_decisions_total: ['counter', ['outcome', 'privileged'], 'Authorisation decisions by outcome and privileged flag'],
+  lims_identity_active_sessions: ['gauge', ['kind'], 'Active sessions by session kind'],
+  lims_identity_gotrue_requests_total: ['counter', ['op', 'outcome'], 'GoTrue requests by operation and outcome'],
+  lims_identity_gotrue_request_duration_seconds: ['histogram', ['op', 'outcome'], 'GoTrue request duration in seconds by operation and outcome'],
+  lims_identity_audit_exports_total: ['counter', ['tenant_id', 'source'], 'Audit exports created by tenant and source'],
+  lims_identity_support_sessions_active: ['gauge', [], 'Support sessions currently active'],
+  lims_identity_support_sessions_opened_total: ['counter', ['scope'], 'Support sessions opened by scope'],
+  lims_identity_breached_list_loaded: ['gauge', [], 'Breached-password list loaded (1) or missing (0)'],
+  lims_identity_settings_cache_total: ['counter', ['result'], 'Tenant settings cache lookups by result'],
+  lims_identity_login_failures_by_tenant_5m: ['gauge', ['tenant_id'], 'Failed logins of known accounts in the last 5 minutes by tenant'],
+  lims_identity_stuffing_distinct_accounts_15m: ['gauge', [], 'Distinct failing accounts in the last 15 minutes'],
+  lims_identity_stuffing_distinct_ips_15m: ['gauge', [], 'Distinct failing client IPs in the last 15 minutes'],
+  lims_identity_audit_exports_tenant_day: ['gauge', ['tenant_id'], 'Audit exports created today by tenant'],
 } as const satisfies Record<string, readonly [Kind, readonly string[], string]>;
 
 export type MetricName = keyof typeof DEFS;

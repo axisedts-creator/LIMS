@@ -52,17 +52,17 @@ function expectedVersion(headers: unknown): number {
   return Number(m[1]);
 }
 
-async function loadCase(c: AnatomicCtx, caseId: unknown, forUpdate = false): Promise<Row> {
+export async function loadCase(c: AnatomicCtx, caseId: unknown, forUpdate = false): Promise<Row> {
   if (typeof caseId !== 'string' || !UUID.test(caseId)) throw new LimsError('common.not_found');
   const row = await getCase(c.tx, { tenantId: c.tenantId, caseId, forUpdate });
   if (!row) throw new LimsError('common.not_found'); // RLS / other tenant look the same
   return row;
 }
-const assertAt = (c: AnatomicCtx, permission: 'anatomic.case.work' | 'anatomic.case.read', cs: Row) =>
+export const assertAt = (c: AnatomicCtx, permission: 'anatomic.case.work' | 'anatomic.case.read', cs: Row) =>
   c.ports.IdentityPort.assertRole(c, { permission, centreId: cs['centre_id'] });
 
-const iso = (v: unknown): string | undefined => (v instanceof Date ? v.toISOString() : typeof v === 'string' ? v : undefined);
-const put = (o: Obj, k: string, v: unknown): void => { if (v !== null && v !== undefined) o[k] = v; }; // no null on the wire
+export const iso = (v: unknown): string | undefined => (v instanceof Date ? v.toISOString() : typeof v === 'string' ? v : undefined);
+export const put = (o: Obj, k: string, v: unknown): void => { if (v !== null && v !== undefined) o[k] = v; }; // no null on the wire
 
 export function partDto(p: Row): Obj {
   const o: Obj = { id: p['id'], letter: p['letter'], specimen_state: p['specimen_state'] ?? 'none', version: Number(p['version']) };

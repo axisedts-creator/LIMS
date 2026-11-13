@@ -20,6 +20,7 @@ const ctxFor = (tx: unknown, claims: { sub: string }) => ({
   core: { async user() { return { id: claims.sub, displayName: 'Synthetic Tech', isActive: true }; }, memberships: { async list() { return []; } }, async branch() { throw new Error('unused'); } },
   ports: {
     IdentityPort: { async assertRole() {}, async getTenantSettings() { return { timezone: 'Asia/Kathmandu', numbering: {} }; } },
+    CatalogPort: { async getTest(_c: unknown, i: { testId: string }) { return { name: `T ${i.testId.slice(-4)}` }; } },
     FrontdeskPort: { async getPatientDemographicsBatch() { return []; } },
     LabPort: { async getOrderResults(_c: unknown, i: { orderId: string }) { labCalls++; return { orderId: i.orderId, specimens: [], items: [], approvedSetHash: 'h' }; } },
   },

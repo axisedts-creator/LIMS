@@ -1,0 +1,6 @@
+TESTS_WRONG — the test asserts something the spec does not require (say precisely what to change in the test)
+- spec/chunks/C0-foundation-contracts/02-TRD.md:464-465: stage 5 (rate limit, `general` enforced automatically) runs BEFORE stage 6 (idempotency pre), so a 429 `common.rate_limited` before any idempotency check is required behaviour, not a bug.
+- 02-TRD.md:650: `general` tier is `u:<actor_id>` user 10 req/s, burst 20. Test pipeline.integration.test.ts:337 fires 20 requests as SUB_A after earlier tests in the same file already spent SUB_A tokens, without clearing `core.rate_limit_counters` (only done at :257 and :273). The spec therefore permits some of the 20 to be 429.
+- Line 339 (`every` status in [201, 409]) asserts more than the spec guarantees; the race property under test (handler once, one row) is idempotency-only.
+Change in the test (keep all three assertions, do not weaken them): at the start of this `it`, run `await admin.query('DELETE FROM core.rate_limit_counters')` exactly as the stage-5 tests do at :257/:273, so the 20 requests fit the burst of 20. Do not accept 429 in the assertion and do not raise the burst.
+- No implementation change: stage order and limits match 6.2/6.7.

@@ -12,7 +12,7 @@ import { LimsError } from '../../../../core/errors.js';
 import { createIdempotency } from '../../../../core/idempotency.js';
 import { rows as fdRows } from '../../../frontdesk/__tests__/integration/helpers.js';
 import { manifest } from '../../index.js';
-import { appTx, seedWorld, type World } from '../../repository/__tests__/helpers.js';
+import { appTx, seedWorld as seedBaseWorld, type World } from '../../repository/__tests__/helpers.js';
 import { DISPATCHER, DISPATCHER_B, HC_CENTRE, LONG_ADDRESS, MEMBER, MEMBER2, NOBODY, NOT_ELIGIBLE, NOW, OTHER_CENTRE, P, PHLEBO, ROSTER, SYS_ACTOR, T, TENANT_A, TENANT_B, addActiveVisits, as,
   failure, hc, nameOf, ownerRows, phoneOf, req, responseErrors, schemaErrors, seed, spec, staffName, superTx, uid, userName, type Fx, type Who } from '../visits/helpers.js';
 
@@ -198,8 +198,18 @@ export const sameInstant = (a: unknown, b: unknown): boolean => new Date(a as st
 export const day = (base: string, n: number): string => new Date(Date.parse(`${base}T00:00:00Z`) + n * 86_400_000).toISOString().slice(0, 10);
 export const winOf = (date: string, hour = 4, minutes = 30) => ({ window_start: `${date}T${String(hour).padStart(2, '0')}:00:00Z`, window_end: `${date}T${String(hour).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:00Z` });
 
+let registryDone = false;
+/** HC-T09 ruling: app.enqueue_job raises unknown_task_identifier for ids absent from core.g_task_registry (C0 05-SCHEMA:1060); registry-sync fills it at deploy (C0 05-SCHEMA:1783), the HC-T03 boot does not.
+ *  Test-DB fixture only (02-TRD:514: max attempts 10). Superuser, idempotent. Pattern: frontdesk/__tests__/registration/helpers.ts ensureTaskRegistry. */
+export async function ensureTaskRegistry(): Promise<void> {
+  if (registryDone) return;
+  await superTx(async (tx: any) => { await tx.query(
+    `INSERT INTO core.g_task_registry (identifier,module,kind,scope,max_attempts) VALUES ('homecollection.refresh_visit_specimens','homecollection','task','per_tenant',10) ON CONFLICT DO NOTHING`); });
+  registryDone = true;
+}
 type Side = 'a' | 'b';
-export const worldOf = (s: Side = 'a'): Promise<World> => seedWorld(s);
+export const seedWorld = async (s: Side = 'a'): Promise<World> => { await ensureTaskRegistry(); return seedBaseWorld(s); };
+export const worldOf =(s: Side = 'a'): Promise<World> => seedWorld(s);
 /** A fresh frontdesk order (FK target of visits.order_id / what the FrontdeskPort fake returns). */
 export async function newOrder(s: Side = 'a', patientId?: string): Promise<any> {
   const patient = patientId ? { id: patientId } : fdRows.patient(s);

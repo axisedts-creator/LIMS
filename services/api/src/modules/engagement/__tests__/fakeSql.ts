@@ -60,9 +60,10 @@ export class FakeDb {
   }
   private visible(row: Row, tenant: string, scope: Scope) { return row.tenant_id === tenant && (row.centre_id === undefined || row.centre_id === null || scope.all || scope.centres.includes(row.centre_id)); }
 
-  private ev(expr: string, values: unknown[], row?: Row): unknown {
+  private ev(expr: string, values: unknown[], row?: Row, excluded?: Row): unknown {
     const e = expr.trim().replace(/::\w+(\[\])?/g, '');
     let m: RegExpExecArray | null;
+    if (excluded && (m = /^excluded\.(\w+)$/i.exec(e))) return excluded[m[1]!];
     if ((m = /^\$(\d+)$/.exec(e))) { if (+m[1] > values.length) throw new Error(`fake-sql: placeholder $${m[1]} has no bound value`); return values[+m[1] - 1]; }
     if ((m = /^'(.*)'$/s.exec(e))) return m[1];
     if (/^null$/i.test(e)) return null;
@@ -70,7 +71,7 @@ export class FakeDb {
     if (/^false$/i.test(e)) return false;
     if (/^-?\d+$/.test(e)) return Number(e);
     if (/^(now|clock_timestamp|statement_timestamp)\(\)$/i.test(e)) return this.clock.iso;
-    if ((m = /^coalesce\((.*)\)$/is.exec(e))) { for (const part of splitTop(m[1])) { const v = this.ev(part, values, row); if (v !== null && v !== undefined) return v; } return null; }
+    if ((m = /^coalesce\((.*)\)$/is.exec(e))) { for (const part of splitTop(m[1])) { const v = this.ev(part, values, row, excluded); if (v !== null && v !== undefined) return v; } return null; }
     if (row && (m = /^(\w+)\s*\+\s*1$/.exec(bare(e)))) return (row[m[1]] ?? 0) + 1;
     if (row && /^\w+$/.test(bare(e)) && bare(e) in row) return row[bare(e)];
     throw new Error(`fake-sql: unsupported expression: ${expr}`);
@@ -153,7 +154,20 @@ export class FakeDb {
       if (!this.visible(row, tenant, scope)) throw dbErr('new row violates row-level security policy', '42501');
       this.fkCheck(table, row); this.finish(table, row);
       const dup = (d.unique ?? []).find((u) => rows.some((r) => u.every((c) => cmp(r[c], row[c]) === 0)));
-      if (dup) { if (/on\s+conflict[\s\S]*do\s+nothing/i.test(tail)) return { rows: [], rowCount: 0 }; throw dbErr(`duplicate key ${dup.join(',')}`, '23505', `${table}__${dup.join('_')}__uq`); }
+      if (dup) {
+        if (/on\s+conflict[\s\S]*do\s+nothing/i.test(tail)) return { rows: [], rowCount: 0 };
+        // T-B2: ON CONFLICT (..) DO UPDATE SET col = expr, .. [WHERE ..] [RETURNING ..]; `excluded.col` = the proposed row; the DO UPDATE WHERE is not evaluated (always applies).
+        const up = /on\s+conflict[\s\S]*?do\s+update\s+set\s+([\s\S]+?)(?:\s+where\s+[\s\S]+?)?(?:\s+returning\s+([\s\S]+?))?\s*;?\s*$/i.exec(tail);
+        if (up) {
+          const cur = rows.find((r) => dup.every((c) => cmp(r[c], row[c]) === 0))!;
+          const next = { ...cur };
+          for (const a of splitTop(up[1]!)) { const i = a.indexOf('='); next[bare(a.slice(0, i))] = this.ev(a.slice(i + 1), values, cur, row); }
+          this.fkCheck(table, next); this.finish(table, next);
+          Object.assign(cur, next);
+          return up[2] ? { rows: [copy(cur)], rowCount: 1 } : { rows: [], rowCount: 1 };
+        }
+        throw dbErr(`duplicate key ${dup.join(',')}`, '23505', `${table}__${dup.join('_')}__uq`);
+      }
       rows.push(row);
       return /\breturning\b/i.test(tail) ? { rows: [copy(row)], rowCount: 1 } : { rows: [], rowCount: 1 };
     }

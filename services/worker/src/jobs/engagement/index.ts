@@ -5,6 +5,8 @@ import type { ConsumerHandler, TaskHandler, WorkerManifest } from '../../core/ma
 import { CLOSE_QUEUE_DAY, closeQueueDay, crontab } from './cron.js';
 import { handle as catalogChanged } from './consumers/catalog.changed.v1.js';
 import { createDispatchDueReminders } from './tasks/dispatch_due_reminders.js';
+import { PURGE_EPHEMERAL, PURGE_QUEUE, purgeEphemeral, purgeQueue } from './tasks/purge.js';
+import { SYNC_BOOKING_CENTRES, SYNC_BOOKING_CENTRES_NIGHTLY, syncBookingCentres, syncBookingCentresNightly } from './tasks/sync_booking_centres.js';
 import { createSendReminder } from './tasks/send_reminder.js';
 import { SYNC_NIGHTLY, syncBookableItems, syncBookableItemsNightly } from './tasks/sync_bookable_items.js';
 
@@ -31,6 +33,10 @@ export const manifest: WorkerManifest = Object.freeze({
     [CLOSE_QUEUE_DAY]: closeQueueDay, // T-Q2: close_queue_day
     'engagement.send_reminder': createSendReminder(), // T-R1
     'engagement.dispatch_due_reminders': createDispatchDueReminders(), // T-R1 (cron-only task: no §8.1 row)
+    [PURGE_EPHEMERAL]: purgeEphemeral, // T-OPS1 (cron-only)
+    [PURGE_QUEUE]: purgeQueue, // T-OPS1 (cron-only)
+    [SYNC_BOOKING_CENTRES]: syncBookingCentres, // T-B2
+    [SYNC_BOOKING_CENTRES_NIGHTLY]: syncBookingCentresNightly, // T-B2 (cron-only: no §8.1 row)
     'engagement.sync_bookable_items': syncBookableItems, // T-B1
     [SYNC_NIGHTLY]: syncBookableItemsNightly, // T-B1 (cron-only task: no §8.1 row)
   }),

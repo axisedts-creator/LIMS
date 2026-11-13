@@ -25,12 +25,6 @@ export function mmss(issuedAt: string, now: number): string {
   return `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`;
 }
 
-/** Slip date/time, read in the lab's zone (Asia/Kathmandu, CV §4.8): DD/MM/YYYY hh:mm. */
-export function slipDateTime(iso: string): string {
-  const p = new Intl.DateTimeFormat('en-GB', { timeZone: 'Asia/Kathmandu', day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).formatToParts(new Date(iso));
-  const g = (t: string) => p.find((x) => x.type === t)?.value ?? '';
-  return `${g('day')}/${g('month')}/${g('year')} ${g('hour')}:${g('minute')}`;
-}
 
 export const upsertToken = (list: readonly QueueToken[], t: QueueToken): QueueToken[] =>
   list.some((x) => x.id === t.id) ? list.map((x) => (x.id === t.id ? t : x)) : [...list, t];

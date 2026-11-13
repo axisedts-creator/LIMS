@@ -2,8 +2,8 @@
 // Re-read the challenge (tenant-scoped, FOR UPDATE): anything but a live `pending` one (unknown, other tenant, sent, superseded, verified, failed, expired) is a silent
 // no-op, so duplicates and races send nothing. Then: earlier pending/sent challenges of the same phone + app instance -> superseded; decrypt the code; sendSms as the
 // system actor with idempotencyKey otp:<id>; ciphertext -> NULL, status sent, send_delivery_id; access log auth.otp_sent.
-// C6 common.rate_limited (or a suppressed outcome) -> challenge `failed`, no throw. Any other port error THROWS: the tx rolls back (still pending, ciphertext kept) and the
-// retry reuses the key. Phone, code, token and ciphertext are never logged, audited or put in an error (02-CV §9.2).
+// C6 common.rate_limited (or a suppressed outcome) -> challenge `failed`, no throw. Any other port error / unknown status THROWS while attempt < maxAttempts: the tx rolls
+// back (still pending, ciphertext kept) and the retry reuses the key; on the last attempt the challenge is `failed` (TRD §8.1, review T-A2 item 1). Phone, code, token and ciphertext are never logged, audited or put in an error (02-CV §9.2).
 import type { TaskHandler } from '../../../core/manifest.js';
 import { decryptOtpCode } from '../../../../../api/src/modules/engagement/service/auth.service.js';
 import * as otpRepo from '../../../../../api/src/modules/engagement/repository/otp.repo.js';
@@ -33,6 +33,8 @@ export function createSendLoginOtp(): TaskHandler {
     const tenantSettings = await ctx.ports.IdentityPort.getTenantSettings(ctx, { keys: ['branding'] });
     const minutes = Math.max(1, Math.round((Date.parse(ch['expires_at']) - Date.parse(ch['created_at'])) / 60_000));
 
+    // TRD §8.1 (02-TRD.md:655): after 3 failures the challenge is `failed` -> on the last attempt never rethrow, fail it (ciphertext NULL).
+    const lastAttempt = !(typeof ctx.attempt === 'number' && typeof ctx.maxAttempts === 'number' && ctx.attempt < ctx.maxAttempts);
     let sent: { deliveryId?: string; status?: string } | undefined;
     try {
       sent = await ctx.ports.NotificationPort.sendSms(ctx, {
@@ -40,14 +42,14 @@ export function createSendLoginOtp(): TaskHandler {
         params: { otp_code: code, lab_name: labParam(tenantSettings?.branding?.displayName), minutes: String(minutes) }, idempotencyKey: `otp:${id}`,
       });
     } catch (e) {
-      if ((e as { code?: unknown })?.code !== 'common.rate_limited') throw e; // transient: rollback + retry
-      await otpRepo.markFailed(tx, { tenantId, id }); // the app's resend timer shows the generic message
+      if ((e as { code?: unknown })?.code !== 'common.rate_limited' && !lastAttempt) throw e; // transient: rollback + retry
+      await otpRepo.markFailed(tx, { tenantId, id }); // rate-limited or retries exhausted: the app's resend timer shows the generic message
       return;
     }
     if (sent?.status === 'queued' && typeof sent.deliveryId === 'string') {
       await otpRepo.markSent(tx, { tenantId, id, deliveryId: sent.deliveryId });
       await ctx.audit.access({ action: 'auth.otp_sent', entityType: 'otp_challenge', entityId: id, outcome: 'success' });
-    } else if (PORT_SUPPRESSED.has(sent?.status as string)) {
+    } else if (PORT_SUPPRESSED.has(sent?.status as string) || lastAttempt) {
       await otpRepo.markFailed(tx, { tenantId, id }); // nothing left the gateway: the code can never be used
     } else {
       throw new Error('send_login_otp: unexpected NotificationPort status'); // fail closed: retry, never record an unknown outcome

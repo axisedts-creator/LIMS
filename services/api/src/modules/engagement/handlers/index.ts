@@ -5,6 +5,7 @@ import type { Handler } from '../../../core/module.js';
 import { displayHandlers } from './display.handlers.js';
 import { queueHandlers } from './queue.handlers.js';
 import { reminderHandlers } from './reminder.handlers.js';
+import { slotHandlers } from './slot.handlers.js';
 import { settingsHandlers } from './settings.handlers.js';
 import { tokenHandlers } from './token.handlers.js';
 
@@ -37,4 +38,5 @@ export const handlers: Readonly<Record<(typeof OPERATION_IDS)[number], Handler>>
   ...tokenHandlers, // T-Q2: Q3-Q7
   ...displayHandlers, // T-Q3: Q8, Q9
   ...reminderHandlers, // T-R1: R1-R3
+  ...slotHandlers, // T-B2: S6-S11
 });

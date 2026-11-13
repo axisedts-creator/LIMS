@@ -6,6 +6,7 @@
 // reference_band = newest plotted point's snapshot (unit falls back to that point's unit; omitted without a bound or unit). Approved rows read cur_* (latest version).
 import { LimsError, type FieldError } from '../../../core/errors.js';
 import type { Handler, HandlerContext } from '../../../core/module.js';
+import { withStore } from './resultEntry.handlers.js';
 
 type Obj = Record<string, any>;
 interface Store {
@@ -29,8 +30,8 @@ const time = (v: unknown): number => (v instanceof Date ? v.getTime() : Date.par
 function authed(h: HandlerContext, needIdentity: boolean): Ctx {
   const c = h as Partial<Ctx>;
   if (typeof c.tenantId !== 'string' || typeof c.actor?.id !== 'string' || !c.tx) throw new LimsError('auth.unauthenticated');
-  if (!c.store || !c.audit || (needIdentity && !c.ports?.IdentityPort)) throw new LimsError('common.internal');   // fail closed: production wiring missing
-  return c as Ctx;
+  if (!c.audit || (needIdentity && !c.ports?.IdentityPort)) throw new LimsError('common.internal');   // fail closed: audit / port wiring missing
+  return withStore(c) as Ctx;   // LD-124: ctx.store ?? labStore(ctx.tx, ctx)
 }
 
 function limitOf(q: Obj, b: { def: number; max: number }): number {
@@ -99,7 +100,10 @@ const getAnalyteTrend: Handler = async (req, hctx) => {
       body['reference_band'] = { ...(present(low) ? { low: String(low) } : {}), ...(present(high) ? { high: String(high) } : {}), unit_code: unit };
     }
   }
-  await (c.audit as NonNullable<Ctx['audit']>).access({ action: HISTORY_ACTION, entityType: 'patient', entityId: patientId, outcome: 'allowed' });
+  // the path id is caller-supplied: core access() takes entity_id as a UUIDv7 only, so any other well-formed id is kept in detail instead of failing the read (T-32 P-01 #26).
+  const v7 = typeof patientId === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/.test(patientId);
+  await (c.audit as NonNullable<Ctx['audit']>).access({ action: HISTORY_ACTION, entityType: 'patient', outcome: 'allowed',
+    ...(v7 ? { entityId: patientId } : typeof patientId === 'string' && patientId.length <= 64 ? { detail: { patient_id: patientId } } : {}) });
   return { status: 200, body };
 };
 

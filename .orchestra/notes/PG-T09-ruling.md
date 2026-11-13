@@ -1,0 +1,6 @@
+TESTS_WRONG — the test asserts something the spec does not require (say precisely what to change in the test)
+1. Spec: spec/chunks/C15-payment-gateways/01-PRD.md:204 (US-PG-14 item 2) requires only that a tenant-B callback token resolves to tenant B and exposes no tenant-A data. The test's intent is correct; its harness call is wrong.
+2. Defect: callbacks.http.test.ts:13 sets `A = TENANTS.A, B = TENANTS.B` (UUIDs). The harness `callbacks(t: Tenant = 'A')` (helpers/callbackHarness.ts:115) takes the key 'A' | 'B' and looks up `TENANTS[t]`. `TENANTS[<uuid>]` is undefined, and `h.db.callbacks(tenantId = TENANT_A)` (helpers/merchantDb.ts:371) then defaults to tenant A.
+3. Result: l.528-529 read tenant A's rows and get 0 where the implementation correctly wrote 1 row for B. l.55, l.520 and l.530 pass vacuously, because each one checks A when it means B or A.
+4. Required test change (tester): in callbacks.http.test.ts replace `t.callbacks(B)` with `t.callbacks('B')` at l.55, l.528 and l.529, and `t.callbacks(A)` with `t.callbacks('A')` at l.520 and l.530. Keep every assertion value (1 / 0 / tenant_id: B) unchanged. `t.h.db.*(B)` calls (l.514, l.518) take UUIDs and are already correct.
+5. Implementation: no change.

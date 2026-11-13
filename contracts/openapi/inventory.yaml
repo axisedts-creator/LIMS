@@ -2421,7 +2421,7 @@ paths:
                     type: array
                     maxItems: 1000
                     items:
-                      $ref: "#/components/schemas/Code"
+                      $ref: "#/components/schemas/InventoryCodedSetEntry"
               examples:
                 synthetic:
                   value:
@@ -2539,7 +2539,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Code"
+                $ref: "#/components/schemas/InventoryCodedSetEntry"
               examples:
                 synthetic:
                   value:
@@ -10870,7 +10870,8 @@ components:
         doc_no_pattern:
           type: string
           maxLength: 40
-    Code:
+    # LD-115 / CR-C12-T01b: was the local schema Code (collided with _common.yaml Code); wire JSON unchanged
+    InventoryCodedSetEntry:
       type: object
       additionalProperties: false
       required:

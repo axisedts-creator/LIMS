@@ -1,0 +1,33 @@
+name: phlebo_app
+description: LIMS phlebotomist home-collection app (C17 HC-T21 skeleton).
+version: 0.0.0+1
+publish_to: none
+environment:
+  # Same exact pins as the root pubspec.yaml (LD-46).
+  sdk: 3.13.7
+  flutter: 3.47.9
+resolution: workspace
+# Exact pins only (CV §15.1, REQ-SEC-129); same versions as packages/ui-flutter (already in T0-03-dependencies.md).
+dependencies:
+  flutter:
+    sdk: flutter
+  # workspace members
+  lims_shared: any
+  lims_ui: any
+  # LD-24: GlitchTip, DSN from runtime config
+  sentry_flutter: 10.3.0
+  go_router: 18.1.3
+  # HC-T22: encrypted offline stores (TRD §2; sqlcipher_flutter_libs banned, 02-CV §15.3)
+  drift: 2.35.3
+  sqlite3: 3.8.0
+  flutter_secure_storage: 11.2.0
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+flutter:
+  uses-material-design: true
+# HC-T22: package:sqlite3 build hook -> SQLCipher (TRD §2 / 04 A15). [CONV] C0 picks sqlcipher over sqlite3mc.
+hooks:
+  user_defines:
+    sqlite3:
+      source: sqlcipher

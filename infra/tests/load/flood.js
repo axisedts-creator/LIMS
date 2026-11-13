@@ -4,9 +4,14 @@
 // LD-45: TARGET_ENV must be `staging` or `staging-lean`; anything else is refused in setup(), before any request.
 // Pass (also enforced by k6 thresholds => non-zero exit) [CONV]: shed 429/503 seen on flood traffic AND staff p95 during
 //   flood < 2x idle baseline AND PgBouncer cl_waiting max == 0 AND fd used ratio max < 0.9. No Prometheus evidence = fail.
+//   Also: burst_ok rate > 0.99 (burst must really reach the API, not be shed by edge `perip` 100r/s; review T-32 item 1).
 // Env: TARGET_URL TARGET_ENV STAFF_TOKEN PROMETHEUS_URL REPORT_PATH (required); STAFF_PATH (default below);
+//   STAFF_URL (default TARGET_URL): base URL for ALL bearer traffic (calibration, baseline, burst, staff probe).
 //   BASELINE_/BURST_/FLOOD_ RATE (req/s) and DURATION (e.g. 60s) overrides. Nothing is read-and-thrown at init so
 //   `k6 inspect` works with no env.
+// RUN NOTES (review T-32 item 2): edge `perip` and fail2ban `lims-ratelimit` shed/ban the flood source IP. Send the flood from
+//   one source IP (TARGET_URL) and the bearer traffic from a SEPARATE source IP (STAFF_URL, e.g. a second k6 instance or
+//   `--local-ips`). Add that load-generator IP to fail2ban `ignoreip` for the staging run only; remove it afterwards.
 import http from 'k6/http';
 import { sleep } from 'k6';
 import { Counter, Gauge, Rate, Trend } from 'k6/metrics';
@@ -27,7 +32,7 @@ const BURST_AT = DUR.baseline;
 const FLOOD_AT = DUR.baseline + DUR.burst;
 const TOTAL_S = FLOOD_AT + DUR.flood;
 const STAFF_RATE = 20; // staff probe alongside the flood, well below the flood rate
-// ponytail: C0 staff-readable list route (C9 03-APP-FLOW) used as the API probe; override with STAFF_PATH if C0 renames it.
+// ponytail: staff-readable list route GET /v1/catalog/tests (owner C3, 02-TRD row 23) used as the API probe; override with STAFF_PATH if renamed.
 const STAFF_PATH = __ENV.STAFF_PATH || '/v1/catalog/tests';
 
 const arrival = (name, rate, duration, startTime, maxVUs) => ({
@@ -50,6 +55,7 @@ export const options = {
   },
   thresholds: {
     shed_responses: ['count>0'],
+    burst_ok: ['rate>0.99'],
     staff_flood_samples: ['count>0'],
     staff_flood_errors: ['rate==0'],
     staff_flood_ratio: ['p(95)<2'],
@@ -60,6 +66,7 @@ export const options = {
 };
 
 const shed = new Counter('shed_responses');
+const burstOk = new Rate('burst_ok');
 const staffSamples = new Counter('staff_flood_samples');
 const staffErrors = new Rate('staff_flood_errors');
 const staffFloodMs = new Trend('staff_flood_ms', true);
@@ -71,7 +78,7 @@ const promMissing = new Counter('prom_evidence_missing');
 
 const base = (u) => String(u || '').replace(/\/+$/, '');
 const staffReq = (phase) =>
-  http.get(base(__ENV.TARGET_URL) + STAFF_PATH, {
+  http.get(base(__ENV.STAFF_URL || __ENV.TARGET_URL) + STAFF_PATH, {
     headers: { Authorization: `Bearer ${__ENV.STAFF_TOKEN}` },
     tags: { phase },
     timeout: '10s',
@@ -108,7 +115,8 @@ export function baselineTraffic() {
 }
 
 export function burstTraffic() {
-  staffReq('burst'); // authenticated; PgBouncer cl_waiting is read from Prometheus in teardown
+  const r = staffReq('burst'); // authenticated; PgBouncer cl_waiting is read from Prometheus in teardown
+  burstOk.add(r.status === 200); // a shed (429) burst never reached PgBouncer, so cl_waiting==0 alone proves nothing
 }
 
 export function floodTraffic() {
@@ -159,15 +167,17 @@ export function handleSummary(data) {
   const waiting = v('pgbouncer_cl_waiting_max', 'value');
   const fd = v('fd_used_ratio_max', 'value');
   const shedN = v('shed_responses', 'count');
+  const burstRate = v('burst_ok', 'rate');
   const thresholdsOk = Object.values(m).every((x) => !x.thresholds || Object.values(x.thresholds).every((t) => t.ok));
   const pass = !!(
-    thresholdsOk && shedN > 0 && ratio !== null && ratio < 2 && waiting === 0 && fd !== null && fd < 0.9
+    thresholdsOk && burstRate !== null && burstRate > 0.99 && shedN > 0 && ratio !== null && ratio < 2 && waiting === 0 && fd !== null && fd < 0.9
   );
   const report = {
     ac: 'AC-24.1',
     pass,
     target_env: __ENV.TARGET_ENV || null,
     flood_rate: RATE.flood,
+    burst_ok_rate: burstRate,
     shed_responses: shedN,
     staff_p95_baseline_ms: v('staff_baseline_p95_ms', 'value'),
     staff_p95_flood_ms: v('staff_flood_ms', 'p(95)'),

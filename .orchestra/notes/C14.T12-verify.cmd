@@ -1,0 +1,1 @@
+pnpm --dir services/api exec vitest run src/modules/smartreport/__tests__/summary.service.build.test.ts src/modules/smartreport/__tests__/summary.service.lifecycle.test.ts src/modules/smartreport/__tests__/t12.fakes.selfcheck.test.ts

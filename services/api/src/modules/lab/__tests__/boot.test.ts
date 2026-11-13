@@ -37,6 +37,8 @@ const IMPLEMENTED: readonly string[] = [
   'rejectSpecimen', 'requestRecollection', 'createAliquots',
   // T-14 result entry
   'bulkEnterResults', 'getResult', 'listOrderResults',
+  // T-32 / LD-124 (ruling C5.T-32-ruling.md F): handlers now real, stub assertion was stale
+  'getLabOrder', 'listVerificationQueue',
   // T-15 critical values
   'listCriticalValues', 'getCriticalValue', 'logCriticalNotification',
   // T-16 verify / return
@@ -53,6 +55,10 @@ const IMPLEMENTED: readonly string[] = [
   'listIngestExceptions', 'getIngestException', 'assignIngestException', 'reapplyIngestException', 'discardIngestException',
   // T-27 status board
   'getStatusBoard',
+  // T-29 configuration (#47-#54)
+  'getLabSettings', 'updateLabSettings', 'listDeltaCheckRules', 'createDeltaCheckRule', 'versionDeltaCheckRule', 'deactivateDeltaCheckRule', 'listLabCodedSet', 'upsertLabCode',
+  // T-25 QC capture + holds (#43-#46)
+  'listQcResults', 'captureQcResult', 'listQcHolds', 'releaseQcHold',
 ];
 
 const FAKE_REQ = { params: {}, query: {}, headers: {}, body: {} };

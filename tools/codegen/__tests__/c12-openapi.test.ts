@@ -156,7 +156,7 @@ const SPECS: Spec[] = [
 const TOTAL = 93;
 
 const DTOS = ["ItemSummary", "Item", "ItemCreate", "ItemPatch", "Pack", "Barcode", "Store", "StoreItemSetting", "Supplier", "SupplierSummary", "SupplierCreate",
-  "SupplierPatch", "SupplierItem", "Binding", "Settings", "SettingsUpdate", "Code", "Lot", "BalanceRow", "Movement", "FefoSuggestion", "Container", "StockDocument",
+  "SupplierPatch", "SupplierItem", "Binding", "Settings", "SettingsUpdate", "InventoryCodedSetEntry", "Lot", "BalanceRow", "Movement", "FefoSuggestion", "Container", "StockDocument",
   "StockDocumentSummary", "Grn", "GrnDraft", "GrnSummary", "Transfer", "TransferSummary", "Count", "CountSummary", "CountLine", "Rule", "Fact", "PoSummary", "Po",
   "PoPrintView", "Alert", "ReportResult", "ColumnMeta"];
 // list ops → item DTO (#11 skipped: transfer_target returns a reduced Store)
@@ -169,7 +169,7 @@ const ONE: Record<string, string> = { createInventoryItem: "Item", getInventoryI
   createInventoryItemPack: "Pack", updateInventoryItemPack: "Pack", addInventoryItemBarcode: "Barcode", deactivateInventoryItemBarcode: "Barcode",
   createInventoryStore: "Store", getInventoryStore: "Store", updateInventoryStore: "Store", putStoreItemSetting: "StoreItemSetting", createInventorySupplier: "Supplier",
   getInventorySupplier: "Supplier", updateInventorySupplier: "Supplier", putSupplierItem: "SupplierItem", putInstrumentBinding: "Binding",
-  deactivateInstrumentBinding: "Binding", getInventorySettings: "Settings", updateInventorySettings: "Settings", putInventoryTenantCode: "Code", getInventoryLot: "Lot",
+  deactivateInstrumentBinding: "Binding", getInventorySettings: "Settings", updateInventorySettings: "Settings", putInventoryTenantCode: "InventoryCodedSetEntry", getInventoryLot: "Lot",
   setInventoryLotStatus: "Lot", correctInventoryLotExpiry: "Lot", getFefoSuggestion: "FefoSuggestion", openContainer: "Container", finishContainer: "Container",
   getStockDocument: "StockDocument", createStockIssue: "StockDocument", createStoreReturn: "StockDocument", createSupplierReturn: "StockDocument",
   recordWastage: "StockDocument", writeOffExpiredStock: "StockDocument", createStockAdjustment: "StockDocument", createGoodsReceipt: "Grn", getGoodsReceipt: "Grn",
@@ -408,7 +408,7 @@ describe("inventory.yaml (T0C-10.C12)", () => {
       expect(keys(okSchema("listInventoryStores"))).toEqual(expect.arrayContaining(["data", "page"]));
       expect(keys(deref(props(okSchema("listInventoryStores")).data).items)).toEqual(expect.arrayContaining(["id", "store_code", "name", "branch_id", "branch_name"]));
       expect(Object.keys(props(okSchema("listInventoryCodedSet")))).toEqual(["data"]);
-      expect(deref(deref(props(okSchema("listInventoryCodedSet")).data).items)).toEqual(deref(schema("Code")));
+      expect(deref(deref(props(okSchema("listInventoryCodedSet")).data).items)).toEqual(deref(schema("InventoryCodedSetEntry")));
     });
     T("single-object ops return (at least) the properties of their DTO", () => {
       for (const [id, dto] of Object.entries(ONE)) expect(keys(okSchema(id)), id).toEqual(expect.arrayContaining(keys(schema(dto))));

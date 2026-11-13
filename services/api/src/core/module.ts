@@ -1,9 +1,13 @@
 // Module contract + autoloader (02-TRD §6.3). Every check is a boot failure that names the module and the offender.
-// Types are the T0D-01 subset; Operations-typed handlers and the full HandlerContext land with codegen (T0C) and T0D-02..10.
+// Operations-typed handlers land with codegen (T0C); the full HandlerContext is T0D-18 (LD-133).
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { parse } from 'yaml';
+import type { AccessLogEntry } from './audit/access.js';
+import type { Tx, TxFn, TxInput } from './db/tx.js';
+import type { PortRegistry } from './ports/registry.js';
+import type { RateLimitTier } from './ratelimit/index.js';
 
 export const MODULE_NAMES = [
   'core', 'identity', 'audit', 'catalog', 'frontdesk', 'billing', 'lab', 'instruments', 'reporting', 'analytics',
@@ -22,12 +26,50 @@ export interface HandlerRequest {
   readonly headers: unknown;
   readonly body: unknown;
 }
-/** T0D-01 subset of HandlerContext (§6.3); auth/db/events/... are added by their tasks. */
+/**
+ * 02-TRD §6.3 HandlerContext, built per request by core/pipeline (LD-133, T0D-18): RequestContext (IC §4.1: tenantId, actor,
+ * requestId, tx, now, ports) + the core members. tenantId/actor/tx are undefined on a public operation without a tenant (§6.2 stage 7).
+ * [CONV] members typed `unknown` until @lims/contracts / codegen types are imported here (T0C).
+ */
 export interface HandlerContext {
+  readonly tenantId?: string | undefined;
+  // LD-133: `type` optional in the TYPE only (modules identity/lab/smartreport narrow actor to { id }); the pipeline always sets it.
+  readonly actor?: { readonly type?: string; readonly id: string; readonly membershipId?: string; readonly supportSessionId?: string } | undefined;
+  readonly requestId: string;
+  /** LD-133: `| object` in the TYPE only (lab/smartreport type tx as object); the pipeline always hands the Tx of requestTx. */
+  readonly tx?: Tx | object | undefined;
+  /**
+   * Runtime: `() => IsoUtc` (IC §4.1; transaction start). LD-133: optional `any` in the TYPE only, because module lab declares
+   * `now?: () => Date` while smartreport uses the string (.orchestra/cr/T0D-18.md).
+   */
+  readonly now?: any;
+  /** LD-133: `any`/optional in the TYPE only (modules narrow ports to the ports they consume); runtime value is a PortRegistry view. */
+  readonly ports?: PortRegistry | any;
+  readonly db: {
+    /** SAVEPOINT inside the request transaction. LD-133: optional in the TYPE only (identity narrows db to identityAuthTx). */
+    tx?<T>(fn: (ctx: HandlerContext) => Promise<T>): Promise<T>;
+    /** 08 A25 D-212 (§6.2 stage 7): identity + x-context identity_auth + LIMS_CORE_IDENTITY_AUTH_OPS only; the core's own operation is used. */
+    identityAuthTx?<T>(input: TxInput, fn: TxFn<T>): Promise<T>;
+  };
+  readonly core: unknown;
+  /** LD-133: optional / entry widened in the TYPE only (lab declares access(e: Record<string, unknown>)). */
+  readonly audit?: { access(entry: AccessLogEntry | Record<string, unknown>): Promise<void> };
+  readonly events: unknown;
+  /** LD-133: optional in the TYPE only (identity declares it optional). */
+  readonly rateLimit?: { consume(tier: RateLimitTier, key: string): Promise<void> };
+  readonly uploads: unknown;
+  readonly files: unknown;
+  readonly storage: unknown;
+  readonly log: { info(o: object, m?: string): void; warn(o: object, m?: string): void; error(o: object, m?: string): void };
+  readonly services: unknown;
   readonly operationId: string;
   /** 08 A25 P-61 (02-TRD §6.4); modules never parse a header. */
   readonly clientIp: string;
-  readonly log: { info(o: object, m?: string): void; warn(o: object, m?: string): void; error(o: object, m?: string): void };
+  readonly download: unknown;
+  /** LD-133: optional in the TYPE only (identity declares it optional). */
+  commitOnError?(): void;
+  /** disables the 40001/40P01 whole-request retry for this request (§6.4). */
+  noRetry(): void;
 }
 export type Handler = (req: HandlerRequest, ctx: HandlerContext) => Promise<HandlerResult>;
 

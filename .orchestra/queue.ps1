@@ -58,11 +58,21 @@ $Queue = @(
   @{ name="C11"; chunk="C11-specialty-pathology"; filter='^(T-01|T-02|T-03|T-05|T-08|T-09|T-12|T-13|T-14|T-27|T-15|T-18|T-21|T-25|T-26)$'; after=@($C0,"C5-lab-workflow") },
   @{ name="C11b"; chunk="C11-specialty-pathology"; filter='^(T-04|T-06|T-07|T-10|T-11|T-16|T-19|T-20|T-22|T-23|T-24|T-17)$'; after=@($C0,"C5-lab-workflow") },
   @{ name="C2"; chunk="C2-identity-admin"; filter='^(T1|T11|T27|T6|T9|T7|T8|T12|T10|T18|T17|T19|T20|T25|T28|T29)$'; after=@($C0) },
-  @{ name="C2b"; chunk="C2-identity-admin"; filter='^(T2|T3|T4|T5|T16|T13|T14|T31|T15|T21|T22|T23|T24|T26|T30)$'; after=@($C0) },
+  @{ name="C2b"; chunk="C2-identity-admin"; filter='^(T2|T3|T4|T5|T16|T13|T14|T31|T15|T21|T22|T23|T24|T26|T30|RM-T0[1-5])$'; after=@($C0) },
   @{ name="C7"; chunk="C7-instrument-integration"; filter='^(AG-T01|AG-T02|AG-T04|AG-T05|AG-T06|API-T02|API-T04|API-T14|AG-T11|AG-T10|AG-T13|AG-T17|AG-T14|AG-T12|AG-T15|AG-T16|AG-T18|INT-T01|WEB-T01|WEB-T02|WEB-T03|WEB-T06|WEB-T07)$'; after=@($C0) },
-  @{ name="C7b"; chunk="C7-instrument-integration"; filter='^(API-T01|AG-T03|AG-T08|AG-T07|AG-T09|API-T03|API-T07|API-T08|API-T06|API-T05|API-T09|API-T16|API-T10|API-T15|API-T11|API-T12|API-T13|INT-T03|WEB-T05|WEB-T04)$'; after=@($C0) },
+  @{ name="C7b"; chunk="C7-instrument-integration"; filter='^(API-T01|AG-T03|AG-T08|AG-T07|AG-T09|API-T03|API-T07|API-T08|API-T06|API-T05|API-T09|API-T16|API-T10|API-T15|API-T11|API-T12|API-T13|INT-T03|WEB-T05|WEB-T04|H80-T0[1-8])$'; after=@($C0) },
   @{ name="C8"; chunk="C8-analytics-mis"; filter='^(AN-T01|AN-T02|AN-T03|AN-T07|AN-T08|AN-T09|AN-T10|AN-T14|AN-T15|AN-T22|AN-T15b|AN-T16|AN-T21)$'; after=@($C0) },
-  @{ name="C8b"; chunk="C8-analytics-mis"; filter='^(AN-T04|AN-T05|AN-T06|AN-T12|AN-T13|AN-T11|AN-T17|AN-T18|AN-T19|AN-T20|AN-T24|AN-T23)$'; after=@($C0) }
+  @{ name="C8b"; chunk="C8-analytics-mis"; filter='^(AN-T04|AN-T05|AN-T06|AN-T12|AN-T13|AN-T11|AN-T17|AN-T18|AN-T19|AN-T20|AN-T24|AN-T23)$'; after=@($C0) },
+  # 2026-11-13 lead: restyle lanes (spec/program/10-DESIGN-SYSTEM.md). Each runs one RS-<chunk> task and starts only after C0 task T0D-UI-R07 is done (need=).
+  @{ name="C2r";  chunk="C2-identity-admin";          filter='^RS-C2$';  after=@($C0); need="T0D-UI-R07" },
+  @{ name="C3r";  chunk="C3-catalog-pricing";         filter='^RS-C3$';  after=@($C0); need="T0D-UI-R07" },
+  @{ name="C4r";  chunk="C4-frontdesk-billing";       filter='^RS-C4$';  after=@($C0); need="T0D-UI-R07" },
+  @{ name="C5r";  chunk="C5-lab-workflow";            filter='^RS-C5$';  after=@($C0); need="T0D-UI-R07" },
+  @{ name="C6r";  chunk="C6-reporting-delivery";      filter='^RS-C6$';  after=@($C0); need="T0D-UI-R07" },
+  @{ name="C7r";  chunk="C7-instrument-integration";  filter='^RS-C7$';  after=@($C0); need="T0D-UI-R07" },
+  @{ name="C8r";  chunk="C8-analytics-mis";           filter='^RS-C8$';  after=@($C0); need="T0D-UI-R07" },
+  @{ name="C15r"; chunk="C15-payment-gateways";       filter='^RS-C15$'; after=@($C0,"C4-frontdesk-billing"); need="T0D-UI-R07" }
+
   # C18 stays out: design-only until the eLabs export sample arrives (B4).
 )
 
@@ -77,7 +87,7 @@ function Finished($chunk, $filter = '.*') {
 }
 # gate for "after": a chunk counts as finished for the chunks that wait on it when every task is done or blocked, except leaf tasks nothing else needs yet.
 # Those keep running in their own lane while the next chunks start (they still have to reach done before the build is accepted).
-$GateIgnore = @{ "C0-foundation-contracts" = @("T0B-11","T0C-10.C9","T0C-10.C10","T0C-10.C11","T0C-10.C12","T0C-10.C13","T0C-10.C14","T0C-10.C15","T0C-10.C16","T0C-10.C17","T0D-12c") }   # per-tenant billing export + live restore proof (AC-0B-6.4): no task depends on it
+$GateIgnore = @{ "C0-foundation-contracts" = @("T0B-11","T0C-10.C9","T0C-10.C10","T0C-10.C11","T0C-10.C12","T0C-10.C13","T0C-10.C14","T0C-10.C15","T0C-10.C16","T0C-10.C17","T0D-12c","T0D-12d","T0D-UI-R01","T0D-UI-R02","T0D-UI-R03","T0D-UI-R04","T0D-UI-R05","T0D-UI-R07") }   # per-tenant billing export + live restore proof (AC-0B-6.4): no task depends on it
 # 2026-11-11 lead: wave-2 chunks need their own contracts/openapi file (C0 task T0C-10.Cxx) before a lane may start; GateIgnore keeps these tasks from closing the C0 gate for everyone else
 $Wave2Need = @{ "C9-quality-engine"="T0C-10.C9"; "C10-microbiology"="T0C-10.C10"; "C11-specialty-pathology"="T0C-10.C11"; "C12-inventory"="T0C-10.C12"; "C13-b2b-partner-portal"="T0C-10.C13"; "C14-smart-report"="T0C-10.C14"; "C15-payment-gateways"="T0C-10.C15"; "C16-patient-engagement"="T0C-10.C16"; "C17-home-collection"="T0C-10.C17" }
 function TaskDone($chunk, $id) { $t = Get-Tasks $chunk; if (-not $t) { return $false }; @($t | Where-Object { $_.id -eq $id -and $_.status -eq 'done' }).Count -eq 1 }
@@ -138,6 +148,13 @@ while ($true) {
     $host.UI.RawUI.WindowTitle = "LIMS queue - DISK LOW $free GB"
   } else { if (Test-Path $flag) { Remove-Item $flag -Force -ErrorAction SilentlyContinue }; $host.UI.RawUI.WindowTitle = "LIMS queue" }
   if ($lowDisk) { Q "DISK LOW: $free GB free (limit $MinFreeGB GB) - not starting new lanes; running lanes continue. To free space: powershell -ExecutionPolicy Bypass -File C:\LIMS\.orchestra\free-space.ps1 -Apply" }
+  # 1c. test-hang watchdog (2026-11-11 night): a static test run (python -m unittest) older than 40 min is hung, not slow (one blocked a lane for 1h41m). Kill it so the agent waiting on it continues.
+  try {
+    foreach ($w in @(Get-CimInstance Win32_Process -Filter "Name='python.exe'" -ErrorAction SilentlyContinue | Where-Object { $_.CommandLine -match '-m unittest' -and $_.CreationDate -lt (Get-Date).AddMinutes(-40) })) {
+      Stop-Process -Id $w.ProcessId -Force -ErrorAction SilentlyContinue
+      Q "WATCHDOG: killed hung test run pid $($w.ProcessId) started $($w.CreationDate.ToString('s')): $($w.CommandLine.Substring(0, [Math]::Min(120, $w.CommandLine.Length)))"
+    }
+  } catch { }
   # 2. start lanes that are ready, in priority order, while a slot is free
   $waiting = 0
   foreach ($l in $Queue) {
@@ -147,6 +164,7 @@ while ($true) {
     $ready = $true; foreach ($a in $l.after) { if (-not (GateDone $a)) { $ready = $false } }
     if (-not $ready) { continue }
     $wn = $Wave2Need[$l.chunk]; if ($wn -and -not (TaskDone "C0-foundation-contracts" $wn)) { continue }   # wave-2 chunk waits for its own contract file
+    if ($l.need -and -not (TaskDone "C0-foundation-contracts" $l.need)) { continue }   # restyle lanes wait for the new kit and shell (T0D-UI-R07)
     if (-not $rp -and -not (Runnable $l.chunk $l.filter $l.name)) { $waiting++; continue }   # nothing it could run right now: do not hold a slot
     if ($procs.Count -ge $MaxLanes -or $lowDisk) { break }
     $wt = Join-Path $LanesRoot $l.name; $br = "lane/$($l.name)"
@@ -158,8 +176,32 @@ while ($true) {
       git -C $wt rev-parse -q --verify MERGE_HEAD 2>&1 | Out-Null
       if ($LASTEXITCODE -eq 0) { $mf = "an earlier merge is unfinished (MERGE_HEAD present)" }
       else {
+        # self-heal (2026-11-11 night): untracked CR archive files that main already has would block the merge; drop the ones main has
+        try {
+          foreach ($s in @(git -C $wt status --porcelain 2>$null)) {
+            if ($s -match '^\?\? (\.orchestra/cr/\S*\.resolved-\S*)$') {
+              $rf = $Matches[1]
+              if (Test-Path (Join-Path $Integration $rf)) { Remove-Item (Join-Path $wt $rf) -Force -ErrorAction SilentlyContinue }
+            }
+          }
+        } catch { }
         $mo = git -C $wt merge --no-edit main 2>&1
-        if ($LASTEXITCODE -ne 0) { git -C $wt merge --abort 2>&1 | Out-Null; $mf = "merge of main failed and was aborted: " + ((@($mo) -join ' ') -replace '\s+', ' ') }
+        if ($LASTEXITCODE -ne 0) {
+          # a conflict that touches nothing but .orchestra/cr archive names (rename/rename of resolved CR files) is bookkeeping: keep both names and commit
+          $healed = $false
+          try {
+            git -C $wt rev-parse -q --verify MERGE_HEAD 2>&1 | Out-Null
+            if ($LASTEXITCODE -eq 0) {
+              $un = @(git -C $wt diff --name-only --diff-filter=U 2>$null)
+              if ($un.Count -gt 0 -and @($un | Where-Object { $_ -notlike '.orchestra/cr/*' }).Count -eq 0) {
+                git -C $wt add -A -- .orchestra/cr 2>&1 | Out-Null
+                git -C $wt commit -q --no-edit 2>&1 | Out-Null
+                if ($LASTEXITCODE -eq 0) { $healed = $true; Q "lane $($l.name): merge of main conflicted only in .orchestra/cr archive names - kept both and committed" }
+              }
+            }
+          } catch { }
+          if (-not $healed) { git -C $wt merge --abort 2>&1 | Out-Null; $mf = "merge of main failed and was aborted: " + ((@($mo) -join ' ') -replace '\s+', ' ') }
+        }
       }
       if ($mf) {
         if (-not $script:MergeWarned) { $script:MergeWarned = @{} }

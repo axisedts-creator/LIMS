@@ -77,6 +77,14 @@
   roles:
     - registry
 
+# 02-TRD s18 (T-30): monthly external port scan from the ops host (lean: the one prod host); targets = the
+# active inventory's public IPs (LD-45), outcome recorded in ops_audit.
+- name: External scan
+  hosts: ops
+  become: true
+  roles:
+    - external_scan
+
 # 02-TRD s12.2 (T-24, CR-C1-001): self-hosted CI runner on the ops host (lean: the one prod host), after
 # the registry (it pushes there). Unprivileged; the prod key is released by lims-prod-decrypt@<release>.
 - name: CI runner
@@ -84,6 +92,14 @@
   become: true
   roles:
     - ci_runner
+
+# 02-TRD s7.11 (T-34, CR-C7-012): C7 agent release service on the ops host only (lean: the one prod host);
+# after the registry (CI artefact). Holds the release key + client Authenticode cert; never an app-only host.
+- name: Agent release service
+  hosts: ops
+  become: true
+  roles:
+    - agent_release
 
 # 02-TRD s6 (T-13): public edge nginx on the app host. edge_nginx first (it
 # bootstraps placeholder certs so nginx answers HTTP-01), then acme issues the

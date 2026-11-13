@@ -66,7 +66,7 @@ async function newOrder(w: World) {
 }
 let bcN = 0;
 async function newSpecimen(w: World, orderId: string, o: Record<string, unknown> = {}) {
-  const sp = { id: uid(), tenant_id: w.tenant, centre_id: HC_CENTRE[w.s], order_id: orderId, patient_id: w.patient.id, barcode: `HCT06SECRETBC${w.s.toUpperCase()}${Date.now()}${++bcN}`, creation_key: `hct06-${uid()}`,
+  const sp = { id: uid(), tenant_id: w.tenant, centre_id: HC_CENTRE[w.s], order_id: orderId, patient_id: w.patient.id, barcode: `HCT06${w.s.toUpperCase()}${String(Date.now()).slice(-8)}${++bcN}`, creation_key: `hct06-${uid()}`,
     specimen_type_code: 'SST', priority: 'routine', patient_sex: 'female', status: 'ordered', ordered_at: T0, ...o };
   await seed('lab.specimens', sp); return sp;
 }
@@ -106,7 +106,7 @@ const flagsOf = (tenant: string, visitId: string, kind?: string) =>
 const transitionsOf = (tenant: string, visitId: string) => ownerRows('homecollection.visit_transitions', 'tenant_id = $1 AND visit_id = $2', [tenant, visitId]);
 const vsOf = (tenant: string, visitId: string) => ownerRows('homecollection.visit_specimens', 'tenant_id = $1 AND visit_id = $2', [tenant, visitId]);
 const routeOf = async (tenant: string, id: string) => (await ownerRows('homecollection.routes', 'tenant_id = $1 AND id = $2', [tenant, id]))[0];
-const jobsFor = (visitId: string) => superTx(async (tx: any) => (await tx.query(`SELECT key, task_identifier, payload FROM graphile_worker.jobs WHERE key = $1`, [`refresh:${visitId}`])).rows);
+const jobsFor = (visitId: string) => superTx(async (tx: any) => (await tx.query(`SELECT j.key, t.identifier AS task_identifier, j.payload FROM graphile_worker._private_jobs j JOIN graphile_worker._private_tasks t ON t.id = j.task_id WHERE j.key = $1`, [`refresh:${visitId}`])).rows);
 const allVisits = (tenant: string) => ownerRows('homecollection.visits', 'tenant_id = $1', [tenant]);
 const everything = async (tenant: string, visitId: string) =>
   JSON.stringify([await visitById(tenant, visitId), await flagsOf(tenant, visitId), await transitionsOf(tenant, visitId), await vsOf(tenant, visitId)]);

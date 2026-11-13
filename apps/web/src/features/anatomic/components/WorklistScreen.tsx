@@ -7,7 +7,8 @@ import { useRef, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { BarcodeInput } from '@lims/ui/components/BarcodeInput';
 import { DataTable, type ColumnDef } from '@lims/ui/components/DataTable';
-import { FilterBar, type FilterDef, type FilterValue } from '@lims/ui/components/FilterBar';
+import type { EmptyStateProps } from '@lims/ui/components/EmptyState';
+import { FilterBar,type FilterDef, type FilterValue } from '@lims/ui/components/FilterBar';
 import { PageHeader } from '@lims/ui/components/PageHeader';
 import { StatusChip } from '@lims/ui/components/StatusChip';
 import { Tabs } from '@lims/ui/components/Tabs';
@@ -24,7 +25,7 @@ const QUEUE_TABS: readonly { id: Queue; label: string }[] = [
   { id: 'awaiting_lab', label: 'Awaiting lab approval' }, { id: 'signed_out', label: 'Signed out' }, { id: 'cancelled', label: 'Cancelled' }, { id: 'all', label: 'All' },
 ];
 /** Work queues are "empty" rather than "filtered to nothing": their empty state carries no Reset (04-UI-UX §4.1). */
-const EMPTY: Partial<Record<Queue, { title: string; body?: string }>> = {
+const EMPTY: Partial<Record<Queue, EmptyStateProps>> = {
   to_accession: { title: 'Nothing to accession', body: 'New cases appear here when the lab receives a histology, cytology or molecular specimen.' },
   grossing: { title: 'No cases waiting for gross description.' },
   bench: { title: 'No slides or stain orders pending.' },

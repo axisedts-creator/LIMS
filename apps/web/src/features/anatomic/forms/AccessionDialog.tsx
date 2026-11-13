@@ -20,7 +20,7 @@ export function AccessionDialog({ detail, isOpen, onClose, onMfa, onDone }: { de
   const key = useRef<string>();
   const [sites, setSites] = useState<Record<string, string>>(() => Object.fromEntries(detail.parts.map((p) => [p.id, p.site_text ?? ''])));
   const [descriptions, setDescriptions] = useState<Record<string, string>>(() => Object.fromEntries(detail.parts.map((p) => [p.id, p.description_text ?? ''])));
-  const [history, setHistory] = useState(detail.clinical_history_text ?? '');
+  const [history, setHistory] = useState(''); // 04-UI-UX §4.2.1: Clinical history default "—" (empty), not prefilled from the case
   const [assignee, setAssignee] = useState<Assignee | undefined>(detail.assigned_pathologist ? { membership_id: detail.assigned_pathologist.membership_id, display_name: detail.assigned_pathologist.display_name } : undefined);
   const [fail, setFail] = useState<Fail>();
   const [pending, setPending] = useState(false);

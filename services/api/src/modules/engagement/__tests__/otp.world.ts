@@ -5,7 +5,7 @@
 // DB rules emulated from 05-SCHEMA: otp_challenges__hashes__ck (token_sha256 / code_hmac / phone_hmac are 32-BYTE Buffers, never hex strings - 08 A5.5), __phone__ck, __platform__ck,
 // __status__ck, __attempts__ck, __ttl__ck (expires_at <= created_at + 10 min); number_counters__key__ck is READ FROM THE SPEC FILE (05-SCHEMA.md) so the daily-cap key is checked against the real regex.
 // Rate limiter = the REAL core createRateLimiter (strict tier/prefix grammar) over an in-memory backend that honours the fake clock. Time = the fake clock, never the real one.
-import { createHmac, randomBytes } from 'node:crypto';
+import { createHash, createHmac, randomBytes } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import testEnv from './test-env.js';
@@ -112,6 +112,21 @@ export function makeOtpWorld(opts: { prefixes?: string[]; appEnabled?: boolean; 
     if (t['challenges']!.some((o) => o['id'] !== r['id'] && o['tenant_id'] === r['tenant_id'] && same(o['token_sha256'], r['token_sha256']))) throw pgErr('23505', 'otp_challenges__tenant_id_token__uq');
   }
 
+  /** claims.otp_token_sha256 (lowercase hex) -> 32-byte Buffer, like `decode(.., 'hex')` in the PRE_TOK / PRE_ACC policies (08 R24). */
+  const hashOf = (ctx: any): Buffer | undefined => { const h = ctx?.claims?.otp_token_sha256; return typeof h === 'string' && /^[0-9a-f]{64}$/.test(h) ? Buffer.from(h, 'hex') : undefined; };
+  /** accounts DDL rules (05-SCHEMA §3 accounts); `prev` = the row before an UPDATE (excluded from the unique checks). */
+  function accountCheck(r: Row, prev: Row | null) {
+    for (const c of ['id', 'created_by', 'updated_by']) if (r[c] == null) throw pgErr('23502', `accounts.${c} is NOT NULL`);
+    if (!['active', 'deleted'].includes(r['status'])) throw pgErr('23514', 'accounts__status__ck');
+    if (r['status'] !== 'deleted' && (!/^\+[1-9][0-9]{7,14}$/.test(String(r['phone_e164'])) || !bytes(r['phone_hmac']) || (r['phone_hmac'] as Uint8Array).length !== 32)) throw pgErr('23514', 'accounts__phone__ck (phone_hmac must be a 32-byte bytea)');
+    if (r['last_app_platform'] != null && !['android', 'ios'].includes(r['last_app_platform'])) throw pgErr('23514', 'accounts__platform__ck');
+    if (r['last_app_version'] != null && !/^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,4}$/.test(String(r['last_app_version']))) throw pgErr('23514', 'accounts__app_version__ck');
+    const others = t['accounts']!.filter((o) => o !== prev && o['tenant_id'] === r['tenant_id']);
+    if (others.some((o) => o['id'] === r['id'])) throw pgErr('23505', 'accounts__pk');
+    if (r['status'] === 'active' && others.some((o) => o['status'] === 'active' && (o['phone_e164'] === r['phone_e164'] || same(o['phone_hmac'], r['phone_hmac'])))) throw pgErr('23505', 'accounts__tenant_id_phone_e164__p_uq');
+    if (r['membership_id'] != null && others.some((o) => o['membership_id'] === r['membership_id'])) throw pgErr('23505', 'accounts__tenant_id_membership_id__p_uq');
+  }
+
   function exec(ctx: any, text: string, values: unknown[] = []): { rows: Row[]; rowCount: number } {
     stmts.push({ text, values });
     const sql = text.replace(/\s+/g, ' ').trim(); const verb = verbOf(sql); const tenant: string = ctx.tenantId;
@@ -125,7 +140,30 @@ export function makeOtpWorld(opts: { prefixes?: string[]; appEnabled?: boolean; 
       t['jobs']!.push(job); return ok([{ enqueue_job: 1 }]);
     }
     if (/engagement\.settings/i.test(sql) && verb === 'select') return ok(t['settings']!.filter((r) => r['tenant_id'] === tenant).map((r) => ({ ...r })));
-    if (/engagement\.accounts/i.test(sql)) return ok(t['accounts']!.filter((r) => r['tenant_id'] === tenant).map((r) => ({ ...r })));
+    if (/engagement\.accounts/i.test(sql)) {
+      // C16.T-A3: accounts with the PRE_ACC policy (05-SCHEMA §5.2/§5.3): a pre-auth patient sees/writes only the account whose phone_e164 equals the phone of
+      // ITS OWN VERIFIED challenge (token_sha256 = claims.otp_token_sha256, status 'verified'); no verified challenge -> no row, writes -> 42501.
+      const pre = ctx.claims?.patient_stage === 'pre_auth';
+      const ownPhone = pre ? t['challenges']!.find((c) => c['tenant_id'] === tenant && c['status'] === 'verified' && hashOf(ctx) && same(c['token_sha256'], hashOf(ctx)))?.['phone_e164'] : undefined;
+      const visible = (r: Row) => r['tenant_id'] === tenant && (!pre || (ownPhone !== undefined && r['phone_e164'] === ownPhone));
+      const mine = () => t['accounts']!.filter(visible);
+      if (verb === 'select') { const w = /\bwhere (.+)$/i.exec(tail(sql)); return ok(mine().filter((r) => !w || matches(r, w[1]!, values)).map((r) => ({ ...r }))); }
+      if (verb === 'insert') {
+        const m = /\(([^)]*)\)\s*values\s*\((.*?)\)\s*(?:returning .*)?$/i.exec(sql); if (!m) throw new Error(`fake: cannot parse accounts INSERT: ${sql}`);
+        const cols = m[1]!.split(',').map((c) => c.trim()); const toks = splitTop(m[2]!);
+        const row: Row = { tenant_id: tenant, membership_id: null, user_id: null, status: 'active', reminders_opt_out: false, last_login_at: null, last_app_platform: null, last_app_version: null, deleted_at: null, version: 1, is_active: true, created_at: now(), updated_at: now() };
+        cols.forEach((c, i) => { row[c] = need(toks[i]!, values, 'accounts INSERT'); });
+        if (row['tenant_id'] !== tenant || (pre && (ownPhone === undefined || row['phone_e164'] !== ownPhone))) throw pgErr('42501', 'RLS: accounts WITH CHECK (PRE_ACC: only the verified challenge phone)');
+        accountCheck(row, null); t['accounts']!.push(row); return ok(/returning/i.test(sql) ? [{ ...row }] : [], 1);
+      }
+      if (verb === 'update') {
+        const m = /set (.+?) where (.+?)(?: returning .*)?$/i.exec(sql); if (!m) throw new Error(`fake: cannot parse accounts UPDATE: ${sql}`);
+        const hit = mine().filter((r) => matches(r, m[2]!, values));
+        for (const r of hit) { const next = { ...r, ...applySet(r, m[1]!, values), updated_at: now() }; if (pre && next['phone_e164'] !== ownPhone) throw pgErr('42501', 'RLS: accounts WITH CHECK (PRE_ACC)'); accountCheck(next, r); Object.assign(r, next); }
+        return ok(/returning/i.test(sql) ? hit.map((r) => ({ ...r })) : [], hit.length);
+      }
+      throw new Error('accounts are never deleted by the engagement API (status = deleted instead)');
+    }
 
     if (/engagement\.number_counters/i.test(sql)) {
       if (verb === 'insert') {
@@ -153,7 +191,9 @@ export function makeOtpWorld(opts: { prefixes?: string[]; appEnabled?: boolean; 
     }
 
     if (/engagement\.otp_challenges/i.test(sql)) {
-      const mine = () => t['challenges']!.filter((r) => r['tenant_id'] === tenant);
+      // PRE_TOK (05-SCHEMA §5.2): a request that carries claims.otp_token_sha256 sees/updates ONLY the challenge with that token hash.
+      const tok = hashOf(ctx);
+      const mine = () => t['challenges']!.filter((r) => r['tenant_id'] === tenant && (!tok || same(r['token_sha256'], tok)));
       if (verb === 'select') { const w = /\bwhere (.+)$/i.exec(tail(sql)); return ok(mine().filter((r) => !w || matches(r, w[1]!, values)).map((r) => ({ ...r }))); }
       if (verb === 'insert') {
         const m = /\(([^)]*)\)\s*values\s*\((.*?)\)\s*(?:on conflict.*?)?(?:returning .*)?$/i.exec(sql); if (!m) throw new Error(`fake: cannot parse otp_challenges INSERT: ${sql}`);
@@ -220,23 +260,41 @@ export function makeOtpWorld(opts: { prefixes?: string[]; appEnabled?: boolean; 
   const base = (over: Row) => {
     const ref = { current: null as any };
     const ctx: any = { tenantId, requestId: ID(0xe1), clientIp: '203.0.113.7', now, ports, log, metrics, rateLimit, audit: { access: async (e: Row) => { audit.push(structuredClone(e)); }, event: async () => {} }, events: { publish: async () => {} }, ...over };
-    ctx.tx = txOf(ref); ref.current = ctx; ctx.db = { tx: async (fn: any) => fn(ctx) }; return ctx;
+    ctx.tx = txOf(ref); ref.current = ctx; ctx.db = { tx: async (fn: any) => fn(ctx) };
+    ctx.commitOnError = () => { commit.requested = true; commit.calls++; };   // core pipeline: a 4xx/5xx still COMMITs the transaction (08 A19 P-42)
+    return ctx;
   };
+  const commit = { requested: false, calls: 0 };
   /** API RequestContext of a pre-auth patient (credential t.<tenant_code>, 02-TRD §4.2). */
   const preAuthCtx = (over: Row = {}) => base({ actor: { type: 'patient', id: ID(0xfe0) }, claims: { patient_stage: 'pre_auth' }, ...over });
   /** Worker JobContext (system actor). */
   const jobCtx = (over: Row = {}) => base({ actor: { type: 'system', id: SYSTEM_ACTOR }, jobId: '1', attempt: 1, maxAttempts: 3, ...over });
 
-  const snapshot = () => structuredClone({ challenges: t['challenges'], counters: t['counters'], jobs: t['jobs'] });
-  const restore = (s: ReturnType<typeof snapshot>) => { t['challenges'] = s.challenges!; t['counters'] = s.counters!; t['jobs'] = s.jobs!; };
-  /** One transaction like the core pipeline / queue: DB state rolls back when the handler/task throws (the NotificationPort is NOT rolled back: the provider call happened). */
-  async function inTx<T>(f: () => Promise<T>): Promise<T> { const snap = snapshot(); try { return await f(); } catch (e) { restore(snap); throw e; } }
+  /** API RequestContext of a pre-auth patient holding a challenge credential `c.<tenant_code>.<token>` (02-TRD §4.2): actor.id = challenge id, claims carry sha256(token) as lowercase hex. */
+  const verifyCtx = (token: string, challengeId: string, over: Row = {}) =>
+    base({ actor: { type: 'patient', id: challengeId }, claims: { patient_stage: 'pre_auth', otp_token_sha256: createHash('sha256').update(token).digest('hex') }, ...over });
+
+  /** Deep copy that KEEPS Buffers (structuredClone would turn bytea Buffers into plain Uint8Arrays, which real pg never returns). */
+  const deep = (v: any): any => (v instanceof Uint8Array ? Buffer.from(v) : Array.isArray(v) ? v.map(deep) : v && typeof v === 'object' && !(v instanceof Date) ? Object.fromEntries(Object.entries(v).map(([k, x]) => [k, deep(x)])) : v);
+  const snapshot = () => ({ ...deep({ challenges: t['challenges'], counters: t['counters'], jobs: t['jobs'], accounts: t['accounts'] }), auditLen: audit.length });
+  const restore = (s: ReturnType<typeof snapshot>) => { t['challenges'] = s.challenges!; t['counters'] = s.counters!; t['jobs'] = s.jobs!; t['accounts'] = s.accounts!; audit.length = s.auditLen; };
+  /** One transaction like the core pipeline / queue: DB state (incl. access-log rows) rolls back when the handler/task throws, UNLESS the handler called ctx.commitOnError()
+   *  (the NotificationPort and the C2 fake are NOT rolled back: the provider / identity call happened). */
+  async function inTx<T>(f: () => Promise<T>): Promise<T> {
+    const snap = snapshot(); commit.requested = false;
+    try { return await f(); } catch (e) { if (!commit.requested) restore(snap); throw e; }
+  }
 
   return {
     tenantId, t, stmts, now, advance: (ms: number) => { clock.t += ms; }, setNow: (iso: string) => { clock.t = Date.parse(iso); }, newId,
-    notif, identity, ports, logs, metricCalls, audit, rateCalls, jobCtx, preAuthCtx, inTx,
+    notif, identity, ports, logs, metricCalls, audit, rateCalls, jobCtx, preAuthCtx, verifyCtx, inTx, commit,
     setSetting: (k: string, v: unknown) => { t['settings']![0]![k] = v; },
-    seedAccount: (phone: string, over: Row = {}) => { const a = { id: newId(), tenant_id: tenantId, phone_e164: phone, phone_hmac: phoneHmac(tenantId, phone), status: 'active', ...over }; t['accounts']!.push(a); return a; },
+    seedAccount: (phone: string, over: Row = {}) => {
+      const a: Row = { id: newId(), tenant_id: tenantId, membership_id: null, user_id: null, phone_e164: phone, phone_hmac: phoneHmac(tenantId, phone), status: 'active', reminders_opt_out: false, last_login_at: null,
+        last_app_platform: null, last_app_version: null, deleted_at: null, version: 1, is_active: true, created_at: now(), created_by: ID(0xfe1), updated_at: now(), updated_by: ID(0xfe1), ...over };
+      accountCheck(a, null); t['accounts']!.push(a); return a;
+    },
+    accounts: () => t['accounts']!, account: (id: string) => t['accounts']!.find((a) => a['id'] === id),
     seedChallenge: (over: Row = {}) => {
       const phone = over['phone_e164'] ?? phoneN(1);
       const r: Row = { id: newId(), tenant_id: tenantId, token_sha256: randomBytes(32), phone_e164: phone, phone_hmac: phoneHmac(tenantId, phone), app_instance_id: APP_INSTANCE, app_platform: 'android', code_hmac: Buffer.alloc(32, 9),

@@ -191,6 +191,17 @@ describe.skipIf(!live && !REQUIRE)('T-08 setup, plates, observations (live DB)',
       for (const id of [setup, cancelled, final]) expect(await plates(id)).toEqual([]);
     });
 
+    // Review T-08 #1: culture_plates__no__ck CHECK (plate_no BETWEEN 1 AND 50) must answer 400, never 500 common.internal.
+    it('M4 on a culture whose highest plate_no is 50 -> 400 common.validation_failed (path /); no 51st row; plate_no 49 still yields the 50th', async () => {
+      const id = await newCulture({ status: 'incubating' }); await newPlate(id, 50);
+      const e = await bad(call(HUB, 'addCulturePlate', addReq(id, { media_code: CODE.blood })), 'common.validation_failed');
+      expect(e.errors?.map((x: any) => x.path)).toContain('/');
+      expect((await plates(id)).map((p) => p.plate_no)).toEqual([50]);
+      const id2 = await newCulture({ status: 'incubating' }); await newPlate(id2, 49);
+      await ok(call(HUB, 'addCulturePlate', addReq(id2, { media_code: CODE.blood })));
+      expect((await plates(id2)).map((p) => p.plate_no)).toEqual([49, 50]);
+    });
+
     it('M5 discards the plate with the right If-Match (version + 1); stale -> 409 version_conflict; on a final culture -> 409 report_final_locked', async () => {
       const id = await newCulture({ status: 'incubating' }); const p = await newPlate(id, 1);
       await bad(call(HUB, 'discardCulturePlate', discardReq(id, p, 9)), 'common.version_conflict');

@@ -453,6 +453,20 @@ describe('C10-T08 M4 addCulturePlate', () => {
     expectInvalid(await failure(run('addCulturePlate', M4(C.inc, body), s.ctx)), path);
     expect(w).toEqual(before);
   });
+
+  // Review T-08 #1: culture_plates__no__ck CHECK (plate_no BETWEEN 1 AND 50) must not surface as 500 common.internal.
+  it('culture already holding plate_no 50 -> 400 common.validation_failed (path /), no plate inserted, culture unchanged', async () => {
+    const w = mkWorld(); w['culture_plates']!.push(plate(u(0x2050), C.inc, 50)); const before = structuredClone(w); const s = setup(w);
+    expectInvalid(await failure(run('addCulturePlate', M4(C.inc, { media_code: 'syn_blood' }), s.ctx)), '/');
+    expect(w).toEqual(before);
+    expect(platesOf(w, C.inc).map((x) => x['plate_no'])).toEqual([1, 2, 50]);
+  });
+
+  it('plate_no 49 -> the 50th plate is still accepted', async () => {
+    const w = mkWorld(); w['culture_plates']!.push(plate(u(0x2049), C.inc, 49)); const s = setup(w);
+    const res = await run('addCulturePlate', M4(C.inc, { media_code: 'syn_blood' }), s.ctx);
+    expect(res.body['plate_no']).toBe(50);
+  });
 });
 
 // ------------------------------------------------------------------ M5 discardCulturePlate

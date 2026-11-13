@@ -10,6 +10,7 @@ import { createPartner } from './handlers/createPartner.js';
 import { getPartner } from './handlers/getPartner.js';
 import { getPartnerContext } from './handlers/getPartnerContext.js';
 import { listPartners } from './handlers/listPartners.js';
+import * as partnerUserHandlers from './handlers/partnerUsers.js';
 import { reactivatePartner } from './handlers/reactivatePartner.js';
 import { resyncPartnerProjections } from './handlers/resyncPartnerProjections.js';
 import { suspendPartner } from './handlers/suspendPartner.js';
@@ -28,6 +29,7 @@ const stub = (operationId: string): Handler => async () => {
 
 const implemented: Readonly<Record<string, Handler>> = {
   getPartnerContext, // T03
+  ...partnerUserHandlers, // T06 U1-U6, SA8-SA10
   listPartners, createPartner, getPartner, updatePartner, suspendPartner, reactivatePartner, resyncPartnerProjections, // T07 SA1–SA7
 };
 

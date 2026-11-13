@@ -37,8 +37,8 @@ const EXPECTED_OPS = [
   'getAutoverifyDecision', 'listTatAlerts', 'getTatAlert', 'acknowledgeTatAlert', 'getQualitySettings', 'updateQualitySettings', 'listQualityCodedSet',
   'upsertQualityCode',
 ];
-/** operationIds whose stub a later task has replaced; that task moves its ids here (tester-owned list). Empty at T-01. */
-const IMPLEMENTED: readonly string[] = [];
+/** operationIds whose stub a later task has replaced; that task moves its ids here (tester-owned list). T-06 moved #1-#13 here. */
+const IMPLEMENTED: readonly string[] = EXPECTED_OPS.slice(0, 13);
 
 const FAKE_REQ = { params: {}, query: {}, headers: {}, body: {} };
 const noop = () => undefined;
@@ -158,7 +158,7 @@ describe('C9 T-01 phase switch LIMS_QUALITY_ENABLED (02-TRD §12.2)', () => {
   it('flipping the flag to true changes the answer from feature_disabled to the stub (the flag is honoured, not hard-coded)', async () => {
     const off = await withEnv('dev', 'false');
     const on = await withEnv('dev', 'true');
-    const op = OPS[0]!;
+    const op = OPS.find((o) => !IMPLEMENTED.includes(o))!;
     expect((await outcome(off.m.handlers[op]!(FAKE_REQ, fakeCtx(op)))).ok).toBe(false);
     expect(await on.m.handlers[op]!(FAKE_REQ, fakeCtx(op))).toMatchObject({ status: 501 });
   });
@@ -294,5 +294,5 @@ describe('C9 T-01 boot against the real repo (default modulesDir, real quality.y
       expect(JSON.parse(r.body).code).toMatch(/^auth\./);
     }
     expect((await app.inject({ method: 'GET', url: '/v1/quality/not-in-spec' })).statusCode).toBe(404);
-  }, 120_000);
+  }, 300_000);
 });

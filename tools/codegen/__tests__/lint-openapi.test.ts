@@ -175,6 +175,26 @@ describe("rule 3 — closed, bounded schemas", () => {
   });
 });
 
+// LD-119 (2026-11-12): rule 3 allowlist, ONE entry: module instruments + operationId getAgentConfig + response 200 + property path `document`
+// (LD-78 opaque signed bytes). Exempts only additionalProperties: false; keyed by operation context, never by property name alone.
+describe("LD-119 rule 3 allowlist: instruments getAgentConfig 200 `document`", () => {
+  const c = { ...ctx, moduleOwners: { ...ctx.moduleOwners, instruments: "C7" } };
+  const agentCfg = (opId: string, docProp: string, doc: any, extra: any = {}) =>
+    file("instruments", spec({ "/v1/instruments/agent/config": { get: getOp({
+      operationId: opId, tags: ["instruments"],
+      responses: { "200": { description: "ok", ...json({ type: "object", additionalProperties: false,
+        properties: { alg: { type: "string", maxLength: 20 }, [docProp]: doc, ...extra } }) } } }) } }));
+  const open = () => ({ type: "object", additionalProperties: true });
+  it("exact entry (getAgentConfig, 200, document) accepted", async () =>
+    expect(await run([agentCfg("getAgentConfig", "document", open())], c)).toEqual([]));
+  it("same open object under another operationId still rejected (rule 3)", async () =>
+    expectRule("3", [agentCfg("getOtherConfig", "document", open())], c));
+  it("same open object under another property of getAgentConfig still rejected (rule 3)", async () =>
+    expectRule("3", [agentCfg("getAgentConfig", "other", open())], c));
+  it("the exemption covers only additionalProperties: an unbounded string in `document` is still rejected", async () =>
+    expectRule("3", [agentCfg("getAgentConfig", "document", { ...open(), properties: { s: { type: "string" } } })], c));
+});
+
 describe("rule 4 — operation metadata", () => {
   it.each(["operationId", "tags", "summary", "security", "x-idempotency", "x-rate-limit-tier", "x-error-codes"])(
     "missing %s", async (k) => {
@@ -335,6 +355,34 @@ describe("rule 7 — server-authority fields in request bodies (CV §4.7)", () =
       operationId: "updateItem", "x-idempotency": "optional",
       parameters: [{ name: "id", in: "path", required: true, schema: { type: "string", maxLength: 36 } }],
       requestBody: { required: true, ...json(s) } }) } }))]);
+  });
+  // LD-118 (2026-11-12, ruling: C17 TRD 6.3 puts gps in payload): ONE allowlisted path: pushSyncMutations (homecollection.yaml) payload.gps.status; keyed by operationId + property path
+  describe("LD-118 payload.gps.status allowlist", () => {
+    const syncBody = (opId: string, payload: any, root: any = {}) => {
+      const s = itemSchema();
+      s.properties.payload = payload;
+      Object.assign(s.properties, root);
+      return file("homecollection", spec({ "/v1/homecollection/sync/mutations": { post: postOp({
+        operationId: opId, tags: ["homecollection"], requestBody: { required: true, ...json(s) } }) } }));
+    };
+    const gps = (extra: any = {}) => ({ type: "object", additionalProperties: false, properties: {
+      gps: { type: "object", additionalProperties: false, properties: { status: { type: "string", maxLength: 12, enum: ["off", "denied", "unavailable", "ok"] }, ...extra } } } });
+    const sev = async (f: any) => rulesOf(await run([f]));
+    it("pushSyncMutations payload.gps.status accepted (no rule 7)", async () =>
+      expect(await sev(syncBody("pushSyncMutations", gps()))).not.toContain("7"));
+    it("same path under a different operationId rejected", async () =>
+      expect(await sev(syncBody("pushOtherMutations", gps()))).toContain("7"));
+    it("unrelated nested status in pushSyncMutations rejected", async () => {
+      const c = { type: "object", additionalProperties: false, properties: { other: { type: "object", additionalProperties: false,
+        properties: { status: { type: "string", maxLength: 12 } } } } };
+      expect(await sev(syncBody("pushSyncMutations", c))).toContain("7");
+    });
+    it("root status in pushSyncMutations still rejected", async () =>
+      expect(await sev(syncBody("pushSyncMutations", gps(), { status: { type: "string", maxLength: 12 } }))).toContain("7"));
+    it("payload.gps.status plus a sibling status under payload still rejected", async () => {
+      const c = gps(); c.properties.status = { type: "string", maxLength: 12 };
+      expect(await sev(syncBody("pushSyncMutations", c))).toContain("7");
+    });
   });
   // review T0C-04 item 1: $ref requestBody must not bypass rules 4 / 7
   const refSpec = (rb: any) => file("widgets", spec(

@@ -13,6 +13,7 @@ import { claimIngestKey, closeOpenIngestExceptions, finishIngestLog, upsertOpenI
 import { getLabSettings } from '../repository/labSettings.repo.js';
 import { findSpecimenByBarcode } from '../repository/specimens.repo.js';
 import { enqueueReapplyForSpecimen } from './exception.service.js';
+import { labMetrics } from './metrics.js';
 import { evaluateValue, criticalAction, type EvalCtx, type Evaluation } from './evaluation.service.js';
 import {
   assertManualValueAllowed, autoVerifyAfterInstrumentSave, type EntryRow, type EntryStore, type EntryValue, type ResultRow, type VerifyStore,
@@ -374,23 +375,26 @@ async function run(ctx: IngestCtx, i: InstrumentResultInput, source: 'event' | '
   }
 }
 
+/** T-31 (02-TRD §11): one lims_lab_results_ingested_total{outcome} per finished ingest call; outcome is the IngestOutcome code only. A thrown ingest counts nothing. */
+const counted = (ctx: unknown, r: IngestResult): IngestResult => { labMetrics.resultIngested(ctx, r.outcome); return r; };
+
 /** T-23 replay of a stored exception (reapply / assign): port path under the exception's own result key (CR-C7-011); the caller actor resolves it. */
 export async function reapplyInstrumentResult(rawCtx: unknown, input: InstrumentResultInput, opts: RunOptions): Promise<IngestResult> {
   const ctx = rawCtx as IngestCtx;
   if (typeof ctx?.tenantId !== 'string' || !ctx.tenantId) throw new LimsError('common.internal');
-  return run(ctx, input, 'port', undefined, opts);
+  return counted(ctx, await run(ctx, input, 'port', undefined, opts));
 }
 
 /** Port path (LabPort.ingestInstrumentResult): caller actor, first_source 'port'. Never throws lab.result_locked: an approved target is returned as rejected_state (CR-C5-008). */
 export async function ingestInstrumentResult(rawCtx: unknown, input: InstrumentResultInput): Promise<IngestResult> {
   const ctx = rawCtx as IngestCtx;
   if (typeof ctx?.tenantId !== 'string' || !ctx.tenantId) throw new LimsError('common.internal');
-  return run(ctx, input, 'port');   // the tenant is ctx.tenantId only; a tenant field in the input is never read
+  return counted(ctx, await run(ctx, input, 'port'));   // the tenant is ctx.tenantId only; a tenant field in the input is never read
 }
 
 /** Bulk path (instruments.result.received.v1 consumer): system actor, first_source 'event'. An envelope of another tenant is refused before any store/port call (REQ-SEC-024, P-08). */
 export async function applyInstrumentResultEvent(rawCtx: unknown, envelope: InstrumentResultEnvelope): Promise<IngestResult> {
   const ctx = rawCtx as IngestCtx;
   if (typeof ctx?.tenantId !== 'string' || !ctx.tenantId || envelope?.tenant_id !== ctx.tenantId) throw new LimsError('common.internal');
-  return run(ctx, fromPayload(envelope.payload), 'event', envelope.event_id);
+  return counted(ctx, await run(ctx, fromPayload(envelope.payload), 'event', envelope.event_id));
 }

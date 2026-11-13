@@ -1,0 +1,17 @@
+{
+  "language": "en",
+  "blocks": [
+    { "block_key": "deranged.generic.high", "kind": "deranged", "text_en": "{analyte_name} is above the reference range of this laboratory." },
+    { "block_key": "deranged.generic.low", "kind": "deranged", "text_en": "{analyte_name} is below the reference range of this laboratory." },
+    { "block_key": "deranged.generic.abnormal", "kind": "deranged", "text_en": "{analyte_name} is reported as abnormal by this laboratory." },
+    { "block_key": "advice.all_in_range", "kind": "advice", "text_en": "All results included in this summary are within the reference ranges of this laboratory." },
+    { "block_key": "disclaimer.main", "kind": "disclaimer", "text_en": "This summary does not replace the full laboratory report or your doctor's advice. Reference ranges are those of this laboratory." },
+    { "block_key": "score.explanation", "kind": "score_explanation", "text_en": "The health score shows how many of your measured results are within the reference range, averaged across the body systems tested. It does not tell you whether you have a disease." }
+  ],
+  "rules": [
+    { "rule_kind": "deranged", "trigger_kind": "any", "direction": "high", "min_severity": "borderline", "priority": 900, "block_key": "deranged.generic.high" },
+    { "rule_kind": "deranged", "trigger_kind": "any", "direction": "low", "min_severity": "borderline", "priority": 900, "block_key": "deranged.generic.low" },
+    { "rule_kind": "deranged", "trigger_kind": "any", "direction": "abnormal", "min_severity": "borderline", "priority": 900, "block_key": "deranged.generic.abnormal" },
+    { "rule_kind": "advice", "trigger_kind": "all_in_range", "direction": "any", "priority": 100, "block_key": "advice.all_in_range" }
+  ]
+}

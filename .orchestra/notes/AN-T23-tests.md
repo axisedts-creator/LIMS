@@ -1,6 +1,6 @@
-# AN-T23 tests (tester)
-- Files: `services/api/src/modules/analytics/__tests__/perf/` — `harness.test.ts` (TARGETS == TRD §12 column, p95, decideSweepInterval >120 s -> */30, violations), `trd.decision.test.ts` (TRD §12 "Sweep-interval decision" line, agrees with 1x report), `report.test.ts` (results/1x.json + 10x.json: all 8 targets measured/met, samples, scan times, no PHI, 500 vs 5000 patients/day), `load.live.test.ts` (gated: LIMS_TEST_DATABASE_URL, LIMS_TEST_APP_DATABASE_URL, LIMS_TEST_PERF_SCALE=1x|10x; writes results/<scale>.json).
+# AN-T23 tests (tester) — revised per LD-136
+- Files: `services/api/src/modules/analytics/__tests__/perf/` — `harness.ts` (tester-owned: TARGETS, SWEEP_ESCALATION_MS, p95, decideSweepInterval, violations, runPerf), `harness.test.ts` (13 tests incl. trdTargetsMs() length 8), `report.test.ts`, `trd.decision.test.ts`, `load.live.test.ts`.
 - Run: `.orchestra\notes\AN-T23-verify.cmd`
-- Expected now: all fail — `./harness.js` missing (implementer writes `harness.ts`: TARGETS, SWEEP_ESCALATION_MS, p95, decideSweepInterval, violations, runPerf; contract in harness.test.ts header), results/*.json missing, no TRD decision line.
-- Needs a human/lead: spec/ is read-only, so the TRD §12 decision line must go in via lead/CR; live DB seeded at 1x/10x (`pnpm db:seed --scale 1|10`) is needed to produce the report. The sweep interval has no env key in TRD §11; I did not invent one.
-- Ran: 3 files FAIL (`Cannot find module './harness.js'`), live file skipped. The TRD-column parsing and report assertions are unexercised until harness.ts exists. Live run needs a seeded DB I do not have.
+- Result: harness.test.ts 13/13 pass; report.test.ts, trd.decision.test.ts, load.live.test.ts SKIP (reasons name release gate RG-6: results/1x.json, results/10x.json, TRD §12 "Sweep-interval decision" line absent). tsc: no errors in perf/.
+- Gated tests apply every assertion unchanged once the artefact exists. runPerf is NOT executed here (no seeded DB): live runs LIMS_TEST_PERF_SCALE=1x then 10x after `pnpm db:seed --scale 1|10`, plus the TRD line = RG-6 (lead / human spec follow-up).
+- runPerf unverified: ctx/IdentityPort stubs and the export measurement (buildReport top_referrers + writeXlsx, 366 d) are written from reading the code, never run.

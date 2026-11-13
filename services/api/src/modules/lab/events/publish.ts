@@ -3,6 +3,7 @@
 // non-IC key — barcode, value, comment — fails closed with common.internal and nothing is stored; S-12 / REQ-SEC-006).
 import { createHash } from 'node:crypto';
 import type { PublishInput } from '../../../core/events/publish.js';
+import { labMetrics } from '../service/metrics.js';
 
 interface Events { publish(ctx: never, type: string, input: PublishInput): Promise<{ eventId: string; duplicate: boolean }> }
 type Ctx = Parameters<Events['publish']>[0];
@@ -27,9 +28,12 @@ export function createLabEvents(events: Events) {
     events.publish(ctx, type, { aggregate: { type: aggType, id: aggId as string, seq }, idempotencyKey: key, payload });
 
   return {
-    specimenStatusChanged: (ctx: Ctx, p: Payload, m: { specimenVersion: number }) =>
-      pub(ctx, 'lab.specimen.status_changed.v1', p, 'specimen', p.specimen_id, m.specimenVersion,
-        `${p.specimen_id}:${p.to_status}:${m.specimenVersion}`),
+    // T-31 (02-TRD §11): counters follow a successful publish (a thrown publish rolls the transaction back); labels are codes only.
+    specimenStatusChanged: async (ctx: Ctx, p: Payload, m: { specimenVersion: number }) => {
+      const r = await pub(ctx, 'lab.specimen.status_changed.v1', p, 'specimen', p.specimen_id, m.specimenVersion, `${p.specimen_id}:${p.to_status}:${m.specimenVersion}`);
+      labMetrics.specimenTransition(ctx, p.to_status);
+      return r;
+    },
     specimenRejected: (ctx: Ctx, p: Payload, m: { specimenVersion: number }) =>
       pub(ctx, 'lab.specimen.rejected.v1', p, 'specimen', p.specimen_id, m.specimenVersion, `${p.specimen_id}:rejected`),
     resultVerified: (ctx: Ctx, p: Payload, m: { resultRowVersion: number }) =>
@@ -41,14 +45,17 @@ export function createLabEvents(events: Events) {
     resultAmended: (ctx: Ctx, p: Payload, m: { resultRowVersion: number }) =>
       pub(ctx, 'lab.result.amended.v1', p, 'result', p.result_id, m.resultRowVersion,
         `${p.result_id}:amended:${p.new_version_no}`),
-    orderReadyForReport: (ctx: Ctx, p: Payload, m: { approvedSet: readonly ApprovedEntry[]; readinessSeq: number }) => {
+    orderReadyForReport: async (ctx: Ctx, p: Payload, m: { approvedSet: readonly ApprovedEntry[]; readinessSeq: number }) => {
       const h = approvedSetHash(m.approvedSet);
-      return pub(ctx, 'lab.order.ready_for_report.v1', { ...p, approved_set_hash: h }, 'order', p.order_id, m.readinessSeq,
-        `${p.order_id}:ready:${h}`);
+      const r = await pub(ctx, 'lab.order.ready_for_report.v1', { ...p, approved_set_hash: h }, 'order', p.order_id, m.readinessSeq, `${p.order_id}:ready:${h}`);
+      labMetrics.readinessEmitted(ctx, p.completeness);
+      return r;
     },
     // The value only feeds the key hash; it never enters the payload.
-    criticalValueDetected: (ctx: Ctx, p: Payload, m: { value: CanonicalValue; resultRowVersion: number }) =>
-      pub(ctx, 'lab.critical_value.detected.v1', p, 'result', p.result_id, m.resultRowVersion,
-        `${p.result_id}:critical:${p.result_version_no}:${valueSha256Prefix16(m.value)}`),
+    criticalValueDetected: async (ctx: Ctx, p: Payload, m: { value: CanonicalValue; resultRowVersion: number }) => {
+      const r = await pub(ctx, 'lab.critical_value.detected.v1', p, 'result', p.result_id, m.resultRowVersion, `${p.result_id}:critical:${p.result_version_no}:${valueSha256Prefix16(m.value)}`);
+      labMetrics.criticalDetected(ctx, p.direction);
+      return r;
+    },
   };
 }

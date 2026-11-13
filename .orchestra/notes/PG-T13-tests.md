@@ -1,0 +1,7 @@
+# PG-T13 tests (tester, recreated per LD-122)
+- Files: api `__tests__/integration/reconciliation.service.test.ts` (P12–P16, P14 one-running + manual business_date, cron date, stalled rule, P16 access log); worker `__tests__/integration/reconcile_findings.test.ts` (every TRD §6.7 kind, repair refused on billing.payment_exceeds_due, refund_unconfirmed at count 2, gateway_unreachable, P-44 marker, metrics/26 h) and `reconcile_run.test.ts` (batches ≤50 own jobs/keys/after_id, candidate windows vs started_at, stalled rule, untrusted payloads); worker helper `helpers/reconcileHarness.ts`.
+- Helper edits (additive): api `helpers/merchantDb.ts` (+reconciliation_runs/findings with 05-SCHEMA CHECKs + one-running unique index, test.markers, `col + $n` in UPDATE), `portHarness.ts` (+`gateway.script[intentId]`, ledger fault `forIntent`/`marker`).
+- Run: `.orchestra\notes\PG-T13-verify.cmd` (api + worker via pnpm --dir). Actual: api 55/55 (incl. helpers), worker 48/48. Full payments suites: only pre-existing `manifest.test` PHASE_STUBS fails (unrelated).
+- Impl already exists (writer pass ran first), so tests pass now; not verified as failing-first.
+- Not tested: real PG / graphile races (fake DB serialises), route permission/aal (core pipeline), refund completion (PG-T15), disabled-tenant manual-run metric, stalled gauge in sweep.
+- NOT COMMITTED: git add/commit was refused by the sandbox (needs approval, none available). Orchestrator must commit the files listed by `git status`.

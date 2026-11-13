@@ -1,0 +1,625 @@
+[
+{
+"id": "T01",
+"title": "Module + worker skeleton, manifests, permissions, config; phase-stub replacement",
+"depends": [
+"C0 cores"
+],
+"files": [
+"services/api/src/modules/smartreport/index.ts",
+"services/api/src/modules/smartreport/permissions.ts",
+"services/api/src/modules/smartreport/config.ts",
+"services/api/src/modules/smartreport/ports/SmartReportPort.impl.ts",
+"services/worker/src/jobs/smartreport/index.ts",
+"phase-stubs.ts (paired C0-0D PR)"
+],
+"done_when": "API boots with C14 module; every operationId has a 501 stub handler behind a test flag; registered SmartReportPort returns smartreport.feature_disabled and passes phase1Stub contract subset; worker manifest subscriptions validated by C0 CI check",
+"tests": "boot test + phase1Stub contract",
+"acs": [],
+"verify": "pnpm -s verify"
+},
+{
+"id": "T02",
+"title": "Repositories for all tables with explicit tenant_id filters and optimistic version updates",
+"depends": [
+"C0 DDL"
+],
+"files": [
+"services/api/src/modules/smartreport/repository/*.repo.ts"
+],
+"done_when": "every query in 02-TRD uses an index of 05-SCHEMA s5 (EXPLAIN assertion for queue, live-summary, rules-by-kind)",
+"tests": "integration",
+"acs": [],
+"verify": "pnpm -s verify"
+},
+{
+"id": "T03",
+"title": "Coded sets endpoints (#26, #35) + deny-term endpoints",
+"depends": [
+"T02"
+],
+"files": [
+"services/api/src/modules/smartreport/handlers (23-26, 35)",
+"services/api/src/modules/smartreport/repository/denyTerms.repo.ts",
+"services/api/src/modules/smartreport/domain/wording.ts"
+],
+"done_when": "normalisation rules (NFC, zero-width, case fold); lab_manager gets 200 on #35 and 403 on #26",
+"tests": "unit + integration + probes",
+"acs": [
+"AC-18.2",
+"AC-18.3"
+],
+"verify": "pnpm -s verify"
+},
+{
+"id": "T04",
+"title": "domain/fixed.ts, band.ts with borderline",
+"depends": [],
+"files": [
+"services/api/src/modules/smartreport/domain/fixed.ts",
+"services/api/src/modules/smartreport/domain/band.ts"
+],
+"done_when": "B-vectors pass",
+"tests": "unit",
+"acs": [
+"AC-08.7",
+"AC-10.2",
+"AC-10.3",
+"AC-10.5"
+],
+"verify": "pnpm -s verify"
+},
+{
+"id": "T05",
+"title": "groups.ts, score.ts (hs-1)",
+"depends": [
+"T04"
+],
+"files": [
+"services/api/src/modules/smartreport/domain/groups.ts",
+"services/api/src/modules/smartreport/domain/score.ts"
+],
+"done_when": "G-01..G-06 pass",
+"tests": "unit",
+"acs": [
+"AC-04.4",
+"AC-09.1",
+"AC-09.2",
+"AC-09.3",
+"AC-09.4"
+],
+"verify": "pnpm -s verify"
+},
+{
+"id": "T06",
+"title": "deranged.ts rule resolution, placeholders.ts",
+"depends": [
+"T04"
+],
+"files": [
+"services/api/src/modules/smartreport/domain/deranged.ts",
+"services/api/src/modules/smartreport/domain/placeholders.ts"
+],
+"done_when": "precedence analyte > group > any; order; placeholder fill per 02-TRD s4.9",
+"tests": "unit",
+"acs": [
+"AC-10.1",
+"AC-10.4"
+],
+"verify": "pnpm -s verify"
+},
+{
+"id": "T07",
+"title": "advice.ts, followups.ts",
+"depends": [
+"T06"
+],
+"files": [
+"services/api/src/modules/smartreport/domain/advice.ts",
+"services/api/src/modules/smartreport/domain/followups.ts"
+],
+"done_when": "dedupe, caps, all_in_range, no follow-up on all-in-range",
+"tests": "unit",
+"acs": [
+"AC-11.1",
+"AC-11.2",
+"AC-11.3",
+"AC-12.1",
+"AC-12.3"
+],
+"verify": "pnpm -s verify"
+},
+{
+"id": "T08",
+"title": "trends.ts",
+"depends": [
+"T04"
+],
+"files": [
+"services/api/src/modules/smartreport/domain/trends.ts"
+],
+"done_when": "T-vectors pass; unit mismatch excluded; empty when history unavailable",
+"tests": "unit",
+"acs": [
+"AC-13.2",
+"AC-13.3",
+"AC-13.4",
+"AC-13.5"
+],
+"verify": "pnpm -s verify"
+},
+{
+"id": "T09",
+"title": "engine.ts (pure, canonical JSON, content_sha256)",
+"depends": [
+"T05",
+"T06",
+"T07",
+"T08"
+],
+"files": [
+"services/api/src/modules/smartreport/domain/engine.ts"
+],
+"done_when": "same inputs give byte-identical JSON (property test with shuffled input order)",
+"tests": "unit",
+"acs": [
+"AC-08.2"
+],
+"verify": "pnpm -s verify"
+},
+{
+"id": "T10",
+"title": "library.validate.ts (V1-V14) + library.service.ts validation",
+"depends": [
+"T03",
+"T06"
+],
+"files": [
+"services/api/src/modules/smartreport/domain/library.validate.ts",
+"services/api/src/modules/smartreport/library.service.ts"
+],
+"done_when": "every rule has a passing and failing fixture; starter library: only V14 no_mappings; V6 via CatalogPort fake in a savepoint",
+"tests": "unit + integration",
+"acs": [
+"AC-02.5",
+"AC-03.3",
+"AC-03.4",
+"AC-05.2",
+"AC-06.1",
+"AC-06.2",
+"AC-06.3",
+"AC-06.4",
+"AC-18.4"
+],
+"verify": "pnpm -s verify"
+},
+{
+"id": "T11",
+"title": "Library lifecycle service + handlers 1-21",
+"depends": [
+"T02",
+"T10"
+],
+"files": [
+"services/api/src/modules/smartreport/library.service.ts",
+"services/api/src/modules/smartreport/handlers (1-21)",
+"services/api/src/modules/smartreport/mappers/library.dto.ts",
+"services/api/src/modules/smartreport/seed/starter-library.v1.json"
+],
+"done_when": "state table 03-APP-FLOW s1.1 incl. forbidden transitions; triggers enforce draft-only; removals deactivate (no DELETE); approved_by_display_name via ctx.core.memberships.list; aal2 for approve/return; library_reviews rows",
+"tests": "unit (state) + integration + HTTP contract + probes",
+"acs": [
+"AC-02.1",
+"AC-02.2",
+"AC-02.3",
+"AC-02.4",
+"AC-03.1",
+"AC-03.2",
+"AC-03.5",
+"AC-03.6",
+"AC-03.7",
+"AC-04.1",
+"AC-04.2",
+"AC-04.3",
+"AC-05.1",
+"AC-05.3",
+"AC-05.4",
+"AC-06.5",
+"AC-07.1",
+"AC-07.2",
+"AC-07.3",
+"AC-07.4",
+"AC-07.5"
+],
+"verify": "pnpm -s verify"
+},
+{
+"id": "T12",
+"title": "summary.service.buildOrGet (lock, live lookup, supersede, pinning, insert, binding)",
+"depends": [
+"T09",
+"T11"
+],
+"files": [
+"services/api/src/modules/smartreport/summary.service.ts",
+"services/api/src/modules/smartreport/repository/summaries.repo.ts",
+"services/api/src/modules/smartreport/repository/bindings.repo.ts"
+],
+"done_when": "concurrency: two parallel builds give one row; supersede on hash change then superseded_by_summary_id set once after successor insert; input_result_versions = whole hashed set (<=2,000 else no_eligible_results); pinning across library approval; history/follow-up port calls in savepoints",
+"tests": "integration",
+"acs": [
+"AC-07.5",
+"AC-08.1",
+"AC-08.2",
+"AC-08.3",
+"AC-08.4",
+"AC-08.5",
+"AC-08.6",
+"AC-15.4"
+],
+"verify": "pnpm -s verify"
+},
+{
+"id": "T13",
+"title": "SmartReportPort.impl.ts + status mapping",
+"depends": [
+"T12"
+],
+"files": [
+"services/api/src/modules/smartreport/ports/SmartReportPort.impl.ts",
+"services/api/src/modules/smartreport/mappers/port.mapper.ts"
+],
+"done_when": "runSmartReportPortContract cases 1-7, 10-14 pass on real impl; summary_not_ready never thrown",
+"tests": "contract",
+"acs": [
+"AC-01.1",
+"AC-01.2",
+"AC-14.4",
+"AC-17.1"
+],
+"verify": "pnpm -s verify"
+},
+{
+"id": "T14",
+"title": "Event consumers (approved, amended) + prebuild task",
+"depends": [
+"T12"
+],
+"files": [
+"services/worker/src/jobs/smartreport/consumers/*",
+"services/worker/src/jobs/smartreport/tasks/*"
+],
+"done_when": "duplicate delivery no-op; late event no-op; stale amendment no-op; prebuild skips incomplete orders; prebuild savepoint rollback on no_eligible_results/template_not_approved; enqueue gated by flag + library",
+"tests": "integration (worker) + event contract",
+"acs": [
+"AC-15.1",
+"AC-15.2",
+"AC-15.3",
+"AC-15.5"
+],
+"verify": "pnpm -s verify"
+},
+{
+"id": "T15",
+"title": "Summary read/build/review handlers 27-32 + field allowlist mapper + access log",
+"depends": [
+"T12",
+"T13"
+],
+"files": [
+"services/api/src/modules/smartreport/handlers (27-32)",
+"services/api/src/modules/smartreport/mappers/summary.dto.ts"
+],
+"done_when": "approve re-checks hash (supersede + 409); reject reasons; no bulk approval; review_inputs only for summary.approve; reviews[] in SmartSummaryView (no comment)",
+"tests": "HTTP contract + integration + probes",
+"acs": [
+"AC-01.3",
+"AC-14.1",
+"AC-14.2",
+"AC-14.3",
+"AC-14.4",
+"AC-14.5",
+"AC-14.6",
+"AC-14.7",
+"AC-21.1",
+"AC-21.2"
+],
+"verify": "pnpm -s verify"
+},
+{
+"id": "T16",
+"title": "Preview (#22)",
+"depends": [
+"T09",
+"T11"
+],
+"files": [
+"services/api/src/modules/smartreport/preview.service.ts"
+],
+"done_when": "no writes (row counts unchanged); fixtures from packages/test-fixtures; lab.result.read check for real orders",
+"tests": "integration",
+"acs": [
+"AC-19.1",
+"AC-19.2"
+],
+"verify": "pnpm -s verify"
+},
+{
+"id": "T17",
+"title": "Observability: metrics, log fields, alert rule file",
+"depends": [
+"T12",
+"T13",
+"T14",
+"T15"
+],
+"files": [
+"services/worker/src/jobs/smartreport/ops/smartreport.rules.yml",
+"services/api/src/modules/smartreport/",
+"services/worker/src/jobs/smartreport/"
+],
+"done_when": "metrics in 02-TRD s12 exported; rule file lists the six rules; log scan finds no block text/values",
+"tests": "integration + log scan",
+"acs": [
+"AC-21.3"
+],
+"verify": "pnpm -s verify"
+},
+{
+"id": "T18",
+"title": "Staff web: nav, SR-01 queue",
+"depends": [
+"T15"
+],
+"files": [
+"apps/web/src/{app/(staff),features}/smartreport/**"
+],
+"done_when": "all states of 03-APP-FLOW s4; keyboard J/K/Enter; axe clean",
+"tests": "component (MSW) + a11y",
+"acs": [
+"AC-14.1"
+],
+"verify": "pnpm -s verify"
+},
+{
+"id": "T19",
+"title": "Staff web: SR-02 review",
+"depends": [
+"T18"
+],
+"files": [
+"apps/web/src/{app/(staff),features}/smartreport/**"
+],
+"done_when": "approve-superseded banner; approved banner with Open order results link; History timeline from reviews[]",
+"tests": "component + e2e",
+"acs": [
+"AC-14.2",
+"AC-14.3",
+"AC-14.4",
+"AC-14.5",
+"AC-14.7"
+],
+"verify": "pnpm -s verify"
+},
+{
+"id": "T20",
+"title": "Staff web: SR-03/SR-04 library list + editor",
+"depends": [
+"T11"
+],
+"files": [
+"apps/web/src/{app/(staff),features}/smartreport/**"
+],
+"done_when": "read-only when not draft; placeholder chips; follow-up banner",
+"tests": "component + a11y",
+"acs": [
+"AC-02.1",
+"AC-02.2",
+"AC-02.3",
+"AC-02.4",
+"AC-02.5",
+"AC-03.1",
+"AC-03.2",
+"AC-03.3",
+"AC-03.4",
+"AC-03.5",
+"AC-03.6",
+"AC-03.7",
+"AC-04.1",
+"AC-04.2",
+"AC-04.3",
+"AC-04.4",
+"AC-05.1",
+"AC-05.2",
+"AC-05.3",
+"AC-05.4"
+],
+"verify": "pnpm -s verify"
+},
+{
+"id": "T21",
+"title": "Staff web: SR-05 review/approve, SR-06 wording, preview dialog",
+"depends": [
+"T20"
+],
+"files": [
+"apps/web/src/{app/(staff),features}/smartreport/**"
+],
+"done_when": "MFA step-up path; diff counts",
+"tests": "component + e2e",
+"acs": [
+"AC-07.1",
+"AC-07.2",
+"AC-07.3",
+"AC-07.4",
+"AC-07.5",
+"AC-18.2",
+"AC-19.1"
+],
+"verify": "pnpm -s verify"
+},
+{
+"id": "T22",
+"title": "Renderer fragment services/renderer/templates/smart/",
+"depends": [
+"T13",
+"CR-C14-001",
+"CR-C14-007"
+],
+"files": [
+"services/renderer/templates/smart/"
+],
+"done_when": "snapshots (approved, Devanagari, no score, no trends, empty findings); escaping; draft returns ''; output unchanged by C6 sanitiser profile",
+"tests": "unit + snapshot",
+"acs": [
+"AC-09.5",
+"AC-12.4",
+"AC-16.1",
+"AC-16.2",
+"AC-16.3",
+"AC-18.1"
+],
+"verify": "pnpm -s verify"
+},
+{
+"id": "T23",
+"title": "User manual + in-app help pages",
+"depends": [
+"T18",
+"T19",
+"T20",
+"T21"
+],
+"files": [
+"docs/manual/smartreport/**",
+"apps/web/src/features/smartreport/help/"
+],
+"done_when": "every screen has help; manual explains B14 responsibility and hs-1",
+"tests": "review",
+"acs": [
+"05-DoD s3.8"
+],
+"verify": ""
+},
+{
+"id": "T24",
+"title": "E2E on compose stack with real C5/C6 (integration gate)",
+"depends": [
+"T13",
+"T14",
+"T15",
+"T16",
+"T17",
+"T18",
+"T19",
+"T20",
+"T21",
+"T22",
+"C5",
+"C6"
+],
+"files": [
+"apps/web/tests/e2e/smartreport/*"
+],
+"done_when": "journey: approve library, results approved, draft, approve, C6 Regenerate, PDF has section; summary approved before first assembly carries snapshot; amendment means old summary never shown",
+"tests": "e2e",
+"acs": [
+"AC-15.4",
+"AC-16.1",
+"AC-17.2",
+"AC-17.3",
+"AC-17.4",
+"US-14"
+],
+"verify": ""
+},
+{
+"id": "T25",
+"title": "Load test: build p95 and consumer throughput at 1x and 10x seed",
+"depends": [
+"T12",
+"T13",
+"T14"
+],
+"files": [
+"services/api/src/modules/smartreport/__tests__/load/"
+],
+"done_when": "p95 <= 300 ms new build, <= 120 ms cached; consumer <= 20 ms p95 at 17 events/s",
+"tests": "load",
+"acs": [
+"02-TRD s11"
+],
+"verify": ""
+},
+{
+"id": "T26",
+"title": "LlmRephraser interface, DisabledRephraser, fake, prompt.v1.ts, function-words.en.ts",
+"depends": [
+"T13"
+],
+"files": [
+"services/api/src/modules/smartreport/llm/*"
+],
+"done_when": "disabled path makes zero network calls (spy)",
+"tests": "unit",
+"acs": [
+"AC-20.1"
+],
+"verify": "pnpm -s verify"
+},
+{
+"id": "T27",
+"title": "LLM validator L1-L8",
+"depends": [
+"T26"
+],
+"files": [
+"services/api/src/modules/smartreport/llm/validator.ts"
+],
+"done_when": "every check has pass/fail fixtures incl. Devanagari script check",
+"tests": "unit",
+"acs": [
+"AC-20.3"
+],
+"verify": "pnpm -s verify"
+},
+{
+"id": "T28",
+"title": "Rephrase endpoint #33, task smartreport.llm_rephrase, llm_runs, overlay, use_llm_text approval, endpoint #34; host allowlist; circuit breaker",
+"depends": [
+"T26",
+"T27",
+"T15"
+],
+"files": [
+"services/api/src/modules/smartreport/handlers (33, 34)",
+"services/api/src/modules/smartreport/llm.service.ts",
+"services/worker/src/jobs/smartreport/tasks/ (llm_rephrase)"
+],
+"done_when": "input has no filled placeholders/values; overlay only while draft; port returns LLM text only when approved with use_llm_text",
+"tests": "integration (fake rephraser)",
+"acs": [
+"AC-20.2",
+"AC-20.4",
+"AC-20.5"
+],
+"verify": "pnpm -s verify"
+},
+{
+"id": "T29",
+"title": "SR-02 LLM panel (TextDiff or fallback)",
+"depends": [
+"T28",
+"CR-C14-008"
+],
+"files": [
+"apps/web/src/{app/(staff),features}/smartreport/**"
+],
+"done_when": "diff visible; Kept original badges",
+"tests": "component",
+"acs": [
+"AC-20.4"
+],
+"verify": "pnpm -s verify"
+}
+]

@@ -8,3 +8,8 @@ environment:
 workspace:
   - packages/shared-dart
   - packages/ui-flutter
+  - apps/phlebo_app
+hooks:
+  user_defines:
+    sqlite3:
+      source: sqlcipher

@@ -16,9 +16,12 @@ export interface KhaltiEndpoint {
 }
 export interface KhaltiSim {
   baseUrl: string;
+  /** scheme + host of the sim, no path (refund API lives outside /api/v2/; PG-T15, LD-125). */
+  origin: string;
   requests: { method: string; path: string; authorization: string | undefined; body: unknown }[];
   lookup: KhaltiEndpoint;
   initiate: KhaltiEndpoint;
+  refund: KhaltiEndpoint;
   reset(): void;
   close(): Promise<void>;
 }
@@ -56,6 +59,8 @@ export const khaltiReplies = {
     status: 400,
     body: { ...fields, error_key: 'validation_error' },
   }),
+  refundOk: (): SimReply => ({ status: 200, body: { detail: 'Transaction refund successful.' } }),
+  refundOther: (status: number, body: object | string): SimReply => ({ status, body }),
   serverError: (st = 500): SimReply => ({ status: st, body: { error: 'sim server error' } }),
   malformed: (): SimReply => ({ body: '<html>not json{' }),
   hang: (): SimReply => ({ hang: true }),
@@ -63,10 +68,12 @@ export const khaltiReplies = {
 };
 
 const BASE = '/api/v2/';
-type Route = 'lookup' | 'initiate';
+type Route = 'lookup' | 'initiate' | 'refund';
+// Refund API (V13, UNVERIFIED): POST /api/merchant-transaction/<transaction_id>/refund/
+const REFUND_PATH = /^\/api\/merchant-transaction\/[^/]+\/refund\/$/;
 
 export async function startKhaltiSim(opts: { apiKey?: string } = {}): Promise<KhaltiSim> {
-  const queues: Record<Route, SimReply[]> = { lookup: [], initiate: [] };
+  const queues: Record<Route, SimReply[]> = { lookup: [], initiate: [], refund: [] };
   const requests: KhaltiSim['requests'] = [];
   const routes: Record<string, Route> = {
     [`${BASE}epayment/lookup/`]: 'lookup',
@@ -83,7 +90,7 @@ export async function startKhaltiSim(opts: { apiKey?: string } = {}): Promise<Kh
     req.on('data', (c: Buffer) => chunks.push(c));
     req.on('end', () => {
       const path = new URL(req.url ?? '/', 'http://127.0.0.1').pathname;
-      const route = routes[path];
+      const route = routes[path] ?? (REFUND_PATH.test(path) ? 'refund' : undefined);
       if (!route) {
         res.writeHead(404).end();
         return;
@@ -119,6 +126,7 @@ export async function startKhaltiSim(opts: { apiKey?: string } = {}): Promise<Kh
 
   return {
     baseUrl: `http://127.0.0.1:${port}${BASE}`,
+    origin: `http://127.0.0.1:${port}`,
     requests,
     lookup: {
       script: (...r) => {
@@ -130,7 +138,13 @@ export async function startKhaltiSim(opts: { apiKey?: string } = {}): Promise<Kh
         queues.initiate = r;
       },
     },
+    refund: {
+      script: (...r) => {
+        queues.refund = r;
+      },
+    },
     reset: () => {
+      queues.refund = [];
       queues.lookup = [];
       queues.initiate = [];
       requests.length = 0;

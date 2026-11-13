@@ -9,6 +9,7 @@ import { DEFAULT_BARCODE_PATTERN, renderBarcode } from '../domain/barcode.js';
 import { assertSpecimenReceivable, specimenTransition, type SpecimenStatus, SPECIMEN_STATUSES } from '../domain/specimen.state.js';
 import { createLabEvents } from '../events/publish.js';
 import { enqueueReapplyForSpecimen } from './exception.service.js';
+import { labMetrics } from './metrics.js';
 import { decodeCursor, encodeCursor, groupTests, specimenDetailDto, specimenDto } from '../mappers/specimen.mapper.js';
 import { allocateBarcodeSeq } from '../repository/barcodeCounters.repo.js';
 import type { RepoCtx, RepoTx } from '../repository/base.repo.js';
@@ -37,8 +38,13 @@ export async function allocateBarcode(ctx: LabCtx): Promise<string> {
   if (typeof ctx?.tenantId !== 'string' || typeof ctx.actor?.id !== 'string' || !ctx.tx) throw new LimsError('auth.unauthenticated');
   const settings = await ctx.ports?.IdentityPort?.getTenantSettings(ctx, { keys: ['numbering'] });   // failure propagates: no silent default
   const numbering = settings?.numbering ?? {};
-  const seq = await allocateBarcodeSeq({ tx: ctx.tx, tenantId: ctx.tenantId, actorId: ctx.actor.id });
-  return renderBarcode(numbering.barcodePattern ?? DEFAULT_BARCODE_PATTERN, { seq, prefix: numbering.barcodePrefix, now: ctx.now() });
+  try {
+    const seq = await allocateBarcodeSeq({ tx: ctx.tx, tenantId: ctx.tenantId, actorId: ctx.actor.id });
+    return renderBarcode(numbering.barcodePattern ?? DEFAULT_BARCODE_PATTERN, { seq, prefix: numbering.barcodePrefix, now: ctx.now() });
+  } catch (e) {   // T-31 (02-TRD §11, alert LabBarcodeAllocationFailure): reason = the error code only, never the barcode or pattern
+    labMetrics.barcodeAllocFailure(ctx, e instanceof LimsError ? e.code : 'internal');
+    throw e;
+  }
 }
 
 // ====================================================================== T-07 specimen actions ======================================================================
@@ -257,9 +263,9 @@ async function single(hctx: unknown, kind: Exclude<Kind, 'dispatch'>, params: un
   const id = uuidParam(params, 'specimen_id');
   const version = expectedVersion(headers);
   const a = parseAction(kind, body, c.now());
-  const centre = a.processingCentreId ? await resolveCentre(c, a.processingCentreId) : undefined;
   const row = await getSpecimenWithOrder(repoCtx(c), id);
-  if (!row || !visible(await scopeOf(c), row)) throw new LimsError('common.not_found');
+  if (!row || !visible(await scopeOf(c), row)) throw new LimsError('common.not_found');   // P-01 / P-02 first (T-32): a foreign specimen is 404 whatever centre the body names
+  const centre = a.processingCentreId ? await resolveCentre(c, a.processingCentreId) : undefined;
   const { updated } = await move(c, row, version, a, centre);
   await emit(c, row, updated, a);
   return { status: 200, body: await dto(c, updated) };

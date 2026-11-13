@@ -139,7 +139,7 @@ async function activeStain(c: Ctx, code: unknown, path: string): Promise<Row> {
   return stain;
 }
 /** Next slide rows for a block (label from the block) or a block-less part (label from the accession + part letter). */
-function slideRows(c: Ctx, cs: Row, target: { block?: Row; part: Row }, existing: Row[], count: number, stain: Row, extra: Row): Row[] {
+function slideRows(c: Ctx, cs: Row, target: { block?: Row | undefined; part: Row }, existing: Row[], count: number, stain: Row, extra: Row): Row[] {
   const peers = existing.filter((s) => (target.block ? s['block_id'] === target.block['id'] : !s['block_id'] && s['part_id'] === target.part['id']));
   const start = maxSeq(peers);
   const rows: Row[] = [];
@@ -348,7 +348,7 @@ export async function linkAddonItem(hctx: unknown, params: unknown, headers: unk
   const item = summary.items.find((i) => i['orderItemId'] === orderItemId);
   if (!item) throw bad('/order_item_id'); // not an item of this case's order
   if (item['status'] !== 'active') throw new LimsError('anatomic.order_item_inactive'); // AC-09.9
-  const profile = await getTestProfileByTestId(c.tx, { tenantId: c.tenantId, testId: item['testId'] });
+  const profile = await getTestProfileByTestId(c.tx, { tenantId: c.tenantId, testId: String(item['testId']) });
   if (profile?.['is_addon'] !== true) throw bad('/order_item_id');
 
   let caseItem = (await listCaseItems(c.tx, { tenantId: c.tenantId, caseId: cs['id'] })).find((i) => i['order_item_id'] === orderItemId);

@@ -39,7 +39,7 @@ import { manifest } from '../index.js';
 import { partnerContext } from '../service/partner-context.service.js';
 
 // ---- synthetic ids (uuid-shaped, synthetic data only) ----
-const id = (n: number) => `01940e00-0000-7000-8000-c1307${String(n).padStart(3, '0')}`;
+const id = (n: number) => `01940e00-0000-7000-8000-c1307${String(n).padStart(7, '0')}`;
 const T_A = id(1), T_B = id(2);
 const STAFF = id(3), STAFF_RO = id(4);
 const BR = { a1: id(10), a2: id(11), ax: id(12), b1: id(13) };
@@ -159,7 +159,7 @@ function makeWorld() {
     where(rows: Row[], clause: string, values: unknown[]): Row[] {
       let c = clause.replace(/\s+(ORDER\s+BY|LIMIT|FOR\s+UPDATE|RETURNING)\b[\s\S]*$/i, '');
       let likeVal: string | undefined;
-      c = c.replace(/\([^()]*\bI?LIKE\b[^()]*\)/gi, (g) => { likeVal = String(values[Number(/\$(\d+)/.exec(g)![1]) - 1]); return ' 1=1 '; });
+      c = c.replace(/\([^()]*\bI?LIKE\b[^()]*\)/gi, (g) => { const n = /\$(\d+)/.exec(g)![1]; likeVal = String(values[Number(n) - 1]); return ` partner_code ILIKE $${n} `; });
       const terms = c.split(/\s+AND\s+/i).map((t) => t.trim()).filter(Boolean);
       return rows.filter((r) => terms.every((t) => {
         let m: RegExpExecArray | null;

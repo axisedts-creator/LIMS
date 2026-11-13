@@ -13,7 +13,8 @@ import { FailNotice, type Fail } from '../common';
 export interface FormDialogProps {
   title: string;
   submitLabel: string;
-  status: CaseStatus;
+  /** Case status for the "That step isn't possible" copy; omitted by dialogs that are not about a case (T-22 New batch). */
+  status?: CaseStatus;
   /** Destructive submit (cancel): danger-styled button instead of the primary one. */
   danger?: boolean;
   /** 'drawer' renders the kit Drawer (assessment); default is the Dialog. */
@@ -55,7 +56,7 @@ export function FormDialog({ title, submitLabel, status, danger, as = 'dialog', 
   );
   const content = (
     <div ref={body}>
-      <FailNotice fail={fail} status={status} />
+      <FailNotice fail={fail} {...(status ? { status } : {})} />
       <Form onSubmit={submit}>{children}</Form>
       {as === 'drawer' ? <div className="lims-dialog-footer">{footer}</div> : null}
     </div>

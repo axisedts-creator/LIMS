@@ -67,8 +67,8 @@ async function onReceived(ctx: SpecimenEventCtx, tenantId: string, userId: strin
     if (parentId !== undefined) {
       const parent = await repo.findByItemSpecimen(ctx.tx, { tenantId, orderItemId: it.orderItemId, specimenId: parentId });
       if (parent) {                                                                              // AC-01.8: aliquot of a specimen that already has a culture
-        if (parent['status'] !== 'awaiting_setup') ctx.metrics.inc('lims_micro_aliquot_after_setup_total', { tenant_id: tenantId });
-        else if (ctx.isNewer(parent['last_specimen_seq'], seq)) await repo.repoint(ctx.tx, { tenantId, id: parent['id'], specimenId, seq, userId });
+        if (parent['status'] !== 'awaiting_setup') ctx.metrics.inc('lims_micro_aliquot_after_setup_total');
+        else await repo.repoint(ctx.tx, { tenantId, id: parent['id'], specimenId, seq, userId });
         continue;                                                                                // never a culture for (I, aliquot)
       }
     }
@@ -84,7 +84,7 @@ async function onRejected(ctx: SpecimenEventCtx, tenantId: string, userId: strin
     if (!ctx.isNewer(c['last_specimen_seq'], seq)) continue;                                      // AC-01.5 stale / duplicate
     if (c['status'] === 'cancelled') { await repo.bumpSeq(ctx.tx, { tenantId, id: c['id'], seq, userId }); continue; }
     if (c['has_report'] || c['status'] === 'final_submitted' || c['status'] === 'amending') {      // AC-01.7: a submitted report is never changed
-      ctx.metrics.inc('lims_micro_specimen_rejected_after_report_total', { tenant_id: tenantId });
+      ctx.metrics.inc('lims_micro_specimen_rejected_after_report_total');
       await repo.bumpSeq(ctx.tx, { tenantId, id: c['id'], seq, userId });
       continue;
     }

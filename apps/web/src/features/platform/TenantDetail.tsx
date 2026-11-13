@@ -5,20 +5,20 @@ import { useRouter } from 'next/navigation';
 import { Banner } from '@lims/ui/components/Banner';
 import { Button } from '@lims/ui/components/Button';
 import { Dialog } from '@lims/ui/components/Dialog';
+import { EmptyState } from '@lims/ui/components/EmptyState';
 import { ErrorState } from '@lims/ui/components/ErrorState';
 import { StatusChip } from '@lims/ui/components/StatusChip';
-import { Switch } from '@lims/ui/components/Switch';
 import { Tabs } from '@lims/ui/components/Tabs';
 import { Timeline } from '@lims/ui/components/Timeline';
 import { useToast } from '@lims/ui/components/Toast';
 import {
-  getTenantSettingsAction, inviteTenantAdminAction, listAnnexesAction, listTenantFlagsAction, listTenantSupportSessionsAction, patchTenantSettingsAction,
-  setTenantFlagAction, tenantLifecycleAction,
+  getTenantSettingsAction, inviteTenantAdminAction, listAnnexesAction, listTenantSupportSessionsAction, patchTenantSettingsAction,
+  tenantLifecycleAction,
 } from './actions';
 import { IrdTracker } from './IrdTracker';
 import {
   EMAIL_RE, TENANT_NEXT, errorText, scopeLabel, supportStatusLabel, tenantStatusLabel,
-  type AnnexRecord, type Fail, type FeatureFlag, type LifecycleAction, type Result, type Settings, type SupportSession, type TenantDetail as Detail,
+  type AnnexRecord, type Fail,type LifecycleAction, type Result, type Settings, type SupportSession, type TenantDetail as Detail,
 } from './shared';
 import { Alert, CheckboxInput, SelectInput, TextAreaInput, TextInput, fmtDateTime, newKey, useProblemDialogs, useSingleFlight } from './ui';
 
@@ -38,7 +38,7 @@ export function TenantDetailView({ tenant, canManage }: { tenant: Detail; canMan
       <Tabs items={TABS} selectedId={tab} onChange={setTab} aria-label="Tenant sections">
         {tab === 'overview' ? <Overview tenant={tenant} canManage={canManage} /> : null}
         {tab === 'settings' ? <SettingsTab tenantId={tenant.tenant_id} canManage={canManage} /> : null}
-        {tab === 'flags' ? <FlagsTab tenantId={tenant.tenant_id} canManage={canManage} /> : null}
+        {tab === 'flags' ? <FlagsTab /> : null}
         {tab === 'ird' ? <IrdTab tenant={tenant} canManage={canManage} /> : null}
         {tab === 'admins' ? <AdminsTab tenantId={tenant.tenant_id} canManage={canManage} /> : null}
         {tab === 'support' ? <SupportTab tenantId={tenant.tenant_id} /> : null}
@@ -66,7 +66,7 @@ function Overview({ tenant, canManage }: { tenant: Detail; canManage: boolean })
   const router = useRouter();
   const { run, pending } = useSingleFlight();
   const { handle, dialogs } = useProblemDialogs();
-  const [dialog, setDialog] = useState<'suspend' | 'terminate' | null>(null);
+  const [dialog, setDialog] = useState<LifecycleAction | null>(null);
   const [reason, setReason] = useState('');
   const [code, setCode] = useState('');
   const [dialogError, setDialogError] = useState<string>();
@@ -92,7 +92,7 @@ function Overview({ tenant, canManage }: { tenant: Detail; canManage: boolean })
     if (dialog) setDialogError(inline); else setError(inline);
   });
 
-  const openDialog = (d: 'suspend' | 'terminate') => { setReason(''); setCode(''); setDialogError(undefined); setDialog(d); };
+  const openDialog = (d: LifecycleAction) => { setReason(''); setCode(''); setDialogError(undefined); setDialog(d); };
   const history = [...tenant.status_history].sort((a, b) => a.occurred_at.localeCompare(b.occurred_at));
 
   return (
@@ -117,16 +117,17 @@ function Overview({ tenant, canManage }: { tenant: Detail; canManage: boolean })
         <div className="lims-actions">
           {TENANT_NEXT[tenant.status].map((a) => (
             <Button key={a} variant={a === 'terminate' || a === 'suspend' ? 'danger' : 'primary'} isDisabled={pending}
-              onPress={() => (a === 'suspend' || a === 'terminate' ? openDialog(a) : void act(a))}>{BUTTON[a]}</Button>
+              onPress={() => openDialog(a)}>{BUTTON[a]}</Button>
           ))}
         </div>
       ) : null}
       <Alert>{error}</Alert>
-      <Dialog title={dialog === 'terminate' ? 'Terminate tenant' : 'Suspend tenant'} isOpen={dialog !== null} onClose={() => setDialog(null)}
-        footer={<Button variant="danger" isLoading={pending} onPress={() => void act(dialog!)}>{dialog === 'terminate' ? 'Terminate' : 'Suspend'}</Button>}>
+      {/* Every lifecycle action confirms first, so a fast 409/403 never races the confirm step. */}
+      <Dialog title={dialog ? `${BUTTON[dialog]} tenant` : ''} isOpen={dialog !== null} onClose={() => setDialog(null)}
+        footer={dialog ? <Button variant={dialog === 'terminate' || dialog === 'suspend' ? 'danger' : 'primary'} isLoading={pending} onPress={() => void act(dialog)}>{BUTTON[dialog]}</Button> : null}>
         {dialog === 'suspend' ? <p>All staff sessions of this tenant are signed out. Support sessions in read-only scope stay possible.</p> : null}
         {dialog === 'terminate' ? <p>Termination is final: the tenant is offboarded and cannot be reactivated.</p> : null}
-        <TextAreaInput label="Reason" value={reason} onChange={setReason} maxLength={500} required />
+        {dialog === 'suspend' || dialog === 'terminate' ? <TextAreaInput label="Reason" value={reason} onChange={setReason} maxLength={500} required /> : null}
         {dialog === 'terminate' ? <TextInput label="Type the tenant code to confirm" value={code} onChange={setCode} maxLength={32} required hint={`Tenant code: ${tenant.code}`} /> : null}
         <Alert>{dialogError}</Alert>
       </Dialog>
@@ -208,46 +209,10 @@ function SettingsTab({ tenantId, canManage }: { tenantId: string; canManage: boo
   );
 }
 
-// ------------------------------------------------------------------ Feature flags (list read is CR-blocked; see actions.listTenantFlagsAction)
-function FlagsTab({ tenantId, canManage }: { tenantId: string; canManage: boolean }) {
-  const [loaded, setLoaded] = useLoad(() => listTenantFlagsAction(tenantId));
-  if (!loaded) return <p role="status">Loading feature flags…</p>;
-  if (!loaded.ok) return <ErrorState title="Could not load feature flags" {...(loaded.requestId ? { requestId: loaded.requestId } : {})} />;
-  if (!loaded.data.data.length) return <p>No feature flags.</p>;
-  return (
-    <ul className="lims-flag-list">
-      {loaded.data.data.map((f) => (
-        <FlagRow key={f.code} tenantId={tenantId} flag={f} canManage={canManage}
-          onSaved={(n) => setLoaded({ ok: true, data: { data: loaded.data.data.map((x) => (x.code === n.code ? n : x)) } })} />
-      ))}
-    </ul>
-  );
-}
-
-function FlagRow({ tenantId, flag, canManage, onSaved }: { tenantId: string; flag: FeatureFlag; canManage: boolean; onSaved: (f: FeatureFlag) => void }) {
-  const toast = useToast();
-  const [enabled, setEnabled] = useState(flag.is_enabled);
-  const [ref, setRef] = useState('');
-  const [error, setError] = useState<string>();
-  const { run, pending } = useSingleFlight();
-  const needsApproval = !!flag.blocker_ref; // [CONV] a flag with a blocker reference is a "Founder approval" flag
-  const save = () => run(async () => {
-    if (enabled && !flag.is_enabled && needsApproval && !ref.trim()) return setError('Enter the approval reference before enabling this flag.');
-    setError(undefined);
-    const r = await setTenantFlagAction(tenantId, flag.code, enabled, ref.trim() || undefined);
-    if (!r.ok) return setError(failText(r));
-    onSaved(r.data);
-    toast.show({ tone: 'success', title: `${flag.code}: ${r.data.is_enabled ? 'enabled' : 'disabled'}` });
-  });
-  return (
-    <li className="lims-flag-row">
-      <Switch label={flag.description ?? flag.code} isSelected={enabled} isDisabled={!canManage} onChange={setEnabled} />
-      <span className="lims-muted"> {flag.code}{needsApproval ? ` · Founder approval (${flag.blocker_ref})` : ''}{flag.approval_ref_present ? ' · approval on file' : ''}</span>
-      <TextInput label="Approval reference" value={ref} onChange={setRef} maxLength={200} readOnly={!canManage} />
-      <Alert>{error}</Alert>
-      {canManage ? <Button onPress={() => void save()} isLoading={pending}>Save</Button> : null}
-    </li>
-  );
+// ------------------------------------------------------------------ Feature flags
+// LD-114: no platform read of a tenant's flags in this release (CR-C2-T26 items 1-5 not approved), so the tab is an empty state and makes no request.
+function FlagsTab() {
+  return <EmptyState title="Feature flags cannot be listed on the platform console yet." />;
 }
 
 // ------------------------------------------------------------------ IRD annexes (PL-4 filtered)

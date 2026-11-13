@@ -400,6 +400,17 @@ describe('T10 SI1 listInboundManifests (inbox, centre scoped, D-104 filters)', (
     expect(ids(await list(t.w, { has_missing_samples: true }))).toEqual([t.B1['id']]); expect(ids(await list(t.w, { has_missing_samples: true }, { centres: [CE.a1] }))).toEqual([]);
     expect(ids(await list(t.w, { has_missing_samples: true, has_failed_lines: true }))).toEqual([]);
   });
+  it('has_missing_samples = order exists AND sample missing (05-SCHEMA missing idx: sample_missing AND state = converted): a sample_missing line in conversion_failed / converting does not match', async () => {
+    const w = makeWorld10(); const d = new Date('2026-11-09T00:00:00Z');
+    const mk = (no: string, line: Row) => { const m = w.mkManifest({ state: 'submitted', submitted_at: d, manifest_no: no, line_count: 1, version: 2 }); w.mkLine(m['id'], { partner_sample_ref: `SYN-${no}`, ...line }); return m; };
+    const miss = { sample_missing: true, not_received_reason_code: 'sample_missing', conversion_attempt: 1 };
+    const F = mk('MF26000041', { ...miss, state: 'conversion_failed', failure_code: 'catalog.no_price', failed_at: d });
+    const C = mk('MF26000042', { ...miss, state: 'converting' });
+    const OK = mk('MF26000043', { ...miss, state: 'converted', order_id: id(7701), registration_no: '0001SY000701', converted_at: d });
+    const N = mk('MF26000044', { state: 'converted', conversion_attempt: 1, order_id: id(7702), registration_no: '0001SY000702', converted_at: d });
+    expect(ids(await list(w, { has_missing_samples: true }))).toEqual([OK['id']]);
+    expect([...ids(await list(w, { has_missing_samples: false }))].sort()).toEqual([F['id'], C['id'], N['id']].sort());
+  });
   it('sort manifest_no, and a cursor round trip: no overlap, no gap, no foreign row; invalid cursor -> 400 common.invalid_cursor', async () => {
     const t = inbox();
     expect(ids(await list(t.w, { sort: 'manifest_no' }))).toEqual([M.xs, t.A1['id'], t.A2['id'], t.B1['id'], t.B2['id']]);

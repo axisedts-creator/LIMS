@@ -76,7 +76,9 @@ export function SummaryReview({ vm }: { vm: SummaryVM }) {
   const fail = (r: { status: number; code: string }) => {
     setOpen(undefined); setNotice(failure(r));
     if (r.code === 'smartreport.summary_superseded') setOutcome({ status: 'superseded' });
-    if (r.status === 409) router.refresh();
+    // Only version_conflict auto-refreshes (03-APP-FLOW E13); superseded/invalid_transition bump version, and the
+    // page keys on vm.version, so a refresh would remount and wipe the banner (T19 review item 1).
+    if (r.code === 'common.version_conflict') router.refresh();
   };
 
   const approve = async () => {

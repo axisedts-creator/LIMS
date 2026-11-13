@@ -13,8 +13,8 @@
 //   - A first GET or first PUT on a tenant without a row creates the default row (version 1) with INSERT ... ON CONFLICT (tenant_id) DO NOTHING; a PUT with If-Match "1" then yields version 2.
 //   - Responses carry no null (02-CV §4.2): consumption_enabled_at / default_consumption_store_id are OMITTED when NULL. The Settings response has no id/tenant_id/created_*/updated_*/is_active.
 //   - Coded-set entries (#28/#29) are exactly {code, display, reason_group?, uom_kind?, sort_order?, is_active}: no id/tenant_id/version/scope/system. The tenant row version is not on the wire; a client addresses the row it just created with If-Match "1".
-//   - #29 If-Match: absent on a missing tenant row creates it; absent on an existing tenant row => 428; stale => 409. A first PUT of a code that only exists globally creates the shadow row (no If-Match).
-//   - A tenant cs_* row, active or not, shadows the global row with the same (group,) code (repo comment in codedSets.repo.ts). Unknown set_name => 400 or 404, never 500. #28 without reason_group is not tested (spec says only "q: reason_group").
+//   - #29 If-Match: absent on a missing tenant row creates it; absent on an existing tenant row => 409 common.version_conflict (#29 declares no 428 in the contract; review item 1); stale => 409. A first PUT of a code that only exists globally creates the shadow row (no If-Match).
+//   - A tenant cs_* row, active or not, shadows the global row with the same (group,) code (repo comment in codedSets.repo.ts). Unknown set_name => 400 or 404, never 500. #28 reason_group is optional per contract (required:false): without it every group is returned.
 //   - A default_consumption_store_id that is not a store of THIS tenant => 400 common.validation_failed at /default_consumption_store_id, identical for "other tenant's store" and "no such store" (no existence oracle).
 //   - The 3600 s rule uses a +/-200 s margin (the handler may take now from ctx.now() or the database; tests do not rely on the exact boundary).
 import { readFileSync } from 'node:fs';
@@ -360,6 +360,20 @@ describe.skipIf(!live)('#28 listInventoryCodedSet', () => {
     });
   });
 
+  it('reasons without reason_group => 200 with all groups, tenant shadows, inactive tenant rows absent, no duplicate (group, code)', async () => {
+    await inTx(A, async (ctx) => {
+      const r = await list(ctx, 'reasons');
+      expect(r.status).toBe(200);
+      const d = (r.body as any).data as any[];
+      for (const e of d) { expect(entryOk(e)).toBe(true); expect(typeof e.reason_group).toBe('string'); }
+      expect(new Set(d.map((e) => `${e.reason_group}/${e.code}`)).size).toBe(d.length);
+      expect(new Set(d.map((e) => e.reason_group)).size).toBeGreaterThan(1);
+      expect(d.find((e) => e.code === 'spillage')).toMatchObject({ display: 'Spillage (tenant label)', reason_group: 'wastage' });
+      expect(d.find((e) => e.code === 'duplicate')).toMatchObject({ reason_group: 'po_cancel' });
+      expect(d.some((e) => e.code === 'old_one')).toBe(false);
+    });
+  });
+
   it('reasons: tenant B sees its own shadow label and none of A\'s codes (tenant isolation)', async () => {
     await inTx(B, async (ctx) => {
       const m = byCode(await list(ctx, 'reasons', 'wastage'));
@@ -493,16 +507,16 @@ describe.skipIf(!live)('#29 putInventoryTenantCode', () => {
     });
   });
 
-  it('If-Match only when the tenant row exists: create without it; update without it => 428; stale => 409; right version => 200', async () => {
+  it('If-Match only when the tenant row exists: create without it; update without it => 409; stale => 409; right version => 200', async () => {
     await inTx(A, async (ctx) => {
       expect((await putCode(ctx, 'reasons', 'ver_probe', { reason_group: 'wastage', display: 'v1', is_active: true })).status).toBe(200);
-      expect(bad(await rej(putCode(ctx, 'reasons', 'ver_probe', { reason_group: 'wastage', display: 'v?', is_active: true })))).toEqual(['common.precondition_required', 428]);
+      expect(bad(await rej(putCode(ctx, 'reasons', 'ver_probe', { reason_group: 'wastage', display: 'v?', is_active: true })))).toEqual(['common.version_conflict', 409]);
       expect(bad(await rej(putCode(ctx, 'reasons', 'ver_probe', { reason_group: 'wastage', display: 'v?', is_active: true }, 7)))).toEqual(['common.version_conflict', 409]);
       expect((await putCode(ctx, 'reasons', 'ver_probe', { reason_group: 'wastage', display: 'v2', is_active: true }, 1)).body).toMatchObject({ display: 'v2' });
       expect(bad(await rej(putCode(ctx, 'reasons', 'ver_probe', { reason_group: 'wastage', display: 'v3', is_active: true }, 1)))).toEqual(['common.version_conflict', 409]);
       expect(byCode(await list(ctx, 'reasons', 'wastage'))['ver_probe']).toMatchObject({ display: 'v2' });
       await putCode(ctx, 'tax_codes', 'TAX_V', { display: 't1', is_active: true });
-      expect(bad(await rej(putCode(ctx, 'tax_codes', 'TAX_V', { display: 't2', is_active: true })))).toEqual(['common.precondition_required', 428]);
+      expect(bad(await rej(putCode(ctx, 'tax_codes', 'TAX_V', { display: 't2', is_active: true })))).toEqual(['common.version_conflict', 409]);
       expect((await putCode(ctx, 'tax_codes', 'TAX_V', { display: 't2', is_active: true }, 1)).body).toMatchObject({ display: 't2' });
     });
   });
@@ -526,10 +540,10 @@ describe.skipIf(!live)('#29 putInventoryTenantCode', () => {
     } finally { await admin.query("DELETE FROM inventory.cs_reasons WHERE tenant_id = $1 AND code = 'lab_custom'", [B]); }
   });
 
-  it('two parallel first PUTs of the same new code: one row, no unique-violation 500 (loser gets 200 or 409/428)', async () => {
+  it('two parallel first PUTs of the same new code: one row, no unique-violation 500 (loser gets 200 or 409)', async () => {
     try {
       const rs = await Promise.allSettled([1, 2].map((n) => inTx(A, (ctx) => putCode(ctx, 'tax_codes', 'RACE_TAX', { display: `racer ${n}`, is_active: true }), true)));
-      for (const x of rs.filter((y) => y.status === 'rejected')) expect(['common.version_conflict', 'common.precondition_required']).toContain(((x as PromiseRejectedResult).reason as LimsError).code);
+      for (const x of rs.filter((y) => y.status === 'rejected')) expect('common.version_conflict').toBe(((x as PromiseRejectedResult).reason as LimsError).code);
       expect(rs.some((x) => x.status === 'fulfilled')).toBe(true);
       expect((await admin.query("SELECT count(*)::int AS n FROM inventory.cs_tax_codes WHERE tenant_id = $1 AND code = 'RACE_TAX'", [A])).rows[0].n).toBe(1);
     } finally { await admin.query("DELETE FROM inventory.cs_tax_codes WHERE tenant_id = $1 AND code = 'RACE_TAX'", [A]); }

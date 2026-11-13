@@ -102,7 +102,8 @@ lr AS (SELECT l.last_receipt_value_paisa AS lv, l.last_receipt_qty_base AS ln FR
 ow AS (SELECT l.last_receipt_value_paisa AS ov, l.last_receipt_qty_base AS onn FROM inventory.lots l JOIN p ON l.id = p.lot_id
         WHERE l.tenant_id = $1 AND l.last_receipt_qty_base > 0 AND l.last_receipt_value_paisa IS NOT NULL),
 rvs AS (SELECT -m.value_paisa AS rvv FROM inventory.stock_movements m JOIN p ON m.id = p.rev
-         WHERE m.tenant_id = $1 AND left(m.movement_kind, 8) = 'consume_' AND m.movement_kind <> 'consume_reversal'),
+         WHERE m.tenant_id = $1 AND left(m.movement_kind, 8) = 'consume_' AND m.movement_kind <> 'consume_reversal'
+           AND m.store_id = p.store_id AND m.item_id = p.item_id AND m.lot_id IS NOT DISTINCT FROM p.lot_id AND m.qty_base = -p.q),   -- review T-05 #2: same store/item/lot, exactly the negated qty (TRD §4.3 step 2)
 c AS (SELECT p.*, coalesce((SELECT qty FROM rw), 0) AS rq, coalesce((SELECT val FROM rw), 0) AS rval, abs(p.q) AS m, st.sv, st.sn, lr.lv, lr.ln, ow.ov, ow.onn, (SELECT rvv FROM rvs) AS rvv
         FROM p LEFT JOIN st ON true LEFT JOIN lr ON true LEFT JOIN ow ON true),
 e AS (SELECT c.*, CASE WHEN rq < 0 AND q >= -rq THEN q + rq ELSE q END AS x FROM c),
@@ -175,7 +176,7 @@ export async function post(rc: RepoCtx, input: PostInput): Promise<Row[]> {
     const parts = await query(rc, PLAN, [m.store_id, m.item_id, lot, m.kind, m.qty_base, m.value_hint ?? null, m.reverses_movement_id ?? null]);
     if (parts.length === 0) throw new LimsError('inventory.insufficient_stock');
     for (const p of parts) {
-      if (p['val'] === null) throw bad('/movements/reverses_movement_id');   // consume_reversal whose original is not a consumption of this tenant
+      if (p['val'] === null) throw bad('/movements/reverses_movement_id');   // consume_reversal whose original is not the matching consumption (tenant, store, item, lot, -qty)
       const row = (await query(rc, p['lot_id'] === null ? APPLY_UNLOTTED : APPLY_LOT, [rc.actorId, uuidv7(), input.business_date, input.occurred_at, m.store_id, m.item_id, p['lot_id'], m.kind,
         p['qty'], p['val'], p['basis'], input.doc_type, input.doc_id, m.doc_line_id ?? null, m.instrument_id ?? null, m.attributed_test_id ?? null, m.rule_id ?? null,
         m.reason_code ?? null, m.reverses_movement_id ?? null]))[0];
@@ -185,6 +186,6 @@ export async function post(rc: RepoCtx, input: PostInput): Promise<Row[]> {
   }
   const daily = out.filter((r) => !NOT_IN_DAILY.has(r['movement_kind']));
   if (daily.length > 0) await query(rc, DAILY, [rc.actorId, daily.map((r) => r['id']), daily.map(() => uuidv7())]);
-  await afterPost(rc, out);
+  await afterPost(rc, out, input.business_date);
   return out;
 }

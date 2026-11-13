@@ -2,7 +2,8 @@
 // One unresolved alert per dedupe_key (partial unique index alerts__tenant_id_dedupe__p_uq): a repeat raise = ON CONFLICT -> occurrences + 1, last_raised_at = now().
 // [CONV] dedupe_key = '<alert_kind>:<store_id>:<item_id>'. below_reorder "available" = sum of qty_base of ALL balance rows of (store, item) (tester assumption, T-05 notes).
 // [CONV] negative_stock is raised, never auto-resolved here (TRD §4.3 is silent; ack/resolve belongs to the alerts API).
-// ponytail: expired_lot_in_use (TRD §4.3 step 7, third bullet) needs the consumer's in-use signal (§4.5, consumers.service); added with that task, not here.
+// expired_lot_in_use (TRD §4.3 step 7, third bullet; review T-05 #1): FEFO never picks an expired lot (§4.5 step 1), so a consume_* (not consume_reversal) on a lot with expiry_on < business_date is the in-use case.
+//   [CONV] dedupe_key = 'expired_lot_in_use:<store_id>:<item_id>:<lot_id>'.
 // Every statement binds tenant_id = $1 (REQ-SEC-024) and orders its pairs (store_id, item_id) so concurrent batches take alert rows in one order (no deadlock).
 import { uuidv7 } from '../../../../../../packages/shared-ts/src/uuidv7/index.js';
 import { type RepoCtx, type Row, query } from '../repository/_base.js';
@@ -38,6 +39,27 @@ SELECT i.id, $1::uuid, 'negative_stock', i.store_id, i.item_id, 'negative_stock:
 ON CONFLICT (tenant_id, dedupe_key) WHERE status <> 'resolved'
 DO UPDATE SET occurrences = alerts.occurrences + 1, last_raised_at = now(), version = alerts.version + 1, updated_at = now(), updated_by = EXCLUDED.updated_by`;
 
+// triples ($3 stores, $4 items, $5 lots, $6 ids) consumed on a lot whose expiry_on is before the batch business_date ($7)
+const RAISE_EXPIRED = `INSERT INTO inventory.alerts (id, tenant_id, alert_kind, store_id, item_id, lot_id, dedupe_key, status, first_raised_at, last_raised_at, occurrences, created_by, updated_by)
+SELECT i.id, $1::uuid, 'expired_lot_in_use', i.store_id, i.item_id, i.lot_id,
+       'expired_lot_in_use:' || i.store_id::text || ':' || i.item_id::text || ':' || i.lot_id::text, 'open', now(), now(), 1, $2::uuid, $2::uuid
+  FROM unnest($3::uuid[], $4::uuid[], $5::uuid[], $6::uuid[]) AS i(store_id, item_id, lot_id, id)
+  JOIN inventory.lots l ON l.tenant_id = $1 AND l.id = i.lot_id AND l.expiry_on < $7::date
+ ORDER BY i.store_id, i.item_id, i.lot_id
+ON CONFLICT (tenant_id, dedupe_key) WHERE status <> 'resolved'
+DO UPDATE SET occurrences = alerts.occurrences + 1, last_raised_at = now(), version = alerts.version + 1, updated_at = now(), updated_by = EXCLUDED.updated_by`;
+
+/** Distinct (store, item, lot) triples of consume_* rows (not consume_reversal) on a lot. */
+function expiredCandidates(rows: readonly Row[]): { stores: string[]; items: string[]; lots: string[]; ids: string[] } {
+  const seen = new Map<string, [string, string, string]>();
+  for (const r of rows) {
+    const k: string = r['movement_kind'];
+    if (r['lot_id'] !== null && k.startsWith('consume_') && k !== 'consume_reversal') seen.set(`${r['store_id']}|${r['item_id']}|${r['lot_id']}`, [r['store_id'], r['item_id'], r['lot_id']]);
+  }
+  const all = [...seen.values()];
+  return { stores: all.map((t) => t[0]), items: all.map((t) => t[1]), lots: all.map((t) => t[2]), ids: all.map(() => uuidv7()) };
+}
+
 /** Distinct (store, item) pairs of `rows`, optionally only the rows on the unlotted balance row. */
 function pairsOf(rows: readonly Row[], unlottedOnly: boolean): { stores: string[]; items: string[]; ids: string[] } {
   const seen = new Map<string, [string, string]>();
@@ -46,12 +68,15 @@ function pairsOf(rows: readonly Row[], unlottedOnly: boolean): { stores: string[
   return { stores: all.map((p) => p[0]), items: all.map((p) => p[1]), ids: all.map(() => uuidv7()) };
 }
 
-/** After a posted batch: below_reorder raise/resolve for every touched (store, item); negative_stock for the pairs whose unlotted row was touched. */
-export async function afterPost(rc: RepoCtx, rows: readonly Row[]): Promise<void> {
+/** After a posted batch: below_reorder raise/resolve for every touched (store, item); negative_stock for the pairs whose unlotted row was touched;
+ *  expired_lot_in_use for consumptions of a lot expired before businessDate. */
+export async function afterPost(rc: RepoCtx, rows: readonly Row[], businessDate: string): Promise<void> {
   const all = pairsOf(rows, false);
   if (all.stores.length === 0) return;
   await query(rc, RESOLVE_BELOW, [rc.actorId, all.stores, all.items]);
   await query(rc, RAISE_BELOW, [rc.actorId, all.stores, all.items, all.ids]);
   const unl = pairsOf(rows, true);
   if (unl.stores.length > 0) await query(rc, RAISE_NEGATIVE, [rc.actorId, unl.stores, unl.items, unl.ids]);
+  const exp = expiredCandidates(rows);
+  if (exp.stores.length > 0) await query(rc, RAISE_EXPIRED, [rc.actorId, exp.stores, exp.items, exp.lots, exp.ids, businessDate]);
 }

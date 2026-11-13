@@ -172,9 +172,9 @@ interface CtxOpts { deny?: Record<string, string>; tenant?: string; denyCentre?:
 const calls = { assertRole: [] as Row[], logs: [] as string[], access: [] as Row[] };
 function mkCtx(o: CtxOpts = {}) {
   const tenantId = o.tenant ?? T; const storage = makeStorage(); const pipe = makePipeline(storage, tenantId, o.scan ?? 'clean');
-  const lg = (x: object, m?: string) => calls.logs.push(JSON.stringify({ x, m }));
+  const lg = (x: object, m?: string) => calls.logs.push(JSON.stringify({ x, m })); const incs: Array<{ name: string; labels: unknown }> = [];
   const ctx: any = {
-    operationId: 'op', clientIp: '203.0.113.7', requestId: uid(9999), log: { info: lg, warn: lg, error: lg, debug: lg }, metrics: { inc: () => undefined },
+    operationId: 'op', clientIp: '203.0.113.7', requestId: uid(9999), log: { info: lg, warn: lg, error: lg, debug: lg }, metrics: { inc: (name: string, labels?: unknown) => { incs.push({ name, labels }); } }, _incs: incs,
     tenantId, actor: { type: 'user', id: ACTOR, membershipId: uid(5000) }, now: () => new Date(o.now ?? NOW_ISO),
     tx: {
       undo: [] as (() => void)[],
@@ -335,6 +335,17 @@ describe('I1 uploadAnatomicImage — scan outcome model (AC-12.1, AC-12.4; 08 A1
     ctx._storage.calls.length = 0;
     const e = await rejects(call('getAnatomicImageContent', { params: { image_id: r.body.id } }, ctx)); codeOf(e, 'common.upload_quarantined', 422);
     expect(ctx._storage.callsOf('read')).toEqual([]); expect(calls.access).toEqual([]);
+  });
+
+  // 02-TRD §9 (line 656): lims_anatomic_image_processing_total{outcome}; the C1 security alert watches outcome="quarantined" (review item 2/3)
+  it('infected upload increments lims_anatomic_image_processing_total{outcome="quarantined"} (feeds the C1 security alert)', async () => {
+    const ctx = mkCtx({ scan: 'infected' }); await up(goodBody(), CASE.OPEN, ctx);
+    expect(ctx._incs).toContainEqual({ name: 'lims_anatomic_image_processing_total', labels: { outcome: 'quarantined' } });
+  });
+  it('clean upload increments lims_anatomic_image_processing_total{outcome="ready"}, never "quarantined"', async () => {
+    const ctx = mkCtx({ scan: 'clean' }); await up(goodBody(), CASE.OPEN, ctx);
+    expect(ctx._incs).toContainEqual({ name: 'lims_anatomic_image_processing_total', labels: { outcome: 'ready' } });
+    expect(ctx._incs).not.toContainEqual({ name: 'lims_anatomic_image_processing_total', labels: { outcome: 'quarantined' } });
   });
 
   it.each(['pending', 'unavailable'] as const)('AC-12.1 %s: 201 with state processing, scan_state %s, ONE anatomic.process_image job {image_id} with job_key image:<id>, enqueued after the row insert; content is refused until ready', async (scan) => {

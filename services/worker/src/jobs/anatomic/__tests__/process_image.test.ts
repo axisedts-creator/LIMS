@@ -52,14 +52,14 @@ const row = (id: string, over: Row = {}): Row => ({
 type Verdict = 'clean' | 'infected' | 'unavailable' | 'throw';
 function makeCtx(o: { verdicts?: Verdict[]; attempt?: number; tenant?: string; missingObject?: boolean } = {}) {
   const verdicts = [...(o.verdicts ?? ['clean'])]; const reads: Array<{ bucket: string; path: string }> = []; const scans: Uint8Array[] = []; const logs: string[] = [];
-  const lg = (x: object, m?: string) => logs.push(JSON.stringify({ x, m }));
+  const lg = (x: object, m?: string) => logs.push(JSON.stringify({ x, m })); const incs: Array<{ name: string; labels: unknown }> = [];
   const ctx: any = {
     tenantId: o.tenant ?? T, actor: { type: 'system', id: SYSTEM }, requestId: uid(9999), jobId: '1', attempt: o.attempt ?? 1, maxAttempts: 5, tx: { query: async () => ({ rows: [] }) },
-    log: { info: lg, warn: lg, error: lg, debug: lg }, metrics: { inc: () => undefined }, now: () => '2026-11-13T00:00:00.000Z',
+    log: { info: lg, warn: lg, error: lg, debug: lg }, metrics: { inc: (name: string, labels?: unknown) => { incs.push({ name, labels }); } }, now: () => '2026-11-13T00:00:00.000Z',
     storage: { async read(bucket: any, path: string) { assertBucket(bucket); assertTenantPath(o.tenant ?? T, path); reads.push({ bucket, path }); if (o.missingObject) throw new Error('not found'); return new Uint8Array(BYTES); } },
     files: { async scan(b: Uint8Array) { scans.push(b); const v = verdicts.length > 1 ? verdicts.shift()! : verdicts[0]!; if (v === 'throw') throw new Error('clamd down'); return v; } },
   };
-  return Object.assign(ctx, { _reads: reads, _scans: scans, _logs: logs, setVerdicts: (v: Verdict[]) => { verdicts.length = 0; verdicts.push(...v); } });
+  return Object.assign(ctx, { _incs: incs, _reads: reads, _scans: scans, _logs: logs, setVerdicts: (v: Verdict[]) => { verdicts.length = 0; verdicts.push(...v); } });
 }
 const rejects = async (p: Promise<unknown>): Promise<any> => p.then(() => { throw new Error('expected rejection'); }, (e: unknown) => e);
 let consoleSpies: Array<ReturnType<typeof vi.spyOn>> = [];
@@ -113,6 +113,16 @@ describe('anatomic.process_image — re-scan outcomes (TRD §4.9 step 2)', () =>
   it('unavailable twice, then infected: ends quarantined', async () => {
     const ctx = makeCtx({ verdicts: ['unavailable', 'infected'] }); ctx.attempt = 1; await rejects(run(IMG.P, ctx)); ctx.attempt = 2; await run(IMG.P, ctx);
     expect(S.images.get(IMG.P)).toMatchObject({ state: 'quarantined', scan_state: 'infected', quarantine_reason_code: 'malware' });
+  });
+  // 02-TRD §9 (line 656): lims_anatomic_image_processing_total{outcome=ready|quarantined|scan_retry|failed}; C1 security alert watches outcome="quarantined" (review item 1/3)
+  it.each([['clean', 'ready'], ['infected', 'quarantined']] as const)('%s increments lims_anatomic_image_processing_total{outcome="%s"}', async (v, outcome) => {
+    const ctx = makeCtx({ verdicts: [v] }); await run(IMG.P, ctx);
+    expect(ctx._incs).toContainEqual({ name: 'lims_anatomic_image_processing_total', labels: { outcome } });
+    expect(ctx._incs.map((m: any) => m.name)).not.toContain('lims_anatomic_image_scans_total');
+  });
+  it('unavailable increments lims_anatomic_image_processing_total{outcome="scan_retry"} before throwing', async () => {
+    const ctx = makeCtx({ verdicts: ['unavailable'] }); await rejects(run(IMG.P, ctx));
+    expect(ctx._incs).toContainEqual({ name: 'lims_anatomic_image_processing_total', labels: { outcome: 'scan_retry' } });
   });
   it('only the allowed columns are patched; sha256, mime_type, byte_size, object_path never change', async () => {
     const before = structuredClone(S.images.get(IMG.P)!); await run(IMG.P, makeCtx({ verdicts: ['clean'] })); const a = S.images.get(IMG.P)!;

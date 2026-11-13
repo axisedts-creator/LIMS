@@ -28,44 +28,17 @@ HC-T03: homecollection.* missing after migrations (P-1 not landed): applying 05-
 
  RUN  v5.1.0 C:/LIMS-lanes/C17/services/api
 
- ❯ src/modules/homecollection/__tests__/dispatch/route.test.ts (0 test)
- ❯ src/modules/homecollection/__tests__/dispatch/schedule.test.ts (0 test)
- ❯ src/modules/homecollection/__tests__/dispatch/assign.test.ts (0 test)
- ❯ src/modules/homecollection/__tests__/dispatch/revisit.test.ts (0 test)
+(node:36044) DeprecationWarning: Calling client.query() when the client is already executing a query is deprecated and will be removed in pg@9.0. Use async/await or an external async flow control mechanism instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+(node:29144) DeprecationWarning: Calling client.query() when the client is already executing a query is deprecated and will be removed in pg@9.0. Use async/await or an external async flow control mechanism instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+(node:25904) DeprecationWarning: Calling client.query() when the client is already executing a query is deprecated and will be removed in pg@9.0. Use async/await or an external async flow control mechanism instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+(node:30408) DeprecationWarning: Calling client.query() when the client is already executing a query is deprecated and will be removed in pg@9.0. Use async/await or an external async flow control mechanism instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
 
-⎯⎯⎯⎯⎯⎯ Failed Suites 4 ⎯⎯⎯⎯⎯⎯⎯
-
- FAIL  src/modules/homecollection/__tests__/dispatch/assign.test.ts [ src/modules/homecollection/__tests__/dispatch/assign.test.ts ]
- FAIL  src/modules/homecollection/__tests__/dispatch/revisit.test.ts [ src/modules/homecollection/__tests__/dispatch/revisit.test.ts ]
- FAIL  src/modules/homecollection/__tests__/dispatch/route.test.ts [ src/modules/homecollection/__tests__/dispatch/route.test.ts ]
- FAIL  src/modules/homecollection/__tests__/dispatch/schedule.test.ts [ src/modules/homecollection/__tests__/dispatch/schedule.test.ts ]
-Error: Transform failed with 1 error:
-C:/LIMS-lanes/C17/services/api/src/modules/homecollection/__tests__/dispatch/helpers.ts:211:13: ERROR: Multiple exports with the same name "seedWorld"
-  Plugin: vite:esbuild
-  File: C:/LIMS-lanes/C17/services/api/src/modules/homecollection/__tests__/dispatch/helpers.ts:211:13
-  
-  [33mMultiple exports with the same name "seedWorld"[39m
-  209 |  }
-  210 |  type Side = 'a' | 'b';
-  211 |  export const seedWorld = async (s: Side = 'a'): Promise<World> => { await ensureTaskRegistry(); return seedBaseWorld(...
-      |               ^
-  212 |  export const worldOf =(s: Side = 'a'): Promise<World> => seedWorld(s);
-  213 |  /** A fresh frontdesk order (FK target of visits.order_id / what the FrontdeskPort fake returns). */
-  
- ❯ failureErrorWithLog ../../node_modules/.pnpm/esbuild@0.28.2/node_modules/esbuild/lib/main.js:1752:15
- ❯ ../../node_modules/.pnpm/esbuild@0.28.2/node_modules/esbuild/lib/main.js:1019:50
- ❯ responseCallbacks.<computed> ../../node_modules/.pnpm/esbuild@0.28.2/node_modules/esbuild/lib/main.js:886:9
- ❯ handleIncomingPacket ../../node_modules/.pnpm/esbuild@0.28.2/node_modules/esbuild/lib/main.js:941:12
- ❯ Socket.readFromStdout ../../node_modules/.pnpm/esbuild@0.28.2/node_modules/esbuild/lib/main.js:864:7
-
-⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/4]⎯
-
-
- Test Files  4 failed | 1 passed (5)
-      Tests  11 passed (11)
-   Start at  15:21:14
-   Duration  1.83s (setup 43%, transform 22%, worker 21%, tests 10%, import 4%, environment 1%)
-
-    Isolate  5 workers spawned · ~690ms startup each (spawn + environment, per file)
-             at least ~460ms faster with isolate: false — reuses workers across files instead of one per file
+ Test Files  5 passed (5)
+      Tests  205 passed (205)
+   Start at  15:29:03
+   Duration  115.83s (tests 97%, import 3%, transform 1%)
 

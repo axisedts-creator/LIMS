@@ -31,74 +31,15 @@ HC-T14: homecollection.* missing after migrations (P-1 not landed): applying 05-
 
  Test Files  3 passed (3)
       Tests  59 passed (59)
-   Start at  23:26:57
-   Duration  30.45s (tests 88%, import 9%, transform 3%)
+   Start at  23:35:41
+   Duration  32.55s (tests 93%, import 5%, transform 2%)
 
 
  RUN  v5.1.0 C:/LIMS-lanes/C17/services/worker
 
- ❯ src/jobs/homecollection/__tests__/flag_handover_discrepancy.live.test.ts (12 tests | 3 failed) 8872ms
-   ❯ guards: tenant, payload, unknown ids, no port, no PHI in logs (5)
-     × payload.tenant_id different from ctx.tenantId -> no-op (nothing written), whichever side the handover belongs to 507ms
-     × tenant isolation: a job of tenant A naming a handover of tenant B (payload tenant = ctx tenant = A) writes nothing in B 187ms
-     × RLS holds for the system actor too: with tenant A claims a flag cannot be written for a tenant-B visit (WITH CHECK), and the run leaves tenant B untouched 95ms
 
-⎯⎯⎯⎯⎯⎯⎯ Failed Tests 3 ⎯⎯⎯⎯⎯⎯⎯
-
- FAIL  src/jobs/homecollection/__tests__/flag_handover_discrepancy.live.test.ts > guards: tenant, payload, unknown ids, no port, no PHI in logs > payload.tenant_id different from ctx.tenantId -> no-op (nothing written), whichever side the handover belongs to
-error: insert or update on table "handovers" violates foreign key constraint "handovers__receiver__fk"
- ❯ ../../node_modules/.pnpm/pg@8.23.1/node_modules/pg/lib/client.js:694:17
- ❯ ../api/src/modules/frontdesk/__tests__/integration/helpers.ts:67:5
-     65|     const use = cols.filter((c) => has.includes(c));
-     66|     const list = use.map((c) => `"${c}"`).join(',');
-     67|     await tx.query(`INSERT INTO ${table} (${list}) SELECT ${list} FROM…
-       |     ^
-     68|       [JSON.stringify(Object.fromEntries(use.map((c) => [c, r[c]])))]);
-     69|   }, String(r.tenant_id ?? TENANT_A));
- ❯ superTx ../api/src/modules/frontdesk/__tests__/integration/helpers.ts:52:17
- ❯ seed ../api/src/modules/frontdesk/__tests__/integration/helpers.ts:61:3
- ❯ handoverWorld ../api/src/modules/homecollection/__tests__/handovers/world.ts:69:3
- ❯ src/jobs/homecollection/__tests__/flag_handover_discrepancy.live.test.ts:132:15
-
-⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/3]⎯
-
- FAIL  src/jobs/homecollection/__tests__/flag_handover_discrepancy.live.test.ts > guards: tenant, payload, unknown ids, no port, no PHI in logs > tenant isolation: a job of tenant A naming a handover of tenant B (payload tenant = ctx tenant = A) writes nothing in B
-error: insert or update on table "handovers" violates foreign key constraint "handovers__receiver__fk"
- ❯ ../../node_modules/.pnpm/pg@8.23.1/node_modules/pg/lib/client.js:694:17
- ❯ ../api/src/modules/frontdesk/__tests__/integration/helpers.ts:67:5
-     65|     const use = cols.filter((c) => has.includes(c));
-     66|     const list = use.map((c) => `"${c}"`).join(',');
-     67|     await tx.query(`INSERT INTO ${table} (${list}) SELECT ${list} FROM…
-       |     ^
-     68|       [JSON.stringify(Object.fromEntries(use.map((c) => [c, r[c]])))]);
-     69|   }, String(r.tenant_id ?? TENANT_A));
- ❯ superTx ../api/src/modules/frontdesk/__tests__/integration/helpers.ts:52:17
- ❯ seed ../api/src/modules/frontdesk/__tests__/integration/helpers.ts:61:3
- ❯ handoverWorld ../api/src/modules/homecollection/__tests__/handovers/world.ts:69:3
- ❯ src/jobs/homecollection/__tests__/flag_handover_discrepancy.live.test.ts:137:15
-
-⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/3]⎯
-
- FAIL  src/jobs/homecollection/__tests__/flag_handover_discrepancy.live.test.ts > guards: tenant, payload, unknown ids, no port, no PHI in logs > RLS holds for the system actor too: with tenant A claims a flag cannot be written for a tenant-B visit (WITH CHECK), and the run leaves tenant B untouched
-error: insert or update on table "handovers" violates foreign key constraint "handovers__receiver__fk"
- ❯ ../../node_modules/.pnpm/pg@8.23.1/node_modules/pg/lib/client.js:694:17
- ❯ ../api/src/modules/frontdesk/__tests__/integration/helpers.ts:67:5
-     65|     const use = cols.filter((c) => has.includes(c));
-     66|     const list = use.map((c) => `"${c}"`).join(',');
-     67|     await tx.query(`INSERT INTO ${table} (${list}) SELECT ${list} FROM…
-       |     ^
-     68|       [JSON.stringify(Object.fromEntries(use.map((c) => [c, r[c]])))]);
-     69|   }, String(r.tenant_id ?? TENANT_A));
- ❯ superTx ../api/src/modules/frontdesk/__tests__/integration/helpers.ts:52:17
- ❯ seed ../api/src/modules/frontdesk/__tests__/integration/helpers.ts:61:3
- ❯ handoverWorld ../api/src/modules/homecollection/__tests__/handovers/world.ts:69:3
- ❯ src/jobs/homecollection/__tests__/flag_handover_discrepancy.live.test.ts:157:15
-
-⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/3]⎯
-
-
- Test Files  1 failed (1)
-      Tests  3 failed | 9 passed (12)
-   Start at  23:27:33
-   Duration  10.14s (tests 93%, import 7%)
+ Test Files  1 passed (1)
+      Tests  12 passed (12)
+   Start at  23:36:15
+   Duration  10.49s (tests 96%, import 4%)
 

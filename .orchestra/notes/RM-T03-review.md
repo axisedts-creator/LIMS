@@ -1,0 +1,2 @@
+TESTER: LD-151 binds (founder ruling, CR-C2-RM-002 option a). In services/api/src/modules/identity/__tests__/role-packs/matrix-replay.test.ts add lab.critical_value.read and lab.critical_value.log_notification to the OVERLAY allowlist for exactly corp_laboratory_lab_user, corp_sr_lab_user, corp_sr_lab_user_t2 and corp_senior_lab_user, so the 'Menu / Pathology Result' ticked-role count stays 3. Do not widen anything else; do not touch the data file.
+WRITER: no change. Never edit 11-ROLE-MATRIX.data.yaml or its copy (LD-141).

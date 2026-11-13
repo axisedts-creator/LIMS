@@ -34,12 +34,14 @@ const cappedFor = (role: string): Set<string> => {
 // by role name. Only codes that also appear in a screen table are listed; overlay-only codes (approve, refund, ...) are RM-T04's.
 const ENTRY = ['lab.result.read', 'lab.result.enter', 'lab.worklist.read'];
 const CRITICAL = ['lab.critical_value.read', 'lab.critical_value.log_notification'];
+const ENTRY_CV = [...ENTRY, ...CRITICAL];
 const ACCOUNTING = ['billing.invoice.read', 'billing.invoice.issue', 'billing.invoice.reprint', 'billing.payment.record', 'billing.credit_party.read', 'billing.cash_report.read'];
 const CLINICAL = [...ENTRY, ...CRITICAL, 'reporting.report.read', 'anatomic.case.read'];
 const OVERLAY: Record<string, string[]> = {
   corp_pathologist: CLINICAL, corp_pathologist_t2: CLINICAL, corp_pathologist_t3: CLINICAL, std_consulting_pathologist: CLINICAL,
-  corp_sr_lab_user: ENTRY, corp_sr_lab_user_t2: ENTRY, corp_senior_lab_user: ENTRY,
-  corp_junior_lab_user: ENTRY, corp_laboratory_lab_user: ENTRY, corp_laboratory_user: ENTRY, std_lab_technician: ENTRY,
+  // LD-151 (CR-C2-RM-002 option a): exactly these four roles keep both critical-value codes through the section 3.1 overlay (R2); nothing wider (LD-141).
+  corp_sr_lab_user: ENTRY_CV, corp_sr_lab_user_t2: ENTRY_CV, corp_senior_lab_user: ENTRY_CV, corp_laboratory_lab_user: ENTRY_CV,
+  corp_junior_lab_user: ENTRY, corp_laboratory_user: ENTRY, std_lab_technician: ENTRY,
   corp_accounts: ACCOUNTING, std_account: ACCOUNTING,
   corp_laboratory_admin: ['lab.status_board.read'], corp_collection_center: ['lab.specimen.collect', 'lab.specimen.label_print'],
 };

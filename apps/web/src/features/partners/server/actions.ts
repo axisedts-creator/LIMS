@@ -54,7 +54,7 @@ export async function searchPatientsAction(query: string): Promise<ActionResult<
   return run(async () => (await serverFetch<{ data: PatientHit[] }>('/v1/frontdesk/patients/search', { method: 'POST', headers: json, body: JSON.stringify({ query: q(query, 100), limit: 20 }) })).data);
 }
 export async function searchDoctorsAction(text: string): Promise<ActionResult<DoctorHit[]>> {
-  return run(async () => (await serverFetch<{ data: DoctorHit[] }>('/v1/catalog/doctors/search', { method: 'POST', headers: json, body: JSON.stringify({ q: q(text, 100), limit: 20 }) })).data);
+  return run(async () => (await serverFetch<{ data: DoctorHit[] }>('/v1/catalog/doctors/search', { method: 'POST', headers: json, body: JSON.stringify({ q: q(text, 64), limit: 20 }) })).data);
 }
 /** C3 listCreditParties takes a code/name prefix of at most 20 characters. */
 export async function searchCreditPartiesAction(text: string): Promise<ActionResult<CreditPartyHit[]>> {

@@ -28,7 +28,7 @@ export interface ManifestLine {
   patient: { full_name: string; sex: string; age_years?: number };
   orderables: { orderable_id: string; kind: string; code: string; name: string }[];
   priority: string; collected_at?: string; clinical_note?: string;
-  referrer?: { id: string; display_name: string; mapping_state?: string };
+  referrer?: { id: string; display_name: string };
   order?: { order_id: string; registration_no: string };
   failure?: { code: string; message_key: string };
   not_received_reason_code?: string; version: number;

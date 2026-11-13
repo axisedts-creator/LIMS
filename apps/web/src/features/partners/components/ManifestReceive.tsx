@@ -13,6 +13,7 @@ import { ConfirmDialog } from '@lims/ui/components/ConfirmDialog';
 import { DataTable, type ColumnDef } from '@lims/ui/components/DataTable';
 import { DescriptionList } from '@lims/ui/components/DescriptionList';
 import { Dialog } from '@lims/ui/components/Dialog';
+import { Drawer } from '@lims/ui/components/Drawer';
 import { PageHeader } from '@lims/ui/components/PageHeader';
 import { RadioGroup } from '@lims/ui/components/RadioGroup';
 import { TextField } from '@lims/ui/components/TextField';
@@ -97,6 +98,7 @@ export function ManifestReceive({ manifest, permissions }: { manifest: Manifest;
   const [confirming, setConfirming] = useState(false);
   const [searchFor, setSearchFor] = useState<ManifestLine | null>(null);
   const [notReceivedFor, setNotReceivedFor] = useState<ManifestLine | null>(null);
+  const [noteFor, setNoteFor] = useState<ManifestLine | null>(null);
   const key = useRef(crypto.randomUUID());
   const canReceive = hasPerm(permissions, 'partners.manifest.receive');
   const canSearchPatients = hasPerm(permissions, 'frontdesk.patient.read');
@@ -152,8 +154,10 @@ export function ManifestReceive({ manifest, permissions }: { manifest: Manifest;
       id: 'doctor', header: 'Doctor and note',
       cell: (l) => (
         <>
-          {l.referrer ? <><span>{l.referrer.display_name}</span> {l.referrer.mapping_state === 'mapped' ? null : <Badge tone="warning">Not confirmed</Badge>}</> : null}
+          {/* "Not confirmed" badge omitted: ManifestLine.referrer has no mapping state (see .orchestra/cr/C13.T16.md). */}
+          {l.referrer ? <span>{l.referrer.display_name}</span> : null}
           {l.clinical_note ? <p className="lims-description">{note(l.clinical_note)}</p> : null}
+          {l.clinical_note && l.clinical_note.length > 80 ? <Button size="sm" variant="ghost" onPress={() => setNoteFor(l)}>Show note</Button> : null}
         </>
       ),
     },
@@ -243,6 +247,10 @@ export function ManifestReceive({ manifest, permissions }: { manifest: Manifest;
         body={<p>{`Confirm ${nReceived} received and ${nNot} not received? Orders will be created for the received samples.`}</p>}
         onConfirm={receive}
       />
+      {/* D-102 (C13 04-UI-UX:214): full clinical note in a row Drawer. */}
+      <Drawer title={`Note for ${noteFor?.partner_sample_ref ?? `line ${noteFor?.line_no ?? ''}`}`} isOpen={noteFor !== null} onClose={() => setNoteFor(null)}>
+        <p>{noteFor?.clinical_note}</p>
+      </Drawer>
       {searchFor ? (
         <PatientDialog
           onClose={() => setSearchFor(null)}

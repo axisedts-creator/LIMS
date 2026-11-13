@@ -5,7 +5,8 @@
 // partners.price_list_items rows and upsert partners.price_list_syncs in the job's single transaction (all-or-nothing; a throw rolls back and the job retries).
 // No other party's prices are ever read: the view is filtered by owner_kind + owner_id = THIS partner's credit party (US-11.4); every value is a bound parameter.
 // [CONV] effective_to is exclusive (half-open [from, to)): v2 ending 2026-01-01 and v3 starting 2026-01-01 never overlap.
-// [CONV] falls_through is not interpreted beyond include_default_price_list (spec gap, no CR): default rows fill orderables without a partner price.
+// falls_through (08 A13 D-19, 03-IC §6.6, C3 catalog/domain/priceMatch.ts): default rows fill orderables only when include_default_price_list is on AND
+// the partner has no effective credit-party list, or its effective list (highest version) has falls_through = true.
 import { LimsError } from '../../../../../api/src/core/errors.js';
 import type { JobContext, TaskHandler } from '../../../core/manifest.js';
 
@@ -33,7 +34,7 @@ export async function enqueuePriceListSyncs(ctx: JobContext, tenantId: string, r
   }
 }
 
-interface ViewRow { price_list_id: string; price_list_version: number; owner_kind: string; owner_id: string; orderable_id: string; unit_price_paisa: string; effective_from: unknown; effective_to: unknown }
+interface ViewRow { price_list_id: string; price_list_version: number; owner_kind: string; owner_id: string; orderable_id: string; unit_price_paisa: string; effective_from: unknown; effective_to: unknown; falls_through: boolean }
 const rank = (r: ViewRow) => (r.owner_kind === 'credit_party' ? 1 : 0); // partner > standard
 const ms = (v: unknown) => new Date(v as string).getTime();
 
@@ -56,9 +57,12 @@ export const syncPriceListTask: TaskHandler = async (payload, ctx) => {
   const values: unknown[] = [tenantId, now];
   if (partner.credit_party_id) { values.push('credit_party', partner.credit_party_id); owners.push(`(owner_kind = $${values.length - 1} AND owner_id = $${values.length})`); }
   if (includeDefault) { values.push('default'); owners.push(`owner_kind = $${values.length}`); }
-  const view: ViewRow[] = owners.length === 0 ? [] : (await tx.query(
-    'SELECT price_list_id, price_list_version, owner_kind, owner_id, orderable_id, unit_price_paisa, effective_from, effective_to FROM catalog.v_pub_price_list_items '
+  const candidates: ViewRow[] = owners.length === 0 ? [] : (await tx.query(
+    'SELECT price_list_id, price_list_version, owner_kind, owner_id, orderable_id, unit_price_paisa, effective_from, effective_to, falls_through FROM catalog.v_pub_price_list_items '
     + `WHERE tenant_id = $1 AND (${owners.join(' OR ')}) AND effective_from <= $2 AND (effective_to IS NULL OR effective_to > $2)`, values)).rows;
+  // A13 D-19: the effective credit-party list (highest version) decides whether the default list may fill gaps
+  const cp = candidates.filter((r) => r.owner_kind === 'credit_party').sort((a, b) => b.price_list_version - a.price_list_version)[0];
+  const view = !cp || cp.falls_through === true ? candidates : candidates.filter((r) => r.owner_kind === 'credit_party');
 
   // 2. precedence per orderable: partner list over default; then higher list version, then later effective_from
   const best = new Map<string, ViewRow>();

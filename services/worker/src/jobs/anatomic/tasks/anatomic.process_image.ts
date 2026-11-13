@@ -36,16 +36,17 @@ export async function processImage(payload: { image_id?: unknown; tenant_id?: un
 
   if (verdict === 'clean') {
     await patch({ scan_state: 'clean', state: 'ready' });
-    ctx.metrics?.inc('lims_anatomic_image_scans_total', { outcome: 'clean' });
+    ctx.metrics?.inc('lims_anatomic_image_processing_total', { outcome: 'ready' });   // 02-TRD §9
     return;
   }
   if (verdict === 'infected') {
     await patch({ scan_state: 'infected', state: 'quarantined', quarantine_reason_code: 'malware' });
-    ctx.metrics?.inc('lims_anatomic_image_scans_total', { outcome: 'infected' });
+    ctx.metrics?.inc('lims_anatomic_image_processing_total', { outcome: 'quarantined' });   // C1 security alert watches this
     ctx.log.warn({ event: 'image_quarantined', image_id: id, request_id: ctx.requestId }, 'image_quarantined');   // security alert: no name, caption or content
     return;
   }
   await patch({ scan_state: 'unavailable', scan_attempts: Math.min(MAX_SCANS, Number(img['scan_attempts']) + 1) });
+  ctx.metrics?.inc('lims_anatomic_image_processing_total', { outcome: 'scan_retry' });
   throw new Error('anatomic.process_image: scanner unavailable');
 }
 

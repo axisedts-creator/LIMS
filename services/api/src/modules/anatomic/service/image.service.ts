@@ -113,6 +113,8 @@ export async function uploadImage(hctx: unknown, params: unknown, body: unknown)
     if (!clean && !infected) {   // same transaction as the row: no processing image without its re-scan job
       await c.tx.query('SELECT app.enqueue_job($1, $2::jsonb, $3)', [RESCAN_TASK, JSON.stringify({ tenant_id: c.tenantId, image_id: id }), `image:${id}`]);
     }
+    // 02-TRD §9: lims_anatomic_image_processing_total{outcome}; C1 security alert watches outcome="quarantined"
+    (hctx as { metrics?: { inc(n: string, l: object): void } }).metrics?.inc('lims_anatomic_image_processing_total', { outcome: clean ? 'ready' : infected ? 'quarantined' : 'scan_retry' });
     return { status: 201, body: imageDto(saved) };
   } catch (e) {
     await x.storage.delete(BUCKET, objectPath).catch(() => undefined);   // no orphan object when the row is refused

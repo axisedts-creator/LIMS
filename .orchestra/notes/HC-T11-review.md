@@ -1,7 +1,7 @@
-CHANGES
-Review of 2a4fcfde..HEAD (HC-T11 review fixes after LD-156). Code changes are correct: no blocking defects in snapshot.service.ts, helpers.ts or perf.test.ts.
-- LD-156 (1) done: helpers.ts:56-58 uses a non-blocking timer; helpers.ts:129-131 times only the handler; perf.test.ts:22 does a warm-up pull.
-- LD-156 (2) done: snapshot.service.ts:104-121 `settledPortCalls` runs groups of 8 inside one ctx.db.tx savepoint per group. Real ports (LabPort.impl.ts:234, BillingPort.impl.ts:229) are read-only and open no nested savepoints, so queries queued on one connection are safe. Results map back by index (2k/2k+1) correctly. snapshot.test.ts:297-308 covers a sibling failure in the same group (v2 keeps its specimens). Not batching access_log is justified: the core writer has no batch API, and there is still one row per visit (REQ-SEC-096).
-- No new names, no PHI in logs (only codes), no secrets, and only owned paths changed.
-
-1. services/api/src/modules/homecollection/__tests__/snapshot/perf.test.ts:30,51,55 still fail (HC-T11-impl-run.log: changed p95 4968 ms, unchanged p95 786 ms, all-lookups-fail 9988 ms), so done_when "US-06 passes" is not met. Fix, per LD-156 (3): run perf.test.ts alone with no other lane container running (`lims_c12t03_*` was still up at review time). If it passes, append that run log. If it still fails, write `.orchestra/notes/HC-T11-dispute-perf-2.md` with a per-phase breakdown (route/visit reads, demographics, port groups, 40 access_log inserts, route/device stamps) for each of the 3 cases. Explain in it why all-lookups-fail (9988 ms) is about 2x slower than the success path, since the fake port time is the same. Do not change the budgets.
+APPROVE
+Review of 2a4fcfde..HEAD (HC-T11 review fixes, LD-156).
+- Review #1 item 1 resolved: reviewer re-ran `tests/homecollection/HC-T11.pg.sh` on real PG17 (2026-11-13 21:43): 5 files, 84/84 pass, including perf.test.ts (changed/unchanged p95 + all-lookups-fail). Matches writer run4 (84/84). No dispute needed; budgets unchanged (LD-156 (3)).
+- LD-156 (1): helpers.ts uses a non-blocking timer; handler-only timing (`handlerMs`); warm-up pull in perf.test.ts beforeAll.
+- LD-156 (2): snapshot.service.ts `settledPortCalls` bounds per-visit port calls to 8, one ctx.db.tx savepoint per group (P-44); index mapping 2k/2k+1 correct; failure degrades to `specimens_stale` / `balance_unavailable`, no read-model fallback; lookupSpecimens still called on every changed pull. access_log stays one row per visit (REQ-SEC-096; core writer has no batch API).
+- Names verbatim, logs carry codes only (REQ-SEC-081), no secrets, only owned paths + own notes changed.
+- Non-blocking risk (noted by writer): 40 sequential access_log inserts dominate variance; a batch writer in core/audit (not C17-owned) would remove it.

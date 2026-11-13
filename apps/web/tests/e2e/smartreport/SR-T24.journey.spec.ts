@@ -75,8 +75,8 @@ async function approveResults(orderId: string) {
 }
 async function amendHb(orderId: string, value: string) {
   const a = await hb(orderId, TOK.patho);
-  // amend operation per C5 TRD (amendResult); body shape follows the C5 amend dialog (new value + reason code)
-  ok(await api('POST', `/v1/lab/results/${a!.id}/amendments`, TOK.patho, { new_value: value, reason_code: 'data_entry_error' }, { 'if-match': `"${a!.version}"` }), 'amend HB');
+  // C5 02-TRD #32 amendResult: POST /results/{result_id}/amend, body { value_numeric, amendment_reason_code } ('transcription_error' is in lab.amendment_reasons, C5 05-SCHEMA)
+  ok(await api('POST', `/v1/lab/results/${a!.id}/amend`, TOK.patho, { value_numeric: Number(value), amendment_reason_code: 'transcription_error' }, { 'if-match': `"${a!.version}"` }), 'amend HB');
   await poll(async () => { const x = await hb(orderId, TOK.patho); return x?.status === 'approved' && x.version > a!.version ? x : false; }, 'HB amended');
 }
 
@@ -147,15 +147,15 @@ test.describe('SR-T24 journey: library -> results -> draft -> approve -> Regener
     const o = await register();
     await instrumentResult(o.barcode, '13.1');
     // Approve the HB result, then the summary, as fast as the stack allows: C6 first assembly must still find the approved summary.
-    // The ordering is forced by approving the summary in the same poll that first sees the approved result; if C6 assembled first the test fails (08 A4.4).
+    // The ordering is NOT forced by this test: C6 may assemble before the summary is approved (08 A4.4). See CR .orchestra/cr/C14.T24.md.
     await approveResults(o.order_id);
     const draft = await buildDraft(o.order_id);
     await approveSummary(draft.id);
     const report = await findReport(o.order_id);
     const vs = await versions(report.id);
     const first = vs.reduce((m, v) => (v.version_no < m.version_no ? v : m));
-    // If the stack assembled before the summary was approved the first version has no snapshot; the gate requires the seeded pipeline to hold assembly
-    // (LIMS_REPORTING_ASSEMBLY_DELAY_MS >= 10s in the compose profile) so this is deterministic.
+    // If the stack assembled before the summary was approved the first version has no snapshot and this fails. Determinism needs a spec'd way to hold
+    // first assembly in the compose profile — requested in CR .orchestra/cr/C14.T24.md; assertion intentionally not weakened.
     expect(first.smart_summary_id).toBe(draft.id);
   });
 });

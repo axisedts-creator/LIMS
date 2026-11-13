@@ -1,6 +1,7 @@
 // Handler map: one entry per operationId of 02-TRD §5 (core validateManifest checks it against contracts/openapi/inventory.yaml).
 // T-01 stubs: every operation rejects common.internal until its owning task (T-06+) replaces the entry.
 import type { Handler } from '../../../core/module.js';
+import { countHandlers } from './counts.js';
 import { itemHandlers } from './items.js';
 import { lotHandlers } from './lots.js';
 import { masterHandlers } from './masters.js';
@@ -45,12 +46,7 @@ export const handlers: Readonly<Record<string, Handler>> = {
   cancelGoodsReceipt: stub,
   exportGoodsReceiptsCsv: stub,
   ...transferHandlers, // #56-#62 (T-13)
-  listStockCounts: stub,
-  openStockCount: stub,
-  getStockCount: stub,
-  recordStockCountLines: stub,
-  postStockCount: stub,
-  cancelStockCount: stub,
+  ...countHandlers, // #63-#68 (T-14)
   listConsumptionRules: stub,
   createConsumptionRule: stub,
   getConsumptionRule: stub,

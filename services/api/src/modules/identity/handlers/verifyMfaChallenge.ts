@@ -9,7 +9,7 @@ import type { Handler, HandlerContext, HandlerRequest } from '../../../core/modu
 import type { Tx, TxFn, TxInput } from '../../../core/db/tx.js';
 // [CONV] relative import until @lims/shared-ts is a services/api dependency (same as core/errors.ts).
 import { uuidv7 } from '../../../../../../packages/shared-ts/src/uuidv7/index.js';
-import { createHttpGoTrueGateway } from '../gotrue/gateway.http.js';
+import { gotrueGatewayFromEnv } from '../gotrue/gateway.http.js';
 import type { GoTrueGateway, GoTrueTokens } from '../gotrue/gateway.js';
 import { createAuthEventsRepo, type AuthEvent } from '../repository/auth-events.repo.js';
 import { createMfaRepo, type MfaRepo, type SessionRef } from '../repository/mfa.repo.js';
@@ -180,9 +180,7 @@ export const sessionState = (c: MfaCtx) => ({
 
 // ---------- wiring (shared by the three handlers) ----------
 let gateway: GoTrueGateway | undefined;
-export const gw = () => (gateway ??= createHttpGoTrueGateway({
-  url: process.env['LIMS_IDENTITY_GOTRUE_URL'] ?? '', serviceKey: process.env['LIMS_IDENTITY_GOTRUE_SERVICE_KEY'] ?? '',
-}));
+export const gw = () => (gateway ??= gotrueGatewayFromEnv());
 const wiredGotrue: MfaDeps['gotrue'] = {
   mfaChallengeAndVerify: (a, f, c) => gw().mfaChallengeAndVerify(a, f, c),
   mfaEnrollTotp: (a, n) => gw().mfaEnrollTotp(a, n),

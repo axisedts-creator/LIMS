@@ -66,12 +66,12 @@ export async function main(argv: string[], deps: BootstrapDeps & Io): Promise<nu
 
 // Entry point only when executed directly. DB connection from the standard libpq PG* environment of the operator's shell.
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
-  const { createHttpGoTrueGateway } = await import('../gotrue/gateway.http.js');
+  const { gotrueGatewayFromEnv } = await import('../gotrue/gateway.http.js');
   const pg = (await import('pg' as string)).default as { Client: new () => { connect(): Promise<void>; end(): Promise<void>; query: BootstrapDeps['db']['query'] } };
   const client = new pg.Client();
   await client.connect();
   try {
-    const gotrue = createHttpGoTrueGateway({ url: process.env['LIMS_IDENTITY_GOTRUE_URL'] ?? '', serviceKey: process.env['LIMS_IDENTITY_GOTRUE_SERVICE_KEY'] ?? '' });
+    const gotrue = gotrueGatewayFromEnv();
     process.exitCode = await main(process.argv.slice(2), { gotrue, db: client, newId: uuidv7, stdout: process.stdout, stderr: process.stderr });
   } finally { await client.end(); }
 }

@@ -2,7 +2,7 @@
 import { LimsError as ApiLimsError } from '../../../../../api/src/core/errors.js';
 import { LimsError, type ErrorCode } from '../../../../../../packages/shared-ts/src/errors/index.js';
 import { GoTrueError, type GoTrueGateway } from '../../../../../api/src/modules/identity/gotrue/gateway.js';
-import { createHttpGoTrueGateway } from '../../../../../api/src/modules/identity/gotrue/gateway.http.js';
+import { gotrueGatewayFromEnv } from '../../../../../api/src/modules/identity/gotrue/gateway.http.js';
 import type { JobContext, TaskHandler } from '../../../core/manifest.js';
 
 /** [CONV] the GoTrue gateway throws the api LimsError, core/deadletter only knows the contracts one (else 'common.internal'):
@@ -38,9 +38,7 @@ export const permanent = (e: unknown): e is GoTrueError =>
 
 let gateway: GoTrueGateway | undefined;
 /** Lazy: nothing is built at import time. */
-export const gotrue = () => (gateway ??= createHttpGoTrueGateway({
-  url: process.env['LIMS_IDENTITY_GOTRUE_URL'] ?? '', serviceKey: process.env['LIMS_IDENTITY_GOTRUE_SERVICE_KEY'] ?? '',
-}));
+export const gotrue = () => (gateway ??= gotrueGatewayFromEnv());
 
 export const q = async (tx: unknown, sql: string, v: unknown[]) => (await (tx as { query(t: string, v: unknown[]): Promise<{ rows: Row[] }> }).query(sql, v)).rows;
 /** T27 platform task guard: payload {} and no job tenant. */

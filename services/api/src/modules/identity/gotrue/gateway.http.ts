@@ -41,6 +41,13 @@ function toTokens(method: string, b: Record<string, unknown>): GoTrueTokens {
   return { accessToken: access, refreshToken: refresh, expiresAt: exp, sessionId: sid, userId: sub, aal: c['aal'] === 'aal2' ? 'aal2' : 'aal1' };
 }
 
+/** The only reader of the service-key env var (CR-C2-014; CI job identity-service-key-grep). Every runtime caller builds its gateway here. */
+export function gotrueGatewayFromEnv(): GoTrueGateway {
+  return createHttpGoTrueGateway({
+    url: process.env['LIMS_IDENTITY_GOTRUE_URL'] ?? '', serviceKey: process.env['LIMS_IDENTITY_GOTRUE_SERVICE_KEY'] ?? '',
+  });
+}
+
 export function createHttpGoTrueGateway(opts: HttpGoTrueGatewayOptions): GoTrueGateway {
   const base = String(opts.url ?? '').replace(/\/+$/, '');   // validated by config at boot; tolerant here so env-gated suites can collect
   const doFetch = opts.fetch ?? fetch;

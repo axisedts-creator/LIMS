@@ -6,7 +6,7 @@ import { createHmac } from 'node:crypto';
 import { LimsError } from '../../../core/errors.js';
 import type { Handler, HandlerContext, HandlerRequest } from '../../../core/module.js';
 import type { GoTrueGateway } from '../gotrue/gateway.js';
-import { createHttpGoTrueGateway } from '../gotrue/gateway.http.js';
+import { gotrueGatewayFromEnv } from '../gotrue/gateway.http.js';
 import { createAuthEventsRepo } from '../repository/auth-events.repo.js';
 import { createUserService, type Result, type UserCtx } from '../service/user.service.js';
 import { createAuthLimits } from './loginStaff.js';
@@ -21,9 +21,7 @@ const hmacHex = (email: string) => {
 };
 const limits = createAuthLimits(undefined);
 const svc = createUserService({
-  gotrue: { adminCreateUser: (i) => (gw ??= createHttpGoTrueGateway({
-    url: process.env['LIMS_IDENTITY_GOTRUE_URL'] ?? '', serviceKey: process.env['LIMS_IDENTITY_GOTRUE_SERVICE_KEY'] ?? '',
-  })).adminCreateUser(i) },
+  gotrue: { adminCreateUser: (i) => (gw ??= gotrueGatewayFromEnv()).adminCreateUser(i) },
   emailHmac: (e) => Buffer.from(hmacHex(e), 'hex'),
   clearAccountFailures: (e) => limits.clearAccountFailures(hmacHex(e)),
   events: createAuthEventsRepo(),

@@ -4,7 +4,7 @@
 // the e-mail. The link TTL is GoTrue's (D-219). A GoTrue outage is rethrown so the queue retries; a bad payload is skipped.
 import type { TaskHandler } from '../../../core/manifest.js';
 // [CONV] relative import of the api GoTrue seam (same pattern as build_audit_export's shared-ts import)
-import { createHttpGoTrueGateway } from '../../../../../api/src/modules/identity/gotrue/gateway.http.js';
+import { gotrueGatewayFromEnv } from '../../../../../api/src/modules/identity/gotrue/gateway.http.js';
 import type { GoTrueGateway } from '../../../../../api/src/modules/identity/gotrue/gateway.js';
 
 export const SEND_RECOVERY = 'identity.send_recovery';
@@ -42,9 +42,7 @@ export function createSendRecovery(deps: SendRecoveryDeps): TaskHandler {
 const LOGIN_CONTEXT_SQL = `SELECT platform_staff_id, platform_active, membership_count, tenant_id, tenant_status, membership_status, membership_locked
   FROM app.identity_login_context($1::uuid)`;
 let gateway: GoTrueGateway | undefined;
-const gw = () => (gateway ??= createHttpGoTrueGateway({
-  url: process.env['LIMS_IDENTITY_GOTRUE_URL'] ?? '', serviceKey: process.env['LIMS_IDENTITY_GOTRUE_SERVICE_KEY'] ?? '',
-}));
+const gw = () => (gateway ??= gotrueGatewayFromEnv());
 export const sendRecovery: TaskHandler = createSendRecovery({
   gotrue: { adminFindUserByEmail: (e) => gw().adminFindUserByEmail(e), sendRecovery: (e, r) => gw().sendRecovery(e, r) },
   repo: { loginContext: async (tx, sub) => (await (tx as { query(t: string, v: unknown[]): Promise<{ rows: Row[] }> }).query(LOGIN_CONTEXT_SQL, [sub])).rows[0] },

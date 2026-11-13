@@ -4,7 +4,7 @@
 import { LimsError } from '../../../core/errors.js';
 import type { Handler, HandlerContext, HandlerRequest } from '../../../core/module.js';
 import type { TxFn, TxInput } from '../../../core/db/tx.js';
-import { createHttpGoTrueGateway } from '../gotrue/gateway.http.js';
+import { gotrueGatewayFromEnv } from '../gotrue/gateway.http.js';
 import type { GoTrueGateway } from '../gotrue/gateway.js';
 import { createAuthEventsRepo, createAuthRepo } from '../repository/auth-events.repo.js';
 import { createAuthService, type AuthCtx, type AuthDeps, type AuthLimits } from '../service/auth.service.js';
@@ -67,9 +67,7 @@ export function createAuthLimits(rateLimit: LoginHctx['rateLimit'], now: () => n
 // ---------- wiring ----------
 let gateway: GoTrueGateway | undefined;
 const gotrue: Pick<GoTrueGateway, 'signInWithPassword'> = {
-  signInWithPassword: (e, p) => (gateway ??= createHttpGoTrueGateway({
-    url: process.env['LIMS_IDENTITY_GOTRUE_URL'] ?? '', serviceKey: process.env['LIMS_IDENTITY_GOTRUE_SERVICE_KEY'] ?? '',
-  })).signInWithPassword(e, p),
+  signInWithPassword: (e, p) => (gateway ??= gotrueGatewayFromEnv()).signInWithPassword(e, p),
 };
 const repo = createAuthRepo();
 const events = createAuthEventsRepo();

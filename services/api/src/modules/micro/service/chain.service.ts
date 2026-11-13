@@ -5,6 +5,7 @@
 // [CONV] default sort received_at; next_read_due_at sorts NULLS LAST; the cursor is bound to its sort; unknown status/sort value -> common.validation_failed.
 // [CONV] antibiotic_display falls back to the code when the coded-set view has no row (field is required); organism_display is omitted then.
 import { LimsError, type FieldError } from '../../../core/errors.js';
+import { selectPlatingProtocol } from '../domain/selection.js';
 import * as dto from '../mappers/culture.dto.js';
 import * as repo from '../repository/cultures.repo.js';
 
@@ -98,12 +99,14 @@ function testLookup(c: ChainCtx): (testId: string) => Promise<{ code: string; na
   };
 }
 const clip = (s: unknown): string => (typeof s === 'string' && s.length > 0 ? s.slice(0, 200) : dto.NO_NAME);
-/** D-47: ONE core.memberships.list { membershipIds, activeOnly: false }; an id it does not return shows "—". */
+const MEMBER_BATCH = 200;   // 02-TRD.md:317: core.memberships.list takes <= 200 ids per call
+/** D-47: core.memberships.list { membershipIds, activeOnly: false } in slices of <= 200 ids; an id it does not return shows "—". */
 async function memberNames(c: ChainCtx, ids: unknown[]): Promise<(id: unknown) => string> {
   const want = [...new Set(ids.filter((x): x is string => typeof x === 'string'))];
+  const wanted = new Set(want);
   const names = new Map<string, string>();
-  if (want.length > 0 && c.core?.memberships) {
-    for (const m of await c.core.memberships.list(c, { membershipIds: want, activeOnly: false })) if (want.includes(m.membershipId)) names.set(m.membershipId, clip(m.displayName));
+  for (let i = 0; c.core?.memberships && i < want.length; i += MEMBER_BATCH) {
+    for (const m of await c.core.memberships.list(c, { membershipIds: want.slice(i, i + MEMBER_BATCH), activeOnly: false })) if (wanted.has(m.membershipId)) names.set(m.membershipId, clip(m.displayName));
   }
   return (id) => (typeof id === 'string' ? names.get(id) ?? dto.NO_NAME : dto.NO_NAME);
 }
@@ -198,6 +201,13 @@ export async function getCulture(c: ChainCtx, input: { params: unknown }): Promi
 
   const corrected = new Set(observations.map((o) => o['corrects_observation_id']).filter((x) => x != null));
   const out: Obj = dto.cultureSummaryDto(row, test, nowOf(c));
+  if (row['status'] === 'awaiting_setup') {   // 02-TRD.md:306: suggested_protocol only in awaiting_setup; selection per §4.2; omitted when none matches
+    const code = selectPlatingProtocol((await repo.activeProtocolKeys(tx, tenantId)).map((k) => ({
+      protocol_code: k['protocol_code'], test_id: k['test_id'] ?? null, specimen_type_code: k['specimen_type_code'] ?? null, is_active: k['is_active'] !== false })),
+    { test_id: row['test_id'], specimen_type_code: row['specimen_type_code'] });
+    const p = code === null ? undefined : await repo.currentProtocolByCode(tx, { tenantId, code });
+    if (p) out['suggested_protocol'] = { id: p['id'], code: p['code'], version_no: p['version_no'], display: p['display'] };
+  }
   if (protocol) out['protocol'] = dto.protocolBlock(protocol);
   out['plates'] = plates.map(dto.plateDto);
   out['observations'] = observations.map((o) => dto.observationDto(o, member(o['recorded_by_membership_id']), corrected.has(o['id'])));

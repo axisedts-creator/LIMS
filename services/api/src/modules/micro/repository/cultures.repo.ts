@@ -191,6 +191,18 @@ export async function astPanels(tx: Q, tenantId: string, ids: string[]): Promise
   return (await tx.query('SELECT id, code, version_no, display FROM micro.ast_panels WHERE tenant_id = $1 AND id = ANY($2::uuid[])', [tenantId, ids])).rows;
 }
 
+/** Active plating protocol keys of the tenant (02-TRD §4.2 selection input). */
+export async function activeProtocolKeys(tx: Q, tenantId: string): Promise<Row[]> {
+  return (await tx.query('SELECT protocol_code, test_id, specimen_type_code, is_active FROM micro.plating_protocol_keys WHERE tenant_id = $1 AND is_active ORDER BY protocol_code, id', [tenantId])).rows;
+}
+
+/** The current (active, not superseded) version of a protocol code. */
+export async function currentProtocolByCode(tx: Q, a: { tenantId: string; code: string }): Promise<Row | undefined> {
+  const { rows } = await tx.query(
+    'SELECT id, code, version_no, display FROM micro.plating_protocols WHERE tenant_id = $1 AND code = $2 AND is_active AND superseded_at IS NULL ORDER BY version_no DESC LIMIT 1', [a.tenantId, a.code]);
+  return rows[0];
+}
+
 export async function getProtocol(tx: Q, a: { tenantId: string; id: string }): Promise<Row | undefined> {
   const { rows } = await tx.query(
     'SELECT id, code, version_no, display, read_schedule_hours, final_no_growth_hours, requires_gram_stain FROM micro.plating_protocols WHERE tenant_id = $1 AND id = $2', [a.tenantId, a.id]);

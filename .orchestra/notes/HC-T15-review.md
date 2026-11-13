@@ -1,0 +1,5 @@
+APPROVE
+- Diff f47d91a5..HEAD: only list.test.ts:142-152 revised exactly per arbiter ruling (HC-T15-ruling.md): walks filtered to the test's own 5 seeded ids, each present once, walk3==walk3, limit 2==limit 200. Assertion still fails if keyset order or no-gap/no-dup breaks. No impl change; notes updated. Owned paths only.
+- Context checked (fe1e799a impl, in base): names verbatim (listPhleboDevices/requestDeviceWipe, homecollection.device.manage, wipe_reasons, common.version_conflict/not_found/precondition_required/invalid_cursor); assertRole gate before any validation (auth.forbidden / auth.mfa_required at aal1, tested); tenant_id in every query + RLS cross-tenant 404 tested; contracts/openapi/homecollection.yaml:1906 x-idempotency: required for H17 (pipeline-owned); no PHI/staff data logged (only error code), REQ-SEC-081 test present; no secrets.
+- done_when: wipe command stored (status wipe_requested) and visible to H16; A2 snapshot emission is HC-T11 (plan row also cites US-13-5), noted in HC-T15-impl.md.
+- Not run by reviewer: HC-T15.pg.sh (writer reports 67/67).

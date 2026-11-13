@@ -11,6 +11,7 @@ import { HOMECOLLECTION_PERMISSIONS } from './permissions.js';
 import { listMutationsByVisit } from './repository/mutations.repo.js';
 import { getSettings } from './repository/settings.repo.js';
 import { insertVisitAssignment } from './repository/visitAssignments.repo.js';
+import { enqueueRefreshVisitSpecimens } from './repository/visitSpecimens.repo.js';
 import { getVisitFlagById, insertVisitFlag, listVisitFlagsByVisit, updateVisitFlag } from './repository/visitFlags.repo.js';
 import { insertVisitTransition } from './repository/visitTransitions.repo.js';
 import { insertVisit, updateVisit } from './repository/visits.repo.js';
@@ -100,6 +101,7 @@ export async function assignHomeVisit(hctx: unknown, params: unknown, headers: u
   await insertVisitAssignment(ctx.tx, ctx.tenantId, { id: uuidv7(), centre_id: visit['centre_id'], visit_id: visit['id'], route_id: placed.route['id'], membership_id: b.membershipId,
     route_date: b.routeDate, action: visit['status'] === 'assigned' ? 'reassign' : 'assign' });
   await transition(ctx, visit, visit['status'], 'assigned');
+  await enqueueRefreshVisitSpecimens(ctx.tx, ctx.tenantId, visit['id']);                   // V5 / 02-TRD §8: LabPort specimen refresh, same tx (a rolled-back assign leaves no job)
 
   if ((await getSettings(ctx.tx, ctx.tenantId))?.['notify_phlebotomist_on_assign'] === true) {   // notify_phlebotomist_on_assign (D-129: staff only); P-44: savepoint, a failure never fails the assign
     try {

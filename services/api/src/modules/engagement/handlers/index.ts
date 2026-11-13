@@ -4,6 +4,7 @@ import { LimsError } from '../../../core/errors.js';
 import type { Handler } from '../../../core/module.js';
 import { authHandlers } from './auth.handlers.js';
 import { bookableHandlers } from './bookable.handlers.js';
+import { bookingHandlers } from './booking.handlers.js';
 import { displayHandlers } from './display.handlers.js';
 import { queueHandlers } from './queue.handlers.js';
 import { reminderHandlers } from './reminder.handlers.js';
@@ -43,4 +44,5 @@ export const handlers: Readonly<Record<(typeof OPERATION_IDS)[number], Handler>>
   ...slotHandlers, // T-B2: S6-S11
   ...bookableHandlers, // T-B1: S12-S14
   ...authHandlers, // T-A2: E1, E2
+  ...bookingHandlers, // T-B3: S1-S5
 });

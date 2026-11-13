@@ -61,7 +61,7 @@ async function findAssay(c: AnatomicCtx, assayCode: string): Promise<Row | undef
     if (hit || rows.length < MAX) return hit;
   }
 }
-async function loadAssay(c: AnatomicCtx, assayCode: string): Promise<AssayInfo | undefined> {
+export async function loadAssay(c: AnatomicCtx, assayCode: string): Promise<AssayInfo | undefined> {
   const row = await findAssay(c, assayCode);
   if (!row) return undefined;
   const targets: AssayInfo['targets'] = new Map();

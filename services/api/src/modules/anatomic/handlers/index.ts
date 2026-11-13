@@ -4,7 +4,9 @@
 // Stub: LIMS_CORE_ENV=dev (and NODE_ENV != production) -> 501 with no body (never echoes request input); anything else -> common.internal (fail closed).
 import type { Handler } from '../../../core/module.js';
 import { LimsError } from '../../../core/errors.js';
-import { accessionAnatomicCase, addAnatomicPart, listAnatomicAssignees, updateAnatomicCaseDetails, updateAnatomicPart } from './case.handlers.js';
+import {
+  accessionAnatomicCase, addAnatomicPart, getAnatomicCase, listAnatomicAssignees, listAnatomicCases, lookupAnatomicObject, updateAnatomicCaseDetails, updateAnatomicPart,
+} from './case.handlers.js';
 import {
   createAnatomicAssay, createAnatomicStain, createAnatomicTextTemplate, getAnatomicSettings, listAnatomicAssays, listAnatomicCodedValues, listAnatomicStains, listAnatomicTestProfiles,
   listAnatomicTextTemplates, updateAnatomicAssay, updateAnatomicSettings, updateAnatomicStain, updateAnatomicTextTemplate, upsertAnatomicCodedValue, upsertAnatomicTestProfile,
@@ -43,6 +45,7 @@ const stub = (operationId: string): Handler => async () => {
 
 // later tasks register their real handlers here
 const implemented: Partial<Record<AnatomicOperationId, Handler>> = {
+  listAnatomicCases, lookupAnatomicObject, getAnatomicCase, // C11 T-07 (A1–A3)
   accessionAnatomicCase, updateAnatomicCaseDetails, addAnatomicPart, updateAnatomicPart, listAnatomicAssignees, // C11 T-06
   getAnatomicSettings, updateAnatomicSettings, listAnatomicStains, createAnatomicStain, updateAnatomicStain, listAnatomicTestProfiles, upsertAnatomicTestProfile, // C11 T-11 (K1–K7)
   listAnatomicAssays, createAnatomicAssay, updateAnatomicAssay, listAnatomicCodedValues, upsertAnatomicCodedValue, // K8–K12

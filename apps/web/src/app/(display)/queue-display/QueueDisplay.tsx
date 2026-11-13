@@ -15,7 +15,6 @@ type Phase = 'connecting' | 'live' | 'stale' | 'unpaired';
 const POLL_MS = 5_000;
 const MAX_FAILURES = 3;
 const NEW_FLASH_MS = 3_000;
-const hhmm = (iso: string) => new Date(iso).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
 export function QueueDisplay({ initial }: { initial: 'connecting' | 'unpaired' }) {
   const [phase, setPhase] = useState<Phase>(initial);
@@ -46,7 +45,12 @@ export function QueueDisplay({ initial }: { initial: 'connecting' | 'unpaired' }
       try {
         const headers: Record<string, string> = { accept: 'application/json' };
         if (etag.current) headers['If-None-Match'] = etag.current;
-        const res = await fetch('/queue-display/api/board', { headers, cache: 'no-store', credentials: 'same-origin', signal: ctl.signal });
+        const res = await fetch('/queue-display/api/board', {
+          headers,
+          cache: 'no-store',
+          credentials: 'same-origin',
+          signal: ctl.signal,
+        });
         if (stopped) return;
         if (res.status === 401) {
           setRevoked(true);
@@ -103,22 +107,21 @@ export function QueueDisplay({ initial }: { initial: 'connecting' | 'unpaired' }
       </section>
     );
   }
+  // LD-145: the kit QueueBoard owns the stale banner (one live region, no duplicate).
   return (
-    <>
-      {phase === 'stale' && staleSince && (
-        <p role="status" className="lims-queue-display-stale">
-          Connection lost — showing last update at {hhmm(staleSince)}
-        </p>
-      )}
-      <QueueBoard
-        title={board.centre_display_name}
-        nowCalling={board.now_calling.map((c) => ({ token: c.token_label, counter: c.counter_display_name, queue: c.queue_display_name, isNew: fresh.has(c.token_label) }))}
-        waiting={board.waiting.map((w) => ({ queue: w.queue_display_name, count: w.waiting_count }))}
-        serverTime={board.generated_at}
-        connection={phase === 'stale' ? 'stale' : 'live'}
-        {...(phase === 'stale' && staleSince ? { staleSince } : {})}
-        soundEnabled={false}
-      />
-    </>
+    <QueueBoard
+      title={board.centre_display_name}
+      nowCalling={board.now_calling.map((c) => ({
+        token: c.token_label,
+        counter: c.counter_display_name,
+        queue: c.queue_display_name,
+        isNew: fresh.has(c.token_label),
+      }))}
+      waiting={board.waiting.map((w) => ({ queue: w.queue_display_name, count: w.waiting_count }))}
+      serverTime={board.generated_at}
+      connection={phase === 'stale' ? 'stale' : 'live'}
+      {...(phase === 'stale' && staleSince ? { staleSince } : {})}
+      soundEnabled={false}
+    />
   );
 }

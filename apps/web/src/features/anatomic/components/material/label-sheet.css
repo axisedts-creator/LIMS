@@ -1,0 +1,79 @@
+/* 04-UI-UX §4.3 label sheet. One label per page at the default 50 x 25 mm (same as the C5 default), whatever the screen width.
+   LD-140 (2026-11-13): no hex colours, no pixel radii; the barcode symbol carries its own black-on-white (LD-107). */
+@page {
+  size: 50mm 25mm;
+  margin: 0;
+}
+
+.lims-label-sheet {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.lims-label-item {
+  box-sizing: border-box;
+  width: 50mm;
+  height: 25mm;
+  padding: 1mm 2mm;
+  overflow: hidden;
+  break-inside: avoid;
+  page-break-inside: avoid;
+  border: 1px dashed currentcolor;
+  background: Canvas;
+  color: CanvasText;
+}
+
+.lims-label-line1 {
+  margin: 0;
+  font-family: var(--lims-font-mono, ui-monospace, monospace);
+  font-size: 4.5mm;
+  font-weight: 700;
+  line-height: 1.1;
+  white-space: nowrap;
+}
+
+.lims-label-line2 {
+  margin: 0;
+  font-size: 3mm;
+  line-height: 1.1;
+  white-space: nowrap;
+}
+
+.lims-label-symbol {
+  display: block;
+  margin-top: 1mm;
+}
+
+@media print {
+  [data-print-hide],
+  header,
+  nav,
+  aside,
+  .lims-shell-top,
+  .lims-shell-nav,
+  .lims-shell-banner,
+  .lims-shell-help,
+  .lims-sidenav,
+  .lims-topbar {
+    display: none !important;
+  }
+
+  .lims-shell,
+  .lims-shell-body,
+  .lims-shell-main {
+    display: block;
+    margin: 0;
+    padding: 0;
+  }
+
+  .lims-label-sheet {
+    display: block;
+  }
+
+  .lims-label-item {
+    border: 0;
+    break-after: page;
+    page-break-after: always;
+  }
+}

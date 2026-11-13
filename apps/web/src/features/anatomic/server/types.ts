@@ -33,12 +33,39 @@ export interface CaseItem {
   case_item_id: string; order_item_id: string; test_id: string; test_name: string; role: 'primary' | 'addon'; is_active: boolean;
   lab_status?: 'pending' | 'resulted' | 'verified' | 'approved' | 'cancelled';
 }
+export type LocationStatus = 'in_lab' | 'stored' | 'sent_out' | 'discarded';
+export interface Block { id: string; part_id: string; label: string; seq: number; note?: string; location_status: LocationStatus; location_text?: string; slide_count: number; version: number }
+/** listAnatomicBlocks row (BlockRow): a Block plus its case. */
+export interface BlockRow extends Block { case_id: string; accession_no: string; last_movement_at?: string }
+export interface Slide {
+  id: string; label: string; block_id?: string; part_id: string; stain_code: string; stain_display: string; status: 'pending_stain' | 'ready'; location_status: LocationStatus;
+  location_text?: string; stain_order_id?: string; adequacy_code?: string; finding_text?: string; include_in_report: boolean; version: number;
+}
+export type StainOrderStatus = 'requested' | 'in_progress' | 'completed' | 'cancelled';
+export interface StainOrder {
+  id: string; stain_code: string; stain_display: string; stain_kind: 'special' | 'ihc'; block_id?: string; block_label?: string; part_id?: string; status: StainOrderStatus; note?: string;
+  reagent_lot?: string; addon_order_item_id?: string; requested_at: string; requested_by_display_name: string; completed_at?: string; version: number;
+}
+export type ImageKind = 'gross' | 'microscopy' | 'other';
+export interface CaseImage {
+  id: string; kind: ImageKind; part_id?: string; caption?: string; state: 'processing' | 'ready' | 'quarantined'; mime_type?: 'image/png' | 'image/jpeg'; width_px?: number; height_px?: number;
+  created_at: string; is_active: boolean; version: number;
+}
+export type MovementKind = 'stored' | 'retrieved' | 'sent_out' | 'returned' | 'discarded';
+export type MovementReason = 'second_opinion' | 'external_stain' | 'consultation' | 'retention_expired' | 'other';
+export interface Movement { id: string; movement: MovementKind; location_text?: string; destination_text?: string; reason_code?: MovementReason; note?: string; at: string; by_display_name: string }
+export interface MovementInput { object_kind: 'block' | 'slide'; object_ids: string[]; movement: MovementKind; location_text?: string; destination_text?: string; reason_code?: MovementReason; note?: string }
+export interface MovementOutcome { id: string; outcome: 'recorded' | 'invalid_state' | 'not_found' }
+export interface LabelItem { object_kind: 'block' | 'slide'; object_id: string; label: string; line2: string }
+export interface Stain { id: string; code: string; display: string; kind: 'routine' | 'special' | 'ihc'; is_active: boolean }
+
 export interface CaseDetail extends CaseSummary {
   clinical_history_text?: string; current_version_no: number; parts: Part[]; items: CaseItem[]; molecular_rev: number;
+  blocks: Block[]; slides: Slide[]; stain_orders: StainOrder[]; images: CaseImage[];
   open_draft?: { kind: 'initial' | 'revision' | 'amendment'; version: number; updated_at: string };
   transitions: { from_status?: CaseStatus; to_status: CaseStatus; at: string; by_display_name: string }[];
   allowed_actions: string[];
-  // Blocks, slides, stains, images, molecular results and addenda belong to the later tabs (T-20+); not typed here.
+  // Molecular results and addenda belong to the later tabs (T-21+); not typed here.
 }
 export interface TextTemplate { id: string; short_code: string; section: string; title: string; body: string; is_active: boolean; version: number }
 export interface Assignee { membership_id: string; display_name: string }
@@ -50,3 +77,11 @@ export interface AccessionInput { clinical_history_text?: string; assigned_patho
 export interface PartInput { site_text: string; description_text?: string }
 export interface GrossInput { gross_text: string; pieces_count?: number; dimensions_mm?: string[]; weight_g?: string; is_complete: boolean }
 export interface CancelInput { reason_code: string; reason_text?: string }
+export interface AddBlocksInput { part_id: string; count: number; note?: string }
+/** Exactly one of block_id / part_id (API rule). */
+export interface AddSlidesInput { block_id?: string; part_id?: string; stain_code: string; count: number }
+export interface AssessmentInput { adequacy_code?: string; finding_text?: string; include_in_report: boolean }
+export interface OrderStainInput { stain_code: string; block_id?: string; part_id?: string; note?: string; addon_order_item_id?: string }
+export interface CompleteStainInput { slide_count: number; reagent_lot?: string; performed_at?: string }
+export interface ImageMetaInput { kind: ImageKind; part_id?: string; caption?: string }
+export interface BulkResult { id: string; outcome: string }

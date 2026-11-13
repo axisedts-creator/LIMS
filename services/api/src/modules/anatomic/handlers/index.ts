@@ -16,6 +16,8 @@ import {
   addAnatomicBatchMembers, closeAnatomicBatch, createAnatomicBatch, getAnatomicBatch, listAnatomicBatches, removeAnatomicBatchMembers, saveAnatomicMolecularResults,
 } from './molecular.handlers.js';
 
+import { deactivateAnatomicImage, getAnatomicImageContent, updateAnatomicImage, uploadAnatomicImage } from './image.handlers.js';
+
 const OPERATION_IDS = [
   'listAnatomicCases', 'lookupAnatomicObject', 'getAnatomicCase', 'accessionAnatomicCase',
   'updateAnatomicCaseDetails', 'addAnatomicPart', 'updateAnatomicPart', 'saveAnatomicGross',
@@ -53,6 +55,7 @@ const implemented: Partial<Record<AnatomicOperationId, Handler>> = {
   listAnatomicAssays, createAnatomicAssay, updateAnatomicAssay, listAnatomicCodedValues, upsertAnatomicCodedValue, // K8–K12
   listAnatomicTextTemplates, createAnatomicTextTemplate, updateAnatomicTextTemplate, // K20–K22
   saveAnatomicMolecularResults, listAnatomicBatches, createAnatomicBatch, getAnatomicBatch, addAnatomicBatchMembers, removeAnatomicBatchMembers, closeAnatomicBatch, // C11 T-16 (Q1–Q7)
+  uploadAnatomicImage, getAnatomicImageContent, updateAnatomicImage, deactivateAnatomicImage, // C11 T-10 (I1–I4)
   // markAnatomicCaseReady: the C11 T-08 handler (gross.handlers) covers every case kind incl. molecular (C4: >= 1 active molecular result); the molecular-only variant of T-16 stays in molecular.handlers.ts and is not registered
 };
 

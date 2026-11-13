@@ -17,6 +17,10 @@ import {
   listAnatomicBlockMovements, listAnatomicSlideMovements, markAnatomicSlidesReady, recordAnatomicMovements, startAnatomicStainOrder,
 } from './material.handlers.js';
 import {
+  createAnatomicSynopticTemplate, createAnatomicSynopticTemplateVersion, getAnatomicSynopticTemplate, listAnatomicSynopticTemplates, publishAnatomicSynopticTemplate,
+  retireAnatomicSynopticTemplate, updateAnatomicSynopticTemplate,
+} from './synoptic.handlers.js';
+import {
   addAnatomicBatchMembers, closeAnatomicBatch, createAnatomicBatch, getAnatomicBatch, listAnatomicBatches, removeAnatomicBatchMembers, saveAnatomicMolecularResults,
 } from './molecular.handlers.js';
 
@@ -58,6 +62,8 @@ const implemented: Partial<Record<AnatomicOperationId, Handler>> = {
   getAnatomicSettings, updateAnatomicSettings, listAnatomicStains, createAnatomicStain, updateAnatomicStain, listAnatomicTestProfiles, upsertAnatomicTestProfile, // C11 T-11 (K1–K7)
   listAnatomicAssays, createAnatomicAssay, updateAnatomicAssay, listAnatomicCodedValues, upsertAnatomicCodedValue, // K8–K12
   listAnatomicTextTemplates, createAnatomicTextTemplate, updateAnatomicTextTemplate, // K20–K22
+  listAnatomicSynopticTemplates, createAnatomicSynopticTemplate, getAnatomicSynopticTemplate, updateAnatomicSynopticTemplate, // C11 T-12 (K13–K19)
+  publishAnatomicSynopticTemplate, retireAnatomicSynopticTemplate, createAnatomicSynopticTemplateVersion,
   saveAnatomicMolecularResults, listAnatomicBatches, createAnatomicBatch, getAnatomicBatch, addAnatomicBatchMembers, removeAnatomicBatchMembers, closeAnatomicBatch, // C11 T-16 (Q1–Q7)
   // markAnatomicCaseReady: the C11 T-08 handler (gross.handlers) covers every case kind incl. molecular (C4: >= 1 active molecular result); the molecular-only variant of T-16 stays in molecular.handlers.ts and is not registered
 };

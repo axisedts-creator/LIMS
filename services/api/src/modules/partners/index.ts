@@ -6,6 +6,7 @@ import { join } from 'node:path';
 import { LimsError } from '../../core/errors.js';
 import { loadSpec, operationIds, REPO_ROOT, type Handler, type ModuleManifest } from '../../core/module.js';
 import { loadPartnersConfig } from './config.js';
+import { getPartnerContext } from './handlers/getPartnerContext.js';
 import { PARTNERS_SYSTEM_PERMISSIONS } from './permissions.js';
 
 /** Read at import, so a bad LIMS_PARTNERS_* value fails API boot. */
@@ -18,7 +19,7 @@ const stub = (operationId: string): Handler => async () => {
   throw new LimsError('common.internal', `partners ${operationId} not implemented`);
 };
 
-const implemented: Readonly<Record<string, Handler>> = {};
+const implemented: Readonly<Record<string, Handler>> = { getPartnerContext }; // T03
 
 export const manifest: ModuleManifest = Object.freeze({
   name: 'partners',

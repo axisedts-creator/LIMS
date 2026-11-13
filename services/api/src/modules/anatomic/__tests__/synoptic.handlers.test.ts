@@ -22,7 +22,7 @@
 //   retire of a non-published → 'anatomic.template_not_published' (409); duplicate template_key on K14 → 'common.validation_failed' at /template_key (TRD line "K4/K9/K14/K21 duplicate codes"); other tenant's id → 'common.not_found'.
 // Fails now: K13–K19 are 501 / common.internal stubs.
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { LimsError, isLimsError } from '../../../core/errors.js';
+import { LimsError, isLimsError, toProblem } from '../../../core/errors.js';
 
 type Row = Record<string, any>;
 const S = vi.hoisted(() => ({
@@ -270,6 +270,15 @@ describe('AC-08.2 K14 / K16 invalid definitions → 422 anatomic.template_invali
     const e = await rejects(call('createAnatomicSynopticTemplate', { body: { template_key: 'syn_bad', definition: d } }));
     expect(isLimsError(e, 'anatomic.template_invalid')).toBe(true); expect(e.errors?.length).toBeGreaterThan(0); // vacuous otherwise: a stub error has no marker either
     expect(JSON.stringify({ d: e.detail, e: e.errors, m: e.message })).not.toContain('SYNTHETIC-LABEL-MARKER');
+  });
+  // Review item 1: wire-level 422 must carry errors[] paths (AC-08.2, TRD §5.6, contracts/errors.yaml:212). core/errors.ts:56 (C0-owned) only emits errors[]
+  // for common.validation_failed today. it.fails = expected-red until C0 lands the CR (.orchestra/cr/C11.T-12.md); remove `.fails` once C0 changes toProblem.
+  it.fails('wire Problem for K14 invalid definition carries errors[].path (needs C0 change to toProblem; see CR C11.T-12)', async () => {
+    seed();
+    const e = await rejects(call('createAnatomicSynopticTemplate', { body: { template_key: 'syn_bad', definition: noOptions() } }));
+    const p = toProblem(e, '/v1/anatomic/synoptic-templates', '00000000-0000-7000-8000-000000000000');
+    expect(p.status).toBe(422); expect(p.code).toBe('anatomic.template_invalid');
+    expect(p.errors?.some((f) => f.path === '/definition/sections/0/fields/3/options')).toBe(true);
   });
 });
 

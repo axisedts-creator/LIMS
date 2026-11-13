@@ -84,13 +84,13 @@ const seed = (): Record<string, Row[]> => ({
   slot_occupancy: [
     occ(O_A, C1, T1, S('01:15'), 3), occ(O_B, C1, T1, S('01:30'), 2), occ(O_C, C1, T1, S('01:45'), 1), occ(O_D, C1, T1, S('02:00'), 1),
     occ(O_PAST, C1, T1, '2026-11-09T01:15:00.000Z', 3),                                                                                                         // past Monday: never counted
-    occ(O_H, C1, T2, S('01:30'), 1, { booking_kind: 'home_collection', slot_end: S('02:00'), capacity: 2 }), occ(O_C2, C2, T3, S('01:30'), 1),
+    occ(O_H, C1, T2, S('01:15'), 1, { booking_kind: 'home_collection', slot_end: S('01:45'), capacity: 2 }), occ(O_C2, C2, T3, S('01:30'), 1),
   ],
   bookings: [
     bk(1, C1, O_A, S('01:15')), bk(2, C1, O_A, S('01:15')), bk(10, C1, O_A, S('01:15')), bk(3, C1, O_A, S('01:15'), { status: 'cancelled' }),
     bk(4, C1, O_B, S('01:30')), bk(11, C1, O_B, S('01:30')), bk(5, C1, O_C, S('01:45')), bk(9, C1, O_D, S('02:00')),
     bk(6, C1, O_PAST, '2026-11-09T01:15:00.000Z'),
-    bk(8, C1, O_H, S('01:30'), { booking_kind: 'home_collection', slot_end: S('02:00') }), bk(7, C2, O_C2, S('01:30')),
+    bk(8, C1, O_H, S('01:15'), { booking_kind: 'home_collection', slot_end: S('01:45') }), bk(7, C2, O_C2, S('01:30')),
   ],
 });
 
@@ -425,7 +425,7 @@ describe('S6 getSlotAvailability (staff): Asia/Kathmandu timezone fixture', () =
   it('kind filter: home_collection 07-11 in 30-minute slots = 8 slots of capacity 2; inactive templates and other centres/tenants contribute nothing (no 14:00-16:00 slots)', async () => {
     const hc = (await run('getSlotAvailability', q({ booking_kind: 'home_collection' }), FRONT_DESK_C1)).out.body.data;
     expect(hc).toHaveLength(8); expect(hc.every((x: any) => x.capacity === 2 && x.booking_kind === 'home_collection')).toBe(true);
-    expect(hc.find((x: any) => x.slot_start === S('01:30'))).toMatchObject({ booked: 1, remaining: 1 });
+    expect(hc.find((x: any) => x.slot_start === S('01:15'))).toMatchObject({ booked: 1, remaining: 1 });
     const cv = (await run('getSlotAvailability', q(), FRONT_DESK_C1)).out.body.data;
     expect(cv.some((x: any) => x.slot_start >= S('08:15') && x.slot_start < S('10:15'))).toBe(false); // T_OFF 14:00-16:00 NPT would be 08:15Z-10:15Z
     expect(cv.every((x: any) => x.centre_id === C1)).toBe(true);

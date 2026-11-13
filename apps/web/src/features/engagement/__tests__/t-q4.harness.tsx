@@ -67,9 +67,9 @@ export function consoleActions(over: Record<string, unknown> = {}) {
   };
 }
 export const setupActions = (over: Record<string, unknown> = {}) => ({
-  createQueue: vi.fn(async () => {}), updateQueue: vi.fn(async () => {}),
-  createCounter: vi.fn(async () => {}), updateCounter: vi.fn(async () => {}),
-  pairDisplay: vi.fn(async () => {}), revokeDisplay: vi.fn(async () => {}), ...over,
+  createQueue: vi.fn(async (_body: unknown) => {}), updateQueue: vi.fn(async (_body: unknown) => {}),
+  createCounter: vi.fn(async (_body: unknown) => {}), updateCounter: vi.fn(async (_body: unknown) => {}),
+  pairDisplay: vi.fn(async (_body: unknown) => {}), revokeDisplay: vi.fn(async (_body: unknown) => {}), ...over,
 });
 
 export const loadConsole = async () => ((await import(/* @vite-ignore */ '../components/QueueConsole')) as { QueueConsole: (p: any) => any }).QueueConsole;

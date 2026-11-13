@@ -75,7 +75,8 @@ describe('QueueBoard', () => {
   it('stale shows the last-update time derived from staleSince', () => {
     render(<QueueBoard {...base} connection="stale" staleSince="2026-11-13T09:05:00Z" />);
     const banner = screen.getByRole('status');
-    expect(banner.textContent).toMatch(/\d{1,2}:05/);
+    // 09:05Z in Asia/Kathmandu (UTC+05:45) per 02-CONVENTIONS.md:438 / :1164 -> 02:50 PM
+    expect(banner.textContent).toMatch(/\b(02:50\s?PM|14:50)\b/);
   });
 
   it('live shows no stale banner', () => {

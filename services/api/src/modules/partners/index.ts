@@ -14,6 +14,7 @@ import { listPartnerPriceList } from './handlers/listPartnerPriceList.js';
 import { listPartnerStatements } from './handlers/listPartnerStatements.js';
 import { listPartners } from './handlers/listPartners.js';
 import * as partnerUserHandlers from './handlers/partnerUsers.js';
+import * as pickupHandlers from './handlers/pickups.js';
 import * as referrerHandlers from './handlers/referrers.js';
 import { reactivatePartner } from './handlers/reactivatePartner.js';
 import { resyncPartnerProjections } from './handlers/resyncPartnerProjections.js';
@@ -37,6 +38,7 @@ const implemented: Readonly<Record<string, Handler>> = {
   listPartners, createPartner, getPartner, updatePartner, suspendPartner, reactivatePartner, resyncPartnerProjections, // T07 SA1–SA7
   listPartnerPriceList, listPartnerStatements, getPartnerStatement, // T17 P1, S1, S2
   ...referrerHandlers, // T11 F1–F5, SR1–SR3
+  ...pickupHandlers, // T15 K1–K4, SP1–SP4
 };
 
 export const manifest: ModuleManifest = Object.freeze({

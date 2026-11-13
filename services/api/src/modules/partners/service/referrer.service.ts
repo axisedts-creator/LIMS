@@ -140,7 +140,7 @@ async function toMappingDtos(ctx: HandlerContext, rows: Row[], known: Map<string
 }
 
 // ---------------------------------------------------------------- lists
-function listParams(q: unknown, allowed: readonly string[]): { query: Obj; limit: number; offset: number } {
+export function listParams(q: unknown, allowed: readonly string[]): { query: Obj; limit: number; offset: number } {
   const query = isObj(q) ? q : {};
   for (const k of Object.keys(query)) if (!allowed.includes(k)) throw bad(`/${k}`);
   let limit = 50;
@@ -152,7 +152,7 @@ function listParams(q: unknown, allowed: readonly string[]): { query: Obj; limit
   const offset = query['cursor'] === undefined ? 0 : decodeCursor(query['cursor']); // ponytail: offset cursor, keyset if a partner ever has thousands of referrers
   return { query, limit, offset };
 }
-const page = (limit: number, offset: number, n: number) => ({ limit, ...(n > limit ? { next_cursor: encodeCursor(offset + limit) } : {}) });
+export const page = (limit: number, offset: number, n: number) => ({ limit, ...(n > limit ? { next_cursor: encodeCursor(offset + limit) } : {}) });
 
 /** F1 */
 export async function listReferrers(req: HandlerRequest, ctx: HandlerContext): Promise<HandlerResult> {

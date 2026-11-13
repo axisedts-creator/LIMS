@@ -16,17 +16,21 @@ export async function insertBatch(tx: Q, row: Row): Promise<Row> {
   return rows[0] as Row;
 }
 
-export async function getBatch(tx: Q, i: { tenantId: string; id: string }): Promise<Row | undefined> {
-  const { rows } = await tx.query(`SELECT * FROM anatomic.batches WHERE tenant_id = $1 AND id = $2`, [i.tenantId, i.id]);
+/** forUpdate: take the batch row lock (serialises member changes against close, Q5/Q6/Q7). */
+export async function getBatch(tx: Q, i: { tenantId: string; id: string; forUpdate?: boolean }): Promise<Row | undefined> {
+  const sql = i.forUpdate
+    ? `SELECT * FROM anatomic.batches WHERE tenant_id = $1 AND id = $2 FOR UPDATE`
+    : `SELECT * FROM anatomic.batches WHERE tenant_id = $1 AND id = $2`;
+  const { rows } = await tx.query(sql, [i.tenantId, i.id]);
   return rows[0];
 }
 
-export async function listBatches(tx: Q, i: { tenantId: string; status?: string; limit?: number; offset?: number }): Promise<Row[]> {
+export async function listBatches(tx: Q, i: { tenantId: string; status?: string; assayId?: string; limit?: number; offset?: number }): Promise<Row[]> {
   const p = page(i);
   const { rows } = await tx.query(
-    `SELECT * FROM anatomic.batches WHERE tenant_id = $1 AND ($2::text IS NULL OR status = $2)
+    `SELECT * FROM anatomic.batches WHERE tenant_id = $1 AND ($2::text IS NULL OR status = $2) AND ($5::uuid IS NULL OR assay_id = $5)
      ORDER BY created_at DESC, id LIMIT $3 OFFSET $4`,
-    [i.tenantId, i.status ?? null, p.limit, p.offset]);
+    [i.tenantId, i.status ?? null, p.limit, p.offset, i.assayId ?? null]);
   return rows;
 }
 

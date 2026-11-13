@@ -117,7 +117,7 @@ export async function listInbound(req: Req, ctx: HandlerContext): Promise<Handle
   // D-104 filters: lines first, then manifests by id (single-table statements)
   // ponytail: reads every failed / missing line id of the visible centres; a flag column on manifests if the inbox grows past a few thousand such lines
   const failed = hasFailed === undefined ? undefined : await manifestIdsWith(s, "state = 'conversion_failed'");
-  const missing = hasMissing === undefined ? undefined : await manifestIdsWith(s, 'sample_missing = true');
+  const missing = hasMissing === undefined ? undefined : await manifestIdsWith(s, "sample_missing = true AND state = 'converted'") // D-104: order exists, sample missing (05-SCHEMA missing idx);
   let only: string[] | undefined;
   for (const [flag, set] of [[hasFailed, failed], [hasMissing, missing]] as const) {
     if (flag !== true || !set) continue;

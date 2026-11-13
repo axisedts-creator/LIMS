@@ -4,6 +4,7 @@ import type { Handler } from '../../../core/module.js';
 import { itemHandlers } from './items.js';
 import { lotHandlers } from './lots.js';
 import { masterHandlers } from './masters.js';
+import { transferHandlers } from './transfers.js';
 
 /** Error carrying a contract error code (contracts/errors.yaml). */
 export class InventoryError extends Error {
@@ -43,13 +44,7 @@ export const handlers: Readonly<Record<string, Handler>> = {
   postGoodsReceipt: stub,
   cancelGoodsReceipt: stub,
   exportGoodsReceiptsCsv: stub,
-  listTransfers: stub,
-  createTransfer: stub,
-  getTransfer: stub,
-  replaceTransferDraft: stub,
-  dispatchTransfer: stub,
-  receiveTransfer: stub,
-  cancelTransfer: stub,
+  ...transferHandlers, // #56-#62 (T-13)
   listStockCounts: stub,
   openStockCount: stub,
   getStockCount: stub,

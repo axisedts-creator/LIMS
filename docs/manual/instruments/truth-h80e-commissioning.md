@@ -38,7 +38,7 @@ The analyser is the TCP client. It connects out to the address typed into its LI
 
 Who: lab staff, with the vendor engineer on call.
 
-1. Install the bridge agent on the lab PC. The PC must have a static LAN IP. If the installer asks for a listener, pass `--allow-lan-listener`. The installer opens the inbound firewall rule only with this flag.
+1. Install the bridge agent on the lab PC. The PC must have a static LAN IP. Run the installer with `--allow-lan-listener`. Without this flag the installer opens no inbound firewall rule, and the instrument shows `link_state = error`.
 2. In the app, create the instrument with transport `tcp_server`.
    - Set the bind address to the PC's static LAN IP. Never use `0.0.0.0`.
    - Set the port to a number of 1024 or higher. Use the same port as in step 1.

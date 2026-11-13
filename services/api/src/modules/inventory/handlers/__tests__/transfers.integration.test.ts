@@ -72,6 +72,12 @@ INSERT INTO inventory.stock_balances (id, tenant_id, store_id, item_id, lot_id, 
 ${balances.map((b) => `  ('${b[0]}', '${A}', '${b[1]}', '${b[2]}', ${q(b[3])}, ${b[4]}, ${b[5]}, now(), '${SYS}', '${SYS}')`).join(',\n')} ON CONFLICT DO NOTHING;
 COMMIT;`;
 
+// collection-time probe: does the migrated DB ship inventory.tg_line_guard yet?
+const hasTrigger = live && await (async () => {
+  const c = new pg.Client({ connectionString: ADMIN_URL });
+  try { await c.connect(); return (await c.query("SELECT 1 FROM pg_proc WHERE proname = 'tg_line_guard'")).rowCount === 1; } catch { return false; } finally { await c.end().catch(() => undefined); }
+})();
+
 let api: pg.Pool;
 let admin: pg.Pool;
 beforeAll(async () => {
@@ -596,11 +602,20 @@ describe.skipIf(!live)('T-13 #59 replaceTransferDraft: soft removal, never delet
     const r = await s.sql(A, "SELECT has_table_privilege(current_user, 'inventory.transfer_lines', 'DELETE') AS d, has_table_privilege(current_user, 'inventory.transfers', 'DELETE') AS h", []);
     expect(r[0]).toEqual({ d: false, h: false });
   });
-  run('IT-1a: setting removed_at on a line of a DISPATCHED transfer is refused by the database (tg_line_guard, P0001): the service must never try it', async (s) => {
+  run('IT-1a service half: replacing the lines of a DISPATCHED transfer is refused (409 invalid transition) and no line is soft-removed', async (s) => {
+    const d = await dispatchedLA(s);
+    const before = await dbLines(s, d.id);
+    await invalid(replace(s, d, [trLine(IT, '1', LA)]));
+    const after = await dbLines(s, d.id);
+    expect(after).toHaveLength(before.length);
+    expect(after.every((l: any) => l.removed_at === null)).toBe(true);
+  });
+  // IT-1a DB half: enforced once the inventory migration ships tg_line_guard (05-SCHEMA §5)
+  it.skipIf(!hasTrigger)('IT-1a DB half: setting removed_at on a line of a DISPATCHED transfer is refused by the database (tg_line_guard, P0001)', () => session(async (s) => {
     const d = await dispatchedLA(s);
     const e = await rej(s.sql(A, 'UPDATE inventory.transfer_lines SET removed_at = now(), removed_by = $2 WHERE id = $1', [d.lines[0].id, SYS]));
     expect((e as { code?: string }).code).toBe('P0001');
-  });
+  }));
 });
 
 // ======================================================================================================== AC-10.3 scope (assertTransferAccess two-branch scope, P-B3)

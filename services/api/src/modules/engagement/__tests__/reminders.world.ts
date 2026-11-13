@@ -117,10 +117,13 @@ export function makeWorld(opts: { remindersEnabled?: boolean } = {}) {
       if (verb === 'update') {
         const m = /set (.+?) where (.+?)(?: returning .*)?$/i.exec(sql); if (!m) throw new Error(`fake: cannot parse reminders UPDATE: ${sql}`);
         const setPart = m[1]!, where = m[2]!;
-        const whereVals = refs(where, values); const row = mine().find((r) => whereVals.includes(r['id']));
-        if (!row) return ok([], 0);
+        const whereVals = refs(where, values);
+        // T-B5: besides `id = $n`, a booking's reminders are addressed by `source_ref_id = $n` (cancel-by-booking; kind = 'booking' literal honoured).
+        const byId = mine().filter((r) => whereVals.includes(r['id']));
+        const kindRef = /(?<![\w.])kind\s*=\s*(?:'(\w+)'|\$(\d+))/i.exec(where); const kindVal = kindRef ? (kindRef[1] ?? values[Number(kindRef[2]) - 1]) : undefined;   // literal or bound kind filter
+        const targets = byId.length ? byId : /source_ref_id\s*=/i.test(where) ? mine().filter((r) => whereVals.includes(r['source_ref_id']) && (kindVal === undefined || r['kind'] === kindVal)) : [];
         const guardsScheduled = /'scheduled'/i.test(where) || whereVals.includes('scheduled');
-        const nums = whereVals.filter((v) => typeof v === 'number'); if (nums.length && !nums.includes(row['version'])) return ok([], 0);
+        const nums = whereVals.filter((v) => typeof v === 'number');
         const patch: Row = {}; let bump = false;
         for (const a of splitTop(setPart)) {
           const mm = /^(\w+)\s*=\s*(.+)$/.exec(a); if (!mm) continue; const col = mm[1]!, rhs = mm[2]!.trim();
@@ -129,9 +132,13 @@ export function makeWorld(opts: { remindersEnabled?: boolean } = {}) {
           const co = /^coalesce\((.+),\s*(.+)\)$/i.exec(rhs); const v = lit(co ? co[2]! : rhs, values);
           if (v !== undefined) patch[col] = col.endsWith('_at') && v instanceof Date ? v.toISOString() : v;
         }
-        if ('status' in patch && row['status'] !== 'scheduled') { if (guardsScheduled) return ok([], 0); throw pgErr('23514', `reminders status machine: ${row['status']} -> ${patch['status']}`); }
-        const next = { ...row, ...patch, ...(bump ? { version: row['version'] + 1 } : {}), updated_at: now() }; reminderCheck(next); Object.assign(row, next);
-        return ok(/returning/i.test(sql) ? [{ ...row }] : [], 1);
+        const done: Row[] = [];
+        for (const row of targets) {
+          if (nums.length && !nums.includes(row['version'])) continue;
+          if ('status' in patch && row['status'] !== 'scheduled') { if (guardsScheduled) continue; throw pgErr('23514', `reminders status machine: ${row['status']} -> ${patch['status']}`); }
+          const next = { ...row, ...patch, ...(bump ? { version: row['version'] + 1 } : {}), updated_at: now() }; reminderCheck(next); Object.assign(row, next); done.push({ ...row });
+        }
+        return ok(/returning/i.test(sql) ? done : [], done.length);
       }
       if (verb === 'delete') throw new Error('reminders are never deleted (05-SCHEMA matrix: S I U)');
     }

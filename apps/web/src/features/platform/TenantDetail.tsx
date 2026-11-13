@@ -66,7 +66,7 @@ function Overview({ tenant, canManage }: { tenant: Detail; canManage: boolean })
   const router = useRouter();
   const { run, pending } = useSingleFlight();
   const { handle, dialogs } = useProblemDialogs();
-  const [dialog, setDialog] = useState<'suspend' | 'terminate' | null>(null);
+  const [dialog, setDialog] = useState<LifecycleAction | null>(null);
   const [reason, setReason] = useState('');
   const [code, setCode] = useState('');
   const [dialogError, setDialogError] = useState<string>();
@@ -92,7 +92,7 @@ function Overview({ tenant, canManage }: { tenant: Detail; canManage: boolean })
     if (dialog) setDialogError(inline); else setError(inline);
   });
 
-  const openDialog = (d: 'suspend' | 'terminate') => { setReason(''); setCode(''); setDialogError(undefined); setDialog(d); };
+  const openDialog = (d: LifecycleAction) => { setReason(''); setCode(''); setDialogError(undefined); setDialog(d); };
   const history = [...tenant.status_history].sort((a, b) => a.occurred_at.localeCompare(b.occurred_at));
 
   return (
@@ -117,16 +117,17 @@ function Overview({ tenant, canManage }: { tenant: Detail; canManage: boolean })
         <div className="lims-actions">
           {TENANT_NEXT[tenant.status].map((a) => (
             <Button key={a} variant={a === 'terminate' || a === 'suspend' ? 'danger' : 'primary'} isDisabled={pending}
-              onPress={() => (a === 'suspend' || a === 'terminate' ? openDialog(a) : void act(a))}>{BUTTON[a]}</Button>
+              onPress={() => openDialog(a)}>{BUTTON[a]}</Button>
           ))}
         </div>
       ) : null}
       <Alert>{error}</Alert>
-      <Dialog title={dialog === 'terminate' ? 'Terminate tenant' : 'Suspend tenant'} isOpen={dialog !== null} onClose={() => setDialog(null)}
-        footer={<Button variant="danger" isLoading={pending} onPress={() => void act(dialog!)}>{dialog === 'terminate' ? 'Terminate' : 'Suspend'}</Button>}>
+      {/* Every lifecycle action confirms first, so a fast 409/403 never races the confirm step. */}
+      <Dialog title={dialog ? `${BUTTON[dialog]} tenant` : ''} isOpen={dialog !== null} onClose={() => setDialog(null)}
+        footer={dialog ? <Button variant={dialog === 'terminate' || dialog === 'suspend' ? 'danger' : 'primary'} isLoading={pending} onPress={() => void act(dialog)}>{BUTTON[dialog]}</Button> : null}>
         {dialog === 'suspend' ? <p>All staff sessions of this tenant are signed out. Support sessions in read-only scope stay possible.</p> : null}
         {dialog === 'terminate' ? <p>Termination is final: the tenant is offboarded and cannot be reactivated.</p> : null}
-        <TextAreaInput label="Reason" value={reason} onChange={setReason} maxLength={500} required />
+        {dialog === 'suspend' || dialog === 'terminate' ? <TextAreaInput label="Reason" value={reason} onChange={setReason} maxLength={500} required /> : null}
         {dialog === 'terminate' ? <TextInput label="Type the tenant code to confirm" value={code} onChange={setCode} maxLength={32} required hint={`Tenant code: ${tenant.code}`} /> : null}
         <Alert>{dialogError}</Alert>
       </Dialog>

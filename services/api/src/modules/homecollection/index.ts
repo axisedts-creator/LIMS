@@ -12,6 +12,7 @@ import { handler as resolveHomeVisitFlag } from './handlers/resolveHomeVisitFlag
 import { handler as scheduleHomeVisit } from './handlers/scheduleHomeVisit.js';
 import { handler as unassignHomeVisit } from './handlers/unassignHomeVisit.js';
 import { handler as ackSync } from './handlers/ackSync.js';
+import { handler as pushSyncMutations } from './handlers/pushSyncMutations.js';
 import { handler as getSyncSnapshot } from './handlers/getSyncSnapshot.js';
 import { handler as getHomecollectionSettings } from './handlers/getHomecollectionSettings.js';
 import { handler as getHomeVisit } from './handlers/getHomeVisit.js';
@@ -49,6 +50,7 @@ const implemented: Partial<Record<HomecollectionOperationId, Handler>> = {
   listPhleboDevices, requestDeviceWipe,   // HC-T15: H16, H17
   assignHomeVisit, unassignHomeVisit, scheduleHomeVisit, cancelHomeVisit, createHomeRevisit, resolveHomeVisitFlag, resequenceHomeRoute,   // HC-T09: H3-H8, H11
   getSyncSnapshot, ackSync,   // HC-T11: A2, A4
+  pushSyncMutations,   // HC-T12: A3
 };
 
 const handlers = Object.freeze(

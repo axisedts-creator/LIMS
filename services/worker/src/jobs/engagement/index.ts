@@ -2,7 +2,7 @@
 // T-01: every handler is a fail-closed stub (throws) so an event/task is retried or dead-lettered, never silently acked;
 // each later task replaces its own entry. [CONV] LIMS_ENGAGEMENT_* is validated by the API module at import; worker bootstrap calls loadEngagementConfig() when it exists (no worker test env yet). The §8.2 crontab rows (and their tasks) are added by the tasks that implement them.
 import type { ConsumerHandler, TaskHandler, WorkerManifest } from '../../core/manifest.js';
-import { CLOSE_QUEUE_DAY, closeQueueDay, crontab } from './cron.js';
+import { CLOSE_QUEUE_DAY, RECONCILE_LINKS, closeQueueDay, crontab, reconcileLinks } from './cron.js';
 import { handle as catalogChanged } from './consumers/catalog.changed.v1.js';
 import { handle as collectionSynced } from './consumers/homecollection.collection.synced.v1.js';
 import { MARK_NO_SHOWS, RECONCILE_BOOKINGS, markNoShows, reconcileBookings } from './tasks/booking_jobs.js';
@@ -36,6 +36,7 @@ export const manifest: WorkerManifest = Object.freeze({
   tasks: Object.freeze({
     ...Object.fromEntries(Object.keys(TASKS).map((id) => [id, task(id)])),
     [CLOSE_QUEUE_DAY]: closeQueueDay, // T-Q2: close_queue_day
+    [RECONCILE_LINKS]: reconcileLinks, // T-L5 (cron-only)
     'engagement.send_login_otp': createSendLoginOtp(), // T-A2
     'engagement.backfill_link': createBackfillLink(), // T-L2
     'engagement.send_booking_message': createSendBookingMessage(), // T-B5

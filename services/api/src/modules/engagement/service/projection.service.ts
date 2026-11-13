@@ -26,6 +26,15 @@ const set = (cols: readonly string[]): string => cols.map((c) => `${c} = EXCLUDE
 
 export function createProjectionService() {
   return {
+    /** T-L5 (TRD §4.4): the read model exists only for patients with an active / suspended link. System actor, tenant-scoped; children first (specimens / smart summaries), then their parents. */
+    async deleteForPatients(ctx: Pick<PCtx, 'tx' | 'tenantId'>, patientIds: readonly string[]): Promise<void> {
+      for (const ids of chunks(patientIds)) {
+        for (const table of ['smart_summaries', 'patient_order_specimens', 'patient_reports', 'patient_orders']) {
+          await ctx.tx.query(`DELETE FROM engagement.${table} WHERE tenant_id = $1 AND patient_id = ANY($2::uuid[])`, [ctx.tenantId, ids]);
+        }
+      }
+    },
+
     /** Orders by (tenant_id, order_id). Balance columns of a row already ahead (higher balance_version, or a balance the view does not have yet) are kept. `stage` is only set by `recomputeStages`. */
     async upsertOrders(ctx: PCtx, orders: readonly OrderIn[]): Promise<void> {
       if (orders.length === 0) return;

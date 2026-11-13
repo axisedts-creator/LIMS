@@ -4,7 +4,7 @@
 // [CONV] link_codes has no version column (05-SCHEMA: run state), so L2's If-Match is the constant ETag "1"; any other value is a 409 (TRD §5 L1 note).
 // [CONV] L2 / L4 on a code / link that is no longer revocable (redeemed, already revoked) -> 409 common.version_conflict (the contract names no other code).
 // [CONV] The plaintext code lives in the 201 body only: never in a log, audit row, metric label, event or stored column (only its HMAC is stored).
-import { createHmac, randomBytes } from 'node:crypto';
+import { createHmac, randomBytes, timingSafeEqual } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { LimsError, type FieldError } from '../../../core/errors.js';
 import { loadEngagementConfig, type EngagementConfig } from '../config.js';
@@ -14,6 +14,8 @@ import { engagementMetrics } from '../metrics.js';
 import * as consents from '../repository/consents.repo.js';
 import * as repo from '../repository/linkCodes.repo.js';
 import type { Row } from '../repository/linkCodes.repo.js';
+import { uuidv7 } from '../../../../../../packages/shared-ts/src/uuidv7/index.js';
+import { createProjectionService } from './projection.service.js';
 import { invalid, isUuid, parseIfMatch, type SlotCtx } from './slot.service.js';
 
 export interface LinkCtx extends SlotCtx {
@@ -30,6 +32,7 @@ const RELATIONSHIPS = ['self', 'child', 'parent', 'spouse', 'sibling', 'other'];
 const CHECKS = ['photo_id', 'guardian_photo_id', 'known_patient'];
 const REVOKE_REASONS = ['patient_request', 'suspected_misuse', 'staff_error', 'other'];
 const CODE_ETAG = 1;
+const LIVE_FROM: LinkStatus = 'active'; // reconcile suspends only links that are active
 const HOUR = 3_600_000;
 const SHAPE = new RegExp(`^[0-9A-Z]{${LINK_CODE_LENGTH}}$`); // shape only (400); a symbol outside the alphabet (U) is a normal 422, never a validity oracle
 
@@ -50,6 +53,7 @@ const keyFile = (path: string): Buffer => { let k = keyCache.get(path); if (!k) 
 const linkHmac = (tenantId: string, code: string): Buffer => createHmac('sha256', keyFile(config().linkHmacKeyFile)).update(`${tenantId}:${normalizeLinkCode(code)}`).digest();
 /** HMAC-SHA256(phone key, tenant_id ‖ ':' ‖ phone_e164), raw 32 bytes (TRD §4.3). */
 const phoneHmac = (tenantId: string, phone: string): Buffer => createHmac('sha256', keyFile(config().phoneHmacKeyFile)).update(`${tenantId}:${phone}`).digest();
+const phoneEq = (a: Buffer, b: Buffer): boolean => a.length === b.length && timingSafeEqual(a, b);
 /** 10 symbols, uniform: the alphabet has 32 symbols, so `byte & 31` has no modulo bias. */
 const newCode = (): string => formatLinkCode(Array.from(randomBytes(LINK_CODE_LENGTH), (b) => LINK_CODE_ALPHABET[b & 31]).join(''));
 
@@ -204,6 +208,69 @@ export function createLinkService() {
         engagementMetrics.linkEvent(ctx, 'link_code', 'redeemed');
         return { status, body: toProfile(link) };
       } catch (e) { return mapDbError(e); }
+    },
+
+    /**
+     * T-L5 reconcile (TRD §4.3.5, §4.4; system actor, caller's one transaction): every active / suspended link -> FrontdeskPort demographics (once per patient) ->
+     * suspend (patient_merged | patient_anonymised > phone_mismatch > dormant; active links only, never reactivated here) + display_name / sex_snapshot refresh (live links, one write)
+     * -> profile_paused notification + metric per newly suspended link -> projection rows of patients without a live link are deleted.
+     * A patient C4 no longer knows (common.not_found) is skipped; any other port error propagates so the queue retries and the transaction rolls back.
+     */
+    async reconcile(ctx: LinkCtx): Promise<void> {
+      const { tx, tenantId, userId, now } = scope(ctx);
+      const frontdesk = ctx.ports?.FrontdeskPort;
+      if (!frontdesk) throw new LimsError('common.service_unavailable');
+      const rows = async (sql: string, params: unknown[]): Promise<Row[]> => (await tx.query(sql, params)).rows as Row[];
+      const links = await rows(
+        `SELECT id, account_id, patient_id, method, status, display_name, sex_snapshot, record_phone_hmac_at_link FROM engagement.account_patient_links WHERE tenant_id = $1 AND status IN ('active', 'suspended')`, [tenantId]);
+      const live = new Set(links.map((l) => l['patient_id'] as string));
+      if (links.length > 0) {
+        const [s] = await rows('SELECT dormant_after_days FROM engagement.settings WHERE tenant_id = $1', [tenantId]);
+        const cutoff = Date.parse(now) - Number(s?.['dormant_after_days'] ?? 180) * 86_400_000; // [CONV] TRD §4.3.5 strict `<`; 180 = column default
+        const logins = new Map((await rows('SELECT id, last_login_at FROM engagement.accounts WHERE tenant_id = $1 AND id = ANY($2::uuid[])', [tenantId, [...new Set(links.map((l) => l['account_id'] as string))]]))
+          .map((a) => [a['id'], a['last_login_at']]));
+        const demo = new Map<string, Demo | null>();
+        for (const patientId of live) {
+          try { demo.set(patientId, await frontdesk.getPatientDemographics(ctx, { patientId, purpose: PURPOSE })); } catch (e) {
+            if ((e as { code?: unknown } | null)?.code !== 'common.not_found') throw e;
+            demo.set(patientId, null);
+          }
+        }
+        for (const l of links) {
+          const d = demo.get(l['patient_id']);
+          let reason: string | undefined;
+          if (d && l['status'] === 'active') {
+            const stored = l['record_phone_hmac_at_link'] == null ? undefined : Buffer.from(l['record_phone_hmac_at_link']);
+            if (d.status === 'merged') reason = 'patient_merged';
+            else if (d.status === 'anonymised') reason = 'patient_anonymised';
+            else if (stored && !(typeof d.phoneE164 === 'string' && d.phoneE164 !== '' && phoneEq(stored, phoneHmac(tenantId, d.phoneE164)))) reason = 'phone_mismatch'; // phone removed from the record counts as a change
+          }
+          if (!reason && l['status'] === 'active') { const last = logins.get(l['account_id']); if (last != null && Date.parse(last as string) < cutoff) reason = 'dormant'; }
+          const name = typeof d?.fullName === 'string' ? d.fullName.trim().slice(0, 200) : '';
+          const sets: string[] = []; const p: unknown[] = [tenantId, l['id'], userId, now];
+          if (reason) { p.push(reason); sets.push(`status = 'suspended'`, `suspend_reason = $${p.length}`, 'suspended_at = $4'); }
+          if (d && d.status !== 'merged' && d.status !== 'anonymised') {
+            if (name && name !== l['display_name']) { p.push(name); sets.push(`display_name = $${p.length}`); }
+            if (typeof d.sex === 'string' && d.sex !== l['sex_snapshot']) { p.push(d.sex); sets.push(`sex_snapshot = $${p.length}`); }
+          }
+          if (sets.length === 0) continue;
+          if (reason) p.push(LIVE_FROM); // conditional suspend; the status is a bound value on purpose: only the DEFINER writes a literal `active` (link.redeem source guard)
+          const res = await tx.query(`UPDATE engagement.account_patient_links SET ${sets.join(', ')}, version = version + 1, updated_at = $4, updated_by = $3
+            WHERE tenant_id = $1 AND id = $2 AND status IN ('active', 'suspended')${reason ? ` AND status = $${p.length}` : ''} RETURNING id`, p);
+          if (!reason || res.rows.length === 0) continue;
+          await tx.query( // dedupe key (tenant, account, kind, entity_id, entity_seq): a rerun adds nothing
+            `INSERT INTO engagement.notifications (id, tenant_id, account_id, patient_id, kind, entity_type, entity_id, entity_seq, route_id, created_by, expires_at)
+             VALUES ($1, $2, $3, $4, 'profile_paused', 'profile', $5, 0, NULL, $6, $7) ON CONFLICT DO NOTHING`,
+            [uuidv7(), tenantId, l['account_id'], l['patient_id'], l['id'], userId, new Date(Date.parse(now) + 180 * 86_400_000).toISOString()]);
+          engagementMetrics.linkEvent(ctx, String(l['method']), 'suspended');
+        }
+      }
+      // projections: only patients with an active / suspended link keep a read model (a link suspended by this run is still live)
+      // ponytail: reads every patient id of the tenant's orders / reports; keyset-page it if a tenant grows past ~1e5 projected patients.
+      const held = new Set<string>();
+      for (const table of ['patient_orders', 'patient_reports']) for (const r of await rows(`SELECT patient_id FROM engagement.${table} WHERE tenant_id = $1`, [tenantId])) held.add(r['patient_id']);
+      const dead = [...held].filter((id) => !live.has(id));
+      if (dead.length > 0) await createProjectionService().deleteForPatients({ tx, tenantId }, dead);
     },
 
     /** L2: If-Match (428 / 400) -> id (400) -> row (404) -> ETag (409) -> conditional revoke (409 when it is no longer `issued`). */

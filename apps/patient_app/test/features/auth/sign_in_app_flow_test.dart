@@ -91,6 +91,8 @@ void main() {
     final auth = ScriptedDeviceAuth([], secure: false);
     await boot(tester, auth);
     await settle(tester, seconds: 3);
+    await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 200)));
+    await settle(tester, seconds: 1);
     expect(auth.prompts, 0);
     expect(rig.controller.status.value, SessionStatus.signedOut);
     expect(await rig.storage.readAll(), isEmpty);
@@ -100,7 +102,7 @@ void main() {
 
   testWidgets('auth.session_expired while signed in (US-EN-02.3): storage and temp files wiped, sign-in screen shown', (tester) async {
     await rig.store.write(tok('S0'));
-    await File('${rig.tempDir.path}/report.pdf').writeAsBytes([1, 2, 3]);
+    await tester.runAsync(() => File('${rig.tempDir.path}/report.pdf').writeAsBytes([1, 2, 3]));
     final auth = ScriptedDeviceAuth([true]);
     await boot(tester, auth);
     expect(find.text('Send code'), findsNothing);

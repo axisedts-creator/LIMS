@@ -59,7 +59,7 @@ void main() {
 
     testWidgets('actions: [Resend code] with countdown, [Change number]; at most one primary button', (tester) async {
       await reachOtpScreen(tester, rig, api);
-      expect(find.text('Resend in 0:45'), findsOneWidget);
+      expect(find.text('Resend in 0:43'), findsOneWidget); // 2 s of fake time pumped by sendCodeFor/settle after the E2 202
       expect(find.text('Change number'), findsOneWidget);
       expect(find.byType(FilledButton).evaluate().length, lessThanOrEqualTo(1));
     });
@@ -99,9 +99,12 @@ void main() {
       final logs = <String>[];
       final old = debugPrint;
       debugPrint = (m, {wrapWidth}) => logs.add(m ?? '');
-      addTearDown(() => debugPrint = old);
-      await reachOtpScreen(tester, rig, api);
-      await typeCode(tester, '123456');
+      try {
+        await reachOtpScreen(tester, rig, api);
+        await typeCode(tester, '123456');
+      } finally {
+        debugPrint = old;
+      }
       final all = logs.join('\n');
       for (final secret in [api.accessToken(1), api.sessionToken(1), api.challengeToken(1), '12345678', '123456']) {
         expect(all, isNot(contains(secret)));
@@ -174,13 +177,13 @@ void main() {
   group('resend and change number', () {
     testWidgets('[Resend code] is disabled with a ticking countdown, enabled at 0 (resend_after_seconds)', (tester) async {
       await reachOtpScreen(tester, rig, api);
-      expect(find.text('Resend in 0:45'), findsOneWidget);
-      await tester.tap(find.text('Resend in 0:45'), warnIfMissed: false);
+      expect(find.text('Resend in 0:43'), findsOneWidget);
+      await tester.tap(find.text('Resend in 0:43'), warnIfMissed: false);
       await tester.pump();
       expect(api.requestedPhones, hasLength(1), reason: 'disabled while counting down');
       await tester.pump(const Duration(seconds: 40));
-      expect(find.text('Resend in 0:05'), findsOneWidget);
-      await tester.pump(const Duration(seconds: 5));
+      expect(find.text('Resend in 0:03'), findsOneWidget);
+      await tester.pump(const Duration(seconds: 3));
       expect(find.textContaining('Resend in'), findsNothing);
       expect(find.text('Resend code'), findsOneWidget);
     });
@@ -191,7 +194,7 @@ void main() {
       await tester.tap(find.text('Resend code'));
       await settle(tester, seconds: 1);
       expect(api.requestedPhones, [phone, phone]);
-      expect(find.text('Resend in 0:45'), findsOneWidget, reason: 'countdown restarts');
+      expect(find.text('Resend in 0:44'), findsOneWidget, reason: 'countdown restarts (1 s settled after the 202)');
       await typeCode(tester, '123456');
       expect(api.verifyCalls.single.challengeToken, api.challengeToken(2));
     });

@@ -47,7 +47,7 @@ const RESULT_TEXT: Record<string, string> = {
 };
 const ERROR_TEXT: Record<string, string> = {
   'engagement.reminder_invalid_transition': 'Reminder cannot change: it was already sent or cancelled.',
-  'common.version_conflict': 'This reminder was changed by someone else. The list was refreshed.',
+  'common.version_conflict': 'Someone else changed this. Reload to see the latest.', // 04-UI-UX §1
 };
 const resultText = (r: ReminderRow) => (r.status === 'sent' || r.status === 'scheduled' || r.status === 'cancelled' ? '—' : (r.failure_code && RESULT_TEXT[r.failure_code]) || (r.status === 'failed' ? 'Could not send' : 'Not sent'));
 
@@ -69,14 +69,14 @@ export function RemindersView({ reminders, permissions, reasons, searchPatients,
   const canManage = permissions.includes(MANAGE);
   const [creating, setCreating] = useState(false);
   const [target, setTarget] = useState<ReminderRow>();
-  const [error, setError] = useState<string>();
+  const [error, setError] = useState<{ text: string; reload?: boolean }>();
   const reasonName = (c?: string) => (c ? reasons.find((r) => r.code === c)?.display ?? '—' : '—');
 
   const cancel = async () => {
     if (!target) return;
     const r = await cancelReminderAction(target.id, target.version);
     setTarget(undefined);
-    if (r.ok) { setError(undefined); toast.show({ tone: 'success', title: 'Reminder cancelled' }); } else setError(ERROR_TEXT[r.code] ?? 'Could not cancel this reminder. Try again.');
+    if (r.ok) { setError(undefined); toast.show({ tone: 'success', title: 'Reminder cancelled' }); } else setError({ text: ERROR_TEXT[r.code] ?? 'Could not cancel this reminder. Try again.', reload: r.code === 'common.version_conflict' });
     router.refresh(); // also after a 409: the row is stale
   };
 
@@ -101,7 +101,7 @@ export function RemindersView({ reminders, permissions, reasons, searchPatients,
         {...(canManage ? { actions: <Button variant="primary" onPress={() => setCreating(true)}>New reminder</Button> } : {})}
       />
       <Filters />
-      {error ? <div role="alert"><Banner tone="danger" title={error} /></div> : null}
+      {error ? <div role="alert"><Banner tone="danger" title={error.text} {...(error.reload ? { action: { label: 'Reload', onPress: () => router.refresh() } } : {})} /></div> : null}
       <DataTable<ReminderRow>
         columns={columns} rows={reminders} getRowId={(r) => r.id} density="compact" caption="Reminders"
         emptyState={{ title: 'No reminders', body: 'Nothing is scheduled in this date range.' }}
@@ -134,7 +134,7 @@ function Filters() {
     const [a, b] = [parseDmy(f), parseDmy(t)];
     if (!a || !b) { setRangeError(undefined); return; }
     if (b < a) { setRangeError('The end date must be on or after the start date.'); return; }
-    if ((Date.parse(b) - Date.parse(a)) / 86_400_000 > MAX_RANGE_DAYS) { setRangeError(`Choose a period of at most ${MAX_RANGE_DAYS} days.`); return; }
+    if ((Date.parse(b) - Date.parse(a)) / 86_400_000 > MAX_RANGE_DAYS - 1) /* 92 calendar days inclusive */ { setRangeError(`Choose a period of at most ${MAX_RANGE_DAYS} days.`); return; }
     setRangeError(undefined);
     go({ due_from: a, due_to: b });
   };

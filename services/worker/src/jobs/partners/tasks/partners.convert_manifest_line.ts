@@ -7,19 +7,23 @@ import type { TaskHandler } from '../../../core/manifest.js';
 export const convertManifestLine: TaskHandler = (payload, jobCtx) => {
   const ctx = jobCtx as unknown as ConversionCtx;
   let n = 0;
+  // Nest the SQL savepoint inside the JobContext's own db.tx so any savepoint/ctx it provides is kept.
   const db = {
-    async tx<T>(fn: (c: unknown) => Promise<T>): Promise<T> {
-      const name = 'p_conv_' + String(++n);
-      await ctx.tx.query('SAVEPOINT ' + name);
-      try {
-        const r = await fn(ctx);
-        await ctx.tx.query('RELEASE SAVEPOINT ' + name);
-        return r;
-      } catch (e) {
-        await ctx.tx.query('ROLLBACK TO SAVEPOINT ' + name);
-        await ctx.tx.query('RELEASE SAVEPOINT ' + name);
-        throw e;
-      }
+    tx<T>(fn: (c: any) => Promise<T>): Promise<T> {
+      return ctx.db.tx(async (c: any) => {
+        const q = (c?.tx ?? ctx.tx) as ConversionCtx['tx'];
+        const name = 'p_conv_' + String(++n);
+        await q.query('SAVEPOINT ' + name);
+        try {
+          const r = await fn(c ?? ctx);
+          await q.query('RELEASE SAVEPOINT ' + name);
+          return r;
+        } catch (e) {
+          await q.query('ROLLBACK TO SAVEPOINT ' + name);
+          await q.query('RELEASE SAVEPOINT ' + name);
+          throw e;
+        }
+      });
     },
   };
   return convertLine(payload, Object.assign(Object.create(ctx), { db }) as ConversionCtx);

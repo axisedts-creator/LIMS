@@ -75,6 +75,23 @@ describe('T10 world self-check', () => {
     expect(ok.replayed).toBe(false); expect(w.markers).toHaveLength(1); expect(fd.calls('createOrderFromBooking')).toHaveLength(2);
   });
 
+  it('guard_partner_columns acts for partner actors only (05-SCHEMA 1078-1080): partner UPDATE of order_id -> immutable_row; staff and job ctx succeed', async () => {
+    const SQL = 'UPDATE partners.manifest_lines SET order_id = $3 WHERE tenant_id = $1 AND id = $2';
+    const w = makeWorld10();
+    const partner = wrapTx(w, 'all', 'partner');
+    await expect(partner.query(SQL, [T_A, L.xs, id(7001)])).rejects.toMatchObject({ constraint: 'guard_partner_columns' });
+    expect(w.lines.find((l) => l['id'] === L.xs)!['order_id'] ?? null).toBeNull();
+    release({ tx: partner });
+    const s = makeStaffCtx(w, { centres: 'all' });
+    await s.ctx.tx.query(SQL, [T_A, L.xs, id(7001)]);
+    expect(w.lines.find((l) => l['id'] === L.xs)!['order_id']).toBe(id(7001));
+    release(s.ctx);
+    const w2 = makeWorld10(); const { ctx } = makeJobCtx(w2);
+    await ctx.tx.query(SQL, [T_A, L.xs, id(7002)]);
+    expect(w2.lines.find((l) => l['id'] === L.xs)!['order_id']).toBe(id(7002));
+    release(ctx);
+  });
+
   it('staff ctx: assertRole records the requirement and refuses a centre outside the scope / a missing permission', async () => {
     const w = makeWorld10(); const s = makeStaffCtx(w, { centres: [CE.a1] });
     await s.ctx.ports.IdentityPort.assertRole(s.ctx, { permission: 'partners.manifest.receive', centreId: CE.a1 });

@@ -5,6 +5,7 @@
 //   - RLS stand-in for staff: statements on manifests / manifest_lines get `receiving_centre_id = ANY($n)` injected (centre list of the staff scope; 'all' = all centres) - the handlers write unqualified SQL, as under real RLS,
 //   - staff ctx (actor type 'user', IdentityPort.assertRole that records every requirement and refuses a centre outside the scope), job ctx (system actor, ctx.ports.FrontdeskPort).
 // NOT a test file. Synthetic data only.
+import { AsyncLocalStorage } from 'node:async_hooks';
 import { createFakeFrontdeskPort } from '../../../../../../packages/fakes/src/FrontdeskPort.fake.js';
 import { LimsError } from '../../../core/errors.js';
 import { CE, id, makeCtx9, makeWorld9, OR, releaseLocks, T_A, type Over9, type Row, type World } from './manifest-lifecycle.world.js';
@@ -19,6 +20,9 @@ export const STAFF_ID = id(3);
 export const NOT_RECEIVED_REASONS = ['sample_missing', 'label_unreadable', 'wrong_container', 'leaked_or_broken', 'test_not_available', 'other'];
 
 export type World10 = World & { tracking: Row[]; markers: Row[] };
+export type ActorType = 'partner' | 'user' | 'system';
+/** actor type of the statement in flight (propagates across the fake's awaits): guard_partner_columns acts for partner actors ONLY (05-SCHEMA.md:1078-1080, 08 A19 D-103; arbiter ruling C13.T10). */
+const actorOf = new AsyncLocalStorage<ActorType>();
 
 // ---------------------------------------------------------------------------------------------------- small SQL helpers (same grammar as the T08 world)
 function balancedEnd(s: string, open: number): number {
@@ -36,6 +40,8 @@ const pgErr = (code: string, constraint: string, message: string) => Object.assi
 
 export function makeWorld10(): World10 {
   const w = Object.assign(makeWorld9(), { tracking: [] as Row[], markers: [] as Row[] });
+  const guard = w.guard.bind(w);
+  w.guard = (table, cols, values) => { const a = actorOf.getStore(); if (a === 'user' || a === 'system') return; guard(table, cols, values); };
   const base = w.tables.bind(w);
   w.tables = () => {
     const t = base();
@@ -95,7 +101,7 @@ async function trackingQuery(w: World10, text: string, vals: unknown[], centres:
   throw new Error(`fake SQL: unsupported order_tracking statement: ${text}`);
 }
 
-export function wrapTx(w: World10, centres: string[] | 'all' = 'all') {
+export function wrapTx(w: World10, centres: string[] | 'all' = 'all', actorType: ActorType = 'partner') {
   const inner = w.newTx();
   const tx: any = Object.create(inner);
   tx.inner = inner;
@@ -103,7 +109,7 @@ export function wrapTx(w: World10, centres: string[] | 'all' = 'all') {
     if (/^\s*INSERT\s+INTO\s+fake_c4\.markers\b/i.test(text)) { await Promise.resolve(); w.markers.push({ id: vals[0] }); return { rows: [], rowCount: 1 }; }
     if (/\bpartners\.order_tracking\b/i.test(text)) return trackingQuery(w, text, vals, centres);
     const [t2, v2] = scope(text, vals, centres);
-    return inner.query(t2, v2);
+    return actorOf.run(actorType, () => inner.query(t2, v2));
   };
   return tx;
 }
@@ -141,7 +147,7 @@ export function makeStaffCtx(w: World10, over: StaffOver = {}) {
   const centres = over.centres ?? [CE.a1]; const perms = over.staffPerms ?? ['partners.manifest.receive'];
   const r = makeCtx9(w, { ...over, who: 'staff', perms });
   const roleCalls: Array<{ permission: string; centreId?: string; branchId?: string }> = [];
-  r.ctx.tx = wrapTx(w, centres);
+  r.ctx.tx = wrapTx(w, centres, 'user');
   r.ctx.ports = { IdentityPort: { async assertRole(_c: unknown, req: { permission: string; centreId?: string; branchId?: string }) {
     roleCalls.push({ ...req });
     if (!perms.includes(req.permission)) throw new LimsError('auth.forbidden');
@@ -152,7 +158,7 @@ export function makeStaffCtx(w: World10, over: StaffOver = {}) {
 /** partner-side actor on the same world (probes: a partner user must not reach the staff operations). */
 export function makePartnerCtx(w: World10, who: 'x1' | 'x2' | 'y1' = 'x1') {
   const r = makeCtx9(w, { who });
-  r.ctx.tx = wrapTx(w, 'all');
+  r.ctx.tx = wrapTx(w, 'all', 'partner');
   return r;
 }
 
@@ -163,7 +169,7 @@ export function makeJobCtx(w: World10, over: JobOver = {}) {
   const log: any = { info: sink, warn: sink, error: sink, debug: sink, child: () => log };
   const metrics: Array<{ name: string; labels?: unknown }> = [];
   const ctx: any = {
-    tenantId: over.tenant ?? T_A, actor: { type: 'system', id: SYS }, requestId: id(97), tx: wrapTx(w, 'all'), attempt: over.attempt ?? 1, maxAttempts: 10, jobId: '1', __sp: sp,
+    tenantId: over.tenant ?? T_A, actor: { type: 'system', id: SYS }, requestId: id(97), tx: wrapTx(w, 'all', 'system'), attempt: over.attempt ?? 1, maxAttempts: 10, jobId: '1', __sp: sp,
     now: () => w.now, isNewer: (last: number | undefined, seq: number) => last === undefined || seq > last,
     events: {}, core: {}, audit: { access: async () => undefined }, storage: {}, files: {}, log,
     metrics: { inc: (name: string, labels?: unknown) => metrics.push({ name, labels }), set() {}, observe() {} },

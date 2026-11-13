@@ -8,7 +8,7 @@
 // [CONV] uncounted_policy 'zero': lines never counted are counted 0 at post time (counted_at = ctx.now()); 'skip': they stay untouched (book_at_count / variance stay NULL).
 // [CONV] a negative variance larger than the lot row is the ledger's split (lot row to 0, remainder on the unlotted row, negative_stock alert): the post never fails on it (AC-19.3).
 // [CONV] numbering skips a number already taken in the tenant (as transfers.service); ponytail: 50 probes, then common.internal.
-// ponytail: a line created by #66 for a pair outside the snapshot takes the CURRENT balance as book_qty_snapshot (spec); movements already posted after snapshot_at would be counted twice in its book_at_count.
+// [CONV] a line created by #66 for a pair outside the snapshot takes the balance AS OF snapshot_at as book_qty_snapshot (review #1), so book_at_count stays snapshot + movements (snapshot_at, counted_at].
 import { LimsError } from '../../../core/errors.js';
 import { uuidv7 } from '../../../../../../packages/shared-ts/src/uuidv7/index.js';
 import type { HandlerContext } from '../../../core/module.js';
@@ -200,8 +200,11 @@ export async function recordLines(ctx: HandlerContext, id: string, input: { line
       const lot = await first(rc, 'SELECT item_id FROM inventory.lots WHERE tenant_id = $1 AND id = $2', [l.lot_id]);
       if (lot === null || lot['item_id'] !== l.item_id) throw notFound();
     }
-    const b = await first(rc, 'SELECT qty_base FROM inventory.stock_balances WHERE tenant_id = $1 AND store_id = $2 AND item_id = $3 AND lot_id IS NOT DISTINCT FROM $4::uuid', [c['store_id'], l.item_id, l.lot_id ?? null]);
-    plan.push({ row: null, input: l, book: b === null ? '0.000000' : String(b['qty_base']) });
+    // book_qty_snapshot = balance AS OF snapshot_at (current balance minus movements after it), so #67 does not count those twice (review #1, AC-19.2)
+    const b = await first(rc, `SELECT (coalesce((SELECT qty_base FROM inventory.stock_balances WHERE tenant_id = $1 AND store_id = $2 AND item_id = $3 AND lot_id IS NOT DISTINCT FROM $4::uuid), 0)
+        - coalesce((SELECT sum(qty_base) FROM inventory.stock_movements WHERE tenant_id = $1 AND store_id = $2 AND item_id = $3 AND lot_id IS NOT DISTINCT FROM $4::uuid AND occurred_at > $5), 0))::text AS qty_base`,
+      [c['store_id'], l.item_id, l.lot_id ?? null, c['snapshot_at']]);
+    plan.push({ row: null, input: l, book: String(b!['qty_base']) });
   }
 
   // pass 2: write

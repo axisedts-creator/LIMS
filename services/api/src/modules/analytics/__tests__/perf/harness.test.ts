@@ -1,4 +1,4 @@
-// AN-T23 — perf harness contract (TRD §12). Unit level, no DB. The harness (./harness.ts, written by the implementer) must export:
+// AN-T23 — perf harness contract (TRD §12). Unit level, no DB. The harness (./harness.ts, owned by the tester, LD-136) exports:
 //   TARGETS: readonly { key, limitMs }[]   in TRD §12 row order (8 rows: dashboard_31d, report_31d, report_366d, tat_366d, pending_summary, export_10k, refresh_lag, sweep_recent)
 //   SWEEP_ESCALATION_MS = 120_000          TRD §12 last paragraph
 //   p95(samples)                           nearest-rank p95, throws on empty / non-finite
@@ -30,6 +30,7 @@ const mkReport = (over: Record<string, number> = {}) => ({
 
 describe('TARGETS mirror TRD §12', () => {
   it('has the 8 measured operations in TRD order', () => expect(TARGETS.map((t) => t.key)).toEqual(KEYS));
+  it('the TRD §12 table parser sees exactly 8 target rows', () => expect(trdTargetsMs()).toHaveLength(8));
   it('limits equal the TRD §12 Target p95 column', () => expect(TARGETS.map((t) => t.limitMs)).toEqual(trdTargetsMs()));
   it('cannot be mutated away at runtime', () => expect(() => { (TARGETS as any)[0].limitMs = 1e9; }).toThrow());
 });

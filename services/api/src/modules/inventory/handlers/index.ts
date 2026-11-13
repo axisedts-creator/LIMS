@@ -1,6 +1,7 @@
 // Handler map: one entry per operationId of 02-TRD §5 (core validateManifest checks it against contracts/openapi/inventory.yaml).
 // T-01 stubs: every operation rejects common.internal until its owning task (T-06+) replaces the entry.
 import type { Handler } from '../../../core/module.js';
+import { settingsHandlers } from './settings.handlers.js';
 
 /** Error carrying a contract error code (contracts/errors.yaml). */
 export class InventoryError extends Error {
@@ -42,10 +43,7 @@ export const handlers: Readonly<Record<string, Handler>> = {
   listInstrumentBindings: stub,
   putInstrumentBinding: stub,
   deactivateInstrumentBinding: stub,
-  getInventorySettings: stub,
-  updateInventorySettings: stub,
-  listInventoryCodedSet: stub,
-  putInventoryTenantCode: stub,
+  ...settingsHandlers, // T-06: #26-#29
   listInventoryLots: stub,
   getInventoryLot: stub,
   setInventoryLotStatus: stub,

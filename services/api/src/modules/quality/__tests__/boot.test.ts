@@ -158,7 +158,7 @@ describe('C9 T-01 phase switch LIMS_QUALITY_ENABLED (02-TRD §12.2)', () => {
   it('flipping the flag to true changes the answer from feature_disabled to the stub (the flag is honoured, not hard-coded)', async () => {
     const off = await withEnv('dev', 'false');
     const on = await withEnv('dev', 'true');
-    const op = OPS[0]!;
+    const op = OPS.find((o) => !IMPLEMENTED.includes(o))!;
     expect((await outcome(off.m.handlers[op]!(FAKE_REQ, fakeCtx(op)))).ok).toBe(false);
     expect(await on.m.handlers[op]!(FAKE_REQ, fakeCtx(op))).toMatchObject({ status: 501 });
   });

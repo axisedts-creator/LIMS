@@ -6,6 +6,7 @@
 import { HL7 } from '../hl7v2_generic_oru/index.js';
 import { MAX, localTime, malformed } from '../delimited.js';
 import type { InstrumentDriver, ParseResult, ParsedRecord } from '../types.js';
+import { buildHostQueryReply, extractHostQueryBarcodes } from './hostQuery.js';
 
 const FIELD_REF = '^[A-Z][A-Z0-9]{0,2}\\.[1-9][0-9]{0,2}(?:\\.[1-9][0-9]?)?$';
 const STAMP = /^\d{14}$/;
@@ -54,6 +55,14 @@ function parse(raw: Uint8Array, ctx: { readonly options: Readonly<Record<string,
   const messageControlId = comp1(fld(msh, 'MSH', 10));
   const messageTimeLocal = localTime(comp1(fld(msh, 'MSH', 7)));
   const base = { ok: true, messageKind, ...(messageControlId !== undefined && { messageControlId }), ...(messageTimeLocal !== undefined && { messageTimeLocal }) } as const;
+  if (messageKind === 'host_query') {
+    // H80-T03 (§8): QRD-8 component 1 is the tube barcode; empty or > 40 => malformed (never truncated). First QRD only.
+    const qrd = lines.slice(1).map(split).find((f) => f[0] === 'QRD');
+    const barcode = comp1(fld(qrd, 'QRD', 8));
+    if (barcode === undefined) return malformed('host query barcode missing');
+    if (barcode.length > MAX.barcode) return malformed('host query barcode too long');
+    return { ...base, records: [{ recordSeq: 1, recordClass: 'host_query', sampleBarcode: barcode, instrumentFlags: [], warnings: [] }], warnings: [] };
+  }
   if (messageKind !== 'results') return { ...base, records: [], warnings: [] };
 
   const records: ParsedRecord[] = [];
@@ -121,4 +130,6 @@ export const truthH80e: InstrumentDriver = Object.freeze<InstrumentDriver>({
   manualRef: Object.freeze({ title: 'HL7 Interface User Manual — Fully Automated Glycated Hemoglobin Analyzer', documentId: 'truth-h80e-hl7-interface-user-manual', revision: '1.5' }),
   optionsSchema: OPTIONS_SCHEMA,
   parse,
+  extractHostQueryBarcodes,
+  buildHostQueryReply,
 });

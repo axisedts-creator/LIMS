@@ -29,6 +29,8 @@ const IMPLEMENTED: readonly string[] = [
   'listMicroCodedSet', 'upsertMicroCode', 'listPlatingProtocols', 'createPlatingProtocol', 'versionPlatingProtocol', 'deactivatePlatingProtocol', 'getMicroSettings', 'updateMicroSettings',
   // T-07: M1, M2, M15, M16
   'listCultures', 'getCulture', 'listCultureReportVersions', 'getCultureReportVersion',
+  // T-08: M3–M6
+  'setupCulture', 'addCulturePlate', 'discardCulturePlate', 'recordCultureObservation',
   // T-11: M41–M45, M49
   'listBreakpointSets', 'createBreakpointImport', 'getBreakpointSet', 'listBreakpointImportIssues', 'listBreakpointRows', 'downloadBreakpointTemplate',
   // T-13: M46–M48, M13

@@ -174,6 +174,11 @@ const defs = (clock: { iso: string }): Record<string, TableDef> => ({
 });
 
 // ---------------------------------------------------------------- harness
+// cs_booking_cancel_reasons as listCodedSet returns it (02-TRD §5 S4 binds reason_code to this set); 'retired_reason' is inactive.
+const CANCEL_REASONS = [
+  { code: 'patient_request', display: 'Patient request', sort_order: 1, is_active: true }, { code: 'duplicate', display: 'Duplicate booking', sort_order: 2, is_active: true },
+  { code: 'lab_unavailable', display: 'Lab unavailable', sort_order: 3, is_active: true }, { code: 'retired_reason', display: 'Retired', sort_order: 4, is_active: false },
+];
 const verb = (c: Call) => /^\s*(select|insert|update|delete)\b/i.exec(c.text)?.[1]?.toLowerCase();
 const dml = (calls: Call[]) => calls.filter((c) => ['insert', 'update', 'delete'].includes(verb(c) ?? ''));
 interface Who { grants: readonly string[]; centres: readonly string[]; all?: boolean }
@@ -212,7 +217,12 @@ const run = async (op: string, o: { params?: object; query?: object; headers?: o
   const db = opts.db ?? newDb();
   const s = db.session(sessionTenant, { all: Boolean(who.all), centres: who.centres }, A);
   const id = identity(who); const logs: unknown[] = []; const demo: unknown[] = [];
-  const tx = { query: s.tx.query, startedAt: new Date(NOW) };
+  // coded set read (codedsets.repo shadowed UNION ALL SQL) is outside the fakeSql subset: answer it from CANCEL_REASONS, same approach as settings.handlers.test.ts
+  const query = (text: string, values: unknown[] = []) => {
+    if (/engagement\.g_cs_booking_cancel_reasons/i.test(text)) { db.calls.push({ text, values }); return Promise.resolve({ rows: CANCEL_REASONS.map((x) => ({ ...x })), rowCount: CANCEL_REASONS.length }); }
+    return s.tx.query(text, values);
+  };
+  const tx = { query, startedAt: new Date(NOW) };
   const log = { info: (...a: unknown[]) => logs.push(a), warn: (...a: unknown[]) => logs.push(a), error: (...a: unknown[]) => logs.push(a) };
   const ctx = { operationId: op, clientIp: '203.0.113.9', log, events: createEvents({ producer: 'engagement', log: log as never }),
     ...ctxFor(sessionTenant === B ? 'B' : 'A', { tx: tx as never, now: () => NOW, ports: { IdentityPort: id, FrontdeskPort: frontdesk(demo) } as never }) } as never;
@@ -582,6 +592,16 @@ describe('US-EN-14.1 / 14.6: cancelBooking (staff) releases the place and publis
       const db = newDb(); const before = snapshot(db);
       const r = await cancel(BK.CONF, body, ifm(1), FD_C1, { db });
       expect(r.error?.code).toBe('common.validation_failed'); untouched(r, before); expect(JSON.stringify({ m: r.error?.message, d: r.error?.errors })).not.toContain(canary);
+    }
+  });
+  it('reason_code must be an active code of cs_booking_cancel_reasons (TRD §5 S4): unknown or inactive -> 400 common.validation_failed at /reason_code, row unchanged, no echo', async () => {
+    const canary = 'canary_b3_unknown';
+    for (const reason_code of [canary, 'retired_reason']) {
+      const db = newDb(); const before = snapshot(db);
+      const r = await cancel(BK.CONF, { reason_code }, ifm(1), FD_C1, { db });
+      expect(r.error?.code).toBe('common.validation_failed'); expect(r.error?.statusCode).toBe(400); untouched(r, before);
+      expect(JSON.stringify(r.error?.errors)).toContain('/reason_code'); expect(JSON.stringify({ m: r.error?.message, d: r.error?.errors })).not.toContain(canary);
+      expect(byId(db, 'bookings', BK.CONF)).toMatchObject({ status: 'confirmed', version: 1, cancel_reason_code: null }); expect(events(db)).toEqual([]);
     }
   });
   it('malformed booking_id -> 400', async () => { expect((await cancel('nope', { reason_code: 'patient_request' }, ifm(1))).error?.code).toBe('common.validation_failed'); });

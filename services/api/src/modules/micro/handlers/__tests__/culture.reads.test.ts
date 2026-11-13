@@ -189,6 +189,8 @@ describe('C10-T07 M2 getCulture — DTO, *_display (D-47), access log, read-only
     expect(r.body.plates.map((p: Row) => p.plate_no)).toEqual([1, 2]);
     expect(r.body.observations.map((o: Row) => o.id)).toEqual([u(0x2101), u(0x2102)]);
     expect(r.body.observations.map((o: Row) => o.is_corrected)).toEqual([true, false]);
+    expect(r.body.observations.map((o: Row) => o.hours_since_planting)).toEqual([24, 24.17]);   // LD-149: JSON number, 2-decimal value, never floored
+    for (const o of r.body.observations) expect(schemaErrors('ObservationDto', o)).toEqual([]);
     expect(r.body.isolates).toHaveLength(1);
     expect(r.body.isolates[0].organism_display).toBe('Synthetic organism');            // from micro.v_organisms (TRD §5.6)
     expect(r.body.isolates[0].ast).toHaveLength(1);

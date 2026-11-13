@@ -297,7 +297,7 @@ describe.skipIf(!live && !REQUIRE)('T-07 culture reads (live DB)', () => {
       const b = r.res.body;
       expect(schemaErrors('CultureDetailDto', b)).toEqual([]);
       expect(b.observations.map((o: Row) => [o['recorded_by_display'], o['is_corrected']])).toEqual([[TECH, true], [TECH, false]]);
-      expect(b.observations[0].hours_since_planting).toBe('24.00');
+      expect(b.observations[0].hours_since_planting).toBe(24);
       expect(b.isolates).toHaveLength(1);
       expect(b.isolates[0].ast.map((x: Row) => x['antibiotic_code'])).toEqual(['syn_abx']);
       expect(b.transitions.map((t: Row) => [t['to_status'], t['actor_display']])).toEqual([['awaiting_setup', TECH], ['incubating', TECH]]);

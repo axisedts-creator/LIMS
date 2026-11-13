@@ -39,6 +39,18 @@ describe('manifest (TRD §8.1)', () => {
   });
 });
 
+describe('test-world guard: UNIQUE (tenant_id, token_sha256) (05-SCHEMA :254; arbiter ruling T-A2)', () => {
+  const bump = (w: OtpWorld, id: string) => w.jobCtx().tx.query('UPDATE engagement.otp_challenges SET attempts = 1 WHERE id = $1', [id]);
+  it('an UPDATE of a row that keeps its own token_sha256 is NOT a collision', async () => {
+    const w = makeOtpWorld(); const c = w.seedChallenge();
+    await expect(bump(w, c['id'])).resolves.toMatchObject({ rowCount: 1 });
+  });
+  it('two distinct ids with the same tenant + token_sha256 DO collide (23505)', async () => {
+    const w = makeOtpWorld(); w.seedChallenge(); const b = w.seedChallenge();
+    await expect(bump(w, b['id'])).rejects.toMatchObject({ code: '23505' });
+  });
+});
+
 describe('send: US-EN-01.2', () => {
   it('sends ONCE as the system actor with recipient {phone_otp, phoneE164}, purpose otp, templateCode engagement.login_otp, params EXACTLY {otp_code, lab_name, minutes}, idempotencyKey otp:<id>', async () => {
     const { w, run } = await setup(); await ask(w); const ch = w.challenges()[0]!;

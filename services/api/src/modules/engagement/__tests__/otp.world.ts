@@ -109,7 +109,7 @@ export function makeOtpWorld(opts: { prefixes?: string[]; appEnabled?: boolean; 
     if (!['pending', 'sent', 'verified', 'failed', 'superseded'].includes(r['status'])) throw pgErr('23514', 'otp_challenges__status__ck');
     if (!(r['attempts'] >= 0 && r['attempts'] <= 5)) throw pgErr('23514', 'otp_challenges__attempts__ck');
     if (!(ts(r['expires_at']) <= ts(r['created_at']) + 600_000)) throw pgErr('23514', 'otp_challenges__ttl__ck (expires_at <= created_at + 10 minutes)');
-    if (t['challenges']!.some((o) => o !== r && o['tenant_id'] === r['tenant_id'] && same(o['token_sha256'], r['token_sha256']))) throw pgErr('23505', 'otp_challenges__tenant_id_token__uq');
+    if (t['challenges']!.some((o) => o['id'] !== r['id'] && o['tenant_id'] === r['tenant_id'] && same(o['token_sha256'], r['token_sha256']))) throw pgErr('23505', 'otp_challenges__tenant_id_token__uq');
   }
 
   function exec(ctx: any, text: string, values: unknown[] = []): { rows: Row[]; rowCount: number } {

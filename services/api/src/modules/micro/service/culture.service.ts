@@ -247,7 +247,9 @@ export async function addCulturePlate(c: WriteCtx, input: { params: unknown; bod
   if (parentId !== null) sameCulture(await obsRepo.ownerOfPlate(tx, { tenantId, id: parentId }), cultureId);
   if (isolateId !== null) sameCulture(await plateRepo.ownerOfIsolate(tx, { tenantId, id: isolateId }), cultureId);
 
-  const plate = await guarded(async () => plateRepo.insertPlate(tx, { id: uuidv7(), tenantId, centreId: row['centre_id'], cultureId, plateNo: (await plateRepo.maxPlateNo(tx, { tenantId, cultureId })) + 1,
+  const plateNo = (await plateRepo.maxPlateNo(tx, { tenantId, cultureId })) + 1;
+  if (plateNo > 50) bad('/');                                                                     // culture_plates__no__ck (plate_no BETWEEN 1 AND 50); review T-08 #1
+  const plate = await guarded(async () => plateRepo.insertPlate(tx, { id: uuidv7(), tenantId, centreId: row['centre_id'], cultureId, plateNo,
     mediaCode, incubationText: incubation, parentPlateId: parentId, sourceIsolateId: isolateId, plantedAt, membershipId: c.actor.membershipId ?? null, userId }));
   return { body: dto.plateDto(plate), version: Number(plate['version']) };
 }

@@ -1,6 +1,6 @@
 'use client';
 // 04-UI-UX §4.2 Case workspace shell: PageHeader (breadcrumbs, status chip, Actions menu, one primary stage button) → banners → DescriptionList → Tabs
-// (Overview + Parts & gross in T-19; the other tabs arrive with T-20+). AC-13.4 (highlight ids are inert here), REQ-SEC-081/088.
+// (Overview + Parts & gross in T-19; Blocks & slides, Stains and Images in T-20; Molecular and Report arrive with T-21+). AC-13.4 (highlight ids are inert here), REQ-SEC-081/088.
 // LD-140 (2026-11-13, binding): kit components and token class names only — no hex colours, pixel radii or inline style objects; exactly one primary
 // button on the page (the next stage of the case); every status shows tone, icon and word (see common.tsx Chip). Server text is rendered as text, never HTML.
 import { useEffect, useRef, useState } from 'react';
@@ -20,6 +20,9 @@ import { useToast } from '@lims/ui/components/Toast';
 import { AccessionDialog } from '../forms/AccessionDialog';
 import { cancelCaseAction, listCancelReasonsAction, transitionCaseAction } from '../server/actions';
 import type { CaseDetail, CaseItem, CodedValue, TextTemplate, TransitionOp } from '../server/types';
+import { ImagesTab } from './images/ImagesTab';
+import { BlocksSlidesTab } from './material/BlocksSlidesTab';
+import { StainsTab } from './material/StainsTab';
 import { PartsTab } from './PartsTab';
 import { Chip, FailNotice, KIND_LABEL, STATUS, StatusLabel, UrgentChip, newKey, usePageShortcuts, When, type Fail, type Tone } from './common';
 
@@ -150,8 +153,9 @@ export function CaseWorkspace({ detail, permissions, templates = [] }: { detail:
         },
       },
       ...(can('accessionAnatomicCase') ? [{ key: 'Alt+A', description: 'Open the Accession dialog', run: () => setAccessioning(true) }] : []),
+      ...(canWork ? [{ key: 'Alt+L', description: 'Open the labels page (blocks)', run: () => router.push(`/anatomic/cases/${detail.id}/labels?kind=blocks`) }] : []),
     ],
-    [can('accessionAnatomicCase')],
+    [can('accessionAnatomicCase'), canWork, detail.id],
   );
 
   useEffect(() => {
@@ -238,7 +242,10 @@ export function CaseWorkspace({ detail, permissions, templates = [] }: { detail:
       <Tabs aria-label="Case sections" items={tabs} selectedId={tab} onChange={(id) => setTab(id as TabId)}>
         {tab === 'overview' ? <Overview detail={detail} /> : null}
         {tab === 'parts' ? <PartsTab detail={detail} canWork={canWork} templates={templates} onFail={report} onMfa={() => setMfa(true)} /> : null}
-        {tab !== 'overview' && tab !== 'parts' ? <EmptyState title="Nothing to show here yet" body="This section is not available in this version of the workspace." /> : null}
+        {tab === 'blocks' ? <BlocksSlidesTab detail={detail} canWork={canWork} onFail={report} onMfa={() => setMfa(true)} /> : null}
+        {tab === 'stains' ? <StainsTab detail={detail} canWork={canWork} onFail={report} onMfa={() => setMfa(true)} /> : null}
+        {tab === 'images' ? <ImagesTab detail={detail} canWork={canWork} onFail={report} onMfa={() => setMfa(true)} /> : null}
+        {tab === 'molecular' || tab === 'report' ? <EmptyState title="Nothing to show here yet" body="This section is not available in this version of the workspace." /> : null}
       </Tabs>
 
       {can('accessionAnatomicCase') ? (

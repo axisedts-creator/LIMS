@@ -81,6 +81,7 @@ export function mkCtx(o: CtxOpts): { ctx: any; calls: Calls } {
         async list(...a: unknown[]) {
           const i = a[a.length - 1] as Row; calls.members.push(structuredClone(i));
           const ids: string[] | undefined = i['membershipIds'];
+          if (ids && ids.length > 200) throw new LimsError('common.validation_failed');   // core-repo/index.ts:138: <= 200 ids per call (02-TRD.md:317)
           return Object.entries(members).filter(([id]) => ids === undefined || ids.includes(id))
             .map(([membershipId, displayName]) => ({ membershipId, displayName, roleCodes: [], allCentres: false, isActive: true }));
         },

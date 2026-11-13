@@ -257,6 +257,76 @@ describe('C10-T07 M2 getCulture — DTO, *_display (D-47), access log, read-only
     expect(typeof r.body.is_read_overdue).toBe('boolean');
     expect(JSON.stringify(r.body)).not.toMatch(/overdue"?\s*:\s*"/i);
   });
+
+  // review item 2: suggested_protocol only in awaiting_setup (02-TRD.md:306, §4.2 selection via domain/selection.ts)
+  const protoWorld = (status: string): World => {
+    const w = emptyWorld();
+    w.micro['cultures'] = [culture(1, { status, planted_at: null, next_read_due_at: null })];
+    w.micro['plating_protocols'] = [
+      { id: u(0x5001), tenant_id: A, code: 'syn_proto_default', version_no: 3, display: 'Synthetic default protocol', is_active: true, superseded_at: null, read_schedule_hours: [24], final_no_growth_hours: 48, requires_gram_stain: false },
+      { id: u(0x5002), tenant_id: A, code: 'syn_proto_urine', version_no: 1, display: 'Synthetic urine protocol', is_active: true, superseded_at: null, read_schedule_hours: [24], final_no_growth_hours: 48, requires_gram_stain: false }];
+    w.micro['plating_protocol_keys'] = [
+      { id: u(0x5101), tenant_id: A, protocol_code: 'syn_proto_default', test_id: null, specimen_type_code: null, is_active: true },
+      { id: u(0x5102), tenant_id: A, protocol_code: 'syn_proto_urine', test_id: TEST1, specimen_type_code: 'urine', is_active: true }];
+    return w;
+  };
+  it('awaiting_setup: suggested_protocol = { id, code, version_no, display } of the most specific active protocol; body schema-valid', async () => {
+    const r = await get(setup(protoWorld('awaiting_setup')).ctx);
+    expect(r.status).toBe(200);
+    expect(r.body.suggested_protocol).toEqual({ id: u(0x5002), code: 'syn_proto_urine', version_no: 1, display: 'Synthetic urine protocol' });
+    expect(schemaErrors('CultureDetailDto', r.body)).toEqual([]);
+  });
+  it('awaiting_setup and no protocol matches -> suggested_protocol omitted (never null)', async () => {
+    const w = protoWorld('awaiting_setup'); w.micro['plating_protocol_keys'] = [];
+    const r = await get(setup(w).ctx);
+    expect('suggested_protocol' in r.body).toBe(false);
+    expect(schemaErrors('CultureDetailDto', r.body)).toEqual([]);
+  });
+  it.each(['incubating', 'growth_detected', 'final_submitted'])('%s: suggested_protocol is absent even though protocols exist', async (status) => {
+    const r = await get(setup(protoWorld(status)).ctx);
+    expect('suggested_protocol' in r.body).toBe(false);
+    expect(schemaErrors('CultureDetailDto', r.body)).toEqual([]);
+  });
+  it('suggested_protocol lookup binds the tenant explicitly', async () => {
+    const { ctx, log } = setup(protoWorld('awaiting_setup'));
+    await get(ctx);
+    const q = log.filter((l) => /\bplating_protocol/i.test(l.sql));
+    expect(q.length).toBeGreaterThan(0);
+    for (const l of q) expect(l.params, l.sql).toContain(A);
+  });
+
+  // review item 3: core.memberships.list takes <= 200 ids per call (02-TRD.md:317); the helper fake rejects more like core does
+  it('D-47 chunking: 201 distinct membership ids -> two core.memberships.list calls (<= 200 each, union = all 201), no error, every name resolved', async () => {
+    const w = emptyWorld(); const id = u(0x1001);
+    w.micro['cultures'] = [culture(1, { status: 'final_submitted', outcome_code: 'syn_positive', current_report_version_no: 0, last_report_phase: 'final' })];
+    const mem = (n: number) => `01a1a98a-ac40-7000-8000-${(0xb00000 + n).toString(16).padStart(12, '0')}`;
+    const members: Record<string, string> = {};
+    w.micro['culture_observations'] = Array.from({ length: 201 }, (_, n) => {
+      members[mem(n)] = `Synthetic Tech ${n}`;
+      return { id: u(0x6000 + n), tenant_id: A, centre_id: CENTRE_A1, culture_id: id, plate_id: null, kind: 'note', growth_code: null, quantity_text: null, finding_text: 'synthetic', observed_at: iso('2026-11-05T05:00:00.000Z'), hours_since_planting: '24.00', recorded_by_membership_id: mem(n), corrects_observation_id: null, created_by: U1 };
+    });
+    const { ctx, calls } = setup(w, { members });
+    const r = await get(ctx);
+    expect(r.status).toBe(200);
+    expect(calls.members).toHaveLength(2);
+    for (const c of calls.members) { expect(c['membershipIds'].length).toBeLessThanOrEqual(200); expect(c['activeOnly']).toBe(false); }
+    expect(new Set(calls.members.flatMap((c) => c['membershipIds'])).size).toBe(201);
+    expect(r.body.observations).toHaveLength(201);
+    expect(r.body.observations.every((o: Row) => /^Synthetic Tech \d+$/.test(o.recorded_by_display))).toBe(true);
+  });
+  it('D-47 chunking: exactly 200 distinct ids stay ONE call', async () => {
+    const w = emptyWorld(); const id = u(0x1001);
+    w.micro['cultures'] = [culture(1)];
+    const mem = (n: number) => `01a1a98a-ac40-7000-8000-${(0xb00000 + n).toString(16).padStart(12, '0')}`;
+    const members: Record<string, string> = {};
+    w.micro['culture_observations'] = Array.from({ length: 200 }, (_, n) => {
+      members[mem(n)] = `Synthetic Tech ${n}`;
+      return { id: u(0x6000 + n), tenant_id: A, centre_id: CENTRE_A1, culture_id: id, plate_id: null, kind: 'note', growth_code: null, quantity_text: null, finding_text: 'synthetic', observed_at: iso('2026-11-05T05:00:00.000Z'), hours_since_planting: '24.00', recorded_by_membership_id: mem(n), corrects_observation_id: null, created_by: U1 };
+    });
+    const { ctx, calls } = setup(w, { members });
+    expect((await get(ctx)).status).toBe(200);
+    expect(calls.members).toHaveLength(1);
+  });
 });
 
 // ------------------------------------------------------------------ AC-17.2 lab_result

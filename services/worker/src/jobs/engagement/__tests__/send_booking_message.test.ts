@@ -92,7 +92,7 @@ describe('in-app notification (TRD §4.9): booking_confirmed / booking_cancelled
     const { w, run } = await setup(); w.account(ACCOUNT_1); w.account(ACCOUNT_2); w.link(ACCOUNT_1); w.link(ACCOUNT_2, PATIENT, { status: 'revoked' }); const b = w.booking({ slot_start: SLOT }); await run(b['id']);
     expect(w.notificationsOf(ACCOUNT_2)).toEqual([]); const n = w.notificationsOf(ACCOUNT_1); expect(n).toHaveLength(1);
     expect(n[0]).toMatchObject({ kind: 'booking_confirmed', account_id: ACCOUNT_1, patient_id: PATIENT, entity_type: 'booking', entity_id: b['id'], route_id: 'patient_app.booking' });
-    expect(Date.parse(n[0]!['expires_at'])).toBeGreaterThan(Date.parse(w.now()));
+    expect(Date.parse(n[0]!['expires_at'])).toBe(Date.parse(w.now()) + 180 * 24 * 3_600_000);   // 180 days: TRD §4.9, 05-SCHEMA retention (review T-B5-review.md #2)
     expect(Object.keys(n[0]!).sort()).toEqual(expect.not.arrayContaining(['body', 'text', 'message', 'title', 'booking_no', 'params']));   // notifications store no text (07-SECURITY §7.4, REQ-SEC-106)
     expect(JSON.stringify(n[0])).not.toContain('BK2600001');
   });

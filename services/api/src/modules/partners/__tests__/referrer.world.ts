@@ -143,8 +143,14 @@ export function makeWorld() {
   ];
   let seq = 400;
   const tables: Record<string, Row[]> = { partners, partner_referrers: referrers, manifest_lines: lines };
+  /** partners.g_cs_reasons (05-SCHEMA §7): x-coded-set is annotation-only in core and the DDL has no CHECK/FK, so the service must validate SR3 reason_code (review item 1). */
+  const reasons: Row[] = [
+    { set_name: 'referrer_mapping_reject_reasons', code: 'not_identifiable', requires_text: false, is_active: true, sort_order: 1 },
+    { set_name: 'referrer_mapping_reject_reasons', code: 'duplicate_entry', requires_text: false, is_active: true, sort_order: 2 },
+    { set_name: 'referrer_mapping_reject_reasons', code: 'other', requires_text: false, is_active: true, sort_order: 3 },
+  ];
   const w = {
-    partners, users, referrers, lines, doctors,
+    partners, users, referrers, lines, doctors, reasons,
     opts: {} as Opts,
     jobs: [] as Array<{ identifier: string; payload: any; key: string; extra: unknown[] }>,
     events: [] as string[],
@@ -311,6 +317,10 @@ export function makeWorld() {
             Object.assign(row, nu);
           }
           return { rows: /\bRETURNING\b/i.test(t) ? targets.map(strip) : [], rowCount: targets.length };
+        }
+        if (/^SELECT\b/i.test(t) && /\bFROM\s+partners\.g_cs_reasons\b/i.test(t)) { // 05-SCHEMA §7: no tenant column; set_name / code may be literal or bound
+          const rows = w.reasons.filter((r) => (t.includes(`'${r['set_name']}'`) || values.includes(r['set_name'])) && (!/\bcode\s*=\s*\$\d+/i.test(t) || values.includes(r['code'])));
+          return { rows: rows.map((r) => ({ ...r })), rowCount: rows.length };
         }
         const sel = /^SELECT\b[\s\S]*?\bFROM\s+partners\.(\w+)/i.exec(t);
         if (sel) {

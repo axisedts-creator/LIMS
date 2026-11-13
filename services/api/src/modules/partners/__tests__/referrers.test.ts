@@ -658,6 +658,7 @@ describe('T11 SR3 rejectPartnerReferrerMapping / unmapPartnerReferrer', () => {
   it.each([
     ['reason_code missing', {}], ['reason_code empty', { reason_code: '' }], ['reason_code 65', { reason_code: 'r'.repeat(65) }], ['reason_code number', { reason_code: 5 }],
     ['unknown key', { reason_code: 'not_identifiable', mapping_state: 'mapped' }], ['body null', null],
+    ['reason_code not in set', { reason_code: 'not_a_reason' }],
   ])('reject validation: %s -> 400', async (_l, b) => {
     const w = makeWorld();
     await fails(reject(w, R.x1, 1, b), 'common.validation_failed', 400);

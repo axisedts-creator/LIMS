@@ -460,7 +460,7 @@ describe.skipIf(!live)('T-07 #8/#9/#10 barcodes: upper-casing, uniqueness, looku
     expect(Object.keys(r.body)).toEqual(['item']);
   });
   run('#10 lookup is an equality match, not a pattern: %, _ and quotes find nothing (404 common.not_found); the hostile text is not an oracle', async (s) => {
-    for (const v of ['BC-%', '%', 'BC-GLU-_', '_', 'BC-GLU-1%', "BC-GLU-1' OR '1'='1", 'BC-GLU-1\\', 'BC-GLU-']) {
+    for (const v of ['BC-%', '%', 'BC-GLU-_', '_', 'BC-GLU-1%', "BC-GLU-1'OR'1'='1", 'BC-GLU-1\\', 'BC-GLU-']) {
       await expectLims(s.call(A, 'lookupInventoryBarcode', { body: { barcode_value: v } }), 'common.not_found', 404);
     }
   });

@@ -46,6 +46,7 @@ class _SignInFlowState extends ConsumerState<SignInFlow> {
   int _otpKey = 0; // a new key = a fresh, empty code field
   int _resendIn = 0;
   Timer? _timer;
+  Timer? _retryTimer; // A0 config retry back-off; cancelled on dispose so no timer outlives the screen
 
   Flavour get _flavour => ref.read(flavourProvider);
   PatientAuthApi get _api => ref.read(patientAuthApiProvider);
@@ -59,6 +60,7 @@ class _SignInFlowState extends ConsumerState<SignInFlow> {
   @override
   void dispose() {
     _timer?.cancel();
+    _retryTimer?.cancel();
     super.dispose();
   }
 
@@ -81,7 +83,11 @@ class _SignInFlowState extends ConsumerState<SignInFlow> {
       } catch (_) {
         // network or malformed body: counts as a failed attempt
       }
-      if (attempt < _configAttempts) await Future<void>.delayed(Duration(seconds: attempt));
+      if (attempt < _configAttempts) {
+        final wait = Completer<void>();
+        _retryTimer = Timer(Duration(seconds: attempt), wait.complete);
+        await wait.future; // never completes if disposed first: the loop simply stops
+      }
       if (!mounted) return;
     }
     if (mounted) setState(() => _step = _Step.loadFailed);

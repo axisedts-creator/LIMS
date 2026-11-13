@@ -49,7 +49,7 @@ export interface AnnexRecord {
   record_id: string; tenant_id?: string; annex_code: AnnexCode; status: AnnexStatus; reference_no?: string; tax_office?: string; counterparty?: string;
   software_version?: string; submitted_on?: string; completed_on?: string; notes?: string; version: number;
 }
-export interface StaffMember { platform_staff_id: string; display_name: string; email_masked: string; role_code: string; allowed_cidrs: string[]; is_active: boolean; mfa_enrolled?: boolean; last_login_at?: string; version: number }
+export interface StaffMember { platform_staff_id: string; display_name: string; email_masked: string; role_code: string; allowed_cidrs: string[]; is_active: boolean; last_login_at?: string; version: number }
 export interface PlatformSession { session_id: string; display_name?: string; state: string; aal: string; created_at: string; last_seen_at?: string; client_ip_masked?: string; user_agent_family?: string }
 export interface AuthEvent { auth_event_id: string; tenant_id?: string; user_id?: string; membership_id?: string; platform_staff_id?: string; event_type: string; reason_code?: string; client_ip?: string; user_agent?: string; occurred_at: string }
 export type Settings = Record<string, unknown> & { version: number };

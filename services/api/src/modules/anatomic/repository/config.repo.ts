@@ -12,12 +12,14 @@ const ASSAYS_UPDATABLE = { display: '', method_text_default: '', is_active: '' }
 const ASSAY_TARGETS_UPDATABLE = { display: '', allows_quantitative: '', unit_code: '', decimals: '', sort_order: '', is_active: '' } as const;
 const ASSAY_TARGET_VALUES_UPDATABLE = { display: '', is_abnormal: '', sort_order: '', is_active: '' } as const;
 
-export async function insertSettings(tx: Q, row: Row): Promise<Row> {
+/** Lazy tenant defaults (05-SCHEMA §2.3): the tenant's row already exists -> undefined (ON CONFLICT DO NOTHING, no aborted tx); the caller re-reads. */
+export async function insertSettings(tx: Q, row: Row): Promise<Row | undefined> {
   const { rows } = await tx.query(
     `INSERT INTO anatomic.settings (id, tenant_id, auto_accession_on_receipt, require_gross_complete_for_processing, default_routine_stain_code, max_images_per_case, max_report_images, created_by, updated_by)
-     VALUES ($1, $2, COALESCE($3::boolean, false), COALESCE($4::boolean, true), COALESCE($5::text, 'HE'), COALESCE($6::integer, 50), COALESCE($7::integer, 12), $8, $9) RETURNING *`,
+     VALUES ($1, $2, COALESCE($3::boolean, false), COALESCE($4::boolean, true), COALESCE($5::text, 'HE'), COALESCE($6::integer, 50), COALESCE($7::integer, 12), $8, $9)
+     ON CONFLICT DO NOTHING RETURNING *`,
     [row['id'] ?? null, row['tenant_id'] ?? null, row['auto_accession_on_receipt'] ?? null, row['require_gross_complete_for_processing'] ?? null, row['default_routine_stain_code'] ?? null, row['max_images_per_case'] ?? null, row['max_report_images'] ?? null, row['created_by'] ?? null, row['updated_by'] ?? null]);
-  return rows[0] as Row;
+  return rows[0];
 }
 
 export async function getSettings(tx: Q, i: { tenantId: string }): Promise<Row | undefined> {
@@ -47,6 +49,12 @@ export async function insertTestProfile(tx: Q, row: Row): Promise<Row> {
 
 export async function getTestProfile(tx: Q, i: { tenantId: string; id: string }): Promise<Row | undefined> {
   const { rows } = await tx.query(`SELECT * FROM anatomic.test_profiles WHERE tenant_id = $1 AND id = $2`, [i.tenantId, i.id]);
+  return rows[0];
+}
+
+/** Profile of a catalog test (unique per tenant + test_id). */
+export async function getTestProfileByTestId(tx: Q, i: { tenantId: string; testId: string }): Promise<Row | undefined> {
+  const { rows } = await tx.query(`SELECT * FROM anatomic.test_profiles WHERE tenant_id = $1 AND test_id = $2`, [i.tenantId, i.testId]);
   return rows[0];
 }
 

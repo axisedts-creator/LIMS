@@ -38,8 +38,11 @@ export async function updateSpecimenLink(
   return rows[0];
 }
 
-/** Link row of a C5 specimen (unique per specimen), if any. */
-export async function getSpecimenLinkBySpecimen(tx: Q, i: { tenantId: string; specimenId: string }): Promise<Row | undefined> {
-  const { rows } = await tx.query(`SELECT * FROM anatomic.specimen_links WHERE tenant_id = $1 AND specimen_id = $2`, [i.tenantId, i.specimenId]);
+/** Link row of a C5 specimen (unique per specimen), if any. forUpdate: row lock for the intake stale-seq check (02-TRD §4.1 step 2). */
+export async function getSpecimenLinkBySpecimen(tx: Q, i: { tenantId: string; specimenId: string; forUpdate?: boolean }): Promise<Row | undefined> {
+  const { rows } = await tx.query(
+    i.forUpdate
+      ? `SELECT * FROM anatomic.specimen_links WHERE tenant_id = $1 AND specimen_id = $2 FOR UPDATE`
+      : `SELECT * FROM anatomic.specimen_links WHERE tenant_id = $1 AND specimen_id = $2`, [i.tenantId, i.specimenId]);
   return rows[0];
 }

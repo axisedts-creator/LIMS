@@ -17,7 +17,7 @@ type Obj = Record<string, unknown>;
 type Result = { status: number; body: unknown };
 
 const MAX_PARTS = 52;
-const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+export const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 // ---- helpers ----
 export function anatomicCtx(c: unknown): AnatomicCtx {
@@ -27,19 +27,19 @@ export function anatomicCtx(c: unknown): AnatomicCtx {
   }
   return x as AnatomicCtx;
 }
-const bad = (...paths: string[]): LimsError => new LimsError('common.validation_failed', undefined,
+export const bad = (...paths: string[]): LimsError => new LimsError('common.validation_failed', undefined,
   paths.map((path): FieldError => ({ path, code: 'common.field_invalid', message: 'Field invalid' })));
-const isObj = (v: unknown): v is Obj => typeof v === 'object' && v !== null && !Array.isArray(v);
+export const isObj = (v: unknown): v is Obj => typeof v === 'object' && v !== null && !Array.isArray(v);
 /** Closed object (AB-5): any key outside `allowed` -> 400 common.unknown_field, the value is never echoed. */
-function strict(v: unknown, allowed: readonly string[], path = ''): Obj {
+export function strict(v: unknown, allowed: readonly string[], path = ''): Obj {
   if (!isObj(v)) throw bad(path);
   for (const k of Object.keys(v)) {
     if (!allowed.includes(k)) throw new LimsError('common.validation_failed', undefined, [{ path: `${path}/${k}`, code: 'common.unknown_field', message: 'Unknown field' }]);
   }
   return v;
 }
-const uuid = (v: unknown, path: string): string => { if (typeof v !== 'string' || !UUID.test(v)) throw bad(path); return v; };
-function text(v: unknown, path: string, max: number, min = 0): string {
+export const uuid = (v: unknown, path: string): string => { if (typeof v !== 'string' || !UUID.test(v)) throw bad(path); return v; };
+export function text(v: unknown, path: string, max: number, min = 0): string {
   if (typeof v !== 'string' || v.includes('\u0000') || v.length > max || [...v].length < min) throw bad(path);
   return v;
 }

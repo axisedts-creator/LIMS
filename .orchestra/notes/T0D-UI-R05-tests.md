@@ -1,0 +1,7 @@
+# T0D-UI-R05 tests (LD-140, 10-DESIGN-SYSTEM s5)
+New `packages/ui-flutter/test/restyle_r05_test.dart` (31 tests): no hex/`Colors.x`/px radius in lib/src (qr_code.dart exempt: QR must be pure b/w); theme page #F3F7F4, Plus Jakarta Sans first + Devanagari + `packages/lims_ui/...` fallbacks; Card white + radius 16-18 (stock `Card` and `LimsCard`); pill buttons, >=44 targets; lime `LimsTokens.colorAccentHighlight` fill under `LimsBottomNav` covering only the current tab (follows selection); tap scale .96 (LimsButton primary/secondary, nav item; disabled = none; onPressed still fires); goldens.
+Edited `tokens_theme_test.dart`: the "Noto Sans first" assertion contradicted LD-140, now Plus Jakarta Sans first (Noto kept bundled).
+Run: `.orchestra\notes\T0D-UI-R05-verify.cmd` (runs from repo root, cds into packages/ui-flutter).
+Now verify.cmd: 63 pass, 17 fail for the right reason (font, card colour/radius, lime highlight, scale 1.0 not .96, tokens not read in src, goldens stale/missing; 2 old goldens were already stale after R01); rest are guards. flutter run: yes, real output.
+Writer: lime = filled box (DecoratedBox/ColoredBox/Material) of `LimsTokens.colorAccentHighlight` whose rect covers the current tab's icon or label; scale via Transform/AnimatedScale on press. Then run `flutter test --update-goldens test/golden_widgets_test.dart test/restyle_r05_test.dart` in packages/ui-flutter and commit the PNGs.
+Not mine: `dependency_pins_test.dart` fails 2 tests before and after this task (not in verify.cmd).

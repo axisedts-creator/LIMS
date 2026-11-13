@@ -87,6 +87,8 @@ interface Sess {
   sql(t: string, text: string, v?: unknown[]): Promise<any[]>;
   /** consume through the REAL ledger (automatic consumption never waits on a count lock). */
   consume(store: string, item: string, lot: string | null, n: number, min: number): Promise<void>;
+  /** goods receipt through the REAL ledger at occurred_at = at(min). */
+  receive(store: string, item: string, lot: string | null, n: number, min: number): Promise<void>;
   roleCalls: any[];
 }
 const claims = (t: string) => JSON.stringify({ tenant_id: t, sub: SYS, actor_type: 'system' });
@@ -113,6 +115,14 @@ function sessionOn(client: Client): Sess {
       await ledger.post({ tx, tenantId: A, actorId: SYS }, {
         doc_type: 'consumption_fact', doc_id: uid(900000 + Math.floor(Math.random() * 90000)), occurred_at: occurred, business_date: ymdIn(KT, new Date(occurred)),
         movements: [{ store_id: store, item_id: item, lot_id: lot, kind: 'consume_fixed', qty_base: `-${n}` }],
+      });
+    },
+    async receive(store, item, lot, n, min) {
+      await setClaims(A);
+      const occurred = at(min);
+      await ledger.post({ tx, tenantId: A, actorId: SYS }, {
+        doc_type: 'goods_receipt', doc_id: uid(900000 + Math.floor(Math.random() * 90000)), occurred_at: occurred, business_date: ymdIn(KT, new Date(occurred)),
+        movements: [{ store_id: store, item_id: item, lot_id: lot, kind: 'receive', qty_base: `${n}`, value_hint: n * 100 }],
       });
     },
   };
@@ -517,6 +527,18 @@ describe.skipIf(!live)('T-14 #67 variance uses movements up to counted_at (AC-19
     const r = await post(s, c.id);
     expect(qty(lineOf(r.body, KR, LA).book_qty_at_count)).toBe(10);
     expect(await moves(s, c.id)).toEqual([]);
+  });
+  run('T-14 review #1: a pair NOT in the snapshot that receives stock after snapshot_at (LN 0 at open, +10 at at(60)) and is recorded via #66 at at(90) with counted 10: book_qty_snapshot is the balance AS OF snapshot_at (0), so book_at_count 10, variance 0, NO count movement (movements are not double counted)', async (s) => {
+    const c = await openAt0(s);
+    await s.receive(K1, KR, LN, 10, 60);
+    expect((await bal(s, K1, KR, LN)).q).toBe(10);
+    await recordOne(s, c.id, KR, LN, '10', 90);
+    expect(Number((await dbLine(s, c.id, KR, LN)).book_qty_snapshot)).toBe(0);
+    const r = await post(s, c.id);
+    expect(qty(lineOf(r.body, KR, LN).book_qty_at_count)).toBe(10);
+    expect(qty(lineOf(r.body, KR, LN).variance_qty_base)).toBe(0);
+    expect(await moves(s, c.id)).toEqual([]);
+    expect((await bal(s, K1, KR, LN)).q).toBe(10);
   });
   run('a counted_at-less line defaults to the clock of the record call: consumption posted AFTER it does not change the line\'s book', async (s) => {
     const c = await openAt0(s);

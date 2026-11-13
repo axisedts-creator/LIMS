@@ -33,6 +33,9 @@ type SessionProfile struct {
 	HostQueryMessageTypes   []string    // HL7 MSH-9 values classified as host queries
 	ExpectAckOnReply        bool
 	ReplyTimeout            time.Duration
+	// CR-C7-016 (08-ADDENDUM-TRUTH-H80E §7, LD-139). Zero values keep today's behaviour.
+	ReplyAckPolicy         string // "" | "each" (an ACK after every reply message) | "last" (after the final one only) | "none"
+	ReplyAckMatchControlId bool   // true: the awaited ACK's MSA-2 must equal the MSH-10 of the reply it acknowledges
 }
 
 // Resolution is the outcome of Resolve.

@@ -18,8 +18,8 @@ const COLUMNS: readonly ColumnDef<StaffMember>[] = [
   { id: 'email', header: 'Email', cell: (s) => s.email_masked },
   { id: 'role', header: 'Role', cell: (s) => roleLabel(s.role_code) },
   { id: 'cidrs', header: 'Allowed networks', cell: (s) => (s.allowed_cidrs.length ? s.allowed_cidrs.join(', ') : 'Any network') },
-  // the PlatformStaff row has no MFA field (.orchestra/cr/C2.T26.md); MFA is mandatory for platform staff (aal2)
-  { id: 'mfa', header: 'MFA', cell: (s) => (s.mfa_enrolled === undefined ? '—' : s.mfa_enrolled ? 'Enrolled' : 'Not enrolled') },
+  // LD-114: PlatformStaff has no MFA field; the column shows a dash
+  { id: 'mfa', header: 'MFA', cell: () => '—' },
   { id: 'status', header: 'Status', cell: (s) => <StatusChip kind="generic" status={s.is_active ? 'active' : 'inactive'} tone={s.is_active ? 'success' : 'neutral'} label={s.is_active ? 'Active' : 'Inactive'} /> },
 ];
 

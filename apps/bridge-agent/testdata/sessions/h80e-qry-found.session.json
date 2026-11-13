@@ -1,0 +1,11 @@
+{"name": "h80e-qry-found", "protocol": "hl7v2", "transport": "tcp_server", "instrument_profile": "truth_h80e", "options": {},
+ "steps": [
+  {"note": "server stub answers: pending HbA1c order exists for this barcode -> QCK OK then DSR", "host_query": {"reply": [
+   "MSH|^~\\&|Truth|Truth-H80E|||20261105||QCK^Q02|12601|P|2.3|||||UTF-8||||<CR>MSA|AA|126|Message accepted|||0<CR>ERR|0<CR>QAK|SR|OK|||||<CR>",
+   "MSH|^~\\&|Truth|Truth-H80E|||20261105||DSR^Q03|12602|P|2.3||||||UTF-8||||<CR>MSA|AA|126|Message accepted|||0<CR>ERR|0<CR>QAK|1|OK|||||<CR>QRD|20261105|R|D|65|||RD||OTH|||T|<CR>DSP|1||P0000123|||<CR>DSP|3||Test Patient|||<CR>DSP|5||1|||<CR>DSP|21||E2600000042|||<CR>DSP|22||0|||<CR>DSC|0|<CR>"]}},
+  {"note": "s5: the query is committed, gets no HL7 ACK; QCK is written and the DSR immediately after it (ReplyAckPolicy last)", "from": "instrument", "bytes": "<VT>MSH|^~\\&|Truth|Truth-H80E|||20261105||QRY^Q02|126|P|2.3||||||UTF-8||||<CR>QRD|20261105|R|D|65|||RD|E2600000042||||<CR>QRF|||||RCT|COR|ALL|||<CR><FS><CR>"},
+  {"expect": "agent", "bytes": "<VT>MSH|^~\\&|Truth|Truth-H80E|||20261105||QCK^Q02|12601|P|2.3|||||UTF-8||||<CR>MSA|AA|126|Message accepted|||0<CR>ERR|0<CR>QAK|SR|OK|||||<CR><FS><CR><VT>MSH|^~\\&|Truth|Truth-H80E|||20261105||DSR^Q03|12602|P|2.3||||||UTF-8||||<CR>MSA|AA|126|Message accepted|||0<CR>ERR|0<CR>QAK|1|OK|||||<CR>QRD|20261105|R|D|65|||RD||OTH|||T|<CR>DSP|1||P0000123|||<CR>DSP|3||Test Patient|||<CR>DSP|5||1|||<CR>DSP|21||E2600000042|||<CR>DSP|22||0|||<CR>DSC|0|<CR><FS><CR>", "within_ms": 200},
+  {"note": "s6: ACK^Q03 confirms the DSR (MSA-2 = the DSR id); it is consumed, not committed, not acknowledged", "from": "instrument", "bytes": "<VT>MSH|^~\\&|Truth|Truth-H80E|||20261105||ACK^Q03|127|P|2.3||||||UTF-8||||<CR>MSA|AA|12602|Message accepted|||0<CR>ERR|0<CR><FS><CR>"},
+  {"expect": "agent", "bytes": "", "within_ms": 200},
+  {"expect_queue": {"items": 1, "kind": "data", "raw_sha256": "133e3a641761f4e6eef204ca8a539b7f6f7260e470c0e0de44db1c1fb75d3dbd"}}
+ ]}

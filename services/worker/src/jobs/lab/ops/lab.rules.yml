@@ -1,0 +1,41 @@
+# C5 alert rules (02-TRD §11 "Alert rules for C1", CR-C5-010, 08 A13 P-14). expr and for are verbatim from the TRD table.
+# C1 wires this file into infra/ and adds team + runbook_url on import (C1 02-TRD §11.3). Thresholds are [CONV].
+# Single-quoted scalars keep the regex backslashes literal. No rule filters or groups by a barcode / patient / specimen label (02-CV §9.2).
+groups:
+  - name: lab
+    rules:
+      - alert: LabCriticalValueUnnotified
+        expr: 'max by (tenant_id) (lims_lab_critical_unnotified_oldest_age_seconds) > 1800'
+        for: 1m
+        labels:
+          severity: page
+        annotations:
+          summary: A critical value has been open for more than 30 minutes without a recorded notification.
+      - alert: LabIngestExceptionStale
+        expr: 'max by (tenant_id, reason) (lims_lab_ingest_exception_oldest_open_age_seconds) > 86400'
+        for: 5m
+        labels:
+          severity: warn
+        annotations:
+          summary: An instrument-ingest exception has been open for more than 24 hours.
+      - alert: LabConsumerDeadLetter
+        expr: 'increase(lims_core_dead_letters_total{task=~"(evt\\.)?lab\\..*"}[5m]) > 0'
+        for: 0m
+        labels:
+          severity: page
+        annotations:
+          summary: A lab task or event consumer dead-lettered a job.
+      - alert: LabHostQuerySlow
+        expr: 'histogram_quantile(0.95, sum by (le) (rate(lims_lab_host_query_duration_seconds_bucket[5m]))) > 0.3'
+        for: 15m
+        labels:
+          severity: warn
+        annotations:
+          summary: Analyser host query p95 is above 300 ms.
+      - alert: LabBarcodeAllocationFailure
+        expr: 'increase(lims_lab_barcode_alloc_failures_total[5m]) > 0'
+        for: 0m
+        labels:
+          severity: page
+        annotations:
+          summary: A specimen barcode could not be allocated.

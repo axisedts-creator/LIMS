@@ -643,8 +643,9 @@ export async function amendResult(rawCtx: unknown, i: AmendInput): Promise<Resul
   const { tx, tenantId, store } = ctx;
   const row = (await store.lockForAmend(tx, tenantId, [i.resultId]))[0];
   if (!row) throw new LimsError('common.not_found');   // P-01
-  try { await ctx.ports.IdentityPort.assertRole(ctx, { permission: 'lab.result.amend', centreId: row.centreId }); }
-  catch (err) { throw err instanceof LimsError && err.code === 'auth.forbidden' ? new LimsError('lab.amend_requires_pathologist') : err; }   // AC-17.2 / S-04 (mfa passes through)
+  // auth.forbidden propagates: the handlers/index.ts gate maps a missing role to lab.amend_requires_pathologist (AC-17.2 / S-04) BEFORE this runs, so a refusal here is the
+  // centre scope (P-02: foreign centre = common.not_found, mapped in the gate wrapper); auth.mfa_required passes through.
+  await ctx.ports.IdentityPort.assertRole(ctx, { permission: 'lab.result.amend', centreId: row.centreId });
   const membershipId = ctx.actor.membershipId;
   if (!membershipId) throw new LimsError('lab.amend_requires_pathologist');
   if (i.version !== row.rowVersion) throw new LimsError('common.version_conflict');

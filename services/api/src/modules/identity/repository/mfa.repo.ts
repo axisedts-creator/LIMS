@@ -30,7 +30,7 @@ export interface SessionRef { sessionId: string; tenantId: string | null; userId
 export interface SessionPatch {
   state?: string; aal?: string; accessToken?: string; refreshToken?: string; accessExpiresAt?: Date; mfaFailedAttempts?: number;
   lastSeenAt?: Date; idleExpiresAt?: Date;   // T8 touch
-  revoked?: { reason: 'mfa_failed' | 'logout' | 'refresh_failed' }; actorId: string;
+  revoked?: { reason: 'mfa_failed' | 'logout' | 'refresh_failed' | 'token_reuse' }; actorId: string;
 }
 
 const BY_TOKEN_SQL = `SELECT session_id, kind, state, tenant_id, user_id, membership_id, platform_staff_id, support_session_id, token_reused
@@ -38,7 +38,8 @@ const BY_TOKEN_SQL = `SELECT session_id, kind, state, tenant_id, user_id, member
 // [CONV] e-mail for the account-failure key: core.users (tenant) / identity.platform_staff (platform). Row lock serialises parallel codes.
 const LOAD_SQL = `SELECT s.aal, s.access_token_enc, s.refresh_token_enc, s.enc_key_id, s.mfa_failed_attempts, s.access_expires_at,
     s.idle_expires_at, s.absolute_expires_at, coalesce(u.email_normalized, p.email_normalized) AS email,
-    s.state, s.last_seen_at, s.idle_timeout_minutes, (m.locked_at IS NOT NULL) AS membership_locked, t.status AS tenant_status
+    s.state, s.last_seen_at, s.idle_timeout_minutes, (m.locked_at IS NOT NULL) AS membership_locked, t.status AS tenant_status,
+    s.app_instance_id, s.app_platform
   FROM identity.sessions s
   LEFT JOIN core.users u ON u.tenant_id = s.tenant_id AND u.id = s.user_id
   LEFT JOIN identity.platform_staff p ON p.id = s.platform_staff_id
@@ -46,6 +47,9 @@ const LOAD_SQL = `SELECT s.aal, s.access_token_enc, s.refresh_token_enc, s.enc_k
   LEFT JOIN core.tenants t ON t.id = s.tenant_id
   WHERE s.id = $1 AND s.user_id = $2 AND s.tenant_id IS NOT DISTINCT FROM $3 AND s.kind = $4
   FOR UPDATE OF s`;
+// T31 rotation (CR-C2-018, 08 A3.1): the presented token moves to previous_token_sha256 (one kept); guarded on the presented token
+const ROTATE_SQL = `UPDATE identity.sessions SET token_sha256 = $4, previous_token_sha256 = $5, updated_at = now(), updated_by = $6, version = version + 1
+  WHERE tenant_id = $1 AND id = $2 AND user_id = $3 AND token_sha256 = $5 RETURNING id`;
 const SESSION_UPDATE_DEFINER = 'SELECT app.identity_platform_auth_write_session_update($1::uuid, $2::uuid, $3::jsonb) AS n';
 const FACTORS_SQL = `SELECT id, gotrue_factor_id, status, verified_at, friendly_name FROM identity.mfa_factors
   WHERE tenant_id IS NOT DISTINCT FROM $1 AND user_id = $2 AND status <> 'removed'`;
@@ -131,12 +135,22 @@ export function createMfaRepo(o: { seal?: Sealer; open?: Opener } = {}) {
       const r = (await tx.query(LOAD_SQL, [ref.sessionId, ref.userId, ref.tenantId, ref.kind])).rows[0];
       if (!r) return undefined;
       return {
-        aal: r.aal as 'aal1' | 'aal2', accessToken: open(r.access_token_enc, r.enc_key_id), refreshToken: open(r.refresh_token_enc, r.enc_key_id),
+        // LD-81: kind patient has no GoTrue tokens (columns NULL by CHECK) -> '' (never sent to GoTrue: the patient path has no refresh)
+        aal: r.aal as 'aal1' | 'aal2', accessToken: r.access_token_enc == null ? '' : open(r.access_token_enc, r.enc_key_id),
+        refreshToken: r.refresh_token_enc == null ? '' : open(r.refresh_token_enc, r.enc_key_id),
         mfaFailedAttempts: Number(r.mfa_failed_attempts), email: typeof r.email === 'string' ? r.email.trim().normalize('NFC').toLowerCase() : '',
         accessExpiresAt: r.access_expires_at as Date, idleExpiresAt: r.idle_expires_at as Date, absoluteExpiresAt: r.absolute_expires_at as Date,
         state: r.state as string, lastSeenAt: r.last_seen_at as Date, idleTimeoutMinutes: Number(r.idle_timeout_minutes),
         membershipLocked: r.membership_locked === true, tenantStatus: (r.tenant_status ?? null) as string | null,
+        appInstanceId: (r.app_instance_id ?? null) as string | null, appPlatform: (r.app_platform ?? null) as string | null,
       };
+    },
+
+    /** T31 app-token rotation (patient / staff_mobile); caller holds the row lock. false = 0 rows: a parallel refresh already rotated
+     *  this token (lost race) -> the caller treats it as reuse (AU-T15, 02-TRD s4 item 10). */
+    async rotateToken(tx: Q, ref: SessionRef, a: { tokenSha256: Buffer; previousTokenSha256: Buffer; actorId: string }): Promise<boolean> {
+      if (!ref.tenantId) throw new LimsError('common.internal');
+      return (await tx.query(ROTATE_SQL, [ref.tenantId, ref.sessionId, ref.userId, a.tokenSha256, a.previousTokenSha256, a.actorId])).rows.length > 0;
     },
 
     /** T8 touch (03-APP-FLOW s3.5): last_seen_at = now, idle_expires_at = now + idle_timeout_minutes; caller holds the row lock */

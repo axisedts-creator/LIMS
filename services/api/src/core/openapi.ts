@@ -11,8 +11,9 @@ import type { ClientIpResolver } from './auth/client-ip.js';
 import { AuthError } from './auth/errors.js';
 import { isRenderedProblem, LimsError } from './errors.js';
 import type { JwtVerifier } from './auth/jwt.js';
-import type { Handler, HandlerContext } from './module.js';
+import type { Handler } from './module.js';
 import { setErrorCode } from './observability/logging.js';
+import type { Pipeline, PipelineOp } from './pipeline/index.js';
 
 /** Per-boot auth dependencies (02-TRD §6.5). */
 export interface CoreAuth {
@@ -72,7 +73,8 @@ export const AJV_OPTIONS = {
   allErrors: true,
   // [CONV] `discriminator` (02-CONVENTIONS §479: oneOf + discriminator with explicit mapping) is annotation-only:
   // ajv's `discriminator: true` throws "mapping is not supported", so validation is the `oneOf` itself (LD-53 (2)).
-  keywords: ['x-coded-set', 'discriminator'],
+  // CR-C16-024 (lead-accepted): `x-extensible` is annotation-only (02-CONVENTIONS §459); `enum` still rejects unknown values.
+  keywords: ['x-coded-set', 'discriminator', 'x-extensible'],
 } as const;
 /**
  * [CONV] coerceTypes 'array' is only for query/path/header strings (SP-8 O1); JSON bodies are typed, so a body
@@ -169,19 +171,35 @@ export function installRouteHooks(app: FastifyInstance, opts: { responseValidati
   });
 }
 
-/** x-error-codes of one operation. */
-function errorCodesOf(spec: any, operationId: string): readonly string[] {
-  for (const item of Object.values<any>(spec?.paths ?? {})) {
-    for (const op of Object.values<any>(item ?? {})) if (op?.operationId === operationId) return op['x-error-codes'] ?? [];
+/** The spec operation object + its path/method. */
+function findOp(spec: any, operationId: string): { path: string; method: string; op: any } | undefined {
+  for (const [path, item] of Object.entries<any>(spec?.paths ?? {})) {
+    for (const [method, op] of Object.entries<any>(item ?? {})) if (op?.operationId === operationId) return { path, method, op };
   }
-  return [];
+  return undefined;
 }
 
-/** Wrap a module handler: HandlerResult { status, body, headers } is applied to the reply (SP-8 O3). */
-function wrap(operationId: string, h: Handler, errorCodes: readonly string[]) {
+/** Pipeline view of one operation (x-public, x-context, x-idempotency, x-rate-limit-tier; 02-CV §4). */
+function pipelineOp(module: string, spec: any, operationId: string): PipelineOp {
+  const f = findOp(spec, operationId);
+  const op = f?.op ?? {};
+  const context = typeof op['x-context'] === 'string' ? op['x-context'] : undefined;
+  return Object.freeze({
+    module, operationId, method: (f?.method ?? '').toUpperCase(), routeTemplate: f?.path ?? '',
+    public: op['x-public'] !== undefined, identityAuth: context === 'identity_auth', context,
+    idempotency: op['x-idempotency'], rateLimitTier: op['x-rate-limit-tier'],
+  });
+}
+
+/** Wrap a module handler: stages 5-11 run in the pipeline; HandlerResult { status, body, headers } is applied to the reply (SP-8 O3). */
+function wrap(op: PipelineOp, h: Handler, errorCodes: readonly string[], pipeline: Pipeline) {
   return async (req: FastifyRequest, reply: FastifyReply) => {
-    const ctx: HandlerContext = { operationId, log: req.log, clientIp: requestAuth.get(req)?.clientIp ?? req.ip };
-    const r = await h({ params: req.params, query: req.query, headers: req.headers, body: req.body }, ctx);
+    const ra = requestAuth.get(req);
+    const r = await pipeline.run({
+      op, claims: ra?.claims, requestId: String(req.id), clientIp: ra?.clientIp ?? req.ip,
+      userAgent: header(req.headers['user-agent']), idempotencyKey: header(req.headers['idempotency-key']),
+      req: { params: req.params, query: req.query, headers: req.headers, body: req.body }, handler: h, log: req.log,
+    });
     // A non-Problem error result (e.g. readiness 503) logs the declared x-error-codes entry for its status.
     if (r.status >= 400) {
       const code = errorCodes.find((c) => new LimsError(c).statusCode === r.status);
@@ -206,6 +224,7 @@ export async function mountSpec(
   spec: object,
   handlers: Readonly<Record<string, Handler>>,
   auth: CoreAuth,
+  pipeline: Pipeline,
 ): Promise<void> {
   if (!auth.verifier && usesScheme(spec, 'bearerJwt')) throw new Error(`module ${name}: bearerJwt operations need LIMS_CORE_JWT_* config`);
   await app.register(async (scope) => {
@@ -217,7 +236,7 @@ export async function mountSpec(
       operationResolver: (operationId: string) => {
         const h = Object.hasOwn(handlers, operationId) ? handlers[operationId] : undefined;
         if (typeof h !== 'function') throw new Error(`module ${name}: missing handler for operationId ${operationId}`);
-        return wrap(operationId, h, errorCodesOf(spec, operationId));
+        return wrap(pipelineOp(name, spec, operationId), h, findOp(spec, operationId)?.op?.['x-error-codes'] ?? [], pipeline);
       },
     });
   });

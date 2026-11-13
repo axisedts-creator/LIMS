@@ -1,0 +1,17 @@
+---
+# T-34 (02-TRD s7.11, CR-C7-012): C7 bridge-agent release service. Runs on group `ops` only (lean: the one prod host).
+# LD-45: no host name here; keys are placed by secrets_render on `ops` only (AC-19.3).
+agent_release_bin_dir: /usr/local/lib/lims/bin
+agent_release_out_dir: /srv/lims/agent-releases
+agent_release_secrets_dir: /run/lims/secrets/release
+# Authenticode signing tool pin (THIRD-PARTY-OPS.md row "Authenticode signing tool"; the same version string).
+# UNSET ON PURPOSE: the spec ("C1 pins in T-34") names no tool, version, checksum or licence and nothing may be
+# invented -> CR .orchestra/cr/C1.T-34.md. The role asserts these are set and fails closed until the CR is decided.
+agent_release_authenticode_version: ""
+agent_release_authenticode_sha256: ""
+agent_release_authenticode_url: ""
+# path of the CLI inside the unpacked archive (set together with the pin)
+agent_release_authenticode_bin_relpath: ""
+agent_release_authenticode_dir: /opt/lims/authenticode
+# release key id written to g_agent_releases.key_id (<= 32 chars); set per environment in group_vars
+agent_release_key_id: ""

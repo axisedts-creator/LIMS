@@ -70,9 +70,9 @@ describe('AC-0D-8.7: bundled fonts (04-UI-UX §1.4: packages/ui/assets/fonts/, w
   it('a licence file (OFL-1.1) ships with the fonts', () => {
     expect(fonts.some((n) => /OFL|LICENSE/i.test(n))).toBe(true);
   });
-  it('font.family.sans token lists Noto Sans then Noto Sans Devanagari', () => {
+  it('font.family.sans token lists Plus Jakarta Sans then Noto Sans Devanagari', () => {
     const t = readFileSync(join(UI, 'tokens', 'tokens.json'), 'utf8');
-    expect(t).toMatch(/Noto Sans["\\]*,\s*["\\]*Noto Sans Devanagari/);
+    expect(t).toMatch(/Plus Jakarta Sans["\\]*,\s*["\\]*Noto Sans Devanagari/);
   });
 });
 

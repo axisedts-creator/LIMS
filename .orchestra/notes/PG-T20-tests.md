@@ -1,0 +1,6 @@
+# PG-T20 tests (tester)
+- services/api/src/modules/payments/__tests__/unit/observability.test.ts: the 12 TRD §11 metrics registered in core `createMetrics` DEFS (type + labels, closed label set); `payments.rules.yml` = the 9 alerts of the §11 table (name/expr/for/severity); docs/manual/payments has the 6 screen routes, RB-1..RB-9 headings + key steps, every alert name.
+- services/worker/src/jobs/payments/__tests__/integration/sweep_gauges.test.ts: sweep sets held_for_review_oldest_age_seconds{tenant_id,kind} (both kinds, 0 when none), reconciliation_stalled_runs{tenant_id} (strict > 2 h), open_intents_past_deadline{gateway}; last_success never set for reconciliation_enabled=false; read-only, tenant-isolated.
+- Writer notes: lims_payments_* must be added to DEFS in services/api/src/core/observability/metrics.ts (closed registry; outside the PG-T20 file list, so CR/ownership call). Alert names must appear in docs/manual/payments. Sweep SQL stays in the merchantDb fake dialect.
+- LD-127: services/api/src/core/observability/__tests__/metrics.test.ts EXPECTED now has the 12 lims_payments_* names+types (C15 additions). Run: `pnpm --dir services/api exec vitest run src/core/observability/__tests__/metrics.test.ts`.
+- Run: `.orchestra\notes\PG-T20-verify.cmd` (api test, then worker test). Both fail now: metrics, rules file, manual pages and gauges missing.

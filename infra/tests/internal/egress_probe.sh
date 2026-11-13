@@ -10,12 +10,17 @@
 #   proxy <c>: api/worker: only path out is Squid: PROXY_ALLOWED_FQDN returns its status (not 000/403/407/5xx),
 #              PROXY_DENIED_FQDN gets exactly 403 on CONNECT, direct egress denied.  Env: PROXY_ALLOWED_FQDN, PROXY_DENIED_FQDN;
 #              DATA_WG_IP optional (adds the :5432/:6432 allow).
+# T-35 (CR-C15-008, LD-45): mode `payments <container>` (staging worker): same Squid-only path as `proxy`, per FQDN.
+#   Every PAYMENTS_ALLOWED_FQDNS (comma list, UAT gateways) must answer via Squid (not 000/403/407/5xx);
+#   every PAYMENTS_DENIED_FQDNS (comma list, prod gateways + others) must get exactly 403 on CONNECT; direct egress denied.
+#   Env: PAYMENTS_ALLOWED_FQDNS, PAYMENTS_DENIED_FQDNS (both required, exit 2 if empty).
 set -u
 case "${1:-}" in
-  db | edge | proxy)
+  db | edge | proxy | payments)
     MODE=$1; C=${2:-}
-    [ -n "$C" ] || { echo "usage: egress_probe.sh db|edge|proxy <container>" >&2; exit 2; }
+    [ -n "$C" ] || { echo "usage: egress_probe.sh db|edge|proxy|payments <container>" >&2; exit 2; }
     case $MODE in
+      payments) [ -n "${PAYMENTS_ALLOWED_FQDNS:-}" ] && [ -n "${PAYMENTS_DENIED_FQDNS:-}" ] || { echo "need PAYMENTS_ALLOWED_FQDNS and PAYMENTS_DENIED_FQDNS" >&2; exit 2; } ;;
       proxy) [ -n "${PROXY_ALLOWED_FQDN:-}" ] && [ -n "${PROXY_DENIED_FQDN:-}" ] || { echo "need PROXY_ALLOWED_FQDN and PROXY_DENIED_FQDN" >&2; exit 2; } ;;
       *) [ -n "${DATA_WG_IP:-}" ] || { echo "need DATA_WG_IP" >&2; exit 2; } ;;
     esac
@@ -23,7 +28,7 @@ case "${1:-}" in
     . "$(dirname "${BASH_SOURCE[0]}")/probe_lib.sh"
     need_running "$C"
     need_tool "$C" nc
-    if [ "$MODE" = proxy ]; then
+    if [ "$MODE" = proxy ] || [ "$MODE" = payments ]; then
       if docker exec "$C" sh -c 'command -v curl' >/dev/null 2>&1; then tap ok "curl available in $C"; else tap fail "curl available in $C"; finish; fi
     fi
     if [ "$MODE" = db ]; then
@@ -51,10 +56,26 @@ case "${1:-}" in
       st=$(docker exec "$C" curl -sS -o /dev/null -w '%{http_connect}' --max-time 10 "https://$PROXY_DENIED_FQDN/" 2>/dev/null)
       if [ "$st" = 403 ]; then tap ok "denied $PROXY_DENIED_FQDN: 403 on CONNECT"; else tap fail "denied $PROXY_DENIED_FQDN must be 403 on CONNECT, got '${st:-none}'"; fi
     fi
+    if [ "$MODE" = payments ]; then
+      IFS=, read -r -a _al <<<"$PAYMENTS_ALLOWED_FQDNS"
+      IFS=, read -r -a _de <<<"$PAYMENTS_DENIED_FQDNS"
+      for f in "${_al[@]}"; do
+        st=$(docker exec "$C" curl -sS -o /dev/null -w '%{http_code}' --max-time 10 "https://$f/" 2>/dev/null)
+        case $st in
+          000 | 403 | 407 | 5?? | "") tap fail "allowed $f via Squid: status '${st:-none}'" ;;
+          [1-4]??) tap ok "allowed $f via Squid: $st" ;;
+          *) tap fail "allowed $f via Squid: unparseable '$st'" ;;
+        esac
+      done
+      for f in "${_de[@]}"; do
+        st=$(docker exec "$C" curl -sS -o /dev/null -w '%{http_connect}' --max-time 10 "https://$f/" 2>/dev/null)
+        if [ "$st" = 403 ]; then tap ok "denied $f: 403 on CONNECT"; else tap fail "denied $f must be 403 on CONNECT, got '${st:-none}'"; fi
+      done
+    fi
     finish
     ;;
 esac
-[ "${1:-}" = auth ] || { echo "usage: egress_probe.sh auth|db|edge|proxy" >&2; exit 2; }
+[ "${1:-}" = auth ] || { echo "usage: egress_probe.sh auth|db|edge|proxy|payments" >&2; exit 2; }
 [ -n "${DATA_WG_IP:-}" ] && [ -n "${SMTP_RELAY_HOST:-}" ] || { echo "need DATA_WG_IP and SMTP_RELAY_HOST" >&2; exit 2; }
 C=${AUTH_CONTAINER:-supabase-auth-1}
 n=0; rc=0

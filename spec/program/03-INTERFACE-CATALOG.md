@@ -2305,6 +2305,12 @@ routes:
   - { id: staff.catalog.doctor,             origin: staff_web, path: "/catalog/doctors/{doctor_id}",              owner: C3,  permission: catalog.referrer.read }
   - { id: staff.catalog.credit_parties,     origin: staff_web, path: /catalog/credit-parties,                   owner: C3,  permission: catalog.price_list.read }
   - { id: staff.catalog.credit_party,       origin: staff_web, path: "/catalog/credit-parties/{credit_party_id}", owner: C3,  permission: catalog.price_list.read }
+  # LD-84 / CR-C3-034-a: SCR-13…17 (04-UI-UX §1)
+  - { id: staff.catalog.price_lists,         origin: staff_web, path: /catalog/price-lists,                       owner: C3,  permission: catalog.price_list.read }
+  - { id: staff.catalog.price_list_version,  origin: staff_web, path: "/catalog/price-lists/{price_list_id}/versions/{version_id}", owner: C3, permission: catalog.price_list.read }
+  - { id: staff.catalog.price_simulator,     origin: staff_web, path: /catalog/price-simulator,                   owner: C3,  permission: catalog.price_list.read }
+  - { id: staff.catalog.surcharges,          origin: staff_web, path: /catalog/surcharges,                        owner: C3,  permission: catalog.price_list.read }
+  - { id: staff.catalog.tax,                 origin: staff_web, path: /catalog/tax,                               owner: C3,  permission: catalog.price_list.read }
   - { id: staff.instruments.agent,          origin: staff_web, path: "/instruments/agents/{agent_id}",            owner: C7,  permission: instruments.agent.read }
   - { id: staff.instruments.message,        origin: staff_web, path: "/instruments/messages/{instrument_message_id}", owner: C7, permission: instruments.message.read }
   - { id: staff.analytics.dashboard,        origin: staff_web, path: /analytics,                                owner: C8,  permission: analytics.dashboard.read }
@@ -2312,11 +2318,45 @@ routes:
   - { id: staff.admin.audit_entry,          origin: staff_web, path: "/admin/audit/{audit_id}",                   owner: C2,  permission: audit.log.read }
   - { id: staff.platform.tenant,            origin: staff_web, path: "/platform/tenants/{tenant_id}",             owner: C2,  permission: platform.tenant.read }
   - { id: staff.platform.dead_letter,       origin: staff_web, path: "/platform/dead-letters/{dead_letter_id}",   owner: C2,  permission: platform.dead_letter.manage }
+  # LD-112 / CR-C2-T20, CR-C2-T26: nav routes for AD-1..AD-15 and ME-1, PL-1..PL-8 (C2 04-UI-UX section 1); no parameterised row, no role editor row
+  - { id: staff.admin.me,                origin: staff_web, path: /admin/me,                     owner: C2,  permission: identity.self.manage }
+  - { id: staff.admin.users,             origin: staff_web, path: /admin/users,                  owner: C2,  permission: identity.user.read }
+  - { id: staff.admin.user_new,          origin: staff_web, path: /admin/users/new,              owner: C2,  permission: identity.user.manage }
+  - { id: staff.admin.roles,             origin: staff_web, path: /admin/roles,                  owner: C2,  permission: identity.user.read }
+  - { id: staff.admin.branches,          origin: staff_web, path: /admin/branches,               owner: C2,  permission: identity.user.read }
+  - { id: staff.admin.centres,           origin: staff_web, path: /admin/centres,                owner: C2,  permission: identity.centre.read }
+  - { id: staff.admin.settings,          origin: staff_web, path: /admin/settings,               owner: C2,  permission: identity.settings.manage }
+  - { id: staff.admin.sessions,          origin: staff_web, path: /admin/sessions,               owner: C2,  permission: identity.session.revoke }
+  - { id: staff.admin.audit,             origin: staff_web, path: /admin/audit,                  owner: C2,  permission: audit.log.read }
+  - { id: staff.admin.access_log,        origin: staff_web, path: /admin/access-log,             owner: C2,  permission: audit.log.read }
+  - { id: staff.admin.exports,           origin: staff_web, path: /admin/exports,                owner: C2,  permission: audit.log.export }
+  - { id: staff.admin.support_access,    origin: staff_web, path: /admin/support-access,         owner: C2,  permission: audit.log.read }
+  - { id: staff.admin.access_review,     origin: staff_web, path: /admin/access-review,          owner: C2,  permission: identity.user.read }
+  - { id: staff.platform.home,           origin: staff_web, path: /platform,                     owner: C2,  permission: platform.tenant.read }
+  - { id: staff.platform.tenants,        origin: staff_web, path: /platform/tenants,             owner: C2,  permission: platform.tenant.read }
+  - { id: staff.platform.ird,            origin: staff_web, path: /platform/ird,                 owner: C2,  permission: platform.tenant.read }
+  - { id: staff.platform.support_sessions, origin: staff_web, path: /platform/support-sessions,    owner: C2,  permission: platform.tenant.read }
+  - { id: staff.platform.dead_letters,   origin: staff_web, path: /platform/dead-letters,        owner: C2,  permission: platform.dead_letter.manage }
+  - { id: staff.platform.staff,          origin: staff_web, path: /platform/staff,               owner: C2,  permission: platform.staff.manage }
+  - { id: staff.platform.auth_events,    origin: staff_web, path: /platform/auth-events,         owner: C2,  permission: platform.tenant.read }
   - { id: staff.quality.qc_run,             origin: staff_web, path: "/quality/qc-runs/{qc_run_id}",              owner: C9,  permission: quality.qc_run.read }
+  # LD-130 / CR-C9-T01: nav routes for the quality nav manifest (C9 04-UI-UX section 1.1); qc_run stays the only parameterised row
+  - { id: staff.quality.status,               origin: staff_web, path: "/quality",                        owner: C9, permission: quality.qc_run.read }
+  - { id: staff.quality.runs,                 origin: staff_web, path: "/quality/runs",                   owner: C9, permission: quality.qc_run.read }
+  - { id: staff.quality.lj_chart,             origin: staff_web, path: "/quality/lj",                     owner: C9, permission: quality.qc_run.read }
+  - { id: staff.quality.observations,         origin: staff_web, path: "/quality/observations",           owner: C9, permission: quality.qc_run.read }
+  - { id: staff.quality.setup,                origin: staff_web, path: "/quality/setup/materials",        owner: C9, permission: quality.qc_run.read }
+  - { id: staff.quality.autoverify,           origin: staff_web, path: "/quality/autoverify",             owner: C9, permission: quality.autoverify.read }
+  - { id: staff.quality.tat_alerts,           origin: staff_web, path: "/quality/tat-alerts",             owner: C9, permission: quality.tat_alert.read }
+  - { id: staff.quality.settings,             origin: staff_web, path: "/quality/settings",               owner: C9, permission: quality.qc_run.read }
   - { id: staff.micro.culture,              origin: staff_web, path: "/micro/cultures/{culture_id}",              owner: C10, permission: micro.culture.read }
   - { id: staff.anatomic.case,              origin: staff_web, path: "/anatomic/cases/{case_id}",                 owner: C11, permission: anatomic.case.read }
   - { id: staff.inventory.item,             origin: staff_web, path: "/inventory/items/{item_id}",                owner: C12, permission: inventory.item.read }
   - { id: staff.smartreport.summary,        origin: staff_web, path: "/smartreport/summaries/{summary_id}",       owner: C14, permission: smartreport.summary.read }
+  # LD-130 / CR-C14-T18a: nav routes for the smartreport nav manifest (C14 04-UI-UX section 1); summary stays the only parameterised row
+  - { id: staff.smartreport.summaries,        origin: staff_web, path: "/smartreport/summaries",          owner: C14, permission: smartreport.summary.read }
+  - { id: staff.smartreport.library,          origin: staff_web, path: "/smartreport/library",            owner: C14, permission: smartreport.template.manage }
+  - { id: staff.smartreport.wording,          origin: staff_web, path: "/smartreport/wording",            owner: C14, permission: smartreport.template.manage }
   - { id: staff.engagement.booking,         origin: staff_web, path: "/engagement/bookings/{booking_id}",         owner: C16, permission: engagement.booking.read }
   - { id: staff.homecollection.visit,       origin: staff_web, path: "/homecollection/visits/{visit_id}",         owner: C17, permission: homecollection.visit.read }
   # ---- portal (public + OTP-gated) ----
@@ -2431,6 +2471,8 @@ routes:
   - { id: staff.homecollection.handovers, origin: staff_web, path: /homecollection/handovers, owner: C17, permission: homecollection.handover.receive }
   - { id: staff.homecollection.devices, origin: staff_web, path: /homecollection/devices, owner: C17, permission: homecollection.device.manage }
   - { id: staff.homecollection.settings, origin: staff_web, path: /homecollection/settings, owner: C17, permission: homecollection.settings.manage }
+  - { id: staff.catalog.imports, origin: staff_web, path: /catalog/imports, owner: C3, permission: catalog.test.read }
+  - { id: staff.catalog.import, origin: staff_web, path: "/catalog/imports/{import_id}", owner: C3, permission: catalog.test.read }
 ```
 
 API operations recorded in the final sweep (2026-11-06). They are HTTP operations, not app routes, so they have no entry above; C0-0C transcribes them into `contracts/openapi/<domain>.yaml` from the owner TRD:

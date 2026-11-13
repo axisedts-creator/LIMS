@@ -9,6 +9,11 @@ import { handle as itemsChangedHandler } from './consumers/frontdesk.order.items
 import { handle as cancelledHandler } from './consumers/frontdesk.order.cancelled.v1.js';
 import { handle as homeCollectionHandler } from './consumers/homecollection.collection.synced.v1.js';
 import { handle as instrumentResultHandler } from './consumers/instruments.result.received.v1.js';
+import { handle as catalogChangedHandler } from './consumers/catalog.changed.v1.js';
+import { handle as qcReceivedHandler } from './consumers/instruments.qc.received.v1.js';
+import { handle as qcRejectedHandler } from './consumers/quality.qc_run.rejected.v1.js';
+import { handle as reapplyForSpecimen } from './tasks/lab.reapply_exceptions_for_specimen.js';
+import { handle as reapplyUnmapped } from './tasks/lab.reapply_unmapped_exceptions.js';
 
 import { handle as reportReleasedHandler } from './consumers/reporting.report.released.v1.js';
 
@@ -36,11 +41,17 @@ const IMPLEMENTED: Readonly<Record<string, ConsumerHandler>> = {
   'homecollection.collection.synced.v1': homeCollectionHandler,
   'reporting.report.released.v1': reportReleasedHandler,   // T-27
   'instruments.result.received.v1': instrumentResultHandler,   // T-22
+  'catalog.changed.v1': catalogChangedHandler,                  // T-23
+  'instruments.qc.received.v1': qcReceivedHandler,              // T-25
+  'quality.qc_run.rejected.v1': qcRejectedHandler,              // T-25
 };
+
+const SPECIMEN_TASK = 'lab.reapply_exceptions_for_specimen', UNMAPPED_TASK = 'lab.reapply_unmapped_exceptions';
 
 export const manifest: WorkerManifest = {
   module: 'lab',
-  tasks: {},
+  tasks: { [SPECIMEN_TASK]: reapplyForSpecimen, [UNMAPPED_TASK]: reapplyUnmapped },   // T-23, 02-TRD §8
+  maxAttempts: { [SPECIMEN_TASK]: 10, [UNMAPPED_TASK]: 10 },
   subscriptions: Object.freeze(Object.fromEntries(CONSUMED.map((t) => [t, IMPLEMENTED[t] ?? notImplemented(t)]))),
   crontab: [],
 };

@@ -146,3 +146,88 @@ describe('input discipline (adversarial)', () => {
     expect(() => createRateLimiter({ backend: recordingBackend().backend, hmacKey: '' } as any)).toThrow();
   });
 });
+
+// LD-121 (2026-11-12, C15 PG-T09): tier `general` also accepts `payments:cb:<intent_id>` (02-TRD C15 §6.3 step 2,
+// 08 A19 D-116, 02-CV §10.3), same per-key token bucket as `u:` (10/s, burst 20). Nothing else changes.
+describe('payments:cb:<intent_id> under general (LD-121)', () => {
+  const ID_A = '55555555-5555-7555-8555-555555555555';
+  const ID_B = '66666666-6666-7666-8666-666666666666';
+
+  it('is consumed as the same token bucket as `u:` (10/s, burst 20)', async () => {
+    const t = mk();
+    await t.limiter.consume('general', `payments:cb:${ID_A}`);
+    expect(t.calls).toHaveLength(1);
+    expect(t.calls[0]!.kind).toBe('tokenBucket');
+    expect(t.calls[0]!.args.slice(1)).toEqual([10, 20]);
+    expect(t.calls[0]!.args[0]).toMatch(/^[0-9a-f]{64}$/);
+    expect(JSON.stringify(t.calls[0]!.args)).not.toContain(ID_A); // key is HMAC'd like every other key
+  });
+
+  it('is not affected by the tenant bucket configuration', async () => {
+    const t = mk({ tenant: { rps: 50, burst: 75 } });
+    await t.limiter.consume('general', `payments:cb:${ID_A}`);
+    expect(t.calls[0]!.args.slice(1)).toEqual([10, 20]);
+  });
+
+  it('is rejected with 429 common.rate_limited once the burst of 20 is spent', async () => {
+    let n = 0; // stateful fake bucket: burst 20, then reject
+    const t = mk({}, () => (++n <= 20 ? { allowed: true, retryAfterSeconds: 0 } : rejected));
+    for (let i = 0; i < 20; i++) await t.limiter.consume('general', `payments:cb:${ID_A}`);
+    const e = await t.limiter.consume('general', `payments:cb:${ID_A}`).then(() => null, (x: any) => x);
+    expect(e?.code).toBe('common.rate_limited');
+    expect(e.statusCode).toBe(429);
+    expect(e.retryAfterSeconds).toBe(17);
+    expect(t.incs).toEqual([{ name: 'lims_ratelimit_rejections_total', labels: expect.objectContaining({ tier: 'general' }) }]);
+  });
+
+  it('two intent ids do not share a bucket; same id is deterministic; not shared with the `u:` key of the same id', async () => {
+    const t = mk();
+    await t.limiter.consume('general', `payments:cb:${ID_A}`);
+    await t.limiter.consume('general', `payments:cb:${ID_B}`);
+    await t.limiter.consume('general', `payments:cb:${ID_A}`);
+    await t.limiter.consume('general', `u:${ID_A}`);
+    const h = t.calls.map((c) => c.args[0]);
+    expect(h[0]).not.toBe(h[1]);
+    expect(h[0]).toBe(h[2]);
+    expect(h[3]).not.toBe(h[0]);
+  });
+
+  it('keeps general fail-OPEN on backend outage (logged), like every general key', async () => {
+    const t = mk(); t.state.down = true;
+    await expect(t.limiter.consume('general', `payments:cb:${ID_A}`)).resolves.toBeUndefined();
+    expect(t.entries.some((e) => e.obj?.event === 'ratelimit_backend_down')).toBe(true);
+  });
+
+  it.each([
+    ['empty intent id', 'general', 'payments:cb:'],
+    ['prefix only, no colon', 'general', 'payments:cb'],
+    ['near-miss prefix payments:cbx:', 'general', `payments:cbx:${ID_A}`],
+    ['near-miss prefix payments:CB:', 'general', `payments:CB:${ID_A}`],
+    ['other module prefix pay:cb:', 'general', `pay:cb:${ID_A}`],
+    ['leading space', 'general', ` payments:cb:${ID_A}`],
+    ['tier login', 'login', `payments:cb:${ID_A}`],
+    ['tier ingest', 'ingest', `payments:cb:${ID_A}`],
+    ['tier otp_request', 'otp_request', `payments:cb:${ID_A}`],
+    ['tier otp_verify', 'otp_verify', `payments:cb:${ID_A}`],
+    ['tier qr_verify', 'qr_verify', `payments:cb:${ID_A}`],
+    ['tier report_download', 'report_download', `payments:cb:${ID_A}`],
+    ['unknown tier', 'payments', `payments:cb:${ID_A}`],
+  ])('still throws "ratelimit: unknown tier or key prefix" and never asks the backend: %s', async (_n, tier, key) => {
+    const t = mk();
+    await expect(t.limiter.consume(tier, key)).rejects.toThrow('ratelimit: unknown tier or key prefix');
+    expect(t.calls).toHaveLength(0);
+  });
+
+  it('a refused payments:cb: key never fails open even while the backend is down', async () => {
+    const t = mk(); t.state.down = true;
+    await expect(t.limiter.consume('general', 'payments:cb:')).rejects.toThrow('ratelimit: unknown tier or key prefix');
+  });
+
+  it('existing 2-char prefix lookup is unchanged: u: and t: still work, other prefixes under general still throw', async () => {
+    const t = mk();
+    await t.limiter.consume('general', `u:${ID_A}`);
+    await t.limiter.consume('general', `t:${ID_A}`);
+    expect(t.calls.map((c) => c.args.slice(1))).toEqual([[10, 20], [100, 200]]);
+    await expect(t.limiter.consume('general', `pa:${ID_A}`)).rejects.toThrow('ratelimit: unknown tier or key prefix');
+  });
+});

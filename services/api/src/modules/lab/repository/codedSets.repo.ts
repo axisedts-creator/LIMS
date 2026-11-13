@@ -1,5 +1,5 @@
 // Coded sets: tenant tables lab.cs_* (class M) shadow the global lab.g_cs_* rows of the same code (05-SCHEMA §1; 06 row T-29).
-import { insertRow, query, table, updateRow, type RepoCtx, type Row, type Table } from './base.repo.js';
+import { first, insertRow, query, table, updateRow, type RepoCtx, type Row, type Table } from './base.repo.js';
 
 const CS_COLS = ['id', 'tenant_id', 'code', 'display', 'system', 'system_version', 'sort_order', 'version', 'is_active', 'created_at', 'created_by', 'updated_at', 'updated_by'];
 const opts = { frozen: ['code'] };
@@ -26,6 +26,8 @@ export const listCodedSet = (rc: RepoCtx, s: CodedSet) => {
                      WHERE NOT EXISTS (SELECT 1 FROM ${tenant.name} o WHERE o.tenant_id = $1 AND o.code = g.code)
                     ORDER BY sort_order, code`);
 };
+/** T-29 #54: the tenant's own row of `code` (never the global one), or null. */
+export const getTenantCode = (rc: RepoCtx, s: CodedSet, code: string) => first(rc, `SELECT * FROM ${set(s).tenant.name} WHERE tenant_id = $1 AND code = $2`, [code]);
 export const insertCodedSetEntry = (rc: RepoCtx, s: CodedSet, row: Row) => insertRow(rc, set(s).tenant, row);
 export const updateCodedSetEntry = (rc: RepoCtx, s: CodedSet, id: string, expectedVersion: number, patch: Row) =>
   updateRow(rc, set(s).tenant, id, expectedVersion, patch);

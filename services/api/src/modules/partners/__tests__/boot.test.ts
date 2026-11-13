@@ -38,6 +38,8 @@ const IMPLEMENTED: readonly string[] = [
   'listPartnerUsersForPartner', 'invitePartnerUserByStaff', 'changePartnerUserRoleByStaff', 'deactivatePartnerUserByStaff', 'reactivatePartnerUserByStaff', // T06 SA8-SA10
   'listPartners', 'createPartner', 'getPartner', 'updatePartner', 'suspendPartner', 'reactivatePartner', 'resyncPartnerProjections', // T07 (SA1-SA7)
   'listPartnerPriceList', 'listPartnerStatements', 'getPartnerStatement', // T17 (P1, S1, S2)
+  'listPartnerReferrers', 'createPartnerReferrer', 'updatePartnerReferrer', 'deactivatePartnerReferrer', 'reactivatePartnerReferrer', // T11 F1-F5
+  'listReferrerMappings', 'mapPartnerReferrer', 'rejectPartnerReferrerMapping', 'unmapPartnerReferrer', // T11 SR1-SR3 (+ list)
 ];
 
 const FAKE_REQ = { params: {}, query: {}, headers: {}, body: {} };

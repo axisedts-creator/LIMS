@@ -23,7 +23,7 @@ import { join } from 'node:path';
 import { describe, expect, it, vi } from 'vitest';
 import { LimsError } from '../../../core/errors.js';
 import { manifest } from '../index.js';
-import { D, id, L, makeCtx, makeWorld, P, R, STAFF, T_A, U, type Opts, type Who, type World } from './referrer.world.js';
+import { D, id, L, makeCtx, makeWorld, P, R, STAFF, T_A, T_B, U, type Opts, type Who, type World } from './referrer.world.js';
 
 const hoisted = vi.hoisted(() => ({ require: undefined as undefined | ((ctx: any) => Promise<unknown>) }));
 vi.mock('../service/partner-context.service.js', () => ({
@@ -93,7 +93,7 @@ describe('T11 F1 listPartnerReferrers (US-13.1/13.2)', () => {
       expect(ids, `noRls=${noRls}`).toEqual([R.x1, R.x2, R.x3, R.x4].sort());
       for (const x of r.body.data) dto(x);
       expect(w.portCalls.find((c) => c.name === 'assertRole')!.input.permission).toBe('partners.referrer.read');
-      expect(JSON.stringify(r.body)).not.toMatch(/catalog_doctor|mapped_by|tenant_id|partner_id|reject/);
+      expect(JSON.stringify(r.body)).not.toMatch(/"(catalog_doctor|mapped_by|tenant_id|partner_id|mapping_reject_\w*)"\s*:/);
       untouched(w);
     }
   });

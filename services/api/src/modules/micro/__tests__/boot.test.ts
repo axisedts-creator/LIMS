@@ -39,6 +39,12 @@ const IMPLEMENTED: readonly string[] = [
   'listBreakpointSets', 'createBreakpointImport', 'getBreakpointSet', 'listBreakpointImportIssues', 'listBreakpointRows', 'downloadBreakpointTemplate',
   // T-13: M46–M48, M13
   'activateBreakpointSet', 'retireBreakpointSet', 'discardBreakpointSet', 'previewAstInterpretation',
+  // T-14: M19–M22, M33–M38
+  'listMicroInstrumentRecords', 'assignMicroInstrumentRecord', 'applyMicroInstrumentRecord', 'ignoreMicroInstrumentRecord',
+  'listInstrumentVocabMaps', 'createInstrumentVocabMap', 'updateInstrumentVocabMap', 'deactivateInstrumentVocabMap',
+  'listInstrumentAstDefaults', 'putInstrumentAstDefault',
+  // T-15: M14
+  'submitCultureReport',
 ];
 
 const FAKE_REQ = { params: {}, query: {}, headers: {}, body: {} };

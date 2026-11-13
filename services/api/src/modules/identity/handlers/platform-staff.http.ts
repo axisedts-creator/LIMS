@@ -1,10 +1,10 @@
 // Shared request -> platform-staff service glue for the T25 handlers (02-TRD §5.10). Platform authz is the service's; this only fails
 // closed without an authenticated platform request context and sets ETag "<version>". Wires the repo, the platform_events writer and
-// the GoTrue gateway (built on first use from LIMS_IDENTITY_GOTRUE_URL / LIMS_IDENTITY_GOTRUE_SERVICE_KEY, gotrue/mapping.md).
+// the GoTrue gateway (built on first use by gotrue/gateway.http.ts gotrueGatewayFromEnv).
 import { LimsError } from '../../../core/errors.js';
 import type { Handler, HandlerContext, HandlerRequest } from '../../../core/module.js';
 import type { GoTrueGateway } from '../gotrue/gateway.js';
-import { createHttpGoTrueGateway } from '../gotrue/gateway.http.js';
+import { gotrueGatewayFromEnv } from '../gotrue/gateway.http.js';
 import { createPlatformStaffRepo } from '../repository/platform-staff.repo.js';
 import { createPlatformStaffService, type PlatformStaffCtx, type Result } from '../service/platform-staff.service.js';
 import { obj } from './role.http.js';
@@ -13,9 +13,7 @@ type Svc = ReturnType<typeof createPlatformStaffService>;
 const repo = createPlatformStaffRepo();
 let gw: GoTrueGateway | undefined;
 const gotrue: Pick<GoTrueGateway, 'adminCreateUser'> = {
-  adminCreateUser: (i) => (gw ??= createHttpGoTrueGateway({
-    url: process.env['LIMS_IDENTITY_GOTRUE_URL'] ?? '', serviceKey: process.env['LIMS_IDENTITY_GOTRUE_SERVICE_KEY'] ?? '',
-  })).adminCreateUser(i),
+  adminCreateUser: (i) => (gw ??= gotrueGatewayFromEnv()).adminCreateUser(i),
 };
 const svc = createPlatformStaffService({ repo, gotrue, platformEvents: { insert: (tx, e) => repo.insertPlatformEvent(tx, e) } });
 

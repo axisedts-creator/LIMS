@@ -236,7 +236,7 @@ describe('payment.captured (US-07-7, AB5, D-PAY)', () => {
     const w = await pushWorld({ file: FILE });
     const other = await addVisit(w);
     expect(codes(await pushM(w, [M.payment(w, { order: other.order.id })]))).toEqual(['common.validation_failed']);
-    const b = await pushWorld({ file: FILE, kind: 'booking', visitExtra: { order_id: null } });
+    const b = await pushWorld({ file: FILE, kind: 'booking', visitExtra: { order_id: null, status: 'unassigned' } });
     expect(codes(await pushM(b, [M.payment(b, { order: w.order.id })]))).toEqual(['common.validation_failed']);
   });
   it('never an assignee of the visit -> rejected visit_not_assigned + flag payment_rejected (finance enters it manually in C4)', { timeout: T }, async () => {
@@ -303,7 +303,7 @@ describe('visit.completed / visit.failed (V9, V10)', () => {
     const e: any = await pushM(w, [M.identity(w, { seq: 2 }), M.consent(w, { seq: 1 })]).catch((x) => x);
     expect([e.code, e.statusCode]).toEqual(['common.validation_failed', 400]);
     expect(await mutRows(w)).toHaveLength(0);
-    expect((await deviceRow(w.device.id)).max_device_seq_received).toBe(0);
+    expect(Number((await deviceRow(w.device.id)).max_device_seq_received)).toBe(0);
   });
 });
 

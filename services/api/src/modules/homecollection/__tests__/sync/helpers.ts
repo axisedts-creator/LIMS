@@ -126,7 +126,8 @@ export interface WorldOpts {
   visitExtra?: Record<string, unknown>; centreId?: string; settings?: Record<string, unknown>;
 }
 const pad = (n: number) => String(n).padStart(2, '0');
-let bc = 0;
+// per-run unique barcode (module-level counters restart in every spec file; parallel files would collide). A-Z0-9, 17 chars.
+const nextBarcode = (s: string) => `HC12${uid().replace(/-/g, '').slice(-12).toUpperCase()}${s.toUpperCase()}`;
 export async function pushWorld(o: WorldOpts = {}): Promise<PushWorld> {
   await ensureTaskRegistry();
   const s = o.s ?? 'a';
@@ -147,7 +148,7 @@ export async function pushWorld(o: WorldOpts = {}): Promise<PushWorld> {
   const n = o.specimens ?? 2;
   const specimens: SpecRef[] = [];
   for (let i = 0; i < n; i++) {
-    const row = { id: uid(), tenant_id: sv.order.tenant_id, centre_id: o.centreId ?? HC_CENTRE[s], order_id: sv.order.id, patient_id: sv.patient.id, barcode: `HC12${String(++bc).padStart(6, '0')}${s.toUpperCase()}`, creation_key: `hct12-${uid()}`,
+    const row = { id: uid(), tenant_id: sv.order.tenant_id, centre_id: o.centreId ?? HC_CENTRE[s], order_id: sv.order.id, patient_id: sv.patient.id, barcode: nextBarcode(s), creation_key: `hct12-${uid()}`,
       specimen_type_code: o.types?.[i] ?? (i % 2 ? 'EDTA' : 'SST'), priority: 'routine', patient_sex: 'female', status: 'ordered', ordered_at: T0 };
     await seed('lab.specimens', row);
     specimens.push({ specimenId: row.id, barcode: row.barcode, orderId: sv.order.id, patientId: sv.patient.id, centreId: row.centre_id, specimenTypeCode: row.specimen_type_code, status: 'ordered', isActive: true, version: 1 });
@@ -163,7 +164,7 @@ export async function addVisit(w: PushWorld, o: { specimens?: number; centreId?:
   await seed('homecollection.visit_assignments', hc.assignment(w.s, sv.row.id, w.route.id, { membership_id: o.assignedTo ?? w.member, route_date: w.date, action: 'assign', created_at: ASSIGNED_AT, centre_id: o.centreId ?? HC_CENTRE[w.s] }));
   const specimens: SpecRef[] = [];
   for (let i = 0; i < (o.specimens ?? 1); i++) {
-    const row = { id: uid(), tenant_id: sv.order.tenant_id, centre_id: o.centreId ?? HC_CENTRE[w.s], order_id: sv.order.id, patient_id: sv.patient.id, barcode: `HC12${String(++bc).padStart(6, '0')}${w.s.toUpperCase()}`, creation_key: `hct12-${uid()}`,
+    const row = { id: uid(), tenant_id: sv.order.tenant_id, centre_id: o.centreId ?? HC_CENTRE[w.s], order_id: sv.order.id, patient_id: sv.patient.id, barcode: nextBarcode(w.s), creation_key: `hct12-${uid()}`,
       specimen_type_code: i % 2 ? 'EDTA' : 'SST', priority: 'routine', patient_sex: 'female', status: 'ordered', ordered_at: T0 };
     await seed('lab.specimens', row);
     specimens.push({ specimenId: row.id, barcode: row.barcode, orderId: sv.order.id, patientId: sv.patient.id, centreId: row.centre_id, specimenTypeCode: row.specimen_type_code, status: 'ordered', isActive: true, version: 1 });

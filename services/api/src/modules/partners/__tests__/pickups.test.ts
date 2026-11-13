@@ -471,7 +471,8 @@ describe('T15 K4 cancelPickupRequest (US-10.5)', () => {
     ['unknown key state (AB11)', { reason_code: 'other', state: 'picked_up' }], ['unknown key picked_up_at', { reason_code: 'other', picked_up_at: iso(NOW_MS) }], ['body null', null], ['body undefined', undefined],
   ])('validation: %s -> 400', async (_l, b) => {
     const w = makeWorld();
-    await fails(cancel(w, PK.req, 1, b), 'common.validation_failed', 400);
+    // ruling C13.T15: a JS default param swallows `undefined`; send a truly absent body via call() directly.
+    await fails(b === undefined ? call(w, 'cancelPickupRequest', 'adminX', pkp(PK.req, { headers: ifm(1), body: undefined })) : cancel(w, PK.req, 1, b), 'common.validation_failed', 400);
     untouched(w);
   });
   it.each([['partner Y\'s pickup', PK.y], ['tenant B\'s pickup', PK.b], ['unknown id', id(9001)]])('%s -> 404 even with a wrong version (no existence oracle), nothing changed, RLS on and off', async (_l, pid) => {
@@ -602,7 +603,8 @@ describe('T15 SP2 schedulePickup (US-10.3)', () => {
     ['body null', null], ['body undefined', undefined],
   ])('validation: %s -> 400', async (_l, b) => {
     const w = makeWorld();
-    await fails(schedule(w, PK.req, 1, b), 'common.validation_failed', 400);
+    // ruling C13.T15: bypass the helper's default body so `undefined` really reaches the handler.
+    await fails(b === undefined ? call(w, 'schedulePickup', 'staff', pkp(PK.req, { headers: ifm(1), body: undefined })) : schedule(w, PK.req, 1, b), 'common.validation_failed', 400);
     untouched(w);
   });
   it('assignee_text of exactly 80 chars is stored', async () => {

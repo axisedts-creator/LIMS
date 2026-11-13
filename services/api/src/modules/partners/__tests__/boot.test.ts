@@ -40,6 +40,8 @@ const IMPLEMENTED: readonly string[] = [
   'listPartnerPriceList', 'listPartnerStatements', 'getPartnerStatement', // T17 (P1, S1, S2)
   'listPartnerReferrers', 'createPartnerReferrer', 'updatePartnerReferrer', 'deactivatePartnerReferrer', 'reactivatePartnerReferrer', // T11 F1-F5
   'listReferrerMappings', 'mapPartnerReferrer', 'rejectPartnerReferrerMapping', 'unmapPartnerReferrer', // T11 SR1-SR3 (+ list)
+  'createPickupRequest', 'listPickupRequests', 'getPickupRequest', 'cancelPickupRequest', // T15 K1-K4
+  'listInboundPickups', 'schedulePickup', 'markPickupCollected', 'rejectPickup', // T15 SP1-SP4
 ];
 
 const FAKE_REQ = { params: {}, query: {}, headers: {}, body: {} };

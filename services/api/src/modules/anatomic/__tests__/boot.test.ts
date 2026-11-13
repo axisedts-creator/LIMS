@@ -29,6 +29,8 @@ const MB15 = 15 * 1024 * 1024; // 15728640
 
 /** operationIds whose stub a later task has replaced; that task moves its ids here (tester-owned list). Empty at T-01. */
 const IMPLEMENTED: readonly string[] = ['accessionAnatomicCase', 'updateAnatomicCaseDetails', 'addAnatomicPart', 'updateAnatomicPart', 'listAnatomicAssignees',
+  // C11 T-07 (A1–A3)
+  'listAnatomicCases', 'lookupAnatomicObject', 'getAnatomicCase',
   // C11 T-11 (K1–K12, K20–K22)
   'getAnatomicSettings', 'updateAnatomicSettings', 'listAnatomicStains', 'createAnatomicStain', 'updateAnatomicStain', 'listAnatomicTestProfiles', 'upsertAnatomicTestProfile',
   'listAnatomicAssays', 'createAnatomicAssay', 'updateAnatomicAssay', 'listAnatomicCodedValues', 'upsertAnatomicCodedValue',

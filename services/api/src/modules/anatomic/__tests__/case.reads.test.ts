@@ -86,7 +86,7 @@ const mkCtx = (o: CtxOpts = {}) => ({
   operationId: 'op', clientIp: '203.0.113.7', requestId: uid(9999),
   log: { info: (x: object) => calls.logs.push(JSON.stringify(x)), warn: (x: object) => calls.logs.push(JSON.stringify(x)), error: (x: object) => calls.logs.push(JSON.stringify(x)) },
   tenantId: T, actor: { type: 'user', id: ACTOR, membershipId: MEMB }, tx: { async query() { S.writes++; return { rows: [] }; } }, now: () => new Date('2026-11-12T01:30:00Z'),
-  audit: { async access(_c: unknown, e: Row) { calls.order.push('access'); calls.access.push(structuredClone(e)); } },
+  audit: { async access(e: Row) { calls.order.push('access'); calls.access.push(structuredClone(e)); } },
   core: {
     async user() { return { id: ACTOR, displayName: 'Synthetic Tech', isActive: true }; },
     async branch() { return { id: uid(1), branchCode: 'B1', name: 'B', isProcessingLab: true, isActive: true }; },

@@ -28,107 +28,92 @@ HC-T03: homecollection.* missing after migrations (P-1 not landed): applying 05-
 
  RUN  v5.1.0 C:/LIMS-lanes/C17/services/api
 
-(node:34264) PromiseRejectionHandledWarning: Promise rejection was handled asynchronously (rejection id: 1)
-(Use `node --trace-warnings ...` to show where the warning was created)
-(node:34264) PromiseRejectionHandledWarning: Promise rejection was handled asynchronously (rejection id: 3)
-(node:34264) PromiseRejectionHandledWarning: Promise rejection was handled asynchronously (rejection id: 6)
-(node:34264) PromiseRejectionHandledWarning: Promise rejection was handled asynchronously (rejection id: 9)
-⎯⎯⎯⎯⎯⎯ Unhandled Errors ⎯⎯⎯⎯⎯⎯
+stderr | src/modules/homecollection/__tests__/snapshot/perf.test.ts > A2 p95 with 40 visits > changed pull of 40 visits: p95 of 8 runs <= 2 s; one demographics batch, 40 lookupSpecimens, 40 balances; every visit complete; 40 access rows
+unknown format "date-time" ignored in schema at path "#/components/schemas/IsoUtc"
+unknown format "date-time" ignored in schema at path "#/components/schemas/IsoUtc"
+unknown format "uuid" ignored in schema at path "#/components/schemas/Uuidv7"
+unknown format "uuid" ignored in schema at path "#/components/schemas/Uuidv7"
+unknown format "int64" ignored in schema at path "#/components/schemas/Money/properties/amount_paisa"
+unknown format "int64" ignored in schema at path "#/components/schemas/Money/properties/amount_paisa"
+unknown format "date-time" ignored in schema at path "#/components/schemas/IsoUtc"
+unknown format "date-time" ignored in schema at path "#/components/schemas/IsoUtc"
+unknown format "date" ignored in schema at path "#/components/schemas/IsoDate"
+unknown format "date" ignored in schema at path "#/components/schemas/IsoDate"
+unknown format "uuid" ignored in schema at path "#/components/schemas/Uuid"
+unknown format "uuid" ignored in schema at path "#/components/schemas/Uuid"
+unknown format "uuid" ignored in schema at path "#/components/schemas/Uuid"
+unknown format "uuid" ignored in schema at path "#/components/schemas/Uuid"
+unknown format "uuid" ignored in schema at path "#/components/schemas/Uuid"
+unknown format "uuid" ignored in schema at path "#/components/schemas/Uuid"
+unknown format "uuid" ignored in schema at path "#/components/schemas/Uuid"
+unknown format "uuid" ignored in schema at path "#/components/schemas/Uuid"
+unknown format "uuid" ignored in schema at path "#/components/schemas/Uuid"
+unknown format "uuid" ignored in schema at path "#/components/schemas/Uuid"
+unknown format "date-time" ignored in schema at path "#/components/schemas/IsoUtc"
+unknown format "date-time" ignored in schema at path "#/components/schemas/IsoUtc"
+unknown format "date-time" ignored in schema at path "#/components/schemas/IsoUtc"
+unknown format "date-time" ignored in schema at path "#/components/schemas/IsoUtc"
+unknown format "uuid" ignored in schema at path "#/components/schemas/Uuidv7"
+unknown format "uuid" ignored in schema at path "#/components/schemas/Uuidv7"
+unknown format "date" ignored in schema at path "#/components/schemas/IsoDate"
+unknown format "date" ignored in schema at path "#/components/schemas/IsoDate"
+unknown format "uuid" ignored in schema at path "#/components/schemas/Uuid"
+unknown format "uuid" ignored in schema at path "#/components/schemas/Uuid"
+unknown format "int64" ignored in schema at path "#/components/schemas/Money/properties/amount_paisa"
+unknown format "int64" ignored in schema at path "#/components/schemas/Money/properties/amount_paisa"
+unknown format "date-time" ignored in schema at path "#/components/schemas/IsoUtc"
+unknown format "date-time" ignored in schema at path "#/components/schemas/IsoUtc"
+unknown format "uuid" ignored in schema at path "#/components/schemas/Uuid"
+unknown format "uuid" ignored in schema at path "#/components/schemas/Uuid"
+unknown format "uuid" ignored in schema at path "#/components/schemas/Uuid"
+unknown format "uuid" ignored in schema at path "#/components/schemas/Uuid"
+unknown format "date-time" ignored in schema at path "#/components/schemas/IsoUtc"
+unknown format "date-time" ignored in schema at path "#/components/schemas/IsoUtc"
+unknown format "date-time" ignored in schema at path "#/components/schemas/IsoUtc"
+unknown format "date-time" ignored in schema at path "#/components/schemas/IsoUtc"
 
-Vitest caught 4 unhandled errors during the test run.
-This might cause false positive tests. Resolve unhandled errors to make sure your tests are not affected.
+ ❯ src/modules/homecollection/__tests__/snapshot/perf.test.ts (4 tests | 3 failed) 232676ms
+   ❯ A2 p95 with 40 visits (4)
+     × changed pull of 40 visits: p95 of 8 runs <= 2 s; one demographics batch, 40 lookupSpecimens, 40 balances; every visit complete; 40 access rows 78689ms
+     × unchanged pull of 40 visits: p95 of 8 runs <= 500 ms; 40 balance reads and nothing else 15463ms
+     × a slow or failing port on one visit does not multiply the cost: 40 visits with every lookupSpecimens failing still answers 200 within the changed budget, all visits stale 15096ms
 
-⎯⎯⎯⎯ Unhandled Rejection ⎯⎯⎯⎯⎯
-LimsError: homecollection.device_not_registered
- ❯ boundDevice src/modules/homecollection/snapshot.service.ts:54:130
-     52| async function boundDevice(ctx: Ctx, deviceId: string, membershipId: s…
-     53|   const row = await getDeviceById(ctx.tx, ctx.tenantId, deviceId);
-     54|   if (!row || row['membership_id'] !== membershipId || (row['status'] …
-       |                                                                                                                                  ^
-     55|   return row;
-     56| }
- ❯ processTicksAndRejections node:internal/process/task_queues:104:5
- ❯ ackSync src/modules/homecollection/snapshot.service.ts:234:20
- ❯ appTx src/modules/frontdesk/__tests__/integration/helpers.ts:41:17
- ❯ op src/modules/homecollection/__tests__/snapshot/helpers.ts:134:17
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 3 ⎯⎯⎯⎯⎯⎯⎯
 
-⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯
-Serialized Error: { code: 'homecollection.device_not_registered', detail: undefined, errors: undefined, statusCode: 409, retryAfterSeconds: undefined, probe: { logs: [], requestId: '01a1d465-d633-729f-b344-6d270fe3493e', identity: [ { permission: 'homecollection.sync.upload' } ], tenantSettings: [], batch: [], lab: [], balance: [] } }
-This error originated in "src/modules/homecollection/__tests__/snapshot/ack.test.ts" test file. It doesn't mean the error was thrown inside the file itself, but while it was running.
-The last test to run before this error was "unknown device, a tenant B device, signed_off device -> 409 homecollection.device_not_registered". This means either:
-- the error was thrown while Vitest was running this test, or
-- the error was thrown after the test completed, and this was the most recent test at that point.
+ FAIL  src/modules/homecollection/__tests__/snapshot/perf.test.ts > A2 p95 with 40 visits > changed pull of 40 visits: p95 of 8 runs <= 2 s; one demographics batch, 40 lookupSpecimens, 40 balances; every visit complete; 40 access rows
+AssertionError: changed p95 13872 ms (runs 3220,2873,9832,13872,12671,13307,8341,8751): expected 13871.959600000002 to be less than or equal to 2000
+ ❯ src/modules/homecollection/__tests__/snapshot/perf.test.ts:38:100
+     36|     expect(last.probe.lab).toHaveLength(N);
+     37|     expect(last.probe.balance).toHaveLength(N);
+     38|     expect(p95(times), `changed p95 ${Math.round(p95(times))} ms (runs…
+       |                                                                                                    ^
+     39|   });
+     40|   it(`unchanged pull of ${N} visits: p95 of ${RUNS} runs <= 500 ms; ${…
 
-⎯⎯⎯⎯ Unhandled Rejection ⎯⎯⎯⎯⎯
-LimsError: common.id_mismatch
- ❯ sameDevice src/modules/homecollection/snapshot.service.ts:45:128
-     43| const header = (headers: unknown, name: string): unknown => (isObj(hea…
-     44| /** TRD §5 preamble: X-Lims-Device-Id must equal the query / body devi…
-     45| const sameDevice = (headers: unknown, deviceId: string): void => { if …
-       |                                                                                                                                ^
-     46| const callerMembership = (ctx: Ctx): string => { if (!ctx.actor.member…
-     47| const DEFAULT_TZ = 'Asia/Kathmandu';   // v1 tenants (05-SCHEMA P-15)
- ❯ ackSync src/modules/homecollection/snapshot.service.ts:230:3
- ❯ processTicksAndRejections node:internal/process/task_queues:104:5
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/3]⎯
 
-⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯
-Serialized Error: { code: 'common.id_mismatch', detail: undefined, errors: undefined, statusCode: 400, retryAfterSeconds: undefined, probe: { logs: [], requestId: '01a1d465-d6ec-7537-94c1-cae5902a3334', identity: [ { permission: 'homecollection.sync.upload' } ], tenantSettings: [], batch: [], lab: [], balance: [] } }
-This error originated in "src/modules/homecollection/__tests__/snapshot/ack.test.ts" test file. It doesn't mean the error was thrown inside the file itself, but while it was running.
-The last test to run before this error was "device-id header vs body mismatch -> 400 common.id_mismatch [ASSUMED enforced in the handler, as HC-T10]". This means either:
-- the error was thrown while Vitest was running this test, or
-- the error was thrown after the test completed, and this was the most recent test at that point.
-
-⎯⎯⎯⎯ Unhandled Rejection ⎯⎯⎯⎯⎯
-LimsError: auth.forbidden
- ❯ Object.assertRole src/modules/homecollection/__tests__/snapshot/helpers.ts:87:60
-     85|           async assertRole(_c: unknown, a: { permission: string; centr…
-     86|             probe.identity.push({ permission: a?.permission, ...(a?.ce…
-     87|             if (!who.grants.includes(a?.permission)) throw new LimsErr…
-       |                                                            ^
-     88|             if (a?.centreId && fx.deniedCentres?.includes(a.centreId))…
-     89|           },
- ❯ ackSync src/modules/homecollection/snapshot.service.ts:217:32
- ❯ Object.handler src/modules/homecollection/handlers/ackSync.ts:5:47
- ❯ run src/modules/homecollection/__tests__/snapshot/helpers.ts:131:25
- ❯ appTx src/modules/frontdesk/__tests__/integration/helpers.ts:41:23
- ❯ processTicksAndRejections node:internal/process/task_queues:104:5
- ❯ op src/modules/homecollection/__tests__/snapshot/helpers.ts:134:17
-
-⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯
-Serialized Error: { code: 'auth.forbidden', detail: undefined, errors: undefined, statusCode: 403, retryAfterSeconds: undefined, probe: { logs: [], requestId: '01a1d465-d7a5-7e70-b4b4-998e232e3711', identity: [ { permission: 'homecollection.sync.upload' } ], tenantSettings: [], batch: [], lab: [], balance: [] } }
-This error originated in "src/modules/homecollection/__tests__/snapshot/ack.test.ts" test file. It doesn't mean the error was thrown inside the file itself, but while it was running.
-The last test to run before this error was "permissions: sync.upload is required (NOBODY -> auth.forbidden); nothing changes". This means either:
-- the error was thrown while Vitest was running this test, or
-- the error was thrown after the test completed, and this was the most recent test at that point.
-
-⎯⎯⎯⎯ Unhandled Rejection ⎯⎯⎯⎯⎯
-LimsError: auth.forbidden
- ❯ Object.assertRole src/modules/homecollection/__tests__/snapshot/helpers.ts:87:60
-     85|           async assertRole(_c: unknown, a: { permission: string; centr…
-     86|             probe.identity.push({ permission: a?.permission, ...(a?.ce…
-     87|             if (!who.grants.includes(a?.permission)) throw new LimsErr…
-       |                                                            ^
-     88|             if (a?.centreId && fx.deniedCentres?.includes(a.centreId))…
-     89|           },
- ❯ ackSync src/modules/homecollection/snapshot.service.ts:217:32
- ❯ Object.handler src/modules/homecollection/handlers/ackSync.ts:5:47
- ❯ run src/modules/homecollection/__tests__/snapshot/helpers.ts:131:25
- ❯ appTx src/modules/frontdesk/__tests__/integration/helpers.ts:41:23
- ❯ processTicksAndRejections node:internal/process/task_queues:104:5
- ❯ op src/modules/homecollection/__tests__/snapshot/helpers.ts:134:17
-
-⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯
-Serialized Error: { code: 'auth.forbidden', detail: undefined, errors: undefined, statusCode: 403, retryAfterSeconds: undefined, probe: { logs: [], requestId: '01a1d465-d7b5-7017-ae32-bca13aa85136', identity: [ { permission: 'homecollection.sync.upload' } ], tenantSettings: [], batch: [], lab: [], balance: [] } }
-This error originated in "src/modules/homecollection/__tests__/snapshot/ack.test.ts" test file. It doesn't mean the error was thrown inside the file itself, but while it was running.
-The last test to run before this error was "permissions: sync.upload is required (NOBODY -> auth.forbidden); nothing changes". This means either:
-- the error was thrown while Vitest was running this test, or
-- the error was thrown after the test completed, and this was the most recent test at that point.
-⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯
+ FAIL  src/modules/homecollection/__tests__/snapshot/perf.test.ts > A2 p95 with 40 visits > unchanged pull of 40 visits: p95 of 8 runs <= 500 ms; 40 balance reads and nothing else
+AssertionError: unchanged p95 1612 ms (runs 1612,1011,985,876,1397,902,785,1376): expected 1611.752999999997 to be less than or equal to 500
+ ❯ src/modules/homecollection/__tests__/snapshot/perf.test.ts:50:102
 
 
- Test Files  5 passed (5)
-      Tests  84 passed (84)
-     Errors  4 errors
-   Start at  15:58:23
-   Duration  20.07s (tests 92%, import 6%, transform 1%)
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/3]⎯
+
+ FAIL  src/modules/homecollection/__tests__/snapshot/perf.test.ts > A2 p95 with 40 visits > a slow or failing port on one visit does not multiply the cost: 40 visits with every lookupSpecimens failing still answers 200 within the changed budget, all visits stale
+AssertionError: expected 15093.214399999997 to be less than or equal to 2000
+ ❯ src/modules/homecollection/__tests__/snapshot/perf.test.ts:55:36
+     53|     const t0 = performance.now();
+     54|     const r = await go({ fx: { ...fx, labFails: true } });
+     55|     expect(performance.now() - t0).toBeLessThanOrEqual(2000);
+       |                                    ^
+     56|     expect(r.status).toBe(200);
+     57|     for (const v of r.body.visits) expect(v).toMatchObject({ specimens…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/3]⎯
+
+
+ Test Files  1 failed | 4 passed (5)
+      Tests  3 failed | 81 passed (84)
+   Start at  17:41:42
+   Duration  272.05s (tests 79%, import 17%, transform 4%)
 

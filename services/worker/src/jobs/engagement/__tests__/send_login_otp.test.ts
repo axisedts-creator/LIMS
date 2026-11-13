@@ -46,7 +46,7 @@ describe('test-world guard: UNIQUE (tenant_id, token_sha256) (05-SCHEMA :254; ar
     await expect(bump(w, c['id'])).resolves.toMatchObject({ rowCount: 1 });
   });
   it('two distinct ids with the same tenant + token_sha256 DO collide (23505)', async () => {
-    const w = makeOtpWorld(); w.seedChallenge(); const b = w.seedChallenge();
+    const w = makeOtpWorld(); const tok = Buffer.alloc(32, 7); w.seedChallenge({ token_sha256: tok }); const b = w.seedChallenge({ token_sha256: tok });
     await expect(bump(w, b['id'])).rejects.toMatchObject({ code: '23505' });
   });
 });

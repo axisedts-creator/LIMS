@@ -5,7 +5,7 @@
 // DB rules emulated from 05-SCHEMA: otp_challenges__hashes__ck (token_sha256 / code_hmac / phone_hmac are 32-BYTE Buffers, never hex strings - 08 A5.5), __phone__ck, __platform__ck,
 // __status__ck, __attempts__ck, __ttl__ck (expires_at <= created_at + 10 min); number_counters__key__ck is READ FROM THE SPEC FILE (05-SCHEMA.md) so the daily-cap key is checked against the real regex.
 // Rate limiter = the REAL core createRateLimiter (strict tier/prefix grammar) over an in-memory backend that honours the fake clock. Time = the fake clock, never the real one.
-import { createHmac } from 'node:crypto';
+import { createHmac, randomBytes } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import testEnv from './test-env.js';
@@ -239,7 +239,7 @@ export function makeOtpWorld(opts: { prefixes?: string[]; appEnabled?: boolean; 
     seedAccount: (phone: string, over: Row = {}) => { const a = { id: newId(), tenant_id: tenantId, phone_e164: phone, phone_hmac: phoneHmac(tenantId, phone), status: 'active', ...over }; t['accounts']!.push(a); return a; },
     seedChallenge: (over: Row = {}) => {
       const phone = over['phone_e164'] ?? phoneN(1);
-      const r: Row = { id: newId(), tenant_id: tenantId, token_sha256: Buffer.alloc(32, 7), phone_e164: phone, phone_hmac: phoneHmac(tenantId, phone), app_instance_id: APP_INSTANCE, app_platform: 'android', code_hmac: Buffer.alloc(32, 9),
+      const r: Row = { id: newId(), tenant_id: tenantId, token_sha256: randomBytes(32), phone_e164: phone, phone_hmac: phoneHmac(tenantId, phone), app_instance_id: APP_INSTANCE, app_platform: 'android', code_hmac: Buffer.alloc(32, 9),
         code_ciphertext: null, code_key_id: null, status: 'pending', attempts: 0, send_delivery_id: null, verified_at: null, consumed_at: null, created_at: now(), created_by: ID(0xfe0), expires_at: new Date(clock.t + 300_000).toISOString(), updated_at: now(), ...over };
       t['challenges']!.push(r); return r;
     },

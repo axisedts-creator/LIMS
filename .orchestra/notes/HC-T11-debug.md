@@ -4,3 +4,6 @@
 - Gap to the test's 5-7 s changed / 1.0-1.4 s unchanged (3.5-4.5 s / ~0.5 s) is outside the service: harness `appTx` connect + BEGIN + COMMIT (commit after ~40 access_log rows) + handler wrapper, on a loaded host (fork failures, other lanes migrating). Not isolated further.
 - No implementation change made: no code lever found. `Promise.all` does not help the fakes (they spin synchronously) and the spec forbids nothing here; one access_log row per visit is required (REQ-SEC-096).
 - See HC-T11-dispute-perf.md: the p95 asserts time the whole harness tx, not the 02-TRD 13 service budget.
+## Round 2 (after ack.test.ts helper fix per HC-T11-ruling.md)
+- Verify log now: 81/84 pass, only perf.test.ts fails: changed p95 3146 ms (<=2000), unchanged p95 622 ms (<=500), labFails 2170 ms (<=2000). The ack unhandled-rejection errors are gone.
+- Same cause as round 1: fake-latency floors (1.25 s / 0.4 s) plus per-visit savepoints and 40 audit inserts in one harness tx on a loaded host. Code is already one batch call, one lookup and one balance per visit, sequential by design (shared tx). No implementation change; dispute-perf.md stands and needs a ruling (time handler only, run perf alone, or add headroom).

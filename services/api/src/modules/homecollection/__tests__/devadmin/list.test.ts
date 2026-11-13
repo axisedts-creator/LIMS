@@ -139,10 +139,16 @@ describe('H16 pagination (02-CV §4.3: opaque cursor, no gaps, no duplicates)', 
     expect(pages.at(-1).page.next_cursor).toBeUndefined();
     expect(pages.length).toBeGreaterThanOrEqual(3);   // >= 5 seeded rows at 2 per page
   });
-  it('the order is stable: two walks of the same data return the same id sequence', { timeout: T }, async () => {
-    await seedMix();
-    expect((await allPages({}, ADMIN, 3)).ids).toEqual((await allPages({}, ADMIN, 3)).ids);
-    expect((await allPages({}, ADMIN, 2)).ids).toEqual((await allPages({}, ADMIN, 200)).ids);   // page size does not change the order
+  it('the order is stable: two walks return the same sequence of the seeded ids (HC-T15 arbiter ruling: filtered to this test\'s own rows; the DB is shared with parallel test files, so whole-tenant sequences legitimately differ)', { timeout: T }, async () => {
+    const s = await seedMix();
+    const mine = (ids: string[]) => ids.filter((i) => s.all.some((d) => d.id === i));
+    const walkA = mine((await allPages({}, ADMIN, 3)).ids);
+    const walkB = mine((await allPages({}, ADMIN, 3)).ids);
+    const small = mine((await allPages({}, ADMIN, 2)).ids);
+    const large = mine((await allPages({}, ADMIN, 200)).ids);
+    for (const w of [walkA, walkB, small, large]) expect(w).toHaveLength(5);   // every seeded row present exactly once
+    expect(walkA).toEqual(walkB);
+    expect(small).toEqual(large);   // page size does not change the order
   });
   it('a cursor carries no authority: tenant B replaying tenant A\'s cursor sees nothing of tenant A', { timeout: T }, async () => {
     const s = await seedMix();

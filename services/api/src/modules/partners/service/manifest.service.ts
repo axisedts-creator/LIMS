@@ -42,7 +42,7 @@ async function gate(ctx: HandlerContext, permission: string): Promise<counters.S
 }
 
 /** [CONV] If-Match "<n>" as T07: missing -> 428, malformed -> 400. */
-function ifMatch(req: Req): number {
+export function ifMatch(req: Req): number {
   const h = isObj(req.headers) ? req.headers['if-match'] : undefined;
   if (h === undefined) throw new LimsError('common.precondition_required');
   const m = typeof h === 'string' ? /^"([1-9][0-9]{0,9})"$/.exec(h) : null;
@@ -51,7 +51,7 @@ function ifMatch(req: Req): number {
 }
 const param = (req: Req, name: string): string => { const v = isObj(req.params) ? req.params[name] : undefined; return typeof v === 'string' && v !== '' ? v : notFound(); };
 // a non-uuid path id can never match a row; answering 404 here keeps the pg uuid cast from turning it into a 500
-const pathId = (req: Req, name: string): string => { const v = param(req, name); return UUID.test(v) ? v : notFound(); };
+export const pathId = (req: Req, name: string): string => { const v = param(req, name); return UUID.test(v) ? v : notFound(); };
 
 const centreOf = async (ctx: HandlerContext, centreId: string): Promise<CentreName> => {
   const c = await (ctx.core as unknown as Core).centre(ctx, { centreId });

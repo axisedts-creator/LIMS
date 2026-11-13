@@ -1,0 +1,104 @@
+[core] WARNING: Executable file detection not yet supported on 'win32'.
+Schema updated
+psql:/repo/db/migrations/20261105001300_identity__create_identity_schema.sql:7: NOTICE:  schema "identity" already exists, skipping
+psql:/repo/db/migrations/20261105001500_catalog__create_catalog_schema.sql:10: NOTICE:  schema "catalog" already exists, skipping
+psql:/repo/db/migrations/20261105001600_frontdesk__create_frontdesk_schema.sql:7: NOTICE:  schema "frontdesk" already exists, skipping
+psql:/repo/db/migrations/20261105001700_billing__create_billing_schema.sql:7: NOTICE:  schema "billing" already exists, skipping
+psql:/repo/db/migrations/20261105001800_lab__create_lab_schema.sql:10: NOTICE:  schema "lab" already exists, skipping
+psql:/repo/db/migrations/20261105001900_reporting__create_reporting_schema.sql:145: NOTICE:  identifier "message_template_texts__tenant_id_template_code_channel_language__uq" will be truncated to "message_template_texts__tenant_id_template_code_channel_languag"
+psql:/repo/db/migrations/20261105001900_reporting__create_reporting_schema.sql:177: NOTICE:  identifier "report_template_versions__tenant_id_template_id__published__p_uq" will be truncated to "report_template_versions__tenant_id_template_id__published__p_u"
+psql:/repo/db/migrations/20261105001900_reporting__create_reporting_schema.sql:443: NOTICE:  identifier "deliveries__tenant_id_channel_account_id_provider_message_id__p_uq" will be truncated to "deliveries__tenant_id_channel_account_id_provider_message_id__p"
+psql:/repo/db/migrations/20261105001900_reporting__create_reporting_schema.sql:682: NOTICE:  identifier "narrative_versions__tenant_id_narrative_report_id_version_no__uq" will be truncated to "narrative_versions__tenant_id_narrative_report_id_version_no__u"
+HC-T14: homecollection.* missing after migrations (P-1 not landed): applying 05-SCHEMA §4/§4.1 DDL + policies
+                                                       set_config                                                        
+-------------------------------------------------------------------------------------------------------------------------
+ {"tenant_id":"01a1a98a-ac40-7000-8000-00000000a001","sub":"01a1b34e-1000-7eee-9d29-d7ca59a102b5","actor_type":"system"}
+(1 row)
+
+                                                       set_config                                                        
+-------------------------------------------------------------------------------------------------------------------------
+ {"tenant_id":"01a1a98a-ac40-7000-8000-00000000b001","sub":"01a1b34e-1000-7eee-9d29-d7ca59a102b5","actor_type":"system"}
+(1 row)
+
+ set_config 
+------------
+ 
+(1 row)
+
+
+ RUN  v5.1.0 C:/LIMS-lanes/C17/services/api
+
+
+ Test Files  3 passed (3)
+      Tests  59 passed (59)
+   Start at  23:26:57
+   Duration  30.45s (tests 88%, import 9%, transform 3%)
+
+
+ RUN  v5.1.0 C:/LIMS-lanes/C17/services/worker
+
+ ❯ src/jobs/homecollection/__tests__/flag_handover_discrepancy.live.test.ts (12 tests | 3 failed) 8872ms
+   ❯ guards: tenant, payload, unknown ids, no port, no PHI in logs (5)
+     × payload.tenant_id different from ctx.tenantId -> no-op (nothing written), whichever side the handover belongs to 507ms
+     × tenant isolation: a job of tenant A naming a handover of tenant B (payload tenant = ctx tenant = A) writes nothing in B 187ms
+     × RLS holds for the system actor too: with tenant A claims a flag cannot be written for a tenant-B visit (WITH CHECK), and the run leaves tenant B untouched 95ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 3 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/jobs/homecollection/__tests__/flag_handover_discrepancy.live.test.ts > guards: tenant, payload, unknown ids, no port, no PHI in logs > payload.tenant_id different from ctx.tenantId -> no-op (nothing written), whichever side the handover belongs to
+error: insert or update on table "handovers" violates foreign key constraint "handovers__receiver__fk"
+ ❯ ../../node_modules/.pnpm/pg@8.23.1/node_modules/pg/lib/client.js:694:17
+ ❯ ../api/src/modules/frontdesk/__tests__/integration/helpers.ts:67:5
+     65|     const use = cols.filter((c) => has.includes(c));
+     66|     const list = use.map((c) => `"${c}"`).join(',');
+     67|     await tx.query(`INSERT INTO ${table} (${list}) SELECT ${list} FROM…
+       |     ^
+     68|       [JSON.stringify(Object.fromEntries(use.map((c) => [c, r[c]])))]);
+     69|   }, String(r.tenant_id ?? TENANT_A));
+ ❯ superTx ../api/src/modules/frontdesk/__tests__/integration/helpers.ts:52:17
+ ❯ seed ../api/src/modules/frontdesk/__tests__/integration/helpers.ts:61:3
+ ❯ handoverWorld ../api/src/modules/homecollection/__tests__/handovers/world.ts:69:3
+ ❯ src/jobs/homecollection/__tests__/flag_handover_discrepancy.live.test.ts:132:15
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/3]⎯
+
+ FAIL  src/jobs/homecollection/__tests__/flag_handover_discrepancy.live.test.ts > guards: tenant, payload, unknown ids, no port, no PHI in logs > tenant isolation: a job of tenant A naming a handover of tenant B (payload tenant = ctx tenant = A) writes nothing in B
+error: insert or update on table "handovers" violates foreign key constraint "handovers__receiver__fk"
+ ❯ ../../node_modules/.pnpm/pg@8.23.1/node_modules/pg/lib/client.js:694:17
+ ❯ ../api/src/modules/frontdesk/__tests__/integration/helpers.ts:67:5
+     65|     const use = cols.filter((c) => has.includes(c));
+     66|     const list = use.map((c) => `"${c}"`).join(',');
+     67|     await tx.query(`INSERT INTO ${table} (${list}) SELECT ${list} FROM…
+       |     ^
+     68|       [JSON.stringify(Object.fromEntries(use.map((c) => [c, r[c]])))]);
+     69|   }, String(r.tenant_id ?? TENANT_A));
+ ❯ superTx ../api/src/modules/frontdesk/__tests__/integration/helpers.ts:52:17
+ ❯ seed ../api/src/modules/frontdesk/__tests__/integration/helpers.ts:61:3
+ ❯ handoverWorld ../api/src/modules/homecollection/__tests__/handovers/world.ts:69:3
+ ❯ src/jobs/homecollection/__tests__/flag_handover_discrepancy.live.test.ts:137:15
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/3]⎯
+
+ FAIL  src/jobs/homecollection/__tests__/flag_handover_discrepancy.live.test.ts > guards: tenant, payload, unknown ids, no port, no PHI in logs > RLS holds for the system actor too: with tenant A claims a flag cannot be written for a tenant-B visit (WITH CHECK), and the run leaves tenant B untouched
+error: insert or update on table "handovers" violates foreign key constraint "handovers__receiver__fk"
+ ❯ ../../node_modules/.pnpm/pg@8.23.1/node_modules/pg/lib/client.js:694:17
+ ❯ ../api/src/modules/frontdesk/__tests__/integration/helpers.ts:67:5
+     65|     const use = cols.filter((c) => has.includes(c));
+     66|     const list = use.map((c) => `"${c}"`).join(',');
+     67|     await tx.query(`INSERT INTO ${table} (${list}) SELECT ${list} FROM…
+       |     ^
+     68|       [JSON.stringify(Object.fromEntries(use.map((c) => [c, r[c]])))]);
+     69|   }, String(r.tenant_id ?? TENANT_A));
+ ❯ superTx ../api/src/modules/frontdesk/__tests__/integration/helpers.ts:52:17
+ ❯ seed ../api/src/modules/frontdesk/__tests__/integration/helpers.ts:61:3
+ ❯ handoverWorld ../api/src/modules/homecollection/__tests__/handovers/world.ts:69:3
+ ❯ src/jobs/homecollection/__tests__/flag_handover_discrepancy.live.test.ts:157:15
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/3]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  3 failed | 9 passed (12)
+   Start at  23:27:33
+   Duration  10.14s (tests 93%, import 7%)
+

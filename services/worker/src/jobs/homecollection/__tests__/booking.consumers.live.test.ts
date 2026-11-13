@@ -10,10 +10,11 @@
 //  - the port is reached as ctx.ports.EngagementPort.getHomeAddress(ctx, { homeAddressId, purpose: 'home_visit' }) (same shape as ctx.ports.IdentityPort in the analytics tasks).
 //  - every status change writes a visit_transitions row (05-SCHEMA §1 "every visit state change"); only to_status / reason_code are asserted.
 //  - a concurrent duplicate may either no-op or fail with SQLSTATE 23505 (retried by the queue); the end state must be one visit.
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { BRANCH, rows as fd } from '../../../../../api/src/modules/frontdesk/__tests__/integration/helpers.js';
 import { appTx, closePools, hc, HC_CENTRE, MEMBER, ownerRows, seed, SYS_ACTOR, TENANT, uid, type Side } from '../../../../../api/src/modules/homecollection/repository/__tests__/helpers.js';
 
+vi.setConfig({ testTimeout: 30_000, hookTimeout: 60_000 });                                      // live PG: review item 3 (5 s / 10 s defaults timed out)
 const CONFIRMED = 'engagement.booking.confirmed.v1';
 const CANCELLED = 'engagement.booking.cancelled.v1';
 const PHI_ADDR = 'SENTINEL-ADDR-Synthetic-Lane-7';
@@ -36,13 +37,13 @@ function makePort(o: { address?: any; error?: Error } = {}) {
 type Port = ReturnType<typeof makePort>;
 
 let spN = 0;
-function makeCtx(tx: any, tenant: string, port: Port, logs: string[]) {
+function makeCtx(tx: any, tenant: string, port: Port, logs: string[], audits: any[] = []) {
   const sink = (x: unknown, m?: unknown) => logs.push(JSON.stringify([x, m]));
   const log: any = { info: sink, warn: sink, error: sink, debug: sink, child: () => log };
   const ctx: any = {
     tenantId: tenant, tx, actor: { type: 'system', id: SYS_ACTOR }, requestId: uid(), attempt: 1, maxAttempts: 5, jobId: '1',
     now: () => new Date().toISOString(), isNewer: (last: number | undefined, seq: number) => last === undefined || seq > last,
-    events: {}, core: {}, audit: {}, storage: {}, files: {}, log, metrics: { inc() {}, set() {}, observe() {} },
+    events: {}, core: {}, audit: { access: async (e: any) => { audits.push(e); } }, storage: {}, files: {}, log, metrics: { inc() {}, set() {}, observe() {} },
     ports: { EngagementPort: port },
   };
   ctx.db = {
@@ -95,10 +96,10 @@ function cancelledEvent(w: World, bookingId: string, o: { seq?: number; payload?
 
 /** One delivery = one transaction (as the queue does); returns the thrown error instead of throwing. */
 async function deliver(handler: (e: any, c: any) => Promise<void>, event: any, o: { port?: Port; ctxTenant?: string } = {}) {
-  const port = o.port ?? makePort(); const logs: string[] = []; let threw: any;
-  try { await appTx(o.ctxTenant ?? event.tenant_id, async (tx) => { await handler(event, makeCtx(tx, o.ctxTenant ?? event.tenant_id, port, logs)); }); }
+  const port = o.port ?? makePort(); const logs: string[] = []; const audits: any[] = []; let threw: any;
+  try { await appTx(o.ctxTenant ?? event.tenant_id, async (tx) => { await handler(event, makeCtx(tx, o.ctxTenant ?? event.tenant_id, port, logs, audits)); }); }
   catch (e) { threw = e; }
-  return { port, logs, threw };
+  return { port, logs, audits, threw };
 }
 const confirm = (e: any, o?: { port?: Port; ctxTenant?: string }) => deliver(onConfirmed, e, o);
 const cancel = (e: any, o?: { port?: Port; ctxTenant?: string }) => deliver(onCancelled, e, o);
@@ -178,6 +179,7 @@ describe('HC-T05 engagement.booking.confirmed.v1 -> visit (US-01)', () => {
     expect(Number(v.latitude)).toBeCloseTo(27.7172, 4);
     expect(Number(v.longitude)).toBeCloseTo(85.324, 4);
     expect(await flagsOf(w.tenant, v.id, 'address_missing')).toHaveLength(0);
+    expect(r.audits).toEqual([{ action: 'home_visit.view', entityType: 'home_visit', entityId: v.id, purpose: 'home_address_fetch', outcome: 'allowed' }]);   // 02-TRD §8.2 / §14 access log
   });
 
   it('US-01-4a: an address without landmark / coordinates is stored as such (both coordinates null, DB both-or-neither CHECK holds)', async () => {
@@ -199,6 +201,7 @@ describe('HC-T05 engagement.booking.confirmed.v1 -> visit (US-01)', () => {
     expect(fl[0]).toMatchObject({ status: 'open', centre_id: HC_CENTRE[w.s] });
     expect((await refsOf(w.tenant, ev.payload.booking_id))[0]).toMatchObject({ state: 'confirmed', visit_id: v.id });
     expect(r.logs.join('\n')).not.toContain(PHI_ADDR);                                           // 07 §6 log scan: no address in logs, not even inside an error message
+    expect(r.audits).toEqual([{ action: 'home_visit.view', entityType: 'home_visit', entityId: v.id, purpose: 'home_address_fetch', outcome: 'allowed' }]);   // port was called -> exactly one access row
   });
 
   it('US-01-4b: the port reports common.not_found (address deleted) -> same degradation (address_missing)', async () => {
@@ -215,6 +218,7 @@ describe('HC-T05 engagement.booking.confirmed.v1 -> visit (US-01)', () => {
     const r = await confirm(ev, { port });
     expect(r.threw).toBeUndefined();
     expect(port.calls).toHaveLength(0);
+    expect(r.audits).toHaveLength(0);                                                            // port not called -> no access row
     const v = (await visitsOf(w.tenant, ev.payload.booking_id))[0];
     expect(v).toMatchObject({ address_text: null, home_address_id: null });
     expect(await flagsOf(w.tenant, v.id, 'address_missing')).toHaveLength(1);
@@ -225,7 +229,9 @@ describe('HC-T05 engagement.booking.confirmed.v1 -> visit (US-01)', () => {
     const down = makePort({ error: new Error('down') });
     expect((await confirm(ev, { port: down })).threw).toBeUndefined();
     const again = makePort();
-    expect((await confirm(ev, { port: again })).threw).toBeUndefined();
+    const redelivery = await confirm(ev, { port: again });
+    expect(redelivery.threw).toBeUndefined();
+    expect(redelivery.audits).toHaveLength(0);                                                  // redelivery: port not called -> no access row
     const vs = await visitsOf(w.tenant, ev.payload.booking_id);
     expect(vs).toHaveLength(1);
     expect(await refsOf(w.tenant, ev.payload.booking_id)).toHaveLength(1);
@@ -258,6 +264,7 @@ describe('HC-T05 engagement.booking.confirmed.v1 -> visit (US-01)', () => {
     expect(await visitsOf(w.tenant, ev.payload.booking_id)).toHaveLength(0);
     expect(await refsOf(w.tenant, ev.payload.booking_id)).toHaveLength(0);
     expect(port.calls).toHaveLength(0);
+    expect(r.audits).toHaveLength(0);
   });
 
   it('US-01-5 / 03-IC §3.24 ordering: cancelled (seq 5) processed first, then confirmed (seq 3) -> NO visit, booking_refs stays cancelled with last_seq 5, no port call', async () => {
@@ -364,7 +371,11 @@ describe('HC-T05 engagement.booking.cancelled.v1 -> visit (US-10)', () => {
     const v = (await visitsOf(w.tenant, bookingId))[0];
     expect(v).toMatchObject({ status: 'cancelled', status_reason_code: 'booking_cancelled', status_reason_text: 'patient_request', order_id: w.order.id,
       route_id: route.id, route_sequence: 1 });
-    expect(String(v.route_date).slice(0, 10)).toBe(String(visit.route_date).slice(0, 10));
+    // pg parses DATE as local midnight: compare local y-m-d, not toISOString (ruling HC-T05-ruling.md)
+    const ymd = (d: unknown) => d instanceof Date
+      ? `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+      : String(d).slice(0, 10);
+    expect(ymd(v.route_date)).toBe(ymd(visit.route_date));
     const fl = await flagsOf(w.tenant, visit.id, 'order_cancel_required');
     expect(fl).toHaveLength(1);
     expect(fl[0]).toMatchObject({ status: 'open', centre_id: HC_CENTRE[w.s] });

@@ -2,7 +2,7 @@
 // review m#34), §5.3 VisitSummaryDto, §5.3.1 field allowlists (REQ-SEC-081), §5.4 rule 2 (phlebotomist-only = sync.upload without visit.assign -> only own visits), P-17 (staff names from ctx.core.memberships.list,
 // batched), §2.1 port failure -> board shows "—", 07-SECURITY §4 probes 1/3 + AB9 (phlebotomist lists all centre visits -> filtered to own). Fails now: H1 is an HC-T01 stub (common.internal "not implemented").
 import { beforeAll, describe, expect, it } from 'vitest';
-import { DISPATCHER, DISPATCHER_B, HC_CENTRE, LONG_ADDRESS, MEMBER, MEMBER2, NOBODY, OTHER_CENTRE, P, PHLEBO, PHLEBO2, T, as, buildScenario, displayStrings, failure, listVisits, nameOf, ownerRows, phoneOf,
+import { DISPATCHER, DISPATCHER_B, HC_CENTRE, LONG_ADDRESS, MEMBER, MEMBER2, NOBODY, OTHER_CENTRE, P, PHLEBO, PHLEBO2, T, as, buildScenario, failure, listVisits, nameOf, ownerRows, phoneOf,
   responseErrors, staffName, tenantVisitIds, TENANT_A, TENANT_B, type Scenario } from './helpers.js';
 
 let S: Scenario;
@@ -85,7 +85,7 @@ describe('H1 patient names: exactly one batch call per page; staff names via ctx
     const call = r.probe.memberships[0] as any;
     expect([...call.membershipIds].sort()).toEqual([MEMBER.a, MEMBER2.a].sort());
     expect(call.activeOnly).toBe(false);
-    expect(new Set(displayStrings(r.body))).toEqual(new Set([staffName(MEMBER.a), staffName(MEMBER2.a)]));
+    expect(new Set(r.body.data.map((x: any) => x.phlebotomist?.display_name).filter(Boolean))).toEqual(new Set([staffName(MEMBER.a), staffName(MEMBER2.a)]));
   });
   it('a failing core lookup omits the staff names, it does not fail the request', { timeout: T }, async () => {
     const r = await listVisits(day(), DISPATCHER, { fx: { coreFails: true } });
@@ -144,18 +144,18 @@ describe('H1 filters, sort, cursor', () => {
 
 describe('H1 phlebotomist-only filter (§5.4 rule 2, AB9)', () => {
   it('a phlebotomist-only actor (visit.read + sync.upload, no visit.assign) gets only visits assigned to them, whatever the query says', { timeout: T }, async () => {
-    const r = await listVisits({ centre_id: HC_CENTRE.a, limit: 200 }, PHLEBO);
+    const r = await listVisits({ route_date: S.date, centre_id: HC_CENTRE.a, limit: 200 }, PHLEBO);
     expect(r.status).toBe(200);
     expect(responseErrors('listHomeVisits', r.body)).toEqual([]);
     expect(ids(r).sort()).toEqual([S.assigned1.id, S.assigned2.id, S.done.id].sort());
     expect(r.body.data.every((x: any) => x.phlebotomist.membership_id === MEMBER.a)).toBe(true);
     for (const q of [{ phlebotomist_membership_id: MEMBER2.a }, { unassigned_only: true }, { status: 'unassigned' }, { has_open_flags: true }]) {
-      expect(ids(await listVisits({ centre_id: HC_CENTRE.a, limit: 200, ...q }, PHLEBO)), JSON.stringify(q)).toEqual([]);
+      expect(ids(await listVisits({ route_date: S.date, centre_id: HC_CENTRE.a, limit: 200, ...q }, PHLEBO)), JSON.stringify(q)).toEqual([]);
     }
     expect(ids(await listVisits(day(), PHLEBO2))).toEqual([S.assignedOther.id]);
   });
   it('the other visits never reach the port or the response: the batch call only names this phlebotomists patients, and no foreign patient name / address leaks', { timeout: T }, async () => {
-    const r = await listVisits({ centre_id: HC_CENTRE.a, limit: 200 }, PHLEBO);
+    const r = await listVisits({ route_date: S.date, centre_id: HC_CENTRE.a, limit: 200 }, PHLEBO);
     expect(r.probe.batch).toHaveLength(1);
     expect([...r.probe.batch[0]!.patientIds].sort()).toEqual([S.assigned1, S.assigned2, S.done].map((v) => v.patient_id).sort());
     const text = JSON.stringify(r.body);

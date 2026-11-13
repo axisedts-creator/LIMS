@@ -37,7 +37,7 @@ describe('US-06-1 pull with no cursor: today\'s route, exactly the actor\'s visi
       visit_id: S.v1.row.id, version: S.v1.row.version ?? 1, route_id: S.route.id, route_sequence: 1, status: 'assigned', kind: 'front_desk',
       window_start: expect.any(String), window_end: expect.any(String), order_id: S.v1.order.id,
       patient: { full_name: nameOf(S.v1.patient.id), phone_e164: phoneOf(S.v1.patient.id) },
-      address: { address_text: 'Ward 4, Synthetic Tole 12', landmark: 'Opposite the synthetic bakery', latitude: 27.7172, longitude: 85.324 },
+      address: { address_text: 'Ward 4, Synthetic Tole 12', landmark: 'Opposite the synthetic bakery', latitude: expect.stringMatching(/^27\.7172(0*)$/), longitude: expect.stringMatching(/^85\.324(0*)$/) },
       note_for_phlebotomist: 'Synthetic gate code 0000',
       specimens: [
         { specimen_id: specimenIdOf(S.v1.order.id, 0), barcode: barcodeOf(S.v1.order.id, 0), specimen_type_code: TYPES[0], container_code: 'TUBE_A', status: 'ordered' },

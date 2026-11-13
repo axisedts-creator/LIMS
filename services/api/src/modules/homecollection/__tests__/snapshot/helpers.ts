@@ -52,7 +52,13 @@ export interface Probe {
 export interface Reply { status: number; body: any; headers?: Record<string, string>; probe: Probe }
 export interface OpOpts { bypassRls?: boolean; fx?: Fx; now?: Date; headers?: object }
 
-const sleep = (ms?: number) => (ms ? new Promise<void>((r) => setTimeout(r, ms)) : undefined);
+// Honour the declared latency exactly (HC-T11 ruling): Windows setTimeout ticks at ~15.6 ms, so sleep coarsely for all but the last 20 ms, then spin on performance.now().
+const sleep = async (ms?: number) => {
+  if (!ms) return;
+  const end = performance.now() + ms;
+  if (ms > 20) await new Promise<void>((r) => setTimeout(r, ms - 20));
+  while (performance.now() < end) { /* spin to the exact target */ }
+};
 const H = manifest.handlers as unknown as Record<string, (r: any, ctx: any) => Promise<{ status: number; body?: any; headers?: Record<string, string> }>>;
 
 // ---- deterministic fake data (tests compare against these) ----

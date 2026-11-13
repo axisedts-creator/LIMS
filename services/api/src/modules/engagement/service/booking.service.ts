@@ -12,6 +12,7 @@ import { listCodedSet as defaultListCodedSet } from '../repository/codedsets.rep
 import type { Row } from '../repository/booking.repo.js';
 import * as slotRepo from '../repository/slot.repo.js';
 import * as tokenRepo from '../repository/token.repo.js';
+import { createReminderService } from './reminder.service.js';
 import { invalid, isUuid, parseIfMatch, type SlotCtx } from './slot.service.js';
 import { createTokenService, type TokenService } from './token.service.js';
 
@@ -119,6 +120,10 @@ export function createBookingService(deps: { repo?: BookingRepo; tokens?: TokenS
   const repo = deps.repo ?? defaultRepo;
   const listSet = deps.listCodedSet ?? defaultListCodedSet;
   const tokens = deps.tokens ?? createTokenService();
+  const reminders = createReminderService();
+  /** T-B5: engagement.send_booking_message (TRD §8.1: key bmsg:<booking_id>:<kind>, max 8). Payload ids only: no PHI (REQ-SEC-100). */
+  const enqueueMessage = (tx: any, tenantId: string, bookingId: string, kind: 'confirmation' | 'cancelled') =>
+    tx.query('SELECT app.enqueue_job($1, $2::jsonb, $3, $4, $5)', ['engagement.send_booking_message', JSON.stringify({ tenant_id: tenantId, booking_id: bookingId, kind }), `bmsg:${bookingId}:${kind}`, null, 8]);
 
   async function respond(tx: any, tenantId: string, b: Row): Promise<Record<string, unknown>> {
     const [items, names] = await Promise.all([repo.itemsOf(tx, { tenantId, bookingIds: [b['id']] }), repo.centreNames(tx, tenantId)]);
@@ -212,6 +217,8 @@ export function createBookingService(deps: { repo?: BookingRepo; tokens?: TokenS
         }
         await repo.insertTransition(tx, { tenantId, userId, bookingId: b['id'], centreId: v.centreId!, from: null, to: 'confirmed', reason: null, actorType: 'user', now });
         await publishBookingConfirmed(ctx, { bookingId: b['id'], patientId: v.patientId, branchId: centre!['branch_id'], centreId: v.centreId!, bookingKind: v.kind, slotStart, slotEnd, orderableIds: v.orderableIds, confirmedAt: now });
+        await reminders.scheduleBookingReminder(ctx, { bookingId: b['id'], patientId: v.patientId, slotStart });   // T-B5 US-EN-25.1: none when the slot is <= H ahead
+        await enqueueMessage(tx, tenantId, b['id'], 'confirmation');                                              // T-B5 US-EN-12.8
         return { status: 201, body: toBody(b, items.map((i, n) => ({ ...i!, display_name_snapshot: i!['display_name'], sort_order: n })), centre!['display_name']) };
       } catch (e) { return mapDbError(e); }
     },
@@ -238,6 +245,8 @@ export function createBookingService(deps: { repo?: BookingRepo; tokens?: TokenS
         await repo.release(tx, { tenantId, userId, occupancyId: cur['slot_occupancy_id'] });
         await repo.insertTransition(tx, { tenantId, userId, bookingId: b['id'], centreId: b['centre_id'], from: cur['status'], to: 'cancelled', reason, actorType: 'user', now });
         await publishBookingCancelled(ctx, { bookingId: b['id'], patientId: b['patient_id'], bookingKind: b['booking_kind'], reasonCode: reason, cancelledByKind: 'staff', cancelledAt: now, slotStart: iso(b['slot_start']), orderId: b['order_id'], version: b['version'] });
+        await reminders.cancelBookingReminders(ctx, { bookingId: b['id'] });                                      // T-B5 US-EN-25.2
+        await enqueueMessage(tx, tenantId, b['id'], 'cancelled');                                                 // T-B5 US-EN-12.8 (cancel SMS, CR-C16-009 / 08 R13)
         return { status: 200, body: await respond(tx, tenantId, b) };
       } catch (e) { return mapDbError(e); }
     },

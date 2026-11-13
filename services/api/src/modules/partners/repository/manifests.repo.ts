@@ -76,6 +76,11 @@ export async function partnerHeader(s: Scope): Promise<Row | undefined> {
   return (await s.tx.query('SELECT name, partner_code FROM partners.partners WHERE tenant_id = $1 AND id = $2', [s.tenantId, s.partnerId])).rows[0];
 }
 
+/** partners.g_cs_reasons row (global coded set, 05-SCHEMA §7) for one code of one set. */
+export async function reason(s: Scope, setName: string, code: string): Promise<Row | undefined> {
+  return (await s.tx.query('SELECT code, requires_text, is_active FROM partners.g_cs_reasons WHERE set_name = $1 AND code = $2', [setName, code])).rows.find((r: Row) => r['code'] === code);
+}
+
 /** Converted / failed line counts of non-draft manifests (drafts hold none). */
 export async function lineCounts(s: Scope, ids: string[]): Promise<Map<string, { converted: number; failed: number }>> {
   const out = new Map<string, { converted: number; failed: number }>();

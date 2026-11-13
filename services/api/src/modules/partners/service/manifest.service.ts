@@ -323,8 +323,6 @@ export async function submit(req: Req, ctx: HandlerContext): Promise<HandlerResu
 }
 
 // ---- M9 (T09) ----
-const WITHDRAW_REASONS = ['entered_in_error', 'samples_not_sent', 'duplicate_manifest', 'other'];
-
 export async function withdraw(req: Req, ctx: HandlerContext): Promise<HandlerResult> {
   const s = await gate(ctx, SUBMIT);
   const expected = ifMatch(req);
@@ -333,8 +331,11 @@ export async function withdraw(req: Req, ctx: HandlerContext): Promise<HandlerRe
   const ls = await lines.listByManifest(s, m['id']); // read AFTER the lock: a line that went converting meanwhile is seen
   assertWithdrawable({ state: m['state'] as ManifestState, conversionMode: m['conversion_mode'] as ConversionMode, lineStates: ls.map((l) => l['state']) });
   const b = req.body;
-  if (!isObj(b) || typeof b['reason_code'] !== 'string' || !WITHDRAW_REASONS.includes(b['reason_code'])) return invalid();
+  if (!isObj(b) || typeof b['reason_code'] !== 'string') return invalid();
   const text = b['reason_text'] === undefined || b['reason_text'] === null ? null : typeof b['reason_text'] === 'string' && b['reason_text'].length <= 300 ? b['reason_text'] : invalid();
+  // coded set from partners.g_cs_reasons (05-SCHEMA §7), as SA5: unknown/inactive code or missing required text -> 400
+  const coded = await manifests.reason(s, 'manifest_withdraw_reasons', b['reason_code']);
+  if (!coded || coded['is_active'] !== true || (coded['requires_text'] === true && !text?.trim())) return invalid();
   const row = (await manifests.withdraw(s, m['id'], expected, b['reason_code'], text)) ?? conflict();
   await lines.withdrawSubmitted(s, m['id']);
   // ponytail: MS5 pickup cascade (open pickups -> cancelled) belongs with the pickup tables (T15); not done here

@@ -268,7 +268,7 @@ describe('T0D-18 request pipeline against the dev database', () => {
       expect(await keyRows(k)).toEqual([]);
       expect(await notes(TENANT_B)).toEqual([]);
       expect(await app.metrics.render()).toMatch(/lims_ratelimit_rejections_total\{[^}]*tier="general"[^}]*\} [1-9]/);
-      await new Promise((r) => setTimeout(r, 2500)); // window = ceil(burst / rps) = 2 s
+      await new Promise((r) => setTimeout(r, 4100)); // window = ceil(burst / rps) = 2 s; two full windows so the sliding estimate (05-SCHEMA ratelimit_hit, denied hits count) sees 0 previous hits
       expect((await get()).statusCode).toBe(200);
       await admin.query('DELETE FROM core.rate_limit_counters');
     });

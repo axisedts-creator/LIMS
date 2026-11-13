@@ -21,7 +21,7 @@ afterEach(cleanup);
 
 const id = (n: number) => `01950c16-0000-7000-8000-${String(n).padStart(12, '0')}`;
 const PATIENT = { id: id(1), display_name: 'Sunita Synthetic Patient' };
-const LAB = 'Synthetic Lab Kathmandu';
+const LAB = 'Demo Lab Kathmandu'; // no word in common with PATIENT.display_name (ruling point 1)
 const CODE = 'K7M2Q-9XH4T';
 const EXPIRES = '2026-11-13T04:15:00.000Z'; // 10:00 Asia/Kathmandu (UTC+05:45)
 const CONSENT = { version: 'v3', text: 'Synthetic consent: the lab may share this patient\'s reports with the linked app account.' };
@@ -68,6 +68,10 @@ async function choose(root: HTMLElement, label: RegExp, option: RegExp) {
   if (sel) { await u.click(sel); await u.click(await screen.findByRole('option', { name: option })); return; }  // combobox-style Select
   throw new Error(`no control labelled ${label}`);
 }
+/** Required confirmation checkbox (04-UI-UX.md:247), default off. */
+async function tick(d: HTMLElement) {
+  await userEvent.setup().click(within(d).getByRole('checkbox', { name: /identity and they agreed/i }));
+}
 async function openIssue() {
   const u = userEvent.setup();
   await u.click(screen.getByRole('button', { name: /issue app code/i }));
@@ -81,10 +85,10 @@ describe('W8 list (links + codes, L3)', () => {
     expect(screen.getByRole('button', { name: /issue app code/i })).toBeTruthy();
   });
 
-  it('every status shows its word (Active / Suspended / Revoked; code Issued / Redeemed / Revoked) and the masked account phone; never a full phone', async () => {
+  it('every status shows its word (Active / Paused / Revoked; code Issued / Redeemed / Revoked) and the masked account phone; never a full phone', async () => {
     await show();
     const t = norm(document.body.textContent);
-    for (const w of [/active/i, /suspended/i, /revoked/i, /issued/i, /redeemed/i]) expect(t).toMatch(w);
+    for (const w of [/active/i, /paused/i, /revoked/i, /issued/i, /redeemed/i]) expect(t).toMatch(w);
     expect(t).toContain('+977•••••42');
     expect(t).not.toMatch(/\+977\d{7,}/);
   });
@@ -128,6 +132,7 @@ describe('issue dialog (US-EN-03.1, 03.6; W8 flow)', () => {
     await choose(d, /consent(ed)? by|who consents/i, /patient/i);
     await choose(d, /identity check/i, /^photo id$/i);
     await choose(d, /phone/i, /record|on record|patient'?s phone/i);
+    await tick(d);
     await userEvent.setup().click(within(d).getByRole('button', { name: /^issue$/i }));
     await waitFor(() => expect(a.issue).toHaveBeenCalledTimes(1));
     expect(a.issue.mock.calls[0]![0]).toEqual({ patient_id: PATIENT.id, relationship: 'self', consented_by: 'patient', identity_check_method: 'photo_id', bind_phone: 'record' });
@@ -142,6 +147,7 @@ describe('issue dialog (US-EN-03.1, 03.6; W8 flow)', () => {
     await choose(d, /phone/i, /another|other/i);
     const phone = within(d).getByLabelText(/(guardian|other|bound).*phone|phone number/i);
     await userEvent.setup().type(phone, '+9779851000013');
+    await tick(d);
     await userEvent.setup().click(within(d).getByRole('button', { name: /^issue$/i }));
     await waitFor(() => expect(a.issue).toHaveBeenCalledTimes(1));
     expect(a.issue.mock.calls[0]![0]).toEqual({ patient_id: PATIENT.id, relationship: 'child', consented_by: 'guardian', identity_check_method: 'guardian_photo_id', bind_phone: 'other', phone_e164: '+9779851000013' });
@@ -175,9 +181,23 @@ describe('issue dialog (US-EN-03.1, 03.6; W8 flow)', () => {
     await choose(d, /consent(ed)? by|who consents/i, /patient/i);
     await choose(d, /identity check/i, /^photo id$/i);
     await choose(d, /phone/i, /record|on record|patient'?s phone/i);
+    await tick(d);
     await userEvent.setup().click(within(d).getByRole('button', { name: /^issue$/i }));
     await waitFor(() => expect(within(dialog()).getAllByRole('alert').length).toBeGreaterThan(0));
     expect(document.body.textContent).not.toContain(CODE);
+  });
+});
+
+describe('confirmation checkbox (04-UI-UX.md:247)', () => {
+  it('Issue with the identity/agreement checkbox unticked makes no a.issue call', async () => {
+    const { actions: a } = await show();
+    const d = await openIssue();
+    await choose(d, /consent(ed)? by|who consents/i, /patient/i);
+    await choose(d, /identity check/i, /^photo id$/i);
+    await choose(d, /phone/i, /record|on record|patient'?s phone/i);
+    expect((within(d).getByRole('checkbox', { name: /identity and they agreed/i }) as HTMLInputElement).checked).toBe(false);
+    await userEvent.setup().click(within(d).getByRole('button', { name: /^issue$/i }));
+    expect(a.issue).not.toHaveBeenCalled();
   });
 });
 
@@ -188,6 +208,7 @@ describe('code shown once (done_when: code shown once)', () => {
     await choose(d, /consent(ed)? by|who consents/i, /patient/i);
     await choose(d, /identity check/i, /^photo id$/i);
     await choose(d, /phone/i, /record|on record|patient'?s phone/i);
+    await tick(d);
     await userEvent.setup().click(within(d).getByRole('button', { name: /^issue$/i }));
     await waitFor(() => expect(document.body.textContent).toContain(CODE));
     return { ...r, d };
@@ -203,11 +224,17 @@ describe('code shown once (done_when: code shown once)', () => {
     expect(screen.getByRole('button', { name: /print slip/i })).toBeTruthy();
   });
 
-  it('[Print slip] prints through window.print', async () => {
+  it('[Print slip] prints through the PrintFrame iframe, never the main window (its header names the patient)', async () => {
     const print = vi.spyOn(window, 'print').mockImplementation(() => {});
     await issueOnce();
+    // PrintFrame removes its iframe once it has printed, so record the insertion instead of querying afterwards.
+    let sawIframe = false;
+    const mo = new MutationObserver((ms) => { for (const m of ms) m.addedNodes.forEach((n) => { if (n.nodeName === 'IFRAME') sawIframe = true; }); });
+    mo.observe(document.body, { childList: true, subtree: true });
     await userEvent.setup().click(screen.getByRole('button', { name: /print slip/i }));
-    expect(print).toHaveBeenCalled();
+    await waitFor(() => expect(sawIframe).toBe(true));
+    mo.disconnect();
+    expect(print).not.toHaveBeenCalled();
   });
 
   it('closing the dialog removes the code from the DOM for good: re-opening, refresh and re-render never show it again; the page list refreshes', async () => {

@@ -1,5 +1,7 @@
 CHANGES
-Ruling on the perf dispute: LD-156 (budgets stay).
-1. TESTER: in helpers and perf.test.ts, replace the busy-spin fakes with async non-blocking delays of the same latencies (50/20/10 ms); time the handler call only, after one warm-up pull.
-2. WRITER: allow bounded concurrency (about 8) for the per-visit port calls of one request; batch the access_log rows if the core writer allows it (one row per visit stays).
-Budgets are not changed.
+Review of 2a4fcfde..HEAD (HC-T11 review fixes after LD-156). Code changes are correct: no blocking defects in snapshot.service.ts, helpers.ts or perf.test.ts.
+- LD-156 (1) done: helpers.ts:56-58 uses a non-blocking timer; helpers.ts:129-131 times only the handler; perf.test.ts:22 does a warm-up pull.
+- LD-156 (2) done: snapshot.service.ts:104-121 `settledPortCalls` runs groups of 8 inside one ctx.db.tx savepoint per group. Real ports (LabPort.impl.ts:234, BillingPort.impl.ts:229) are read-only and open no nested savepoints, so queries queued on one connection are safe. Results map back by index (2k/2k+1) correctly. snapshot.test.ts:297-308 covers a sibling failure in the same group (v2 keeps its specimens). Not batching access_log is justified: the core writer has no batch API, and there is still one row per visit (REQ-SEC-096).
+- No new names, no PHI in logs (only codes), no secrets, and only owned paths changed.
+
+1. services/api/src/modules/homecollection/__tests__/snapshot/perf.test.ts:30,51,55 still fail (HC-T11-impl-run.log: changed p95 4968 ms, unchanged p95 786 ms, all-lookups-fail 9988 ms), so done_when "US-06 passes" is not met. Fix, per LD-156 (3): run perf.test.ts alone with no other lane container running (`lims_c12t03_*` was still up at review time). If it passes, append that run log. If it still fails, write `.orchestra/notes/HC-T11-dispute-perf-2.md` with a per-phase breakdown (route/visit reads, demographics, port groups, 40 access_log inserts, route/device stamps) for each of the 3 cases. Explain in it why all-lookups-fail (9988 ms) is about 2x slower than the success path, since the fake port time is the same. Do not change the budgets.

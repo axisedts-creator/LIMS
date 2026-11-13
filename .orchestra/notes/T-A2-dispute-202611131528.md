@@ -1,0 +1,5 @@
+# T-A2 dispute (writer) — test world bug blocks every UPDATE of otp_challenges
+File: `services/api/src/modules/engagement/__tests__/otp.world.ts`, `challengeCheck` line 112 (called from the UPDATE branch, line 169).
+UPDATE builds `next = { ...r, ...patch }` (a COPY) and calls `challengeCheck(next)`. The uniqueness line `t.challenges.some((o) => o !== r && o.tenant_id === r.tenant_id && same(o.token_sha256, r.token_sha256))` compares by object identity, so the ORIGINAL row `o` (same token) is never `=== next` and it throws `23505 otp_challenges__tenant_id_token__uq` against itself.
+Effect: ANY `UPDATE engagement.otp_challenges` fails (markSent, markFailed, supersede), though the SQL is valid (`... SET status = 'sent' ... WHERE tenant_id = $1 AND id = $2 AND status = 'pending'`). 9 of 16 worker tests in `send_login_otp.test.ts` fail with this error at the first UPDATE; the 7 others (manifest, guards) pass. The 49 API tests (E1/E2/resolver) pass.
+Fix proposed (tester): compare by id, not identity: `o['id'] !== r['id'] &&`. No writer-side workaround exists: the spec requires these UPDATEs (TRD §4.1 step 2; 05-SCHEMA §5.3).

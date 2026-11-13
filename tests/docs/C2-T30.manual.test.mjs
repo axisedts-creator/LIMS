@@ -124,9 +124,9 @@ describe('C2-T30 every screen has a manual page (S24)', () => {
       assert.match(r, /^#{2,3}\s+.*(Steps|How to|Tasks|Common)/im, 'needs a task heading (Steps / How to / Tasks / Common)');
       const path = routeOf(s);
       assert.ok(path, `${slug}: no route known`);
-      assert.ok(t.includes(path), `${slug}.md must name route ${path}`);
+      assert.ok(t.includes(norm(path)), `${slug}.md must name route ${path}`);
       const perm = s.rid ? routes[s.rid].perm : null;
-      if (perm) assert.ok(t.includes(perm), `${slug}.md must name permission ${perm}`);
+      if (perm) assert.ok(t.includes(norm(perm)), `${slug}.md must name permission ${perm}`);
       for (const [label, re] of s.must) assert.match(t, re, `${slug}.md: ${label}`);
     });
   }

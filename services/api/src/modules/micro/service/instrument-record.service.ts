@@ -146,7 +146,9 @@ async function findIsolate(tx: any, tenantId: string, culture: Obj, seq: number 
   }
   const live = all.filter((i) => i['status'] !== 'withdrawn');
   if (live.length === 1) return { iso: live[0]!, all };
-  return live.length > 1 || all.length > 0 ? { reason: 'isolate_seq_missing', all } : { all };
+  if (live.length > 1 || all.length > 0) return { reason: 'isolate_seq_missing', all };
+  // review #2: isolate 1 is specimen-wide (isolates__specimen_seq__uq); another culture of the specimen may own it
+  return (await repo.isolateBySpecimenSeq(tx, { tenantId, specimenId: culture['specimen_id'], seq: 1 })) ? { reason: 'isolate_number_in_use', all } : { all };
 }
 
 async function applyOrganism(c: RecordCtx, tenantId: string, userId: string, rec: Obj, culture: Obj, seq: number | null, organism: string, force: boolean): Promise<Eval> {

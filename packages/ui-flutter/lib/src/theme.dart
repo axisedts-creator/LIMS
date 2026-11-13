@@ -18,14 +18,21 @@ const limsTones = <String, LimsToneColors>{
 LimsToneColors limsTone(String tone) => limsTones[tone] ?? limsTones['neutral']!;
 
 abstract final class LimsTheme {
-  /// Fonts are bundled package assets (no runtime download, 04 §11). Inside this package they resolve as 'Noto Sans';
-  /// from an app they resolve as 'packages/lims_ui/<family>', hence both spellings in the fallback list [CONV].
-  static const fontFamily = 'Noto Sans';
+  /// LD-140 (10-DESIGN-SYSTEM s5): Plus Jakarta Sans first, Devanagari fallback. Fonts are bundled package assets
+  /// (no runtime download, 04 §11). Inside this package they resolve as '<family>'; from an app they resolve as
+  /// 'packages/lims_ui/<family>', hence both spellings in the fallback list [CONV]. Noto Sans stays as last Latin fallback.
+  static const fontFamily = 'Plus Jakarta Sans';
   static const fontFamilyFallback = [
     'Noto Sans Devanagari',
-    'packages/lims_ui/Noto Sans',
+    'packages/lims_ui/Plus Jakarta Sans',
     'packages/lims_ui/Noto Sans Devanagari',
+    'Noto Sans',
+    'packages/lims_ui/Noto Sans',
   ];
+
+  /// 10-DESIGN-SYSTEM s5: pill buttons, >= 44 targets (Flutter token 48).
+  static const _buttonShape = WidgetStatePropertyAll<OutlinedBorder>(StadiumBorder());
+  static const _buttonMin = WidgetStatePropertyAll(Size(LimsTokens.touchTargetFlutter, LimsTokens.touchTargetFlutter));
   static const monoFamily = 'packages/lims_ui/Noto Sans Mono';
 
   static ThemeData light({Color? accent}) {
@@ -47,7 +54,17 @@ abstract final class LimsTheme {
       fontFamilyFallback: fontFamilyFallback,
       materialTapTargetSize: MaterialTapTargetSize.padded, // 48 dp (04 §8 Accessibility)
       visualDensity: VisualDensity.standard,
-      scaffoldBackgroundColor: LimsTokens.colorNeutral50,
+      scaffoldBackgroundColor: LimsTokens.colorNeutral50, // LD-140: page #F3F7F4
+      // LD-140: white cards, radius.lg (16), flat on the page colour.
+      cardTheme: const CardThemeData(
+        color: LimsTokens.colorNeutral0,
+        surfaceTintColor: LimsTokens.colorNeutral0,
+        elevation: 0,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.all(Radius.circular(LimsTokens.radiusLg))),
+      ),
+      filledButtonTheme: const FilledButtonThemeData(style: ButtonStyle(shape: _buttonShape, minimumSize: _buttonMin)),
+      outlinedButtonTheme: const OutlinedButtonThemeData(style: ButtonStyle(shape: _buttonShape, minimumSize: _buttonMin)),
+      textButtonTheme: const TextButtonThemeData(style: ButtonStyle(shape: _buttonShape, minimumSize: _buttonMin)),
     );
   }
 }

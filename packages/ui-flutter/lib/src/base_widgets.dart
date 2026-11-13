@@ -9,6 +9,44 @@ import 'tokens.g.dart';
 
 const _minTarget = LimsTokens.touchTargetFlutter;
 
+/// LD-140 / 10-DESIGN-SYSTEM s2 motion + s5: mobile press scale .96, motion.duration.fast. A [Listener] (not a gesture
+/// recognizer) so the child's own tap handling is untouched. `enabled: false` = no scale (disabled controls).
+class LimsPressScale extends StatefulWidget {
+  const LimsPressScale({super.key, required this.child, this.enabled = true});
+
+  static const pressedScale = 0.96;
+
+  final Widget child;
+  final bool enabled;
+
+  @override
+  State<LimsPressScale> createState() => _LimsPressScaleState();
+}
+
+class _LimsPressScaleState extends State<LimsPressScale> {
+  var _down = false;
+
+  void _set(bool v) {
+    if (_down != v) setState(() => _down = v);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final reduce = MediaQuery.maybeDisableAnimationsOf(context) ?? false;
+    return Listener(
+      onPointerDown: widget.enabled ? (_) => _set(true) : null,
+      onPointerUp: (_) => _set(false),
+      onPointerCancel: (_) => _set(false),
+      child: AnimatedScale(
+        scale: _down && widget.enabled ? LimsPressScale.pressedScale : 1,
+        duration: reduce ? Duration.zero : Duration(milliseconds: LimsTokens.motionDurationFast.round()),
+        curve: const Cubic(0.2, 0, 0, 1), // tokens motion.easing
+        child: widget.child,
+      ),
+    );
+  }
+}
+
 class LimsButton extends StatelessWidget {
   const LimsButton({super.key, required this.label, required this.onPressed, this.icon, this.secondary = false});
 
@@ -19,16 +57,23 @@ class LimsButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final style = ButtonStyle(minimumSize: const WidgetStatePropertyAll(Size(_minTarget, _minTarget)));
+    // LD-140: pill shape + 48 dp minimum (also in LimsTheme, repeated so the button holds outside LimsTheme).
+    const style = ButtonStyle(
+      minimumSize: WidgetStatePropertyAll(Size(_minTarget, _minTarget)),
+      shape: WidgetStatePropertyAll(StadiumBorder()),
+    );
     final text = Text(label, textAlign: TextAlign.center);
+    final Widget button;
     if (secondary) {
-      return icon == null
+      button = icon == null
           ? OutlinedButton(onPressed: onPressed, style: style, child: text)
           : OutlinedButton.icon(onPressed: onPressed, style: style, icon: Icon(icon), label: text);
+    } else {
+      button = icon == null
+          ? FilledButton(onPressed: onPressed, style: style, child: text)
+          : FilledButton.icon(onPressed: onPressed, style: style, icon: Icon(icon), label: text);
     }
-    return icon == null
-        ? FilledButton(onPressed: onPressed, style: style, child: text)
-        : FilledButton.icon(onPressed: onPressed, style: style, icon: Icon(icon), label: text);
+    return LimsPressScale(enabled: onPressed != null, child: button);
   }
 }
 

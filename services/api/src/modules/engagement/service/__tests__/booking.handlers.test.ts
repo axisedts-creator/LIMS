@@ -60,7 +60,7 @@ const SLOT_FULL = S('01:30');  // Mon 07:15 NPT, occupancy 3/3
 const SOON = '2026-11-10T04:45:00.000Z'; // Tue 10:30 NPT = 30 min after NOW (inside the 60-min patient cutoff)
 
 const O = { CBC: ID(0x301), GLU: ID(0x302), WHP: ID(0x303), HOME_ONLY: ID(0x304), OFF: ID(0x305), UNKNOWN: ID(0x3ff) };
-const P_F = ID(0x501), P_M = ID(0x502), P_LIM = ID(0x503), P_OK = ID(0x504), P_UNKNOWN = ID(0x5ff);
+const P_F = ID(0x501), P_X = ID(0x506), P_M = ID(0x502), P_LIM = ID(0x503), P_OK = ID(0x504), P_UNKNOWN = ID(0x5ff);
 const OCC_A = ID(0x601), OCC_FULL = ID(0x602), OCC_ONE = ID(0x603), OCC_SOON = ID(0x604), OCC_C2 = ID(0x605), OCC_B = ID(0x606), OCC_ORD = ID(0x607);
 const BK = { CONF: ID(0x701), CHK: ID(0x702), DONE: ID(0x703), CANC: ID(0x704), HC: ID(0x705), C2: ID(0x706), B: ID(0x707), SOON: ID(0x708), ORD: ID(0x709), OUT: ID(0x70a), UNKNOWN: ID(0x7ff) };
 const ORD1 = ID(0x801);
@@ -69,7 +69,7 @@ const QD1 = ID(0x901), QD_C2 = ID(0x902), QD_OFF = ID(0x903);
 // ---------------------------------------------------------------- fixtures
 const bookingNo = (n: number) => `BK26${String(900 + n).padStart(6, '0')}`;
 const bk = (id: string, n: number, o: Row = {}): Row => ({
-  id, tenant_id: A, booking_no: bookingNo(n), account_id: null, patient_id: P_F, link_id: null, created_via: 'staff', booking_kind: 'centre_visit', branch_id: BR1, centre_id: C1, slot_occupancy_id: OCC_A,
+  id, tenant_id: A, booking_no: bookingNo(n), account_id: null, patient_id: P_X, link_id: null, created_via: 'staff', booking_kind: 'centre_visit', branch_id: BR1, centre_id: C1, slot_occupancy_id: OCC_A,
   slot_start: S('02:15'), slot_end: S('02:30'), home_address_id: null, status: 'confirmed', order_id: null, queue_token_id: null, confirmed_at: NOW, checked_in_at: null, completed_at: null, cancelled_at: null,
   cancel_reason_code: null, cancelled_by_kind: null, replaces_booking_id: null, version: 1, created_at: NOW, created_by: A, updated_at: NOW, updated_by: A, ...o });
 const withParts = (b: Row, extra: Row[] = []): { b: Row; items: Row[]; tr: Row[] } => ({
@@ -311,7 +311,7 @@ describe('US-EN-12.7 / 12.3: slot window and capacity', () => {
     it(`422 engagement.slot_outside_window for a slot ${name}; nothing is written`, async () => {
       const db = newDb(); const before = snapshot(db);
       const r = await create(BODY({ slot_start: slot }), FD_C1, { db });
-      expect(r.error?.code).toBe('engagement.slot_outside_window'); expect(r.error?.status).toBe(422); untouched(r, before);
+      expect(r.error?.code).toBe('engagement.slot_outside_window'); expect(r.error?.statusCode).toBe(422); untouched(r, before);
     });
   }
   it('the last remaining place of a slot is bookable; the next attempt gets 409 engagement.slot_unavailable with booked unchanged and no number consumed', async () => {
@@ -320,7 +320,7 @@ describe('US-EN-12.7 / 12.3: slot window and capacity', () => {
     expect(byId(db, 'slot_occupancy', OCC_ONE)['booked']).toBe(3);
     const evBefore = ev(db).length, no = db.tables['number_counters']![0]!['last_value'];
     const r = await create(BODY({ slot_start: SLOT_ONE, patient_id: P_M }), FD_C1, { db });
-    expect(r.error?.code).toBe('engagement.slot_unavailable'); expect(r.error?.status).toBe(409);
+    expect(r.error?.code).toBe('engagement.slot_unavailable'); expect(r.error?.statusCode).toBe(409);
     expect(byId(db, 'slot_occupancy', OCC_ONE)['booked']).toBe(3);
     expect(ev(db)).toHaveLength(evBefore); expect(db.tables['number_counters']![0]!['last_value']).toBe(no); expect(db.tables['bookings']!.filter((x) => x['slot_occupancy_id'] === OCC_ONE)).toHaveLength(1);
   });
@@ -359,7 +359,7 @@ describe('US-EN-12.5: orderables must be active bookable items allowing the kind
     it(`422 engagement.orderable_not_bookable: ${name}; nothing is written`, async () => {
       const db = newDb(); const before = snapshot(db);
       const r = await create(BODY({ orderable_ids: ids }), FD_C1, { db });
-      expect(r.error?.code).toBe('engagement.orderable_not_bookable'); expect(r.error?.status).toBe(422); untouched(r, before);
+      expect(r.error?.code).toBe('engagement.orderable_not_bookable'); expect(r.error?.statusCode).toBe(422); untouched(r, before);
     });
   }
   it('a female-only package for a male patient (sex from FrontdeskPort.getPatientDemographics) -> 422 engagement.orderable_not_bookable; for a female patient -> 201', async () => {
@@ -386,7 +386,7 @@ describe('REQ-SEC-100: per-profile active booking cap', () => {
   it('a patient with max_active_bookings_per_profile (2) future confirmed bookings gets 429 engagement.booking_limit_reached; nothing is written', async () => {
     const db = newDb(); const before = snapshot(db);
     const r = await create(BODY({ patient_id: P_LIM }), FD_C1, { db });
-    expect(r.error?.code).toBe('engagement.booking_limit_reached'); expect(r.error?.status).toBe(429); untouched(r, before);
+    expect(r.error?.code).toBe('engagement.booking_limit_reached'); expect(r.error?.statusCode).toBe(429); untouched(r, before);
   });
   it('cancelled, completed and past-confirmed bookings do not count: a patient with one future confirmed booking can book a second', async () => {
     const r = await create(BODY({ patient_id: P_OK }));
@@ -407,7 +407,7 @@ describe('feature switch, validation, authorisation', () => {
   it('home_collection without an address -> 422 engagement.address_required; nothing written', async () => {
     const db = newDb(); const before = snapshot(db);
     const r = await create(BODY({ booking_kind: 'home_collection', centre_id: undefined }), FD_C1, { db });
-    expect(r.error?.code).toBe('engagement.address_required'); expect(r.error?.status).toBe(422); untouched(r, before);
+    expect(r.error?.code).toBe('engagement.address_required'); expect(r.error?.statusCode).toBe(422); untouched(r, before);
   });
   const invalid: Record<string, unknown> = {
     'patient_id missing': (({ patient_id: _p, ...r }) => r)(BODY()), 'patient_id not a uuid': BODY({ patient_id: 'nope' }), 'booking_kind unknown': BODY({ booking_kind: 'x' }), 'centre_visit without centre_id': BODY({ centre_id: undefined }),
@@ -506,7 +506,7 @@ describe('US-EN-15.2: S1 listBookings and S2 getBooking are centre-scoped', () =
     expect(r.out.body.transitions.map((t: any) => [t.from, t.to, t.reason_code, t.actor_type])).toEqual([[undefined, 'confirmed', undefined, 'user'], ['confirmed', 'cancelled', 'patient_request', 'patient']]);
   });
   it('getBooking of a C2 booking by a C1 front desk -> 404 common.not_found; of another tenant\'s, an unknown id likewise; malformed id -> 400', async () => {
-    for (const id of [BK.C2, BK.B, BK.UNKNOWN]) { const r = await run('getBooking', { params: { booking_id: id } }, FD_C1); expect(r.error?.code).toBe('common.not_found'); expect(r.error?.status).toBe(404); }
+    for (const id of [BK.C2, BK.B, BK.UNKNOWN]) { const r = await run('getBooking', { params: { booking_id: id } }, FD_C1); expect(r.error?.code).toBe('common.not_found'); expect(r.error?.statusCode).toBe(404); }
     expect((await run('getBooking', { params: { booking_id: 'nope' } }, FD_C1)).error?.code).toBe('common.validation_failed');
   });
   it('read floor: without booking.read both reads are auth.forbidden before any query', async () => {
@@ -529,7 +529,7 @@ describe('US-EN-14.1 / 14.6: cancelBooking (staff) releases the place and publis
     expect(ev(db)).toHaveLength(1);
     const e = events(db)[0];
     expect(e).toMatchObject({ event_type: 'engagement.booking.cancelled.v1', producer: 'engagement', idempotency_key: `${BK.CONF}:cancelled`, aggregate: { type: 'booking', id: BK.CONF, seq: 2 } });
-    expect(e.payload).toEqual({ booking_id: BK.CONF, patient_id: P_F, booking_kind: 'centre_visit', reason_code: 'lab_unavailable', cancelled_by_kind: 'staff', cancelled_at: NOW, slot_start: S('02:15') });
+    expect(e.payload).toEqual({ booking_id: BK.CONF, patient_id: P_X, booking_kind: 'centre_visit', reason_code: 'lab_unavailable', cancelled_by_kind: 'staff', cancelled_at: NOW, slot_start: S('02:15') });
     expect(eventValidators().get('engagement.booking.cancelled.v1')!(e)).toBe(true);
   });
   it('the event carries order_id when the booking has one, and never home_visit_id', async () => {
@@ -553,7 +553,7 @@ describe('US-EN-14.1 / 14.6: cancelBooking (staff) releases the place and publis
     const db = newDb(); const start = byId(db, 'slot_occupancy', OCC_A)['booked'];
     expect((await cancel(BK.CONF, { reason_code: 'patient_request' }, ifm(1), FD_C1, { db })).out.status).toBe(200);
     const again = await cancel(BK.CONF, { reason_code: 'patient_request' }, ifm(2), FD_C1, { db });
-    expect(again.error?.code).toBe('engagement.booking_invalid_transition'); expect(again.error?.status).toBe(409);
+    expect(again.error?.code).toBe('engagement.booking_invalid_transition'); expect(again.error?.statusCode).toBe(409);
     expect(byId(db, 'slot_occupancy', OCC_A)['booked']).toBe(start - 1); expect(events(db, 'engagement.booking.cancelled.v1')).toHaveLength(1);
   });
   it('replay: when the cancelled event with the same idempotency key already exists (crash after publish), the cancel still completes and the log keeps ONE event', async () => {
@@ -570,9 +570,9 @@ describe('US-EN-14.1 / 14.6: cancelBooking (staff) releases the place and publis
   it('If-Match: absent -> 428 common.precondition_required before any DB access; stale -> 409 common.version_conflict with nothing changed; malformed -> 400', async () => {
     const db = newDb(); const before = snapshot(db);
     const none = await cancel(BK.CONF, { reason_code: 'patient_request' }, {}, FD_C1, { db });
-    expect(none.error?.code).toBe('common.precondition_required'); expect(none.error?.status).toBe(428); expect(none.calls).toEqual([]);
+    expect(none.error?.code).toBe('common.precondition_required'); expect(none.error?.statusCode).toBe(428); expect(none.calls).toEqual([]);
     const stale = await cancel(BK.CONF, { reason_code: 'patient_request' }, ifm(7), FD_C1, { db });
-    expect(stale.error?.code).toBe('common.version_conflict'); expect(stale.error?.status).toBe(409); untouched(stale, before);
+    expect(stale.error?.code).toBe('common.version_conflict'); expect(stale.error?.statusCode).toBe(409); untouched(stale, before);
     const bad = await cancel(BK.CONF, { reason_code: 'patient_request' }, ifm('1'), FD_C1, { db });
     expect(bad.error?.code).toBe('common.validation_failed'); untouched(bad, before);
   });
@@ -589,7 +589,7 @@ describe('US-EN-14.1 / 14.6: cancelBooking (staff) releases the place and publis
     for (const id of [BK.C2, BK.B, BK.UNKNOWN]) {
       const db = newDb(); const before = snapshot(db);
       const r = await cancel(id, { reason_code: 'patient_request' }, ifm(1), FD_C1, { db });
-      expect(r.error?.code).toBe('common.not_found'); expect(r.error?.status).toBe(404); untouched(r, before);
+      expect(r.error?.code).toBe('common.not_found'); expect(r.error?.statusCode).toBe(404); untouched(r, before);
     }
   });
   it('permission probe: booking.manage without booking.cancel -> auth.forbidden before any query', async () => {
@@ -612,7 +612,7 @@ describe('forbidden transitions (03-APP-FLOW §4.1; booking.state): terminal boo
     it(`${op === 'cancel' ? 'cancel' : 'check-in'} of a ${status} booking -> 409 engagement.booking_invalid_transition`, async () => {
       const db = newDb(); const before = snapshot(db);
       const r = op === 'cancel' ? await cancel(id, { reason_code: 'patient_request' }, ifm(version), FD_C1, { db }) : await checkIn(id, { issue_token: true, queue_id: QD1 }, ifm(version), FD_C1, { db });
-      expect(r.error?.code).toBe('engagement.booking_invalid_transition'); expect(r.error?.status).toBe(409); untouched(r, before);
+      expect(r.error?.code).toBe('engagement.booking_invalid_transition'); expect(r.error?.statusCode).toBe(409); untouched(r, before);
       expect(db.tables['queue_tokens']).toEqual([]); expect(ev(db)).toEqual([]);
     });
   }
@@ -650,7 +650,7 @@ describe('US-EN-15.3: checkInBooking moves confirmed -> checked_in and can issue
   it('queue closed (inactive queue, or settings.queue_enabled = false) -> 409 engagement.queue_closed and no token exists', async () => {
     for (const [db, queue] of [[newDb(), QD_OFF], [newDb(seed({ settings: { queue_enabled: false } })), QD1]] as const) {
       const r = await checkIn(BK.CONF, { issue_token: true, queue_id: queue }, ifm(1), FD_C1, { db });
-      expect(r.error?.code).toBe('engagement.queue_closed'); expect(r.error?.status).toBe(409); expect(db.tables['queue_tokens']).toEqual([]);
+      expect(r.error?.code).toBe('engagement.queue_closed'); expect(r.error?.statusCode).toBe(409); expect(db.tables['queue_tokens']).toEqual([]);
     }
   });
   it('a queue of another centre (C2) is not usable by a C1 front desk: refused, no token', async () => {

@@ -1,0 +1,19 @@
+{
+  "ok": true,
+  "messageKind": "results",
+  "messageControlId": "2",
+  "messageTimeLocal": "2026-11-05T17:37:23",
+  "records": [
+    {
+      "recordSeq": 1, "recordClass": "patient", "sampleBarcode": "E2600000042", "recordKind": "quantitative",
+      "instrumentAnalyteCode": "HbA1c_NGSP", "valueRaw": "5.63", "unitRaw": "%",
+      "instrumentFlags": ["H80E_MARK:0"], "instrumentResultTimeLocal": "2026-11-05T17:37:23", "warnings": []
+    },
+    {
+      "recordSeq": 2, "recordClass": "patient", "sampleBarcode": "E2600000042", "recordKind": "attachment",
+      "instrumentAnalyteCode": "Chromatogram",
+      "instrumentFlags": [], "instrumentResultTimeLocal": "2026-11-05T17:37:23", "warnings": []
+    }
+  ],
+  "warnings": []
+}

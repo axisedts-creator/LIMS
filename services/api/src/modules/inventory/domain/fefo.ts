@@ -18,7 +18,7 @@ const fail = (msg: string): never => {
 const ms = (s: string): number => (Number.isNaN(Date.parse(s)) ? fail('invalid timestamp') : Date.parse(s));
 
 /** Offset (local − UTC, ms) of `tz` at UTC instant t. */
-function offsetMs(t: number, tz: string): number {
+export function offsetMs(t: number, tz: string): number {
   const p = Object.fromEntries(
     new Intl.DateTimeFormat('en-US', { timeZone: tz, hourCycle: 'h23', year: 'numeric', month: 'numeric', day: 'numeric', hour: 'numeric', minute: 'numeric', second: 'numeric' })
       .formatToParts(new Date(t)).map((x) => [x.type, Number(x.value)]),
@@ -27,7 +27,7 @@ function offsetMs(t: number, tz: string): number {
 }
 
 /** Last millisecond of calendar day `ymd` in `tz`, as a UTC epoch (start of the next local day − 1 ms). */
-function endOfDay(ymd: string, tz: string): number {
+export function endOfDay(ymd: string, tz: string): number {
   const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(ymd);
   if (!m) return fail('invalid expiry date');
   const wall = Date.UTC(+m[1]!, +m[2]! - 1, +m[3]! + 1);

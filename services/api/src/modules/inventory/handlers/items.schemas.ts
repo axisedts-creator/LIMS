@@ -23,7 +23,7 @@ export const posDec: Rule = (v) => typeof v === 'string' && /^[0-9]{1,12}(\.[0-9
 
 export const ITEM_CODE = /^[A-Z0-9][A-Z0-9_.\-]{0,31}$/;
 const UOM = pat(/^[a-z][a-z0-9_]{0,31}$/, 32);
-const CATEGORIES = ['reagent', 'kit', 'consumable', 'control', 'calibrator', 'other'];
+export const CATEGORIES = ['reagent', 'kit', 'consumable', 'control', 'calibrator', 'other'];
 export const UNSET_FIELDS = ['manufacturer', 'catalogue_no', 'storage_condition', 'open_stability_days', 'container_qty_base', 'hs_code', 'default_tax_code', 'notes'] as const;
 const BARCODE_RAW = /^[\x21-\x7E]{1,64}$/; // checked on the RAW text: 'straße' / 'ıd' upper-case into ASCII and must not sneak past
 

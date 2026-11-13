@@ -1,0 +1,98 @@
+[core] WARNING: Executable file detection not yet supported on 'win32'.
+Schema updated
+psql:/repo/db/migrations/20261105001300_identity__create_identity_schema.sql:7: NOTICE:  schema "identity" already exists, skipping
+psql:/repo/db/migrations/20261105001500_catalog__create_catalog_schema.sql:10: NOTICE:  schema "catalog" already exists, skipping
+psql:/repo/db/migrations/20261105001600_frontdesk__create_frontdesk_schema.sql:7: NOTICE:  schema "frontdesk" already exists, skipping
+psql:/repo/db/migrations/20261105001700_billing__create_billing_schema.sql:7: NOTICE:  schema "billing" already exists, skipping
+psql:/repo/db/migrations/20261105001800_lab__create_lab_schema.sql:10: NOTICE:  schema "lab" already exists, skipping
+psql:/repo/db/migrations/20261105001900_reporting__create_reporting_schema.sql:145: NOTICE:  identifier "message_template_texts__tenant_id_template_code_channel_language__uq" will be truncated to "message_template_texts__tenant_id_template_code_channel_languag"
+psql:/repo/db/migrations/20261105001900_reporting__create_reporting_schema.sql:177: NOTICE:  identifier "report_template_versions__tenant_id_template_id__published__p_uq" will be truncated to "report_template_versions__tenant_id_template_id__published__p_u"
+psql:/repo/db/migrations/20261105001900_reporting__create_reporting_schema.sql:443: NOTICE:  identifier "deliveries__tenant_id_channel_account_id_provider_message_id__p_uq" will be truncated to "deliveries__tenant_id_channel_account_id_provider_message_id__p"
+psql:/repo/db/migrations/20261105001900_reporting__create_reporting_schema.sql:682: NOTICE:  identifier "narrative_versions__tenant_id_narrative_report_id_version_no__uq" will be truncated to "narrative_versions__tenant_id_narrative_report_id_version_no__u"
+HC-T03: homecollection.* missing after migrations (P-1 not landed): applying 05-SCHEMA §4/§4.1 DDL + policies
+                                                       set_config                                                        
+-------------------------------------------------------------------------------------------------------------------------
+ {"tenant_id":"01a1a98a-ac40-7000-8000-00000000a001","sub":"01a1b34e-1000-7eee-9d29-d7ca59a102b5","actor_type":"system"}
+(1 row)
+
+                                                       set_config                                                        
+-------------------------------------------------------------------------------------------------------------------------
+ {"tenant_id":"01a1a98a-ac40-7000-8000-00000000b001","sub":"01a1b34e-1000-7eee-9d29-d7ca59a102b5","actor_type":"system"}
+(1 row)
+
+ set_config 
+------------
+ 
+(1 row)
+
+
+ RUN  v5.1.0 C:/LIMS-lanes/C17/services/api
+
+stderr | src/modules/homecollection/__tests__/snapshot/perf.test.ts > A2 p95 with 40 visits > changed pull of 40 visits: p95 of 8 runs <= 2 s; one demographics batch, 40 lookupSpecimens, 40 balances; every visit complete; 40 access rows
+unknown format "date-time" ignored in schema at path "#/components/schemas/IsoUtc"
+unknown format "date-time" ignored in schema at path "#/components/schemas/IsoUtc"
+unknown format "uuid" ignored in schema at path "#/components/schemas/Uuidv7"
+unknown format "uuid" ignored in schema at path "#/components/schemas/Uuidv7"
+unknown format "int64" ignored in schema at path "#/components/schemas/Money/properties/amount_paisa"
+unknown format "int64" ignored in schema at path "#/components/schemas/Money/properties/amount_paisa"
+unknown format "date-time" ignored in schema at path "#/components/schemas/IsoUtc"
+unknown format "date-time" ignored in schema at path "#/components/schemas/IsoUtc"
+unknown format "date" ignored in schema at path "#/components/schemas/IsoDate"
+unknown format "date" ignored in schema at path "#/components/schemas/IsoDate"
+unknown format "uuid" ignored in schema at path "#/components/schemas/Uuid"
+unknown format "uuid" ignored in schema at path "#/components/schemas/Uuid"
+unknown format "uuid" ignored in schema at path "#/components/schemas/Uuid"
+unknown format "uuid" ignored in schema at path "#/components/schemas/Uuid"
+unknown format "uuid" ignored in schema at path "#/components/schemas/Uuid"
+unknown format "uuid" ignored in schema at path "#/components/schemas/Uuid"
+unknown format "uuid" ignored in schema at path "#/components/schemas/Uuid"
+unknown format "uuid" ignored in schema at path "#/components/schemas/Uuid"
+unknown format "uuid" ignored in schema at path "#/components/schemas/Uuid"
+unknown format "uuid" ignored in schema at path "#/components/schemas/Uuid"
+unknown format "date-time" ignored in schema at path "#/components/schemas/IsoUtc"
+unknown format "date-time" ignored in schema at path "#/components/schemas/IsoUtc"
+unknown format "date-time" ignored in schema at path "#/components/schemas/IsoUtc"
+unknown format "date-time" ignored in schema at path "#/components/schemas/IsoUtc"
+unknown format "uuid" ignored in schema at path "#/components/schemas/Uuidv7"
+unknown format "uuid" ignored in schema at path "#/components/schemas/Uuidv7"
+unknown format "date" ignored in schema at path "#/components/schemas/IsoDate"
+unknown format "date" ignored in schema at path "#/components/schemas/IsoDate"
+unknown format "uuid" ignored in schema at path "#/components/schemas/Uuid"
+unknown format "uuid" ignored in schema at path "#/components/schemas/Uuid"
+unknown format "int64" ignored in schema at path "#/components/schemas/Money/properties/amount_paisa"
+unknown format "int64" ignored in schema at path "#/components/schemas/Money/properties/amount_paisa"
+unknown format "date-time" ignored in schema at path "#/components/schemas/IsoUtc"
+unknown format "date-time" ignored in schema at path "#/components/schemas/IsoUtc"
+unknown format "uuid" ignored in schema at path "#/components/schemas/Uuid"
+unknown format "uuid" ignored in schema at path "#/components/schemas/Uuid"
+unknown format "uuid" ignored in schema at path "#/components/schemas/Uuid"
+unknown format "uuid" ignored in schema at path "#/components/schemas/Uuid"
+unknown format "date-time" ignored in schema at path "#/components/schemas/IsoUtc"
+unknown format "date-time" ignored in schema at path "#/components/schemas/IsoUtc"
+unknown format "date-time" ignored in schema at path "#/components/schemas/IsoUtc"
+unknown format "date-time" ignored in schema at path "#/components/schemas/IsoUtc"
+
+ ❯ src/modules/homecollection/__tests__/snapshot/perf.test.ts (4 tests | 1 failed) 61654ms
+   ❯ A2 p95 with 40 visits (4)
+     × changed pull of 40 visits: p95 of 8 runs <= 2 s; one demographics batch, 40 lookupSpecimens, 40 balances; every visit complete; 40 access rows 17695ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/modules/homecollection/__tests__/snapshot/perf.test.ts > A2 p95 with 40 visits > changed pull of 40 visits: p95 of 8 runs <= 2 s; one demographics batch, 40 lookupSpecimens, 40 balances; every visit complete; 40 access rows
+AssertionError: changed p95 2629 ms (runs 1422,1882,1499,2367,1880,1752,2629,1583): expected 2628.919099999999 to be less than or equal to 2000
+ ❯ src/modules/homecollection/__tests__/snapshot/perf.test.ts:39:100
+     37|     expect(last.probe.lab).toHaveLength(N);
+     38|     expect(last.probe.balance).toHaveLength(N);
+     39|     expect(p95(times), `changed p95 ${Math.round(p95(times))} ms (runs…
+       |                                                                                                    ^
+     40|   });
+     41|   it(`unchanged pull of ${N} visits: p95 of ${RUNS} runs <= 500 ms; ${…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed | 4 passed (5)
+      Tests  1 failed | 83 passed (84)
+   Start at  21:24:20
+   Duration  66.16s (tests 91%, import 7%, transform 2%)
+

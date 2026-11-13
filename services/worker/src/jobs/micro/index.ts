@@ -4,6 +4,7 @@
 import { LimsError } from '../../../../api/src/core/errors.js';
 import type { ConsumerHandler, TaskHandler, WorkerManifest } from '../../core/manifest.js';
 import { cron } from './cron.js';
+import { onInstrumentResult } from './consumers/instruments.result.received.v1.js';
 import { onSpecimenStatusChanged } from './consumers/lab.specimen.status_changed.v1.js';
 import { breakpointImportValidate } from './tasks/micro.breakpoint_import_validate.js';
 
@@ -21,6 +22,7 @@ export const manifest: WorkerManifest = {
   subscriptions: Object.freeze({
     ...Object.fromEntries(CONSUMED.map((t) => [t, stub(`consumer ${t}`) as ConsumerHandler])),
     'lab.specimen.status_changed.v1': onSpecimenStatusChanged,
+    'instruments.result.received.v1': onInstrumentResult, // T-14
   }),
   crontab: cron,
 };

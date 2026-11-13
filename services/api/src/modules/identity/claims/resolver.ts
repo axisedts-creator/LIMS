@@ -1,5 +1,6 @@
 // Identity claimsResolver (02-TRD §6.1/§6.2; CR-C2-005, 08 R10): the sole claims source for every GoTrue JWT.
 // One identityAuthTx, one DEFINER call; every claim comes from the DEFINER row or the verified JWT, never from the request.
+import { idMetrics } from '../metrics.js';
 import { BlockList, isIP } from 'node:net';
 import type { ClaimsRequest, ClaimsResolver } from '../../../core/auth/claims-resolver.js';
 import type { ResolvedClaims } from '../../../core/auth/claims.js';
@@ -132,8 +133,13 @@ export function createClaimsResolver(deps: ClaimsResolverDeps): ClaimsResolver {
         return reject('auth.unauthenticated');
       }
       const input: TxInput = { requestId: request.requestId, clientIp: request.clientIp, operation: OPERATION };
-      const row = await deps.db.identityAuthTx(input, (tx) => resolveSessionRow(tx, jwt.sessionId, jwt.sub));
-      return evaluate(row, jwt, request, clock().getTime());
+      const t0 = performance.now();
+      try {
+        const row = await deps.db.identityAuthTx(input, (tx) => resolveSessionRow(tx, jwt.sessionId, jwt.sub));
+        return evaluate(row, jwt, request, clock().getTime());
+      } finally {
+        idMetrics.claimsResolveSeconds(undefined, (performance.now() - t0) / 1000);   // T28 (02-TRD §13); DB round trip + evaluate
+      }
     },
   };
 }

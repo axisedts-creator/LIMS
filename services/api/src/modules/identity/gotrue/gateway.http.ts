@@ -3,6 +3,7 @@
 // 3 s timeout per call; refresh gets 1 retry after 200 ms on a network error; 5 consecutive outages open a 30 s circuit (02-TRD §8).
 import { LimsError } from '../../../core/errors.js';
 import { GoTrueError, type GoTrueGateway, type GoTrueTokens } from './gateway.js';
+import { idMetrics } from '../metrics.js';
 
 export interface HttpGoTrueGatewayOptions {
   url: string;          // LIMS_IDENTITY_GOTRUE_URL (internal API-network URL)
@@ -39,6 +40,13 @@ function toTokens(method: string, b: Record<string, unknown>): GoTrueTokens {
   if (typeof access !== 'string' || typeof refresh !== 'string' || !c || typeof sub !== 'string' || !UUID.test(sub)
     || typeof sid !== 'string' || !UUID.test(sid) || typeof exp !== 'number') throw new GoTrueError(method, 200, 'malformed_token_response');
   return { accessToken: access, refreshToken: refresh, expiresAt: exp, sessionId: sid, userId: sub, aal: c['aal'] === 'aal2' ? 'aal2' : 'aal1' };
+}
+
+/** The only reader of the service-key env var (CR-C2-014; CI job identity-service-key-grep). Every runtime caller builds its gateway here. */
+export function gotrueGatewayFromEnv(): GoTrueGateway {
+  return createHttpGoTrueGateway({
+    url: process.env['LIMS_IDENTITY_GOTRUE_URL'] ?? '', serviceKey: process.env['LIMS_IDENTITY_GOTRUE_SERVICE_KEY'] ?? '',
+  });
 }
 
 export function createHttpGoTrueGateway(opts: HttpGoTrueGatewayOptions): GoTrueGateway {
@@ -210,5 +218,26 @@ export function createHttpGoTrueGateway(opts: HttpGoTrueGatewayOptions): GoTrueG
         }));
     },
   };
-  return gw;
+  return metered(gw);
+}
+
+/** T28 lims_identity_gotrue_requests_total / _duration_seconds{op, outcome} (02-TRD §13): op = gateway method; outcome ok, rejected
+ *  (GoTrue answered no: wrong password / code, 4xx) or error (outage, open circuit, malformed answer) = IdentityGoTrueUnavailable input. */
+function metered(gw: GoTrueGateway): GoTrueGateway {
+  const out = {} as Record<string, unknown>;
+  for (const [op, fn] of Object.entries(gw) as Array<[string, (...a: unknown[]) => Promise<unknown>]>) {
+    out[op] = async (...a: unknown[]) => {
+      const t0 = performance.now();
+      const done = (o: 'ok' | 'rejected' | 'error') => idMetrics.gotrue(undefined, op, o, (performance.now() - t0) / 1000);
+      try {
+        const r = await fn(...a);
+        done(r && typeof r === 'object' && (r as { ok?: unknown }).ok === false ? 'rejected' : 'ok');
+        return r;
+      } catch (e) {
+        done(e instanceof GoTrueError && e.status >= 400 && e.status < 500 ? 'rejected' : 'error');
+        throw e;
+      }
+    };
+  }
+  return out as unknown as GoTrueGateway;
 }

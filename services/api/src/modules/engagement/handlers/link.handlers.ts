@@ -6,6 +6,7 @@ import type { Handler, HandlerContext, HandlerRequest, HandlerResult } from '../
 import { createLinkService, type LinkCtx, type LinkService } from '../service/link.service.js';
 
 type Ports = { IdentityPort?: { assertRole(ctx: unknown, r: { permission: string }): Promise<void> } };
+const REDEEM = 'engagement.link.redeem'; // T-L2 E14 (patient actor): answers hold the profile of a redeemed code, never cacheable
 const ISSUE = 'engagement.link.issue', REVOKE = 'engagement.link.revoke', READ = 'engagement.link.read';
 const obj = (v: unknown): Record<string, any> => (typeof v === 'object' && v !== null ? (v as Record<string, any>) : {});
 
@@ -25,5 +26,6 @@ export const linkHandlers: Readonly<Record<string, Handler>> = Object.freeze({
   issueLinkCode: bind(ISSUE, (svc, ctx, req) => svc.issue(ctx, { body: req.body }), true),
   revokeLinkCode: bind(REVOKE, (svc, ctx, req) => svc.revokeCode(ctx, { id: obj(req.params)['link_code_id'], headers: req.headers })),
   listPatientAppLinks: bind(READ, (svc, ctx, req) => svc.list(ctx, { patientId: obj(req.params)['patient_id'] })),
+  redeemLinkCode: bind(REDEEM, (svc, ctx, req) => svc.redeem(ctx, { body: req.body }), true),
   revokeAppLink: bind(REVOKE, (svc, ctx, req) => svc.revokeLink(ctx, { id: obj(req.params)['link_id'], headers: req.headers, body: req.body })),
 });

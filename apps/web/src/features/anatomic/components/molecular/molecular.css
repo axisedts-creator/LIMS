@@ -1,0 +1,11 @@
+/* C11 T-22 layout only. LD-140: token variables only (no colours, radii or pixel sizes of its own). */
+.lims-molecular-scroll { overflow-x: auto; }
+.lims-molecular-cell { vertical-align: top; min-width: 10em; }
+.lims-molecular-actions { display: flex; gap: var(--lims-space-2); margin-top: var(--lims-space-3); }
+
+/* Batch position grid: plate-style, 12 columns; a capacity that is not a multiple of 12 leaves the last row partial (04-UI-UX §4.6). */
+.lims-plate { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: var(--lims-space-2); list-style: none; margin: 0; padding: 0; }
+.lims-plate-cell { min-width: 0; }
+.lims-plate-cell > .lims-card { padding: var(--lims-space-2); display: flex; flex-direction: column; gap: var(--lims-space-1); height: 100%; overflow-wrap: anywhere; }
+.lims-plate-pos { color: var(--lims-neutral-600); font-size: var(--lims-font-size-sm-size); }
+.lims-plate-chosen > .lims-card { border-color: var(--lims-focus-ring); }

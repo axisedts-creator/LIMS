@@ -15,6 +15,12 @@ export const getVisitById = (tx: Tx, tenantId: string, visitId: string) => getRo
 export const updateVisit = (tx: Tx, tenantId: string, visitId: string, expectedVersion: number, patch: Record<string, unknown>) =>
   updateRow(tx, T, UPDATE_COLS, [], tenantId, visitId, expectedVersion, patch);
 
+/** HC-T12 push: row locks (SELECT ... FOR UPDATE) on the touched visits, taken in ascending id order (TRD §6.3 concurrency; deadlock avoidance). Invisible / unknown ids are simply absent. */
+export async function lockVisitsForUpdate(tx: Tx, tenantId: string, visitIds: readonly string[]): Promise<any[]> {
+  const { rows } = await tx.query('SELECT * FROM homecollection.visits WHERE tenant_id = $1 AND id = ANY($2::uuid[]) ORDER BY id FOR UPDATE', [tenantId, [...visitIds].sort()]);
+  return rows;
+}
+
 export async function getVisitByBookingId(tx: Tx, tenantId: string, bookingId: string): Promise<any | null> {
   const { rows } = await tx.query('SELECT * FROM homecollection.visits WHERE tenant_id = $1 AND booking_id = $2', [tenantId, bookingId]);
   return rows[0] ?? null;

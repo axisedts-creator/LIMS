@@ -25,6 +25,18 @@ export const getHandoverItemById = (tx: Tx, tenantId: string, itemId: string) =>
 export const updateHandoverItem = (tx: Tx, tenantId: string, itemId: string, expectedVersion: number, patch: Record<string, unknown>) =>
   updateRow(tx, I, I_UPDATE, [], tenantId, itemId, expectedVersion, patch);
 
+/** HC-T12 push: items already covering any of the collections (one handover per collection: unique (tenant_id, collection_id)). */
+export async function listHandoverItemsByCollectionIds(tx: Tx, tenantId: string, collectionIds: readonly string[]): Promise<any[]> {
+  const { rows } = await tx.query('SELECT * FROM homecollection.handover_items WHERE tenant_id = $1 AND collection_id = ANY($2::uuid[])', [tenantId, collectionIds]);
+  return rows;
+}
+
+/** HC-T12 push: `to_centre_id` must be an active centre of the tenant (core.collection_centres FK target read). Null when unknown / other tenant / inactive. */
+export async function getActiveCentreId(tx: Tx, tenantId: string, centreId: string): Promise<string | null> {
+  const { rows } = await tx.query('SELECT id FROM core.collection_centres WHERE tenant_id = $1 AND id = $2 AND is_active', [tenantId, centreId]);
+  return rows[0]?.id ?? null;
+}
+
 export async function listHandoverItemsByHandover(tx: Tx, tenantId: string, handoverId: string): Promise<any[]> {
   const { rows } = await tx.query('SELECT * FROM homecollection.handover_items WHERE tenant_id = $1 AND handover_id = $2 ORDER BY created_at, id', [tenantId, handoverId]);
   return rows;

@@ -94,7 +94,7 @@ describe('list (04-UI-UX §4.6)', () => {
 
   it('Status filter Select pushes ?status=closed', async () => {
     await listPage();
-    await userEvent.click(screen.getByRole('button', { name: /^status/i }));
+    await userEvent.click(screen.getByRole('button', { name: /status/i }));
     await userEvent.click(await screen.findByRole('option', { name: /^closed$/i }));
     expect(router.push).toHaveBeenCalled();
     expect(new URL(router.push.mock.calls.at(-1)![0] as string, 'http://x').searchParams.get('status')).toBe('closed');
@@ -143,7 +143,7 @@ describe('[New batch] dialog', () => {
 
   it('fields: Assay (required Select), Kit name <=120, Kit lot <=64, Kit expiry, Instrument <=120, Run at, Capacity (default 96)', async () => {
     const d = await open();
-    expect(within(d).getByRole('button', { name: /^assay/i })).toBeTruthy();
+    expect(within(d).getByRole('button', { name: /assay/i })).toBeTruthy();
     expect(d.textContent).toMatch(/required/i);
     expect((within(d).getByLabelText(/kit name/i) as HTMLInputElement).getAttribute('maxlength')).toBe('120');
     expect((within(d).getByLabelText(/kit lot/i) as HTMLInputElement).getAttribute('maxlength')).toBe('64');
@@ -155,7 +155,7 @@ describe('[New batch] dialog', () => {
 
   it('Assay offers active assays only', async () => {
     const d = await open();
-    await userEvent.click(within(d).getByRole('button', { name: /^assay/i }));
+    await userEvent.click(within(d).getByRole('button', { name: /assay/i }));
     const names = (await screen.findAllByRole('option')).map((o) => o.textContent ?? '');
     expect(names.some((n) => /Synthetic PCR A/.test(n))).toBe(true);
     expect(names.some((n) => /Retired assay/.test(n))).toBe(false);
@@ -163,7 +163,7 @@ describe('[New batch] dialog', () => {
 
   it('POST /batches {assay_code, kit_name, kit_lot, instrument_text, capacity} with an Idempotency-Key; empty optionals are omitted; goes to the new batch', async () => {
     const d = await open();
-    await choose(d, /^assay/i, /Synthetic PCR A/);
+    await choose(d, /assay/i, /Synthetic PCR A/);
     await userEvent.type(within(d).getByLabelText(/kit name/i), 'Synthetic kit');
     await userEvent.type(within(d).getByLabelText(/kit lot/i), 'LOT-5');
     await userEvent.clear(within(d).getByLabelText(/capacity/i));
@@ -180,7 +180,7 @@ describe('[New batch] dialog', () => {
     const d = await open();
     await userEvent.click(btn(/^(create|save|add)/i, d));
     expect(posts(/^\/v1\/anatomic\/batches$/)).toHaveLength(0);
-    await choose(d, /^assay/i, /Synthetic PCR A/);
+    await choose(d, /assay/i, /Synthetic PCR A/);
     for (const bad of ['0', '385']) {
       await userEvent.clear(within(d).getByLabelText(/capacity/i));
       await userEvent.type(within(d).getByLabelText(/capacity/i), bad);
@@ -192,7 +192,7 @@ describe('[New batch] dialog', () => {
   it('400 common.validation_failed -> "Check the values and try again." and the dialog stays open', async () => {
     api.use(http.post(`${ORIGIN}/v1/anatomic/batches`, () => problem('common.validation_failed', 400, { errors: [{ path: '/assay_code', code: 'unknown', message: 'secret-internal' }] })));
     const d = await open();
-    await choose(d, /^assay/i, /Synthetic PCR A/);
+    await choose(d, /assay/i, /Synthetic PCR A/);
     await userEvent.click(btn(/^(create|save|add)/i, d));
     expect(await screen.findByText('Check the values and try again.')).toBeTruthy();
     expect(text()).not.toContain('secret-internal');
@@ -201,7 +201,7 @@ describe('[New batch] dialog', () => {
 
   it('a double click on [Create] sends one request', async () => {
     const d = await open();
-    await choose(d, /^assay/i, /Synthetic PCR A/);
+    await choose(d, /assay/i, /Synthetic PCR A/);
     await userEvent.dblClick(btn(/^(create|save|add)/i, d));
     await waitFor(() => expect(posts(/^\/v1\/anatomic\/batches$/).length).toBeGreaterThan(0));
     expect(posts(/^\/v1\/anatomic\/batches$/)).toHaveLength(1);

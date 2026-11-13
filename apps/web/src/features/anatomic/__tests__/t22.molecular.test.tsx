@@ -2,7 +2,7 @@
 // C11.T-22 — Case workspace "Molecular" tab (04-UI-UX §4.2.6, §3 Alt+S, §8; AC-11.1, AC-11.2, AC-11.3, AC-11.6 UI side; REQ-SEC-088/100).
 // LD-140 (2026-11-13): kit components only, one primary button per page, every status shows tone + icon + word.
 // ASSUMED (t22.harness.tsx header): reached through the T-19 CaseWorkspace seam by the tab name "Molecular" (molecular cases only); the tab loads GET /assays and GET /batches itself.
-//   Editable rows are grid rows; each field is found by its column label inside the row (kit Select = button named by the label + role=option; TextField/DecimalField = labelled textbox);
+//   Editable rows are grid rows; each field is found by its column label inside the row (kit Select = button whose accessible name contains the label (not starts with it) + role=option; TextField/DecimalField = labelled textbox);
 //   [Add row] / [Remove row] / [Save]; Save = PUT /cases/{id}/molecular-results with If-Match "<molecular_rev>" and the FULL result list; no Idempotency-Key is required (contract x-idempotency: none).
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { act, cleanup, render, screen, waitFor, within } from '@testing-library/react';
@@ -37,9 +37,9 @@ const field = (scope: HTMLElement, label: RegExp) => within(scope).getByLabelTex
 const addRow = async () => { await userEvent.click(btn(/^add row$/i)); return dataRows().at(-1)!; };
 /** AC-11.1 happy row: SYN_PCR_A / T1 / detected. */
 const fillT1 = async (row: HTMLElement) => {
-  await choose(row, /^assay/i, /Synthetic PCR A/);
-  await choose(row, /^target/i, /Target one/);
-  await choose(row, /^result/i, /^Detected/);
+  await choose(row, /assay/i, /Synthetic PCR A/);
+  await choose(row, /target/i, /Target one/);
+  await choose(row, /result/i, /^Detected/);
 };
 const puts = () => hit('PUT', /\/cases\/[^/]+\/molecular-results$/);
 const text = () => document.body.textContent ?? '';
@@ -98,7 +98,7 @@ describe('editing: pickers follow the assay definition (AC-11.2 UI side)', () =>
   it('Assay offers active assays only', async () => {
     await open();
     const row = await addRow();
-    await userEvent.click(within(row).getByRole('button', { name: /^assay/i }));
+    await userEvent.click(within(row).getByRole('button', { name: /assay/i }));
     const names = (await screen.findAllByRole('option')).map((o) => o.textContent);
     expect(names).toEqual(expect.arrayContaining([expect.stringMatching(/Synthetic PCR A/), expect.stringMatching(/Synthetic NGS B/)]));
     expect(names.join('|')).not.toContain('Retired assay');
@@ -107,9 +107,9 @@ describe('editing: pickers follow the assay definition (AC-11.2 UI side)', () =>
   it('Target is disabled until an assay is chosen, then lists the assay\'s active targets only', async () => {
     await open();
     const row = await addRow();
-    expect(btn(/^target/i, row).disabled).toBe(true);
-    await choose(row, /^assay/i, /Synthetic PCR A/);
-    await userEvent.click(btn(/^target/i, row));
+    expect(btn(/target/i, row).disabled).toBe(true);
+    await choose(row, /assay/i, /Synthetic PCR A/);
+    await userEvent.click(btn(/target/i, row));
     const names = (await screen.findAllByRole('option')).map((o) => o.textContent ?? '');
     expect(names.some((n) => /Target one/.test(n))).toBe(true);
     expect(names.some((n) => /Target two/.test(n))).toBe(true);
@@ -119,9 +119,9 @@ describe('editing: pickers follow the assay definition (AC-11.2 UI side)', () =>
   it('Result offers exactly the target\'s active result values (a code outside the set cannot be picked)', async () => {
     await open();
     const row = await addRow();
-    await choose(row, /^assay/i, /Synthetic PCR A/);
-    await choose(row, /^target/i, /Target one/);
-    await userEvent.click(btn(/^result/i, row));
+    await choose(row, /assay/i, /Synthetic PCR A/);
+    await choose(row, /target/i, /Target one/);
+    await userEvent.click(btn(/result/i, row));
     const names = (await screen.findAllByRole('option')).map((o) => o.textContent ?? '');
     expect(names).toHaveLength(3);
     for (const n of ['Detected', 'Not detected', 'Invalid']) expect(names.some((x) => x.includes(n)), n).toBe(true);
@@ -132,7 +132,7 @@ describe('editing: pickers follow the assay definition (AC-11.2 UI side)', () =>
     await open();
     const row = await addRow();
     await fillT1(row);
-    await choose(row, /^assay/i, /Synthetic NGS B/);
+    await choose(row, /assay/i, /Synthetic NGS B/);
     expect(row.textContent).not.toContain('Target one');
     expect(row.textContent).not.toContain('Detected');
   });
@@ -140,7 +140,7 @@ describe('editing: pickers follow the assay definition (AC-11.2 UI side)', () =>
   it('Method defaults to the assay method_text_default (editable, <=200)', async () => {
     await open();
     const row = await addRow();
-    await choose(row, /^assay/i, /Synthetic PCR A/);
+    await choose(row, /assay/i, /Synthetic PCR A/);
     expect(field(row, /^method/i).value).toBe('Synthetic real-time PCR');
     expect(field(row, /^method/i).getAttribute('maxlength')).toBe('200');
   });
@@ -165,8 +165,8 @@ describe('editing: pickers follow the assay definition (AC-11.2 UI side)', () =>
     api.use(http.get(`${ORIGIN}/v1/anatomic/batches`, () => HttpResponse.json({ data: [batch(1), batch(2, { status: 'closed' }), batch(3, { assay_code: 'SYN_NGS_B' })], page: { limit: 50 } })));
     await open();
     const row = await addRow();
-    await choose(row, /^assay/i, /Synthetic PCR A/);
-    await userEvent.click(btn(/^batch/i, row));
+    await choose(row, /assay/i, /Synthetic PCR A/);
+    await userEvent.click(btn(/batch/i, row));
     const names = (await screen.findAllByRole('option')).map((o) => o.textContent ?? '');
     expect(names.some((n) => n.includes('MB260001') && /open/i.test(n))).toBe(true);
     expect(names.some((n) => n.includes('MB260002') && /closed/i.test(n))).toBe(true);
@@ -187,8 +187,8 @@ describe('AC-11.3 quantitative value', () => {
   it('Value is editable only for a target with allows_quantitative; T2 (qualitative) has no value input', async () => {
     await open();
     const row = await addRow();
-    await choose(row, /^assay/i, /Synthetic PCR A/);
-    await choose(row, /^target/i, /Target two/);
+    await choose(row, /assay/i, /Synthetic PCR A/);
+    await choose(row, /target/i, /Target two/);
     const v = within(row).queryByLabelText(/^value/i) as HTMLInputElement | null;
     expect(v === null || v.disabled || v.readOnly).toBe(true);
   });
@@ -254,7 +254,7 @@ describe('AC-11.1 save', () => {
     await open();
     const row = await addRow();
     await fillT1(row);
-    await choose(row, /^batch/i, /MB260001/);
+    await choose(row, /batch/i, /MB260001/);
     await userEvent.click(btn(/^save$/i));
     await waitFor(() => expect(puts()).toHaveLength(1));
     expect((puts()[0]!.json as { results: Record<string, unknown>[] }).results[0]!['batch_id']).toBe(batch(1)['id']);
@@ -263,9 +263,9 @@ describe('AC-11.1 save', () => {
   it('full replace: existing saved rows are sent again together with the new row', async () => {
     await open(molCase({ molecular_results: [molResult(1)] }));
     const row = await addRow();
-    await choose(row, /^assay/i, /Synthetic PCR A/);
-    await choose(row, /^target/i, /Target two/);
-    await choose(row, /^result/i, /^Negative/);
+    await choose(row, /assay/i, /Synthetic PCR A/);
+    await choose(row, /target/i, /Target two/);
+    await choose(row, /result/i, /^Negative/);
     await userEvent.click(btn(/^save$/i));
     await waitFor(() => expect(puts()).toHaveLength(1));
     const r = (puts()[0]!.json as { results: Record<string, unknown>[] }).results;

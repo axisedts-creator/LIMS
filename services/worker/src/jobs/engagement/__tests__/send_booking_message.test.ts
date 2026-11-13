@@ -117,8 +117,11 @@ describe('stale / hostile jobs are silent no-ops (no retry storm)', () => {
   it('payload tenant_id different from the job tenant, unknown id, malformed id, unknown kind, missing keys: resolve quietly, nothing sent, nothing written', async () => {
     const { w, run } = await setup(); const b = w.booking({ slot_start: SLOT });
     await expect(run(b['id'], 'confirmation', {}, { tenant_id: TENANT_B })).resolves.toBeUndefined();
-    for (const [id, kind] of [[ID(0xdead), 'confirmation'], ["x'; DROP TABLE engagement.bookings;--", 'confirmation'], [b['id'], 'refund'], [b['id'], undefined], [b['id'], 'CONFIRMATION'], [42, 'confirmation'], [undefined, 'confirmation']] as const)
+    for (const [id, kind] of [[ID(0xdead), 'confirmation'], ["x'; DROP TABLE engagement.bookings;--", 'confirmation'], [b['id'], 'refund'], [b['id'], 'CONFIRMATION'], [42, 'confirmation'], [undefined, 'confirmation']] as const)
       await expect(run(id, kind)).resolves.toBeUndefined();
+    // missing kind: bypass run()'s default-parameter so the payload really has no kind (ruling T-B5-ruling.md)
+    await expect(w.runTask(await load(), { tenant_id: TENANT_A, booking_id: b['id'] } as any, {})).resolves.toBeUndefined();
+    await expect(w.runTask(await load(), { tenant_id: TENANT_A, booking_id: b['id'], kind: undefined } as any, {})).resolves.toBeUndefined();
     await expect(w.runTask(await load(), {} as any)).resolves.toBeUndefined();
     expect(w.notif.calls).toEqual([]); expect(w.writes()).toEqual([]);
   });

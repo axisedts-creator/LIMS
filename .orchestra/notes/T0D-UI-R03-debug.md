@@ -16,3 +16,7 @@ Verify: CI=true verify.cmd run, 370/370 pass.
 ## Round 4
 Cause: not impl/test. Verify log = "Failed to start forks worker ... Timeout waiting for worker to respond", zero tests ran. Host has 0.5 GB free of 25 GB RAM and many stray node/pnpm processes (other lanes); even unrelated actions.test.tsx and --pool=threads hang the same way. Snapshot is now tracked (git ls-files ok).
 Fix: none in code (nothing to change). Orchestrator: free memory / stop stale node+vitest processes, then re-run verify.cmd. I did not kill processes (may belong to other lanes).
+
+## Round 5
+Cause: unchanged from round 4. Environment, not code: vitest "Failed to start forks worker ... Timeout waiting for worker to respond", 0 tests ran (re-ran verify.cmd, same 60s timeout). Snapshot tracked.
+Fix: none in code. Orchestrator must free host memory / stop stale node+vitest processes before re-running verify.cmd; re-dispatching the debugger will not help until then.

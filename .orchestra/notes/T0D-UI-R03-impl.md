@@ -3,4 +3,5 @@ Files: kit.css (radius ladder, btn/input 40, density 32/40/48 rows, sticky th z-
 [CONV] six tone icons = distinct shapes (circle, check-circle, i, triangle, x-circle, octagon). Section Save accessible name = "Save <title>" (hidden title). Bulk bar sits above the table, Clear selection = ghost button.
 [CONV] no scrim token in tokens.json (not owned): overlay uses color-mix(neutral.900 40%).
 Checks: verify.cmd 370/370 pass; tsc clean; full ui suite 1306/1309, the 3 fails are 5s timeouts under 28 parallel workers (fonts CDN scan, stories no-network, DataTable virtualize=false) and pass when run alone.
+Review round: WRITER no change. Re-verify FAILED/blocked: run 1 = 8/225 failed (1 file only, names not captured); reruns = vitest "Failed to start forks worker ... Timeout waiting for worker to respond" (host load).
 Open: a scrim token in tokens.json; raise default test timeout for the heavy tests (tester).

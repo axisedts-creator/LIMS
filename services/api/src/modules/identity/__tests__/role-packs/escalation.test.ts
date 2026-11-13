@@ -43,7 +43,8 @@ const OVERLAY: Record<string, string[]> = {
   'billing.refund.approve': ACCOUNTS,
   'billing.payment.reverse': ACCOUNTS,
   'billing.invoice.cancel': ACCOUNTS,
-  'frontdesk.discount.approve': ACCOUNTS,
+  // D3 default (11-ROLE-MATRIX.md:224, kept by LD-141): Accounts plus Admin, discount approve ONLY (RM-T04-ruling.md). Admin holds it via tenant_admin base (R5).
+  'frontdesk.discount.approve': [...ACCOUNTS, ...ADMINS],
 };
 const holders = (perm: string): string[] => roles.filter((r) => r.permissions.includes(perm)).map((r) => r.code);
 

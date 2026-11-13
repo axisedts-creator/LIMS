@@ -2,6 +2,7 @@
 // Every placeholder refuses with common.service_unavailable (503) until its task replaces it; never a 2xx (REQ-SEC-099).
 import { LimsError } from '../../../core/errors.js';
 import type { Handler } from '../../../core/module.js';
+import { bookableHandlers } from './bookable.handlers.js';
 import { displayHandlers } from './display.handlers.js';
 import { queueHandlers } from './queue.handlers.js';
 import { reminderHandlers } from './reminder.handlers.js';
@@ -39,4 +40,5 @@ export const handlers: Readonly<Record<(typeof OPERATION_IDS)[number], Handler>>
   ...displayHandlers, // T-Q3: Q8, Q9
   ...reminderHandlers, // T-R1: R1-R3
   ...slotHandlers, // T-B2: S6-S11
+  ...bookableHandlers, // T-B1: S12-S14
 });

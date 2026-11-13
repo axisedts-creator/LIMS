@@ -3,10 +3,12 @@
 // each later task replaces its own entry. [CONV] LIMS_ENGAGEMENT_* is validated by the API module at import; worker bootstrap calls loadEngagementConfig() when it exists (no worker test env yet). The §8.2 crontab rows (and their tasks) are added by the tasks that implement them.
 import type { ConsumerHandler, TaskHandler, WorkerManifest } from '../../core/manifest.js';
 import { CLOSE_QUEUE_DAY, closeQueueDay, crontab } from './cron.js';
+import { handle as catalogChanged } from './consumers/catalog.changed.v1.js';
 import { createDispatchDueReminders } from './tasks/dispatch_due_reminders.js';
 import { PURGE_EPHEMERAL, PURGE_QUEUE, purgeEphemeral, purgeQueue } from './tasks/purge.js';
 import { SYNC_BOOKING_CENTRES, SYNC_BOOKING_CENTRES_NIGHTLY, syncBookingCentres, syncBookingCentresNightly } from './tasks/sync_booking_centres.js';
 import { createSendReminder } from './tasks/send_reminder.js';
+import { SYNC_NIGHTLY, syncBookableItems, syncBookableItemsNightly } from './tasks/sync_bookable_items.js';
 
 const task = (id: string): TaskHandler => async () => { throw new Error(`${id} not implemented`); };
 const consumer = (type: string): ConsumerHandler => async () => { throw new Error(`consumer ${type} not implemented`); };
@@ -35,8 +37,13 @@ export const manifest: WorkerManifest = Object.freeze({
     [PURGE_QUEUE]: purgeQueue, // T-OPS1 (cron-only)
     [SYNC_BOOKING_CENTRES]: syncBookingCentres, // T-B2
     [SYNC_BOOKING_CENTRES_NIGHTLY]: syncBookingCentresNightly, // T-B2 (cron-only: no §8.1 row)
+    'engagement.sync_bookable_items': syncBookableItems, // T-B1
+    [SYNC_NIGHTLY]: syncBookableItemsNightly, // T-B1 (cron-only task: no §8.1 row)
   }),
-  subscriptions: Object.freeze(Object.fromEntries(SUBSCRIPTIONS.map((type) => [type, consumer(type)]))),
+  subscriptions: Object.freeze({
+    ...Object.fromEntries(SUBSCRIPTIONS.map((type) => [type, consumer(type)])),
+    'catalog.changed.v1': catalogChanged, // T-B1 (CR-C16-013)
+  }),
   crontab, // TRD §8.2 rows live in cron.ts (close_queue_day, dispatch_due_reminders)
   maxAttempts: TASKS,
 });

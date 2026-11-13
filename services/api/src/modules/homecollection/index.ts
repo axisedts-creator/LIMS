@@ -10,7 +10,9 @@ import { handler as listEligiblePhlebotomists } from './handlers/listEligiblePhl
 import { handler as listHomeRoutes } from './handlers/listHomeRoutes.js';
 import { handler as listHomeVisits } from './handlers/listHomeVisits.js';
 import { handler as listHomecollectionReasons } from './handlers/listHomecollectionReasons.js';
+import { handler as listPhleboDevices } from './handlers/listPhleboDevices.js';
 import { handler as registerPhleboDevice } from './handlers/registerPhleboDevice.js';
+import { handler as requestDeviceWipe } from './handlers/requestDeviceWipe.js';
 import { handler as revealHomeVisitPhone } from './handlers/revealHomeVisitPhone.js';
 import { handler as signOffPhleboDevice } from './handlers/signOffPhleboDevice.js';
 import { handler as updateHomecollectionSettings } from './handlers/updateHomecollectionSettings.js';
@@ -35,6 +37,7 @@ const implemented: Partial<Record<HomecollectionOperationId, Handler>> = {
   getHomecollectionSettings, updateHomecollectionSettings, listHomecollectionReasons,
   listHomeVisits, getHomeVisit, listHomeRoutes, listEligiblePhlebotomists, revealHomeVisitPhone,
   registerPhleboDevice, signOffPhleboDevice,   // HC-T10: A1, A5
+  listPhleboDevices, requestDeviceWipe,   // HC-T15: H16, H17
 };
 
 const handlers = Object.freeze(

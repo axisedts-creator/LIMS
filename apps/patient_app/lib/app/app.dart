@@ -53,6 +53,7 @@ class _PatientAppState extends ConsumerState<PatientApp> {
       builder: (_, child) => AppLockGate(
         timer: timer,
         deviceAuth: ref.read(deviceAuthProvider),
+        enabled: () => session.status.value == SessionStatus.signedIn, // A2/A3 are not PHI
         // No device screen lock: fall back to a fresh OTP sign-in (US-EN-02.4).
         onSignInRequired: () async {
           await session.logout().then<void>((_) {}, onError: (_) {});

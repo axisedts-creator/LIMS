@@ -10,8 +10,10 @@ import { DEF1, OPS, RETIRE_BODY, VER, makeCtx, rejection } from './autoverify.he
 
 const svc: Record<string, ReturnType<typeof vi.fn>> = {};
 vi.mock('../service/autoverify.service.js', () => ({ createAutoverifyService: () => svc }));
+// Phase switch (02-TRD:120, :806): the flag is read once at module load (handlers/index.ts), so enable it BEFORE the import (ruling C9.T-15).
+vi.stubEnv('LIMS_QUALITY_ENABLED', 'true');
 const { manifest } = await import('../index.js');
-const h = (op: string): any => (manifest.handlers as any)[op];
+const h =(op: string): any => (manifest.handlers as any)[op];
 
 const hctx = (operationId: string) => ({ operationId, clientIp: '203.0.113.9', ...makeCtx().ctx });
 const req = (o: { params?: object; query?: object; headers?: object; body?: unknown } = {}) => ({ params: {}, query: {}, headers: {}, body: undefined, ...o });
@@ -30,6 +32,17 @@ describe('real handlers (not T-01 stubs); fail closed without an authenticated r
       const e = await rejection(h('createAutoverifyVersion')(req({ body: { definition: DEF1 }, headers: { authorization: planted } }), hctx('createAutoverifyVersion')));
       expect(e?.code).toBe(c); expect(JSON.stringify({ m: e?.message, d: e?.detail })).not.toContain(planted);
     }
+  });
+});
+
+describe('phase switch off (ruling C9.T-15)', () => {
+  it.each(OPS)('LIMS_QUALITY_ENABLED=false: %s rejects common.feature_disabled and the service is not called', async (op) => {
+    vi.resetModules(); vi.stubEnv('LIMS_QUALITY_ENABLED', 'false');
+    try {
+      const off: any = (await import('../index.js')).manifest;
+      const e = await rejection(off.handlers[op](req(), hctx(op)));
+      expect(e?.code).toBe('common.feature_disabled'); expect(svc[op]).not.toHaveBeenCalled();
+    } finally { vi.stubEnv('LIMS_QUALITY_ENABLED', 'true'); }
   });
 });
 

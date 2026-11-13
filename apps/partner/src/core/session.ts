@@ -6,6 +6,8 @@ import { readFileSync } from 'node:fs';
 import { cookies, headers } from 'next/headers';
 
 export const PARTNER_SESSION_COOKIE = '__Host-lims_psid'; // `__Host-` => Secure, Path=/, no Domain
+// contracts/openapi/_common.yaml bffSession wire name (server-to-server only; browser cookie stays __Host-lims_psid). C13.T05 review #1.
+const BFF_SESSION_COOKIE = '__Host-lims_sid';
 export const partnerSessionCookieOptions = { httpOnly: true, secure: true, sameSite: 'lax', path: '/' } as const;
 
 const IDENTITY_BASE = '/v1/identity';
@@ -67,7 +69,7 @@ export async function identityCall(path: string, body: unknown, sid?: string): P
   const h: Record<string, string> = { 'content-type': 'application/json', accept: 'application/json', 'X-Lims-Bff-Key': partnerBffKey() };
   const fwd = (await headers()).get('x-forwarded-for')?.split(',')[0]?.trim();
   if (fwd) h['x-forwarded-for'] = fwd;
-  if (sid) h.cookie = `${PARTNER_SESSION_COOKIE}=${encodeURIComponent(sid)}`;
+  if (sid) h.cookie = `${BFF_SESSION_COOKIE}=${encodeURIComponent(sid)}`;
   let res: Response;
   try {
     res = await fetch(new URL(IDENTITY_BASE + path, partnerApiOrigin()), {
@@ -95,7 +97,7 @@ export async function resolvePartnerSession({ touch }: { touch: boolean }): Prom
       method: 'POST',
       headers: {
         'content-type': 'application/json', accept: 'application/json', 'X-Lims-Bff-Key': partnerBffKey(),
-        cookie: `${PARTNER_SESSION_COOKIE}=${encodeURIComponent(sid)}`,
+        cookie: `${BFF_SESSION_COOKIE}=${encodeURIComponent(sid)}`,
       },
       body: JSON.stringify({ touch }), cache: 'no-store', redirect: 'error', signal: AbortSignal.timeout(TIMEOUT_MS),
     });

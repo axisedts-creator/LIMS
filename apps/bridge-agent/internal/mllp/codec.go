@@ -27,11 +27,20 @@ const (
 var ErrOversize = errors.New("mllp: message exceeds max_message_bytes")
 
 // Stats are the link counters; zero value is usable and safe for concurrent use.
-type Stats struct{ discarded, incomplete, oversize atomic.Int64 }
+type Stats struct {
+	discarded, incomplete, oversize atomic.Int64
+	replyAckTimeouts, replyAckMism  atomic.Int64
+}
 
 func (s *Stats) DiscardedBytes() int64 { return s.discarded.Load() } // mllp_discarded_bytes
 func (s *Stats) Incomplete() int64     { return s.incomplete.Load() }
 func (s *Stats) Oversize() int64       { return s.oversize.Load() } // mllp_oversize
+
+// ReplyAckTimeouts counts ACK waits that ended without an ACK (CR-C7-016).
+func (s *Stats) ReplyAckTimeouts() int64 { return s.replyAckTimeouts.Load() }
+
+// ReplyAckMismatches counts ACKs whose MSA-2 differed while ReplyAckMatchControlId=true.
+func (s *Stats) ReplyAckMismatches() int64 { return s.replyAckMism.Load() }
 
 // Encode frames msg as SB + msg + EB + CR.
 func Encode(msg []byte) []byte {

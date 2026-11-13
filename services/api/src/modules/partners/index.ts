@@ -12,6 +12,7 @@ import { createPartner } from './handlers/createPartner.js';
 import { deleteManifestLine } from './handlers/deleteManifestLine.js';
 import { discardManifest } from './handlers/discardManifest.js';
 import { getManifest } from './handlers/getManifest.js';
+import { getManifestPrintView } from './handlers/getManifestPrintView.js';
 import { getPartner } from './handlers/getPartner.js';
 import { getPartnerContext } from './handlers/getPartnerContext.js';
 import { listManifests } from './handlers/listManifests.js';
@@ -21,9 +22,11 @@ import { reactivatePartner } from './handlers/reactivatePartner.js';
 import { replaceManifestLine } from './handlers/replaceManifestLine.js';
 import { resyncPartnerProjections } from './handlers/resyncPartnerProjections.js';
 import { searchPartnerOrderables } from './handlers/searchPartnerOrderables.js';
+import { submitManifest } from './handlers/submitManifest.js';
 import { suspendPartner } from './handlers/suspendPartner.js';
 import { updateManifest } from './handlers/updateManifest.js';
 import { updatePartner } from './handlers/updatePartner.js';
+import { withdrawManifest } from './handlers/withdrawManifest.js';
 import { PARTNERS_SYSTEM_PERMISSIONS } from './permissions.js';
 
 /** Read at import, so a bad LIMS_PARTNERS_* value fails API boot. */
@@ -41,6 +44,7 @@ const implemented: Readonly<Record<string, Handler>> = {
   ...partnerUserHandlers, // T06 U1-U6, SA8-SA10
   listPartners, createPartner, getPartner, updatePartner, suspendPartner, reactivatePartner, resyncPartnerProjections, // T07 SA1–SA7
   createManifest, listManifests, getManifest, updateManifest, addManifestLine, replaceManifestLine, deleteManifestLine, discardManifest, searchPartnerOrderables, // T08 M1–M7, M10, P2
+  submitManifest, withdrawManifest, getManifestPrintView, // T09 M8, M9, M11
 };
 
 export const manifest: ModuleManifest = Object.freeze({

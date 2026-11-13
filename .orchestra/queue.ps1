@@ -9,7 +9,7 @@
    - Re-running it after a reboot is safe: finished chunks are skipped, unfinished ones resume; lane windows that are already open are adopted, not duplicated.
    - Lane order below = priority: the chunks that gate the most later work (C4, C6, C5, C3, C15, C16) come first. #>
 param([string]$Integration = "C:\LIMS", [string]$LanesRoot = "C:\LIMS-lanes", [string]$StateDir = "C:\LIMS-state",
-      [int]$MaxLanes = 8, [int]$EveryMinutes = 3, [int]$MinFreeGB = 60, [switch]$NoPush)
+      [int]$MaxLanes = 8, [int]$EveryMinutes = 3, [int]$MinFreeGB = 60, [int]$ResetExtra = 1, [switch]$NoPush)
 
 $C0 = "C0-foundation-contracts"
 $log = Join-Path $StateDir "logs\queue.log"
@@ -169,7 +169,12 @@ while ($true) {
     $wn = $Wave2Need[$l.chunk]; if ($wn -and -not (TaskDone "C0-foundation-contracts" $wn)) { continue }   # wave-2 chunk waits for its own contract file
     if ($l.need -and -not (TaskDone "C0-foundation-contracts" $l.need)) { continue }   # restyle lanes wait for the new kit and shell (T0D-UI-R07)
     if (-not $rp -and -not (Runnable $l.chunk $l.filter $l.name)) { $waiting++; continue }   # nothing it could run right now: do not hold a slot
-    if ($procs.Count -ge $MaxLanes -or $lowDisk) { break }
+    if ($lowDisk) { break }
+    if ($procs.Count -ge $MaxLanes) {
+      # reset reserve (lead, 2026-11-13, founder go): a lane with a pending lead reset may take up to $ResetExtra slots beyond $MaxLanes, so a blocked task is not starved behind long lanes.
+      # continue, not break: lower-priority reset lanes further down the list must still be considered.
+      if (-not ($rp -and $procs.Count -lt ($MaxLanes + $ResetExtra))) { continue }
+    }
     $wt = Join-Path $LanesRoot $l.name; $br = "lane/$($l.name)"
     if (-not (Test-Path $wt)) {
       if (git branch --list $br) { git worktree add $wt $br 2>&1 | Out-Null } else { git worktree add $wt -b $br main 2>&1 | Out-Null }

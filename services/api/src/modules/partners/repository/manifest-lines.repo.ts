@@ -67,6 +67,26 @@ export async function discardDrafts(s: Scope, manifestId: string): Promise<void>
     [s.tenantId, s.partnerId, manifestId, s.actorId]);
 }
 
+/** M8: draft lines follow the manifest. on_receipt -> submitted; on_submit -> converting + attempt 1 (LS2b). Every line takes the manifest's refreshed centre. */
+export async function submitDrafts(s: Scope, manifestId: string, centreId: string, converting: boolean): Promise<void> {
+  await s.tx.query(
+    `UPDATE partners.manifest_lines SET state = ${converting ? "'converting', conversion_attempt = 1" : "'submitted'"}, receiving_centre_id = $5, version = version + 1, updated_at = now(), updated_by = $4 `
+    + `WHERE ${WHERE} AND manifest_id = $3 AND state = 'draft'`,
+    [s.tenantId, s.partnerId, manifestId, s.actorId, centreId]);
+}
+
+/** M9: submitted lines -> withdrawn. */
+export async function withdrawSubmitted(s: Scope, manifestId: string): Promise<void> {
+  await s.tx.query(
+    `UPDATE partners.manifest_lines SET state = 'withdrawn', version = version + 1, updated_at = now(), updated_by = $4 WHERE ${WHERE} AND manifest_id = $3 AND state = 'submitted'`,
+    [s.tenantId, s.partnerId, manifestId, s.actorId]);
+}
+
+/** One conversion job per line; job_key convert:<line_id>:<attempt> makes a repeat a no-op (03-APP-FLOW §4.2). */
+export async function enqueueConversion(s: Scope, lineId: string, attempt: number): Promise<void> {
+  await s.tx.query('SELECT app.enqueue_job($1, $2::jsonb, $3)', ['partners.convert_manifest_line', JSON.stringify({ tenant_id: s.tenantId, line_id: lineId, attempt }), `convert:${lineId}:${attempt}`]);
+}
+
 // ---- reads for validation / DTOs ----
 export async function settings(s: Scope): Promise<{ maxLines: number; includeDefault: boolean; consentVersion: string }> {
   const r = (await s.tx.query('SELECT max_lines_per_manifest, include_default_price_list, consent_text_version FROM partners.settings WHERE tenant_id = $1', [s.tenantId])).rows[0];

@@ -2,6 +2,7 @@
 // T-01 stubs: every operation rejects common.internal until its owning task (T-06+) replaces the entry.
 import type { Handler } from '../../../core/module.js';
 import { itemHandlers } from './items.js';
+import { masterHandlers } from './masters.js';
 
 /** Error carrying a contract error code (contracts/errors.yaml). */
 export class InventoryError extends Error {
@@ -19,21 +20,7 @@ const stub: Handler = async (_req, ctx) => {
 
 export const handlers: Readonly<Record<string, Handler>> = {
   ...itemHandlers, // #1-#10 (T-07)
-  listInventoryStores: stub,
-  createInventoryStore: stub,
-  getInventoryStore: stub,
-  updateInventoryStore: stub,
-  listStoreItemSettings: stub,
-  putStoreItemSetting: stub,
-  listInventorySuppliers: stub,
-  createInventorySupplier: stub,
-  getInventorySupplier: stub,
-  updateInventorySupplier: stub,
-  listSupplierItems: stub,
-  putSupplierItem: stub,
-  listInstrumentBindings: stub,
-  putInstrumentBinding: stub,
-  deactivateInstrumentBinding: stub,
+  ...masterHandlers, // #11-#25 (T-08)
   getInventorySettings: stub,
   updateInventorySettings: stub,
   listInventoryCodedSet: stub,

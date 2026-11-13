@@ -211,6 +211,10 @@ describe('lab.specimen.rejected.v1 (US-EN-07.4; TRD §7.2 row 2, §4.9 sample_re
   it('03-IC §3.8 example (recollection_required: true): rejected_at + rejection_reason_code stored (staff-only), stage recollection_needed, ONE notification sample_recollection for the account without the reason', async () => {
     const f = await rejected(); await f.deliver(REJ, rejP(), { seq: 4 });
     expect(f.spec()).toMatchObject({ status: 'rejected', rejection_reason_code: 'haemolysed', recollection_required: true }); expect(Date.parse(f.spec()['rejected_at'])).toBe(Date.parse('2026-11-05T03:25:00.000Z'));
+    // review T-P1 #1: FakeSql returns whole rows whatever the SELECT list, so the real-PG failure (specimen_type_code undefined -> NULL into a NOT NULL column, 05-SCHEMA) is pinned on the SQL text: every SELECT on patient_order_specimens that feeds the upsert must list specimen_type_code.
+    expect(f.spec()).toMatchObject({ specimen_type_code: 'EDTA_WB' });
+    const sel = f.w.stmts.filter((s: { text: string }) => /^\s*select\b[^]*\bfrom\s+engagement\.patient_order_specimens\b/i.test(s.text)); expect(sel.length).toBeGreaterThan(0);
+    for (const s of sel) expect((s as { text: string }).text, 'SELECT list of the specimen read').toMatch(/^\s*select\b[^]*?\bspecimen_type_code\b[^]*?\bfrom\b/i);
     expect(f.order()['stage']).toBe('recollection_needed');
     expect(f.notes()).toHaveLength(1); const n = f.notes()[0]!;
     expect(n).toMatchObject({ tenant_id: f.w.tenantId, account_id: f.acct['id'], patient_id: PAT, kind: 'sample_recollection', route_id: 'patient_app.order', created_by: SYSTEM_ACTOR, read_at: null });
@@ -330,6 +334,11 @@ describe('billing.balance.changed.v1 (TRD §7.2 row 4; 03-IC §3.5; PRD payment-
     await f.deliver(BAL, balP({ balance_version: 2, paid: money(25000), balance_due: money(200000), cause: 'payment_recorded', release_eligible: false, release_basis: 'due_outstanding' }), { seq: 2 });
     expect(f.order()).toMatchObject({ paid_paisa: 25000, balance_due_paisa: 200000, release_basis: 'due_outstanding', payment_due: true, stage: 'in_lab' });
     await f.deliver(BAL, balP({ balance_version: 4, release_basis: 'zero_balance', balance_due: money(0) }), { seq: 4 }); expect(f.order()).toMatchObject({ balance_version: 4, payment_due: false });
+  });
+  it('release_basis is optional in 03-IC §3.5: an event without it still updates the amounts + balance_version, keeps the stored release_basis, payment_due follows the kept value (review T-P1 #3)', async () => {
+    const f = await setup(); balOrder(f); const { release_basis: _omit, ...noBasis } = balP({ balance_version: 3, paid: money(100000), balance_due: money(125000), cause: 'payment_recorded', release_eligible: false });
+    await f.deliver(BAL, noBasis, { seq: 3 });
+    expect(f.order()).toMatchObject({ paid_paisa: 100000, balance_due_paisa: 125000, balance_version: 3, release_basis: 'due_outstanding', payment_due: true }); expect(f.order()['status_version']).toBeGreaterThan(1);
   });
   it('seq guard: a stale (lower) or equal balance_version is ignored - nothing changes, not even status_version; out of order 4 then 3 keeps 4', async () => {
     const f = await setup(); balOrder(f, { balance_version: 4, balance_due_paisa: 0, paid_paisa: 225000, release_basis: 'paid_in_full', payment_due: false }); const before = f.stable();

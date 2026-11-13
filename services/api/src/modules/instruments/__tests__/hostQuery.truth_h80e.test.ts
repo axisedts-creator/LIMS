@@ -1,5 +1,5 @@
 // C7 H80-T03 — Truth-H80E host query: extract barcode, build QCK / DSR, OK-NF rules, deterministic replay (08-ADDENDUM-TRUTH-H80E §5, §6, §8; LD-139, 2026-11-13).
-// Tests first; synthetic data only. Golden inputs/outputs live in __tests__/fixtures/truth_h80e/*.hl7 (LF in the files, converted to HL7 CR here).
+// Tests first; synthetic data only. Golden inputs/outputs live in drivers/truth_h80e/testdata/*.hl7 (LF in the files, converted to HL7 CR here).
 // LD-139: the manual's DSR carries demographics + a detection mode and NO test list; every U position stays configurable, host query stays inert while status != verified.
 // SEAMS (spec gaps chosen here, flagged in notes/H80-T03-tests.md):
 //   * the query barcode reaches extractHostQueryBarcodes through parse(): parse() of QRY^Q02 must return ok:true, messageKind 'host_query' and ONE record
@@ -19,7 +19,7 @@ import { truthH80e } from '../drivers/truth_h80e/index.js';
 import type { HostQueryAnswer } from '../drivers/types.js';
 import { createHostQueryService } from '../service/hostQuery.service.js';
 
-const FIX = fileURLToPath(new URL('./fixtures/truth_h80e/', import.meta.url));
+const FIX = fileURLToPath(new URL('../drivers/truth_h80e/testdata/', import.meta.url));
 const fixture = (n: string) => readFileSync(join(FIX, `${n}.hl7`), 'utf8').replace(/\r?\n/g, '\r'); // HL7 segment end = CR, final CR kept
 const enc = (s: string) => new TextEncoder().encode(s);
 const dec = (b: Uint8Array) => new TextDecoder('utf-8').decode(b);

@@ -16,6 +16,7 @@ export interface BookingCtx {
   readonly db: { tx<T>(fn: (c: any) => Promise<T>): Promise<T> };
   readonly ports: { readonly EngagementPort: { getHomeAddress(c: unknown, i: { homeAddressId: string; purpose: 'home_visit' }): Promise<Obj | null | undefined> } };
   readonly log: { warn(o: unknown, m?: string): void };
+  readonly audit: { access(e: { action: string; entityType: string; entityId: string; purpose?: string; outcome: 'allowed' | 'denied' }): Promise<void> };
 }
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
@@ -72,12 +73,15 @@ export async function onBookingConfirmed(c: BookingCtx, payload: Obj, seq: unkno
     return;
   }
 
+  const visitId = uuidv7();
   let address: Obj | null = null;
   if (homeAddressId) {
     try { address = addressColumns(await c.db.tx((x) => (c.ports.EngagementPort.getHomeAddress(x, { homeAddressId, purpose: 'home_visit' })))); }
     catch (e) { c.log.warn({ code: typeof (e as any)?.code === 'string' ? (e as any).code : 'unknown' }, 'homecollection.address_lookup_failed'); }   // never fails the consumer, never logs the message
+    // 02-TRD §8.2 / §14: one access row per port call (success or failure); none on redelivery or without home_address_id
+    await c.audit.access({ action: 'home_visit.view', entityType: 'home_visit', entityId: visitId, purpose: 'home_address_fetch', outcome: 'allowed' });
   }
-  const visit = await insertVisit(c.tx, c.tenantId, { id: uuidv7(), centre_id: centreId, branch_id: branchId, kind: 'booking', status: 'unassigned', booking_id: bookingId,
+  const visit = await insertVisit(c.tx, c.tenantId, { id: visitId, centre_id: centreId, branch_id: branchId, kind: 'booking', status: 'unassigned', booking_id: bookingId,
     patient_id: patientId, orderable_ids: orderableIds, ...(referrerId ? { referrer_id: referrerId } : {}), ...(homeAddressId ? { home_address_id: homeAddressId } : {}),
     window_start: windowStart, window_end: windowEnd, ...(address ?? {}) });
   await transition(c, visit, null, 'unassigned');

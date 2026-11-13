@@ -87,7 +87,12 @@ const seed = (o: { settings?: Row } = {}): Record<string, Row[]> => ({
     lk(10, P.LIST, 4, { relationship: 'other', status: 'suspended', suspend_reason: 'dormant', suspended_at: NOW }),
     { ...lk(11, P.B_ONLY, 9), tenant_id: B },
   ],
-  link_consents: [],
+  // one consent per seeded code (FK link_codes__consent__fk, 05-SCHEMA:328); n=10 is tenant B's code
+  link_consents: [
+    ...[[1, P.CODES], [2, P.CODES], [3, P.CODES], [4, P.CODES], [5, P.CODES], [6, P.CODES], [7, P.LIST], [8, P.LIST], [9, P.LIST], [10, P.B_ONLY]].map(([n, patient]) => ({
+      id: ID(0xd00 + (n as number)), tenant_id: n === 10 ? B : A, source: 'desk', patient_id: patient as string, relationship: 'self', consented_by: 'patient', consent_text_version: 'v1',
+      identity_check_method: 'photo_id', recorded_by_membership_id: A, created_by: A } as Row)),
+  ],
   link_codes: [
     // P_CODES: three unexpired issued codes (oldest 30h, 20h, 10h) + expired-issued + redeemed + revoked (none of the last three counts toward the cap of 3)
     lc(1, P.CODES, 30), lc(2, P.CODES, 20), lc(3, P.CODES, 10),
@@ -180,6 +185,8 @@ const snapshot = (db: FakeDb) => JSON.stringify(db.tables, (_k, v) => (v && v.ty
 const untouched = (r: Out, before: string) => { expect(dml(r.calls)).toEqual([]); expect(snapshot(r.db)).toBe(before); };
 const codeRow = (db: FakeDb, id: string) => db.tables['link_codes']!.find((x) => x['id'] === id)!;
 const newCodes = (db: FakeDb) => db.tables['link_codes']!.filter((x) => !/^01950c16-0000-7000-8000-000000000c/.test(x['id']));
+const SEEDED_CONSENTS = new Set(Array.from({ length: 10 }, (_, i) => ID(0xd01 + i)));
+const newConsents = (db: FakeDb) => db.tables['link_consents']!.filter((x) => !SEEDED_CONSENTS.has(x['id']));
 const codeErr = (r: Out) => r.error?.code;
 
 // ---------------------------------------------------------------- contract
@@ -254,7 +261,7 @@ describe('US-EN-03.1: issueLinkCode returns the code once and stores only 32-byt
   });
   it('writes a link_consents row {source desk, relationship, consented_by, identity_check_method, current consent_text_version, recorded_by = actor}; the code points at it', async () => {
     const r = await issue(BODY({ relationship: 'spouse', identity_check_method: 'known_patient' }));
-    const consents = r.rows['link_consents']!;
+    const consents = newConsents(r.db);
     expect(consents).toHaveLength(1);
     expect(consents[0]).toMatchObject({ tenant_id: A, patient_id: P.REC, source: 'desk', relationship: 'spouse', consented_by: 'patient', identity_check_method: 'known_patient', consent_text_version: 'v3', recorded_by_membership_id: ACTOR, created_by: ACTOR });
     expect(newCodes(r.db)[0]).toMatchObject({ consent_id: consents[0]!['id'], relationship: 'spouse' });
@@ -298,7 +305,7 @@ describe('US-EN-03.1 / 03.6: phone binding', () => {
     expect(row['bound_phone_hmac'].equals(phoneHmac(A, PH.MINOR_REC))).toBe(false);
     expect(row['record_phone_hmac'].equals(phoneHmac(A, PH.MINOR_REC))).toBe(true);
     expect(row).toMatchObject({ relationship: 'child', bound_phone_last2: '13' });
-    expect(r.rows['link_consents']![0]).toMatchObject({ consented_by: 'guardian', relationship: 'child', identity_check_method: 'guardian_photo_id' });
+    expect(newConsents(r.db)[0]).toMatchObject({ consented_by: 'guardian', relationship: 'child', identity_check_method: 'guardian_photo_id' });
   });
   it('a record without phone: bind record -> 400 /bind_phone; bind other works and record_phone_hmac stays NULL', async () => {
     const before = newDb(); const snap = snapshot(before);
@@ -373,7 +380,7 @@ describe('probes (07-SECURITY §6.1 cross-tenant, §6.5 actor confusion) - L1', 
     const r = await issue({ ...BODY(), tenant_id: B });
     if (r.error) { expect(r.error.code).toBe('common.validation_failed'); return; }  // an unknown body field may be refused
     expect(newCodes(r.db)).toHaveLength(1);
-    for (const row of [...newCodes(r.db), ...r.rows['link_consents']!]) expect(row['tenant_id']).toBe(A);
+    for (const row of [...newCodes(r.db), ...newConsents(r.db)]) expect(row['tenant_id']).toBe(A);
   });
   it('actor without engagement.link.issue (front desk role removed) -> 403 auth.forbidden before any database access', async () => {
     for (const who of [NOBODY, READ_ONLY]) {

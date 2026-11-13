@@ -24,7 +24,7 @@ type Result = { status: number; body: unknown };
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 /** If-Match "<n>": n >= 0 ("0" = create, A8 only) or n >= 1. Absent -> 428; malformed -> 400. */
-function ifMatch(headers: unknown, allowZero: boolean): number {
+export function ifMatch(headers: unknown, allowZero: boolean): number {
   const h = isObj(headers) ? headers['if-match'] : undefined;
   if (h === undefined) throw new LimsError('common.precondition_required');
   const m = typeof h === 'string' ? /^"(0|[1-9][0-9]{0,9})"$/.exec(h) : null;

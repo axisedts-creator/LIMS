@@ -80,6 +80,13 @@ export async function futureOccupancyOfTemplate(tx: Q, a: { tenantId: string; te
   return rows;
 }
 
+/** S9: the template's new capacity reaches its FUTURE occupancy rows (the reserve path checks `booked < slot_occupancy.capacity`, 02-TRD §4.8; 05-SCHEMA: capacity may drop below booked). booked is untouched. */
+export async function syncOccupancyCapacity(tx: Q, a: { tenantId: string; userId: string; templateId: string; capacity: number; now: string }): Promise<void> {
+  await tx.query(
+    'UPDATE engagement.slot_occupancy SET capacity = $3, version = version + 1, updated_at = now(), updated_by = $4 WHERE tenant_id = $1 AND template_id = $2 AND slot_start > $5',
+    [a.tenantId, a.templateId, a.capacity, a.userId, a.now]);
+}
+
 /** Confirmed future bookings sitting on the given occupancy rows. */
 export async function countConfirmedOnOccupancy(tx: Q, a: { tenantId: string; occupancyIds: readonly string[]; now: string }): Promise<number> {
   if (a.occupancyIds.length === 0) return 0;
@@ -100,7 +107,7 @@ export async function countConfirmedInRange(tx: Q, a: { tenantId: string; centre
 /** S6: occupancy counters of one centre + kind in a UTC window. */
 export async function occupancyInRange(tx: Q, a: { tenantId: string; centreId: string; bookingKind: string; from: string; to: string }): Promise<Row[]> {
   const { rows } = await tx.query(
-    'SELECT slot_start, booked FROM engagement.slot_occupancy WHERE tenant_id = $1 AND centre_id = $2 AND booking_kind = $3 AND slot_start >= $4 AND slot_start < $5', [a.tenantId, a.centreId, a.bookingKind, a.from, a.to]);
+    'SELECT slot_start, capacity, booked FROM engagement.slot_occupancy WHERE tenant_id = $1 AND centre_id = $2 AND booking_kind = $3 AND slot_start >= $4 AND slot_start < $5', [a.tenantId, a.centreId, a.bookingKind, a.from, a.to]);
   return rows;
 }
 

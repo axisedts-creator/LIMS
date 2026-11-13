@@ -185,14 +185,14 @@ export function createSlotService(deps: { repo?: SlotRepo } = {}) {
         for (const t of templates) for (const s of generateSlots({ template: t, localDate: d, timeZone: tz })) slots.push({ start: s.slotStart.getTime(), end: s.slotEnd.getTime(), capacity: t.capacity });
       }
       slots.sort((a, b) => a.start - b.start);
-      const booked = new Map<number, number>();
+      const occ = new Map<number, { capacity: number; booked: number }>();
       if (slots.length) {
         const lo = new Date(slots[0]!.start).toISOString(), hi = new Date(slots[slots.length - 1]!.start + 1).toISOString();
-        for (const o of await repo.occupancyInRange(tx, { tenantId, centreId, bookingKind: kind, from: lo, to: hi })) booked.set(Date.parse(iso(o['slot_start'])), Number(o['booked']));
+        for (const o of await repo.occupancyInRange(tx, { tenantId, centreId, bookingKind: kind, from: lo, to: hi })) occ.set(Date.parse(iso(o['slot_start'])), { capacity: Number(o['capacity']), booked: Number(o['booked']) });
       }
       const data = slots.slice(0, 2000).map((s) => { // contract maxItems 2000
-        const b = booked.get(s.start) ?? 0;
-        return { slot_start: new Date(s.start).toISOString(), slot_end: new Date(s.end).toISOString(), remaining: Math.min(9, Math.max(0, s.capacity - b)), booking_kind: kind, centre_id: centreId, capacity: s.capacity, booked: b, overbooked: b > s.capacity };
+        const o = occ.get(s.start), b = o?.booked ?? 0, cap = o?.capacity ?? s.capacity; // TRD §4.8: occupancy row's capacity; absent row = template capacity
+        return { slot_start: new Date(s.start).toISOString(), slot_end: new Date(s.end).toISOString(), remaining: Math.min(9, Math.max(0, cap - b)), booking_kind: kind, centre_id: centreId, capacity: cap, booked: b, overbooked: b > cap };
       });
       return { data };
     },
@@ -233,6 +233,7 @@ export function createSlotService(deps: { repo?: SlotRepo } = {}) {
         if (current['is_active']) await checkOverlap(tx, tenantId, centreId, v, input.id);
         const row = await repo.updateTemplate(tx, { tenantId, userId, id: input.id, expectedVersion, v });
         if (!row) throw new LimsError('common.version_conflict'); // lost a race between the read and the write
+        await repo.syncOccupancyCapacity(tx, { tenantId, userId, templateId: input.id, capacity: v.capacity, now }); // review T-B2 #1
         const overbooked = await overbookedSlots(tx, tenantId, input.id, v.capacity, now);
         await repo.enqueueCentreSync(tx, { tenantId });
         return { ...templateBody(row), affected: { overbooked_slots: overbooked } };

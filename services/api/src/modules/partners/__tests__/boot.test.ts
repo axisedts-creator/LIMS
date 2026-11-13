@@ -32,7 +32,8 @@ const PERMS = ['partners.manifest.receive', 'partners.manifest.submit', 'partner
 const PARTNER_ONLY = ['partners.order.read', 'partners.manifest.submit', 'partners.report.read', 'partners.statement.read',
   'partners.price_list.read', 'partners.pickup.request', 'partners.referrer.read', 'partners.referrer.manage'];
 /** operationIds whose stub a later task has replaced; that task moves its ids here (tester-owned list). */
-const IMPLEMENTED: readonly string[] = ['getPartnerContext']; // T03 (A1)
+const IMPLEMENTED: readonly string[] = ['getPartnerContext', // T03 (A1)
+  'listPartners', 'createPartner', 'getPartner', 'updatePartner', 'suspendPartner', 'reactivatePartner', 'resyncPartnerProjections']; // T07 (SA1-SA7)
 
 const FAKE_REQ = { params: {}, query: {}, headers: {}, body: {} };
 const noop = () => undefined;

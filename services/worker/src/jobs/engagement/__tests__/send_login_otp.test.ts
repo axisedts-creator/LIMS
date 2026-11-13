@@ -131,6 +131,16 @@ describe('port outcomes', () => {
     expect(w.challenge(id)).toMatchObject({ status: 'sent', code_ciphertext: null });
     expect((w.notif.calls[1]!.input['params'] as any).otp_code).toBe((w.notif.calls[0]!.input['params'] as any).otp_code);   // same code both times
   });
+  it('transient port error on the LAST attempt (attempt = maxAttempts = 3) -> no throw, challenge failed, code_ciphertext NULL (TRD §8.1: after 3 failures the challenge is failed)', async () => {
+    const { w, run } = await setup(); await ask(w); const id = w.challenges()[0]!['id']; w.notif.failNext = new Error('provider down');
+    await expect(run(lastJob(w).payload, { attempt: 3, maxAttempts: 3 })).resolves.toBeUndefined();
+    expect(w.challenge(id)).toMatchObject({ status: 'failed', code_ciphertext: null }); expect(w.audit).toEqual([]);
+  });
+  it('transient port error on an EARLIER attempt (attempt 2 of 3) still throws and keeps the challenge pending with its ciphertext', async () => {
+    const { w, run } = await setup(); await ask(w); const id = w.challenges()[0]!['id']; w.notif.failNext = new Error('provider down');
+    await expect(run(lastJob(w).payload, { attempt: 2, maxAttempts: 3 })).rejects.toThrow();
+    expect(w.challenge(id)['status']).toBe('pending'); expect(w.challenge(id)['code_ciphertext']).not.toBeNull();
+  });
 });
 
 describe('log scan (US-EN-01.9; 02-CV §9.2)', () => {

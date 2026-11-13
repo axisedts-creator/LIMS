@@ -245,7 +245,7 @@ function seed() {
   S.drafts.add(CASE.SIGNED_DRAFT);
   const part = (id: string, caseId: string, over: Row = {}) => S.parts.set(id, { id, tenant_id: T, case_id: caseId, letter: 'A', site_text: 'synthetic site', version: 1, ...over });
   part(PART.A, CASE.OPEN); part(PART.SIGNED_A, CASE.SIGNED); part(PART.OTHER_TENANT, CASE.OTHER_TENANT, { tenant_id: T_OTHER }); part(PART.LIMIT_A, CASE.LIMIT);
-  S.settings.set(T, { id: 'settings', tenant_id: T, version: 1, max_images_per_case: 3, max_report_images: 12 });
+  S.settings.set(T, { id: 'settings', tenant_id: T, version: 1, max_images_per_case: 50, max_report_images: 12 }); // spec default (02-TRD:623, 05-SCHEMA:180); the limit tests lower it themselves (ruling C11.T-10)
   const add = (r: Row) => S.images.set(r['id'], r);
   add(imgRow(IMG.READY, CASE.OPEN, { part_id: PART.A, caption: 'synthetic caption' }));
   add(imgRow(IMG.JPEG, CASE.OPEN, { object_path: `${T}/2026/11/${IMG.JPEG}.jpg`, mime_type: 'image/jpeg', sha256: sha(jpegBytes()), byte_size: jpegBytes().length, kind: 'microscopy' }));
@@ -405,17 +405,20 @@ describe('I1 uploadAnatomicImage — size, type, validation (AC-12.2, AC-12.3; R
 
 describe('I1 uploadAnatomicImage — limit, signed-out rule, access (AC-12.6, AC-12.8; D-66 (a))', () => {
   const fill = (n: number, caseId: string, active = true) => { for (let i = 0; i < n; i++) { const id = uid(5000 + S.images.size); S.images.set(id, imgRow(id, caseId, { is_active: active, created_at: `2026-11-1${i % 10}T00:00:00.000Z` })); } };
+  const limit3 = () => S.settings.set(T, { ...S.settings.get(T), max_images_per_case: 3 });
   it('AC-12.6: the case already has max_images_per_case (3) active images -> 422 anatomic.image_limit_reached; nothing stored', async () => {
-    fill(3, CASE.LIMIT); const before = stateDump(); const ctx = mkCtx(); const e = await rejects(up(goodBody(), CASE.LIMIT, ctx));
+    limit3(); fill(3, CASE.LIMIT); const before = stateDump(); const ctx = mkCtx(); const e = await rejects(up(goodBody(), CASE.LIMIT, ctx));
     codeOf(e, 'anatomic.image_limit_reached', 422); nothingPersisted(ctx, before);
   });
   it('AC-12.6: deactivated images do not count; the 3rd active image is accepted and the 4th is refused', async () => {
-    fill(5, CASE.LIMIT, false); fill(1, CASE.LIMIT);
+    limit3(); fill(5, CASE.LIMIT, false); fill(1, CASE.LIMIT);
     expect((await up(goodBody(), CASE.LIMIT)).status).toBe(201); expect((await up(goodBody(), CASE.LIMIT)).status).toBe(201);
     const e = await rejects(up(goodBody(), CASE.LIMIT)); codeOf(e, 'anatomic.image_limit_reached', 422);
   });
   it('the limit is per case: another case of the same tenant is unaffected', async () => {
-    fill(3, CASE.LIMIT); expect((await up(goodBody(), CASE.OPEN)).status).toBe(201);
+    limit3(); fill(3, CASE.LIMIT);
+    const fresh = uid(107); S.cases.set(fresh, caseRow(fresh)); // tenant T, centre C1, no images
+    expect((await up(goodBody(), fresh)).status).toBe(201);
   });
   it('AC-12.8: on a signed_out case with no open change draft a microscopy image (IHC photo) is accepted', async () => {
     expect(S.drafts.has(CASE.SIGNED)).toBe(false);

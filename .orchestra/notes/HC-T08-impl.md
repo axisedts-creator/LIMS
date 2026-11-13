@@ -5,3 +5,4 @@
 - ASSUMED: H10 visit_ids_in_order = active (assigned|in_progress) visits by route_sequence; window_from/to filter window_start; "received" counter = received..stored statuses; H12 roster = memberships.list({centreId, roleCode:'phlebotomist'}); payments = [] until the sync task writes them; reviewed_by/resolved_by/created_by resolve via ctx.core.user.
 - RAN: static.test (visits, repository, settings) 19/19 pass; tsc clean for the new files. NOT RUN: the 4 DB specs (docker daemon down). eslint config ignores these paths.
 - OPEN (tester): boot.test.ts IMPLEMENTED list (tester-owned) must gain listHomeVisits, getHomeVisit, listHomeRoutes, listEligiblePhlebotomists, revealHomeVisitPhone, else its two "stub" specs fail for these ids; its 2 boot specs also fail here on LIMS_ENGAGEMENT_OTP_HMAC_KEY_FILE (env, not this task).
+- Round 4 (after LD-137 + arbiter ruling test fix f738940a): HC-T08.pg.sh 5 files, 69/69 pass. Handlers and schema unchanged.

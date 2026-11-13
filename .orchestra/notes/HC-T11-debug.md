@@ -7,3 +7,7 @@
 ## Round 2 (after ack.test.ts helper fix per HC-T11-ruling.md)
 - Verify log now: 81/84 pass, only perf.test.ts fails: changed p95 3146 ms (<=2000), unchanged p95 622 ms (<=500), labFails 2170 ms (<=2000). The ack unhandled-rejection errors are gone.
 - Same cause as round 1: fake-latency floors (1.25 s / 0.4 s) plus per-visit savepoints and 40 audit inserts in one harness tx on a loaded host. Code is already one batch call, one lookup and one balance per visit, sequential by design (shared tx). No implementation change; dispute-perf.md stands and needs a ruling (time handler only, run perf alone, or add headroom).
+## Round 3
+- Verify log: 81/84; only perf.test.ts fails: changed p95 3025 ms (<=2000), unchanged 664 ms (<=500), labFails 2531 ms (<=2000). ack/static/settings pass.
+- Same cause as rounds 1-2: busy-spin fake floors (1.25 s / 0.4 s) leave 750/100 ms for harness tx + 40 access_log inserts + savepoints on a loaded host. No code lever (Promise.all useless on sync-spinning fakes; one access row per visit is REQ-SEC-096). Implementation unchanged.
+- Dispute HC-T11-dispute-perf.md stands, needs arbiter ruling (time handler only / run perf alone / add headroom). Stopping.

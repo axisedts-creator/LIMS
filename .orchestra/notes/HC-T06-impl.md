@@ -1,0 +1,5 @@
+# HC-T06 impl
+- New: consumers/frontdesk.order.created.v1.ts (`onOrderCreated`), tasks/refresh_visit_specimens.ts (`refreshVisitSpecimens`), api homecollection/specimen.service.ts (`refreshVisitSpecimens(c, visitId)`, `enqueueSpecimenRefresh`). Edited: service/visit.service.ts (+`onOrderCreated`, same place as T05 consumers).
+- [CONV] consumer = tenant check + delegate to visit.service; per-order advisory lock; enqueue via app.enqueue_job(task, {tenant_id, visit_id}, 'refresh:<visit_id>'); no logging of ids/barcodes. Refresh: port first (failure throws before any write), upsert only, never DELETE / lower last_seq / store barcode, route version++ only if a row changed.
+- Result: as committed the suite is 12 passed / 16 FAILED because of 2 TEST bugs (see HC-T06-dispute.md). With those two fixture lines corrected in a throw-away copy (deleted): 28/28 pass. tsc: no errors in touched files.
+- Open: manifest wiring of the 2 handlers (TRD §3.2) is not in this task's files; front_desk visit leaves order_registered_at null (TRD names it only for source home_collection); HC-T05 live suite not re-run after the visit.service.ts edit (additive).

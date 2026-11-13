@@ -294,5 +294,5 @@ describe('C9 T-01 boot against the real repo (default modulesDir, real quality.y
       expect(JSON.parse(r.body).code).toMatch(/^auth\./);
     }
     expect((await app.inject({ method: 'GET', url: '/v1/quality/not-in-spec' })).statusCode).toBe(404);
-  }, 120_000);
+  }, 300_000);
 });

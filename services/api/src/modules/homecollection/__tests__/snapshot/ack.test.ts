@@ -128,8 +128,9 @@ describe('US-13-5 wipe: pull says wipe -> device uploads, destroys, acks with wi
 
 describe('A4 device binding, versions, validation (US-06-6/7, 07-SECURITY AB1)', () => {
   const refused = async (p: Promise<unknown>, code: string, status: number, d?: any) => {
+    const settled = p.then(() => { throw new Error('expected rejection'); }, (x: any) => x);
     const before = d ? frozen(await deviceRow(d.id)) : undefined;
-    const e = await p.then(() => { throw new Error('expected rejection'); }, (x: any) => x);
+    const e = await settled;
     expect([e.code, e.statusCode]).toEqual([code, status]);
     if (d) expect(frozen(await deviceRow(d.id))).toEqual(before);
     return e;

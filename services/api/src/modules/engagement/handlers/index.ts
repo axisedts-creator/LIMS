@@ -6,6 +6,7 @@ import { authHandlers } from './auth.handlers.js';
 import { bookableHandlers } from './bookable.handlers.js';
 import { bookingHandlers } from './booking.handlers.js';
 import { displayHandlers } from './display.handlers.js';
+import { linkHandlers } from './link.handlers.js';
 import { membershipHandlers } from './membership.handlers.js';
 import { queueHandlers } from './queue.handlers.js';
 import { reminderHandlers } from './reminder.handlers.js';
@@ -47,4 +48,5 @@ export const handlers: Readonly<Record<(typeof OPERATION_IDS)[number], Handler>>
   ...authHandlers, // T-A2: E1, E2
   ...bookingHandlers, // T-B3: S1-S5
   ...membershipHandlers, // T-M1: M1a-M5, E47
+  ...linkHandlers, // T-L3: E15
 });

@@ -1,6 +1,6 @@
 # H80-T05 impl (writer)
-- Changed: `apps/bridge-agent/cmd/agent/e2e_main.go` (optional `instruments[].profile`: drivers.Resolve profile -> mllp HostQuery -> hostquery.Relay -> E05; host query committed as queue kind `host_query`; no API answer = nothing written, AC-10.6). Registry entry + 5 `h80e-*` session files already existed.
-- NOT done: the g_drivers migration. `db/` is C0-0B only (01-CHUNK-MAP §3), so I filed `.orchestra/cr/H80-T05.md` (CR-C7-019, exact INSERT, status generic, no UPDATE). 3 registry tests stay red until C0 lands it.
-- [CONV] reply collector is a process-global (test build answers one query at a time); never shipped (e2e tag).
-- Result: e2e 5/5 now pass (was 5 fail); registry 3 fail (missing row only); `go vet -tags e2e` clean.
-- Open: `ci-scripts.test.ts` REAL-repo case and pgTAP stay red/unrun until the migration exists.
+- Changed: NEW `db/migrations/20261113230000_instruments__add_truth_h80e_driver.sql` (CR-C7-019 approved by lead, LD-139: one g_drivers INSERT, generic, 0.1.0, no UPDATE/promotion); `e2e_main.go` (earlier: optional `instruments[].profile`).
+- Sessions: `h80e-{oru-patient,api-down,q03-id-mismatch}.session.json` PID.5 "Test Patient" removed (synthetic-scan AC-21.4 flags any PID.5 name); oru-patient raw_sha256 -> 0eba7c5c… (new ORU bytes).
+- [CONV] reply collector in e2e build is process-global (e2e tag only, never shipped).
+- Result: vitest registry + ci-scripts + e2e 58/58 pass; `go test ./internal/simulator` ok.
+- Open: pgTAP (`H80-T05.truth_h80e_driver.test.sql`, T0B-10) not run, no Postgres. Test sentinel 'Test Patient' (e2e line 33) now vacuous; tester may drop it. `internal/svc` TestStatusFileACLAppliedNoUsers fails (Windows ACL, unrelated, not touched).

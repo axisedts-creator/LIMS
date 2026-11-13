@@ -352,4 +352,13 @@ describe('accessibility (axe)', () => {
     await screen.findByText(/A-001/);
     expect(H.pageText()).toMatch(/called/i);
   });
+  // LD-140 / 10-DESIGN-SYSTEM §6: every status shows tone + word via the kit StatusChip (.lims-chip[data-tone]).
+  it('current token status renders as a StatusChip (tone + word)', async () => {
+    const { user } = await withCounter(H.consoleActions({ callNext: vi.fn(async () => H.tok(1, { status: 'called', counter_id: H.C1, call_count: 1, version: 2 })) }));
+    await user.click(callNextBtn());
+    await screen.findByText(/A-001/);
+    const chip = Array.from(document.querySelectorAll('.lims-chip')).find((c) => /called/i.test(c.textContent ?? ''));
+    expect(chip, 'StatusChip with the word "called"').toBeTruthy();
+    expect(chip!.getAttribute('data-tone')).toMatch(/^(neutral|info|success|warning|danger|critical)$/);
+  });
 });

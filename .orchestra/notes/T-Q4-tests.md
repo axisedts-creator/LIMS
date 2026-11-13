@@ -6,3 +6,4 @@
 - SPEC CONFLICT (needs lead/CR, not a test choice): W6 says [Call next] `Alt+N`, but C0 registry GLOBAL_KEYS has `Alt+N` and register() throws (AC-0D-7.5). Tests only require a shortcut described "call next" whose key is not global; the key itself is unpinned.
 - Not covered here: BFF server code behaviour (no MSW tests for server/*.server.ts; only source checks), Playwright e2e of pair→board (T-Q5 e2e covers board).
 - LD-138: if the all-manifests build-nav still fails, the error must name a route outside this task's feature; else file a CR.
+- Review round (LD-140): added 2 StatusChip tests (console: current token status chip; setup: Active/Inactive/Revoked chips). They fail now for the right reason (plain-text status); other 80 pass. Icon is not asserted: kit StatusChip renders tone+word only. Review items 1 (CR Alt+N) and 4 (TokenSlip hold) are not test-file items; unchanged.

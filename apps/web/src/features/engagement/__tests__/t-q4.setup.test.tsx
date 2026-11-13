@@ -52,6 +52,20 @@ describe('tabs and lists (Q1b / Q2b / Q8)', () => {
     expect(screen.getAllByRole('button', { name: /^revoke/i })).toHaveLength(1);
   });
 
+  // LD-140 / 10-DESIGN-SYSTEM §6: statuses are StatusChip (tone + word) in the Queues, Counters and Displays cells.
+  it('Active/Inactive and Active/Revoked render as StatusChip (tone + word)', async () => {
+    await H.showSetup();
+    const user = userEvent.setup();
+    const has = (re: RegExp) => Array.from(document.querySelectorAll('.lims-chip')).some((c) => re.test((c.textContent ?? '').trim()) && /^(neutral|info|success|warning|danger|critical)$/.test(c.getAttribute('data-tone') ?? ''));
+    expect(has(/^active$/i), 'queues: Active chip').toBe(true);
+    expect(has(/^inactive$/i), 'queues: Inactive chip').toBe(true);
+    await user.click(tab(/counters/i));
+    expect(has(/^(in)?active$/i), 'counters: chip').toBe(true);
+    await user.click(tab(/displays/i));
+    expect(has(/^active$/i), 'displays: Active chip').toBe(true);
+    expect(has(/^revoked$/i), 'displays: Revoked chip').toBe(true);
+  });
+
   it('shows no display token, cookie or hash anywhere', async () => {
     await H.showSetup();
     await userEvent.setup().click(tab(/displays/i));

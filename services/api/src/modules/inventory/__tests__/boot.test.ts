@@ -194,7 +194,7 @@ describe('API boot with the real module directory', () => {
 
   it('boots (autoloads inventory from services/api/src/modules) and mounts the /v1/inventory routes', async () => {
     expect(readdirSync(DEFAULT_MODULES_DIR)).toContain('inventory');
-    app = await bootstrap({ config: loadConfig({ LIMS_CORE_ENV: 'ci' }), repoRoot: REPO_ROOT, modulesDir: DEFAULT_MODULES_DIR });
+    app = await bootstrap({ config: loadConfig({ ...process.env, LIMS_CORE_ENV: 'ci' }), repoRoot: REPO_ROOT, modulesDir: DEFAULT_MODULES_DIR });
     const r = await app.inject({ method: 'GET', url: '/v1/inventory/items' });
     expect(r.statusCode).not.toBe(404); // mounted; stub => 500 common.internal (or 401 once auth lands), never a 2xx
     expect(r.statusCode).not.toBe(200);

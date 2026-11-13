@@ -198,12 +198,19 @@ describe('PL-2 Provision tenant (AC-E1.1, AC-E1.2)', () => {
     expect(callsTo('POST', POST)).toHaveLength(1);
   });
 
-  it.each(['Synthetic-Gamma', 'ab', '1gamma', 'gamma lab', 'x'.repeat(33)])('rejects the tenant code %j in the form (pattern ^[a-z][a-z0-9_]{2,31}$) without calling the API', async (code) => {
+  it.each(['Synthetic-Gamma', 'ab', '1gamma', 'gamma lab'])('rejects the tenant code %j in the form (pattern ^[a-z][a-z0-9_]{2,31}$) without calling the API', async (code) => {
     await show('tenants/new/page');
     const u = await fillValid(code.slice(0, 40));
     await u.click(submit());
     expect(callsTo('POST', POST)).toHaveLength(0);
     expect(screen.getAllByRole('alert').length + screen.getAllByText(/tenant code/i).length).toBeGreaterThan(0);
+  });
+
+  it('caps the tenant code at 32 characters: typing 33 leaves 32 (max of ^[a-z][a-z0-9_]{2,31}$)', async () => {
+    await show('tenants/new/page');
+    const input = screen.getByLabelText(/^tenant code/i) as HTMLInputElement;
+    await userEvent.setup().type(input, 'x'.repeat(33));
+    expect(input.value).toBe('x'.repeat(32));
   });
 
   it('rejects a malformed administrator email and a non-9-digit PAN without calling the API', async () => {
@@ -241,7 +248,9 @@ describe('PL-2 Provision tenant (AC-E1.1, AC-E1.2)', () => {
 describe('PL-3 Tenant detail — Overview and lifecycle (AC-E1.3, AC-E2.1; 03-APP-FLOW T2..T5)', () => {
   const ONE = `${P}/tenants/${T_ALPHA}`;
   const open = async (status: string, perms = SUPER) => {
+    const saved = { ...routes }; // keep routes registered before open(); resetApi wipes them
     resetApi(perms);
+    Object.assign(routes, saved);
     routes[`GET ${ONE}`] = () => HttpResponse.json(tenantDetail(T_ALPHA, 'alpha', status));
     await show('tenants/[tenant_id]/page', { params: { tenant_id: T_ALPHA } });
   };

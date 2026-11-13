@@ -33,6 +33,8 @@ const IMPLEMENTED: readonly string[] = [
   'setupCulture', 'addCulturePlate', 'discardCulturePlate', 'recordCultureObservation',
   // T-09: M7–M10
   'createIsolate', 'identifyIsolate', 'describeIsolate', 'withdrawIsolate',
+  // T-10: M11, M12, M29–M32
+  'assignAstPanel', 'recordAstResults', 'listAstPanels', 'createAstPanel', 'versionAstPanel', 'deactivateAstPanel',
   // T-11: M41–M45, M49
   'listBreakpointSets', 'createBreakpointImport', 'getBreakpointSet', 'listBreakpointImportIssues', 'listBreakpointRows', 'downloadBreakpointTemplate',
   // T-13: M46–M48, M13

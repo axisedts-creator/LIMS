@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"lims/apps/bridge-agent/internal/astm"
+	"lims/apps/bridge-agent/internal/drivers"
 	"lims/apps/bridge-agent/internal/filedrop"
 	"lims/apps/bridge-agent/internal/hl7"
 	"lims/apps/bridge-agent/internal/hostquery"
@@ -193,9 +194,13 @@ func (e *env) step(d driver, st Step, pending *[]byte) error {
 		}
 		*pending = append(*pending, a.tx.Tick()...)
 	case st.HostQuery != nil:
+		if h, isHL7 := d.(*hl7Driver); isHL7 { // hl7v2: configure the stub; the instrument's QRY triggers the relay
+			h.setReplies(st.HostQuery.Reply)
+			return nil
+		}
 		a, ok := d.(*astmDriver)
 		if !ok {
-			return errors.New("host_query needs an astm session")
+			return errors.New("host_query needs an astm or hl7v2 session")
 		}
 		out, err := a.hostQuery(e, st.HostQuery)
 		*pending = append(*pending, out...)
@@ -368,8 +373,10 @@ func splitRecords(msg []byte) [][]byte {
 // ---- hl7v2: mllp.Serve over a duplex that reports when the agent has gone idle ----
 
 type hl7Driver struct {
-	c    *duplex
-	done chan error
+	c       *duplex
+	done    chan error
+	mu      sync.Mutex
+	replies [][]byte // what the server stub answers to a host query; none = API unreachable (AC-10.6)
 }
 
 func newHL7(e *env) (driver, error) {
@@ -380,8 +387,41 @@ func newHL7(e *env) (driver, error) {
 	mode, _ := e.s.Options["ack_mode"].(string)
 	d := &hl7Driver{c: newDuplex(), done: make(chan error, 1)}
 	cfg := mllp.Config{Sink: sink{e}, MaxMessageBytes: int(max), AckMode: mode, Now: e.clk.Now, NewControlID: e.nextAckID}
+	// A registered agent profile (CR-C7-016) supplies the host-query settings; an unknown one changes nothing.
+	if res := drivers.Resolve(e.s.InstrumentProfile, "hl7v2"); res.Known {
+		p := res.Profile
+		if mode == "" {
+			cfg.AckMode = p.HL7AckMode
+		}
+		if len(p.HostQueryMessageTypes) > 0 {
+			cfg.HostQueryTypes, cfg.HostQuery = p.HostQueryMessageTypes, d.hostQuery
+			cfg.ExpectAckOnReply, cfg.ReplyAckPolicy = p.ExpectAckOnReply, p.ReplyAckPolicy
+			cfg.ReplyAckMatchControlId, cfg.ReplyTimeout = p.ReplyAckMatchControlId, p.ReplyTimeout
+		}
+	}
 	go func() { d.done <- mllp.Serve(d.c, cfg) }()
 	return d, nil
+}
+
+// hostQuery is the E05 server stub for hl7v2: the replies the session configured, nil when it configured none.
+func (d *hl7Driver) hostQuery(raw []byte, _ hl7.MSH) [][]byte {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	if len(raw) == 0 {
+		return nil
+	}
+	return d.replies
+}
+
+// setReplies is the hl7v2 host_query step: it configures the stub's answer to the next host queries.
+func (d *hl7Driver) setReplies(reply []string) {
+	out := make([][]byte, len(reply))
+	for i, r := range reply {
+		out[i], _ = ParseBytes(r)
+	}
+	d.mu.Lock()
+	d.replies = out
+	d.mu.Unlock()
 }
 
 func (d *hl7Driver) feed(b []byte) ([]byte, error) {

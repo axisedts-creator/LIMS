@@ -2,6 +2,7 @@
 // close_queue_day: daily 23:50 Asia/Kathmandu (UTC+05:45) = 18:05 UTC -> schedule fields are UTC (core/manifest.ts), so `5 18 * * *`; per_tenant (08 A13 P-6).
 import type { CronEntry, TaskHandler } from '../../core/manifest.js';
 import { businessDate } from '../../../../api/src/modules/engagement/domain/queueToken.state.js';
+import { PURGE_EPHEMERAL, PURGE_QUEUE } from './tasks/purge.js';
 
 export const CLOSE_QUEUE_DAY = 'engagement.close_queue_day';
 const TENANT_TZ = 'Asia/Kathmandu'; // [CONV] 05-SCHEMA P-15: the only v1 tenant timezone
@@ -10,6 +11,9 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 export const crontab: readonly CronEntry[] = Object.freeze([
   Object.freeze({ identifier: CLOSE_QUEUE_DAY, schedule: '5 18 * * *', tenantScope: 'per_tenant' as const, maxAttempts: 3 }),
   Object.freeze({ identifier: 'engagement.dispatch_due_reminders', schedule: '*/5 * * * *', tenantScope: 'per_tenant' as const, maxAttempts: 5 }), // T-R1
+  // T-OPS1 (UTC fields, NPT = UTC+05:45): purge_ephemeral hourly :37 NPT = minute 52 UTC; purge_queue daily 03:10 NPT = 21:25 UTC
+  Object.freeze({ identifier: PURGE_EPHEMERAL, schedule: '52 * * * *', tenantScope: 'per_tenant' as const, maxAttempts: 3 }),
+  Object.freeze({ identifier: PURGE_QUEUE, schedule: '25 21 * * *', tenantScope: 'per_tenant' as const, maxAttempts: 3 }),
 ]);
 
 /** T-10 (03-APP-FLOW §4.3): still-open tokens (waiting/called/serving) of today's business day -> expired. Idempotent (a rerun matches nothing); counters are never touched.

@@ -4,6 +4,7 @@
 import type { ConsumerHandler, TaskHandler, WorkerManifest } from '../../core/manifest.js';
 import { CLOSE_QUEUE_DAY, closeQueueDay, crontab } from './cron.js';
 import { createDispatchDueReminders } from './tasks/dispatch_due_reminders.js';
+import { PURGE_EPHEMERAL, PURGE_QUEUE, purgeEphemeral, purgeQueue } from './tasks/purge.js';
 import { createSendReminder } from './tasks/send_reminder.js';
 
 const task = (id: string): TaskHandler => async () => { throw new Error(`${id} not implemented`); };
@@ -29,6 +30,8 @@ export const manifest: WorkerManifest = Object.freeze({
     [CLOSE_QUEUE_DAY]: closeQueueDay, // T-Q2: close_queue_day
     'engagement.send_reminder': createSendReminder(), // T-R1
     'engagement.dispatch_due_reminders': createDispatchDueReminders(), // T-R1 (cron-only task: no §8.1 row)
+    [PURGE_EPHEMERAL]: purgeEphemeral, // T-OPS1 (cron-only)
+    [PURGE_QUEUE]: purgeQueue, // T-OPS1 (cron-only)
   }),
   subscriptions: Object.freeze(Object.fromEntries(SUBSCRIPTIONS.map((type) => [type, consumer(type)]))),
   crontab, // TRD §8.2 rows live in cron.ts (close_queue_day, dispatch_due_reminders)

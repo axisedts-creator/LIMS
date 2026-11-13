@@ -10,7 +10,15 @@ export const MEMBER = { a: '01a1a98a-ac40-7000-8000-00000000a500', b: '01a1a98a-
 export const MEMBER2 = { a: '01a1a98a-ac40-7000-8000-00000000a501', b: '01a1a98a-ac40-7000-8000-00000000b501' } as const;
 
 let seq = 0;
-let dayCounter = 0; // unique (centre, member, date) per route row
+let dayCounter = 0; // unique (centre, member, date) per route row within one test file
+// LD-137 (2026-11-12): spec files run in parallel on one DB and each has its own module copy (dayCounter restarts at 0), so default routes collided on
+// (tenant, centre, member, route_date). Give each spec file its own day range (hash of its path), after the fixed dates the specs use (<= 2027-03-31).
+const fileDayOffset = (): number => {
+  const p = String((globalThis as any).expect?.getState?.().testPath ?? Math.random());
+  let h = 0; for (const c of p) h = (h * 31 + c.charCodeAt(0)) >>> 0;
+  return 200 + (h % 5000) * 30; // spaced by 30 so one file's default routes cannot reach the next file's range
+};
+let dayBase: number | undefined;
 
 const n = () => ++seq + Math.floor(Math.random() * 1e9) * 1000;
 const hex64 = () => (uid() + uid()).replace(/-/g, '').slice(0, 64);
@@ -23,7 +31,7 @@ export const hc = {
   settings: (s: Side, o = {}) => ({ id: uid(), ...base(s), collection_consent_text: 'Synthetic consent text', payment_methods: [{ code: 'cash', display: 'Cash', requires_reference: false }], ...o }),
   reason: (set: string, code: string, o = {}) => ({ id: uid(), set_code: set, code, display: `Synthetic ${code}`, requires_text: false, sort_order: 0, ...o }),
   bookingRef: (s: Side, o = {}) => ({ id: uid(), ...base(s), booking_id: uid(), state: 'confirmed', last_seq: 1, ...o }),
-  route: (s: Side, o = {}) => ({ id: uid(), ...base(s), centre_id: HC_CENTRE[s], phlebotomist_membership_id: MEMBER[s], route_date: new Date(Date.UTC(2027, 0, 1) + (++dayCounter) * 86400000).toISOString().slice(0, 10), ...o }),
+  route: (s: Side, o = {}) => ({ id: uid(), ...base(s), centre_id: HC_CENTRE[s], phlebotomist_membership_id: MEMBER[s], route_date: new Date(Date.UTC(2027, 0, 1) + ((dayBase ??= fileDayOffset()) + (++dayCounter)) * 86400000).toISOString().slice(0, 10), ...o }),
   visit: (s: Side, w: { patient: any; order: any }, o = {}) => ({ id: uid(), ...base(s), centre_id: HC_CENTRE[s], branch_id: BRANCH[s], kind: 'front_desk', status: 'unassigned',
     patient_id: w.patient.id, order_id: w.order.id, address_text: 'Synthetic Lane 1', landmark: 'Near the synthetic temple', ...o }),
   bookingVisit: (s: Side, w: { patient: any }, o = {}) => ({ id: uid(), ...base(s), centre_id: HC_CENTRE[s], branch_id: BRANCH[s], kind: 'booking', status: 'unassigned',

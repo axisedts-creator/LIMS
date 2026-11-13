@@ -181,7 +181,8 @@ describe('outbound from a lot row: round_half_up(q x V / Q), pinned on the PG im
       const item = await mkItem(); const lot = await mkLot(item);
       await receive(S1, item, lot, Q, V);
       const [m] = await post1('issue', S1, item, lot, `-${q}`);
-      expect(Number(m!['value_paisa'])).toBe(-expected);
+      // arbiter ruling (C12.T-05-ruling.md): value_paisa is a PG bigint, no signed zero; exact integer equality, 0 when expected is 0.
+      expect(Number(m!['value_paisa'])).toBe(expected === 0 ? 0 : -expected);
       expect(m!['value_basis']).toBe('average');
       expect(Number(m!['balance_qty_after'])).toBeCloseTo(Number(Q) - Number(q), 6);
       const b = (await bal(S1, item, lot))!;

@@ -4,6 +4,7 @@
 // Scan outcome model (P-19): AcceptedUpload.scanState clean -> ready; infected -> quarantined/'malware'; pending|unavailable -> processing + job anatomic.process_image (<= 5 attempts, worker).
 // ponytail: real pipeline gaps (CR-C11-008 / CR-C2-011: JPEG re-encode, 50 MP cap) are the core's; this service passes the TRD options unchanged.
 import { LimsError } from '../../../core/errors.js';
+import type { HandlerResult } from '../../../core/module.js';
 import { uuidv7 } from '../../../../../../packages/shared-ts/src/uuidv7/index.js';
 import { loadAnatomicConfig } from '../config.js';
 import { getCase } from '../repository/cases.repo.js';
@@ -16,7 +17,7 @@ import { anatomicCtx, assertAt, bad, isObj, iso, put, strict, text, UUID, uuid }
 import type { AnatomicCtx } from './numbering.service.js';
 
 type Obj = Record<string, unknown>;
-type Result = { status: number; body?: unknown; headers?: unknown };
+type Result = HandlerResult;
 
 const BUCKET = 'anatomic-images' as const;
 const KINDS = ['gross', 'microscopy', 'other'];

@@ -11,6 +11,15 @@ export function makeWorld9(): World {
   const w = makeWorld();
   const orig = w.guard.bind(w);
   w.guard = (table, cols, values) => orig(table, cols.filter((c) => c !== 'conversion_attempt'), values);
+  // partners.g_cs_reasons (05-SCHEMA §7), set manifest_withdraw_reasons: `other` requires text (review item 2).
+  const reasons: Row[] = [
+    { set_name: 'manifest_withdraw_reasons', code: 'entered_in_error', requires_text: false, is_active: true, sort_order: 1 },
+    { set_name: 'manifest_withdraw_reasons', code: 'samples_not_sent', requires_text: false, is_active: true, sort_order: 2 },
+    { set_name: 'manifest_withdraw_reasons', code: 'duplicate_manifest', requires_text: false, is_active: true, sort_order: 3 },
+    { set_name: 'manifest_withdraw_reasons', code: 'other', requires_text: true, is_active: true, sort_order: 4 },
+  ];
+  const tables = w.tables.bind(w);
+  w.tables = () => ({ ...tables(), 'partners.g_cs_reasons': reasons });
   return w;
 }
 

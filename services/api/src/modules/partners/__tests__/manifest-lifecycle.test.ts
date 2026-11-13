@@ -336,12 +336,19 @@ describe('T09 M9 withdrawManifest — US-04.9 / US-04.10', () => {
     keysWithin(r.body, MF_KEYS); noLeak(r.body);
   });
 
-  it('reason_text is optional; all four manifest_withdraw_reasons codes are accepted', async () => {
+  it('reason_text is optional except for `other` (requires_text, 05-SCHEMA §7); all four manifest_withdraw_reasons codes are accepted', async () => {
     for (const [i, code] of ['entered_in_error', 'samples_not_sent', 'duplicate_manifest', 'other'].entries()) {
-      const { w, ctx } = mk(); const m = sub(w);
-      const r = await call(withdrawManifest, ctx, req({ manifest_id: m['id'], headers: IFM(4), body: i % 2 ? { reason_code: code } : { reason_code: code, reason_text: 'Synthetic note' } }));
-      expect(r.status).toBe(200); expect(man(w, m['id'])).toMatchObject({ withdraw_reason_code: code, withdraw_reason_text: i % 2 ? null : 'Synthetic note', state: 'withdrawn' });
+      const { w, ctx } = mk(); const m = sub(w); const text = i % 2 === 0 || code === 'other';
+      const r = await call(withdrawManifest, ctx, req({ manifest_id: m['id'], headers: IFM(4), body: text ? { reason_code: code, reason_text: 'Synthetic note' } : { reason_code: code } }));
+      expect(r.status).toBe(200); expect(man(w, m['id'])).toMatchObject({ withdraw_reason_code: code, withdraw_reason_text: text ? 'Synthetic note' : null, state: 'withdrawn' });
     }
+  });
+
+  it('`other` without reason_text (missing, null, empty or whitespace) -> 400 common.validation_failed and nothing written', async () => {
+    const { w } = mk(); const m = sub(w); const n = mark(w);
+    for (const body of [{ reason_code: 'other' }, { reason_code: 'other', reason_text: null }, { reason_code: 'other', reason_text: '' }, { reason_code: 'other', reason_text: '   ' }])
+      await fails(call(withdrawManifest, ctxFor(w).ctx, req({ manifest_id: m['id'], headers: IFM(4), body })), 'common.validation_failed', 400);
+    quiet(w, n); expect(man(w, m['id'])['state']).toBe('submitted');
   });
 
   it('bad body -> 400 common.validation_failed and nothing written: no / unknown / non-string reason_code, reason_text > 300 or not a string, body not an object', async () => {
@@ -406,7 +413,7 @@ describe('T09 M9 withdrawManifest — US-04.9 / US-04.10', () => {
 
   it('the withdrawn manifest is read-only: add / delete / submit afterwards -> 409; a second withdraw -> 409 (twice with the same If-Match: one 200, one 409)', async () => {
     const { w } = mk(); const m = sub(w);
-    const res = await Promise.all([settle(call(withdrawManifest, ctxFor(w).ctx, req({ manifest_id: m['id'], headers: IFM(4), body: W() }))), settle(call(withdrawManifest, ctxFor(w).ctx, req({ manifest_id: m['id'], headers: IFM(4), body: W({ reason_code: 'other' }) })))]);
+    const res = await Promise.all([settle(call(withdrawManifest, ctxFor(w).ctx, req({ manifest_id: m['id'], headers: IFM(4), body: W() }))), settle(call(withdrawManifest, ctxFor(w).ctx, req({ manifest_id: m['id'], headers: IFM(4), body: W({ reason_code: 'other', reason_text: 'Synthetic note' }) })))]);
     expect(res.filter((r) => r.ok)).toHaveLength(1); expect((res.find((r) => !r.ok) as { e: LimsError }).e.statusCode).toBe(409);
     expect(man(w, m['id'])).toMatchObject({ state: 'withdrawn', version: 5 });
     await fails(call(submitManifest, ctxFor(w).ctx, req({ manifest_id: m['id'], headers: IFM(5), body: {} })), 'partners.manifest_invalid_transition', 409);
@@ -442,7 +449,7 @@ describe('T09 M9 — withdraw races a staff receipt: serialised on the manifest 
     const { w, m } = fresh();
     const tx = w.newTx(); // staff holds the manifest row lock
     await tx.query('SELECT id FROM partners.manifests WHERE tenant_id = $1 AND id = $2 FOR UPDATE', [T_A, m['id']]);
-    const p = settle(call(withdrawManifest, ctxFor(w).ctx, req({ manifest_id: m['id'], headers: IFM(4), body: { reason_code: 'other' } })));
+    const p = settle(call(withdrawManifest, ctxFor(w).ctx, req({ manifest_id: m['id'], headers: IFM(4), body: { reason_code: 'other', reason_text: 'Synthetic note' } })));
     for (let i = 0; i < 40; i++) await Promise.resolve(); // the withdraw is now waiting on the lock (it must not have written anything)
     expect(w.writes).toEqual([]);
     await tx.query("UPDATE partners.manifest_lines SET state = 'converting', conversion_attempt = 1 WHERE tenant_id = $1 AND manifest_id = $2", [T_A, m['id']]);

@@ -133,7 +133,7 @@ describe('T01 worker manifest (partners)', () => {
     for (const id of TASKS) expect(s.entry(id), id).toMatchObject({ module: 'partners', kind: 'task', scope: 'per_tenant' });
     for (const id of Object.keys(CRON_LOCAL)) expect(s.built.cronItems.some((x: any) => x.identifier === id), id).toBe(true);
     for (const type of SUBSCRIPTIONS) expect(s.entry(`evt.partners.${type}`), type).toMatchObject({ module: 'partners', kind: 'consumer', scope: 'per_tenant' });
-  });
+  }, 60_000); // LD-152 load (cold core tasklist import under 12 lanes)
 
   // Adversarial: the CI check must actually bite (guards the done_when check itself).
   it('validateManifests rejects a drifted manifest: extra subscription, foreign task id, cron on an undeclared task', () => {

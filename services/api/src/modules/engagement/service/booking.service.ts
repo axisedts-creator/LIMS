@@ -8,6 +8,7 @@ import { canTransition, type BookingStatus } from '../domain/booking.state.js';
 import { availableSlots, type Blackout, type SlotTemplate } from '../domain/slots.js';
 import { publishBookingCancelled, publishBookingConfirmed } from '../events/publish.js';
 import * as defaultRepo from '../repository/booking.repo.js';
+import { listCodedSet as defaultListCodedSet } from '../repository/codedsets.repo.js';
 import type { Row } from '../repository/booking.repo.js';
 import * as slotRepo from '../repository/slot.repo.js';
 import * as tokenRepo from '../repository/token.repo.js';
@@ -114,8 +115,9 @@ function parseList(query: unknown) {
   return { from, to, centreId: q['centre_id'] as string | undefined, kind: q['booking_kind'] as string | undefined, statuses, desc: q['sort'] === '-slot_start', limit, after };
 }
 
-export function createBookingService(deps: { repo?: BookingRepo; tokens?: TokenService } = {}) {
+export function createBookingService(deps: { repo?: BookingRepo; tokens?: TokenService; listCodedSet?: typeof defaultListCodedSet } = {}) {
   const repo = deps.repo ?? defaultRepo;
+  const listSet = deps.listCodedSet ?? defaultListCodedSet;
   const tokens = deps.tokens ?? createTokenService();
 
   async function respond(tx: any, tenantId: string, b: Row): Promise<Record<string, unknown>> {
@@ -220,7 +222,7 @@ export function createBookingService(deps: { repo?: BookingRepo; tokens?: TokenS
       const expected = parseIfMatch(input.headers);
       if (!isUuid(input.id)) return invalid('/booking_id');
       const body = strict(input.body, ['reason_code']);
-      if (typeof body['reason_code'] !== 'string' || !REASON.test(body['reason_code'])) invalid('/reason_code'); // ponytail: coded-set membership (cs_booking_cancel_reasons) is not checked yet
+      if (typeof body['reason_code'] !== 'string' || !REASON.test(body['reason_code'])) invalid('/reason_code');
       const reason = body['reason_code'] as string;
       try {
         const cur = await repo.getBooking(tx, { tenantId, id: input.id });
@@ -228,6 +230,9 @@ export function createBookingService(deps: { repo?: BookingRepo; tokens?: TokenS
         await input.authorizeRow(cur['centre_id']);
         if (!canTransition(cur['status'] as BookingStatus, 'cancelled')) throw new LimsError('engagement.booking_invalid_transition');
         if (cur['version'] !== expected) throw new LimsError('common.version_conflict');
+        // 02-TRD §5 S4: reason_code must be an active code of cs_booking_cancel_reasons (fixed path, no echo — REQ-SEC-080).
+        const reasons = await listSet(tx, { tenantId, setName: 'booking_cancel_reasons' });
+        if (!reasons.some((r) => r['code'] === reason && r['is_active'] === true)) invalid('/reason_code', 'common.field_invalid', 'Unknown reason');
         const b = await repo.cancel(tx, { tenantId, userId, id: cur['id'], expectedVersion: expected, reason, now });
         if (!b) throw new LimsError('common.version_conflict'); // lost a race between the read and the write
         await repo.release(tx, { tenantId, userId, occupancyId: cur['slot_occupancy_id'] });

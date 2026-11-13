@@ -85,7 +85,7 @@ const keyOf = (row: Row, sort: repo.CultureSort): string | null => {
 };
 
 // ---------------------------------------------------------------- lookups (request-memoised)
-function testLookup(c: ChainCtx): (testId: string) => Promise<{ code: string; name: string }> {
+export function testLookup(c: ChainCtx): (testId: string) => Promise<{ code: string; name: string }> {
   const memo = new Map<string, Promise<{ code: string; name: string }>>();
   return (testId) => {
     let p = memo.get(testId);
@@ -101,7 +101,7 @@ function testLookup(c: ChainCtx): (testId: string) => Promise<{ code: string; na
 const clip = (s: unknown): string => (typeof s === 'string' && s.length > 0 ? s.slice(0, 200) : dto.NO_NAME);
 const MEMBER_BATCH = 200;   // 02-TRD.md:317: core.memberships.list takes <= 200 ids per call
 /** D-47: core.memberships.list { membershipIds, activeOnly: false } in slices of <= 200 ids; an id it does not return shows "—". */
-async function memberNames(c: ChainCtx, ids: unknown[]): Promise<(id: unknown) => string> {
+export async function memberNames(c: ChainCtx, ids: unknown[]): Promise<(id: unknown) => string> {
   const want = [...new Set(ids.filter((x): x is string => typeof x === 'string'))];
   const wanted = new Set(want);
   const names = new Map<string, string>();
@@ -181,6 +181,13 @@ const byTime = (k: string) => (a: Row, b: Row): number => new Date(a[k]).getTime
 
 export async function getCulture(c: ChainCtx, input: { params: unknown }): Promise<Obj> {
   const { tx, tenantId, row } = await visibleCulture(c, input.params);
+  const out = await cultureDetail(c, tx, tenantId, row);
+  await c.audit.access({ action: 'culture.view', entityType: 'micro_culture', entityId: row['id'], outcome: 'allowed' });   // 02-TRD §13: M2 only
+  return out;
+}
+
+/** CultureDetailDto of a loaded culture row (CULTURE_COLS). No permission check and no access log: M2 does both around it; M3 answers with it after its own checks. */
+export async function cultureDetail(c: ChainCtx, tx: any, tenantId: string, row: Row): Promise<Obj> {
   const k = { tenantId, cultureId: row['id'] as string };
   const plates = (await repo.listPlates(tx, k)).sort(byNum('plate_no'));
   const observations = (await repo.listObservations(tx, k)).sort(byTime('observed_at'));
@@ -223,7 +230,6 @@ export async function getCulture(c: ChainCtx, input: { params: unknown }): Promi
     if (line) out['lab_result'] = dto.labResultDto(line);
   }
   out['permissions_hint'] = { can_amend_approved: perms.includes('lab.result.amend') };
-  await c.audit.access({ action: 'culture.view', entityType: 'micro_culture', entityId: row['id'], outcome: 'allowed' });   // 02-TRD §13: M2 only
   return out;
 }
 

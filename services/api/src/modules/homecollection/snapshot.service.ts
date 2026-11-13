@@ -1,6 +1,7 @@
 // HC-T11: A2 getSyncSnapshot (GET /sync/snapshot) + A4 ackSync (POST /sync/ack) — 02-TRD §5.2, §5.3.1, §6.2, §6.4; 01-PRD US-06, US-13-5; 07-SECURITY AB1 / REQ-SEC-081 / REQ-SEC-096.
 // Identity = the claims (ctx.tenantId, ctx.actor.membershipId); a device belongs to its registering membership (else 409 device_not_registered, nothing about the owner).
-// SQL lives in repository/*.repo.ts only. Port calls that may fail without failing the pull run in ctx.db.tx (savepoint, 08 A19 P-44), one after the other (they share the request transaction).
+// SQL lives in repository/*.repo.ts only. Port calls that may fail without failing the pull run in ctx.db.tx (savepoint, 08 A19 P-44); per-visit calls run up to 8 at a time, one savepoint per group (LD-156).
+// access_log rows stay one insert per visit: the core writer (core/audit/access.ts) has no batch API (LD-156 "if the core writer allows it").
 // Barcodes come from LabPort.lookupSpecimens on EVERY changed pull and are never stored or logged (review #2); no fallback to a read model. Logs carry codes only (REQ-SEC-081).
 import { LimsError } from '../../core/errors.js';
 import { decodeCursor, encodeCursor, cursorsEqual } from './domain/cursor.js';
@@ -89,12 +90,40 @@ async function permittedRoutes(ctx: Ctx, membershipId: string, today: string): P
 }
 
 const money = (m: Obj): { amount_paisa: number; currency: string } => ({ amount_paisa: Number(m['amountPaisa']), currency: String(m['currency']) });
-/** BillingPort balance, or null when the read fails (the pull still succeeds, §2.1). */
-async function balanceOf(ctx: Ctx, orderId: string): Promise<{ balance_due: ReturnType<typeof money>; as_of: string } | null> {
-  try {
-    const b = await ctx.db.tx<Obj>((x) => ctx.ports.BillingPort['getOrderBalance'](x, { orderId }));
-    return { balance_due: money(b['balanceDue']), as_of: iso(b['asOf']) };
-  } catch (e) { ctx.log.warn({ code: code(e) }, 'homecollection.balance_unavailable'); return null; }
+type Balance = { balance_due: ReturnType<typeof money>; as_of: string };
+const toBalance = (b: Obj): Balance => ({ balance_due: money(b['balanceDue']), as_of: iso(b['asOf']) });
+
+const PORT_CONCURRENCY = 8;   // LD-156 (2): per-visit port calls of one request run concurrently, bounded
+class BatchFailed extends Error {}
+/**
+ * Runs read-only port calls PORT_CONCURRENCY at a time; each group shares ONE ctx.db.tx savepoint (P-44), because savepoints on the
+ * request connection cannot be opened concurrently. Any failure rolls the group's savepoint back; fulfilled results are still used.
+ * ponytail: an SQL error in one call aborts the savepoint, so its siblings in flight may also fail and degrade to *_stale / *_unavailable
+ * for this pull (the device re-pulls); per-call retry in its own savepoint if that shows up in practice.
+ */
+async function settledPortCalls<T>(ctx: Ctx, calls: ReadonlyArray<(x: unknown) => Promise<T>>): Promise<PromiseSettledResult<T>[]> {
+  const out: PromiseSettledResult<T>[] = [];
+  for (let i = 0; i < calls.length; i += PORT_CONCURRENCY) {
+    const group = calls.slice(i, i + PORT_CONCURRENCY);
+    let res: PromiseSettledResult<T>[] | undefined;
+    try {
+      await ctx.db.tx(async (x) => {
+        res = await Promise.allSettled(group.map((f) => f(x)));
+        if (res.some((r) => r.status === 'rejected')) throw new BatchFailed();   // roll the savepoint back
+      });
+    } catch (e) {
+      if (!res) res = group.map(() => ({ status: 'rejected', reason: e }) as const);
+      else if (!(e instanceof BatchFailed)) res = res.map((r) => (r.status === 'fulfilled' ? r : { status: 'rejected', reason: e }));
+    }
+    out.push(...res!);
+  }
+  return out;
+}
+/** BillingPort balance per order, or null when the read fails (the pull still succeeds, §2.1). */
+const balanceCall = (ctx: Ctx, orderId: string) => (x: unknown): Promise<Obj> => ctx.ports.BillingPort['getOrderBalance'](x, { orderId });
+function balanceOrNull(ctx: Ctx, r: PromiseSettledResult<Obj>): Balance | null {
+  try { if (r.status === 'fulfilled') return toBalance(r.value); throw r.reason; }
+  catch (e) { ctx.log.warn({ code: code(e) }, 'homecollection.balance_unavailable'); return null; }
 }
 
 // ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -123,12 +152,10 @@ export async function getSyncSnapshot(hctx: unknown, params: unknown, headers: u
   for (const r of routes) rows.push(...(await listVisitsByRoute(ctx.tx, ctx.tenantId, r['id'])).filter((v) => SNAPSHOT_STATUSES.includes(v['status'])));
 
   if (cursorsEqual(deviceCursor, cursor)) {   // US-06-2: only fresh balances
+    const due = rows.filter((v) => ACTIVE.includes(v['status']) && v['order_id']);
+    const got = await settledPortCalls(ctx, due.map((v) => balanceCall(ctx, v['order_id'])));
     const balances: Obj[] = [];
-    for (const v of rows) {
-      if (!ACTIVE.includes(v['status']) || !v['order_id']) continue;
-      const b = await balanceOf(ctx, v['order_id']);
-      if (b) balances.push({ visit_id: v['id'], ...b });
-    }
+    due.forEach((v, i) => { const b = balanceOrNull(ctx, got[i]!); if (b) balances.push({ visit_id: v['id'], ...b }); });
     return { status: 200, body: { server_time: now.toISOString(), cursor, unchanged: true, device_command: deviceCommand, balances } };
   }
 
@@ -143,6 +170,12 @@ export async function getSyncSnapshot(hctx: unknown, params: unknown, headers: u
     } catch (e) { ctx.log.warn({ code: code(e) }, 'homecollection.demographics_unavailable'); }
   }
   const withBirth = settings['second_identifier'] === 'birth_date';   // D-IDENT / CR-C17-003
+
+  // LD-156 (2): lookupSpecimens + getOrderBalance of every active visit with an order, bounded concurrency; index 2k = specimens, 2k+1 = balance
+  const ordered = active.filter((v) => v['order_id']);
+  const portRes = await settledPortCalls<Obj>(ctx, ordered.flatMap((v) => [
+    (x: unknown) => ctx.ports.LabPort['lookupSpecimens'](x, { orderId: v['order_id'], statuses: ['ordered'] }), balanceCall(ctx, v['order_id'])]));
+  const portOf = new Map(ordered.map((v, k) => [v['id'] as string, { refs: portRes[2 * k]!, bal: portRes[2 * k + 1]! }]));
 
   const visits: Obj[] = [];
   const logged: Obj[] = [];   // visits returned with patient fields (US-06-4)
@@ -160,12 +193,13 @@ export async function getSyncSnapshot(hctx: unknown, params: unknown, headers: u
       ...(p ? { patient: { full_name: p['fullName'], ...(typeof p['phoneE164'] === 'string' && p['phoneE164'] !== '' ? { phone_e164: p['phoneE164'] } : {}), ...(withBirth && typeof p['birthOn'] === 'string' ? { birth_on: p['birthOn'] } : {}) } } : { patient_unavailable: true }),
       address: { address_text: v['address_text'], ...(v['landmark'] ? { landmark: v['landmark'] } : {}), ...(lat != null && lon != null ? { latitude: String(lat), longitude: String(lon) } : {}) },
       ...(v['note_for_phlebotomist'] ? { note_for_phlebotomist: v['note_for_phlebotomist'] } : {}), specimens: [] };
-    if (v['order_id']) {
+    const pr = portOf.get(v['id']);
+    if (pr) {
       try {
-        const refs = await ctx.db.tx((x) => ctx.ports.LabPort['lookupSpecimens'](x, { orderId: v['order_id'], statuses: ['ordered'] }));
-        dto['specimens'] = (refs as Obj[]).map((s) => ({ specimen_id: s['specimenId'], barcode: s['barcode'], specimen_type_code: s['specimenTypeCode'], ...(s['containerCode'] ? { container_code: s['containerCode'] } : {}), status: s['status'] }));
+        if (pr.refs.status === 'rejected') throw pr.refs.reason;
+        dto['specimens'] = (pr.refs.value as unknown as Obj[]).map((s) => ({ specimen_id: s['specimenId'], barcode: s['barcode'], specimen_type_code: s['specimenTypeCode'], ...(s['containerCode'] ? { container_code: s['containerCode'] } : {}), status: s['status'] }));
       } catch (e) { dto['specimens_stale'] = true; ctx.log.warn({ code: code(e) }, 'homecollection.specimens_unavailable'); }   // never a read-model fallback
-      const b = await balanceOf(ctx, v['order_id']);
+      const b = balanceOrNull(ctx, pr.bal);
       if (b) dto['balance'] = b; else dto['balance_unavailable'] = true;
     }
     visits.push(dto);

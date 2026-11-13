@@ -271,7 +271,7 @@ describe('Assign dialog (US-03-3, US-03-6, US-03-8, US-03-10; H12 + H3)', () => 
   });
   it('Route date = the visit window date and read-only when a window is set; editable (default board date) when not; Position has min 1 / max 60 and is empty by default', async () => {
     let dlg = await assignView(V2);
-    const rd = field(dlg, /route date/i);
+    const rd = field(dlg, /^route date/i);
     expect(rd.value).toBe('14/11/2026');
     expect(rd.readOnly || rd.disabled || rd.getAttribute('aria-readonly') === 'true').toBe(true);
     const pos = within(dlg).getByRole('spinbutton', { name: /position/i }) as HTMLInputElement;
@@ -280,7 +280,7 @@ describe('Assign dialog (US-03-3, US-03-6, US-03-8, US-03-10; H12 + H3)', () => 
     expect(Number(pos.getAttribute('aria-valuemax') ?? pos.max)).toBe(60);
     cleanup();
     dlg = await assignView(V1);
-    const rd2 = field(dlg, /route date/i);
+    const rd2 = field(dlg, /^route date/i);
     expect(rd2.value).toBe('14/11/2026');
     expect(rd2.readOnly || rd2.disabled).toBe(false);
   });

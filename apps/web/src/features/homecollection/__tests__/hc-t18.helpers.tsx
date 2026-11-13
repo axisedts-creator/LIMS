@@ -52,7 +52,7 @@ const spec = (expected: number, collected = 0) => ({ expected, collected, held: 
 export const visit = (n: number, o: Record<string, unknown> = {}) => ({
   id: U(1000 + n), version: 3, kind: 'booking', status: 'unassigned', centre_id: CENTRE, branch_id: U(2), patient_id: U(3000 + n),
   patient_display_name: `Test Patient ${String(40 + n).padStart(4, '0')}`, open_flag_kinds: [] as string[], specimens_summary: spec(2), ...o,
-});
+} as { id: string; version: number; kind: string; status: string; centre_id: string; branch_id: string; patient_id: string; patient_display_name: string; open_flag_kinds: string[]; specimens_summary: ReturnType<typeof spec>; order_id: string; window_start: string; window_end: string });
 export const route = (n: number, visitIds: string[], o: Record<string, unknown> = {}) => ({
   id: U(4000 + n), version: 4, centre_id: CENTRE, route_date: DATE, phlebotomist: { membership_id: U(5000 + n), display_name: `Test Phlebo ${String(n).padStart(2, '0')}` },
   visit_ids_in_order: visitIds, active_visits: visitIds.length, completed_visits: 0, ...o,

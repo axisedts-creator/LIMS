@@ -432,7 +432,7 @@ describe('keyboard-only walk-through (06-PLAN HC-T18 "keyboard-only walk-through
       await userEvent.tab();
       const el = document.activeElement as HTMLElement;
       if (!el || el === document.body) break;
-      const name = el.getAttribute('aria-label') ?? el.textContent ?? '';
+      const name = el.getAttribute('aria-label') ?? ((el as HTMLInputElement).labels?.[0]?.textContent || el.textContent) ?? '';
       if (el.matches('button,a,[role=switch],[role=row],[role=gridcell],input')) expect((name || (el as HTMLInputElement).placeholder || el.getAttribute('aria-labelledby') || '').trim().length, `${el.outerHTML.slice(0, 90)}`).toBeGreaterThan(0);
       seen.push(`${el.tagName}:${name.trim().slice(0, 20)}`);
     }

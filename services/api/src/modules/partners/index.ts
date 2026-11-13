@@ -9,6 +9,9 @@ import { loadPartnersConfig } from './config.js';
 import { createPartner } from './handlers/createPartner.js';
 import { getPartner } from './handlers/getPartner.js';
 import { getPartnerContext } from './handlers/getPartnerContext.js';
+import { getPartnerStatement } from './handlers/getPartnerStatement.js';
+import { listPartnerPriceList } from './handlers/listPartnerPriceList.js';
+import { listPartnerStatements } from './handlers/listPartnerStatements.js';
 import { listPartners } from './handlers/listPartners.js';
 import * as partnerUserHandlers from './handlers/partnerUsers.js';
 import { reactivatePartner } from './handlers/reactivatePartner.js';
@@ -31,6 +34,7 @@ const implemented: Readonly<Record<string, Handler>> = {
   getPartnerContext, // T03
   ...partnerUserHandlers, // T06 U1-U6, SA8-SA10
   listPartners, createPartner, getPartner, updatePartner, suspendPartner, reactivatePartner, resyncPartnerProjections, // T07 SA1–SA7
+  listPartnerPriceList, listPartnerStatements, getPartnerStatement, // T17 P1, S1, S2
 };
 
 export const manifest: ModuleManifest = Object.freeze({

@@ -1,4 +1,9 @@
-CHANGES
-1. services/api/src/modules/homecollection/visit.service.ts:459 (after the `transition(...)` of H3 `assignHomeVisit`) — V5/V6 side effect "specimen refresh (LabPort)" is missing (03-APP-FLOW V5; 02-TRD §8 line 484 "refresh_visit_specimens (port) fills the read model ... again at assign"; §9 job row line 514). Fix: in the same tx, enqueue task `homecollection.refresh_visit_specimens` through `app.enqueue_job` with payload `{ tenant_id, visit_id }` and `job_key = refresh:<visit_id>` (the same mechanism as core/events/publish.ts), for every successful assign/reassign once `order_id` is set (new or existing). Add one integration test in `__tests__/dispatch/assign.test.ts`: after an assign, exactly one graphile job with that task identifier and job_key exists; after a failed assign (port throws) none exists.
+APPROVE
+Note: the requested range 09ae921a..HEAD is empty (HEAD = 09ae921a). Reviewed HC-T09 as it stands at HEAD (commits 91958103, fc09ceba, aa4cc581, 2c359d74).
 
-Checked, no defect: names verbatim (operationIds, error codes, coded sets 05-SCHEMA §2, `visit_assignments.action`, flag kinds, setting `notify_phlebotomist_on_assign`, port key grammar `<visit_id>:order`, `<route_id>:<route_version>:assigned`); BookingOrderInput matches US-03-3; tenant binding on every repo call, no raw SQL in services; permission via loadVisit/assertRole on the visit/route centre; If-Match on H3-H6, H8 (flag version), H11 (route version); Idempotency required on H3/H5/H6/H7 via contract `x-idempotency` + pipeline; route version rule §4.1 (H3 both routes, H4, H5, H6 assigned, H11); caps D-131 (daily-cap race documented as ponytail); SMS in savepoint (P-44); logs carry codes only; no secrets; only C17 paths. 202/202 tests pass per run.log.
+Previous CHANGES item 1 is resolved. visit.service.ts:104 now enqueues `homecollection.refresh_visit_specimens` through `app.enqueue_job` in the assign tx, with payload `{tenant_id, visit_id}` and job_key `refresh:<visit_id>` (visitSpecimens.repo.ts:20). assign.test.ts:148-156 covers it: a successful assign leaves exactly one job, and a rolled-back assign leaves none.
+
+Re-run of tests/homecollection/HC-T09.pg.sh on 2026-11-13: 5 files, 205/205 passed.
+
+The earlier no-defect checks still hold: names verbatim, tenant binding, permissions, If-Match and Idempotency, route version rule, D-131 caps, SMS sent inside a savepoint, no PHI or secrets in logs, only C17 paths.
+Non-blocking: enqueueRefreshVisitSpecimens duplicates specimen.service.ts:21 (same SQL). They could be consolidated later.

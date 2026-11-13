@@ -12,6 +12,7 @@ import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { AjvCompiler } from '@fastify/ajv-compiler';
 import { beforeAll, describe, expect, it } from 'vitest';
+import { AJV_OPTIONS } from '../../../../core/openapi.js';
 import { getDriver, listDrivers } from '../../drivers/registry.js';
 import { scanSyntheticData } from '../ci/synthetic-scan.js';
 
@@ -81,7 +82,7 @@ describe('registry entry — addendum §8 property table', () => {
 describe('optionsSchema — addendum §8', () => {
   const s = () => drv().optionsSchema as any;
   const factory = AjvCompiler() as unknown as (ext: object, o: { customOptions: object }) => (c: { schema: object }) => (v: unknown) => boolean;
-  const valid = (v: unknown) => factory({}, { customOptions: { coerceTypes: false, strict: false, allErrors: true } })({ schema: s() })(v);
+  const valid = (v: unknown) => factory({}, { customOptions: { ...AJV_OPTIONS, coerceTypes: false, strict: false, allErrors: true } })({ schema: s() })(v);
 
   it('strict object, no required keys, lists exactly the five documented options', () => {
     expect(s().type).toBe('object');

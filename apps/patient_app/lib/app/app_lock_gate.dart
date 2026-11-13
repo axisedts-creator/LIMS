@@ -64,14 +64,13 @@ class _AppLockGateState extends State<AppLockGate> with WidgetsBindingObserver {
   bool _busy = false;
   int _failures = 0;
   bool _lockedOut = false; // 3 failures in this lock: no button, no prompts
-  bool _noScreenLock = false; // waiting for the sign-in fallback
+  bool _noScreenLock = false; // waiting for the sign-in fallback: no button
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     widget.timer.locked.addListener(_onLockChanged);
-    if (widget.timer.locked.value) _requestUnlock();
   }
 
   @override
@@ -81,11 +80,9 @@ class _AppLockGateState extends State<AppLockGate> with WidgetsBindingObserver {
     super.dispose();
   }
 
-  // One prompt per lock; later prompts come from [Try again].
+  // One prompt per lock, requested by LimsAppLockGate; later prompts come from [Try again].
   void _onLockChanged() {
-    if (widget.timer.locked.value) {
-      _requestUnlock();
-    } else {
+    if (!widget.timer.locked.value) {
       _failures = 0;
       _lockedOut = false;
       _noScreenLock = false;
@@ -134,36 +131,35 @@ class _AppLockGateState extends State<AppLockGate> with WidgetsBindingObserver {
     }
   }
 
-  Widget _lockScreen(BuildContext context) {
-    final t = Theme.of(context).textTheme;
-    return ColoredBox(
-      color: Theme.of(context).colorScheme.surface,
-      child: Center(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(LimsTokens.space4),
-          child: Column(mainAxisSize: MainAxisSize.min, children: [
-            const Icon(Icons.lock, size: LimsTokens.space8),
-            const SizedBox(height: LimsTokens.space4),
-            if (_lockedOut)
-              Text('Locked. Open the app again later.', style: t.titleMedium, textAlign: TextAlign.center)
-            else if (!_noScreenLock)
-              LimsButton(label: 'Try again', onPressed: _unlock),
-          ]),
-        ),
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) => ValueListenableBuilder<bool>(
         valueListenable: widget.timer.locked,
-        // Offstage under an opaque lock screen: while locked the PHI subtree keeps its state but is not painted,
-        // hit-tested or exposed to accessibility/screen capture.
-        builder: (_, locked, child) {
+        // Kit LimsAppLockGate (04-UI-UX A4, CR16) with [Try again]; it requests the first prompt of each lock. The PHI
+        // subtree is also Offstage while locked: state kept, not painted, hit-tested or exposed to accessibility.
+        // Lock-out copy: the kit gate has no message slot (CR .orchestra/cr/T-A4.md), so after 3 failures the gate is
+        // taken offstage (no button) and the kit LimsEmptyState shows "Locked. Open the app again later." over it.
+        // No device screen lock: same, without copy, until the sign-in fallback takes over.
+        builder: (context, locked, child) {
           final show = locked && widget.enabled();
+          final lockedOut = show && _lockedOut;
+          final noButton = lockedOut || (show && _noScreenLock);
           return Stack(fit: StackFit.expand, children: [
-            Offstage(offstage: show, child: child),
-            if (show) Positioned.fill(child: _lockScreen(context)),
+            Offstage(
+              offstage: noButton,
+              child: LimsAppLockGate(
+                isLocked: show,
+                onUnlockRequested: _unlock,
+                unlockLabel: 'Try again',
+                child: Offstage(offstage: show, child: child),
+              ),
+            ),
+            if (noButton)
+              Positioned.fill(
+                child: ColoredBox(
+                  color: Theme.of(context).colorScheme.surface,
+                  child: lockedOut ? const LimsEmptyState(icon: Icons.lock, title: 'Locked. Open the app again later.') : null,
+                ),
+              ),
           ]);
         },
         child: widget.child,

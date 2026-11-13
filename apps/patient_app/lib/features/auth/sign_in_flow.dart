@@ -94,7 +94,7 @@ class _SignInFlowState extends ConsumerState<SignInFlow> {
   }
 
   ({List<String> prefixes, String consent}) _parseConfig(Object? body) {
-    if (body case {'allowed_phone_prefixes': List raw, 'consent': {'text': String text}}) {
+    if (body case {'allowed_phone_prefixes': List<Object?> raw, 'consent': {'text': String text}}) {
       final prefixes = [for (final p in raw) if (p is String && _prefix.hasMatch(p)) p];
       if (prefixes.isNotEmpty) return (prefixes: prefixes, consent: text);
     }
@@ -262,12 +262,12 @@ class _SignInFlowState extends ConsumerState<SignInFlow> {
         actions: [TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Close'))],
       );
 
-  /// Last two digits only: "+999••••••78".
+  /// 07-SECURITY `phone_masked`: country prefix + `•••••` + last 2 digits (TRD "+99X•••••42"); never reveals the length.
   String _masked() {
     final prefix = ([..._prefixes]..sort((a, b) => b.length - a.length)).firstWhere(_phone.startsWith, orElse: () => '+');
     final national = _phone.substring(prefix.length);
     final shown = national.length < 2 ? national.length : 2;
-    return '$prefix${'•' * (national.length - shown)}${national.substring(national.length - shown)}';
+    return '$prefix•••••${national.substring(national.length - shown)}';
   }
 
   String _countdown() => 'Resend in ${_resendIn ~/ 60}:${(_resendIn % 60).toString().padLeft(2, '0')}';

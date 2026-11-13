@@ -62,12 +62,20 @@ describe('General tab (AC-14.5)', () => {
     expect(h.json).toMatchObject({ default_final_no_growth_hours: 72, mic_suggestion_enabled: true, zone_suggestion_enabled: true, early_final_requires_reason: true, recent_window_days: 7 });
   });
 
-  it.each([['0'], ['721'], ['-5']])('default_final_no_growth_hours = %s is rejected client-side (1..720): no request', async (v) => {
+  it.each([['0'], ['721']])('default_final_no_growth_hours = %s is rejected client-side (1..720): no request', async (v) => {
     await general();
     const hours = screen.getByRole('spinbutton', { name: /default no-growth final after/i });
     await userEvent.clear(hours); await userEvent.type(hours, v);
     await userEvent.click(screen.getByRole('button', { name: /^save/i }));
     expect(hit('PUT', /settings$/)).toHaveLength(0);
+  });
+
+  // Ruling C10.T-24-ruling: kit IntegerField (min>=0) drops a typed "-", so no negative can be entered.
+  it('default_final_no_growth_hours: typing "-5" yields 5 (no negative can be entered)', async () => {
+    await general();
+    const hours = screen.getByRole('spinbutton', { name: /default no-growth final after/i }) as HTMLInputElement;
+    await userEvent.clear(hours); await userEvent.type(hours, '-5');
+    expect(hours.value).toBe('5');
   });
 
   it.each([['1'], ['720']])('boundary %s hours is accepted', async (v) => {
@@ -119,7 +127,7 @@ describe('Dictionaries tab (AC-14.1, AC-14.3)', () => {
   it('set Select offers the eleven sets from §5 in order; AST categories is read-only with the fixed-per-standard note', async () => {
     api.use(http.get(`${ORIGIN}/v1/micro/coded-sets/ast_interpretations`, () => page([code('s', { standard: 'CLSI', display: 'Susceptible' })])));
     await mount();
-    await userEvent.click(screen.getByRole('button', { name: /^(dictionary|set)/i }));
+    await userEvent.click(screen.getByRole('button', { name: /dictionary|set/i }));
     expect((await screen.findAllByRole('option')).map((o) => o.textContent)).toEqual(['Organisms', 'Organism groups', 'Antibiotics', 'Media', 'Specimen sites', 'Growth codes', 'Culture outcomes', 'Isolate withdraw reasons', 'Culture cancel reasons', 'Instrument ignore reasons', 'AST categories']);
     await userEvent.click(screen.getByRole('option', { name: 'AST categories' }));
     await waitFor(() => expect(document.body.textContent).toContain('Interpretive categories are fixed per standard (CLSI, EUCAST, ECOFF) and cannot be edited here.'));

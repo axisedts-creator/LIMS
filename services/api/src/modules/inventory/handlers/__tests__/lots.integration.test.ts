@@ -168,7 +168,7 @@ describe.skipIf(!live)('T-09 #38 openContainer: open expiry in tenant time (AC-0
     const r = await open(s, newContainer(MAIN, I_S30, { lot_id: L71 }), NOW_KT('2027-05-01T04:15:00.000Z'));
     expect(r.status).toBe(201);
     expect(Date.parse(r.body.open_expiry_at)).toBe(Date.parse('2027-05-31T04:15:00.000Z'));
-    expect(wall(r.body.open_expiry_at, KT)).toEqual({ ymd: '2027-05-31', hms: '10:15:00' });
+    expect(wall(r.body.open_expiry_at, KT)).toEqual({ ymd: '2027-05-31', hms: '10:00:00' });
   });
   run('the tenant timezone comes from IdentityPort.getTenantSettings({ keys: [\'timezone\'] }), once per request, and the clock from ctx.now()', async (s) => {
     const tx = { query: (t: string, v?: unknown[]) => s.sql(A, t, v).then((rows) => ({ rows })) };

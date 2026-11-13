@@ -374,6 +374,7 @@ describe('T08 M5 addManifestLine — US-04.2', () => {
     const { w } = mk(); w.setSettings(T_A, { max_lines_per_manifest: 2 });
     const add = (v: number, ref: string) => call(addManifestLine, ctxFor(w).ctx, req({ manifest_id: M.x2, headers: IFM(v), body: LINE_IN({ partner_sample_ref: ref }) }));
     expect((await add(1, 'SYN-L-1')).status).toBe(201); expect((await add(2, 'SYN-L-2')).status).toBe(201);
+    w.log.length = 0; w.jobs.length = 0;
     const before = w.snapshot();
     const e = await fails(add(3, 'SYN-L-3'), 'partners.manifest_invalid', 422);
     expect((e.errors ?? []).map((f) => f.path)).toContain('/lines'); untouched(w, before);
@@ -382,6 +383,7 @@ describe('T08 M5 addManifestLine — US-04.2', () => {
     const m = w2.mkManifest({ line_count: 199, version: 10 }); for (let i = 0; i < 199; i++) w2.mkLine(m['id']);
     expect((await call(addManifestLine, ctxFor(w2).ctx, req({ manifest_id: m['id'], headers: IFM(10), body: LINE_IN({ partner_sample_ref: 'SYN-200' }) }))).status).toBe(201);
     expect(man(w2, m['id'])['line_count']).toBe(200);
+    w2.log.length = 0; w2.jobs.length = 0;
     const before2 = w2.snapshot();
     await fails(call(addManifestLine, ctxFor(w2).ctx, req({ manifest_id: m['id'], headers: IFM(11), body: LINE_IN({ partner_sample_ref: 'SYN-201' }) })), 'partners.manifest_invalid', 422);
     untouched(w2, before2);

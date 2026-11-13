@@ -5,7 +5,7 @@
 //   * the query barcode reaches extractHostQueryBarcodes through parse(): parse() of QRY^Q02 must return ok:true, messageKind 'host_query' and ONE record
 //     { recordClass:'host_query', sampleBarcode: QRD-8.1 } (the helpers' fake driver and hostQuery.service.ts work the same way: ParseOk is all extract/build get).
 //     An empty / missing / >40 barcode may fail either in parse() (ok:false) or in extractHostQueryBarcodes (throws LimsError code instruments.message_malformed).
-//   * replies are HL7 text with CR segment ends incl. a final CR (no MLLP framing: that is the agent's job). QCK/DSR MSH-3/4 are 'Truth'/'Truth-H80E' exactly as the §5 example.
+//   * replies are HL7 text with CR segment ends incl. a final CR (no MLLP framing: that is the agent's job). QCK/DSR MSH-3/4 are the §6 defaults 'LIS'/'LIMS' (ack_sending_app/facility; 'Truth'/'Truth-H80E' fail ^[A-Z0-9_]+$; CR-C7-017 only if commissioning needs them, U).
 //   * HostQueryAnswer carries only sex/ageDays (no patient id / name / DOB / department / accession): DSP-1..4, 6, 13 are therefore empty; DSP-4 is never derived from ageDays (§5 rule).
 //   * a 'found' answer with an empty tests[] is NF (rule: OK only with at least one pending mapped test).
 import { readFileSync } from 'node:fs';

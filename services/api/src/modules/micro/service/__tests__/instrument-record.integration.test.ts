@@ -253,6 +253,16 @@ describe.skipIf(!live && !REQUIRE)('T-14 instrument records (live DB)', () => {
       expect(r.rec['match_status']).toBe('applied');
       expect(r.rec['isolate_id']).toBe(i1);
     });
+    it('review #2: no isolate number, live culture has no isolates, but a cancelled culture of the SAME specimen owns isolate 1 -> pending_match / isolate_number_in_use (no 23505, no dead letter), nothing created', async () => {
+      const dead = await newCulture({ status: 'cancelled' }); await newIsolate(dead, 1);
+      const live = { id: uid(), specimen: dead.specimen, barcode: dead.barcode };
+      await seedRow('micro.cultures', { id: live.id, tenant_id: A, centre_id: W.centre, order_id: W.order, order_item_id: uid(), specimen_id: live.specimen, patient_id: W.patient, test_id: W.test, specimen_type_code: 'urine',
+        status: 'incubating', received_at: '2026-11-04T04:00:00.000Z', planted_at: '2026-11-04T05:00:00.000Z', last_specimen_seq: 1, created_by: SYS, updated_by: SYS, version: 1 });
+      const r = await deliver({ barcode: live.barcode, seq: null, code: 'ORG' }, { refs: known(live) });
+      expect(r.rec).toMatchObject({ match_status: 'pending_match', match_reason: 'isolate_number_in_use', expires_at: null });
+      expect(await isolatesOf(live.id)).toHaveLength(0);
+      expect(await isolatesOf(dead.id)).toHaveLength(1);
+    });
     it('AST: upsert (isolate, antibiotic, method) with source = instrument, interpretation_source = instrument, instrument ids/time, category from interpretation_raw (upper-cased), standard_source = instrument_payload', async () => {
       const c = await newCulture(); const i1 = await newIsolate(c, 1, { organism_code: CODE.ecoli });
       const { rec } = await deliver({ barcode: c.barcode, kind: 'ast', seq: 1, ast: { interpretation_raw: 'r', raw_value: '8' } }, { refs: known(c) });

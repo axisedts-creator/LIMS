@@ -3,9 +3,9 @@
 // before calling /v1/identity/platform/* — the browser can call actions directly, so the client checks are only UX.
 import { call, P, platformPermissions, qs } from './server';
 import {
-  ANNEX_STATUSES, CURSOR_RE, DATE_RE, EMAIL_RE, FLAG_CODE_RE, IDEMPOTENCY_RE, MAX_CIDRS, MAX_UPLOAD_BYTES, PAN_RE, PERM, TENANT_CODE_RE, UNIT_CODE_RE, UPLOAD_TYPES,
+  ANNEX_STATUSES, CURSOR_RE, DATE_RE, EMAIL_RE, IDEMPOTENCY_RE, MAX_CIDRS, MAX_UPLOAD_BYTES, PAN_RE, PERM, TENANT_CODE_RE, UNIT_CODE_RE, UPLOAD_TYPES,
   isCidr, isUuid,
-  type AnnexRecord, type AnnexStatus, type DeadLetter, type Fail, type FeatureFlag, type LifecycleAction, type PageOf, type PlatformSession, type Result,
+  type AnnexRecord, type AnnexStatus, type DeadLetter, type Fail, type LifecycleAction, type PageOf, type PlatformSession, type Result,
   type Settings, type StaffMember, type SupportSession, type Tenant,
 } from './shared';
 
@@ -84,18 +84,7 @@ export async function patchTenantSettingsAction(tenantId: string, version: numbe
   return call(`${P}/tenants/${tenantId}/settings`, json('PATCH', patch, ifMatch(version)));
 }
 
-/** CR-BLOCKED read (no platform list of a tenant's flags in identity.yaml) — see .orchestra/cr/C2.T26.md. */
-export async function listTenantFlagsAction(tenantId: string): Promise<Result<{ data: FeatureFlag[] }>> {
-  if (!(await need(PERM.read))) return forbidden();
-  if (!isUuid(tenantId)) return invalid();
-  return call(`${P}/tenants/${tenantId}/feature-flags`);
-}
-
-export async function setTenantFlagAction(tenantId: string, flagCode: string, isEnabled: boolean, approvalRef?: string): Promise<Result<FeatureFlag>> {
-  if (!(await need(PERM.manage))) return forbidden();
-  if (!isUuid(tenantId) || !FLAG_CODE_RE.test(flagCode) || typeof isEnabled !== 'boolean' || (approvalRef !== undefined && !str(approvalRef, 1, 200))) return invalid();
-  return call(`${P}/tenants/${tenantId}/feature-flags/${flagCode}`, json('PUT', { is_enabled: isEnabled, ...(approvalRef ? { approval_ref: approvalRef } : {}) }));
-}
+// LD-114: no feature-flag actions; the platform flag list read is not approved, so PL-3's Feature flags tab is an empty state.
 
 export async function inviteTenantAdminAction(tenantId: string, email: string, displayName: string, key: string): Promise<Result<unknown>> {
   if (!(await need(PERM.manage))) return forbidden();

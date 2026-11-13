@@ -1,6 +1,7 @@
-CHANGES
-1. services/worker/src/jobs/engagement/tasks/send_booking_message.ts:14 — `NOTIFICATION_TTL_MS = 30 * 24 * 3_600_000` invents a 30-day retention. Spec: 02-TRD.md:360 (§4.9 "Rows expire after 180 days [CONV]") and 05-SCHEMA.md:1829 (`notifications` 180 days). Fix: `const NOTIFICATION_TTL_MS = 180 * 24 * 3_600_000;` and change the header comment at :8 from "expires after 30 days" to "expires after 180 days (TRD §4.9, 05-SCHEMA retention)".
-2. services/worker/src/jobs/engagement/__tests__/send_booking_message.test.ts:95 — only asserts `expires_at > now`, so the wrong TTL passes. Fix (tester): `expect(Date.parse(n[0]!['expires_at'])).toBe(Date.parse(w.now()) + 180 * 24 * 3_600_000);`.
-
-Checked OK: template codes / purposes / params {lab_name, datetime, booking_no} match TRD §8.1 row + C6 04-UI-UX:352-353 (CR-C16-009 as modified by 08 R13); job id `engagement.send_booking_message`, key `bmsg:<booking_id>:<kind>`, max 8; payload ids only; notification kind/entity/route match 05-SCHEMA notifications checks; reminder row per TRD §4.11 (strict `>`, due = slot − H); cancel touches only scheduled kind 'booking' rows; every statement tenant-bound; no PHI in logs; only owned paths; no migrations/RLS in this diff. Ran verify: API 31/31, worker 23/23 pass.
-Note (outside this diff, T-R1): tasks/send_reminder.ts:15 has the same 30-day TTL; same fix applies — route to T-R1 owner.
+APPROVE
+Re-review after fbc35af3 / b0443973. Both prior findings fixed exactly as specified:
+1. send_booking_message.ts:14 NOTIFICATION_TTL_MS = 180 days; header comment cites TRD §4.9 / 05-SCHEMA retention.
+2. send_booking_message.test.ts:95 asserts expires_at == now + 180 d exactly.
+Earlier checks still hold (template codes/purposes/params per TRD §8.1 + CR-C16-009 as modified by 08 R13; job id/key/max attempts; notification kind/entity/route; reminder strict `>` window; tenant-bound statements; no PHI in logs; owned paths only; no migrations/RLS in diff).
+Ran verify: API 31/31, worker 23/23 pass.
+Carry-over (outside T-B5): tasks/send_reminder.ts 30-day TTL -> T-R1 owner.

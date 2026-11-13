@@ -6,6 +6,7 @@ import { CLOSE_QUEUE_DAY, closeQueueDay, crontab } from './cron.js';
 import { handle as catalogChanged } from './consumers/catalog.changed.v1.js';
 import { handle as collectionSynced } from './consumers/homecollection.collection.synced.v1.js';
 import { MARK_NO_SHOWS, RECONCILE_BOOKINGS, markNoShows, reconcileBookings } from './tasks/booking_jobs.js';
+import { createBackfillLink } from './tasks/backfill_link.js';
 import { createDispatchDueReminders } from './tasks/dispatch_due_reminders.js';
 import { PURGE_EPHEMERAL, PURGE_QUEUE, purgeEphemeral, purgeQueue } from './tasks/purge.js';
 import { SYNC_BOOKING_CENTRES, SYNC_BOOKING_CENTRES_NIGHTLY, syncBookingCentres, syncBookingCentresNightly } from './tasks/sync_booking_centres.js';
@@ -36,6 +37,7 @@ export const manifest: WorkerManifest = Object.freeze({
     ...Object.fromEntries(Object.keys(TASKS).map((id) => [id, task(id)])),
     [CLOSE_QUEUE_DAY]: closeQueueDay, // T-Q2: close_queue_day
     'engagement.send_login_otp': createSendLoginOtp(), // T-A2
+    'engagement.backfill_link': createBackfillLink(), // T-L2
     'engagement.send_booking_message': createSendBookingMessage(), // T-B5
     'engagement.send_reminder': createSendReminder(), // T-R1
     'engagement.dispatch_due_reminders': createDispatchDueReminders(), // T-R1 (cron-only task: no §8.1 row)

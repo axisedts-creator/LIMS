@@ -90,13 +90,13 @@ export function createSetupService(deps: { repo?: SetupRepo } = {}) {
       return { status: 200, version: m['version'], body: (await material(ctx, [m], await tenantToday(ctx), true))[0] };
     },
 
-    async updateControlMaterial(ctx: SetupCtx, i: { materialId: unknown; expectedVersion?: number; patch: unknown }): Promise<Result> {
+    async updateControlMaterial(ctx: SetupCtx, i: { materialId: unknown; expectedVersion?: number | undefined; patch: unknown }): Promise<Result> {
       await assert(ctx, MANAGE);
       const patch = materialPatch(i.patch);
       return changeMaterial(ctx, i.materialId, i.expectedVersion, patch);
     },
 
-    async deactivateControlMaterial(ctx: SetupCtx, i: { materialId: unknown; expectedVersion?: number }): Promise<Result> {
+    async deactivateControlMaterial(ctx: SetupCtx, i: { materialId: unknown; expectedVersion?: number | undefined }): Promise<Result> {
       await assert(ctx, MANAGE);
       return changeMaterial(ctx, i.materialId, i.expectedVersion, { is_active: false });   // AC-01.4: never deleted, stays readable with its levels and lots
     },
@@ -113,7 +113,7 @@ export function createSetupService(deps: { repo?: SetupRepo } = {}) {
       return { status: 201, version: row['version'], body: levelDto(row) };
     },
 
-    async updateControlLevel(ctx: SetupCtx, i: { levelId: unknown; expectedVersion?: number; patch: unknown }): Promise<Result> {
+    async updateControlLevel(ctx: SetupCtx, i: { levelId: unknown; expectedVersion?: number | undefined; patch: unknown }): Promise<Result> {
       await assert(ctx, MANAGE);
       const patch = levelPatch(i.patch), v = needVersion(i.expectedVersion);
       const cur = isId(i.levelId) ? await repo.findLevel(ctx.tx, ctx.tenantId, i.levelId) : undefined;
@@ -148,7 +148,7 @@ export function createSetupService(deps: { repo?: SetupRepo } = {}) {
       return { status: 200, body: { data: page.rows.map((r) => lotDto(r, today)), page: pageOf(pg.limit, page.nextCursor) } };
     },
 
-    async updateControlLot(ctx: SetupCtx, i: { lotId: unknown; expectedVersion?: number; patch: unknown }): Promise<Result> {
+    async updateControlLot(ctx: SetupCtx, i: { lotId: unknown; expectedVersion?: number | undefined; patch: unknown }): Promise<Result> {
       await assert(ctx, MANAGE);
       const patch = lotPatch(i.patch), v = needVersion(i.expectedVersion);
       const cur = isId(i.lotId) ? await repo.findLot(ctx.tx, ctx.tenantId, i.lotId) : undefined;
@@ -191,7 +191,7 @@ export function createSetupService(deps: { repo?: SetupRepo } = {}) {
       return { status: 201, version: row['version'], body: idMapDto(row, (await labels(ctx, [b.instrument_id])).get(b.instrument_id)) };
     },
 
-    async deactivateControlIdMap(ctx: SetupCtx, i: { mapId: unknown; expectedVersion?: number }): Promise<Result> {
+    async deactivateControlIdMap(ctx: SetupCtx, i: { mapId: unknown; expectedVersion?: number | undefined }): Promise<Result> {
       await assert(ctx, MANAGE);
       const v = needVersion(i.expectedVersion);
       const cur = isId(i.mapId) ? await repo.findMap(ctx.tx, ctx.tenantId, i.mapId) : undefined;

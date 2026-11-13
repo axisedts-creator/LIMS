@@ -6,6 +6,7 @@
 import type { Handler } from '../../../core/module.js';
 import { LimsError } from '../../../core/errors.js';
 import { loadQualityConfig } from '../config.js';
+import { setupHandlers } from './setup.handlers.js';
 
 const OPERATION_IDS = [
   'listControlMaterials', 'createControlMaterial', 'getControlMaterial', 'updateControlMaterial', 'deactivateControlMaterial', 'createControlLevel',
@@ -29,7 +30,15 @@ const stub = (operationId: string): Handler => async () => {
   throw new LimsError('common.internal', `quality ${operationId} not implemented`);
 };
 
-const implemented: Partial<Record<QualityOperationId, Handler>> = {};
+// Every implemented handler sits behind the same phase switch (02-TRD:120; ruling C9.T-06).
+const gated = (h: Handler): Handler => async (req, ctx) => {
+  if (!enabled) throw new LimsError('common.feature_disabled');
+  return h(req, ctx);
+};
+
+const implemented: Partial<Record<QualityOperationId, Handler>> = Object.fromEntries(
+  Object.entries(setupHandlers).map(([op, h]) => [op, gated(h as Handler)]), // T-06: #1-#13
+);
 
 export const handlers: Readonly<Record<QualityOperationId, Handler>> = Object.freeze(
   Object.fromEntries(OPERATION_IDS.map((op) => [op, implemented[op] ?? stub(op)])) as Record<QualityOperationId, Handler>,

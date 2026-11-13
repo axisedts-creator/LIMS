@@ -20,6 +20,7 @@ export const crontab: readonly CronEntry[] = Object.freeze([
   Object.freeze({ identifier: 'engagement.reconcile_bookings', schedule: '*/10 * * * *', tenantScope: 'per_tenant' as const, maxAttempts: 3 }), // T-B4 (TRD §8.2)
   Object.freeze({ identifier: 'engagement.mark_no_shows', schedule: '*/15 * * * *', tenantScope: 'per_tenant' as const, maxAttempts: 3 }), // T-B4 (TRD §8.2)
   Object.freeze({ identifier: 'engagement.sync_bookable_items_nightly', schedule: '55 19 * * *', tenantScope: 'per_tenant' as const, maxAttempts: 3 }), // T-B1: 01:40 Asia/Kathmandu = 19:55 UTC
+  Object.freeze({ identifier: 'engagement.expire_memberships', schedule: '35 18 * * *', tenantScope: 'per_tenant' as const, maxAttempts: 3 }), // T-M1: 00:20 NPT = 18:35 UTC (TRD §8.2)
 ]);
 
 /** T-10 (03-APP-FLOW §4.3): still-open tokens (waiting/called/serving) of today's business day -> expired. Idempotent (a rerun matches nothing); counters are never touched.

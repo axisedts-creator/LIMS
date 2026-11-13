@@ -6,6 +6,7 @@ import { CLOSE_QUEUE_DAY, closeQueueDay, crontab } from './cron.js';
 import { handle as catalogChanged } from './consumers/catalog.changed.v1.js';
 import { handle as collectionSynced } from './consumers/homecollection.collection.synced.v1.js';
 import { MARK_NO_SHOWS, RECONCILE_BOOKINGS, markNoShows, reconcileBookings } from './tasks/booking_jobs.js';
+import { EXPIRE_MEMBERSHIPS, expireMemberships } from './tasks/expire_memberships.js';
 import { createDispatchDueReminders } from './tasks/dispatch_due_reminders.js';
 import { PURGE_EPHEMERAL, PURGE_QUEUE, purgeEphemeral, purgeQueue } from './tasks/purge.js';
 import { SYNC_BOOKING_CENTRES, SYNC_BOOKING_CENTRES_NIGHTLY, syncBookingCentres, syncBookingCentresNightly } from './tasks/sync_booking_centres.js';
@@ -47,6 +48,7 @@ export const manifest: WorkerManifest = Object.freeze({
     [SYNC_NIGHTLY]: syncBookableItemsNightly, // T-B1 (cron-only task: no §8.1 row)
     [RECONCILE_BOOKINGS]: reconcileBookings, // T-B4 (cron-only)
     [MARK_NO_SHOWS]: markNoShows, // T-B4 (cron-only)
+    [EXPIRE_MEMBERSHIPS]: expireMemberships, // T-M1 (cron-only)
   }),
   subscriptions: Object.freeze({
     ...Object.fromEntries(SUBSCRIPTIONS.map((type) => [type, consumer(type)])),

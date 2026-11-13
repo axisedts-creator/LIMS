@@ -332,6 +332,7 @@ describe('T0D-18 request pipeline against the dev database', () => {
     });
 
     it('attack: 20 parallel creates with the SAME key run the handler once and leave exactly one row', { timeout: 120000 }, async () => {
+      await admin.query('DELETE FROM core.rate_limit_counters');
       const app = await bootApp();
       const k = `${KEY_PREFIX}race`;
       const rs = await Promise.all(Array.from({ length: 20 }, () => post(app, { note: 't0d18-race' }, k)));

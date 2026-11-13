@@ -9,6 +9,9 @@ import {
   createAnatomicAssay, createAnatomicStain, createAnatomicTextTemplate, getAnatomicSettings, listAnatomicAssays, listAnatomicCodedValues, listAnatomicStains, listAnatomicTestProfiles,
   listAnatomicTextTemplates, updateAnatomicAssay, updateAnatomicSettings, updateAnatomicStain, updateAnatomicTextTemplate, upsertAnatomicCodedValue, upsertAnatomicTestProfile,
 } from './config.handlers.js';
+import {
+  addAnatomicBatchMembers, closeAnatomicBatch, createAnatomicBatch, getAnatomicBatch, listAnatomicBatches, markAnatomicCaseReady, removeAnatomicBatchMembers, saveAnatomicMolecularResults,
+} from './molecular.handlers.js';
 
 const OPERATION_IDS = [
   'listAnatomicCases', 'lookupAnatomicObject', 'getAnatomicCase', 'accessionAnatomicCase',
@@ -44,6 +47,8 @@ const implemented: Partial<Record<AnatomicOperationId, Handler>> = {
   getAnatomicSettings, updateAnatomicSettings, listAnatomicStains, createAnatomicStain, updateAnatomicStain, listAnatomicTestProfiles, upsertAnatomicTestProfile, // C11 T-11 (K1–K7)
   listAnatomicAssays, createAnatomicAssay, updateAnatomicAssay, listAnatomicCodedValues, upsertAnatomicCodedValue, // K8–K12
   listAnatomicTextTemplates, createAnatomicTextTemplate, updateAnatomicTextTemplate, // K20–K22
+  saveAnatomicMolecularResults, listAnatomicBatches, createAnatomicBatch, getAnatomicBatch, addAnatomicBatchMembers, removeAnatomicBatchMembers, closeAnatomicBatch, // C11 T-16 (Q1–Q7)
+  markAnatomicCaseReady, // C11 T-16: molecular branch (AC-11.6); other kinds stay stubbed until T-08
 };
 
 export const handlers: Readonly<Record<AnatomicOperationId, Handler>> = Object.freeze(

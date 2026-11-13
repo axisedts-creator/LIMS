@@ -104,7 +104,7 @@ const mayAccessPii = (who: Caller, visit: Obj): boolean => who.holdsAssign || (w
 const code = (e: unknown): string => (typeof (e as Obj)?.['code'] === 'string' ? (e as Obj)['code'] : 'unknown');
 
 // ---- names (every lookup that may fail runs in ctx.db.tx = savepoint, 08 A19 P-44) ----
-async function staffNames(ctx: Ctx, ids: readonly string[]): Promise<Map<string, string>> {
+export async function staffNames(ctx: Ctx, ids: readonly string[]): Promise<Map<string, string>> {
   const out = new Map<string, string>();
   for (let i = 0; i < ids.length; i += 200) {                                                     // core caps one call at 200 ids; a page / visit never needs a second
     try {
@@ -116,7 +116,7 @@ async function staffNames(ctx: Ctx, ids: readonly string[]): Promise<Map<string,
 }
 /** H12 roster: active memberships of the centre holding the phlebotomist role (the C17 definition of "phlebotomist"); a failure propagates (nothing to show without it). */
 const rosterOf = (ctx: Ctx, centreId: string) => ctx.db.tx((x) => ctx.core.memberships.list(x, { centreId, roleCode: 'phlebotomist' }));
-async function userNames(c: Ctx, ids: readonly string[]): Promise<Map<string, string>> {
+export async function userNames(c: Ctx, ids: readonly string[]): Promise<Map<string, string>> {
   const out = new Map<string, string>();
   for (const userId of ids) {
     try { const u = await c.db.tx((x) => c.core.user(x, { userId })); if (u?.displayName) out.set(userId, u.displayName); }
@@ -176,6 +176,14 @@ export async function getHomeVisit(hctx: unknown, params: unknown): Promise<Resu
   const visit = await loadVisit(c, visitId, PERM_VISIT_READ);
   const who = await callerOf(c);
   if (who.phleboOnly && visit['assigned_membership_id'] !== who.membershipId) throw new LimsError('homecollection.visit_not_assigned');   // nothing fetched, nothing logged
+  const body = await buildVisitDetail(c, visit, who, true);
+  await c.audit.access({ action: 'home_visit.view', entityType: 'home_visit', entityId: visitId, centreId: visit['centre_id'], purpose: 'visit_detail', outcome: 'allowed' });   // one row per read (review #18)
+  return { status: 200, body };
+}
+
+/** VisitDetailDto of a loaded visit row. `orderLookups` = registration_no (FrontdeskPort) + balance (BillingPort): H2 only, the HC-T09 write responses skip both (REQ-SEC-081: less data, fewer port calls). */
+export async function buildVisitDetail(c: Ctx, visit: Obj, who: Caller, orderLookups: boolean): Promise<Obj> {
+  const visitId: string = visit['id'];
   const showPii = mayAccessPii(who, visit);
 
   const [flags, assignments, transitions, specimens, collections, route] = await Promise.all([
@@ -193,7 +201,7 @@ export async function getHomeVisit(hctx: unknown, params: unknown): Promise<Resu
   if (showPii) {
     try { patientName = ((await c.db.tx((x) => c.ports.FrontdeskPort['getPatientDemographics'](x, { patientId: visit['patient_id'], purpose: 'home_visit' }))) as Obj | undefined)?.['fullName']; }
     catch (e) { c.log.warn({ code: code(e) }, 'homecollection.demographics_unavailable'); }
-    if (visit['order_id']) {
+    if (orderLookups && visit['order_id']) {
       registrationNo = (await c.ports.FrontdeskPort['getOrderSummary'](c, { orderId: visit['order_id'] }))?.registrationNo;   // §2.1: propagates
       try { balance = await c.db.tx((x) => c.ports.BillingPort['getOrderBalance'](x, { orderId: visit['order_id'] })); }       // §2.1: omitted on failure
       catch (e) { c.log.warn({ code: code(e) }, 'homecollection.balance_unavailable'); }
@@ -207,10 +215,8 @@ export async function getHomeVisit(hctx: unknown, params: unknown): Promise<Resu
     sp_received: live.filter((s) => ['received', 'aliquoted', 'in_process', 'resulted', 'verified', 'approved', 'reported', 'stored'].includes(s['status'])).length,
     sp_rejected: live.filter((s) => s['status'] === 'rejected').length,
   };
-  const body = toVisitDetailDto(row, { names, showAreaHint: who.holdsAssign, ...(showPii ? { patientName } : {}) },
+  return toVisitDetailDto(row, { names, showAreaHint: who.holdsAssign, ...(showPii ? { patientName } : {}) },
     { flags, assignments, transitions, specimens, collections, showPii, ...(registrationNo ? { registrationNo } : {}), ...(balance ? { balance: { balanceDue: balance['balanceDue'], asOf: balance['asOf'] } } : {}) });
-  await c.audit.access({ action: 'home_visit.view', entityType: 'home_visit', entityId: visitId, centreId: visit['centre_id'], purpose: 'visit_detail', outcome: 'allowed' });   // one row per read (review #18)
-  return { status: 200, body };
 }
 
 // ---- H10 ----

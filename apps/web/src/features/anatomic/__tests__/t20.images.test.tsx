@@ -98,7 +98,7 @@ describe('metadata edit and remove', () => {
   it('Kind / Part / Caption -> [Save]: PUT /images/{id} with If-Match "<version>" and {kind, part_id, caption}', async () => {
     await mount(withImages([image(1, { version: 4 })]));
     const it1 = itemOf('Synthetic caption 1');
-    await choose(it1, /^kind/i, /^microscopy$/i);
+    await choose(it1, /kind$/i, /^microscopy$/i);
     const cap = within(it1).getByLabelText(/caption/i);
     await userEvent.clear(cap);
     await userEvent.type(cap, 'Synthetic new caption');
@@ -120,12 +120,12 @@ describe('metadata edit and remove', () => {
   it('[Remove from case] asks "Remove this image from the case? Signed reports that include it keep it."; Cancel sends nothing; Confirm POSTs /deactivate with If-Match + Idempotency-Key', async () => {
     await mount(withImages([image(1, { version: 2 })]));
     await userEvent.click(within(itemOf('Synthetic caption 1')).getByRole('button', { name: /remove from case|remove/i }));
-    const d = await screen.findByRole('alertdialog');
+    const d = await screen.findByRole('dialog'); // kit ConfirmDialog = kit Dialog (role dialog); ruling T-20
     expect(d.textContent).toContain('Remove this image from the case? Signed reports that include it keep it.');
     await userEvent.click(within(d).getByRole('button', { name: /cancel|keep/i }));
     expect(hit('POST', /deactivate$/)).toHaveLength(0);
     await userEvent.click(within(itemOf('Synthetic caption 1')).getByRole('button', { name: /remove from case|remove/i }));
-    await userEvent.click(within(await screen.findByRole('alertdialog')).getByRole('button', { name: /remove/i }));
+    await userEvent.click(within(await screen.findByRole('dialog')).getByRole('button', { name: /remove/i }));
     await waitFor(() => expect(hit('POST', /deactivate$/)).toHaveLength(1));
     const p = hit('POST', /deactivate$/)[0]!;
     expect(p.path).toBe(`/v1/anatomic/images/${ID(501)}/deactivate`);

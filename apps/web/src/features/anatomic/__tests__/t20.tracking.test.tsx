@@ -67,7 +67,7 @@ describe('AC-06.2 single lookup: case, current location, movement history newest
     api.use(http.get(`${ORIGIN}/v1/anatomic/blocks/:id/movements`, () => page(movs)));
     await mount();
     await scan(A1);
-    await screen.findByText('Synthetic cabinet 7', { exact: false });
+    expect((await screen.findAllByText('Synthetic cabinet 7', { exact: false })).length).toBeGreaterThanOrEqual(1); // DescriptionList + Timeline (04-UI-UX:247); ruling T-20
     const [l, ...rest] = hit('POST', /\/cases\/lookup$/);
     expect(rest).toHaveLength(0);
     expect(l!.json).toEqual({ label: A1 });
@@ -107,7 +107,7 @@ describe('AC-06.2 single lookup: case, current location, movement history newest
     const spies = (['log', 'info', 'warn', 'error', 'debug'] as const).map((m) => vi.spyOn(console, m).mockImplementation(() => {}));
     await mount();
     await scan(A1);
-    await screen.findByText('Synthetic cabinet 7', { exact: false });
+    expect((await screen.findAllByText('Synthetic cabinet 7', { exact: false })).length).toBeGreaterThanOrEqual(1); // DescriptionList + Timeline (04-UI-UX:247); ruling T-20
     for (const h of hits) expect(h.path + h.search, h.path).not.toContain('SP26-000042');
     expect(JSON.stringify(router.push.mock.calls)).not.toContain('SP26-000042');
     for (const s of spies) expect(JSON.stringify(s.mock.calls)).not.toContain('SP26-000042');
@@ -166,8 +166,8 @@ describe('basket mode (plan row T-20; 04-UI-UX §4.5)', () => {
     const table = await screen.findByRole('grid');
     await waitFor(() => expect(within(table).getAllByRole('row').length).toBe(3)); // header + 2
     for (const h of ['Label', 'Type', 'Current location']) expect(within(table).getByRole('columnheader', { name: new RegExp(`^${h}`) })).toBeTruthy();
-    expect(within(table).getByText(A1, { exact: false })).toBeTruthy();
-    expect(within(table).getByText(S1, { exact: false })).toBeTruthy();
+    expect(within(table).getByText(A1)).toBeTruthy(); // exact: A1 is a substring of S1; ruling T-20
+    expect(within(table).getByText(S1)).toBeTruthy();
     expect(within(table).getByText('Synthetic cabinet 7', { exact: false })).toBeTruthy();
     expect(screen.queryByRole('term', { name: 'Last movement' })).toBeNull();
     expect(hit('GET', /\/movements$/)).toHaveLength(0); // history is for single mode only
@@ -283,14 +283,14 @@ describe('Movement dialog (§4.4) from the basket', () => {
     await userEvent.click(radio(/^discard$/i));
     await choose(dialog(), /reason/i, /retention period ended/i);
     await submit();
-    const confirm = await screen.findByRole('alertdialog');
+    const confirm = (await screen.findAllByRole('dialog')).at(-1)!; // kit ConfirmDialog = kit Dialog (role dialog), topmost; ruling T-20
     expect(confirm.textContent).toContain("Discarded blocks and slides can't be used again.");
     expect(confirm.querySelector('[data-tone="danger"], .lims-btn-danger')).toBeTruthy();
     expect(movePosts()).toHaveLength(0);
     await userEvent.click(within(confirm).getByRole('button', { name: /cancel|keep|back/i }));
     expect(movePosts()).toHaveLength(0);
     await submit();
-    await userEvent.click(within(await screen.findByRole('alertdialog')).getByRole('button', { name: /discard/i }));
+    await userEvent.click(within((await screen.findAllByRole('dialog')).at(-1)!).getByRole('button', { name: /discard/i }));
     await waitFor(() => expect(movePosts()).toHaveLength(1));
     expect(movePosts()[0]!.json).toMatchObject({ movement: 'discarded', reason_code: 'retention_expired' });
   });
@@ -349,7 +349,7 @@ describe('Movement dialog (§4.4) from the basket', () => {
     await mount();
     expect(screen.queryByRole('button', { name: /record movement/i })).toBeNull();
     await scan(A1);
-    await screen.findByText('Synthetic cabinet 7', { exact: false });
+    expect((await screen.findAllByText('Synthetic cabinet 7', { exact: false })).length).toBeGreaterThanOrEqual(1); // DescriptionList + Timeline (04-UI-UX:247); ruling T-20
     expect(screen.queryByRole('button', { name: /record movement/i })).toBeNull();
   });
 });

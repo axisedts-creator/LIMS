@@ -450,7 +450,7 @@ describe('Stains tab (§4.2.4)', () => {
     it('Cancel: ConfirmDialog needs a free-text reason (<=500); empty sends nothing; then POST /cancel {reason_text}', async () => {
       await open();
       await act1(/Periodic/, /^cancel$/i);
-      const d = await screen.findByRole('alertdialog');
+      const d = await screen.findByRole('dialog'); // kit ConfirmDialog = kit Dialog (role dialog); ruling T-20
       await userEvent.click(btn(/^(cancel stain|confirm|yes|cancel order)/i, d));
       expect(posts(/\/cancel$/)).toHaveLength(0);
       expect(within(d).getByLabelText(/reason/i).getAttribute('maxlength')).toBe('500');

@@ -8,7 +8,8 @@ import type { Tx } from '../repository/shared.repo.js';
 import { getRouteById, updateRoute } from '../repository/routes.repo.js';
 import { insertVisitFlag, listVisitFlagsByVisit } from '../repository/visitFlags.repo.js';
 import { insertVisitTransition } from '../repository/visitTransitions.repo.js';
-import { getVisitByBookingId, getVisitById, insertVisit, updateVisit } from '../repository/visits.repo.js';
+import { getVisitByBookingId, getVisitById, getVisitByOrderId, insertVisit, updateVisit } from '../repository/visits.repo.js';
+import { enqueueSpecimenRefresh } from '../specimen.service.js';
 
 type Obj = Record<string, any>;
 export interface BookingCtx {
@@ -87,6 +88,31 @@ export async function onBookingConfirmed(c: BookingCtx, payload: Obj, seq: unkno
   await transition(c, visit, null, 'unassigned');
   if (!address) await raiseFlag(c, visit, 'address_missing');
   await upsertRef(c, ref, bookingId, { state: 'confirmed', last_seq: last, visit_id: visit['id'] });
+}
+
+/** frontdesk.order.created.v1 (US-02, 02-TRD §8.2): home + front_desk -> front_desk visit; home + home_collection -> order_registered_at on source_ref_id; else ignored. */
+export async function onOrderCreated(c: BookingCtx, payload: Obj): Promise<void> {
+  const source = payload?.['source'];
+  if (payload?.['collection_mode'] !== 'home' || (source !== 'front_desk' && source !== 'home_collection')) return;   // US-02-3
+  const orderId = uuid(payload['order_id']);
+  if (source === 'front_desk') {
+    await c.tx.query('SELECT pg_advisory_xact_lock(hashtextextended($1, 0))', [`${c.tenantId}:homecollection.order:${orderId}`]);
+    if (await getVisitByOrderId(c.tx, c.tenantId, orderId)) return;                                 // redelivery / re-emit / booking-born visit already owns the order
+    const referrerId = optUuid(payload['referrer_id']);
+    const visit = await insertVisit(c.tx, c.tenantId, { id: uuidv7(), centre_id: uuid(payload['centre_id']), branch_id: uuid(payload['branch_id']), kind: 'front_desk', status: 'unassigned',
+      patient_id: uuid(payload['patient_id']), order_id: orderId, ...(referrerId ? { referrer_id: referrerId } : {}) });
+    await transition(c, visit, null, 'unassigned');
+    await raiseFlag(c, visit, 'address_missing');
+    await enqueueSpecimenRefresh(c, visit['id']);
+    return;
+  }
+  const visitId = optUuid(payload['source_ref_id']);
+  const visit = visitId ? await getVisitById(c.tx, c.tenantId, visitId) : null;
+  if (!visit || visit['order_id'] !== orderId || visit['order_registered_at']) return;              // unknown visit, other order (guard), or already stamped (redelivery)
+  if (!(await updateVisit(c.tx, c.tenantId, visit['id'], visit['version'], { order_registered_at: instant(payload['registered_at']) }))) throw conflict();
+  const route = visit['route_id'] ? await getRouteById(c.tx, c.tenantId, visit['route_id']) : null;
+  if (route && !(await updateRoute(c.tx, c.tenantId, route['id'], route['version'], {}))) throw conflict();   // TRD §4.1: snapshot field changed
+  await enqueueSpecimenRefresh(c, visit['id']);
 }
 
 /** engagement.booking.cancelled.v1 (US-10). */

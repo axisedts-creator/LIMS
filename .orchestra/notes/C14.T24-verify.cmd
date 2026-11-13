@@ -1,0 +1,1 @@
+cd /d "%~dp0..\.." && pnpm --dir apps/web exec tsc --noEmit -p tests/e2e/smartreport/tsconfig.json && pnpm --dir apps/web exec playwright test --config tests/e2e/smartreport/playwright.config.ts --list SR-T24

@@ -1,6 +1,4 @@
-TESTER: packages/ui-flutter/test/goldens/status_chips.png and cr16_widgets.png are still the pre-restyle bytes (the debugger measured 100% pixel difference against the restyled render). The debugger regenerated both three times and the harness reverted them each time (REVERT lines in the C0 log at 14:32:53/54) because test/goldens is a test path, so only you may change them.
-1. From packages/ui-flutter run: flutter test --update-goldens test\golden_widgets_test.dart test\restyle_r05_test.dart
-2. Look at the two regenerated PNGs and confirm the only differences are the R05 restyle of the status chips and CR-16 widgets; if anything else changed, say so in the note instead of keeping them.
-3. Re-run the command in T0D-UI-R05-verify.cmd and confirm it passes (the debugger saw 80/80 on the affected set).
-4. Do not edit any assertion; both PNGs must stay in your commit.
+CHANGES
+Scope checked: c757b2c7..HEAD (golden regen) plus the R05 impl/test commits 0ba68ab8, 19a9874d for done_when. Regenerated status_chips.png / cr16_widgets.png show only the R05 restyle (page #F3F7F4, pill tinted chips, lime-highlight pill segment). No hex/pixel radii added in lib/ (theme reads tokens). Verify set (T0D-UI-R05-verify.cmd): 80/80 pass, re-run by reviewer. No API/route/permission/PHI/secret changes.
+1. TESTER: packages/ui-flutter/test/failures/*.png (8 files: cr16_widgets_{isolatedDiff,maskedDiff,masterImage,testImage}.png, status_chips_{isolatedDiff,maskedDiff,masterImage,testImage}.png) were committed in 0ba68ab8. They are flutter_test golden-failure artifacts from a failing run, now stale (masterImage = pre-restyle bytes) and not baselines. Fix: `git rm -r packages/ui-flutter/test/failures` and add the line `test/failures/` to packages/ui-flutter/.gitignore (create it if absent) so they are never re-committed.
 WRITER: no change.

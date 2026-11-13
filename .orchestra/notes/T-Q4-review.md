@@ -7,3 +7,6 @@ Round 3 (range 1c8fe8e4..2026e3da). Last writer commit changed notes only; code 
    Done when `pnpm --dir apps/web exec tsc --noEmit` shows no t-q4.* errors and verify stays 82/82.
 2. Blocker, not C16 code: QueueConsole.tsx:12 imports `@lims/ui/components/TokenSlip`, still missing in packages/ui (CR-C16-016 ACCEPTED, not shipped); TS2307, done_when "needs CR-C16-016" unmet. Fix: no C16 change. Lead holds T-Q4 until C0 ships TokenSlip; then remove the stub alias in __tests__/vitest.t-q4.config.ts and re-run verify plus tsc.
 Non-blocking, for the lead (unchanged): kit StatusChip has no icon (LD-140 gap in C0); BFF poll route app/(staff)/engagement/queue/tokens/route.ts not in contracts/routes.yaml; server code has only source-level tests.
+
+
+LEAD ADDENDUM 2026-11-13 (supersedes "Lead holds T-Q4 until C0 ships TokenSlip", item 2): LD-143 now authorises the WRITER to create TokenSlip in packages/ui (props from 04-UI-UX section 9.2) and the TESTER to add its render test. Item 1 (tester type errors) stands as written. Do both, then rerun the T-Q4 verify and tsc.

@@ -1,6 +1,6 @@
 // M7 createIsolate, M8 identifyIsolate, M9 describeIsolate, M10 withdrawIsolate (02-TRD §5, §12, §13; 03-APP-FLOW §2.1 C3, §2.2 I1–I4; PRD AC-05.1–05.5; 08 A17 P-22; 07-SECURITY S-01, S-03, S-05).
 // Same shape as T-08: the object is loaded FIRST (RLS + tenant; absent = 404, same as another tenant's), THEN IdentityPort.assertRole(micro.culture.work, object.centre_id) (02-CV §10.1).
-// M7 locks the culture FOR UPDATE and numbers with the single counter upsert (isolates.repo nextIsolateSeq); M8–M10 lock the isolate, then its culture, and take If-Match "<isolate version>".
+// M7 locks the culture FOR UPDATE and numbers with the single counter upsert (isolates.repo nextIsolateSeq); M8–M10 read the isolate unlocked, then lock its culture, then re-read the isolate FOR UPDATE (same order as M4–M7: no 40P01 with M4 source_isolate_id), and take If-Match "<isolate version>".
 // Every refusal throws before or instead of a partial write (the request transaction rolls back, counter bump included). Error bodies are fixed text; nothing submitted is logged.
 // [CONV] ETag "<isolate version>" on M7–M10; an instrument-sourced identification re-identified by hand becomes organism_source 'manual'; counter past 99 = 400 common.validation_failed;
 // isolates of a cancelled culture = 409 micro.culture_invalid_transition (assertCultureChildEditable); unknown/inactive withdraw reason = 400 /reason_code.
@@ -79,7 +79,7 @@ export async function createIsolate(c: WriteCtx, input: { params: unknown; body:
 async function loadIsolate(c: WriteCtx, params: unknown, ifMatch: number | undefined): Promise<{ tx: any; tenantId: string; userId: string; row: Obj; expected: number }> {
   if (typeof c?.tenantId !== 'string' || typeof c.actor?.id !== 'string' || !c.tx) throw new LimsError('auth.unauthenticated');
   const id = uuid(isObj(params) ? params['isolate_id'] : undefined, '/isolate_id').toLowerCase();
-  const row = await repo.getIsolateForUpdate(c.tx as any, { tenantId: c.tenantId, id });
+  const row = await repo.getIsolate(c.tx as any, { tenantId: c.tenantId, id });   // unlocked: culture is locked first (review T-09 #1)
   if (!row) throw new LimsError('common.not_found');
   const identity = c.ports?.IdentityPort;
   if (!identity) throw new LimsError('auth.forbidden');   // fail closed
@@ -88,9 +88,11 @@ async function loadIsolate(c: WriteCtx, params: unknown, ifMatch: number | undef
 }
 
 /** The culture decides first (final -> report_final_locked, cancelled -> culture_invalid_transition), then the isolate's own state, then the version. */
-async function assertEditable(tx: any, tenantId: string, row: Obj, expected: number, action: 'identify' | 'describe' | 'withdraw'): Promise<void> {
-  const culture = await cultureRepo.lockCulture(tx, { tenantId, id: row['culture_id'] });
+async function assertEditable(tx: any, tenantId: string, read: Obj, expected: number, action: 'identify' | 'describe' | 'withdraw'): Promise<void> {
+  const culture = await cultureRepo.lockCulture(tx, { tenantId, id: read['culture_id'] });   // culture FOR UPDATE first, then the isolate (lock order of every culture write)
   if (!culture) throw new LimsError('common.not_found');
+  const row = await repo.getIsolateForUpdate(tx, { tenantId, id: read['id'] });
+  if (!row) throw new LimsError('common.not_found');
   assertCultureChildEditable(culture['status'] as CultureStatus);
   if (Number(row['version']) !== expected) conflict();                                       // AC-05.3 / If-Match
   if (action === 'describe') { if (row['status'] === 'withdrawn') nextIsolateStatus('withdrawn', 'identify'); }   // withdrawn is terminal: throws micro.isolate_invalid_transition

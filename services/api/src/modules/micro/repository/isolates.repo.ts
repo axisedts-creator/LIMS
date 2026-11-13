@@ -7,6 +7,11 @@ type Row = Record<string, any>;
 
 const COLS = 'id, version, culture_id, centre_id, specimen_id, isolate_seq, plate_id, status, organism_code, organism_source, identified_at, colony_description, quantity_text, is_reportable, withdraw_reason_code, ast_panel_id, ast_method';
 
+/** An isolate by id, unlocked (RLS + tenant) — M8–M10 read it for the 404 / centre permission before locking the culture (review T-09 #1: culture-first lock order). */
+export async function getIsolate(tx: Q, a: { tenantId: string; id: string }): Promise<Row | undefined> {
+  return (await tx.query(`SELECT ${COLS} FROM micro.isolates WHERE tenant_id = $1 AND id = $2`, [a.tenantId, a.id])).rows[0];
+}
+
 /** An isolate by id, locked (RLS + tenant: another tenant's / centre's isolate is simply absent). */
 export async function getIsolateForUpdate(tx: Q, a: { tenantId: string; id: string }): Promise<Row | undefined> {
   return (await tx.query(`SELECT ${COLS} FROM micro.isolates WHERE tenant_id = $1 AND id = $2 FOR UPDATE`, [a.tenantId, a.id])).rows[0];

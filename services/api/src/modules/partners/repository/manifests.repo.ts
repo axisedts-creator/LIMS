@@ -54,6 +54,33 @@ export async function change(s: Scope, id: string, version: number, sets: string
   return rows[0];
 }
 
+/** M8 / MS3: draft -> submitted, snapshot refreshed from the partner. Version + state guarded; 0 rows = lost the race. */
+export async function submit(s: Scope, id: string, version: number, snap: { branchId: string; centreId: string; mode: string }): Promise<Row | undefined> {
+  const { rows } = await s.tx.query(
+    "UPDATE partners.manifests SET state = 'submitted', submitted_at = now(), submitted_by = $5, receiving_branch_id = $6, receiving_centre_id = $7, conversion_mode = $8, version = version + 1, updated_at = now(), updated_by = $5 "
+    + `WHERE ${WHERE} AND id = $3 AND version = $4 AND state = 'draft' RETURNING *`,
+    [s.tenantId, s.partnerId, id, version, s.actorId, snap.branchId, snap.centreId, snap.mode]);
+  return rows[0];
+}
+
+/** M9 / MS5: submitted -> withdrawn. */
+export async function withdraw(s: Scope, id: string, version: number, code: string, text: string | null): Promise<Row | undefined> {
+  const { rows } = await s.tx.query(
+    "UPDATE partners.manifests SET state = 'withdrawn', withdrawn_at = now(), withdrawn_by = $5, withdraw_reason_code = $6, withdraw_reason_text = $7, version = version + 1, updated_at = now(), updated_by = $5 "
+    + `WHERE ${WHERE} AND id = $3 AND version = $4 AND state = 'submitted' RETURNING *`,
+    [s.tenantId, s.partnerId, id, version, s.actorId, code, text]);
+  return rows[0];
+}
+
+export async function partnerHeader(s: Scope): Promise<Row | undefined> {
+  return (await s.tx.query('SELECT name, partner_code FROM partners.partners WHERE tenant_id = $1 AND id = $2', [s.tenantId, s.partnerId])).rows[0];
+}
+
+/** partners.g_cs_reasons row (global coded set, 05-SCHEMA §7) for one code of one set. */
+export async function reason(s: Scope, setName: string, code: string): Promise<Row | undefined> {
+  return (await s.tx.query('SELECT code, requires_text, is_active FROM partners.g_cs_reasons WHERE set_name = $1 AND code = $2', [setName, code])).rows.find((r: Row) => r['code'] === code);
+}
+
 /** Converted / failed line counts of non-draft manifests (drafts hold none). */
 export async function lineCounts(s: Scope, ids: string[]): Promise<Map<string, { converted: number; failed: number }>> {
   const out = new Map<string, { converted: number; failed: number }>();

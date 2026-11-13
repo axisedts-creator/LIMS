@@ -11,6 +11,8 @@ import { INS, LOT, LVL, MAP, MAT, OPS, makeCtx, rejection, type Row } from './se
 
 const svc: Record<string, ReturnType<typeof vi.fn>> = {};
 vi.mock('../service/setup.service.js', () => ({ createSetupService: () => svc }));
+// Phase switch (02-TRD:120, :806): the flag is read once at module load (handlers/index.ts), so enable it BEFORE the import.
+vi.stubEnv('LIMS_QUALITY_ENABLED', 'true');
 const { manifest } = await import('../index.js');
 const h = (op: string): any => (manifest.handlers as any)[op];
 
@@ -34,6 +36,17 @@ describe('no longer stubs; fail closed without an authenticated request context'
       svc['createControlLot']!.mockRejectedValueOnce(Object.assign(new Error(c), { code: c }));
       await expect(h('createControlLot')(req({ params: { level_id: LVL(1) }, body: { lot_no: 'L', expires_on: '2027-01-01' } }), hctx('createControlLot'))).rejects.toMatchObject({ code: c });
     }
+  });
+});
+
+describe('phase switch off (ruling C9.T-06)', () => {
+  it('LIMS_QUALITY_ENABLED=false: a #1-#13 op rejects common.feature_disabled and the service is not called', async () => {
+    vi.resetModules(); vi.stubEnv('LIMS_QUALITY_ENABLED', 'false');
+    try {
+      const off: any = (await import('../index.js')).manifest;
+      const e = await rejection(off.handlers['listControlMaterials'](req(), hctx('listControlMaterials')));
+      expect(e?.code).toBe('common.feature_disabled'); expect(svc['listControlMaterials']).not.toHaveBeenCalled();
+    } finally { vi.stubEnv('LIMS_QUALITY_ENABLED', 'true'); }
   });
 });
 

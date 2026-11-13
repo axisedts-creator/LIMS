@@ -1,0 +1,6 @@
+# T-L1 impl (writer) — PARTIAL, stopped on dispute (see T-L1-dispute.md)
+- API done: `service/link.service.ts`, `handlers/link.handlers.ts` (+ wired in `handlers/index.ts`), `repository/linkCodes.repo.ts`, `repository/consents.repo.ts`. `link.handlers.test.ts`: 39/41 pass; the 2 failures are a fixture FK defect (disputed). tsc clean for these files.
+- NOT done: web W8 (`apps/web/src/app/(staff)/engagement/app-access/**`, AppAccess / CodeSlip, route); web tests t-l1.* still fail. Resume after the arbiter rules.
+- [CONV] L2 If-Match = constant `"1"` (link_codes has no version); L2/L4 on a non-revocable row -> 409 `common.version_conflict`; L1 `Cache-Control: no-store` set in the handler; audit outcome `allowed`; metric `lims_engagement_link_events_total{method,outcome}` (L4 method = the link's method).
+- [CONV] FrontdeskPort errors cross a package boundary (different LimsError class): `viaPort` keeps `common.not_found` / `auth.forbidden`, anything else fails closed (500).
+- Open: AppLink (L3) has no `version`, so staff UI cannot send L4's If-Match from the list alone (needs a CR: version in AppLink or ETag on L3). `boot.test.ts` PHASE_STUBS failure is pre-existing / not from these files.

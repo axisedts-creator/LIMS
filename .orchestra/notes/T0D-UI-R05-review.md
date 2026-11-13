@@ -1,4 +1,2 @@
-CHANGES
-Goldens status_chips.png and cr16_widgets.png are accepted as committed. One open item remains (LD-155):
-1. WRITER: create packages/ui-flutter/.gitignore containing exactly one line: test/failures/
-TESTER: no change (a .gitignore is not a test path, so the tester cannot create it).
+APPROVE
+Scope checked: afc7d963..HEAD. LD-155 item closed: packages/ui-flutter/.gitignore exists with exactly one line `test/failures/` (newline-terminated); no test/failures/ artifacts tracked or present. Goldens unchanged since accepted. Only owned paths touched (packages/ui-flutter/** + own notes). lib/ hex colours appear only in tokens.g.dart. No API/route/permission/PHI/secret changes.

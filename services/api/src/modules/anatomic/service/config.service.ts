@@ -340,11 +340,12 @@ export async function updateAssay(hctx: unknown, params: unknown, headers: unkno
 }
 
 // ---- K11–K12 coded values (set_name: diagnoses | cytology_adequacy | cancel_reasons — no change reasons, D-62) ----
-const SET_REPO = {
+// resolved at call time (not import time) so importing this module never touches coded.* exports a partial repo mock may omit
+const setRepo = () => ({
   diagnoses: { list: coded.listCodedDiagnoses, insert: coded.insertCodedDiagnosis, update: coded.updateCodedDiagnosis },
   cytology_adequacy: { list: coded.listCodedCytologyAdequacies, insert: coded.insertCodedCytologyAdequacy, update: coded.updateCodedCytologyAdequacy },
   cancel_reasons: { list: coded.listCodedCancelReasons, insert: coded.insertCodedCancelReason, update: coded.updateCodedCancelReason },
-} as const;
+} as const);
 const setName = (params: unknown): (typeof SETS)[number] => oneOf(isObj(params) ? params['set_name'] : undefined, '/set_name', SETS);
 export const encodeCursor = (offset: number): string => Buffer.from(JSON.stringify({ o: offset })).toString('base64url');
 export function decodeCursor(v: unknown): number {
@@ -378,7 +379,7 @@ export async function listCodedValues(hctx: unknown, params: unknown, query: unk
       .filter((r) => (all || r['is_active']) && (!lower || String(r['display']).toLowerCase().includes(lower)))
       .sort((x, y) => Number(x['sort_order']) - Number(y['sort_order']) || (x['code'] < y['code'] ? -1 : x['code'] > y['code'] ? 1 : 0))
       .slice(offset, offset + limit + 1);
-  } else rows = await SET_REPO[set].list(c.tx, { tenantId: c.tenantId, activeOnly: !all, q: needle, limit: limit + 1, offset });
+  } else rows = await setRepo()[set].list(c.tx, { tenantId: c.tenantId, activeOnly: !all, q: needle, limit: limit + 1, offset });
   const more = rows.length > limit;
   return { status: 200, body: { data: rows.slice(0, limit).map(codedDto), page: { limit, ...(more ? { next_cursor: encodeCursor(offset + limit) } : {}) } } };
 }
@@ -400,7 +401,7 @@ export async function upsertCodedValue(hctx: unknown, params: unknown, headers: 
     display: req(b, 'display', (v, p) => str(v, p, 300), ''), system: opt(b, 'system', (v, p) => str(v, p, 32), ''), system_version: opt(b, 'system_version', (v, p) => str(v, p, 32), ''),
     sort_order: req(b, 'sort_order', (v, p) => int(v, p, 0, 9999), ''), is_active: req(b, 'is_active', flag, ''),
   };
-  const r = SET_REPO[set];
+  const r = setRepo()[set];
   const cur = await findAll(r.list, c, {}, (x) => x['code'] === code);
   if (version === 0) {
     if (cur) throw new LimsError('common.version_conflict');

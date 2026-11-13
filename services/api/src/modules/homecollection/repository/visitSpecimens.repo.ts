@@ -16,6 +16,11 @@ export async function listVisitSpecimensByVisit(tx: Tx, tenantId: string, visitI
   return rows;
 }
 
+/** 02-TRD §8/§9: queue homecollection.refresh_visit_specimens in the caller's tx (job_key refresh:<visit_id>, one pending job per visit). */
+export async function enqueueRefreshVisitSpecimens(tx: Tx, tenantId: string, visitId: string): Promise<void> {
+  await tx.query('SELECT app.enqueue_job($1, $2::jsonb, $3)', ['homecollection.refresh_visit_specimens', JSON.stringify({ tenant_id: tenantId, visit_id: visitId }), `refresh:${visitId}`]);
+}
+
 export async function listVisitSpecimensByOrder(tx: Tx, tenantId: string, orderId: string): Promise<any[]> {
   const { rows } = await tx.query('SELECT * FROM homecollection.visit_specimens WHERE tenant_id = $1 AND order_id = $2 ORDER BY created_at, id', [tenantId, orderId]);
   return rows;

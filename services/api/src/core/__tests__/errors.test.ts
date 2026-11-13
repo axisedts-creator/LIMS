@@ -96,6 +96,20 @@ describe('LimsError + toProblem (unit)', () => {
     expect('errors' in n).toBe(false); // 02-CV §4.6: errors[] only for validation
   });
 
+  // LD-153 (CR-C9-T15a): registry codes whose meaning is "validation errors in errors[]" render errors[] too.
+  it.each([['quality.rule_set_invalid'], ['smartreport.library_invalid']])('LD-153: %s -> 422 with errors[] JSON Pointer', (code) => {
+    const fe = [{ path: '/definition/rules/0/limits', code: 'common.field_invalid', message: 'low > high' }];
+    const p = toProblem(new LimsError(code, undefined, fe), '/x', GOOD_RID) as any;
+    expect(p.status).toBe(422);
+    expect(p.errors[0].path).toBe('/definition/rules/0/limits');
+  });
+
+  it('LD-153: a non-listed code (common.not_found) still has no errors[]', () => {
+    const fe = [{ path: '/definition/rules/0/limits', code: 'common.field_invalid', message: 'low > high' }];
+    const p = toProblem(new LimsError('common.not_found', undefined, fe), '/x', GOOD_RID) as any;
+    expect('errors' in p).toBe(false);
+  });
+
   it('unknown internal failures are 500 common.internal with request_id only (no message, no stack)', () => {
     const err = Object.assign(new Error('SELECT * FROM core.patients /srv/lims/api/dist/db.js:12:3'), { code: '23503', constraint: 'fk_secret' });
     const p = toProblem(err, '/v1/x', GOOD_RID) as any;

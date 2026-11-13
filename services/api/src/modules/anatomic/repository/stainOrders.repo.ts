@@ -5,7 +5,7 @@ import { setClause, type Row } from './_sql.js';
 
 type Q = Pick<Tx, 'query'>;
 
-const STAIN_ORDERS_UPDATABLE = { status: '', note: '', reagent_lot: '', started_at: '', completed_at: '', performed_at: '', cancelled_at: '', cancel_reason_text: '' } as const;
+const STAIN_ORDERS_UPDATABLE = { status: '', note: '', reagent_lot: '', started_at: '', completed_at: '', performed_at: '', cancelled_at: '', cancel_reason_text: '', addon_case_item_id: '' } as const; // addon_case_item_id: M10 link-addon (C11 T-09)
 
 export async function insertStainOrder(tx: Q, row: Row): Promise<Row> {
   const { rows } = await tx.query(

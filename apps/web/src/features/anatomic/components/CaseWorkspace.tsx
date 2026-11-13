@@ -126,7 +126,7 @@ export function CaseWorkspace({ detail, permissions, templates = [] }: { detail:
   const [reasons, setReasons] = useState<CodedValue[]>([]);
   const [pending, setPending] = useState(false);
   const inFlight = useRef(false);
-  const lockedAt = useRef<number>();
+  const lockedAt = useRef<number | undefined>(undefined);
 
   const report = (f: Fail) => (f.code === 'auth.mfa_required' ? setMfa(true) : setFail(f));
   const refreshed = () => router.refresh();

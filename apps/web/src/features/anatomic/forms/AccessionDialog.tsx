@@ -17,7 +17,7 @@ import { FailNotice, newKey, type Fail } from '../components/common';
 export function AccessionDialog({ detail, isOpen, onClose, onMfa, onDone }: { detail: CaseDetail; isOpen: boolean; onClose: () => void; onMfa: () => void; onDone: () => void }) {
   const toast = useToast();
   const body = useRef<HTMLDivElement>(null);
-  const key = useRef<string>();
+  const key = useRef<string | undefined>(undefined);
   const [sites, setSites] = useState<Record<string, string>>(() => Object.fromEntries(detail.parts.map((p) => [p.id, p.site_text ?? ''])));
   const [descriptions, setDescriptions] = useState<Record<string, string>>(() => Object.fromEntries(detail.parts.map((p) => [p.id, p.description_text ?? ''])));
   const [history, setHistory] = useState(''); // 04-UI-UX §4.2.1: Clinical history default "—" (empty), not prefilled from the case

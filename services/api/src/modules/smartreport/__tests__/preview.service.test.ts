@@ -35,10 +35,9 @@ import {
 } from './t12.fakes.js';
 import { loadLibrary, reid, snapshot } from './t11.fakes.js';
 
-const FX = '../../../../../../packages/test-fixtures/src/smartreport/index.js';
 type Code = 'synthetic_basic' | 'synthetic_all_in_range' | 'synthetic_critical';
 const CODES: Code[] = ['synthetic_basic', 'synthetic_all_in_range', 'synthetic_critical'];
-const fixture = async (code: Code): Promise<{ results: any[]; analytes: any[] }> => (await import(/* @vite-ignore */ FX)).SMART_PREVIEW_FIXTURES[code];
+const fixture = async (code: Code): Promise<{ results: any[]; analytes: any[] }> => (await import('../../../../../../packages/test-fixtures/src/smartreport/index.js')).SMART_PREVIEW_FIXTURES[code];
 
 const fails = async (p: Promise<unknown>): Promise<any> => { try { await p; } catch (e) { return e; } throw new Error('expected the call to be refused'); };
 

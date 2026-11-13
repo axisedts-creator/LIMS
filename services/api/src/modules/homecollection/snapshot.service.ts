@@ -116,8 +116,7 @@ export async function getSyncSnapshot(hctx: unknown, params: unknown, headers: u
 
   const now = ctx.now();
   const today = await todayOf(ctx);
-  const routes = await permittedRoutes(ctx, membershipId, today);
-  const cursor = encodeCursor({ d: today, r: routes.map((r) => [r['id'], Number(r['version'])] as const), s: Number(settings['version']), w: String(device['status']) });
+  const routes = await permittedRoutes(ctx, membershipId, today);  const cursor = encodeCursor({ d: today, r: routes.map((r) => [r['id'], Number(r['version'])] as const), s: Number(settings['version']), w: String(device['status']) });
   const deviceCommand = device['status'] === 'wipe_requested' ? 'wipe' : 'none';
 
   const rows: Obj[] = [];   // visits of the routes in route order, then sequence

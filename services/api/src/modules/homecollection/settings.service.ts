@@ -33,6 +33,8 @@ const defaults = (): Obj => ({
   clock_tolerance_seconds: 600, version: 1,
 });
 
+export { defaults as settingsDefaults };   // HC-T10: A1 creates the row lazily with the same defaults
+
 function ctxOf(c: unknown): Ctx {
   const x = c as Partial<Ctx> | null;
   if (typeof x?.tenantId !== 'string' || !x.tx || typeof x.actor?.id !== 'string' || !x.ports?.IdentityPort) throw new LimsError('auth.unauthenticated');   // fail closed

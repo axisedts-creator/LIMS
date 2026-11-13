@@ -7,6 +7,7 @@ import { setup } from '../../../core/__tests__/helpers.js';
 import { validateManifests } from '../../../core/manifest.js';
 import { cron } from '../cron.js';
 import { manifest } from '../index.js';
+import { breakpointImportValidate } from '../tasks/micro.breakpoint_import_validate.js';
 
 const TASKS = ['micro.breakpoint_import_validate', 'micro.reconcile_chain_status', 'micro.refresh_metrics', 'micro.purge_instrument_records'];
 const CRON: Record<string, string> = {
@@ -50,9 +51,16 @@ describe('C10-T01 worker manifest (micro)', () => {
     expect(cron.map((c) => c.identifier)).not.toContain('micro.breakpoint_import_validate');
   });
 
-  it('every handler is a fail-closed stub: it throws (retry / dead-letter), never resolves as if done', async () => {
+  it('T-12 registers the real breakpoint import validator (not a stub)', () => {
+    expect(manifest.tasks!['micro.breakpoint_import_validate']).toBe(breakpointImportValidate);
+  });
+
+  it('every other handler is a fail-closed stub: it throws (retry / dead-letter), never resolves as if done', async () => {
     const ctx = {} as any;
-    for (const [id, h] of Object.entries(manifest.tasks ?? {})) await expect(h({ tenant_id: 't' }, ctx), id).rejects.toThrow();
+    for (const [id, h] of Object.entries(manifest.tasks ?? {})) {
+      if (id === 'micro.breakpoint_import_validate') continue;
+      await expect(h({ tenant_id: 't' }, ctx), id).rejects.toThrow();
+    }
     for (const [type, h] of Object.entries(manifest.subscriptions ?? {})) await expect((h as any)({ type }, ctx), type).rejects.toThrow();
   });
 

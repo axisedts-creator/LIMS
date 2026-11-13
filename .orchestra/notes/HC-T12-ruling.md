@@ -1,5 +1,7 @@
-TESTS_WRONG — all three disputed items are test-side defects; the spec does not require what the tests currently assert/seed.
-1. Barcode collision: `__tests__/sync/helpers.ts:129,150,166` module-level `bc` restarts at 0 in every spec file, so parallel files seed identical barcodes; frontdesk `seed()` uses ON CONFLICT DO NOTHING, the specimen is dropped and `collections__specimen__fk` fails. Not a spec requirement. Change: build the barcode from a per-run unique fragment (e.g. random/`uid()` slice, A-Z0-9 only, <= 20 chars) in both `pushWorld` and `addVisit`.
-2. `guards.test.ts:306`: 05-SCHEMA.md:374 declares `max_device_seq_received bigint NOT NULL DEFAULT 0`; pg returns bigint as string. Spec requires value 0, not JS type number. Change: `expect(Number((await deviceRow(w.device.id)).max_device_seq_received)).toBe(0)`.
-3. `guards.test.ts:239`: seeds a non-unassigned visit with `order_id: null`, which 05-SCHEMA.md:267 (`visits__order_when_active__ck`) and 02-TRD.md:247 forbid. AB5 (07-SECURITY.md:79) only needs "order not on the visit". Change: seed that visit with `visitExtra: { order_id: null, status: 'unassigned' }` (keep the same expected `common.validation_failed`).
-No implementation change required by this ruling; writer re-runs after tester applies fixes.
+TESTS_WRONG — the test asserts the JS type `number` for a bigint column read raw from the DB; the spec requires only the values 1..7.
+1. `guards.test.ts:278` reads `homecollection.mutations` directly via `mutRows` (owner pool, `__tests__/sync/helpers.ts:221`). 05-SCHEMA.md:416 declares `device_seq bigint NOT NULL`; node-pg returns bigint as a string, so the received value is `['1',..,'7']`. Run log `.orchestra/notes/HC-T12-run.log:37-63` confirms this is the only failure (113/114).
+2. The DB value is correct: the spec (05-SCHEMA.md:436 `device_seq >= 1`, ordered per device) requires the sequence 1..7. It does not require a JS type, and the implementation does not control how the test harness's pg client decodes bigint. This is the same class of issue as item 2 of the previous ruling (05-SCHEMA.md:374).
+3. Siblings already normalise: `effects.test.ts:206` and `repository/__tests__/repositories.test.ts:347` both wrap the value in `Number(...)`.
+Change: `expect((await mutRows(w)).map((m) => Number(m.device_seq))).toEqual([1, 2, 3, 4, 5, 6, 7]);`
+Do not touch `guards.test.ts:20`: it asserts the API response body (`results[].device_seq`), not a raw DB row.
+No implementation change required. The writer re-runs the tests after the tester applies the fix.

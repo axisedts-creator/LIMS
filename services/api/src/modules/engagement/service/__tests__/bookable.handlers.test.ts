@@ -139,7 +139,7 @@ describe('S12 listBookableItems', () => {
     const w = makeBookableWorld(); seed(w);
     expect((await list(w, { is_active: true })).body.data.map((x: any) => x.code)).toEqual(['WHP', 'CBC', 'GLU']); expect((await list(w, { is_active: false })).body.data.map((x: any) => x.code)).toEqual(['ANAEMIA']);
     expect((await list(w, { query: 'cbc' })).body.data.map((x: any) => x.code)).toEqual(['CBC']); expect((await list(w, { query: 'glucose' })).body.data.map((x: any) => x.code)).toEqual(['GLU']);
-    const evil = "x'; DROP TABLE engagement.bookable_items;--"; expect((await list(w, { query: evil })).body.data).toEqual([]);
+    const evil = "x'; DROP TABLE bookable_items;--"; expect((await list(w, { query: evil })).body.data).toEqual([]);
     for (const s of w.itemStmts()) expect(s.text).not.toContain('DROP TABLE');
   });
   it('limit + cursor walk every row exactly once in order; the last page has no next_cursor', async () => {

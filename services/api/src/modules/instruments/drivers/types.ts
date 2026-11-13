@@ -34,6 +34,8 @@ export interface ParsedRecord {
   readonly ast?: { antibioticCodeRaw: string; isolateSeq?: number; method: 'mic' | 'zone_diameter' | 'other';
                    rawValue: string; interpretationRaw?: string; standard?: 'CLSI' | 'EUCAST' | 'ECOFF' | 'unknown'; standardVersion?: string };
   readonly calibratorIdRaw?: string; readonly calibratorLotRaw?: string;
+  /** CR-C7-015 / LD-139 (08-ADDENDUM-TRUTH-H80E §3, §10): picture carried inline in the message; only read when recordKind = 'attachment'. */
+  readonly inlineAttachment?: { readonly mimeType: 'image/jpeg' | 'image/png'; readonly base64: string };
   readonly warnings: readonly string[];
 }
 export type ParseOk = { readonly ok: true; readonly messageKind: 'results' | 'host_query' | 'other';

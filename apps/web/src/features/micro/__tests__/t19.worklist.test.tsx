@@ -258,7 +258,7 @@ describe('scan (AC-02.2, 04-UI-UX §2 "Scan behaviour", 07-SECURITY abuse case 4
 
   it('no culture for a known specimen: inline info banner with the exact text; no navigation; no other detail disclosed', async () => {
     api.use(cultureList([]));
-    await mount();
+    await mount([]); // empty table, so nothing from C5 can legitimately appear in it
     await scan('E260000001');
     const msg = await screen.findByText(NONE);
     expect(msg.closest('[data-tone]')?.getAttribute('data-tone') ?? '').toMatch(/info/);

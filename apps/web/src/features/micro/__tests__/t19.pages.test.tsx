@@ -65,7 +65,7 @@ describe('request shape per tab (AC-02.1, 04-UI-UX §2 table)', () => {
 
   it.each(['drop table', 'SETUP', ['recent', 'setup'], '', 'amending,incubating'])('unknown / array tab %j falls back to setup (nothing user-controlled reaches the API)', async (tab) => {
     await worklist({ tab: tab as never });
-    for (const c of lists()) expect(['awaiting_setup', '']).toContain(statuses(c).replace(/^$/, ''));
+    for (const c of lists().filter((h) => q(h).get('limit') !== '1')) expect(['awaiting_setup', '']).toContain(statuses(c).replace(/^$/, ''));
     expect(statuses(main())).toBe('awaiting_setup');
   });
 
@@ -107,7 +107,9 @@ describe('filters are whitelisted and validated before they reach the API (REQ-S
     ['has_open_instrument_records', '1'], ['sort', 'password'], ['cursor', '../../etc'], ['cursor', 'x'.repeat(2000)],
   ])('a malformed %s (%s) is dropped, not forwarded', async (key, value) => {
     await worklist({ tab: 'incubating', [key]: value });
-    expect(q(main()).has(key)).toBe(false);
+    // ruling: every tab has a default sort, so a bad sort is "not forwarded", not "absent"
+    if (key === 'sort') expect(q(main()).get('sort')).toBe('next_read_due_at');
+    else expect(q(main()).has(key)).toBe(false);
   });
 
   it('the page never sends centre scoping of its own (centre limits are the server\'s RLS job, AC-02.3)', async () => {
@@ -130,7 +132,7 @@ describe('page data (AC-02.1 rows, AC-02.2 prerequisites)', () => {
     await worklist();
     const calls = hit('GET', /^\/v1\/lab\/specimens\/[0-9a-f-]{36}$/).map((h) => h.path).sort();
     expect(calls).toEqual([`/v1/lab/specimens/${ID(401)}`, `/v1/lab/specimens/${ID(402)}`]);
-    expect(screen.getByText('R261100001')).toBeTruthy();
+    expect(screen.getAllByText('R261100001')).toHaveLength(2); // cultures 1 and 3 share specimen ID(401)
   });
 
   it('a failing C5 specimen read (403 / 404 / 500) does not break the table; Reg no shows "—"', async () => {

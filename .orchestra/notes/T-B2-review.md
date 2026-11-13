@@ -1,0 +1,4 @@
+APPROVE
+
+Re-review after 82883a24/ea995cbc. Ran: api slot.handlers + fakeSql 126/126 pass; worker sync_booking_centres 20/20 pass.
+Prior defect #1 fixed: `syncOccupancyCapacity` (slot.repo.ts) updates `engagement.slot_occupancy.capacity` for the template's future rows only (tenant_id + template_id + slot_start > now, version/updated_by bumped, booked untouched), called in updateTemplate after the versioned write and before `overbookedSlots`. S6 now uses occupancy capacity when the row exists, template capacity when absent (TRD §4.8), for capacity/remaining/overbooked. Columns match 05-SCHEMA §slot_occupancy; staff update not blocked by the patient-actor guard. New test asserts future rows changed, past row + other template/centre rows unchanged, booked unchanged. No new names, no PHI in logs, owned paths only.

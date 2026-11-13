@@ -1,12 +1,12 @@
 'use client';
 // Polls the same-origin BFF every 5 s (If-None-Match); 3 failed polls -> stale (keeps last board); 401 -> unpaired.
 import { useEffect, useRef, useState } from 'react';
-import { QueueBoard } from '@lims/ui/components/QueueBoard';
+import { QueueBoard, type IsoUtc } from '@lims/ui/components/QueueBoard';
 
 type Board = {
   centre_display_name: string;
   board_version: number;
-  generated_at: string;
+  generated_at: IsoUtc;
   now_calling: { token_label: string; counter_display_name: string; queue_display_name: string; called_at: string }[];
   waiting: { queue_display_name: string; waiting_count: number }[];
 };
@@ -15,16 +15,15 @@ type Phase = 'connecting' | 'live' | 'stale' | 'unpaired';
 const POLL_MS = 5_000;
 const MAX_FAILURES = 3;
 const NEW_FLASH_MS = 3_000;
-const hhmm = (iso: string) => new Date(iso).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
 export function QueueDisplay({ initial }: { initial: 'connecting' | 'unpaired' }) {
   const [phase, setPhase] = useState<Phase>(initial);
   const [revoked, setRevoked] = useState(false);
   const [board, setBoard] = useState<Board | undefined>();
   const [fresh, setFresh] = useState<ReadonlySet<string>>(new Set());
-  const [staleSince, setStaleSince] = useState<string | undefined>();
+  const [staleSince, setStaleSince] = useState<IsoUtc | undefined>();
   const etag = useRef<string | undefined>(undefined);
-  const lastOk = useRef<string | undefined>(undefined);
+  const lastOk = useRef<IsoUtc | undefined>(undefined);
   const seen = useRef<Set<string> | undefined>(undefined);
 
   useEffect(() => {
@@ -37,7 +36,7 @@ export function QueueDisplay({ initial }: { initial: 'connecting' | 'unpaired' }
     const fail = () => {
       failures += 1;
       if (failures >= MAX_FAILURES) {
-        setStaleSince((s) => s ?? lastOk.current ?? new Date().toISOString());
+        setStaleSince((s) => s ?? lastOk.current ?? (new Date().toISOString() as IsoUtc));
         setPhase('stale');
       }
     };
@@ -46,7 +45,12 @@ export function QueueDisplay({ initial }: { initial: 'connecting' | 'unpaired' }
       try {
         const headers: Record<string, string> = { accept: 'application/json' };
         if (etag.current) headers['If-None-Match'] = etag.current;
-        const res = await fetch('/queue-display/api/board', { headers, cache: 'no-store', credentials: 'same-origin', signal: ctl.signal });
+        const res = await fetch('/queue-display/api/board', {
+          headers,
+          cache: 'no-store',
+          credentials: 'same-origin',
+          signal: ctl.signal,
+        });
         if (stopped) return;
         if (res.status === 401) {
           setRevoked(true);
@@ -103,22 +107,21 @@ export function QueueDisplay({ initial }: { initial: 'connecting' | 'unpaired' }
       </section>
     );
   }
+  // LD-145: the kit QueueBoard owns the stale banner (one live region, no duplicate).
   return (
-    <>
-      {phase === 'stale' && staleSince && (
-        <p role="status" className="lims-queue-display-stale">
-          Connection lost — showing last update at {hhmm(staleSince)}
-        </p>
-      )}
-      <QueueBoard
-        title={board.centre_display_name}
-        nowCalling={board.now_calling.map((c) => ({ token: c.token_label, counter: c.counter_display_name, queue: c.queue_display_name, isNew: fresh.has(c.token_label) }))}
-        waiting={board.waiting.map((w) => ({ queue: w.queue_display_name, count: w.waiting_count }))}
-        serverTime={board.generated_at}
-        connection={phase === 'stale' ? 'stale' : 'live'}
-        staleSince={phase === 'stale' ? staleSince : undefined}
-        soundEnabled={false}
-      />
-    </>
+    <QueueBoard
+      title={board.centre_display_name}
+      nowCalling={board.now_calling.map((c) => ({
+        token: c.token_label,
+        counter: c.counter_display_name,
+        queue: c.queue_display_name,
+        isNew: fresh.has(c.token_label),
+      }))}
+      waiting={board.waiting.map((w) => ({ queue: w.queue_display_name, count: w.waiting_count }))}
+      serverTime={board.generated_at}
+      connection={phase === 'stale' ? 'stale' : 'live'}
+      {...(phase === 'stale' && staleSince ? { staleSince } : {})}
+      soundEnabled={false}
+    />
   );
 }

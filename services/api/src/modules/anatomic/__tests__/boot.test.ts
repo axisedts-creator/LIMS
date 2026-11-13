@@ -28,7 +28,13 @@ const SYSTEM_PERMS = ['anatomic.case.work', 'catalog.test.read', 'frontdesk.orde
 const MB15 = 15 * 1024 * 1024; // 15728640
 
 /** operationIds whose stub a later task has replaced; that task moves its ids here (tester-owned list). Empty at T-01. */
-const IMPLEMENTED: readonly string[] = ['accessionAnatomicCase', 'updateAnatomicCaseDetails', 'addAnatomicPart', 'updateAnatomicPart', 'listAnatomicAssignees'];
+const IMPLEMENTED: readonly string[] = ['accessionAnatomicCase', 'updateAnatomicCaseDetails', 'addAnatomicPart', 'updateAnatomicPart', 'listAnatomicAssignees',
+  // C11 T-11 (K1–K12, K20–K22)
+  'getAnatomicSettings', 'updateAnatomicSettings', 'listAnatomicStains', 'createAnatomicStain', 'updateAnatomicStain', 'listAnatomicTestProfiles', 'upsertAnatomicTestProfile',
+  'listAnatomicAssays', 'createAnatomicAssay', 'updateAnatomicAssay', 'listAnatomicCodedValues', 'upsertAnatomicCodedValue',
+  'listAnatomicTextTemplates', 'createAnatomicTextTemplate', 'updateAnatomicTextTemplate',
+  // C11 T-16 (Q1–Q7) + the AC-11.6 guard on A10
+  'saveAnatomicMolecularResults', 'listAnatomicBatches', 'createAnatomicBatch', 'getAnatomicBatch', 'addAnatomicBatchMembers', 'removeAnatomicBatchMembers', 'closeAnatomicBatch', 'markAnatomicCaseReady'];
 
 const FAKE_REQ = { params: {}, query: {}, headers: {}, body: {} };
 const noop = () => undefined;

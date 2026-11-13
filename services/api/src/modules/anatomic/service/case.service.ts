@@ -17,7 +17,7 @@ type Obj = Record<string, unknown>;
 type Result = { status: number; body: unknown };
 
 const MAX_PARTS = 52;
-const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+export const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 // ---- helpers ----
 export function anatomicCtx(c: unknown): AnatomicCtx {
@@ -29,7 +29,7 @@ export function anatomicCtx(c: unknown): AnatomicCtx {
 }
 export const bad = (...paths: string[]): LimsError => new LimsError('common.validation_failed', undefined,
   paths.map((path): FieldError => ({ path, code: 'common.field_invalid', message: 'Field invalid' })));
-export const isObj =(v: unknown): v is Obj => typeof v === 'object' && v !== null && !Array.isArray(v);
+export const isObj = (v: unknown): v is Obj => typeof v === 'object' && v !== null && !Array.isArray(v);
 /** Closed object (AB-5): any key outside `allowed` -> 400 common.unknown_field, the value is never echoed. */
 export function strict(v: unknown, allowed: readonly string[], path = ''): Obj {
   if (!isObj(v)) throw bad(path);
@@ -38,7 +38,7 @@ export function strict(v: unknown, allowed: readonly string[], path = ''): Obj {
   }
   return v;
 }
-const uuid = (v: unknown, path: string): string => { if (typeof v !== 'string' || !UUID.test(v)) throw bad(path); return v; };
+export const uuid = (v: unknown, path: string): string => { if (typeof v !== 'string' || !UUID.test(v)) throw bad(path); return v; };
 export function text(v: unknown, path: string, max: number, min = 0): string {
   if (typeof v !== 'string' || v.includes('\u0000') || v.length > max || [...v].length < min) throw bad(path);
   return v;
@@ -58,7 +58,7 @@ export async function loadCase(c: AnatomicCtx, caseId: unknown, forUpdate = fals
   if (!row) throw new LimsError('common.not_found'); // RLS / other tenant look the same
   return row;
 }
-export const assertAt =(c: AnatomicCtx, permission: 'anatomic.case.work' | 'anatomic.case.read', cs: Row) =>
+export const assertAt = (c: AnatomicCtx, permission: 'anatomic.case.work' | 'anatomic.case.read', cs: Row) =>
   c.ports.IdentityPort.assertRole(c, { permission, centreId: cs['centre_id'] });
 
 export const iso = (v: unknown): string | undefined => (v instanceof Date ? v.toISOString() : typeof v === 'string' ? v : undefined);

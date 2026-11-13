@@ -4,9 +4,10 @@ import { astmGenericE1394 } from './astm_generic_e1394/index.js';
 import { fileDropGeneric } from './file_drop_generic/index.js';
 import { hl7v2GenericOru } from './hl7v2_generic_oru/index.js';
 import { mindrayBc5380Sketch, mindrayBs200Sketch } from './mindray_sketches.js';
+import { truthH80e } from './truth_h80e/index.js';
 import type { DriverStatus, InstrumentDriver } from './types.js';
 
-const DRIVERS: readonly InstrumentDriver[] = Object.freeze([astmGenericE1394, hl7v2GenericOru, fileDropGeneric, mindrayBc5380Sketch, mindrayBs200Sketch]);
+const DRIVERS: readonly InstrumentDriver[] = Object.freeze([astmGenericE1394, hl7v2GenericOru, fileDropGeneric, mindrayBc5380Sketch, mindrayBs200Sketch, truthH80e]);
 const BY_CODE = new Map(DRIVERS.map((d) => [d.code, d]));
 
 export const listDrivers = (): readonly InstrumentDriver[] => DRIVERS;

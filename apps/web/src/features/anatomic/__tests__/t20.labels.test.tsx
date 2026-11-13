@@ -188,7 +188,7 @@ describe('BarcodeSymbol safety (a wrong barcode is a misidentification risk)', (
 });
 
 // ---------------------------------------------------------------- print CSS (plan row T-20 "print CSS snapshot"; 04-UI-UX §4.3, §7)
-const web = fileURLToPath(new URL('../../../../', import.meta.url));
+const web = join(fileURLToPath(import.meta.url), '../../../../../');
 const walk = (d: string): string[] => (existsSync(d) ? readdirSync(d).flatMap((n) => { const p = join(d, n); return statSync(p).isDirectory() ? (n === '__tests__' ? [] : walk(p)) : [p]; }) : []);
 const cssFiles = [...walk(join(web, 'src/app/(staff)/anatomic/cases/[case_id]/labels')), ...walk(join(web, 'src/features/anatomic/components/material'))].filter((f) => f.endsWith('.css'));
 const css = cssFiles.map((f) => readFileSync(f, 'utf8')).join('\n').replace(/\/\*[\s\S]*?\*\//g, '');

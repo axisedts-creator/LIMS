@@ -12,6 +12,7 @@ import { createJwtVerifier } from './auth/jwt.js';
 import { childLoggerFactory, createCoreLogger, installRequestLog } from './observability/logging.js';
 import { createMetrics, type CoreMetrics } from './observability/metrics.js';
 import { claimsOf, installRouteHooks, mountSpec, schemaController, type CoreAuth } from './openapi.js';
+import { bootPipeline } from './pipeline/boot.js';
 
 export interface BootstrapOptions {
   readonly config: CoreConfig;
@@ -56,20 +57,23 @@ export async function bootstrap(opts: BootstrapOptions): Promise<FastifyInstance
       clientIp: createClientIpResolver(config.trustedProxyCidrs),
     };
     installRouteHooks(app, { responseValidation: config.responseValidation, auth });
+    // 02-TRD §6.2 stages 5-11 per request (LD-133, T0D-18): pool, limiter, idempotency, ports, authz guard.
+    const pipes = await bootPipeline({ config, modules, log: app.log as any, metrics });
+    app.addHook('onClose', async () => { await pipes.close(); });
     if (repoRoot === REPO_ROOT) {
       // 02-TRD §8: the core's own spec; custom repoRoots (test fixtures) carry module specs only.
       const spec = loadSpec(join(REPO_ROOT, 'contracts', 'openapi', 'core.yaml'));
       const handlers = createHealthHandlers(opts.healthChecks ?? UNWIRED_CHECKS);
       checkHandlers('core', spec, handlers);
-      await mountSpec(app, 'core', spec, handlers, auth);
+      await mountSpec(app, 'core', spec, handlers, auth, pipes.pipelineFor('core'));
     }
-    for (const m of modules) await mountSpec(app, m.manifest.name, m.spec, m.manifest.handlers, auth);
+    for (const m of modules) await mountSpec(app, m.manifest.name, m.spec, m.manifest.handlers, auth, pipes.pipelineFor(m.manifest.name));
     if (config.loadSampleModule) {
       // 02-TRD §14: core-owned, ci only, never deployed; its spec lives next to it, not in contracts/openapi.
       const { manifest } = await import('./__fixtures__/module-sample/index.js');
       const spec = loadSpec(join(SAMPLE_DIR, 'sample.yaml'));
       checkHandlers(manifest.name, spec, manifest.handlers);
-      await mountSpec(app, manifest.name, spec, manifest.handlers, auth);
+      await mountSpec(app, manifest.name, spec, manifest.handlers, auth, pipes.pipelineFor(manifest.name));
     }
     await app.ready();
     return app;

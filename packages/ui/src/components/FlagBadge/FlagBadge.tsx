@@ -1,4 +1,4 @@
-import { Icon } from '../Icon/Icon';
+import { StatusChip } from '../StatusChip/StatusChip';
 import type { Tone } from '../_shared/messages';
 
 export type ResultFlag = 'N' | 'L' | 'H' | 'LL' | 'HH' | 'A';
@@ -23,10 +23,6 @@ export function FlagBadge({ flag, showNormal = false, ...rest }: FlagBadgeProps)
   const row = Object.hasOwn(FLAGS, flag) ? FLAGS[flag] : undefined;
   if (!row || (flag === 'N' && !showNormal)) return null;
   const [tone, text] = row;
-  return (
-    <span className={`lims-chip lims-chip-sm lims-tone-${tone}`} data-tone={tone} {...rest}>
-      {tone === 'critical' ? <Icon name="critical" size={12} /> : null}
-      {text}
-    </span>
-  );
+  // Tone + icon + word (LD-140, 10-DESIGN-SYSTEM §6).
+  return <StatusChip kind="generic" status={flag} tone={tone} label={text} size="sm" {...rest} />;
 }

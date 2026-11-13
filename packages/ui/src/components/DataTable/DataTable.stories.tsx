@@ -25,4 +25,17 @@ export const Default = { args: { sort: { value: '-name', onChange: () => {} }, p
 export const MultiSelect = { args: { selection: { mode: 'multiple', selectedIds: new Set(['r1']), onChange: () => {} }, rowActions: () => [{ id: 'view', label: 'View' }], onRowActionMenu: () => {} } };
 export const Loading = { args: { isLoading: true } };
 export const Empty = { args: { rows: [] } };
-export const Failed = { args: { error: { title: 'Could not load specimens', requestId: 'req-7f3a9c21', onRetry: () => {} } } };
+// T0D-UI-R03 (LD-140): density, row status, bulk bar.
+const stateOf: Record<string, string> = { r1: 'rejected', r2: 'approved', r3: 'collected' };
+const rowStatus = (r: Row) => ({ kind: 'specimen' as const, status: stateOf[r.id] ?? 'ordered' });
+export const Compact = { args: { density: 'compact', rowStatus } };
+export const RowStatus = { args: { density: 'comfortable', rowStatus } };
+export const BulkSelected = {
+  args: {
+    rowStatus,
+    selection: { mode: 'multiple', selectedIds: new Set(['r1', 'r2']), onChange: () => {} },
+    bulkActions: [{ id: 'export', label: 'Export' }, { id: 'void', label: 'Void', isDanger: true }],
+    onBulkAction: () => {},
+  },
+};
+export const Failed ={ args: { error: { title: 'Could not load specimens', requestId: 'req-7f3a9c21', onRetry: () => {} } } };

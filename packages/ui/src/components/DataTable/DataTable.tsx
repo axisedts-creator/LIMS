@@ -16,7 +16,9 @@ import {
   type Selection,
   type SortDescriptor,
 } from 'react-aria-components';
+import { Button } from '../Button/Button';
 import { EmptyState, type EmptyStateProps } from '../EmptyState/EmptyState';
+import { StatusChip, statusOf, type StatusChipProps } from '../StatusChip/StatusChip';
 import { ErrorState } from '../ErrorState/ErrorState';
 import { VisuallyHidden } from '../VisuallyHidden/VisuallyHidden';
 
@@ -44,8 +46,14 @@ export interface DataTableProps<Row> {
   /** value like 'received_at' or '-received_at' (descending). */
   sort?: { value: string; onChange: (v: string) => void };
   selection?: { mode: 'single' | 'multiple'; selectedIds: ReadonlySet<string>; onChange: (ids: ReadonlySet<string>) => void; max?: number | undefined };
-  density?: 'compact' | 'regular';
+  /** Rows 32 / 40 / 48 px (10-DESIGN-SYSTEM §2.4). */
+  density?: 'compact' | 'regular' | 'comfortable';
   stickyHeader?: boolean;
+  /** Adds a "Status" column with a StatusChip (tone + icon + word) and data-tone on the row (LD-140). */
+  rowStatus?: (r: Row) => StatusChipProps | undefined;
+  /** Shown in a "Bulk actions" toolbar while rows are selected. */
+  bulkActions?: readonly { id: string; label: string; isDanger?: boolean }[];
+  onBulkAction?: (actionId: string, selectedIds: ReadonlySet<string>) => void;
   /** Enter / double-click. */
   onRowAction?: (r: Row) => void;
   rowActions?: (r: Row) => readonly { id: string; label: string; isDanger?: boolean }[];
@@ -73,6 +81,9 @@ export function DataTable<Row>({
   selection,
   density = 'regular',
   stickyHeader = true,
+  rowStatus,
+  bulkActions,
+  onBulkAction,
   onRowAction,
   rowActions,
   onRowActionMenu,
@@ -167,6 +178,7 @@ export function DataTable<Row>({
             {c.header}
           </Column>
         ))}
+        {rowStatus ? <Column className="lims-col lims-col-status">Status</Column> : null}
         {rowActions ? (
           <Column className="lims-col-actions" width={56}>
             <VisuallyHidden>Actions</VisuallyHidden>
@@ -176,8 +188,9 @@ export function DataTable<Row>({
       <TableBody renderEmptyState={() => (isLoading ? null : <EmptyState {...emptyState} />)}>
         {shown.map((r, i) => {
           const id = getRowId(r);
+          const st = rowStatus?.(r);
           return (
-            <RacRow key={id} id={id} data-row-id={id} data-row-index={first + i} className="lims-row">
+            <RacRow key={id} id={id} data-row-id={id} data-row-index={first + i} className="lims-row" {...(st ? { 'data-tone': statusOf(st.kind, String(st.status ?? ''), st.tone, st.label)[0] } : {})}>
               {selection ? (
                 <Cell className="lims-cell-select">
                   <RacCheckbox slot="selection" className="lims-checkbox" />
@@ -188,6 +201,7 @@ export function DataTable<Row>({
                   {c.cell(r)}
                 </Cell>
               ))}
+              {rowStatus ? <Cell className="lims-cell lims-cell-status">{st ? <StatusChip {...st} /> : null}</Cell> : null}
               {rowActions ? (
                 <Cell className="lims-cell-actions">
                   <RacButton aria-label="Row actions" className="lims-btn lims-btn-ghost lims-icon-btn" onPress={(e) => openMenu(r, e.target as HTMLElement)}>
@@ -204,6 +218,19 @@ export function DataTable<Row>({
 
   return (
     <div className="lims-data-table" onKeyDownCapture={onKeyDownCapture} onDoubleClick={onDoubleClick} {...rest}>
+      {selection && bulkActions?.length && selection.selectedIds.size > 0 ? (
+        <div role="toolbar" aria-label="Bulk actions" className="lims-bulk-bar">
+          <span className="lims-bulk-count">{selection.selectedIds.size} selected</span>
+          {bulkActions.map((a) => (
+            <Button key={a.id} size="sm" variant={a.isDanger ? 'danger' : 'secondary'} onPress={() => onBulkAction?.(a.id, selection.selectedIds)}>
+              {a.label}
+            </Button>
+          ))}
+          <Button size="sm" variant="ghost" onPress={() => selection.onChange(new Set())}>
+            Clear selection
+          </Button>
+        </div>
+      ) : null}
       {virtual ? (
         // ponytail: fixed-height row window; react-aria's Virtualizer renders every row when it cannot measure (jsdom, hidden tabs).
         <div className="lims-table-scroll" style={{ maxHeight: ROW_HEIGHT * 20, overflowY: 'auto' }} onScroll={(e) => setStart(Math.max(0, Math.floor(e.currentTarget.scrollTop / ROW_HEIGHT) - 10))}>

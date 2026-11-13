@@ -15,3 +15,12 @@ export default {
 };
 
 export const Default = {};
+export const WithCounts = {
+  args: {
+    items: [
+      { id: 'a', label: 'To collect', count: 12 },
+      { id: 'b', label: 'To receive', count: 0 },
+      { id: 'c', label: 'Rejected', count: 3 },
+    ],
+  },
+};

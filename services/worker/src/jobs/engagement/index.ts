@@ -4,6 +4,8 @@
 import type { ConsumerHandler, TaskHandler, WorkerManifest } from '../../core/manifest.js';
 import { CLOSE_QUEUE_DAY, closeQueueDay, crontab } from './cron.js';
 import { handle as catalogChanged } from './consumers/catalog.changed.v1.js';
+import { handle as collectionSynced } from './consumers/homecollection.collection.synced.v1.js';
+import { MARK_NO_SHOWS, RECONCILE_BOOKINGS, markNoShows, reconcileBookings } from './tasks/booking_jobs.js';
 import { createDispatchDueReminders } from './tasks/dispatch_due_reminders.js';
 import { PURGE_EPHEMERAL, PURGE_QUEUE, purgeEphemeral, purgeQueue } from './tasks/purge.js';
 import { SYNC_BOOKING_CENTRES, SYNC_BOOKING_CENTRES_NIGHTLY, syncBookingCentres, syncBookingCentresNightly } from './tasks/sync_booking_centres.js';
@@ -39,10 +41,13 @@ export const manifest: WorkerManifest = Object.freeze({
     [SYNC_BOOKING_CENTRES_NIGHTLY]: syncBookingCentresNightly, // T-B2 (cron-only: no §8.1 row)
     'engagement.sync_bookable_items': syncBookableItems, // T-B1
     [SYNC_NIGHTLY]: syncBookableItemsNightly, // T-B1 (cron-only task: no §8.1 row)
+    [RECONCILE_BOOKINGS]: reconcileBookings, // T-B4 (cron-only)
+    [MARK_NO_SHOWS]: markNoShows, // T-B4 (cron-only)
   }),
   subscriptions: Object.freeze({
     ...Object.fromEntries(SUBSCRIPTIONS.map((type) => [type, consumer(type)])),
     'catalog.changed.v1': catalogChanged, // T-B1 (CR-C16-013)
+    'homecollection.collection.synced.v1': collectionSynced, // T-B4
   }),
   crontab, // TRD §8.2 rows live in cron.ts (close_queue_day, dispatch_due_reminders)
   maxAttempts: TASKS,

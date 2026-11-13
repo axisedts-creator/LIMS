@@ -1854,6 +1854,101 @@ paths:
         "428": { $ref: _common.yaml#/components/responses/PreconditionRequired }
         "429": { $ref: _common.yaml#/components/responses/TooManyRequests }
         "500": { $ref: _common.yaml#/components/responses/Internal }
+  /v1/identity/role-packs:
+    get:
+      operationId: listRolePacks
+      tags: [ identity ]
+      summary: List role packs with their roles (diff source for the apply screen)
+      description: CR-C2-RM-001 / LD-150 (11-ROLE-MATRIX section 8).
+      security:
+        - { bearerJwt: [] }
+      x-permission: identity.role.manage
+      x-context: tenant
+      x-idempotency: none
+      x-rate-limit-tier: general
+      x-error-codes: []
+      responses:
+        "200":
+          description: Success.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required: [ data ]
+                properties:
+                  data:
+                    type: array
+                    maxItems: 20
+                    items:
+                      type: object
+                      additionalProperties: false
+                      required: [ pack_code, name, roles ]
+                      properties:
+                        pack_code: { type: string, maxLength: 40 }
+                        name: { type: string, maxLength: 80 }
+                        roles:
+                          type: array
+                          maxItems: 200
+                          items:
+                            type: object
+                            additionalProperties: false
+                            required: [ code, name, mfa_required, permission_codes ]
+                            properties:
+                              code: { type: string, maxLength: 40 }
+                              name: { type: string, maxLength: 80 }
+                              mfa_required: { type: boolean }
+                              permission_codes: { type: array, maxItems: 200, items: { type: string, maxLength: 100 } }
+        "401": { $ref: _common.yaml#/components/responses/Unauthorized }
+        "403": { $ref: _common.yaml#/components/responses/Forbidden }
+        "429": { $ref: _common.yaml#/components/responses/TooManyRequests }
+        "500": { $ref: _common.yaml#/components/responses/Internal }
+  /v1/identity/role-packs/apply:
+    post:
+      operationId: applyRolePack
+      tags: [ identity ]
+      summary: Apply or re-apply a role pack to the tenant
+      description: CR-C2-RM-001 / LD-150. Creates missing pack roles; never widens or removes on an existing role (R6). Tenant and actor come from the token only.
+      security:
+        - { bearerJwt: [] }
+      x-permission: identity.role.manage
+      x-context: tenant
+      x-idempotency: required
+      x-rate-limit-tier: general
+      x-error-codes: [ common.validation_failed ]
+      parameters:
+        - { $ref: _common.yaml#/components/parameters/IdempotencyKey }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [ pack_code ]
+              properties:
+                pack_code: { type: string, maxLength: 40 }
+      responses:
+        "200":
+          description: Success.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required: [ pack_code, created, updated, unchanged ]
+                properties:
+                  pack_code: { type: string, maxLength: 40 }
+                  created: { type: array, maxItems: 200, items: { type: string, maxLength: 40 } }
+                  updated: { type: array, maxItems: 200, items: { type: string, maxLength: 40 } }
+                  unchanged: { type: array, maxItems: 200, items: { type: string, maxLength: 40 } }
+        "400": { $ref: _common.yaml#/components/responses/BadRequest }
+        "401": { $ref: _common.yaml#/components/responses/Unauthorized }
+        "403": { $ref: _common.yaml#/components/responses/Forbidden }
+        "409": { $ref: _common.yaml#/components/responses/Conflict }
+        "422": { $ref: _common.yaml#/components/responses/Unprocessable }
+        "429": { $ref: _common.yaml#/components/responses/TooManyRequests }
+        "500": { $ref: _common.yaml#/components/responses/Internal }
   /v1/identity/branches:
     get:
       operationId: listBranches

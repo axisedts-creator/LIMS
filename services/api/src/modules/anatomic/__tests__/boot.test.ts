@@ -29,6 +29,8 @@ const MB15 = 15 * 1024 * 1024; // 15728640
 
 /** operationIds whose stub a later task has replaced; that task moves its ids here (tester-owned list). Empty at T-01. */
 const IMPLEMENTED: readonly string[] = ['accessionAnatomicCase', 'updateAnatomicCaseDetails', 'addAnatomicPart', 'updateAnatomicPart', 'listAnatomicAssignees',
+  // C11 T-08 (A8, A9, A11; A10 already listed)
+  'saveAnatomicGross', 'startAnatomicProcessing', 'cancelAnatomicCase',
   // C11 T-11 (K1–K12, K20–K22)
   'getAnatomicSettings', 'updateAnatomicSettings', 'listAnatomicStains', 'createAnatomicStain', 'updateAnatomicStain', 'listAnatomicTestProfiles', 'upsertAnatomicTestProfile',
   'listAnatomicAssays', 'createAnatomicAssay', 'updateAnatomicAssay', 'listAnatomicCodedValues', 'upsertAnatomicCodedValue',
@@ -211,7 +213,7 @@ describe('C11-T01 boot against the real repo (default modulesDir, real anatomic.
     }
     expect(n).toBe(70);
     expect(unmounted).toEqual([]);
-  }, 60_000);
+  }, 240_000); // full-repo bootstrap takes ~100 s on the dev box (review C11.T-08 item 2)
 
   it('boot fails when LIMS_ANATOMIC_IMAGE_MAX_BYTES exceeds 15 MB (TRD §10.1: "boot fails above")', async () => {
     vi.resetModules();
@@ -251,5 +253,5 @@ describe('C11-T01 boot against the real repo (default modulesDir, real anatomic.
     }
     expect((await app.inject({ method: 'GET', url: '/v1/anatomic/not-in-spec' })).statusCode).toBe(404);
     expect(toUrl('/v1/anatomic/cases/{case_id}')).toContain('01a1a98a');
-  }, 60_000);
+  }, 240_000);
 });

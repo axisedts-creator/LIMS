@@ -7,6 +7,9 @@ class Flavour {
     required this.apiBaseUrl,
     required this.portalOrigin,
     required this.storeUrl,
+    this.privacyUrl,
+    this.termsUrl,
+    this.tenantPrivacyUrl,
   });
 
   final String env; // dev | staging | prod
@@ -15,6 +18,12 @@ class Flavour {
   final String apiBaseUrl;
   final String portalOrigin;
   final String storeUrl;
+
+  /// LD-28 (A33-5): platform config `legal.privacy_url` / `legal.terms_url` (required in production builds, passed with
+  /// --dart-define) and the optional tenant privacy URL shown under the lab name. Empty/null = link hidden.
+  final String? privacyUrl;
+  final String? termsUrl;
+  final String? tenantPrivacyUrl;
 }
 
 /// Build-time public values (`--dart-define`); the app version also feeds X-Lims-App-Version.

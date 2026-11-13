@@ -22,6 +22,8 @@ dependencies:
 dev_dependencies:
   flutter_test:
     sdk: flutter
+  integration_test:
+    sdk: flutter
 # [CONV] The root workspace list (pubspec.yaml, C0-owned) does not name apps/patient_app yet; until it does, resolve the
 # two workspace packages by path so this app builds and tests on its own.
 dependency_overrides:

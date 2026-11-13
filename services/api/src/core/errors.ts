@@ -42,6 +42,8 @@ export function isLimsError(e: unknown, code?: string): e is LimsError {
 const clamp = (s: string, n: number): string => (s.length > n ? s.slice(0, n) : s);
 const CODE = /^[A-Za-z0-9][A-Za-z0-9_.:-]*$/;
 const SUB_CODES = new Set(['common.field_required', 'common.field_invalid', 'common.unknown_field']);
+// LD-153 (CR-C9-T15a / C14.T11): registry meanings "errors in errors[]" (08-CR-REGISTER:873, CR-C9-002) rank above 02-CV §4.6.
+const ERRORS_CODES = new Set(['common.validation_failed', 'quality.rule_set_invalid', 'smartreport.library_invalid']);
 
 /** Any throwable -> Problem. Pieces are clamped to the `_common.yaml#/Problem` maxima. */
 export function toProblem(err: unknown, instance: string, requestId: string): Problem {
@@ -53,8 +55,8 @@ export function toProblem(err: unknown, instance: string, requestId: string): Pr
     instance: clamp(instance, 2048), request_id: isUuidv7(requestId) ? requestId : uuidv7(),
   };
   if (typeof known?.detail === 'string') p.detail = clamp(known.detail, 2000);
-  if (code === 'common.validation_failed' && known?.errors?.length) {
-    // 02-CV §4.6: errors[] only for validation; sub-codes always from the registry.
+  if (ERRORS_CODES.has(code) && known?.errors?.length) {
+    // 02-CV §4.6 as amended by LD-153: errors[] only for ERRORS_CODES; sub-codes always from the registry.
     p.errors = known.errors.slice(0, 200).map((f) => ({
       path: clamp(String(f.path), 512),
       code: SUB_CODES.has(f.code) ? f.code : 'common.field_invalid',

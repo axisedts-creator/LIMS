@@ -29,6 +29,30 @@ export async function cancelReminder(tx: Q, a: { tenantId: string; id: string; e
   return rows[0];
 }
 
+/** T-B5: H of the booking reminder; undefined = no settings row. */
+export async function bookingReminderHours(tx: Q, a: { tenantId: string }): Promise<number | undefined> {
+  const { rows } = await tx.query('SELECT booking_reminder_hours_before FROM engagement.settings WHERE tenant_id = $1', [a.tenantId]);
+  return rows[0]?.['booking_reminder_hours_before'];
+}
+
+/** T-B5: kind 'booking' row; idempotent on the partial unique (tenant, kind, source_ref_id, source_ref_seq): undefined = already there. */
+export async function insertBookingReminder(tx: Q, a: { tenantId: string; userId: string; patientId: string; bookingId: string; dueAt: string }): Promise<Row | undefined> {
+  const { rows } = await tx.query(
+    `INSERT INTO engagement.reminders (id, tenant_id, patient_id, kind, reason_code, source, source_ref_id, source_ref_seq, due_at, status, version, created_by, updated_by)
+     VALUES ($1, $2, $3, 'booking', NULL, 'booking', $4, 0, $5, 'scheduled', 1, $6, $6) ON CONFLICT DO NOTHING RETURNING ${COLS}`,
+    [uuidv7(), a.tenantId, a.patientId, a.bookingId, a.dueAt, a.userId]);
+  return rows[0];
+}
+
+/** T-B5: scheduled booking reminders of one booking -> cancelled; returns how many. Sent / suppressed / failed rows are never touched. */
+export async function cancelBookingReminders(tx: Q, a: { tenantId: string; userId: string; bookingId: string }): Promise<number> {
+  const { rows } = await tx.query(
+    `UPDATE engagement.reminders SET status = 'cancelled', version = version + 1, updated_at = now(), updated_by = $3
+     WHERE tenant_id = $1 AND kind = 'booking' AND source_ref_id = $2 AND status = 'scheduled' RETURNING id`,
+    [a.tenantId, a.bookingId, a.userId]);
+  return rows.length;
+}
+
 /** Keyset page (due_at, id). Optional filters add fixed SQL fragments; their values are parameters. Fetches `limit` rows as given (caller asks for limit + 1). */
 export async function listReminders(tx: Q, a: { tenantId: string; from: string; to: string; patientId?: string | undefined; status?: string | undefined; after?: { dueAt: string; id: string }; limit: number }): Promise<Row[]> {
   const v: unknown[] = [a.tenantId, a.from, a.to];

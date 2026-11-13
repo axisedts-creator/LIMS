@@ -58,6 +58,7 @@ routes:
   - { id: staff.admin.users,             origin: staff_web, path: /admin/users,                  owner: C2,  permission: identity.user.read }
   - { id: staff.admin.user_new,          origin: staff_web, path: /admin/users/new,              owner: C2,  permission: identity.user.manage }
   - { id: staff.admin.roles,             origin: staff_web, path: /admin/roles,                  owner: C2,  permission: identity.user.read }
+  - { id: staff.admin.role_packs,        origin: staff_web, path: /admin/roles/packs,            owner: C2,  permission: identity.role.manage }
   - { id: staff.admin.branches,          origin: staff_web, path: /admin/branches,               owner: C2,  permission: identity.user.read }
   - { id: staff.admin.centres,           origin: staff_web, path: /admin/centres,                owner: C2,  permission: identity.centre.read }
   - { id: staff.admin.settings,          origin: staff_web, path: /admin/settings,               owner: C2,  permission: identity.settings.manage }

@@ -49,15 +49,12 @@ export interface Probe {
   lab: Array<Record<string, unknown>>;
   balance: string[];
 }
-export interface Reply { status: number; body: any; headers?: Record<string, string>; probe: Probe }
+export interface Reply { status: number; body: any; headers?: Record<string, string>; probe: Probe; handlerMs: number }
 export interface OpOpts { bypassRls?: boolean; fx?: Fx; now?: Date; headers?: object }
 
-// Honour the declared latency exactly (HC-T11 ruling): Windows setTimeout ticks at ~15.6 ms, so sleep coarsely for all but the last 20 ms, then spin on performance.now().
+// LD-156 (2026-11-13): fake port latency is an async non-blocking delay (a timer), never a busy-spin, so concurrent port calls overlap as in production.
 const sleep = async (ms?: number) => {
-  if (!ms) return;
-  const end = performance.now() + ms;
-  if (ms > 20) await new Promise<void>((r) => setTimeout(r, ms - 20));
-  while (performance.now() < end) { /* spin to the exact target */ }
+  if (ms) await new Promise<void>((r) => setTimeout(r, ms));
 };
 const H = manifest.handlers as unknown as Record<string, (r: any, ctx: any) => Promise<{ status: number; body?: any; headers?: Record<string, string> }>>;
 
@@ -73,8 +70,9 @@ export async function op(operationId: string, r: ReturnType<typeof req>, who: Wh
   const fx = o.fx ?? {};
   const now = o.now ?? new Date('2027-04-01T06:00:00.000Z');
   const probe: Probe = { logs: [], requestId: uid(), identity: [], tenantSettings: [], batch: [], lab: [], balance: [] };
+  let handlerMs = 0;
   const run = async (tx: any) => {
-    const log = (lvl: string) => (obj: object, msg?: string) => { probe.logs.push(`${lvl} ${JSON.stringify(obj)} ${msg ?? ''}`); };
+    const log =(lvl: string) => (obj: object, msg?: string) => { probe.logs.push(`${lvl} ${JSON.stringify(obj)} ${msg ?? ''}`); };
     const ctx: any = {
       operationId, clientIp: '203.0.113.9', log: { info: log('info'), warn: log('warn'), error: log('error'), debug: log('debug') }, metrics: { inc: () => undefined },
       tenantId: who.tenant, tx, requestId: probe.requestId, now: () => now, centreId: HC_CENTRE[side],
@@ -128,11 +126,14 @@ export async function op(operationId: string, r: ReturnType<typeof req>, who: Wh
       audit: { access: (e: any) => access(ctx, e) },
       commitOnError: () => undefined,
     };
-    return H[operationId]!(r, ctx);
+    const t0 = performance.now();   // LD-156: handler time only, excluding appTx connect/BEGIN/COMMIT
+    const res = await H[operationId]!(r, ctx);
+    handlerMs = performance.now() - t0;
+    return res;
   };
   try {
     const out = await (o.bypassRls ? superTx(run, who.tenant) : appTx(who.tenant, run));
-    return { ...(out as any), probe };
+    return { ...(out as any), probe, handlerMs };
   } catch (e) { if (e && typeof e === 'object') (e as any).probe = probe; throw e; }
 }
 

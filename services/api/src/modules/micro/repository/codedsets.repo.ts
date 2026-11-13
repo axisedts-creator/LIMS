@@ -56,6 +56,14 @@ export async function activeCodeExists(tx: Q, a: { setName: 'organism_groups' | 
   return rows.length > 0;
 }
 
+/** Rows of a resolved (tenant-over-global) view for the given codes, active or not (the caller decides). `$2` pins the view's claims tenant to ctx.tenantId (REQ-SEC-024). */
+export async function codeRows(tx: Q, a: { view: 'media' | 'growth_codes' | 'specimen_sites' | 'organisms' | 'isolate_withdraw_reasons' | 'antibiotics' | 'organism_groups'; tenantId: string; codes: string[] }): Promise<Map<string, Record<string, any>>> {
+  if (a.codes.length === 0) return new Map();
+  const cols = a.view === 'growth_codes' ? 'code, is_active, indicates_growth' : a.view === 'organisms' ? 'code, display, is_active, organism_group_code' : a.view === 'antibiotics' ? 'code, display, is_active' : 'code, is_active';
+  const { rows } = await tx.query(`SELECT ${cols} FROM micro.${VIEW[a.view]} WHERE code = ANY($1::text[]) AND (SELECT app.current_tenant_id()) = $2::uuid`, [a.codes, a.tenantId]);
+  return new Map(rows.map((r: Record<string, any>) => [r['code'], r]));
+}
+
 export async function findTenantCode(tx: Q, a: { tenantId: string; setName: Plain; code: string }): Promise<Record<string, any> | undefined> {
   const { rows } = await tx.query(`SELECT * FROM micro.cs_${a.setName} WHERE tenant_id = $1 AND code = $2`, [a.tenantId, a.code]);
   return rows[0];

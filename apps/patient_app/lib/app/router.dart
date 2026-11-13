@@ -6,6 +6,7 @@ import 'package:lims_shared/lims_shared.dart';
 import 'package:lims_ui/lims_ui.dart';
 
 import '../core/session/session_controller.dart';
+import '../features/auth/sign_in_flow.dart';
 import 'update_required_screen.dart';
 
 const kSignInPath = '/sign-in'; // A0–A4 live under it (T-A4)
@@ -46,7 +47,7 @@ GoRouter buildPatientRouter({
     ),
     routes: [
       GoRoute(path: kHomePath, builder: (_, _) => phi('Home')),
-      GoRoute(path: kSignInPath, builder: (_, _) => const Scaffold(body: Center(child: Text('Sign in')))),
+      GoRoute(path: kSignInPath, builder: (_, _) => const SignInFlow()), // A0 -> A2 -> A3 (T-A4)
       GoRoute(path: kUpdateRequiredPath, builder: (_, _) => UpdateRequiredScreen(storeUrl: storeUrl, openUrl: openUrl)),
       for (final p in patientRoutePatterns) GoRoute(path: p, builder: (_, _) => phi(p)),
     ],

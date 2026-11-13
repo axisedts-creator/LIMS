@@ -5,7 +5,7 @@
       3. node_modules folders of lanes that are completely finished (every task of the lane is "done"), have no running lane window,
          and no pending lead reset. Source files, git history and branches are never touched; an agent runs "pnpm install" again if a lane is ever reopened.
     Deleting uses "cmd /c rmdir /s /q", which removes pnpm's workspace links without following them into source folders. #>
-param([switch]$Apply, [string]$LanesRoot = "C:\LIMS-lanes", [string]$StateDir = "C:\LIMS-state", [string]$Integration = "C:\LIMS")
+param([switch]$Apply, [switch]$NoPnpm, [string]$LanesRoot = "C:\LIMS-lanes", [string]$StateDir = "C:\LIMS-state", [string]$Integration = "C:\LIMS")
 $drive = $LanesRoot.Substring(0,2)
 function Free { try { [math]::Round(([System.IO.DriveInfo]::new($LanesRoot.Substring(0,1))).AvailableFreeSpace / 1GB, 1) } catch { -1 } }
 $start = Free
@@ -23,13 +23,13 @@ if (Get-Command docker -ErrorAction SilentlyContinue) {
 } else { "docker not found - skipped" }
 
 # 2. pnpm store
-if (Get-Command pnpm -ErrorAction SilentlyContinue) { Step "pnpm: store prune" { pnpm store prune | Out-Null } } else { "pnpm not found - skipped" }
+if ($NoPnpm) { "pnpm store prune skipped (-NoPnpm)" } elseif (Get-Command pnpm -ErrorAction SilentlyContinue) { Step "pnpm: store prune" { pnpm store prune | Out-Null } } else { "pnpm not found - skipped" }
 
 # 3. node_modules of finished, idle lanes (lane table and filters are read from queue.ps1, the same table the queue uses)
 $C0 = "C0-foundation-contracts"
 $qsrc = Get-Content (Join-Path $Integration ".orchestra\queue.ps1") -Raw
 $Queue = $null
-$m = [regex]::Match($qsrc, '(?s)\$Queue = @\(.*?\n\)\n')
+$m = [regex]::Match($qsrc, '(?s)\$Queue = @\(.*?\r?\n\)\r?\n')
 if ($m.Success) { Invoke-Expression $m.Value }
 if (-not $Queue) { "could not read the lane table from queue.ps1 - step 3 skipped" }
 else {

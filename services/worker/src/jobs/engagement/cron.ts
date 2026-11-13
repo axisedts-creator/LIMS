@@ -17,6 +17,8 @@ export const crontab: readonly CronEntry[] = Object.freeze([
   // T-B2: sync_booking_centres_nightly daily 01:50 NPT = 20:05 UTC (08 A19 D-119)
   Object.freeze({ identifier: SYNC_BOOKING_CENTRES_NIGHTLY, schedule: '5 20 * * *', tenantScope: 'per_tenant' as const, maxAttempts: 5 }),
   Object.freeze({ identifier: PURGE_QUEUE, schedule: '25 21 * * *', tenantScope: 'per_tenant' as const, maxAttempts: 3 }),
+  Object.freeze({ identifier: 'engagement.reconcile_bookings', schedule: '*/10 * * * *', tenantScope: 'per_tenant' as const, maxAttempts: 3 }), // T-B4 (TRD §8.2)
+  Object.freeze({ identifier: 'engagement.mark_no_shows', schedule: '*/15 * * * *', tenantScope: 'per_tenant' as const, maxAttempts: 3 }), // T-B4 (TRD §8.2)
   Object.freeze({ identifier: 'engagement.sync_bookable_items_nightly', schedule: '55 19 * * *', tenantScope: 'per_tenant' as const, maxAttempts: 3 }), // T-B1: 01:40 Asia/Kathmandu = 19:55 UTC
 ]);
 

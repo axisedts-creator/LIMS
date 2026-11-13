@@ -1,0 +1,224 @@
+[core] WARNING: Executable file detection not yet supported on 'win32'.
+Schema updated
+psql:/repo/db/migrations/20261105001300_identity__create_identity_schema.sql:7: NOTICE:  schema "identity" already exists, skipping
+psql:/repo/db/migrations/20261105001500_catalog__create_catalog_schema.sql:10: NOTICE:  schema "catalog" already exists, skipping
+psql:/repo/db/migrations/20261105001600_frontdesk__create_frontdesk_schema.sql:7: NOTICE:  schema "frontdesk" already exists, skipping
+psql:/repo/db/migrations/20261105001700_billing__create_billing_schema.sql:7: NOTICE:  schema "billing" already exists, skipping
+psql:/repo/db/migrations/20261105001800_lab__create_lab_schema.sql:10: NOTICE:  schema "lab" already exists, skipping
+psql:/repo/db/migrations/20261105001900_reporting__create_reporting_schema.sql:145: NOTICE:  identifier "message_template_texts__tenant_id_template_code_channel_language__uq" will be truncated to "message_template_texts__tenant_id_template_code_channel_languag"
+psql:/repo/db/migrations/20261105001900_reporting__create_reporting_schema.sql:177: NOTICE:  identifier "report_template_versions__tenant_id_template_id__published__p_uq" will be truncated to "report_template_versions__tenant_id_template_id__published__p_u"
+psql:/repo/db/migrations/20261105001900_reporting__create_reporting_schema.sql:443: NOTICE:  identifier "deliveries__tenant_id_channel_account_id_provider_message_id__p_uq" will be truncated to "deliveries__tenant_id_channel_account_id_provider_message_id__p"
+psql:/repo/db/migrations/20261105001900_reporting__create_reporting_schema.sql:682: NOTICE:  identifier "narrative_versions__tenant_id_narrative_report_id_version_no__uq" will be truncated to "narrative_versions__tenant_id_narrative_report_id_version_no__u"
+HC-T03: homecollection.* missing after migrations (P-1 not landed): applying 05-SCHEMA §4/§4.1 DDL + policies
+                                                       set_config                                                        
+-------------------------------------------------------------------------------------------------------------------------
+ {"tenant_id":"01a1a98a-ac40-7000-8000-00000000a001","sub":"01a1b34e-1000-7eee-9d29-d7ca59a102b5","actor_type":"system"}
+(1 row)
+
+                                                       set_config                                                        
+-------------------------------------------------------------------------------------------------------------------------
+ {"tenant_id":"01a1a98a-ac40-7000-8000-00000000b001","sub":"01a1b34e-1000-7eee-9d29-d7ca59a102b5","actor_type":"system"}
+(1 row)
+
+ set_config 
+------------
+ 
+(1 row)
+
+
+ RUN  v5.1.0 C:/LIMS-lanes/C17/services/api
+
+(node:29688) PromiseRejectionHandledWarning: Promise rejection was handled asynchronously (rejection id: 2)
+(Use `node --trace-warnings ...` to show where the warning was created)
+ ❯ src/modules/homecollection/__tests__/snapshot/snapshot.test.ts (45 tests | 1 failed) 2204ms
+   ❯ US-06-1 pull with no cursor: today's route, exactly the actor's visits (11)
+     × each visit carries: id, version, route_id, sequence, window, status, kind, order_id, patient full name + phone, address text, landmark, coordinates (if set), dispatcher note, specimens, balance with as_of 7ms
+(node:29688) PromiseRejectionHandledWarning: Promise rejection was handled asynchronously (rejection id: 5)
+(node:29688) PromiseRejectionHandledWarning: Promise rejection was handled asynchronously (rejection id: 8)
+stderr | src/modules/homecollection/__tests__/snapshot/perf.test.ts > A2 p95 with 40 visits > changed pull of 40 visits: p95 of 8 runs <= 2 s; one demographics batch, 40 lookupSpecimens, 40 balances; every visit complete; 40 access rows
+unknown format "date-time" ignored in schema at path "#/components/schemas/IsoUtc"
+unknown format "date-time" ignored in schema at path "#/components/schemas/IsoUtc"
+unknown format "uuid" ignored in schema at path "#/components/schemas/Uuidv7"
+unknown format "uuid" ignored in schema at path "#/components/schemas/Uuidv7"
+unknown format "int64" ignored in schema at path "#/components/schemas/Money/properties/amount_paisa"
+unknown format "int64" ignored in schema at path "#/components/schemas/Money/properties/amount_paisa"
+unknown format "date-time" ignored in schema at path "#/components/schemas/IsoUtc"
+unknown format "date-time" ignored in schema at path "#/components/schemas/IsoUtc"
+unknown format "date" ignored in schema at path "#/components/schemas/IsoDate"
+unknown format "date" ignored in schema at path "#/components/schemas/IsoDate"
+unknown format "uuid" ignored in schema at path "#/components/schemas/Uuid"
+unknown format "uuid" ignored in schema at path "#/components/schemas/Uuid"
+unknown format "uuid" ignored in schema at path "#/components/schemas/Uuid"
+unknown format "uuid" ignored in schema at path "#/components/schemas/Uuid"
+unknown format "uuid" ignored in schema at path "#/components/schemas/Uuid"
+unknown format "uuid" ignored in schema at path "#/components/schemas/Uuid"
+unknown format "uuid" ignored in schema at path "#/components/schemas/Uuid"
+unknown format "uuid" ignored in schema at path "#/components/schemas/Uuid"
+unknown format "uuid" ignored in schema at path "#/components/schemas/Uuid"
+unknown format "uuid" ignored in schema at path "#/components/schemas/Uuid"
+unknown format "date-time" ignored in schema at path "#/components/schemas/IsoUtc"
+unknown format "date-time" ignored in schema at path "#/components/schemas/IsoUtc"
+unknown format "date-time" ignored in schema at path "#/components/schemas/IsoUtc"
+unknown format "date-time" ignored in schema at path "#/components/schemas/IsoUtc"
+unknown format "uuid" ignored in schema at path "#/components/schemas/Uuidv7"
+unknown format "uuid" ignored in schema at path "#/components/schemas/Uuidv7"
+unknown format "date" ignored in schema at path "#/components/schemas/IsoDate"
+unknown format "date" ignored in schema at path "#/components/schemas/IsoDate"
+unknown format "uuid" ignored in schema at path "#/components/schemas/Uuid"
+unknown format "uuid" ignored in schema at path "#/components/schemas/Uuid"
+unknown format "int64" ignored in schema at path "#/components/schemas/Money/properties/amount_paisa"
+unknown format "int64" ignored in schema at path "#/components/schemas/Money/properties/amount_paisa"
+unknown format "date-time" ignored in schema at path "#/components/schemas/IsoUtc"
+unknown format "date-time" ignored in schema at path "#/components/schemas/IsoUtc"
+unknown format "uuid" ignored in schema at path "#/components/schemas/Uuid"
+unknown format "uuid" ignored in schema at path "#/components/schemas/Uuid"
+unknown format "uuid" ignored in schema at path "#/components/schemas/Uuid"
+unknown format "uuid" ignored in schema at path "#/components/schemas/Uuid"
+unknown format "date-time" ignored in schema at path "#/components/schemas/IsoUtc"
+unknown format "date-time" ignored in schema at path "#/components/schemas/IsoUtc"
+unknown format "date-time" ignored in schema at path "#/components/schemas/IsoUtc"
+unknown format "date-time" ignored in schema at path "#/components/schemas/IsoUtc"
+
+ ❯ src/modules/homecollection/__tests__/snapshot/perf.test.ts (4 tests | 3 failed) 28535ms
+   ❯ A2 p95 with 40 visits (4)
+     × changed pull of 40 visits: p95 of 8 runs <= 2 s; one demographics batch, 40 lookupSpecimens, 40 balances; every visit complete; 40 access rows 16228ms
+     × unchanged pull of 40 visits: p95 of 8 runs <= 500 ms; 40 balance reads and nothing else 7321ms
+     × a slow or failing port on one visit does not multiply the cost: 40 visits with every lookupSpecimens failing still answers 200 within the changed budget, all visits stale 2095ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 4 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/modules/homecollection/__tests__/snapshot/perf.test.ts > A2 p95 with 40 visits > changed pull of 40 visits: p95 of 8 runs <= 2 s; one demographics batch, 40 lookupSpecimens, 40 balances; every visit complete; 40 access rows
+AssertionError: changed p95 2047 ms (runs 2011,2000,2021,2044,2008,2012,2047,2014): expected 2047.4939000000013 to be less than or equal to 2000
+ ❯ src/modules/homecollection/__tests__/snapshot/perf.test.ts:38:100
+     36|     expect(last.probe.lab).toHaveLength(N);
+     37|     expect(last.probe.balance).toHaveLength(N);
+     38|     expect(p95(times), `changed p95 ${Math.round(p95(times))} ms (runs…
+       |                                                                                                    ^
+     39|   });
+     40|   it(`unchanged pull of ${N} visits: p95 of ${RUNS} runs <= 500 ms; ${…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/4]⎯
+
+ FAIL  src/modules/homecollection/__tests__/snapshot/perf.test.ts > A2 p95 with 40 visits > unchanged pull of 40 visits: p95 of 8 runs <= 500 ms; 40 balance reads and nothing else
+AssertionError: unchanged p95 668 ms (runs 654,657,664,668,651,651,663,668): expected 668.0060999999987 to be less than or equal to 500
+ ❯ src/modules/homecollection/__tests__/snapshot/perf.test.ts:50:102
+
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/4]⎯
+
+ FAIL  src/modules/homecollection/__tests__/snapshot/perf.test.ts > A2 p95 with 40 visits > a slow or failing port on one visit does not multiply the cost: 40 visits with every lookupSpecimens failing still answers 200 within the changed budget, all visits stale
+AssertionError: expected 2094.4179000000004 to be less than or equal to 2000
+ ❯ src/modules/homecollection/__tests__/snapshot/perf.test.ts:55:36
+     53|     const t0 = performance.now();
+     54|     const r = await go({ fx: { ...fx, labFails: true } });
+     55|     expect(performance.now() - t0).toBeLessThanOrEqual(2000);
+       |                                    ^
+     56|     expect(r.status).toBe(200);
+     57|     for (const v of r.body.visits) expect(v).toMatchObject({ specimens…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/4]⎯
+
+ FAIL  src/modules/homecollection/__tests__/snapshot/snapshot.test.ts > US-06-1 pull with no cursor: today's route, exactly the actor's visits > each visit carries: id, version, route_id, sequence, window, status, kind, order_id, patient full name + phone, address text, landmark, coordinates (if set), dispatcher note, specimens, balance with as_of
+AssertionError: expected { …(14) } to deeply equal { …(14) }
+
+- Expected
++ Received
+
+@@ -1,11 +1,11 @@
+  {
+    "address": {
+      "address_text": "Ward 4, Synthetic Tole 12",
+      "landmark": "Opposite the synthetic bakery",
+-     "latitude": 27.7172,
+-     "longitude": 85.324,
++     "latitude": "27.717200",
++     "longitude": "85.324000",
+    },
+    "balance": {
+      "as_of": "2027-04-01T06:00:00.000Z",
+      "balance_due": {
+        "amount_paisa": 180000,
+
+ ❯ src/modules/homecollection/__tests__/snapshot/snapshot.test.ts:36:15
+
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/4]⎯
+
+⎯⎯⎯⎯⎯⎯ Unhandled Errors ⎯⎯⎯⎯⎯⎯
+
+Vitest caught 3 unhandled errors during the test run.
+This might cause false positive tests. Resolve unhandled errors to make sure your tests are not affected.
+
+⎯⎯⎯⎯ Unhandled Rejection ⎯⎯⎯⎯⎯
+LimsError: common.id_mismatch
+ ❯ sameDevice src/modules/homecollection/snapshot.service.ts:45:128
+     43| const header = (headers: unknown, name: string): unknown => (isObj(hea…
+     44| /** TRD §5 preamble: X-Lims-Device-Id must equal the query / body devi…
+     45| const sameDevice = (headers: unknown, deviceId: string): void => { if …
+       |                                                                                                                                ^
+     46| const callerMembership = (ctx: Ctx): string => { if (!ctx.actor.member…
+     47| const DEFAULT_TZ = 'Asia/Kathmandu';   // v1 tenants (05-SCHEMA P-15)
+ ❯ ackSync src/modules/homecollection/snapshot.service.ts:230:3
+ ❯ processTicksAndRejections node:internal/process/task_queues:104:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯
+Serialized Error: { code: 'common.id_mismatch', detail: undefined, errors: undefined, statusCode: 400, retryAfterSeconds: undefined, probe: { logs: [], requestId: '01a1d461-8365-7bc7-b202-52517454161c', identity: [ { permission: 'homecollection.sync.upload' } ], tenantSettings: [], batch: [], lab: [], balance: [] } }
+This error originated in "src/modules/homecollection/__tests__/snapshot/ack.test.ts" test file. It doesn't mean the error was thrown inside the file itself, but while it was running.
+The last test to run before this error was "device-id header vs body mismatch -> 400 common.id_mismatch [ASSUMED enforced in the handler, as HC-T10]". This means either:
+- the error was thrown while Vitest was running this test, or
+- the error was thrown after the test completed, and this was the most recent test at that point.
+
+⎯⎯⎯⎯ Unhandled Rejection ⎯⎯⎯⎯⎯
+LimsError: auth.forbidden
+ ❯ Object.assertRole src/modules/homecollection/__tests__/snapshot/helpers.ts:81:60
+     79|           async assertRole(_c: unknown, a: { permission: string; centr…
+     80|             probe.identity.push({ permission: a?.permission, ...(a?.ce…
+     81|             if (!who.grants.includes(a?.permission)) throw new LimsErr…
+       |                                                            ^
+     82|             if (a?.centreId && fx.deniedCentres?.includes(a.centreId))…
+     83|           },
+ ❯ ackSync src/modules/homecollection/snapshot.service.ts:217:32
+ ❯ Object.handler src/modules/homecollection/handlers/ackSync.ts:5:47
+ ❯ run src/modules/homecollection/__tests__/snapshot/helpers.ts:125:25
+ ❯ appTx src/modules/frontdesk/__tests__/integration/helpers.ts:41:23
+ ❯ processTicksAndRejections node:internal/process/task_queues:104:5
+ ❯ op src/modules/homecollection/__tests__/snapshot/helpers.ts:128:17
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯
+Serialized Error: { code: 'auth.forbidden', detail: undefined, errors: undefined, statusCode: 403, retryAfterSeconds: undefined, probe: { logs: [], requestId: '01a1d461-8415-756e-b7fc-9148891ed827', identity: [ { permission: 'homecollection.sync.upload' } ], tenantSettings: [], batch: [], lab: [], balance: [] } }
+This error originated in "src/modules/homecollection/__tests__/snapshot/ack.test.ts" test file. It doesn't mean the error was thrown inside the file itself, but while it was running.
+The last test to run before this error was "permissions: sync.upload is required (NOBODY -> auth.forbidden); nothing changes". This means either:
+- the error was thrown while Vitest was running this test, or
+- the error was thrown after the test completed, and this was the most recent test at that point.
+
+⎯⎯⎯⎯ Unhandled Rejection ⎯⎯⎯⎯⎯
+LimsError: auth.forbidden
+ ❯ Object.assertRole src/modules/homecollection/__tests__/snapshot/helpers.ts:81:60
+     79|           async assertRole(_c: unknown, a: { permission: string; centr…
+     80|             probe.identity.push({ permission: a?.permission, ...(a?.ce…
+     81|             if (!who.grants.includes(a?.permission)) throw new LimsErr…
+       |                                                            ^
+     82|             if (a?.centreId && fx.deniedCentres?.includes(a.centreId))…
+     83|           },
+ ❯ ackSync src/modules/homecollection/snapshot.service.ts:217:32
+ ❯ Object.handler src/modules/homecollection/handlers/ackSync.ts:5:47
+ ❯ run src/modules/homecollection/__tests__/snapshot/helpers.ts:125:25
+ ❯ appTx src/modules/frontdesk/__tests__/integration/helpers.ts:41:23
+ ❯ processTicksAndRejections node:internal/process/task_queues:104:5
+ ❯ op src/modules/homecollection/__tests__/snapshot/helpers.ts:128:17
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯
+Serialized Error: { code: 'auth.forbidden', detail: undefined, errors: undefined, statusCode: 403, retryAfterSeconds: undefined, probe: { logs: [], requestId: '01a1d461-841d-7c27-b226-0e3b7614dd3c', identity: [ { permission: 'homecollection.sync.upload' } ], tenantSettings: [], batch: [], lab: [], balance: [] } }
+This error originated in "src/modules/homecollection/__tests__/snapshot/ack.test.ts" test file. It doesn't mean the error was thrown inside the file itself, but while it was running.
+The last test to run before this error was "permissions: sync.upload is required (NOBODY -> auth.forbidden); nothing changes". This means either:
+- the error was thrown while Vitest was running this test, or
+- the error was thrown after the test completed, and this was the most recent test at that point.
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯
+
+
+ Test Files  2 failed | 3 passed (5)
+      Tests  4 failed | 80 passed (84)
+     Errors  3 errors
+   Start at  15:53:39
+   Duration  29.24s (tests 94%, import 5%, transform 1%)
+

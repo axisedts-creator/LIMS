@@ -28,16 +28,16 @@ function ctxOf(c: unknown): Ctx {
 }
 
 // ---- validation (fixed messages: no submitted value is echoed) ----
-const bad = (path: string): LimsError => new LimsError('common.validation_failed', undefined, [{ path, code: 'common.field_invalid', message: 'Field invalid' } as FieldError]);
-const isObj = (v: unknown): v is Obj => typeof v === 'object' && v !== null && !Array.isArray(v);
-const UUID_V7 = /^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
-const APP_VERSION = /^[0-9]{1,4}\.[0-9]{1,4}\.[0-9]{1,4}$/;
-const deviceIdOf = (v: unknown, path: string): string => { if (typeof v !== 'string' || !UUID_V7.test(v)) throw bad(path); return v; };
+export const bad = (path: string): LimsError => new LimsError('common.validation_failed', undefined, [{ path, code: 'common.field_invalid', message: 'Field invalid' } as FieldError]);
+export const isObj = (v: unknown): v is Obj => typeof v === 'object' && v !== null && !Array.isArray(v);
+export const UUID_V7 = /^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
+export const APP_VERSION = /^[0-9]{1,4}\.[0-9]{1,4}\.[0-9]{1,4}$/;
+export const deviceIdOf =(v: unknown, path: string): string => { if (typeof v !== 'string' || !UUID_V7.test(v)) throw bad(path); return v; };
 const text = (v: unknown, min: number, max: number, path: string): string => {
   if (typeof v !== 'string' || v.includes('\u0000') || [...v].length < min || [...v].length > max) throw bad(path);
   return v;
 };
-const noExtra = (v: Obj, allowed: readonly string[]): void => {
+export const noExtra = (v: Obj, allowed: readonly string[]): void => {
   for (const k of Object.keys(v)) if (!allowed.includes(k)) throw new LimsError('common.validation_failed', undefined, [{ path: `/${k}`, code: 'common.unknown_field', message: 'Unknown field' }]);
 };
 const header = (headers: unknown, name: string): unknown => (isObj(headers) ? headers[name] : undefined);
@@ -49,7 +49,7 @@ const callerMembership = (ctx: Ctx): string => { if (!ctx.actor.membershipId) th
 const sameHeader = (headers: unknown, name: string, expected: string): void => { if (header(headers, name) !== expected) throw new LimsError('common.id_mismatch'); };
 
 const partsOf = (v: string): number[] => v.split('.').map(Number);
-function belowMin(app: string, min: string): boolean {   // numeric per part (1.10.0 >= 1.9.0)
+export function belowMin(app: string, min: string): boolean {   // numeric per part (1.10.0 >= 1.9.0)
   const a = partsOf(app); const m = partsOf(min);
   for (let i = 0; i < 3; i++) { if ((a[i] ?? 0) !== (m[i] ?? 0)) return (a[i] ?? 0) < (m[i] ?? 0); }
   return false;

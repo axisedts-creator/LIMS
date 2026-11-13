@@ -23,8 +23,8 @@ export interface SpecimenEventCtx {
 }
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-const bad = (path: string): never => { throw new LimsError('common.validation_failed', undefined, [{ path, code: 'common.field_invalid', message: 'Field invalid' }]); };
-const uuid = (v: unknown, p: string): string => (typeof v === 'string' && UUID.test(v) ? v : bad(p));
+export const bad = (path: string): never => { throw new LimsError('common.validation_failed', undefined, [{ path, code: 'common.field_invalid', message: 'Field invalid' }]); };
+export const uuid = (v: unknown, p: string): string => (typeof v === 'string' && UUID.test(v) ? v : bad(p));
 const text = (v: unknown, p: string): string => (typeof v === 'string' && v.length >= 1 && v.length <= 200 ? v : bad(p));
 
 export async function onSpecimenStatusChanged(ctx: SpecimenEventCtx, event: Obj): Promise<void> {
@@ -109,26 +109,26 @@ async function onRejected(ctx: SpecimenEventCtx, tenantId: string, userId: strin
 export type WriteCtx = ChainCtx & { readonly actor: { readonly id: string; readonly membershipId?: string | undefined } };
 type Out = { body: Obj; version?: number };
 
-const WORK = 'micro.culture.work';
+export const WORK = 'micro.culture.work';
 const CODE = /^[a-z0-9_]{2,64}$/;
 const ISO_UTC = /^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}\.[0-9]{3}Z$/;
 const HOUR_MS = 3_600_000;
-const isObj = (v: unknown): v is Obj => typeof v === 'object' && v !== null && !Array.isArray(v);
-const str = (v: unknown, p: string, max: number): string => (typeof v === 'string' && v.length >= 1 && v.length <= max ? v : bad(p));
-const code = (v: unknown, p: string): string => (typeof v === 'string' && CODE.test(v) ? v : bad(p));
+export const isObj = (v: unknown): v is Obj => typeof v === 'object' && v !== null && !Array.isArray(v);
+export const str = (v: unknown, p: string, max: number): string => (typeof v === 'string' && v.length >= 1 && v.length <= max ? v : bad(p));
+export const code = (v: unknown, p: string): string => (typeof v === 'string' && CODE.test(v) ? v : bad(p));
 const instant = (v: unknown, p: string): Date => {
   const d = typeof v === 'string' && ISO_UTC.test(v) ? new Date(v) : undefined;
   return d && !Number.isNaN(d.getTime()) && d.toISOString() === v ? d : bad(p);
 };
-function strictKeys(o: Obj, allowed: readonly string[]): void {
+export function strictKeys(o: Obj, allowed: readonly string[]): void {
   for (const k of Object.keys(o)) if (!allowed.includes(k)) throw new LimsError('common.validation_failed', undefined, [{ path: `/${k.slice(0, 64)}`, code: 'common.unknown_field', message: 'Unknown field' }]);
 }
-const conflict = (): never => { throw new LimsError('common.version_conflict'); };
-const needVersion = (v: number | undefined): number => { if (v === undefined) throw new LimsError('common.precondition_required'); return v >= 1 ? v : bad('/If-Match'); };
-const nowOf = (c: WriteCtx): Date => (typeof c.now === 'function' ? c.now() : new Date());
+export const conflict = (): never => { throw new LimsError('common.version_conflict'); };
+export const needVersion = (v: number | undefined): number => { if (v === undefined) throw new LimsError('common.precondition_required'); return v >= 1 ? v : bad('/If-Match'); };
+export const nowOf = (c: WriteCtx): Date => (typeof c.now === 'function' ? c.now() : new Date());
 
 /** DB-raised P0001 (05-SCHEMA triggers) -> registry codes (02-TRD §12); the service pre-checks the same rules, the trigger is the backstop. */
-async function guarded<T>(fn: () => Promise<T>): Promise<T> {
+export async function guarded<T>(fn: () => Promise<T>): Promise<T> {
   try { return await fn(); } catch (e) {
     const x = e as { code?: unknown; message?: unknown } | null;
     if (x?.code === 'P0001' && x.message === 'immutable_row') throw new LimsError('micro.report_final_locked');
@@ -138,7 +138,7 @@ async function guarded<T>(fn: () => Promise<T>): Promise<T> {
 }
 
 /** Object first (404 when absent / not visible), then the permission with the object's centre. */
-async function loadForWork(c: WriteCtx, params: unknown): Promise<{ tx: any; tenantId: string; userId: string; row: Obj }> {
+export async function loadForWork(c: WriteCtx, params: unknown): Promise<{ tx: any; tenantId: string; userId: string; row: Obj }> {
   if (typeof c?.tenantId !== 'string' || typeof c.actor?.id !== 'string' || !c.tx) throw new LimsError('auth.unauthenticated');
   const id = uuid(isObj(params) ? params['culture_id'] : undefined, '/culture_id').toLowerCase();
   const row = await repo.lockCulture(c.tx as any, { tenantId: c.tenantId, id });
@@ -150,7 +150,7 @@ async function loadForWork(c: WriteCtx, params: unknown): Promise<{ tx: any; ten
 }
 
 /** A client-given id must exist in the tenant (404) and belong to THIS culture (400 common.id_mismatch, S-03). */
-function sameCulture(owner: Obj | undefined, cultureId: string): void {
+export function sameCulture(owner: Obj | undefined, cultureId: string): void {
   if (!owner) throw new LimsError('common.not_found');
   if (String(owner['culture_id']) !== cultureId) throw new LimsError('common.id_mismatch');
 }

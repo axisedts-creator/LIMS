@@ -94,7 +94,9 @@ describe('handler map (02-TRD §3.1, §5): one handler per operationId, stubs th
     const { handlers } = await importApi('handlers/index.ts');
     // Ruling C12.T-07-ruling: ops #1-#10 are implemented by T-07 (06-IMPLEMENTATION-PLAN.md:24,30); their behaviour is covered by T-07 tests.
     const { itemHandlers } = await importApi('handlers/items.ts');
-    const implemented = new Set(Object.keys(itemHandlers));
+    // Ruling C12.T-08-ruling: ops #11-#25 are implemented by T-08 (06-IMPLEMENTATION-PLAN.md:31).
+    const { masterHandlers } = await importApi('handlers/masters.ts');
+    const implemented = new Set([...Object.keys(itemHandlers), ...Object.keys(masterHandlers)]);
     const noop = () => {};
     const ctx = { log: { info: noop, warn: noop, error: noop } };
     for (const [op, h] of Object.entries<any>(handlers)) {

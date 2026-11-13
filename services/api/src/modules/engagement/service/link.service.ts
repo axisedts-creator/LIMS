@@ -63,6 +63,7 @@ export function createLinkService() {
   }
 
   /** TRD §4.3.2 step 4: account active links < max_profiles_per_account. (Per-patient limit: mechanism under patient RLS not specified — see notes.) */
+  // CR pending: .orchestra/cr/T-L3.md (per-patient max_accounts_per_patient needs a DEFINER count; not invented here)
   async function checkLimit(ctx: LinkCtx, accountId: string): Promise<void> {
     const [{ rows: s }, { rows: c }] = await Promise.all([
       ctx.tx.query('SELECT max_profiles_per_account FROM engagement.settings WHERE tenant_id = $1', [ctx.tenantId]),

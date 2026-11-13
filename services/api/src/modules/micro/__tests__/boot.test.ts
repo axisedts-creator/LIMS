@@ -43,6 +43,8 @@ const IMPLEMENTED: readonly string[] = [
   'listMicroInstrumentRecords', 'assignMicroInstrumentRecord', 'applyMicroInstrumentRecord', 'ignoreMicroInstrumentRecord',
   'listInstrumentVocabMaps', 'createInstrumentVocabMap', 'updateInstrumentVocabMap', 'deactivateInstrumentVocabMap',
   'listInstrumentAstDefaults', 'putInstrumentAstDefault',
+  // T-15: M14
+  'submitCultureReport',
 ];
 
 const FAKE_REQ = { params: {}, query: {}, headers: {}, body: {} };

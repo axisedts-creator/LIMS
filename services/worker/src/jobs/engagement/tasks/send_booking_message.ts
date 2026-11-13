@@ -5,13 +5,13 @@
 // Any port failure THROWS: the tx rolls back and the queue retries. suppressed_* (consent, contact, channel) is an outcome, not an error.
 // In-app: one engagement.notifications row per ACTIVE linked account (kind booking_confirmed | booking_cancelled, no text stored), also when the SMS is suppressed.
 // [CONV] transactional message: neither settings.reminders_enabled nor accounts.reminders_opt_out gates it (those are the reminder switches); consent is the port's job.
-// [CONV] datetime / lab_name rendering = tasks/send_reminder.ts (tenant timezone 'YYYY-MM-DD HH:mm'; display name stripped to short_text charset); notification row expires after 30 days.
+// [CONV] datetime / lab_name rendering = tasks/send_reminder.ts (tenant timezone 'YYYY-MM-DD HH:mm'; display name stripped to short_text charset); notification row expires after 180 days (TRD §4.9, 05-SCHEMA retention).
 import type { TaskHandler } from '../../../core/manifest.js';
 import { uuidv7 } from '../../../../../../packages/shared-ts/src/uuidv7/index.js';
 
 type Row = Record<string, any>;
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-const NOTIFICATION_TTL_MS = 30 * 24 * 3_600_000;
+const NOTIFICATION_TTL_MS = 180 * 24 * 3_600_000;
 const KINDS = {
   confirmation: { templateCode: 'engagement.booking_confirmation', purpose: 'booking_confirmation', notification: 'booking_confirmed' },
   cancelled: { templateCode: 'engagement.booking_cancelled', purpose: 'booking_cancelled', notification: 'booking_cancelled' },

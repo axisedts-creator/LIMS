@@ -1,5 +1,6 @@
 'use client';
 // W9 Reminders (04-UI-UX §3 W9; US-EN-23). Filters live in the URL (due range ≤ 92 days, status, kind). Create = R2, cancel (scheduled rows only) = R3.
+// LD-140 (2026-11-13): packages/ui components and token classes only; no hex colours, pixel radii or inline styles; one primary button per page.
 // Message content is fixed by the template (params {lab_name, datetime} only): the form never asks for text, test names or results (REQ-SEC-007/-070).
 import { useRef, useState } from 'react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
@@ -124,7 +125,8 @@ function Filters() {
   const [from, setFrom] = useState(dmy(params.get('due_from')));
   const [to, setTo] = useState(dmy(params.get('due_to')));
   const [rangeError, setRangeError] = useState<string>();
-  const go = (set: Record<string, string | undefined>) => {
+  const applied = useRef(`${params.get('due_from')}|${params.get('due_to')}`); // last range sent to the URL: re-typing the same range must not navigate again
+  const go =(set: Record<string, string | undefined>) => {
     const q = new URLSearchParams(params.toString());
     q.delete('cursor');
     for (const [k, v] of Object.entries(set)) (v ? q.set(k, v) : q.delete(k));
@@ -136,6 +138,8 @@ function Filters() {
     if (b < a) { setRangeError('The end date must be on or after the start date.'); return; }
     if ((Date.parse(b) - Date.parse(a)) / 86_400_000 > MAX_RANGE_DAYS - 1) /* 92 calendar days inclusive */ { setRangeError(`Choose a period of at most ${MAX_RANGE_DAYS} days.`); return; }
     setRangeError(undefined);
+    if (applied.current === `${a}|${b}`) return;
+    applied.current = `${a}|${b}`;
     go({ due_from: a, due_to: b });
   };
   return (

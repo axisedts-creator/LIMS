@@ -15,7 +15,12 @@ type Proof = [file: string, anchor: RegExp];
 const T: Record<string, Proof[]> = {
   // 6.1 cross-tenant: runtime P-7 here; P-5 in the SQL suites; the rest see LIVE_ONLY
   'P-1': [[`${SEC}contract.security.test.ts`, /P-1 object-id operations/]],
+  'P-2': [[`${API}service/__tests__/org.service.test.ts`, /P-2: branch of tenant B and a random branch id are rejected identically/], [`${API}service/__tests__/user.service.test.ts`, /foreign tenant/]],
+  'P-3': [[`${API}service/__tests__/org.service.test.ts`, /tenant probes \(07-SECURITY P-2\/P-3/], [`${WORK}build_audit_export.test.ts`, /P-3, P-4/]],
+  'P-4': [[`${WORK}build_audit_export.test.ts`, /P-4: tenant B rows never appear/]],
   'P-5': [['db/tests/identity/T0B-10.C2_policies.test.sql', /tenant isolation/]],
+  'P-6': [[`${API}service/__tests__/support.integration.test.ts`, /P-6 support session of tenant A is worthless against tenant B/]],
+  'P-8': [[`${API}service/__tests__/support.integration.test.ts`, /AC-E4\.6 \/ P-8/], [`${API}ports/__tests__/IdentityPort.c2.test.ts`, /platform actor without support session -> identity\.support_session_required/]],
   'P-7': [[`${API}__tests__/probes/platform-forbidden.probe.test.ts`, /P-7 platform operations as a tenant user/]],
   // 6.2
   'C-1': [[`${API}__tests__/audit-view.service.test.ts`, /C-1/]],
@@ -87,11 +92,6 @@ const T: Record<string, Proof[]> = {
 
 // §6 ids that need a real DB and/or GoTrue to prove. Each names the file that must exist as the home of its proof; the proof itself is NOT run by this pack.
 const LIVE_ONLY: Record<string, string[]> = {
-  'P-2': [`${API}ports/__tests__/IdentityPort.live.test.ts`],        // array inputs mixing A and B ids  (needs DB)
-  'P-3': [`${API}repository/__tests__/sessions.repo.live.test.ts`],  // list endpoints with B data present (needs DB)
-  'P-4': [`${WORK}build_audit_export.test.ts`],                      // export of A never contains B rows
-  'P-6': [`${API}service/__tests__/support.integration.test.ts`],    // support session for A sees no B / platform row
-  'P-8': [`${API}ports/__tests__/IdentityPort.c2.test.ts`],          // platform actor without support session on a tenant operation
   'AU-T12': [`${API}gotrue/__tests__/http.live.test.ts`],            // GoTrue $2a$10$ hash prefix (needs the live GoTrue container)
 };
 

@@ -304,7 +304,10 @@ describe.skipIf(!live)('T-08 #14 update a store: version, default flag, store_no
       expect(d).toHaveLength(1);
     } finally {
       await c1.query('ROLLBACK').catch(() => undefined); await c2.query('ROLLBACK').catch(() => undefined); c1.release(); c2.release();
-      await admin.query('UPDATE inventory.stores SET is_default_consumption = (id = $2), version = 1 WHERE id IN ($1, $2, $3)', [BENCH, MAIN, ST_ZERO]);
+      // Ruling C12.T-08-ruling: the default-per-branch unique index is non-deferrable (05-SCHEMA.md:509-510), so reset in separate statements.
+      await admin.query('UPDATE inventory.stores SET is_default_consumption = false WHERE id IN ($1, $2, $3)', [BENCH, MAIN, ST_ZERO]);
+      await admin.query('UPDATE inventory.stores SET is_default_consumption = true WHERE id = $1', [MAIN]);
+      await admin.query('UPDATE inventory.stores SET version = 1 WHERE id IN ($1, $2, $3)', [BENCH, MAIN, ST_ZERO]);
     }
   }, 30_000);
 });
@@ -507,7 +510,7 @@ describe.skipIf(!live)('T-08 #17-#20 suppliers (AC-04.1)', () => {
     expect(ids(await s.call(A, 'listInventorySuppliers', { query: { q: 'ALPHA', is_active: false } }))).toEqual([SUP3]);
     expect(ids(await s.call(A, 'listInventorySuppliers', { query: { q: 'beta' } }))).toEqual([SUP2]);
     for (const q of ['%', '_', 'A%', '\\', "'; DROP TABLE inventory.suppliers; --"]) expect((await s.call(A, 'listInventorySuppliers', { query: { q } })).body.data, q).toEqual([]);
-    expect((await s.sql(A, 'SELECT count(*)::int AS n FROM inventory.suppliers'))[0].n).toBeGreaterThan(3);
+    expect((await s.sql(A, 'SELECT count(*)::int AS n FROM inventory.suppliers'))[0].n).toBe(3);
   });
   run('#17 limit + cursor: pages are disjoint and complete; tenant B sees only its own supplier', async (s) => {
     const all = ids(await s.call(A, 'listInventorySuppliers', { query: { limit: 200 } }));

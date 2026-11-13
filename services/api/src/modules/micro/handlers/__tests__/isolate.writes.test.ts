@@ -479,6 +479,22 @@ describe('C10-T09 M9 describeIsolate: full replace of colony_description / quant
   });
 });
 
+// ------------------------------------------------------------------ lock order (T-09 review item 1)
+describe('C10-T09 M8-M10 lock order: culture FOR UPDATE precedes isolate FOR UPDATE (avoids deadlock with M4 source_isolate_id, FK key-share on the isolate)', () => {
+  it.each([
+    ['identifyIsolate', () => identify(I.a2, 2)],
+    ['describeIsolate', () => describe_(I.a2, 2, { is_reportable: false })],
+    ['withdrawIsolate', () => withdraw(I.a2, 2, { reason_code: 'duplicate' })],
+  ])('%s', async (op, req) => {
+    const w = mkWorld(); const s = setup(w);
+    await run(op, req(), s.ctx);
+    const forUpdate = (table: string) => s.log.findIndex((l) => l.table === table && /FOR\s+UPDATE/i.test(l.sql));
+    expect(forUpdate('cultures')).toBeGreaterThanOrEqual(0);
+    expect(forUpdate('isolates')).toBeGreaterThanOrEqual(0);
+    expect(forUpdate('cultures')).toBeLessThan(forUpdate('isolates'));
+  });
+});
+
 // ------------------------------------------------------------------ M10 withdrawIsolate
 describe('C10-T09 M10 withdrawIsolate: AC-05.4 (I4)', () => {
   it.each([['pending_id', I.a2, 2, C.inc2], ['identified', I.a1, 3, C.inc]])('%s isolate + active reason_code (+ comment) -> withdrawn, reason and comment stored, version + 1; organism / seq kept; culture and AST rows untouched; IsolateDto + ETag', async (_s, id, v, cultureId) => {

@@ -24,7 +24,7 @@ const PERM = { read: 'partners.referrer.read', manage: 'partners.referrer.manage
 const CONVERT_TASK = 'partners.convert_manifest_line';
 const NOT_MAPPED = 'partners.referrer_not_mapped';
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-const REASON =/^[a-z][a-z0-9_]{0,63}$/; // [CONV] shape only; the value set (partners.referrer_mapping_reject_reasons) is enforced by C2/core
+const REASON =/^[a-z][a-z0-9_]{0,63}$/; // [CONV] shape pre-check; membership in referrer_mapping_reject_reasons is checked against partners.g_cs_reasons in rejectMapping
 const OPTIONAL = { qualification: 120, registration_council: 20, registration_no: 30 } as const;
 type OptionalField = keyof typeof OPTIONAL;
 
@@ -290,6 +290,10 @@ export async function rejectMapping(req: HandlerRequest, ctx: HandlerContext): P
   const { row, b } = await mappingStep(req, ctx, 'rejected');
   const reason = b['reason_code'];
   if (typeof reason !== 'string' || !REASON.test(reason)) throw bad('/reason_code');
+  // x-coded-set is annotation-only in core and the DDL has no CHECK/FK on mapping_reject_reason_code (05-SCHEMA §7): validate here as partner.service suspend
+  const coded = (await (ctx.tx as Q).query('SELECT code, is_active FROM partners.g_cs_reasons WHERE set_name = $1 AND code = $2',
+    ['referrer_mapping_reject_reasons', reason])).rows.find((r) => r['code'] === reason);
+  if (!coded || coded['is_active'] !== true) throw bad('/reason_code');
   return { status: 200, body: (await toMappingDtos(ctx, [await setMapping(ctx, row, 'rejected', null, reason)]))[0]! };
 }
 

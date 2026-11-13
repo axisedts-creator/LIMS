@@ -95,6 +95,26 @@ const EXPECTED: Record<string, 'counter' | 'gauge' | 'histogram'> = {
   lims_engagement_payment_requests_total: 'counter',
   lims_engagement_reminders_total: 'counter',
   lims_engagement_report_downloads_total: 'counter',
+
+  // C2 additions — LD-147 / CR-C2-T28-001, names and types from C2 02-TRD section 13 (lines 607-621).
+  lims_identity_logins_total: 'counter',
+  lims_identity_login_ip_throttles_active: 'gauge',
+  lims_identity_mfa_verifications_total: 'counter',
+  lims_identity_session_resolves_total: 'counter',
+  lims_identity_claims_resolve_duration_seconds: 'histogram',
+  lims_identity_authz_decisions_total: 'counter',
+  lims_identity_active_sessions: 'gauge',
+  lims_identity_gotrue_requests_total: 'counter',
+  lims_identity_gotrue_request_duration_seconds: 'histogram',
+  lims_identity_audit_exports_total: 'counter',
+  lims_identity_support_sessions_active: 'gauge',
+  lims_identity_support_sessions_opened_total: 'counter',
+  lims_identity_breached_list_loaded: 'gauge',
+  lims_identity_settings_cache_total: 'counter',
+  lims_identity_login_failures_by_tenant_5m: 'gauge',
+  lims_identity_stuffing_distinct_accounts_15m: 'gauge',
+  lims_identity_stuffing_distinct_ips_15m: 'gauge',
+  lims_identity_audit_exports_tenant_day: 'gauge',
 };
 
 // LD-88: TRD §13 fixes this C8 histogram as a row count, so it cannot end in _seconds.

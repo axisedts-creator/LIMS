@@ -77,9 +77,10 @@ export async function bumpSeqBySpecimen(tx: Q, a: { tenantId: string; specimenId
 /** "Open" instrument records = the states of the partial index instrument_records__tenant_id_open__p_idx (05-SCHEMA). */
 const OPEN_RECORD = `LEFT JOIN LATERAL (SELECT count(*)::int AS n FROM micro.instrument_records r
      WHERE r.tenant_id = c.tenant_id AND r.culture_id = c.id AND r.match_status IN ('pending_match','needs_mapping','conflict','late_after_final')) o ON TRUE`;
-const CULTURE_COLS = `c.id, c.version, c.status, c.order_id, c.order_item_id, c.specimen_id, c.patient_id, c.centre_id, c.test_id, c.specimen_type_code, c.specimen_site_code,
+const BASE_COLS = `c.id, c.version, c.status, c.order_id, c.order_item_id, c.specimen_id, c.patient_id, c.centre_id, c.test_id, c.specimen_type_code, c.specimen_site_code,
   c.outcome_code, c.received_at, c.planted_at, c.next_read_due_at, c.final_due_at, c.current_report_version_no, c.last_report_phase, c.chain_cancelled, c.barcode_snapshot,
-  c.plating_protocol_id, c.amendment_reason_code, c.amendment_reason_text, c.cancel_reason_code, c.updated_at, coalesce(o.n, 0) AS open_instrument_record_count`;
+  c.plating_protocol_id, c.amendment_reason_code, c.amendment_reason_text, c.cancel_reason_code, c.updated_at`;
+const CULTURE_COLS = `${BASE_COLS}, coalesce(o.n, 0) AS open_instrument_record_count`;
 
 export type CultureSort = 'received_at' | '-received_at' | 'next_read_due_at' | '-updated_at';
 export interface CultureFilter {
@@ -207,4 +208,42 @@ export async function getProtocol(tx: Q, a: { tenantId: string; id: string }): P
   const { rows } = await tx.query(
     'SELECT id, code, version_no, display, read_schedule_hours, final_no_growth_hours, requires_gram_stain FROM micro.plating_protocols WHERE tenant_id = $1 AND id = $2', [a.tenantId, a.id]);
   return rows[0];
+}
+
+// ================================================================ T-08 writes (M3–M6; 02-TRD §5, §4.1)
+/** The culture row the write handlers need, locked for the request (serialises setup / plates / reads of one culture). RLS applies the centre scope. */
+export async function lockCulture(tx: Q, a: { tenantId: string; id: string }): Promise<Row | undefined> {
+  const { rows } = await tx.query(
+    `SELECT id, version, status, centre_id, test_id, specimen_type_code, specimen_site_code, plating_protocol_id, planted_at, next_read_due_at
+       FROM micro.cultures WHERE tenant_id = $1 AND id = $2 FOR UPDATE`, [a.tenantId, a.id]);
+  return rows[0];
+}
+
+/** The culture as the DTOs read it (CULTURE_COLS) after a write; the open-record count is its own statement so the locked row stays a plain single-table read. */
+export async function reloadCulture(tx: Q, a: { tenantId: string; id: string }): Promise<Row | undefined> {
+  const row = (await tx.query(`SELECT ${BASE_COLS} FROM micro.cultures c WHERE c.tenant_id = $1 AND c.id = $2`, [a.tenantId, a.id])).rows[0];
+  if (!row) return undefined;
+  const n = (await tx.query(
+    `SELECT count(*)::int AS n FROM micro.instrument_records WHERE tenant_id = $1 AND culture_id = $2 AND match_status IN ('pending_match','needs_mapping','conflict','late_after_final')`,
+    [a.tenantId, a.id])).rows[0]?.['n'];
+  return { ...row, open_instrument_record_count: Number(n ?? 0) };
+}
+
+/** C2: awaiting_setup -> incubating, guarded by version and state; undefined = the version moved (409 common.version_conflict). */
+export async function setupCulture(tx: Q, a: {
+  tenantId: string; id: string; expectedVersion: number; userId: string; plantedAt: Date; nextReadDueAt: Date | null; finalDueAt: Date; protocolId: string | null; siteCode: string | null;
+}): Promise<Row | undefined> {
+  const { rows } = await tx.query(
+    `UPDATE micro.cultures SET status = 'incubating', planted_at = $4, next_read_due_at = $5, final_due_at = $6, plating_protocol_id = $7, specimen_site_code = $8,
+            version = version + 1, updated_at = now(), updated_by = $9
+      WHERE tenant_id = $1 AND id = $2 AND version = $3 AND status = 'awaiting_setup' RETURNING id, version`,
+    [a.tenantId, a.id, a.expectedVersion, a.plantedAt, a.nextReadDueAt, a.finalDueAt, a.protocolId, a.siteCode, a.userId]);
+  return rows[0];
+}
+
+/** After a plate_read: new status (C3; same value when unchanged) and the recomputed next_read_due_at. */
+export async function updateAfterRead(tx: Q, a: { tenantId: string; id: string; status: string; nextReadDueAt: Date | null; userId: string }): Promise<void> {
+  await tx.query(
+    `UPDATE micro.cultures SET status = $3, next_read_due_at = $4, version = version + 1, updated_at = now(), updated_by = $5
+      WHERE tenant_id = $1 AND id = $2`, [a.tenantId, a.id, a.status, a.nextReadDueAt, a.userId]);
 }

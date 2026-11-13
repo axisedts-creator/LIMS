@@ -11,7 +11,7 @@ import { cultureHandlers } from './culture.handlers.js';
 
 /** Implemented operations; each later task adds its own import + entry. */
 const REAL: Readonly<Record<string, Handler>> = {
-  ...cultureHandlers, // T-07: M1, M2, M15, M16
+  ...cultureHandlers, // T-07: M1, M2, M15, M16; T-08: M3–M6
   ...configHandlers, // T-05: M23–M28, M39, M40
   ...breakpointHandlers, // T-11: M41–M45, M49; T-13: M13, M46–M48
 };

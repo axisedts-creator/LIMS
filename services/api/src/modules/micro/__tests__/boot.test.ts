@@ -29,6 +29,8 @@ const IMPLEMENTED: readonly string[] = [
   'listMicroCodedSet', 'upsertMicroCode', 'listPlatingProtocols', 'createPlatingProtocol', 'versionPlatingProtocol', 'deactivatePlatingProtocol', 'getMicroSettings', 'updateMicroSettings',
   // T-11: M41–M45, M49
   'listBreakpointSets', 'createBreakpointImport', 'getBreakpointSet', 'listBreakpointImportIssues', 'listBreakpointRows', 'downloadBreakpointTemplate',
+  // T-13: M46–M48, M13
+  'activateBreakpointSet', 'retireBreakpointSet', 'discardBreakpointSet', 'previewAstInterpretation',
 ];
 
 const FAKE_REQ = { params: {}, query: {}, headers: {}, body: {} };

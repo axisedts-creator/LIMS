@@ -35,10 +35,9 @@ import {
 } from './t12.fakes.js';
 import { loadLibrary, reid, snapshot } from './t11.fakes.js';
 
-const FX = '../../../../../../packages/test-fixtures/src/smartreport/index.js';
 type Code = 'synthetic_basic' | 'synthetic_all_in_range' | 'synthetic_critical';
 const CODES: Code[] = ['synthetic_basic', 'synthetic_all_in_range', 'synthetic_critical'];
-const fixture = async (code: Code): Promise<{ results: any[]; analytes: any[] }> => (await import(/* @vite-ignore */ FX)).SMART_PREVIEW_FIXTURES[code];
+const fixture = async (code: Code): Promise<{ results: any[]; analytes: any[] }> => (await import('../../../../../../packages/test-fixtures/src/smartreport/index.js')).SMART_PREVIEW_FIXTURES[code];
 
 const fails = async (p: Promise<unknown>): Promise<any> => { try { await p; } catch (e) { return e; } throw new Error('expected the call to be refused'); };
 
@@ -134,14 +133,15 @@ describe('C14-T16 AC-19.1 fixture preview', () => {
   });
   it('previews the NAMED version, whatever its status, not the approved one (draft, in_review, approved, retired)', async () => {
     const f = (await fixture('synthetic_basic')).analytes.map((a: any) => a.analyteId);
-    approveLibrary(1);
+    loadMapped(1, f, 'approved');
     for (const [no, status] of [[2, 'draft'], [3, 'in_review'], [4, 'retired']] as const) {
       const id = loadMapped(no, f, status);
       const row = await previewLibraryVersion(makeCtx(), { libraryVersionId: id, fixtureCode: 'synthetic_basic' });
       expect(row).toMatchObject({ library_version_id: id, template_library_version: String(no) });
     }
-    const row = await previewLibraryVersion(makeCtx(), { libraryVersionId: VER(1), fixtureCode: 'synthetic_basic' });   // approved v1 has the order mappings, not the fixture's: still reads v1
+    const row = await previewLibraryVersion(makeCtx(), { libraryVersionId: VER(1), fixtureCode: 'synthetic_basic' });   // approved v1 maps the fixture analytes (ruling): the NAMED approved version is previewed
     expect(row.library_version_id).toBe(VER(1));
+    expect(row.template_library_version).toBe('1');
   });
   it('is deterministic and parallel-safe: 12 concurrent previews give identical content and still write nothing', async () => {
     const id = await fixtureLibrary('synthetic_critical'); const before = state();

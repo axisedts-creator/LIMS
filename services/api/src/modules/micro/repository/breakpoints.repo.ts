@@ -79,3 +79,82 @@ export async function bandsOf(tx: Q, a: { tenantId: string; setId: string; rowId
     [a.tenantId, a.setId, a.rowIds]);
   return rows;
 }
+
+// ---------------------------------------------------------------- T-13 lifecycle (03-APP-FLOW §2.5 B4–B6) + lookup reads
+/** Serialisation point of activation / retirement (03-APP-FLOW §2.5): create the tenant's settings row if absent (defaults), then lock it. Never UPDATEs it. */
+export async function lockSettings(tx: Q, a: { tenantId: string; userId: string; id: string }): Promise<void> {
+  await tx.query('INSERT INTO micro.settings (id, tenant_id, created_by, updated_by) VALUES ($1, $2, $3, $3) ON CONFLICT (tenant_id) DO NOTHING', [a.id, a.tenantId, a.userId]);
+  await tx.query('SELECT id FROM micro.settings WHERE tenant_id = $1 FOR UPDATE', [a.tenantId]);
+}
+
+/** B4: close every other `active` set of the standard at the new effective_from (never before its own start). Returns the closed rows. */
+export async function closeActive(tx: Q, a: { tenantId: string; standard: string; exceptId: string; effectiveTo: string; userId: string; now: string }): Promise<Row[]> {
+  const { rows } = await tx.query(
+    `UPDATE micro.breakpoint_sets SET status = 'retired', effective_to = greatest($1::timestamptz, effective_from), retired_by = $2, retired_at = $3::timestamptz,
+       version = version + 1, updated_at = now(), updated_by = $2
+     WHERE tenant_id = $4 AND standard = $5 AND status = 'active' AND id <> $6 RETURNING *`,
+    [a.effectiveTo, a.userId, a.now, a.tenantId, a.standard, a.exceptId]);
+  return rows;
+}
+
+/** B4 target. undefined = the row is no longer validated at that version (a concurrent request won). */
+export async function activateSet(tx: Q, a: { tenantId: string; id: string; version: number; userId: string; effectiveFrom: string; now: string }): Promise<Row | undefined> {
+  const { rows } = await tx.query(
+    `UPDATE micro.breakpoint_sets SET status = 'active', effective_from = $1::timestamptz, activated_by = $2, activated_at = $3::timestamptz,
+       version = version + 1, updated_at = now(), updated_by = $2
+     WHERE tenant_id = $4 AND id = $5 AND version = $6 AND status = 'validated' RETURNING *`,
+    [a.effectiveFrom, a.userId, a.now, a.tenantId, a.id, a.version]);
+  return rows[0];
+}
+
+/** B5: effective_to = greatest(now, effective_from). */
+export async function retireSet(tx: Q, a: { tenantId: string; id: string; version: number; userId: string; now: string }): Promise<Row | undefined> {
+  const { rows } = await tx.query(
+    `UPDATE micro.breakpoint_sets SET status = 'retired', effective_to = greatest($1::timestamptz, effective_from), retired_by = $2, retired_at = $1::timestamptz,
+       version = version + 1, updated_at = now(), updated_by = $2
+     WHERE tenant_id = $3 AND id = $4 AND version = $5 AND status = 'active' RETURNING *`,
+    [a.now, a.userId, a.tenantId, a.id, a.version]);
+  return rows[0];
+}
+
+/** B6. */
+export async function discardSet(tx: Q, a: { tenantId: string; id: string; version: number; userId: string }): Promise<Row | undefined> {
+  const { rows } = await tx.query(
+    `UPDATE micro.breakpoint_sets SET status = 'discarded', version = version + 1, updated_at = now(), updated_by = $1
+     WHERE tenant_id = $2 AND id = $3 AND version = $4 AND status IN ('uploaded', 'validated', 'invalid') RETURNING *`,
+    [a.userId, a.tenantId, a.id, a.version]);
+  return rows[0];
+}
+
+export async function isolateOf(tx: Q, a: { tenantId: string; id: string }): Promise<Row | undefined> {
+  const { rows } = await tx.query('SELECT id, culture_id, centre_id, organism_code FROM micro.isolates WHERE tenant_id = $1 AND id = $2', [a.tenantId, a.id]);
+  return rows.find((r: Row) => r['id'] === a.id);
+}
+export async function cultureSite(tx: Q, a: { tenantId: string; id: string }): Promise<string | null> {
+  const { rows } = await tx.query('SELECT id, specimen_site_code FROM micro.cultures WHERE tenant_id = $1 AND id = $2', [a.tenantId, a.id]);
+  return rows.find((r: Row) => r['id'] === a.id)?.['specimen_site_code'] ?? null;
+}
+export async function groupOf(tx: Q, a: { code: string }): Promise<string | null> {
+  const { rows } = await tx.query('SELECT code, organism_group_code FROM micro.v_organisms WHERE code = $1 AND is_active = TRUE', [a.code]);
+  return rows.find((r: Row) => r['organism_group_code'] != null)?.['organism_group_code'] ?? null;
+}
+export async function lookupSets(tx: Q, a: { tenantId: string; standard: string }): Promise<Row[]> {
+  const { rows } = await tx.query(
+    `SELECT id, standard, standard_version, status, effective_from, effective_to FROM micro.breakpoint_sets WHERE tenant_id = $1 AND standard = $2 AND status IN ('active', 'retired')`,
+    [a.tenantId, a.standard]);
+  return rows;
+}
+export async function lookupRows(tx: Q, a: { tenantId: string; setIds: readonly string[]; antibioticCodes: readonly string[] }): Promise<Row[]> {
+  const { rows } = await tx.query(
+    `SELECT id, set_id, organism_scope, organism_code, antibiotic_code, method, specimen_site_code, qualifier_code FROM micro.breakpoint_rows
+     WHERE tenant_id = $1 AND set_id = ANY($2::uuid[]) AND antibiotic_code = ANY($3::text[])`,
+    [a.tenantId, a.setIds, a.antibioticCodes]);
+  return rows;
+}
+export async function lookupBands(tx: Q, a: { tenantId: string; rowIds: readonly string[] }): Promise<Row[]> {
+  const { rows } = await tx.query(
+    `SELECT id, row_id, category_code, lower_value::text AS lower_value, lower_inclusive, upper_value::text AS upper_value, upper_inclusive
+       FROM micro.breakpoint_bands WHERE tenant_id = $1 AND row_id = ANY($2::uuid[])`,
+    [a.tenantId, a.rowIds]);
+  return rows;
+}

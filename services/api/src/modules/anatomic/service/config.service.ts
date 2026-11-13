@@ -32,7 +32,7 @@ const dup = (e: unknown): boolean => (e as { code?: unknown } | null)?.code === 
 const audit = (c: Ctx) => ({ id: uuidv7(), tenant_id: c.tenantId, created_by: c.actor.id, updated_by: c.actor.id });
 
 /** If-Match: "<version>"; "0" = create (K7/K12). Absent -> 428; malformed -> 400. */
-function ifMatch(headers: unknown): number {
+export function ifMatch(headers: unknown): number {
   const h = isObj(headers) ? headers['if-match'] : undefined;
   if (h === undefined) throw new LimsError('common.precondition_required');
   const m = typeof h === 'string' ? /^"(0|[1-9][0-9]{0,9})"$/.exec(h) : null;
@@ -346,8 +346,8 @@ const SET_REPO = {
   cancel_reasons: { list: coded.listCodedCancelReasons, insert: coded.insertCodedCancelReason, update: coded.updateCodedCancelReason },
 } as const;
 const setName = (params: unknown): (typeof SETS)[number] => oneOf(isObj(params) ? params['set_name'] : undefined, '/set_name', SETS);
-const encodeCursor = (offset: number): string => Buffer.from(JSON.stringify({ o: offset })).toString('base64url');
-function decodeCursor(v: unknown): number {
+export const encodeCursor = (offset: number): string => Buffer.from(JSON.stringify({ o: offset })).toString('base64url');
+export function decodeCursor(v: unknown): number {
   try {
     const o = (JSON.parse(Buffer.from(String(v), 'base64url').toString('utf8')) as { o?: unknown } | null)?.o;
     if (typeof o === 'number' && Number.isInteger(o) && o >= 0 && o <= 1_000_000) return o;

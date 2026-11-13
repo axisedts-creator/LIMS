@@ -1,0 +1,7 @@
+TESTS_WRONG — both disputed assertions demand more than the spec; change the tests as below, implementation stays.
+1. snapshot.test.ts:40 — `Address.latitude/longitude` are `DecimalString` (contracts/openapi/homecollection.yaml:2829-2832 -> _common.yaml:56-57 `type: string`); the same test's `schemaErrors('SnapshotDto')` (line 19) enforces that. JSON numbers violate the contract.
+   Change: `latitude: expect.stringMatching(/^27\.7172(0*)$/), longitude: expect.stringMatching(/^85\.324(0*)$/)` (or compare `Number(a.address.latitude)` to 27.7172). Keep v2 "keys absent" check.
+2. perf.test.ts — the budgets (02-TRD.md:576-577, 01-PRD.md:223) are derived from port latencies of exactly 10/20/50 ms run sequentially (TRD:576 "port calls share the caller's transaction ... run sequentially"; plan 06-IMPLEMENTATION-PLAN.md:34 "fakes with 03-IC latencies").
+   The fakes use `setTimeout`, which on Windows (15.6 ms tick) delays ~16.5/31/62 ms, i.e. ~60% above the spec latencies, so the test no longer models the spec's budget arithmetic. Sequential calls are what the spec prescribes, so the implementation is not at fault.
+   Change: make fake delays honour the declared latency (e.g. `await` a coarse `setTimeout` for most of it then busy-wait on `performance.now()` to the exact target, or measure one `setTimeout(10)` at beforeAll and scale both budgets by observed/declared). Keep budgets 500 ms / 2 s and all call-shape assertions unchanged. Applies to lines 38, 50, 55.
+No CR needed: spec is consistent; only the test's simulation of it is off.

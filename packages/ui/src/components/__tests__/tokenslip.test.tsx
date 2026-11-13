@@ -2,6 +2,7 @@
 // C16.T-Q4 / LD-143 (CR-C16-016): TokenSlip props { labName; heading; big; lines; issuedAt } (04-UI-UX §9.2).
 // Renders ONLY those six fields — nothing else, never a patient name or phone (04-UI-UX lines 228, 249).
 import { readFileSync } from 'node:fs';
+import { URL as NodeURL, fileURLToPath } from 'node:url';
 import { afterEach, describe, expect, it } from 'vitest';
 import { cleanup, render } from '@testing-library/react';
 import { TokenSlip } from '../TokenSlip/TokenSlip';
@@ -52,7 +53,7 @@ describe('TokenSlip', () => {
   });
 
   it('source: kit tokens only (LD-140) — no hex colours, no inline style objects, 80 mm print width', () => {
-    const src = readFileSync(new URL('../TokenSlip/TokenSlip.tsx', import.meta.url), 'utf8');
+    const src = readFileSync(fileURLToPath(new NodeURL('../TokenSlip/TokenSlip.tsx', import.meta.url)), 'utf8');
     expect(src).not.toMatch(/#[0-9a-fA-F]{3,8}\b/);
     expect(src).not.toMatch(/style=\{\{/);
     const css = (src.match(/@media print[\s\S]*/) ?? [''])[0] + src;

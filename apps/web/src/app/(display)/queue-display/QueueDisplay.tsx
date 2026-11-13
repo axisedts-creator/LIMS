@@ -1,12 +1,12 @@
 'use client';
 // Polls the same-origin BFF every 5 s (If-None-Match); 3 failed polls -> stale (keeps last board); 401 -> unpaired.
 import { useEffect, useRef, useState } from 'react';
-import { QueueBoard } from '@lims/ui/components/QueueBoard';
+import { QueueBoard, type IsoUtc } from '@lims/ui/components/QueueBoard';
 
 type Board = {
   centre_display_name: string;
   board_version: number;
-  generated_at: string;
+  generated_at: IsoUtc;
   now_calling: { token_label: string; counter_display_name: string; queue_display_name: string; called_at: string }[];
   waiting: { queue_display_name: string; waiting_count: number }[];
 };
@@ -22,9 +22,9 @@ export function QueueDisplay({ initial }: { initial: 'connecting' | 'unpaired' }
   const [revoked, setRevoked] = useState(false);
   const [board, setBoard] = useState<Board | undefined>();
   const [fresh, setFresh] = useState<ReadonlySet<string>>(new Set());
-  const [staleSince, setStaleSince] = useState<string | undefined>();
+  const [staleSince, setStaleSince] = useState<IsoUtc | undefined>();
   const etag = useRef<string | undefined>(undefined);
-  const lastOk = useRef<string | undefined>(undefined);
+  const lastOk = useRef<IsoUtc | undefined>(undefined);
   const seen = useRef<Set<string> | undefined>(undefined);
 
   useEffect(() => {
@@ -37,7 +37,7 @@ export function QueueDisplay({ initial }: { initial: 'connecting' | 'unpaired' }
     const fail = () => {
       failures += 1;
       if (failures >= MAX_FAILURES) {
-        setStaleSince((s) => s ?? lastOk.current ?? new Date().toISOString());
+        setStaleSince((s) => s ?? lastOk.current ?? (new Date().toISOString() as IsoUtc));
         setPhase('stale');
       }
     };
@@ -116,7 +116,7 @@ export function QueueDisplay({ initial }: { initial: 'connecting' | 'unpaired' }
         waiting={board.waiting.map((w) => ({ queue: w.queue_display_name, count: w.waiting_count }))}
         serverTime={board.generated_at}
         connection={phase === 'stale' ? 'stale' : 'live'}
-        staleSince={phase === 'stale' ? staleSince : undefined}
+        {...(phase === 'stale' && staleSince ? { staleSince } : {})}
         soundEnabled={false}
       />
     </>

@@ -433,36 +433,28 @@ describe('PL-3 Tenant detail — Settings / Flags / Administrators tabs', () => 
   });
 });
 
-// CR-BLOCKED: contracts/openapi/identity.yaml has no platform read of a tenant's feature flags (only the tenant-context `listFeatureFlags`),
-// so PL-3's Feature-flags tab cannot list flags. ASSUMED seam until a CR adds it: GET /v1/identity/platform/tenants/{id}/feature-flags → FeatureFlagList.
-describe('PL-3 Feature flags tab (needs CR for the list read)', () => {
+// LD-114 (2026-11-11): the platform read of a tenant's feature flags is NOT approved (CR-C2-T26 items 1-5 rejected; no contract change).
+// The Feature-flags tab therefore shows an empty state and makes no request (no listFeatureFlagsAsPlatform, no listTenantFlagsAction).
+describe('PL-3 Feature flags tab (LD-114: empty state, no list, no request)', () => {
   const ONE = `${P}/tenants/${T_ALPHA}`;
-  const FLAGS = { data: [
-    { code: 'whatsapp_pdf_attachment', description: 'Attach PDF reports in WhatsApp', scope: 'tenant', settable_by: 'platform', is_enabled: false, blocker_ref: 'B11', approval_ref_present: false, version: 1 },
-    { code: 'referral_incentive_report', description: 'Referral incentive report', scope: 'tenant', settable_by: 'platform', is_enabled: true, approval_ref_present: true, version: 2 },
-  ] };
+  let before = 0;
   beforeEach(async () => {
     routes[`GET ${ONE}`] = () => HttpResponse.json(tenantDetail(T_ALPHA, 'alpha', 'active'));
-    routes[`GET ${ONE}/feature-flags`] = () => HttpResponse.json(FLAGS);
-    routes[`PUT ${ONE}/feature-flags/whatsapp_pdf_attachment`] = () => HttpResponse.json({ ...FLAGS.data[0], is_enabled: true });
     await show('tenants/[tenant_id]/page', { params: { tenant_id: T_ALPHA } });
+    before = apiCalls();
     await userEvent.click(screen.getByRole('tab', { name: 'Feature flags' }));
   });
 
-  it('lists each flag with a switch and an Approval reference field (≤200)', async () => {
-    expect(await screen.findAllByRole('switch')).toHaveLength(2);
-    expect((screen.getAllByLabelText(/approval reference/i)[0] as HTMLInputElement).maxLength).toBe(200);
+  it('shows an empty state saying flags cannot be listed on the platform console yet; no switch, no Approval reference field', async () => {
+    expect(await screen.findByText(/flags cannot be listed on the platform console yet/i)).toBeTruthy();
+    expect(screen.queryAllByRole('switch')).toHaveLength(0);
+    expect(screen.queryAllByLabelText(/approval reference/i)).toHaveLength(0);
   });
 
-  it('enabling a flag that needs founder approval without a reference → no request; with a reference → PUT {is_enabled:true, approval_ref}', async () => {
-    const sw = (await screen.findAllByRole('switch'))[0]!;
-    await userEvent.click(sw);
-    await userEvent.click(screen.getAllByRole('button', { name: /^(save|apply|enable)/i })[0]!);
-    expect(callsTo('PUT', `${ONE}/feature-flags/whatsapp_pdf_attachment`)).toHaveLength(0);
-    await userEvent.type(screen.getAllByLabelText(/approval reference/i)[0]!, 'FOUNDER-2026-11-11');
-    await userEvent.click(screen.getAllByRole('button', { name: /^(save|apply|enable)/i })[0]!);
-    await waitFor(() => expect(callsTo('PUT', `${ONE}/feature-flags/whatsapp_pdf_attachment`)).toHaveLength(1));
-    expect(bodyOf(callsTo('PUT', `${ONE}/feature-flags/whatsapp_pdf_attachment`)[0])).toEqual({ is_enabled: true, approval_ref: 'FOUNDER-2026-11-11' });
+  it('opening the tab makes no API request at all (no feature-flags read, no flag write)', async () => {
+    await screen.findByText(/flags cannot be listed on the platform console yet/i);
+    expect(apiCalls()).toBe(before);
+    expect(callsTo('GET', `${ONE}/feature-flags`)).toHaveLength(0);
   });
 });
 

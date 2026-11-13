@@ -34,7 +34,7 @@ describe('US-03-2 schedule (H5): window + address stored, version +1, open addre
   });
   it('the window alone (no address object) keeps the stored address and does not touch coordinates', { timeout: T }, async () => {
     const v = await frontDeskVisit({ latitude: '27.700000', longitude: '85.300000' }, 'a', NEAR);
-    const r = await schedule({ visitId: v.id, version: v.version, body: win(6, 0) });
+    const r = await schedule({ visitId: v.id, version: v.version, body: win(6, 30) });
     expect(r.status).toBe(200);
     const row = await visitRow(v.id);
     expect(row).toMatchObject({ address_text: v.address_text, landmark: v.landmark });

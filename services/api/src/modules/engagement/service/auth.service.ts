@@ -2,15 +2,16 @@
 // Pre-auth context: tenant from the credential only. E2 never reads engagement.accounts (identical answer with/without an account) and never sends:
 // it stores the challenge (hashes + AES-GCM ciphertext of the code) and enqueues engagement.send_login_otp (job_key otp:<id>, payload carries no secret).
 // Nothing secret or personal is logged, audited or put in a metric label or an error (02-CV §9.2). Field errors are fixed text, never an echo of the input.
-import { createCipheriv, createDecipheriv, createHmac, randomBytes } from 'node:crypto';
+import { createCipheriv, createDecipheriv, createHmac, randomBytes, timingSafeEqual } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { randomToken, sha256Bytes } from '../../../../../../packages/shared-ts/src/crypto/index.js';
 import { uuidv7 } from '../../../../../../packages/shared-ts/src/uuidv7/index.js';
 import { LimsError, type FieldError } from '../../../core/errors.js';
 import { loadEngagementConfig, type EngagementConfig } from '../config.js';
-import { generateOtp } from '../domain/otp.js';
-import { hasAllowedPrefix, isE164 } from '../domain/phone.js';
+import { generateOtp, isWellFormedOtp } from '../domain/otp.js';
+import { hasAllowedPrefix, isE164, maskPhone } from '../domain/phone.js';
 import { engagementMetrics } from '../metrics.js';
+import * as accountsRepo from '../repository/accounts.repo.js';
 import * as otpRepo from '../repository/otp.repo.js';
 import { getEngagementSettings } from '../repository/settings.repo.js';
 import { DEFAULT_SETTINGS } from './settings.service.js';
@@ -18,6 +19,7 @@ import { DEFAULT_SETTINGS } from './settings.service.js';
 export interface AuthCtx {
   readonly tenantId?: string; readonly actor?: { readonly type?: string; readonly id: string }; readonly tx?: unknown;
   now(): string; ports?: any; rateLimit?: { consume(tier: string, key: string): Promise<void> };
+  audit?: { access(entry: Record<string, unknown>): Promise<void> }; commitOnError?(): void;
 }
 type Scope = { tx: any; tenantId: string; actorId: string };
 type Row = Record<string, any>;
@@ -27,6 +29,7 @@ const PLATFORMS = ['android', 'ios'];
 const BODY_KEYS = ['phone_e164', 'app_instance_id', 'app_platform'];
 const RESEND_AFTER_SECONDS = 60; // 04 A9
 const CODE_LENGTH = 6; // domain/otp.ts OTP_LENGTH; E3 accepts ^[0-9]{6}$
+const MAX_ATTEMPTS = 5; // 04 A9; otp_challenges__attempts__ck
 const IV_BYTES = 12; const TAG_BYTES = 16;
 
 let cfg: EngagementConfig | undefined;
@@ -140,6 +143,62 @@ export function createAuthService() {
       await s.tx.query('SELECT app.enqueue_job($1, $2::jsonb, $3)', ['engagement.send_login_otp', JSON.stringify({ tenant_id: s.tenantId, challenge_id: id }), `otp:${id}`]);
       engagementMetrics.otpRequest(ctx, 'queued');
       return { status: 202, body: { challenge_token: token, expires_at: expiresAt, resend_after_seconds: RESEND_AFTER_SECONDS, code_length: CODE_LENGTH } };
+    },
+
+    /**
+     * E3 (02-TRD §4.1 step 3). actor.id = the challenge id (resolver, §4.2). Order: shape -> limiter -> lock challenge -> usable? -> constant-time compare.
+     * Mismatch: attempts/status + access-log row survive the 401 via ctx.commitOnError() (08 A19 P-42). Match: challenge `verified` FIRST (PRE_ACC needs it), then account,
+     * C2 provisioning + session; ANY failure after the match is a bare 500 and the transaction rolls back (no commitOnError) so the same code can be retried.
+     */
+    async verifyOtp(ctx: AuthCtx, body: unknown): Promise<{ status: 200; body: Record<string, unknown> }> {
+      const s = scope(ctx);
+      const b = typeof body === 'object' && body !== null && !Array.isArray(body) ? (body as Record<string, unknown>) : invalid('/');
+      for (const k of Object.keys(b)) if (k !== 'code') invalid('/');
+      if (!isWellFormedOtp(b['code'])) invalid('/code');
+      const code = b['code'] as string;
+      if (!ctx.rateLimit || !ctx.ports?.IdentityPort || !ctx.audit || !ctx.commitOnError) throw new LimsError('common.service_unavailable'); // never serve without the limiter (REQ-SEC-099)
+      await ctx.rateLimit.consume('otp_verify', `o:${s.actorId}`); // 5 / OTP (04 §4); throws common.rate_limited
+
+      const ch = await otpRepo.loadForVerify(s.tx, { tenantId: s.tenantId, id: s.actorId });
+      const nowMs = Date.parse(ctx.now());
+      if (!ch || !['pending', 'sent'].includes(ch['status'])) { engagementMetrics.otpVerification(ctx, 'invalid'); throw new LimsError('auth.otp_invalid'); } // no write, no oracle
+      if (new Date(ch['expires_at']).getTime() <= nowMs) { engagementMetrics.otpVerification(ctx, 'expired'); throw new LimsError('auth.otp_invalid'); }
+
+      const attempts = Number(ch['attempts']) + 1;
+      const stored = Buffer.from(ch['code_hmac']); const given = codeHmac(s.actorId, code);
+      if (stored.length !== given.length || !timingSafeEqual(stored, given)) { // 08 A5.5: 32-byte digests, constant time
+        const exhausted = attempts >= MAX_ATTEMPTS;
+        await otpRepo.recordMismatch(s.tx, { tenantId: s.tenantId, id: s.actorId, attempts, status: exhausted ? 'failed' : ch['status'] });
+        await ctx.audit.access({ action: 'auth.otp_failure', entityType: 'otp_challenge', entityId: s.actorId, outcome: 'denied' }); // no code, no phone
+        ctx.commitOnError();
+        engagementMetrics.otpVerification(ctx, exhausted ? 'exhausted' : 'invalid');
+        throw new LimsError(exhausted ? 'auth.otp_attempts_exhausted' : 'auth.otp_invalid');
+      }
+
+      try {
+        await otpRepo.markVerified(s.tx, { tenantId: s.tenantId, id: s.actorId, attempts });
+        const phone = String(ch['phone_e164']);
+        // [CONV] a NEW account takes id = challenge id: a retry after a rolled-back verify reuses it, so C2's per-accountId provisioning makes no orphan user (TRD §4.1 step 3)
+        const acc = (await accountsRepo.findLiveByPhone(s.tx, { tenantId: s.tenantId, phoneE164: phone }))
+          ?? await accountsRepo.insertAccount(s.tx, { id: s.actorId, tenantId: s.tenantId, phoneE164: phone, phoneHmac: Buffer.from(ch['phone_hmac']), createdBy: s.actorId });
+        const ids = acc['membership_id'] ? { membershipId: String(acc['membership_id']), userId: String(acc['user_id']) }
+          : await ctx.ports.IdentityPort.provisionPatientMembership(ctx, { accountId: acc['id'] });
+        const session = await ctx.ports.IdentityPort.openPatientSession(ctx, { membershipId: ids.membershipId, appInstanceId: ch['app_instance_id'], appPlatform: ch['app_platform'] });
+        const row = await accountsRepo.recordLogin(s.tx, {
+          id: acc['id'], tenantId: s.tenantId, membershipId: ids.membershipId, userId: ids.userId, loginAt: ctx.now(), appPlatform: ch['app_platform'], updatedBy: s.actorId,
+        });
+        engagementMetrics.otpVerification(ctx, 'verified');
+        return {
+          status: 200,
+          body: {
+            session_token: session.sessionToken, access_token: session.accessToken, access_expires_at: session.accessExpiresAt, session_expires_at: session.sessionExpiresAt,
+            account: {
+              id: row['id'], phone_masked: maskPhone(phone), status: row['status'], reminders_opt_out: row['reminders_opt_out'],
+              last_login_at: new Date(row['last_login_at']).toISOString(), created_at: new Date(row['created_at']).toISOString(), version: Number(row['version']),
+            },
+          },
+        };
+      } catch { throw new LimsError('common.internal'); } // port or DB failure after a match: rolled back, code stays usable; no detail echoed (TRD §6.2)
     },
   };
 }

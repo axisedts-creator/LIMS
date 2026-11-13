@@ -11,4 +11,8 @@ export const authHandlers: Readonly<Record<string, Handler>> = Object.freeze({
     const out = await createAuthService().requestOtp(ctx as unknown as AuthCtx, req.body);
     return { status: out.status, body: out.body, headers: NO_STORE };
   },
+  verifyPatientOtp: async (req: HandlerRequest, ctx: HandlerContext): Promise<HandlerResult> => {
+    const out = await createAuthService().verifyOtp(ctx as unknown as AuthCtx, req.body);
+    return { status: out.status, body: out.body, headers: NO_STORE }; // the body holds the session token
+  },
 });

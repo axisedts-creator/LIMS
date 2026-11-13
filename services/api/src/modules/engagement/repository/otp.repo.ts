@@ -41,6 +41,29 @@ export async function loadForSend(tx: Q, a: { tenantId: string; id: string }): P
   return rows[0];
 }
 
+/** E3: the caller's own challenge (PRE_TOK narrows it further), locked for the rest of the request transaction. */
+export async function loadForVerify(tx: Q, a: { tenantId: string; id: string }): Promise<Row | undefined> {
+  const { rows } = await tx.query(
+    `SELECT id, phone_e164, phone_hmac, app_instance_id, app_platform, status, attempts, code_hmac, expires_at
+     FROM engagement.otp_challenges WHERE tenant_id = $1 AND id = $2 FOR UPDATE`,
+    [a.tenantId, a.id]);
+  return rows[0];
+}
+
+/** Mismatch: attempts + 1 (persisted via commitOnError); `status` is 'failed' once the 5th attempt is used, else unchanged. */
+export async function recordMismatch(tx: Q, a: { tenantId: string; id: string; attempts: number; status: string }): Promise<void> {
+  await tx.query(
+    `UPDATE engagement.otp_challenges SET attempts = $3, status = $4, updated_at = now() WHERE tenant_id = $1 AND id = $2`,
+    [a.tenantId, a.id, a.attempts, a.status]);
+}
+
+/** Match: verified + consumed (single use). Must run before the accounts INSERT: PRE_ACC requires a `verified` challenge. */
+export async function markVerified(tx: Q, a: { tenantId: string; id: string; attempts: number }): Promise<void> {
+  await tx.query(
+    `UPDATE engagement.otp_challenges SET attempts = $3, status = 'verified', verified_at = now(), consumed_at = now(), updated_at = now() WHERE tenant_id = $1 AND id = $2`,
+    [a.tenantId, a.id, a.attempts]);
+}
+
 /** TRD §4.1 step 2: earlier pending/sent challenges of the same phone + app instance (tenant) -> superseded. Later ones (a faster second request) stay live. */
 export async function supersedeEarlier(tx: Q, a: { tenantId: string; id: string; phoneHmac: Uint8Array; appInstanceId: string; createdAt: string }): Promise<void> {
   await tx.query(

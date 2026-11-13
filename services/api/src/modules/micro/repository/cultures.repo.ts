@@ -214,7 +214,7 @@ export async function getProtocol(tx: Q, a: { tenantId: string; id: string }): P
 /** The culture row the write handlers need, locked for the request (serialises setup / plates / reads of one culture). RLS applies the centre scope. */
 export async function lockCulture(tx: Q, a: { tenantId: string; id: string }): Promise<Row | undefined> {
   const { rows } = await tx.query(
-    `SELECT id, version, status, centre_id, test_id, specimen_type_code, specimen_site_code, plating_protocol_id, planted_at, next_read_due_at
+    `SELECT id, version, status, centre_id, specimen_id, test_id, specimen_type_code, specimen_site_code, plating_protocol_id, planted_at, next_read_due_at
        FROM micro.cultures WHERE tenant_id = $1 AND id = $2 FOR UPDATE`, [a.tenantId, a.id]);
   return rows[0];
 }

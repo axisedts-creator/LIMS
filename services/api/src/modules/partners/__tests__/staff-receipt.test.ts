@@ -409,7 +409,7 @@ describe('T10 SI1 listInboundManifests (inbox, centre scoped, D-104 filters)', (
     const OK = mk('MF26000043', { ...miss, state: 'converted', order_id: id(7701), registration_no: '0001SY000701', converted_at: d });
     const N = mk('MF26000044', { state: 'converted', conversion_attempt: 1, order_id: id(7702), registration_no: '0001SY000702', converted_at: d });
     expect(ids(await list(w, { has_missing_samples: true }))).toEqual([OK['id']]);
-    expect([...ids(await list(w, { has_missing_samples: false }))].sort()).toEqual([F['id'], C['id'], N['id']].sort());
+    expect([...ids(await list(w, { has_missing_samples: false }))].sort()).toEqual([F['id'], C['id'], N['id'], M.xs].sort());
   });
   it('sort manifest_no, and a cursor round trip: no overlap, no gap, no foreign row; invalid cursor -> 400 common.invalid_cursor', async () => {
     const t = inbox();

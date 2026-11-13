@@ -31,6 +31,21 @@ describe('T10 world self-check', () => {
     expect(w.markers).toHaveLength(1); expect(sp.opened).toBe(1); expect(sp.n).toBe(0);
   });
 
+  it('SQL savepoint on ctx.tx (ruling): marker after SAVEPOINT then ROLLBACK TO is gone, earlier rows stay; RELEASE keeps writes; unknown name -> 3B001', async () => {
+    const w = makeWorld10(); const tx = wrapTx(w, 'all');
+    await tx.query('INSERT INTO fake_c4.markers (id) VALUES ($1)', ['before']);
+    await tx.query('SAVEPOINT sp_a');
+    await tx.query('INSERT INTO fake_c4.markers (id) VALUES ($1)', ['inside']);
+    await tx.query('ROLLBACK TO SAVEPOINT sp_a');
+    expect(w.markers.map((m) => m['id'])).toEqual(['before']);
+    await tx.query('INSERT INTO fake_c4.markers (id) VALUES ($1)', ['again']); // savepoint is kept after ROLLBACK TO
+    await tx.query('ROLLBACK TO sp_a'); expect(w.markers.map((m) => m['id'])).toEqual(['before']);
+    await tx.query('INSERT INTO fake_c4.markers (id) VALUES ($1)', ['kept']);
+    await tx.query('RELEASE sp_a'); expect(w.markers.map((m) => m['id'])).toEqual(['before', 'kept']);
+    await expect(tx.query('ROLLBACK TO sp_a')).rejects.toMatchObject({ code: '3B001' });
+    release({ tx });
+  });
+
   it('runJob: a throwing job commits nothing (whole-transaction rollback); a returning job commits', async () => {
     const w = makeWorld10();
     const bad = await runJob(w, async (_p, c) => { await c.tx.query('INSERT INTO fake_c4.markers (id) VALUES ($1)', ['m']); await c.tx.query(TRACK_SQL, trackVals()); throw new Error('infra'); }, {});

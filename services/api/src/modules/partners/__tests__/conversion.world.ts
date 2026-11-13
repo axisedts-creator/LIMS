@@ -105,7 +105,19 @@ export function wrapTx(w: World10, centres: string[] | 'all' = 'all', actorType:
   const inner = w.newTx();
   const tx: any = Object.create(inner);
   tx.inner = inner;
+  // SQL savepoints (C13.T10 ruling, 08 P-44): SAVEPOINT n pushes a snapshot, ROLLBACK TO n restores it and keeps the savepoint, RELEASE n pops it.
+  const sps: Array<[string, Snap]> = [];
   tx.query = async (text: string, vals: unknown[] = []) => {
+    let sp: RegExpExecArray | null;
+    if ((sp = /^\s*(SAVEPOINT|ROLLBACK\s+TO(?:\s+SAVEPOINT)?|RELEASE(?:\s+SAVEPOINT)?)\s+("?[A-Za-z_][\w]*"?)\s*;?\s*$/i.exec(text))) {
+      await Promise.resolve();
+      const name = sp[2]!.replace(/"/g, '').toLowerCase(); const verb = sp[1]!.toUpperCase();
+      if (verb === 'SAVEPOINT') { sps.push([name, snap(w)]); return { rows: [], rowCount: 0 }; }
+      const at = sps.map((s) => s[0]).lastIndexOf(name);
+      if (at < 0) throw pgErr('3B001', name, `savepoint "${name}" does not exist`);
+      if (verb.startsWith('ROLLBACK')) { restore(w, sps[at]![1]); sps.length = at + 1; } else sps.length = at;
+      return { rows: [], rowCount: 0 };
+    }
     if (/^\s*INSERT\s+INTO\s+fake_c4\.markers\b/i.test(text)) { await Promise.resolve(); w.markers.push({ id: vals[0] }); return { rows: [], rowCount: 1 }; }
     if (/\bpartners\.order_tracking\b/i.test(text)) return trackingQuery(w, text, vals, centres);
     const [t2, v2] = scope(text, vals, centres);

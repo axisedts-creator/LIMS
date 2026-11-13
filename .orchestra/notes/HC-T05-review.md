@@ -1,0 +1,15 @@
+CHANGES
+
+Scope note: the inbox range `5f65c751..HEAD` is empty (HEAD == 5f65c751). I reviewed the HC-T05 commits already in HEAD instead: 3e8e6710, f5b478d6, 4ba7072c, 7d469aac, plus the debugger and arbiter notes.
+
+Passes: names match TRD §8.2 and PRD US-01/US-10 verbatim (booking_refs, visit flag kinds, `booking_cancelled`, cause `consumer`). Tenant is checked in the wrapper and every repo call passes tenantId. The ordering rules are right: stale seq and cancel-before-confirm both use `last_seq`. The advisory lock serialises the handlers. The port is called inside `ctx.db.tx` savepoint, and a port failure opens the `address_missing` flag. Logs carry codes only. No secrets or PHI. Only owned paths touched. The cancel branch matches §8.2, including route version++ through `updateRow`.
+
+1. services/api/src/modules/homecollection/service/visit.service.ts:77 — the access-log write is missing. The impl note says the shape is "unspecified", but it is specified: TRD §8.2 says "access log `home_visit.view`", and the TRD §14 access-log table (02-TRD.md:625) gives action `home_visit.view`, entityType `home_visit`, purpose `home_address_fetch`. The worker ctx already has `audit` (services/worker/src/core/consumer.ts:59), and other jobs call `ctx.audit.access(...)`, e.g. reporting/tasks/send_portal_otp.ts:77. Fix:
+   - Add `readonly audit: { access(e: { action: string; entityType: string; entityId: string; purpose?: string; outcome: 'allowed' | 'denied' }): Promise<void> }` to `BookingCtx` (line 14).
+   - Generate the visit id before the port call (`const visitId = uuidv7()`) and use it in `insertVisit` (line 80).
+   - Right after the `getHomeAddress` call (both success and catch paths), call `await c.audit.access({ action: 'home_visit.view', entityType: 'home_visit', entityId: visitId, purpose: 'home_address_fetch', outcome: 'allowed' })`.
+   - Only write the row when the port was actually called, so not on a redelivery and not when there is no `home_address_id`.
+2. services/worker/src/jobs/homecollection/__tests__/booking.consumers.live.test.ts:45 — no test covers the access log, and `audit: {}` is a stub. Once fix 1 lands, this stub makes every port-calling test throw. Fix: replace the stub with a recording fake (`audit: { access: async (e) => { audits.push(e) } }`). Then assert:
+   - exactly one `{action:'home_visit.view', entityType:'home_visit', purpose:'home_address_fetch', entityId: <visit id>}` in the US-01-4 success case and in the port-throws case;
+   - zero entries for a redelivery (US-01-2), for no `home_address_id`, and for `centre_visit` (US-01-3).
+3. booking.consumers.live.test.ts:476 — done_when ("US-01, US-10 pass") is not shown. The latest verify log (.orchestra/notes/HC-T05-verify.log) reads 34/35, with this test timing out at 5000ms, and the rerun hit the 10s beforeAll timeout. Fix: give the live suite explicit timeouts (`it(..., 30_000)` / `beforeAll(..., 60_000)`, or `vi.setConfig({ testTimeout: 30_000, hookTimeout: 60_000 })` at the top of the file). Then rerun `HC-T05-verify.cmd` and record a clean 35+/35+ run in the verify log.

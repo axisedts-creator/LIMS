@@ -326,11 +326,11 @@ describe('W3 new booking (AC-15.1)', () => {
     const box = () => screen.getByRole('combobox', { name: /tests/i });
     for (let i = 0; i < 20; i++) {
       await user.clear(box());
-      await user.type(box(), `Synthetic Test ${i}`);
+      await user.type(box(), `Test ${i}`); // short filter (ruling T-B6): only the cap matters, not typing the full name
       await user.click(await screen.findByRole('option', { name: new RegExp(`Synthetic Test ${i}$`) }));
     }
     await user.clear(box());
-    await user.type(box(), 'Synthetic Test 20');
+    await user.type(box(), 'Test 20');
     const over = screen.queryByRole('option', { name: /Synthetic Test 20$/ });
     expect(over === null || over.getAttribute('aria-disabled') === 'true').toBe(true);
   });

@@ -5,4 +5,4 @@
 - Review fix 1: CR-C7-018 filed as `.orchestra/cr/H80-T03.nonblocking.md` (optional DSP-1/2/3/4/13 + Latin name on HostQueryAnswer; ack_sending_* not reachable via DriverContext). Interim empty DSPs cited in hostQuery.ts header. Named `.nonblocking` per cr/ convention (review asked for H80-T03.md).
 - [CONV] DSP-22 from option host_query_detection_mode (0/1/2, else 0); MSH-7 = ctx.receivedAt in instrument tz (UTC fallback).
 - Run: hostQuery.truth_h80e.test.ts 34/34 pass; tsc clean for truth_h80e; ESLint config matches no file here (not linted).
-- Open: review item 3 (move fixtures to drivers/truth_h80e/testdata/) is tester-owned, not done yet.
+- Open (2026-11-13 re-run): 25/34 fail with ENOENT because the goldens are missing from drivers/truth_h80e/testdata/. The arbiter ruled TESTS_WRONG (H80-T03-ruling.md): the tester must restore the 8 .hl7 files from cd49d38e~1 and update SOURCE.md. The implementation needs no change, and the writer may not edit goldens.

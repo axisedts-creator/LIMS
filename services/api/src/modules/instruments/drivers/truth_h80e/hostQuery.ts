@@ -2,6 +2,8 @@
 // LD-139: the manual's DSR carries demographics + a detection mode and NO test list, so none is invented. Positions marked U stay options.
 // Pure and deterministic: same query + same answers + same ctx => byte-identical bytes (the server rebuilds the reply on a duplicate query).
 // HostQueryAnswer holds only sex/ageDays, so DSP-1..4, 6, 13 are empty (DSP-4 is never derived from an age; DSP-6 is always empty: PHI minimisation).
+// Interim until CR-C7-018 (.orchestra/cr/H80-T03.nonblocking.md) adds optional demographic fields to HostQueryAnswer.
+// §6: MSH-3/MSH-4 of LIS replies use the ack_sending_app/facility defaults LIS / LIMS (protocol_options is not reachable via DriverContext).
 import { LimsError } from '../../../../core/errors.js';
 import { MAX } from '../delimited.js';
 import type { DriverContext, HostQueryAnswer, ParseOk } from '../types.js';
@@ -38,7 +40,7 @@ export function buildHostQueryReply(input: { query: ParseOk; answers: readonly H
   const t = stamp(ctx.receivedAt, ctx.instrumentTimezone);
   const id = esc(query.messageControlId ?? '');
   const seg = (...f: string[]) => f.join('|') + '\r';
-  const head = (type: string, n: string, tail: string) => seg(`MSH`, '^~\\&', 'Truth', 'Truth-H80E', '', '', t, '', type, `${id}${n}`, 'P', '2.3' + tail);
+  const head = (type: string, n: string, tail: string) => seg(`MSH`, '^~\\&', 'LIS', 'LIMS', '', '', t, '', type, `${id}${n}`, 'P', '2.3' + tail);
   const body = (qak: string, status: string) => seg('MSA', 'AA', id, 'Message accepted', '', '', '0') + seg('ERR', '0') + seg('QAK', qak, status, '', '', '', '', '');
   const enc = (s: string) => new TextEncoder().encode(s);
 

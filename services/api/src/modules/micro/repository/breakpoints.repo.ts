@@ -127,7 +127,7 @@ export async function discardSet(tx: Q, a: { tenantId: string; id: string; versi
 }
 
 export async function isolateOf(tx: Q, a: { tenantId: string; id: string }): Promise<Row | undefined> {
-  const { rows } = await tx.query('SELECT id, culture_id, organism_code FROM micro.isolates WHERE tenant_id = $1 AND id = $2', [a.tenantId, a.id]);
+  const { rows } = await tx.query('SELECT id, culture_id, centre_id, organism_code FROM micro.isolates WHERE tenant_id = $1 AND id = $2', [a.tenantId, a.id]);
   return rows.find((r: Row) => r['id'] === a.id);
 }
 export async function cultureSite(tx: Q, a: { tenantId: string; id: string }): Promise<string | null> {

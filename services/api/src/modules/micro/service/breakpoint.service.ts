@@ -23,6 +23,7 @@ export interface BreakpointCtx {
   readonly audit: { access(e: object): Promise<void> };
   readonly core?: { user?(ctx: unknown, i: { userId: string }): Promise<{ displayName: string }> };
   readonly now?: () => Date;
+  readonly ports?: { IdentityPort?: { assertRole(c: unknown, r: { permission: string; centreId?: string }): Promise<unknown> } };
 }
 type Row = Record<string, any>;
 type Obj = Record<string, unknown>;
@@ -413,6 +414,10 @@ export async function previewInterpretation(c: BreakpointCtx, input: { params: u
   const entries = parseEntries(need(b, 'entries', '/entries'));
   const isolate = await repo.isolateOf(tx, { tenantId, id: isolateId });
   if (!isolate) throw new LimsError('common.not_found');   // S-01: unknown and another tenant's isolate answer the same
+  // 02-TRD §13: object first, then permission with the object's centre_id (isolates are centre-scoped). The handler's tenant-level check stays.
+  const identity = c.ports?.IdentityPort;
+  if (!identity) throw new LimsError('auth.forbidden');    // fail closed
+  await identity.assertRole(c, { permission: 'micro.culture.work', centreId: isolate['centre_id'] });
   const site = isolate['culture_id'] == null ? null : await repo.cultureSite(tx, { tenantId, id: isolate['culture_id'] });
   const res = await lookupMany(c, { organism_code: isolate['organism_code'] ?? null, specimen_site_code: site }, entries);
   return {

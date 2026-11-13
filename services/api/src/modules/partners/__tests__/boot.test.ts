@@ -37,6 +37,7 @@ const IMPLEMENTED: readonly string[] = [
   'listPartnerUsers', 'invitePartnerUser', 'changePartnerUserRole', 'deactivatePartnerUser', 'reactivatePartnerUser', 'resendPartnerInvitation', // T06 U1-U6
   'listPartnerUsersForPartner', 'invitePartnerUserByStaff', 'changePartnerUserRoleByStaff', 'deactivatePartnerUserByStaff', 'reactivatePartnerUserByStaff', // T06 SA8-SA10
   'listPartners', 'createPartner', 'getPartner', 'updatePartner', 'suspendPartner', 'reactivatePartner', 'resyncPartnerProjections', // T07 (SA1-SA7)
+  'listPartnerPriceList', 'listPartnerStatements', 'getPartnerStatement', // T17 (P1, S1, S2)
 ];
 
 const FAKE_REQ = { params: {}, query: {}, headers: {}, body: {} };

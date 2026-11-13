@@ -106,14 +106,17 @@ export async function listCodedSet(c: SvcCtx, i: { setName: unknown; reasonGroup
   const r = rc(c);
   if (set === 'uom') return { status: 200, body: { data: (await listUom(r)).map((u) => ({ code: u['code'], display: u['display'], uom_kind: u['uom_kind'], sort_order: u['sort_order'], is_active: u['is_active'] })) } };
   if (set === 'reasons') {
-    if (group === undefined) return fail(field('/reason_group', 'common.field_required'));
-    return { status: 200, body: { data: (await listReasons(r, group)).map(reasonDto) } };
+    // reason_group is optional (contract required:false): without it every group is listed; sequential, single tx client
+    const groups = group === undefined ? REASON_GROUPS : [group];
+    const rows: Row[] = [];
+    for (const g of groups) rows.push(...(await listReasons(r, g)));
+    return { status: 200, body: { data: rows.map(reasonDto) } };
   }
   // ponytail: JS code-point order, not the DB collation, so the order is the same on every database
   return { status: 200, body: { data: (await listTaxCodes(r)).map(taxDto).sort((a, b) => (a.code < b.code ? -1 : a.code > b.code ? 1 : 0)) } };
 }
 
-/** #29: create or update this tenant's row; If-Match only when the tenant row exists (absent -> 428, stale -> 409). uom is global only (404). */
+/** #29: create or update this tenant's row; If-Match only when the tenant row exists (absent or stale -> 409). uom is global only (404). */
 export async function putTenantCode(c: SvcCtx, i: { setName: unknown; code: unknown; expectedVersion: number | undefined; body: unknown }): Promise<Result> {
   const set = setOf(i.setName);
   if (set === 'uom') throw new LimsError('common.not_found');
@@ -149,14 +152,14 @@ export async function putTenantCode(c: SvcCtx, i: { setName: unknown; code: unkn
     if (i.expectedVersion !== undefined) throw new LimsError('common.version_conflict'); // the client expected an existing row
     const cols = reasons ? ['reason_group', 'code', 'display', 'is_active', ...(sort === undefined ? [] : ['sort_order'])] : ['code', 'display', 'is_active'];
     const vals: unknown[] = reasons ? [group, code, display, active, ...(sort === undefined ? [] : [sort])] : [code, display, active];
-    // ON CONFLICT DO NOTHING: two parallel first PUTs never raise a unique violation (it would abort the request transaction); the loser re-reads and answers 428
+    // ON CONFLICT DO NOTHING: two parallel first PUTs never raise a unique violation (it would abort the request transaction); the loser re-reads and answers 409
     row = await first(r, `INSERT INTO inventory.${reasons ? 'cs_reasons' : 'cs_tax_codes'} (id, tenant_id, created_by, updated_by, ${cols.join(', ')})
                           VALUES ($2, $1, $3, $3, ${cols.map((_, n) => `$${n + 4}`).join(', ')}) ON CONFLICT DO NOTHING RETURNING *`, [uuidv7(), r.actorId, ...vals]);
     if (row) return { status: 200, body: reasons ? reasonDto(row) : taxDto(row), version: row.version };
     row = await find();
     if (!row) throw new LimsError('common.version_conflict');
   }
-  if (i.expectedVersion === undefined) throw new LimsError('common.precondition_required');
+  if (i.expectedVersion === undefined) throw new LimsError('common.version_conflict'); // #29 declares no 428 in the contract (review item 1)
   const out = await update(row);
   return { status: 200, body: reasons ? reasonDto(out) : taxDto(out), version: out.version };
 }

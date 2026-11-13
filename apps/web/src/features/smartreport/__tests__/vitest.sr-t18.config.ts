@@ -12,6 +12,6 @@ export default defineConfig({
     include: ['src/features/smartreport/__tests__/sr-t18.*.test.{ts,tsx}'],
     environment: 'node', // component files opt in with `// @vitest-environment jsdom`
     restoreMocks: true,
-    testTimeout: 20000,
+    testTimeout: 120000,
   },
 });

@@ -145,6 +145,32 @@ describe('US-03-5 retry and replay: one order, the same order_id', () => {
   });
 });
 
+// 03-APP-FLOW V5, 02-TRD §8 line 484 + §9 job row: assign enqueues homecollection.refresh_visit_specimens (job_key refresh:<visit_id>) in the same tx; a rolled-back assign leaves no job.
+const refreshJobs = (visitId: string) => q("SELECT task_identifier, key FROM graphile_worker.jobs WHERE task_identifier = 'homecollection.refresh_visit_specimens' AND key = $1", [`refresh:${visitId}`]);
+describe('V5 assign enqueues the specimen refresh job (same transaction as the assign)', () => {
+  it('a successful assign (new order): exactly one job with job_key refresh:<visit_id>', { timeout: T }, async () => {
+    const date = D(); const { v, fx } = await ready(date);
+    expect(await refreshJobs(v.id)).toEqual([]);
+    const r = await assign({ visitId: v.id, version: v.version, body: body(MEMBER.a, date), fx });
+    expect(r.status).toBe(200);
+    expect(await refreshJobs(v.id)).toEqual([{ task_identifier: 'homecollection.refresh_visit_specimens', key: `refresh:${v.id}` }]);
+  });
+  it('a front-desk visit (existing order) and a reassign enqueue it too; the job_key keeps it to one row per visit', { timeout: T }, async () => {
+    const date = D(); await routeFor(MEMBER.a, date); const v = await frontDeskVisit({}, 'a', date);
+    expect((await assign({ visitId: v.id, version: v.version, body: body(MEMBER.a, date) })).status).toBe(200);
+    expect(await refreshJobs(v.id)).toHaveLength(1);
+    const cur = await visitRow(v.id);
+    expect((await assign({ visitId: v.id, version: cur.version, body: body(MEMBER2.a, date) })).status).toBe(200);
+    expect(await refreshJobs(v.id)).toHaveLength(1);
+  });
+  it('a failed assign (port throws) leaves no job', { timeout: T }, async () => {
+    const date = D(); const { v } = await ready(date);
+    const e = await failure(assign({ visitId: v.id, version: v.version, body: body(MEMBER.a, date), fx: { orderError: 'catalog.no_price' } }));
+    expect(e.code).toBe('catalog.no_price');
+    expect(await refreshJobs(v.id)).toEqual([]);
+  });
+});
+
 describe('US-03-6 eligibility: inactive, not in the visit centre, or no phlebotomist role -> 422 homecollection.phlebotomist_not_eligible', () => {
   it.each([
     ['inactive membership', NOT_ELIGIBLE.inactive],

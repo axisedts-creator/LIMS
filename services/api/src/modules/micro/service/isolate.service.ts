@@ -26,7 +26,7 @@ async function organism(tx: any, tenantId: string, organismCode: string): Promis
 }
 
 /** IsolateDto of a stored isolate row: organism_display + the isolate's AST rows (read-only here; M8–M10 never change them). */
-async function answer(c: WriteCtx, tx: any, tenantId: string, row: Obj, display: string | undefined, withAst: boolean): Promise<Out> {
+export async function answer(c: WriteCtx, tx: any, tenantId: string, row: Obj, display: string | undefined, withAst: boolean): Promise<Out> {
   let ast: Obj[] = [];
   let panel: Obj | undefined;
   if (withAst) {

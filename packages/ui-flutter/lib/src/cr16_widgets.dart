@@ -141,25 +141,41 @@ class LimsBottomNav extends StatelessWidget {
                     child: ConstrainedBox(
                       constraints: const BoxConstraints(minHeight: 56),
                       child: Padding(
-                        padding: const EdgeInsets.symmetric(vertical: LimsTokens.space1),
-                        child: Column(mainAxisSize: MainAxisSize.min, mainAxisAlignment: MainAxisAlignment.center, children: [
-                          Badge(
-                            isLabelVisible: items[i].badge != null,
-                            label: items[i].badge == null ? null : Text(items[i].badge!),
-                            child: Icon(items[i].icon, color: i == index ? LimsTokens.colorAccentDefault : LimsTokens.colorNeutral600),
-                          ),
-                          Text(
-                            items[i].label,
-                            maxLines: 1,
-                            softWrap: false,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                              fontSize: LimsTokens.fontSizeXsSize,
-                              fontWeight: i == index ? FontWeight.w600 : FontWeight.w400,
-                              color: i == index ? LimsTokens.colorAccentDefault : LimsTokens.colorNeutral700,
+                        padding: const EdgeInsets.all(LimsTokens.space1),
+                        // LD-140 / 10-DESIGN-SYSTEM s5: tap scale .96; current tab = accent.highlight (lime) pill with
+                        // accent.default text (7.93:1).
+                        child: LimsPressScale(
+                          child: Center(
+                            heightFactor: 1,
+                            child: DecoratedBox(
+                              decoration: BoxDecoration(
+                                color: i == index ? LimsTokens.colorAccentHighlight : null,
+                                borderRadius: const BorderRadius.all(Radius.circular(LimsTokens.radiusFull)),
+                              ),
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(horizontal: LimsTokens.space3, vertical: LimsTokens.space1),
+                                child: Column(mainAxisSize: MainAxisSize.min, children: [
+                                  Badge(
+                                    isLabelVisible: items[i].badge != null,
+                                    label: items[i].badge == null ? null : Text(items[i].badge!),
+                                    child: Icon(items[i].icon, color: i == index ? LimsTokens.colorAccentDefault : LimsTokens.colorNeutral600),
+                                  ),
+                                  Text(
+                                    items[i].label,
+                                    maxLines: 1,
+                                    softWrap: false,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: TextStyle(
+                                      fontSize: LimsTokens.fontSizeXsSize,
+                                      fontWeight: i == index ? FontWeight.w600 : FontWeight.w400,
+                                      color: i == index ? LimsTokens.colorAccentDefault : LimsTokens.colorNeutral700,
+                                    ),
+                                  ),
+                                ]),
+                              ),
                             ),
                           ),
-                        ]),
+                        ),
                       ),
                     ),
                   ),

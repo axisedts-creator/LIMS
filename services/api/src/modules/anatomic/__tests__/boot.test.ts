@@ -32,7 +32,9 @@ const IMPLEMENTED: readonly string[] = ['accessionAnatomicCase', 'updateAnatomic
   // C11 T-11 (K1–K12, K20–K22)
   'getAnatomicSettings', 'updateAnatomicSettings', 'listAnatomicStains', 'createAnatomicStain', 'updateAnatomicStain', 'listAnatomicTestProfiles', 'upsertAnatomicTestProfile',
   'listAnatomicAssays', 'createAnatomicAssay', 'updateAnatomicAssay', 'listAnatomicCodedValues', 'upsertAnatomicCodedValue',
-  'listAnatomicTextTemplates', 'createAnatomicTextTemplate', 'updateAnatomicTextTemplate'];
+  'listAnatomicTextTemplates', 'createAnatomicTextTemplate', 'updateAnatomicTextTemplate',
+  // C11 T-16 (Q1–Q7) + the AC-11.6 guard on A10
+  'saveAnatomicMolecularResults', 'listAnatomicBatches', 'createAnatomicBatch', 'getAnatomicBatch', 'addAnatomicBatchMembers', 'removeAnatomicBatchMembers', 'closeAnatomicBatch', 'markAnatomicCaseReady'];
 
 const FAKE_REQ = { params: {}, query: {}, headers: {}, body: {} };
 const noop = () => undefined;

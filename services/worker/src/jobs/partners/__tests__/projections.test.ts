@@ -74,7 +74,7 @@ describe('T17 partners.sync_price_list — US-11.1 / 11.2 precedence and classif
   it('two rows effective now for the same orderable (a data glitch): the higher price_list_version wins and the sync does not die on the primary key', async () => {
     const w = fresh();
     w.t['catalog.v_pub_price_list_items']!.push({ tenant_id: T_A, price_list_id: PL.cp1old, price_list_version: 2, owner_kind: 'credit_party', owner_id: CP.one, orderable_id: O.t1,
-      unit_price_paisa: '120000', effective_from: new Date('2025-01-01T00:00:00Z'), effective_to: null, falls_through: false });
+      unit_price_paisa: '120000', effective_from: new Date('2025-01-01T00:00:00Z'), effective_to: null, falls_through: true });
     const r = await syncPrice(w, P.x);
     expect(r.error).toBeUndefined();
     expect(items(w, P.x).filter((i) => i.orderable_id === O.t1)).toEqual([expect.objectContaining({ price: '150000', price_list_version: 3 })]);
@@ -86,6 +86,16 @@ describe('T17 partners.sync_price_list — US-11.1 / 11.2 precedence and classif
     await syncPrice(w, P.x);
     expect(items(w, P.x).map((i) => i.orderable_id).sort()).toEqual([O.p1, O.t1, O.t2].sort());
     expect(items(w, P.x).every((i) => i.source === 'partner')).toBe(true);
+  });
+
+  it('falls_through = false on the partner\'s credit-party list: no standard rows (08 A13 D-19, C3 priceMatch); the partner rows stay', async () => {
+    const w = fresh();
+    for (const r of w.t['catalog.v_pub_price_list_items']!.filter((x) => x.tenant_id === T_A && x.owner_kind === 'credit_party' && x.owner_id === CP.two)) r.falls_through = false;
+    const r = await syncPrice(w, P.y);
+    expect(r.error).toBeUndefined();
+    const rows = items(w, P.y);
+    expect(rows.filter((i) => i.source === 'standard')).toEqual([]);
+    expect(rows.map((i) => [i.orderable_id, i.price, i.source])).toEqual([[O.t1, '111000', 'partner'], [O.t3, '222000', 'partner']]); // sorted by code SYN-T1, SYN-T3
   });
 
   it('classification: tests come from v_pub_test_directory of THIS tenant (not tenant B\'s row for the same id), department from CatalogPort.getTest, panels from getPanel with NULL department; an id C3 cannot name is skipped', async () => {

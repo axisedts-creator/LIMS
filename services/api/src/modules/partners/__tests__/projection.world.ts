@@ -378,7 +378,8 @@ export function makeWorld() {
 export type World = ReturnType<typeof makeWorld>;
 
 // ------------------------------------------------------------------ seed (synthetic)
-const plv = (o: Row) => ({ tenant_id: T_A, effective_to: null, falls_through: false, ...o });
+// falls_through defaults to true (08 A13 D-19: consumers apply fall-through to the tenant default list; C3 priceMatch.ts: false = no lower source is consulted)
+const plv = (o: Row) => ({ tenant_id: T_A, effective_to: null, falls_through: true, ...o });
 export function seed(w: World) {
   const T = w.t;
   T['partners.partners']!.push(

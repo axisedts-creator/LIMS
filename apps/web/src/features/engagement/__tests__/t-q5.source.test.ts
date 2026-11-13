@@ -11,7 +11,10 @@ const walk = (d: string): string[] =>
   existsSync(d) ? readdirSync(d).flatMap((n) => (n === '__tests__' ? [] : statSync(join(d, n)).isDirectory() ? walk(join(d, n)) : [join(d, n)])) : [];
 const files = () => walk(group).filter((f) => /\.(ts|tsx)$/.test(f));
 const src = (f: string) => strip(readFileSync(f, 'utf8'));
-const all = () => files().map(src).join('\n');
+const displayOnly = () => files().map(src).join('\n');
+// LD-145: the kit QueueBoard owns the stale banner text, so the state texts are read from the (display) sources plus the kit component.
+const kit = fileURLToPath(new URL('../../../../../../packages/ui/src/components/QueueBoard/QueueBoard.tsx', import.meta.url));
+const all = () => [displayOnly(), existsSync(kit) ? src(kit) : ''].join('\n');
 const importsOf = (s: string) => [...s.matchAll(/(?:^|\n)\s*import\s[^;]*?from\s+['"]([^'"]+)['"]/g)].map((m) => m[1]!);
 
 describe('(display) group layout', () => {
@@ -42,6 +45,10 @@ describe('queue-display page (states and board)', () => {
     expect(s).toMatch(/Connection lost/);
     expect(s).toMatch(/showing last update/i);
     for (const c of ['live', 'stale', 'unpaired']) expect(s, c).toContain(`'${c}'`);
+  });
+  it('the (display) sources do not carry their own stale banner (kit QueueBoard owns it; no duplicate live region)', () => {
+    expect(files().length).toBeGreaterThan(0);
+    expect(displayOnly()).not.toContain('Connection lost');
   });
   it('renders the board through the kit QueueBoard (CR-C16-016), not a local look-alike', () => {
     expect(all()).toMatch(/import\s[^;]*\bQueueBoard\b[^;]*from\s+['"]@lims\/ui/);

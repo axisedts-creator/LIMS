@@ -63,7 +63,7 @@ export async function handoverWorld(o: HoOpts = {}): Promise<HoWorld> {
     const col = hc.collection(s, { specimen, order }, visit.id, mut.id, { collected_by_membership_id: fromMember, status: 'applied', hold_code: null }); await seed('homecollection.collections', col);
     staged.push({ visit, specimen, order, col });
   }
-  const received = status === 'pending' ? {} : { received_by_membership_id: RECEIVER.membershipId, received_at: '2026-11-11T05:00:00Z' };
+  const received = status === 'pending' ? {} : { received_by_membership_id: s === 'a' ? RECEIVER.membershipId : MEMBER.b, received_at: '2026-11-11T05:00:00Z' };
   const handover = hc.handover(s, ho.id, { to_centre_id: to, from_membership_id: fromMember, status, handed_over_at: o.handedOverAt ?? '2026-11-10T04:00:00Z', handed_over_at_device: o.handedOverAt ?? '2026-11-10T04:00:00Z',
     ...received, ...(o.note ? { note: o.note } : {}) });
   await seed('homecollection.handovers', handover);

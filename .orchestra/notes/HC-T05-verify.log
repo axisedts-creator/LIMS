@@ -28,29 +28,9 @@ HC-T05: homecollection.* missing after migrations (P-1 not landed): applying 05-
 
  RUN  v5.1.0 C:/LIMS-lanes/C17b/services/worker
 
- ❯ src/jobs/homecollection/__tests__/booking.consumers.live.test.ts (35 tests | 1 failed) 51630ms
-   ❯ HC-T05 engagement.booking.cancelled.v1 -> visit (US-10) (18)
-     × tenant isolation: an event whose tenant_id differs from ctx.tenantId changes nothing 5417ms
 
-⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+ Test Files  1 passed (1)
+      Tests  35 passed (35)
+   Start at  13:48:17
+   Duration  52.02s (tests 97%, transform 2%, import 1%)
 
- FAIL  src/jobs/homecollection/__tests__/booking.consumers.live.test.ts > HC-T05 engagement.booking.cancelled.v1 -> visit (US-10) > tenant isolation: an event whose tenant_id differs from ctx.tenantId changes nothing
-Error: Test timed out in 5000ms.
-If this is a long-running test, pass a timeout value as the last argument or configure it globally with "testTimeout".
- ❯ src/jobs/homecollection/__tests__/booking.consumers.live.test.ts:476:3
-    474|   });
-    475|
-    476|   it('tenant isolation: an event whose tenant_id differs from ctx.tena…
-       |   ^
-    477|     const a = worlds.a, b = worlds.b; const { visit, bookingId } = awa…
-    478|     const snap = await everything(b.tenant, visit.id);
-
-⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
-
-
- Test Files  1 failed (1)
-      Tests  1 failed | 34 passed (35)
-   Start at  13:40:19
-   Duration  76.71s (tests 75%, transform 16%, import 9%)
-
-EXIT DONE

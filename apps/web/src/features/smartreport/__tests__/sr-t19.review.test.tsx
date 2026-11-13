@@ -288,6 +288,31 @@ describe('AC-14.3 approve of a superseded draft', () => {
     expect(pageText()).not.toMatch(/smartreport\.summary_superseded/);
   });
 
+  // review item 1: the page remounts on a version change (key vm.id:vm.version), so a refresh would wipe the banner in the real app.
+  it('409 smartreport.summary_superseded does NOT call router.refresh (it would remount the page and wipe the banner)', async () => {
+    routes[`POST ${APPROVE_URL}`] = () => problem('smartreport.summary_superseded', 409);
+    await showSummary();
+    router.refresh.mockClear();
+    await confirmApprove();
+    await waitFor(() => expect(pageText()).toContain(SUPERSEDED_BANNER));
+    expect(router.refresh).not.toHaveBeenCalled();
+  });
+
+  it('409 smartreport.summary_invalid_transition does NOT call router.refresh; common.version_conflict does', async () => {
+    routes[`POST ${APPROVE_URL}`] = () => problem('smartreport.summary_invalid_transition', 409);
+    await showSummary();
+    router.refresh.mockClear();
+    await confirmApprove();
+    await waitFor(() => expect(screen.queryAllByRole('alert').length).toBeGreaterThan(0));
+    expect(router.refresh).not.toHaveBeenCalled();
+    cleanup();
+    routes[`POST ${APPROVE_URL}`] = () => problem('common.version_conflict', 409);
+    await showSummary();
+    router.refresh.mockClear();
+    await confirmApprove();
+    await waitFor(() => expect(router.refresh).toHaveBeenCalled());
+  });
+
   it('superseded summary view: read-only with a "Replaced by a newer summary" link to the successor', async () => {
     mountSummary(summaryView({ status: 'superseded', superseded_at: '2026-01-15T06:00:00.000Z', superseded_by_summary_id: NEWER_ID, superseded_reason: 'result_amended' }));
     await showSummary();

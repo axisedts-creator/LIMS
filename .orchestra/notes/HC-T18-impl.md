@@ -1,0 +1,8 @@
+# HC-T18 impl (writer) — 133/135 pass; 2 disputed in HC-T18-dispute.md (Route date label collision with kit calendar button; kit Switch has no own name for the Tab check)
+- Files: `features/homecollection/{types,labels,query,submission,nav.manifest}.ts`, `server/{actions,read.server,write.server}.ts`, `components/{DispatchBoard,ScheduleDialog,AssignDialog,CancelVisitDialog,UnassignDialog,ReasonConfirm}.tsx`, `help/dispatch.md`, `app/(staff)/homecollection/dispatch/{page,loading,error}.tsx`.
+- [CONV] LD-140: kit components only, no hex/px/inline style; no primary button on the board (dialogs carry theirs); status = icon + chip + word; flags = icon + Badge.
+- [CONV] Kit has no up-arrow icon, so Move up/down are `Button size=sm` with text; Unassign/Open are `IconButton`. Unassign dialog button is "Confirm" (test reads the dialog title as the only "unassign" text).
+- [CONV] Page uses `Promise.allSettled` (H1 error rethrown first) so no request outlives a failed render; `status` filter: one bad token drops the whole parameter; arrays dropped.
+- [CONV] In-flight/after-success buttons use `isDisabled`, not kit `isLoading` ("Working…" changes the button name); a successful submit cannot be sent twice; one Idempotency-Key per distinct body (retry = same key).
+- Open: board rows come from H1 (summary), which has no address/note, so Schedule from the board starts with an empty address and cannot send `unset` for stored landmark/note (visit page HC-T19 passes the detail DTO); nav icons 'table'/'inbox' are placeholders (no icon registry in spec).
+- Checks run: HC-T18 vitest 133 pass / 2 fail (disputed); `tsc` clean for HC-T18 source (errors only in test files). Not run: E2E (needs compose + LIMS_E2E_*), whole-repo suite, linter.

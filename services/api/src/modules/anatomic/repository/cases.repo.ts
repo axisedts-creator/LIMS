@@ -8,12 +8,14 @@ type Q = Pick<Tx, 'query'>;
 const CASES_UPDATABLE = { branch_id: '', status: '', priority: '', accession_no: '', accession_series: '', accession_year: '', clinical_history_text: '', assigned_pathologist_membership_id: '', profile_missing: '', current_version_no: '', molecular_rev: '', accessioned_at: '', accessioned_by: '', signed_out_at: '', cancelled_at: '', cancel_reason_code: '', cancel_reason_text: '' } as const;
 const CASE_ITEMS_UPDATABLE = { role: '', lab_approved_version_no: '', lab_approved_at: '', is_active: '' } as const;
 
-export async function insertCase(tx: Q, row: Row): Promise<Row> {
+/** Undefined = an open case (tenant, order, case_kind) already exists: INSERT … ON CONFLICT DO NOTHING (intake race, 02-TRD §4.1). */
+export async function insertCase(tx: Q, row: Row): Promise<Row | undefined> {
   const { rows } = await tx.query(
     `INSERT INTO anatomic.cases (id, tenant_id, centre_id, branch_id, order_id, patient_id, case_kind, status, priority, accession_no, accession_series, accession_year, clinical_history_text, assigned_pathologist_membership_id, profile_missing, received_at, accessioned_at, accessioned_by, created_by, updated_by)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, COALESCE($8::text, 'received'), COALESCE($9::text, 'routine'), $10, $11, $12, $13, $14, COALESCE($15::boolean, false), $16, $17, $18, $19, $20) RETURNING *`,
+     VALUES ($1, $2, $3, $4, $5, $6, $7, COALESCE($8::text, 'received'), COALESCE($9::text, 'routine'), $10, $11, $12, $13, $14, COALESCE($15::boolean, false), $16, $17, $18, $19, $20)
+     ON CONFLICT (tenant_id, order_id, case_kind) WHERE status NOT IN ('signed_out','cancelled') DO NOTHING RETURNING *`,
     [row['id'] ?? null, row['tenant_id'] ?? null, row['centre_id'] ?? null, row['branch_id'] ?? null, row['order_id'] ?? null, row['patient_id'] ?? null, row['case_kind'] ?? null, row['status'] ?? null, row['priority'] ?? null, row['accession_no'] ?? null, row['accession_series'] ?? null, row['accession_year'] ?? null, row['clinical_history_text'] ?? null, row['assigned_pathologist_membership_id'] ?? null, row['profile_missing'] ?? null, row['received_at'] ?? null, row['accessioned_at'] ?? null, row['accessioned_by'] ?? null, row['created_by'] ?? null, row['updated_by'] ?? null]);
-  return rows[0] as Row;
+  return rows[0];
 }
 
 /** forUpdate: take the case row lock (serialises A6 part-letter allocation per case). */
@@ -71,12 +73,14 @@ export async function listCaseTransitions(tx: Q, i: { tenantId: string; caseId: 
   return rows;
 }
 
-export async function insertCaseItem(tx: Q, row: Row): Promise<Row> {
+/** Undefined = the order item already has a case item (tenant, order_item_id): ON CONFLICT DO NOTHING. */
+export async function insertCaseItem(tx: Q, row: Row): Promise<Row | undefined> {
   const { rows } = await tx.query(
     `INSERT INTO anatomic.case_items (id, tenant_id, centre_id, case_id, order_item_id, test_id, role, lab_approved_version_no, lab_approved_at, created_by, updated_by)
-     VALUES ($1, $2, $3, $4, $5, $6, COALESCE($7::text, 'primary'), COALESCE($8::integer, 0), $9, $10, $11) RETURNING *`,
+     VALUES ($1, $2, $3, $4, $5, $6, COALESCE($7::text, 'primary'), COALESCE($8::integer, 0), $9, $10, $11)
+     ON CONFLICT (tenant_id, order_item_id) DO NOTHING RETURNING *`,
     [row['id'] ?? null, row['tenant_id'] ?? null, row['centre_id'] ?? null, row['case_id'] ?? null, row['order_item_id'] ?? null, row['test_id'] ?? null, row['role'] ?? null, row['lab_approved_version_no'] ?? null, row['lab_approved_at'] ?? null, row['created_by'] ?? null, row['updated_by'] ?? null]);
-  return rows[0] as Row;
+  return rows[0];
 }
 
 export async function getCaseItem(tx: Q, i: { tenantId: string; id: string }): Promise<Row | undefined> {

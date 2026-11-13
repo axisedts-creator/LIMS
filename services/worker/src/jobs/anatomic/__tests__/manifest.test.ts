@@ -3,11 +3,14 @@
 // T-01 scope: WorkerManifest WITHOUT `permissions`/`systemPermissions`; subscribes ONLY lab.specimen.status_changed.v1 — the two lab.result.* subscriptions
 // (and their handlers) arrive with T-27 (CR-C11-011), so they must NOT be present yet. crontab [] (TRD §9: no cron jobs).
 // Fails now: ../index.js does not exist.
-import { describe, expect, it } from 'vitest';
+import { beforeAll, describe, expect, it } from 'vitest';
 import { EVENT_CONSUMERS } from '../../../../../../contracts/ports/generated/events.js';
 import { setup } from '../../../core/__tests__/helpers.js';
 import { validateManifests } from '../../../core/manifest.js';
 import { manifest } from '../index.js';
+
+// pay the lazy worker-graph transform (setup() imports tasklist) outside a test's 5s budget
+beforeAll(async () => { await setup([manifest]); }, 120_000);
 
 describe('C11-T01 worker manifest (anatomic)', () => {
   it('is module anatomic and passes the build-time manifest checks (validateManifests)', () => {

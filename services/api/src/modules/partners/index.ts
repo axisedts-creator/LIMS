@@ -6,14 +6,23 @@ import { join } from 'node:path';
 import { LimsError } from '../../core/errors.js';
 import { loadSpec, operationIds, REPO_ROOT, type Handler, type ModuleManifest } from '../../core/module.js';
 import { loadPartnersConfig } from './config.js';
+import { addManifestLine } from './handlers/addManifestLine.js';
+import { createManifest } from './handlers/createManifest.js';
 import { createPartner } from './handlers/createPartner.js';
+import { deleteManifestLine } from './handlers/deleteManifestLine.js';
+import { discardManifest } from './handlers/discardManifest.js';
+import { getManifest } from './handlers/getManifest.js';
 import { getPartner } from './handlers/getPartner.js';
 import { getPartnerContext } from './handlers/getPartnerContext.js';
+import { listManifests } from './handlers/listManifests.js';
 import { listPartners } from './handlers/listPartners.js';
 import * as partnerUserHandlers from './handlers/partnerUsers.js';
 import { reactivatePartner } from './handlers/reactivatePartner.js';
+import { replaceManifestLine } from './handlers/replaceManifestLine.js';
 import { resyncPartnerProjections } from './handlers/resyncPartnerProjections.js';
+import { searchPartnerOrderables } from './handlers/searchPartnerOrderables.js';
 import { suspendPartner } from './handlers/suspendPartner.js';
+import { updateManifest } from './handlers/updateManifest.js';
 import { updatePartner } from './handlers/updatePartner.js';
 import { PARTNERS_SYSTEM_PERMISSIONS } from './permissions.js';
 
@@ -31,6 +40,7 @@ const implemented: Readonly<Record<string, Handler>> = {
   getPartnerContext, // T03
   ...partnerUserHandlers, // T06 U1-U6, SA8-SA10
   listPartners, createPartner, getPartner, updatePartner, suspendPartner, reactivatePartner, resyncPartnerProjections, // T07 SA1–SA7
+  createManifest, listManifests, getManifest, updateManifest, addManifestLine, replaceManifestLine, deleteManifestLine, discardManifest, searchPartnerOrderables, // T08 M1–M7, M10, P2
 };
 
 export const manifest: ModuleManifest = Object.freeze({

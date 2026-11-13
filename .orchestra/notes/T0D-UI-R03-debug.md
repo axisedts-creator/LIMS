@@ -12,3 +12,7 @@ Verify: CI=true run of the verify.cmd files, 370/370 pass.
 Cause: .snap stayed untracked in rounds 1-2 (commits held notes only; "committed" claim was wrong), so the verify checkout lacked it: 10 snapshot tests + recorded-guard failed. Impl fine.
 Fix: re-recorded with `vitest -u`; no test/impl edits. File is UNTRACKED (`git add` was denied here): orchestrator must `git add packages/ui/src/components/__tests__/__snapshots__/ui-r03-kit-pass.test.tsx.snap` before commit.
 Verify: CI=true verify.cmd run, 370/370 pass.
+
+## Round 4
+Cause: not impl/test. Verify log = "Failed to start forks worker ... Timeout waiting for worker to respond", zero tests ran. Host has 0.5 GB free of 25 GB RAM and many stray node/pnpm processes (other lanes); even unrelated actions.test.tsx and --pool=threads hang the same way. Snapshot is now tracked (git ls-files ok).
+Fix: none in code (nothing to change). Orchestrator: free memory / stop stale node+vitest processes, then re-run verify.cmd. I did not kill processes (may belong to other lanes).

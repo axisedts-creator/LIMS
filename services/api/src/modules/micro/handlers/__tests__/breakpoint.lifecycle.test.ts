@@ -56,7 +56,7 @@ const DAY = 86_400_000;
 let n = 100;
 
 // ------------------------------------------------------------------ harness
-interface Opt { tenant?: string; actor?: string; grants?: readonly string[]; aal?: 1 | 2; now?: Date }
+interface Opt { tenant?: string; actor?: string; grants?: readonly string[]; aal?: 1 | 2; now?: Date; denyWorkInCentre?: string }
 async function run(db: Db, op: string, req: { params?: object; query?: object; headers?: object; body?: unknown }, o: Opt = {}) {
   const tenantId = o.tenant ?? A;
   const tx = db.begin(tenantId);
@@ -69,8 +69,9 @@ async function run(db: Db, op: string, req: { params?: object; query?: object; h
     log: { info() {}, warn() {}, error() {} },
     actor: { type: 'user', id: o.actor ?? ACTIVATOR, membershipId: '01a1a98a-ac40-7000-8000-00000000a500' },
     ports: { IdentityPort: {
-      async assertRole(_c: unknown, r: { permission: string }) {
+      async assertRole(_c: unknown, r: { permission: string; centreId?: string }) {
         if (!grants.includes(r?.permission)) throw new LimsError('auth.forbidden');
+        if (o.denyWorkInCentre !== undefined && r.permission === WORK && r.centreId === o.denyWorkInCentre) throw new LimsError('auth.forbidden'); // 02-TRD §13 / 03-IC IdentityPort.assertRole: centre-scoped
         if (r.permission === MANAGE && aal < 2) throw new LimsError('auth.mfa_required');
       },
       async getActor() { return { actor: { type: 'user', id: o.actor ?? ACTIVATOR }, permissions: [...grants], centreScope: { all: true, centreIds: [] }, isLocked: false }; },
@@ -625,6 +626,17 @@ describe('C10-T13 M13 previewAstInterpretation (AC-07.1, AC-07.4; never writes)'
     expect(db.log.every((l) => l.kind === 'select')).toBe(true);
     expect(r.published).toEqual([]);
     expect(r.access).toEqual([]);
+  });
+  it('M13 asserts micro.culture.work with the isolate\'s centre_id (02-TRD §13 object first, then permission with centre): denied in that centre => 403 auth.forbidden, no breakpoint reads', async () => {
+    const db = makeDb();
+    const w = world(db);
+    const centre = db.get('isolates', w.isolateId)!['centre_id'] as string;
+    const before = db.log.length;
+    await expectErr(preview(db, w, [zone('synthetic_abx_a', '22')], { denyWorkInCentre: centre }), 'auth.forbidden', 403);
+    expect(db.log.slice(before).filter((l) => l.table.startsWith('breakpoint_')), 'no breakpoint_* statements after the centre check fails').toEqual([]);
+    expect(db.writeCount()).toBe(0);
+    // control: the same call succeeds when the centre is not denied
+    expect((await preview(db, w, [zone('synthetic_abx_a', '22')], { denyWorkInCentre: hexId() })).status).toBe(200);
   });
   it('exact decimal band edges: 14.99 => R, 15 => I (inclusive lower), 19.99 => I, 20 => S, 20.01 => S', async () => {
     const db = makeDb();

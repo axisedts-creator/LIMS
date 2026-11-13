@@ -32,6 +32,17 @@ export interface CoreConfig {
   readonly withTenantScopeOps: readonly string[];
   /** LIMS_CORE_METRICS_PORT (02-TRD §11): internal /metrics + /health/live listener. */
   readonly metricsPort: number;
+  /** T0D-18 (02-TRD §11). Unset = no pool: only public operations without a transaction can be served. */
+  readonly databaseUrl?: string | undefined;
+  readonly dbPoolMax: number;
+  readonly statementTimeoutMs: number;
+  readonly lockTimeoutMs: number;
+  readonly fakePorts: readonly string[];
+  readonly rateLimitBackend: 'postgres' | 'redis';
+  readonly redisUrl?: string | undefined;
+  readonly rateLimitKeyFile?: string | undefined;
+  readonly tenantRps: number;
+  readonly tenantBurst: number;
 }
 
 function portKey(env: Env, key: string, fallback: number): number {
@@ -45,6 +56,13 @@ function intKey(env: Env, key: string, fallback: number): number {
   const v = env[key];
   if (v === undefined) return fallback;
   if (!/^\d{1,4}$/.test(v)) throw new Error(`config: ${key} must be a non-negative integer`);
+  return Number(v);
+}
+
+function positive(env: Env, key: string, fallback: number): number {
+  const v = env[key];
+  if (v === undefined) return fallback;
+  if (!/^[1-9]\d{0,6}$/.test(v)) throw new Error(`config: ${key} must be a positive integer`);
   return Number(v);
 }
 
@@ -107,5 +125,15 @@ export function loadConfig(env: Env = process.env): CoreConfig {
     identityAuthOps: opList(env, 'LIMS_CORE_IDENTITY_AUTH_OPS', IDENTITY_AUTH_OPS),
     withTenantScopeOps: opList(env, 'LIMS_CORE_WITH_TENANT_SCOPE_OPS', WITH_TENANT_SCOPE_OPS),
     metricsPort: portKey(env, 'LIMS_CORE_METRICS_PORT', 9464),
+    databaseUrl: env.LIMS_CORE_DATABASE_URL || undefined,
+    dbPoolMax: positive(env, 'LIMS_CORE_DB_POOL_MAX', 20),
+    statementTimeoutMs: positive(env, 'LIMS_CORE_STATEMENT_TIMEOUT_MS', 5000),
+    lockTimeoutMs: positive(env, 'LIMS_CORE_LOCK_TIMEOUT_MS', 3000),
+    fakePorts: Object.freeze((env.LIMS_CORE_FAKE_PORTS ?? '').split(',').map((s) => s.trim()).filter(Boolean)),
+    rateLimitBackend: oneOf(env, 'LIMS_CORE_RATELIMIT_BACKEND', ['postgres', 'redis'] as const, 'postgres'),
+    redisUrl: env.LIMS_CORE_REDIS_URL || undefined,
+    rateLimitKeyFile: env.LIMS_CORE_RATELIMIT_KEY_FILE || undefined,
+    tenantRps: positive(env, 'LIMS_CORE_TENANT_RPS', 100),
+    tenantBurst: positive(env, 'LIMS_CORE_TENANT_BURST', 200),
   });
 }

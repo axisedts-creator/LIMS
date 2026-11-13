@@ -68,6 +68,19 @@ const EXPECTED: Record<string, 'counter' | 'gauge' | 'histogram'> = {
   lims_smartreport_drafts_oldest_age_seconds: 'gauge',
   lims_smartreport_llm_circuit_open: 'gauge',
   lims_smartreport_llm_endpoint_refused_total: 'counter',
+  // C15 additions — LD-127 / PG-T20, names+types from the C15 TRD section 11 (line 548; ten metrics plus the two backing gauges of 08 A22.4).
+  lims_payments_intents_created_total: 'counter',
+  lims_payments_intents_transitions_total: 'counter',
+  lims_payments_intents_held_total: 'counter',
+  lims_payments_gateway_requests_total: 'counter',
+  lims_payments_gateway_request_duration_seconds: 'histogram',
+  lims_payments_callbacks_total: 'counter',
+  lims_payments_open_intents_past_deadline: 'gauge',
+  lims_payments_reconciliation_findings_total: 'counter',
+  lims_payments_reconciliation_last_success_timestamp_seconds: 'gauge',
+  lims_payments_refunds_total: 'counter',
+  lims_payments_held_for_review_oldest_age_seconds: 'gauge',
+  lims_payments_reconciliation_stalled_runs: 'gauge',
 };
 
 // LD-88: TRD §13 fixes this C8 histogram as a row count, so it cannot end in _seconds.

@@ -130,16 +130,94 @@ export const ROUTES = {
     "path": "/r/{link_token}",
     "rate_limit_tier": "report_download"
   },
+  "staff.admin.access_log": {
+    "origin": "staff_web",
+    "owner": "C2",
+    "path": "/admin/access-log",
+    "permission": "audit.log.read"
+  },
+  "staff.admin.access_review": {
+    "origin": "staff_web",
+    "owner": "C2",
+    "path": "/admin/access-review",
+    "permission": "identity.user.read"
+  },
+  "staff.admin.audit": {
+    "origin": "staff_web",
+    "owner": "C2",
+    "path": "/admin/audit",
+    "permission": "audit.log.read"
+  },
   "staff.admin.audit_entry": {
     "origin": "staff_web",
     "owner": "C2",
     "path": "/admin/audit/{audit_id}",
     "permission": "audit.log.read"
   },
+  "staff.admin.branches": {
+    "origin": "staff_web",
+    "owner": "C2",
+    "path": "/admin/branches",
+    "permission": "identity.user.read"
+  },
+  "staff.admin.centres": {
+    "origin": "staff_web",
+    "owner": "C2",
+    "path": "/admin/centres",
+    "permission": "identity.centre.read"
+  },
+  "staff.admin.exports": {
+    "origin": "staff_web",
+    "owner": "C2",
+    "path": "/admin/exports",
+    "permission": "audit.log.export"
+  },
+  "staff.admin.me": {
+    "origin": "staff_web",
+    "owner": "C2",
+    "path": "/admin/me",
+    "permission": "identity.self.manage"
+  },
+  "staff.admin.roles": {
+    "origin": "staff_web",
+    "owner": "C2",
+    "path": "/admin/roles",
+    "permission": "identity.user.read"
+  },
+  "staff.admin.sessions": {
+    "origin": "staff_web",
+    "owner": "C2",
+    "path": "/admin/sessions",
+    "permission": "identity.session.revoke"
+  },
+  "staff.admin.settings": {
+    "origin": "staff_web",
+    "owner": "C2",
+    "path": "/admin/settings",
+    "permission": "identity.settings.manage"
+  },
+  "staff.admin.support_access": {
+    "origin": "staff_web",
+    "owner": "C2",
+    "path": "/admin/support-access",
+    "permission": "audit.log.read"
+  },
   "staff.admin.user": {
     "origin": "staff_web",
     "owner": "C2",
     "path": "/admin/users/{membership_id}",
+    "permission": "identity.user.read"
+  },
+  "staff.admin.user_new": {
+    "origin": "staff_web",
+    "owner": "C2",
+    "path": "/admin/users/new",
+    "permission": "identity.user.manage"
+  },
+  "staff.admin.users": {
+    "origin": "staff_web",
+    "owner": "C2",
+    "path": "/admin/users",
     "permission": "identity.user.read"
   },
   "staff.analytics.collections": {
@@ -833,11 +911,47 @@ export const ROUTES = {
     "path": "/payments/static-qr",
     "permission": "payments.reconciliation.read"
   },
+  "staff.platform.auth_events": {
+    "origin": "staff_web",
+    "owner": "C2",
+    "path": "/platform/auth-events",
+    "permission": "platform.tenant.read"
+  },
   "staff.platform.dead_letter": {
     "origin": "staff_web",
     "owner": "C2",
     "path": "/platform/dead-letters/{dead_letter_id}",
     "permission": "platform.dead_letter.manage"
+  },
+  "staff.platform.dead_letters": {
+    "origin": "staff_web",
+    "owner": "C2",
+    "path": "/platform/dead-letters",
+    "permission": "platform.dead_letter.manage"
+  },
+  "staff.platform.home": {
+    "origin": "staff_web",
+    "owner": "C2",
+    "path": "/platform",
+    "permission": "platform.tenant.read"
+  },
+  "staff.platform.ird": {
+    "origin": "staff_web",
+    "owner": "C2",
+    "path": "/platform/ird",
+    "permission": "platform.tenant.read"
+  },
+  "staff.platform.staff": {
+    "origin": "staff_web",
+    "owner": "C2",
+    "path": "/platform/staff",
+    "permission": "platform.staff.manage"
+  },
+  "staff.platform.support_sessions": {
+    "origin": "staff_web",
+    "owner": "C2",
+    "path": "/platform/support-sessions",
+    "permission": "platform.tenant.read"
   },
   "staff.platform.tenant": {
     "origin": "staff_web",
@@ -845,11 +959,65 @@ export const ROUTES = {
     "path": "/platform/tenants/{tenant_id}",
     "permission": "platform.tenant.read"
   },
+  "staff.platform.tenants": {
+    "origin": "staff_web",
+    "owner": "C2",
+    "path": "/platform/tenants",
+    "permission": "platform.tenant.read"
+  },
+  "staff.quality.autoverify": {
+    "origin": "staff_web",
+    "owner": "C9",
+    "path": "/quality/autoverify",
+    "permission": "quality.autoverify.read"
+  },
+  "staff.quality.lj_chart": {
+    "origin": "staff_web",
+    "owner": "C9",
+    "path": "/quality/lj",
+    "permission": "quality.qc_run.read"
+  },
+  "staff.quality.observations": {
+    "origin": "staff_web",
+    "owner": "C9",
+    "path": "/quality/observations",
+    "permission": "quality.qc_run.read"
+  },
   "staff.quality.qc_run": {
     "origin": "staff_web",
     "owner": "C9",
     "path": "/quality/qc-runs/{qc_run_id}",
     "permission": "quality.qc_run.read"
+  },
+  "staff.quality.runs": {
+    "origin": "staff_web",
+    "owner": "C9",
+    "path": "/quality/runs",
+    "permission": "quality.qc_run.read"
+  },
+  "staff.quality.settings": {
+    "origin": "staff_web",
+    "owner": "C9",
+    "path": "/quality/settings",
+    "permission": "quality.qc_run.read"
+  },
+  "staff.quality.setup": {
+    "origin": "staff_web",
+    "owner": "C9",
+    "path": "/quality/setup/materials",
+    "permission": "quality.qc_run.read"
+  },
+  "staff.quality.status": {
+    "origin": "staff_web",
+    "owner": "C9",
+    "path": "/quality",
+    "permission": "quality.qc_run.read"
+  },
+  "staff.quality.tat_alerts": {
+    "origin": "staff_web",
+    "owner": "C9",
+    "path": "/quality/tat-alerts",
+    "permission": "quality.tat_alert.read"
   },
   "staff.reporting.delivery": {
     "origin": "staff_web",
@@ -899,11 +1067,29 @@ export const ROUTES = {
     "path": "/reporting",
     "permission": "reporting.report.read"
   },
+  "staff.smartreport.library": {
+    "origin": "staff_web",
+    "owner": "C14",
+    "path": "/smartreport/library",
+    "permission": "smartreport.template.manage"
+  },
+  "staff.smartreport.summaries": {
+    "origin": "staff_web",
+    "owner": "C14",
+    "path": "/smartreport/summaries",
+    "permission": "smartreport.summary.read"
+  },
   "staff.smartreport.summary": {
     "origin": "staff_web",
     "owner": "C14",
     "path": "/smartreport/summaries/{summary_id}",
     "permission": "smartreport.summary.read"
+  },
+  "staff.smartreport.wording": {
+    "origin": "staff_web",
+    "owner": "C14",
+    "path": "/smartreport/wording",
+    "permission": "smartreport.template.manage"
   }
 } as const;
 

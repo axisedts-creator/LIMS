@@ -3,7 +3,7 @@ import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { DEFAULT_MODULES_DIR, PORT_OWNERS } from '../module.js';
 
-export const PHASE_STUBS: readonly string[] = Object.freeze(['EngagementPort']);
+export const PHASE_STUBS: readonly string[] = Object.freeze([] as string[]);
 
 export interface PhaseStubCheckOpts {
   readonly phaseStubs?: readonly string[];

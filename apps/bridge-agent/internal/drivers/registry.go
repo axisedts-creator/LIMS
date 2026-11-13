@@ -24,6 +24,12 @@ var registry = map[string]SessionProfile{
 		HL7AckMessageTypeFormat: "ACK", HostQueryMessageTypes: []string{"ORM^O01"}},
 	"mindray_bs200_sketch": {Code: "mindray_bs200_sketch", Protocol: "hl7v2", HL7AckMode: "auto",
 		HL7AckMessageTypeFormat: "ACK", HostQueryMessageTypes: []string{"QRY^Q02"}},
+	// Truth-H80E, 08-ADDENDUM-TRUTH-H80E §7 (LD-139). ReplyAckPolicy last: QCK, DSR at once, then wait for ACK^Q03.
+	// U (unverified until a real capture, addendum §9 items 3 and 5): ReplyTimeout, whether the analyser also ACKs the QCK,
+	// the ACK^Q03 MSA-2 form. They are defaults, overridable per instrument, not facts.
+	"truth_h80e": {Code: "truth_h80e", Protocol: "hl7v2", HL7AckMode: "original",
+		HostQueryMessageTypes: []string{"QRY^Q02"}, ExpectAckOnReply: true,
+		ReplyAckPolicy: "last", ReplyAckMatchControlId: false, ReplyTimeout: 10 * time.Second},
 }
 
 var genericFor = map[string]string{

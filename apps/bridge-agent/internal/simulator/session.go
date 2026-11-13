@@ -41,7 +41,7 @@ type Step struct {
 	WaitMs      *int         `json:"wait_ms"`      // advance the fake clock, then tick the link layer (file_drop: one scan)
 	ExpectQueue *QueueExpect `json:"expect_queue"` // assert the queue
 	Outbound    []string     `json:"outbound"`     // astm: submit one outbound message (records, mnemonics) to the sender
-	HostQuery   *HostQuery   `json:"host_query"`   // astm: relay the newest host_query item to a server stub that answers Reply
+	HostQuery   *HostQuery   `json:"host_query"`   // astm: relay the newest host_query item to a server stub that answers Reply; hl7v2: set the stub's answer
 	File        *FileOp      `json:"file"`         // file_drop: write or append a file in the watched folder
 	Note        string       `json:"note"`
 }
@@ -239,11 +239,15 @@ func (st Step) validate(protocol string) error {
 			}
 		}
 	case st.HostQuery != nil:
-		if protocol != "astm" || len(st.HostQuery.Reply) != 1 {
-			return errors.New("host_query needs an astm session and exactly one reply message")
+		// astm: relay the newest host_query item, exactly one reply. hl7v2: configure the server stub for the
+		// instrument's next query; 0 replies = API unreachable, the agent must write nothing (AC-10.6).
+		if !(protocol == "astm" && len(st.HostQuery.Reply) == 1) && !(protocol == "hl7v2" && len(st.HostQuery.Reply) <= 8) {
+			return errors.New("host_query needs an astm session with exactly one reply message, or an hl7v2 session with at most 8")
 		}
-		if _, err := ParseBytes(st.HostQuery.Reply[0]); err != nil {
-			return err
+		for _, r := range st.HostQuery.Reply {
+			if _, err := ParseBytes(r); err != nil {
+				return err
+			}
 		}
 	case st.File != nil:
 		f := st.File

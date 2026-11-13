@@ -178,7 +178,7 @@ export function createLinkService() {
         // SECURITY DEFINER (05-SCHEMA §6.1; named here, in the service, on purpose: this is the one statement that redeems): raw 32-byte bytea (08 A2.4, A5.5). No row = unknown / expired / used / other phone.
         const r = (await tx.query('SELECT * FROM app.engagement_redeem_link_code($1::bytea)', [linkHmac(tenantId, code)])).rows[0] as Row | undefined;
         if (!r) { // unknown, expired, used, other phone: one identical answer; the counter is the only write and survives the 422 (08 A19 P-42)
-          await repo.countFailure(tx, { tenantId, key, expiresAt: new Date(nowMs + 2 * HOUR).toISOString(), createdBy: userId });
+          await repo.countFailure(tx, { tenantId, key, expiresAt: new Date(nowMs + 24 * HOUR).toISOString(), createdBy: userId });
           commitOnError();
           engagementMetrics.linkEvent(ctx, 'link_code', 'invalid');
           throw new LimsError('engagement.link_code_invalid');
@@ -187,6 +187,7 @@ export function createLinkService() {
         let link: Row | undefined; let status = 200;
         if (r['existing_link_id']) link = await repo.getLink(tx, { tenantId, id: r['existing_link_id'] as string });
         if (!link) { // new link: limits first (a throw rolls the DEFINER's redemption back)
+          // CR-pending (.orchestra/cr/T-L2.md #1): activeLinkCount runs under PAT_ACC RLS, so as a patient actor it sees only own links; max_accounts_per_patient needs a DEFINER count.
           const s = await repo.redeemLimits(tx, tenantId);
           if (!s || (await repo.activeLinksOfAccount(tx, { tenantId, accountId: acct['id'] })) >= s['max_profiles_per_account']
             || (await repo.activeLinkCount(tx, { tenantId, patientId: r['patient_id'] })) >= s['max_accounts_per_patient']) {

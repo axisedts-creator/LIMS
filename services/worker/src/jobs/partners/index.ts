@@ -3,7 +3,10 @@
 // each later task replaces its own entries. C13 produces no event.
 // [CONV] TRD §8.2 gives Asia/Kathmandu (UTC+05:45, no DST) local times; the manifest holds 5-field UTC cron, converted here.
 import type { ConsumerHandler, TaskHandler, WorkerManifest } from '../../core/manifest.js';
+import { crontab } from './cron.js';
 import { convertManifestLine } from './tasks/partners.convert_manifest_line.js';
+import { expireDrafts } from './tasks/partners.expire_drafts.js';
+import { redactExpiredLines } from './tasks/partners.redact_expired_lines.js';
 
 const task = (id: string): TaskHandler => async () => { throw new Error(`${id} not implemented`); };
 const consumer = (type: string): ConsumerHandler => async () => { throw new Error(`consumer ${type} not implemented`); };
@@ -22,15 +25,13 @@ const SUBSCRIPTIONS = [
 
 export const manifest: WorkerManifest = {
   module: 'partners',
-  tasks: { ...Object.fromEntries(Object.keys(TASKS).map((id) => [id, task(id)])), 'partners.convert_manifest_line': convertManifestLine }, // T10
+  tasks: {
+    ...Object.fromEntries(Object.keys(TASKS).map((id) => [id, task(id)])),
+    'partners.convert_manifest_line': convertManifestLine, // T10
+    'partners.expire_drafts': expireDrafts,                // T21
+    'partners.redact_expired_lines': redactExpiredLines,   // T21
+  },
   subscriptions: Object.fromEntries(SUBSCRIPTIONS.map((type) => [type, consumer(type)])),
-  crontab: [ // TRD §8.2 local (NPT) -> UTC
-    { identifier: 'partners.sync_price_list', schedule: '25 20 * * *', tenantScope: 'per_tenant' },      // 02:10
-    { identifier: 'partners.sync_statements', schedule: '38 * * * *', tenantScope: 'per_tenant' },      // hourly :23
-    { identifier: 'partners.reconcile_orders', schedule: '*/10 * * * *', tenantScope: 'per_tenant' },   // every 10 min
-    { identifier: 'partners.expire_drafts', schedule: '55 19 * * *', tenantScope: 'per_tenant' },       // 01:40
-    { identifier: 'partners.redact_expired_lines', schedule: '55 20 * * *', tenantScope: 'per_tenant' }, // 02:40
-    { identifier: 'partners.purge_access_slips', schedule: '5 21 * * *', tenantScope: 'per_tenant' },   // 02:50
-  ],
+  crontab, // cron.ts (T21): TRD §8.2 local (NPT) -> UTC
   maxAttempts: TASKS,
 };

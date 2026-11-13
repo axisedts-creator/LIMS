@@ -159,7 +159,7 @@ describe('AD-8 Lab settings', () => {
     const user = await open('Numbering');
     const f = screen.getByLabelText(/invoice no\. pattern|invoice number pattern/i) as HTMLInputElement;
     expect(f.maxLength === 40 || f.maxLength === -1).toBe(true);
-    await user.clear(f); await user.type(f, 'INV-{seq:6}');
+    await user.clear(f); await user.type(f, 'INV-{{seq:6}'); // user-event: '{{' types a literal '{' (ruling §2)
     await user.click(saveBtn());
     await waitFor(() => expect(f.getAttribute('aria-invalid')).toBe('true'));
     expect(bodyOf(callsTo('PATCH', S)[0]).invoice_no_pattern).toBe('INV-{seq:6}');

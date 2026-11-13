@@ -209,8 +209,8 @@ describe('AD-11 Audit entry (US-D2)', () => {
   it('DiffTable: before/after per key; changed keys carry the text marker "changed" (not colour only); unchanged keys do not', async () => {
     await show('audit/[audit_id]', { params: { audit_id: AUDIT_1 } });
     const rows = within(screen.getByRole('table')).getAllByRole('row').map((r) => norm(r.textContent));
-    expect(rows.find((r) => /status/.test(r))).toMatch(/draft.*final.*changed/);
-    expect(rows.find((r) => /note/.test(r))).not.toMatch(/changed/);
+    expect(rows.find((r) => /status/.test(r))).toMatch(/draft.*final.*changed/i); // ruling §3: kit renders "Changed"
+    expect(rows.find((r) => /note/.test(r))).not.toMatch(/changed/i);
   });
   it('REQ-SEC-088: values containing markup are rendered as TEXT NODES (no <img>/<script>/<svg> elements created)', async () => {
     routes[`GET ${ONE}`] = json(entry({ new_values: JSON.stringify({ status: '<img src=x onerror=alert(1)>', name: '<svg onload=alert(1)>' }), old_values: JSON.stringify({ status: 'draft', name: 'a' }) }));

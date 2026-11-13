@@ -413,10 +413,13 @@ describe('AD-3 User detail (US-B2..B6)', () => {
     const dlg = await screen.findByRole('alertdialog').catch(() => screen.findByRole('dialog'));
     await user.click(within(dlg).getByRole('button', { name: /deactivate|confirm/i }));
     expect(callsTo('POST', `${ONE}/deactivate`)).toHaveLength(0); // reason missing
+    // ruling C2.T20-ruling §1: MembershipReasonRequest requires reason_code (identity.yaml:5496-5502)
+    await user.click(within(dlg).getByLabelText(/reason/i));
+    await user.click(await screen.findByRole('option', { name: /left organisation/i }));
     await user.type(within(dlg).getByRole('textbox'), 'Synthetic leaver');
     await user.click(within(dlg).getByRole('button', { name: /deactivate|confirm/i }));
     await waitFor(() => expect(callsTo('POST', `${ONE}/deactivate`)).toHaveLength(1));
-    expect(bodyOf(callsTo('POST', `${ONE}/deactivate`)[0])).toEqual({ reason_text: 'Synthetic leaver' });
+    expect(bodyOf(callsTo('POST', `${ONE}/deactivate`)[0])).toEqual({ reason_code: 'left_organisation', reason_text: 'Synthetic leaver' });
   });
 
   it('AC-B5 Reset two-step verification: ConfirmDialog then POST /reset-mfa with a reason', async () => {

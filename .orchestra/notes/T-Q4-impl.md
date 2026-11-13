@@ -1,0 +1,6 @@
+# T-Q4 impl (writer) — LD-138 reset + LD-143 TokenSlip
+- Files: app/(staff)/engagement/queue/{page,loading,error}.tsx, setup/*, tokens/route.ts; features/engagement/components/{QueueConsole,QueueSetup,QueueHosts}.tsx, queue-model.ts; server/*. LD-143: packages/ui/src/components/TokenSlip/{TokenSlip,TokenSlip.stories}.tsx (no other packages/ui file).
+- [CONV] TokenSlip CSS is a React 19 hoisted `<style href precedence>` (kit.css is off-limits; adds no slip text; PrintFrame clones head styles). @media print: `@page 80mm`, width 80mm. issuedAt printed `YYYY-MM-DD hh:mm A` in Asia/Kathmandu via kit utcParts.
+- QueueConsole passes `lines={[]}` (kit prints the date; removed duplicate slipDateTime). Call next = `Alt+C` stopgap (W6 Alt+N is global, AC-0D-7.5). W6/W7 status via kit StatusChip.
+- Verify: T-Q4 82/82 pass (real TokenSlip, stub alias off). `tsc --noEmit` apps/web: no t-q4/QueueConsole errors (only t-r2 reminders, not T-Q4). Kit tokenslip.test 5/5 after tester fix (round 4 item 1; no writer change needed).
+- OPEN: BFF poll route queue/tokens/route.ts not in contracts/routes.yaml; centre from ?centre_id= or first centre; labName = tenantCode; server code only source-checked; kit StatusChip has no icon (C0).

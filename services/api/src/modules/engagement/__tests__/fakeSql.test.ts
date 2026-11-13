@@ -75,3 +75,18 @@ describe('fakeSql', () => {
     await expect(s.tx.query(`UPDATE engagement.queue_tokens SET status = CASE WHEN true THEN 'x' END WHERE id = $1`, ['t1'])).rejects.toThrow(/fake-sql: unsupported/);
   });
 });
+
+describe('fakeSql ON CONFLICT DO UPDATE (T-B2 upsert support)', () => {
+  it('inserts a new row, updates the existing one from excluded.*, keeps untouched columns, RETURNING works, plain duplicate still 23505', async () => {
+    const defs = { booking_centres: { columns: ['id', 'tenant_id', 'centre_id', 'display_name', 'created_by', 'synced_at'], unique: [['tenant_id', 'centre_id']] } };
+    const db = new FakeDb({ booking_centres: [] }, defs, clock); const s = db.session(A, all);
+    const up = `INSERT INTO engagement.booking_centres (id, tenant_id, centre_id, display_name, created_by, synced_at) VALUES ($1, $2, $3, $4, $5, now())
+      ON CONFLICT (tenant_id, centre_id) DO UPDATE SET display_name = EXCLUDED.display_name, synced_at = EXCLUDED.synced_at RETURNING *`;
+    await s.tx.query(up, ['r1', A, C1, 'Old', 'u1']);
+    clock.iso = '2026-11-06T04:15:00.000Z';
+    const r = await s.tx.query(up, ['r2', A, C1, 'New', 'u2']);
+    expect(db.tables['booking_centres']).toHaveLength(1);
+    expect(r.rows[0]).toMatchObject({ id: 'r1', display_name: 'New', created_by: 'u1', synced_at: '2026-11-06T04:15:00.000Z' });
+    await expect(s.tx.query(`INSERT INTO engagement.booking_centres (id, tenant_id, centre_id) VALUES ($1, $2, $3)`, ['r3', A, C1])).rejects.toMatchObject({ code: '23505' });
+  });
+});

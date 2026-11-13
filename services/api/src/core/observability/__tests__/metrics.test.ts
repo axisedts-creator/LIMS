@@ -81,6 +81,20 @@ const EXPECTED: Record<string, 'counter' | 'gauge' | 'histogram'> = {
   lims_payments_refunds_total: 'counter',
   lims_payments_held_for_review_oldest_age_seconds: 'gauge',
   lims_payments_reconciliation_stalled_runs: 'gauge',
+  // C16 additions — LD-142 / CR-C16-T-OPS1, names and types from the C16 TRD section 13 (lines 812-824).
+  lims_engagement_otp_requests_total: 'counter',
+  lims_engagement_otp_verifications_total: 'counter',
+  lims_engagement_link_events_total: 'counter',
+  lims_engagement_projection_lag_seconds: 'histogram',
+  lims_engagement_projection_drift_total: 'counter',
+  lims_engagement_bookings_total: 'counter',
+  lims_engagement_slot_conflicts_total: 'counter',
+  lims_engagement_queue_tokens_total: 'counter',
+  lims_engagement_queue_wait_seconds: 'histogram',
+  lims_engagement_displays_stale: 'gauge',
+  lims_engagement_payment_requests_total: 'counter',
+  lims_engagement_reminders_total: 'counter',
+  lims_engagement_report_downloads_total: 'counter',
 };
 
 // LD-88: TRD §13 fixes this C8 histogram as a row count, so it cannot end in _seconds.

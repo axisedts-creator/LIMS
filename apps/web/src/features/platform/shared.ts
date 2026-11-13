@@ -9,7 +9,6 @@ export const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 export const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 export const CURSOR_RE = /^[A-Za-z0-9_=-]{1,512}$/;
 export const IDEMPOTENCY_RE = /^[A-Za-z0-9_-]{16,128}$/;
-export const FLAG_CODE_RE = /^[a-z][a-z0-9_]{2,63}$/;
 export const MAX_UPLOAD_BYTES = 15 * 1024 * 1024;
 export const UPLOAD_TYPES = ['application/pdf', 'image/png', 'image/jpeg'] as const;
 export const MAX_CIDRS = 20;
@@ -50,10 +49,9 @@ export interface AnnexRecord {
   record_id: string; tenant_id?: string; annex_code: AnnexCode; status: AnnexStatus; reference_no?: string; tax_office?: string; counterparty?: string;
   software_version?: string; submitted_on?: string; completed_on?: string; notes?: string; version: number;
 }
-export interface StaffMember { platform_staff_id: string; display_name: string; email_masked: string; role_code: string; allowed_cidrs: string[]; is_active: boolean; mfa_enrolled?: boolean; last_login_at?: string; version: number }
+export interface StaffMember { platform_staff_id: string; display_name: string; email_masked: string; role_code: string; allowed_cidrs: string[]; is_active: boolean; last_login_at?: string; version: number }
 export interface PlatformSession { session_id: string; display_name?: string; state: string; aal: string; created_at: string; last_seen_at?: string; client_ip_masked?: string; user_agent_family?: string }
 export interface AuthEvent { auth_event_id: string; tenant_id?: string; user_id?: string; membership_id?: string; platform_staff_id?: string; event_type: string; reason_code?: string; client_ip?: string; user_agent?: string; occurred_at: string }
-export interface FeatureFlag { code: string; description?: string; scope: string; settable_by: string; is_enabled: boolean; blocker_ref?: string; approval_ref_present: boolean; version?: number }
 export type Settings = Record<string, unknown> & { version: number };
 
 // ------------------------------------------------------------------ labels

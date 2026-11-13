@@ -1,0 +1,4 @@
+# HC-T06 dispute (tests, not implementation)
+Test file: services/worker/src/jobs/homecollection/__tests__/order.created.consumer.live.test.ts. Two fixture bugs, 16 of 28 tests fail on them; implementation passes 28/28 once they are fixed.
+1. Line 69 `newSpecimen`: barcode `HCT06SECRETBC<A|B><Date.now()><n>` is ~30 chars; lab.specimens CHECK `specimens__barcode__ck` = `^[A-Z0-9]{1,20}$` -> "violates check constraint" (9 refs-based tests). Fix: e.g. `HCT06${side}${String(Date.now()).slice(-8)}${++bcN}` (<=20, A-Z0-9).
+2. Line 109 `jobsFor`: `graphile_worker.jobs` is a view WITHOUT `payload` (db/meta/decisions/SP-2.md). Fix: `SELECT j.key, t.identifier AS task_identifier, j.payload FROM graphile_worker._private_jobs j JOIN graphile_worker._private_tasks t ON t.id = j.task_id WHERE j.key = $1` (same as billing register.live.test.ts) (7 consumer tests).

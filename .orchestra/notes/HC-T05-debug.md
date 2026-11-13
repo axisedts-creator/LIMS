@@ -10,3 +10,7 @@
 ## Round 3
 - Cause unchanged: docker client OK but daemon pipe (`dockerDesktopLinuxEngine`) still missing; no test output exists, so no code root cause.
 - Fix: none; impl/tests untouched, no dispute. Blocked on Docker Desktop running; then rerun HC-T05-verify.cmd.
+
+## Round 4 (real run: 34/35 pass)
+- Cause: test bug, not impl. US-10-2 (booking.consumers.live.test.ts:367) does String(v.route_date).slice(0,10) on a pg `date` read back as a JS Date ("Sat Jan 02 2027...") vs the fixture's string "2027-01-02" -> "Sat Jan 02" != "2027-01-02". The consumer never writes route_date (kept as-is), so impl is correct.
+- Fix: none in code (tests are off-limits). Test needs e.g. v.route_date.toISOString().slice(0,10) or a ::text cast in ownerRows. See HC-T05-dispute.md.

@@ -1,0 +1,24 @@
+{
+  "ok": true,
+  "messageKind": "results",
+  "messageControlId": "1",
+  "messageTimeLocal": "2026-11-05T19:05:59",
+  "records": [
+    {
+      "recordSeq": 1, "recordClass": "qc", "controlIdRaw": "A0926", "controlLotRaw": "A0926", "controlLevel": "low", "recordKind": "quantitative",
+      "instrumentAnalyteCode": "HbA1c_NGSP", "valueRaw": "5.24", "unitRaw": "%",
+      "instrumentFlags": [], "instrumentResultTimeLocal": "2026-11-05T11:15:37", "warnings": []
+    },
+    {
+      "recordSeq": 2, "recordClass": "qc", "controlIdRaw": "A0926", "controlLotRaw": "A0926", "controlLevel": "low", "recordKind": "quantitative",
+      "instrumentAnalyteCode": "HbA1c_IFCC", "valueRaw": "33.70", "unitRaw": "mmol/mol",
+      "instrumentFlags": [], "instrumentResultTimeLocal": "2026-11-05T11:15:37", "warnings": []
+    },
+    {
+      "recordSeq": 3, "recordClass": "qc", "controlIdRaw": "A0926", "controlLotRaw": "A0926", "controlLevel": "low", "recordKind": "quantitative",
+      "instrumentAnalyteCode": "HbF", "valueRaw": "0.18", "unitRaw": "%",
+      "instrumentFlags": [], "instrumentResultTimeLocal": "2026-11-05T11:15:37", "warnings": []
+    }
+  ],
+  "warnings": []
+}

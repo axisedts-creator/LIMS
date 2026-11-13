@@ -1,0 +1,6 @@
+# HC-T06 impl
+- New: consumers/frontdesk.order.created.v1.ts (`onOrderCreated`), tasks/refresh_visit_specimens.ts (`refreshVisitSpecimens`), api homecollection/specimen.service.ts (`refreshVisitSpecimens(c, visitId)`, `enqueueSpecimenRefresh`). Edited: service/visit.service.ts (+`onOrderCreated`, same place as T05 consumers).
+- [CONV] consumer = tenant check + delegate to visit.service; per-order advisory lock; enqueue via app.enqueue_job(task, {tenant_id, visit_id}, 'refresh:<visit_id>'); no logging of ids/barcodes. Refresh: port first (failure throws before any write), upsert only, never DELETE / lower last_seq / store barcode, route version++ only if a row changed.
+- Result after ruling (c766095d): `tests/homecollection/HC-T06.pg.sh` 28/28 pass. tsc: 0 errors in homecollection files (worker + api). No impl change needed after the ruling.
+- HC-T05 re-run (`HC-T05.pg.sh`, runs the whole __tests__ dir in parallel): HC-T05 file passes; HC-T06 file shows 2–4 flaky fails there (`allVisits(tenant).length` counts race with HC-T05 inserts in the same tenant). Test-isolation issue for the tester, not impl.
+- Open: manifest wiring of the 2 handlers (TRD §3.2) is not in this task's files; front_desk visit leaves order_registered_at null (TRD names it only for source home_collection).

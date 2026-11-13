@@ -1,5 +1,6 @@
 // AD-4 Roles (C2 04-UI-UX §6). Gate identity.user.read; [New role] only with identity.role.manage.
 import Link from 'next/link';
+import { Badge as KitBadge } from '@lims/ui/components/Badge';
 import { call } from '@/features/admin/server/api';
 import { Denied, Frame, LoadError, gate } from '@/features/admin/server/page-kit';
 import { Badge, Grid } from '@/features/admin/Grid';
@@ -21,7 +22,8 @@ export default async function RolesPage() {
               <Link key="n" href={`/admin/roles/${encodeURIComponent(x.role_id)}`}>{x.name}</Link>,
               <code key="c">{x.code}</code>,
               x.is_default ? <Badge text="Default" /> : '',
-              x.mfa_required ? 'Yes' : 'No',
+              // LD-140: MFA badge on roles that hold privileged permissions (server forces mfa_required for them, AC-B2.1).
+              x.mfa_required ? <KitBadge key="m" tone="warning">Yes</KitBadge> : 'No',
               String(x.member_count),
               x.is_active ? 'Active' : 'Inactive',
             ],

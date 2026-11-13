@@ -1,10 +1,10 @@
 'use client';
-// AD-6 Branches / AD-7 Collection centres (US-C1): table, row click → side Dialog editor. Code is immutable after create;
+// AD-6 Branches / AD-7 Collection centres (US-C1): table, row click → right Drawer editor (LD-140). Code is immutable after create;
 // edits PATCH only changed fields with If-Match; deactivate never deletes (AC-C1.2).
 import { useState } from 'react';
 import { Button } from '@lims/ui/components/Button';
 import { ConfirmDialog } from '@lims/ui/components/ConfirmDialog';
-import { Dialog } from '@lims/ui/components/Dialog';
+import { Drawer } from '@lims/ui/components/Drawer';
 import { Switch } from '@lims/ui/components/Switch';
 import { useToast } from '@lims/ui/components/Toast';
 import { createUnit, setUnitActive, updateUnit, type UnitKind } from '../actions';
@@ -134,13 +134,8 @@ function Editor({ kind, unit, branches, canEdit, onClose, onSaved, onToggle }: {
   };
 
   return (
-    <Dialog title={unit ? `Edit ${centres ? 'centre' : 'branch'}` : `New ${centres ? 'centre' : 'branch'}`} isOpen onClose={onClose}
-      footer={canEdit ? (
-        <>
-          {unit ? <Button variant="ghost" onPress={() => onToggle(unit)}>{unit.is_active ? 'Deactivate' : 'Reactivate'}</Button> : null}
-          <Button variant="primary" onPress={() => void save()} isLoading={busy}>Save</Button>
-        </>
-      ) : undefined}>
+    // LD-140 / 10-DESIGN-SYSTEM §4 Masters: list + right drawer (one short section, so one Save). Kit Drawer has no footer slot.
+    <Drawer title={unit ? `Edit ${centres ? 'centre' : 'branch'}` : `New ${centres ? 'centre' : 'branch'}`} isOpen onClose={onClose}>
       {failure.banner}
       <Field label="Code" value={v.code} onChange={set('code')} readOnly={!!unit || !canEdit} error={errors['code']} hint="Printed on reports, e.g. C000000002" required={!unit} />
       <Field label="Name" value={v.name} onChange={set('name')} readOnly={!canEdit} error={errors['name']} required />
@@ -155,7 +150,13 @@ function Editor({ kind, unit, branches, canEdit, onClose, onSaved, onToggle }: {
       <Field label="Address" multiline value={v.address_text} onChange={set('address_text')} readOnly={!canEdit} error={errors['address_text']} />
       <Field label="Phone" type="tel" value={v.phone} onChange={set('phone')} readOnly={!canEdit} error={errors['phone']} />
       {!centres ? <Switch label="Processing lab" isSelected={v.is_processing_lab} onChange={set('is_processing_lab')} isDisabled={!canEdit} /> : null}
+      {canEdit ? (
+        <div className="lims-dialog-footer">
+          {unit ? <Button variant="ghost" onPress={() => onToggle(unit)}>{unit.is_active ? 'Deactivate' : 'Reactivate'}</Button> : null}
+          <Button variant="primary" onPress={() => void save()} isLoading={busy}>Save</Button>
+        </div>
+      ) : null}
       {failure.dialogs}
-    </Dialog>
+    </Drawer>
   );
 }

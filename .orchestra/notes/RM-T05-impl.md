@@ -1,0 +1,7 @@
+# RM-T05 impl (writer)
+Files: contracts/openapi/identity.yaml (+GET /v1/identity/role-packs listRolePacks, +POST /v1/identity/role-packs/apply applyRolePack, per LD-150), contracts/routes.yaml (+staff.admin.role_packs after staff.admin.roles), apps/web/src/app/(staff)/admin/roles/packs/page.tsx, apps/web/src/features/admin/roles/{RolePackApply.tsx,actions.ts}.
+Result: RM-T05 suite 26/26 pass (vitest.rm-t05.config.ts). tsc: no errors in new files (test file line 22 `onUnhandledRequest` TS2353 is the same repo-wide pattern as t20 tests).
+[CONV] Request/response schemas of applyRolePack are inline (test stringifies the operation object to find pack_code/created/updated/unchanged).
+[CONV] Diff mirrors RM-T02 server (existing roles never rewritten, `updated` always []): existing role lacking pack permissions is shown "kept as your lab edited it; pack permissions not added: …"; Apply enabled only when some pack role is missing; Apply latches after success (no re-send on late double click).
+OPEN (C0/lead): LD-150 row placement breaks C0 tests contracts/__tests__/t0d-12d.test.ts (expects 174 routes, LD-112 block contiguous) and registry-equality.test.ts (routes.yaml == IC §7). C0 must update those tests + IC §7 for CR-C2-RM-001. events.test.ts envelope test times out (5s), unrelated.
+OPEN: server HTTP handlers for listRolePacks/applyRolePack not in this task (web + contract only); Playwright spec not run (needs stack).

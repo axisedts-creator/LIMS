@@ -52,6 +52,7 @@ describe('worklist page /anatomic', () => {
 
   it('unknown / array queue values fall back to to_accession (nothing user-controlled reaches the API)', async () => {
     await worklist({ queue: 'drop table cases' });
+    cleanup(); // registry.ts rightly throws on a duplicate page shortcut
     await worklist({ queue: ['all', 'grossing'] });
     for (const c of listCalls()) expect(new URLSearchParams(c.search).get('queue')).toBe('to_accession');
   });

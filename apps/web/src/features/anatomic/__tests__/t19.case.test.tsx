@@ -399,7 +399,7 @@ describe('Parts & gross tab (§4.2.2)', () => {
   it('fields per part: Site, Description, Gross description (+count), Pieces, Length/Width/Depth, Weight (g), Gross complete, Gross images', async () => {
     await parts();
     const c = within(card('A'));
-    for (const re of [/^site/i, /^description$/i, /gross description/i, /^pieces/i, /^length/i, /^width/i, /^depth/i, /^weight \(g\)/i]) expect(c.getAllByRole(/textbox|spinbutton/, { name: re }).length, String(re)).toBeGreaterThan(0);
+    for (const re of [/^site/i, /^description$/i, /gross description/i, /^pieces/i, /^length/i, /^width/i, /^depth/i, /^weight \(g\)/i]) expect([...c.queryAllByRole('textbox', { name: re }), ...c.queryAllByRole('spinbutton', { name: re })].length, String(re)).toBeGreaterThan(0);
     expect(c.getByRole('switch', { name: /gross complete/i })).toBeTruthy();
     expect(card('A').querySelector('input[type=file]')).toBeTruthy();
   });
@@ -468,7 +468,7 @@ describe('Parts & gross tab (§4.2.2)', () => {
   it('Pieces accepts integers 0–999 only (1000 and 1.5 are blocked)', async () => {
     await parts(detail({ parts: [part(1)] }));
     const c = within(card('A'));
-    const pieces = c.getByRole(/textbox|spinbutton/, { name: /^pieces/i });
+    const pieces = [...c.queryAllByRole('textbox', { name: /^pieces/i }), ...c.queryAllByRole('spinbutton', { name: /^pieces/i })][0]!;
     await userEvent.type(c.getByRole('textbox', { name: /gross description/i }), 'x');
     await userEvent.type(pieces, '1000');
     await userEvent.click(c.getByRole('button', { name: /^save part$/i }));

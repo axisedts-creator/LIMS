@@ -76,7 +76,7 @@ describe('table (§4.1) and AC-13.1 presentation', () => {
     await mount();
     const headers = screen.getAllByRole('columnheader').map((h) => h.textContent?.trim());
     for (const h of ['Accession', 'Patient', 'Kind', 'Tests', 'Parts', 'Received', 'Priority', 'Status', 'Pathologist']) expect(headers, h).toContain(h);
-    expect(document.querySelector('caption')?.textContent).toMatch(/pathology cases/i);
+    expect(screen.getByRole('grid', { name: /pathology cases/i })).toBeTruthy(); // LD-140 kit DataTable: role=grid, aria-label=caption
   });
 
   it('rows keep the API order (server sorts urgent first, then oldest — the UI must not re-sort)', async () => {
@@ -88,9 +88,9 @@ describe('table (§4.1) and AC-13.1 presentation', () => {
 
   it('urgent shows the word "Urgent" (danger tone), routine shows no badge', async () => {
     await mount([summary(1, { priority: 'urgent' }), summary(2)]);
-    const badge = screen.getByText('Urgent', { selector: '*' });
+    const badge = within(screen.getByRole('grid')).getByText('Urgent', { selector: '*' });
     expect(badge.closest('[data-tone]')?.getAttribute('data-tone') ?? badge.className).toMatch(/danger/);
-    expect(screen.getAllByText('Urgent')).toHaveLength(1);
+    expect(within(screen.getByRole('grid')).getAllByText('Urgent')).toHaveLength(1); // the priority filter option "Urgent" is outside the grid
   });
 
   it('accession is a link to /anatomic/cases/<uuid> (REQ-SEC-026/027); un-accessioned case reads "Not accessioned"', async () => {
@@ -120,7 +120,7 @@ describe('table (§4.1) and AC-13.1 presentation', () => {
     ['ready_for_reporting', 'Ready for reporting', 'warning'], ['signed_out', 'Signed out', 'success'], ['cancelled', 'Cancelled', 'neutral'],
   ])('status %s -> chip "%s", tone %s, with an icon (LD-140, §2)', async (status, label, tone) => {
     await mount([summary(1, { status })], 'all');
-    const chip = within(screen.getByRole('table')).getAllByText(label, { selector: '*' }).map((e) => e.closest('[data-tone]')).find(Boolean) as HTMLElement | undefined;
+    const chip = within(screen.getByRole('grid')).getAllByText(label, { selector: '*' }).map((e) => e.closest('[data-tone]')).find(Boolean) as HTMLElement | undefined;
     expect(chip, 'StatusChip').toBeTruthy();
     expect(chip!.getAttribute('data-tone')).toBe(tone);
     expect(chip!.querySelector('svg,[data-icon],[aria-hidden=true]'), 'icon').toBeTruthy();

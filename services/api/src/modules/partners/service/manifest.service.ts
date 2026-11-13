@@ -6,9 +6,9 @@
 import { uuidv7 } from '../../../../../../packages/shared-ts/src/uuidv7/index.js';
 import { LimsError, type FieldError } from '../../../core/errors.js';
 import type { HandlerContext, HandlerResult } from '../../../core/module.js';
-import { validateLine, type LineContext, type LineIssue } from '../domain/line-validation.js';
+import { validateLine, validateManifestForSubmit, type LineContext, type LineIssue } from '../domain/line-validation.js';
 import { formatManifestNo, manifestYy } from '../domain/manifest-number.js';
-import { assertEditable, assertTransition, MANIFEST_STATES, type ManifestState } from '../domain/manifest.state.js';
+import { assertEditable, assertTransition, assertWithdrawable, MANIFEST_STATES, type ConversionMode, type ManifestState } from '../domain/manifest.state.js';
 import { toLineDto, toManifestDto, toManifestSummaryDto, toPriceListItemDto, type CentreName } from '../mappers/manifest.dto.js';
 import * as counters from '../repository/counters.repo.js';
 import * as lines from '../repository/manifest-lines.repo.js';
@@ -17,7 +17,7 @@ import { partnerContext } from './partner-context.service.js';
 
 type Row = Record<string, any>;
 type Req = { params?: unknown; query?: unknown; headers?: unknown; body?: unknown };
-type Core = { centre(c: unknown, i: { centreId: string }): Promise<{ id: string; name: string }>; tenant(c: unknown): Promise<{ timezone: string }> };
+type Core = { centre(c: unknown, i: { centreId: string }): Promise<{ id: string; name: string; centreCode?: string; isActive?: boolean }>; tenant(c: unknown): Promise<{ timezone: string }> };
 
 const SUBMIT = 'partners.manifest.submit'; // M1, M4–M7, M10, P2
 const READ = 'partners.order.read'; // M2, M3
@@ -275,4 +275,79 @@ export async function searchOrderables(req: Req, ctx: HandlerContext): Promise<H
   const limit = Number.isInteger(n) && n >= 1 ? Math.min(n, 20) : 20;
   const { includeDefault } = await lines.settings(s);
   return { status: 200, body: { data: (await lines.searchPrice(s, text, includeDefault, limit)).map(toPriceListItemDto) } };
+}
+
+// ---- M8 (T09) ----
+const localDay = (d: Date): string => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; // pg `date` arrives as local midnight (as toLineDto)
+/** stored line columns -> the shape domain/line-validation.ts reads (camelCase there). Nothing is echoed back. */
+const storedLineInput = (l: Row): Record<string, unknown> => ({
+  partnerSampleRef: l['partner_sample_ref'], priority: l['priority'], orderableIds: l['orderable_ids'], referrerId: l['referrer_id'], clinicalNote: l['clinical_note'],
+  collectedAt: l['collected_at'] instanceof Date ? l['collected_at'].toISOString() : l['collected_at'],
+  patient: { fullName: l['patient_full_name'], sex: l['patient_sex'], birthOn: l['patient_birth_on'] instanceof Date ? localDay(l['patient_birth_on']) : l['patient_birth_on'], ageYears: l['patient_age_years'], phoneE164: l['patient_phone_e164'] },
+  consents: { sms: l['consent_sms'], whatsapp: l['consent_whatsapp'], email: l['consent_email'], shareWithReferrer: l['consent_share_with_referrer'] },
+});
+/** every issue of every line at once (US-04.4); a referrer unknown at submit is the manifest's own problem, not a 404. */
+const submitErrors = (issues: LineIssue[]): FieldError[] => issues.map((i) => {
+  const code = i.code === 'common.validation_failed' ? 'common.field_invalid' : i.code === 'common.not_found' ? 'partners.manifest_invalid' : i.code;
+  return { path: i.path, code, message: MESSAGES[code === 'common.field_invalid' ? 'common.validation_failed' : code] ?? MESSAGES['partners.manifest_invalid']! };
+});
+
+export async function submit(req: Req, ctx: HandlerContext): Promise<HandlerResult> {
+  const s = await gate(ctx, SUBMIT);
+  const expected = ifMatch(req);
+  const m = await lockManifest(s, pathId(req, 'manifest_id')); // body is ignored: nothing a client sends reaches a column (AB11/AB12)
+  checkVersion(m, expected);
+  assertTransition(m['state'] as ManifestState, 'submitted'); // only draft -> submitted
+  // re-validate the STORED lines now: the price list / referrers may have changed since drafting
+  const ls = await lines.listByManifest(s, m['id']);
+  const settings = await lines.settings(s);
+  const ids = [...new Set(ls.flatMap((l) => (Array.isArray(l['orderable_ids']) ? l['orderable_ids'] : [])).filter(isUuid))];
+  const offered = new Set((await lines.priceItems(s, ids)).filter((r) => r['source'] === 'partner' || settings.includeDefault).map((r) => r['orderable_id'] as string));
+  const refs = await lines.referrers(s, [...new Set(ls.map((l) => l['referrer_id']).filter(isUuid))]);
+  const now = new Date(ctx.now());
+  const core = ctx.core as unknown as Core;
+  const lineCtx: LineContext = {
+    today: todayIn(now, (await core.tenant(ctx)).timezone), now, offeredOrderableIds: offered,
+    referrers: new Map(refs.map((r) => [r['id'] as string, { isActive: r['is_active'] === true }])), otherSampleRefs: new Set(), adding: false, lineCountBefore: ls.length, maxLines: settings.maxLines,
+  };
+  const issues = validateManifestForSubmit(ls.map(storedLineInput), lineCtx);
+  const snap = (await manifests.partnerSnapshot(s)) ?? notFound(); // ponytail: partner row not locked; a concurrent centre change is picked up by the next submit
+  if ((await core.centre(ctx, { centreId: snap['receiving_centre_id'] })).isActive === false) issues.push({ path: '/receiving_centre', code: 'partners.manifest_invalid' });
+  if (issues.length > 0) throw new LimsError('partners.manifest_invalid', undefined, submitErrors(issues));
+  // manifest first (version-guarded), then the lines, then one job per line (on_submit only)
+  const row = (await manifests.submit(s, m['id'], expected, { branchId: snap['receiving_branch_id'], centreId: snap['receiving_centre_id'], mode: snap['conversion_mode'] })) ?? conflict();
+  const converting = row['conversion_mode'] === 'on_submit';
+  await lines.submitDrafts(s, m['id'], row['receiving_centre_id'], converting);
+  if (converting) for (const l of ls.filter((x) => x['state'] === 'draft')) await lines.enqueueConversion(s, l['id'], 1); // job_key convert:<line_id>:1
+  return { status: 200, body: await fullDto(ctx, s, row) };
+}
+
+// ---- M9 (T09) ----
+const WITHDRAW_REASONS = ['entered_in_error', 'samples_not_sent', 'duplicate_manifest', 'other'];
+
+export async function withdraw(req: Req, ctx: HandlerContext): Promise<HandlerResult> {
+  const s = await gate(ctx, SUBMIT);
+  const expected = ifMatch(req);
+  const m = await lockManifest(s, pathId(req, 'manifest_id')); // serialises with the staff receipt, which locks this row first (03-APP-FLOW §4.1 M9)
+  checkVersion(m, expected);
+  const ls = await lines.listByManifest(s, m['id']); // read AFTER the lock: a line that went converting meanwhile is seen
+  assertWithdrawable({ state: m['state'] as ManifestState, conversionMode: m['conversion_mode'] as ConversionMode, lineStates: ls.map((l) => l['state']) });
+  const b = req.body;
+  if (!isObj(b) || typeof b['reason_code'] !== 'string' || !WITHDRAW_REASONS.includes(b['reason_code'])) return invalid();
+  const text = b['reason_text'] === undefined || b['reason_text'] === null ? null : typeof b['reason_text'] === 'string' && b['reason_text'].length <= 300 ? b['reason_text'] : invalid();
+  const row = (await manifests.withdraw(s, m['id'], expected, b['reason_code'], text)) ?? conflict();
+  await lines.withdrawSubmitted(s, m['id']);
+  // ponytail: MS5 pickup cascade (open pickups -> cancelled) belongs with the pickup tables (T15); not done here
+  return { status: 200, body: await fullDto(ctx, s, row) };
+}
+
+// ---- M11 (T09) ----
+export async function printView(req: Req, ctx: HandlerContext): Promise<HandlerResult> {
+  const s = await gate(ctx, READ);
+  const m = (await manifests.get(s, pathId(req, 'manifest_id'))) ?? notFound();
+  if (!['submitted', 'partially_received', 'received', 'withdrawn'].includes(m['state'])) throw new LimsError('partners.manifest_invalid_transition');
+  const [p, c, dto] = await Promise.all([manifests.partnerHeader(s), (ctx.core as unknown as Core).centre(ctx, { centreId: m['receiving_centre_id'] }), fullDto(ctx, s, m)]);
+  const body = { manifest: dto, partner: { name: p?.['name'], partner_code: p?.['partner_code'] }, receiving_centre: { name: c.name, code: c.centreCode }, printed_at: new Date(ctx.now()).toISOString() };
+  await ctx.audit!.access({ action: 'manifest.print', entityType: 'manifest', entityId: m['id'], outcome: 'allowed' }); // after the read; a failed log write fails the request (REQ-SEC-096/097)
+  return { status: 200, body };
 }

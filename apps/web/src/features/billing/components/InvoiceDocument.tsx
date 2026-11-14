@@ -3,6 +3,7 @@
 import { DataUriImage } from '@lims/ui/components/DataUriImage';
 import type { InvoicePrintDocument } from '../server/types';
 import { Ad, BsAd, amountInWords, npr } from './format';
+import './billing.css';
 
 export function InvoiceDocument({ document: d }: { document: InvoicePrintDocument }) {
   const title = d.invoice_kind === 'abbreviated' ? 'ABBREVIATED TAX INVOICE' : 'TAX INVOICE';
@@ -29,7 +30,7 @@ export function InvoiceDocument({ document: d }: { document: InvoicePrintDocumen
       ) : null}
       <h2>{title}</h2>
       {showCopy ? <p className="lims-copy-mark"><strong>{d.copy_mark}</strong></p> : null}
-      {d.cancelled_banner ? <p className="lims-cancelled-banner" style={{ border: '2px solid var(--lims-danger, #b00020)', padding: 8 }}><strong>{d.cancelled_banner}</strong></p> : null}
+      {d.cancelled_banner ? <p className="lims-cancelled-banner"><strong>{d.cancelled_banner}</strong></p> : null}
       <dl className="lims-invoice-meta">
         <dt>Seller PAN</dt><dd>{d.seller.pan ?? '—'}</dd>
         <dt>Invoice no</dt><dd>{d.invoice_no}</dd>

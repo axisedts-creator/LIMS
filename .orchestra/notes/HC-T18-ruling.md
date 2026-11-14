@@ -1,10 +1,6 @@
-TESTS_WRONG — the 20 s per-test budget is a test-harness choice, not a spec requirement; no assertion failed.
-Reasons:
-1. spec/chunks/C17-home-collection/06-IMPLEMENTATION-PLAN.md:41 (HC-T18 row) requires "component tests; axe; keyboard-only walk-through" and US-03/04/05 behaviour. It sets no time budget for typing into or rendering a dialog.
-2. A grep of spec/ for testTimeout, keystroke, input-latency and INP budgets finds nothing for C17 web. The only keystroke rule is in C4 (spec/chunks/C4-frontdesk-billing/01-PRD.md:158), and it counts keystroke groups, not milliseconds.
-3. Dispute evidence (.orchestra/notes/HC-T18-dispute.md:2-3): every failure is `Test timed out in 20000ms`, the failure count changes from run to run, and the same test passes with a larger timeout. That is machine-load flakiness in the harness, not wrong behaviour.
-4. The cause is tester-owned code: `fill` at __tests__/hc-t18.helpers.tsx:43 calls the default `userEvent.type`, which waits on a timer for every character. The 20000 ms cap is at __tests__/vitest.hc-t18.config.ts:15.
-Required test changes (keep every assertion and every keyboard path):
-a. helpers.tsx: create one `const user = userEvent.setup({ delay: null })` and use it in `fill` and `pick`. For long free-text values (more than 20 characters), `fill` may use `user.click(el); user.paste(v)` instead of typing.
-b. vitest.hc-t18.config.ts: raise `testTimeout` to 120000 and set `hookTimeout` to 120000 so slow imports on a loaded machine do not cause false failures.
-c. The keyboard-only walk-through tests must still type at least one field character by character with `user.keyboard`/`user.type`, so keyboard coverage is not lost.
+IMPLEMENTATION_WRONG — the test is right (say what the implementation must do)
+1. hc-t18.nav.test.ts:18,47 (handovers chord `g t`) match spec/chunks/C17-home-collection/04-UI-UX.md:12 and :16 (`g o` dropped for C8, `g t` replaces it).
+2. hc-t18.nav.test.ts:64 (C0 build check across ALL manifests, chords unique) matches 04-UI-UX.md:16 "Chords are checked unique by C0's build, which is authoritative" and spec/chunks/C11-specialty-pathology/04-UI-UX.md:16 "Chords must be unique across manifests".
+3. Spec already resolves the collision without a CR: C11 04-UI-UX.md:16 "If a later collision appears, the build fails and C11 drops its chord (no CR needed)." So no contradiction; CR_NEEDED does not apply. Tests stand unchanged.
+4. Required change (per binding lead decision AUTO 2026-11-14T07:19:48 in the HC-T18 brief): in apps/web/src/features/anatomic/nav.manifest.ts remove `chord: 'g t'` from the `anatomic.tracking` entry, all other fields unchanged. homecollection.handovers keeps `g t`; no change to C17 homecollection code.
+5. Ownership: the anatomic file is C11-owned; this edit is authorised only by the lead decision above and must touch nothing else in that file.

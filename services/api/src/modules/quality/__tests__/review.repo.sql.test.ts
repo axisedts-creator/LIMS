@@ -30,8 +30,7 @@ const calls: Array<[string, (r: typeof repo, t: any) => Promise<unknown>]> = [
   ['insertCorrectiveAction', (r, t) => r.insertCorrectiveAction(t, TENANT_A, { id: CA(1), tenant_id: TENANT_A, qc_run_id: RUN(1), action_code: 'recalibration', description: 'd', performed_at: at('08:20:00'), performed_by_membership_id: idN(0xd2), created_at: NOW, created_by: USER })],
   ['insertReview', (r, t) => r.insertReview(t, TENANT_A, { id: idN(0xc901), tenant_id: TENANT_A, qc_run_id: RUN(1), kind: 'close', comment: 'c', reviewed_by_membership_id: idN(0xd2), created_at: NOW, created_by: USER })],
   ['findCode', (r, t) => r.findCode(t, TENANT_A, 'corrective_actions', 'recalibration')],
-  ['listUserLabels', (r, t) => r.listUserLabels(t, TENANT_A, [USER])],
-  ['listMembershipLabels', (r, t) => r.listMembershipLabels(t, TENANT_A, [idN(0xd2)])],
+  // listUserLabels / listMembershipLabels left out (ruling C9.T-12-ruling.md #3): no spec relation for staff names until the directory CR lands
 ];
 
 describe('every statement: tenant predicate, bind parameters, schema quality only (REQ-SEC-024, REQ-SEC-022)', () => {

@@ -25,8 +25,10 @@
 //   transaction                     every repo call receives `ctx.tx`; the service never opens/commits/rolls back a transaction itself.
 //   clock                           `ctx.now()` only (corrective-action bounds, closed_at, excluded_at, created_at).
 import { LimsError } from '../../../core/errors.js';
-import { ANA, INS, LVL, NOW, PLN, TENANT_A, TENANT_B, USER, idN, planParams, type PlanParams, type Row } from './run.helpers.js';
+import { ANA, INS, LVL, NOW, PLN, TENANT_A, TENANT_B, idN, planParams, type PlanParams, type Row } from './run.helpers.js';
 import { OBS, RUN, SYSTEM, at } from './run.helpers.js';
+// USER/MEM = the ctx actor of setup.helpers (ruling C9.T-12-ruling.md #1): created_by/updated_by = ctx.actor.id
+import { USER } from './setup.helpers.js';
 import { makePlanCtx } from './plan.helpers.js';
 export { ANA, INS, LVL, NOW, PLN, TENANT_A, TENANT_B, USER, idN, OBS, RUN, SYSTEM, at, planParams, type PlanParams, type Row };
 export { rejection, code, REQ_ID, UUID7, MEM, forbidden, readOnly, noRights, PLANTED } from './setup.helpers.js';

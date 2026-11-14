@@ -178,13 +178,16 @@ describe('#28 listQcRuns: window <= 92 days, needs_action and needs_action_reaso
   });
   it('lists this tenant only (RUN(9) never appears); items are QcRunSummaryDto exactly (+ needs_action_reason when needed): no tenant_id, evaluated_by, hold, internal columns; newest run first', async () => {
     const s = setup(); const r = await list(s); const ids = r.body.data.map((x: Row) => x.id); expect(ids).not.toContain(RUN(9)); expect(ids.length).toBe(5);
-    const one = r.body.data.find((x: Row) => x.id === RUN(4)); expect(Object.keys(one).sort()).toEqual(SUMMARY_KEYS);
-    expect(Object.keys(r.body.data.find((x: Row) => x.id === RUN(1))).sort()).toEqual([...SUMMARY_KEYS, 'needs_action_reason'].sort());
+    // 02-CONVENTIONS:348 no null on the wire — closed_at is omitted unless the run is closed (ruling C9.T-12-ruling.md #2)
+    const open = SUMMARY_KEYS.filter((k) => k !== 'closed_at');
+    const one = r.body.data.find((x: Row) => x.id === RUN(4)); expect(Object.keys(one).sort()).toEqual(open);
+    expect(Object.keys(r.body.data.find((x: Row) => x.id === RUN(1))).sort()).toEqual([...open, 'needs_action_reason'].sort());
+    expect(Object.keys(r.body.data.find((x: Row) => x.id === RUN(5))).sort()).toEqual(SUMMARY_KEYS);
     const all = JSON.stringify(r.body); for (const k of ['tenant_id', 'internal_note', PLANTED, 'evaluated_by', 'hold_since', 'rejection_event_id', 'created_by']) expect(all, k).not.toContain(k);
     expect(r.body.page).toMatchObject({ limit: expect.any(Number) }); expect(r.version).toBeUndefined();
   });
   it('a collecting run: outcome and closed_at are omitted/null per the DTO, never fabricated', async () => {
-    const s = setup(); const c = (await list(s)).body.data.find((x: Row) => x.id === RUN(2)); expect(c).toMatchObject({ status: 'collecting', needs_action: false }); expect(c.outcome ?? null).toBeNull(); expect(c.closed_at ?? null).toBeNull();
+    const s = setup(); const c = (await list(s)).body.data.find((x: Row) => x.id === RUN(2)); expect(c).toMatchObject({ status: 'collecting', needs_action: false }); expect(c.outcome ?? null).toBeNull(); expect(c).not.toHaveProperty('closed_at');
   });
 });
 

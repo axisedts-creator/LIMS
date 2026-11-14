@@ -36,6 +36,7 @@ export function AddendumDrawer({ detail, addendum, canSign, isOpen, onClose, onF
   const [missing, setMissing] = useState(false);
   const [pending, setPending] = useState(false);
   const busy = useRef(false);
+  const [current, setCurrent] = useState(addendum);
 
   const completed = detail.stain_orders.filter((o) => o.status === 'completed');
   // AC-10.5: add-on items that still have no result (an already linked item stays selectable).
@@ -50,11 +51,15 @@ export function AddendumDrawer({ detail, addendum, canSign, isOpen, onClose, onF
   const fail = (f: Fail) => (f.code === 'auth.mfa_required' ? onMfa() : onFail(f));
 
   /** R8 / R9. Returns the saved addendum (its new version feeds the sign call), or undefined after a failure (already shown). */
+  // The last saved row: a sign that fails after a save retries R9 with the new version instead of creating a second draft (R8) or sending a stale If-Match.
   const save = async (onlyIfChanged = false): Promise<Addendum | undefined> => {
-    const same = addendum && kind === addendum.kind && text === addendum.text && link === (addendum.addon_case_item_id ?? NO_LINK) && stains.length === addendum.stain_order_ids.length && stains.every((x) => addendum.stain_order_ids.includes(x));
-    if (onlyIfChanged && same) return addendum; // signing an unchanged draft uses its own version (If-Match)
-    const r = addendum ? await updateAddendumAction(addendum.id, addendum.version, input()) : await createAddendumAction(detail.id, input(), newKey());
-    if (r.ok) return r.data;
+    const same = current && kind === current.kind && text === current.text && link === (current.addon_case_item_id ?? NO_LINK) && stains.length === current.stain_order_ids.length && stains.every((x) => current.stain_order_ids.includes(x));
+    if (onlyIfChanged && same) return current; // signing an unchanged draft uses its own version (If-Match)
+    const r = current ? await updateAddendumAction(current.id, current.version, input()) : await createAddendumAction(detail.id, input(), newKey());
+    if (r.ok) {
+      setCurrent(r.data);
+      return r.data;
+    }
     fail(r);
     return undefined;
   };

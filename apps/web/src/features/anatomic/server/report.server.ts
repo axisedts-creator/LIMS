@@ -83,7 +83,7 @@ export function startChange(caseId: string, caseVersion: number, input: ChangeIn
 
 /** discardAnatomicChange (R5): If-Match = the draft version. */
 export const discardChange = (caseId: string, draftVersion: number, key: string) =>
-  serverFetch<unknown>(`${API}/cases/${uuid(caseId)}/changes/discard`, { method: 'POST', headers: guard(draftVersion, key) });
+  serverFetch<unknown>(`${API}/cases/${uuid(caseId)}/changes/discard`, jsonInit('POST', {}, guard(draftVersion, key))); // contract: requestBody required ({})
 
 /** listAnatomicReportVersions (R6) / getAnatomicReportVersion (R7). */
 export const listVersions = async (caseId: string) => (await serverFetch<{ data: VersionSummary[] }>(`${API}/cases/${uuid(caseId)}/versions`)).data;

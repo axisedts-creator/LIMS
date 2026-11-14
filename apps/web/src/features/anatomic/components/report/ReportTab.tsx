@@ -93,7 +93,7 @@ export function ReportTab({ detail, canWork, canSign, templates, signing, onSign
 
   return (
     <>
-      <FailNotice fail={fail} status={detail.status} describe={reportDescribe(detail.items)} />
+      <FailNotice fail={fail} status={detail.status} describe={reportDescribe(detail.items, load.s === 'ready' ? load.maxImages : maxImages.current)} />
       {viewer ? (
         <>
           <VersionViewer detail={detail} canWork={canWork} canSignOut={canSign} reasonDisplay={reasonDisplay} onChange={() => setChanging(true)} onFail={onFail} onMfa={onMfa} />

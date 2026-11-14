@@ -19,8 +19,9 @@ const GENERIC = 'Something went wrong. Try again.';
  * Copy for the report failures; `undefined` = use the shared copy (../common failText).
  * `anatomic.order_item_inactive` names the removed tests from the case items, never from the server detail. Lab errors carry the support reference (flow step 7).
  */
-export function reportDescribe(items: readonly CaseItem[]) {
+export function reportDescribe(items: readonly CaseItem[], max: number) {
   return (f: Fail): string | undefined => {
+    if (f.code === 'anatomic.image_limit_reached') return `Image limit reached (${max}).`; // 04-UI-UX §8
     if (f.code === 'anatomic.order_item_inactive') {
       const names = items.filter((i) => !i.is_active).map((i) => i.test_name);
       return names.length ? `The test ${names.join(', ')} was removed from the order. Ask front desk, or cancel the case.` : undefined;

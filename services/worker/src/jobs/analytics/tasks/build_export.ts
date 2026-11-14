@@ -25,7 +25,11 @@ const NPT_MS = (5 * 60 + 45) * 60_000;
 const HOUR_MS = 3_600_000;
 
 /** A failure that ends the export without a retry. `alert` = a C8 data/contract bug that someone must look at. */
-class Terminal extends Error { constructor(readonly failure: string, readonly alert = false) { super(failure); } }
+class Terminal extends Error {
+  readonly failure: string;
+  readonly alert: boolean;
+  constructor(failure: string, alert = false) { super(failure); this.failure = failure; this.alert = alert; }
+}
 const codeOf = (e: unknown): string | undefined => (typeof (e as { code?: unknown } | null)?.code === 'string' ? (e as { code: string }).code : undefined);
 
 const local = (iso: string): string => new Date(Date.parse(iso) + NPT_MS).toISOString().slice(0, 16).replace('T', ' ');

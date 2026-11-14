@@ -14,11 +14,13 @@ import { transferHandlers } from './transfers.js';
 
 /** Error carrying a contract error code (contracts/errors.yaml). */
 export class InventoryError extends Error {
+  readonly code: string;
   constructor(
-    readonly code: string,
+    code: string,
     message: string,
   ) {
     super(message);
+    this.code = code;
   }
 }
 

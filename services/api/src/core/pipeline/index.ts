@@ -59,7 +59,8 @@ export type PipelineResult = HandlerResult;
 
 /** Thrown inside the request transaction to force ROLLBACK of a >= 400 result; never leaves run(). No `code`: not retried, not mapped. */
 class RollbackResult {
-  constructor(readonly result: HandlerResult) {}
+  readonly result: HandlerResult;
+  constructor(result: HandlerResult) { this.result = result; }
 }
 
 const unavailable = (): LimsError => new LimsError('common.dependency_unavailable');

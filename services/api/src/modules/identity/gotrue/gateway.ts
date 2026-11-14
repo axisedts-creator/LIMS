@@ -24,8 +24,14 @@ export interface GoTrueGateway {
 
 /** GoTrue answered with a 4xx the caller must treat as a failed operation. Message = method + status + GoTrue error_code only (never bodies, keys, passwords). */
 export class GoTrueError extends Error {
-  constructor(readonly method: string, readonly status: number, readonly errorCode: string) {
+  readonly method: string;
+  readonly status: number;
+  readonly errorCode: string;
+  constructor(method: string, status: number, errorCode: string) {
     super(`gotrue ${method} failed: ${status} ${errorCode}`);
+    this.method = method;
+    this.status = status;
+    this.errorCode = errorCode;
     this.name = 'GoTrueError';
   }
 }

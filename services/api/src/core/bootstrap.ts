@@ -63,7 +63,7 @@ export async function bootstrap(opts: BootstrapOptions): Promise<FastifyInstance
     if (repoRoot === REPO_ROOT) {
       // 02-TRD §8: the core's own spec; custom repoRoots (test fixtures) carry module specs only.
       const spec = loadSpec(join(REPO_ROOT, 'contracts', 'openapi', 'core.yaml'));
-      const handlers = createHealthHandlers(opts.healthChecks ?? UNWIRED_CHECKS);
+      const handlers = createHealthHandlers(opts.healthChecks ?? pipes.healthChecks ?? UNWIRED_CHECKS) // LD-193: injected, else real, else fail closed;
       checkHandlers('core', spec, handlers);
       await mountSpec(app, 'core', spec, handlers, auth, pipes.pipelineFor('core'));
     }

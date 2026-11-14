@@ -18,7 +18,9 @@ import { PHASE_STUBS } from '../ports/phase-stubs.js';
 import { resolvePorts, type PortLog, type PortMetrics, type PortRegistry } from '../ports/registry.js';
 import { createRateLimiter, type RateLimiter } from '../ratelimit/index.js';
 import { createPgBackend } from '../ratelimit/pg.js';
+import type { HealthChecks } from '../health.js';
 import { createFiles } from '../uploads/index.js';
+import { createHealthChecks } from './healthChecks.js';
 import { createPipeline, type Pipeline } from './index.js';
 
 const FAKES_DIR = join(REPO_ROOT, 'packages', 'fakes', 'src');
@@ -56,6 +58,8 @@ async function loadPortImpls(env: string, needed: ReadonlySet<string>): Promise<
 }
 
 export interface PipelineBoot {
+  /** LD-193 (WIRE-HEALTH): real readiness checks; absent without a database (bootstrap then keeps UNWIRED_CHECKS, fail closed). */
+  healthChecks?: HealthChecks;
   pipelineFor(module: string): Pipeline;
   close(): Promise<void>;
 }
@@ -159,8 +163,12 @@ export async function bootPipeline(o: {
     download: unwired('stream'),
   };
 
+  // LD-193: same pg.query as the limiter; nothing is issued until a readiness call.
+  const healthChecks = pg && createHealthChecks({ query: (t, v) => pg!.query(t, v), limiterConfigured: !!rateLimiter, log });
+
   const cache = new Map<string, Pipeline>();
   return {
+    ...(healthChecks ? { healthChecks } : {}),
     pipelineFor(module) {
       let p = cache.get(module);
       if (!p) {

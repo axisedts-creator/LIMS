@@ -234,7 +234,7 @@ describe('status board #34 (TRD §5.5, §5.10; AC-09.5)', () => {
     expect(s.sets).toEqual([{ name: 'lims_quality_qc_overdue_pairs', value: 1, labels: { tenant_id: TENANT_B } }]);
   });
   it('an instrument without a directory label has no instrument_label key (never the raw id, never null)', async () => {
-    const s = setup(boardSeed(), { now: NOW }); const r: any = await board(s); expect(rowOf(r, 2)).not.toHaveProperty('instrument_label'); expect(JSON.stringify(rowOf(r, 2))).not.toContain(INS(2));
+    const s = setup(boardSeed(), { now: NOW }); const r: any = await board(s); expect(rowOf(r, 2)).not.toHaveProperty('instrument_label'); expect(rowOf(r, 2).instrument_id).toBe(INS(2)); expect(Object.entries(rowOf(r, 2)).filter(([k, v]) => k !== 'instrument_id' && JSON.stringify(v).includes(INS(2)))).toEqual([]); // per C9.T-13-ruling.md: INS(2) allowed only as instrument_id
   });
   it('an empty tenant: 200 with data [] (the UI shows "No QC plans yet"), not an error; row ids are uuids', async () => {
     const e = setup({ plans: [], runs: [] }, { now: NOW }); expect((await board(e) as any).body.data).toEqual([]);

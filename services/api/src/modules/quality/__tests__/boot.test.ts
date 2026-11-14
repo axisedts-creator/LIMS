@@ -45,6 +45,8 @@ const IMPLEMENTED: readonly string[] = [
   'stopAutoverifySimulation', 'retireAutoverifyVersion', 'discardAutoverifyDraft',
   // T-17 real handlers (#42, #43, #46, #47: simulation report, activation, decisions)
   'getAutoverifySimulationReport', 'activateAutoverifyVersion', 'listAutoverifyDecisions', 'getAutoverifyDecision',
+  // T-19 real handlers (#48-#50)
+  'listTatAlerts', 'getTatAlert', 'acknowledgeTatAlert',
   // T-20 real handlers (#51-#54: settings + coded sets)
   'getQualitySettings', 'updateQualitySettings', 'listQualityCodedSet', 'upsertQualityCode',
 ];
@@ -167,9 +169,11 @@ describe('C9 T-01 phase switch LIMS_QUALITY_ENABLED (02-TRD §12.2)', () => {
   it('flipping the flag to true changes the answer from feature_disabled to the stub (the flag is honoured, not hard-coded)', async () => {
     const off = await withEnv('dev', 'false');
     const on = await withEnv('dev', 'true');
-    const op = OPS.find((o) => !IMPLEMENTED.includes(o))!;
+    const stub = OPS.find((o) => !IMPLEMENTED.includes(o));   // none left once T-19 lands (all 54 real); then the flag-on answer must simply not be feature_disabled
+    const op = stub ?? OPS[0]!;
     expect((await outcome(off.m.handlers[op]!(FAKE_REQ, fakeCtx(op)))).ok).toBe(false);
-    expect(await on.m.handlers[op]!(FAKE_REQ, fakeCtx(op))).toMatchObject({ status: 501 });
+    if (stub) expect(await on.m.handlers[op]!(FAKE_REQ, fakeCtx(op))).toMatchObject({ status: 501 });
+    else { const r = await outcome(on.m.handlers[op]!(FAKE_REQ, fakeCtx(op))); if (!r.ok) expect(on.isLimsError(r.e, 'common.feature_disabled')).toBe(false); }
   });
 });
 

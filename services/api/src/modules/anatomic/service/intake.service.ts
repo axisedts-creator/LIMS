@@ -139,11 +139,14 @@ async function applyGroup(
       if (locked && isOpen(locked)) cs = locked;
       existing = undefined;
     }
-    cs ??= await insertCase(tx, {
-      id: uuidv7(), tenant_id: tenantId, centre_id: p['centre_id'], branch_id: p['processing_branch_id'] ?? null, order_id: orderId, patient_id: p['patient_id'], case_kind: caseKind,
-      status: 'received', priority: entries.some((e) => e.item['priority'] === 'urgent') ? 'urgent' : 'routine', profile_missing: entries.some((e) => !e.profile),
-      received_at: ctx.now(), created_by: actorId, updated_by: actorId,
-    });
+    if (!cs) {
+      cs = await insertCase(tx, {
+        id: uuidv7(), tenant_id: tenantId, centre_id: p['centre_id'], branch_id: p['processing_branch_id'] ?? null, order_id: orderId, patient_id: p['patient_id'], case_kind: caseKind,
+        status: 'received', priority: entries.some((e) => e.item['priority'] === 'urgent') ? 'urgent' : 'routine', profile_missing: entries.some((e) => !e.profile),
+        received_at: ctx.now(), created_by: actorId, updated_by: actorId,
+      });
+      if (cs) ctx.metrics?.inc?.('lims_anatomic_cases_created_total', { case_kind: caseKind }); // 02-TRD §12: only the insert that won
+    }
     if (!cs) existing = openCase(await listCasesByOrder(tx, { tenantId, orderId })); // lost the insert race: re-select, lock on the next pass
   }
   if (!cs) throw new LimsError('common.internal');

@@ -12,7 +12,8 @@ export type XlsxReadCode =
 
 /** Carries a `catalog_import_issue_codes` value (02-TRD §8.6); the import job turns it into an issue. */
 export class XlsxReadError extends Error {
-  constructor(readonly code: XlsxReadCode) { super(code); this.name = 'XlsxReadError'; }
+  readonly code: XlsxReadCode;
+  constructor(code: XlsxReadCode) { super(code); this.code = code; this.name = 'XlsxReadError'; }
 }
 
 export const PARSE_TIMEOUT_MS = 60_000; // [CONV] 02-TRD §8.3 step 3

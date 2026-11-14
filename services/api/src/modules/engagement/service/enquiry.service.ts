@@ -4,7 +4,7 @@
 // [CONV] Order for E51 / N3 / N4: If-Match shape (428/400) -> id (400) -> body (400) -> row lock + lookup (404) -> state (409 engagement.enquiry_invalid_transition) -> version (409 common.version_conflict) -> write.
 // [CONV] Open-limit (E49): max 5 enquiries with status 'open' per account, counted under a per-account advisory lock; the 6th -> 409 engagement.enquiry_invalid_transition (TRD E49).
 // [CONV] A reply that keeps the status still appends the message and bumps version / last_message_at: patient reply -> 'open', staff reply -> 'answered'. Close adds no message and notifies nobody.
-// [CONV] Staff reply writes one in-app notification {enquiry_reply, enquiry:<id>} (no text, no SMS); expires 180 days after creation (as the other notifications).
+// [CONV] Staff reply enqueues one in-app notification job {enquiry_reply, enquiry:<id>, seq = new version} (no text, no SMS); LD-180: the worker task engagement.create_notification writes the row.
 // ponytail: category_code is pattern-checked only (cs_enquiry_categories membership not enforced); a thread is read up to 200 messages (the schema maxItems). Upgrade: coded-set check / thread cap if C16 wants them.
 import { uuidv7 } from '../../../../../../packages/shared-ts/src/uuidv7/index.js';
 import { LimsError, type FieldError } from '../../../core/errors.js';
@@ -18,7 +18,6 @@ export type EnquiryRepo = typeof defaultRepo;
 type Out = { status: number; body: Record<string, unknown> };
 
 const OPEN_LIMIT = 5;
-const NOTIFICATION_TTL_MS = 180 * 86_400_000;
 const CATEGORY = /^[a-z0-9_]{1,64}$/;
 const CURSOR = /^[A-Za-z0-9_-]{1,512}$/;
 const STATUSES: readonly string[] = ['open', 'answered', 'closed'];
@@ -137,8 +136,9 @@ export function createEnquiryService(deps: { repo?: EnquiryRepo } = {}) {
       const row = await repo.updateStatus(tx, { tenantId, id: cur['id'], expectedVersion: expected, status: to, now, updatedBy: actorId });
       if (!row) throw new LimsError('common.version_conflict'); // cannot happen under the row lock
       if (who === 'staff') {
-        // notifications INSERT is SYS only (05-SCHEMA §5.2, 02-TRD §4.9): a refusal here is not "enquiry not found" — fail closed as 500 until CR-C16-T-N1 names the system-actor path.
-        await repo.insertReplyNotification(tx, { id: uuidv7(), tenantId, accountId: cur['account_id'], patientId: cur['patient_id'] ?? null, enquiryId: cur['id'], seq: row['version'], now, expiresAt: new Date(Date.parse(now) + NOTIFICATION_TTL_MS).toISOString(), createdBy: actorId })
+        // LD-180 (CR-C16-T-N1 option A): notifications INSERT stays SYS only; the reply enqueues engagement.create_notification in THIS tx (outbox), the worker writes the row as the system actor.
+        // A failing enqueue fails the reply closed (500): never mapped to not_found (the tx layer would turn a raw 42501 into 404), never swallowed.
+        await repo.enqueueReplyNotification(tx, { tenantId, accountId: cur['account_id'], patientId: cur['patient_id'] ?? null, enquiryId: cur['id'], seq: row['version'] })
           .catch(() => { throw new LimsError('common.internal'); });
       }
       return { status: 200, body: await thread(tx, tenantId, row, who === 'patient' ? await linkIds(tx, tenantId, accountId!) : undefined) };

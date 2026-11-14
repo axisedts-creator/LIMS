@@ -23,5 +23,6 @@ function bind(permission: string, fn: (svc: ReminderService, ctx: ReminderCtx, r
 export const reminderHandlers: Readonly<Record<string, Handler>> = Object.freeze({
   listReminders: bind('engagement.reminder.read', async (s, ctx, req) => ({ status: 200, body: await s.list(ctx, req.query) })),
   createReminder: bind('engagement.reminder.manage', async (s, ctx, req) => ({ status: 201, body: await s.create(ctx, { body: req.body }) })),
+  listFollowUpSuggestions: bind('engagement.reminder.read', async (s, ctx, req) => ({ status: 200, body: await s.listFollowUpSuggestions(ctx, { patientId: obj(req.params)['patient_id'] }) })),
   cancelReminder: bind('engagement.reminder.manage', async (s, ctx, req) => ({ status: 200, body: await s.cancel(ctx, { id: obj(req.params)['reminder_id'], headers: req.headers }) })),
 });

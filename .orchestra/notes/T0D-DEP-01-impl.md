@@ -1,7 +1,7 @@
-# T0D-DEP-01 impl (writer)
-- Earlier rounds: 3 Dockerfiles, .dockerignore, .env.example, .gitignore (+`!.env.example`), render.yaml, notes/T0D-DEP-01-answers.md. Unchanged this round.
-- LD-176 round (LD-175 pts 1-3): services/api/package.json `"pg": "8.23.1"` moved devDependencies -> dependencies (@types/pg stays dev); pnpm-lock.yaml regenerated with `pnpm install --lockfile-only` (pnpm 12.18.0): only the services/api importer entry moved. render.yaml += `region: singapore` on lims-api; no healthCheckPath (/health/live is on LIMS_CORE_METRICS_PORT 9464).
-- Answers note keeps UNKNOWN for what a hosted Supabase project supplies (lead fills in).
-- [CONV] images: `npm install -g pnpm@12.18.0`, `COPY . .` + `pnpm install --frozen-lockfile --prod`, USER 10001:10001; web runs `next start -p 3000`, `.next/cache` -> /tmp.
-- Tests 2026-11-14: `python -B -m unittest discover -s infra/tests/static -p test_t0d_dep01_images.py` Ran 83, OK.
-- Not verified (no docker daemon): no image built or run; read-only-rootfs behaviour of Next unproven; whether Render passes NODE_BASE_IMAGE as a build arg: UNKNOWN.
+# T0D-DEP-01 impl (writer, LD-179 round)
+- New: tools/node-ts/register.mjs, one `module.registerHooks` resolve hook (node:module + node:fs only): relative `.js` from a `.ts` file goes to `.ts` only when the .js is absent and the .ts exists; every other case is nextResolve unchanged.
+- services/{api,worker}/package.json, scripts only: `start` plus `identity:bootstrap-platform-admin` / `worker:replay` = `node --import ../../tools/node-ts/register.mjs <entry>`. tsconfig: `erasableSyntaxOnly: true`. Dockerfiles: COPY tools/node-ts, then exec-form CMD `node --import /app/tools/node-ts/register.mjs src/main.ts`.
+- 10 LD-179 files: each parameter property became a readonly field plus an assignment right after super(), in the same order. [CONV] errors.ts declares `detail?: string | undefined` / `errors?: ... | undefined`, the same type the param property had under exactOptionalPropertyTypes. tsc reported no other erasable-syntax hits.
+- Answers: §5 line refs fixed (pg is now a runtime dependency); new §6 "How the process starts".
+- Tests: static `Ran 112, OK`; api boot-smoke + node-ts-hook 18/18; worker boot-smoke 3/3; worker suites for the touched files 184/184 (`--testTimeout=60000`; the full parallel run timed out under load). tsc: no new errors in touched files; the contracts/shared-ts errors already existed.
+- Open: Node here is 25.8.0, not .nvmrc 26.13.0. No image built. Worker catalog jobs import `@lims/shared-ts/spreadsheet` from `dist/`, which nothing builds, so the catalog tasks will fail in the image (not in the main.ts graph today; separate task).

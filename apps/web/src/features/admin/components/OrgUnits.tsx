@@ -1,10 +1,10 @@
 'use client';
 // AD-6 Branches / AD-7 Collection centres (US-C1): table, row click → right Drawer editor (LD-140). Code is immutable after create;
 // edits PATCH only changed fields with If-Match; deactivate never deletes (AC-C1.2).
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import { Button } from '@lims/ui/components/Button';
 import { ConfirmDialog } from '@lims/ui/components/ConfirmDialog';
-import { Drawer } from '@lims/ui/components/Drawer';
+import { Drawer, DrawerSection } from '@lims/ui/components/Drawer';
 import { Switch } from '@lims/ui/components/Switch';
 import { useToast } from '@lims/ui/components/Toast';
 import { createUnit, setUnitActive, updateUnit, type UnitKind } from '../actions';
@@ -133,10 +133,8 @@ function Editor({ kind, unit, branches, canEdit, onClose, onSaved, onToggle }: {
     onSaved({ ...(unit ?? {}), ...(r.data as Record<string, unknown>) } as Unit, !unit);
   };
 
-  return (
-    // LD-140 / 10-DESIGN-SYSTEM §4 Masters: list + right drawer (one short section, so one Save). Kit Drawer has no footer slot.
-    <Drawer title={unit ? `Edit ${centres ? 'centre' : 'branch'}` : `New ${centres ? 'centre' : 'branch'}`} isOpen onClose={onClose}>
-      {failure.banner}
+  const details = (
+    <>
       <Field label="Code" value={v.code} onChange={set('code')} readOnly={!!unit || !canEdit} error={errors['code']} hint="Printed on reports, e.g. C000000002" required={!unit} />
       <Field label="Name" value={v.name} onChange={set('name')} readOnly={!canEdit} error={errors['name']} required />
       {centres ? (
@@ -146,17 +144,51 @@ function Editor({ kind, unit, branches, canEdit, onClose, onSaved, onToggle }: {
           <Radios legend="Type" name="kind" value={v.kind} onChange={set('kind')} disabled={!canEdit}
             options={Object.entries(KIND_LABEL).map(([value, label]) => ({ value, label }))} />
         </>
-      ) : null}
+      ) : (
+        <Switch label="Processing lab" isSelected={v.is_processing_lab} onChange={set('is_processing_lab')} isDisabled={!canEdit} />
+      )}
+    </>
+  );
+  const contact = (
+    <>
       <Field label="Address" multiline value={v.address_text} onChange={set('address_text')} readOnly={!canEdit} error={errors['address_text']} />
       <Field label="Phone" type="tel" value={v.phone} onChange={set('phone')} readOnly={!canEdit} error={errors['phone']} />
-      {!centres ? <Switch label="Processing lab" isSelected={v.is_processing_lab} onChange={set('is_processing_lab')} isDisabled={!canEdit} /> : null}
+    </>
+  );
+
+  return (
+    // LD-140 / 10-DESIGN-SYSTEM §4 Masters: list + right drawer, body in sections each with its own Save. [CONV] Every section Save
+    // runs the same save() (changed fields only, If-Match), so behaviour matches the old single Save. Read-only viewers get the
+    // same sections with no Save (they had no Save before the restyle either).
+    <Drawer title={unit ? `Edit ${centres ? 'centre' : 'branch'}` : `New ${centres ? 'centre' : 'branch'}`} isOpen onClose={onClose}>
+      {failure.banner}
       {canEdit ? (
+        <>
+          <DrawerSection title="Details" onSave={() => void save()} isSaving={busy}>{details}</DrawerSection>
+          <DrawerSection title="Contact" onSave={() => void save()} isSaving={busy}>{contact}</DrawerSection>
+        </>
+      ) : (
+        <>
+          <ReadOnlySection title="Details">{details}</ReadOnlySection>
+          <ReadOnlySection title="Contact">{contact}</ReadOnlySection>
+        </>
+      )}
+      {canEdit && unit ? (
         <div className="lims-dialog-footer">
-          {unit ? <Button variant="ghost" onPress={() => onToggle(unit)}>{unit.is_active ? 'Deactivate' : 'Reactivate'}</Button> : null}
-          <Button variant="primary" onPress={() => void save()} isLoading={busy}>Save</Button>
+          <Button variant="ghost" onPress={() => onToggle(unit)}>{unit.is_active ? 'Deactivate' : 'Reactivate'}</Button>
         </div>
       ) : null}
       {failure.dialogs}
     </Drawer>
+  );
+}
+
+/** Same layout as the kit DrawerSection, without its Save. */
+function ReadOnlySection({ title, children }: { title: string; children: ReactNode }) {
+  return (
+    <section className="lims-drawer-section" aria-label={title}>
+      <div className="lims-drawer-section-header"><h3 className="lims-drawer-section-title">{title}</h3></div>
+      {children}
+    </section>
   );
 }

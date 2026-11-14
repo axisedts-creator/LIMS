@@ -89,6 +89,7 @@ export async function uploadImage(hctx: unknown, params: unknown, body: unknown)
   const max = Number((await getSettings(c.tx, { tenantId: c.tenantId }))?.['max_images_per_case'] ?? DEFAULT_MAX_IMAGES);
   if ((await listImages(c.tx, { tenantId: c.tenantId, caseId: cs['id'], activeOnly: true })).length >= max) throw new LimsError('anatomic.image_limit_reached');   // before the pipeline: nothing stored
 
+  const t0 = performance.now();
   const id = uuidv7();
   const now = c.now();
   const ext = /\.jpe?g$/i.test(f['filename'].split(/[\\/]/).pop() ?? '') ? 'jpg' : 'png';   // the client filename only picks the extension; it never reaches the key
@@ -113,10 +114,13 @@ export async function uploadImage(hctx: unknown, params: unknown, body: unknown)
     if (!clean && !infected) {   // same transaction as the row: no processing image without its re-scan job
       await c.tx.query('SELECT app.enqueue_job($1, $2::jsonb, $3)', [RESCAN_TASK, JSON.stringify({ tenant_id: c.tenantId, image_id: id }), `image:${id}`]);
     }
-    // 02-TRD §9: lims_anatomic_image_processing_total{outcome}; C1 security alert watches outcome="quarantined"
-    (hctx as { metrics?: { inc(n: string, l: object): void } }).metrics?.inc('lims_anatomic_image_processing_total', { outcome: clean ? 'ready' : infected ? 'quarantined' : 'scan_retry' });
+    // 02-TRD §9/§12: lims_anatomic_image_processing_total{outcome}; C1 security alert watches outcome="quarantined"
+    const m = (hctx as { metrics?: { inc?(n: string, l?: object): void; observe?(n: string, v: number, l?: object): void } }).metrics;
+    m?.inc?.('lims_anatomic_image_processing_total', { outcome: clean ? 'ready' : infected ? 'quarantined' : 'scan_retry' });
+    m?.observe?.('lims_anatomic_image_processing_seconds', (performance.now() - t0) / 1000);
     return { status: 201, body: imageDto(saved) };
   } catch (e) {
+    (hctx as { metrics?: { inc?(n: string, l?: object): void } }).metrics?.inc?.('lims_anatomic_image_processing_total', { outcome: 'failed' });   // row refused after accept
     await x.storage.delete(BUCKET, objectPath).catch(() => undefined);   // no orphan object when the row is refused
     throw e;
   }

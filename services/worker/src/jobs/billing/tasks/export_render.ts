@@ -29,7 +29,7 @@ export interface RenderPort {
 const unavailable: RenderPort = { renderPdf: async () => { throw Object.assign(new Error('reporting.render_unavailable'), { code: 'reporting.render_unavailable' }); } };
 
 /** A cause no retry can fix: the job goes straight to `failed` with `code`. */
-class Permanent extends Error { constructor(readonly code: string) { super(code); } }
+class Permanent extends Error { readonly code: string; constructor(code: string) { super(code); this.code = code; } }
 
 const int = (key: string, dflt: number): number => {
   const raw = process.env[key];

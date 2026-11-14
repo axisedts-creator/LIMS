@@ -1,0 +1,6 @@
+# HC-T27 dispute (writer) — test `first pull: LimsLoading shows and the empty copy does not`
+Failure: `pumpAndSettle timed out` at `__tests__/support/visit_fixture.dart:157` (called from route_screen_test.dart:167), before any expect runs.
+Cause: review item 2 / 03-APP-FLOW:117 require `LimsLoading`; lims_ui `LimsLoading` (packages/ui-flutter/lib/src/base_widgets.dart:268) is an indeterminate `CircularProgressIndicator`, which animates forever, so `pumpAndSettle` can never settle. Any correct implementation fails this way.
+Impl is in place (route_screen.dart: `loading && visits.isEmpty && !purged` renders `const LimsLoading()`); freezing the spinner (TickerMode off) in feature code would break the real loading state, so I did not do it.
+Change in the test: the loading case must not go through `pumpScreen`'s `pumpAndSettle`. E.g. in route_screen_test.dart add a `settle` flag to `open` (or pump directly): `await t.pumpWidget(...); await t.pump();` for `loading: true`, then expect `LimsLoading` findsOneWidget and the empty copy findsNothing; the second `open(t, const [])` can keep `pumpAndSettle`. Do not change the shared fixture default (other tests depend on it).
+Status: other 75/76 HC-T27 tests pass, including the new offline-banner copy and "Everything is uploaded." tests; `flutter analyze lib` clean.

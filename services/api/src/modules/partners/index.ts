@@ -28,6 +28,7 @@ import { listPartners } from './handlers/listPartners.js';
 import * as partnerUserHandlers from './handlers/partnerUsers.js';
 import * as orderHandlers from './handlers/orders.js';
 import * as pickupHandlers from './handlers/pickups.js';
+import * as accessSlipHandlers from './handlers/accessSlips.js';
 import * as reportHandlers from './handlers/reports.js';
 import * as referrerHandlers from './handlers/referrers.js';
 import { reactivatePartner } from './handlers/reactivatePartner.js';
@@ -59,6 +60,7 @@ const implemented: Readonly<Record<string, Handler>> = {
   ...referrerHandlers, // T11 F1–F5, SR1–SR3
   ...pickupHandlers, // T15 K1–K4, SP1–SP4
   ...orderHandlers, ...reportHandlers, // T13 O1–O3, R1–R3
+  ...accessSlipHandlers, // T14 R4–R6
   createManifest, listManifests, getManifest, updateManifest, addManifestLine, replaceManifestLine, deleteManifestLine, discardManifest, searchPartnerOrderables, // T08 M1–M7, M10, P2
   submitManifest, withdrawManifest, getManifestPrintView, // T09 M8, M9, M11
   listInboundManifests, getInboundManifest, receiveManifest, retryManifestLineConversion, markManifestLineNotReceived, // T10 SI1-SI5

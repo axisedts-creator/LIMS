@@ -48,13 +48,14 @@ describe('tab "Instrument data" (§3.5)', () => {
     const heads = within(grid).getAllByRole('columnheader').map((h) => h.textContent?.trim());
     for (const h of ['Received', 'Instrument', 'Kind', 'Isolate no.', 'Code', 'Value', 'Status', 'Reason']) expect(heads, h).toContain(h);
     expect(heads).not.toContain('Barcode');
-    expect(document.body.textContent).not.toContain(BARCODE);
+    expect(grid.textContent).not.toContain(BARCODE); // barcode stays on the page identity card (04-UI-UX:61); only the tab columns drop it (:160)
     expect(within(grid).getByText('Needs code mapping')).toBeTruthy();
     expect(within(grid).getByText('Conflict')).toBeTruthy();
     expect(within(grid).queryByText('Waiting for match')).toBeNull();
   });
   it('row actions are Apply / Resolve conflict / Ignore — no "Assign to culture" (the culture is known)', async () => {
     await mount();
+    await within(await screen.findByRole('grid')).findByText('Needs code mapping');
     await rowAction(/Needs code mapping/, /^apply$/i);
     await waitFor(() => expect(hit('POST', /\/apply$/).length).toBe(1));
     cleanup(); resetHits();

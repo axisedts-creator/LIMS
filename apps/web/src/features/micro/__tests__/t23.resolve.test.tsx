@@ -20,8 +20,9 @@ beforeEach(() => { resetHits(); router.refresh.mockReset(); state.permissions = 
 afterEach(() => { cleanup(); api.resetHandlers(); });
 afterAll(() => api.close());
 
-const show = async (record: Record<string, unknown>) => {
+const show = async (record: Record<string, unknown>, ...custom: Parameters<typeof api.use>) => {
   api.use(recordList([record]), instrumentList(), writeOk('apply'), writeOk('ignore'), http.get(`${ORIGIN}/v1/micro/cultures/:id`, () => HttpResponse.json(conflictCulture())));
+  if (custom.length) api.use(...custom); // msw use() prepends: per-test handlers go AFTER the defaults so they win (T-23 ruling)
   const mod = await import('../../../app/(staff)/micro/instrument-records/page');
   const el = await mod.default({ searchParams: Promise.resolve({}) } as never);
   render(<ToastProvider>{el}</ToastProvider>);
@@ -44,21 +45,18 @@ describe('Apply (AC-08.5: needs_mapping / late_after_final / pending_match with 
     await waitFor(() => expect(router.refresh).toHaveBeenCalled());
   });
   it('still unmapped after Apply (record returns needs_mapping): the user is told it still needs a code mapping; it is NOT reported as applied', async () => {
-    api.use(http.post(`${ORIGIN}/v1/micro/instrument-records/:id/apply`, () => HttpResponse.json(clean(rec(2, { match_status: 'needs_mapping', match_reason: undefined, culture_id: ID(1), version: 5 })))));
-    await show(MAPPING);
+    await show(MAPPING, http.post(`${ORIGIN}/v1/micro/instrument-records/:id/apply`, () => HttpResponse.json(clean(rec(2, { match_status: 'needs_mapping', match_reason: undefined, culture_id: ID(1), version: 5 })))));
     await rowAction(BARCODE, /^apply$/i);
     await waitFor(() => expect(document.body.textContent).toMatch(/needs? (a )?(code )?mapping|map the code|mapping/i));
     expect(document.body.textContent).not.toMatch(/\bapplied\b/i);
   });
   it('the apply may come back as conflict: the conflict dialog opens (no silent success)', async () => {
-    api.use(http.post(`${ORIGIN}/v1/micro/instrument-records/:id/apply`, () => HttpResponse.json(clean(rec(2, { match_status: 'conflict', match_reason: 'manual_value_exists', culture_id: ID(1), version: 5 })))));
-    await show(MAPPING);
+    await show(MAPPING, http.post(`${ORIGIN}/v1/micro/instrument-records/:id/apply`, () => HttpResponse.json(clean(rec(2, { match_status: 'conflict', match_reason: 'manual_value_exists', culture_id: ID(1), version: 5 })))));
     await rowAction(BARCODE, /^apply$/i);
     expect(await dialog(/resolve conflict|conflict/i)).toBeTruthy();
   });
   it('a double click on the row action sends one request', async () => {
-    api.use(http.post(`${ORIGIN}/v1/micro/instrument-records/:id/apply`, async () => { await new Promise((r) => setTimeout(r, 150)); return HttpResponse.json(clean(rec(2, { match_status: 'applied', culture_id: ID(1) }))); }));
-    await show(MAPPING);
+    await show(MAPPING, http.post(`${ORIGIN}/v1/micro/instrument-records/:id/apply`, async () => { await new Promise((r) => setTimeout(r, 150)); return HttpResponse.json(clean(rec(2, { match_status: 'applied', culture_id: ID(1) }))); }));
     await rowAction(BARCODE, /^apply$/i);
     await new Promise((r) => setTimeout(r, 350));
     expect(applyPosts()).toHaveLength(1);
@@ -69,8 +67,7 @@ describe('Apply (AC-08.5: needs_mapping / late_after_final / pending_match with 
     ['common.version_conflict', 409, /someone else changed this\. reload and try again\./i],
     ['common.internal', 500, /something went wrong/i],
   ])('failure %s (%i) is shown in plain words, never as the raw code; no refresh', async (c, status, copy) => {
-    api.use(writeFail('apply', c, status));
-    await show(MAPPING);
+    await show(MAPPING, writeFail('apply', c, status));
     await rowAction(BARCODE, /^apply$/i);
     await waitFor(() => expect(screen.getByText(copy)).toBeTruthy());
     expect(document.body.textContent).not.toContain(c);
@@ -79,7 +76,7 @@ describe('Apply (AC-08.5: needs_mapping / late_after_final / pending_match with 
 });
 
 describe('Resolve conflict dialog (AC-08.6)', () => {
-  const open = async (r: Record<string, unknown> = CONFLICT) => { await show(r); await rowAction(BARCODE, /^resolve conflict$/i); return dialog(/resolve conflict|conflict/i); };
+  const open = async (r: Record<string, unknown> = CONFLICT, ...custom: Parameters<typeof api.use>) => { await show(r, ...custom); await rowAction(BARCODE, /^resolve conflict$/i); return dialog(/resolve conflict|conflict/i); };
   const resolveBtn = (d: HTMLElement) => within(d).getByRole('button', { name: /^resolve$/i }) as HTMLButtonElement;
   it('shows the §10 conflict message and a two-column comparison "Instrument" vs "Current"', async () => {
     const d = await open();
@@ -129,15 +126,13 @@ describe('Resolve conflict dialog (AC-08.6)', () => {
     expect((await last(applyPosts)).json).toEqual({ resolution: 'keep_existing' });
   });
   it('a conflict on a record with NO culture yet (pending_match) is resolved through assign, not apply, with the chosen resolution', async () => {
-    api.use(http.post(`${ORIGIN}/v1/micro/instrument-records/:id/assign`, () => HttpResponse.json(clean(rec(3, { match_status: 'applied', culture_id: ID(1) })))));
-    const d = await open(rec(3, { match_status: 'conflict', match_reason: 'manual_value_exists', culture_id: undefined, version: 6 }));
+    const d = await open(rec(3, { match_status: 'conflict', match_reason: 'manual_value_exists', culture_id: undefined, version: 6 }), http.post(`${ORIGIN}/v1/micro/instrument-records/:id/assign`, () => HttpResponse.json(clean(rec(3, { match_status: 'applied', culture_id: ID(1) })))));
     expect(d).toBeTruthy();
     // no culture to compare against: the dialog must say so rather than invent a value, and apply must not be called
     expect(applyPosts()).toHaveLength(0);
   });
   it('a failed save keeps the dialog open and the choice selected; double click sends one request', async () => {
-    api.use(http.post(`${ORIGIN}/v1/micro/instrument-records/:id/apply`, async () => { await new Promise((r) => setTimeout(r, 120)); return problem('micro.instrument_record_conflict', 409); }));
-    const d = await open();
+    const d = await open(CONFLICT, http.post(`${ORIGIN}/v1/micro/instrument-records/:id/apply`, async () => { await new Promise((r) => setTimeout(r, 120)); return problem('micro.instrument_record_conflict', 409); }));
     await userEvent.click(within(d).getByRole('radio', { name: /use instrument value/i }));
     await userEvent.dblClick(resolveBtn(d));
     await waitFor(() => expect(applyPosts().length).toBeGreaterThan(0));
@@ -158,7 +153,7 @@ describe('Resolve conflict dialog (AC-08.6)', () => {
 });
 
 describe('Ignore dialog (IR6; M22; coded set micro.record_ignore_reasons)', () => {
-  const open = async (r: Record<string, unknown> = rec(1)) => { await show(r); await rowAction(BARCODE, /^ignore$/i); return dialog(/ignore/i); };
+  const open = async (r: Record<string, unknown> = rec(1), ...custom: Parameters<typeof api.use>) => { await show(r, ...custom); await rowAction(BARCODE, /^ignore$/i); return dialog(/ignore/i); };
   const reasonBtn = (d: HTMLElement) => within(d).getByRole('button', { name: /reason/i });
   const confirm = (d: HTMLElement) => userEvent.click(within(d).getByRole('button', { name: /^ignore$/i }));
   it('ConfirmDialog with a required Reason select (active codes only), optional Comment (max 300) and buttons "Ignore" + "Cancel"', async () => {
@@ -195,8 +190,7 @@ describe('Ignore dialog (IR6; M22; coded set micro.record_ignore_reasons)', () =
     expect((await last(ignorePosts)).json).toEqual({ reason_code: 'duplicate' });
   });
   it('a double click sends one request', async () => {
-    api.use(http.post(`${ORIGIN}/v1/micro/instrument-records/:id/ignore`, async () => { await new Promise((r) => setTimeout(r, 150)); return HttpResponse.json(clean(rec(1, { match_status: 'ignored', ignore_reason_code: 'duplicate' }))); }));
-    const d = await open();
+    const d = await open(rec(1), http.post(`${ORIGIN}/v1/micro/instrument-records/:id/ignore`, async () => { await new Promise((r) => setTimeout(r, 150)); return HttpResponse.json(clean(rec(1, { match_status: 'ignored', ignore_reason_code: 'duplicate' }))); }));
     await pick(d, /reason/i, /synthetic duplicate result/i);
     await userEvent.dblClick(within(d).getByRole('button', { name: /^ignore$/i }));
     await new Promise((r) => setTimeout(r, 350));
@@ -207,8 +201,7 @@ describe('Ignore dialog (IR6; M22; coded set micro.record_ignore_reasons)', () =
     ['common.version_conflict', 409, /someone else changed this\. reload and try again\./i],
     ['common.internal', 500, /something went wrong/i],
   ])('failure %s (%i): dialog stays open, choice kept, no raw code', async (c, status, copy) => {
-    api.use(writeFail('ignore', c, status));
-    const d = await open();
+    const d = await open(rec(1), writeFail('ignore', c, status));
     await pick(d, /reason/i, /synthetic duplicate result/i);
     await confirm(d);
     await waitFor(() => expect(within(screen.getByRole('dialog', { name: /ignore/i })).getByText(copy)).toBeTruthy());

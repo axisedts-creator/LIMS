@@ -20,8 +20,9 @@ afterEach(() => { cleanup(); api.resetHandlers(); });
 afterAll(() => api.close());
 
 const RECORD = rec(1, { isolate_seq: 2, version: 3 });
-const open = async (record = RECORD, chain = scanChain()) => {
+const open = async (record = RECORD, chain = scanChain(), ...custom: Parameters<typeof api.use>) => {
   api.use(recordList([record]), instrumentList(), writeOk('assign'), ...chain);
+  if (custom.length) api.use(...custom); // msw use() prepends: per-test handlers go AFTER the defaults so they win (T-23 ruling)
   const mod = await import('../../../app/(staff)/micro/instrument-records/page');
   const el = await mod.default({ searchParams: Promise.resolve({}) } as never);
   render(<ToastProvider>{el}</ToastProvider>);
@@ -159,8 +160,7 @@ describe('submitting (M20; S-05 strict body)', () => {
   });
   it('a double click sends one request; a retry after a failure reuses the Idempotency-Key', async () => {
     let n = 0;
-    api.use(http.post(`${ORIGIN}/v1/micro/instrument-records/:id/assign`, async () => { n += 1; await new Promise((r) => setTimeout(r, 120)); return n === 1 ? problem('common.internal', 500) : HttpResponse.json(rec(1, { match_status: 'applied', culture_id: ID(1) })); }));
-    const d = await open();
+    const d = await open(RECORD, undefined, http.post(`${ORIGIN}/v1/micro/instrument-records/:id/assign`, async () => { n += 1; await new Promise((r) => setTimeout(r, 120)); return n === 1 ? problem('common.internal', 500) : HttpResponse.json(rec(1, { match_status: 'applied', culture_id: ID(1) })); }));
     await chosen(d);
     await userEvent.dblClick(assignBtn(d));
     await waitFor(() => expect(posts().length).toBeGreaterThan(0));
@@ -174,8 +174,7 @@ describe('submitting (M20; S-05 strict body)', () => {
 
 describe('outcomes and errors (04-UI-UX §10): dialog stays open, choice kept, no raw code', () => {
   it('the record comes back as conflict (manual data exists): the dialog switches to the conflict choice instead of closing silently', async () => {
-    api.use(http.post(`${ORIGIN}/v1/micro/instrument-records/:id/assign`, () => HttpResponse.json(rec(1, { match_status: 'conflict', match_reason: 'manual_value_exists', culture_id: ID(1) }))));
-    const d = await open();
+    const d = await open(RECORD, undefined, http.post(`${ORIGIN}/v1/micro/instrument-records/:id/assign`, () => HttpResponse.json(rec(1, { match_status: 'conflict', match_reason: 'manual_value_exists', culture_id: ID(1) }))));
     await chosen(d);
     await userEvent.click(assignBtn(d));
     await waitFor(() => expect(document.body.textContent).toMatch(/use instrument value/i));
@@ -187,8 +186,7 @@ describe('outcomes and errors (04-UI-UX §10): dialog stays open, choice kept, n
     ['common.version_conflict', 409, /someone else changed this\. reload and try again\./i],
     ['common.internal', 500, /something went wrong/i],
   ])('%s (%i)', async (c, status, copy) => {
-    api.use(writeFail('assign', c, status));
-    const d = await open();
+    const d = await open(RECORD, undefined, writeFail('assign', c, status));
     await chosen(d);
     await userEvent.click(assignBtn(d));
     await waitFor(() => expect(within(screen.getByRole('dialog', { name: /assign/i })).getByText(copy)).toBeTruthy());
@@ -196,8 +194,7 @@ describe('outcomes and errors (04-UI-UX §10): dialog stays open, choice kept, n
     expect(router.refresh).not.toHaveBeenCalled();
   });
   it('S-17: 404 for a culture of another centre/tenant reads as a plain "not found" message and discloses nothing', async () => {
-    api.use(writeFail('assign', 'common.not_found', 404));
-    const d = await open();
+    const d = await open(RECORD, undefined, writeFail('assign', 'common.not_found', 404));
     await chosen(d);
     await userEvent.click(assignBtn(d));
     await waitFor(() => expect(within(screen.getByRole('dialog', { name: /assign/i })).getByText(/not found|no longer|reload/i)).toBeTruthy());

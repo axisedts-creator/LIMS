@@ -24,7 +24,8 @@
 //   M11 per id: object loaded tenant-bound (not_found), guard table of TRD, then insertObjectMovement + updateBlock/updateSlide {location_status, location_text}; validation of the body happens BEFORE any write (400 + no row).
 //   M13/M14 -> 200 {data: Movement[] newest first, page}. M15 -> 200 {labels}; access row via ctx.audit.access({action:'anatomic_label.print', entityType:'anatomic_case', entityId: caseId, outcome:'allowed', detail:{kind,count}}), none on 404/403.
 //   ids in M15 that are not of this case/tenant are omitted (no error, no leak).
-// NOT covered here: M4 (slide assessment), M6/M12 (tenant-wide lists need repo functions T-04 did not provide), Idempotency-Key replay (AC-04.7, core), live-DB integration (no PG/DDL here, as T-06/T-08), UI banner text (AC-05.5, web).
+// M4 / M6 / M12 are covered by the T-18 blocks at the end of this file (reviewer item 2): signed_out matrix 07-SECURITY §5.3, If-Match, adequacy coded set, paging, filters.
+// NOT covered here: Idempotency-Key replay (AC-04.7, core), live-DB integration (no PG/DDL here, as T-06/T-08), UI banner text (AC-05.5, web).
 // Fails now: the twelve operations are 501/common.internal stubs in handlers/index.ts.
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -32,7 +33,7 @@ type Row = Record<string, any>;
 const S = vi.hoisted(() => ({
   cases: new Map<string, Row>(), parts: new Map<string, Row>(), blocks: new Map<string, Row>(), slides: new Map<string, Row>(), orders: new Map<string, Row>(),
   moves: [] as Row[], items: new Map<string, Row>(), profiles: new Map<string, Row>(), stains: new Map<string, Row>(), drafts: new Map<string, Row>(),
-  orderSummary: undefined as Row | undefined, staleLists: false, tick: 0, itemWrites: 0,
+  orderSummary: undefined as Row | undefined, staleLists: false, tick: 0, itemWrites: 0, adequacy: new Map<string, Row>(),
 }));
 const pgErr = (constraint: string) => Object.assign(new Error('duplicate key value violates unique constraint'), { code: '23505', constraint });
 
@@ -67,6 +68,16 @@ vi.mock('../repository/blocks.repo.js', () => ({
     if (S.staleLists) return [];
     return [...S.blocks.values()].filter((b) => b['tenant_id'] === i.tenantId && b['case_id'] === i.caseId).sort((a, b) => a['seq'] - b['seq']).map((b) => ({ ...b }));
   },
+  /** M12 tenant-wide page (T-18 reviewer item 2): same filters as the real repo; row order = insertion order; joins accession_no, slide_count, last_movement_at */
+  async listBlocksPage(_tx: unknown, i: { tenantId: string; locationStatuses?: string[]; caseId?: string; limit: number; offset: number }) {
+    return [...S.blocks.values()]
+      .filter((b) => b['tenant_id'] === i.tenantId && (!i.locationStatuses || i.locationStatuses.includes(b['location_status'])) && (!i.caseId || b['case_id'] === i.caseId))
+      .slice(i.offset, i.offset + i.limit)
+      .map((b) => {
+        const last = S.moves.filter((m) => m['object_kind'] === 'block' && m['object_id'] === b['id']).map((m) => m['created_at']).sort().pop();
+        return { ...b, accession_no: S.cases.get(b['case_id'])?.['accession_no'], slide_count: [...S.slides.values()].filter((s) => s['block_id'] === b['id']).length, last_movement_at: last ?? null };
+      });
+  },
   async updateBlock(_tx: unknown, i: { tenantId: string; id: string; expectedVersion: number; actorId: string; patch: Row }) {
     const r = S.blocks.get(i.id);
     if (!r || r['tenant_id'] !== i.tenantId || r['version'] !== i.expectedVersion) return undefined;
@@ -94,6 +105,17 @@ vi.mock('../repository/stainOrders.repo.js', () => ({
   async insertStainOrder(_tx: unknown, row: Row) { const r = { version: 1, status: 'requested', ...row }; S.orders.set(r['id'], r); return { ...r }; },
   async getStainOrder(_tx: unknown, i: { tenantId: string; id: string }) { const r = S.orders.get(i.id); return r && r['tenant_id'] === i.tenantId ? { ...r } : undefined; },
   async listStainOrders(_tx: unknown, i: { tenantId: string; caseId: string }) { return [...S.orders.values()].filter((o) => o['tenant_id'] === i.tenantId && o['case_id'] === i.caseId).map((o) => ({ ...o })); },
+  /** M6 tenant-wide queue page (T-18 reviewer item 2): same filters/sort as the real repo (requested_at, id; descending flips both) */
+  async listStainOrdersPage(_tx: unknown, i: { tenantId: string; statuses: string[]; stainKinds?: string[]; centreIds?: string[]; descending: boolean; limit: number; offset: number }) {
+    const key = (o: Row) => `${o['requested_at']}|${o['id']}`;
+    const rows = [...S.orders.values()]
+      .filter((o) => o['tenant_id'] === i.tenantId && i.statuses.includes(o['status']) && (!i.stainKinds || i.stainKinds.includes(o['stain_kind'])) && (!i.centreIds || i.centreIds.includes(o['centre_id'])))
+      .sort((a, b) => (key(a) < key(b) ? -1 : 1) * (i.descending ? -1 : 1));
+    return rows.slice(i.offset, i.offset + i.limit).map((o) => ({
+      ...o, accession_no: S.cases.get(o['case_id'])?.['accession_no'], priority: 'routine', stain_display: [...S.stains.values()].find((s) => s['id'] === o['stain_id'])?.['display'],
+      block_label: o['block_id'] ? S.blocks.get(o['block_id'])?.['label'] : null,
+    }));
+  },
   async updateStainOrder(_tx: unknown, i: { tenantId: string; id: string; expectedVersion: number; actorId: string; patch: Row }) {
     const r = S.orders.get(i.id);
     if (!r || r['tenant_id'] !== i.tenantId || r['version'] !== i.expectedVersion) return undefined;
@@ -120,6 +142,14 @@ vi.mock('../repository/config.repo.js', () => ({
   async getTestProfile(_tx: unknown, i: { id: string }) { return [...S.profiles.values()].find((p) => p['id'] === i.id); },
   async listTestProfiles() { return []; }, async getSettings() { return undefined; }, async insertSettings(_tx: unknown, row: Row) { return row; }, async updateSettings() { return undefined; },
   async insertStain(_tx: unknown, row: Row) { return row; }, async updateStain() { return undefined; },
+}));
+
+vi.mock('../repository/codedValues.repo.js', () => ({
+  /** M4 adequacy check: honours activeOnly + limit/offset like the real repo (x-coded-set anatomic.cytology_adequacy) */
+  async listCodedCytologyAdequacies(_tx: unknown, i: { tenantId: string; activeOnly?: boolean; limit?: number; offset?: number }) {
+    const all = [...S.adequacy.values()].filter((r) => r['tenant_id'] === i.tenantId && (!i.activeOnly || r['is_active'] !== false));
+    return all.slice(i.offset ?? 0, (i.offset ?? 0) + (i.limit ?? 50)).map((r) => ({ ...r }));
+  },
 }));
 
 const { manifest } = await import('../index.js');
@@ -218,7 +248,8 @@ const move = (body: Row, ctx?: any) => call('recordAnatomicMovements', { body },
 const labels = (caseId: string, query: Row = { kind: 'blocks' }, ctx?: any) => call('getAnatomicLabels', { params: { case_id: caseId }, query }, ctx);
 
 beforeEach(() => {
-  for (const m of [S.cases, S.parts, S.blocks, S.slides, S.orders, S.items, S.profiles, S.stains, S.drafts] as Map<string, Row>[]) m.clear();
+  for (const m of [S.cases, S.parts, S.blocks, S.slides, S.orders, S.items, S.profiles, S.stains, S.drafts, S.adequacy] as Map<string, Row>[]) m.clear();
+  for (const [n, code, active] of [[1, 'SAT', true], [2, 'LIM', true], [3, 'OLD', false]] as const) S.adequacy.set(code, { id: uid(8500 + n), tenant_id: T, code, display: `${code} (SYNTHETIC)`, is_active: active, sort_order: n, version: 1 });
   S.moves.length = 0; S.orderSummary = undefined; S.staleLists = false; S.tick = 0; S.itemWrites = 0; seq = 0; slideN = 0;
   const stain = (code: string, kind: string, n: number, active = true) => S.stains.set(code, { id: uid(8000 + n), tenant_id: T, code, display: `${code} (SYNTHETIC)`, kind, is_active: active, sort_order: n, version: 1 });
   stain('HE', 'routine', 1); stain('PAP', 'routine', 2); stain('PAS', 'special', 3); stain('IHC_ER', 'ihc', 4); stain('IHC_OFF', 'ihc', 5, false);
@@ -962,6 +993,294 @@ describe('C11-T09 cross-cutting', () => {
     const c = mkCase();
     const before = state();
     expect(await rejects(mkBlocks(c.caseId, { part_id: c.partId, count: 51 }))).toMatchObject({ code: 'common.validation_failed' });
+    expect(state()).toBe(before);
+  });
+});
+
+// ---- T-18 reviewer item 2: M4 / M6 / M12 (spec: contracts/openapi/anatomic.yaml, 02-TRD §5 M4/M6/M12, 07-SECURITY §3 + §5.2 + §5.3) ----
+/** v = null -> no If-Match header */
+const assess = (slideId: string, body: Row, v: number | null = 1, ctx?: any) =>
+  call('saveAnatomicSlideAssessment', { params: { slide_id: slideId }, headers: v === null ? {} : ifm(v), body }, ctx);
+const stainQueue = (query: Row = {}, ctx?: any) => call('listAnatomicStainOrders', { query }, ctx);
+const blockList = (query: Row = {}, ctx?: any) => call('listAnatomicBlocks', { query }, ctx);
+const cursorAt = (o: number) => Buffer.from(JSON.stringify({ o })).toString('base64url');
+const fieldPaths = (e: any) => JSON.stringify(e.errors ?? []);
+
+describe('C11-T18 M4 save slide assessment', () => {
+  it('saves adequacy_code + finding_text + include_in_report with If-Match; 200 SlideDto, version + 1, actor recorded, case.work asserted at the case centre', async () => {
+    const c = mkCase({ kind: 'cytology' }); const s = mkSlide(c, undefined, 1);
+    const r = await assess(s, { adequacy_code: 'SAT', finding_text: 'Synthetic finding', include_in_report: true });
+    expect(r.status).toBe(200);
+    expect(r.body).toMatchObject({ id: s, adequacy_code: 'SAT', finding_text: 'Synthetic finding', include_in_report: true, version: 2 });
+    expect(S.slides.get(s)).toMatchObject({ adequacy_code: 'SAT', finding_text: 'Synthetic finding', include_in_report: true, version: 2, updated_by: ACTOR });
+    expect(calls.assertRole[0]).toMatchObject({ permission: 'anatomic.case.work', centreId: CENTRE });
+  });
+
+  it('absent adequacy_code / finding_text are cleared to NULL (full replace), and never appear as null on the wire', async () => {
+    const c = mkCase(); const s = mkSlide(c, mkBlock(c, 1), 1);
+    await assess(s, { adequacy_code: 'LIM', finding_text: 'first', include_in_report: true });
+    const r = await assess(s, { include_in_report: false }, 2);
+    expect(S.slides.get(s)).toMatchObject({ adequacy_code: null, finding_text: null, include_in_report: false, version: 3 });
+    expect(r.body).not.toHaveProperty('adequacy_code');
+    expect(r.body).not.toHaveProperty('finding_text');
+    expect(JSON.stringify(r.body)).not.toContain(':null');
+  });
+
+  it('07-SECURITY §5.3: signed_out case WITHOUT an open change draft -> 409 anatomic.signout_locked, slide unchanged', async () => {
+    const c = mkCase({ status: 'signed_out' }); const s = mkSlide(c, mkBlock(c, 1), 1);
+    const before = state();
+    expect(await rejects(assess(s, { include_in_report: true }))).toMatchObject({ code: 'anatomic.signout_locked' });
+    expect(state()).toBe(before);
+  });
+
+  it('07-SECURITY §5.3: signed_out case WITH an open change draft -> allowed (200)', async () => {
+    const c = mkCase({ status: 'signed_out', draft: true }); const s = mkSlide(c, mkBlock(c, 1), 1);
+    const r = await assess(s, { adequacy_code: 'SAT', include_in_report: true });
+    expect(r.status).toBe(200);
+    expect(S.slides.get(s)!['adequacy_code']).toBe('SAT');
+  });
+
+  it('works while the case is accessioned, in_processing and ready_for_reporting', async () => {
+    for (const [i, status] of ['accessioned', 'in_processing', 'ready_for_reporting'].entries()) {
+      const c = mkCase({ status, acc: `S26-006${i}` }); const s = mkSlide(c, mkBlock(c, 1), 1);
+      expect((await assess(s, { include_in_report: true })).status, status).toBe(200);
+    }
+  });
+
+  it('If-Match: missing -> 428 common.precondition_required; stale -> 409 common.version_conflict; malformed / "0" -> 400; slide unchanged', async () => {
+    const c = mkCase(); const s = mkSlide(c, mkBlock(c, 1), 1);
+    const before = state();
+    expect(await rejects(assess(s, { include_in_report: true }, null))).toMatchObject({ code: 'common.precondition_required' });
+    expect(await rejects(assess(s, { include_in_report: true }, 7))).toMatchObject({ code: 'common.version_conflict' });
+    for (const h of ['1', 'W/"1"', '"0"', '"-1"', '"abc"', '"99999999999"']) {
+      expect(await rejects(call('saveAnatomicSlideAssessment', { params: { slide_id: s }, headers: { 'if-match': h }, body: { include_in_report: true } })), h).toMatchObject({ code: 'common.validation_failed' });
+    }
+    expect(state()).toBe(before);
+  });
+
+  it('adequacy_code outside the ACTIVE coded set (inactive, unknown, wrong case, bad chars, too long, not a string) -> 400 at /adequacy_code, nothing written', async () => {
+    const c = mkCase(); const s = mkSlide(c, mkBlock(c, 1), 1);
+    const before = state();
+    for (const adequacy_code of ['OLD', 'NOPE', 'sat', 'SA T', "SAT'; DROP TABLE x;--", 'x'.repeat(65), '', 5, null]) {
+      const e = await rejects(assess(s, { adequacy_code, include_in_report: true }));
+      expect(e, String(adequacy_code)).toMatchObject({ code: 'common.validation_failed' });
+      expect(fieldPaths(e)).toContain('/adequacy_code');
+    }
+    expect(state()).toBe(before);
+  });
+
+  it('adequacy lookup pages through the coded set: an active code beyond the first 500 rows is still accepted', async () => {
+    for (let n = 0; n < 600; n++) S.adequacy.set(`BULK${n}`, { id: uid(90000 + n), tenant_id: T, code: `BULK${n}`, display: 'x', is_active: true, sort_order: 10 + n, version: 1 });
+    const c = mkCase(); const s = mkSlide(c, mkBlock(c, 1), 1);
+    expect((await assess(s, { adequacy_code: 'BULK599', include_in_report: true })).status).toBe(200);
+  });
+
+  it('closed body: include_in_report required boolean; finding_text <= 2000; unknown / mass-assignment fields -> 400, nothing written', async () => {
+    const c = mkCase(); const s = mkSlide(c, mkBlock(c, 1), 1);
+    const before = state();
+    const bodies: Row[] = [
+      {}, { adequacy_code: 'SAT' }, { include_in_report: 'true' }, { include_in_report: 1 }, { include_in_report: null },
+      { include_in_report: true, finding_text: 'x'.repeat(2001) }, { include_in_report: true, finding_text: 5 },
+      { include_in_report: true, status: 'ready' }, { include_in_report: true, stain_code: 'PAS' }, { include_in_report: true, tenant_id: OTHER_T }, { include_in_report: true, label: 'S26-9999-A1-1' },
+    ];
+    for (const body of bodies) expect(await rejects(assess(s, body)), JSON.stringify(body).slice(0, 60)).toMatchObject({ code: 'common.validation_failed' });
+    expect(state()).toBe(before);
+    expect((await assess(s, { include_in_report: true, finding_text: 'x'.repeat(2000) })).status).toBe(200); // boundary
+  });
+
+  it('07-SECURITY §5.2: slide of another tenant / unknown / malformed id -> 404 common.not_found before any permission check, nothing written', async () => {
+    const f = mkCase({ tenant: OTHER_T }); const theirs = mkSlide(f, mkBlock(f, 1), 1);
+    const before = state();
+    for (const id of [theirs, uid(424242), 'zzz']) {
+      calls.assertRole.length = 0;
+      expect(await rejects(assess(id, { include_in_report: true })), id).toMatchObject({ code: 'common.not_found' });
+      expect(calls.assertRole).toHaveLength(0);
+    }
+    expect(state()).toBe(before);
+  });
+
+  it('IdentityPort denial (case centre) -> 403 propagated, slide unchanged', async () => {
+    const c = mkCase(); const s = mkSlide(c, mkBlock(c, 1), 1);
+    const denied = mkCtx({ assertRole: async () => { throw Object.assign(new Error('no'), { code: 'auth.forbidden' }); } });
+    const before = state();
+    expect(await rejects(assess(s, { include_in_report: true }, 1, denied))).toMatchObject({ code: 'auth.forbidden' });
+    expect(state()).toBe(before);
+  });
+
+  it('PHI hygiene (§6): a rejected finding_text is not echoed in the problem or the logs', async () => {
+    const c = mkCase(); const s = mkSlide(c, mkBlock(c, 1), 1);
+    const e = await rejects(assess(s, { include_in_report: true, finding_text: MARKER + 'x'.repeat(2001), extra: MARKER }));
+    expect(JSON.stringify({ code: e.code, message: e.message, errors: e.errors, detail: e.detail })).not.toContain(MARKER);
+    expect(calls.logs.join('\n')).not.toContain(MARKER);
+  });
+});
+
+describe('C11-T18 M6 list stain-order queue', () => {
+  /** orders with distinct requested_at (minute n) so sort is observable */
+  function seedOrders(n: number, status = 'requested', stain = 'PAS'): string[] {
+    const c = mkCase();
+    return Array.from({ length: n }, (_, i) => {
+      const id = mkOrder(c, { part: c.partId, stain, status });
+      S.orders.get(id)!['requested_at'] = new Date(Date.UTC(2026, 10, 12, 1, i, 0)).toISOString();
+      return id;
+    });
+  }
+
+  it('default filter is status requested,in_progress; each row is a StainOrderRow with case_id + accession_no; empty queue -> data [] and page.limit 50 without next_cursor', async () => {
+    expect((await stainQueue()).body).toEqual({ data: [], page: { limit: 50 } });
+    const c = mkCase(); const b = mkBlock(c, 1);
+    const req = mkOrder(c, { block: b, stain: 'IHC_ER', status: 'requested' }), prog = mkOrder(c, { block: b, stain: 'IHC_ER', status: 'in_progress' });
+    mkOrder(c, { block: b, stain: 'IHC_ER', status: 'completed' }); mkOrder(c, { block: b, stain: 'IHC_ER', status: 'cancelled' });
+    const r = await stainQueue();
+    expect(r.status).toBe(200);
+    expect(r.body.data.map((o: Row) => o['id']).sort()).toEqual([req, prog].sort());
+    expect(r.body.data[0]).toMatchObject({ case_id: c.caseId, accession_no: ACC, stain_code: 'IHC_ER', stain_kind: 'ihc', block_id: b, block_label: 'S26-0042-A1', priority: 'routine', version: 1 });
+    expect(r.body.data[0]).toHaveProperty('requested_at');
+    expect(JSON.stringify(r.body)).not.toContain(':null');
+    expect(r.body.page).toEqual({ limit: 50 });
+  });
+
+  it('status csv selects exactly those statuses (duplicates tolerated); stain_kind and centre_id filter', async () => {
+    const c = mkCase(), c2 = mkCase({ centre: OTHER_CENTRE });
+    const done = mkOrder(c, { part: c.partId, stain: 'PAS', status: 'completed' }), canc = mkOrder(c, { part: c.partId, stain: 'PAS', status: 'cancelled' });
+    const ihc = mkOrder(c2, { block: mkBlock(c2, 1), stain: 'IHC_ER', status: 'completed' });
+    expect((await stainQueue({ status: 'completed,cancelled,completed' })).body.data.map((o: Row) => o['id']).sort()).toEqual([done, canc, ihc].sort());
+    expect((await stainQueue({ status: 'completed', stain_kind: 'ihc' })).body.data.map((o: Row) => o['id'])).toEqual([ihc]);
+    expect((await stainQueue({ status: 'completed', stain_kind: 'special' })).body.data.map((o: Row) => o['id'])).toEqual([done]);
+    expect((await stainQueue({ status: 'completed', stain_kind: 'special,ihc' })).body.data).toHaveLength(2);
+    expect((await stainQueue({ status: 'completed', centre_id: OTHER_CENTRE })).body.data.map((o: Row) => o['id'])).toEqual([ihc]);
+  });
+
+  it('sort requested_at ascending (default) / -requested_at descending', async () => {
+    const ids = seedOrders(3);
+    expect((await stainQueue()).body.data.map((o: Row) => o['id'])).toEqual(ids);
+    expect((await stainQueue({ sort: 'requested_at' })).body.data.map((o: Row) => o['id'])).toEqual(ids);
+    expect((await stainQueue({ sort: '-requested_at' })).body.data.map((o: Row) => o['id'])).toEqual([...ids].reverse());
+  });
+
+  it('paging: next_cursor only while more rows exist; following it yields the rest, no overlap; exactly `limit` rows -> no next_cursor', async () => {
+    const ids = seedOrders(5);
+    const p1 = (await stainQueue({ limit: '2' })).body;
+    expect(p1.data.map((o: Row) => o['id'])).toEqual(ids.slice(0, 2));
+    expect(p1.page).toMatchObject({ limit: 2 }); expect(typeof p1.page.next_cursor).toBe('string');
+    const p2 = (await stainQueue({ limit: '2', cursor: p1.page.next_cursor })).body;
+    expect(p2.data.map((o: Row) => o['id'])).toEqual(ids.slice(2, 4));
+    expect(typeof p2.page.next_cursor).toBe('string');
+    const p3 = (await stainQueue({ limit: '2', cursor: p2.page.next_cursor })).body;
+    expect(p3.data.map((o: Row) => o['id'])).toEqual(ids.slice(4));
+    expect(p3.page).toEqual({ limit: 2 });
+    expect((await stainQueue({ limit: '5' })).body.page).toEqual({ limit: 5 });
+    expect((await stainQueue({ limit: 5 })).body.data).toHaveLength(5); // number form accepted too
+  });
+
+  it('limit 1 and 200 accepted; 0, 201, -1, 1.5, "abc", "" and 4-digit -> 400 at /limit', async () => {
+    expect((await stainQueue({ limit: '1' })).body.page.limit).toBe(1);
+    expect((await stainQueue({ limit: '200' })).body.page.limit).toBe(200);
+    for (const limit of ['0', '201', '-1', '1.5', 'abc', '', '0100x', '1000', 0, 201]) {
+      const e = await rejects(stainQueue({ limit }));
+      expect(e, String(limit)).toMatchObject({ code: 'common.validation_failed' });
+      expect(fieldPaths(e)).toContain('/limit');
+    }
+  });
+
+  it('bad csv / enum / uuid / unknown parameter -> 400 validation_failed at the parameter; garbage cursor -> 400 common.invalid_cursor', async () => {
+    seedOrders(1);
+    const cases: Array<[Row, string]> = [
+      [{ status: 'bogus' }, '/status'], [{ status: 'requested,bogus' }, '/status'], [{ status: 'requested,,in_progress' }, '/status'], [{ status: '' }, '/status'], [{ status: ['requested'] }, '/status'],
+      [{ status: 'requested,in_progress,completed,cancelled,requested' }, '/status'],
+      [{ stain_kind: 'routine' }, '/stain_kind'], [{ stain_kind: 'ihc,' }, '/stain_kind'], [{ stain_kind: 'special,ihc,special' }, '/stain_kind'],
+      [{ centre_id: 'not-a-uuid' }, '/centre_id'], [{ centre_id: `${CENTRE},nope` }, '/centre_id'],
+      [{ sort: 'status' }, '/sort'], [{ sort: 'requested_at,-requested_at' }, '/sort'], [{ sort: '; DROP TABLE x' }, '/sort'],
+    ];
+    for (const [query, path] of cases) {
+      const e = await rejects(stainQueue(query));
+      expect(e, JSON.stringify(query)).toMatchObject({ code: 'common.validation_failed' });
+      expect(fieldPaths(e)).toContain(path);
+    }
+    expect(await rejects(stainQueue({ tenant_id: OTHER_T }))).toMatchObject({ code: 'common.validation_failed' }); // closed query
+    for (const cursor of ['not-a-cursor!!', '', cursorAt(-1), cursorAt(1.5), cursorAt(1_000_001), Buffer.from('{"o":"3"}').toString('base64url'), Buffer.from('null').toString('base64url')]) {
+      expect(await rejects(stainQueue({ cursor })), cursor).toMatchObject({ code: 'common.invalid_cursor' });
+    }
+  });
+
+  it('tenant isolation: another tenant\'s orders never appear', async () => {
+    const f = mkCase({ tenant: OTHER_T });
+    S.orders.set(uid(6900), { id: uid(6900), tenant_id: OTHER_T, centre_id: CENTRE, case_id: f.caseId, stain_id: uid(8100), stain_code: 'IHC_ER', stain_kind: 'ihc', status: 'requested', requested_at: NOW.toISOString(), version: 1 });
+    expect((await stainQueue()).body.data).toEqual([]);
+  });
+
+  it('read-only: no order, slide, block or movement written', async () => {
+    seedOrders(2); const before = state();
+    await stainQueue({ limit: '1' });
+    expect(state()).toBe(before);
+  });
+});
+
+describe('C11-T18 M12 list blocks overview', () => {
+  it('lists every block of the tenant when unfiltered; BlockRow carries case_id, accession_no, slide_count; last_movement_at only when a movement exists; no null on the wire', async () => {
+    const c = mkCase(); const b1 = mkBlock(c, 1), b2 = mkBlock(c, 2);
+    mkSlide(c, b1, 1); mkSlide(c, b1, 2);
+    S.moves.push({ tenant_id: T, object_kind: 'block', object_id: b2, created_at: '2026-11-12T02:00:00.000Z' }, { tenant_id: T, object_kind: 'block', object_id: b2, created_at: '2026-11-12T03:00:00.000Z' });
+    const r = await blockList();
+    expect(r.status).toBe(200);
+    const byId = Object.fromEntries(r.body.data.map((b: Row) => [b['id'], b]));
+    expect(byId[b1]).toMatchObject({ part_id: c.partId, label: 'S26-0042-A1', seq: 1, location_status: 'in_lab', slide_count: 2, version: 1, case_id: c.caseId, accession_no: ACC });
+    expect(byId[b1]).not.toHaveProperty('last_movement_at');
+    expect(byId[b2]).toMatchObject({ slide_count: 0, last_movement_at: '2026-11-12T03:00:00.000Z' });
+    expect(JSON.stringify(r.body)).not.toContain(':null');
+    expect(r.body.page).toEqual({ limit: 50 });
+  });
+
+  it('location_status csv + case_id filters; empty result -> data [] and page.limit', async () => {
+    const c = mkCase(), d = mkCase();
+    const a = mkBlock(c, 1, 'in_lab'), s = mkBlock(c, 2, 'stored'), o = mkBlock(c, 3, 'sent_out'), g = mkBlock(c, 4, 'discarded'), other = mkBlock(d, 1, 'sent_out');
+    const ids = async (q: Row) => (await blockList(q)).body.data.map((b: Row) => b['id']).sort();
+    expect(await ids({ location_status: 'sent_out' })).toEqual([o, other].sort());
+    expect(await ids({ location_status: 'in_lab,stored,in_lab' })).toEqual([a, s].sort());
+    expect(await ids({ case_id: d.caseId })).toEqual([other]);
+    expect(await ids({ case_id: c.caseId, location_status: 'sent_out,discarded' })).toEqual([o, g].sort());
+    expect((await blockList({ case_id: uid(424242) })).body).toEqual({ data: [], page: { limit: 50 } });
+  });
+
+  it('paging: next_cursor only when more rows exist; cursor continues without overlap; exactly `limit` rows -> no next_cursor', async () => {
+    const c = mkCase(); const ids = [1, 2, 3, 4, 5].map((n) => mkBlock(c, n));
+    const p1 = (await blockList({ limit: '2' })).body;
+    expect(p1.data.map((b: Row) => b['id'])).toEqual(ids.slice(0, 2));
+    expect(typeof p1.page.next_cursor).toBe('string');
+    const p2 = (await blockList({ limit: '2', cursor: p1.page.next_cursor })).body;
+    expect(p2.data.map((b: Row) => b['id'])).toEqual(ids.slice(2, 4));
+    const p3 = (await blockList({ limit: '2', cursor: p2.page.next_cursor })).body;
+    expect(p3.data.map((b: Row) => b['id'])).toEqual(ids.slice(4));
+    expect(p3.page).toEqual({ limit: 2 });
+    expect((await blockList({ limit: '5' })).body.page).toEqual({ limit: 5 });
+  });
+
+  it('limit 1..200 only; bad csv / enum / uuid / unknown parameter -> 400 at the parameter; garbage cursor -> common.invalid_cursor', async () => {
+    mkBlock(mkCase(), 1);
+    expect((await blockList({ limit: '200' })).body.page.limit).toBe(200);
+    for (const limit of ['0', '201', '-1', '1.5', 'abc', '']) expect(fieldPaths(await rejects(blockList({ limit }))), limit).toContain('/limit');
+    const cases: Array<[Row, string]> = [
+      [{ location_status: 'bogus' }, '/location_status'], [{ location_status: 'in_lab,' }, '/location_status'], [{ location_status: '' }, '/location_status'], [{ location_status: ['in_lab'] }, '/location_status'],
+      [{ location_status: 'in_lab,stored,sent_out,discarded,in_lab' }, '/location_status'], [{ case_id: 'not-a-uuid' }, '/case_id'], [{ case_id: 5 }, '/case_id'],
+    ];
+    for (const [query, path] of cases) {
+      const e = await rejects(blockList(query));
+      expect(e, JSON.stringify(query)).toMatchObject({ code: 'common.validation_failed' });
+      expect(fieldPaths(e)).toContain(path);
+    }
+    expect(await rejects(blockList({ part_id: uid(1) }))).toMatchObject({ code: 'common.validation_failed' }); // closed query
+    for (const cursor of ['not-a-cursor!!', '', cursorAt(-5), cursorAt(2_000_000)]) expect(await rejects(blockList({ cursor })), cursor).toMatchObject({ code: 'common.invalid_cursor' });
+  });
+
+  it('tenant isolation: another tenant\'s blocks never appear, even with their case_id', async () => {
+    const f = mkCase({ tenant: OTHER_T }); mkBlock(f, 1);
+    expect((await blockList()).body.data).toEqual([]);
+    expect((await blockList({ case_id: f.caseId })).body.data).toEqual([]);
+  });
+
+  it('read-only: nothing written', async () => {
+    const c = mkCase(); mkBlock(c, 1); const before = state();
+    await blockList({ limit: '1' });
     expect(state()).toBe(before);
   });
 });

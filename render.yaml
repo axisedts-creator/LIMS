@@ -42,3 +42,19 @@ services:
         sync: false
       - key: LIMS_IDENTITY_GOTRUE_SERVICE_KEY
         sync: false
+      - key: LIMS_IDENTITY_EMAIL_HMAC_KEY
+        sync: false
+      - key: LIMS_IDENTITY_TOKEN_ENC_KEYS
+        sync: false
+      - key: LIMS_REPORTING_OTP_HMAC_KEY_FILE
+        sync: false
+      - key: LIMS_INSTRUMENTS_CONFIG_SIGNING_KEY_FILE
+        sync: false
+      - key: LIMS_INSTRUMENTS_CONFIG_SIGNING_KEY_ID
+        sync: false
+      - key: LIMS_INSTRUMENTS_RELEASES_DIR
+        sync: false
+      - key: LIMS_ORIGIN_PORTAL
+        sync: false
+      - key: LIMS_ORIGIN_STAFF_WEB
+        sync: false

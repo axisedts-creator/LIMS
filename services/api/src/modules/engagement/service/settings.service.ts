@@ -80,7 +80,7 @@ function parseInput(body: unknown): Record<string, unknown> {
 }
 
 /** If-Match arrives as the raw header '"<version>"' (02-CV §4.2): absent -> 428, malformed -> 400. */
-function parseIfMatch(headers: unknown): number {
+export function parseIfMatch(headers: unknown): number {
   const h = isObj(headers) ? headers['if-match'] : undefined;
   if (h === undefined) throw new LimsError('common.precondition_required');
   const m = typeof h === 'string' ? /^"([1-9][0-9]{0,9})"$/.exec(h) : null;

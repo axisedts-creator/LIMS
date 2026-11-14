@@ -98,15 +98,18 @@ class LimsSlotPicker extends StatelessWidget {
 }
 
 class LimsSegmentedControl<T> extends StatelessWidget {
-  const LimsSegmentedControl({super.key, required this.options, required this.value, required this.onChanged});
+  const LimsSegmentedControl({super.key, required this.options, required this.value, required this.onChanged, this.disabled = const {}});
 
   final List<({T value, String label})> options;
   final T value;
   final ValueChanged<T> onChanged;
 
+  /// Options rendered disabled (LD-164, CR-C16-T-L6 item 3). Default empty: every option enabled.
+  final Set<T> disabled;
+
   @override
   Widget build(BuildContext context) => SegmentedButton<T>(
-        segments: [for (final o in options) ButtonSegment<T>(value: o.value, label: Text(o.label))],
+        segments: [for (final o in options) ButtonSegment<T>(value: o.value, label: Text(o.label), enabled: !disabled.contains(o.value))],
         selected: {value},
         onSelectionChanged: (s) => onChanged(s.first),
         style: const ButtonStyle(minimumSize: WidgetStatePropertyAll(Size(LimsTokens.touchTargetFlutter, LimsTokens.touchTargetFlutter))),

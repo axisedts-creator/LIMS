@@ -10512,6 +10512,7 @@ export interface operations {
               relationship: "self" | "child" | "parent" | "spouse" | "sibling" | "other";
               method: "link_code" | "report_link" | "self_registered";
               status: "active" | "pending";
+              version: number;
               history_from?: string;
               patient_code?: string;
             })[];
@@ -12636,6 +12637,7 @@ export interface operations {
             relationship: "self" | "child" | "parent" | "spouse" | "sibling" | "other";
             method: "link_code" | "report_link" | "self_registered";
             status: "active" | "pending";
+            version: number;
             history_from?: string;
             patient_code?: string;
           };
@@ -12650,6 +12652,7 @@ export interface operations {
             relationship: "self" | "child" | "parent" | "spouse" | "sibling" | "other";
             method: "link_code" | "report_link" | "self_registered";
             status: "active" | "pending";
+            version: number;
             history_from?: string;
             patient_code?: string;
           };
@@ -12837,6 +12840,7 @@ export interface operations {
             relationship: "self" | "child" | "parent" | "spouse" | "sibling" | "other";
             method: "link_code" | "report_link" | "self_registered";
             status: "active" | "pending";
+            version: number;
             history_from?: string;
             patient_code?: string;
           };
@@ -12851,6 +12855,7 @@ export interface operations {
             relationship: "self" | "child" | "parent" | "spouse" | "sibling" | "other";
             method: "link_code" | "report_link" | "self_registered";
             status: "active" | "pending";
+            version: number;
             history_from?: string;
             patient_code?: string;
           };
@@ -16127,6 +16132,7 @@ export interface operations {
             relationship: "self" | "child" | "parent" | "spouse" | "sibling" | "other";
             method: "link_code" | "report_link" | "self_registered";
             status: "active" | "pending";
+            version: number;
             history_from?: string;
             patient_code?: string;
           };

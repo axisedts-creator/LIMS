@@ -10,11 +10,13 @@ import { handle as specimenRejected } from './consumers/lab.specimen.rejected.v1
 import { handle as reportReleased } from './consumers/reporting.report.released.v1.js';
 import { handle as balanceChanged } from './consumers/billing.balance.changed.v1.js';
 import { MARK_NO_SHOWS, RECONCILE_BOOKINGS, markNoShows, reconcileBookings } from './tasks/booking_jobs.js';
+import { EXPIRE_MEMBERSHIPS, expireMemberships } from './tasks/expire_memberships.js';
 import { createBackfillLink } from './tasks/backfill_link.js';
 import { createDispatchDueReminders } from './tasks/dispatch_due_reminders.js';
 import { createFetchSmartSummary } from './tasks/fetch_smart_summary.js';
 import { PURGE_EPHEMERAL, PURGE_QUEUE, purgeEphemeral, purgeQueue } from './tasks/purge.js';
 import { SYNC_BOOKING_CENTRES, SYNC_BOOKING_CENTRES_NIGHTLY, syncBookingCentres, syncBookingCentresNightly } from './tasks/sync_booking_centres.js';
+import { createCreateSelfPatient } from './tasks/create_self_patient.js';
 import { EXPIRE_PAYMENT_REQUESTS, createCreatePaymentIntent, createRefreshPaymentRequest, expirePaymentRequests } from './tasks/payment_tasks.js';
 import { createSendLoginOtp } from './tasks/send_login_otp.js';
 import { createSendBookingMessage } from './tasks/send_booking_message.js';
@@ -44,6 +46,7 @@ export const manifest: WorkerManifest = Object.freeze({
     [CLOSE_QUEUE_DAY]: closeQueueDay, // T-Q2: close_queue_day
     [RECONCILE_LINKS]: reconcileLinks, // T-L5 (cron-only)
     'engagement.send_login_otp': createSendLoginOtp(), // T-A2
+    'engagement.create_self_patient': createCreateSelfPatient(), // T-L4
     'engagement.backfill_link': createBackfillLink(), // T-L2
     'engagement.fetch_smart_summary': createFetchSmartSummary(), // T-P4
     'engagement.create_payment_intent': createCreatePaymentIntent(), // T-PAY1
@@ -60,6 +63,7 @@ export const manifest: WorkerManifest = Object.freeze({
     [SYNC_NIGHTLY]: syncBookableItemsNightly, // T-B1 (cron-only task: no §8.1 row)
     [RECONCILE_BOOKINGS]: reconcileBookings, // T-B4 (cron-only)
     [MARK_NO_SHOWS]: markNoShows, // T-B4 (cron-only)
+    [EXPIRE_MEMBERSHIPS]: expireMemberships, // T-M1 (cron-only)
   }),
   subscriptions: Object.freeze({
     ...Object.fromEntries(SUBSCRIPTIONS.map((type) => [type, consumer(type)])),

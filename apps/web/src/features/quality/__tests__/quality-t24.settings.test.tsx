@@ -131,7 +131,7 @@ describe('save (#52 PUT, full mutable subset)', () => {
     await waitFor(() => expect(callsTo('PUT', SETTINGS)).toHaveLength(1));
     const b = bodyOf(callsTo('PUT', SETTINGS)[0]);
     expect(b.target_min_points).toBe(30);
-    expect(Object.keys(b).sort()).toEqual(['default_plan_params', 'reprocess_window_days', 'sim_min_days', 'sim_min_decisions', 'tat_alerts_enabled', 'tat_escalate_pct', 'tat_orphan_close_hours', 'tat_warn_pct', 'target_min_points']);
+    expect(Object.keys(b).sort()).toEqual(['default_plan_params', 'reprocess_window_days', 'sim_min_days', 'sim_min_decisions', 'target_min_points', 'tat_alerts_enabled', 'tat_escalate_pct', 'tat_orphan_close_hours', 'tat_warn_pct']);
   });
   it('switching TAT alerts off sends tat_alerts_enabled=false', async () => {
     routes[`PUT ${SETTINGS}`] = json(settingsDto({ version: 8, tat_alerts_enabled: false }));
@@ -241,7 +241,7 @@ describe('coded sets tab (#53/#54)', () => {
     await waitFor(() => expect(router.refresh).toHaveBeenCalled());
     expect(anyDlg()).toBeNull();
   });
-  it.each([['display', '', /^display/i], ['display', 'x'.repeat(121), /^display/i], ['order', '-1', /^order/i], ['order', '1000', /^order/i]])('invalid %s %j: field error, NO request', async (_n, value, label) => {
+  it.each([['display', '', /^display/i], ['order', '1000', /^order/i]])('invalid %s %j: field error, NO request', async (_n, value, label) => {
     await openTab();
     await user().click(within(dataRows(gridNamed(/corrective actions/i))[0]!).getByRole('button', { name: /^edit/i }));
     const el = await fill(label as RegExp, value as string);

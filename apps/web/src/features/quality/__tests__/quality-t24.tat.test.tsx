@@ -202,16 +202,16 @@ describe('AC-14.6 — acknowledged-by/at and re-raise', () => {
     await waitFor(() => expect(callsTo('POST', ACK(TAT_1))).toHaveLength(1));
     expect(bodyOf(callsTo('POST', ACK(TAT_1))[0])).toEqual({ note: 'analyser queue backlog, re-run in progress' });
   });
-  it('a note over 500 characters is refused in the dialog; nothing is sent', async () => {
+  // Ruling C9.T-24: kit TextArea has native maxlength=500, so a 501 paste is cut to 500 and the POST is valid (as T-21, LD-178).
+  it('a 501-character paste is cut to 500 by the kit TextArea; exactly one POST with a 500-char note', async () => {
+    routes[`POST ${ACK(TAT_1)}`] = json(tatAlert());
     await show(PAGE);
     await user().click(within(rowOf('GLU')).getByRole('button', { name: /acknowledge/i }));
-    const el = field(/^note/i);
-    await user().click(el);
+    await user().click(field(/^note/i));
     await user().paste('x'.repeat(501));
     await user().click(within(dlg()).getByRole('button', { name: /^acknowledge/i }));
-    expect(callsTo('POST', ACK(TAT_1))).toHaveLength(0);
-    expect(anyDlg()).not.toBeNull();
-    expect(el.getAttribute('aria-invalid') === 'true' || !!el.closest('.lims-field')?.querySelector('.lims-error')).toBe(true);
+    await waitFor(() => expect(callsTo('POST', ACK(TAT_1))).toHaveLength(1));
+    expect((bodyOf(callsTo('POST', ACK(TAT_1))[0]).note as string).length).toBe(500);
   });
   it('409 common.immutable_record (clock stopped meanwhile): the dialog shows an error, nothing is refreshed as success', async () => {
     routes[`POST ${ACK(TAT_1)}`] = () => problem('common.immutable_record', 409);

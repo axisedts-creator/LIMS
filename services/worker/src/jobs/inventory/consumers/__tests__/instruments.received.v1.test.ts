@@ -362,7 +362,7 @@ describe.skipIf(!live)('T-17 AC-21.7 / D-74 instrument_qc_daily.qc_observations:
   run('consumption_enabled_at NULL: qc_observations counts mapped AND unmapped events; no fact, no movement, no qc_events, no tests counters', async (s) => {
     await enable(s, null); await qc(s); await qc(s, { mapping_status: 'unmapped', analyte_id: undefined }); await qc(s, { analyte_id: AOTH });
     expect(await qcObs(s, IB1)).toBe(3); expect(await count(s, 'consumption_facts', "fact_kind = 'qc' AND instrument_id = $2", [IB1])).toBe(0); expect(await count(s, 'stock_movements', 'instrument_id = $2 AND occurred_at = $3::timestamptz', [IB1, V1])).toBe(0);
-    expect(await count(s, 'test_counts_daily', 'qc_events > 0')).toBe(0); expect(await count(s, 'alerts', "alert_kind = 'unresolved_consumption'")).toBe(0);
+    expect(await count(s, 'test_counts_daily', 'qc_events > 0 AND business_date = $2', [V1_BD])).toBe(0); expect(await count(s, 'alerts', "alert_kind = 'unresolved_consumption'")).toBe(0);
   });
   run('received_at before the enable instant: counted only; at the enable instant: processed; the counter is not back-filled when the switch is turned on later', async (s) => {
     await enable(s, V1); const early = await qc(s, { received_at: '2026-11-13T18:59:59.999Z' }); expect(await factsLike(s, `qc:${sha(early.idempotency_key)}`)).toEqual([]); expect(await qcObs(s, IB1)).toBe(1);
@@ -370,10 +370,10 @@ describe.skipIf(!live)('T-17 AC-21.7 / D-74 instrument_qc_daily.qc_observations:
   });
   run('business date = received_at in the TENANT timezone (UTC 18:14:59 -> 11-13, 18:15:00 -> 11-14); one counter row per (date, instrument); other instruments do not share a row', async (s) => {
     await enable(s, null); await qc(s, { received_at: '2026-11-13T18:14:59.000Z' }); await qc(s, { received_at: '2026-11-13T18:15:00.000Z' }); await qc(s, { received_at: V1 }); await qc(s, { instrument_id: IB3, centre_id: CEN1 });
-    expect(await qcObs(s, IB1, '2026-11-13')).toBe(1); expect(await qcObs(s, IB1, '2026-11-14')).toBe(2); expect(await qcObs(s, IB3, '2026-11-14')).toBe(1); expect(await count(s, 'instrument_qc_daily', 'instrument_id = $2', [IB1])).toBe(2);
+    expect(await qcObs(s, IB1, '2026-11-13')).toBe(1); expect(await qcObs(s, IB1, '2026-11-14')).toBe(2); expect(await qcObs(s, IB3, '2026-11-14')).toBe(1); expect(await count(s, 'instrument_qc_daily', "instrument_id = $2 AND business_date >= '2026-11-13'", [IB1])).toBe(2);
   });
   run('the counter row is created on first use and the facts are written with the event business date (same date as the counter)', async (s) => {
-    await enable(s, ENABLED); expect(await count(s, 'instrument_qc_daily', 'instrument_id = $2', [IB1])).toBe(0); const e = await qc(s); expect(await count(s, 'instrument_qc_daily', 'instrument_id = $2', [IB1])).toBe(1);
+    await enable(s, ENABLED); expect(await count(s, 'instrument_qc_daily', "instrument_id = $2 AND business_date >= '2026-11-13'", [IB1])).toBe(0); const e = await qc(s); expect(await count(s, 'instrument_qc_daily', "instrument_id = $2 AND business_date >= '2026-11-13'", [IB1])).toBe(1);
     expect((await factOf(s, `qc:${sha(e.idempotency_key)}`)).bd).toBe(V1_BD);
   });
   run('QC events never touch the result-side counters: tests_counted / verified_result_events / rerun_events stay 0 for the attributed test', async (s) => {
@@ -387,7 +387,7 @@ describe.skipIf(!live)('T-17 calibration -> per_calibration facts', () => {
     await enable(s, ENABLED); const before = await balance(s, SB, ICAL); const p = calPayload(); const e = envelope('cal', p); await deliver('cal', s, e); const f = await factOf(s, `cal:${sha(e.idempotency_key)}`);
     expect(f).toMatchObject({ fact_kind: 'calibration', source: 'event', source_event_id: e.event_id, source_event_type: E_CAL, instrument_id: IB1, test_id: TG, centre_id: CEN1, status: 'posted', store_id: SB, rules_applied: 1, bd: V1_BD });
     const ms = await movesOf(s, f.id); expect(ms).toHaveLength(1); expect(ms[0]).toMatchObject({ kind: 'consume_calibration', store_id: SB, item_id: ICAL, instrument_id: IB1, attributed_test_id: TG, rule_id: ruleId(R.cal1), bd: V1_BD }); expect(n(ms[0].q)).toBe(-2);
-    expect(await balance(s, SB, ICAL)).toBe(before - 2); expect(await count(s, 'test_counts_daily', 'test_id = $2', [TG])).toBe(0); expect(await qcObs(s, IB1)).toBe(0);
+    expect(await balance(s, SB, ICAL)).toBe(before - 2); expect(await count(s, 'test_counts_daily', 'test_id = $2 AND business_date = $3', [TG, V1_BD])).toBe(0); expect(await qcObs(s, IB1)).toBe(0);
   });
   it.each([
     ['unmapped', (p: Record<string, unknown>) => { const { test_id: _t, analyte_id: _a, ...q } = p; return { ...q, mapping_status: 'unmapped' }; }],
@@ -404,7 +404,7 @@ describe.skipIf(!live)('T-17 calibration -> per_calibration facts', () => {
     await enable(s, null); const b = await snapshot(s); await cal(s); expect(await snapshot(s)).toBe(b);
     await enable(s, V1); await cal(s, { received_at: '2026-11-13T18:59:59.999Z' }); expect(await snapshot(s)).toBe(b);
     await cal(s, { received_at: V1, calibrator_id_raw: 'SYN-CALIB-4242', calibrator_lot_raw: 'SYN-CALLOT-777' });
-    const rows = await s.sql("SELECT row_to_json(f)::text AS j FROM inventory.consumption_facts f WHERE tenant_id = $1 AND fact_kind = 'calibration' AND instrument_id = $2", [A, IB1]);
+    const rows = await s.sql("SELECT row_to_json(f)::text AS j FROM inventory.consumption_facts f WHERE tenant_id = $1 AND fact_kind = 'calibration' AND instrument_id = $2 AND business_date = $3", [A, IB1, V1_BD]);
     expect(rows).toHaveLength(1); for (const x of ['SYN-CALIB-4242', 'SYN-CALLOT-777']) { expect(rows[0].j).not.toContain(x); expect(s.logs.join('\n')).not.toContain(x); }
   });
 });

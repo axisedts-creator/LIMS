@@ -1,0 +1,13 @@
+{"name": "metis-q03-id-mismatch", "protocol": "hl7v2", "transport": "tcp_server", "instrument_profile": "getein_metis", "options": {},
+ "steps": [
+  {"note": "server stub answers OK then the details reply, whose control id is 61", "host_query": {"reply": [
+   "MSH|^~\\&|||||20261114||QCK^Q02|61|P|2.3.1||||||UTF8|||<CR>MSA|AA|61|Message accepted|||0|<CR>ERR|0|<CR>QAK|SR|OK|<CR>",
+   "MSH|^~\\&|||||20261114||DSR^Q03|61|P|2.3.1||||||UTF8|||<CR>MSA|AA|61|Message accepted|||0|<CR>ERR|0|<CR>QAK|SR|OK|<CR>QRD|20261114|R|D|9|||RD||OTH|||T|<CR>QRF||||||RCT|COR|ALL||<CR>DSP|1||V000123|||<CR>DSP|2|||||<CR>DSP|3||Test Patient|||<CR>DSP|4||19880912|||<CR>DSP|5||F|||<CR>DSP|21||MT2600000042|||<CR>DSP|23||20261114|||<CR>DSP|24||N|||<CR>DSP|26||serum|||<CR>DSP|29||0^^^|||<CR>DSP|30||1^^^|||<CR>DSC||<CR>"]}},
+  {"from": "instrument", "bytes": "<VT>MSH|^~\\&|||||20261114||QRY^Q02|61|P|2.3.1||||||UTF8|||<CR>QRD|20261114|R|D|9|||RD|MT2600000042|OTH|||T|<CR>QRF||||||RCT|COR|ALL||<CR><FS><CR>"},
+  {"expect": "agent", "bytes": "<VT>MSH|^~\\&|||||20261114||QCK^Q02|61|P|2.3.1||||||UTF8|||<CR>MSA|AA|61|Message accepted|||0|<CR>ERR|0|<CR>QAK|SR|OK|<CR><FS><CR><VT>MSH|^~\\&|||||20261114||DSR^Q03|61|P|2.3.1||||||UTF8|||<CR>MSA|AA|61|Message accepted|||0|<CR>ERR|0|<CR>QAK|SR|OK|<CR>QRD|20261114|R|D|9|||RD||OTH|||T|<CR>QRF||||||RCT|COR|ALL||<CR>DSP|1||V000123|||<CR>DSP|2|||||<CR>DSP|3||Test Patient|||<CR>DSP|4||19880912|||<CR>DSP|5||F|||<CR>DSP|21||MT2600000042|||<CR>DSP|23||20261114|||<CR>DSP|24||N|||<CR>DSP|26||serum|||<CR>DSP|29||0^^^|||<CR>DSP|30||1^^^|||<CR>DSC||<CR><FS><CR>", "within_ms": 200},
+  {"note": "addendum s6: the analyser's ACK carries MSA-2 99, not the details reply id; accepted (ReplyAckMatchControlId false)", "from": "instrument", "bytes": "<VT>MSH|^~\\&|||||20261114||ACK^Q03|99|P|2.3.1||||||UTF8|||<CR>MSA|AA|99|Message accepted|||0|<CR>ERR|0|<CR><FS><CR>"},
+  {"note": "accepted and consumed: no reply, no resend", "expect": "agent", "bytes": "", "within_ms": 200},
+  {"note": "the session is free again: the next result is acknowledged", "from": "instrument", "bytes": "<VT>MSH|^~\\&|GP|Metis|||20261114||ORU^R01|57|P|2.3.1||||0||UTF8|||<CR>PID|1|V000123||||19880912|F<CR>OBR|1|MT2600000042|7|^|N|20261114|20261114|||||||20261114|serum<CR>OBX|1|NM|0|ALT|31.2|U/L|0-40|N|||F||31.2|20261114|||0<CR><FS><CR>"},
+  {"expect": "agent", "bytes": "<VT>MSH|^~\\&|LIS|LIMS|||{now}||ACK^R01|57|P|2.3.1||||0||UTF8|||<CR>MSA|AA|57|Message accepted|||0|<CR><FS><CR>", "within_ms": 200},
+  {"expect_queue": {"items": 2, "kind": "data", "raw_sha256": "f43bbc463bb448a675f72c22fba22b578362fd6e6900f1805d4b69b486fc26ec"}}
+ ]}

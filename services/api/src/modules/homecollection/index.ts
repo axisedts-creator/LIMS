@@ -27,6 +27,9 @@ import { handler as requestDeviceWipe } from './handlers/requestDeviceWipe.js';
 import { handler as revealHomeVisitPhone } from './handlers/revealHomeVisitPhone.js';
 import { handler as signOffPhleboDevice } from './handlers/signOffPhleboDevice.js';
 import { handler as updateHomecollectionSettings } from './handlers/updateHomecollectionSettings.js';
+import { handler as listHandovers } from './handlers/listHandovers.js';
+import { handler as getHandover } from './handlers/getHandover.js';
+import { handler as confirmHandover } from './handlers/confirmHandover.js';
 
 const OPERATION_IDS = [
   'listHomeVisits', 'getHomeVisit', 'assignHomeVisit', 'unassignHomeVisit', 'scheduleHomeVisit', 'cancelHomeVisit', 'createHomeRevisit',
@@ -53,6 +56,7 @@ const implemented: Partial<Record<HomecollectionOperationId, Handler>> = {
   getSyncSnapshot, ackSync,   // HC-T11: A2, A4
   pushSyncMutations,   // HC-T12: A3
   reviewHeldCollection,   // HC-T13: H9
+  listHandovers, getHandover, confirmHandover,   // HC-T14: H13-H15
 };
 
 const handlers = Object.freeze(

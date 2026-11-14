@@ -1,0 +1,2 @@
+- Cause: test a19_addresses_test.dart:33 re-pumps same widget tree after mutating the fake; state reused, no E37 refetch. Not an impl bug.
+- Fix: none in impl (tests untouchable). Dispute written to .orchestra/notes/T-BK1-dispute.md.

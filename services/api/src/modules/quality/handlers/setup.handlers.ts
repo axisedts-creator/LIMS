@@ -7,11 +7,11 @@ import { createSetupService, type Result, type SetupCtx } from '../service/setup
 
 const setup = createSetupService();   // methods are looked up per call
 
-const obj = (v: unknown): Record<string, any> => (typeof v === 'object' && v !== null && !Array.isArray(v) ? (v as Record<string, any>) : {});
+export const obj = (v: unknown): Record<string, any> => (typeof v === 'object' && v !== null && !Array.isArray(v) ? (v as Record<string, any>) : {});
 const authed = (c: Partial<SetupCtx> | undefined): boolean => typeof c?.tenantId === 'string' && typeof c.actor?.id === 'string' && !!c.tx;
 
 /** If-Match: "<version>". Absent -> undefined (the service answers 428); malformed -> 400 here. */
-function ifMatch(req: HandlerRequest): number | undefined {
+export function ifMatch(req: HandlerRequest): number | undefined {
   const h = obj(req.headers)['if-match'];
   if (h === undefined) return undefined;
   const m = typeof h === 'string' ? /^"([1-9][0-9]{0,9})"$/.exec(h) : null;
@@ -23,7 +23,7 @@ function ifMatch(req: HandlerRequest): number | undefined {
 }
 
 /** etag: single-object responses only (lists carry no version). */
-const staff = (fn: (c: SetupCtx, req: HandlerRequest) => Promise<Result>, o: { etag?: boolean } = {}): Handler =>
+export const staff = (fn: (c: SetupCtx, req: HandlerRequest) => Promise<Result>, o: { etag?: boolean } = {}): Handler =>
   (async (req: HandlerRequest, hctx: HandlerContext) => {
     const c = hctx as unknown as Partial<SetupCtx>;
     if (!authed(c)) throw new LimsError('auth.unauthenticated');

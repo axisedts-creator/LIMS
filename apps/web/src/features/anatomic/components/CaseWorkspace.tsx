@@ -1,6 +1,6 @@
 'use client';
 // 04-UI-UX §4.2 Case workspace shell: PageHeader (breadcrumbs, status chip, Actions menu, one primary stage button) → banners → DescriptionList → Tabs
-// (Overview + Parts & gross in T-19; Blocks & slides, Stains and Images in T-20; Molecular and Report arrive with T-21+). AC-13.4 (highlight ids are inert here), REQ-SEC-081/088.
+// (Overview + Parts & gross in T-19; Blocks & slides, Stains and Images in T-20; Molecular in T-22; Report arrives with T-21+). AC-13.4 (highlight ids are inert here), REQ-SEC-081/088.
 // LD-140 (2026-11-13, binding): kit components and token class names only — no hex colours, pixel radii or inline style objects; exactly one primary
 // button on the page (the next stage of the case); every status shows tone, icon and word (see common.tsx Chip). Server text is rendered as text, never HTML.
 import { useEffect, useRef, useState } from 'react';
@@ -22,11 +22,14 @@ import { cancelCaseAction, listCancelReasonsAction, transitionCaseAction } from 
 import type { CaseDetail, CaseItem, CodedValue, TextTemplate, TransitionOp } from '../server/types';
 import { ImagesTab } from './images/ImagesTab';
 import { BlocksSlidesTab } from './material/BlocksSlidesTab';
+import { MolecularTab } from './molecular/MolecularTab';
 import { StainsTab } from './material/StainsTab';
 import { PartsTab } from './PartsTab';
 import { Chip, FailNotice, KIND_LABEL, STATUS, StatusLabel, UrgentChip, newKey, usePageShortcuts, When, type Fail, type Tone } from './common';
 
 const PAGE_ID = 'staff.anatomic.case';
+/** Forms Alt+S can submit: the part forms (T-19) and the Molecular tab form (T-22). */
+const SAVE_FORMS = 'form[data-testid^="part-form-"], form[data-testid="molecular-form"]';
 type TabId = 'overview' | 'parts' | 'blocks' | 'stains' | 'images' | 'molecular' | 'report';
 
 /** allowed_actions → menu label. `work` = also needs anatomic.case.work in the browser (defence in depth; the API decides). `later` = dialog lands with a later task. */
@@ -147,8 +150,8 @@ export function CaseWorkspace({ detail, permissions, templates = [] }: { detail:
         key: 'Alt+S',
         description: 'Save the form you are working in',
         run: () => {
-          const forms = document.querySelectorAll<HTMLFormElement>('form[data-testid^="part-form-"]');
-          const mine = (document.activeElement as HTMLElement | null)?.closest?.('form[data-testid^="part-form-"]') as HTMLFormElement | null;
+          const forms = document.querySelectorAll<HTMLFormElement>(SAVE_FORMS);
+          const mine = (document.activeElement as HTMLElement | null)?.closest?.(SAVE_FORMS) as HTMLFormElement | null;
           (mine ?? (forms.length === 1 ? forms[0] : null))?.requestSubmit();
         },
       },
@@ -245,7 +248,8 @@ export function CaseWorkspace({ detail, permissions, templates = [] }: { detail:
         {tab === 'blocks' ? <BlocksSlidesTab detail={detail} canWork={canWork} onFail={report} onMfa={() => setMfa(true)} /> : null}
         {tab === 'stains' ? <StainsTab detail={detail} canWork={canWork} onFail={report} onMfa={() => setMfa(true)} /> : null}
         {tab === 'images' ? <ImagesTab detail={detail} canWork={canWork} onFail={report} onMfa={() => setMfa(true)} /> : null}
-        {tab === 'molecular' || tab === 'report' ? <EmptyState title="Nothing to show here yet" body="This section is not available in this version of the workspace." /> : null}
+        {tab === 'molecular' ? <MolecularTab detail={detail} canWork={canWork} onFail={report} onMfa={() => setMfa(true)} /> : null}
+        {tab === 'report' ? <EmptyState title="Nothing to show here yet" body="This section is not available in this version of the workspace." /> : null}
       </Tabs>
 
       {can('accessionAnatomicCase') ? (

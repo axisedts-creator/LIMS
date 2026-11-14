@@ -37,6 +37,39 @@ export async function getActiveCentreId(tx: Tx, tenantId: string, centreId: stri
   return rows[0]?.id ?? null;
 }
 
+export interface HandoverPageFilter {
+  statuses?: readonly string[]; toCentreId?: string; handedOverFrom?: string; handedOverTo?: string;
+  after?: { key: string; id: string }; limit: number;
+}
+
+/**
+ * HC-T14 H13: newest first, keyset on (handed_over_at, id). Counts come from handover_items only (D-125: no visit-side table). RLS narrows to the caller's to_centre_id scope.
+ * `cursor_key` = handed_over_at as text (microsecond precision) for the cursor. Returns limit + 1 rows at most so the caller can tell there is a next page.
+ */
+export async function listHandoversPage(tx: Tx, tenantId: string, f: HandoverPageFilter): Promise<{ rows: any[]; hasMore: boolean }> {
+  const values: unknown[] = [tenantId];
+  const where = ['h.tenant_id = $1'];
+  const add = (sql: string, v: unknown) => { values.push(v); where.push(sql.replace('$$', `$${values.length}`)); };
+  if (f.statuses) add('h.status = ANY($$::text[])', [...f.statuses]);
+  if (f.toCentreId) add('h.to_centre_id = $$::uuid', f.toCentreId);
+  if (f.handedOverFrom) add('h.handed_over_at >= $$::timestamptz', f.handedOverFrom);
+  if (f.handedOverTo) add('h.handed_over_at <= $$::timestamptz', f.handedOverTo);
+  if (f.after) { values.push(f.after.key, f.after.id); where.push(`(h.handed_over_at, h.id) < ($${values.length - 1}::timestamptz, $${values.length}::uuid)`); }
+  values.push(f.limit + 1);
+  const { rows } = await tx.query(
+    `SELECT h.*, h.handed_over_at::text AS cursor_key,
+       (SELECT count(*)::int FROM homecollection.handover_items i WHERE i.tenant_id = h.tenant_id AND i.handover_id = h.id) AS item_count,
+       (SELECT count(*)::int FROM homecollection.handover_items i WHERE i.tenant_id = h.tenant_id AND i.handover_id = h.id AND i.outcome = 'received') AS received_count
+     FROM homecollection.handovers h WHERE ${where.join(' AND ')} ORDER BY h.handed_over_at DESC, h.id DESC LIMIT $${values.length}`, values);
+  return { rows: rows.slice(0, f.limit), hasMore: rows.length > f.limit };
+}
+
+/** HC-T14 H15 (D-125, 02-TRD §10): queue homecollection.flag_handover_discrepancy in the caller's tx; job_key flag_handover_discrepancy:<handover_id> = one pending job per handover. */
+export async function enqueueFlagHandoverDiscrepancy(tx: Tx, tenantId: string, handoverId: string): Promise<void> {
+  await tx.query('SELECT app.enqueue_job($1, $2::jsonb, $3)',
+    ['homecollection.flag_handover_discrepancy', JSON.stringify({ tenant_id: tenantId, handover_id: handoverId }), `flag_handover_discrepancy:${handoverId}`]);
+}
+
 export async function listHandoverItemsByHandover(tx: Tx, tenantId: string, handoverId: string): Promise<any[]> {
   const { rows } = await tx.query('SELECT * FROM homecollection.handover_items WHERE tenant_id = $1 AND handover_id = $2 ORDER BY created_at, id', [tenantId, handoverId]);
   return rows;

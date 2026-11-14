@@ -1,0 +1,1 @@
+cd /d "%~dp0..\.." && pnpm --dir services/api exec vitest run src/modules/engagement/service/__tests__/account.handlers.test.ts && cd /d "%~dp0..\..\apps\patient_app" && call flutter test test/features/settings

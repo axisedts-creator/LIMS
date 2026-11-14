@@ -548,6 +548,7 @@ paths:
                         status: active
                         history_from: 2026-03-01T04:15:00.000Z
                         patient_code: SYN-000123
+                        version: 1
                     pending:
                       - id: 01950c16-0000-7000-8000-000000000006
                         relationship: self
@@ -634,6 +635,7 @@ paths:
                     status: active
                     history_from: 2026-03-01T04:15:00.000Z
                     patient_code: SYN-000123
+                    version: 1
           headers:
             Cache-Control:
               $ref: "#/components/headers/CacheControlNoStore"
@@ -653,6 +655,7 @@ paths:
                     status: active
                     history_from: 2026-03-01T04:15:00.000Z
                     patient_code: SYN-000123
+                    version: 1
           headers:
             Cache-Control:
               $ref: "#/components/headers/CacheControlNoStore"
@@ -735,6 +738,7 @@ paths:
                     status: active
                     history_from: 2026-03-01T04:15:00.000Z
                     patient_code: SYN-000123
+                    version: 1
           headers:
             Cache-Control:
               $ref: "#/components/headers/CacheControlNoStore"
@@ -754,6 +758,7 @@ paths:
                     status: active
                     history_from: 2026-03-01T04:15:00.000Z
                     patient_code: SYN-000123
+                    version: 1
           headers:
             Cache-Control:
               $ref: "#/components/headers/CacheControlNoStore"
@@ -1026,6 +1031,7 @@ paths:
                     status: active
                     history_from: 2026-03-01T04:15:00.000Z
                     patient_code: SYN-000123
+                    version: 1
           headers:
             Cache-Control:
               $ref: "#/components/headers/CacheControlNoStore"
@@ -8155,6 +8161,7 @@ components:
         - relationship
         - method
         - status
+        - version
       properties:
         profile_id:
           $ref: _common.yaml#/components/schemas/Uuid
@@ -8184,6 +8191,8 @@ components:
           enum:
             - active
             - pending
+        version:
+          $ref: _common.yaml#/components/schemas/Version
         history_from:
           $ref: _common.yaml#/components/schemas/IsoUtc
         patient_code:

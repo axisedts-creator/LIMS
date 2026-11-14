@@ -75,7 +75,7 @@ func TestH80E_NearMissCodesFallBackToGenericHL7(t *testing.T) {
 // (or the explicit "each"), and nothing else about them changed.
 func TestH80E_OtherProfilesKeepTodaysBehaviour(t *testing.T) {
 	for _, code := range Codes() {
-		if code == "truth_h80e" {
+		if code == "truth_h80e" || code == "getein_metis" {
 			continue
 		}
 		proto := map[string]string{"astm_generic_e1394": "astm", "file_drop_generic": "file_drop"}[code]

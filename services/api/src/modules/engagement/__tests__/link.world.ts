@@ -5,7 +5,9 @@
 //   INSERT INTO t (cols) VALUES (..)[, (..)] [ON CONFLICT [(cols)] DO NOTHING | DO UPDATE SET c = expr, .. [WHERE ..]] [RETURNING ..]       UPDATE t SET c = expr, .. WHERE .. [RETURNING ..]
 //   expr: $n[::type] | 'lit' | NULL | true | false | int | now() | col | col + n | excluded.col | coalesce(a, b, ..)      WHERE term: col (= <> != < <= > >=) expr | col IN (..) | col = ANY($n) | col IS [NOT] NULL
 //   SELECT * FROM app.engagement_redeem_link_code($1::bytea)  (DEFINER, bytea only - a text/hex parameter raises 42883)       SELECT app.engagement_code_redeemed_by_me($1, $2)      SELECT app.enqueue_job($1, $2::jsonb, $3)
+//   DELETE FROM t WHERE tenant_id = $n AND .. [RETURNING ..]  (T-L5; system actor only; t in patient_orders / _order_specimens / _reports / smart_summaries / notifications; cascades orders -> specimens, reports -> smart_summaries)
 //   Views are read-only and must be filtered by tenant_id (REQ-SEC-024): frontdesk.v_pub_order_status, lab.v_pub_specimen_timeline, billing.v_pub_order_balance.
+// T-PAY1 adds `payment_requests` (05-SCHEMA: CHECKs, one open request per order, PAT_ACC select / PAT_ACC_PID insert; comparisons against a computed cutoff must bind it as a parameter: `expires_at < $2`, the fake has no interval arithmetic).
 // DB rules emulated: tenant RLS; patient actor sees only its own account/links and has NO access to link_codes (42501: only the DEFINER reads it); the patient column guard on account_patient_links
 // (05-SCHEMA §4: status suspended->active, visible_from, method, link_code_id by a patient UPDATE -> `immutable_row`, probe P-L9); PAT_LINK_INS (a link_code link needs a code redeemed by the caller,
 // engagement_code_redeemed_by_me); CHECK / UNIQUE of the touched tables; number_counters__key__ck is read from the spec file; rollback on error unless ctx.commitOnError() was called (08 A19 P-42).
@@ -32,7 +34,7 @@ const bare = (c: string) => c.trim().replace(/^\w+\./, '').replace(/"/g, '');
 export const linkCodeHmac = (tenantId: string, code: string): Buffer => createHmac('sha256', readFileSync(process.env['LIMS_ENGAGEMENT_LINK_HMAC_KEY_FILE']!)).update(`${tenantId}:${normalizeLinkCode(code)}`).digest();
 
 // ---- table definitions (05-SCHEMA) -----------------------------------------------------------------------------------------------------------------------------
-interface Def { unique: string[][]; check?: (r: Row, t: Record<string, Row[]>) => string | undefined; defaults?: () => Row; partial?: Array<{ cols: string[]; where: (r: Row) => boolean; name: string }> }
+interface Def { unique: string[][]; conflictPartial?: boolean; check?: (r: Row, t: Record<string, Row[]>) => string | undefined; defaults?: () => Row; partial?: Array<{ cols: string[]; where: (r: Row) => boolean; name: string }> }
 const LIVE = (r: Row) => ['active', 'suspended'].includes(r['status']);
 const RELS = ['self', 'child', 'parent', 'spouse', 'sibling', 'other'];
 const H32 = (v: unknown) => v == null || (bytes(v) && v.length === 32);
@@ -59,6 +61,31 @@ const defs = (now: () => string): Record<string, Def> => ({
       : (r['status'] === 'revoked') !== (r['revoked_by_kind'] != null && r['revoked_at'] != null) ? 'account_patient_links__revoke__ck' : !SEX(r['sex_snapshot']) ? 'account_patient_links__sex__ck'
       : !(typeof r['display_name'] === 'string' && r['display_name'].length >= 1 && r['display_name'].length <= 200) ? 'account_patient_links__name__ck' : !H32(r['record_phone_hmac_at_link']) ? 'account_patient_links__phone_hmac__ck'
       : r['link_code_id'] != null && !t['link_codes']!.some((c) => c['id'] === r['link_code_id'] && c['tenant_id'] === r['tenant_id']) ? 'account_patient_links__code__fk' : undefined,
+  },
+  notifications: { // T-L5 (05-SCHEMA notifications): created by the system actor; dedupe key is NULLS NOT DISTINCT (null entity_id collides too)
+    unique: [['id'], ['tenant_id', 'account_id', 'kind', 'entity_id', 'entity_seq']],
+    defaults: () => ({ entity_seq: 0, read_at: null, patient_id: null, entity_type: null, entity_id: null, route_id: null, created_at: now() }),
+    check: (r, t) => !['report_ready', 'sample_recollection', 'booking_confirmed', 'booking_cancelled', 'booking_reminder', 'payment_completed', 'follow_up_reminder', 'enquiry_reply', 'profile_paused'].includes(r['kind']) ? 'notifications__kind__ck'
+      : r['entity_type'] != null && !['order', 'report', 'booking', 'enquiry', 'reminder', 'profile'].includes(r['entity_type']) ? 'notifications__entity__ck' : r['route_id'] != null && !['patient_app.report', 'patient_app.order', 'patient_app.booking'].includes(r['route_id']) ? 'notifications__route__ck'
+      : ['id', 'account_id', 'created_by', 'expires_at'].some((c) => r[c] == null) ? 'notifications__not_null' : !t['accounts']!.some((a) => a['tenant_id'] === r['tenant_id'] && a['id'] === r['account_id']) ? 'notifications__account__fk' : undefined,
+  },
+  payment_requests: { // T-PAY1 (05-SCHEMA payment_requests): one OPEN (queued/ready) request per order; action_json only while ready; ready needs intent_id + amount_paisa
+    unique: [['id']],
+    partial: [{ cols: ['tenant_id', 'order_id'], where: (r) => ['queued', 'ready'].includes(r['status']), name: 'payment_requests__tenant_id_order_open__p_uq' }],
+    defaults: () => ({ status: 'queued', review: false, intent_id: null, amount_paisa: null, action_json: null, failure_code: null, expires_at: null, version: 1, is_active: true, created_at: now(), updated_at: now() }),
+    check: (r) => !['esewa', 'khalti'].includes(r['gateway']) ? 'payment_requests__gateway__ck' : !['queued', 'ready', 'completed', 'failed', 'expired'].includes(r['status']) ? 'payment_requests__status__ck'
+      : r['status'] !== 'ready' && r['action_json'] != null ? 'payment_requests__action__ck' : r['status'] === 'ready' && (r['intent_id'] == null || r['amount_paisa'] == null) ? 'payment_requests__ready__ck'
+      : r['failure_code'] != null && String(r['failure_code']).length > 64 ? 'payment_requests__failure__ck' : r['amount_paisa'] != null && !(Number(r['amount_paisa']) > 0) ? 'payment_requests__amount__ck'
+      : ['id', 'account_id', 'order_id', 'patient_id', 'idempotency_key', 'created_by', 'updated_by'].some((c) => r[c] == null) ? 'payment_requests__not_null' : undefined,
+  },
+  booking_centres: { unique: [['id'], ['tenant_id', 'centre_id']] }, // T-P2: source of centre_display_name (02-TRD §4.4 / 08 A19 D-119)
+  smart_summaries: { unique: [['id'], ['tenant_id', 'report_id', 'report_version_no']], defaults: () => ({ created_at: now() }) },
+  reminders: { // T-P4 (05-SCHEMA reminders): follow_up rows scheduled from an approved summary; the partial unique (tenant_id, kind, source_ref_id, source_ref_seq) is honoured by a bare `ON CONFLICT DO NOTHING` too (no index-predicate target in this fake)
+    unique: [['id']], conflictPartial: true,
+    partial: [{ cols: ['tenant_id', 'kind', 'source_ref_id', 'source_ref_seq'], where: (r) => r['source_ref_id'] != null, name: 'reminders__tenant_id_source_ref__p_uq' }],
+    defaults: () => ({ reason_code: null, source_ref_id: null, source_ref_seq: 0, status: 'scheduled', sent_at: null, delivery_id: null, failure_code: null, version: 1, is_active: true, created_at: now(), updated_at: now() }),
+    check: (r) => !['custom', 'follow_up', 'booking'].includes(r['kind']) ? 'reminders__kind__ck' : !['staff', 'smart_report', 'booking'].includes(r['source']) ? 'reminders__source__ck' : !['scheduled', 'sent', 'suppressed', 'failed', 'cancelled'].includes(r['status']) ? 'reminders__status__ck'
+      : (r['status'] === 'sent') !== (r['sent_at'] != null) ? 'reminders__sent__ck' : r['kind'] !== 'booking' && r['reason_code'] == null ? 'reminders__reason__ck' : ['patient_id', 'due_at', 'created_by', 'updated_by'].some((c) => r[c] == null) ? 'reminders__not_null' : undefined,
   },
   number_counters: {
     unique: [['tenant_id', 'counter_key']],
@@ -98,7 +125,7 @@ export function makeLinkWorld(opts: WorldOpts = {}) {
   const clock = { t: Date.parse(T0) };
   const now = () => new Date(clock.t).toISOString();
   const D = defs(now);
-  const t: Record<string, Row[]> = { settings: [], accounts: [], link_codes: [], account_patient_links: [], number_counters: [], patient_orders: [], patient_order_specimens: [], patient_reports: [], jobs: [], orders: [], timeline: [], balances: [] };
+  const t: Record<string, Row[]> = { settings: [], accounts: [], link_codes: [], account_patient_links: [], number_counters: [], patient_orders: [], patient_order_specimens: [], patient_reports: [], notifications: [], smart_summaries: [], reminders: [], booking_centres: [], payment_requests: [], jobs: [], orders: [], timeline: [], balances: [] };
   const stmts: Stmt[] = [];
   const viewQueries: Array<{ view: string; text: string; values: unknown[]; limit?: number; offset?: number }> = [];
   const definerCalls: Array<{ fn: string; values: unknown[] }> = [];
@@ -144,6 +171,7 @@ export function makeLinkWorld(opts: WorldOpts = {}) {
     if (table === 'accounts') return r['id'] === a['id'];
     if (table === 'account_patient_links') return r['account_id'] === a['id'];
     if (table === 'link_codes') return false;
+    if (table === 'payment_requests') return r['account_id'] === a['id']; // PAT_ACC (05-SCHEMA §5)
     return true;
   }
   const redeemedByMe = (ctx: any, tenant: string, codeId: unknown, patientId: unknown) => { const a = accountOf(ctx, tenant); return !!a && t['link_codes']!.some((c) => c['tenant_id'] === tenant && c['id'] === codeId && c['patient_id'] === patientId && c['status'] === 'redeemed' && c['redeemed_account_id'] === a['id']); };
@@ -212,7 +240,18 @@ export function makeLinkWorld(opts: WorldOpts = {}) {
     }
     if (!t[name] || !D[name]) { if (schema === 'engagement' || schema === 'core') throw new Error(`fake: table ${name} is not part of the T-L2 world`); return ok([]); }
     if (ctx.actor?.type === 'patient' && name === 'link_codes') throw pgErr('42501', 'permission denied for table link_codes (patient actors have no policy; use app.engagement_redeem_link_code)');
-    if (verb === 'delete') throw new Error(`fake: DELETE on ${name} is not part of T-L2`);
+    if (verb === 'delete') { // T-L5: DELETE FROM t WHERE .. [RETURNING ..]; system actor only (policies *__delete__system, 05-SCHEMA §5; patient actors have no DELETE policy); FK ON DELETE CASCADE: orders -> specimens, reports -> smart_summaries
+      const dm = /^delete\s+from\s+(?:\w+\.)?\w+(?:\s+(?:as\s+)?(?!where\b|returning\b)\w+)?\s*(?:where\s+(.+?))?(?:\s+returning\s+(.+))?$/i.exec(sql);
+      if (!dm) throw new Error(`fake: unsupported DELETE: ${sql}`);
+      if (!['patient_orders', 'patient_order_specimens', 'patient_reports', 'smart_summaries', 'notifications'].includes(name)) throw new Error(`fake: DELETE on ${name} is not part of the world`);
+      if (ctx.actor?.type !== 'system') throw pgErr('42501', `permission denied for DELETE on ${name} (only the system actor has a DELETE policy)`);
+      if (!dm[1] || !/\btenant_id\s*=\s*\$\d+/i.test(dm[1])) throw new Error(`fake: DELETE on ${name} without a tenant_id = $n predicate (REQ-SEC-024)`);
+      const pred = where(dm[1], values); const gone = t[name]!.filter((r) => r['tenant_id'] === tenant && pred(r)); const drop = (tbl: string, f: (r: Row) => boolean) => { const keep = t[tbl]!.filter((r) => !f(r)); t[tbl]!.length = 0; t[tbl]!.push(...keep); }; // in place: tests keep array references
+      drop(name, (r) => gone.includes(r));
+      if (name === 'patient_orders') drop('patient_order_specimens', (s) => gone.some((o) => o['tenant_id'] === s['tenant_id'] && o['order_id'] === s['order_id']));
+      if (name === 'patient_reports') drop('smart_summaries', (s) => gone.some((r) => r['tenant_id'] === s['tenant_id'] && r['report_id'] === s['report_id'] && r['version_no'] === s['report_version_no']));
+      return ok(dm[2] ? gone.map((r) => ({ ...r })) : [], gone.length);
+    }
     // ASSUMED (flagged in .orchestra/notes/T-L2-tests.md): the per-patient limit (TRD §4.3.2 step 4) needs the number of ACTIVE links of ALL accounts of the patient, which the patient policy PAT_ACC hides; the spec names no
     // DEFINER for it, so a `SELECT count(*)` on account_patient_links is answered tenant-wide here. The writer may use any mechanism that gives the same number (or raise a CR).
     const countAll = verb === 'select' && name === 'account_patient_links' && /^select\s+count\(\*\)/i.test(sql);
@@ -242,10 +281,11 @@ export function makeLinkWorld(opts: WorldOpts = {}) {
           if (name === 'account_patient_links' && (!a || row['account_id'] !== a['id'])) throw pgErr('42501', 'RLS: account_patient_links PAT_LINK_INS (account_id = the caller\'s account)');
           if (name === 'account_patient_links' && row['method'] === 'link_code' && !redeemedByMe(ctx, tenant, row['link_code_id'], row['patient_id'])) throw pgErr('42501', 'RLS: PAT_LINK_INS (a link_code link needs a code redeemed by the caller for this patient)');
           if (name === 'account_patient_links' && (row['visible_from'] != null || row['status'] !== 'active') && row['method'] === 'link_code') throw pgErr('42501', 'RLS: PAT_LINK_INS (link_code: visible_from NULL, status active)');
-          if (name !== 'account_patient_links' && name !== 'number_counters') throw pgErr('42501', `RLS: patient actors cannot insert into ${name}`);
+          if (name === 'payment_requests' && (!a || row['account_id'] !== a['id'] || !t['account_patient_links']!.some((l) => l['tenant_id'] === tenant && l['account_id'] === a['id'] && l['patient_id'] === row['patient_id'] && l['status'] === 'active'))) throw pgErr('42501', 'RLS: payment_requests PAT_ACC_PID (account_id = the caller\'s account, patient_id = one of its active links)');
+          if (name !== 'account_patient_links' && name !== 'number_counters' && name !== 'payment_requests') throw pgErr('42501', `RLS: patient actors cannot insert into ${name}`);
         }
         const d = D[name]!;
-        const dup = rows.find((o) => d.unique.some((u) => u.every((c) => eq(o[c], row[c]))));
+        const dup = rows.find((o) => d.unique.some((u) => u.every((c) => eq(o[c], row[c]))) || (d.conflictPartial && (d.partial ?? []).some((p) => p.where(row) && p.where(o) && p.cols.every((c) => eq(o[c], row[c])))));
         if (dup) {
           if (!im[4]) throw pgErr('23505', `duplicate key ${name}__pk`);
           if (/^do\s+nothing/i.test(im[4])) continue;

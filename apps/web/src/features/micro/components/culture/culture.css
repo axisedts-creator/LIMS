@@ -1,0 +1,7 @@
+/* C10.T-20: free text from the API (findings, comments) keeps its line breaks and is wrapped, never interpreted as HTML (04-UI-UX §8, REQ-SEC-088).
+   Kit classes cover everything else; the kit has no pre-wrap text class yet (CR candidate), so this one rule lives here. Tokens only. */
+.lims-finding {
+  display: block;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}

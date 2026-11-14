@@ -39,12 +39,18 @@ export const kathmandu = (d: Date | string) => {
   );
   return `${p['day']}/${p['month']}/${p['year']} ${p['hour']}:${p['minute']} ${String(p['dayPeriod']).toUpperCase()}`;
 };
-/** Clears a text field and types `v`. */
-export const fill = async (el: HTMLElement, v: string) => { await userEvent.clear(el); if (v) await userEvent.type(el, v); };
+/** No per-keystroke timer: the default `userEvent.type` delay caused load-dependent 20 s timeouts (HC-T18-ruling.md). */
+const user = userEvent.setup({ delay: null });
+/** Clears a text field and types `v`; values over 20 characters are pasted (the keyboard walk-through still types char by char). */
+export const fill = async (el: HTMLElement, v: string) => {
+  await user.clear(el);
+  if (!v) return;
+  if (v.length > 20) { await user.click(el); await user.paste(v); } else await user.type(el, v);
+};
 /** Opens the select named `label` inside `scope` and picks the option. */
 export const pick = async (scope: HTMLElement, option: RegExp | string, label: RegExp) => {
-  await userEvent.click(within(scope).getByRole('button', { name: label }));
-  await userEvent.click(await screen.findByRole('option', { name: option }));
+  await user.click(within(scope).getByRole('button', { name: label }));
+  await user.click(await screen.findByRole('option', { name: option }));
 };
 
 // ---- fixtures (TRD §5.1 VisitSummaryDto / RouteDto / H12 rows) ----

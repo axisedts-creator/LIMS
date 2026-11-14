@@ -4,7 +4,7 @@
 // [CONV] link_codes has no version column (05-SCHEMA: run state), so L2's If-Match is the constant ETag "1"; any other value is a 409 (TRD §5 L1 note).
 // [CONV] L2 / L4 on a code / link that is no longer revocable (redeemed, already revoked) -> 409 common.version_conflict (the contract names no other code).
 // [CONV] The plaintext code lives in the 201 body only: never in a log, audit row, metric label, event or stored column (only its HMAC is stored).
-import { createHmac, randomBytes } from 'node:crypto';
+import { createHmac, randomBytes, timingSafeEqual } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { LimsError, type FieldError } from '../../../core/errors.js';
 import { loadEngagementConfig, type EngagementConfig } from '../config.js';
@@ -14,6 +14,8 @@ import { engagementMetrics } from '../metrics.js';
 import * as consents from '../repository/consents.repo.js';
 import * as repo from '../repository/linkCodes.repo.js';
 import type { Row } from '../repository/linkCodes.repo.js';
+import { uuidv7 } from '../../../../../../packages/shared-ts/src/uuidv7/index.js';
+import { createProjectionService } from './projection.service.js';
 import { invalid, isUuid, parseIfMatch, type SlotCtx } from './slot.service.js';
 
 export interface LinkCtx extends SlotCtx {
@@ -30,6 +32,7 @@ const RELATIONSHIPS = ['self', 'child', 'parent', 'spouse', 'sibling', 'other'];
 const CHECKS = ['photo_id', 'guardian_photo_id', 'known_patient'];
 const REVOKE_REASONS = ['patient_request', 'suspected_misuse', 'staff_error', 'other'];
 const CODE_ETAG = 1;
+const LIVE_FROM: LinkStatus = 'active'; // reconcile suspends only links that are active
 const HOUR = 3_600_000;
 const SHAPE = new RegExp(`^[0-9A-Z]{${LINK_CODE_LENGTH}}$`); // shape only (400); a symbol outside the alphabet (U) is a normal 422, never a validity oracle
 
@@ -50,6 +53,7 @@ const keyFile = (path: string): Buffer => { let k = keyCache.get(path); if (!k) 
 const linkHmac = (tenantId: string, code: string): Buffer => createHmac('sha256', keyFile(config().linkHmacKeyFile)).update(`${tenantId}:${normalizeLinkCode(code)}`).digest();
 /** HMAC-SHA256(phone key, tenant_id ‖ ':' ‖ phone_e164), raw 32 bytes (TRD §4.3). */
 const phoneHmac = (tenantId: string, phone: string): Buffer => createHmac('sha256', keyFile(config().phoneHmacKeyFile)).update(`${tenantId}:${phone}`).digest();
+const phoneEq = (a: Buffer, b: Buffer): boolean => a.length === b.length && timingSafeEqual(a, b);
 /** 10 symbols, uniform: the alphabet has 32 symbols, so `byte & 31` has no modulo bias. */
 const newCode = (): string => formatLinkCode(Array.from(randomBytes(LINK_CODE_LENGTH), (b) => LINK_CODE_ALPHABET[b & 31]).join(''));
 
@@ -114,9 +118,120 @@ function parseRedeem(body: unknown): string {
 
 /** Profile wire shape (additionalProperties false): link_id / patient_id / phone stay out. */
 function toProfile(l: Row): Record<string, unknown> {
-  const o: Record<string, unknown> = { profile_id: l['id'], display_name: String(l['display_name']).slice(0, 120), relationship: l['relationship'], method: l['method'], status: l['status'] };
+  const o: Record<string, unknown> = { profile_id: l['id'], display_name: String(l['display_name']).slice(0, 120), relationship: l['relationship'], method: l['method'], status: l['status'], version: l['version'] };
   if (l['visible_from']) o['history_from'] = iso(l['visible_from']);
   return o;
+}
+
+// ---- T-L3 E15 redeemReportLink (02-TRD §4.3.3, §5; 05-SCHEMA §4 patient column guard + §6.1 app.engagement_apply_report_link; PRD US-EN-04.1-6; 07-SECURITY E15 row, P-L4/P-L6/P-L9; CR-C16-008).
+// Order: validate the body -> resolve the caller's account (phone comes from the account, never the client) -> ReportingPort (C6) -> the DEFINER apply -> else limits + insert.
+// C16 writes nothing before the C6 call and nothing after its failure; every C6 failure is the one identical 422 (REQ-SEC-094). Token, URL and phone are never logged, audited or queued.
+// Reactivation / widening go ONLY through the DEFINER (a direct patient UPDATE of status / visible_from raises immutable_row).
+export interface ReportLinkCtx {
+  readonly tenantId: string;
+  readonly actor: { readonly type: string; readonly id: string };
+  readonly tx: { query(text: string, values?: unknown[]): Promise<{ rows: Array<Record<string, any>>; rowCount?: number | null }> };
+  readonly ports?: { ReportingPort?: { redeemPortalLinkForApp(ctx: unknown, input: { linkToken: string; phoneE164: string }): Promise<{ patientId: string; releasedAt: string | Date }> } };
+  readonly audit: { access(e: Record<string, unknown>): Promise<void> };
+}
+
+const TOKEN = /^[A-Za-z0-9_-]{22,64}$/;
+const PLACEHOLDER_NAME = 'Linked patient'; // real name + sex arrive with engagement.backfill_link (FrontdeskPort, system; review C16 #16)
+const LIVE_SQL = `status IN ('active', 'suspended')`;
+const LINK_UQ_RETRIES = 2;
+export const BACKFILL_TASK = 'engagement.backfill_link';
+const ENQUEUE_SQL = 'SELECT app.enqueue_job($1, $2::jsonb, $3, $4, $5)'; // (identifier, payload, job_key, run_at, max_attempts) — TRD §8.1: key backfill:<link_id>, max 10
+
+const bad = (path: string, code: string, message: string): never => { throw new LimsError('common.validation_failed', undefined, [fe(path, code, message)]); };
+const pgCode = (e: unknown): string | undefined => (e as { code?: string } | null)?.code;
+
+/** Origin is read at call time; an unset origin fails closed (nothing can match). Only `<origin>/r/<token>` passes; the submitted value is never echoed. */
+function parseReportToken(body: unknown): string {
+  if (typeof body !== 'object' || body === null || Array.isArray(body)) return bad('/', 'common.field_invalid', 'Field invalid');
+  for (const k of Object.keys(body)) if (k !== 'link_url') bad(`/${k.slice(0, 64)}`, 'common.unknown_field', 'Unknown field'); // phone / patient never come from the client
+  const u = (body as Row)['link_url'];
+  if (u === undefined) bad('/link_url', 'common.field_required', 'Field required');
+  const origin = process.env['LIMS_ORIGIN_PORTAL']?.replace(/\/+$/, '');
+  if (!origin) throw new LimsError('common.service_unavailable');
+  const prefix = `${origin}/r/`;
+  if (typeof u !== 'string' || u.length > 2000 || !u.startsWith(prefix)) return bad('/link_url', 'common.field_invalid', 'Field invalid');
+  const token = u.slice(prefix.length);
+  return TOKEN.test(token) ? token : bad('/link_url', 'common.field_invalid', 'Field invalid');
+}
+
+const reportProfile = (l: Row) => ({
+  profile_id: l['id'], display_name: String(l['display_name']).slice(0, 120), relationship: l['relationship'], method: l['method'], status: 'active', version: l['version'],
+  ...(l['visible_from'] == null ? {} : { history_from: iso(l['visible_from']) }),
+});
+
+async function reportAccountOf(ctx: ReportLinkCtx): Promise<Row> {
+  if (ctx.actor.type !== 'patient') throw new LimsError('auth.forbidden');
+  const { rows } = await ctx.tx.query(
+    `SELECT id, phone_e164, phone_hmac FROM engagement.accounts WHERE tenant_id = $1 AND membership_id = $2 AND status <> 'deleted'`, [ctx.tenantId, ctx.actor.id]);
+  if (!rows[0]) throw new LimsError('auth.forbidden');
+  return rows[0];
+}
+
+const applyReportLink = (ctx: ReportLinkCtx, patientId: string, releasedAt: string) =>
+  ctx.tx.query('SELECT * FROM app.engagement_apply_report_link($1, $2::timestamptz)', [patientId, releasedAt]).then((r) => r.rows[0]);
+
+async function reportDone(ctx: ReportLinkCtx, status: 200 | 201, link: Row) {
+  await ctx.tx.query(ENQUEUE_SQL, [BACKFILL_TASK, JSON.stringify({ tenant_id: ctx.tenantId, link_id: link['id'] }), `backfill:${link['id']}`, null, 10]);
+  await ctx.audit.access({ action: 'app_link.redeem', entityType: 'app_link', entityId: link['id'], outcome: 'success' });
+  return { status, body: reportProfile(link) };
+}
+
+/** TRD §4.3.2 step 4: account active links < max_profiles_per_account. (Per-patient limit: mechanism under patient RLS not specified — see notes.) */
+// CR pending: .orchestra/cr/T-L3.md (per-patient max_accounts_per_patient needs a DEFINER count; not invented here)
+async function reportCheckLimit(ctx: ReportLinkCtx, accountId: string): Promise<void> {
+  const [{ rows: s }, { rows: c }] = await Promise.all([
+    ctx.tx.query('SELECT max_profiles_per_account FROM engagement.settings WHERE tenant_id = $1', [ctx.tenantId]),
+    ctx.tx.query(`SELECT count(*) FROM engagement.account_patient_links WHERE tenant_id = $1 AND account_id = $2 AND status = 'active'`, [ctx.tenantId, accountId]),
+  ]);
+  const max = Number(s[0]?.['max_profiles_per_account']);
+  if (!Number.isFinite(max)) throw new LimsError('common.service_unavailable');
+  if (Number(c[0]?.['count']) >= max) throw new LimsError('engagement.link_limit_reached');
+}
+
+async function redeemReportLink(ctx: ReportLinkCtx, input: { body: unknown }) {
+  if (typeof ctx.tenantId !== 'string' || typeof ctx.actor?.id !== 'string' || !ctx.tx) throw new LimsError('auth.unauthenticated');
+  const token = parseReportToken(input.body);
+  const account = await reportAccountOf(ctx);
+  const port = ctx.ports?.ReportingPort;
+  if (!port) throw new LimsError('common.service_unavailable');
+
+  let proof;
+  try { proof = await port.redeemPortalLinkForApp(ctx, { linkToken: token, phoneE164: account['phone_e164'] }); } catch (e) {
+    if (e instanceof LimsError && e.code === 'reporting.link_invalid') throw new LimsError('engagement.link_code_invalid'); // identical for every cause; C6 counts its own failures
+    throw e;
+  }
+  const releasedAt = iso(proof.releasedAt);
+  const linkById = async (id: string): Promise<Row> => {
+    const { rows } = await ctx.tx.query('SELECT * FROM engagement.account_patient_links WHERE tenant_id = $1 AND account_id = $2 AND id = $3', [ctx.tenantId, account['id'], id]);
+    return rows[0] ?? bad('/', 'common.field_invalid', 'Field invalid');
+  };
+
+  for (let attempt = 1; ; attempt++) {
+    const hit = await applyReportLink(ctx, proof.patientId, releasedAt); // existing active -> widen; suspended -> reactivate (DEFINER only)
+    if (hit) return reportDone(ctx, 200, await linkById(hit['link_id']));
+
+    await reportCheckLimit(ctx, account['id']);
+    const { rows: selfs } = await ctx.tx.query(`SELECT id FROM engagement.account_patient_links WHERE tenant_id = $1 AND account_id = $2 AND relationship = 'self' AND ${LIVE_SQL}`, [ctx.tenantId, account['id']]);
+    const id = uuidv7();
+    await ctx.tx.query('SAVEPOINT redeem_link'); // a lost race must not poison the request transaction
+    try {
+      const { rows } = await ctx.tx.query(
+        `INSERT INTO engagement.account_patient_links (id, tenant_id, account_id, patient_id, relationship, method, display_name, status, visible_from, record_phone_hmac_at_link, created_by, updated_by)
+         VALUES ($1, $2, $3, $4, $5, 'report_link', $6, 'active', $7::timestamptz, $8, $9, $9) RETURNING *`,
+        [id, ctx.tenantId, account['id'], proof.patientId, selfs.length ? 'other' : 'self', PLACEHOLDER_NAME, releasedAt, account['phone_hmac'], ctx.actor.id]);
+      await ctx.tx.query('RELEASE SAVEPOINT redeem_link');
+      return reportDone(ctx, 201, rows[0]!);
+    } catch (e) {
+      if (pgCode(e) !== '23505') throw e;
+      await ctx.tx.query('ROLLBACK TO SAVEPOINT redeem_link');
+      if (attempt >= LINK_UQ_RETRIES) throw new LimsError('engagement.link_limit_reached'); // never a 5xx on a lost race
+    }
+  }
 }
 
 export function createLinkService() {
@@ -124,6 +239,8 @@ export function createLinkService() {
     new Map((await repo.accountPhones(tx, { tenantId, accountIds: [...new Set(links.map((l) => l['account_id'] as string))] })).map((a) => [a['id'], a['phone_e164']]));
 
   return {
+    redeemReportLink, // T-L3 E15
+
     /** L1 (TRD §4.3.1): body (400) -> app_enabled (403) -> patient via FrontdeskPort (404 / 400) -> bound phone (400) -> limits (409) -> supersede -> consent -> code -> access log + metric. */
     async issue(ctx: LinkCtx, input: { body: unknown }): Promise<Out> {
       const { tx, tenantId, userId, now } = scope(ctx);
@@ -204,6 +321,69 @@ export function createLinkService() {
         engagementMetrics.linkEvent(ctx, 'link_code', 'redeemed');
         return { status, body: toProfile(link) };
       } catch (e) { return mapDbError(e); }
+    },
+
+    /**
+     * T-L5 reconcile (TRD §4.3.5, §4.4; system actor, caller's one transaction): every active / suspended link -> FrontdeskPort demographics (once per patient) ->
+     * suspend (patient_merged | patient_anonymised > phone_mismatch > dormant; active links only, never reactivated here) + display_name / sex_snapshot refresh (live links, one write)
+     * -> profile_paused notification + metric per newly suspended link -> projection rows of patients without a live link are deleted.
+     * A patient C4 no longer knows (common.not_found) is skipped; any other port error propagates so the queue retries and the transaction rolls back.
+     */
+    async reconcile(ctx: LinkCtx): Promise<void> {
+      const { tx, tenantId, userId, now } = scope(ctx);
+      const frontdesk = ctx.ports?.FrontdeskPort;
+      if (!frontdesk) throw new LimsError('common.service_unavailable');
+      const rows = async (sql: string, params: unknown[]): Promise<Row[]> => (await tx.query(sql, params)).rows as Row[];
+      const links = await rows(
+        `SELECT id, account_id, patient_id, method, status, display_name, sex_snapshot, record_phone_hmac_at_link FROM engagement.account_patient_links WHERE tenant_id = $1 AND status IN ('active', 'suspended')`, [tenantId]);
+      const live = new Set(links.map((l) => l['patient_id'] as string));
+      if (links.length > 0) {
+        const [s] = await rows('SELECT dormant_after_days FROM engagement.settings WHERE tenant_id = $1', [tenantId]);
+        const cutoff = Date.parse(now) - Number(s?.['dormant_after_days'] ?? 180) * 86_400_000; // [CONV] TRD §4.3.5 strict `<`; 180 = column default
+        const logins = new Map((await rows('SELECT id, last_login_at FROM engagement.accounts WHERE tenant_id = $1 AND id = ANY($2::uuid[])', [tenantId, [...new Set(links.map((l) => l['account_id'] as string))]]))
+          .map((a) => [a['id'], a['last_login_at']]));
+        const demo = new Map<string, Demo | null>();
+        for (const patientId of live) {
+          try { demo.set(patientId, await frontdesk.getPatientDemographics(ctx, { patientId, purpose: PURPOSE })); } catch (e) {
+            if ((e as { code?: unknown } | null)?.code !== 'common.not_found') throw e;
+            demo.set(patientId, null);
+          }
+        }
+        for (const l of links) {
+          const d = demo.get(l['patient_id']);
+          let reason: string | undefined;
+          if (d && l['status'] === 'active') {
+            const stored = l['record_phone_hmac_at_link'] == null ? undefined : Buffer.from(l['record_phone_hmac_at_link']);
+            if (d.status === 'merged') reason = 'patient_merged';
+            else if (d.status === 'anonymised') reason = 'patient_anonymised';
+            else if (stored && !(typeof d.phoneE164 === 'string' && d.phoneE164 !== '' && phoneEq(stored, phoneHmac(tenantId, d.phoneE164)))) reason = 'phone_mismatch'; // phone removed from the record counts as a change
+          }
+          if (!reason && l['status'] === 'active') { const last = logins.get(l['account_id']); if (last != null && Date.parse(last as string) < cutoff) reason = 'dormant'; }
+          const name = typeof d?.fullName === 'string' ? d.fullName.trim().slice(0, 200) : '';
+          const sets: string[] = []; const p: unknown[] = [tenantId, l['id'], userId, now];
+          if (reason) { p.push(reason); sets.push(`status = 'suspended'`, `suspend_reason = $${p.length}`, 'suspended_at = $4'); }
+          if (d && d.status !== 'merged' && d.status !== 'anonymised') {
+            if (name && name !== l['display_name']) { p.push(name); sets.push(`display_name = $${p.length}`); }
+            if (typeof d.sex === 'string' && d.sex !== l['sex_snapshot']) { p.push(d.sex); sets.push(`sex_snapshot = $${p.length}`); }
+          }
+          if (sets.length === 0) continue;
+          if (reason) p.push(LIVE_FROM); // conditional suspend; the status is a bound value on purpose: only the DEFINER writes a literal `active` (link.redeem source guard)
+          const res = await tx.query(`UPDATE engagement.account_patient_links SET ${sets.join(', ')}, version = version + 1, updated_at = $4, updated_by = $3
+            WHERE tenant_id = $1 AND id = $2 AND status IN ('active', 'suspended')${reason ? ` AND status = $${p.length}` : ''} RETURNING id`, p);
+          if (!reason || res.rows.length === 0) continue;
+          await tx.query( // dedupe key (tenant, account, kind, entity_id, entity_seq): a rerun adds nothing
+            `INSERT INTO engagement.notifications (id, tenant_id, account_id, patient_id, kind, entity_type, entity_id, entity_seq, route_id, created_by, expires_at)
+             VALUES ($1, $2, $3, $4, 'profile_paused', 'profile', $5, 0, NULL, $6, $7) ON CONFLICT DO NOTHING`,
+            [uuidv7(), tenantId, l['account_id'], l['patient_id'], l['id'], userId, new Date(Date.parse(now) + 180 * 86_400_000).toISOString()]);
+          engagementMetrics.linkEvent(ctx, String(l['method']), 'suspended');
+        }
+      }
+      // projections: only patients with an active / suspended link keep a read model (a link suspended by this run is still live)
+      // ponytail: reads every patient id of the tenant's orders / reports; keyset-page it if a tenant grows past ~1e5 projected patients.
+      const held = new Set<string>();
+      for (const table of ['patient_orders', 'patient_reports']) for (const r of await rows(`SELECT patient_id FROM engagement.${table} WHERE tenant_id = $1`, [tenantId])) held.add(r['patient_id']);
+      const dead = [...held].filter((id) => !live.has(id));
+      if (dead.length > 0) await createProjectionService().deleteForPatients({ tx, tenantId }, dead);
     },
 
     /** L2: If-Match (428 / 400) -> id (400) -> row (404) -> ETag (409) -> conditional revoke (409 when it is no longer `issued`). */

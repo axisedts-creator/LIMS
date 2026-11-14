@@ -1,9 +1,21 @@
 // WorkerManifest of module partners (02-TRD §3.5, §7.2, §8.1, §8.2; IC §3.25). Cron entries live here, in code (REQ-ARCH-042).
 // T01: every handler is a fail-closed stub (throws) so an event/task is retried or dead-lettered, never silently acked;
-// each later task replaces its own entries. C13 produces no event.
+// each later task replaces its own entries (T17: sync_price_list, sync_statements, catalog.changed.v1). C13 produces no event.
 // [CONV] TRD §8.2 gives Asia/Kathmandu (UTC+05:45, no DST) local times; the manifest holds 5-field UTC cron, converted here.
 import type { ConsumerHandler, TaskHandler, WorkerManifest } from '../../core/manifest.js';
+import { onCatalogChanged } from './consumers/catalog.changed.v1.js';
+import { onSpecimenStatusChanged } from './consumers/lab.specimen.status_changed.v1.js';
+import { onReportReleased } from './consumers/reporting.report.released.v1.js';
+import { crontab } from './cron.js';
 import { convertManifestLine } from './tasks/partners.convert_manifest_line.js';
+import { enrichReportTask } from './tasks/partners.enrich_report.js';
+import { issueAccessSlip } from './tasks/partners.issue_access_slip.js';
+import { purgeAccessSlips } from './tasks/partners.purge_access_slips.js';
+import { expireDrafts } from './tasks/partners.expire_drafts.js';
+import { reconcileOrdersTask } from './tasks/partners.reconcile_orders.js';
+import { redactExpiredLines } from './tasks/partners.redact_expired_lines.js';
+import { syncPriceListTask } from './tasks/partners.sync_price_list.js';
+import { syncStatementsTask } from './tasks/partners.sync_statements.js';
 
 const task = (id: string): TaskHandler => async () => { throw new Error(`${id} not implemented`); };
 const consumer = (type: string): ConsumerHandler => async () => { throw new Error(`consumer ${type} not implemented`); };
@@ -22,15 +34,20 @@ const SUBSCRIPTIONS = [
 
 export const manifest: WorkerManifest = {
   module: 'partners',
-  tasks: { ...Object.fromEntries(Object.keys(TASKS).map((id) => [id, task(id)])), 'partners.convert_manifest_line': convertManifestLine }, // T10
-  subscriptions: Object.fromEntries(SUBSCRIPTIONS.map((type) => [type, consumer(type)])),
-  crontab: [ // TRD §8.2 local (NPT) -> UTC
-    { identifier: 'partners.sync_price_list', schedule: '25 20 * * *', tenantScope: 'per_tenant' },      // 02:10
-    { identifier: 'partners.sync_statements', schedule: '38 * * * *', tenantScope: 'per_tenant' },      // hourly :23
-    { identifier: 'partners.reconcile_orders', schedule: '*/10 * * * *', tenantScope: 'per_tenant' },   // every 10 min
-    { identifier: 'partners.expire_drafts', schedule: '55 19 * * *', tenantScope: 'per_tenant' },       // 01:40
-    { identifier: 'partners.redact_expired_lines', schedule: '55 20 * * *', tenantScope: 'per_tenant' }, // 02:40
-    { identifier: 'partners.purge_access_slips', schedule: '5 21 * * *', tenantScope: 'per_tenant' },   // 02:50
-  ],
+  tasks: {
+    ...Object.fromEntries(Object.keys(TASKS).map((id) => [id, task(id)])),
+    'partners.sync_price_list': syncPriceListTask, 'partners.sync_statements': syncStatementsTask, // T17
+    'partners.reconcile_orders': reconcileOrdersTask, 'partners.enrich_report': enrichReportTask,  // T12
+    'partners.convert_manifest_line': convertManifestLine, // T10
+    'partners.expire_drafts': expireDrafts,                // T21
+    'partners.redact_expired_lines': redactExpiredLines,   // T21
+    'partners.issue_access_slip': issueAccessSlip, 'partners.purge_access_slips': purgeAccessSlips, // T14
+  },
+  subscriptions: {
+    ...Object.fromEntries(SUBSCRIPTIONS.map((type) => [type, consumer(type)])),
+    'catalog.changed.v1': onCatalogChanged, // T17
+    'lab.specimen.status_changed.v1': onSpecimenStatusChanged, 'reporting.report.released.v1': onReportReleased, // T12
+  },
+  crontab, // cron.ts (T21): TRD §8.2 local (NPT) -> UTC
   maxAttempts: TASKS,
 };

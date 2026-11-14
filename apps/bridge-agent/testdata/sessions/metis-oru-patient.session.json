@@ -1,0 +1,6 @@
+{"name": "metis-oru-patient", "protocol": "hl7v2", "transport": "tcp_server", "instrument_profile": "getein_metis", "options": {},
+ "steps": [
+  {"note": "09-ADDENDUM-GETEIN-METIS s3/s6: patient ORU is committed, then answered AA echoing its MSH-10, MSH-12, MSH-16 with MSH-18 UTF8 (D-02)", "from": "instrument", "bytes": "<VT>MSH|^~\\&|GP|Metis|||20261114||ORU^R01|57|P|2.3.1||||0||UTF8|||<CR>PID|1|V000123||||19880912|F<CR>OBR|1|MT2600000042|7|^|N|20261114|20261114|||||||20261114|serum<CR>OBX|1|NM|0|ALT|31.2|U/L|0-40|N|||F||31.2|20261114|||0<CR><FS><CR>"},
+  {"expect": "agent", "bytes": "<VT>MSH|^~\\&|LIS|LIMS|||{now}||ACK^R01|57|P|2.3.1||||0||UTF8|||<CR>MSA|AA|57|Message accepted|||0|<CR><FS><CR>", "within_ms": 200},
+  {"expect_queue": {"items": 1, "kind": "data", "raw_sha256": "9a190b4e8f8942ed6c7e8fd42f3bf5e23ce2392af18f0283710bcb99982c13a5"}}
+ ]}

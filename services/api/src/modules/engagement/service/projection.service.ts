@@ -3,6 +3,7 @@
 // `FOR UPDATE` pre-read + skip, so a row already ahead (an event applied after the view row was read) is never overwritten by older state and a concurrent consumer waits for the transaction.
 // Callers pass the system actor's ctx (tx, tenantId, actor.id, now()). Rows hold P1 data: nothing here logs a value.
 import { orderStage, type SpecimenStatus } from '../domain/stage.js';
+import * as views from '../repository/views.repo.js';
 
 type Row = Record<string, any>;
 interface PCtx { readonly tx: any; readonly tenantId: string; readonly actor: { readonly id: string }; readonly now: () => string }
@@ -15,7 +16,10 @@ export interface SpecimenIn {
   specimenId: string; orderId: string; patientId: string; specimenTypeCode: string; status: string; statusSeq: number; ordinal: number; collectedAt: string | null; receivedAt: string | null;
   rejectedAt: string | null; rejectionReasonCode: string | null; recollectionRequired: boolean; replacesSpecimenId: string | null;
 }
-export interface ReportIn { reportId: string; versionNo: number; orderId: string; patientId: string; kind: string; status: string; releasedAt: string; panelNames: readonly string[]; smartSummaryAvailable: boolean }
+export interface ReportIn { reportId: string; versionNo: number; orderId: string; patientId: string; kind: string; status: string; releasedAt: string; panelNames: readonly string[]; smartSummaryAvailable: boolean; supersedesVersionNo?: number | null }
+export const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+/** The write context of a consumer / task: its JobContext (system actor, tx, now()). */
+export const projectionCtx = (c: any): PCtx => ({ tx: c.tx, tenantId: c.tenantId, actor: { id: c.actor.id }, now: () => c.now() });
 
 const CHUNK = 100; // rows per statement (<= 2,000 bind parameters)
 const num = (v: unknown): number | null => (v == null ? null : Number(v));
@@ -26,6 +30,70 @@ const set = (cols: readonly string[]): string => cols.map((c) => `${c} = EXCLUDE
 
 export function createProjectionService() {
   return {
+    /** T-L5 (TRD §4.4): the read model exists only for patients with an active / suspended link. System actor, tenant-scoped; children first (specimens / smart summaries), then their parents. */
+    async deleteForPatients(ctx: Pick<PCtx, 'tx' | 'tenantId'>, patientIds: readonly string[]): Promise<void> {
+      for (const ids of chunks(patientIds)) {
+        for (const table of ['smart_summaries', 'patient_order_specimens', 'patient_reports', 'patient_orders']) {
+          await ctx.tx.query(`DELETE FROM engagement.${table} WHERE tenant_id = $1 AND patient_id = ANY($2::uuid[])`, [ctx.tenantId, ids]);
+        }
+      }
+    },
+
+    /** Links of a patient that feed the read model (§4.4: active or suspended). No row = the consumer commits a no-op. */
+    async liveLinks(ctx: Pick<PCtx, 'tx' | 'tenantId'>, patientId: string): Promise<Row[]> {
+      const { rows } = await ctx.tx.query("SELECT id, account_id, status, visible_from FROM engagement.account_patient_links WHERE tenant_id = $1 AND patient_id = $2 AND status IN ('active', 'suspended')", [ctx.tenantId, patientId]);
+      return rows;
+    },
+
+    async settingsOf(ctx: Pick<PCtx, 'tx' | 'tenantId'>): Promise<{ showPartnerOrders: boolean; smartReportInApp: boolean }> {
+      const { rows: [s] } = await ctx.tx.query('SELECT show_partner_orders, smart_report_in_app FROM engagement.settings WHERE tenant_id = $1', [ctx.tenantId]);
+      return { showPartnerOrders: s?.['show_partner_orders'] === true, smartReportInApp: s?.['smart_report_in_app'] === true };
+    },
+
+    /** The projected order (row locked), or - first sight - projected now from the published views (order + balance), tenant-filtered. null = filtered (partner order without show_partner_orders, or another patient's order).
+     *  An order the view does not have yet THROWS (publication race): the queue retries, nothing is lost or half written. */
+    async ensureOrder(ctx: PCtx, a: { orderId: string; patientId: string }): Promise<{ visibleAt: string } | null> {
+      const { tx, tenantId } = ctx;
+      const iso = (v: unknown) => (v == null ? null : v instanceof Date ? v.toISOString() : String(v));
+      const { rows: [cur] } = await tx.query('SELECT order_id, patient_id, visible_at FROM engagement.patient_orders WHERE tenant_id = $1 AND order_id = $2 FOR UPDATE', [tenantId, a.orderId]);
+      if (cur) return cur['patient_id'] === a.patientId ? { visibleAt: iso(cur['visible_at'])! } : null;
+      const o = await views.orderOf(tx, { tenantId, orderId: a.orderId });
+      if (!o) throw new Error('order_not_in_published_view');
+      if (o['patient_id'] !== a.patientId || (o['source'] === 'partner_manifest' && !(await this.settingsOf(ctx)).showPartnerOrders)) return null;
+      const [b] = await views.balancesOf(tx, { tenantId, orderIds: [a.orderId] });
+      const visibleAt = (iso(o['registered_at']) ?? iso(o['updated_at']))!;
+      await this.upsertOrders(ctx, [{ orderId: a.orderId, patientId: a.patientId, centreId: o['centre_id'], branchId: o['branch_id'], source: o['source'], orderStatus: o['status'], registeredAt: iso(o['registered_at']), visibleAt,
+        balance: b ? { invoicedPaisa: Number(b['invoiced_paisa']), paidPaisa: Number(b['paid_paisa']), balanceDuePaisa: Number(b['balance_due_paisa']), balanceVersion: Number(b['balance_version']), releaseBasis: b['release_basis'] } : null }]);
+      return { visibleAt };
+    },
+
+    async specimensOfOrder(ctx: Pick<PCtx, 'tx' | 'tenantId'>, orderId: string): Promise<Row[]> {
+      const { rows } = await ctx.tx.query('SELECT specimen_id, specimen_type_code, status, status_seq, ordinal, collected_at, received_at, rejected_at, rejection_reason_code, recollection_required, replaces_specimen_id FROM engagement.patient_order_specimens WHERE tenant_id = $1 AND order_id = $2 FOR UPDATE', [ctx.tenantId, orderId]);
+      return rows;
+    },
+
+    async versionsOfReport(ctx: Pick<PCtx, 'tx' | 'tenantId'>, reportId: string): Promise<Row[]> {
+      const { rows } = await ctx.tx.query('SELECT version_no, status FROM engagement.patient_reports WHERE tenant_id = $1 AND report_id = $2 FOR UPDATE', [ctx.tenantId, reportId]);
+      return rows;
+    },
+
+    /** A newer version of a report supersedes every older `valid` one. */
+    async supersedeBelow(ctx: PCtx, reportId: string, versionNo: number): Promise<void> {
+      await ctx.tx.query("UPDATE engagement.patient_reports SET status = 'superseded', updated_at = now(), updated_by = $4 WHERE tenant_id = $1 AND report_id = $2 AND version_no < $3 AND status = 'valid'", [ctx.tenantId, reportId, versionNo, ctx.actor.id]);
+    },
+
+    /** billing.balance.changed (§4.4, 02-CV §7.4): only a projected order is touched; balance_version is the seq guard (lower or equal = ignored, status_version untouched). payment_due = balance_due > 0 AND release_basis = due_outstanding. */
+    async applyBalance(ctx: PCtx, b: { orderId: string; invoicedPaisa: number; paidPaisa: number; balanceDuePaisa: number; balanceVersion: number; releaseBasis: string | null }): Promise<void> {
+      const { tx, tenantId } = ctx;
+      const { rows: [cur] } = await tx.query('SELECT order_id, balance_version, release_basis FROM engagement.patient_orders WHERE tenant_id = $1 AND order_id = $2 FOR UPDATE', [tenantId, b.orderId]);
+      if (!cur || (cur['balance_version'] != null && Number(cur['balance_version']) >= b.balanceVersion)) return;
+      const basis = b.releaseBasis ?? (cur['release_basis'] as string | null); // absent in event = keep stored (03-IC §3.5 optional)
+      await tx.query(
+        `UPDATE engagement.patient_orders SET invoiced_paisa = $3, paid_paisa = $4, balance_due_paisa = $5, balance_version = $6, release_basis = $7, payment_due = $8, status_version = status_version + 1, synced_at = $9, updated_at = now(), updated_by = $10
+         WHERE tenant_id = $1 AND order_id = $2`,
+        [tenantId, b.orderId, b.invoicedPaisa, b.paidPaisa, b.balanceDuePaisa, b.balanceVersion, basis, b.balanceDuePaisa > 0 && basis === 'due_outstanding', ctx.now(), ctx.actor.id]);
+    },
+
     /** Orders by (tenant_id, order_id). Balance columns of a row already ahead (higher balance_version, or a balance the view does not have yet) are kept. `stage` is only set by `recomputeStages`. */
     async upsertOrders(ctx: PCtx, orders: readonly OrderIn[]): Promise<void> {
       if (orders.length === 0) return;
@@ -61,7 +129,7 @@ export function createProjectionService() {
       const { tx, tenantId } = ctx; const by = ctx.actor.id;
       const have = new Map<string, number>();
       for (const ids of chunks([...new Set(specimens.map((s) => s.orderId))])) {
-        const { rows } = await tx.query('SELECT specimen_id, status_seq FROM engagement.patient_order_specimens WHERE tenant_id = $1 AND order_id = ANY($2::uuid[]) FOR UPDATE', [tenantId, ids]);
+        const { rows } = await tx.query('SELECT specimen_id, specimen_type_code, status_seq FROM engagement.patient_order_specimens WHERE tenant_id = $1 AND order_id = ANY($2::uuid[]) FOR UPDATE', [tenantId, ids]);
         for (const r of rows) have.set(r['specimen_id'], Number(r['status_seq']));
       }
       const todo = specimens.filter((s) => !((have.get(s.specimenId) ?? -1) > s.statusSeq));
@@ -84,11 +152,11 @@ export function createProjectionService() {
       const { tx, tenantId } = ctx; const by = ctx.actor.id;
       for (const part of chunks(reports)) {
         const values: unknown[] = [];
-        for (const r of part) values.push(tenantId, r.reportId, r.versionNo, r.orderId, r.patientId, r.kind.slice(0, 32), r.status, r.releasedAt, r.panelNames.slice(0, 20), r.smartSummaryAvailable, by, by);
+        for (const r of part) values.push(tenantId, r.reportId, r.versionNo, r.orderId, r.patientId, r.kind.slice(0, 32), r.status, r.releasedAt, r.panelNames.slice(0, 20), r.smartSummaryAvailable, r.supersedesVersionNo ?? null, by, by);
         await tx.query(
-          `INSERT INTO engagement.patient_reports (tenant_id, report_id, version_no, order_id, patient_id, report_kind, status, released_at, panel_names, smart_summary_available, created_by, updated_by)
-           VALUES ${tuples(part.length, 12)}
-           ON CONFLICT (tenant_id, report_id, version_no) DO UPDATE SET ${set(['order_id', 'patient_id', 'report_kind', 'status', 'released_at', 'panel_names', 'smart_summary_available', 'updated_by'])}, updated_at = now()`, values);
+          `INSERT INTO engagement.patient_reports (tenant_id, report_id, version_no, order_id, patient_id, report_kind, status, released_at, panel_names, smart_summary_available, supersedes_version_no, created_by, updated_by)
+           VALUES ${tuples(part.length, 13)}
+           ON CONFLICT (tenant_id, report_id, version_no) DO UPDATE SET ${set(['order_id', 'patient_id', 'report_kind', 'status', 'released_at', 'panel_names', 'smart_summary_available', 'updated_by'])}, supersedes_version_no = coalesce(EXCLUDED.supersedes_version_no, supersedes_version_no), updated_at = now()`, values);
       }
     },
 
@@ -98,7 +166,7 @@ export function createProjectionService() {
       for (const ids of chunks(orderIds)) {
         const [orders, specs, reps] = await Promise.all([
           tx.query('SELECT order_id, order_status, stage FROM engagement.patient_orders WHERE tenant_id = $1 AND order_id = ANY($2::uuid[])', [tenantId, ids]),
-          tx.query('SELECT order_id, status, recollection_required FROM engagement.patient_order_specimens WHERE tenant_id = $1 AND order_id = ANY($2::uuid[])', [tenantId, ids]),
+          tx.query('SELECT order_id, specimen_type_code, status, recollection_required FROM engagement.patient_order_specimens WHERE tenant_id = $1 AND order_id = ANY($2::uuid[])', [tenantId, ids]),
           tx.query('SELECT order_id, report_kind, status FROM engagement.patient_reports WHERE tenant_id = $1 AND order_id = ANY($2::uuid[])', [tenantId, ids]),
         ]);
         const sOf = new Map<string, Row[]>(), rOf = new Map<string, Row[]>();

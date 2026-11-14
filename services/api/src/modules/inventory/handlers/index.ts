@@ -2,9 +2,11 @@
 // T-01 stubs: every operation rejects common.internal until its owning task (T-06+) replaces the entry.
 import type { Handler } from '../../../core/module.js';
 import { countHandlers } from './counts.js';
+import { documentHandlers } from './documents.js';
 import { itemHandlers } from './items.js';
 import { lotHandlers } from './lots.js';
 import { masterHandlers } from './masters.js';
+import { settingsHandlers } from './settings.handlers.js';
 import { transferHandlers } from './transfers.js';
 
 /** Error carrying a contract error code (contracts/errors.yaml). */
@@ -24,20 +26,9 @@ const stub: Handler = async (_req, ctx) => {
 export const handlers: Readonly<Record<string, Handler>> = {
   ...itemHandlers, // #1-#10 (T-07)
   ...masterHandlers, // #11-#25 (T-08)
-  getInventorySettings: stub,
-  updateInventorySettings: stub,
-  listInventoryCodedSet: stub,
-  putInventoryTenantCode: stub,
+  ...settingsHandlers, // #26-#29 (T-06)
   ...lotHandlers, // #30-#39 (T-09)
-  discardContainer: stub,
-  listStockDocuments: stub,
-  getStockDocument: stub,
-  createStockIssue: stub,
-  createStoreReturn: stub,
-  createSupplierReturn: stub,
-  recordWastage: stub,
-  writeOffExpiredStock: stub,
-  createStockAdjustment: stub,
+  ...documentHandlers, // #40-#48 (T-10)
   listGoodsReceipts: stub,
   createGoodsReceipt: stub,
   getGoodsReceipt: stub,

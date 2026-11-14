@@ -6,7 +6,7 @@ export const IDEMPOTENCY_KEY_RE = /^[A-Za-z0-9_-]{16,64}$/;
 
 export interface FieldError { path?: string; code?: string; message: string }
 /** ApiError cannot cross the server-action boundary, so the problem code travels as data. */
-export type ActionResult<T> = { ok: true; data: T } | { ok: false; status: number; code: string; requestId?: string; errors?: FieldError[] };
+export type ActionResult<T> = { ok: true; data: T } | { ok: false; status: number; code: string; requestId?: string; detail?: string; errors?: FieldError[] };
 export interface Page<T> { data: T[]; page: { next_cursor?: string; limit: number } }
 
 export const QUEUES = ['to_accession', 'grossing', 'bench', 'reporting', 'awaiting_lab', 'signed_out', 'cancelled', 'all'] as const;
@@ -65,7 +65,8 @@ export interface CaseDetail extends CaseSummary {
   open_draft?: { kind: 'initial' | 'revision' | 'amendment'; version: number; updated_at: string };
   transitions: { from_status?: CaseStatus; to_status: CaseStatus; at: string; by_display_name: string }[];
   allowed_actions: string[];
-  // Molecular results and addenda belong to the later tabs (T-21+); not typed here.
+  /** Molecular cases only (T-22). Addenda belong to the later tabs (T-21+) and are not typed here. */
+  molecular_results?: MolecularResult[];
 }
 export interface TextTemplate { id: string; short_code: string; section: string; title: string; body: string; is_active: boolean; version: number }
 export interface Assignee { membership_id: string; display_name: string }
@@ -85,3 +86,29 @@ export interface OrderStainInput { stain_code: string; block_id?: string; part_i
 export interface CompleteStainInput { slide_count: number; reagent_lot?: string; performed_at?: string }
 export interface ImageMetaInput { kind: ImageKind; part_id?: string; caption?: string }
 export interface BulkResult { id: string; outcome: string }
+
+// ---- molecular (T-22): Assay (K8), MolecularResult / saveAnatomicMolecularResults (Q1), Batch / BatchDetail (Q2-Q7)
+export interface AssayResultValue { code: string; display: string; is_abnormal: boolean; sort_order: number; is_active: boolean }
+export interface AssayTarget {
+  id: string; code: string; display: string; allows_quantitative: boolean; unit_code?: string; decimals?: number; sort_order: number; is_active: boolean; result_values: AssayResultValue[];
+}
+export interface Assay { id: string; code: string; display: string; method_text_default?: string; is_active: boolean; version: number; targets: AssayTarget[] }
+export interface MolecularResult {
+  id: string; assay_code: string; assay_display: string; target_code: string; target_display: string; result_code: string; result_display: string; is_abnormal: boolean;
+  value_decimal?: string; unit_code?: string; method_text?: string; kit_name?: string; kit_lot?: string; kit_expiry_on?: string; batch_id?: string; batch_no?: string; comment_text?: string;
+}
+/** Body item of saveAnatomicMolecularResults (additionalProperties: false: no display fields, no ids except batch_id). */
+export interface MolecularInput {
+  assay_code: string; target_code: string; result_code: string; value_decimal?: string; unit_code?: string; method_text?: string; kit_name?: string; kit_lot?: string;
+  kit_expiry_on?: string; batch_id?: string; comment_text?: string;
+}
+export type BatchStatus = 'open' | 'closed';
+export interface Batch {
+  id: string; batch_no: string; assay_code: string; status: BatchStatus; kit_name?: string; kit_lot?: string; kit_expiry_on?: string; instrument_text?: string; run_at?: string;
+  capacity: number; member_count: number; version: number;
+}
+/** `accession_no` is withheld by the API outside the user's centres (07-SECURITY): the UI shows "Restricted". */
+export interface BatchMember { case_id: string; accession_no?: string; position: number }
+export interface BatchDetail extends Batch { members: BatchMember[] }
+export interface BatchInput { assay_code: string; kit_name?: string; kit_lot?: string; kit_expiry_on?: string; instrument_text?: string; run_at?: string; capacity?: number }
+export interface BatchQuery { status?: BatchStatus; assay_code?: string; cursor?: string }

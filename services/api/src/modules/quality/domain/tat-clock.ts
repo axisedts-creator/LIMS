@@ -55,8 +55,10 @@ export type TatEvent =
 export interface TatResult { transitions: TatTransition[]; clock: TatClock | null; alertEvents: AlertLevel[] }
 
 export class TatClockError extends Error {
-  constructor(readonly code: string, message: string = code) {
+  readonly code: string;
+  constructor(code: string, message: string = code) {
     super(message);
+    this.code = code;
     this.name = 'TatClockError';
   }
 }

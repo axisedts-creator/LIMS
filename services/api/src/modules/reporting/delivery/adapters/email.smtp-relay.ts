@@ -68,7 +68,9 @@ class Wire {
   private err?: TransportError;
   private wake?: () => void;
 
-  constructor(private readonly ms: number) {}
+  private readonly ms: number;
+
+  constructor(ms: number) { this.ms = ms; }
 
   private onData = (d: Buffer) => {
     this.buf += d.toString('latin1');

@@ -1,17 +1,16 @@
-// inventory worker manifest (02-TRD §9). Remaining consumers are stubs that throw common.internal until T-17 implements them; onResultVerified is real (T-16); the six tasks are real (T-15, T-18).
-import type { ConsumerHandler, WorkerManifest } from '../../core/manifest.js';
+// inventory worker manifest (02-TRD §9). All four consumers are real (T-16, T-17); the six tasks are real (T-15, T-18).
+import type { WorkerManifest } from '../../core/manifest.js';
 import { crontab } from './cron.js';
 import { onResultVerified } from './consumers/lab.result.verified.v1.js';
+import { onQcReceived } from './consumers/instruments.qc.received.v1.js';
+import { onResultReceived } from './consumers/instruments.result.received.v1.js';
+import { onCalibrationReceived } from './consumers/instruments.calibration.received.v1.js';
 import { resolveUnresolved } from './tasks/inventory.resolve_unresolved.js';
 import { balanceIntegrityCheck } from './tasks/inventory.balance_integrity_check.js';
 import { dailyAlertScan } from './tasks/inventory.daily_alert_scan.js';
 import { dailyFixedConsumption } from './tasks/inventory.daily_fixed_consumption.js';
 import { purgeAlerts } from './tasks/inventory.purge_alerts.js';
 import { reconciliationScan } from './tasks/inventory.reconciliation_scan.js';
-
-const notImplemented = (name: string): ConsumerHandler => async () => {
-  throw Object.assign(new Error(`inventory job ${name} is not implemented`), { code: 'common.internal' });
-};
 
 export const manifest: WorkerManifest = {
   module: 'inventory',
@@ -25,9 +24,9 @@ export const manifest: WorkerManifest = {
   },
   subscriptions: {
     'lab.result.verified.v1': onResultVerified, // T-16
-    'instruments.qc.received.v1': notImplemented('onQcReceived'),
-    'instruments.result.received.v1': notImplemented('onResultReceived'),
-    'instruments.calibration.received.v1': notImplemented('onCalibrationReceived'),
+    'instruments.qc.received.v1': onQcReceived, // T-17
+    'instruments.result.received.v1': onResultReceived, // T-17
+    'instruments.calibration.received.v1': onCalibrationReceived, // T-17
   },
   crontab, // cron.ts: five entries, all per_tenant (08 A13 P-6, A17 D-72)
 };

@@ -28,8 +28,14 @@ export class LimsError extends Error {
   statusCode: number;
   /** Set by the thrower (429 / 503); rendered as the Retry-After header. */
   retryAfterSeconds?: number;
-  constructor(readonly code: string, readonly detail?: string, readonly errors?: readonly FieldError[]) {
+  readonly code: string;
+  readonly detail?: string | undefined;
+  readonly errors?: readonly FieldError[] | undefined;
+  constructor(code: string, detail?: string, errors?: readonly FieldError[]) {
     super(code); // message = code only: never data
+    this.code = code;
+    this.detail = detail;
+    this.errors = errors;
     this.name = 'LimsError';
     this.statusCode = lookup(code)?.http ?? 500;
   }

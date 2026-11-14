@@ -6,7 +6,8 @@
   "scripts": {
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run",
-    "worker:replay": "node src/core/replay.ts"
+    "start": "node --import ../../tools/node-ts/register.mjs src/main.ts",
+    "worker:replay": "node --import ../../tools/node-ts/register.mjs src/core/replay.ts"
   },
   "dependencies": {
     "@lims/shared-ts": "workspace:*",

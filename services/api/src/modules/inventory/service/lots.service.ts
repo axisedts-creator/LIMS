@@ -54,7 +54,7 @@ const mapped = async <T>(p: Promise<T>): Promise<T> => {
 
 // ---------------------------------------------------------------- wire helpers: null is never sent (CV §4.2), timestamps are ISO, bigint money is a number
 const MONEY = /_paisa(_x1e6)?$/;
-function wire(row: Row): Row {
+export function wire(row: Row): Row {
   const o: Row = {};
   for (const [k, v] of Object.entries(row)) {
     if (v === null || v === undefined) continue;
@@ -74,9 +74,9 @@ async function clock(ctx: HandlerContext): Promise<{ tz: string; now: number; to
 }
 
 // ---------------------------------------------------------------- keyset paging (cursor = base64url {i: last id}; the sort key is re-read tenant-bound, so a forged / foreign cursor is a 400)
-interface PageSpec { select: string; from: string; tenantCol: string; idCol: string; where: string; q: Q; key: string; dir: 'ASC' | 'DESC'; p: PageQuery }
-interface Paged { readonly rows: Row[]; readonly page: { limit: number; next_cursor?: string } }
-async function page(rc: RepoCtx, s: PageSpec): Promise<Paged> {
+export interface PageSpec { select: string; from: string; tenantCol: string; idCol: string; where: string; q: Q; key: string; dir: 'ASC' | 'DESC'; p: PageQuery }
+export interface Paged { readonly rows: Row[]; readonly page: { limit: number; next_cursor?: string } }
+export async function page(rc: RepoCtx, s: PageSpec): Promise<Paged> {
   let w = s.where;
   if (s.p.cursor !== undefined) {
     let id: unknown;

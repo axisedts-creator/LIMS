@@ -1,9 +1,9 @@
-TESTS_WRONG — t20.roles-org.test.tsx assumes exactly one Save button in the master drawer; the spec now requires one Save per section.
-- spec/program/10-DESIGN-SYSTEM.md:106 (s4 Masters): "drawer form on the right with sections and per-section Save. Never a 40-field page". The RS-C2 task acs cite s4, and LD-140 (inbox task brief line 31) makes 10-DESIGN-SYSTEM binding for RS-C2.
-- spec/program/10-DESIGN-SYSTEM.md:135 (s7.2): RS tasks change "appearance and arrangement only; no API, field, validation, permission or route change". So t20's behaviour assertions (PATCH changed fields only, If-Match, POST body, no tenant_id, bad code sends no request, inline 409 error) are still required and must not change.
-- No C2 chunk doc requires a single Save button (grep of spec/chunks/C2-identity-admin for "one Save|single Save|Save button": no matches). The single-button query is a layout detail inside the test, not a spec rule.
-Change to make in apps/web/src/features/admin/__tests__/t20.roles-org.test.tsx, lines 240, 257, 261 and 279 only:
-- Replace `within(dlg).getByRole('button', { name: /^save/i })` (and the `/^(save|create)/i` form) with a query scoped to the section that holds Name, e.g.
-  `within(within(dlg).getByLabelText(/^name/i).closest('section')!).getByRole('button', { name: /^(save|create)/i })`.
-- Do not use `getAllByRole(...)[0]`: it depends on the order of sections. Leave every other line and assertion as it is.
-Not part of this ruling: the `t12.actions.test.ts` failure ("Cannot find module '../nav/generated'") is outside RS-C2. Report it separately; do not fix it in this lane.
+TESTS_WRONG — rs-c2.baseline.json holds a pre-T0D-DEP-02 sha256 for features/admin/auth/actions.ts; the spec forbids behaviour change by the restyle, not byte drift from another task.
+- spec/program/10-DESIGN-SYSTEM.md:135 (s7.2) and LD-140 (inbox brief line 31): RS tasks change "appearance and arrangement only; no API, field, validation, permission or route change". The rule binds the RS-C2 diff, not commits from other tasks merged from main.
+- spec/program/12-REFERENCE-SOFTWARE-GAP.md:138: restyle passes "never behaviour". Commit 62f59645 ([writer] T0D-DEP-02, LD-174, merged via 1cdbced0) is the only change to auth/actions.ts since the baseline (git log: 31eebaeb, b2a8dea7, 62f59645; no RS-C2 commit). It swaps the inline LIMS_WEB_BFF_KEY_FILE read for readBffKey(); same key, same X-Lims-Bff-Key header, same /v1/identity/auth/* calls.
+- The byte-identical check is a test design choice, not a spec rule; it is stale against the new main.
+Change to make (tester), apps/web/src/features/admin/__tests__/rs-c2.baseline.json only:
+- Replace ONLY the value of data_files["features/admin/auth/actions.ts"] with the sha256 of the file as it is at 62f59645 (CRLF normalised to LF, as the test computes it).
+- Do NOT run a full RS_C2_RECORD=1 re-record: that would also re-baseline routes, api_paths, permission_codes and field_names from the restyled tree and hide a real behaviour change.
+- Keep auth/actions.ts in DATA_FILES; leave rs-c2.static.test.ts unchanged.
+Not part of this ruling: the rs-c2.screens.test.tsx "Failed to start forks worker" error is the host (LD-177: no further reset, goes to the founder).

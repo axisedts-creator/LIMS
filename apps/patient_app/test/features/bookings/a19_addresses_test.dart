@@ -38,7 +38,9 @@ void main() {
     expect(find.text('Synthetic Marg 9'), findsOneWidget);
     expect(find.textContaining('Add address'), findsOneWidget);
     api.addresses = [];
+    await tester.pumpWidget(const SizedBox()); // unmount so initState/_load runs again (T-BK1 ruling)
     await openAddresses(tester, rig, api);
+    expect(api.addressListCalls.length, 2);
     expect(find.byType(LimsEmptyState), findsOneWidget);
   });
 

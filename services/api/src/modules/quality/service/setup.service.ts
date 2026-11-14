@@ -30,7 +30,7 @@ const dup = (e: any): boolean => e?.code === '23505';
 const notFound = () => new LimsError('common.not_found');
 
 /** The tenant's business date (08 A13 P-15): ctx.now() rendered in the tenant timezone. Fail closed when the zone is unusable. */
-async function tenantToday(ctx: SetupCtx): Promise<string> {
+export async function tenantToday(ctx: SetupCtx): Promise<string> {
   const tz = (await ctx.ports?.IdentityPort?.getTenantSettings?.(ctx, { keys: ['timezone'] }))?.timezone;
   if (typeof tz !== 'string' || !tz) throw new LimsError('common.internal');   // Intl would silently use the host zone
   try { return new Intl.DateTimeFormat('en-CA', { timeZone: tz, year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date(ctx.now())); }

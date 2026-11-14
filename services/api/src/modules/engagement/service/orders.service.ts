@@ -24,16 +24,16 @@ const ms = (v: unknown): number => new Date(v as string).getTime();
 const obj = (v: unknown): Record<string, any> => (typeof v === 'object' && v !== null ? (v as Record<string, any>) : {});
 const notFound = (): never => { throw new LimsError('common.not_found'); };
 
-function scope(ctx: OrdersCtx): { tx: any; tenantId: string; nowMs: number; membershipId: string } {
+export function scope(ctx: OrdersCtx): { tx: any; tenantId: string; nowMs: number; membershipId: string } {
   const m = ctx?.claims?.membership_id;
   if (typeof ctx?.tenantId !== 'string' || typeof ctx.actor?.id !== 'string' || !ctx.tx || typeof ctx.now !== 'function') throw new LimsError('auth.unauthenticated');
   if (ctx.actor.type !== 'patient' || typeof m !== 'string') throw new LimsError('auth.forbidden');
   return { tx: ctx.tx, tenantId: ctx.tenantId, nowMs: ms(ctx.now()), membershipId: m };
 }
 
-interface Link { id: string; patientId: string; visibleFrom: string | null }
+export interface Link { id: string; patientId: string; visibleFrom: string | null }
 /** The caller's own ACTIVE links, bound to the caller's account (membership from the signed claims, never from input). */
-async function myLinks(tx: any, tenantId: string, membershipId: string): Promise<Link[]> {
+export async function myLinks(tx: any, tenantId: string, membershipId: string): Promise<Link[]> {
   const acc = (await tx.query("SELECT id FROM engagement.accounts WHERE tenant_id = $1 AND membership_id = $2 AND status <> 'deleted'", [tenantId, membershipId])).rows[0];
   if (!acc) return [];
   const { rows } = await tx.query("SELECT id, patient_id, visible_from FROM engagement.account_patient_links WHERE tenant_id = $1 AND account_id = $2 AND status = 'active'", [tenantId, acc['id']]);

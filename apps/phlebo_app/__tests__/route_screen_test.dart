@@ -22,13 +22,12 @@ void main() {
     bool loading = false,
     SyncSummary? sync,
     double textScale = 1.0,
+    bool settle = true,
   }) async {
     opened = [];
     nav = [];
     refreshes = 0;
-    await pumpScreen(
-      t,
-      RouteScreen(
+    final screen = RouteScreen(
         routeDate: DateTime(2026, 11, 14),
         visits: visits,
         purged: purged,
@@ -42,9 +41,22 @@ void main() {
         onOpenOutbox: () => nav.add('outbox'),
         onOpenSettings: () => nav.add('settings'),
         onHelp: () => nav.add('help'),
-      ),
-      textScale: textScale,
-    );
+      );
+    // LimsLoading is an endless spinner (03-APP-FLOW:117 does not make it finite), so pumpAndSettle would
+    // time out. Same view/theme/builder as pumpScreen, one frame only (HC-T27 ruling).
+    if (loading || !settle) {
+      t.view.physicalSize = const Size(800, 1800);
+      t.view.devicePixelRatio = 1.0;
+      addTearDown(t.view.reset);
+      await t.pumpWidget(MaterialApp(
+        theme: LimsTheme.light(),
+        builder: (c, child) => MediaQuery(data: MediaQuery.of(c).copyWith(textScaler: TextScaler.linear(textScale)), child: child!),
+        home: screen,
+      ));
+      await t.pump();
+      return;
+    }
+    await pumpScreen(t, screen, textScale: textScale);
   }
 
   Future<void> menu(WidgetTester t, String item) async {

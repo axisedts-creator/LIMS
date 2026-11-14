@@ -1,0 +1,5 @@
+# Consumption model
+
+> "Your analysers send us patient results and QC results, but they do not tell us how much reagent is left in the bottle. That information stays inside the analyser or the vendor's own software. So LIMS counts usage the way your staff would. You tell us once, for example 'one glucose test on analyser BIO-1 uses 1 test of glucose reagent' and 'each QC run uses 1 test of reagent plus 0.1 mL of control'. From then on, every verified result, QC run and rerun is deducted automatically, normally within a minute. Calibrations are logged with one click. At a stock count, any difference between the counted stock and the system stock is shown as wastage, so leaks, spillage and unrecorded repeats become visible. If your analyser vendor can later give us an official interface for reagent levels, we can add it as an extra check. The counting model stays the record either way."
+
+Rerun detection depends on the analyser driver reporting reruns. This is UNVERIFIED per analyser model (B2: exact models and manuals not received), so a rerun rule may deduct nothing on some analysers.

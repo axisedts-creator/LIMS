@@ -1,0 +1,8 @@
+# WIRE-BOOT tests (tester)
+- New: `services/api/src/__tests__/staging-boot.test.ts` (11 tests). Run: `.orchestra/notes/WIRE-BOOT-verify.cmd` (vitest via the package, then the T0D-DEP-01 static test).
+- Boots real modules, LIMS_CORE_ENV=staging, no fake ports, process.env = ONLY names parsed from render.yaml (synthetic values, temp files, `.invalid` URLs). Asserts every PORT_OWNERS port is 'real' (resolvePorts result captured by a vi.mock wrapper), zero socket/fetch attempts, core health 200.
+- Mutation: removes LIMS_REPORTING_OTP_HMAC_KEY_FILE / LIMS_ENGAGEMENT_OTP_HMAC_KEY_FILE / LIMS_PAYMENTS_KEK_FILE; boot must fail with the module's own `config: <NAME> is required`. Another test drops LIMS_PAYMENTS_PUBLIC_BASE_URL and expects "render.yaml does not declare ...".
+- Also checks: render.yaml literals are only LIMS_CORE_ENV/LIMS_CORE_DB_POOL_MAX/PORT, the 7 missing names are declared, `.env.example` has each name (except NODE_BASE_IMAGE, PORT) as exactly `NAME=`. Fixture throws "cannot fill <NAME>" for a declared name it has no rule for.
+- State now: 5 pass, 6 fail for the right reason (render.yaml lacks LIMS_ENGAGEMENT_{OTP_HMAC,OTP_ENC_KEYS,LINK_HMAC,PHONE_HMAC}_KEY_FILE/_KEYS_FILE, LIMS_PAYMENTS_{KEK_FILE,PUBLIC_BASE_URL,ESEWA_FORM_URL}; .env.example likewise).
+- Harness proof: with those 7 names added in memory (temp edit, reverted) 10/11 passed; only the .env.example check failed. So the writer needs render.yaml + .env.example only, no product code.
+- Writer: add the 7 names to render.yaml (`sync: false`, no value) and `NAME=` lines to .env.example; T0D-DEP-01 static test is green now (112 OK).

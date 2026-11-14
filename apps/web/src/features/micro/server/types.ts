@@ -164,3 +164,23 @@ export interface AstRecordEntry {
 export interface AstRecordResult { antibiotic_code: string; method: AstMethod; outcome: 'ok' | 'error'; code?: string; path?: string; ast_result?: AstResultDto }
 export interface AssignPanelInput { ast_panel_id?: string }
 export interface IsolateDescribeInput { colony_description?: string; quantity_text?: string; is_reportable: boolean; plate_id?: string }
+
+// ---- T-23 instrument data inbox (InstrumentRecordDto, M19–M22 in micro.yaml) — only the fields the screens read. match_status stays a string: the API may add states.
+export interface InstrumentRecordDto {
+  id: string; version: number; record_kind: 'organism_id' | 'ast'; instrument_id: string; instrument_message_id: string; sample_barcode: string; isolate_seq?: number;
+  organism_code_raw?: string; antibiotic_code_raw?: string; method?: AstMethod; raw_value?: string; interpretation_raw?: string; standard?: string; standard_version?: string;
+  instrument_result_time?: string; received_at: string; is_rerun: boolean; match_status: string; match_reason?: string; culture_id?: string; isolate_id?: string; ast_result_id?: string;
+  organism_code?: string; antibiotic_code?: string; ignore_reason_code?: string; ignore_comment?: string;
+}
+/** The record plus the instrument's code (joined by the BFF; absent when the instrument list could not be read). */
+export interface InstrumentRecordRow extends InstrumentRecordDto { instrument_label?: string }
+export interface InstrumentRecordPage { rows: InstrumentRecordRow[]; nextCursor?: string; instruments: InstrumentLite[] | null }
+export type RecordResolution = 'use_instrument' | 'keep_existing';
+/** What the conflict dialog compares against: the manual isolate / AST value of the culture (read through GET /v1/micro/cultures/{id}). */
+export interface CompareIsolate {
+  isolate_seq: number; organism_code?: string; organism_display?: string;
+  ast: { antibiotic_code: string; antibiotic_display: string; raw_value?: string; category_code?: string; standard?: string; standard_version?: string }[];
+}
+/** A culture the scanned specimen has (cancelled ones are removed by the BFF). */
+export interface ScannedCulture { id: string; test_code: string; test_name: string; status: string }
+export type ScanForAssign = { kind: 'list'; cultures: ScannedCulture[] } | { kind: 'none' } | { kind: 'error' };

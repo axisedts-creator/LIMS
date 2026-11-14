@@ -1,7 +1,7 @@
 // ModuleManifest of module identity (02-CV §2.2, 02-TRD §6.3) — the only file the core autoloader reads.
 // claimsResolver = the sole bearerJwt claims source (02-TRD §6.2, CR-C2-005 / 08 R10).
 import type { ModuleManifest } from '../../core/module.js';
-import { LimsError } from '../../core/errors.js';
+import { createIdentityDbBinding } from './claims/dbBinding.js';
 import { createClaimsResolver } from './claims/resolver.js';
 import { handlers } from './handlers/index.js';
 import { bindIdentityMetrics } from './metrics.js';
@@ -15,13 +15,9 @@ import { createCoreAdminRepo } from './repository/core-admin.repo.js';
 // Construction reads no env, no file, opens no connection (the repo takes ctx.tx per call); the authz metric uses the identity process sink (metrics.ts).
 const IdentityPort = createIdentityPort({ repo: createCoreAdminRepo(), systemActorPermissions: () => [] });
 
-// [CONV] core does not yet hand module construction a db (CR-C2-020 open point, C0-0D): until it does,
-// identityAuthTx fails closed with common.internal, so bearerJwt never authenticates without the DEFINER.
-const db = {
-  identityAuthTx(): Promise<never> {
-    return Promise.reject(new LimsError('common.internal', 'identity: ctx.db not wired into module construction'));
-  },
-};
+// LD-189 (WIRE-DB, AUTH-SENSITIVE): the resolver gets ONLY identityAuthTx, late-bound by core boot once the pool exists (createServices deps.identityDb).
+// Unbound (no database, or before boot) it rejects common.internal, so bearerJwt never authenticates without the DEFINER (CR-C2-020).
+const binding = createIdentityDbBinding();
 
 export const manifest: ModuleManifest = {
   name: 'identity',
@@ -29,10 +25,11 @@ export const manifest: ModuleManifest = {
   handlers,
   produces: [],
   ports: { IdentityPort },
-  claimsResolver: createClaimsResolver({ db }),
+  claimsResolver: createClaimsResolver({ db: binding.db }),
   // T28: bind the process metrics sink (metrics.ts) from CoreDeps.metrics (core/pipeline/boot.ts: { setGauge(name, v), inc }).
   // [CONV] that port has no observe and no gauge labels: histograms and labelled gauges are dropped until core passes CoreMetrics.
   createServices(deps: unknown) {
+    (deps as { identityDb?: { register(bind: typeof binding.bind): void } } | undefined)?.identityDb?.register(binding.bind);
     const m = (deps as { metrics?: { setGauge?(n: string, v: number): void; inc?(n: string, l?: Record<string, string>, by?: number): void } } | undefined)?.metrics;
     if (m) {
       bindIdentityMetrics({

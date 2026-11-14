@@ -17,7 +17,7 @@ async function checklist(consumptionOn: boolean) {
   const [stores, items, rules, bindings, opening] = await Promise.all([
     soft(listStores, empty<Store>()),
     soft(() => listItems({ isActive: 'true', limit: 1 }), empty<ItemSummary>()),
-    soft(listRules, empty<{ id: string }>()),
+    soft(() => listRules({ limit: 1 }), empty<{ id: string }>()),
     soft(listBindings, empty<Binding>()),
     soft(listOpeningMovements, empty<{ id: string }>()),
   ]);

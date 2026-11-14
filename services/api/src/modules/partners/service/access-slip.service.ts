@@ -8,6 +8,7 @@
 import { LimsError } from '../../../core/errors.js';
 import type { HandlerContext, HandlerRequest, HandlerResult } from '../../../core/module.js';
 import { uuidv7 } from '../../../../../../packages/shared-ts/src/uuidv7/index.js';
+import { slip } from './observability.js';
 import { uuidParam } from './partner-user.service.js';
 import { gate, has, iso, PERM, type Obj, type Q } from './tracking.service.js';
 
@@ -35,6 +36,7 @@ export async function requestSlip(req: HandlerRequest, ctx: HandlerContext): Pro
   const versionNo = Number(rep['version_no']);
   await tx.query(INSERT, [ctx.tenantId, id, ref.partnerId, ref.partnerUserId, reportId, versionNo, rep['order_id'], at, ctx.actor!.id]);
   await tx.query(ENQUEUE, ['partners.issue_access_slip', JSON.stringify({ tenant_id: ctx.tenantId, access_slip_id: id }), `slip:${id}`]); // payload = ids only (ST12)
+  slip(ctx, 'requested'); // T23: once per accepted request (a refusal above threw; an idempotent replay never re-runs the handler)
   return { status: 202, body: { id, report_id: reportId, version_no: versionNo, state: 'requested', created_at: at } };
 }
 
@@ -69,8 +71,10 @@ export async function downloadSlip(req: HandlerRequest, ctx: HandlerContext): Pr
   const download = ctx.download as { stream(i: Obj): Promise<HandlerResult> } | undefined;
   if (!download) throw new LimsError('common.internal'); // fail closed
   const id = String(r['id']);
-  return download.stream({
+  const out = await download.stream({
     bucket: BUCKET, objectPath: r['file_path'], filename: `access-slip-${id}.pdf`, contentType: 'application/pdf', scanState: 'clean', // our own render, not an upload
     access: { action: 'report.access_slip', entityType: 'access_slip', entityId: id, outcome: 'allowed', detail: { access_slip_id: id, link_id: String(r['link_id'] ?? '') } },
   });
+  if (out.status === 200) slip(ctx, 'downloaded'); // T23
+  return out;
 }

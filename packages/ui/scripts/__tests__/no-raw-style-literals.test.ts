@@ -208,7 +208,7 @@ describe('raw-style-pending.json', () => {
     const list = loadPending();
     expect(new Set(list).size).toBe(list.length);
     for (const d of list) {
-      expect(d, d).toMatch(/^[\w.@-]+(?:\/[\w.@-]+)*$/); // no backslash, ./, .., trailing slash, absolute path
+      expect(d, d).toMatch(/^[\w.@()[\]-]+(?:\/[\w.@()[\]-]+)*$/); // allows Next.js (group) and [param] segments; no backslash, ./, .., trailing slash, absolute path
       expect(d.split('/')).not.toContain('..');
       expect(ROOTS.some((r) => d === r || d.startsWith(`${r}/`)), `${d} is outside ${ROOTS.join(', ')}`).toBe(true);
       expect(statSync(join(repo, d)).isDirectory(), `${d} must be an existing directory`).toBe(true);

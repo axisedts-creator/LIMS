@@ -37,6 +37,7 @@ import type { Centre, CodedSetEntry, CreditPartySummary, DoctorSummary, DraftDis
 import { DiscountDialog } from './DiscountDialog';
 import { NewPatientForm } from './NewPatientForm';
 import { SuccessPanel } from './SuccessPanel';
+import './frontdesk.css';
 
 export interface RegistrationFormProps {
   centres: readonly Centre[];
@@ -281,6 +282,9 @@ function Registration({ centres, defaultCentreId, consentTextVersion = '1', onRe
   };
   const lineOf = (id: string) => quote?.lines.find((l) => l.orderable_id === id);
   const sum = rows.reduce((a, r, i) => a + rowAmount(r, i, net), 0);
+  const paidNow = billing === 'cash' ? sum : 0;
+  // Summary amounts are a mirror of the Bill/Payment panels: split into two spans so the existing single-match text queries (fd-t13) still find the Bill panel value once.
+  const sumMoney = (paisa: number) => <span className="lims-money"><span>Rs.</span> <span>{plain(paisa)}</span></span>;
   const total = (label: string, m?: { amount_paisa: number }) => (m ? <div key={label} className="lims-total-row"><dt>{label}</dt><dd><MoneyText value={npr(m.amount_paisa)} /></dd></div> : null);
 
   return (
@@ -305,9 +309,11 @@ function Registration({ centres, defaultCentreId, consentTextVersion = '1', onRe
       {result ? (
         <SuccessPanel result={result} onNew={onReset} onOpenOrder={openOrder} retryLabelsRef={retryLabels} />
       ) : (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 16, alignItems: 'start' }}>
-          <div style={{ display: 'grid', gap: 16 }}>
+        // RS-C4 / LD-140 (10-DESIGN-SYSTEM s4 Register): Patient, Tests, Billing stacked in ONE left column; the summary is sticky on the right.
+        <div className="lims-reg-layout">
+          <div className="lims-reg-main">
             <Card title="Patient">
+              <div className="lims-reg-section">
               {showNew ? (
                 <NewPatientForm consentTextVersion={consentTextVersion} onCancel={closeNewPatient} onUse={(p) => { setNewPatient(p); setPatient(null); closeNewPatient(); }} />
               ) : (
@@ -323,17 +329,7 @@ function Registration({ centres, defaultCentreId, consentTextVersion = '1', onRe
                   <Button variant="ghost" onPress={openNewPatient}>New patient</Button>
                 </>
               )}
-            </Card>
-            <Card title="Visit">
               <RadioGroup label="Visit type" name="visit_type" orientation="horizontal" value={visit} onChange={setVisit} options={[{ value: 'opd', label: 'OPD' }, { value: 'ipd', label: 'IPD' }]} />
-              <RadioGroup label="Billing mode" name="billing_mode" orientation="horizontal" value={billing} onChange={setBilling} options={[{ value: 'cash', label: 'Cash' }, { value: 'credit', label: 'Credit' }]} />
-              {billing === 'credit' ? (
-                <div data-field="credit" onKeyDownCapture={enterPicksFirst}>
-                  <Combobox<CreditPartySummary> label="Credit party" name="credit_party" loadOptions={loadParties} getKey={(p) => p.id} renderValue={(p) => p.name} {...(party ? { value: party } : {})} onChange={setParty}
-                    renderOption={(p) => <span>{p.name}{p.party_code ? ` (${p.party_code})` : ''}</span>} />
-                  {creditState ? <p>Credit status: <Badge tone={creditState === 'ok' ? 'success' : 'danger'}>{creditState === 'ok' ? 'OK' : creditState === 'locked' ? 'Locked' : 'Over limit'}</Badge></p> : null}
-                </div>
-              ) : null}
               <div data-field="referrer" onKeyDownCapture={enterPicksFirst}>
                 <Combobox<DoctorSummary> label="Referrer" name="referrer" loadOptions={loadDoctors} getKey={(d) => d.id} renderValue={(d) => d.display_name} {...(referrer ? { value: referrer } : {})}
                   onChange={(d) => { setReferrer(d); setFieldErr({}); }} {...(fieldErr.referrer ? { error: fieldErr.referrer } : {})}
@@ -349,10 +345,10 @@ function Registration({ centres, defaultCentreId, consentTextVersion = '1', onRe
                   <TextField label="Paper form serial" name="downtime_ref" maxLength={32} isRequired value={dt.ref} onChange={(v) => { setDtErr((e) => ({ ...e, ref: undefined as never })); setDt((d) => ({ ...d, ref: v })); }} {...(dtErr.ref ? { error: dtErr.ref } : {})} />
                 </>
               ) : null}
+              </div>
             </Card>
-          </div>
 
-          <Card title="Tests">
+            <Card title="Tests">
             <div data-field="tests" onKeyDownCapture={enterPicksFirst}>
               <Combobox<OrderableSummary> key={testKey} label="Search tests or packages" name="test_search" debounceMs={150} loadOptions={loadOrderables} getKey={(o) => o.id} renderValue={(o) => o.name} onChange={addItem}
                 renderOption={(o) => <span><strong>{o.code}</strong> {o.name} <small>{KIND[o.kind] ?? o.kind}</small></span>} />
@@ -378,8 +374,16 @@ function Registration({ centres, defaultCentreId, consentTextVersion = '1', onRe
             <p><small>TRF upload (Alt+U) is added with the order page.</small></p>
           </Card>
 
-          <div style={{ display: 'grid', gap: 16 }}>
-            <Card title="Bill">
+            <Card title="Billing">
+              <div className="lims-reg-section">
+              <RadioGroup label="Billing mode" name="billing_mode" orientation="horizontal" value={billing} onChange={setBilling} options={[{ value: 'cash', label: 'Cash' }, { value: 'credit', label: 'Credit' }]} />
+              {billing === 'credit' ? (
+                <div data-field="credit" onKeyDownCapture={enterPicksFirst}>
+                  <Combobox<CreditPartySummary> label="Credit party" name="credit_party" loadOptions={loadParties} getKey={(p) => p.id} renderValue={(p) => p.name} {...(party ? { value: party } : {})} onChange={setParty}
+                    renderOption={(p) => <span>{p.name}{p.party_code ? ` (${p.party_code})` : ''}</span>} />
+                  {creditState ? <p>Credit status: <Badge tone={creditState === 'ok' ? 'success' : 'danger'}>{creditState === 'ok' ? 'OK' : creditState === 'locked' ? 'Locked' : 'Over limit'}</Badge></p> : null}
+                </div>
+              ) : null}
               <div role="status" aria-live="polite">
                 {qs.status === 'pending' ? (<><p>Prices updating…</p><LoadingSkeleton variant="detail" rows={3} /></>) : null}
                 {quote ? (
@@ -395,7 +399,7 @@ function Registration({ centres, defaultCentreId, consentTextVersion = '1', onRe
                     <dl>
                       {total('Gross', quote.totals.gross)}{total('Discount', quote.totals.discount)}{total('Exempt', quote.totals.exempt)}{total('Taxable', quote.totals.taxable)}
                       {total('VAT', quote.totals.vat)}{total('Other tax', quote.totals.other_tax)}
-                      <div className="lims-total-row" style={{ fontSize: '1.25rem', fontWeight: 700 }}><dt>Net</dt><dd><MoneyText value={npr(net)} /></dd></div>
+                      <div className="lims-total-row lims-total-net"><dt>Net</dt><dd><MoneyText value={npr(net)} /></dd></div>
                     </dl>
                   </>
                 ) : null}
@@ -413,15 +417,12 @@ function Registration({ centres, defaultCentreId, consentTextVersion = '1', onRe
                   : <Banner tone="warning" title={`Approval needed (limit ${quote.discount_evaluation.limit_percent_bp / 100}%)`} action={{ label: 'Request approval (Alt+A)', onPress: () => void requestApproval() }} />
               ) : null}
               <Button variant="ghost" shortcut="F6" onPress={() => items.length > 0 && setDialog('discount')} isDisabled={items.length === 0}>Discount</Button>
-            </Card>
-
-            <Card title="Payment">
               {billing === 'credit' ? (
                 <p>{party ? `Billed to ${party.name} monthly` : 'Choose a credit party. The bill is charged to it monthly.'}</p>
               ) : (
                 <div role="group" aria-label="Payment rows">
                   {rows.map((r, i) => (
-                    <div key={r.id} style={{ display: 'grid', gap: 4, marginBottom: 12 }}>
+                    <div key={r.id} className="lims-reg-pay-row">
                       <Select label={i === 0 ? 'Method' : `Method (row ${i + 1})`} name={`method_${i}`} value={r.method} onChange={(v) => patchRow(i, { method: v })}
                         options={(methods.length ? methods : [{ code: 'cash', display: 'Cash' }]).map((m) => ({ value: m.code, label: m.display }))} />
                       <div data-field={`amount-${i}`}>
@@ -443,9 +444,27 @@ function Registration({ centres, defaultCentreId, consentTextVersion = '1', onRe
                   <div role="status"><span>Balance after payment</span> <MoneyText value={npr(Math.max(0, net - sum))} /></div>
                 </div>
               )}
-              <Button variant="primary" type="submit" shortcut="Ctrl+Enter" isDisabled={!canRegister} isLoading={submitting} onPress={submit}>Register &amp; print</Button>
+              </div>
             </Card>
           </div>
+
+          <aside className="lims-reg-summary" aria-label="Registration summary">
+            <h2 className="lims-reg-summary-title">Summary</h2>
+            <dl className="lims-reg-summary-list">
+              <div className="lims-reg-summary-row">
+                <dt>Tests</dt>
+                <dd>{items.length === 0 ? 'None yet' : `${items.length} selected`}{items.length ? <ul className="lims-reg-summary-tests">{items.map((i) => <li key={i.orderable.id}>{i.orderable.name}</li>)}</ul> : null}</dd>
+              </div>
+              <div className="lims-reg-summary-row"><dt>Total</dt><dd>{sumMoney(net)}</dd></div>
+              <div className="lims-reg-summary-row"><dt>Paid</dt><dd>{sumMoney(paidNow)}</dd></div>
+              <div className="lims-reg-summary-row lims-reg-summary-balance"><dt>Balance</dt><dd>{sumMoney(Math.max(0, net - paidNow))}</dd></div>
+              <div className="lims-reg-summary-row">
+                <dt>Discount authority</dt>
+                <dd>{quote ? `Limit ${quote.discount_evaluation.limit_percent_bp / 100}%${needsApproval ? ' · approval required' : ''}` : '—'}</dd>
+              </div>
+            </dl>
+            <Button variant="primary" type="submit" shortcut="Ctrl+Enter" isDisabled={!canRegister} isLoading={submitting} onPress={submit}>Register &amp; print</Button>
+          </aside>
         </div>
       )}
 

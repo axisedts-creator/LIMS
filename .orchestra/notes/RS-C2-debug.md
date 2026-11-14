@@ -23,3 +23,4 @@ Fix: none. No code, test or vitest-config edits to work around the host. Re-run 
 ## Debugger round 6 (2026-11-14 14:17)
 Cause: host, not code. Verify log (14:11) and my own `-u rs-c2.screens` run (14:15) both show rs-c2.static 14/14 pass, then "Failed to start forks worker ... Timeout waiting for worker to respond" for rs-c2.screens.test.tsx (0 screen tests run, ~62s). Tree clean; no rs-c2 .snap exists yet.
 Fix: none. No code, test or vitest-config edits to work around the host. Re-run verify when the host has free RAM / fewer lanes; then record the snapshot once with `-u rs-c2.screens` (LD-170).
+- [debugger 2026-11-14 round 7] verify: static 13/14, screens 0 run (forks worker timeout, host). Only real failure: static data_files sha for features/admin/auth/actions.ts, changed by T0D-DEP-02 (LD-174), not RS-C2. No code change made; stale test baseline -> see RS-C2-dispute.md.

@@ -1,0 +1,1 @@
+cd /d "%~dp0..\.." && pnpm --dir apps/web exec tsc --noEmit -p tests/e2e/quality/tsconfig.json && pnpm --dir apps/web exec playwright test --config tests/e2e/quality/playwright.config.ts --list C9.T-27

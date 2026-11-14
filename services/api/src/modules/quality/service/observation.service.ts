@@ -105,7 +105,7 @@ export function createObservationService(deps: {
     const groups = new Map<string, Row[]>();
     for (const r of fresh) { const k = `${r['instrument_id']}|${r['analyte_id'] ?? ''}`; (groups.get(k) ?? groups.set(k, []).get(k)!).push(r); }
 
-    for (const rows of groups.values()) {
+    for (const [, rows] of [...groups].sort(([a], [b]) => cmpStr(a, b))) {   // deterministic lock order (review item 2)
       await repo.lockPair(ctx.tx, t, rows[0]!['instrument_id'], rows[0]!['analyte_id'] ?? null);
       const ordered = rows.map((r) => ({ r, at: observedOf(r) })).sort((a, b) => a.at - b.at || cmpStr(a.r['received_at'], b.r['received_at']) || cmpStr(a.r['qc_result_id'], b.r['qc_result_id'])).map((x) => x.r);
       for (const r of ordered) {
@@ -149,6 +149,10 @@ export function createObservationService(deps: {
         state = await repo.getSyncState(ctx.tx, t);
         if (!state) throw new LimsError('common.internal');
       }
+      // §6.2 step 4 / E1 (review item 2): one sync run per tenant at a time, so overlapping cron + event jobs cannot take pair locks in opposite orders (40P01).
+      // Re-read after the lock: a run we waited on may have advanced the cursor.
+      await repo.lockSyncState(ctx.tx, t);
+      state = (await repo.getSyncState(ctx.tx, t)) ?? state;
       const tz = await tenantZone(ctx);
       const res: SyncResult = { imported: 0, duplicates: 0, importErrors: 0, pages: 0, budgetExhausted: false, counts: {}, cursor: null };
 

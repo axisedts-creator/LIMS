@@ -1,13 +1,13 @@
 // C9 T-09 repository for the QC observation import (02-TRD §6.1-§6.3). The ONLY lab object read is lab.v_pub_qc_result (03-IC §6.3); never lab.qc_results.
 // Every statement is parameterised and names tenant_id = $n on top of RLS. Timestamps leave as ISO text with microseconds (an exact keyset: a millisecond key would skip or repeat
 // rows of one second); numerics leave as decimal text. Postgres errors pass through UNCHANGED (the service needs the SQLSTATE for import_error).
-// [CONV] ORDER BY created_at in the page reads resolves to the text output column (same name wins in Postgres); the format is fixed-width, so the order is chronological.
-// ponytail: that sort is a top-N sort over the unprocessed backlog, not an index scan; select created_at under another alias if the backlog gets large.
+// Page reads order + limit inside a subquery on the real timestamptz column (index lab.qc_results (tenant_id, created_at, id), CR-C9-005), then format outside (review item 1).
 export type Row = Record<string, any>;
 export interface Tx { query(text: string, values?: unknown[]): Promise<{ rows: any[] }> }
 
 export interface SyncRepo {
   getSyncState(tx: Tx, tenantId: string): Promise<{ qc_cursor_at: string; qc_cursor_id: string | null } | undefined>;
+  lockSyncState(tx: Tx, tenantId: string): Promise<void>;
   readFirstPage(tx: Tx, tenantId: string, q: { cursorAt: string; overlapSeconds: number; limit: number }): Promise<Row[]>;
   readPageAfter(tx: Tx, tenantId: string, q: { afterAt: string; afterId: string; limit: number }): Promise<Row[]>;
   findExistingSourceIds(tx: Tx, tenantId: string, sourceIds: string[]): Promise<string[]>;
@@ -23,8 +23,11 @@ export interface SyncRepo {
 
 const ISO = `'YYYY-MM-DD"T"HH24:MI:SS.US"Z"'`;
 const ts = (col: string, as = col) => `to_char(${col} AT TIME ZONE 'UTC', ${ISO}) AS ${as}`;
-const VIEW_COLS = `tenant_id, qc_result_id, instrument_id, analyte_id, control_id_raw, control_lot_raw, control_level, value_numeric::text AS value_numeric, unit_code,
-  ${ts('instrument_result_time')}, ${ts('received_at')}, source, ${ts('created_at')}`;
+const VIEW_COLS = `q.tenant_id, q.qc_result_id, q.instrument_id, q.analyte_id, q.control_id_raw, q.control_lot_raw, q.control_level, q.value_numeric::text AS value_numeric, q.unit_code,
+  ${ts('q.instrument_result_time', 'instrument_result_time')}, ${ts('q.received_at', 'received_at')}, q.source, ${ts('q.created_at', 'created_at')}`;
+const RAW_COLS = 'tenant_id, qc_result_id, instrument_id, analyte_id, control_id_raw, control_lot_raw, control_level, value_numeric, unit_code, instrument_result_time, received_at, source, created_at';
+const pageRead = (where: string) =>
+  `SELECT ${VIEW_COLS} FROM (SELECT ${RAW_COLS} FROM lab.v_pub_qc_result WHERE ${where} ORDER BY created_at, qc_result_id LIMIT $4) q ORDER BY q.created_at, q.qc_result_id`;
 const OBS_COLS = ['id', 'tenant_id', 'source_qc_result_id', 'source', 'instrument_id', 'analyte_id', 'control_id_raw', 'control_lot_raw', 'control_level_raw', 'value', 'unit_code',
   'instrument_result_time', 'received_at', 'observed_at', 'observed_at_basis', 'status', 'plan_id', 'level_id', 'lot_id', 'target_id', 'mean', 'sd', 'z', 'qc_run_id', 'classified_at', 'created_by', 'updated_by'];
 
@@ -34,14 +37,17 @@ export function createQcViewRepo(): SyncRepo {
       const { rows } = await tx.query(`SELECT ${ts('qc_cursor_at')}, qc_cursor_id FROM quality.sync_state WHERE tenant_id = $1`, [tenantId]);
       return rows[0];
     },
+    async lockSyncState(tx, tenantId) {
+      await tx.query('SELECT 1 FROM quality.sync_state WHERE tenant_id = $1 FOR UPDATE', [tenantId]);
+    },
     async readFirstPage(tx, tenantId, q) {
       return (await tx.query(
-        `SELECT ${VIEW_COLS} FROM lab.v_pub_qc_result WHERE tenant_id = $1 AND created_at >= $2::timestamptz - make_interval(secs => $3::int) ORDER BY created_at, qc_result_id LIMIT $4`,
+        pageRead('tenant_id = $1 AND created_at >= $2::timestamptz - make_interval(secs => $3::int)'),
         [tenantId, q.cursorAt, q.overlapSeconds, q.limit])).rows;
     },
     async readPageAfter(tx, tenantId, q) {
       return (await tx.query(
-        `SELECT ${VIEW_COLS} FROM lab.v_pub_qc_result WHERE tenant_id = $1 AND (created_at, qc_result_id) > ($2::timestamptz, $3::uuid) ORDER BY created_at, qc_result_id LIMIT $4`,
+        pageRead('tenant_id = $1 AND (created_at, qc_result_id) > ($2::timestamptz, $3::uuid)'),
         [tenantId, q.afterAt, q.afterId, q.limit])).rows;
     },
     async findExistingSourceIds(tx, tenantId, sourceIds) {

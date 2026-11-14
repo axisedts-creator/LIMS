@@ -67,6 +67,8 @@ export interface CaseDetail extends CaseSummary {
   allowed_actions: string[];
   /** Molecular cases only (T-22). Addenda belong to the later tabs (T-21+) and are not typed here. */
   molecular_results?: MolecularResult[];
+  /** T-21: addenda of the case (R8-R10). */
+  addenda?: import('./report.types').Addendum[];
 }
 export interface TextTemplate { id: string; short_code: string; section: string; title: string; body: string; is_active: boolean; version: number }
 export interface Assignee { membership_id: string; display_name: string }

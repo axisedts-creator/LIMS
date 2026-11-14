@@ -1,9 +1,10 @@
 import 'server-only';
 // H3 assign, H4 unassign, H5 schedule, H6 cancel (Idempotency-Key from the caller + If-Match = visit version), H11 resequence (If-Match = route version).
+// HC-T20: H15 confirm handover + H17 wipe phone (Idempotency-Key + If-Match), H19 PUT settings (If-Match).
 // Only a uuid reaches a path, and every value is re-validated here: the browser is not trusted.
 import { ApiError, serverFetch } from '@/core/api/server-fetch';
 import { problem } from '@/core/session/types';
-import type { ScheduleBody } from '../types';
+import type { ScheduleBody, SettingsBody } from '../types';
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const KEY = /^[A-Za-z0-9_-]{1,64}$/;
@@ -19,7 +20,7 @@ const ver = (version: number) => {
 };
 const idem = (key: string) => {
   if (!KEY.test(key)) throw bad();
-  return { 'idempotency-key': key };
+  return { 'Idempotency-Key': key };
 };
 const visitPath = (id: string, op: string) => {
   if (!UUID.test(id)) throw bad();
@@ -89,6 +90,66 @@ export function cancelVisit(id: string, version: number, reasonCode: string, rea
   if (!CODE.test(reasonCode)) throw bad();
   const t = text(reasonText, 500);
   return serverFetch<Out>(p, { method: 'POST', headers: { ...json, ...idem(key), ...ver(version) }, body: JSON.stringify({ reason_code: reasonCode, ...(t ? { reason_text: t } : {}) }) });
+}
+
+/** H15 confirmHandover: exactly the handover's items, each received true/false. Idempotency-Key from the caller (a retry re-sends it) + If-Match = handover version. */
+export function confirmHandover(id: string, version: number, items: readonly { specimen_id: string; received: boolean }[], key: string) {
+  if (!UUID.test(id) || items.length < 1 || items.length > 50) throw bad();
+  if (!items.every((i) => UUID.test(i.specimen_id) && typeof i.received === 'boolean')) throw bad();
+  return serverFetch<Out>(`/v1/homecollection/handovers/${id}/confirm`, {
+    method: 'POST', headers: { ...json, ...idem(key), ...ver(version) },
+    body: JSON.stringify({ items: items.map((i) => ({ specimen_id: i.specimen_id, received: i.received })) }),
+  });
+}
+
+/** H17 requestDeviceWipe. */
+export function wipeDevice(id: string, version: number, reasonCode: string, reasonText: string | undefined, key: string) {
+  if (!UUID.test(id) || !CODE.test(reasonCode)) throw bad();
+  const t = text(reasonText, 500);
+  return serverFetch<Out>(`/v1/homecollection/devices/${id}/wipe`, {
+    method: 'POST', headers: { ...json, ...idem(key), ...ver(version) }, body: JSON.stringify({ reason_code: reasonCode, ...(t ? { reason_text: t } : {}) }),
+  });
+}
+
+const PAYMENT_CODES = ['cash', 'card', 'esewa', 'khalti', 'fonepay_qr', 'bank_transfer'];
+const SEMVER = /^\d{1,6}\.\d{1,6}\.\d{1,6}$/;
+const RANGES: Record<string, readonly [number, number]> = {
+  sync_interval_seconds: [60, 900], offline_purge_hours: [4, 24], gps_retention_days: [7, 365], handover_overdue_hours: [1, 24], max_visits_per_route: [1, 60], clock_tolerance_seconds: [60, 3600],
+};
+const BOOLS = ['capture_gps', 'map_handoff_enabled', 'manual_barcode_entry_allowed', 'handover_confirmation_required', 'notify_phlebotomist_on_assign', 'notify_patient_on_assign'];
+
+/** H19 updateHomecollectionSettings: the whole mutable set, re-validated here (the browser is not trusted). If-Match = settings version. */
+export function saveSettings(version: number, b: SettingsBody) {
+  const out: Record<string, unknown> = {};
+  for (const [k, [lo, hi]] of Object.entries(RANGES)) {
+    const n = (b as unknown as Record<string, unknown>)[k];
+    if (typeof n !== 'number' || !Number.isInteger(n) || n < lo || n > hi) throw bad();
+    out[k] = n;
+  }
+  for (const k of BOOLS) {
+    const v = (b as unknown as Record<string, unknown>)[k];
+    if (typeof v !== 'boolean') throw bad();
+    out[k] = v;
+  }
+  if (typeof b.min_app_version !== 'string' || b.min_app_version.length > 20 || !SEMVER.test(b.min_app_version)) throw bad();
+  if (typeof b.collection_consent_text_version !== 'string' || b.collection_consent_text_version.length < 1 || b.collection_consent_text_version.length > 40) throw bad();
+  if (typeof b.collection_consent_text !== 'string' || b.collection_consent_text.trim().length < 1 || b.collection_consent_text.length > 2000) throw bad();
+  if (b.second_identifier !== 'phone' && b.second_identifier !== 'birth_date') throw bad();
+  const pm = b.payment_methods;
+  if (!Array.isArray(pm) || pm.length < 1 || pm.length > 10) throw bad();
+  const seen = new Set<string>();
+  for (const p of pm) {
+    if (!PAYMENT_CODES.includes(p.code) || seen.has(p.code) || typeof p.display !== 'string' || p.display.trim().length < 1 || p.display.length > 40 || typeof p.requires_reference !== 'boolean') throw bad();
+    seen.add(p.code);
+  }
+  return serverFetch<Out>('/v1/homecollection/settings', {
+    method: 'PUT', headers: { ...json, ...ver(version) },
+    body: JSON.stringify({
+      ...out, min_app_version: b.min_app_version, second_identifier: b.second_identifier,
+      collection_consent_text_version: b.collection_consent_text_version, collection_consent_text: b.collection_consent_text,
+      payment_methods: pm.map((p) => ({ code: p.code, display: p.display.trim(), requires_reference: p.requires_reference })),
+    }),
+  });
 }
 
 /** H11 resequenceHomeRoute: the server checks the set equals the route's active visits. */

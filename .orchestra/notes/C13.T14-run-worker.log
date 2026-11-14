@@ -1,0 +1,9 @@
+
+ RUN  v5.1.0 C:/LIMS-lanes/C13/services/worker
+
+
+ Test Files  2 passed (2)
+      Tests  38 passed (38)
+   Start at  11:57:50
+   Duration  8.48s (import 53%, transform 25%, tests 21%, worker 2%)
+

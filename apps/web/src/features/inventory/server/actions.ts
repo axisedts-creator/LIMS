@@ -4,9 +4,10 @@
 // Only ApiError is mapped; anything else rethrows to the error boundary. Browser code never sees the token (REQ-SEC-068).
 import 'server-only';
 import { ApiError } from '@/core/api/server-fetch';
-import { getItem, listItems } from './read.server';
-import { addBarcode, createItem, createPack, createStore, createSupplier, deactivateBarcode, deactivateBinding, putBinding, putStoreItemSetting, putSupplierItem, setItemActive, updateItem, updateStore, updateSupplier } from './write.server';
-import type { ActionResult, BarcodeCreate, ItemCreate, ItemPatch, ItemSummary, Pack, PackCreate, StoreCreate, StoreItemSetting, StoreItemSettingPut, StorePatch, SupplierCreate, SupplierItem, SupplierItemPut, SupplierPatch, Binding, FieldProblem } from './types';
+import { getShellSession } from '@/core/session/server';
+import { blindLines, getFefo, getItem, listAnalytes, listItems, listMovements, listStock } from './read.server';
+import { lookupBarcode, cancelTransfer, createAdjustment, createCount, createExpiryWriteoff, createIssue, createTransfer, createWastage, discardContainer, dispatchTransfer, finishContainer, logConsumptionEvent, openContainer, postCount, putCountLines, receiveTransfer, addBarcode, createItem, createPack, createStore, createSupplier, deactivateBarcode, deactivateBinding, putBinding, putStoreItemSetting, putSupplierItem, setItemActive, updateItem, updateStore, updateSupplier } from './write.server';
+import type { ActionResult, AdjustmentCreate, Analyte, BalanceRow, ConsumptionEventCreate, ContainerDiscard, ContainerOpen, CountCreate, CountLinePut, ExpiryWriteoffCreate, FefoSuggestion, IssueCreate, StockMovement, TransferCreate, TransferReceive, UncountedPolicy, WastageCreate, BarcodeCreate, ItemCreate, ItemPatch, ItemSummary, Pack, PackCreate, StoreCreate, StoreItemSetting, StoreItemSettingPut, StorePatch, SupplierCreate, SupplierItem, SupplierItemPut, SupplierPatch, Binding, FieldProblem } from './types';
 
 async function run<T>(f: () => Promise<T>): Promise<ActionResult<T>> {
   try {
@@ -45,6 +46,36 @@ export async function putBindingAction(instrumentId: string, version: number | u
   return run(() => putBinding(instrumentId, version, storeId));
 }
 export async function deactivateBindingAction(instrumentId: string, version: number) { return done(() => deactivateBinding(instrumentId, version)); }
+
+// ---- T-23 stock operations. Same contract as above: ApiError -> { ok:false, ... }, the token stays on the server.
+export async function fefoAction(storeId: string, itemId: string, qtyBase: string): Promise<ActionResult<FefoSuggestion>> { return run(() => getFefo(storeId, itemId, qtyBase)); }
+export async function listStockAction(storeId: string, itemId?: string): Promise<ActionResult<BalanceRow[]>> { return run(async () => (await listStock({ storeId, ...(itemId ? { itemId } : {}) })).data); }
+export async function listMovementsAction(storeId: string, itemId: string): Promise<ActionResult<StockMovement[]>> { return run(async () => (await listMovements(storeId, itemId)).data); }
+export async function listAnalytesAction(testId: string): Promise<ActionResult<Analyte[]>> { return run(() => listAnalytes(testId)); }
+
+export async function createIssueAction(b: IssueCreate, key: string) { return run(() => createIssue(b, key)); }
+export async function createWastageAction(b: WastageCreate, key: string) { return run(() => createWastage(b, key)); }
+export async function createAdjustmentAction(b: AdjustmentCreate, key: string) { return run(() => createAdjustment(b, key)); }
+export async function createExpiryWriteoffAction(b: ExpiryWriteoffCreate, key: string) { return run(() => createExpiryWriteoff(b, key)); }
+
+export async function createTransferAction(b: TransferCreate, key: string) { return run(() => createTransfer(b, key)); }
+export async function dispatchTransferAction(id: string, version: number, key: string) { return done(() => dispatchTransfer(id, version, key)); }
+export async function receiveTransferAction(id: string, version: number, key: string, b: TransferReceive) { return done(() => receiveTransfer(id, version, key, b)); }
+export async function cancelTransferAction(id: string, version: number, key: string) { return done(() => cancelTransfer(id, version, key)); }
+
+export async function lookupBarcodeAction(value: string): Promise<ActionResult<ItemSummary>> { return run(async () => (await lookupBarcode(value)).item); }
+// BLIND count (07-SECURITY.md:57): CountsView needs only id/count_no, so the lines (with book_qty_snapshot) never leave the server.
+export async function createCountAction(b: CountCreate, key: string) { return run(async () => { const c = await createCount(b, key); return { id: c.id, count_no: c.count_no }; }); }
+export async function putCountLinesAction(id: string, lines: CountLinePut[]) {
+  const perms = (await getShellSession())?.actor.permissions ?? [];
+  return run(async () => { const r = await putCountLines(id, lines); return { ...r, lines: blindLines(r.lines, perms) }; });
+}
+export async function postCountAction(id: string, version: number, key: string, policy: UncountedPolicy) { return done(() => postCount(id, version, key, policy)); }
+
+export async function openContainerAction(b: ContainerOpen, key: string) { return done(() => openContainer(b, key)); }
+export async function finishContainerAction(id: string, version: number, key: string) { return done(() => finishContainer(id, version, key)); }
+export async function discardContainerAction(id: string, version: number, key: string, b: ContainerDiscard) { return done(() => discardContainer(id, version, key, b)); }
+export async function logConsumptionEventAction(b: ConsumptionEventCreate, key: string) { return run(() => logConsumptionEvent(b, key)); }
 
 /** Item picker for the supplier-item form: code/name prefix, active items only. */
 export async function searchItemsAction(q: string): Promise<ActionResult<ItemSummary[]>> {

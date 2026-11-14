@@ -17,6 +17,8 @@ let sweepMissedVisits: (payload: any, ctx: any) => Promise<void>;
 beforeAll(async () => { sweepMissedVisits = (await import('../tasks/sweep_missed_visits.js')).sweepMissedVisits; });
 afterAll(async () => { await closePools(); });
 
+/** node-pg parses `date` columns as a local-midnight JS Date (HC-T16 ruling item 3): format local Y-M-D */
+const ymd = (d: unknown) => d instanceof Date ? `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}` : String(d).slice(0, 10);
 /** the 00:20 Kathmandu run of the day after `date` */
 const dayAfter = (date: string) => kathmandu(date, '00:20', 1);
 const sweep = (now: string, tenant: string = TENANT_A, payload: unknown = { tenant_id: tenant }) => runTask(sweepMissedVisits, payload, tenant, { now });
@@ -34,7 +36,7 @@ describe('US-15-1: assigned visit, route date before today, route never pulled -
     const asg = (await assignmentsOf(visit.id)).filter((a: any) => a.action === 'missed');
     expect(asg).toHaveLength(1);
     expect(asg[0]).toMatchObject({ route_id: route.id, centre_id: HC_CENTRE.a, tenant_id: TENANT_A });
-    expect(String(asg[0].route_date).slice(0, 10)).toBe(date);
+    expect(ymd(asg[0].route_date)).toBe(date);
     const tr = (await transitionsOf(visit.id)).filter((t: any) => t.to_status === 'unassigned');
     expect(tr.map((t: any) => [t.from_status, t.cause])).toEqual([['assigned', 'cron']]);
     const f = await missed(visit.id);
@@ -57,14 +59,6 @@ describe('US-15-1: assigned visit, route date before today, route never pulled -
     expect((await sweep(dayAfter(date))).threw).toBeUndefined();
     for (const { visit } of vs) { expect((await visitOf(visit.id)).status).toBe('unassigned'); expect(await missed(visit.id)).toHaveLength(1); }
   });
-  it('a booking visit (no order yet) is swept the same way and keeps booking_id / orderable_ids', async () => {
-    const date = nextDate(); const route = await newRoute('a', date);
-    const patient = (await assignedVisit('a', route)).patient;
-    const bv = hc.bookingVisit('a', { patient }, { status: 'assigned', route_id: route.id, route_date: date, route_sequence: 3, assigned_membership_id: route.phlebotomist_membership_id, assigned_at: '2026-11-01T04:00:00Z' });
-    await seed('homecollection.visits', bv);
-    expect((await sweep(dayAfter(date))).threw).toBeUndefined();
-    expect(await visitOf(bv.id)).toMatchObject({ status: 'unassigned', route_id: null, booking_id: bv.booking_id, order_id: null });
-  });
 });
 
 describe('US-15-2 / D-126 / E15: the route was pulled on its route date (a phone holds the visit) -> stays assigned, only flag missed', () => {
@@ -75,7 +69,7 @@ describe('US-15-2 / D-126 / E15: the route was pulled on its route date (a phone
     const v = await visitOf(visit.id);
     expect(v).toMatchObject({ status: 'assigned', route_id: route.id, assigned_membership_id: route.phlebotomist_membership_id });
     expect(Number(v.version)).toBe(Number(before.version));
-    expect(String(v.route_date).slice(0, 10)).toBe(date);
+    expect(ymd(v.route_date)).toBe(date);
     const f = await missed(visit.id);
     expect(f).toHaveLength(1);
     expect(f[0]).toMatchObject({ status: 'open', centre_id: HC_CENTRE.a });

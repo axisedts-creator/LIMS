@@ -90,3 +90,77 @@ export type ScanResult =
   | { kind: 'choose'; cultures: { id: string; test_code: string; test_name: string; status: string }[] }
   | { kind: 'none' }
   | { kind: 'error' };
+
+// ---- T-20 culture page (CultureDetailDto and children in micro.yaml; getPatient maps frontdesk.yaml PatientDto) — only the fields the screen reads.
+export interface PatientLite { name: string; age_display?: string; sex?: string }
+export const OBSERVATION_KINDS = ['plate_read', 'gram_stain', 'microscopy', 'other'] as const;
+export type ObservationKind = (typeof OBSERVATION_KINDS)[number];
+export interface ProtocolLite { id?: string; code: string; version_no: number; display: string }
+export interface PlateDto {
+  id: string; version: number; plate_no: number; media_code: string; incubation_text?: string; parent_plate_id?: string; source_isolate_id?: string;
+  planted_at: string; status: 'active' | 'discarded';
+}
+export interface ObservationDto {
+  id: string; kind: ObservationKind; plate_id?: string; growth_code?: string; quantity_text?: string; finding_text?: string; observed_at: string; hours_since_planting?: number;
+  recorded_by_display: string; corrects_observation_id?: string; is_corrected: boolean;
+}
+/** AstResultDto (micro.yaml) — the fields the T-21 grid reads. */
+export interface AstResultDto {
+  id: string; version: number; antibiotic_code: string; antibiotic_display: string; method: AstMethod; raw_value?: string; category_code?: string;
+  standard?: Standard | 'unknown'; standard_version?: string; interpretation_source?: 'manual' | 'instrument' | 'breakpoint_suggestion'; suggestion_overridden: boolean;
+  source: 'manual' | 'instrument'; is_reportable: boolean; report_visibility: 'shown' | 'suppressed_by_rule'; off_panel: boolean; panel_sort_order?: number;
+}
+export interface IsolateDto {
+  id: string; version: number; isolate_seq: number; status: 'pending_id' | 'identified' | 'withdrawn'; organism_code?: string; organism_display?: string; organism_source?: string;
+  identified_at?: string; colony_description?: string; quantity_text?: string; plate_id?: string; is_reportable: boolean; withdraw_reason_code?: string;
+  ast_panel?: { id: string; code: string; version_no: number; display: string }; ast_method?: AstMethod; ast?: AstResultDto[];
+}
+export interface CultureDetailDto {
+  id: string; version: number; status: string; order_id: string; specimen_id: string; patient_id: string; centre_id: string; test_id: string; test_code: string; test_name: string;
+  specimen_type_code: string; specimen_site_code?: string; received_at: string; planted_at?: string; next_read_due_at?: string; final_due_at?: string; is_read_overdue: boolean;
+  current_report_version_no: number; chain_cancelled: boolean; open_instrument_record_count: number; barcode?: string; suggested_protocol?: ProtocolLite;
+  protocol?: ProtocolLite & { read_schedule_hours: number[]; final_no_growth_hours: number; requires_gram_stain: boolean };
+  plates: PlateDto[]; observations: ObservationDto[]; isolates: IsolateDto[]; amendment_reason_text?: string;
+  lab_result?: { result_id: string; status: string; version_no: number }; permissions_hint: { can_amend_approved: boolean };
+  // T-22 (reports): the optional fields of CultureDetailDto the report drawer and the Reports tab read.
+  report_versions?: ReportVersionSummaryDto[]; last_report_phase?: ReportPhase; outcome_code?: string; amendment_reason_code?: string;
+}
+// ---- T-22 reports (ReportVersionSummaryDto / ReportVersionDto, M14–M17 in micro.yaml)
+export const REPORT_PHASES = ['preliminary', 'final'] as const;
+export type ReportPhase = (typeof REPORT_PHASES)[number];
+export interface ReportVersionSummaryDto {
+  version_no: number; report_phase: ReportPhase; version_kind: 'initial' | 'update' | 'amendment'; outcome_code?: string; flag: 'N' | 'A'; is_critical: boolean;
+  signed_by_display: string; signed_at: string; lab_status_at_submit: string; amendment_reason_code?: string;
+}
+export interface ReportSnapshotIsolate { seq: number; organism_code: string; organism_display: string; growth_text?: string }
+export interface ReportSnapshotAst {
+  isolate_seq: number; antibiotic_code: string; antibiotic_display: string; method: AstMethod; raw_value: string; category_code: string; standard: string; standard_version: string;
+}
+export interface ReportVersionDto extends ReportVersionSummaryDto {
+  culture_summary_text: string; isolates: ReportSnapshotIsolate[]; ast: ReportSnapshotAst[]; comments_text?: string; early_final_reason?: string; amendment_reason_text?: string;
+  lab_result_id: string; lab_result_version_no: number;
+}
+/** M14 body (strict): the amendment is never sent by the UI; C10 derives it (AC-09.6, AC-11.2). */
+export interface ReportSubmitInput {
+  report_phase: ReportPhase; outcome_code?: string; is_critical: boolean; culture_summary_text: string; comments_text?: string; early_final_reason?: string;
+}
+export interface ReopenInput { amendment_reason_code: string; amendment_reason_text?: string }
+export interface LabCodeLite { code: string; display: string }
+export interface SetupInput { plating_protocol_id?: string; specimen_site_code?: string; planted_at: string; plates: { media_code: string; incubation_text?: string }[] }
+export interface PlateInput { media_code: string; incubation_text?: string; parent_plate_id?: string; source_isolate_id?: string; planted_at?: string }
+export interface ObservationInput {
+  kind: ObservationKind; plate_id?: string; growth_code?: string; quantity_text?: string; finding_text?: string; observed_at: string; corrects_observation_id?: string;
+}
+export interface IsolateInput { plate_id?: string; colony_description?: string; quantity_text?: string; organism_code?: string }
+// ---- T-21 AST grid (previewAstInterpretation M13, recordAstResults M12, assignAstPanel M11)
+export const AST_ENTRY_CAP = 60;
+export interface AstPreviewEntry { antibiotic_code: string; method: AstMethod; raw_value: string }
+export interface AstSuggestion { category_code: string; standard: Standard; standard_version: string; breakpoint_set_id: string; breakpoint_band_id: string }
+export interface AstPreviewResult { antibiotic_code: string; method: AstMethod; suggestion?: AstSuggestion; reason?: string }
+export interface AstRecordEntry {
+  antibiotic_code: string; method: AstMethod; raw_value?: string; category_code?: string; standard?: Standard; standard_version?: string; accept_suggestion?: boolean;
+  breakpoint_band_id?: string; is_reportable?: boolean; add_to_isolate?: boolean; version?: number;
+}
+export interface AstRecordResult { antibiotic_code: string; method: AstMethod; outcome: 'ok' | 'error'; code?: string; path?: string; ast_result?: AstResultDto }
+export interface AssignPanelInput { ast_panel_id?: string }
+export interface IsolateDescribeInput { colony_description?: string; quantity_text?: string; is_reportable: boolean; plate_id?: string }

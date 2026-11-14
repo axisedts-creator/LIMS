@@ -7,6 +7,7 @@
 //   SELECT * FROM app.engagement_redeem_link_code($1::bytea)  (DEFINER, bytea only - a text/hex parameter raises 42883)       SELECT app.engagement_code_redeemed_by_me($1, $2)      SELECT app.enqueue_job($1, $2::jsonb, $3)
 //   DELETE FROM t WHERE tenant_id = $n AND .. [RETURNING ..]  (T-L5; system actor only; t in patient_orders / _order_specimens / _reports / smart_summaries / notifications; cascades orders -> specimens, reports -> smart_summaries)
 //   Views are read-only and must be filtered by tenant_id (REQ-SEC-024): frontdesk.v_pub_order_status, lab.v_pub_specimen_timeline, billing.v_pub_order_balance.
+// T-PAY1 adds `payment_requests` (05-SCHEMA: CHECKs, one open request per order, PAT_ACC select / PAT_ACC_PID insert; comparisons against a computed cutoff must bind it as a parameter: `expires_at < $2`, the fake has no interval arithmetic).
 // DB rules emulated: tenant RLS; patient actor sees only its own account/links and has NO access to link_codes (42501: only the DEFINER reads it); the patient column guard on account_patient_links
 // (05-SCHEMA §4: status suspended->active, visible_from, method, link_code_id by a patient UPDATE -> `immutable_row`, probe P-L9); PAT_LINK_INS (a link_code link needs a code redeemed by the caller,
 // engagement_code_redeemed_by_me); CHECK / UNIQUE of the touched tables; number_counters__key__ck is read from the spec file; rollback on error unless ctx.commitOnError() was called (08 A19 P-42).
@@ -68,6 +69,15 @@ const defs = (now: () => string): Record<string, Def> => ({
       : r['entity_type'] != null && !['order', 'report', 'booking', 'enquiry', 'reminder', 'profile'].includes(r['entity_type']) ? 'notifications__entity__ck' : r['route_id'] != null && !['patient_app.report', 'patient_app.order', 'patient_app.booking'].includes(r['route_id']) ? 'notifications__route__ck'
       : ['id', 'account_id', 'created_by', 'expires_at'].some((c) => r[c] == null) ? 'notifications__not_null' : !t['accounts']!.some((a) => a['tenant_id'] === r['tenant_id'] && a['id'] === r['account_id']) ? 'notifications__account__fk' : undefined,
   },
+  payment_requests: { // T-PAY1 (05-SCHEMA payment_requests): one OPEN (queued/ready) request per order; action_json only while ready; ready needs intent_id + amount_paisa
+    unique: [['id']],
+    partial: [{ cols: ['tenant_id', 'order_id'], where: (r) => ['queued', 'ready'].includes(r['status']), name: 'payment_requests__tenant_id_order_open__p_uq' }],
+    defaults: () => ({ status: 'queued', review: false, intent_id: null, amount_paisa: null, action_json: null, failure_code: null, expires_at: null, version: 1, is_active: true, created_at: now(), updated_at: now() }),
+    check: (r) => !['esewa', 'khalti'].includes(r['gateway']) ? 'payment_requests__gateway__ck' : !['queued', 'ready', 'completed', 'failed', 'expired'].includes(r['status']) ? 'payment_requests__status__ck'
+      : r['status'] !== 'ready' && r['action_json'] != null ? 'payment_requests__action__ck' : r['status'] === 'ready' && (r['intent_id'] == null || r['amount_paisa'] == null) ? 'payment_requests__ready__ck'
+      : r['failure_code'] != null && String(r['failure_code']).length > 64 ? 'payment_requests__failure__ck' : r['amount_paisa'] != null && !(Number(r['amount_paisa']) > 0) ? 'payment_requests__amount__ck'
+      : ['id', 'account_id', 'order_id', 'patient_id', 'idempotency_key', 'created_by', 'updated_by'].some((c) => r[c] == null) ? 'payment_requests__not_null' : undefined,
+  },
   booking_centres: { unique: [['id'], ['tenant_id', 'centre_id']] }, // T-P2: source of centre_display_name (02-TRD §4.4 / 08 A19 D-119)
   smart_summaries: { unique: [['id'], ['tenant_id', 'report_id', 'report_version_no']], defaults: () => ({ created_at: now() }) },
   reminders: { // T-P4 (05-SCHEMA reminders): follow_up rows scheduled from an approved summary; the partial unique (tenant_id, kind, source_ref_id, source_ref_seq) is honoured by a bare `ON CONFLICT DO NOTHING` too (no index-predicate target in this fake)
@@ -115,7 +125,7 @@ export function makeLinkWorld(opts: WorldOpts = {}) {
   const clock = { t: Date.parse(T0) };
   const now = () => new Date(clock.t).toISOString();
   const D = defs(now);
-  const t: Record<string, Row[]> = { settings: [], accounts: [], link_codes: [], account_patient_links: [], number_counters: [], patient_orders: [], patient_order_specimens: [], patient_reports: [], notifications: [], smart_summaries: [], reminders: [], booking_centres: [], jobs: [], orders: [], timeline: [], balances: [] };
+  const t: Record<string, Row[]> = { settings: [], accounts: [], link_codes: [], account_patient_links: [], number_counters: [], patient_orders: [], patient_order_specimens: [], patient_reports: [], notifications: [], smart_summaries: [], reminders: [], booking_centres: [], payment_requests: [], jobs: [], orders: [], timeline: [], balances: [] };
   const stmts: Stmt[] = [];
   const viewQueries: Array<{ view: string; text: string; values: unknown[]; limit?: number; offset?: number }> = [];
   const definerCalls: Array<{ fn: string; values: unknown[] }> = [];
@@ -161,6 +171,7 @@ export function makeLinkWorld(opts: WorldOpts = {}) {
     if (table === 'accounts') return r['id'] === a['id'];
     if (table === 'account_patient_links') return r['account_id'] === a['id'];
     if (table === 'link_codes') return false;
+    if (table === 'payment_requests') return r['account_id'] === a['id']; // PAT_ACC (05-SCHEMA §5)
     return true;
   }
   const redeemedByMe = (ctx: any, tenant: string, codeId: unknown, patientId: unknown) => { const a = accountOf(ctx, tenant); return !!a && t['link_codes']!.some((c) => c['tenant_id'] === tenant && c['id'] === codeId && c['patient_id'] === patientId && c['status'] === 'redeemed' && c['redeemed_account_id'] === a['id']); };
@@ -270,7 +281,8 @@ export function makeLinkWorld(opts: WorldOpts = {}) {
           if (name === 'account_patient_links' && (!a || row['account_id'] !== a['id'])) throw pgErr('42501', 'RLS: account_patient_links PAT_LINK_INS (account_id = the caller\'s account)');
           if (name === 'account_patient_links' && row['method'] === 'link_code' && !redeemedByMe(ctx, tenant, row['link_code_id'], row['patient_id'])) throw pgErr('42501', 'RLS: PAT_LINK_INS (a link_code link needs a code redeemed by the caller for this patient)');
           if (name === 'account_patient_links' && (row['visible_from'] != null || row['status'] !== 'active') && row['method'] === 'link_code') throw pgErr('42501', 'RLS: PAT_LINK_INS (link_code: visible_from NULL, status active)');
-          if (name !== 'account_patient_links' && name !== 'number_counters') throw pgErr('42501', `RLS: patient actors cannot insert into ${name}`);
+          if (name === 'payment_requests' && (!a || row['account_id'] !== a['id'] || !t['account_patient_links']!.some((l) => l['tenant_id'] === tenant && l['account_id'] === a['id'] && l['patient_id'] === row['patient_id'] && l['status'] === 'active'))) throw pgErr('42501', 'RLS: payment_requests PAT_ACC_PID (account_id = the caller\'s account, patient_id = one of its active links)');
+          if (name !== 'account_patient_links' && name !== 'number_counters' && name !== 'payment_requests') throw pgErr('42501', `RLS: patient actors cannot insert into ${name}`);
         }
         const d = D[name]!;
         const dup = rows.find((o) => d.unique.some((u) => u.every((c) => eq(o[c], row[c]))) || (d.conflictPartial && (d.partial ?? []).some((p) => p.where(row) && p.where(o) && p.cols.every((c) => eq(o[c], row[c])))));

@@ -3,7 +3,9 @@
 // Template times are stored as LOCAL wall-clock 'HH:MM' (never converted to UTC); S6 converts per local date in the tenant timezone via domain/slots.ts.
 // Template save (S8/S9/S10) enqueues engagement.sync_booking_centres in the same tx (08 A19 D-119, TRD §8.1). Error details are fixed text (REQ-SEC-080).
 import { LimsError, type FieldError } from '../../../core/errors.js';
-import { generateSlots } from '../domain/slots.js';
+import { availableSlots, generateSlots, type Blackout, type SlotTemplate } from '../domain/slots.js';
+import * as bookingRepo from '../repository/booking.repo.js';
+import * as myRepo from '../repository/mybooking.repo.js';
 import * as defaultRepo from '../repository/slot.repo.js';
 import type { Row, TemplateValues } from '../repository/slot.repo.js';
 
@@ -47,6 +49,14 @@ const iso = (s: unknown): string => new Date(s as string).toISOString();
 function scope(ctx: SlotCtx): { tx: any; tenantId: string; userId: string; now: string } {
   if (typeof ctx?.tenantId !== 'string' || typeof ctx.actor?.id !== 'string' || !ctx.tx) throw new LimsError('auth.unauthenticated');
   return { tx: ctx.tx, tenantId: ctx.tenantId, userId: ctx.actor.id, now: iso(ctx.now()) };
+}
+
+/** Patient actors only (E30-E40): the account is found from the signed membership claim, never from input. Throws before any query. */
+export function patientScope(ctx: SlotCtx & { readonly claims?: { readonly membership_id?: unknown } }): { tx: any; tenantId: string; userId: string; now: string; membershipId: string } {
+  const m = ctx?.claims?.membership_id;
+  if (typeof ctx?.tenantId !== 'string' || typeof ctx.actor?.id !== 'string' || !ctx.tx || typeof ctx.now !== 'function') throw new LimsError('auth.unauthenticated');
+  if (ctx.actor.type !== 'patient' || typeof m !== 'string') throw new LimsError('auth.forbidden');
+  return { tx: ctx.tx, tenantId: ctx.tenantId, userId: ctx.actor.id, now: iso(ctx.now()), membershipId: m };
 }
 
 /** If-Match arrives as the raw header '"<version>"' (02-CV §4.2): absent -> 428, malformed -> 400. */
@@ -296,3 +306,99 @@ export function createSlotService(deps: { repo?: SlotRepo } = {}) {
   };
 }
 export type SlotService = ReturnType<typeof createSlotService>;
+
+// ---------------------------------------------------------------------------------------------------------------------------------------------------------------
+// Patient catalogue for the booking wizard (T-BK1): E30 listMyBookableItems, E31 listMyBookingCentres, E32 listMyAvailableSlots (02-TRD §4.8, §5; 03-APP-FLOW §6.1; 01-PRD US-EN-12.1-2, 12.5, 12.7, 13.1).
+// Read-only. Patient actors only (patientScope). bookings_enabled off -> 403 common.feature_disabled; home_collection_enabled off -> the same for the home kind. Nothing here reads core tables (D-119).
+const MY_CURSOR = /^[A-Za-z0-9_-]{1,200}$/;
+const MY_DEFAULT_LIMIT = 50, MY_MAX_LIMIT = 200, MY_MAX_SLOTS = 500, MY_MAX_RANGE_DAYS = 7;
+
+const myLimit = (v: unknown): number => {
+  if (v === undefined) return MY_DEFAULT_LIMIT;
+  const n = /^[0-9]{1,3}$/.test(String(v)) ? Number(v) : 0;
+  return n >= 1 && n <= MY_MAX_LIMIT ? n : invalid('/limit');
+};
+const myKind = (q: Record<string, unknown>): (typeof KINDS)[number] => (isKind(q['booking_kind']) ? q['booking_kind'] : invalid('/booking_kind'));
+const disabled = (): never => { throw new LimsError('common.feature_disabled'); };
+
+/** The settings gate shared by E30-E33: no settings row = bookings never switched on = off. */
+async function gate(tx: any, tenantId: string, kind: string): Promise<Row> {
+  const s = await myRepo.settings(tx, tenantId);
+  if (!s || !s['bookings_enabled']) return disabled();
+  if (kind === 'home_collection' && !s['home_collection_enabled']) return disabled();
+  return s;
+}
+
+export function createMySlotService() {
+  return {
+    /** E30: ACTIVE items bookable for the kind, `query` = case-insensitive text in name or code; keyset page on (sort_order, orderable_id). The sex restriction is sent as data: the app filters (03-APP-FLOW §6.1). */
+    async items(ctx: SlotCtx, input: { query: unknown }) {
+      const { tx, tenantId } = patientScope(ctx);
+      const q = isObj(input.query) ? input.query : {};
+      const kind = myKind(q);
+      const text = q['query'];
+      if (text !== undefined && (typeof text !== 'string' || text.length > 40)) invalid('/query');
+      const limit = myLimit(q['limit']);
+      let after: { n: number; id: string } | undefined;
+      if (q['cursor'] !== undefined) {
+        const [n, id] = typeof q['cursor'] === 'string' && MY_CURSOR.test(q['cursor']) ? Buffer.from(q['cursor'], 'base64url').toString('utf8').split('|') : [];
+        if (!/^[0-9]{1,9}$/.test(n ?? '') || !isUuid(id)) invalid('/cursor');
+        after = { n: Number(n), id: id as string };
+      }
+      await gate(tx, tenantId, kind);
+      const needle = typeof text === 'string' ? text.trim().toLowerCase() : '';
+      const rows = (await myRepo.activeItems(tx, { tenantId })).filter((r) => (r['booking_kinds'] as string[]).includes(kind)
+        && (needle === '' || String(r['display_name']).toLowerCase().includes(needle) || String(r['code']).toLowerCase().includes(needle))
+        && (!after || r['sort_order'] > after.n || (r['sort_order'] === after.n && r['orderable_id'] > after.id)));
+      const page = rows.slice(0, limit), last = page[page.length - 1];
+      const data = page.map((r) => ({
+        orderable_id: r['orderable_id'], kind: r['orderable_kind'], code: r['code'], display_name: r['display_name'],
+        ...(r['indicative_price_paisa'] == null ? {} : { indicative_price: { amount_paisa: Number(r['indicative_price_paisa']), currency: 'NPR' } }),
+        booking_kinds: r['booking_kinds'], ...(r['sex_restriction'] == null ? {} : { sex_restriction: r['sex_restriction'] }),
+      }));
+      return { data, page: { limit, ...(rows.length > limit && last ? { next_cursor: Buffer.from(`${last['sort_order']}|${last['orderable_id']}`).toString('base64url') } : {}) } };
+    },
+
+    /** E31: active centres of booking_centres that offer the kind (= have an active slot template of that kind). */
+    async centres(ctx: SlotCtx, input: { query: unknown }) {
+      const { tx, tenantId } = patientScope(ctx);
+      const kind = myKind(isObj(input.query) ? input.query : {});
+      await gate(tx, tenantId, kind);
+      const [centres, templates] = await Promise.all([myRepo.activeCentres(tx, { tenantId }), myRepo.templateKinds(tx, { tenantId })]);
+      const kinds = new Map<string, Set<string>>();
+      for (const t of templates) kinds.set(t['centre_id'], (kinds.get(t['centre_id']) ?? new Set()).add(t['booking_kind']));
+      return { data: centres.filter((c) => kinds.get(c['centre_id'])?.has(kind)).map((c) => ({
+        centre_id: c['centre_id'], display_name: c['display_name'], ...(c['address_text'] == null ? {} : { address_text: c['address_text'] }), booking_kinds: [...kinds.get(c['centre_id'])!].sort(),
+      })) };
+    },
+
+    /** E32: bookable slots of one centre (home collection: the settings' home centre) in a <= 8-day window: lead time, horizon, blackouts and full slots are left out; `remaining` is capped at 9, capacities are never sent. */
+    async slots(ctx: SlotCtx, input: { query: unknown; tz?: string }) {
+      const { tx, tenantId, now } = patientScope(ctx);
+      const q = isObj(input.query) ? input.query : {};
+      const kind = myKind(q);
+      if (q['centre_id'] !== undefined && !isUuid(q['centre_id'])) invalid('/centre_id');
+      if (kind === 'centre_visit' && q['centre_id'] === undefined) invalid('/centre_id', 'common.field_required', 'Field required');
+      if (!isDate(q['date_from'])) invalid('/date_from');
+      if (!isDate(q['date_to'])) invalid('/date_to');
+      const from = q['date_from'] as string, to = q['date_to'] as string;
+      const span = (Date.parse(`${to}T00:00:00.000Z`) - Date.parse(`${from}T00:00:00.000Z`)) / DAY;
+      if (span < 0 || span > MY_MAX_RANGE_DAYS) invalid('/date_to', 'common.field_invalid', 'Range must be 0 to 7 days after date_from');
+      const s = await gate(tx, tenantId, kind);
+      const centreId = kind === 'home_collection' ? s['home_collection_centre_id'] : (q['centre_id'] as string);
+      if (kind === 'home_collection' && q['centre_id'] !== undefined && q['centre_id'] !== centreId) invalid('/centre_id', 'common.field_invalid', 'Centre not allowed');
+      const centre = typeof centreId === 'string' ? await bookingRepo.bookingCentre(tx, { tenantId, centreId }) : undefined;
+      if (!centre || !centre['is_active']) return { data: [] }; // an unknown / inactive / foreign centre offers nothing (no existence oracle)
+      const tz = input.tz ?? DEFAULT_TZ;
+      const [templates, blackouts] = await Promise.all([defaultRepo.activeTemplates(tx, { tenantId, centreId, bookingKind: kind }), bookingRepo.activeBlackouts(tx, { tenantId, centreId })]);
+      const lo = new Date(Date.parse(`${from}T00:00:00.000Z`) - DAY).toISOString(), hi = new Date(Date.parse(`${to}T00:00:00.000Z`) + 2 * DAY).toISOString();
+      const occupancy = (await defaultRepo.occupancyInRange(tx, { tenantId, centreId, bookingKind: kind, from: lo, to: hi })).map((o) => ({ slotStart: new Date(o['slot_start']), capacity: Number(o['capacity']), booked: Number(o['booked']) }));
+      const tpl: SlotTemplate[] = templates.map((t) => ({ weekdays: t['weekdays'], startLocal: hhmm(String(t['start_local'])), endLocal: hhmm(String(t['end_local'])), slotMinutes: t['slot_minutes'], capacity: t['capacity'],
+        effectiveFrom: day(t['effective_from']), effectiveTo: t['effective_to'] == null ? null : day(t['effective_to']) }));
+      const bo: Blackout[] = blackouts.map((r) => ({ bookingKind: r['booking_kind'] ?? null, startsAt: new Date(r['starts_at']), endsAt: new Date(r['ends_at']) }));
+      const slots = availableSlots({ templates: tpl, blackouts: bo, occupancy, bookingKind: kind, now: new Date(now), minLeadMinutes: s['booking_min_lead_minutes'], horizonDays: s['booking_horizon_days'], timeZone: tz, dateFrom: from, dateTo: to });
+      return { data: slots.slice(0, MY_MAX_SLOTS).map((x) => ({ slot_start: x.slotStart.toISOString(), slot_end: x.slotEnd.toISOString(), remaining: Math.min(9, x.remaining), booking_kind: kind, centre_id: centreId })) };
+    },
+  };
+}
+export type MySlotService = ReturnType<typeof createMySlotService>;

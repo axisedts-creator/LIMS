@@ -6446,6 +6446,7 @@ components:
             - no_target
             - unit_mismatch
             - late_unassigned
+            - excluded
         qc_run_id:
           $ref: _common.yaml#/components/schemas/Uuid
         z:
@@ -6551,6 +6552,7 @@ components:
             - no_target
             - unit_mismatch
             - late_unassigned
+            - excluded
         qc_run_id:
           $ref: _common.yaml#/components/schemas/Uuid
         z:

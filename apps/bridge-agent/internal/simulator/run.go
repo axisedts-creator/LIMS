@@ -393,6 +393,7 @@ func newHL7(e *env) (driver, error) {
 		if mode == "" {
 			cfg.AckMode = p.HL7AckMode
 		}
+		cfg.AckFullForm = p.HL7AckFullForm // MET-T01
 		if len(p.HostQueryMessageTypes) > 0 {
 			cfg.HostQueryTypes, cfg.HostQuery = p.HostQueryMessageTypes, d.hostQuery
 			cfg.ExpectAckOnReply, cfg.ReplyAckPolicy = p.ExpectAckOnReply, p.ReplyAckPolicy

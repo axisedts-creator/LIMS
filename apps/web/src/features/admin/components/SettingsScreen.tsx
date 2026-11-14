@@ -28,7 +28,7 @@ const TABS: Record<string, Spec[]> = {
     { key: 'contact_email', label: 'Contact email', kind: 'email', maxLength: 254 },
     { key: 'website', label: 'Website', kind: 'text', maxLength: 200, pattern: /^https:\/\/\S+$/, patternMsg: 'Use an https:// address', hint: 'https://…' },
     { key: 'receipt_footer_note', label: 'Receipt footer note', kind: 'text', maxLength: 200 },
-    { key: 'accent_color', label: 'Accent colour', kind: 'text', maxLength: 7, pattern: /^#[0-9A-Fa-f]{6}$/, patternMsg: 'Use #RRGGBB, e.g. #1F6FEB', hint: '#RRGGBB' },
+    { key: 'accent_color', label: 'Accent colour', kind: 'text', maxLength: 7, pattern: /^#[0-9A-Fa-f]{6}$/, patternMsg: 'Use #RRGGBB: # then six hex digits', hint: '#RRGGBB' },
   ],
   'Date & time': [{ key: 'calendar_display', label: 'Calendar display', kind: 'radio', options: [['AD', 'A.D.'], ['BS', 'B.S.'], ['AD_BS', 'A.D. + B.S.'], ['BS_AD', 'B.S. + A.D.']], dflt: 'AD' }],
   'Sign-in & sessions': [
@@ -193,7 +193,7 @@ function TabForm({ tab, settings, onSaved, annexes }: { tab: string; settings: S
     );
     const hint = s.hint === 'Example: ' ? `Example: ${(v as string) ? example(v as string, String(vals['numbering_prefix'] ?? settings['numbering_prefix'] ?? '')) : '—'}` : s.hint;
     return <Field key={s.key} id={`set-${s.key}`} label={s.label} value={v as string} onChange={set(s.key)} error={err} hint={hint} multiline={s.kind === 'lines'}
-      {...(s.maxLength !== undefined && s.kind !== 'lines' ? { maxLength: s.maxLength } : {})} {...(s.kind === 'int' ? { inputMode: 'numeric' as const } : {})} />;
+      {...(s.required ? { required: true } : {})} {...(s.maxLength !== undefined && s.kind !== 'lines' ? { maxLength: s.maxLength } : {})} {...(s.kind === 'int' ? { inputMode: 'numeric' as const } : {})} />;
   };
 
   const pending = settings['pending_numbering'] as { invoice_no_pattern?: string; credit_note_no_pattern?: string; effective_fy_bs?: string } | undefined;

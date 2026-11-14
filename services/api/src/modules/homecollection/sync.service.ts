@@ -15,6 +15,7 @@ import { APP_VERSION, UUID_V7, bad, belowMin, deviceIdOf, isObj, noExtra } from 
 import { correctCapturedTime, type ClockAnchor } from './domain/clock.js';
 import { isMutationType, mutationRequiresVisitId, validateMutationPayload, type MutationType } from './domain/mutation.js';
 import { createHomecollectionEvents } from './events/publish.js';
+import { hcMetrics } from './metrics.js';
 import { HOMECOLLECTION_PERMISSIONS } from './permissions.js';
 import { bumpVersion } from './route.service.js';
 import { insertCollection, listAppliedCollectionsBySpecimenIds } from './repository/collections.repo.js';
@@ -156,6 +157,7 @@ interface State {
 
 function record(S: State, m: Mut, outcome: 'applied' | 'held' | 'rejected' | 'duplicate', c?: string): void {
   S.counts[outcome]++;
+  hcMetrics.mutation(S.ctx, m.type, outcome);   // HC-T17: type + outcome only (TRD §14)
   S.results.push({ client_mutation_id: m.clientMutationId, device_seq: m.deviceSeq, outcome, ...(c ? { code: c } : {}) });
 }
 
@@ -210,6 +212,7 @@ function correct(S: State, m: Mut, assignedAt: unknown): Corrected {
   const anchors: ClockAnchor[] = S.env.anchors.map((a) => ({ anchorId: a['anchor_id'], serverTime: a['server_time'], deviceWallTime: a['device_wall_time'], monotonicMs: a['monotonic_ms'], bootId: a['boot_id'] }));
   const c = correctCapturedTime({ captured: m.captured, anchors, now: S.env.now, receivedAt: S.receivedAt.toISOString(),
     assignedAt: assignedAt ? new Date(assignedAt as string).toISOString() : '1970-01-01T00:00:00.000Z', toleranceSeconds: Number(S.settings['clock_tolerance_seconds'] ?? 600) });
+  hcMetrics.clockSkew(S.ctx, c.skewSeconds, c.clockSource);   // HC-T17: one observation per corrected mutation
   return { iso: c.correctedAt, ms: Date.parse(c.correctedAt), source: c.clockSource, suspect: c.clockSuspect };
 }
 
@@ -419,8 +422,9 @@ export async function pushSyncMutations(hctx: unknown, headers: unknown, body: u
     const acc = S.eventAcc.get(visitId)!, visit = S.visits.get(visitId)!;
     const n = Math.max(Math.ceil(acc.collections.length / 50), Math.ceil(acc.payments.length / 10));
     for (let i = 0; i < n; i++) {
-      await typed.collectionSynced(ctx, { visit_id: visitId, order_id: visit['order_id'], phlebotomist_membership_id: author, ...(visit['kind'] === 'booking' && visit['booking_id'] ? { booking_id: visit['booking_id'] } : {}),
+      const pub = await typed.collectionSynced(ctx, { visit_id: visitId, order_id: visit['order_id'], phlebotomist_membership_id: author, ...(visit['kind'] === 'booking' && visit['booking_id'] ? { booking_id: visit['booking_id'] } : {}),
         synced_at: receivedAt.toISOString(), collections: acc.collections.slice(i * 50, (i + 1) * 50), payments: acc.payments.slice(i * 10, (i + 1) * 10) }, { visitVersion: Number(visit['version']) });
+      if (!pub.duplicate) hcMetrics.eventPublished(ctx);   // HC-T17
     }
   }
 

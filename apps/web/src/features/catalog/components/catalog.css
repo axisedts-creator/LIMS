@@ -1,0 +1,19 @@
+/* RS-C3 (LD-140, 10-DESIGN-SYSTEM §6): catalog screens use tokens only. No raw colour, pixel radius or inline style here or in the TSX. */
+.catalog-gap-1 { gap: var(--lims-space-1); }
+.catalog-gap-2 { gap: var(--lims-space-2); }
+.catalog-gap-3 { gap: var(--lims-space-3); }
+.catalog-gap-4 { gap: var(--lims-space-4); }
+.catalog-end { justify-content: flex-end; }
+.catalog-wrap { flex-wrap: wrap; }
+.catalog-plain-list { list-style: none; padding: 0; }
+.catalog-contents { display: contents; }
+
+/* Container cap colour swatch: the colour NAME is always printed next to it (never colour-only). Only colours that exist as
+   kit tokens are painted; any other name keeps the neutral outline until the design system gains tube-colour tokens. */
+.catalog-colour-cell { display: inline-flex; align-items: center; gap: var(--lims-space-2); }
+.catalog-swatch { display: inline-block; width: var(--lims-space-4); height: var(--lims-space-4); flex: none; border-radius: var(--lims-radius-full); border: 1px solid var(--lims-neutral-300); background: var(--lims-neutral-0); }
+.catalog-swatch-red { background: var(--lims-tone-critical-solid); border-color: var(--lims-tone-critical-solid); }
+.catalog-swatch-green { background: var(--lims-tone-success-fg); border-color: var(--lims-tone-success-fg); }
+.catalog-swatch-blue { background: var(--lims-tone-info-fg); border-color: var(--lims-tone-info-fg); }
+.catalog-swatch-grey { background: var(--lims-neutral-300); }
+.catalog-swatch-black { background: var(--lims-neutral-900); border-color: var(--lims-neutral-900); }

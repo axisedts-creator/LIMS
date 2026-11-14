@@ -50,12 +50,10 @@ test('next.config.ts: standalone output, no X-Powered-By, no remote image hosts 
   assert.ok(!cfg.images?.domains?.length, 'no images.domains');
 });
 
-test('placeholder: root layout and home page exist; page has a default export and a visible heading', () => {
-  for (const f of ['src/app/layout.tsx', 'src/app/page.tsx']) assert.ok(existsSync(join(APP, f)), `${f} missing`);
-  const page = read('src/app/page.tsx');
+test('placeholder: root layout and home page exist; page has a default export (PH-1 owns the content, TRD §3.6)', () => {
+  for (const f of ['src/app/layout.tsx', 'src/app/(app)/page.tsx']) assert.ok(existsSync(join(APP, f)), `${f} missing`);
+  const page = read('src/app/(app)/page.tsx');
   assert.match(page, /export\s+default\s+(async\s+)?function|export\s+default\s+/, 'page default export');
-  assert.match(page, /<h1[\s>]/, 'placeholder renders a heading');
-  assert.match(page, /Partner portal/, 'placeholder names the app ("Partner portal", TRD §3.6 manifest name)');
   const layout = read('src/app/layout.tsx');
   assert.match(layout, /export\s+default/, 'layout default export');
   assert.match(layout, /<html[\s>]/);
@@ -63,7 +61,7 @@ test('placeholder: root layout and home page exist; page has a default export an
 });
 
 test('security: scaffold has no dangerouslySetInnerHTML, no localStorage/sessionStorage use, no eval, no hard-coded secret/URL (REQ-SEC-088, TRD §3.7)', () => {
-  const files = ['src/app/layout.tsx', 'src/app/page.tsx', 'next.config.ts'];
+  const files = ['src/app/layout.tsx', 'src/app/(app)/page.tsx', 'next.config.ts'];
   for (const f of files) {
     const t = read(f);
     assert.doesNotMatch(t, /dangerouslySetInnerHTML/, `${f}`);
@@ -74,7 +72,7 @@ test('security: scaffold has no dangerouslySetInnerHTML, no localStorage/session
 });
 
 test('security: placeholder never reads the BFF key or any LIMS_* secret into client-rendered code (no NEXT_PUBLIC_ secrets)', () => {
-  for (const f of ['src/app/layout.tsx', 'src/app/page.tsx']) {
+  for (const f of ['src/app/layout.tsx', 'src/app/(app)/page.tsx']) {
     const t = read(f);
     assert.doesNotMatch(t, /LIMS_PARTNER_BFF_KEY_FILE|NEXT_PUBLIC_[A-Z_]*(KEY|SECRET|TOKEN)/, f);
   }

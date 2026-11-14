@@ -5,6 +5,7 @@
 // invited -> active: C13 flips its mirror on the user's first partner request (03-APP-FLOW §2.5), the one UPDATE guard_partner_users allows a member.
 import { LimsError } from '../../../core/errors.js';
 import type { HandlerContext } from '../../../core/module.js';
+import { partnerInactive } from './observability.js';
 
 export interface PartnerRef { readonly partnerId: string; readonly partnerUserId: string; readonly role: 'partner_admin' | 'partner_member' }
 
@@ -47,7 +48,10 @@ async function resolve(ctx: HandlerContext): Promise<{ ref: PartnerRef; row: Par
   const tx = ctx.tx as Q;
   const { rows } = await tx.query(LOOKUP_SQL, [ctx.tenantId, membershipId]);
   const row = rows[0] as PartnerContextRow | undefined;
-  if (!row || row.partner_status !== 'active' || (row.user_status !== 'active' && row.user_status !== 'invited')) throw inactive();
+  if (!row || row.partner_status !== 'active' || (row.user_status !== 'active' && row.user_status !== 'invited')) {
+    partnerInactive(ctx); // T23: lims_partners_partner_inactive_rejections_total, once per 403 partners.partner_inactive
+    throw inactive();
+  }
 
   if (row.user_status === 'invited') {
     // 0 rows touched = a concurrent first request won; the user is active either way.

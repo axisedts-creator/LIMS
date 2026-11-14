@@ -1,7 +1,7 @@
 // #36-#41, #44, #45 (auto-verify rule set and versions; 02-TRD §5.5). Schema, auth, x-permission, aal2 (auth.mfa_required on every quality.autoverify.manage
 // operation, AC-12.3) and Idempotency-Key (#37) are enforced by the core pipeline from contracts/openapi/quality.yaml; these map request -> service, set ETag,
 // and fail closed without a request context. Wire names are snake_case; If-Match is `"<version>"` (02-CV §4.2). The service re-asserts the permission (defence in depth).
-// Tenant and actor come from the context only; nothing from path/query/header/body is ever read as tenant_id. Activation (#43) is T-17.
+// Tenant and actor come from the context only; nothing from path/query/header/body is ever read as tenant_id. Activation (#43), the report (#42) and decisions (#46, #47) are activation.handlers.ts (T-17).
 import { LimsError } from '../../../core/errors.js';
 import type { Handler, HandlerContext, HandlerRequest } from '../../../core/module.js';
 import { createAutoverifyService, type AutoverifyCtx, type Result } from '../service/autoverify.service.js';
@@ -24,7 +24,7 @@ function ifMatch(req: HandlerRequest): number | undefined {
 }
 
 /** etag: single-version responses only (#36 is a summary and carries none). */
-const staff = (fn: (c: AutoverifyCtx, req: HandlerRequest) => Promise<Result>, o: { etag?: boolean } = {}): Handler =>
+export const staff = (fn: (c: AutoverifyCtx, req: HandlerRequest) => Promise<Result>, o: { etag?: boolean } = {}): Handler =>
   (async (req: HandlerRequest, hctx: HandlerContext) => {
     const c = hctx as unknown as Partial<AutoverifyCtx>;
     if (!authed(c)) throw new LimsError('auth.unauthenticated');

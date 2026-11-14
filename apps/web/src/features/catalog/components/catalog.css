@@ -10,7 +10,7 @@
 
 /* Container cap colour swatch: the colour NAME is always printed next to it (never colour-only). Only colours that exist as
    kit tokens are painted; any other name keeps the neutral outline until the design system gains tube-colour tokens. */
-.catalog-swatch-cell { display: inline-flex; align-items: center; gap: var(--lims-space-2); }
+.catalog-colour-cell { display: inline-flex; align-items: center; gap: var(--lims-space-2); }
 .catalog-swatch { display: inline-block; width: var(--lims-space-4); height: var(--lims-space-4); flex: none; border-radius: var(--lims-radius-full); border: 1px solid var(--lims-neutral-300); background: var(--lims-neutral-0); }
 .catalog-swatch-red { background: var(--lims-tone-critical-solid); border-color: var(--lims-tone-critical-solid); }
 .catalog-swatch-green { background: var(--lims-tone-success-fg); border-color: var(--lims-tone-success-fg); }

@@ -20,7 +20,7 @@ function CapColour({ name }: { name: string | undefined }) {
   if (!name) return <>—</>;
   const tone = SWATCH[name.trim().toLowerCase()];
   return (
-    <span className="catalog-swatch-cell">
+    <span className="catalog-colour-cell">
       <span className={`catalog-swatch${tone ? ` catalog-swatch-${tone}` : ''}`} aria-hidden="true" />
       {name}
     </span>

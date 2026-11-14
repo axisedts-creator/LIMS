@@ -15,9 +15,10 @@ export const axeClean = async () => {
 };
 
 const TONES = ['neutral', 'info', 'success', 'warning', 'danger', 'critical'];
-/** Every status chip in `root` is tone + icon + word (10-DESIGN-SYSTEM s6 "colour-only status"). Returns the chips. */
+/** Every status chip in `root` is tone + icon + word (10-DESIGN-SYSTEM s6 "colour-only status"). Returns the chips.
+ *  FilterBar multi-select options are `lims-option lims-chip` (role="option"): filter controls, not status displays (RS-C15 ruling), so they are skipped. */
 export function chipsAreComplete(root: ParentNode): HTMLElement[] {
-  const chips = [...root.querySelectorAll<HTMLElement>('.lims-chip')];
+  const chips = [...root.querySelectorAll<HTMLElement>('.lims-chip:not([role="option"])')];
   for (const c of chips) {
     expect(TONES, `tone of chip "${c.textContent}"`).toContain(c.getAttribute('data-tone'));
     expect(c.querySelector('svg'), `icon of chip "${c.textContent}"`).not.toBeNull();

@@ -93,7 +93,8 @@ describe('RS-C15 status chips: tone + icon + word (10-DESIGN-SYSTEM s6; A1, A2, 
     expect([chip('eSewa').textContent!.trim(), chip('eSewa').dataset['tone']]).toEqual(['Enabled', 'success']);
     expect([chip('Khalti').textContent!.trim(), chip('Khalti').dataset['tone']]).toEqual(['Disabled', 'neutral']);
     expect([chip('Fonepay').textContent!.trim(), chip('Fonepay').dataset['tone']]).toEqual(['Not available yet', 'neutral']);
-    expect(within(card('eSewa')).getByRole('switch', { name: /enabled/i })).toBeChecked(); // the control is unchanged
+    const sw = within(card('eSewa')).getByRole('switch', { name: /enabled/i }); // the control is unchanged
+    expect(sw.getAttribute('aria-checked') ?? String((sw as HTMLInputElement).checked)).toBe('true');
   });
 
   it.each([
@@ -174,24 +175,43 @@ describe('RS-C15 keyboard-only main tasks (s8) and axe (s8)', () => {
     return ok();
   };
 
-  it('review queue: Tab reaches the first payment link; it points at the intent screen (open a payment to review it)', async () => {
+  // DataTable is a react-aria grid (C0 04-UI-UX: "Tab enters the grid. Arrow keys move between cells"): in-cell links/buttons are reached by arrow keys, not Tab (RS-C15 ruling, RS-C7 ruling).
+  const inGrid = () => !!document.activeElement?.closest('[role="grid"]');
+  /** From inside the grid, snake over cells (right along a row, down, left back...) until `ok()`; keyboard only. */
+  const arrowTo = async (user: ReturnType<typeof userEvent.setup>, ok: () => boolean, rows = 6, cols = 15) => {
+    let key = '{ArrowRight}';
+    for (let r = 0; r < rows && !ok(); r += 1) {
+      for (let c = 0; c < cols && !ok(); c += 1) await user.keyboard(key);
+      if (ok()) break;
+      await user.keyboard('{ArrowDown}');
+      key = key === '{ArrowRight}' ? '{ArrowLeft}' : '{ArrowRight}';
+    }
+    return ok();
+  };
+
+  it('review queue: Tab enters the grid, arrow keys reach the first payment link cell; it points at the intent screen (open a payment to review it)', async () => {
     await renderReview();
     const user = userEvent.setup({ delay: null });
-    expect(await tabTo(user, () => document.activeElement?.tagName === 'A' && /^Payment 01a1a98a/.test(document.activeElement.getAttribute('aria-label') ?? ''))).toBe(true);
-    expect((document.activeElement as HTMLAnchorElement).getAttribute('href')).toBe(`/payments/intents/${U(101)}`);
+    expect(await tabTo(user, inGrid, 20)).toBe(true);
+    const link = document.querySelector<HTMLAnchorElement>(`a[href="/payments/intents/${U(101)}"]`)!;
+    expect(link).not.toBeNull();
+    expect(await arrowTo(user, () => document.activeElement === link || (!!document.activeElement?.matches('[role="gridcell"], [role="rowheader"]') && document.activeElement.contains(link)))).toBe(true);
   });
 
-  it('reconciliation: keyboard reaches Run now, switches to Open findings with the arrow keys, reaches Resolve and opens the dialog, Escape closes it', async () => {
+  it('reconciliation: keyboard reaches Run now, switches to Open findings with the arrow keys, reaches Resolve and opens the dialog, Cancel (keyboard) closes it', async () => {
     await renderRecon();
     const user = userEvent.setup({ delay: null });
     expect(await tabTo(user, () => document.activeElement?.textContent === 'Run now')).toBe(true);
     expect(await tabTo(user, () => document.activeElement?.getAttribute('role') === 'tab')).toBe(true);
     await user.keyboard('{ArrowRight}');
     await screen.findByRole('grid', { name: /open findings/i });
-    expect(await tabTo(user, () => document.activeElement?.textContent === 'Resolve')).toBe(true);
+    expect(await tabTo(user, inGrid, 20)).toBe(true);
+    expect(await arrowTo(user, () => document.activeElement?.textContent === 'Resolve')).toBe(true);
     await user.keyboard('{Enter}');
     expect(await screen.findByRole('dialog', { name: /resolve finding/i })).toBeTruthy();
-    await user.keyboard('{Escape}');
+    // ConfirmDialog is isDismissable={false} (packages/ui ConfirmDialog.tsx:60): Escape does not close it by design; the keyboard way out is Cancel.
+    expect(await tabTo(user, () => document.activeElement?.textContent === 'Cancel', 40)).toBe(true);
+    await user.keyboard('{Enter}');
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
   });
 

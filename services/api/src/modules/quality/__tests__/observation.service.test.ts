@@ -401,6 +401,26 @@ describe('§6.2 step 4: pair lock and processing order; status counts', () => {
     // assembler order for pair 1: observed_at asc, then received_at, then qc_result_id
     expect(r.drafts.filter((d) => d['instrument_id'] === INS(1)).map((d) => d['source_qc_result_id'])).toEqual([QCR(1), QCR(2), QCR(3)]);
   });
+  it('serialises sync runs per tenant: lockSyncState is called once, before the first page read (§6.2 step 4 / E1, review item 2)', async () => {
+    const r = rig(withView([viewRow(1)]));
+    await r.run();
+    const ops = r.sync.calls.map((c) => c.op);
+    expect(ops.filter((o) => o === 'lockSyncState')).toHaveLength(1);
+    expect(ops.indexOf('lockSyncState')).toBeLessThan(ops.indexOf('readFirstPage'));
+    expect(r.sync.callsOf('lockSyncState')[0]!.tenantId).toBe(TENANT_A);
+  });
+  it('locks the pairs of a page in a deterministic order (sorted by "instrument|analyte"), not first-appearance order', async () => {
+    const t = (s: number) => `2026-11-13T18:00:0${s}.000000Z`;
+    const rows = [
+      viewRow(1, { instrument_id: INS(2), analyte_id: ANA(2), created_at: t(1) }),   // appears first but sorts last
+      viewRow(2, { created_at: t(2) }),
+    ];
+    const r = rig(withView(rows, (s) => { s.plans!.push(planRow({ id: PLN(2), instrument_id: INS(2), analyte_id: ANA(2) })); s.maps!.push(mapRow(5, 1, { instrument_id: INS(2) })); }));
+    await r.run();
+    const keys = r.sync.callsOf('lockPair').map((c) => `${c.args[0]}|${c.args[1] ?? ''}`);
+    expect(keys).toHaveLength(2);
+    expect(keys).toEqual([...keys].sort());
+  });
   it('a group whose analyte is unknown (analyte_id null) is still locked/processed without error', async () => {
     const r = rig(withView([viewRow(1, { analyte_id: null })]));
     expect((await r.run()).counts['unmapped_analyte']).toBe(1);

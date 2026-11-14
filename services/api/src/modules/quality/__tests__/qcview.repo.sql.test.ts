@@ -19,6 +19,7 @@ async function everyStatement() {
     instrument_result_time: null, received_at: AT, observed_at: AT, observed_at_basis: 'server', status: 'no_plan', plan_id: null, level_id: null, lot_id: null, target_id: null, mean: null, sd: null, z: null, qc_run_id: null,
     classified_at: AT, created_by: INS(1), updated_by: INS(1) };
   await repo.getSyncState(tx, T);
+  await repo.lockSyncState(tx, T);
   await repo.readFirstPage(tx, T, { cursorAt: AT, overlapSeconds: 600, limit: 500 });
   await repo.readPageAfter(tx, T, { afterAt: AT, afterId: QCR(5), limit: 500 });
   await repo.findExistingSourceIds(tx, T, [QCR(1), QCR(2)]);
@@ -131,6 +132,13 @@ describe('qcview.repo: writes', () => {
 });
 
 describe('qcview.repo: pair lock and lookups', () => {
+  it('lockSyncState is SELECT 1 FROM quality.sync_state WHERE tenant_id = $1 FOR UPDATE (one sync run per tenant at a time; §6.2 step 4 / E1)', async () => {
+    const a = rec();
+    await repo.lockSyncState(a.tx, T);
+    expect(a.q).toHaveLength(1);
+    expect(norm(a.q[0]!.text)).toMatch(/^SELECT 1 FROM quality\.sync_state WHERE tenant_id = \$1 FOR UPDATE$/);
+    expect(a.q[0]!.values).toEqual([T]);
+  });
   it('lockPair is SELECT ... FROM quality.qc_plans WHERE tenant_id AND instrument_id AND analyte_id ... FOR UPDATE (serialises assembly per pair)', async () => {
     const a = rec();
     await repo.lockPair(a.tx, T, INS(1), ANA(1));

@@ -39,6 +39,7 @@ export const OBSERVED = '2026-11-13T17:59:00.000Z';   // = viewRow's default ins
 // ---------------------------------------------------------------------------------------------------- repo interface
 export interface SyncRepo {
   getSyncState(tx: any, tenantId: string): Promise<{ qc_cursor_at: string; qc_cursor_id: string | null } | undefined>;
+  lockSyncState(tx: any, tenantId: string): Promise<void>;                                                                         // SELECT 1 FROM quality.sync_state WHERE tenant_id = $1 FOR UPDATE (serialises sync runs per tenant; review item 2, §6.2 step 4 / E1)
   readFirstPage(tx: any, tenantId: string, q: { cursorAt: string; overlapSeconds: number; limit: number }): Promise<Row[]>;        // created_at >= cursorAt - overlap, ORDER BY created_at, qc_result_id
   readPageAfter(tx: any, tenantId: string, q: { afterAt: string; afterId: string; limit: number }): Promise<Row[]>;                // (created_at, qc_result_id) > (afterAt, afterId)
   findExistingSourceIds(tx: any, tenantId: string, sourceIds: string[]): Promise<string[]>;
@@ -93,6 +94,7 @@ export function makeSyncRepo(seed: FakeSeed = baseSeed(), hooks: { pageOverride?
   const page = (kind: 'first' | 'after', rows: Row[]) => { hooks.onPage?.(); const out = structuredClone(rows); return hooks.pageOverride ? hooks.pageOverride(kind, out) : out; };
   const repo: SyncRepo = {
     async getSyncState(_tx, t) { return rec('getSyncState', t, [], () => (state.cursor ? { ...state.cursor } : undefined)); },
+    async lockSyncState(_tx, t) { return rec('lockSyncState', t, [], () => undefined); },
     async readFirstPage(_tx, t, q) {
       return rec('readFirstPage', t, [q], () => {
         if (hooks.viewFails) throw hooks.viewFails;

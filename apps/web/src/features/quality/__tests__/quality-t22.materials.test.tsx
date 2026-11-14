@@ -172,11 +172,12 @@ describe('create material (#2, AC-01.1)', () => {
     await waitFor(() => expect(callsTo('POST', POST_MAT)).toHaveLength(1));
     expect(bodyOf(callsTo('POST', POST_MAT)[0])).toMatchObject({ manufacturer: 'Synthetic Diagnostics', matrix: 'serum' });
   });
-  it.each(['A', 'bad code', 'ÄÖ-1', 'X'.repeat(33), 'a/b'])('invalid Code %j is refused in the form (^[A-Z0-9_-]{2,32}$): field flagged, NO request', async (bad) => {
+  it.each(['A', 'bad code', 'ÄÖ-1', 'a/b'])('invalid Code %j is refused in the form (^[A-Z0-9_-]{2,32}$): field flagged, NO request', async (bad) => {
     await openNew();
     await fillMaterial('MCS-SYN');
-    // LD-183: no .slice — code input has maxLength 32 (04-UI-UX.md:98), so the 33-char case is entered by paste
+    // LD-183 / ruling: the 32-char cap is native maxLength (04-UI-UX.md:98); an over-length paste is truncated to a valid code, so the cap is asserted by attribute.
     const code = field(/^code/i);
+    expect(code.maxLength).toBe(32);
     const u = user();
     await u.clear(code);
     await u.click(code);

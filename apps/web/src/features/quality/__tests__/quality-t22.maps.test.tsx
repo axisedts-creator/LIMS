@@ -128,21 +128,16 @@ describe('create map (#12, AC-02.1)', () => {
     await waitFor(() => expect(callsTo('POST', MAPS)).toHaveLength(1));
     expect(bodyOf(callsTo('POST', MAPS)[0])).toEqual({ instrument_id: INST_1, control_id_raw: 'QC-L2', lot_id: LOT_1 });
   });
-  it.each([
-    ['empty Control id', ''],
-    ['Control id over 64 characters (pasted)', 'Q'.repeat(65)],
-  ])('%s is refused in the form, NO request', async (_n, v) => {
+  // LD-183 / ruling: Control id is native maxLength 64 (04-UI-UX.md:106); the cap is the length requirement, so it is asserted by attribute (a 65-char paste is truncated to a valid 64).
+  it('empty Control id is refused in the form, NO request; input is capped at maxLength 64', async () => {
     await openNew();
     await fillMap('QC-L2');
-    // LD-183: Control id is native maxLength 64 (04-UI-UX.md:106), so the 65-char value is entered by paste
     const el = field(/^control id/i);
     expect(el.maxLength).toBe(64);
-    const u = user();
-    await u.clear(el);
-    if (v) { await u.click(el); await u.paste(v); }
+    await user().clear(el);
     await save();
     expect(callsTo('POST', MAPS)).toHaveLength(0);
-    if (v === '') expect(fieldError(field(/^control id/i))).toBe(true);
+    expect(fieldError(field(/^control id/i))).toBe(true);
   });
   it('Instrument and Lot are required: submitting without them flags both and sends nothing', async () => {
     await openNew();

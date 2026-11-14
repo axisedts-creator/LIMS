@@ -1,21 +1,12 @@
-CHANGES
+APPROVE
 
-Reviewer: HC-T17 round 2 (LD-162), diff b1672baa..390fb91b.
-Check run: `npx vitest run src/core/observability/__tests__/metrics.test.ts` (services/api): 1 failed / 17 passed (18). Failing: "REQUIRED_METRICS lists exactly the spec names" (metrics.test.ts:125). The last writer commit (390fb91b) changed only `.orchestra/notes/HC-T17-impl.md`; `metrics.test.ts` is not in the diff at all.
+Reviewer: HC-T17 round 3 (LD-162), diff b1672baa..be6d543c.
+Check run (services/api): `npx vitest run src/core/observability/__tests__/metrics.test.ts` = 18 passed (18).
 
-1. `services/api/src/core/observability/__tests__/metrics.test.ts:117`: the round-1 fix was not applied. LD-162 requires the same eight rows in EXPECTED. Fix (writer): after line 117 (`lims_identity_audit_exports_tenant_day: 'gauge',`) insert, with a comment citing LD-162 / C17 02-TRD §14 lines 589-596:
-   ```
-   lims_homecollection_mutations_total: 'counter',
-   lims_homecollection_push_duration_seconds: 'histogram',
-   lims_homecollection_snapshot_duration_seconds: 'histogram',
-   lims_homecollection_held_open: 'gauge',
-   lims_homecollection_clock_skew_seconds: 'histogram',
-   lims_homecollection_devices_stale_total: 'gauge',
-   lims_homecollection_handover_overdue_open: 'gauge',
-   lims_homecollection_events_published_total: 'counter',
-   ```
-   Commit the file, rerun metrics.test.ts (must be 18/18) and HC-T17-verify.cmd.
+Checked OK:
+- core/observability/metrics.ts:121-128 DEFS: eight rows match 02-TRD §14 lines 589-596 verbatim (names, types, labels; tenant_id only on the three gauges; no PHI label). Nothing else in DEFS or createMetrics changed. LD-162 cited.
+- core/observability/__tests__/metrics.test.ts:119-126 EXPECTED: same eight names and types, LD-162 cited. Round-2 item 1 resolved.
+- .orchestra/notes/HC-T17-impl.md: now states the real rerun (18/18 at cd0fd333). Round-2 item 2 resolved.
+- homecollection/metrics.ts: comment-only change. No PHI in logs, no secrets, no RLS/permission/route/error-code surface touched; paths per LD-162.
 
-2. `.orchestra/notes/HC-T17-impl.md:5-6`: these lines say EXPECTED was updated and "core `metrics.test.ts` 18/18". Neither is true at 390fb91b (see check above). Fix: after item 1 lands, rewrite them with the real rerun output.
-
-Checked OK (unchanged from round 1): the eight DEFS rows in core/observability/metrics.ts:121-128 match 02-TRD §14 lines 589-596 verbatim (names, types, labels; tenant_id only on the three gauges; no PHI label); nothing else in metrics.ts or createMetrics changed; homecollection/metrics.ts change is a comment only; no PHI in logs, no secrets, no RLS, permission or route surface touched in this diff.
+Not HC-T17 (outside this diff, reported for the lead only): running the whole homecollection folder shows 5 failures in files this diff does not touch — boot.test.ts (HC-T01 stub map vs implemented listHomeVisits; `module lab: index.ts exports no manifest`; a 30 s boot timeout) and repository static.test.ts (`${values.length}` in handovers.repo.ts SQL). The 23 other failing files need LIMS_TEST_APP_URL (live PG17), not run here.

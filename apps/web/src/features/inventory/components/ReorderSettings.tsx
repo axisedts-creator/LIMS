@@ -88,13 +88,14 @@ export function ReorderSettings({ storeId, items, settings, suppliers, canManage
     }
     busy.current.add(itemId);
     try {
+      // Saves fire from blur/toggle handlers (no error boundary there), so a transport failure must become a banner, not an unhandled rejection.
       const r = await putStoreItemSettingAction(storeId, itemId, prev?.version, {
         is_stocked: next.stocked,
         ...(next.level ? { reorder_level_base: next.level } : {}),
         ...(next.qty ? { reorder_qty_base: next.qty } : {}),
         ...(next.max ? { max_level_base: next.max } : {}),
         ...(next.supplier !== NONE ? { preferred_supplier_id: next.supplier } : {}),
-      });
+      }).catch((): Failure => ({ ok: false, status: 503, code: 'common.service_unavailable', title: 'Could not save. Try again.' }));
       if (!r.ok) return setProblem(r);
       setProblem(undefined);
       saved.current.set(itemId, r.data);

@@ -1,0 +1,6 @@
+CHANGES
+
+Verified: `pnpm --dir packages/ui exec vitest run scripts/__tests__/no-raw-style-literals.test.ts` = 42/42 pass. Paths owned, names verbatim, no secrets/PHI, planted-literal case present. One real defect:
+
+1. packages/ui/scripts/__tests__/no-raw-style-literals.test.ts:208 and packages/ui/scripts/raw-style-pending.json:3 — the directory regex `^[\w.@-]+(?:\/[\w.@-]+)*$` rejects Next.js route-group / dynamic segment names (`(staff)`, `[test_id]`, `[...slug]`), so the writer had to exempt all of `apps/web/src/app`. The only hits there are `apps/web/src/app/(staff)/catalog/tests/page.tsx` and `apps/web/src/app/(staff)/catalog/tests/[test_id]/page.tsx`, but the entry also exempts every route of chunks still building (`(staff)/anatomic`, `micro`, `inventory`, `instruments`, `engagement`, `homecollection`, ...) and the root layout. That defeats 10-DESIGN-SYSTEM s7 item 3 (the lint must catch raw literals in chunks still building) and s8, and no single RS-Cx task can ever remove the line.
+   Fix: (a) test line 208: change the segment class to allow route-group and dynamic-segment characters, e.g. `/^[\w.@()\[\]-]+(?:\/[\w.@()\[\]-]+)*$/` (keep the `..` and ROOTS checks); (b) raw-style-pending.json: replace `"apps/web/src/app"` with `"apps/web/src/app/(staff)/catalog"` (keep sorted, one per line). Re-run the verify command; real-tree test must still pass.

@@ -167,6 +167,20 @@ export function createRunService(deps: { repo?: RunRepo; events?: QualityEvents 
     return out;
   }
 
-  return { assign, closeStaleRuns };
+  /**
+   * QR5 via #30 (T-12): finalise the plan's COLLECTING run on staff request, exactly like close_stale_runs (mode 'final': incomplete, or rejected + event in the same tx).
+   * Pair lock first; the collecting run is re-read UNDER the lock, and anything but `runId` (already evaluated, closed, another run collecting, none) is refused.
+   * evaluated_by = ctx.actor.id (the staff user), evaluated_at = ctx.now().
+   */
+  async function evaluateNow(ctx: RunCtx, input: { runId: string; planId: string }): Promise<Row> {
+    const t = ctx.tenantId;
+    const plan = await repo.lockPlan(ctx.tx, t, input.planId);
+    if (!plan) throw new LimsError('common.not_found');
+    const run = await repo.findCollectingRun(ctx.tx, t, input.planId);
+    if (!run || run['id'] !== input.runId) throw new LimsError('quality.qc_run_already_evaluated');
+    return settle(ctx, plan, run, await repo.listRunMembers(ctx.tx, t, run['id']), 'final', {}, ctx.now());
+  }
+
+  return { assign, closeStaleRuns, evaluateNow };
 }
 export type RunService = ReturnType<typeof createRunService>;

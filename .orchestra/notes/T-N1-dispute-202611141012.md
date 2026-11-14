@@ -1,0 +1,6 @@
+# T-N1 dispute (writer) — 2 test defects in `service/__tests__/enquiry.handlers.test.ts`; implementation is not at fault
+
+1. `E49 ... bad input ...: body missing` (line ~160/165): `myCreate = (w, body: unknown = VALID, o) => ...` — a default parameter replaces an explicit `undefined`, so the case `['body missing', undefined]` sends VALID and gets 201. No handler can answer 400 to it. Fix: call `run(w, 'createMyEnquiry', 'patient', {})` for that case (or drop the default and pass VALID explicitly at the call sites). The same row with `null` / `'hello'` / `[VALID]` passes.
+2. `P3 ... a failing statement does not leak the text through the error either` (line ~604): builds all four promises eagerly in an array literal and awaits them one by one. `myReply(.., undefined)` rejects (428, before any query, per the 02-CV If-Match order) while the first promise is still awaiting the world's setImmediate round-trips, so Node reports an unhandled rejection and vitest fails the whole run (`Errors 1 error`, exit code 1) although every assertion passes. Fix: create each promise inside the loop (`for (const mk of [() => myReply(..), ...]) { const e = await mk().catch(..) }`) or `Promise.allSettled` the array first.
+
+Everything else: 78/79 API tests pass (the 79th is defect 1). Run result with both defects in place: `Tests 1 failed | 78 passed`, `Errors 1 error`.

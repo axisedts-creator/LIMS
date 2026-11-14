@@ -1,0 +1,207 @@
+Analyzing __tests__...                                          
+
+warning - Unused import: 'support/db_fixture.dart'. Try removing the import directive - __tests__\outbox_mutation_log_test.dart:19:8 - unused_import
+   info - The import of 'dart:async' is unnecessary because all of the used elements are also provided by the import of 'package:flutter_test/flutter_test.dart'. Try removing the import directive - __tests__\pinned_http_test.dart:9:8 - unnecessary_import
+warning - Unused import: 'package:lims_shared/lims_shared.dart'. Try removing the import directive - __tests__\support\purge_fixture.dart:25:8 - unused_import
+  error - Target of URI doesn't exist: 'package:phlebo_app/features/visit/data/mutation_sink.dart'. Try creating the file referenced by the URI, or try using a URI for a file that does exist - __tests__\support\visit_fixture.dart:22:8 - uri_does_not_exist
+  error - Target of URI doesn't exist: 'package:phlebo_app/features/visit/domain/visit_models.dart'. Try creating the file referenced by the URI, or try using a URI for a file that does exist - __tests__\support\visit_fixture.dart:23:8 - uri_does_not_exist
+  error - Undefined class 'ExpectedTube'. Try changing the name to the name of an existing class, or creating a class with the name 'ExpectedTube' - __tests__\support\visit_fixture.dart:41:1 - undefined_class
+  error - The name 'ExpectedTube' isn't a class. Try correcting the name to match an existing class - __tests__\support\visit_fixture.dart:41:31 - creation_with_non_type
+  error - Undefined class 'ExpectedTube'. Try changing the name to the name of an existing class, or creating a class with the name 'ExpectedTube' - __tests__\support\visit_fixture.dart:43:1 - undefined_class
+  error - The name 'ExpectedTube' isn't a class. Try correcting the name to match an existing class - __tests__\support\visit_fixture.dart:43:31 - creation_with_non_type
+  error - Undefined class 'VisitView'. Try changing the name to the name of an existing class, or creating a class with the name 'VisitView' - __tests__\support\visit_fixture.dart:46:1 - undefined_class
+  error - The name 'ExpectedTube' isn't a type, so it can't be used as a type argument. Try correcting the name to an existing type, or defining a type named 'ExpectedTube' - __tests__\support\visit_fixture.dart:50:8 - non_type_as_type_argument
+  error - The function 'VisitView' isn't defined. Try importing the library that defines 'VisitView', correcting the name to the name of an existing function, or defining a function named 'VisitView' - __tests__\support\visit_fixture.dart:52:5 - undefined_function
+  error - Undefined class 'VisitConfig'. Try changing the name to the name of an existing class, or creating a class with the name 'VisitConfig' - __tests__\support\visit_fixture.dart:71:1 - undefined_class
+  error - The function 'VisitConfig' isn't defined. Try importing the library that defines 'VisitConfig', correcting the name to the name of an existing function, or defining a function named 'VisitConfig' - __tests__\support\visit_fixture.dart:71:69 - undefined_function
+  error - The function 'PaymentMethodOption' isn't defined. Try importing the library that defines 'PaymentMethodOption', correcting the name to the name of an existing function, or defining a function named 'PaymentMethodOption' - __tests__\support\visit_fixture.dart:77:9 - undefined_function
+  error - The values in a const list literal must be constants. Try removing the keyword 'const' from the list literal - __tests__\support\visit_fixture.dart:77:9 - non_constant_list_element
+  error - The function 'PaymentMethodOption' isn't defined. Try importing the library that defines 'PaymentMethodOption', correcting the name to the name of an existing function, or defining a function named 'PaymentMethodOption' - __tests__\support\visit_fixture.dart:78:9 - undefined_function
+  error - The values in a const list literal must be constants. Try removing the keyword 'const' from the list literal - __tests__\support\visit_fixture.dart:78:9 - non_constant_list_element
+  error - The function 'PaymentMethodOption' isn't defined. Try importing the library that defines 'PaymentMethodOption', correcting the name to the name of an existing function, or defining a function named 'PaymentMethodOption' - __tests__\support\visit_fixture.dart:79:9 - undefined_function
+  error - The values in a const list literal must be constants. Try removing the keyword 'const' from the list literal - __tests__\support\visit_fixture.dart:79:9 - non_constant_list_element
+  error - The function 'PaymentMethodOption' isn't defined. Try importing the library that defines 'PaymentMethodOption', correcting the name to the name of an existing function, or defining a function named 'PaymentMethodOption' - __tests__\support\visit_fixture.dart:80:9 - undefined_function
+  error - The values in a const list literal must be constants. Try removing the keyword 'const' from the list literal - __tests__\support\visit_fixture.dart:80:9 - non_constant_list_element
+  error - The function 'ReasonOption' isn't defined. Try importing the library that defines 'ReasonOption', correcting the name to the name of an existing function, or defining a function named 'ReasonOption' - __tests__\support\visit_fixture.dart:83:9 - undefined_function
+  error - The values in a const list literal must be constants. Try removing the keyword 'const' from the list literal - __tests__\support\visit_fixture.dart:83:9 - non_constant_list_element
+  error - The function 'ReasonOption' isn't defined. Try importing the library that defines 'ReasonOption', correcting the name to the name of an existing function, or defining a function named 'ReasonOption' - __tests__\support\visit_fixture.dart:84:9 - undefined_function
+  error - The values in a const list literal must be constants. Try removing the keyword 'const' from the list literal - __tests__\support\visit_fixture.dart:84:9 - non_constant_list_element
+  error - The function 'ReasonOption' isn't defined. Try importing the library that defines 'ReasonOption', correcting the name to the name of an existing function, or defining a function named 'ReasonOption' - __tests__\support\visit_fixture.dart:85:9 - undefined_function
+  error - The values in a const list literal must be constants. Try removing the keyword 'const' from the list literal - __tests__\support\visit_fixture.dart:85:9 - non_constant_list_element
+  error - The function 'ReasonOption' isn't defined. Try importing the library that defines 'ReasonOption', correcting the name to the name of an existing function, or defining a function named 'ReasonOption' - __tests__\support\visit_fixture.dart:86:9 - undefined_function
+  error - The values in a const list literal must be constants. Try removing the keyword 'const' from the list literal - __tests__\support\visit_fixture.dart:86:9 - non_constant_list_element
+  error - The function 'ReasonOption' isn't defined. Try importing the library that defines 'ReasonOption', correcting the name to the name of an existing function, or defining a function named 'ReasonOption' - __tests__\support\visit_fixture.dart:87:9 - undefined_function
+  error - The values in a const list literal must be constants. Try removing the keyword 'const' from the list literal - __tests__\support\visit_fixture.dart:87:9 - non_constant_list_element
+  error - The function 'ReasonOption' isn't defined. Try importing the library that defines 'ReasonOption', correcting the name to the name of an existing function, or defining a function named 'ReasonOption' - __tests__\support\visit_fixture.dart:88:9 - undefined_function
+  error - The values in a const list literal must be constants. Try removing the keyword 'const' from the list literal - __tests__\support\visit_fixture.dart:88:9 - non_constant_list_element
+  error - The function 'ReasonOption' isn't defined. Try importing the library that defines 'ReasonOption', correcting the name to the name of an existing function, or defining a function named 'ReasonOption' - __tests__\support\visit_fixture.dart:91:9 - undefined_function
+  error - The values in a const list literal must be constants. Try removing the keyword 'const' from the list literal - __tests__\support\visit_fixture.dart:91:9 - non_constant_list_element
+  error - The function 'ReasonOption' isn't defined. Try importing the library that defines 'ReasonOption', correcting the name to the name of an existing function, or defining a function named 'ReasonOption' - __tests__\support\visit_fixture.dart:92:9 - undefined_function
+  error - The values in a const list literal must be constants. Try removing the keyword 'const' from the list literal - __tests__\support\visit_fixture.dart:92:9 - non_constant_list_element
+  error - The function 'ReasonOption' isn't defined. Try importing the library that defines 'ReasonOption', correcting the name to the name of an existing function, or defining a function named 'ReasonOption' - __tests__\support\visit_fixture.dart:93:9 - undefined_function
+  error - The values in a const list literal must be constants. Try removing the keyword 'const' from the list literal - __tests__\support\visit_fixture.dart:93:9 - non_constant_list_element
+  error - The function 'ReasonOption' isn't defined. Try importing the library that defines 'ReasonOption', correcting the name to the name of an existing function, or defining a function named 'ReasonOption' - __tests__\support\visit_fixture.dart:94:9 - undefined_function
+  error - The values in a const list literal must be constants. Try removing the keyword 'const' from the list literal - __tests__\support\visit_fixture.dart:94:9 - non_constant_list_element
+  error - Classes and mixins can only implement other classes and mixins. Try specifying a class or mixin, or remove the name from the list - __tests__\support\visit_fixture.dart:107:32 - implements_non_class
+warning - The method doesn't override an inherited method. Try updating this class to match the superclass, or removing the override annotation - __tests__\support\visit_fixture.dart:117:25 - override_on_non_overriding_member
+  error - Target of URI doesn't exist: 'package:phlebo_app/features/collect/ui/collect_screen.dart'. Try creating the file referenced by the URI, or try using a URI for a file that does exist - __tests__\visit_collect_test.dart:13:8 - uri_does_not_exist
+  error - The function 'CollectScreen' isn't defined. Try importing the library that defines 'CollectScreen', correcting the name to the name of an existing function, or defining a function named 'CollectScreen' - __tests__\visit_collect_test.dart:29:7 - undefined_function
+  error - Expected an identifier - __tests__\visit_collect_test.dart:168:70 - missing_identifier
+  error - Target of URI doesn't exist: 'package:phlebo_app/features/visit/data/mutation_sink.dart'. Try creating the file referenced by the URI, or try using a URI for a file that does exist - __tests__\visit_flow_offline_test.dart:9:8 - uri_does_not_exist
+  error - Target of URI doesn't exist: 'package:phlebo_app/features/visit/ui/visit_flow_screen.dart'. Try creating the file referenced by the URI, or try using a URI for a file that does exist - __tests__\visit_flow_offline_test.dart:10:8 - uri_does_not_exist
+  error - The function 'VisitFlowScreen' isn't defined. Try importing the library that defines 'VisitFlowScreen', correcting the name to the name of an existing function, or defining a function named 'VisitFlowScreen' - __tests__\visit_flow_offline_test.dart:27:7 - undefined_function
+  error - Undefined class 'MutationSink'. Try changing the name to the name of an existing class, or creating a class with the name 'MutationSink' - __tests__\visit_flow_offline_test.dart:84:15 - undefined_class
+  error - Target of URI doesn't exist: 'package:phlebo_app/features/visit/domain/visit_guard.dart'. Try creating the file referenced by the URI, or try using a URI for a file that does exist - __tests__\visit_guard_test.dart:13:8 - uri_does_not_exist
+  error - Undefined class 'VisitProgress'. Try changing the name to the name of an existing class, or creating a class with the name 'VisitProgress' - __tests__\visit_guard_test.dart:29:1 - undefined_class
+  error - Undefined name 'VisitProgress'. Try correcting the name to one that is defined, or defining the name - __tests__\visit_guard_test.dart:30:5 - undefined_identifier
+  error - Undefined name 'VisitGuard'. Try correcting the name to one that is defined, or defining the name - __tests__\visit_guard_test.dart:35:17 - undefined_identifier
+  error - The name 'VisitProgress' isn't a class. Try correcting the name to match an existing class - __tests__\visit_guard_test.dart:35:42 - creation_with_non_type
+  error - Undefined name 'VisitStep'. Try correcting the name to one that is defined, or defining the name - __tests__\visit_guard_test.dart:36:30 - undefined_identifier
+  error - Undefined name 'VisitStep'. Try correcting the name to one that is defined, or defining the name - __tests__\visit_guard_test.dart:36:48 - undefined_identifier
+  error - Undefined name 'VisitStep'. Try correcting the name to one that is defined, or defining the name - __tests__\visit_guard_test.dart:37:30 - undefined_identifier
+  error - Undefined name 'VisitStep'. Try correcting the name to one that is defined, or defining the name - __tests__\visit_guard_test.dart:37:50 - undefined_identifier
+  error - Undefined name 'VisitStep'. Try correcting the name to one that is defined, or defining the name - __tests__\visit_guard_test.dart:37:69 - undefined_identifier
+  error - Undefined name 'VisitStep'. Try correcting the name to one that is defined, or defining the name - __tests__\visit_guard_test.dart:37:88 - undefined_identifier
+  error - Undefined name 'VisitStep'. Try correcting the name to one that is defined, or defining the name - __tests__\visit_guard_test.dart:37:107 - undefined_identifier
+  error - Undefined name 'VisitGuard'. Try correcting the name to one that is defined, or defining the name - __tests__\visit_guard_test.dart:38:14 - undefined_identifier
+  error - The name 'VisitProgress' isn't a class. Try correcting the name to match an existing class - __tests__\visit_guard_test.dart:38:40 - creation_with_non_type
+  error - Undefined name 'VisitStep'. Try correcting the name to one that is defined, or defining the name - __tests__\visit_guard_test.dart:38:58 - undefined_identifier
+  error - Const variables must be initialized with a constant value. Try changing the initializer to be a constant expression - __tests__\visit_guard_test.dart:42:17 - const_initialized_with_non_constant_value
+  error - The function 'VisitProgress' isn't defined. Try importing the library that defines 'VisitProgress', correcting the name to the name of an existing function, or defining a function named 'VisitProgress' - __tests__\visit_guard_test.dart:42:17 - undefined_function
+  error - Undefined name 'VisitGuard'. Try correcting the name to one that is defined, or defining the name - __tests__\visit_guard_test.dart:43:14 - undefined_identifier
+  error - Undefined name 'VisitStep'. Try correcting the name to one that is defined, or defining the name - __tests__\visit_guard_test.dart:43:34 - undefined_identifier
+  error - Undefined name 'VisitGuard'. Try correcting the name to one that is defined, or defining the name - __tests__\visit_guard_test.dart:44:14 - undefined_identifier
+  error - Undefined name 'VisitStep'. Try correcting the name to one that is defined, or defining the name - __tests__\visit_guard_test.dart:44:34 - undefined_identifier
+  error - Undefined name 'VisitGuard'. Try correcting the name to one that is defined, or defining the name - __tests__\visit_guard_test.dart:45:14 - undefined_identifier
+  error - Undefined name 'VisitStep'. Try correcting the name to one that is defined, or defining the name - __tests__\visit_guard_test.dart:45:34 - undefined_identifier
+  error - Undefined name 'VisitGuard'. Try correcting the name to one that is defined, or defining the name - __tests__\visit_guard_test.dart:46:14 - undefined_identifier
+  error - Undefined name 'VisitStep'. Try correcting the name to one that is defined, or defining the name - __tests__\visit_guard_test.dart:46:38 - undefined_identifier
+  error - Const variables must be initialized with a constant value. Try changing the initializer to be a constant expression - __tests__\visit_guard_test.dart:50:17 - const_initialized_with_non_constant_value
+  error - The function 'VisitProgress' isn't defined. Try importing the library that defines 'VisitProgress', correcting the name to the name of an existing function, or defining a function named 'VisitProgress' - __tests__\visit_guard_test.dart:50:17 - undefined_function
+  error - Undefined name 'IdentityState'. Try correcting the name to one that is defined, or defining the name - __tests__\visit_guard_test.dart:50:56 - undefined_identifier
+  error - Undefined name 'VisitStep'. Try correcting the name to one that is defined, or defining the name - __tests__\visit_guard_test.dart:51:24 - undefined_identifier
+  error - Undefined name 'VisitStep'. Try correcting the name to one that is defined, or defining the name - __tests__\visit_guard_test.dart:51:43 - undefined_identifier
+  error - Undefined name 'VisitStep'. Try correcting the name to one that is defined, or defining the name - __tests__\visit_guard_test.dart:51:62 - undefined_identifier
+  error - Undefined name 'VisitStep'. Try correcting the name to one that is defined, or defining the name - __tests__\visit_guard_test.dart:51:81 - undefined_identifier
+  error - Undefined name 'VisitGuard'. Try correcting the name to one that is defined, or defining the name - __tests__\visit_guard_test.dart:52:16 - undefined_identifier
+  error - Undefined name 'VisitGuard'. Try correcting the name to one that is defined, or defining the name - __tests__\visit_guard_test.dart:54:14 - undefined_identifier
+  error - Undefined name 'VisitStep'. Try correcting the name to one that is defined, or defining the name - __tests__\visit_guard_test.dart:54:34 - undefined_identifier
+  error - Const variables must be initialized with a constant value. Try changing the initializer to be a constant expression - __tests__\visit_guard_test.dart:58:17 - const_initialized_with_non_constant_value
+  error - The function 'VisitProgress' isn't defined. Try importing the library that defines 'VisitProgress', correcting the name to the name of an existing function, or defining a function named 'VisitProgress' - __tests__\visit_guard_test.dart:58:17 - undefined_function
+  error - Undefined name 'IdentityState'. Try correcting the name to one that is defined, or defining the name - __tests__\visit_guard_test.dart:58:56 - undefined_identifier
+  error - Undefined name 'VisitGuard'. Try correcting the name to one that is defined, or defining the name - __tests__\visit_guard_test.dart:59:14 - undefined_identifier
+  error - Undefined name 'VisitStep'. Try correcting the name to one that is defined, or defining the name - __tests__\visit_guard_test.dart:59:34 - undefined_identifier
+  error - Undefined name 'VisitGuard'. Try correcting the name to one that is defined, or defining the name - __tests__\visit_guard_test.dart:60:14 - undefined_identifier
+  error - Undefined name 'VisitStep'. Try correcting the name to one that is defined, or defining the name - __tests__\visit_guard_test.dart:60:34 - undefined_identifier
+  error - Undefined name 'VisitGuard'. Try correcting the name to one that is defined, or defining the name - __tests__\visit_guard_test.dart:61:14 - undefined_identifier
+  error - Undefined name 'VisitStep'. Try correcting the name to one that is defined, or defining the name - __tests__\visit_guard_test.dart:61:38 - undefined_identifier
+  error - Const variables must be initialized with a constant value. Try changing the initializer to be a constant expression - __tests__\visit_guard_test.dart:65:17 - const_initialized_with_non_constant_value
+  error - The function 'VisitProgress' isn't defined. Try importing the library that defines 'VisitProgress', correcting the name to the name of an existing function, or defining a function named 'VisitProgress' - __tests__\visit_guard_test.dart:65:17 - undefined_function
+  error - Undefined name 'IdentityState'. Try correcting the name to one that is defined, or defining the name - __tests__\visit_guard_test.dart:65:56 - undefined_identifier
+  error - Undefined name 'ConsentState'. Try correcting the name to one that is defined, or defining the name - __tests__\visit_guard_test.dart:65:89 - undefined_identifier
+  error - Undefined name 'VisitGuard'. Try correcting the name to one that is defined, or defining the name - __tests__\visit_guard_test.dart:66:14 - undefined_identifier
+  error - Undefined name 'VisitStep'. Try correcting the name to one that is defined, or defining the name - __tests__\visit_guard_test.dart:66:34 - undefined_identifier
+  error - Undefined name 'VisitGuard'. Try correcting the name to one that is defined, or defining the name - __tests__\visit_guard_test.dart:67:14 - undefined_identifier
+  error - Undefined name 'VisitStep'. Try correcting the name to one that is defined, or defining the name - __tests__\visit_guard_test.dart:67:34 - undefined_identifier
+  error - Undefined name 'VisitGuard'. Try correcting the name to one that is defined, or defining the name - __tests__\visit_guard_test.dart:68:14 - undefined_identifier
+  error - Undefined name 'VisitStep'. Try correcting the name to one that is defined, or defining the name - __tests__\visit_guard_test.dart:68:38 - undefined_identifier
+  error - Const variables must be initialized with a constant value. Try changing the initializer to be a constant expression - __tests__\visit_guard_test.dart:72:17 - const_initialized_with_non_constant_value
+  error - The function 'VisitProgress' isn't defined. Try importing the library that defines 'VisitProgress', correcting the name to the name of an existing function, or defining a function named 'VisitProgress' - __tests__\visit_guard_test.dart:72:17 - undefined_function
+  error - Undefined name 'IdentityState'. Try correcting the name to one that is defined, or defining the name - __tests__\visit_guard_test.dart:72:56 - undefined_identifier
+  error - Undefined name 'ConsentState'. Try correcting the name to one that is defined, or defining the name - __tests__\visit_guard_test.dart:72:89 - undefined_identifier
+  error - Undefined name 'VisitGuard'. Try correcting the name to one that is defined, or defining the name - __tests__\visit_guard_test.dart:73:14 - undefined_identifier
+  error - Undefined name 'VisitStep'. Try correcting the name to one that is defined, or defining the name - __tests__\visit_guard_test.dart:73:34 - undefined_identifier
+  error - Undefined name 'VisitGuard'. Try correcting the name to one that is defined, or defining the name - __tests__\visit_guard_test.dart:74:14 - undefined_identifier
+  error - Undefined name 'VisitStep'. Try correcting the name to one that is defined, or defining the name - __tests__\visit_guard_test.dart:74:34 - undefined_identifier
+  error - Undefined name 'VisitGuard'. Try correcting the name to one that is defined, or defining the name - __tests__\visit_guard_test.dart:75:14 - undefined_identifier
+  error - Undefined name 'VisitStep'. Try correcting the name to one that is defined, or defining the name - __tests__\visit_guard_test.dart:75:34 - undefined_identifier
+  error - Undefined name 'VisitGuard'. Try correcting the name to one that is defined, or defining the name - __tests__\visit_guard_test.dart:76:14 - undefined_identifier
+  error - Undefined name 'VisitStep'. Try correcting the name to one that is defined, or defining the name - __tests__\visit_guard_test.dart:76:38 - undefined_identifier
+  error - Const variables must be initialized with a constant value. Try changing the initializer to be a constant expression - __tests__\visit_guard_test.dart:80:17 - const_initialized_with_non_constant_value
+  error - The function 'VisitProgress' isn't defined. Try importing the library that defines 'VisitProgress', correcting the name to the name of an existing function, or defining a function named 'VisitProgress' - __tests__\visit_guard_test.dart:80:17 - undefined_function
+  error - Undefined name 'IdentityState'. Try correcting the name to one that is defined, or defining the name - __tests__\visit_guard_test.dart:80:56 - undefined_identifier
+  error - Undefined name 'ConsentState'. Try correcting the name to one that is defined, or defining the name - __tests__\visit_guard_test.dart:80:89 - undefined_identifier
+  error - Undefined name 'VisitGuard'. Try correcting the name to one that is defined, or defining the name - __tests__\visit_guard_test.dart:81:14 - undefined_identifier
+  error - Undefined name 'VisitStep'. Try correcting the name to one that is defined, or defining the name - __tests__\visit_guard_test.dart:81:34 - undefined_identifier
+  error - Undefined name 'VisitGuard'. Try correcting the name to one that is defined, or defining the name - __tests__\visit_guard_test.dart:82:14 - undefined_identifier
+  error - Undefined name 'VisitStep'. Try correcting the name to one that is defined, or defining the name - __tests__\visit_guard_test.dart:82:34 - undefined_identifier
+  error - Undefined name 'VisitGuard'. Try correcting the name to one that is defined, or defining the name - __tests__\visit_guard_test.dart:83:14 - undefined_identifier
+  error - Undefined name 'VisitStep'. Try correcting the name to one that is defined, or defining the name - __tests__\visit_guard_test.dart:83:34 - undefined_identifier
+  error - Const variables must be initialized with a constant value. Try changing the initializer to be a constant expression - __tests__\visit_guard_test.dart:87:17 - const_initialized_with_non_constant_value
+  error - The function 'VisitProgress' isn't defined. Try importing the library that defines 'VisitProgress', correcting the name to the name of an existing function, or defining a function named 'VisitProgress' - __tests__\visit_guard_test.dart:87:17 - undefined_function
+  error - Undefined name 'IdentityState'. Try correcting the name to one that is defined, or defining the name - __tests__\visit_guard_test.dart:88:36 - undefined_identifier
+  error - Undefined name 'ConsentState'. Try correcting the name to one that is defined, or defining the name - __tests__\visit_guard_test.dart:88:69 - undefined_identifier
+  error - Undefined name 'VisitGuard'. Try correcting the name to one that is defined, or defining the name - __tests__\visit_guard_test.dart:89:14 - undefined_identifier
+  error - Undefined name 'VisitStep'. Try correcting the name to one that is defined, or defining the name - __tests__\visit_guard_test.dart:89:34 - undefined_identifier
+  error - Undefined name 'VisitGuard'. Try correcting the name to one that is defined, or defining the name - __tests__\visit_guard_test.dart:90:14 - undefined_identifier
+  error - Undefined name 'VisitStep'. Try correcting the name to one that is defined, or defining the name - __tests__\visit_guard_test.dart:90:34 - undefined_identifier
+  error - Const variables must be initialized with a constant value. Try changing the initializer to be a constant expression - __tests__\visit_guard_test.dart:94:20 - const_initialized_with_non_constant_value
+  error - The function 'VisitProgress' isn't defined. Try importing the library that defines 'VisitProgress', correcting the name to the name of an existing function, or defining a function named 'VisitProgress' - __tests__\visit_guard_test.dart:94:20 - undefined_function
+  error - Undefined name 'IdentityState'. Try correcting the name to one that is defined, or defining the name - __tests__\visit_guard_test.dart:95:36 - undefined_identifier
+  error - Undefined name 'ConsentState'. Try correcting the name to one that is defined, or defining the name - __tests__\visit_guard_test.dart:95:69 - undefined_identifier
+  error - Const variables must be initialized with a constant value. Try changing the initializer to be a constant expression - __tests__\visit_guard_test.dart:96:19 - const_initialized_with_non_constant_value
+  error - The function 'VisitProgress' isn't defined. Try importing the library that defines 'VisitProgress', correcting the name to the name of an existing function, or defining a function named 'VisitProgress' - __tests__\visit_guard_test.dart:96:19 - undefined_function
+  error - Undefined name 'VisitGuard'. Try correcting the name to one that is defined, or defining the name - __tests__\visit_guard_test.dart:97:14 - undefined_identifier
+  error - Undefined name 'VisitGuard'. Try correcting the name to one that is defined, or defining the name - __tests__\visit_guard_test.dart:98:14 - undefined_identifier
+  error - Const variables must be initialized with a constant value. Try changing the initializer to be a constant expression - __tests__\visit_guard_test.dart:103:17 - const_initialized_with_non_constant_value
+  error - The function 'VisitProgress' isn't defined. Try importing the library that defines 'VisitProgress', correcting the name to the name of an existing function, or defining a function named 'VisitProgress' - __tests__\visit_guard_test.dart:103:17 - undefined_function
+  error - Undefined name 'ConsentState'. Try correcting the name to one that is defined, or defining the name - __tests__\visit_guard_test.dart:103:40 - undefined_identifier
+  error - Undefined name 'VisitStep'. Try correcting the name to one that is defined, or defining the name - __tests__\visit_guard_test.dart:104:24 - undefined_identifier
+  error - Undefined name 'VisitStep'. Try correcting the name to one that is defined, or defining the name - __tests__\visit_guard_test.dart:104:44 - undefined_identifier
+  error - Undefined name 'VisitStep'. Try correcting the name to one that is defined, or defining the name - __tests__\visit_guard_test.dart:104:63 - undefined_identifier
+  error - Undefined name 'VisitStep'. Try correcting the name to one that is defined, or defining the name - __tests__\visit_guard_test.dart:104:82 - undefined_identifier
+  error - Undefined name 'VisitStep'. Try correcting the name to one that is defined, or defining the name - __tests__\visit_guard_test.dart:104:101 - undefined_identifier
+  error - Undefined name 'VisitGuard'. Try correcting the name to one that is defined, or defining the name - __tests__\visit_guard_test.dart:105:16 - undefined_identifier
+  error - Undefined name 'VisitGuard'. Try correcting the name to one that is defined, or defining the name - __tests__\visit_guard_test.dart:112:14 - undefined_identifier
+  error - Undefined name 'VisitStep'. Try correcting the name to one that is defined, or defining the name - __tests__\visit_guard_test.dart:112:45 - undefined_identifier
+  error - Undefined name 'VisitGuard'. Try correcting the name to one that is defined, or defining the name - __tests__\visit_guard_test.dart:117:14 - undefined_identifier
+  error - Undefined name 'VisitStep'. Try correcting the name to one that is defined, or defining the name - __tests__\visit_guard_test.dart:117:38 - undefined_identifier
+  error - Undefined name 'VisitGuard'. Try correcting the name to one that is defined, or defining the name - __tests__\visit_guard_test.dart:118:14 - undefined_identifier
+  error - Undefined name 'VisitStep'. Try correcting the name to one that is defined, or defining the name - __tests__\visit_guard_test.dart:118:34 - undefined_identifier
+  error - Undefined name 'VisitGuard'. Try correcting the name to one that is defined, or defining the name - __tests__\visit_guard_test.dart:128:16 - undefined_identifier
+  error - Undefined name 'VisitStep'. Try correcting the name to one that is defined, or defining the name - __tests__\visit_guard_test.dart:128:36 - undefined_identifier
+  error - Undefined name 'VisitGuard'. Try correcting the name to one that is defined, or defining the name - __tests__\visit_guard_test.dart:129:16 - undefined_identifier
+  error - Undefined name 'VisitStep'. Try correcting the name to one that is defined, or defining the name - __tests__\visit_guard_test.dart:129:36 - undefined_identifier
+  error - Undefined name 'VisitGuard'. Try correcting the name to one that is defined, or defining the name - __tests__\visit_guard_test.dart:135:14 - undefined_identifier
+  error - Undefined name 'VisitStep'. Try correcting the name to one that is defined, or defining the name - __tests__\visit_guard_test.dart:135:34 - undefined_identifier
+  error - Undefined name 'VisitGuard'. Try correcting the name to one that is defined, or defining the name - __tests__\visit_guard_test.dart:136:14 - undefined_identifier
+  error - Undefined name 'VisitStep'. Try correcting the name to one that is defined, or defining the name - __tests__\visit_guard_test.dart:136:38 - undefined_identifier
+  error - Undefined name 'VisitGuard'. Try correcting the name to one that is defined, or defining the name - __tests__\visit_guard_test.dart:140:14 - undefined_identifier
+  error - Undefined name 'VisitStep'. Try correcting the name to one that is defined, or defining the name - __tests__\visit_guard_test.dart:140:34 - undefined_identifier
+  error - Undefined name 'VisitGuard'. Try correcting the name to one that is defined, or defining the name - __tests__\visit_guard_test.dart:141:14 - undefined_identifier
+  error - Undefined name 'VisitStep'. Try correcting the name to one that is defined, or defining the name - __tests__\visit_guard_test.dart:141:34 - undefined_identifier
+  error - Undefined name 'VisitGuard'. Try correcting the name to one that is defined, or defining the name - __tests__\visit_guard_test.dart:142:14 - undefined_identifier
+  error - Undefined name 'VisitStep'. Try correcting the name to one that is defined, or defining the name - __tests__\visit_guard_test.dart:142:34 - undefined_identifier
+  error - Undefined name 'VisitGuard'. Try correcting the name to one that is defined, or defining the name - __tests__\visit_guard_test.dart:148:14 - undefined_identifier
+  error - Undefined name 'VisitStep'. Try correcting the name to one that is defined, or defining the name - __tests__\visit_guard_test.dart:148:34 - undefined_identifier
+  error - Undefined name 'VisitGuard'. Try correcting the name to one that is defined, or defining the name - __tests__\visit_guard_test.dart:149:14 - undefined_identifier
+  error - Undefined name 'VisitStep'. Try correcting the name to one that is defined, or defining the name - __tests__\visit_guard_test.dart:149:34 - undefined_identifier
+  error - Undefined name 'VisitGuard'. Try correcting the name to one that is defined, or defining the name - __tests__\visit_guard_test.dart:150:14 - undefined_identifier
+  error - Undefined name 'VisitStep'. Try correcting the name to one that is defined, or defining the name - __tests__\visit_guard_test.dart:150:34 - undefined_identifier
+  error - Undefined name 'VisitGuard'. Try correcting the name to one that is defined, or defining the name - __tests__\visit_guard_test.dart:155:14 - undefined_identifier
+  error - Undefined name 'VisitStep'. Try correcting the name to one that is defined, or defining the name - __tests__\visit_guard_test.dart:155:34 - undefined_identifier
+  error - Undefined name 'VisitGuard'. Try correcting the name to one that is defined, or defining the name - __tests__\visit_guard_test.dart:164:14 - undefined_identifier
+  error - Undefined name 'VisitStep'. Try correcting the name to one that is defined, or defining the name - __tests__\visit_guard_test.dart:164:34 - undefined_identifier
+  error - Undefined name 'VisitGuard'. Try correcting the name to one that is defined, or defining the name - __tests__\visit_guard_test.dart:165:14 - undefined_identifier
+  error - Undefined name 'VisitGuard'. Try correcting the name to one that is defined, or defining the name - __tests__\visit_guard_test.dart:166:14 - undefined_identifier
+  error - Undefined name 'VisitGuard'. Try correcting the name to one that is defined, or defining the name - __tests__\visit_guard_test.dart:171:14 - undefined_identifier
+  error - Undefined name 'VisitStep'. Try correcting the name to one that is defined, or defining the name - __tests__\visit_guard_test.dart:171:34 - undefined_identifier
+  error - Target of URI doesn't exist: 'package:phlebo_app/features/consent/ui/consent_screen.dart'. Try creating the file referenced by the URI, or try using a URI for a file that does exist - __tests__\visit_identity_consent_test.dart:12:8 - uri_does_not_exist
+  error - Target of URI doesn't exist: 'package:phlebo_app/features/identity/ui/identity_screen.dart'. Try creating the file referenced by the URI, or try using a URI for a file that does exist - __tests__\visit_identity_consent_test.dart:13:8 - uri_does_not_exist
+  error - Target of URI doesn't exist: 'package:phlebo_app/features/visit/ui/visit_screen.dart'. Try creating the file referenced by the URI, or try using a URI for a file that does exist - __tests__\visit_identity_consent_test.dart:14:8 - uri_does_not_exist
+  error - The function 'VisitScreen' isn't defined. Try importing the library that defines 'VisitScreen', correcting the name to the name of an existing function, or defining a function named 'VisitScreen' - __tests__\visit_identity_consent_test.dart:32:9 - undefined_function
+  error - Undefined name 'VisitScreen'. Try correcting the name to one that is defined, or defining the name - __tests__\visit_identity_consent_test.dart:97:26 - undefined_identifier
+  error - The function 'VisitScreen' isn't defined. Try importing the library that defines 'VisitScreen', correcting the name to the name of an existing function, or defining a function named 'VisitScreen' - __tests__\visit_identity_consent_test.dart:135:9 - undefined_function
+  error - The function 'IdentityScreen' isn't defined. Try importing the library that defines 'IdentityScreen', correcting the name to the name of an existing function, or defining a function named 'IdentityScreen' - __tests__\visit_identity_consent_test.dart:156:9 - undefined_function
+  error - Undefined name 'IdentityScreen'. Try correcting the name to one that is defined, or defining the name - __tests__\visit_identity_consent_test.dart:241:26 - undefined_identifier
+  error - The function 'ConsentScreen' isn't defined. Try importing the library that defines 'ConsentScreen', correcting the name to the name of an existing function, or defining a function named 'ConsentScreen' - __tests__\visit_identity_consent_test.dart:268:9 - undefined_function
+  error - Target of URI doesn't exist: 'package:phlebo_app/features/outcome/ui/complete_screen.dart'. Try creating the file referenced by the URI, or try using a URI for a file that does exist - __tests__\visit_payment_outcome_test.dart:14:8 - uri_does_not_exist
+  error - Target of URI doesn't exist: 'package:phlebo_app/features/outcome/ui/fail_visit_screen.dart'. Try creating the file referenced by the URI, or try using a URI for a file that does exist - __tests__\visit_payment_outcome_test.dart:15:8 - uri_does_not_exist
+  error - Target of URI doesn't exist: 'package:phlebo_app/features/payment/ui/payment_screen.dart'. Try creating the file referenced by the URI, or try using a URI for a file that does exist - __tests__\visit_payment_outcome_test.dart:16:8 - uri_does_not_exist
+  error - The function 'PaymentScreen' isn't defined. Try importing the library that defines 'PaymentScreen', correcting the name to the name of an existing function, or defining a function named 'PaymentScreen' - __tests__\visit_payment_outcome_test.dart:32:9 - undefined_function
+  error - Undefined class 'PaymentSummary'. Try changing the name to the name of an existing class, or creating a class with the name 'PaymentSummary' - __tests__\visit_payment_outcome_test.dart:230:91 - undefined_class
+  error - The function 'CompleteScreen' isn't defined. Try importing the library that defines 'CompleteScreen', correcting the name to the name of an existing function, or defining a function named 'CompleteScreen' - __tests__\visit_payment_outcome_test.dart:235:9 - undefined_function
+  error - The name 'PaymentSummary' isn't a class. Try correcting the name to match an existing class - __tests__\visit_payment_outcome_test.dart:247:67 - creation_with_non_type
+  error - The function 'FailVisitScreen' isn't defined. Try importing the library that defines 'FailVisitScreen', correcting the name to the name of an existing function, or defining a function named 'FailVisitScreen' - __tests__\visit_payment_outcome_test.dart:302:9 - undefined_function
+
+203 issues found. (ran in 310.4s)

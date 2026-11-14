@@ -18,7 +18,8 @@ import { TextArea } from '@lims/ui/components/TextArea';
 import { useToast } from '@lims/ui/components/Toast';
 import { lookupSpecimenAction, receiveSpecimenAction, rejectSpecimenAction } from '../server/actions';
 import type { RejectionReason, Specimen } from '../server/types';
-import { FAILED, NOT_FOUND, call, enterOnEmptyBox, newKey, useSerial } from './shared';
+import { FAILED, NOT_FOUND, call, enterOnEmptyBox, newKey } from './shared';
+import { useSerial } from './useSerial';
 
 const LOCATION_KEY = 'lims.lab.receive.location'; // value = centre id only
 const LOG_MAX = 50; // [CONV] 03-APP-FLOW §3.3

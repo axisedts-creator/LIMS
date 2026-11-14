@@ -12,7 +12,8 @@ import { Tabs } from '@lims/ui/components/Tabs';
 import { useToast } from '@lims/ui/components/Toast';
 import { bulkCollectAction, bulkDispatchAction, lookupSpecimenAction } from '../server/actions';
 import type { Specimen } from '../server/types';
-import { FAILED, NOT_FOUND, call, enterOnEmptyBox, newKey, plural, rowError, statusText, useSerial } from './shared';
+import { FAILED, NOT_FOUND, call, enterOnEmptyBox, newKey, plural, rowError, statusText } from './shared';
+import { useSerial } from './useSerial';
 
 const BARCODE = /^[A-Z0-9]{1,20}$/;
 const REGISTRATION = /^[A-Z0-9]{1,40}$/; // registration_no charset (IC §9.3); a value that also fits BARCODE is looked up as a barcode

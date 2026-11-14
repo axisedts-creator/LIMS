@@ -17,7 +17,7 @@ import { toCsv } from '../domain/csv.js';
 import { assertTransition } from '../domain/grn.state.js';
 import { capitalisedValuePaisa } from '../domain/money.js';
 import { formatNumber, periodKey } from '../domain/numbering.js';
-import { assertTransition as assertPoTransition } from '../domain/po.state.js';
+import { assertTransition as assertPoTransition, type PoStatus } from '../domain/po.state.js';
 import { formatScaled, scaled } from '../domain/quantity.js';
 import { nowMs, ymdIn } from '../domain/tenantTime.js';
 import { fieldError, invalid } from '../handlers/items.schemas.js';
@@ -314,7 +314,9 @@ export async function postGoodsReceipt(ctx: HandlerContext, id: string, ifMatch:
       poLines.set(pid, await updatePoLine(rc, pid, pl['version'], { received_qty_base: formatScaled(scaled(pl['received_qty_base'], 6) + q, 6) }));
     }
     const done = [...poLines.values()].every((pl) => pl['is_closed_short'] === true || scaled(pl['received_qty_base'], 6) >= scaled(pl['qty_base'], 6));
-    const next = done ? 'received' : 'partially_received';
+    // P5: a GRN without po_line_id lines leaves a PO with nothing received in its current status
+    const anyReceived = [...poLines.values()].some((pl) => pl['is_closed_short'] !== true && scaled(pl['received_qty_base'], 6) > 0n);
+    const next = done ? 'received' : anyReceived ? 'partially_received' : (po['status'] as PoStatus);
     if (next !== po['status']) { assertPoTransition(po['status'], next); await updatePo(rc, po['id'], po['version'], { status: next }); }
   }
   if (g['kind'] === 'purchase') {

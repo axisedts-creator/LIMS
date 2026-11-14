@@ -32,44 +32,9 @@ describe('C9 T-01: registered QualityPort', () => {
   });
 });
 
-describe('C9 T-01: registered QualityPort returns exactly the stub results', () => {
-  const h = makeCtxFor();
-  const actors = ['A:user', 'A:system', 'A:device', 'B:user', 'B:system'];
-
-  it('canAutoVerify -> deny [feature_disabled], deep-equal to the stub (no ruleSetVersion, no extra reason, never allow) for every actor and tenant', async () => {
-    const ref: any = createQualityPortStub();
-    const variants = [good, { ...good, isCritical: true }, { ...good, deltaCheckFailed: true, instrumentFlags: ['E'] }, { ...good, instrumentId: undefined },
-      { ...good, valueNumeric: undefined }, {}];
-    for (const a of actors) {
-      for (const v of variants) {
-        const got = await impl().canAutoVerify(h(a), v);
-        expect(got, `${a} ${JSON.stringify(v)}`).toEqual({ decision: 'deny', reasons: ['feature_disabled'] });
-        expect(got).toEqual(await ref.canAutoVerify(h(a), v));
-        expect(Object.keys(got).sort()).toEqual(['decision', 'reasons']);
-      }
-    }
-  });
-
-  it('returns a fresh object each call (a caller mutating the result cannot poison the next answer)', async () => {
-    const a: any = await impl().canAutoVerify(h('A:user'), good);
-    a.reasons.push('x'); a.decision = 'allow';
-    expect(await impl().canAutoVerify(h('A:user'), good)).toEqual({ decision: 'deny', reasons: ['feature_disabled'] });
-  });
-
-  it('is pure: no database touch and no transaction opened (ctx.tx is never used; 02-TRD §11.1 / §12.1: the port does not read quality.settings)', async () => {
-    const tx = new Proxy({}, { get() { throw new Error('ctx.tx touched'); } });
-    const ctx = h('A:system', { tx: tx as any });
-    expect(await outcome(impl().canAutoVerify(ctx, good))).toEqual({ ok: true, v: { decision: 'deny', reasons: ['feature_disabled'] } });
-  });
-
-  it('answers even while LIMS_QUALITY_ENABLED=false (the port always answers; only the HTTP routes are gated, 02-TRD §12.2)', async () => {
-    delete process.env['LIMS_QUALITY_ENABLED'];
-    expect((await impl().canAutoVerify(h('A:user'), good)).decision).toBe('deny');
-    process.env['LIMS_QUALITY_ENABLED'] = 'false';
-    try { expect((await impl().canAutoVerify(h('A:user'), good)).decision).toBe('deny'); }
-    finally { delete process.env['LIMS_QUALITY_ENABLED']; }
-  });
-});
+// T-16 retired the "returns exactly the stub results" cases for canAutoVerify (stub result, purity / no-tx, fresh-object, ENABLED=false): canAutoVerify is now the real decision service.
+// Their successors live in QualityPort.canAutoVerify.contract.test.ts (default wiring, validation before tx, fail-closed, answers while LIMS_QUALITY_ENABLED=false) and decision.service.test.ts.
+void [good, outcome, createQualityPortStub, makeCtxFor];
 
 describe('C9 T-01: phase-stub replacement (08 A17 P-20, C0 AC-0D-6.3) — the PR that creates modules/quality removes QualityPort from phase-stubs.ts', () => {
   it('PHASE_STUBS no longer lists QualityPort and lists nothing but EngagementPort (the only other owner not yet shipped)', () => {

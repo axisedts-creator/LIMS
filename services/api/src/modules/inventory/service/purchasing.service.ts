@@ -47,7 +47,7 @@ const OPEN_STATUSES = ['draft', 'approved', 'sent', 'partially_received'];
 
 // ---------------------------------------------------------------- wire helpers: null is never sent (CV §4.2), timestamps are ISO, bigint money is a number
 const MONEY = /_paisa(_x1e6)?$/;
-function wire(row: Row): Row {
+export function wire(row: Row): Row {
   const o: Row = {};
   for (const [k, v] of Object.entries(row)) {
     if (v === null || v === undefined) continue;
@@ -55,13 +55,13 @@ function wire(row: Row): Row {
   }
   return o;
 }
-const permissionsOf = async (ctx: HandlerContext): Promise<readonly string[]> => (await (ctx.ports.IdentityPort as any).getActor(ctx)).permissions ?? [];
+export const permissionsOf = async (ctx: HandlerContext): Promise<readonly string[]> => (await (ctx.ports.IdentityPort as any).getActor(ctx)).permissions ?? [];
 
-async function clock(ctx: HandlerContext): Promise<{ nowIso: string; today: string }> {
+export async function clock(ctx: HandlerContext): Promise<{ nowIso: string; today: string; tz: string }> {
   const s = await (ctx.ports.IdentityPort as any).getTenantSettings(ctx, { keys: ['timezone'] });
   const tz = assertZone(s?.timezone);
   const now = nowMs((ctx as any).now());
-  return { nowIso: new Date(now).toISOString(), today: ymdIn(now, tz) };
+  return { nowIso: new Date(now).toISOString(), today: ymdIn(now, tz), tz };
 }
 
 // `*, to_char(...) AS expected_on`: the later column wins, so `date` reaches the wire as 'YYYY-MM-DD' (a JS Date would shift with the server zone).
@@ -70,7 +70,7 @@ const loadPo = (rc: RepoCtx, id: string): Promise<Row | null> => first(rc, PO_SQ
 const listLines = (rc: RepoCtx, poId: string): Promise<Row[]> =>
   query(rc, 'SELECT * FROM inventory.purchase_order_lines WHERE tenant_id = $1 AND po_id = $2 AND removed_at IS NULL ORDER BY line_no, id', [poId]);
 
-async function assertBranch(ctx: HandlerContext, branchId: string, permission: string): Promise<void> {
+export async function assertBranch(ctx: HandlerContext, branchId: string, permission: string): Promise<void> {
   const v = await listVisibleBranchIds(sc(ctx));
   if (!(v.all || v.branchIds.includes(branchId))) throw notFound(); // 404 before 403 (P-B8)
   await ctx.ports.IdentityPort.assertRole(ctx, { permission, branchId });
@@ -135,13 +135,13 @@ export async function getPurchaseOrder(ctx: HandlerContext, id: string): Promise
 }
 
 // ---------------------------------------------------------------- lines: validation + money, shared by #81, #83 and #88
-interface ResolvedLine {
+export interface ResolvedLine {
   item_id: string; pack_id: string; qty_packs: string; qty_in_base: string; qty_base: string; price: number; discount: number; code: string | null;
 }
-interface PricedLine extends ResolvedLine { rate: number; amounts: LineAmounts }
+export interface PricedLine extends ResolvedLine { rate: number; amounts: LineAmounts }
 
 /** Item / pack / price / tax-code resolution for one request line (no port call, no write). `i` is the line index used for the error path. */
-async function resolveLine(rc: RepoCtx, supplierId: string, l: PoLineInput, i: number, taxCodes: ReadonlySet<string>, memo: Map<string, Row | null>): Promise<ResolvedLine> {
+export async function resolveLine(rc: RepoCtx, supplierId: string | null, l: PoLineInput, i: number, taxCodes: ReadonlySet<string>, memo: Map<string, Row | null>): Promise<ResolvedLine> {
   const cached = async (key: string, load: () => Promise<Row | null>): Promise<Row | null> => { if (!memo.has(key)) memo.set(key, await load()); return memo.get(key)!; };
   const item = await cached(`i|${l.item_id}`, () => getItem(rc, l.item_id));
   if (item === null) throw notFound();
@@ -164,7 +164,7 @@ async function resolveLine(rc: RepoCtx, supplierId: string, l: PoLineInput, i: n
 }
 
 /** One `getTaxRate` per distinct non-exempt code, `on` = the tenant business date; a port error propagates as the SAME object (P-23). */
-async function fetchRates(ctx: HandlerContext, codes: Iterable<string | null>, on: string): Promise<Map<string, number>> {
+export async function fetchRates(ctx: HandlerContext, codes: Iterable<string | null>, on: string): Promise<Map<string, number>> {
   const rates = new Map<string, number>();
   for (const code of new Set(codes)) {
     if (code === null) continue;
@@ -176,14 +176,14 @@ async function fetchRates(ctx: HandlerContext, codes: Iterable<string | null>, o
   return rates;
 }
 
-function price(lines: readonly ResolvedLine[], rates: ReadonlyMap<string, number>): PricedLine[] {
+export function price(lines: readonly ResolvedLine[], rates: ReadonlyMap<string, number>): PricedLine[] {
   return lines.map((l, n) => {
     const rate = l.code === null ? 0 : rates.get(l.code)!;
     try { return { ...l, rate, amounts: computeLine({ qtyPacks: l.qty_packs, unitPricePaisa: l.price, discountPaisa: l.discount, taxRateBp: rate }) }; }
     catch (e) { if (e instanceof LimsError && e.code === 'common.validation_failed') throw invalid(fieldError(`/lines/${n}/discount_paisa`)); throw e; } // discount > gross is refused, never clamped (§4.2)
   });
 }
-const totalsOf = (lines: readonly PricedLine[]) => {
+export const totalsOf = (lines: readonly PricedLine[]) => {
   const t = computeTotals(lines.map((l) => ({ ...l.amounts, discountPaisa: l.discount })));
   return { subtotal_paisa: t.subtotalPaisa, discount_paisa: t.discountPaisa, net_paisa: t.netPaisa, vat_paisa: t.vatPaisa, total_paisa: t.totalPaisa };
 };
@@ -195,7 +195,7 @@ const insertLines = async (rc: RepoCtx, poId: string, lines: readonly PricedLine
     });
   }
 };
-const activeTaxCodes = async (rc: RepoCtx): Promise<Set<string>> => new Set((await listTaxCodes(rc)).map((r) => r['code'] as string));
+export const activeTaxCodes = async (rc: RepoCtx): Promise<Set<string>> => new Set((await listTaxCodes(rc)).map((r) => r['code'] as string));
 
 async function nextNumber(rc: RepoCtx, today: string): Promise<string> {
   const pattern = (await ensureSettings(rc))['po_no_pattern'] as string;
@@ -208,7 +208,7 @@ async function nextNumber(rc: RepoCtx, today: string): Promise<string> {
 }
 
 /** Supplier and store of a draft: unknown -> 404, inactive -> 400 at the field. The store's scope was decided by the caller. */
-async function assertActiveSupplier(rc: RepoCtx, supplierId: string): Promise<void> {
+export async function assertActiveSupplier(rc: RepoCtx, supplierId: string): Promise<void> {
   const s = await getSupplier(rc, supplierId);
   if (s === null) throw notFound();
   if (s['is_active'] !== true) throw invalid(fieldError('/supplier_id'));

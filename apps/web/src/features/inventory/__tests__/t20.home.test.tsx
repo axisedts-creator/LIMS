@@ -6,7 +6,7 @@ import { cleanup, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { http } from 'msw';
 import { ToastProvider } from '@lims/ui/components/Toast';
-import { ORIGIN, PERM_MANAGE, PERM_NONE, PERM_READ, alert, api, db, fact, hits, problem, resetDb, resetHits, router, settings, state } from './t20.harness';
+import { ORIGIN, PERM_MANAGE, PERM_NONE, PERM_READ, alert, api, db, fact, hits, page, problem, resetDb, resetHits, router, settings, state } from './t20.harness';
 
 vi.mock('next/navigation', async () => (await import('./t20.harness')).navigationMock);
 vi.mock('server-only', () => ({}));
@@ -42,6 +42,20 @@ describe('S1 stat tiles (AC-20.1 UI side)', () => {
     expect(tile(/^expiring in 30 days$/i).textContent).toMatch(/2/);
     expect(tile(/^expired on hand$/i).textContent).toMatch(/1/);
     expect(tile(/^waiting consumption$/i).textContent).toMatch(/4/);
+  });
+
+  it('review: tiles are counted per kind, not by filtering one mixed page — 200 open negative_stock alerts + next_cursor must not hide 3 below_reorder', async () => {
+    const noise = Array.from({ length: 200 }, (_, i) => alert(100 + i, { alert_kind: 'negative_stock' }));
+    const reorder = [1, 2, 3].map((n) => alert(n, { alert_kind: 'below_reorder' }));
+    api.use(http.get(`${ORIGIN}/v1/inventory/alerts`, ({ request }) => {
+      const kinds = (new URL(request.url).searchParams.get('alert_kind') ?? '').split(',').filter(Boolean);
+      if (!kinds.length) return page(noise, 'cur-2'); // unfiltered page 1: only noise, more pages exist
+      return page(reorder.filter((a) => kinds.includes(a.alert_kind)));
+    }));
+    await mount();
+    await screen.findByText('Below reorder');
+    expect(tile(/^below reorder$/i).textContent).toMatch(/3/);
+    expect(tile(/^below reorder$/i).textContent).not.toMatch(/\+/); // its own kind is complete
   });
 
   it('the N in "Expiring in N days" comes from settings.expiry_alert_days', async () => {

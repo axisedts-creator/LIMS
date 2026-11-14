@@ -6,23 +6,16 @@
 // Also: the paired C0-0D change removes QualityPort from core/ports/phase-stubs.ts (AC-0D-6.3).
 // SEAM: `../ports/QualityPort.impl.ts` exports `qualityPort` (same naming as smartreport's `smartReportPort`) and manifest.ports.QualityPort is that object.
 import { describe, expect, it } from 'vitest';
-import { runQualityPortContract } from '../../../../../../packages/fakes/contract-tests/QualityPort.contract';
 import { createQualityPortStub } from '../../../../../../packages/fakes/src/stubs/QualityPort.stub';
-import { makeCtxFor, type ContractHarness } from '../../../../../../packages/fakes/src/harness';
-import { createEventSpy } from '../../../../../../packages/fakes/src/event-spy';
+import { makeCtxFor } from '../../../../../../packages/fakes/src/harness';
 import { PHASE_STUBS, assertPhaseStubsCurrent, findStalePhaseStubs } from '../../../core/ports/phase-stubs.js';
 import { qualityPort } from '../ports/QualityPort.impl.js';
 import { manifest } from '../index.js';
 
 const impl = (): any => (manifest.ports as any).QualityPort;
 
-const moduleHarness = (): (() => Promise<ContractHarness>) => async () => {
-  const events = createEventSpy();
-  return { impl: impl(), events, ctxFor: makeCtxFor(), async seed() {}, rollback(tx: unknown) { events.rollback(tx); } };
-};
-
-// Cases tagged [phase1Stub] (1, 7, 9, 11, 12) run against the module's own port; the Phase-2 cases are skipped here (T-13 / T-16 run them).
-runQualityPortContract(moduleHarness(), { phase1Stub: true });
+// T-13: the shared contract suite (cases 1, 7, 9, 11, 12 of the phase1Stub subset, plus 6 and 8) now runs in QualityPort.qcStatusFor.contract.test.ts on a seeded harness: qcStatusFor reads data,
+// so the seedless stub harness of T-01 no longer applies to it. The T-01 "exact stub result" cases for qcStatusFor are retired below (T-13 replaced the method); canAutoVerify's stay until T-16.
 
 const IN = '01900000-0000-7000-8000-0000000c9001';
 const AN = '01900000-0000-7000-8000-0000000c9002';
@@ -57,39 +50,23 @@ describe('C9 T-01: registered QualityPort returns exactly the stub results', () 
     }
   });
 
-  it('qcStatusFor -> { status: "no_qc_data" } only (no lastInControlRunAt / currentRunId / violatedRules), deep-equal to the stub, for every actor and tenant', async () => {
-    const ref: any = createQualityPortStub();
-    const inputs = [{ instrumentId: IN, analyteId: AN, at: '2026-11-05T04:15:00.000Z' }, { instrumentId: IN, analyteId: AN, at: '2020-01-01T00:00:00.000Z' }, {} as any];
-    for (const a of actors) {
-      for (const i of inputs) {
-        const got = await impl().qcStatusFor(h(a), i);
-        expect(got, `${a} ${JSON.stringify(i)}`).toEqual({ status: 'no_qc_data' });
-        expect(got).toEqual(await ref.qcStatusFor(h(a), i));
-      }
-    }
-  });
-
   it('returns a fresh object each call (a caller mutating the result cannot poison the next answer)', async () => {
     const a: any = await impl().canAutoVerify(h('A:user'), good);
     a.reasons.push('x'); a.decision = 'allow';
     expect(await impl().canAutoVerify(h('A:user'), good)).toEqual({ decision: 'deny', reasons: ['feature_disabled'] });
-    const q: any = await impl().qcStatusFor(h('A:user'), { instrumentId: IN, analyteId: AN, at: good.resultedAt });
-    q.status = 'in_control';
-    expect(await impl().qcStatusFor(h('A:user'), { instrumentId: IN, analyteId: AN, at: good.resultedAt })).toEqual({ status: 'no_qc_data' });
   });
 
   it('is pure: no database touch and no transaction opened (ctx.tx is never used; 02-TRD §11.1 / §12.1: the port does not read quality.settings)', async () => {
     const tx = new Proxy({}, { get() { throw new Error('ctx.tx touched'); } });
     const ctx = h('A:system', { tx: tx as any });
     expect(await outcome(impl().canAutoVerify(ctx, good))).toEqual({ ok: true, v: { decision: 'deny', reasons: ['feature_disabled'] } });
-    expect(await outcome(impl().qcStatusFor(ctx, { instrumentId: IN, analyteId: AN, at: good.resultedAt }))).toEqual({ ok: true, v: { status: 'no_qc_data' } });
   });
 
   it('answers even while LIMS_QUALITY_ENABLED=false (the port always answers; only the HTTP routes are gated, 02-TRD §12.2)', async () => {
     delete process.env['LIMS_QUALITY_ENABLED'];
     expect((await impl().canAutoVerify(h('A:user'), good)).decision).toBe('deny');
     process.env['LIMS_QUALITY_ENABLED'] = 'false';
-    try { expect((await impl().qcStatusFor(h('A:user'), { instrumentId: IN, analyteId: AN, at: good.resultedAt })).status).toBe('no_qc_data'); }
+    try { expect((await impl().canAutoVerify(h('A:user'), good)).decision).toBe('deny'); }
     finally { delete process.env['LIMS_QUALITY_ENABLED']; }
   });
 });

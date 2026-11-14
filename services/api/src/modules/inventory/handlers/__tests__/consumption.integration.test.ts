@@ -91,6 +91,7 @@ ${I('inventory.lots', { id: LB, ...tid, item_id: IT1, lot_no: 'T15-LB', expiry_o
 ${I('inventory.lots', { id: LC, ...tid, item_id: IT3, lot_no: 'T15-LC', expiry_on: addDays(ymdIn(KT), 90), status: 'available' })}
 ${balRow(16801, S1, IT1, LA, 100, 10000)}${balRow(16802, S1, IT1, LB, 7, 1000)}${balRow(16803, S1, IT2, null, 50, 500)}${balRow(16804, S1, IT3, LC, 100, 5000)}
 ${balRow(16805, D2, IT1, LA, 100, 10000)}${balRow(16806, D2, IT2, null, 50, 500)}${balRow(16807, MAIN_A, IT2, null, 50, 500)}${balRow(16808, S3, IT2, null, 1000, 10000)}${balRow(16809, S2, IT2, null, 50, 500)}
+INSERT INTO core.g_task_registry (identifier, module, kind, scope, max_attempts, is_active) VALUES ('inventory.resolve_unresolved', 'inventory', 'task', 'per_tenant', 5, true) ON CONFLICT DO NOTHING; -- ruling (E): the worker registers it at boot
 ${I('inventory.consumption_rules', { id: uid(16611), ...tid, rule_kind: 'per_test', test_id: TC, item_id: IT2, qty_base: 1, entered_qty: 1, effective_from: days(30) })}
 ${I('inventory.consumption_rules', { id: uid(16612), ...tid, rule_kind: 'per_calibration', test_id: TC, item_id: IT2, qty_base: 1, entered_qty: 1, effective_from: days(30) })}
 ${I('inventory.instrument_bindings', { id: uid(16621), ...tid, instrument_id: I3, store_id: S3, is_active: true })}
@@ -160,7 +161,8 @@ const forbidden = (p: Promise<unknown>) => expectLims(p, 'auth.forbidden', 403);
 const invalid = (p: Promise<unknown>) => expectLims(p, 'inventory.document_invalid_transition', 409);
 const bad400 = async (p: Promise<unknown>, pointer?: string) => { const e = await expectLims(p, 'common.validation_failed', 400); if (pointer) expect(JSON.stringify((e as any).errors ?? (e as any).detail ?? '')).toContain(pointer); return e; };
 const n = (v: unknown) => Number(v);
-const mk = async (s: Sess, kind: string, itemId: string, qty: string, over: Record<string, unknown> = {}, o?: ConsOpts) => (await s.call(A, 'createConsumptionRule', { body: ruleBody(kind, itemId, qty, over) }, o)).body;
+// Ruling C12.T-15 (A): #70 has no effective_from (= ctx.now(), 03-APP-FLOW.md:175) and rules are not retroactive (02-TRD.md:519, 614), so rules are back-dated 1 h unless a test passes its own clock.
+const mk = async (s: Sess, kind: string, itemId: string, qty: string, over: Record<string, unknown> = {}, o?: ConsOpts) => (await s.call(A, 'createConsumptionRule', { body: ruleBody(kind, itemId, qty, over) }, { now: mins(60), ...(o ?? {}) } as ConsOpts)).body;
 const logCal = (s: Sess, test: string, occurred: string, over: Record<string, unknown> = {}, o?: ConsOpts) => s.call(A, 'logConsumptionEvent', { body: calBody(test, occurred, over) }, o);
 const logQc = (s: Sess, test: string, occurred: string, over: Record<string, unknown> = {}, o?: ConsOpts) => s.call(A, 'logConsumptionEvent', { body: qcBody(test, occurred, over) }, o);
 const bind = (s: Sess, instrument: string, storeId: string) => s.sql(A, 'INSERT INTO inventory.instrument_bindings (id, tenant_id, instrument_id, store_id, created_by, updated_by) VALUES ($1, $2, $3, $4, $5, $5)', [uid(950000 + s.seq()), A, instrument, storeId, SYS]);
@@ -460,7 +462,7 @@ describe.skipIf(!live)('T-15 #76 logConsumptionEvent', () => {
     expect(await alerts(`unresolved:${I1}`)).toBe(1);
     await logCal(s, TA, mins(4), { instrument_id: I1 }); expect(await alerts(`unresolved:${I1}`)).toBe(1); // deduped
     await logCal(s, TA, mins(3)); expect(await alerts('unresolved:none')).toBe(1);
-    expect(await cnt(s, 'consumption_facts', "status = 'unresolved' AND basis_key LIKE 'manual:%'")).toBe(3);
+    expect(await cnt(s, 'consumption_facts', "status = 'unresolved' AND basis_key LIKE 'manual:%' AND id <> $2", [FR])).toBe(3); // ruling (B): EXTRAS' committed FR is also a manual unresolved fact
   });
   run('a manual fact WITHOUT an instrument resolves through step 5 (settings default store); posted facts never UPDATE `status`, only value_paisa_total', async (s) => {
     await mk(s, 'per_calibration', IT2, '1', { test_id: TA }); await setDefault(s, D2); s.log.length = 0;
@@ -472,7 +474,7 @@ describe.skipIf(!live)('T-15 #76 logConsumptionEvent', () => {
     await mk(s, 'per_calibration', IT2, '1', { test_id: TA }); await bind(s, I1, S1); s.log.length = 0;
     const second = (await logCal(s, TA, mins(5), { instrument_id: I1 })).body; expect(second.status).toBe('posted'); expect(ruleReads(s).length).toBeGreaterThanOrEqual(1);
     const old = (await logCal(s, TA, days(1), { instrument_id: I1 })).body; expect(old.status).toBe('no_rule');
-    await s.call(A, 'deactivateConsumptionRule', { params: { rule_id: (await s.sql(A, "SELECT id FROM inventory.consumption_rules WHERE test_id = $2 AND rule_kind = 'per_calibration' AND item_id = $3 AND tenant_id = $1", [A, TA, IT2]))[0].id }, headers: ifm(1) });
+    await s.call(A, 'deactivateConsumptionRule', { params: { rule_id: (await s.sql(A, "SELECT id FROM inventory.consumption_rules WHERE test_id = $2 AND rule_kind = 'per_calibration' AND item_id = $3 AND tenant_id = $1", [A, TA, IT2]))[0].id }, headers: ifm(1) }, { now: mins(10) } as ConsOpts); // effective_to = 10 min ago, so the 5-min-old event is outside the window
     expect((await logCal(s, TA, mins(5), { instrument_id: I1 })).body.status).toBe('no_rule'); // deactivation is seen immediately
   });
   run('rules are evaluated at occurred_at: an event inside the OLD window of a superseded rule uses the old qty, a later one the new qty (TRD §8.3.4)', async (s) => {
@@ -653,7 +655,7 @@ describe.skipIf(!live)('T-15 #79 reverseConsumptionFact (AC-15.4, A4, A10, PE-1)
     const dis = (await s.call(A, 'dismissConsumptionFact', { params: { fact_id: un.id }, headers: ifm(un.version), body: reasonBody('other') })).body;
     const un2 = (await logCal(s, TA, mins(4), { instrument_id: I2 })).body;
     for (const f of [un2, nr, dis]) await untouched(s, () => rev(s, f), (e) => expect(e.code).toBe('inventory.document_invalid_transition'));
-    const p = await setupPosted(s); const r1 = (await rev(s, p)).body; const mv = await cnt(s, 'stock_movements');
+    await bind(s, I1, S1); const p = (await logCal(s, TA, mins(5), { instrument_id: I1 })).body; const r1 = (await rev(s, p)).body; // ruling (C): the rule from line 1 of this test is current already (no second mk => no rule_conflict) const mv = await cnt(s, 'stock_movements');
     await untouched(s, () => rev(s, r1), (e) => { expect(e.code).toBe('inventory.document_invalid_transition'); expect(e.statusCode).toBe(409); }); expect(await cnt(s, 'stock_movements')).toBe(mv);
   });
   run('PE-1 / P-B8: without stock.adjust => 403 (asserted at the fact store\'s branch); at aal1 => 403 auth.mfa_required; a caller who cannot see the store\'s branch => 404; reason outside fact_reverse (fact_dismiss `other`? shared code; `not_consumed`) => 422 inventory.reason_required; stale If-Match => 409', async (s) => {
@@ -725,7 +727,8 @@ describe.skipIf(!live)('T-15 inventory.resolve_unresolved task (AC-17.2)', () =>
     const m = await cnt(s, 'stock_movements'); await runTask(s); expect(await cnt(s, 'stock_movements')).toBe(m);
   });
   run('nothing resolvable (no binding, no default) => the task succeeds and changes nothing; tenant B facts (fixture 7301) are never touched by a tenant A run', async (s) => {
-    const { a } = await twoUnresolved(s); const snap = await snapshot(s);
+    const { a } = await twoUnresolved(s);
+    await runTask(s); const snap = await snapshot(s); // ruling (D): fixture facts 7201/7203 are resolvable (binding 9401 + rules 7001/7002), so the first run posts them; the snapshot is taken after it
     await runTask(s); expect(await snapshot(s)).toBe(snap); expect((await dbFact(s, a.id)).status).toBe('unresolved');
     expect((await dbFact(s, FACT_B, B)).status).toBe('unresolved'); await setDefault(s, S1); await runTask(s);
     expect((await dbFact(s, FACT_B, B)).status).toBe('unresolved'); expect(await moves(s, FACT_B)).toEqual([]);

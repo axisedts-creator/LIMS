@@ -1,6 +1,8 @@
-# T-P4 impl (writer) — PARTIAL, blocked by test dispute (see T-P4-dispute.md)
-- Files: `services/worker/src/jobs/engagement/tasks/fetch_smart_summary.ts` (new; manifest wired in `index.ts`), `service/report.service.ts` (+ `smart` E24), `handlers/report.handlers.ts` (+ getMySmartSummary).
-- API `reports.smart.handlers.test.ts`: 24/24 pass. Worker test: 18 pass / 15 fail, all 15 caused by the test fixture (fake port never sees the seeded report). App A14 (`lib/features/reports/smart/**`): not started.
-- [CONV] reason_code `follow_up_test`; snapshot approved without valid approvedAt / templateLibraryVersion, or > 256 KiB: skipped, not retried; port errors other than common.not_found are rethrown as generic common.dependency_unavailable (no message echo).
-- [CONV] summary insert `ON CONFLICT DO NOTHING` then SELECT id (retry keeps the first copy); reminders `ON CONFLICT DO NOTHING` on the partial unique.
-- Open: dispute in T-P4-dispute.md; no past-due check on reminder due_at (spec silent).
+# T-P4 impl (writer) — blocked by app test dispute (see T-P4-dispute.md)
+- Files: worker `tasks/fetch_smart_summary.ts` (+ manifest), api `service/report.service.ts` + `handlers/report.handlers.ts` (E24), app `lib/features/reports/smart/` smart_summary_{api,providers,screen,entry}.dart (A14 + A13 hook).
+- Results: worker 33/33 (after ruling), API 24/24, app 40/43 (3 = harness never resets the Navigator before a second open), `flutter analyze` clean on smart/.
+- [CONV] reason_code `follow_up_test`; snapshot approved without approvedAt / templateLibraryVersion or > 256 KiB: skipped, not retried; other port errors -> common.dependency_unavailable.
+- [CONV] summary `ON CONFLICT DO NOTHING` then SELECT id; reminders `ON CONFLICT DO NOTHING` on the partial unique.
+- [CONV] A14 tones (LD-140 tone+icon+word): in_range/good/improved success, borderline/fair/worsened warning, out_of_range/needs_attention danger, critical critical, stable neutral. Unknown words not shown; wrong-shaped body = error state.
+- [CONV] A14 not_found = LimsEmptyState "No smart summary" (no retry); other failures = LimsErrorState with Retry; no server text.
+- Open: past-due reminder check (spec silent); E1 `features.smart_report` hiding in app (no config provider); router/A13 embedding of SmartSummaryEntry.

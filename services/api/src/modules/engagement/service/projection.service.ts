@@ -68,7 +68,7 @@ export function createProjectionService() {
     },
 
     async specimensOfOrder(ctx: Pick<PCtx, 'tx' | 'tenantId'>, orderId: string): Promise<Row[]> {
-      const { rows } = await ctx.tx.query('SELECT specimen_id, status, status_seq, ordinal, collected_at, received_at, rejected_at, rejection_reason_code, recollection_required, replaces_specimen_id FROM engagement.patient_order_specimens WHERE tenant_id = $1 AND order_id = $2 FOR UPDATE', [ctx.tenantId, orderId]);
+      const { rows } = await ctx.tx.query('SELECT specimen_id, specimen_type_code, status, status_seq, ordinal, collected_at, received_at, rejected_at, rejection_reason_code, recollection_required, replaces_specimen_id FROM engagement.patient_order_specimens WHERE tenant_id = $1 AND order_id = $2 FOR UPDATE', [ctx.tenantId, orderId]);
       return rows;
     },
 
@@ -83,14 +83,15 @@ export function createProjectionService() {
     },
 
     /** billing.balance.changed (§4.4, 02-CV §7.4): only a projected order is touched; balance_version is the seq guard (lower or equal = ignored, status_version untouched). payment_due = balance_due > 0 AND release_basis = due_outstanding. */
-    async applyBalance(ctx: PCtx, b: { orderId: string; invoicedPaisa: number; paidPaisa: number; balanceDuePaisa: number; balanceVersion: number; releaseBasis: string }): Promise<void> {
+    async applyBalance(ctx: PCtx, b: { orderId: string; invoicedPaisa: number; paidPaisa: number; balanceDuePaisa: number; balanceVersion: number; releaseBasis: string | null }): Promise<void> {
       const { tx, tenantId } = ctx;
-      const { rows: [cur] } = await tx.query('SELECT order_id, balance_version FROM engagement.patient_orders WHERE tenant_id = $1 AND order_id = $2 FOR UPDATE', [tenantId, b.orderId]);
+      const { rows: [cur] } = await tx.query('SELECT order_id, balance_version, release_basis FROM engagement.patient_orders WHERE tenant_id = $1 AND order_id = $2 FOR UPDATE', [tenantId, b.orderId]);
       if (!cur || (cur['balance_version'] != null && Number(cur['balance_version']) >= b.balanceVersion)) return;
+      const basis = b.releaseBasis ?? (cur['release_basis'] as string | null); // absent in event = keep stored (03-IC §3.5 optional)
       await tx.query(
         `UPDATE engagement.patient_orders SET invoiced_paisa = $3, paid_paisa = $4, balance_due_paisa = $5, balance_version = $6, release_basis = $7, payment_due = $8, status_version = status_version + 1, synced_at = $9, updated_at = now(), updated_by = $10
          WHERE tenant_id = $1 AND order_id = $2`,
-        [tenantId, b.orderId, b.invoicedPaisa, b.paidPaisa, b.balanceDuePaisa, b.balanceVersion, b.releaseBasis, b.balanceDuePaisa > 0 && b.releaseBasis === 'due_outstanding', ctx.now(), ctx.actor.id]);
+        [tenantId, b.orderId, b.invoicedPaisa, b.paidPaisa, b.balanceDuePaisa, b.balanceVersion, basis, b.balanceDuePaisa > 0 && basis === 'due_outstanding', ctx.now(), ctx.actor.id]);
     },
 
     /** Orders by (tenant_id, order_id). Balance columns of a row already ahead (higher balance_version, or a balance the view does not have yet) are kept. `stage` is only set by `recomputeStages`. */
@@ -128,7 +129,7 @@ export function createProjectionService() {
       const { tx, tenantId } = ctx; const by = ctx.actor.id;
       const have = new Map<string, number>();
       for (const ids of chunks([...new Set(specimens.map((s) => s.orderId))])) {
-        const { rows } = await tx.query('SELECT specimen_id, status_seq FROM engagement.patient_order_specimens WHERE tenant_id = $1 AND order_id = ANY($2::uuid[]) FOR UPDATE', [tenantId, ids]);
+        const { rows } = await tx.query('SELECT specimen_id, specimen_type_code, status_seq FROM engagement.patient_order_specimens WHERE tenant_id = $1 AND order_id = ANY($2::uuid[]) FOR UPDATE', [tenantId, ids]);
         for (const r of rows) have.set(r['specimen_id'], Number(r['status_seq']));
       }
       const todo = specimens.filter((s) => !((have.get(s.specimenId) ?? -1) > s.statusSeq));
@@ -165,7 +166,7 @@ export function createProjectionService() {
       for (const ids of chunks(orderIds)) {
         const [orders, specs, reps] = await Promise.all([
           tx.query('SELECT order_id, order_status, stage FROM engagement.patient_orders WHERE tenant_id = $1 AND order_id = ANY($2::uuid[])', [tenantId, ids]),
-          tx.query('SELECT order_id, status, recollection_required FROM engagement.patient_order_specimens WHERE tenant_id = $1 AND order_id = ANY($2::uuid[])', [tenantId, ids]),
+          tx.query('SELECT order_id, specimen_type_code, status, recollection_required FROM engagement.patient_order_specimens WHERE tenant_id = $1 AND order_id = ANY($2::uuid[])', [tenantId, ids]),
           tx.query('SELECT order_id, report_kind, status FROM engagement.patient_reports WHERE tenant_id = $1 AND order_id = ANY($2::uuid[])', [tenantId, ids]),
         ]);
         const sOf = new Map<string, Row[]>(), rOf = new Map<string, Row[]>();

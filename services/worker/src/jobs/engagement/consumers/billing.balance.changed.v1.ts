@@ -10,7 +10,7 @@ export const handle: ConsumerHandler = async (event, ctx) => {
   const p = event?.payload ?? {};
   if (typeof ctx.tenantId !== 'string' || !ctx.tenantId || event.tenant_id !== ctx.tenantId) return;
   const [invoiced, paid, due] = [paisa(p.invoiced), paisa(p.paid), paisa(p.balance_due)];
-  if (typeof p.order_id !== 'string' || !UUID.test(p.order_id) || !Number.isInteger(p.balance_version) || p.balance_version < 0 || typeof p.release_basis !== 'string'
+  if (typeof p.order_id !== 'string' || !UUID.test(p.order_id) || !Number.isInteger(p.balance_version) || p.balance_version < 0 || (p.release_basis != null && typeof p.release_basis !== 'string')
     || invoiced === undefined || paid === undefined || due === undefined) return;
-  await projection.applyBalance(projectionCtx(ctx), { orderId: p.order_id, invoicedPaisa: invoiced, paidPaisa: paid, balanceDuePaisa: due, balanceVersion: p.balance_version, releaseBasis: p.release_basis });
+  await projection.applyBalance(projectionCtx(ctx), { orderId: p.order_id, invoicedPaisa: invoiced, paidPaisa: paid, balanceDuePaisa: due, balanceVersion: p.balance_version, releaseBasis: p.release_basis ?? null }); // release_basis optional (03-IC §3.5): absent = keep stored basis
 };

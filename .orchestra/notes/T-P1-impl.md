@@ -6,3 +6,4 @@
 - [CONV] report version status is local: `superseded` iff a higher version is stored; a newer version flips older valid ones; (report, version) already stored -> no-op (no C6 read); outdated version -> no notification / no smart job. Event `report_kind` stored as sent (<=32).
 - Results: patient_events 45/45; worker engagement 328 pass; api engagement 1269 pass, 1 fail = boot.test.ts PHASE_STUBS (pre-existing, not T-P1). tsc: no errors in touched files (repo-wide errors pre-exist).
 - Open: dispute none. Not verified: real Postgres (RLS, FOR UPDATE races); `fetch_smart_summary` payload shape {tenant_id, report_id, version_no} is mine - T-P4 must match.
+- Review r1: all specimen SELECTs in projection.service list `specimen_type_code`; balance.changed accepts absent `release_basis` (03-IC §3.5 optional), applyBalance keeps stored basis (JS, not coalesce) and derives payment_due from it. patient_events 46/46; worker engagement 329 pass.

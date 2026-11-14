@@ -20,8 +20,8 @@ import { describe, expect, it } from 'vitest';
 import { REPO_ROOT, loadSpec } from '../../../../core/module.js';
 import { LimsError } from '../../../../core/errors.js';
 import {
-  ACC1, ACC2, ACCB, AD_1, AD_2, AD_A2, AD_B, AD_OLD, BK1, EQ1, HMAC1, IFM, L_A2, L_ACTIVE, L_B, L_REVOKED, L_SUSPENDED, MEM1, PAT2, PHONE1, PHONE2, PR_A2, PR_B, PR_DONE, PR_FAILED, PR_QUEUED, PR_READY, REVOKED_EARLIER, RM1, T0,
-  TA, TB, V1, makeAccountWorld, type AccountWorld, type InvokeOpts,
+  ACC1, ACC2, ACCB, AD_1, AD_2, AD_A2, AD_B, AD_OLD, BK1, EQ1, HMAC1, IFM, L_A2, L_ACTIVE, L_B, L_ACTIVE2, L_REVOKED, MEM1, PAT2, PHONE1, PHONE2, PR_A2, PR_B, PR_DONE, PR_FAILED, PR_QUEUED, PR_READY, REVOKED_EARLIER, RM1, T0,
+  TA, TB, V1, makeAccountWorld, suspendLink, type AccountWorld, type InvokeOpts,
 } from '../../__tests__/account.world.js';
 import { findLiveByPhone, insertAccount } from '../../repository/accounts.repo.js';
 import { handlers } from '../../handlers/index.js';
@@ -177,15 +177,30 @@ describe('E12 deleteMyAccount - effects per TRD §4.14 (US-EN-19.1)', () => {
     expect(a).toMatchObject({ status: 'deleted', phone_e164: null, phone_hmac: null }); expect(Date.parse(a['deleted_at'])).toBe(Date.parse(T0)); expect(a['version']).toBeGreaterThan(V1);
     for (const id of [ACC2, ACCB]) expect(w.account(id), id).toEqual(w.pristine['accounts']!.find((x) => x['id'] === id));
   });
-  it('links: every active and suspended link of the account -> revoked by the account (account_deleted) at now; an earlier staff revoke keeps its own reason; another account\'s link to the same patient stays active', async () => {
+  it('links: every active link of the account -> revoked by the account (account_deleted) at now; an earlier staff revoke keeps its own reason; another account\'s link to the same patient stays active', async () => {
     const w = makeAccountWorld(); await del(w);
-    for (const id of [L_ACTIVE, L_SUSPENDED]) {
+    for (const id of [L_ACTIVE, L_ACTIVE2]) {
       const l = w.link(id); expect(l, id).toMatchObject({ status: 'revoked', revoked_by_kind: 'account', revoked_reason_code: 'account_deleted' }); expect(Date.parse(l['revoked_at'])).toBe(Date.parse(T0));
       expect(l['patient_id']).toBe(w.pristine['account_patient_links']!.find((x) => x['id'] === id)!['patient_id']); expect(l['account_id']).toBe(ACC1);
     }
     expect(w.link(L_REVOKED)).toMatchObject({ status: 'revoked', revoked_by_kind: 'staff', revoked_reason_code: 'suspected_misuse', revoked_at: REVOKED_EARLIER });
     expect(w.link(L_A2)).toEqual(w.pristine['account_patient_links']!.find((x) => x['id'] === L_A2)); expect(w.link(L_B)).toEqual(w.pristine['account_patient_links']!.find((x) => x['id'] === L_B));
     expect(w.snapshot('account_patient_links').filter((l) => l['account_id'] === ACC1 && ['active', 'suspended'].includes(l['status']))).toEqual([]);
+  });
+  it('addresses are deactivated BEFORE the links are revoked: under PAT_ACC_PID an address of a patient with no active link is unreachable (0 rows, no error) - review T-AC1 item 1', async () => {
+    const w = makeAccountWorld(); await del(w);
+    const at = (t: string) => w.writes().findIndex((c) => c.text.includes('UPDATE engagement.' + t + ' '));
+    // statement order is checked via `at` (index of the write);/(?:update)\s+(?:engagement\.)?(\w+)/i.exec(c.text) ?? [])[1]);
+    expect(at('addresses')).toBeGreaterThanOrEqual(0); expect(at('addresses')).toBeLessThan(at('account_patient_links'));
+    for (const id of [AD_1, AD_2]) expect(w.address(id)['is_active'], id).toBe(false);
+  });
+  // BLOCKED by .orchestra/cr/T-AC1.md (lead ruling pending): a suspended link cannot be revoked by the patient actor (guard_patient_link_update refuses suspend_reason/suspended_at -> immutable_row -> 500)
+  // and its addresses are unreachable (PAT_ACC_PID needs an active link). Unskip when the CR is ruled (guard change, or the writes move to the engagement system actor).
+  it.skip('BLOCKED (CR T-AC1): an account with a suspended link is deleted completely: link revoked by the account, its address inactive, 204', async () => {
+    const w = makeAccountWorld({ seed: suspendLink }); const r: any = await del(w);
+    expect(r.status).toBe(204);
+    expect(w.link(L_ACTIVE2)).toMatchObject({ status: 'revoked', revoked_by_kind: 'account', revoked_reason_code: 'account_deleted' });
+    expect(w.address(AD_2)['is_active']).toBe(false);
   });
   it('payment requests: queued and ready -> expired (the secret action URL scrubbed); completed and failed keep their state; other accounts\' requests untouched', async () => {
     const w = makeAccountWorld(); await del(w);

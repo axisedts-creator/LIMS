@@ -4,6 +4,7 @@
 // RLS emulation for the PATIENT actor (05-SCHEMA §5.2): accounts S/U = own row only (INSERT = pre-auth only, never a signed-in patient); links / addresses / payment_requests / bookings / enquiries = own account only;
 //   reminders = staff only (the patient sees and changes nothing). A patient UPDATE that hits a foreign row is silently filtered (RLS USING) AND counted in `foreignTouches` so a service that forgets its own
 //   account filter fails the test even though the database would have protected it (REQ-SEC-024: every statement binds tenant_id and the account itself).
+//   addresses UPDATE additionally needs an ACTIVE link to the row's patient (PAT_ACC_PID).
 //   Patient column guard on account_patient_links (§4 guard_patient_link_update): only relationship/status/revoked_*/is_active/updated_*/version may change and status only to 'revoked' (else P0001 immutable_row).
 // IdentityPort = a spy (`identity`): assertRole by grant set, revokePatientSessions recorded (caller actor type, tenant, exact input) with an injectable failure.
 // `invoke` = one request: a fresh ctx + FakeDb session (released afterwards), one transaction like the core pipeline - tables, audit and jobs roll back when the handler throws (unless commitOnError()).
@@ -24,11 +25,13 @@ export const PHONE1 = '+9779800000001', PHONE2 = '+9779800000002', PHONEB = '+97
 export const HMAC1 = Buffer.alloc(32, 1), HMAC2 = Buffer.alloc(32, 2), HMACB = Buffer.alloc(32, 3);
 export const T0 = '2026-11-05T04:15:00.000Z'; // ctx.now()
 export const V1 = 3; // accounts.version of A1 at the start (If-Match "3")
-export const L_ACTIVE = ID(0xc1), L_SUSPENDED = ID(0xc2), L_REVOKED = ID(0xc3), L_A2 = ID(0xc4), L_B = ID(0xcb);
+export const L_ACTIVE = ID(0xc1), L_ACTIVE2 = ID(0xc2), L_REVOKED = ID(0xc3), L_A2 = ID(0xc4), L_B = ID(0xcb);
 export const PR_QUEUED = ID(0xd1), PR_READY = ID(0xd2), PR_DONE = ID(0xd3), PR_FAILED = ID(0xd4), PR_A2 = ID(0xd5), PR_B = ID(0xdb);
 export const AD_1 = ID(0xf1), AD_2 = ID(0xf2), AD_OLD = ID(0xf3), AD_A2 = ID(0xf4), AD_B = ID(0xfb);
 export const BK1 = ID(0xb1), RM1 = ID(0xb2), EQ1 = ID(0xb3);
 export const REVOKED_EARLIER = '2026-10-20T00:00:00.000Z';
+/** Seed hook: turns L_ACTIVE2 (PAT2, address AD_2) into a suspended link - the case the real guard / RLS cannot serve for a patient actor (review T-AC1 item 2). */
+export const suspendLink = ({ tables }: { tables: Record<string, Row[]> }) => { Object.assign(tables['account_patient_links']!.find((l) => l['id'] === L_ACTIVE2)!, { status: 'suspended', suspend_reason: 'phone_mismatch', suspended_at: '2026-10-10T00:00:00.000Z' }); };
 export const IFM = (v: number | string) => ({ 'if-match': `"${v}"` });
 export const deep = (v: any): any => (v instanceof Uint8Array ? Buffer.from(v) : Array.isArray(v) ? v.map(deep) : v && typeof v === 'object' && !(v instanceof Date) ? Object.fromEntries(Object.entries(v).map(([k, x]) => [k, deep(x)])) : v);
 
@@ -83,7 +86,7 @@ export function seedTables(): Record<string, Row[]> {
     accounts: [acct(ACC1, MEM1, PHONE1, HMAC1, TA, { version: V1, reminders_opt_out: false }), acct(ACC2, MEM2, PHONE2, HMAC2), acct(ACCB, MEMB, PHONEB, HMACB, TB, { version: 5 })],
     account_patient_links: [
       lnk(L_ACTIVE, ACC1, PAT1, { relationship: 'self', method: 'link_code', link_code_id: ID(0x1c1) }),
-      lnk(L_SUSPENDED, ACC1, PAT2, { relationship: 'child', status: 'suspended', suspend_reason: 'phone_mismatch', suspended_at: '2026-10-10T00:00:00.000Z' }),
+      lnk(L_ACTIVE2, ACC1, PAT2, { relationship: 'child' }), // active here; the suspended-link variant is `suspendLink` (blocked by .orchestra/cr/T-AC1.md)
       lnk(L_REVOKED, ACC1, ID(0x93), { status: 'revoked', revoked_by_kind: 'staff', revoked_reason_code: 'suspected_misuse', revoked_at: REVOKED_EARLIER, is_active: false }), // an earlier staff revoke must keep its own reason
       lnk(L_A2, ACC2, PAT1, { relationship: 'parent' }), // another account linked to the SAME patient: untouched by A1's deletion
       lnk(L_B, ACCB, PATB, {}, TB),
@@ -142,20 +145,24 @@ export function makeAccountWorld(o: { seed?: (w: { tables: Record<string, Row[]>
         const res: any = await s.tx.query(text, values);
         if (who === 'patient' && tbl && tbl in OWN_COL) {
           const col = OWN_COL[tbl]!;
+          // addresses UPDATE = PAT_ACC_PID (05-SCHEMA l.1336/1361): own account AND patient_id among the patients of the account's ACTIVE links (app.engagement_patient_ids()), evaluated against the links as they are NOW.
+          // A row outside that set is silently filtered (0 rows, no error): revoking the links before updating addresses leaves every address active. (INSERT is not emulated: T-AC1 never inserts addresses.)
+          const reach = (r: Row) => tbl !== 'addresses' || tables['account_patient_links']!.some((l) => l['account_id'] === account && l['status'] === 'active' && l['patient_id'] === r['patient_id']);
           const mine = (r: Row) => (col ? r[col] === account : false);
           if (verb === 'select' && !/^\s*select\s+count\(\*\)/i.test(text)) { res.rows = res.rows.filter((r: Row) => mine(r)); res.rowCount = res.rows.length; }
           if (verb === 'insert' && tbl === 'accounts') { tables[tbl]!.pop(); throw Object.assign(new Error('new row violates row-level security policy (accounts: INSERT is pre-auth only)'), { code: '42501' }); }
           if (before) {
             const rows = tables[tbl]!;
             rows.forEach((r, i) => { // RLS USING: the statement could only have reached own rows
-              if (JSON.stringify(r) !== JSON.stringify(before[i]) && !mine(before[i]!)) { foreign.touches++; for (const k of Object.keys(r)) r[k] = before[i]![k]; res.rowCount = Math.max(0, (res.rowCount ?? 0) - 1); }
+              if (JSON.stringify(r) === JSON.stringify(before[i])) return;
+              const own = mine(before[i]!);
+              if (!own || !reach(before[i]!)) { if (!own) foreign.touches++; for (const k of Object.keys(r)) r[k] = before[i]![k]; res.rowCount = Math.max(0, (res.rowCount ?? 0) - 1); }
             });
             if (tbl === 'account_patient_links') {
               rows.forEach((r, i) => {
                 const b = before[i]!; const changed = Object.keys(r).filter((k) => JSON.stringify(r[k]) !== JSON.stringify(b[k]));
-                // OPEN SPEC CONFLICT (see .orchestra/notes/T-AC1-tests.md): the real guard does not list suspend_reason/suspended_at, yet links__suspend__ck forces them NULL when a suspended link becomes revoked.
-                // Until the lead rules (guard change or system-actor write), clearing them in the SAME statement that revokes is tolerated here so the TRD §4.14 effect is testable.
-                const ok = (k: string) => LINK_ALLOWED.has(k) || (r['status'] === 'revoked' && (k === 'suspend_reason' || k === 'suspended_at'));
+                // No tolerance for suspend_reason/suspended_at: the real guard rejects them even when links__suspend__ck forces them NULL on suspended -> revoked (review T-AC1 item 2; CR pending).
+                const ok = (k: string) => LINK_ALLOWED.has(k);
                 if (changed.some((k) => !ok(k)) || (changed.includes('status') && r['status'] !== 'revoked')) {
                   for (const k of Object.keys(r)) r[k] = b[k];
                   throw Object.assign(new Error('immutable_row'), { code: 'P0001', detail: 'engagement.account_patient_links' });

@@ -104,9 +104,16 @@ export interface ObservationDto {
   id: string; kind: ObservationKind; plate_id?: string; growth_code?: string; quantity_text?: string; finding_text?: string; observed_at: string; hours_since_planting?: number;
   recorded_by_display: string; corrects_observation_id?: string; is_corrected: boolean;
 }
+/** AstResultDto (micro.yaml) — the fields the T-21 grid reads. */
+export interface AstResultDto {
+  id: string; version: number; antibiotic_code: string; antibiotic_display: string; method: AstMethod; raw_value?: string; category_code?: string;
+  standard?: Standard | 'unknown'; standard_version?: string; interpretation_source?: 'manual' | 'instrument' | 'breakpoint_suggestion'; suggestion_overridden: boolean;
+  source: 'manual' | 'instrument'; is_reportable: boolean; report_visibility: 'shown' | 'suppressed_by_rule'; off_panel: boolean; panel_sort_order?: number;
+}
 export interface IsolateDto {
   id: string; version: number; isolate_seq: number; status: 'pending_id' | 'identified' | 'withdrawn'; organism_code?: string; organism_display?: string; organism_source?: string;
   identified_at?: string; colony_description?: string; quantity_text?: string; plate_id?: string; is_reportable: boolean; withdraw_reason_code?: string;
+  ast_panel?: { id: string; code: string; version_no: number; display: string }; ast_method?: AstMethod; ast?: AstResultDto[];
 }
 export interface CultureDetailDto {
   id: string; version: number; status: string; order_id: string; specimen_id: string; patient_id: string; centre_id: string; test_id: string; test_code: string; test_name: string;
@@ -122,4 +129,15 @@ export interface ObservationInput {
   kind: ObservationKind; plate_id?: string; growth_code?: string; quantity_text?: string; finding_text?: string; observed_at: string; corrects_observation_id?: string;
 }
 export interface IsolateInput { plate_id?: string; colony_description?: string; quantity_text?: string; organism_code?: string }
+// ---- T-21 AST grid (previewAstInterpretation M13, recordAstResults M12, assignAstPanel M11)
+export const AST_ENTRY_CAP = 60;
+export interface AstPreviewEntry { antibiotic_code: string; method: AstMethod; raw_value: string }
+export interface AstSuggestion { category_code: string; standard: Standard; standard_version: string; breakpoint_set_id: string; breakpoint_band_id: string }
+export interface AstPreviewResult { antibiotic_code: string; method: AstMethod; suggestion?: AstSuggestion; reason?: string }
+export interface AstRecordEntry {
+  antibiotic_code: string; method: AstMethod; raw_value?: string; category_code?: string; standard?: Standard; standard_version?: string; accept_suggestion?: boolean;
+  breakpoint_band_id?: string; is_reportable?: boolean; add_to_isolate?: boolean; version?: number;
+}
+export interface AstRecordResult { antibiotic_code: string; method: AstMethod; outcome: 'ok' | 'error'; code?: string; path?: string; ast_result?: AstResultDto }
+export interface AssignPanelInput { ast_panel_id?: string }
 export interface IsolateDescribeInput { colony_description?: string; quantity_text?: string; is_reportable: boolean; plate_id?: string }

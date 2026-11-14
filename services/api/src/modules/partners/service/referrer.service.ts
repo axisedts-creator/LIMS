@@ -77,13 +77,13 @@ function name(v: unknown): { display: string; norm: string } {
 }
 
 /** ISO instant of local 00:00 on day 1 of month `m0` (0-based, may overflow into the next year) in `tz`. A bad zone throws (never falls back to UTC). */
-function localParts(ms: number, tz: string): { year: number; month: number; day: number; hour: number; minute: number; second: number } {
+export function localParts(ms: number, tz: string): { year: number; month: number; day: number; hour: number; minute: number; second: number } {
   const o: Record<string, number> = {};
   const f = new Intl.DateTimeFormat('en-CA', { timeZone: tz, hourCycle: 'h23', year: 'numeric', month: 'numeric', day: 'numeric', hour: 'numeric', minute: 'numeric', second: 'numeric' });
   for (const p of f.formatToParts(ms)) if (p.type !== 'literal') o[p.type] = Number(p.value);
   return o as never;
 }
-const offsetMs = (ms: number, tz: string) => { const p = localParts(ms, tz); return Date.UTC(p.year, p.month - 1, p.day, p.hour, p.minute, p.second) - Math.floor(ms / 1000) * 1000; };
+export const offsetMs =(ms: number, tz: string) => { const p = localParts(ms, tz); return Date.UTC(p.year, p.month - 1, p.day, p.hour, p.minute, p.second) - Math.floor(ms / 1000) * 1000; };
 function monthStartUtc(year: number, m0: number, tz: string): number {
   const guess = Date.UTC(year, m0, 1);
   return guess - offsetMs(guess - offsetMs(guess, tz), tz); // two passes settle a DST edge

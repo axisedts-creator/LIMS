@@ -10,11 +10,13 @@ import { validateManifests } from '../../../core/manifest.js';
 import { manifest } from '../index.js';
 import { handle as qcReceived } from '../consumers/instruments.qc.received.v1.js';
 import { crontab } from '../cron.js';
+import { handle as closeStaleRuns } from '../tasks/close_stale_runs.js';
 
 const REPROCESS = 'quality.reprocess_pending_observations';
 /** T-01: exactly this task. Later tasks append their ids here. */
 const SYNC = 'quality.sync_qc_observations';
-const EXPECTED_TASKS = [REPROCESS, SYNC];   // + T-09
+const CLOSE_STALE = 'quality.close_stale_runs';
+const EXPECTED_TASKS = [REPROCESS, SYNC, CLOSE_STALE];   // + T-09, T-10
 /** TRD §10.3 / manifest literal: the complete C9 task set (a T-01 task list may only be a subset). */
 const TRD_TASKS = ['quality.sync_qc_observations', 'quality.close_stale_runs', REPROCESS, 'quality.tat_sweep', 'quality.tat_refresh_order', 'quality.purge_tat_items'];
 const TRD_SUBSCRIPTIONS = ['instruments.qc.received.v1', 'instruments.result.received.v1', 'lab.result.verified.v1', 'lab.specimen.status_changed.v1', 'reporting.report.released.v1'];
@@ -85,9 +87,20 @@ describe('C9 T-01 worker manifest (quality)', () => {
   // ---- T-09 ------------------------------------------------------------------------------------------------------------------------------
   it('T-09: quality.sync_qc_observations is registered with max attempts 5 (TRD §10.3) and is scheduled `* * * * *` per_tenant (cron.ts exports the same entry the manifest uses)', () => {
     expect(manifest.maxAttempts?.[SYNC]).toBe(5);
-    expect(crontab).toHaveLength(1);
-    expect(crontab[0]).toMatchObject({ identifier: SYNC, schedule: '* * * * *', tenantScope: 'per_tenant' });
+    expect(crontab).toHaveLength(2);   // + T-10
+    expect(crontab.find((c) => c.identifier === SYNC)).toMatchObject({ identifier: SYNC, schedule: '* * * * *', tenantScope: 'per_tenant' });
     expect(manifest.crontab).toEqual(crontab);
+  });
+  // ---- T-10 ------------------------------------------------------------------------------------------------------------------------------
+  it('T-10: quality.close_stale_runs is registered with max attempts 5, scheduled `* * * * *` per_tenant, handler = the task module `handle`', () => {
+    expect(manifest.maxAttempts?.[CLOSE_STALE]).toBe(5);
+    expect(crontab.find((c) => c.identifier === CLOSE_STALE)).toMatchObject({ identifier: CLOSE_STALE, schedule: '* * * * *', tenantScope: 'per_tenant' });
+    expect(manifest.tasks![CLOSE_STALE]).toBe(closeStaleRuns);
+  });
+  it('T-10: the built task list has the close task per tenant plus its cron item', async () => {
+    const s = await setup([manifest]);
+    expect(s.entry(CLOSE_STALE)).toMatchObject({ module: 'quality', kind: 'task', scope: 'per_tenant' });
+    expect(s.built.cronItems.filter((x: any) => x.identifier === CLOSE_STALE)).toHaveLength(1);
   });
   it('T-09: the only subscription so far is instruments.qc.received.v1, wired to the consumer `handle` (a trigger only: TRD §6.1)', () => {
     expect(Object.keys(manifest.subscriptions ?? {})).toEqual(['instruments.qc.received.v1']);

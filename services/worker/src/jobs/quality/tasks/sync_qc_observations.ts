@@ -3,6 +3,7 @@
 // REQ-SEC-024: the payload tenant must equal the job tenant, checked before any query. The payload carries nothing else and nothing else of it is read.
 import type { TaskHandler } from '../../../core/manifest.js';
 import { createObservationService } from '../../../../../api/src/modules/quality/service/observation.service.js';
+import { createRunService } from '../../../../../api/src/modules/quality/service/run.service.js';
 
 const TASK = 'quality.sync_qc_observations';
 const ENQUEUE_SQL = 'SELECT app.enqueue_job($1, $2::jsonb, $3, $4, $5)';   // (identifier, payload, job_key, run_at, max_attempts) — same statement as core/fanout.ts
@@ -12,7 +13,7 @@ export function createSyncQcObservationsHandler(deps: { service?: { syncQcObserv
   return async (payload, ctx) => {
     const tenantId = ctx.tenantId;
     if (typeof tenantId !== 'string' || !tenantId || payload?.tenant_id !== tenantId) throw new Error(`${TASK}: payload tenant does not match the job tenant`);
-    const service = deps.service ?? (defaultService ??= createObservationService());
+    const service = deps.service ?? (defaultService ??= createObservationService({ assembler: createRunService() }));   // T-10: the real run assembler
     const res = await service.syncQcObservations(ctx);   // errors propagate: retry, then dead letter
     if (res.budgetExhausted) await ctx.tx.query(ENQUEUE_SQL, [TASK, JSON.stringify({ tenant_id: tenantId }), `qcsync:cont:${tenantId}`, null, MAX_ATTEMPTS]);
   };

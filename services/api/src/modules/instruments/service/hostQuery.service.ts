@@ -38,6 +38,7 @@ export function createHostQueryService(deps: HostQueryDeps = {}) {
 
   /** C5 pending tests per barcode (one call each, in parallel), catalog OUTBOUND per analyte (memoised per request). */
   async function answerAll(ctx: HostQueryCtx, instrumentId: string, barcodes: readonly string[]): Promise<HostQueryAnswer[]> {
+    if (barcodes.length === 0) return [];                 // no barcode asked: no LabPort/CatalogPort lookup
     const lab = ctx.ports?.LabPort; const cat = ctx.ports?.CatalogPort;
     if (!lab || !cat) throw new LimsError('common.internal');
     const memo = new Map<string, Promise<string | undefined>>();
@@ -83,7 +84,8 @@ export function createHostQueryService(deps: HostQueryDeps = {}) {
       const pr = driver.parse(raw, dctx);
       if (!pr.ok || pr.messageKind !== 'host_query') return undefined;
       const barcodes = driver.extractHostQueryBarcodes!(pr);
-      if (!Array.isArray(barcodes) || barcodes.length < 1 || barcodes.length > MAX_BARCODES || !barcodes.every((b) => typeof b === 'string' && b.length >= 1 && b.length <= 40)) return undefined;
+      // LD-163 / MET-T04 lead decision: [] is valid (Metis range modes are answered NF by the driver); gates in step 2 unchanged
+      if (!Array.isArray(barcodes) || barcodes.length > MAX_BARCODES || !barcodes.every((b) => typeof b === 'string' && b.length >= 1 && b.length <= 40)) return undefined;
       return { parsed: pr, barcodes: [...barcodes] };
     } catch { return undefined; }                         // a driver bug on hostile bytes is a malformed query
   }

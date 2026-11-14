@@ -1,0 +1,838 @@
+
+ RUN  v5.1.0 C:/LIMS-lanes/C13/services/api
+
+ ❯ src/modules/partners/__tests__/access-slip.e2e.test.ts (2 tests | 2 failed) 195ms
+   ❯ access slip, end to end (R4 -> worker -> R5 -> R6 -> purge) (2)
+     × request, issue, poll, download, expire: every step answers as specified and the link never leaves the render input and the PDF 173ms
+     × a superseded report: the worker records failed + reporting.report_superseded, R5 shows it, R6 has no file 20ms
+ ❯ src/modules/partners/__tests__/access-slip.test.ts (47 tests | 41 failed) 381ms
+   ❯ R4 issuePatientAccessSlip (US-09.1, US-09.2, US-09.5) (14)
+     × US-09.1: setting access_slip_enabled = false -> 403 common.feature_disabled; no row, no job, no write, no port call 171ms
+     × US-09.1: no settings row yet (lazy row, default false) -> 403 common.feature_disabled 9ms
+     × the flag is checked before the report lookup: flag off + unknown report -> 403, not 404 11ms
+     × the flag is the CALLER'S tenant setting: tenant A off + tenant B on -> A 403, B 202 (B's flag never applies to A) 6ms
+     × US-09.2: 202 with { id, report_id, version_no, state: requested, created_at } only 16ms
+     × records the request in partners.access_slips: state requested, version = the VALID version at request time, order and requester from the token 3ms
+     × two requests make two distinct rows with distinct ids (no dedupe in the spec) 3ms
+     × enqueues partners.issue_access_slip in the same transaction: job_key slip:<id>, payload = ids only 3ms
+     × ST12 / US-09.2: R4 makes NO port call under partner claims (ReportingPort, RenderPort, SmartReportPort, any other port): zero accesses; only IdentityPort.assertRole(partners.report.read) 8ms
+     × 404 common.not_found, nothing written: unknown report, partner Y's report, tenant B's report, a report with no valid version 3ms
+     × US-09.5 (D-105): a line without a patient mobile number is accepted (202), no extra field, no phone in the response 2ms
+     × request validation: report_id must be a UUID -> 400 common.validation_failed, no write 3ms
+     × ST12: nothing secret anywhere (tables, jobs, SQL text + values, access log, logs, response, stored idempotency response body) 12ms
+   ❯ R5 getPatientAccessSlip (US-09.4) (10)
+     × requested: { id, report_id, version_no, state: requested } and no optional field 2ms
+     × issued: link_expires_at and issued_at (ISO) are present; never the link, token, path, hash or any internal column 2ms
+     × failed: the failure code is shown (US-09.4: reporting.report_superseded / not_released / template_invalid ...) 5ms
+     × expired: state expired, no file field 2ms
+     × no value on the wire is null (null columns are omitted) 2ms
+     × 404 common.not_found: partner Y's slip, tenant B's slip, unknown id, and a slip addressed under another report_id 2ms
+     × request validation: report_id / access_slip_id must be UUIDs -> 400 common.validation_failed 4ms
+     × any member of the same partner can read the slip another member requested 2ms
+     × polling is a pure read: 30 polls, no write, no port call, no storage access, no access-log row, identical answers 4ms
+     × no secret anywhere in responses, logs, SQL 2ms
+   ❯ R6 downloadPatientAccessSlip (US-09.6) (10)
+     × 200: the stored PDF bytes, application/pdf, attachment access-slip-<id>.pdf, Cache-Control no-store, nosniff 3ms
+     × reads exactly the registered object of the slip, server-side: bucket partners-slips, path {tenant_id}/access-slips/{yyyy}/{mm}/{id}.pdf, once 2ms
+     × access log on EVERY download: report.access_slip / access_slip / slip id / allowed / detail { access_slip_id, link_id } (08 A5.3, CR-C13-012) 2ms
+     × R6 is a pure read of the row: no UPDATE / INSERT / DELETE on any table 3ms
+     × US-09.6 / 08 A5.3: a slip that is not issued has no file -> 404 common.not_found (requested, failed, expired); no storage read, no allowed log 6ms
+     × an issued row whose object is gone (purge race, deleted object) -> 404 common.not_found, never an allowed log row 4ms
+     × ST12: partner Y, tenant B, an unknown id and a wrong report_id in the path all get 404; the object is never read 5ms
+     × request validation: path ids must be UUIDs -> 400 common.validation_failed, no storage read 4ms
+     × ST12: headers, access log, logs and SQL never contain the link (only the PDF body does, by design) 2ms
+   ❯ gates: partner actors only, partners.report.read, active partner (9)
+     × issuePatientAccessSlip: a non-partner actor (staff user, system, patient) -> 403 auth.forbidden before any SQL, storage or port 2ms
+     × issuePatientAccessSlip: IdentityPort.assertRole(partners.report.read) is asked; its refusal propagates and nothing is read or written 2ms
+     × issuePatientAccessSlip: a user of a suspended partner -> 403 partners.partner_inactive 2ms
+     × getPatientAccessSlip: a non-partner actor (staff user, system, patient) -> 403 auth.forbidden before any SQL, storage or port 2ms
+     × getPatientAccessSlip: IdentityPort.assertRole(partners.report.read) is asked; its refusal propagates and nothing is read or written 2ms
+     × getPatientAccessSlip: a user of a suspended partner -> 403 partners.partner_inactive 7ms
+     × downloadPatientAccessSlip: a non-partner actor (staff user, system, patient) -> 403 auth.forbidden before any SQL, storage or port 2ms
+     × downloadPatientAccessSlip: IdentityPort.assertRole(partners.report.read) is asked; its refusal propagates and nothing is read or written 4ms
+     × downloadPatientAccessSlip: a user of a suspended partner -> 403 partners.partner_inactive 6ms
+{"level":"warn","ts":"2026-11-14T05:57:56.906Z","service":"api","env":"ci","version":"0.0.0","event":"fake_port_active","port":"CatalogPort","forced":false,"msg":"fake port active"}
+{"level":"warn","ts":"2026-11-14T05:57:57.120Z","service":"api","env":"ci","version":"0.0.0","event":"fake_port_active","port":"ReportingPort","forced":false,"msg":"fake port active"}
+{"level":"warn","ts":"2026-11-14T05:57:57.120Z","service":"api","env":"ci","version":"0.0.0","event":"fake_port_active","port":"NotificationPort","forced":false,"msg":"fake port active"}
+{"level":"warn","ts":"2026-11-14T05:57:57.121Z","service":"api","env":"ci","version":"0.0.0","event":"fake_port_active","port":"IdentityPort","forced":false,"msg":"fake port active"}
+{"level":"warn","ts":"2026-11-14T05:57:57.121Z","service":"api","env":"ci","version":"0.0.0","event":"fake_port_active","port":"RenderPort","forced":false,"msg":"fake port active"}
+{"level":"warn","ts":"2026-11-14T05:58:11.542Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-14T05:58:11.999Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-14T05:58:11.999Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' not found"}
+{"level":"warn","ts":"2026-11-14T05:58:11.999Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'text/csv' not found"}
+{"level":"warn","ts":"2026-11-14T05:58:12.000Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/pdf' not found"}
+{"level":"warn","ts":"2026-11-14T05:58:15.184Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-14T05:58:15.184Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'multipart/form-data' not found"}
+{"level":"warn","ts":"2026-11-14T05:58:15.184Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'image/png' not found"}
+{"level":"warn","ts":"2026-11-14T05:58:15.184Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'image/jpeg' not found"}
+{"level":"warn","ts":"2026-11-14T05:58:17.293Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-14T05:58:17.293Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' not found"}
+{"level":"warn","ts":"2026-11-14T05:58:17.293Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/xml' not found"}
+{"level":"warn","ts":"2026-11-14T05:58:17.293Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/pdf' not found"}
+{"level":"warn","ts":"2026-11-14T05:58:19.025Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-14T05:58:19.025Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' not found"}
+{"level":"warn","ts":"2026-11-14T05:58:19.025Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'multipart/form-data' not found"}
+{"level":"warn","ts":"2026-11-14T05:58:20.333Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-14T05:58:20.333Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/pdf' not found"}
+{"level":"warn","ts":"2026-11-14T05:58:20.333Z","service":"api","env":"ci","version":"0.0.0","msg":"Handlers for some security requirements were missing: patientPreAuth, queueDisplayToken"}
+{"level":"warn","ts":"2026-11-14T05:58:21.862Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-14T05:58:21.862Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'multipart/form-data' not found"}
+{"level":"warn","ts":"2026-11-14T05:58:21.862Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'image/jpeg' not found"}
+{"level":"warn","ts":"2026-11-14T05:58:21.862Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'image/png' not found"}
+{"level":"warn","ts":"2026-11-14T05:58:21.862Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/pdf' not found"}
+{"level":"warn","ts":"2026-11-14T05:58:23.047Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-14T05:58:23.850Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-14T05:58:23.850Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'multipart/form-data' not found"}
+{"level":"warn","ts":"2026-11-14T05:58:23.850Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'image/png' not found"}
+{"level":"warn","ts":"2026-11-14T05:58:23.850Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'image/jpeg' not found"}
+{"level":"warn","ts":"2026-11-14T05:58:23.850Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'text/csv' not found"}
+{"level":"warn","ts":"2026-11-14T05:58:23.850Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/pdf' not found"}
+{"level":"warn","ts":"2026-11-14T05:58:23.850Z","service":"api","env":"ci","version":"0.0.0","msg":"Handlers for some security requirements were missing: bffSession"}
+{"level":"warn","ts":"2026-11-14T05:58:25.172Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-14T05:58:25.172Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'multipart/form-data' not found"}
+{"level":"warn","ts":"2026-11-14T05:58:25.172Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/octet-stream' not found"}
+{"level":"warn","ts":"2026-11-14T05:58:25.172Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/pdf' not found"}
+{"level":"warn","ts":"2026-11-14T05:58:25.172Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'image/png' not found"}
+{"level":"warn","ts":"2026-11-14T05:58:25.172Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'image/jpeg' not found"}
+{"level":"warn","ts":"2026-11-14T05:58:25.173Z","service":"api","env":"ci","version":"0.0.0","msg":"Handlers for some security requirements were missing: deviceToken"}
+{"level":"warn","ts":"2026-11-14T05:58:26.297Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-14T05:58:26.298Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'text/csv' not found"}
+{"level":"warn","ts":"2026-11-14T05:58:28.146Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-14T05:58:29.546Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-14T05:58:29.546Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'multipart/form-data' not found"}
+{"level":"warn","ts":"2026-11-14T05:58:29.546Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'text/csv' not found"}
+{"level":"warn","ts":"2026-11-14T05:58:30.768Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-14T05:58:30.768Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/pdf' not found"}
+{"level":"warn","ts":"2026-11-14T05:58:31.684Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-14T05:58:31.684Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'text/html' not found"}
+{"level":"warn","ts":"2026-11-14T05:58:31.684Z","service":"api","env":"ci","version":"0.0.0","msg":"Handlers for some security requirements were missing: paymentCallbackToken"}
+{"level":"warn","ts":"2026-11-14T05:58:32.413Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-14T05:58:33.280Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-14T05:58:33.280Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/pdf' not found"}
+{"level":"warn","ts":"2026-11-14T05:58:33.280Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'multipart/form-data' not found"}
+{"level":"warn","ts":"2026-11-14T05:58:33.280Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'image/png' not found"}
+{"level":"warn","ts":"2026-11-14T05:58:33.280Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'image/jpeg' not found"}
+{"level":"warn","ts":"2026-11-14T05:58:33.280Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for '*/*' not found"}
+{"level":"warn","ts":"2026-11-14T05:58:33.280Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'text/plain' not found"}
+{"level":"warn","ts":"2026-11-14T05:58:33.280Z","service":"api","env":"ci","version":"0.0.0","msg":"Handlers for some security requirements were missing: portalSession"}
+{"level":"warn","ts":"2026-11-14T05:58:33.945Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-14T05:58:44.150Z","service":"api","env":"ci","version":"0.0.0","event":"fake_port_active","port":"CatalogPort","forced":false,"msg":"fake port active"}
+{"level":"warn","ts":"2026-11-14T05:58:44.150Z","service":"api","env":"ci","version":"0.0.0","event":"fake_port_active","port":"ReportingPort","forced":false,"msg":"fake port active"}
+{"level":"warn","ts":"2026-11-14T05:58:44.150Z","service":"api","env":"ci","version":"0.0.0","event":"fake_port_active","port":"NotificationPort","forced":false,"msg":"fake port active"}
+{"level":"warn","ts":"2026-11-14T05:58:44.150Z","service":"api","env":"ci","version":"0.0.0","event":"fake_port_active","port":"IdentityPort","forced":false,"msg":"fake port active"}
+{"level":"warn","ts":"2026-11-14T05:58:44.150Z","service":"api","env":"ci","version":"0.0.0","event":"fake_port_active","port":"RenderPort","forced":false,"msg":"fake port active"}
+{"level":"warn","ts":"2026-11-14T05:58:44.347Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-14T05:58:44.501Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-14T05:58:44.501Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' not found"}
+{"level":"warn","ts":"2026-11-14T05:58:44.501Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'text/csv' not found"}
+{"level":"warn","ts":"2026-11-14T05:58:44.501Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/pdf' not found"}
+{"level":"warn","ts":"2026-11-14T05:58:45.693Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-14T05:58:45.693Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'multipart/form-data' not found"}
+{"level":"warn","ts":"2026-11-14T05:58:45.693Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'image/png' not found"}
+{"level":"warn","ts":"2026-11-14T05:58:45.693Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'image/jpeg' not found"}
+{"level":"warn","ts":"2026-11-14T05:58:46.912Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-14T05:58:46.912Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' not found"}
+{"level":"warn","ts":"2026-11-14T05:58:46.912Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/xml' not found"}
+{"level":"warn","ts":"2026-11-14T05:58:46.912Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/pdf' not found"}
+{"level":"warn","ts":"2026-11-14T05:58:48.506Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-14T05:58:48.506Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' not found"}
+{"level":"warn","ts":"2026-11-14T05:58:48.506Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'multipart/form-data' not found"}
+{"level":"warn","ts":"2026-11-14T05:58:50.534Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-14T05:58:50.534Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/pdf' not found"}
+{"level":"warn","ts":"2026-11-14T05:58:50.534Z","service":"api","env":"ci","version":"0.0.0","msg":"Handlers for some security requirements were missing: patientPreAuth, queueDisplayToken"}
+{"level":"warn","ts":"2026-11-14T05:58:51.744Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-14T05:58:51.744Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'multipart/form-data' not found"}
+{"level":"warn","ts":"2026-11-14T05:58:51.744Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'image/jpeg' not found"}
+{"level":"warn","ts":"2026-11-14T05:58:51.744Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'image/png' not found"}
+{"level":"warn","ts":"2026-11-14T05:58:51.744Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/pdf' not found"}
+{"level":"warn","ts":"2026-11-14T05:58:52.838Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-14T05:58:53.560Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-14T05:58:53.560Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'multipart/form-data' not found"}
+{"level":"warn","ts":"2026-11-14T05:58:53.560Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'image/png' not found"}
+{"level":"warn","ts":"2026-11-14T05:58:53.560Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'image/jpeg' not found"}
+{"level":"warn","ts":"2026-11-14T05:58:53.560Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'text/csv' not found"}
+{"level":"warn","ts":"2026-11-14T05:58:53.560Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/pdf' not found"}
+{"level":"warn","ts":"2026-11-14T05:58:53.560Z","service":"api","env":"ci","version":"0.0.0","msg":"Handlers for some security requirements were missing: bffSession"}
+{"level":"warn","ts":"2026-11-14T05:58:54.184Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-14T05:58:54.184Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'multipart/form-data' not found"}
+{"level":"warn","ts":"2026-11-14T05:58:54.184Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/octet-stream' not found"}
+{"level":"warn","ts":"2026-11-14T05:58:54.184Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/pdf' not found"}
+{"level":"warn","ts":"2026-11-14T05:58:54.184Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'image/png' not found"}
+{"level":"warn","ts":"2026-11-14T05:58:54.184Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'image/jpeg' not found"}
+{"level":"warn","ts":"2026-11-14T05:58:54.184Z","service":"api","env":"ci","version":"0.0.0","msg":"Handlers for some security requirements were missing: deviceToken"}
+{"level":"warn","ts":"2026-11-14T05:58:55.323Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-14T05:58:55.323Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'text/csv' not found"}
+{"level":"warn","ts":"2026-11-14T05:58:56.615Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-14T05:58:57.446Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-14T05:58:57.446Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'multipart/form-data' not found"}
+{"level":"warn","ts":"2026-11-14T05:58:57.446Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'text/csv' not found"}
+{"level":"warn","ts":"2026-11-14T05:58:58.726Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-14T05:58:58.726Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/pdf' not found"}
+{"level":"warn","ts":"2026-11-14T05:58:59.481Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-14T05:58:59.481Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'text/html' not found"}
+{"level":"warn","ts":"2026-11-14T05:58:59.481Z","service":"api","env":"ci","version":"0.0.0","msg":"Handlers for some security requirements were missing: paymentCallbackToken"}
+{"level":"warn","ts":"2026-11-14T05:58:59.919Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-14T05:59:01.075Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-14T05:59:01.075Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/pdf' not found"}
+{"level":"warn","ts":"2026-11-14T05:59:01.075Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'multipart/form-data' not found"}
+{"level":"warn","ts":"2026-11-14T05:59:01.076Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'image/png' not found"}
+{"level":"warn","ts":"2026-11-14T05:59:01.076Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'image/jpeg' not found"}
+{"level":"warn","ts":"2026-11-14T05:59:01.076Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for '*/*' not found"}
+{"level":"warn","ts":"2026-11-14T05:59:01.076Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'text/plain' not found"}
+{"level":"warn","ts":"2026-11-14T05:59:01.076Z","service":"api","env":"ci","version":"0.0.0","msg":"Handlers for some security requirements were missing: portalSession"}
+{"level":"warn","ts":"2026-11-14T05:59:02.070Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"info","ts":"2026-11-14T05:59:07.094Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1d8a3-5c29-7dec-b352-fb9f6de3717e","module":"partners","operation_id":"getPartnerContext","route":"/v1/partners/me","status":401,"duration_ms":43,"error_code":"auth.unauthenticated","msg":"request"}
+{"level":"info","ts":"2026-11-14T05:59:07.098Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1d8a3-5c59-7746-805c-f33166d9e15e","module":"partners","operation_id":"getPartnerDashboard","route":"/v1/partners/dashboard","status":401,"duration_ms":1,"error_code":"auth.unauthenticated","msg":"request"}
+{"level":"info","ts":"2026-11-14T05:59:07.103Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1d8a3-5c5c-72c6-8c31-805c17cd046c","module":"partners","operation_id":"listManifests","route":"/v1/partners/manifests","status":401,"duration_ms":2,"error_code":"auth.unauthenticated","msg":"request"}
+{"level":"info","ts":"2026-11-14T05:59:07.108Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1d8a3-5c60-70db-9764-b2e0eebe990f","module":"partners","operation_id":"getManifest","route":"/v1/partners/manifests/{manifest_id}","status":401,"duration_ms":3,"error_code":"auth.unauthenticated","msg":"request"}
+{"level":"info","ts":"2026-11-14T05:59:07.111Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1d8a3-5c65-74b9-aeee-288bc971ae03","module":"partners","operation_id":"getManifestPrintView","route":"/v1/partners/manifests/{manifest_id}/print-view","status":401,"duration_ms":2,"error_code":"auth.unauthenticated","msg":"request"}
+{"level":"info","ts":"2026-11-14T05:59:07.115Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1d8a3-5c68-7983-940b-14cf014ee1cf","module":"partners","operation_id":"listPartnerOrders","route":"/v1/partners/orders","status":401,"duration_ms":2,"error_code":"auth.unauthenticated","msg":"request"}
+{"level":"info","ts":"2026-11-14T05:59:07.118Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1d8a3-5c6c-7073-ab0d-9bb3c2efdcd3","module":"partners","operation_id":"getPartnerOrder","route":"/v1/partners/orders/{order_id}","status":401,"duration_ms":2,"error_code":"auth.unauthenticated","msg":"request"}
+{"level":"info","ts":"2026-11-14T05:59:07.122Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1d8a3-5c70-7413-adfd-60ab7eed1dae","module":"partners","operation_id":"listPartnerReports","route":"/v1/partners/reports","status":401,"duration_ms":2,"error_code":"auth.unauthenticated","msg":"request"}
+{"level":"info","ts":"2026-11-14T05:59:07.125Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1d8a3-5c73-73c4-8e74-b523fc2c78c8","module":"partners","operation_id":"downloadPartnerReport","route":"/v1/partners/reports/{report_id}/versions/{version_no}/file","status":401,"duration_ms":1,"error_code":"auth.unauthenticated","msg":"request"}
+{"level":"info","ts":"2026-11-14T05:59:07.127Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1d8a3-5c76-713a-8671-f4de9d7e063a","module":"partners","operation_id":"getPatientAccessSlip","route":"/v1/partners/reports/{report_id}/access-slips/{access_slip_id}","status":401,"duration_ms":1,"error_code":"auth.unauthenticated","msg":"request"}
+{"level":"info","ts":"2026-11-14T05:59:07.128Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1d8a3-5c77-7860-9a54-cac0c0d1aa31","module":"partners","operation_id":"downloadPatientAccessSlip","route":"/v1/partners/reports/{report_id}/access-slips/{access_slip_id}/file","status":401,"duration_ms":1,"error_code":"auth.unauthenticated","msg":"request"}
+{"level":"info","ts":"2026-11-14T05:59:07.129Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1d8a3-5c78-7ac7-bf3b-e1c696f2c85a","module":"partners","operation_id":"listPickupRequests","route":"/v1/partners/pickup-requests","status":401,"duration_ms":1,"error_code":"auth.unauthenticated","msg":"request"}
+{"level":"info","ts":"2026-11-14T05:59:07.130Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1d8a3-5c79-744f-85d9-c7eca3b2caa3","module":"partners","operation_id":"getPickupRequest","route":"/v1/partners/pickup-requests/{pickup_request_id}","status":401,"duration_ms":1,"error_code":"auth.unauthenticated","msg":"request"}
+{"level":"info","ts":"2026-11-14T05:59:07.131Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1d8a3-5c7a-7257-ad55-c52c6ffdd144","module":"partners","operation_id":"listPartnerPriceList","route":"/v1/partners/price-list","status":401,"duration_ms":1,"error_code":"auth.unauthenticated","msg":"request"}
+{"level":"info","ts":"2026-11-14T05:59:07.132Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1d8a3-5c7b-7a33-bd6c-aeb7ea2cab92","module":"partners","operation_id":"searchPartnerOrderables","route":"/v1/partners/orderables","status":401,"duration_ms":0,"error_code":"auth.unauthenticated","msg":"request"}
+{"level":"info","ts":"2026-11-14T05:59:07.133Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1d8a3-5c7c-7fbf-9f4a-6c0221a68927","module":"partners","operation_id":"listPartnerStatements","route":"/v1/partners/statements","status":401,"duration_ms":1,"error_code":"auth.unauthenticated","msg":"request"}
+{"level":"info","ts":"2026-11-14T05:59:07.136Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1d8a3-5c7e-774e-8340-81b58f5e0967","module":"partners","operation_id":"getPartnerStatement","route":"/v1/partners/statements/{period_month}","status":401,"duration_ms":2,"error_code":"auth.unauthenticated","msg":"request"}
+{"level":"info","ts":"2026-11-14T05:59:07.138Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1d8a3-5c81-76a1-a70b-a2fa2f37746e","module":"partners","operation_id":"listPartnerReferrers","route":"/v1/partners/referrers","status":401,"duration_ms":1,"error_code":"auth.unauthenticated","msg":"request"}
+{"level":"info","ts":"2026-11-14T05:59:07.140Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1d8a3-5c83-7d88-96ae-bd2d6a9dc4fb","module":"partners","operation_id":"listPartnerUsers","route":"/v1/partners/users","status":401,"duration_ms":1,"error_code":"auth.unauthenticated","msg":"request"}
+{"level":"info","ts":"2026-11-14T05:59:07.142Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1d8a3-5c85-7ba5-b45e-0fdfb8ba836f","module":"partners","operation_id":"listPartners","route":"/v1/partners/admin/partners","status":401,"duration_ms":1,"error_code":"auth.unauthenticated","msg":"request"}
+{"level":"info","ts":"2026-11-14T05:59:07.144Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1d8a3-5c87-7668-a896-bcfe14e8eab7","module":"partners","operation_id":"getPartner","route":"/v1/partners/admin/partners/{partner_id}","status":401,"duration_ms":1,"error_code":"auth.unauthenticated","msg":"request"}
+{"level":"info","ts":"2026-11-14T05:59:07.146Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1d8a3-5c88-7848-a089-b6abbc19d19f","module":"partners","operation_id":"listPartnerUsersForPartner","route":"/v1/partners/admin/partners/{partner_id}/users","status":401,"duration_ms":1,"error_code":"auth.unauthenticated","msg":"request"}
+{"level":"info","ts":"2026-11-14T05:59:07.148Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1d8a3-5c8a-75f4-96b0-235c17766fc1","module":"partners","operation_id":"listInboundManifests","route":"/v1/partners/admin/manifests","status":401,"duration_ms":1,"error_code":"auth.unauthenticated","msg":"request"}
+{"level":"info","ts":"2026-11-14T05:59:07.149Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1d8a3-5c8c-754c-86a8-65daa1b02fb9","module":"partners","operation_id":"getInboundManifest","route":"/v1/partners/admin/manifests/{manifest_id}","status":401,"duration_ms":1,"error_code":"auth.unauthenticated","msg":"request"}
+{"level":"info","ts":"2026-11-14T05:59:07.151Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1d8a3-5c8e-7ede-b147-36677152e0af","module":"partners","operation_id":"listInboundPickups","route":"/v1/partners/admin/pickup-requests","status":401,"duration_ms":1,"error_code":"auth.unauthenticated","msg":"request"}
+{"level":"info","ts":"2026-11-14T05:59:07.153Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1d8a3-5c8f-7cff-9a52-7dc5ab9c1e27","module":"partners","operation_id":"listReferrerMappings","route":"/v1/partners/admin/referrers","status":401,"duration_ms":1,"error_code":"auth.unauthenticated","msg":"request"}
+{"level":"info","ts":"2026-11-14T05:59:07.154Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1d8a3-5c91-71b0-b196-259b02efb55c","module":"partners","operation_id":"getPartnerSettings","route":"/v1/partners/admin/settings","status":401,"duration_ms":1,"error_code":"auth.unauthenticated","msg":"request"}
+{"level":"info","ts":"2026-11-14T05:59:07.156Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1d8a3-5c93-7920-910d-0416e88c8a58","module":"core","operation_id":"unmatched","status":404,"duration_ms":0,"error_code":"common.not_found","msg":"request"}
+
+⎯⎯⎯⎯⎯⎯ Failed Tests 43 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/modules/partners/__tests__/access-slip.e2e.test.ts > access slip, end to end (R4 -> worker -> R5 -> R6 -> purge) > request, issue, poll, download, expire: every step answers as specified and the link never leaves the render input and the PDF
+LimsError: common.internal
+ ❯ Object.issuePatientAccessSlip src/modules/partners/index.ts:51:9
+     49| const stub = (operationId: string): Handler => async () => {
+     50|   if (process.env.LIMS_CORE_ENV === 'dev' && process.env.NODE_ENV !== …
+     51|   throw new LimsError('common.internal', `partners ${operationId} not …
+       |         ^
+     52| };
+     53|
+ ❯ Object.run src/modules/partners/__tests__/tracking-api.world.ts:185:36
+ ❯ src/modules/partners/__tests__/access-slip.e2e.test.ts:21:30
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/43]⎯
+
+ FAIL  src/modules/partners/__tests__/access-slip.e2e.test.ts > access slip, end to end (R4 -> worker -> R5 -> R6 -> purge) > a superseded report: the worker records failed + reporting.report_superseded, R5 shows it, R6 has no file
+LimsError: common.internal
+ ❯ Object.issuePatientAccessSlip src/modules/partners/index.ts:51:9
+     49| const stub = (operationId: string): Handler => async () => {
+     50|   if (process.env.LIMS_CORE_ENV === 'dev' && process.env.NODE_ENV !== …
+     51|   throw new LimsError('common.internal', `partners ${operationId} not …
+       |         ^
+     52| };
+     53|
+ ❯ Object.run src/modules/partners/__tests__/tracking-api.world.ts:185:36
+ ❯ src/modules/partners/__tests__/access-slip.e2e.test.ts:77:30
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/43]⎯
+
+ FAIL  src/modules/partners/__tests__/access-slip.test.ts > R4 issuePatientAccessSlip (US-09.1, US-09.2, US-09.5) > US-09.1: setting access_slip_enabled = false -> 403 common.feature_disabled; no row, no job, no write, no port call
+AssertionError: expected 'common.internal' to be 'common.feature_disabled' // Object.is equality
+
+Expected: "common.feature_disabled"
+Received: "common.internal"
+
+ ❯ fails src/modules/partners/__tests__/access-slip.test.ts:35:18
+     33|   const e: any = await p.then(() => { throw new Error('expected reject…
+     34|   expect(e, String(e?.message)).toBeInstanceOf(LimsError);
+     35|   expect(e.code).toBe(code);
+       |                  ^
+     36|   if (status) expect(e.statusCode).toBe(status);
+     37|   return e as LimsError;
+ ❯ src/modules/partners/__tests__/access-slip.test.ts:57:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/43]⎯
+
+ FAIL  src/modules/partners/__tests__/access-slip.test.ts > R4 issuePatientAccessSlip (US-09.1, US-09.2, US-09.5) > US-09.1: no settings row yet (lazy row, default false) -> 403 common.feature_disabled
+AssertionError: expected 'common.internal' to be 'common.feature_disabled' // Object.is equality
+
+Expected: "common.feature_disabled"
+Received: "common.internal"
+
+ ❯ fails src/modules/partners/__tests__/access-slip.test.ts:35:18
+     33|   const e: any = await p.then(() => { throw new Error('expected reject…
+     34|   expect(e, String(e?.message)).toBeInstanceOf(LimsError);
+     35|   expect(e.code).toBe(code);
+       |                  ^
+     36|   if (status) expect(e.statusCode).toBe(status);
+     37|   return e as LimsError;
+ ❯ src/modules/partners/__tests__/access-slip.test.ts:66:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/43]⎯
+
+ FAIL  src/modules/partners/__tests__/access-slip.test.ts > R4 issuePatientAccessSlip (US-09.1, US-09.2, US-09.5) > the flag is checked before the report lookup: flag off + unknown report -> 403, not 404
+AssertionError: expected 'common.internal' to be 'common.feature_disabled' // Object.is equality
+
+Expected: "common.feature_disabled"
+Received: "common.internal"
+
+ ❯ fails src/modules/partners/__tests__/access-slip.test.ts:35:18
+     33|   const e: any = await p.then(() => { throw new Error('expected reject…
+     34|   expect(e, String(e?.message)).toBeInstanceOf(LimsError);
+     35|   expect(e.code).toBe(code);
+       |                  ^
+     36|   if (status) expect(e.statusCode).toBe(status);
+     37|   return e as LimsError;
+ ❯ src/modules/partners/__tests__/access-slip.test.ts:72:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/43]⎯
+
+ FAIL  src/modules/partners/__tests__/access-slip.test.ts > R4 issuePatientAccessSlip (US-09.1, US-09.2, US-09.5) > the flag is the CALLER'S tenant setting: tenant A off + tenant B on -> A 403, B 202 (B's flag never applies to A)
+AssertionError: expected 'common.internal' to be 'common.feature_disabled' // Object.is equality
+
+Expected: "common.feature_disabled"
+Received: "common.internal"
+
+ ❯ fails src/modules/partners/__tests__/access-slip.test.ts:35:18
+     33|   const e: any = await p.then(() => { throw new Error('expected reject…
+     34|   expect(e, String(e?.message)).toBeInstanceOf(LimsError);
+     35|   expect(e.code).toBe(code);
+       |                  ^
+     36|   if (status) expect(e.statusCode).toBe(status);
+     37|   return e as LimsError;
+ ❯ src/modules/partners/__tests__/access-slip.test.ts:78:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/43]⎯
+
+ FAIL  src/modules/partners/__tests__/access-slip.test.ts > R4 issuePatientAccessSlip (US-09.1, US-09.2, US-09.5) > US-09.2: 202 with { id, report_id, version_no, state: requested, created_at } only
+LimsError: common.internal
+ ❯ Object.issuePatientAccessSlip src/modules/partners/index.ts:51:9
+     49| const stub = (operationId: string): Handler => async () => {
+     50|   if (process.env.LIMS_CORE_ENV === 'dev' && process.env.NODE_ENV !== …
+     51|   throw new LimsError('common.internal', `partners ${operationId} not …
+       |         ^
+     52| };
+     53|
+ ❯ Object.run src/modules/partners/__tests__/tracking-api.world.ts:185:36
+ ❯ post src/modules/partners/__tests__/access-slip.test.ts:46:42
+ ❯ src/modules/partners/__tests__/access-slip.test.ts:86:23
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/43]⎯
+
+ FAIL  src/modules/partners/__tests__/access-slip.test.ts > R4 issuePatientAccessSlip (US-09.1, US-09.2, US-09.5) > records the request in partners.access_slips: state requested, version = the VALID version at request time, order and requester from the token
+LimsError: common.internal
+ ❯ Object.issuePatientAccessSlip src/modules/partners/index.ts:51:9
+     49| const stub = (operationId: string): Handler => async () => {
+     50|   if (process.env.LIMS_CORE_ENV === 'dev' && process.env.NODE_ENV !== …
+     51|   throw new LimsError('common.internal', `partners ${operationId} not …
+       |         ^
+     52| };
+     53|
+ ❯ Object.run src/modules/partners/__tests__/tracking-api.world.ts:185:36
+ ❯ post src/modules/partners/__tests__/access-slip.test.ts:46:42
+ ❯ src/modules/partners/__tests__/access-slip.test.ts:96:21
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[8/43]⎯
+
+ FAIL  src/modules/partners/__tests__/access-slip.test.ts > R4 issuePatientAccessSlip (US-09.1, US-09.2, US-09.5) > two requests make two distinct rows with distinct ids (no dedupe in the spec)
+LimsError: common.internal
+ ❯ Object.issuePatientAccessSlip src/modules/partners/index.ts:51:9
+     49| const stub = (operationId: string): Handler => async () => {
+     50|   if (process.env.LIMS_CORE_ENV === 'dev' && process.env.NODE_ENV !== …
+     51|   throw new LimsError('common.internal', `partners ${operationId} not …
+       |         ^
+     52| };
+     53|
+ ❯ Object.run src/modules/partners/__tests__/tracking-api.world.ts:185:36
+ ❯ post src/modules/partners/__tests__/access-slip.test.ts:46:42
+ ❯ src/modules/partners/__tests__/access-slip.test.ts:107:21
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[9/43]⎯
+
+ FAIL  src/modules/partners/__tests__/access-slip.test.ts > R4 issuePatientAccessSlip (US-09.1, US-09.2, US-09.5) > enqueues partners.issue_access_slip in the same transaction: job_key slip:<id>, payload = ids only
+LimsError: common.internal
+ ❯ Object.issuePatientAccessSlip src/modules/partners/index.ts:51:9
+     49| const stub = (operationId: string): Handler => async () => {
+     50|   if (process.env.LIMS_CORE_ENV === 'dev' && process.env.NODE_ENV !== …
+     51|   throw new LimsError('common.internal', `partners ${operationId} not …
+       |         ^
+     52| };
+     53|
+ ❯ Object.run src/modules/partners/__tests__/tracking-api.world.ts:185:36
+ ❯ post src/modules/partners/__tests__/access-slip.test.ts:46:42
+ ❯ src/modules/partners/__tests__/access-slip.test.ts:114:23
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[10/43]⎯
+
+ FAIL  src/modules/partners/__tests__/access-slip.test.ts > R4 issuePatientAccessSlip (US-09.1, US-09.2, US-09.5) > ST12 / US-09.2: R4 makes NO port call under partner claims (ReportingPort, RenderPort, SmartReportPort, any other port): zero accesses; only IdentityPort.assertRole(partners.report.read)
+LimsError: common.internal
+ ❯ Object.issuePatientAccessSlip src/modules/partners/index.ts:51:9
+     49| const stub = (operationId: string): Handler => async () => {
+     50|   if (process.env.LIMS_CORE_ENV === 'dev' && process.env.NODE_ENV !== …
+     51|   throw new LimsError('common.internal', `partners ${operationId} not …
+       |         ^
+     52| };
+     53|
+ ❯ Object.run src/modules/partners/__tests__/tracking-api.world.ts:185:36
+ ❯ post src/modules/partners/__tests__/access-slip.test.ts:46:42
+ ❯ src/modules/partners/__tests__/access-slip.test.ts:130:11
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[11/43]⎯
+
+ FAIL  src/modules/partners/__tests__/access-slip.test.ts > R4 issuePatientAccessSlip (US-09.1, US-09.2, US-09.5) > 404 common.not_found, nothing written: unknown report, partner Y's report, tenant B's report, a report with no valid version
+AssertionError: expected 'common.internal' to be 'common.not_found' // Object.is equality
+
+Expected: "common.not_found"
+Received: "common.internal"
+
+ ❯ fails src/modules/partners/__tests__/access-slip.test.ts:35:18
+     33|   const e: any = await p.then(() => { throw new Error('expected reject…
+     34|   expect(e, String(e?.message)).toBeInstanceOf(LimsError);
+     35|   expect(e.code).toBe(code);
+       |                  ^
+     36|   if (status) expect(e.statusCode).toBe(status);
+     37|   return e as LimsError;
+ ❯ src/modules/partners/__tests__/access-slip.test.ts:140:7
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[12/43]⎯
+
+ FAIL  src/modules/partners/__tests__/access-slip.test.ts > R4 issuePatientAccessSlip (US-09.1, US-09.2, US-09.5) > US-09.5 (D-105): a line without a patient mobile number is accepted (202), no extra field, no phone in the response
+LimsError: common.internal
+ ❯ Object.issuePatientAccessSlip src/modules/partners/index.ts:51:9
+     49| const stub = (operationId: string): Handler => async () => {
+     50|   if (process.env.LIMS_CORE_ENV === 'dev' && process.env.NODE_ENV !== …
+     51|   throw new LimsError('common.internal', `partners ${operationId} not …
+       |         ^
+     52| };
+     53|
+ ❯ Object.run src/modules/partners/__tests__/tracking-api.world.ts:185:36
+ ❯ post src/modules/partners/__tests__/access-slip.test.ts:46:42
+ ❯ src/modules/partners/__tests__/access-slip.test.ts:149:23
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[13/43]⎯
+
+ FAIL  src/modules/partners/__tests__/access-slip.test.ts > R4 issuePatientAccessSlip (US-09.1, US-09.2, US-09.5) > request validation: report_id must be a UUID -> 400 common.validation_failed, no write
+AssertionError: expected 'common.internal' to be 'common.validation_failed' // Object.is equality
+
+Expected: "common.validation_failed"
+Received: "common.internal"
+
+ ❯ fails src/modules/partners/__tests__/access-slip.test.ts:35:18
+     33|   const e: any = await p.then(() => { throw new Error('expected reject…
+     34|   expect(e, String(e?.message)).toBeInstanceOf(LimsError);
+     35|   expect(e.code).toBe(code);
+       |                  ^
+     36|   if (status) expect(e.statusCode).toBe(status);
+     37|   return e as LimsError;
+ ❯ src/modules/partners/__tests__/access-slip.test.ts:158:7
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[14/43]⎯
+
+ FAIL  src/modules/partners/__tests__/access-slip.test.ts > R4 issuePatientAccessSlip (US-09.1, US-09.2, US-09.5) > ST12: nothing secret anywhere (tables, jobs, SQL text + values, access log, logs, response, stored idempotency response body)
+LimsError: common.internal
+ ❯ Object.issuePatientAccessSlip src/modules/partners/index.ts:51:9
+     49| const stub = (operationId: string): Handler => async () => {
+     50|   if (process.env.LIMS_CORE_ENV === 'dev' && process.env.NODE_ENV !== …
+     51|   throw new LimsError('common.internal', `partners ${operationId} not …
+       |         ^
+     52| };
+     53|
+ ❯ Object.run src/modules/partners/__tests__/tracking-api.world.ts:185:36
+ ❯ post src/modules/partners/__tests__/access-slip.test.ts:46:42
+ ❯ src/modules/partners/__tests__/access-slip.test.ts:165:23
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[15/43]⎯
+
+ FAIL  src/modules/partners/__tests__/access-slip.test.ts > R5 getPatientAccessSlip (US-09.4) > requested: { id, report_id, version_no, state: requested } and no optional field
+LimsError: common.internal
+ ❯ Object.getPatientAccessSlip src/modules/partners/index.ts:51:9
+     49| const stub = (operationId: string): Handler => async () => {
+     50|   if (process.env.LIMS_CORE_ENV === 'dev' && process.env.NODE_ENV !== …
+     51|   throw new LimsError('common.internal', `partners ${operationId} not …
+       |         ^
+     52| };
+     53|
+ ❯ Object.run src/modules/partners/__tests__/tracking-api.world.ts:185:36
+ ❯ get src/modules/partners/__tests__/access-slip.test.ts:47:55
+ ❯ src/modules/partners/__tests__/access-slip.test.ts:179:23
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[16/43]⎯
+
+ FAIL  src/modules/partners/__tests__/access-slip.test.ts > R5 getPatientAccessSlip (US-09.4) > issued: link_expires_at and issued_at (ISO) are present; never the link, token, path, hash or any internal column
+LimsError: common.internal
+ ❯ Object.getPatientAccessSlip src/modules/partners/index.ts:51:9
+     49| const stub = (operationId: string): Handler => async () => {
+     50|   if (process.env.LIMS_CORE_ENV === 'dev' && process.env.NODE_ENV !== …
+     51|   throw new LimsError('common.internal', `partners ${operationId} not …
+       |         ^
+     52| };
+     53|
+ ❯ Object.run src/modules/partners/__tests__/tracking-api.world.ts:185:36
+ ❯ get src/modules/partners/__tests__/access-slip.test.ts:47:55
+ ❯ src/modules/partners/__tests__/access-slip.test.ts:187:23
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[17/43]⎯
+
+ FAIL  src/modules/partners/__tests__/access-slip.test.ts > R5 getPatientAccessSlip (US-09.4) > failed: the failure code is shown (US-09.4: reporting.report_superseded / not_released / template_invalid ...)
+LimsError: common.internal
+ ❯ Object.getPatientAccessSlip src/modules/partners/index.ts:51:9
+     49| const stub = (operationId: string): Handler => async () => {
+     50|   if (process.env.LIMS_CORE_ENV === 'dev' && process.env.NODE_ENV !== …
+     51|   throw new LimsError('common.internal', `partners ${operationId} not …
+       |         ^
+     52| };
+     53|
+ ❯ Object.run src/modules/partners/__tests__/tracking-api.world.ts:185:36
+ ❯ get src/modules/partners/__tests__/access-slip.test.ts:47:55
+ ❯ src/modules/partners/__tests__/access-slip.test.ts:195:23
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[18/43]⎯
+
+ FAIL  src/modules/partners/__tests__/access-slip.test.ts > R5 getPatientAccessSlip (US-09.4) > expired: state expired, no file field
+LimsError: common.internal
+ ❯ Object.getPatientAccessSlip src/modules/partners/index.ts:51:9
+     49| const stub = (operationId: string): Handler => async () => {
+     50|   if (process.env.LIMS_CORE_ENV === 'dev' && process.env.NODE_ENV !== …
+     51|   throw new LimsError('common.internal', `partners ${operationId} not …
+       |         ^
+     52| };
+     53|
+ ❯ Object.run src/modules/partners/__tests__/tracking-api.world.ts:185:36
+ ❯ get src/modules/partners/__tests__/access-slip.test.ts:47:55
+ ❯ src/modules/partners/__tests__/access-slip.test.ts:202:23
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[19/43]⎯
+
+ FAIL  src/modules/partners/__tests__/access-slip.test.ts > R5 getPatientAccessSlip (US-09.4) > no value on the wire is null (null columns are omitted)
+LimsError: common.internal
+ ❯ Object.getPatientAccessSlip src/modules/partners/index.ts:51:9
+     49| const stub = (operationId: string): Handler => async () => {
+     50|   if (process.env.LIMS_CORE_ENV === 'dev' && process.env.NODE_ENV !== …
+     51|   throw new LimsError('common.internal', `partners ${operationId} not …
+       |         ^
+     52| };
+     53|
+ ❯ Object.run src/modules/partners/__tests__/tracking-api.world.ts:185:36
+ ❯ get src/modules/partners/__tests__/access-slip.test.ts:47:55
+ ❯ src/modules/partners/__tests__/access-slip.test.ts:210:25
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[20/43]⎯
+
+ FAIL  src/modules/partners/__tests__/access-slip.test.ts > R5 getPatientAccessSlip (US-09.4) > 404 common.not_found: partner Y's slip, tenant B's slip, unknown id, and a slip addressed under another report_id
+AssertionError: expected 'common.internal' to be 'common.not_found' // Object.is equality
+
+Expected: "common.not_found"
+Received: "common.internal"
+
+ ❯ fails src/modules/partners/__tests__/access-slip.test.ts:35:18
+     33|   const e: any = await p.then(() => { throw new Error('expected reject…
+     34|   expect(e, String(e?.message)).toBeInstanceOf(LimsError);
+     35|   expect(e.code).toBe(code);
+       |                  ^
+     36|   if (status) expect(e.statusCode).toBe(status);
+     37|   return e as LimsError;
+ ❯ src/modules/partners/__tests__/access-slip.test.ts:217:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[21/43]⎯
+
+ FAIL  src/modules/partners/__tests__/access-slip.test.ts > R5 getPatientAccessSlip (US-09.4) > request validation: report_id / access_slip_id must be UUIDs -> 400 common.validation_failed
+AssertionError: expected 'common.internal' to be 'common.validation_failed' // Object.is equality
+
+Expected: "common.validation_failed"
+Received: "common.internal"
+
+ ❯ fails src/modules/partners/__tests__/access-slip.test.ts:35:18
+     33|   const e: any = await p.then(() => { throw new Error('expected reject…
+     34|   expect(e, String(e?.message)).toBeInstanceOf(LimsError);
+     35|   expect(e.code).toBe(code);
+       |                  ^
+     36|   if (status) expect(e.statusCode).toBe(status);
+     37|   return e as LimsError;
+ ❯ src/modules/partners/__tests__/access-slip.test.ts:227:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[22/43]⎯
+
+ FAIL  src/modules/partners/__tests__/access-slip.test.ts > R5 getPatientAccessSlip (US-09.4) > any member of the same partner can read the slip another member requested
+LimsError: common.internal
+ ❯ Object.getPatientAccessSlip src/modules/partners/index.ts:51:9
+     49| const stub = (operationId: string): Handler => async () => {
+     50|   if (process.env.LIMS_CORE_ENV === 'dev' && process.env.NODE_ENV !== …
+     51|   throw new LimsError('common.internal', `partners ${operationId} not …
+       |         ^
+     52| };
+     53|
+ ❯ Object.run src/modules/partners/__tests__/tracking-api.world.ts:185:36
+ ❯ get src/modules/partners/__tests__/access-slip.test.ts:47:55
+ ❯ src/modules/partners/__tests__/access-slip.test.ts:233:19
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[23/43]⎯
+
+ FAIL  src/modules/partners/__tests__/access-slip.test.ts > R5 getPatientAccessSlip (US-09.4) > polling is a pure read: 30 polls, no write, no port call, no storage access, no access-log row, identical answers
+LimsError: common.internal
+ ❯ Object.getPatientAccessSlip src/modules/partners/index.ts:51:9
+     49| const stub = (operationId: string): Handler => async () => {
+     50|   if (process.env.LIMS_CORE_ENV === 'dev' && process.env.NODE_ENV !== …
+     51|   throw new LimsError('common.internal', `partners ${operationId} not …
+       |         ^
+     52| };
+     53|
+ ❯ Object.run src/modules/partners/__tests__/tracking-api.world.ts:185:36
+ ❯ get src/modules/partners/__tests__/access-slip.test.ts:47:55
+ ❯ src/modules/partners/__tests__/access-slip.test.ts:238:25
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[24/43]⎯
+
+ FAIL  src/modules/partners/__tests__/access-slip.test.ts > R5 getPatientAccessSlip (US-09.4) > no secret anywhere in responses, logs, SQL
+LimsError: common.internal
+ ❯ Object.getPatientAccessSlip src/modules/partners/index.ts:51:9
+     49| const stub = (operationId: string): Handler => async () => {
+     50|   if (process.env.LIMS_CORE_ENV === 'dev' && process.env.NODE_ENV !== …
+     51|   throw new LimsError('common.internal', `partners ${operationId} not …
+       |         ^
+     52| };
+     53|
+ ❯ Object.run src/modules/partners/__tests__/tracking-api.world.ts:185:36
+ ❯ get src/modules/partners/__tests__/access-slip.test.ts:47:55
+ ❯ src/modules/partners/__tests__/access-slip.test.ts:248:99
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[25/43]⎯
+
+ FAIL  src/modules/partners/__tests__/access-slip.test.ts > R6 downloadPatientAccessSlip (US-09.6) > 200: the stored PDF bytes, application/pdf, attachment access-slip-<id>.pdf, Cache-Control no-store, nosniff
+LimsError: common.internal
+ ❯ Object.downloadPatientAccessSlip src/modules/partners/index.ts:51:9
+     49| const stub = (operationId: string): Handler => async () => {
+     50|   if (process.env.LIMS_CORE_ENV === 'dev' && process.env.NODE_ENV !== …
+     51|   throw new LimsError('common.internal', `partners ${operationId} not …
+       |         ^
+     52| };
+     53|
+ ❯ Object.run src/modules/partners/__tests__/tracking-api.world.ts:185:36
+ ❯ file src/modules/partners/__tests__/access-slip.test.ts:48:56
+ ❯ src/modules/partners/__tests__/access-slip.test.ts:257:23
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[26/43]⎯
+
+ FAIL  src/modules/partners/__tests__/access-slip.test.ts > R6 downloadPatientAccessSlip (US-09.6) > reads exactly the registered object of the slip, server-side: bucket partners-slips, path {tenant_id}/access-slips/{yyyy}/{mm}/{id}.pdf, once
+LimsError: common.internal
+ ❯ Object.downloadPatientAccessSlip src/modules/partners/index.ts:51:9
+     49| const stub = (operationId: string): Handler => async () => {
+     50|   if (process.env.LIMS_CORE_ENV === 'dev' && process.env.NODE_ENV !== …
+     51|   throw new LimsError('common.internal', `partners ${operationId} not …
+       |         ^
+     52| };
+     53|
+ ❯ Object.run src/modules/partners/__tests__/tracking-api.world.ts:185:36
+ ❯ file src/modules/partners/__tests__/access-slip.test.ts:48:56
+ ❯ src/modules/partners/__tests__/access-slip.test.ts:271:11
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[27/43]⎯
+
+ FAIL  src/modules/partners/__tests__/access-slip.test.ts > R6 downloadPatientAccessSlip (US-09.6) > access log on EVERY download: report.access_slip / access_slip / slip id / allowed / detail { access_slip_id, link_id } (08 A5.3, CR-C13-012)
+LimsError: common.internal
+ ❯ Object.downloadPatientAccessSlip src/modules/partners/index.ts:51:9
+     49| const stub = (operationId: string): Handler => async () => {
+     50|   if (process.env.LIMS_CORE_ENV === 'dev' && process.env.NODE_ENV !== …
+     51|   throw new LimsError('common.internal', `partners ${operationId} not …
+       |         ^
+     52| };
+     53|
+ ❯ Object.run src/modules/partners/__tests__/tracking-api.world.ts:185:36
+ ❯ file src/modules/partners/__tests__/access-slip.test.ts:48:56
+ ❯ src/modules/partners/__tests__/access-slip.test.ts:278:11
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[28/43]⎯
+
+ FAIL  src/modules/partners/__tests__/access-slip.test.ts > R6 downloadPatientAccessSlip (US-09.6) > R6 is a pure read of the row: no UPDATE / INSERT / DELETE on any table
+LimsError: common.internal
+ ❯ Object.downloadPatientAccessSlip src/modules/partners/index.ts:51:9
+     49| const stub = (operationId: string): Handler => async () => {
+     50|   if (process.env.LIMS_CORE_ENV === 'dev' && process.env.NODE_ENV !== …
+     51|   throw new LimsError('common.internal', `partners ${operationId} not …
+       |         ^
+     52| };
+     53|
+ ❯ Object.run src/modules/partners/__tests__/tracking-api.world.ts:185:36
+ ❯ file src/modules/partners/__tests__/access-slip.test.ts:48:56
+ ❯ src/modules/partners/__tests__/access-slip.test.ts:293:11
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[29/43]⎯
+
+ FAIL  src/modules/partners/__tests__/access-slip.test.ts > R6 downloadPatientAccessSlip (US-09.6) > US-09.6 / 08 A5.3: a slip that is not issued has no file -> 404 common.not_found (requested, failed, expired); no storage read, no allowed log
+AssertionError: expected 'common.internal' to be 'common.not_found' // Object.is equality
+
+Expected: "common.not_found"
+Received: "common.internal"
+
+ ❯ fails src/modules/partners/__tests__/access-slip.test.ts:35:18
+     33|   const e: any = await p.then(() => { throw new Error('expected reject…
+     34|   expect(e, String(e?.message)).toBeInstanceOf(LimsError);
+     35|   expect(e.code).toBe(code);
+       |                  ^
+     36|   if (status) expect(e.statusCode).toBe(status);
+     37|   return e as LimsError;
+ ❯ src/modules/partners/__tests__/access-slip.test.ts:301:7
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[30/43]⎯
+
+ FAIL  src/modules/partners/__tests__/access-slip.test.ts > R6 downloadPatientAccessSlip (US-09.6) > an issued row whose object is gone (purge race, deleted object) -> 404 common.not_found, never an allowed log row
+AssertionError: expected 'common.internal' to be 'common.not_found' // Object.is equality
+
+Expected: "common.not_found"
+Received: "common.internal"
+
+ ❯ fails src/modules/partners/__tests__/access-slip.test.ts:35:18
+     33|   const e: any = await p.then(() => { throw new Error('expected reject…
+     34|   expect(e, String(e?.message)).toBeInstanceOf(LimsError);
+     35|   expect(e.code).toBe(code);
+       |                  ^
+     36|   if (status) expect(e.statusCode).toBe(status);
+     37|   return e as LimsError;
+ ❯ src/modules/partners/__tests__/access-slip.test.ts:310:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[31/43]⎯
+
+ FAIL  src/modules/partners/__tests__/access-slip.test.ts > R6 downloadPatientAccessSlip (US-09.6) > ST12: partner Y, tenant B, an unknown id and a wrong report_id in the path all get 404; the object is never read
+AssertionError: expected 'common.internal' to be 'common.not_found' // Object.is equality
+
+Expected: "common.not_found"
+Received: "common.internal"
+
+ ❯ fails src/modules/partners/__tests__/access-slip.test.ts:35:18
+     33|   const e: any = await p.then(() => { throw new Error('expected reject…
+     34|   expect(e, String(e?.message)).toBeInstanceOf(LimsError);
+     35|   expect(e.code).toBe(code);
+       |                  ^
+     36|   if (status) expect(e.statusCode).toBe(status);
+     37|   return e as LimsError;
+ ❯ src/modules/partners/__tests__/access-slip.test.ts:316:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[32/43]⎯
+
+ FAIL  src/modules/partners/__tests__/access-slip.test.ts > R6 downloadPatientAccessSlip (US-09.6) > request validation: path ids must be UUIDs -> 400 common.validation_failed, no storage read
+AssertionError: expected 'common.internal' to be 'common.validation_failed' // Object.is equality
+
+Expected: "common.validation_failed"
+Received: "common.internal"
+
+ ❯ fails src/modules/partners/__tests__/access-slip.test.ts:35:18
+     33|   const e: any = await p.then(() => { throw new Error('expected reject…
+     34|   expect(e, String(e?.message)).toBeInstanceOf(LimsError);
+     35|   expect(e.code).toBe(code);
+       |                  ^
+     36|   if (status) expect(e.statusCode).toBe(status);
+     37|   return e as LimsError;
+ ❯ src/modules/partners/__tests__/access-slip.test.ts:337:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[33/43]⎯
+
+ FAIL  src/modules/partners/__tests__/access-slip.test.ts > R6 downloadPatientAccessSlip (US-09.6) > ST12: headers, access log, logs and SQL never contain the link (only the PDF body does, by design)
+LimsError: common.internal
+ ❯ Object.downloadPatientAccessSlip src/modules/partners/index.ts:51:9
+     49| const stub = (operationId: string): Handler => async () => {
+     50|   if (process.env.LIMS_CORE_ENV === 'dev' && process.env.NODE_ENV !== …
+     51|   throw new LimsError('common.internal', `partners ${operationId} not …
+       |         ^
+     52| };
+     53|
+ ❯ Object.run src/modules/partners/__tests__/tracking-api.world.ts:185:36
+ ❯ file src/modules/partners/__tests__/access-slip.test.ts:48:56
+ ❯ src/modules/partners/__tests__/access-slip.test.ts:344:23
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[34/43]⎯
+
+ FAIL  src/modules/partners/__tests__/access-slip.test.ts > gates: partner actors only, partners.report.read, active partner > issuePatientAccessSlip: a non-partner actor (staff user, system, patient) -> 403 auth.forbidden before any SQL, storage or port
+ FAIL  src/modules/partners/__tests__/access-slip.test.ts > gates: partner actors only, partners.report.read, active partner > getPatientAccessSlip: a non-partner actor (staff user, system, patient) -> 403 auth.forbidden before any SQL, storage or port
+ FAIL  src/modules/partners/__tests__/access-slip.test.ts > gates: partner actors only, partners.report.read, active partner > downloadPatientAccessSlip: a non-partner actor (staff user, system, patient) -> 403 auth.forbidden before any SQL, storage or port
+AssertionError: expected 'common.internal' to be 'auth.forbidden' // Object.is equality
+
+Expected: "auth.forbidden"
+Received: "common.internal"
+
+ ❯ fails src/modules/partners/__tests__/access-slip.test.ts:35:18
+     33|   const e: any = await p.then(() => { throw new Error('expected reject…
+     34|   expect(e, String(e?.message)).toBeInstanceOf(LimsError);
+     35|   expect(e.code).toBe(code);
+       |                  ^
+     36|   if (status) expect(e.statusCode).toBe(status);
+     37|   return e as LimsError;
+ ❯ src/modules/partners/__tests__/access-slip.test.ts:360:9
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[35/43]⎯
+
+ FAIL  src/modules/partners/__tests__/access-slip.test.ts > gates: partner actors only, partners.report.read, active partner > issuePatientAccessSlip: IdentityPort.assertRole(partners.report.read) is asked; its refusal propagates and nothing is read or written
+LimsError: common.internal
+ ❯ Object.issuePatientAccessSlip src/modules/partners/index.ts:51:9
+     49| const stub = (operationId: string): Handler => async () => {
+     50|   if (process.env.LIMS_CORE_ENV === 'dev' && process.env.NODE_ENV !== …
+     51|   throw new LimsError('common.internal', `partners ${operationId} not …
+       |         ^
+     52| };
+     53|
+ ❯ Object.run src/modules/partners/__tests__/tracking-api.world.ts:185:36
+ ❯ post src/modules/partners/__tests__/access-slip.test.ts:46:42
+ ❯ call src/modules/partners/__tests__/access-slip.test.ts:354:51
+ ❯ src/modules/partners/__tests__/access-slip.test.ts:367:44
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[36/43]⎯
+
+ FAIL  src/modules/partners/__tests__/access-slip.test.ts > gates: partner actors only, partners.report.read, active partner > issuePatientAccessSlip: a user of a suspended partner -> 403 partners.partner_inactive
+ FAIL  src/modules/partners/__tests__/access-slip.test.ts > gates: partner actors only, partners.report.read, active partner > getPatientAccessSlip: a user of a suspended partner -> 403 partners.partner_inactive
+ FAIL  src/modules/partners/__tests__/access-slip.test.ts > gates: partner actors only, partners.report.read, active partner > downloadPatientAccessSlip: a user of a suspended partner -> 403 partners.partner_inactive
+AssertionError: expected 'common.internal' to be 'partners.partner_inactive' // Object.is equality
+
+Expected: "partners.partner_inactive"
+Received: "common.internal"
+
+ ❯ fails src/modules/partners/__tests__/access-slip.test.ts:35:18
+     33|   const e: any = await p.then(() => { throw new Error('expected reject…
+     34|   expect(e, String(e?.message)).toBeInstanceOf(LimsError);
+     35|   expect(e.code).toBe(code);
+       |                  ^
+     36|   if (status) expect(e.statusCode).toBe(status);
+     37|   return e as LimsError;
+ ❯ src/modules/partners/__tests__/access-slip.test.ts:377:7
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[37/43]⎯
+
+ FAIL  src/modules/partners/__tests__/access-slip.test.ts > gates: partner actors only, partners.report.read, active partner > getPatientAccessSlip: IdentityPort.assertRole(partners.report.read) is asked; its refusal propagates and nothing is read or written
+LimsError: common.internal
+ ❯ Object.getPatientAccessSlip src/modules/partners/index.ts:51:9
+     49| const stub = (operationId: string): Handler => async () => {
+     50|   if (process.env.LIMS_CORE_ENV === 'dev' && process.env.NODE_ENV !== …
+     51|   throw new LimsError('common.internal', `partners ${operationId} not …
+       |         ^
+     52| };
+     53|
+ ❯ Object.run src/modules/partners/__tests__/tracking-api.world.ts:185:36
+ ❯ get src/modules/partners/__tests__/access-slip.test.ts:47:55
+ ❯ call src/modules/partners/__tests__/access-slip.test.ts:354:80
+ ❯ src/modules/partners/__tests__/access-slip.test.ts:367:44
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[38/43]⎯
+
+ FAIL  src/modules/partners/__tests__/access-slip.test.ts > gates: partner actors only, partners.report.read, active partner > downloadPatientAccessSlip: IdentityPort.assertRole(partners.report.read) is asked; its refusal propagates and nothing is read or written
+LimsError: common.internal
+ ❯ Object.downloadPatientAccessSlip src/modules/partners/index.ts:51:9
+     49| const stub = (operationId: string): Handler => async () => {
+     50|   if (process.env.LIMS_CORE_ENV === 'dev' && process.env.NODE_ENV !== …
+     51|   throw new LimsError('common.internal', `partners ${operationId} not …
+       |         ^
+     52| };
+     53|
+ ❯ Object.run src/modules/partners/__tests__/tracking-api.world.ts:185:36
+ ❯ file src/modules/partners/__tests__/access-slip.test.ts:48:56
+ ❯ call src/modules/partners/__tests__/access-slip.test.ts:354:104
+ ❯ src/modules/partners/__tests__/access-slip.test.ts:367:44
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[39/43]⎯
+
+
+ Test Files  2 failed | 1 passed (3)
+      Tests  43 failed | 45 passed (88)
+   Start at  11:41:11
+   Duration  175.30s (tests 73%, import 14%, transform 12%)
+

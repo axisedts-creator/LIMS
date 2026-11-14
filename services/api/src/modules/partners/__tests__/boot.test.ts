@@ -34,6 +34,7 @@ const PARTNER_ONLY = ['partners.order.read', 'partners.manifest.submit', 'partne
 /** operationIds whose stub a later task has replaced; that task moves its ids here (tester-owned list). */
 const IMPLEMENTED: readonly string[] = [
   'getPartnerContext', // T03 (A1)
+  'getPartnerDashboard', // T18 (A2)
   'listPartnerUsers', 'invitePartnerUser', 'changePartnerUserRole', 'deactivatePartnerUser', 'reactivatePartnerUser', 'resendPartnerInvitation', // T06 U1-U6
   'listPartnerUsersForPartner', 'invitePartnerUserByStaff', 'changePartnerUserRoleByStaff', 'deactivatePartnerUserByStaff', 'reactivatePartnerUserByStaff', // T06 SA8-SA10
   'listPartners', 'createPartner', 'getPartner', 'updatePartner', 'suspendPartner', 'reactivatePartner', 'resyncPartnerProjections', // T07 (SA1-SA7)
@@ -46,6 +47,7 @@ const IMPLEMENTED: readonly string[] = [
   'submitManifest', 'withdrawManifest', 'getManifestPrintView', // T09 (M8, M9, M11)
   'listInboundManifests', 'getInboundManifest', 'receiveManifest', 'retryManifestLineConversion', 'markManifestLineNotReceived', // T10 (SI1-SI5)
   'listPartnerOrders', 'searchPartnerOrders', 'getPartnerOrder', 'listPartnerReports', 'markPartnerReportsSeen', 'downloadPartnerReport', // T13 (O1-O3, R1-R3)
+  'issuePatientAccessSlip', 'getPatientAccessSlip', 'downloadPatientAccessSlip', // T14 (R4-R6)
 ];
 
 const FAKE_REQ = { params: {}, query: {}, headers: {}, body: {} };

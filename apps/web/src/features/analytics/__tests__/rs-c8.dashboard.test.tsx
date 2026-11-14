@@ -14,7 +14,7 @@
 //      region says "Nothing needs you" (a sentence, not an empty box).
 //   3. Money strip: a region named /money/i, present ONLY when the API sent a paisa tile (it is the API that applies billing.cash_report.read / analytics scope;
 //      permissions are not changed here), containing every sent money tile with the currency "Rs." and the period label (A.D.). Pipeline and needs-you carry no money.
-//   4. No grid of equal KPI tiles (10-DESIGN-SYSTEM s4, s6): at most 3 `.lims-stat` tiles on the whole page (the money strip may use them).
+//   4. No grid of equal KPI tiles (10-DESIGN-SYSTEM s4, s6): no `.lims-grid` of stat tiles; at most 3 per region and 1 outside (10-DESIGN-SYSTEM.md:101,125; RS-C8-ruling.md).
 //   5. DOM order: pipeline, then needs you, then money (reading and Tab order = the order of importance). One h1.
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, render, screen, within } from '@testing-library/react';
@@ -168,9 +168,13 @@ describe('RS-C8 dashboard — money strip only where the API sent money, with cu
 });
 
 describe('RS-C8 dashboard — arrangement (s6: no grid of equal KPI tiles, one container level)', () => {
-  it('at most 3 stat tiles on the page and one h1', async () => {
+  it('no grid of stat tiles (at most 3 per region, 1 outside them) and one h1', async () => {
     const { container } = await open(FULL);
-    expect(container.querySelectorAll('.lims-stat').length).toBeLessThanOrEqual(3);
+    const stats = Array.from(container.querySelectorAll('.lims-stat'));
+    for (const e of stats) expect(e.closest('.lims-grid'), 'a .lims-stat inside a .lims-grid').toBeNull();
+    const regions = [pipeline(), needsYou(), moneyStrip()].filter((r): r is HTMLElement => r !== null);
+    for (const r of regions) expect(r.querySelectorAll('.lims-stat').length).toBeLessThanOrEqual(3);
+    expect(stats.filter((e) => !regions.some((r) => r.contains(e))).length).toBeLessThanOrEqual(1);
     expect(screen.getAllByRole('heading', { level: 1 })).toHaveLength(1);
   });
 

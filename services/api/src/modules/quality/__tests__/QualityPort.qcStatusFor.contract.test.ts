@@ -5,7 +5,6 @@
 // SKIPS for a stub and that belong to T-13 — (6) and (8) — are copied here verbatim (same ids, same seed shape). Cases 2-5, 10, 11-full are T-16's.
 // Fails now: "createQualityPort is not a function" / cases 6, 8 and the default-wiring tests answer the stub's no_qc_data.
 import { describe, expect, it } from 'vitest';
-import { runQualityPortContract } from '../../../../../../packages/fakes/contract-tests/QualityPort.contract';
 import { makeCtxFor, type ContractHarness } from '../../../../../../packages/fakes/src/harness';
 import { createEventSpy } from '../../../../../../packages/fakes/src/event-spy';
 import { manifest } from '../index.js';
@@ -35,7 +34,8 @@ const harness = (): (() => Promise<ContractHarness>) => async () => {
   };
 };
 
-runQualityPortContract(harness(), { phase1Stub: true });   // cases 1, 7, 9, 11, 12 on the module's own port (qcStatusFor cases 7, 9, 12 are now answered from data, see below)
+// T-16 retired the phase1Stub subset run here: cases 1 and 11 call canAutoVerify, which is now the real decision service (needs IdentityPort + rule-set data this seedless harness has no seam for).
+// The SAME shared suite now runs in FULL (cases 1-12, including 7, 9, 12) in QualityPort.canAutoVerify.contract.test.ts on a harness that seeds rule sets, tenant settings and QC plans.
 
 const NOW = '2026-11-05T04:15:00.000Z';
 const IN = '01900000-0000-7000-8000-0000000c9001', AN = '01900000-0000-7000-8000-0000000c9002', PLAN = '01900000-0000-7000-8000-0000000c9003';
@@ -74,12 +74,11 @@ describe('manifest.ports.QualityPort is the real qcStatusFor (T-01 stub-equivale
     for (const c of ['failNext', 'latency', 'calls', 'reset', 'seed', 'fixtures', '__seed', '__rollback']) expect((qualityPort as any)[c], c).toBeUndefined();
     expect(typeof createQualityPort).toBe('function');
   });
-  it('createQualityPort delegates qcStatusFor to the injected status service with (ctx, input) and returns its result unchanged; canAutoVerify is still the T-01 stub (T-16 replaces it)', async () => {
+  it('createQualityPort delegates qcStatusFor to the injected status service with (ctx, input) and returns its result unchanged (canAutoVerify: see QualityPort.canAutoVerify.contract.test.ts, T-16)', async () => {
     const seen: unknown[][] = []; const result = { status: 'warning', currentRunId: RUN(2), violatedRules: ['1-2s'] };
     const p: any = createQualityPort({ status: { async qcStatusFor(...a: unknown[]) { seen.push(a); return result; } } as any });
     const ctx = h('A:system');
     expect(await p.qcStatusFor(ctx, input)).toEqual(result); expect(seen).toEqual([[ctx, input]]);
-    expect(await p.canAutoVerify(ctx, {})).toEqual({ decision: 'deny', reasons: ['feature_disabled'] });
   });
   it('DEFAULT wiring end to end (real service + real repo on ctx.tx; a scripted tx stands in for Postgres): plan row + run rows -> S2 in_control, S4 out_of_control', async () => {
     const seed = timelineSeed(); const planRow = { plan_id: PLN(1), qc_validity_hours: 24 };

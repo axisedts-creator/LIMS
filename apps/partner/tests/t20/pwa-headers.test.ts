@@ -60,25 +60,11 @@ describe('next.config.ts headers()', () => {
     }
   });
 
-  it('CSP is present (report-only and/or enforced) on app pages with worker-src/manifest-src \'self\', no eval, no remote hosts, framing denied', async () => {
+  it('no static CSP in headers(): the CSP is per-request (nonce) and set by src/middleware.ts (REQ-SEC-088–092, 02-TRD §3.6)', async () => {
     for (const p of ['/', '/orders/o-1', '/auth/login']) {
       const h = await headersFor(p);
-      const csp = [...(h['content-security-policy'] ?? []), ...(h['content-security-policy-report-only'] ?? [])];
-      expect(csp.length, `CSP header on ${p}`).toBeGreaterThan(0);
-      for (const policy of csp) {
-        const d = Object.fromEntries(policy.split(';').map((s) => s.trim()).filter(Boolean).map((s) => { const [k, ...v] = s.split(/\s+/); return [k, v]; })) as Record<string, string[]>;
-        expect(d['default-src'], 'default-src').toContain("'self'");
-        expect(d['worker-src'], 'worker-src').toEqual(["'self'"]);
-        expect(d['manifest-src'], 'manifest-src').toEqual(["'self'"]);
-        expect(d['object-src'], 'object-src').toEqual(["'none'"]);
-        expect(d['frame-ancestors'], 'frame-ancestors').toEqual(["'none'"]);
-        expect(d['base-uri'], 'base-uri').toEqual(["'self'"]);
-        expect(d['form-action'], 'form-action').toContain("'self'");
-        expect(policy).not.toContain("'unsafe-eval'");
-        expect(policy.replace(/report-(uri|to)[^;]*/g, ''), 'no remote origins').not.toMatch(/https?:\/\/|\*/);
-        const script = d['script-src'] ?? [];
-        if (script.includes("'unsafe-inline'")) expect(script.join(' '), "'unsafe-inline' only alongside a nonce/strict-dynamic").toMatch(/nonce-|strict-dynamic/);
-      }
+      expect(h['content-security-policy'] ?? [], p).toEqual([]);
+      expect(h['content-security-policy-report-only'] ?? [], p).toEqual([]);
     }
   });
 

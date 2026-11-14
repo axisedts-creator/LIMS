@@ -19,13 +19,17 @@ export interface FormDialogProps {
   danger?: boolean;
   /** 'drawer' renders the kit Drawer (assessment); default is the Dialog. */
   as?: 'dialog' | 'drawer';
+  /** T-23: Drawer width (assay editor is large). */
+  width?: 'md' | 'lg';
+  /** T-23: own failure copy (configuration screens show the server's validation message). */
+  describe?: (f: Fail) => string | undefined;
   onClose: () => void;
   onMfa: () => void;
   onSubmit: () => Promise<Fail | undefined>;
   children: ReactNode;
 }
 
-export function FormDialog({ title, submitLabel, status, danger, as = 'dialog', onClose, onMfa, onSubmit, children }: FormDialogProps) {
+export function FormDialog({ title, submitLabel, status, danger, as = 'dialog', width = 'md', describe, onClose, onMfa, onSubmit, children }: FormDialogProps) {
   const body = useRef<HTMLDivElement>(null);
   const [fail, setFail] = useState<Fail>();
   const [pending, setPending] = useState(false);
@@ -56,13 +60,13 @@ export function FormDialog({ title, submitLabel, status, danger, as = 'dialog', 
   );
   const content = (
     <div ref={body}>
-      <FailNotice fail={fail} {...(status ? { status } : {})} />
+      <FailNotice fail={fail} {...(status ? { status } : {})} {...(describe ? { describe } : {})} />
       <Form onSubmit={submit}>{children}</Form>
       {as === 'drawer' ? <div className="lims-dialog-footer">{footer}</div> : null}
     </div>
   );
   return as === 'drawer' ? (
-    <Drawer title={title} isOpen onClose={onClose} width="md">{content}</Drawer>
+    <Drawer title={title} isOpen onClose={onClose} width={width}>{content}</Drawer>
   ) : (
     <Dialog title={title} isOpen onClose={onClose} footer={footer}>{content}</Dialog>
   );

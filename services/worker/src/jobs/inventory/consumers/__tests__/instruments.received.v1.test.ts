@@ -361,7 +361,7 @@ describe.skipIf(!live)('T-17 AC-14.4 duplicate QC event deducts nothing', () => 
 describe.skipIf(!live)('T-17 AC-21.7 / D-74 instrument_qc_daily.qc_observations: every non-duplicate QC event, before the mapping filter and the switch gate', () => {
   run('consumption_enabled_at NULL: qc_observations counts mapped AND unmapped events; no fact, no movement, no qc_events, no tests counters', async (s) => {
     await enable(s, null); await qc(s); await qc(s, { mapping_status: 'unmapped', analyte_id: undefined }); await qc(s, { analyte_id: AOTH });
-    expect(await qcObs(s, IB1)).toBe(3); expect(await count(s, 'consumption_facts', "fact_kind = 'qc' AND instrument_id = $2", [IB1])).toBe(0); expect(await count(s, 'stock_movements', 'instrument_id = $2 AND occurred_at = $3::timestamptz', [IB1, V1])).toBe(0);
+    expect(await qcObs(s, IB1)).toBe(3); expect(await count(s, 'consumption_facts', "fact_kind = 'qc' AND instrument_id = $2 AND business_date = $3", [IB1, V1_BD])).toBe(0); expect(await count(s, 'stock_movements', 'instrument_id = $2 AND occurred_at = $3::timestamptz', [IB1, V1])).toBe(0);
     expect(await count(s, 'test_counts_daily', 'qc_events > 0 AND business_date = $2', [V1_BD])).toBe(0); expect(await count(s, 'alerts', "alert_kind = 'unresolved_consumption'")).toBe(0);
   });
   run('received_at before the enable instant: counted only; at the enable instant: processed; the counter is not back-filled when the switch is turned on later', async (s) => {

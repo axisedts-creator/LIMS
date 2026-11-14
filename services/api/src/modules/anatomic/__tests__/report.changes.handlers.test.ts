@@ -42,7 +42,7 @@ import { TENANT_A, TENANT_B } from '../../../../../../packages/fakes/src/base.js
 type Row = Record<string, any>;
 const S = vi.hoisted(() => ({
   cases: new Map<string, Row>(), items: new Map<string, Row>(), drafts: new Map<string, Row>(), versions: new Map<string, Row>(), subs: new Map<string, Row>(), parts: new Map<string, Row>(),
-  addenda: new Map<string, Row>(), stainOrders: new Map<string, Row>(), transitions: [] as Row[],
+  addenda: new Map<string, Row>(), stainOrders: new Map<string, Row>(), templates: new Map<string, Row>(), transitions: [] as Row[],
   log: [] as string[], writes: 0, portCalls: 0, portFailAt: 0, dbFail: undefined as undefined | { name: string; at: number }, dbCalls: {} as Record<string, number>,
   locks: new Map<string, { tx: unknown; waiters: (() => void)[] }>(),
 }));
@@ -215,7 +215,7 @@ vi.mock('../repository/images.repo.js', async (orig) => {
 });
 vi.mock('../repository/templates.repo.js', async (orig) => {
   const m = (await orig()) as Row;
-  return { ...m, async getSynopticTemplate() { return undefined; }, async listSynopticTemplates() { return []; } };
+  return { ...m, async getSynopticTemplate(_tx: unknown, i: Row) { const t = S.templates.get(i['id']); return t && t['tenant_id'] === i['tenantId'] ? { ...t } : undefined; }, async listSynopticTemplates() { return []; } };
 });
 vi.mock('../repository/codedValues.repo.js', async (orig) => {
   const m = (await orig()) as Row;
@@ -374,7 +374,7 @@ const stainOrder = (w: W, n: number, over: Row = {}) => { const id = uid(8000 + 
 const addendaView = (v: Row) => (v['addenda'] as Row[]).map((a) => ({ seq: a['seq'], kind: a['kind'], text: a['text'], signed_by_membership_id: a['signed_by_membership_id'], signed_at: iso(a['signed_at']) }));
 
 beforeEach(() => {
-  for (const m of [S.cases, S.items, S.drafts, S.versions, S.subs, S.parts, S.addenda, S.stainOrders, S.locks]) (m as Map<unknown, unknown>).clear();
+  for (const m of [S.cases, S.items, S.drafts, S.versions, S.subs, S.parts, S.addenda, S.stainOrders, S.templates, S.locks]) (m as Map<unknown, unknown>).clear();
   S.transitions.length = 0; S.log.length = 0; S.writes = 0; S.portCalls = 0; S.portFailAt = 0; S.dbFail = undefined; S.dbCalls = {};
   calls.assertRole.length = 0; calls.logs.length = 0; calls.access.length = 0;
 });
@@ -433,6 +433,27 @@ describe('R4 startAnatomicCaseChange — kind decision through LabPort (02-TRD �
     expect(versions(w.caseId)[1]).toMatchObject({ version_no: 2, version_kind: 'revision', impression_text: 'Chronic active gastritis.', change_reason_code: 'transcription_error' });
     expect(subs(w.caseId).filter((s) => s['item_version_no'] === 2).every((s) => s['lab_version_no'] === 1 && s['lab_status'] === 'resulted')).toBe(true);
     expect(openDraft(w)).toBeUndefined(); // consumed by R3
+  });
+  it('prefill keeps the synoptic instances and ancillary results of the latest full version (02-TRD §5.3 R4): taken from its consumed draft; R3 after R4 signs a version whose synoptic/ancillary equal the original\'s', async () => {
+    const w = world({ n: 9 });
+    const tpl = uid(8500), so = stainOrder(w, 9);
+    S.templates.set(tpl, { id: tpl, tenant_id: T, template_key: 'synth_a', version_no: 2, title: 'Synthetic checklist',
+      definition: { title: 'Synthetic checklist', sections: [{ heading: 'Tumour', fields: [{ key: 'site', label: 'Site', type: 'text', required: true }] }] } });
+    const synoptic = [{ template_id: tpl, template_key: 'synth_a', template_version: 2, title: 'Synthetic checklist', values: { site: 'Left lobe' } }];
+    const ancillary = [{ stain_order_id: so, result_text: 'CK7 positive in tumour cells.' }];
+    const did = uid(9009);
+    S.drafts.set(did, { id: did, tenant_id: T, centre_id: C_A1, case_id: w.caseId, kind: 'initial', status: 'consumed', change_reason_code: null, change_reason_text: null, ...DRAFT_CONTENT, synoptic, ancillary,
+      base_version_no: 0, consumed_version_no: 1, consumed_at: new Date(FIRST_SIGNED), discarded_at: null, version: 4, created_by: ACTOR, updated_by: ACTOR, updated_at: new Date(FIRST_SIGNED) });
+    const original = { ...[...S.versions.values()].find((v) => v['case_id'] === w.caseId)!, ancillary: [{ stain_kind: 'ihc', stain_code: 'IHC_CK7', stain_display: 'IHC_CK7', result_text: ancillary[0]!.result_text }] };
+    S.versions.set(original['id'], original);
+    const r = await start(w);
+    expect(r.status).toBe(201);
+    expect(r.body.synoptic).toEqual(synoptic);
+    expect(r.body.ancillary).toEqual(ancillary);
+    await signChange(w); // no edit: what the R4 prefill carried is what gets signed
+    const v2 = versions(w.caseId)[1]!;
+    expect(v2['synoptic']).toEqual(original['synoptic']);
+    expect(v2['ancillary']).toEqual(original['ancillary']);
   });
   it('AC-10.2 end to end: approved → amendment draft; on signing C5 receives version n+1 with amendment { reasonCode, reasonText } and the stored version is "amendment"; lab version 2, status approved', async () => {
     const w = world({ n: 8, approved: [0, 1] });
@@ -663,10 +684,11 @@ describe('R7 getAnatomicReportVersion — access log anatomic_report.view (REQ-S
     const w = world({ n: 34 }); seedVersions(w, 2);
     const r = await getV(w, 1);
     expect(r.status).toBe(200);
-    expect(r.body).toMatchObject({ version_no: 1, version_kind: 'original', scope: 'full', signed_at: FIRST_SIGNED, signed_by_display_name: 'Dr Synthetic One', ...PRIOR, ancillary: [], addenda: [],
+    const { flag: _f, is_critical: _c, ...PRIOR_VIEW } = PRIOR; // ReportVersion (contract, additionalProperties: false) lists neither flag nor is_critical
+    expect(r.body).toMatchObject({ version_no: 1, version_kind: 'original', scope: 'full', signed_at: FIRST_SIGNED, signed_by_display_name: 'Dr Synthetic One', ...PRIOR_VIEW, ancillary: [], addenda: [],
       submissions: w.items.map((it) => ({ case_item_id: it.id, order_item_id: it.orderItemId, item_version_no: 1, lab_status_at_submit: 'resulted' })) });
     expect(hasNoNulls(r.body)).toBe(true);
-    for (const k of ['tenant_id', 'centre_id', 'created_by', 'signed_by_membership_id', 'addon_case_item_id', 'addendum_id']) expect(keysDeep(r.body), k).not.toContain(k);
+    for (const k of ['tenant_id', 'centre_id', 'created_by', 'signed_by_membership_id', 'addon_case_item_id', 'addendum_id', 'flag', 'is_critical']) expect(keysDeep(r.body), k).not.toContain(k);
     expect(calls.access).toEqual([expect.objectContaining({ action: 'anatomic_report.view', entityType: 'anatomic_case', entityId: w.caseId, detail: { version_no: 1 } })]);
     expect(calls.assertRole[0]).toMatchObject({ permission: 'anatomic.case.read', centreId: C_A1 });
     expect((await getV(w, 2)).body.version_no).toBe(2);

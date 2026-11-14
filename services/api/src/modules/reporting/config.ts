@@ -15,6 +15,22 @@ export interface ReportingConfig {
   readonly printTtlHours: number;
   readonly transportTimeoutMs: number;
   readonly allowRealProviders: boolean;
+  /** LD-186: worker settings, OPTIONAL for the API; read lazily by ports/renderPort.lazy.ts. */
+  readonly rendererUrl?: string;
+  readonly rendererTokenFile?: string;
+}
+
+/** LD-186: optional renderer URL + token file. Unset/empty = absent. The token file is NOT read here; values never echoed. */
+export function loadRendererConfig(env: Env): { rendererUrl?: string; rendererTokenFile?: string } {
+  const urlKey = 'LIMS_REPORTING_RENDERER_URL';
+  const url = env[urlKey] || undefined;
+  if (url !== undefined) {
+    let ok = false;
+    try { const u = new URL(url); ok = u.protocol === 'https:' || u.protocol === 'http:'; } catch { /* ok stays false */ }
+    if (!ok) fail(urlKey, 'must be an http(s) URL');
+  }
+  const tokenFile = env['LIMS_REPORTING_RENDERER_TOKEN_FILE'] || undefined;
+  return { ...(url !== undefined && { rendererUrl: url }), ...(tokenFile !== undefined && { rendererTokenFile: tokenFile }) };
 }
 
 const fail = (key: string, why: string): never => { throw new Error(`config: ${key} ${why}`); };
@@ -66,5 +82,6 @@ export function loadReportingConfig(env: Env = process.env): ReportingConfig {
     printTtlHours: posInt(env, 'LIMS_REPORTING_PRINT_TTL_HOURS', 24),
     transportTimeoutMs: posInt(env, 'LIMS_REPORTING_TRANSPORT_TIMEOUT_MS', 10_000),
     allowRealProviders: arp === 'true',
+    ...loadRendererConfig(env),
   });
 }

@@ -1,0 +1,12 @@
+CHANGES
+# T-AC1 review (reviewer) — diff b33d193d..9688733c
+
+Names checked as matching the spec: E10–E12 operationIds/paths/permissions/idem (TRD §5 l.439–441); `revokePatientSessions` signature + reason `account_deleted` (TRD l.567); `revoked_by_kind='account'`, `revoked_reason_code='account_deleted'` (05-SCHEMA l.387–388); audit `patient_account.delete` (TRD l.749); `no-store`; owned paths only; no PHI in logs or audit; no secrets. App: LD-28 links + LD-140 tokens are OK.
+
+1. `services/api/src/modules/engagement/service/account.service.ts:71-73`: addresses are deactivated **after** the links are revoked. Under the real RLS, `addresses` UPDATE = `PAT_ACC_PID` (05-SCHEMA l.1336, l.1361), and `app.engagement_patient_ids()` returns only `status='active'` links (l.1506–1510). So once `revokeLinks` has run, the UPDATE matches 0 rows with no error, and every address stays `is_active=true`. TRD §4.14 is not met.
+   Fix: call `repo.deactivateAddresses` before `repo.revokeLinks`. Also make `account.world.ts:65` emulate `PAT_ACC_PID` for `addresses` UPDATE/INSERT, so the world checks `patient_id` ∈ the account's active-link patient ids and not only `account_id`. Then add or keep a test that fails with the current order.
+2. `services/api/src/modules/engagement/repository/account.repo.ts:36-39` (suspended links) and the addresses of suspended-link patients: the real `guard_patient_link_update` (05-SCHEMA l.1287) does not allow `suspend_reason`/`suspended_at`. The statement therefore raises P0001 `immutable_row`, which `mapDbError` turns into `common.internal`. Result: E12 returns 500 for any account that has a suspended link. Even with fix 1, the patient actor still cannot deactivate addresses of a patient whose link is `suspended` (`PAT_ACC_PID` needs an active link). `account.world.ts:156-158` hides the guard conflict.
+   Fix: this cannot be fixed inside owned paths without inventing a rule. Write `.orchestra/cr/T-AC1.md` (none exists) using the 04-CHANGE-REQUESTS template. Propose one of these:
+   (a) add `suspend_reason`, `suspended_at` to the guard's `v_allowed` only when `NEW.status='revoked'`, and widen the addresses patient UPDATE to `PAT_ACC` for `is_active → false`; or
+   (b) run the E12 link and address writes as the engagement system actor (as in 08 A28.2).
+   Until the lead rules, keep the world faithful to the spec guard: remove the tolerance at l.156-158 and mark the suspended-link test as blocked by the CR. Do not let the test pass on emulation the real DB rejects.

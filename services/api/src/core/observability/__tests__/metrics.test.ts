@@ -115,6 +115,15 @@ const EXPECTED: Record<string, 'counter' | 'gauge' | 'histogram'> = {
   lims_identity_stuffing_distinct_accounts_15m: 'gauge',
   lims_identity_stuffing_distinct_ips_15m: 'gauge',
   lims_identity_audit_exports_tenant_day: 'gauge',
+  // LD-162 (CR-C17-HC-T17-REG): C17 02-TRD §14 lines 589-596, verbatim.
+  lims_homecollection_mutations_total: 'counter',
+  lims_homecollection_push_duration_seconds: 'histogram',
+  lims_homecollection_snapshot_duration_seconds: 'histogram',
+  lims_homecollection_held_open: 'gauge',
+  lims_homecollection_clock_skew_seconds: 'histogram',
+  lims_homecollection_devices_stale_total: 'gauge',
+  lims_homecollection_handover_overdue_open: 'gauge',
+  lims_homecollection_events_published_total: 'counter',
 };
 
 // LD-88: TRD §13 fixes this C8 histogram as a row count, so it cannot end in _seconds.

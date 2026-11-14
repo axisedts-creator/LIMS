@@ -1,9 +1,18 @@
 // E45 listMyNotifications, E46 markMyNotificationsRead (02-TRD §4.9, §5; 05-SCHEMA notifications; PRD US-EN-11.1/11.3; 07-SECURITY §6.5, §7.1/§7.4).
 // "No text stored": the DTO carries kind / entity / route ids only and the only write is read_at. Account comes from the session (RLS), never from the request.
 // Bulk mark: foreign, other-tenant and unknown ids all answer the same per-id `not_found` (no existence oracle); the call itself is always 200.
+// create(): in-app notification rows created by the system actor (T-P1 consumers), no text stored (the app renders `patient_app.notification.<kind>`), expire after 180 days [CONV].
+// One row per (account, kind, entity, entity_seq): INSERT .. ON CONFLICT DO NOTHING makes event redelivery a no-op. P1 data: nothing here logs a value.
 import { LimsError, type FieldError } from '../../../core/errors.js';
+import { uuidv7 } from '../../../../../../packages/shared-ts/src/uuidv7/index.js';
 import * as defaultRepo from '../repository/notification.repo.js';
 import { isUuid } from './queue.service.js';
+
+export interface NotificationIn {
+  accountId: string; patientId: string | null; kind: 'report_ready' | 'sample_recollection'; entityType: 'order' | 'report'; entityId: string; entitySeq: number; routeId: 'patient_app.report' | 'patient_app.order';
+}
+const TTL_MS = 180 * 86_400_000; // [CONV]
+const COLS = 11;
 
 export interface NotificationCtx {
   readonly tenantId: string;
@@ -81,6 +90,17 @@ export function createNotificationService(deps: { repo?: NotificationRepo } = {}
       const readAt = ctx.now();
       for (const id of wanted) if (own.has(id)) await repo.markRead(tx, { tenantId, id, readAt });
       return { results: (ids as string[]).map((id) => ({ id, outcome: own.has(id) ? 'updated' : 'not_found' })) };
+    },
+
+    async create(ctx: { tx: any; tenantId: string; actor: { id: string }; now: () => string }, rows: readonly NotificationIn[]): Promise<void> {
+      if (rows.length === 0) return;
+      const expires = new Date(Date.parse(ctx.now()) + TTL_MS).toISOString();
+      const values: unknown[] = [];
+      for (const n of rows) values.push(uuidv7(), ctx.tenantId, n.accountId, n.patientId, n.kind, n.entityType, n.entityId, n.entitySeq, n.routeId, ctx.actor.id, expires);
+      const tuples = rows.map((_, i) => `(${Array.from({ length: COLS }, (_, j) => `$${i * COLS + j + 1}`).join(', ')})`).join(', ');
+      await ctx.tx.query(
+        `INSERT INTO engagement.notifications (id, tenant_id, account_id, patient_id, kind, entity_type, entity_id, entity_seq, route_id, created_by, expires_at)
+         VALUES ${tuples} ON CONFLICT (tenant_id, account_id, kind, entity_id, entity_seq) DO NOTHING`, values);
     },
   };
 }

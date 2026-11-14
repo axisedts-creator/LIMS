@@ -99,6 +99,7 @@ async function onRejected(ctx: SpecimenEventCtx, tenantId: string, userId: strin
     }
     await repo.cancelForRejection(ctx.tx, { tenantId, id: c['id'], seq, userId });                // AC-01.6
     await repo.insertTransition(ctx.tx, { id: uuidv7(), tenantId, centreId: c['centre_id'], cultureId: c['id'], from: c['status'], to: 'cancelled', reason: 'specimen_rejected', occurredAt: changedAt, userId });
+    await repo.releaseOpenRecords(ctx.tx, { tenantId, cultureId: c['id'], userId });               // C9 effect (T-16): open instrument records -> pending_match / culture_cancelled
   }
 }
 

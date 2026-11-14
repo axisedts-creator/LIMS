@@ -8,7 +8,7 @@ import { Banner, type BannerProps } from '@lims/ui/components/Banner';
 import { DateText, type DateTextProps } from '@lims/ui/components/DateText';
 import { Icon, type IconName } from '@lims/ui/components/Icon';
 import { shortcuts, type Shortcut } from '@/core/shortcuts/registry';
-import type { ActionResult, CaseFlags, CaseKind, CaseStatus } from '../server/types';
+import type { ActionResult, CaseFlags, CaseKind, CaseStatus, LocationStatus } from '../server/types';
 
 export type Fail = Extract<ActionResult<unknown>, { ok: false }>;
 export type Tone = BannerProps['tone'];
@@ -47,6 +47,29 @@ export function StatusLabel({ status }: { status: CaseStatus }) {
 }
 export const UrgentChip = () => <Chip tone="danger" label="Urgent" />;
 
+/** Block / slide location status: tone + icon + word (LD-140). */
+export const LOCATION: Record<LocationStatus, readonly [Tone, string]> = {
+  in_lab: ['info', 'In lab'],
+  stored: ['success', 'Stored'],
+  sent_out: ['warning', 'Sent out'],
+  discarded: ['neutral', 'Discarded'],
+};
+export function LocationChip({ status, text }: { status: LocationStatus; text: string | undefined }) {
+  const [tone, label] = LOCATION[status] ?? (['neutral', String(status)] as const);
+  return (
+    <>
+      <Chip size="sm" tone={tone} label={label} />
+      {text ? <> <span>{text}</span></> : null}
+    </>
+  );
+}
+
+/** Part letter for a part id ("Part A"); "—" when unknown. */
+export const partName = (parts: readonly { id: string; letter: string }[], id: string | undefined) => {
+  const p = parts.find((x) => x.id === id);
+  return p ? `Part ${p.letter}` : '—';
+};
+
 /** Flags carry words, not just icons (04-UI-UX §6). */
 export function FlagChips({ flags }: { flags: CaseFlags }) {
   return (
@@ -68,23 +91,27 @@ const COPY: Record<string, string> = {
   'anatomic.accession_duplicate': 'This accession number already exists. Ask an administrator to check the accession pattern.',
   'anatomic.accession_pattern_invalid': 'Accession numbering is misconfigured. Ask an administrator to check the accession pattern.',
   'anatomic.order_item_inactive': 'A test on this case was removed from the order.',
-  'anatomic.image_limit_reached': 'Image limit reached.',
+  'anatomic.image_limit_reached': 'This case already has the maximum number of images.',
+  'anatomic.block_not_available': 'This block is sent out or discarded.',
+  'anatomic.ihc_requires_block': 'IHC must be ordered on a block.',
+  'common.payload_too_large': 'This file is larger than 15 MB.',
+  'common.unsupported_media_type': 'Only PNG and JPEG images can be uploaded.',
   'common.upload_quarantined': 'This image is still processing or was blocked by the security scan.',
   'common.validation_failed': 'Check the values and try again.',
   'auth.forbidden': 'You do not have permission to do this.',
 };
 export const isConflict = (f: Fail) => f.code === 'common.version_conflict' || f.code === 'common.precondition_required';
 export const failText = (f: Fail, status?: CaseStatus) =>
-  f.code === 'anatomic.case_invalid_transition' ? `That step isn't possible for a case in status ${status ? STATUS[status][1] : 'unknown'}.` : (COPY[f.code] ?? GENERIC);
+  f.code === 'anatomic.case_invalid_transition' ? `That step isn't possible for a case in status ${status ?? 'unknown'}.` : (COPY[f.code] ?? GENERIC);
 
 /** role="alert" wrapper (the kit Banner has no live-region role). Version conflicts offer Reload (04-UI-UX §2). */
-export function FailNotice({ fail, status }: { fail: Fail | undefined; status?: CaseStatus }) {
+export function FailNotice({ fail, status, describe }: { fail: Fail | undefined; status?: CaseStatus; /** T-23: own copy for a failure (configuration screens); undefined = the shared copy. */ describe?: (f: Fail) => string | undefined }) {
   const router = useRouter();
   if (!fail || fail.code === 'auth.mfa_required') return null;
   const conflict = isConflict(fail);
   return (
     <div role="alert">
-      <Banner tone={conflict ? 'warning' : 'danger'} title={failText(fail, status)} {...(conflict ? { action: { label: 'Reload', onPress: () => router.refresh() } } : {})} />
+      <Banner tone={conflict ? 'warning' : 'danger'} title={describe?.(fail) ?? failText(fail, status)} {...(conflict ? { action: { label: 'Reload', onPress: () => router.refresh() } } : {})} />
     </div>
   );
 }

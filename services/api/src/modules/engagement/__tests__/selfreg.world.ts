@@ -10,7 +10,7 @@ import { createFakeFrontdeskPort } from '../../../../../../packages/fakes/src/Fr
 import { makeCtxFor } from '../../../../../../packages/fakes/src/harness';
 import { LimsError } from '../../../core/errors.js';
 import { FakeDb, type Row, type TableDef } from './fakeSql.js';
-import { HMAC1 as LINK_HMAC1, linkDefs } from './link.world.js';
+import { HMAC1 as LINK_HMAC1, linkDefs } from './link.report.world.js';
 
 export const TA: string = TENANTS.A;
 export const TB: string = TENANTS.B;

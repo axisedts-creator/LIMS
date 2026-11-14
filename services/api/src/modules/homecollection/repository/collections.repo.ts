@@ -12,6 +12,12 @@ export const getCollectionById = (tx: Tx, tenantId: string, collectionId: string
 export const updateCollection = (tx: Tx, tenantId: string, collectionId: string, expectedVersion: number, patch: Record<string, unknown>) =>
   updateRow(tx, T, UPDATE_COLS, [], tenantId, collectionId, expectedVersion, patch);
 
+/** HC-T12 push (guard 7, handover): the applied collection of each of the specimens (at most one per specimen: partial unique index). */
+export async function listAppliedCollectionsBySpecimenIds(tx: Tx, tenantId: string, specimenIds: readonly string[]): Promise<any[]> {
+  const { rows } = await tx.query("SELECT * FROM homecollection.collections WHERE tenant_id = $1 AND specimen_id = ANY($2::uuid[]) AND status = 'applied'", [tenantId, specimenIds]);
+  return rows;
+}
+
 /** Review queue: held collections of the tenant, oldest first. */
 export async function listHeldCollections(tx: Tx, tenantId: string): Promise<any[]> {
   const { rows } = await tx.query("SELECT * FROM homecollection.collections WHERE tenant_id = $1 AND status = 'held' ORDER BY collected_at, id", [tenantId]);

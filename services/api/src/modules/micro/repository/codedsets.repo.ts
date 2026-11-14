@@ -57,7 +57,7 @@ export async function activeCodeExists(tx: Q, a: { setName: 'organism_groups' | 
 }
 
 /** Rows of a resolved (tenant-over-global) view for the given codes, active or not (the caller decides). `$2` pins the view's claims tenant to ctx.tenantId (REQ-SEC-024). */
-export async function codeRows(tx: Q, a: { view: 'media' | 'growth_codes' | 'specimen_sites' | 'organisms' | 'isolate_withdraw_reasons' | 'antibiotics' | 'organism_groups'; tenantId: string; codes: string[] }): Promise<Map<string, Record<string, any>>> {
+export async function codeRows(tx: Q, a: { view: 'media' | 'growth_codes' | 'specimen_sites' | 'organisms' | 'isolate_withdraw_reasons' | 'antibiotics' | 'organism_groups' | 'record_ignore_reasons' | 'culture_cancel_reasons'; tenantId: string; codes: string[] }): Promise<Map<string, Record<string, any>>> {
   if (a.codes.length === 0) return new Map();
   const cols = a.view === 'growth_codes' ? 'code, is_active, indicates_growth' : a.view === 'organisms' ? 'code, display, is_active, organism_group_code' : a.view === 'antibiotics' ? 'code, display, is_active' : 'code, is_active';
   const { rows } = await tx.query(`SELECT ${cols} FROM micro.${VIEW[a.view]} WHERE code = ANY($1::text[]) AND (SELECT app.current_tenant_id()) = $2::uuid`, [a.codes, a.tenantId]);

@@ -92,7 +92,8 @@ export const releaseLocks = (tx: object) => { for (const [r, h] of locks) if (h 
 async function waitFree(tx: object, pick: () => Row[]): Promise<Row[]> {
   for (let n = 0; ; n++) {
     const hit = pick();
-    if (!hit.some((r) => { const h = locks.get(r); return h !== undefined && h !== tx; })) return hit;
+    // C13.T10 ruling: free-check and acquire in one synchronous step (no await between), and `pick()` is re-run on every wait loop = READ COMMITTED WHERE re-check.
+    if (!hit.some((r) => { const h = locks.get(r); return h !== undefined && h !== tx; })) { for (const r of hit) locks.set(r, tx); return hit; }
     if (n > 20000) throw new Error('fake lock wait timeout (deadlock?)');
     await Promise.resolve();
   }

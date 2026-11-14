@@ -57,9 +57,11 @@ export async function run<T>(f: () => Promise<T>): Promise<ActionResult<T>> {
     if (e instanceof ApiError) {
       const errors = e.problem['errors'];
       const requestId = e.problem.request_id;
+      const detail = e.problem['detail']; // T-23: validation messages of the configuration forms (plain text, never HTML)
       return {
         ok: false, status: e.status, code: e.problem.code,
         ...(typeof requestId === 'string' ? { requestId } : {}),
+        ...(typeof detail === 'string' && detail ? { detail: detail.slice(0, 300) } : {}),
         ...(Array.isArray(errors) ? { errors: errors as FieldError[] } : {}),
       };
     }

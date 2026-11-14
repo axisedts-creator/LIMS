@@ -13,7 +13,7 @@ export interface TokenSlipProps {
 // so it never adds text inside the slip and PrintFrame's stylesheet clone picks it up.
 const CSS = `
 .lims-tokenslip { font-family: var(--lims-font-family-sans); color: var(--lims-neutral-900); background: var(--lims-neutral-0);
-  border: 1px solid var(--lims-neutral-300); border-radius: var(--lims-radius-md); padding: var(--lims-space-3);
+  border: 1px solid var(--lims-neutral-300); padding: var(--lims-space-3);
   max-width: 80mm; text-align: center; display: grid; gap: var(--lims-space-1); }
 .lims-tokenslip > * { margin: 0; }
 .lims-tokenslip__lab { font-weight: var(--lims-font-weight-semibold); }
@@ -22,7 +22,7 @@ const CSS = `
 .lims-tokenslip__line, .lims-tokenslip__time { font-size: var(--lims-font-size-sm-size); }
 @media print {
   @page { size: 80mm auto; margin: 0; }
-  .lims-tokenslip { width: 80mm; max-width: 80mm; border: 0; border-radius: 0; }
+  .lims-tokenslip { width: 80mm; max-width: 80mm; border: 0; }
 }`;
 
 /** Printed queue/app-code slip (CR-C16-016; C16 04-UI-UX §9.2). Shows only these six fields — never patient name or phone. */

@@ -39,6 +39,7 @@ const IMPLEMENTED: readonly string[] = [
   'listPartners', 'createPartner', 'getPartner', 'updatePartner', 'suspendPartner', 'reactivatePartner', 'resyncPartnerProjections', // T07 (SA1-SA7)
   'createManifest', 'listManifests', 'getManifest', 'updateManifest', 'addManifestLine', 'replaceManifestLine', 'deleteManifestLine', 'discardManifest', 'searchPartnerOrderables', // T08 (M1-M7, M10, P2)
   'submitManifest', 'withdrawManifest', 'getManifestPrintView', // T09 (M8, M9, M11)
+  'listInboundManifests', 'getInboundManifest', 'receiveManifest', 'retryManifestLineConversion', 'markManifestLineNotReceived', // T10 (SI1-SI5)
 ];
 
 const FAKE_REQ = { params: {}, query: {}, headers: {}, body: {} };

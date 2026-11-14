@@ -5,7 +5,7 @@ import { createHmac } from 'node:crypto';
 import { LimsError } from '../../../core/errors.js';
 import type { Handler, HandlerContext, HandlerRequest } from '../../../core/module.js';
 import type { GoTrueGateway } from '../gotrue/gateway.js';
-import { createHttpGoTrueGateway } from '../gotrue/gateway.http.js';
+import { gotrueGatewayFromEnv } from '../gotrue/gateway.http.js';
 import type { PlatformCtx } from '../service/support.service.js';
 import { createTenantService, type Result } from '../service/tenant.service.js';
 import { obj } from './role.http.js';
@@ -14,9 +14,7 @@ import { pick } from './user.http.js';
 type Svc = ReturnType<typeof createTenantService>;
 let gw: GoTrueGateway | undefined;
 const svc = createTenantService({
-  gotrue: { adminCreateUser: (i) => (gw ??= createHttpGoTrueGateway({
-    url: process.env['LIMS_IDENTITY_GOTRUE_URL'] ?? '', serviceKey: process.env['LIMS_IDENTITY_GOTRUE_SERVICE_KEY'] ?? '',
-  })).adminCreateUser(i) },
+  gotrue: { adminCreateUser: (i) => (gw ??= gotrueGatewayFromEnv()).adminCreateUser(i) },
   emailHmac: (e) => {
     const key = process.env['LIMS_IDENTITY_EMAIL_HMAC_KEY'];
     if (!key) throw new LimsError('common.internal', 'identity: email HMAC key missing');

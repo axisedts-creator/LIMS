@@ -79,7 +79,7 @@ function tuples(s: string): string[] {
   return out;
 }
 
-function readRows(migrationsDir: string): Map<string, Row> {
+export function readRows(migrationsDir: string): Map<string, Row> {   // exported for H80-T05 row assertions
   const rows = new Map<string, Row>();
   const files = readdirSync(migrationsDir).filter((f) => f.toLowerCase().endsWith('.sql')).sort();
   for (const f of files) {

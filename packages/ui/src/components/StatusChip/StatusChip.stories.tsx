@@ -11,4 +11,13 @@ export const Specimen = {
     </p>
   ),
 };
-export const Generic = { args: { kind: 'generic', status: 'on_hold', label: 'QC hold', tone: 'warning' } };
+export const AllTones = {
+  render: () => (
+    <p>
+      {(['neutral', 'info', 'success', 'warning', 'danger', 'critical'] as const).map((t) => (
+        <StatusChip key={t} kind="generic" status={t} tone={t} label={`Tone ${t}`} />
+      ))}
+    </p>
+  ),
+};
+export const Generic ={ args: { kind: 'generic', status: 'on_hold', label: 'QC hold', tone: 'warning' } };

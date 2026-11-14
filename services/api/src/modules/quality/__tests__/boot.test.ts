@@ -38,7 +38,12 @@ const EXPECTED_OPS = [
   'upsertQualityCode',
 ];
 /** operationIds whose stub a later task has replaced; that task moves its ids here (tester-owned list). T-06 moved #1-#13 here. */
-const IMPLEMENTED: readonly string[] = EXPECTED_OPS.slice(0, 13);
+const IMPLEMENTED: readonly string[] = [
+  ...EXPECTED_OPS.slice(0, 13),
+  // T-15 real handlers (#36-#41, #44, #45) — arbiter ruling .orchestra/notes/C9.T-06-ruling.md
+  'getAutoverifyRuleSet', 'createAutoverifyVersion', 'getAutoverifyVersion', 'replaceAutoverifyDraft', 'startAutoverifySimulation',
+  'stopAutoverifySimulation', 'retireAutoverifyVersion', 'discardAutoverifyDraft',
+];
 
 const FAKE_REQ = { params: {}, query: {}, headers: {}, body: {} };
 const noop = () => undefined;

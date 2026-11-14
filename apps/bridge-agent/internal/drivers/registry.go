@@ -30,6 +30,13 @@ var registry = map[string]SessionProfile{
 	"truth_h80e": {Code: "truth_h80e", Protocol: "hl7v2", HL7AckMode: "original",
 		HostQueryMessageTypes: []string{"QRY^Q02"}, ExpectAckOnReply: true,
 		ReplyAckPolicy: "last", ReplyAckMatchControlId: false, ReplyTimeout: 10 * time.Second},
+	// Getein Metis, 09-ADDENDUM-GETEIN-METIS §7 (LD-163; the addendum header says LD-162, LD-163 is binding).
+	// U7 (how long the analyser waits for QCK/DSR, whether QCK is acknowledged): ReplyTimeout is a default, overridable per
+	// instrument. U3 (ACK sender names LIS/LIMS) stays configurable via the ack_sending_* options, not fixed here.
+	// HL7AckFullForm is the one new opt-in field: §7's literal has none, and the §6 ACK differs from H80E's short ACK.
+	"getein_metis": {Code: "getein_metis", Protocol: "hl7v2", HL7AckMode: "original",
+		HostQueryMessageTypes: []string{"QRY^Q02"}, ExpectAckOnReply: true,
+		ReplyAckPolicy: "last", ReplyAckMatchControlId: false, ReplyTimeout: 10 * time.Second, HL7AckFullForm: true},
 }
 
 var genericFor = map[string]string{

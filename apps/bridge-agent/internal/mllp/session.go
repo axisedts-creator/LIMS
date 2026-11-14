@@ -27,7 +27,8 @@ type Config struct {
 	AckMode                           string // auto|original|enhanced|none ("" = auto)
 	AckSendingApp, AckSendingFacility string
 	AckTypeFormat                     string
-	Now                               func() time.Time // default time.Now
+	AckFullForm                       bool             // profile.HL7AckFullForm: the 09-ADDENDUM-GETEIN-METIS §6 ACK (MET-T01, LD-163)
+	Now                              func() time.Time // default time.Now
 	NewControlID                      func() string    // default: random 16 hex chars
 	Stats                             *Stats           // default: private counters
 
@@ -145,7 +146,7 @@ func Serve(conn io.ReadWriteCloser, cfg Config) error {
 		}
 		ack := hl7.BuildACK(msh, code, hl7.AckOptions{
 			SendingApp: cfg.AckSendingApp, SendingFacility: cfg.AckSendingFacility,
-			TypeFormat: cfg.AckTypeFormat, Now: now(), ControlID: newID(),
+			TypeFormat: cfg.AckTypeFormat, Now: now(), ControlID: newID(), FullForm: cfg.AckFullForm,
 		})
 		if _, err := conn.Write(Encode(ack)); err != nil {
 			return fmt.Errorf("mllp: write ACK: %w", err)

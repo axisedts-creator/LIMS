@@ -1,0 +1,7 @@
+# MET-T01 impl (writer) — LD-163, 09-ADDENDUM-GETEIN-METIS §2, §6, §7
+- Files: drivers/profile.go (+`HL7AckFullForm`), drivers/registry.go (+`getein_metis`), hl7/ack.go (+`AckOptions.FullForm`, `buildFullACK`), mllp/session.go (+`Config.AckFullForm`), simulator/run.go and cmd/agent/e2e_main.go (wiring), testdata/sessions/metis-*.session.json (8).
+- [CONV] one new opt-in bool `HL7AckFullForm` (§7 literal has none; zero value = today's ACK, so H80E and all other profiles are unchanged). Tester assumed this; no CR raised.
+- [CONV] full ACK: MSH-3/4 default LIS/LIMS (U3, overridable via Config.AckSendingApp/Facility), MSH-5/6 blank, MSH-10 = original's id, MSH-16 echoed, MSH-18 always UTF8; failed commit = `AR`, "Application internal error", 207. In e2e_main the LIMS-BRIDGE app name is dropped for this form.
+- U7 `ReplyTimeout` 10 s is a profile default; U3 names, U8 (no MSH-10 de-dup in the agent) stay configurable/unassumed. Nothing else from U1-U15 is hard-coded.
+- OPEN: `TestH80E_OtherProfilesKeepTodaysBehaviour` fails by design (asserts ExpectAckOnReply=false for every non-H80E profile); see MET-T01-dispute.md, lead must allow a one-line skip in that test.
+- Not done here: server driver, g_drivers row (CR-C7-020), web preset (MET-T02..T05).

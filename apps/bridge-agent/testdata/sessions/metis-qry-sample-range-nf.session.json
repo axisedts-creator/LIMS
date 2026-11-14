@@ -1,0 +1,8 @@
+{"name": "metis-qry-sample-range-nf", "protocol": "hl7v2", "transport": "tcp_server", "instrument_profile": "getein_metis", "options": {},
+ "steps": [
+  {"note": "D-MET-1: mode (b), barcode field empty, sample numbers 5 to 5 in the filter; the server answers NF", "host_query": {"reply": [
+   "MSH|^~\\&|||||20261114||QCK^Q02|61|P|2.3.1||||||UTF8|||<CR>MSA|AA|61|Message accepted|||0|<CR>ERR|0|<CR>QAK|SR|NF|<CR>"]}},
+  {"from": "instrument", "bytes": "<VT>MSH|^~\\&|||||20261114||QRY^Q02|61|P|2.3.1||||||UTF8|||<CR>QRD|20261114|R|D|9|||RD||OTH|||T|<CR>QRF||||5|5|RCT|COR|ALL||<CR><FS><CR>"},
+  {"expect": "agent", "bytes": "<VT>MSH|^~\\&|||||20261114||QCK^Q02|61|P|2.3.1||||||UTF8|||<CR>MSA|AA|61|Message accepted|||0|<CR>ERR|0|<CR>QAK|SR|NF|<CR><FS><CR>", "within_ms": 200},
+  {"expect_queue": {"items": 1, "kind": "data", "raw_sha256": "0c0d753552244d946904d5a3a94c0e1934d4696727fec4e8cc33301788f21fcb"}}
+ ]}

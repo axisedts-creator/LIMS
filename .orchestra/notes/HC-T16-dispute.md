@@ -1,0 +1,6 @@
+# HC-T16 dispute (writer, 2026-11-14, verify run after ruling)
+Run: `bash tests/homecollection/HC-T16.pg.sh` -> Test Files 1 failed | 5 passed; Tests 3 failed | 58 passed; 1 unhandled error. Migration chain bootstraps fine now (LD-161/LD-167 fix is in).
+All remaining failures are in anonymise_definer.live.test.ts and are harness defects, not task code:
+1. anonymise_definer.live.test.ts:6 imports `superTx` from `./hc16.helpers.js`, which does not export it (exports: SYS_ACTOR, TENANT_A, TENANT_B, uid, closePools, workerTx, apiTx, makeCtx, runTask, kathmandu). `superTx` is exported by `./hc16.fixtures.js` (line 5). Result: `TypeError: superTx is not a function` at :36, :44, :145 (catalogue DEFINER, FORCE-RLS owner policies, lims_app DELETE grants). Fix: import `superTx` from `./hc16.fixtures.js`. The DDL itself was never queried, so no evidence of a migration/DDL defect.
+2. Unhandled rejection `homecollection_anonymise_invalid_input` in T4 (:115-122): the five `workerTx(...)` promises are created eagerly in the array and awaited one by one, so later rejections fire before a handler is attached (PromiseRejectionHandledWarning). T4 itself passes (the function rejects correctly). Fix: store thunks `() => workerTx(...)` and call `rejects(p())`.
+No implementation change made (LD-167: change nothing unless a real HC-T16 failure).

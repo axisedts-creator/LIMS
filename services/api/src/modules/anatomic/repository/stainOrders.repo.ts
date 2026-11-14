@@ -26,6 +26,24 @@ export async function listStainOrders(tx: Q, i: { tenantId: string; caseId: stri
   return rows;
 }
 
+/** M6: bench queue over the tenant (RLS limits it to the caller's centres) with case accession_no/priority, stain display, block label and add-on order item. */
+export async function listStainOrdersPage(
+  tx: Q, i: { tenantId: string; statuses: string[]; stainKinds?: string[]; centreIds?: string[]; descending: boolean; limit: number; offset: number },
+): Promise<Row[]> {
+  const ORDER = i.descending ? 'o.requested_at DESC, o.id' : 'o.requested_at, o.id'; // fixed text, never caller input
+  const { rows } = await tx.query(
+    `SELECT o.*, c.accession_no, c.priority, st.display AS stain_display, bl.label AS block_label, ci.order_item_id AS addon_order_item_id
+       FROM anatomic.stain_orders o
+       JOIN anatomic.cases c ON c.tenant_id = o.tenant_id AND c.id = o.case_id
+       LEFT JOIN anatomic.stains st ON st.tenant_id = o.tenant_id AND st.id = o.stain_id
+       LEFT JOIN anatomic.blocks bl ON bl.tenant_id = o.tenant_id AND bl.id = o.block_id
+       LEFT JOIN anatomic.case_items ci ON ci.tenant_id = o.tenant_id AND ci.id = o.addon_case_item_id
+      WHERE o.tenant_id = $1 AND o.status = ANY($2::text[]) AND ($3::text[] IS NULL OR o.stain_kind = ANY($3::text[])) AND ($4::uuid[] IS NULL OR o.centre_id = ANY($4::uuid[]))
+      ORDER BY ${ORDER} LIMIT $5 OFFSET $6`,
+    [i.tenantId, i.statuses, i.stainKinds ?? null, i.centreIds ?? null, i.limit, i.offset]);
+  return rows;
+}
+
 /** Optimistic update: matches only while version = expectedVersion; undefined means stale or not visible. Only the listed columns can change. */
 export async function updateStainOrder(
   tx: Q, i: { tenantId: string; id: string; expectedVersion: number; actorId: string; patch: Row },

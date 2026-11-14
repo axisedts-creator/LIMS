@@ -163,7 +163,7 @@ export function makeWorld(o: { now?: string; enabled?: boolean; seed?: (w: { tab
           return res as any;
         }
         const denied = (m: string) => Object.assign(new Error(`new row violates row-level security policy (${m})`), { code: '42501' });
-        if (who === 'patient' && verb === 'insert' && tbl === 'notifications') throw denied('PAT_ACC updates read_at only'); // 05-SCHEMA §8 notifications
+        if (verb === 'insert' && tbl === 'notifications') throw denied('notifications INSERT is SYS only'); // 05-SCHEMA §5.2 RLS table (line 1347): PAT_ACC updates read_at only, staff cannot insert; 02-TRD §4.9 system actor creates rows
         if (verb === 'insert' && (tbl === 'enquiries' || tbl === 'enquiry_messages')) {
           const cols = /\(\s*([^)]*?)\s*\)\s*values/is.exec(text)?.[1]?.split(',').map((c) => c.trim()) ?? [];
           const vals = /\bvalues\s*\(([\s\S]*)\)\s*(?:on\s+conflict[\s\S]*)?(?:returning[\s\S]*)?;?\s*$/i.exec(text)?.[1] ?? '';

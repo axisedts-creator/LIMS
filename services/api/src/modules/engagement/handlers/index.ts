@@ -6,6 +6,7 @@ import { authHandlers } from './auth.handlers.js';
 import { bookableHandlers } from './bookable.handlers.js';
 import { bookingHandlers } from './booking.handlers.js';
 import { displayHandlers } from './display.handlers.js';
+import { enquiryHandlers } from './enquiry.handlers.js';
 import { linkHandlers } from './link.handlers.js';
 import { membershipHandlers } from './membership.handlers.js';
 import { notificationHandlers } from './notification.handlers.js';
@@ -53,4 +54,5 @@ export const handlers: Readonly<Record<(typeof OPERATION_IDS)[number], Handler>>
   ...linkHandlers, // T-L3: E15
   ...selfregHandlers, // T-L4: E16, E17
   ...notificationHandlers, // T-P5: E45, E46
+  ...enquiryHandlers, // T-N1: E48-E51, N1-N4
 });

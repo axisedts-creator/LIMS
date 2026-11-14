@@ -6,5 +6,6 @@ const partner = fileURLToPath(new URL('../../', import.meta.url)); // apps/partn
 
 export default defineConfig({
   root: partner,
+  resolve: { alias: { '@': `${partner}src` } }, // layout.tsx imports '@/core/pwa'
   test: { include: ['tests/t20/*.test.ts'], environment: 'node', testTimeout: 30000 },
 });

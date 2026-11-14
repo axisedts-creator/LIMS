@@ -12,6 +12,14 @@ const nonceOf = (policy: string) => /'nonce-([^']+)'/.exec(policy)?.[1];
 
 afterEach(() => { delete process.env.PARTNER_CSP_ENFORCE; });
 
+describe('root layout renders per request (nonce needs dynamic render)', () => {
+  // Prerendered pages get no nonce; with 'strict-dynamic' every script on them is blocked once CSP is enforced.
+  it("layout.tsx exports dynamic = 'force-dynamic'", async () => {
+    const layout = (await import('../../src/app/layout')) as { dynamic?: string };
+    expect(layout.dynamic).toBe('force-dynamic');
+  });
+});
+
 describe('middleware CSP', () => {
   it('exports middleware() (and a matcher that skips hashed static assets, sw.js, manifest)', async () => {
     const m = (await load()) as { middleware?: unknown; config?: { matcher?: unknown } };

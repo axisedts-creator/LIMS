@@ -7,7 +7,7 @@ import { LimsError } from '../../../core/errors.js';
 
 export interface Tx { query(text: string, values?: unknown[]): Promise<{ rows: any[]; rowCount?: number | null }> }
 
-export interface PendingRow { order_item_id: string; test_id: string; specimen_id: string; order_id: string; centre_id: string; department_id: string | null; priority: 'routine' | 'urgent'; item_status: string; received_at: string | null; tat_target_seconds: number | null }
+export interface PendingRow { order_item_id: string; test_id: string; specimen_id: string; order_id: string; centre_id: string; department_id: string | null; priority: 'routine' | 'urgent'; item_status: string; received_at: string | null; tat_target_seconds: number | null; ordered_at: string | null }
 export interface TatItemRow {
   id: string; version: number; centre_id: string; order_id: string; order_item_id: string; test_id: string; specimen_id: string; department_id: string | null; priority: 'routine' | 'urgent'; segment: 'within_lab' | 'total'; target_seconds: number;
   start_basis: string; state: string; started_at: string | null; stopped_at: string | null; stop_source: string | null; restart_count: number; first_verified_at: string | null; in_pending_view: boolean; left_pending_view_at: string | null;
@@ -19,7 +19,7 @@ export interface AlertFilter { levels?: string[]; acknowledged?: boolean; segmen
 type Row = Record<string, any>;
 
 export interface TatRepo {
-  /** lab.v_pub_pending_items WHERE tenant AND tat_target_seconds IS NOT NULL (+ order_id when given). */
+  /** lab.v_pub_pending_items LEFT JOIN lab.v_pub_specimen_timeline (ordered_at per item, 02-TRD §9.3 step 1) WHERE tenant AND tat_target_seconds IS NOT NULL (+ order_id when given). */
   listPending(tx: Tx, t: string, o: { orderId?: string }): Promise<PendingRow[]>;
   /** reporting.v_pub_order_report_tat: registered_at per order (orders the view does not know are absent). */
   listTotalStarts(tx: Tx, t: string, orderIds: string[]): Promise<Array<{ order_id: string; registered_at: string }>>;
@@ -94,8 +94,8 @@ export function createTatRepo(): TatRepo {
       const values: unknown[] = [t];
       const order = o.orderId !== undefined ? (values.push(o.orderId), ` AND p.order_id = $${values.length}::uuid`) : '';
       return (await tx.query(
-        `SELECT p.order_item_id, p.test_id, p.specimen_id, p.order_id, p.centre_id, p.department_id, p.priority, p.item_status, ${tsMs('p.received_at', 'received_at')}, p.tat_target_seconds
-           FROM lab.v_pub_pending_items p WHERE p.tenant_id = $1 AND p.tat_target_seconds IS NOT NULL${order}`, values)).rows;
+        `SELECT p.order_item_id, p.test_id, p.specimen_id, p.order_id, p.centre_id, p.department_id, p.priority, p.item_status, ${tsMs('p.received_at', 'received_at')}, p.tat_target_seconds, ${tsMs('s.ordered_at', 'ordered_at')}
+           FROM lab.v_pub_pending_items p LEFT JOIN lab.v_pub_specimen_timeline s ON s.tenant_id = p.tenant_id AND s.specimen_id = p.specimen_id WHERE p.tenant_id = $1 AND p.tat_target_seconds IS NOT NULL${order}`, values)).rows;
     },
 
     async listTotalStarts(tx, t, orderIds) {

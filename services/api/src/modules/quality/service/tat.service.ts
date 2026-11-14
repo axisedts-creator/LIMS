@@ -100,17 +100,20 @@ export function createTatService(deps: { repo?: TatRepo; settings?: { ensure(tx:
     if (pending.size) for (const r of await repo.findItems(tx, t, [...pending.values()].map((p) => ({ order_item_id: p.order_item_id, test_id: p.test_id })))) existing.set(keyOf(r), r);
     const fresh = [...pending.entries()].filter(([k]) => !existing.has(k)).map(([, p]) => p);
 
-    // segment of a NEW clock: one CatalogPort.getTest per distinct test (absent tatTargetSegment = within_lab); frozen on the row afterwards
+    // segment of a NEW clock: CatalogPort.getTest({ testId, asOf: ordered_at }) (02-TRD §9.1; ordered_at from the §9.3-step-1 timeline join, none -> now), one call per distinct
+    // (test_id, ordered_at); absent tatTargetSegment = within_lab; frozen on the row afterwards
     const segments = new Map<string, TatSegment>();
-    // ponytail: one parallel getTest per distinct NEW test; batch it if a tenant ever creates hundreds of new distinct tests in one sweep
-    await Promise.all([...new Set(fresh.map((p) => p.test_id))].map(async (testId) => {
-      const test = await ctx.ports.CatalogPort.getTest(ctx, { testId, asOf: nowIso });
-      segments.set(testId, test?.tatTargetSegment === 'total' ? 'total' : 'within_lab');
+    const segKey = (p: PendingRow): string => `${p.test_id}@${p.ordered_at ?? nowIso}`;
+    const segOf = (p: PendingRow): TatSegment | undefined => segments.get(segKey(p));
+    // ponytail: one parallel getTest per distinct NEW (test, ordered_at); batch it if a sweep ever creates hundreds of them
+    await Promise.all([...new Map(fresh.map((p) => [segKey(p), p])).entries()].map(async ([k, p]) => {
+      const test = await ctx.ports.CatalogPort.getTest(ctx, { testId: p.test_id, asOf: p.ordered_at ?? nowIso });
+      segments.set(k, test?.tatTargetSegment === 'total' ? 'total' : 'within_lab');
     }));
 
     // start of a NEW total clock: registered_at of the order (D-59), else the earliest specimen ordered_at; each source is read only for the orders that need it
     const starts = new Map<string, { at: Date; basis: 'registered_at' | 'specimen_ordered_at' }>();
-    const totalOrders = [...new Set(fresh.filter((p) => segments.get(p.test_id) === 'total').map((p) => p.order_id))];
+    const totalOrders = [...new Set(fresh.filter((p) => segOf(p) === 'total').map((p) => p.order_id))];
     if (totalOrders.length) {
       for (const r of await repo.listTotalStarts(tx, t, totalOrders)) starts.set(r.order_id, { at: new Date(r.registered_at), basis: 'registered_at' });
       const missing = totalOrders.filter((o) => !starts.has(o));
@@ -132,7 +135,7 @@ export function createTatService(deps: { repo?: TatRepo; settings?: { ensure(tx:
     const finalRows = new Map<string, TatItemRow>();
     for (const [key, p] of pending) {
       const row = existing.get(key);
-      const item: TatSweepItem = { orderItemId: p.order_item_id, testId: p.test_id, segment: row?.segment ?? segments.get(p.test_id) ?? 'within_lab', targetSeconds: p.tat_target_seconds, specimenId: p.specimen_id,
+      const item: TatSweepItem = { orderItemId: p.order_item_id, testId: p.test_id, segment: row?.segment ?? segOf(p) ??'within_lab', targetSeconds: p.tat_target_seconds, specimenId: p.specimen_id,
         receivedAt: D(p.received_at), itemStatus: p.item_status, totalStart: starts.get(p.order_id) ?? null };
       const r = transitionClock(row ? toClock(row) : null, { type: 'sweep', now, item }, cfg);
       const c = r.clock;

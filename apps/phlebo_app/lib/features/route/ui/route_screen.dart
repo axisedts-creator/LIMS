@@ -30,6 +30,8 @@ class RouteScreen extends StatefulWidget {
     required this.visits,
     required this.purged,
     this.offline = false,
+    this.dataAsOf,
+    this.loading = false,
     required this.sync,
     required this.onRefresh,
     required this.onOpenVisit,
@@ -43,6 +45,10 @@ class RouteScreen extends StatefulWidget {
   final List<RouteVisit> visits;
   final bool purged;
   final bool offline;
+  /// Time of the last successful pull; drives the offline banner copy (03-APP-FLOW:117).
+  final DateTime? dataAsOf;
+  /// First pull in progress: show LimsLoading instead of the empty copy (03-APP-FLOW:117).
+  final bool loading;
   final SyncSummary sync;
   final Future<void> Function() onRefresh;
   final void Function(String visitId) onOpenVisit;
@@ -94,7 +100,11 @@ class _RouteScreenState extends State<RouteScreen> {
     return LimsSecureScreen(
       child: LimsScaffold(
         title: 'Today · ${formatDmy(widget.routeDate)}',
-        offlineBanner: widget.offline ? const LimsOfflineBanner() : null,
+        offlineBanner: !widget.offline
+            ? null
+            : widget.dataAsOf == null
+                ? const LimsOfflineBanner()
+                : LimsOfflineBanner(message: 'Offline — showing data from ${formatHm(widget.dataAsOf!)}'),
         syncStatus: SyncChip(sync: widget.sync),
         actions: [
           Semantics(
@@ -124,6 +134,8 @@ class _RouteScreenState extends State<RouteScreen> {
               if (_showCancelled && !widget.purged) const InlineNotice(tone: 'info', text: _cancelledNote),
               if (widget.purged)
                 const LimsEmptyState(title: _purgedText, icon: Icons.lock_clock)
+              else if (visits.isEmpty && widget.loading)
+                const LimsLoading()
               else if (visits.isEmpty)
                 const LimsEmptyState(title: _emptyText)
               else

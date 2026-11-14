@@ -95,7 +95,7 @@ class _OutboxScreenState extends State<OutboxScreen> {
           body: ListView(children: [
             if (_error != null) InlineNotice(tone: 'danger', text: _error!),
             if (widget.rows.isEmpty)
-              const LimsEmptyState(title: 'Nothing is waiting', message: 'Everything on this phone has been uploaded.')
+              const LimsEmptyState(title: 'Everything is uploaded.')
             else
               for (final r in widget.rows) _row(context, r),
           ]),

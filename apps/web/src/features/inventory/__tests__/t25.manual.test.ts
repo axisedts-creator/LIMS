@@ -12,7 +12,7 @@ const helpDir = join(root, 'apps/web/src/features/inventory/help');
 const compDir = join(root, 'apps/web/src/features/inventory/components');
 const prd = join(root, 'spec/chunks/C12-inventory/01-PRD.md');
 
-// S1..S18 (04-UI-UX §3). [screen, helpKey tail, route fragment the page must mention (null = no own route in spec)]
+// S1..S18 (04-UI-UX §3). [screen, helpKey tail, route fragment the manual page must mention (02-TRD route table; S14 is a tab on S4 stores)]
 const SCREENS: Array<[string, string, string | null]> = [
   ['S1', 'home', '/inventory'],
   ['S2', 'items', '/inventory/items'],
@@ -26,8 +26,8 @@ const SCREENS: Array<[string, string, string | null]> = [
   ['S10', 'wastage', '/inventory/wastage'],
   ['S11', 'counts', '/inventory/counts'],
   ['S12', 'bench', '/inventory/bench'],
-  ['S13', 'rules', null],
-  ['S14', 'bindings', null],
+  ['S13', 'rules', '/inventory/rules'],
+  ['S14', 'bindings', '/inventory/stores'],
   ['S15', 'unresolved', '/inventory/unresolved'],
   ['S16', 'alerts', '/inventory/alerts'],
   ['S17', 'reports', '/inventory/reports'],
@@ -88,6 +88,7 @@ describe('page shape', () => {
     expect(s).toMatch(/^# \S/m);
     expect(words(s)).toBeGreaterThanOrEqual(25);
   });
+  it('help/rules.md names its route /inventory/rules (02-TRD staff.inventory.rules)', () => expect(help('rules')).toContain('/inventory/rules'));
   it.each(TOPICS)('topic %s: H1, at least 60 words', (t) => {
     const s = man(t);
     expect(s).toMatch(/^# \S/m);

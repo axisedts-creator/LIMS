@@ -507,6 +507,12 @@ describe.skipIf(!live)('T-12 #53 postGoodsReceipt: AC-06.1 / AC-06.2 lots, movem
     await post(s, a.id); await post(s, b.id);
     expect(await poState(s, POS)).toMatchObject({ status: 'partially_received', recv: [400] });
   });
+  run('review T-12 #1 (03-APP-FLOW P5): a PO-linked GRN whose lines carry no po_line_id receives nothing against the PO => PO stays sent, line received_qty_base unchanged', async (s) => {
+    const g = await mk(s, [lotLine('T12-NPL')], { po_id: POS, supplier_id: undefined });
+    expect(g.po_id).toBe(POS);
+    await post(s, g.id);
+    expect(await poState(s, POS)).toMatchObject({ status: 'sent', recv: [0] });
+  });
 });
 
 describe.skipIf(!live)('T-12 #53 over-receipt (AC-06.3) and PO state at post', () => {

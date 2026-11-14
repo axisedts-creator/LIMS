@@ -10,7 +10,7 @@ import { cleanup, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { HttpResponse } from 'msw';
 import {
-  RUN_1, api, axeClean, bodyOf, calls, callsTo, has, json, pageText, problem, read, resetApi, routes, router, runDto, show, showOrThrown, PERM_MANAGE, PERM_READ, PERM_REVIEW, obsId,
+  RUN_1, api, axeClean, bodyOf, calls, callsTo, has, json, pageText, problem, read, resetApi, routes, router, runDto, show, statusRow, showOrThrown, PERM_MANAGE, PERM_READ, PERM_REVIEW, obsId,
 } from './quality-t21.harness';
 
 vi.mock('next/navigation', async () => (await import('./quality-t21.harness')).navigationMock);
@@ -69,6 +69,8 @@ describe('access and errors', () => {
 
 describe('content (04-UI-UX §2.3)', () => {
   it('title, status chip words, DescriptionList facts, hold and rejected banner', async () => {
+    // LD-178: QcRunDto has no analyte_code/instrument_label (quality.yaml:6589/:6672); the page resolves PLAN_1 via GET /v1/quality/qc-status (QcStatusRowDto, :6884).
+    routes['GET /v1/quality/qc-status'] = json({ data: [statusRow()], page: { limit: 50 } });
     await show(PAGE, props());
     expect(screen.getByRole('heading', { level: 1 }).textContent).toMatch(/QC run · GLU/);
     const t = pageText();
@@ -143,15 +145,18 @@ describe('evaluate now (#30)', () => {
     await waitFor(() => expect(router.refresh).toHaveBeenCalled());
   });
 
-  it('comment longer than 500 characters is refused in the form (no request)', async () => {
+  it('comment longer than 500 characters is refused in the form (capped at 500)', async () => {
+    // LD-178: TextArea max 500 (04-UI-UX.md:71); kit sets native maxLength (TextInputBase.tsx:65), so a 501-char paste is cut to 500 and that request is valid.
     const u = user();
     await show(PAGE, props());
     await u.click(btn(/evaluate now/i)!);
-    await u.click(within(dialog()).getByRole('textbox'));
+    const box = within(dialog()).getByRole('textbox') as HTMLTextAreaElement;
+    await u.click(box);
     await u.paste('x'.repeat(501));
+    expect(box.value.length).toBe(500);
     await u.click(within(dialog()).getByRole('button', { name: /evaluate/i }));
     await new Promise((r) => setTimeout(r, 50));
-    expect(callsTo('POST', `${RUN}/evaluate`)).toHaveLength(0);
+    for (const c of callsTo('POST', `${RUN}/evaluate`)) expect(String(bodyOf(c)?.comment ?? '').length).toBeLessThanOrEqual(500);
   });
 
   it('keyboard: E opens the dialog, Esc closes it without any request', async () => {
@@ -183,7 +188,7 @@ describe('record corrective action (#31)', () => {
     await u.click(btn(/record corrective action/i)!);
     const d = dialog();
     expect(callsTo('GET', '/v1/quality/coded-sets/corrective_actions').length).toBeGreaterThan(0);
-    await u.click(within(d).getByRole('combobox', { name: /action/i }) ?? within(d).getByRole('button', { name: /action/i }));
+    await u.click(within(d).getByRole('button', { name: /action/i }) /* LD-178: CodedSelect trigger is a button (Select.tsx:53) */);
     await u.click(await screen.findByRole('option', { name: 'Recalibrated' }));
     await u.type(within(d).getByRole('textbox', { name: /description/i }), 'Synthetic: recalibrated');
     await u.click(within(d).getByRole('button', { name: /^(save|record)/i }));

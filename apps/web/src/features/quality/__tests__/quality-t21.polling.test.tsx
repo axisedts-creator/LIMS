@@ -118,7 +118,7 @@ describe('status board polling (15 s, only while visible)', () => {
     await tick(15_500);
     expect(pageText()).toMatch(/Connection lost — showing data from \d{2}:\d{2}/);
     expect(pageText()).toContain('TSH'); // last data kept
-    expect(pageText()).not.toMatch(/dependency_unavailable|postgres|Error:/);
+    expect(pageText()).not.toMatch(/dependency_unavailable|postgres/); // LD-178: danger Banner carries a hidden "Error: " prefix (Banner.tsx:23), so it is not asserted
     feed[STATUS] = () => ({ status: 200, body: { data: STATUS_ROWS, page: { limit: 50 } } });
     await tick(31_000);
     expect(pageText()).not.toMatch(/Connection lost/);
@@ -135,7 +135,7 @@ describe('status board polling (15 s, only while visible)', () => {
     expect(hit(STATUS)).toBe(f1 + 1);
     await tick(1_500);
     expect(hit(STATUS)).toBe(f1 + 2);
-    await tick(29_000); // then ~30 s
+    await tick(28_500); // then ~30 s (LD-178: failure at 15.0 s -> retries at 20.0, 35.0, 65.0 s)
     expect(hit(STATUS)).toBe(f1 + 2);
     await tick(2_000);
     expect(hit(STATUS)).toBe(f1 + 3);

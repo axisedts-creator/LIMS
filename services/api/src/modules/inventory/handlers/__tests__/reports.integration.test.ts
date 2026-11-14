@@ -154,7 +154,9 @@ beforeAll(async () => {
     await put(c, 'inventory.test_counts_daily', CPT_COUNTS);
     await put(c, 'inventory.instrument_bindings', [{ id: uid(19960), ...tid, instrument_id: XC1, store_id: SC1, is_active: true }]);
     await put(c, 'inventory.stock_balances', [bal(1, SC1, IS1, null, 10, 54), bal(2, SC1, IS2, null, 10, 54)]); // avg cost 5.4 paisa per base unit each
-    await put(c, 'inventory.consumption_rules', [rule(1, 'per_test', C1, IS1, 1), rule(2, 'per_analyte', C1, IS2, 1, AN1), rule(3, 'per_test', C3, IS3, 2)]); // C1 standard = 5.4 + 5.4 = 10.8; C3's item has no cost
+    await put(c, 'inventory.consumption_rules', [rule(1, 'per_test', C1, IS1, 1), rule(2, 'per_analyte', C1, IS2, 1, AN1), rule(3, 'per_test', C3, IS3, 2),
+      rule(4, 'per_test', C2, IS1, 1), { ...rule(5, 'per_test', C2, IS1, 2), instrument_id: XC1 }, // C2: generic + XC1-specific on one item => ONLY the specific rule counts (TRD 5.8 step 2): 10.8 -> 11, not 16
+      rule(6, 'per_test', C4, IS1, 1), { ...rule(7, 'per_test', C4, IS1, 100), effective_from: '2099-01-01T00:00:00Z' }]); // C4: a future-dated rule is not matched today: 5.4 -> 5, not 545 // C1 standard = 5.4 + 5.4 = 10.8; C3's item has no cost
     // wastage / count variance
     await put(c, 'inventory.consumption_daily', [
       cd('2026-04-10', S1, I1, 'wastage', null, null, 2, 400, 1), cd('2026-04-11', S1, I1, 'wastage', null, null, 1, 200, 1), cd('2026-04-12', S1, I2, 'expiry_writeoff', null, null, 5, 750, 1),
@@ -382,6 +384,13 @@ describe.skipIf(!live)('T-19 AC-21.3 cost_per_test: formulas per PRD §8.3 (N = 
     expect(c1.cpt_standard_paisa).toBe(11); expect(c1.standard_is_complete).toBe(true);
     expect(s.catalogCalls.map((c) => c.testId)).toContain(C1); // reportable analytes of the test come from CatalogPort.getTest
     expect(row(rows, C3, XC1).standard_is_complete).toBe(false);
+    expect(row(rows, C3, XC1).missing_item_ids).toEqual([IS3]); // PRD 8.3: is_complete = false carries missing_item_ids[]
+    expect(c1.missing_item_ids ?? []).toEqual([]);
+  });
+  runT('cpt_standard rule matching (TRD 5.8): an instrument-specific rule drops the generic rule of the same item (C2: 11, not 16); a future-dated rule is ignored (C4: 5, not 545)', async (s) => {
+    const rows = await cpt(s);
+    expect(row(rows, C2, XC1).cpt_standard_paisa).toBe(11);
+    expect(row(rows, C4, XC1).cpt_standard_paisa).toBe(5);
   });
   runT('cpt_standard follows the reportable analytes of the catalogue test: with no analyte the per_analyte rule does not apply (5.4 -> 5)', async (s) => {
     const b = await s.get('cost_per_test', CPT, { analytes: { [C1]: [AN1] } });
@@ -483,7 +492,7 @@ describe.skipIf(!live)('T-19 AC-21.7 consumption_reconciliation: test block (C12
     const rows = (await rec(s)).filter((r) => r.instrument_id != null && r.test_id == null);
     const g = (i: string, d: string, c: number, q: number, diff: number) => expect(one(rows, { instrument_id: i, business_date: d }), `${i} ${d}`).toMatchObject({ c12_qc_observations: c, instrument_qc_records: q, diff });
     g(XR1, '2026-07-01', 20, 17, 3); g(XR2, '2026-07-01', 7, 0, 7); g(XR3, '2026-07-03', 0, 4, -4);
-    expect(one(rows, { instrument_id: XR1, business_date: '2026-07-01' }).instrument_label).toBe('Analyser R1');
+    expect(Object.keys(one(rows, { instrument_id: XR1, business_date: '2026-07-01' }))).not.toContain('instrument_label'); // TRD 5.11: the reconciliation columns are fixed and do not list it
     const same = find(rows, { instrument_id: XR1, business_date: '2026-07-02' }); if (same.length) expect(same[0].diff).toBe(0);
   });
   runT('totals carry the unresolved / dismissed fact counts of the window (2 unresolved, 1 dismissed; 06-30 and 07-04 facts out)', async (s) => {
@@ -549,6 +558,13 @@ describe.skipIf(!live)('T-19 AC-21.8 exportInventoryReport: CSV content, P-9 neu
     expect(header).toEqual(json.columns.map((c: any) => c.key)); expect(rows).toHaveLength(json.rows.length);
     const golden = rows.find((x) => x['business_date'] === '2026-03-02' && x['movement_kind'] === 'consume_test') as Record<string, string>;
     expect(num(golden['qty_consumed'])).toBeCloseTo(10, 6); expect(golden['value_consumed_paisa']).toBe('5000'); expect(golden['movements']).toBe('4'); expect(golden['store_code']).toBe('T19-S1');
+  });
+  runT('TRD 5.11 columns are fixed: wastage / expiry / stock_valuation carry no store_code, reconciliation no instrument_label (JSON columns and CSV header)', async (s) => {
+    for (const [code, col] of [['wastage', 'store_code'], ['expiry', 'store_code'], ['stock_valuation', 'store_code'], ['consumption_reconciliation', 'instrument_label']] as const) {
+      const b = await body(s, code, QUERY[code]);
+      expect(b.columns.map((c: any) => c.key), code).not.toContain(col);
+      expect(b.rows.flatMap((r: any) => Object.keys(r)), code).not.toContain(col);
+    }
   });
   runT('P-9: every text cell passes neutraliseFormula (item name =HYPERLINK / +1+1, lot numbers = + - \' , instrument label @) - nothing starts with = + - @ TAB CR unless it is a plain negative number; negative numbers are NOT prefixed', async (s) => {
     const daily = await table(s, 'daily_consumption');

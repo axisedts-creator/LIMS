@@ -203,7 +203,7 @@ export function makeSlipCtx(w: World, who: Who, handlers: Record<string, (req: a
 }
 
 // ------------------------------------------------------------------ job ctx (worker tasks)
-export interface JobOpts { tenant?: string; now?: string; attempt?: number }
+export interface JobOpts { tenant?: string; now?: string; attempt?: number; calendar?: string }
 /** ReportingPort + RenderPort fakes that record every call. `issueErr` / `renderErr` are consumed once when set to a function, or thrown every time when an Error. */
 export function makePorts(w: World) {
   const issue: Array<{ actorType: string; tenantId: string; input: any }> = [];
@@ -257,7 +257,7 @@ export function makeSlipJob(w: World, st: Storage, ports: ReturnType<typeof make
       IdentityPort: { async getTenantSettings(_c: unknown, input: { keys?: string[] }) {
         settingsCalls.push(input);
         if (!input?.keys?.length || input.keys.some((k) => !['timezone', 'calendarDisplay', 'reportLinkTtlDays', 'retentionYears'].includes(k))) throw new LimsError('auth.forbidden');
-        return { timezone: 'Asia/Kathmandu', calendarDisplay: 'AD', reportLinkTtlDays: 30, retentionYears: 5 };
+        return { timezone: 'Asia/Kathmandu', calendarDisplay: over.calendar ?? 'AD', reportLinkTtlDays: 30, retentionYears: 5 };
       } } },
   };
   ctx.db = { tx: async (fn: (c: unknown) => Promise<unknown>) => fn(ctx) };

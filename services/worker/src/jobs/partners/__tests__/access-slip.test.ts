@@ -23,6 +23,7 @@ import {
 } from '../../../../../api/src/modules/partners/__tests__/access-slip.world.js';
 import { LimsError } from '../../../../../api/src/core/errors.js';
 import { manifest } from '../index.js';
+import { instantToBs, type IsoUtc } from '../../../../../../packages/shared-ts/src/bsdate/index.js';
 
 const issueTask = manifest.tasks!['partners.issue_access_slip']!;
 const purgeTask = manifest.tasks!['partners.purge_access_slips']!;
@@ -68,6 +69,19 @@ describe('partners.issue_access_slip: the happy path (US-09.3)', () => {
     expect(d.expiresAtLocal).not.toBe(d.issuedAtLocal);
     const flat = JSON.stringify(d);
     for (const x of [PHI.phone, PHI.note, PHI.dob, 'SYN-REF-002', 'SYN-MF-0001']) expect(flat).not.toContain(x);
+  });
+
+  // T14 review item 1 (02-TRD §8.1 [CONV]: *Local formatted per calendarDisplay; IC §4 AD|BS|AD_BS|BS_AD). Exact BS text format is not pinned: BS year + tenant-local time only.
+  it.each([['BS', true, false], ['AD_BS', true, true], ['BS_AD', true, true], ['AD', false, true]] as const)('calendarDisplay %s: both *Local strings carry the 11:45 local time, BS year %s, AD year %s', async (cal, hasBs, hasAd) => {
+    const s = setup(); const r = await issue(s, SL.req, { calendar: cal });
+    const d = s.ports.render[0]!.input.data;
+    for (const [k, at] of [['expiresAtLocal', EXPIRES], ['issuedAtLocal', NOW13]] as const) {
+      const bsYear = String(instantToBs(at as IsoUtc, 'Asia/Kathmandu').year);
+      expect(d[k], k).toContain('11:45'); expect(bsYear).toBe('2083');
+      expect(d[k].includes(bsYear), `${k} BS year`).toBe(hasBs);
+      expect(d[k].includes('2026'), `${k} AD year`).toBe(hasAd);
+    }
+    expect(r.settingsCalls.some((c: any) => c.keys.includes('calendarDisplay'))).toBe(true);
   });
 
   it('stores the slip PDF ONCE in partners-slips at {tenant_id}/access-slips/{yyyy}/{mm}/{id}.pdf (08 A5.2), the decoded render result, application/pdf', async () => {

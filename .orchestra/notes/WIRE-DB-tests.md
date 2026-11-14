@@ -1,0 +1,7 @@
+# WIRE-DB tests (tester, LD-189)
+- `services/api/src/core/pipeline/__tests__/identity-db-handoff.test.ts`: bootPipeline + REAL identity manifest over a fake `pg` (vi.mock). Behaviour only: lazy single SELECT on core.g_system_actors, claims `{sub,actor_type:'system'}`, memoised, fail closed + retry, no db for other modules, no-DB/unreachable boot, allowlist unchanged.
+- `services/api/src/modules/identity/__tests__/claims-db-binding.test.ts`: unit test of NEW `modules/identity/claims/dbBinding.ts`. Expected API (disputable via `.orchestra/notes/WIRE-DB-dispute-*.md`): `createIdentityDbBinding(): { db (frozen, only identityAuthTx), bind({ readActorId(): Promise<unknown>, open(actorId): { identityAuthTx } }): void }`; the manifest's resolver object must stay the same object (late bind).
+- Assumed lookup shape: one read of `core.g_system_actors`, `module 'identity'` + `is_active`, id in column `actor_id` (worker precedent).
+- Run: `.orchestra/notes/WIRE-DB-verify.cmd` (new tests + identity-auth, tx, pipeline stage tests, identity claims tests, WIRE-BOOT staging-boot; staging-boot takes ~2 min).
+- State now: binding test fails at import (dbBinding.ts missing); 12 of 18 handoff tests fail (placeholder db rejects common.internal); 6 pass as regression guards (unbound, no-DB boot, other modules' deps, allowlist, bad jwt).
+- Not covered (needs a real DB): lims_app SELECT/RLS on core.g_system_actors (migration 20261105000900); if that fails live, LD-189 rule 6 CR applies.

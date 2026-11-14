@@ -49,6 +49,21 @@ services:
         sync: false
       - key: LIMS_REPORTING_OTP_HMAC_KEY_FILE
         sync: false
+      # LD-188 (WIRE-BOOT): names read at import by engagement and payments in staging; values live in the dashboard only.
+      - key: LIMS_ENGAGEMENT_OTP_HMAC_KEY_FILE
+        sync: false
+      - key: LIMS_ENGAGEMENT_OTP_ENC_KEYS_FILE
+        sync: false
+      - key: LIMS_ENGAGEMENT_LINK_HMAC_KEY_FILE
+        sync: false
+      - key: LIMS_ENGAGEMENT_PHONE_HMAC_KEY_FILE
+        sync: false
+      - key: LIMS_PAYMENTS_KEK_FILE
+        sync: false
+      - key: LIMS_PAYMENTS_PUBLIC_BASE_URL
+        sync: false
+      - key: LIMS_PAYMENTS_ESEWA_FORM_URL
+        sync: false
       - key: LIMS_INSTRUMENTS_CONFIG_SIGNING_KEY_FILE
         sync: false
       - key: LIMS_INSTRUMENTS_CONFIG_SIGNING_KEY_ID

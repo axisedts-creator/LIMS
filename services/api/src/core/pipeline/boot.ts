@@ -7,7 +7,7 @@ import { pathToFileURL } from 'node:url';
 import { PORT_CONSUMERS } from '../../../../../contracts/ports/generated/port-consumers.js';
 import type { CoreConfig } from '../config.js';
 import { createCoreRepo } from '../core-repo/index.js';
-import { createDb, type Pool, type PoolClient } from '../db/tx.js';
+import { createDb, type Db, type Pool, type PoolClient } from '../db/tx.js';
 import { LimsError } from '../errors.js';
 import { createEvents } from '../events/publish.js';
 import { createIdempotency } from '../idempotency.js';
@@ -18,7 +18,9 @@ import { PHASE_STUBS } from '../ports/phase-stubs.js';
 import { resolvePorts, type PortLog, type PortMetrics, type PortRegistry } from '../ports/registry.js';
 import { createRateLimiter, type RateLimiter } from '../ratelimit/index.js';
 import { createPgBackend } from '../ratelimit/pg.js';
+import type { HealthChecks } from '../health.js';
 import { createFiles } from '../uploads/index.js';
+import { createHealthChecks } from './healthChecks.js';
 import { createPipeline, type Pipeline } from './index.js';
 
 const FAKES_DIR = join(REPO_ROOT, 'packages', 'fakes', 'src');
@@ -56,6 +58,8 @@ async function loadPortImpls(env: string, needed: ReadonlySet<string>): Promise<
 }
 
 export interface PipelineBoot {
+  /** LD-193 (WIRE-HEALTH): real readiness checks; absent without a database (bootstrap then keeps UNWIRED_CHECKS, fail closed). */
+  healthChecks?: HealthChecks;
   pipelineFor(module: string): Pipeline;
   close(): Promise<void>;
 }
@@ -93,8 +97,13 @@ export async function bootPipeline(o: {
   }
   // [CONV] CoreDeps is not spelled out by 02-TRD §6.3; modules get env, log and metrics.
   const services: Record<string, unknown> = {};
+  // LD-189 (WIRE-DB): ONLY module 'identity' gets identityDb.register, to receive identityAuthTx later (the pool does not exist yet). Never a db or pool.
+  let bindIdentityDb: ((src: { readActorId(): Promise<unknown>; open(actorId: string): { identityAuthTx: Db['identityAuthTx'] } }) => void) | undefined;
   for (const m of modules) {
-    if (m.manifest.createServices) services[m.manifest.name] = m.manifest.createServices(Object.freeze({ env: config.env, log, metrics }));
+    if (!m.manifest.createServices) continue;
+    const base = { env: config.env, log, metrics };
+    services[m.manifest.name] = m.manifest.createServices(Object.freeze(
+      m.manifest.name === 'identity' ? { ...base, identityDb: Object.freeze({ register(b: typeof bindIdentityDb) { bindIdentityDb = b; } }) } : base));
   }
 
   // §6.4: one pool per API process; absent without LIMS_CORE_DATABASE_URL (only public, transaction-less operations then).
@@ -122,6 +131,24 @@ export async function bootPipeline(o: {
       tenant: { rps: config.tenantRps, burst: config.tenantBurst },
     });
   }
+  // LD-189: bind now that the pool exists; nothing is read here. The identity actor comes lazily from core.g_system_actors (module 'identity', is_active),
+  // exactly one active row, never env/request/JWT. open() exposes only identityAuthTx.
+  if (pg && pool && bindIdentityDb) {
+    const pgq = pg;
+    bindIdentityDb({
+      async readActorId() {
+        const r = await pgq.query('SELECT actor_id FROM core.g_system_actors WHERE module = $1 AND is_active', ['identity']);
+        return r.rows.length === 1 ? r.rows[0]?.actor_id : undefined;
+      },
+      open: (identitySystemActorId) => {
+        const d = createDb({
+          pool, log, metrics, retryMax: config.txRetryMax, statementTimeoutMs: config.statementTimeoutMs, lockTimeoutMs: config.lockTimeoutMs,
+          identityAuthOps: config.identityAuthOps, withTenantScopeOps: config.withTenantScopeOps, identitySystemActorId,
+        });
+        return { identityAuthTx: d.identityAuthTx };
+      },
+    });
+  }
   const idempotency = db && createIdempotency({ db, log });
 
   const authz = createAuthzGuard({ env: config.env, log, metrics });
@@ -136,8 +163,12 @@ export async function bootPipeline(o: {
     download: unwired('stream'),
   };
 
+  // LD-193: same pg.query as the limiter; nothing is issued until a readiness call.
+  const healthChecks = pg && createHealthChecks({ query: (t, v) => pg!.query(t, v), limiterConfigured: !!rateLimiter, log });
+
   const cache = new Map<string, Pipeline>();
   return {
+    ...(healthChecks ? { healthChecks } : {}),
     pipelineFor(module) {
       let p = cache.get(module);
       if (!p) {

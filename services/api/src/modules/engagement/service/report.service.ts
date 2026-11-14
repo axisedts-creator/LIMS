@@ -65,8 +65,43 @@ async function readFile(url: string): Promise<Buffer> {
   } catch { throw unavailable(); } // connection reset mid-stream, DNS, TLS ... (never echo the URL)
 }
 
+/** E24 view: only the displayed fields of the stored snapshot (SmartSummaryView is additionalProperties:false); optional parts are omitted, never null. */
+function smartView(reportId: string, versionNo: number, approvedAt: unknown, s: Row): Record<string, unknown> {
+  const list = (v: unknown): Row[] => (Array.isArray(v) ? v.map(obj) : []);
+  const hs = obj(s['healthScore']);
+  return {
+    report_id: reportId, version_no: versionNo, approved_at: iso(approvedAt),
+    ...(typeof hs['value'] === 'number' && typeof hs['band'] === 'string' ? { health_score: { value: hs['value'], band: hs['band'] } } : {}),
+    panels: list(s['panels']).map((p) => ({ panel_code: p['panelCode'], ...(typeof p['displayName'] === 'string' ? { display_name: p['displayName'] } : {}), status: p['status'] })),
+    deranged: list(s['deranged']).map((d) => ({ direction: d['direction'], severity: d['severity'], text: d['text'] })),
+    advice: list(s['advice']).map((a) => ({ text: a['text'] })),
+    follow_ups: list(s['followUps']).map((f) => ({ interval_days: f['intervalDays'], text: f['text'] })),
+    trends: list(s['trends']).map((t) => ({ direction: t['direction'] })),
+    ...(typeof s['disclaimerText'] === 'string' ? { disclaimer_text: s['disclaimerText'] } : {}),
+  };
+}
+
 export function createReportService() {
   return {
+    /** E24 (T-P4): the stored approved summary of one report version, from the local copy only (no port call). 404 for everything hidden: foreign / unknown report, feature off, no stored copy, not approved. */
+    async smart(ctx: ReportsCtx, req: { reportId: unknown; versionNo: unknown }): Promise<Out> {
+      const { tx, tenantId, membershipId } = scope(ctx);
+      if (!isUuid(req.reportId)) return invalid('/report_id');
+      const versionNo = typeof req.versionNo === 'number' ? req.versionNo : typeof req.versionNo === 'string' && /^\d{1,4}$/.test(req.versionNo) ? Number(req.versionNo) : NaN;
+      if (!Number.isInteger(versionNo) || versionNo < 1 || versionNo > 9999) return invalid('/version_no');
+      if (!ctx.audit) throw new LimsError('common.service_unavailable'); // never serve without the access log (07 rule 7)
+      const links = await myLinks(tx, tenantId, membershipId);
+      const r = (await tx.query('SELECT patient_id, released_at FROM engagement.patient_reports WHERE tenant_id = $1 AND report_id = $2 AND version_no = $3', [tenantId, req.reportId, versionNo])).rows[0];
+      const link = r ? links.find((l) => l.patientId === r['patient_id']) : undefined;
+      if (!r || !link || (link.visibleFrom && ms(r['released_at']) < ms(link.visibleFrom))) return notFound();
+      const on = (await tx.query('SELECT smart_report_in_app FROM engagement.settings WHERE tenant_id = $1', [tenantId])).rows[0]?.['smart_report_in_app'] === true;
+      const row = on ? (await tx.query('SELECT summary, approved_at FROM engagement.smart_summaries WHERE tenant_id = $1 AND report_id = $2 AND report_version_no = $3', [tenantId, req.reportId, versionNo])).rows[0] : undefined;
+      const s = row ? obj(typeof row['summary'] === 'string' ? JSON.parse(row['summary']) : row['summary']) : undefined;
+      if (!row || !s || s['status'] !== 'approved') return notFound();
+      await ctx.audit.access({ action: 'smart_summary.view', entityType: 'report', entityId: req.reportId, outcome: 'allowed' });
+      return { status: 200, body: smartView(req.reportId, versionNo, row['approved_at'], s), headers: { 'cache-control': 'no-store' } };
+    },
+
     /** E22. */
     async list(ctx: ReportsCtx, req: { query: unknown }): Promise<Out> {
       const { tx, tenantId, membershipId } = scope(ctx);

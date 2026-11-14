@@ -12,6 +12,7 @@ import { handle as balanceChanged } from './consumers/billing.balance.changed.v1
 import { MARK_NO_SHOWS, RECONCILE_BOOKINGS, markNoShows, reconcileBookings } from './tasks/booking_jobs.js';
 import { createBackfillLink } from './tasks/backfill_link.js';
 import { createDispatchDueReminders } from './tasks/dispatch_due_reminders.js';
+import { createFetchSmartSummary } from './tasks/fetch_smart_summary.js';
 import { PURGE_EPHEMERAL, PURGE_QUEUE, purgeEphemeral, purgeQueue } from './tasks/purge.js';
 import { SYNC_BOOKING_CENTRES, SYNC_BOOKING_CENTRES_NIGHTLY, syncBookingCentres, syncBookingCentresNightly } from './tasks/sync_booking_centres.js';
 import { createSendLoginOtp } from './tasks/send_login_otp.js';
@@ -43,6 +44,7 @@ export const manifest: WorkerManifest = Object.freeze({
     [RECONCILE_LINKS]: reconcileLinks, // T-L5 (cron-only)
     'engagement.send_login_otp': createSendLoginOtp(), // T-A2
     'engagement.backfill_link': createBackfillLink(), // T-L2
+    'engagement.fetch_smart_summary': createFetchSmartSummary(), // T-P4
     'engagement.send_booking_message': createSendBookingMessage(), // T-B5
     'engagement.send_reminder': createSendReminder(), // T-R1
     'engagement.dispatch_due_reminders': createDispatchDueReminders(), // T-R1 (cron-only task: no §8.1 row)

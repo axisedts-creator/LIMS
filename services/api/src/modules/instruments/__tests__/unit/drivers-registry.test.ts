@@ -25,6 +25,8 @@ const SEED: Array<[string, string, string, string, Caps]> = [
   ['mindray_bs200_sketch', 'hl7v2', 'sketch_blocked', '0.0.1', { resultUpload: true, hostQuery: true, worklistDownload: false, qc: false, attachments: false, calibration: false }],
   // H80-T02 (LD-139, 08-ADDENDUM-TRUTH-H80E §8): generic, never verified; hostQuery inert while status <> verified
   ['truth_h80e', 'hl7v2', 'generic', '0.1.0', { resultUpload: true, hostQuery: true, worklistDownload: false, qc: true, attachments: true, calibration: false }],
+  // MET-T02 (LD-163, 09-ADDENDUM-GETEIN-METIS §8): generic, never verified; hostQuery inert while status <> verified; no attachments, no calibration
+  ['getein_metis', 'hl7v2', 'generic', '0.1.0', { resultUpload: true, hostQuery: true, worklistDownload: false, qc: true, attachments: false, calibration: false }],
 ];
 const enc = (s: string) => new TextEncoder().encode(s);
 const NOT_AVAILABLE = 'instruments.driver_not_available';
@@ -35,7 +37,7 @@ function codeOf(fn: () => unknown): string | undefined {
 }
 
 describe('registry contents match the g_drivers seed (05-SCHEMA §2.18)', () => {
-  it('exactly the six seeded codes (five + truth_h80e, H80-T02), each once', () => {
+  it('exactly the seven seeded codes (five + truth_h80e H80-T02 + getein_metis MET-T02), each once', () => {
     const codes = listDrivers().map((d) => d.code).sort();
     expect(codes).toEqual(SEED.map((s) => s[0]).sort());
   });
@@ -65,8 +67,9 @@ describe('registry contents match the g_drivers seed (05-SCHEMA §2.18)', () => 
       expect(d.capabilities.calibration).toBe(false);
       expect(d.capabilities.worklistDownload).toBe(false);
       expect(d.capabilities.resultUpload).toBe(true);
-      // CHECK status<>'verified' OR manual_document_id: no manual -> never verified. Only truth_h80e (addendum §0) has a manual on file.
+      // CHECK status<>'verified' OR manual_document_id: no manual -> never verified. Only truth_h80e (08 §0) and getein_metis (09 §0) have a manual on file.
       if (d.code === 'truth_h80e') expect(d.manualRef).toMatchObject({ documentId: 'truth-h80e-hl7-interface-user-manual', revision: '1.5' });
+      else if (d.code === 'getein_metis') expect(d.manualRef).toMatchObject({ documentId: 'getein-metis-hl7-communication-protocol', revision: 'unversioned' });
       else expect(d.manualRef).toBeUndefined();
     }
   });

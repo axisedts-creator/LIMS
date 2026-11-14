@@ -1,0 +1,6 @@
+{"name": "metis-oru-calibration", "protocol": "hl7v2", "transport": "tcp_server", "instrument_profile": "getein_metis", "options": {},
+ "steps": [
+  {"note": "D-MET-2: a calibration ORU is archived like any other and acknowledged, MSH-16 1 echoed", "from": "instrument", "bytes": "<VT>MSH|^~\\&|GP|Metis|||20261114||ORU^R01|59|P|2.3.1||||1||UTF8|||<CR>OBR|1|MT2600000043|8<CR>OBX|1|NM|0|ALT|1.0|U/L<CR><FS><CR>"},
+  {"expect": "agent", "bytes": "<VT>MSH|^~\\&|LIS|LIMS|||{now}||ACK^R01|59|P|2.3.1||||1||UTF8|||<CR>MSA|AA|59|Message accepted|||0|<CR><FS><CR>", "within_ms": 200},
+  {"expect_queue": {"items": 1, "kind": "data", "raw_sha256": "d8b8c6c0dc98b19433e3156f65d5ae6ce9dba119443313906ba6957e25219983"}}
+ ]}

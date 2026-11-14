@@ -255,6 +255,9 @@ func serveHL7(ctx context.Context, db *queue.DB, in instrumentCfg, env hqEnv, re
 		if prof != nil { // LD-139: the analyser's profile; a host query is committed as kind host_query, then relayed (E05)
 			sink.hqTypes = prof.HostQueryMessageTypes
 			cfg.AckMode, cfg.AckTypeFormat = prof.HL7AckMode, prof.HL7AckMessageTypeFormat
+			if prof.HL7AckFullForm { // MET-T01: §6 ACK; sender names LIS/LIMS (U3) instead of the e2e's LIMS-BRIDGE
+				cfg.AckFullForm, cfg.AckSendingApp = true, ""
+			}
 			cfg.HostQueryTypes, cfg.ExpectAckOnReply, cfg.ReplyAckPolicy = prof.HostQueryMessageTypes, prof.ExpectAckOnReply, prof.ReplyAckPolicy
 			cfg.ReplyAckMatchControlId, cfg.ReplyTimeout = prof.ReplyAckMatchControlId, prof.ReplyTimeout
 			cfg.HostQuery = func(raw []byte, _ hl7.MSH) [][]byte {

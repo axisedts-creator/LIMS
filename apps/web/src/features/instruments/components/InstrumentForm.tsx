@@ -419,8 +419,8 @@ export function InstrumentForm({ mode, agents, drivers, instrument, permissions 
           const val = Object.hasOwn(s.popts, f.key) ? s.popts[f.key]! : f.def;
           const set = (v: string) => patch({ popts: { ...s.popts, [f.key]: v } });
           return f.options
-            ? <Select<string> key={f.key} label={f.title} name={`parser_options.${f.key}`} options={f.options.map((o) => ({ value: o, label: o }))} {...on(val, { value: val })} onChange={set} />
-            : <TextField key={f.key} label={f.title} name={`parser_options.${f.key}`} {...on(f.maxLength, { maxLength: f.maxLength! })} value={val} onChange={set} />;
+            ? <Select<string> key={f.key} label={`Analyser option: ${f.title}`} name={`parser_options.${f.key}`} options={f.options.map((o) => ({ value: o, label: o }))} {...on(val, { value: val })} onChange={set} />
+            : <TextField key={f.key} label={`Analyser option: ${f.title}`} name={`parser_options.${f.key}`} {...on(f.maxLength, { maxLength: f.maxLength! })} value={val} onChange={set} />;
         })}
         <TimezoneSelect value={s.timezone} error={zoneErr} disabled={ro} onChange={onZone} />
         <TextArea label="QC sample ID patterns" name="qc_sample_id_patterns" maxLength={1010} rows={3} description="One pattern per line, up to 10." value={s.qc} onChange={(v) => patch({ qc: v }, '/qc_sample_id_patterns')} {...ROF} {...E('/qc_sample_id_patterns', s.qc)} />

@@ -9,7 +9,7 @@ import { buildContent, summarise } from '../domain/report-content.js';
 import { getAddendum, insertAddendum, listAddenda, updateAddendum } from '../repository/addenda.repo.js';
 import { getBlock } from '../repository/blocks.repo.js';
 import { getCaseItem, listCaseItems, updateCase } from '../repository/cases.repo.js';
-import { getOpenDraft, insertReportDraft, updateReportDraft } from '../repository/drafts.repo.js';
+import { getOpenDraft, insertReportDraft, listReportDrafts, updateReportDraft } from '../repository/drafts.repo.js';
 import { listImages } from '../repository/images.repo.js';
 import { listParts } from '../repository/parts.repo.js';
 import { getStainOrder } from '../repository/stainOrders.repo.js';
@@ -67,20 +67,30 @@ export async function startChange(hctx: unknown, params: unknown, headers: unkno
   const lab = await labStatusByOrderItem(c as never, String(cs['order_id']));
   const kind = targets.some((it) => lab?.get(String(it['order_item_id']))?.status === 'approved') ? 'amendment' : 'revision';
 
-  // prefill from the latest full version; synoptic instances and ancillary results are not reconstructable from the display snapshot [CONV, open point]
+  // prefill from the latest full version (02-TRD §5.3 R4). Its sections come from the consumed draft with the highest consumed_version_no (addendum full versions
+  // consume none and copy the earlier sections), which still holds the synoptic instances and ancillary results; reconstruct from the snapshot only when none exists.
   const prior = await latestFull(c, cs['id']);
   if (!prior) throw new LimsError('anatomic.case_invalid_transition');
-  const wanted = new Set(((prior['images'] ?? []) as Obj[]).map((m) => `${String(m['bucket'])}/${String(m['object_path'])}`));
-  const imageIds = wanted.size === 0 ? [] : (await listImages(c.tx, { tenantId: c.tenantId, caseId: cs['id'], activeOnly: true }))
-    .filter((m) => wanted.has(`${String(m['bucket'])}/${String(m['object_path'])}`)).map((m) => String(m['id']));
+  const src = (await listReportDrafts(c.tx, { tenantId: c.tenantId, caseId: String(cs['id']) })).filter((d) => d['status'] === 'consumed')
+    .reduce<Row | undefined>((best, d) => (!best || Number(d['consumed_version_no']) > Number(best['consumed_version_no']) ? d : best), undefined);
+  const active = await listImages(c.tx, { tenantId: c.tenantId, caseId: cs['id'], activeOnly: true });
+  let imageIds: string[];
+  if (src) {
+    const ids = new Set(((src['image_ids'] ?? []) as unknown[]).map(String));
+    imageIds = active.filter((m) => ids.has(String(m['id']))).map((m) => String(m['id'])); // an image removed since cannot be signed again
+  } else {
+    const wanted = new Set(((prior['images'] ?? []) as Obj[]).map((m) => `${String(m['bucket'])}/${String(m['object_path'])}`));
+    imageIds = active.filter((m) => wanted.has(`${String(m['bucket'])}/${String(m['object_path'])}`)).map((m) => String(m['id']));
+  }
   const codes = ((prior['diagnosis_codes'] ?? []) as Obj[]).map((d) => String(d['code']));
+  const text = src ?? prior;
 
   let saved: Row;
   try {
     saved = await insertReportDraft(c.tx, {
       id: uuidv7(), tenant_id: c.tenantId, centre_id: cs['centre_id'], case_id: cs['id'], kind, status: 'open', change_reason_code: code, change_reason_text: reasonText === '' ? undefined : reasonText,
-      gross_text: prior['gross_text'], microscopy_text: prior['microscopy_text'], impression_text: prior['impression_text'], comment_text: prior['comment_text'], flag: prior['flag'] ?? undefined,
-      is_critical: prior['is_critical'] === true, synoptic: [], ancillary: [], image_ids: imageIds, diagnosis_codes: codes,
+      gross_text: text['gross_text'], microscopy_text: text['microscopy_text'], impression_text: text['impression_text'], comment_text: text['comment_text'], flag: prior['flag'] ?? undefined,
+      is_critical: prior['is_critical'] === true, synoptic: src?.['synoptic'] ?? [], ancillary: src?.['ancillary'] ?? [], image_ids: imageIds, diagnosis_codes: codes,
       base_version_no: Number(cs['current_version_no'] ?? 0), created_by: c.actor.id, updated_by: c.actor.id,
     });
   } catch (e) {
@@ -147,7 +157,6 @@ export async function getVersion(hctx: unknown, params: unknown): Promise<Result
   if (!v) throw new LimsError('common.not_found');
   const o = summaryDto(v, await signerName(c, v, new Map()), (await submissionsOf(c, cs['id']))(v));
   for (const k of ['clinical_history_text', 'gross_text', 'microscopy_text', 'impression_text', 'comment_text']) o[k] = v[k] ?? '';
-  put(o, 'flag', v['flag']); o['is_critical'] = v['is_critical'] === true; // [CONV] stored content columns; contract ReportVersion lists neither (open point)
   for (const k of ['synoptic', 'images', 'specimen_parts', 'slides', 'ancillary', 'molecular', 'addenda', 'diagnosis_codes']) o[k] = v[k] ?? [];
   await (c as AnatomicCtx & { audit: { access(entry: Obj): Promise<void> } }).audit.access({ action: 'anatomic_report.view', entityType: 'anatomic_case', entityId: cs['id'], centreId: cs['centre_id'], outcome: 'allowed', detail: { version_no: Number(v['version_no']) } }); // REQ-SEC-096/097
   return { status: 200, body: o };

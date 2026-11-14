@@ -1,7 +1,6 @@
-CHANGES
-1. apps/web/src/features/instruments/components/InstrumentsList.tsx:52-82 (the instrument card): the done_when and spec/program/10-DESIGN-SYSTEM.md:107 ask for "last heartbeat, queue depth" on each instrument card. The cards show "Last message" in their place. InstrumentSummary has no heartbeat or queue fields (see .orchestra/notes/RS-C7-impl.md and the tests note A2), and LD-140 says "raise a CR, do not invent". No CR exists: `.orchestra/cr/` holds only T0C-10.C7-merge.md. Fix: the writer creates `.orchestra/cr/RS-C7.md` from the template in spec/program/04-CHANGE-REQUESTS.md. The CR asks for agent `last_heartbeat_at` and `queue_depth` (or the agent summary) on the instrument list read model, so the cards can show them. Keep the current "Last message" until that CR is ruled. Do not add the fields now.
-
-Notes (not defects):
-- apps/web/src/features/instruments/__tests__/web-t03.components.test.tsx:111-125 rewrites an older test to the card contract (ruling A5). This file is outside RS-C7's own test files, so the lead must OK it before merge.
-- I checked: no change to API calls, forms, server, routes or permissions (the rs-c7.static baseline passes). No raw colour, pixel radius or inline style. The empty state drops its second "New instrument" button, which leaves one primary action (PageHeader keeps it). The Kind column `isRowHeader` change is accessibility markup only. The stepper is fine for stored data: go_live_checklist is null or all four true (05-SCHEMA.md:775, E28).
-- Test runs (CI=true, this worktree): rs-c7 35/35, web-t02 73/73, web-t03 98/98, web-t04 188/188, web-t05 171/171, web-t06 85/85. Not run: eslint, tsc, a real browser.
+APPROVE
+Round 2. The r1 item is fixed: `.orchestra/cr/RS-C7.md` (CR-C7-RS01) follows the template and asks for agent heartbeat and queue depth on InstrumentSummary (E23). It is non-blocking, and the cards keep "Last message" until the CR is ruled. No code changed since r1 (c4a3ed98 touches only the CR and the notes).
+Checked again: no change to API calls, forms, server, routes or permissions (the rs-c7.static baseline passes). No raw colour, pixel radius or inline style. The Sort-by RadioGroup offers only the two old sort values. The stepper's 5th "All checks done" step is [CONV] and fine.
+Before merge: the lead must OK the web-t03 SCR-05 test edit (A5), and CR-C7-RS01 is still open.
+Test runs (CI=true, this worktree, each suite with its own config): rs-c7 35/35, web-t03 98/98, web-t04 188/188, web-t05 171/171, web-t06 85/85. web-t02 failed 1/73 in a parallel run and passed 73/73 when run again (I did not capture the failing test's name).
+Not run: eslint, tsc, a real browser.

@@ -122,7 +122,30 @@ export interface CultureDetailDto {
   protocol?: ProtocolLite & { read_schedule_hours: number[]; final_no_growth_hours: number; requires_gram_stain: boolean };
   plates: PlateDto[]; observations: ObservationDto[]; isolates: IsolateDto[]; amendment_reason_text?: string;
   lab_result?: { result_id: string; status: string; version_no: number }; permissions_hint: { can_amend_approved: boolean };
+  // T-22 (reports): the optional fields of CultureDetailDto the report drawer and the Reports tab read.
+  report_versions?: ReportVersionSummaryDto[]; last_report_phase?: ReportPhase; outcome_code?: string; amendment_reason_code?: string;
 }
+// ---- T-22 reports (ReportVersionSummaryDto / ReportVersionDto, M14–M17 in micro.yaml)
+export const REPORT_PHASES = ['preliminary', 'final'] as const;
+export type ReportPhase = (typeof REPORT_PHASES)[number];
+export interface ReportVersionSummaryDto {
+  version_no: number; report_phase: ReportPhase; version_kind: 'initial' | 'update' | 'amendment'; outcome_code?: string; flag: 'N' | 'A'; is_critical: boolean;
+  signed_by_display: string; signed_at: string; lab_status_at_submit: string; amendment_reason_code?: string;
+}
+export interface ReportSnapshotIsolate { seq: number; organism_code: string; organism_display: string; growth_text?: string }
+export interface ReportSnapshotAst {
+  isolate_seq: number; antibiotic_code: string; antibiotic_display: string; method: AstMethod; raw_value: string; category_code: string; standard: string; standard_version: string;
+}
+export interface ReportVersionDto extends ReportVersionSummaryDto {
+  culture_summary_text: string; isolates: ReportSnapshotIsolate[]; ast: ReportSnapshotAst[]; comments_text?: string; early_final_reason?: string; amendment_reason_text?: string;
+  lab_result_id: string; lab_result_version_no: number;
+}
+/** M14 body (strict): the amendment is never sent by the UI; C10 derives it (AC-09.6, AC-11.2). */
+export interface ReportSubmitInput {
+  report_phase: ReportPhase; outcome_code?: string; is_critical: boolean; culture_summary_text: string; comments_text?: string; early_final_reason?: string;
+}
+export interface ReopenInput { amendment_reason_code: string; amendment_reason_text?: string }
+export interface LabCodeLite { code: string; display: string }
 export interface SetupInput { plating_protocol_id?: string; specimen_site_code?: string; planted_at: string; plates: { media_code: string; incubation_text?: string }[] }
 export interface PlateInput { media_code: string; incubation_text?: string; parent_plate_id?: string; source_isolate_id?: string; planted_at?: string }
 export interface ObservationInput {

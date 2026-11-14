@@ -24,6 +24,14 @@ export async function listItemSubmissions(tx: Q, i: { tenantId: string; caseId: 
   return rows;
 }
 
+/** CR-C11-011: latest item_version_no among the submissions that carried lab result version k (02-TRD §8.2). Undefined = not an anatomic result. */
+export async function maxItemVersionForLabResult(tx: Q, i: { tenantId: string; labResultId: string; labVersionNo: number }): Promise<{ case_item_id: string; max_item_version_no: number } | undefined> {
+  const { rows } = await tx.query(
+    `SELECT case_item_id, max(item_version_no) AS max_item_version_no FROM anatomic.item_submissions
+     WHERE tenant_id = $1 AND lab_result_id = $2 AND lab_version_no = $3 GROUP BY case_item_id ORDER BY case_item_id LIMIT 1`, [i.tenantId, i.labResultId, i.labVersionNo]);
+  return rows[0];
+}
+
 /** Submission by its A1 idempotency key ('anatomic:<case_item_id>:<item_version_no>'). */
 export async function getItemSubmissionByKey(tx: Q, i: { tenantId: string; idempotencyKey: string }): Promise<Row | undefined> {
   const { rows } = await tx.query(`SELECT * FROM anatomic.item_submissions WHERE tenant_id = $1 AND idempotency_key = $2`, [i.tenantId, i.idempotencyKey]);

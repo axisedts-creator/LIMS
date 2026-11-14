@@ -9,6 +9,7 @@ import { lotHandlers } from './lots.js';
 import { masterHandlers } from './masters.js';
 import { purchasingHandlers } from './purchasing.js';
 import { receiptHandlers } from './receipts.js';
+import { reportHandlers } from './reports.js';
 import { settingsHandlers } from './settings.handlers.js';
 import { transferHandlers } from './transfers.js';
 
@@ -41,6 +42,5 @@ export const handlers: Readonly<Record<string, Handler>> = {
   ...purchasingHandlers, // #80-#89 (T-11)
   listInventoryAlerts: stub,
   acknowledgeInventoryAlert: stub,
-  getInventoryReport: stub,
-  exportInventoryReport: stub,
+  ...reportHandlers, // #92-#93 (T-19)
 };

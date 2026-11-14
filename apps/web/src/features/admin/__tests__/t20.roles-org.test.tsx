@@ -237,7 +237,7 @@ describe.each([
     expect(code.readOnly || code.disabled).toBe(true);
     await user.clear(within(dlg).getByLabelText(/^name/i));
     await user.type(within(dlg).getByLabelText(/^name/i), Object.values(edit)[0]!);
-    await user.click(within(dlg).getByRole('button', { name: /^save/i }));
+    await user.click(within(within(dlg).getByLabelText(/^name/i).closest('section')!).getByRole('button', { name: /^save/i }));
     await waitFor(() => expect(callsTo('PATCH', ITEM)).toHaveLength(1));
     expect(callsTo('PATCH', ITEM)[0]!.headers.get('if-match')).toBe('"1"');
     expect(bodyOf(callsTo('PATCH', ITEM)[0])).toEqual(edit);
@@ -254,11 +254,11 @@ describe.each([
     await user.type(within(dlg).getByLabelText(/^code/i), 'bad code!');
     await user.type(within(dlg).getByLabelText(/^name/i), 'Synthetic New');
     if (isCentre) await user.click(within(dlg).getByLabelText(/^branch/i)).then(async () => user.click(await screen.findByRole('option', { name: /Synthetic Main Lab/ })));
-    await user.click(within(dlg).getByRole('button', { name: /^(save|create)/i }));
+    await user.click(within(within(dlg).getByLabelText(/^name/i).closest('section')!).getByRole('button', { name: /^(save|create)/i }));
     expect(callsTo('POST', LIST)).toHaveLength(0);
     await user.clear(within(dlg).getByLabelText(/^code/i));
     await user.type(within(dlg).getByLabelText(/^code/i), 'C000000002');
-    await user.click(within(dlg).getByRole('button', { name: /^(save|create)/i }));
+    await user.click(within(within(dlg).getByLabelText(/^name/i).closest('section')!).getByRole('button', { name: /^(save|create)/i }));
     await waitFor(() => expect(callsTo('POST', LIST)).toHaveLength(1));
     const b = bodyOf(callsTo('POST', LIST)[0]);
     expect(b).toMatchObject({ code: 'C000000002', name: 'Synthetic New' });
@@ -276,7 +276,7 @@ describe.each([
     await user.type(within(dlg).getByLabelText(/^code/i), 'DUP-1');
     await user.type(within(dlg).getByLabelText(/^name/i), 'Dup');
     if (isCentre) await user.click(within(dlg).getByLabelText(/^branch/i)).then(async () => user.click(await screen.findByRole('option', { name: /Synthetic Main Lab/ })));
-    await user.click(within(dlg).getByRole('button', { name: /^(save|create)/i }));
+    await user.click(within(within(dlg).getByLabelText(/^name/i).closest('section')!).getByRole('button', { name: /^(save|create)/i }));
     expect((await within(dlg).findAllByRole('alert')).length).toBeGreaterThan(0);
     expect(screen.queryByRole('dialog')).toBeTruthy();
   });

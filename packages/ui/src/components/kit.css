@@ -167,6 +167,9 @@
   .lims-cols-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .lims-cols-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 }
+/* QueueBoard/TokenSlip radius lives here, not in their tsx (T0D-UI-R03, LD-140, 10-DESIGN-SYSTEM s2.3, s8). */
+.lims-queueboard__row, .lims-queueboard__banner, .lims-tokenslip { border-radius: var(--lims-radius-md); }
+@media print { .lims-tokenslip { border-radius: 0; } }
 .lims-card { padding: var(--lims-space-4); border: 1px solid var(--lims-neutral-200); border-radius: var(--lims-radius-lg); background: var(--lims-neutral-0); }
 .lims-card-title { margin: 0 0 var(--lims-space-3); font-size: var(--lims-font-size-md-size); }
 .lims-divider { border: 0; border-top: 1px solid var(--lims-neutral-200); margin: var(--lims-space-4) 0; }

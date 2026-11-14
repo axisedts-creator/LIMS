@@ -36,3 +36,8 @@ Fix: none; per LD-165 no code edits to work around the host. STOPPED: vitest can
 ## Round 9 (after LD-165 reset)
 Cause: unchanged, host. verify log (start 09:35:10, 61.4s): "Failed to start forks worker ... Timeout waiting for worker to respond" for ui-r03-kit-pass, 0 tests run. No code/test defect.
 Fix: none; per LD-165 no code edits to work around the host. STOPPED: vitest cannot start workers. Needs host RAM/stale node processes cleared, then re-run verify.cmd.
+
+## Round 10 (after LD-166 reset)
+Cause: real defect, not host. ui-r03-kit-pass "component code: no ... border-radius" failed (1/377): QueueBoard.tsx and TokenSlip.tsx held border-radius in inline CSS strings.
+Fix: moved those 3 radius rules to kit.css (var(--lims-radius-md); print: 0) next to .lims-card; removed from the two tsx. Same values, no test edited.
+Result: verify.cmd 2 files, 377/377 pass (10:12, 44s). Not run: full packages/ui suite.

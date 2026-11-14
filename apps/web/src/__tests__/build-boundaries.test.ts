@@ -204,14 +204,17 @@ describe('WEB-BUILD-1 repo guards', () => {
     expect([...new Set(violations)].sort()).toEqual([]);
   });
 
-  it("(b) the two failing spots are really on the walked graph: labels page reaches lab shared module, audit page reaches DiffTable (guard would catch a regression)", () => {
+  it("(b) the two failing spots are on the walked graph: labels page reaches shared.tsx (server-safe); audit page imports DiffTable, which is a 'use client' boundary and so is NOT reached", () => {
     const labels = join(webSrc, 'app', '(staff)', 'lab', 'orders', '[order_id]', 'labels', 'page.tsx');
     const audit = join(webSrc, 'app', '(staff)', 'admin', 'audit', '[audit_id]', 'page.tsx');
     const { reached } = hookViolations([labels, audit], realRead);
-    expect([...reached].map(relRepo)).toEqual(expect.arrayContaining([
-      'apps/web/src/features/lab/components/shared.tsx',
-      'packages/ui/src/components/DiffTable/DiffTable.tsx',
-    ]));
+    const reachedRel = [...reached].map(relRepo);
+    expect(reachedRel).toContain('apps/web/src/features/lab/components/shared.tsx');
+    const diffSpec = importsOf(readFileSync(audit, 'utf8')).map((i) => i.spec).find((s) => /DiffTable$/.test(s));
+    expect(diffSpec, 'audit page must still import DiffTable').toBeDefined();
+    const diff = resolveSpec(diffSpec as string, audit, realRead);
+    expect(diff && relRepo(diff)).toBe('packages/ui/src/components/DiffTable/DiffTable.tsx');
+    expect(reachedRel).not.toContain('packages/ui/src/components/DiffTable/DiffTable.tsx'); // stops at 'use client'
   });
 
   it("(c) DiffTable.tsx starts with 'use client' (first statement) - packages/ui, imported by a server page", () => {

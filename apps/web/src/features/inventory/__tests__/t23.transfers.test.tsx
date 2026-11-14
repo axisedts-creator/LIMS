@@ -151,12 +151,13 @@ describe('S9 Receive (AC-10.2, AC-10.3)', () => {
   };
   const recv = (dlg: HTMLElement) => within(dlg).getAllByRole('textbox', { name: /received/i })[0]!;
 
-  it('AC-10.3: Receive is hidden when the destination store is not among the visible stores (branch scope)', async () => {
-    api.use(http.get(`${ORIGIN}/v1/inventory/stores`, ({ request }) => (new URL(request.url).searchParams.get('purpose') ? page([store(21, { id: ID(321) })]) : page([store(1)]))));
-    useTransfer(dispatched());
-    await mount({ transfer: T1 });
-    await screen.findByText('TRF-000001');
-    expect(screen.queryByRole('button', { name: /^receive$/i })).toBeNull();
+  it('AC-10.3: POST /transfers/:id/receive -> 403 auth.forbidden -> Banner with request_id, no refresh', async () => {
+    api.use(http.post(`${ORIGIN}/v1/inventory/transfers/:id/receive`, () => problem('auth.forbidden', 403)));
+    const dlg = await open();
+    await userEvent.click(within(dlg).getByRole('button', { name: /^(receive|confirm|save)$/i }));
+    await waitFor(() => expect(posts('receive')).toHaveLength(1));
+    expect((await screen.findByRole('alert')).textContent).toContain('req-syn-0023');
+    expect(router.refresh).not.toHaveBeenCalled();
   });
 
   it('per line: Received qty (prefilled with the dispatched qty) + Discrepancy reason (coded set transfer_discrepancy)', async () => {

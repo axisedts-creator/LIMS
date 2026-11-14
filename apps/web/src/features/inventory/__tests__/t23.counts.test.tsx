@@ -104,7 +104,7 @@ describe('S11 count screen — BLIND count', () => {
     await screen.findByRole('grid');
     expect(document.body.textContent).not.toMatch(/\b37\b/);
     expect(document.body.textContent).not.toMatch(/\b58\b/);
-    expect(screen.getByRole('switch', { name: /show system quantity/i }).getAttribute('aria-checked')).toBe('false');
+    expect((screen.getByRole('switch', { name: /show system quantity/i }) as HTMLInputElement).checked).toBe(false);
   });
 
   it('the "Show system quantity" switch exists only with stock.adjust; turning it on reveals the snapshot', async () => {

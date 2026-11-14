@@ -129,7 +129,7 @@ describe('S8 Issue drawer — FEFO preview (AC-08.1, AC-08.2)', () => {
     await userEvent.type(qty(dlg), '10');
     await userEvent.click(within(dlg).getByRole('button', { name: /^issue$/i }));
     expect(issues()).toHaveLength(0);
-    expect(await within(dlg).findByText(/analyser/i, { selector: '[role="alert"],[id*="error"],p,span' })).toBeTruthy();
+    expect(await within(dlg).findByText(/analyser is required/i)).toBeTruthy();
   });
 
   it('typing a quantity requests the FEFO suggestion (#36) for that store+item and shows lot, expiry, open container, take, available', async () => {
@@ -250,7 +250,7 @@ describe('S10 Wastage (AC-11.1)', () => {
     await userEvent.type(qtyOf(), '2');
     await userEvent.click(screen.getByRole('button', { name: /^(record wastage|save)$/i }));
     expect(hit('POST', /\/v1\/inventory\/wastage$/)).toHaveLength(0);
-    expect(await screen.findByText(/reason/i, { selector: '[role="alert"],[id*="error"],p,span' })).toBeTruthy();
+    expect(await screen.findByText(/reason is required/i)).toBeTruthy();
   });
 
   it('with reason spillage: POST /wastage {store_id, reason_code:"spillage", lines[]} with an Idempotency-Key; note is capped at 500', async () => {

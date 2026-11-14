@@ -3,7 +3,7 @@ import 'server-only';
 // Path ids and keys are checked here because this is the trust boundary between the browser and the API.
 import { ApiError, serverFetch } from '@/core/api/server-fetch';
 import { problem } from '@/core/session/types';
-import { KEY_RE, UUID_RE, type Grn, type GrnDraft, type GrnReplace, type Po, type PoCreate, type ReasonAction, type SentChannel, type AdjustmentCreate, type Barcode, type BarcodeCreate, type Binding, type ConsumptionEventCreate, type Container, type ContainerDiscard, type ContainerOpen, type Count, type CountCreate, type CountLine, type CountLinePut, type ExpiryWriteoffCreate, type Fact, type IssueCreate, type ItemSummary, type StockDocument, type Transfer, type TransferCreate, type TransferReceive, type UncountedPolicy, type WastageCreate, type Item, type ItemCreate, type ItemPatch, type Pack, type PackCreate, type Store, type StoreCreate, type StoreItemSetting, type StoreItemSettingPut, type StorePatch, type Supplier, type SupplierCreate, type SupplierItem, type SupplierItemPut, type SupplierPatch } from './types';
+import { KEY_RE, UUID_RE, type Alert, type Settings, type SettingsUpdate, type Grn, type GrnDraft, type GrnReplace, type Po, type PoCreate, type ReasonAction, type SentChannel, type AdjustmentCreate, type Barcode, type BarcodeCreate, type Binding, type ConsumptionEventCreate, type Container, type ContainerDiscard, type ContainerOpen, type Count, type CountCreate, type CountLine, type CountLinePut, type ExpiryWriteoffCreate, type Fact, type IssueCreate, type ItemSummary, type StockDocument, type Transfer, type TransferCreate, type TransferReceive, type UncountedPolicy, type WastageCreate, type Item, type ItemCreate, type ItemPatch, type Pack, type PackCreate, type Store, type StoreCreate, type StoreItemSetting, type StoreItemSettingPut, type StorePatch, type Supplier, type SupplierCreate, type SupplierItem, type SupplierItemPut, type SupplierPatch } from './types';
 
 const bad = () => new ApiError(400, problem('common.validation_failed', 'Validation failed', 400));
 const uuid = (v: string) => {
@@ -90,3 +90,7 @@ export const replaceGrn = (id: string, version: number, b: GrnReplace) => {
   return send<Grn>('PUT', `${base}/goods-receipts/${uuid(id)}`, rest, { version });
 };
 export const postGrn = (id: string, version: number, key: string) => send<Grn>('POST', `${base}/goods-receipts/${uuid(id)}/post`, {}, { key, version });
+
+// ---- T-20 shell. Acknowledge is a state change on an existing row (If-Match "<version>"); settings is a full PUT of SettingsUpdate (TRD #26, #27).
+export const acknowledgeAlert = (id: string, version: number) => send<Alert>('POST', `${base}/alerts/${uuid(id)}/acknowledge`, {}, { version });
+export const putSettings = (version: number, b: SettingsUpdate) => send<Settings>('PUT', `${base}/settings`, b, { version });

@@ -164,3 +164,22 @@ export type GrnReplace = Omit<GrnDraft, 'kind' | 'store_id'>;
 export const PO_REASON_GROUPS = { cancel: 'po_cancel', close: 'po_close' } as const;
 export interface PoFilters { status?: string | undefined; supplier?: string | undefined; branch?: string | undefined; createdFrom?: string | undefined; createdTo?: string | undefined }
 export interface GrnFilters { status?: string | undefined; store?: string | undefined; supplier?: string | undefined; poId?: string | undefined }
+
+// ---- T-20 shell: alerts (S16, S1) and settings (S18). Shapes mirror contracts/openapi/inventory.yaml (Alert, Settings, SettingsUpdate).
+export const ALERT_KINDS = ['below_reorder', 'expiry_soon', 'expired_on_hand', 'open_stability_exceeded', 'negative_stock', 'unresolved_consumption', 'expired_lot_in_use', 'balance_drift', 'reconciliation_gap'] as const;
+export type AlertKind = (typeof ALERT_KINDS)[number];
+export const ALERT_STATUSES = ['open', 'acknowledged', 'resolved'] as const;
+export type AlertStatus = (typeof ALERT_STATUSES)[number];
+export interface Alert {
+  id: string; alert_kind: AlertKind; status: AlertStatus; store_id?: string; item_id?: string; lot_id?: string; instrument_id?: string; test_id?: string;
+  first_raised_at: string; last_raised_at: string; occurrences: number; details: { key: string; value: string }[]; version: number;
+}
+export interface AlertFilters { status?: readonly AlertStatus[] | undefined; alertKind?: AlertKind | undefined; storeId?: string | undefined; limit?: number | undefined }
+export interface Settings {
+  consumption_enabled_at?: string; vat_in_cost: boolean; po_self_approval_allowed: boolean; grn_without_po_allowed: boolean; over_receipt_tolerance_bp: number;
+  expiry_alert_days: number; default_consumption_store_id?: string; count_locks_store: boolean; per_day_requires_activity: boolean; reconciliation_gap_alert_bp: number;
+  backdate_max_days: number; po_no_pattern: string; grn_no_pattern: string; transfer_no_pattern: string; count_no_pattern: string; doc_no_pattern: string; version: number;
+}
+export type SettingsUpdate = Omit<Settings, 'version'>;
+/** Home only counts unresolved facts; the rest of the Fact shape is not read here. */
+export interface FactRef { id: string; status: string }

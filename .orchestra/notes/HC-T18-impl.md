@@ -1,4 +1,4 @@
-# HC-T18 impl (writer) — 2026-11-14 rerun after revised tests: 134/135 pass; 1 blocked by CR `.orchestra/cr/HC-T18.md` (C11 anatomic.tracking also uses chord `g t`; C11 spec §1 l.16 says C11 drops its chord — not a C17-owned path)
+# HC-T18 impl (writer) — 2026-11-14 final: 135/135 pass after lead decision removed `chord: 'g t'` from `anatomic.tracking` (apps/web/src/features/anatomic/nav.manifest.ts, edited per lead ruling; outside C17 paths).
 - Files: `features/homecollection/{types,labels,query,submission,nav.manifest}.ts`, `server/{actions,read.server,write.server}.ts`, `components/{DispatchBoard,ScheduleDialog,AssignDialog,CancelVisitDialog,UnassignDialog,ReasonConfirm}.tsx`, `help/dispatch.md`, `app/(staff)/homecollection/dispatch/{page,loading,error}.tsx`.
 - [CONV] LD-140: kit components only, no hex/px/inline style; no primary button on the board (dialogs carry theirs); status = icon + chip + word; flags = icon + Badge.
 - [CONV] Kit has no up-arrow icon, so Move up/down are `Button size=sm` with text; Unassign/Open are `IconButton`. Unassign dialog button is "Confirm" (test reads the dialog title as the only "unassign" text).

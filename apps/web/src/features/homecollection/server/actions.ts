@@ -4,9 +4,9 @@
 // never a request body, a token or a server detail.
 import 'server-only';
 import { ApiError } from '@/core/api/server-fetch';
-import type { PhlebotomistOption, ScheduleBody } from '../types';
-import { listPhlebotomists } from './read.server';
-import { assignVisit, cancelVisit, resequenceRoute, scheduleVisit, unassignVisit } from './write.server';
+import type { HandoverDetail, PhlebotomistOption, ScheduleBody, SettingsBody } from '../types';
+import { getHandover, listPhlebotomists } from './read.server';
+import { assignVisit, cancelVisit, confirmHandover, resequenceRoute, saveSettings, scheduleVisit, unassignVisit, wipeDevice } from './write.server';
 
 export type ActionResult =
   | { ok: true; status?: string; version?: number }
@@ -42,6 +42,30 @@ export async function cancelAction(id: string, version: number, reasonCode: stri
 }
 export async function resequenceAction(id: string, version: number, visitIds: string[]): Promise<ActionResult> {
   return run(() => resequenceRoute(id, version, visitIds));
+}
+
+/** H15 confirmHandover. */
+export async function confirmHandoverAction(id: string, version: number, items: { specimen_id: string; received: boolean }[], key: string): Promise<ActionResult> {
+  return run(() => confirmHandover(id, version, items, key));
+}
+/** H17 requestDeviceWipe. */
+export async function wipeDeviceAction(id: string, version: number, reasonCode: string, reasonText: string | undefined, key: string): Promise<ActionResult> {
+  return run(() => wipeDevice(id, version, reasonCode, reasonText, key));
+}
+/** H19 updateHomecollectionSettings. */
+export async function saveSettingsAction(version: number, body: SettingsBody): Promise<ActionResult> {
+  return run(() => saveSettings(version, body));
+}
+
+export type HandoverResult = { ok: true; data: HandoverDetail } | { ok: false; status: number; code: string };
+/** H14 for the handover drawer. */
+export async function handoverAction(id: string): Promise<HandoverResult> {
+  try {
+    return { ok: true, data: await getHandover(id) };
+  } catch (e) {
+    const f = failure(e);
+    return f.ok ? { ok: false, status: 500, code: 'common.internal' } : { ok: false, status: f.status, code: f.code };
+  }
 }
 
 export type PhlebotomistsResult = { ok: true; data: PhlebotomistOption[] } | { ok: false; status: number; code: string };

@@ -13,4 +13,11 @@ No real capture, no patient data: the PID name field is left empty, barcodes are
 | oru-calibration | M4: MSH-16 = 1 -> messageKind `other`, no records (D-MET-2) |
 | malformed-no-msh | no MSH segment -> `instruments.message_malformed` |
 
-Host query cases (`qry-*`) belong to MET-T03.
+| qry-found | §5 mode (a): QRD-8 = MT2600000042, id 61. Expected `qry-found.qck` (QAK OK) and `qry-found.dsr` (QRD/QRF echoed, DSP-5 F, DSP-21 barcode, DSP-24 N, DSP-26 others, DSP-29/30 = `100^^^`/`101^^^` id_only, DSC empty) for a female routine answer with two mapped tests |
+| qry-not-found | §5 mode (a), unknown barcode MT2600000099, id 63 -> `qry-not-found.qck` (QAK NF), no DSR |
+| qry-no-mapped-test | §5 mode (a), MT2600000043 with no pending test mapped to this instrument, id 64 -> `qry-no-mapped-test.qck` (QAK NF), no DSR |
+| qry-sample-range | §5 mode (b): QRD-8 empty, QRF-4/5 = 1/5, id 65 -> no barcode, `qry-sample-range.qck` (QAK NF, unsupported_query_mode, D-MET-1) |
+| qry-time-range | §5 mode (c): QRD-8 empty, QRF-2/3 = time range, id 66 -> no barcode, `qry-time-range.qck` (QAK NF, unsupported_query_mode, D-MET-1) |
+| ack-q03-mismatched-id | §6: ACK^Q03 from the analyser, MSH-10 62, MSA-2 99 (not the DSR id) -> accepted, messageKind `other`, no records |
+
+All reply bytes (`*.qck.hl7`, `*.dsr.hl7`) were written by hand from the §5 layout (MSH-7 = receivedAt 05:02:01Z in Asia/Kathmandu = 20261114104701; MSH-10 = MSA-2 = query MSH-10; trailing pipe on every segment), not captured from the implementation (LD-169). LF in the files; the test converts to CR.

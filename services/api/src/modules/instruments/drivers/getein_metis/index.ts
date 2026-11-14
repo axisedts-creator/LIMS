@@ -1,10 +1,11 @@
 // getein_metis — Getein Metis series analyser, HL7 v2.3.1 ORU^R01 (09-ADDENDUM-GETEIN-METIS §2, §3, §4, §8; LD-163, 2026-11-14; the addendum header says LD-162, LD-163 is the binding number).
 // Status stays `generic` (never verified here: that needs the commissioning checklist and a reviewed migration). Every position marked U (U4, U5, U12 ...) is parsed tolerantly
 // or is an option, never a hard-coded guess. D-MET-2: calibration (MSH-16 = 1) is archived as messageKind `other`: no records, so no events.
-// Host query (QRY/QCK/DSR, §5) is MET-T03: this task only parses ORU results and QC.
+// Host query (QRY/QCK/DSR, §5; D-MET-1) lives in ./hostQuery.ts (MET-T03).
 // Reasons and warnings are constant strings: never any input content (no PHI). PID content is never read (PHI minimisation: PID-2/5/7/8 and OBR-16 are ignored).
 import { HL7 } from '../hl7v2_generic_oru/index.js';
 import { MAX, localTime, malformed } from '../delimited.js';
+import { buildHostQueryReply, extractHostQueryBarcodes, parseQuery } from './hostQuery.js';
 import type { InstrumentDriver, ParseResult, ParsedRecord, RecordKind } from '../types.js';
 
 const FIELD_REF = '^[A-Z][A-Z0-9]{0,2}\\.[1-9][0-9]{0,2}(?:\\.[1-9][0-9]?)?$';
@@ -74,6 +75,7 @@ function parse(raw: Uint8Array, ctx: { readonly options: Readonly<Record<string,
   const cls: 'patient' | 'qc' | 'other' = flagVal === '0' ? 'patient' : flagVal === '2' ? 'qc' : flagVal === undefined ? (hasPid ? 'patient' : 'other') : 'other';
   const messageKind = type === 'ORU' && cls !== 'other' ? 'results' : 'other'; // calibration (flag 1) lands here: archived, no events (D-MET-2)
   const base = { ok: true, messageKind, ...(messageControlId !== undefined && { messageControlId }), ...(messageTimeLocal !== undefined && { messageTimeLocal }) } as const;
+  if (type === 'QRY') return parseQuery(lines, base); // §5: host query (MET-T03)
   if (messageKind !== 'results') return { ...base, records: [], warnings: [] };
 
   const records: ParsedRecord[] = [];
@@ -183,4 +185,6 @@ export const geteinMetis: InstrumentDriver = Object.freeze<InstrumentDriver>({
   manualRef: Object.freeze({ title: 'HL7 Communication Protocol (Applicable to Metis Series Analyzers)', documentId: 'getein-metis-hl7-communication-protocol', revision: 'unversioned' }),
   optionsSchema: OPTIONS_SCHEMA,
   parse,
+  extractHostQueryBarcodes,
+  buildHostQueryReply,
 });

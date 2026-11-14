@@ -28,6 +28,11 @@ const COPY: Record<string, string> = {
   'micro.breakpoint_set_invalid_transition': "This table can't change to that state.",
   'micro.breakpoint_four_eyes_required': 'Another user must activate a table you imported.',
   'micro.code_duplicate': 'This code is already used.',
+  // T-20 culture page (04-UI-UX §10); the organism text adds the "ask your lab manager" hint of §3.3.
+  'micro.culture_invalid_transition': 'This culture has changed. Reload to see its current state.',
+  'micro.report_final_locked': 'The final report has been sent. Reopen the culture to make changes.',
+  'micro.isolate_invalid_transition': "This isolate can't be changed that way.",
+  'micro.organism_code_unknown': 'Choose an organism from the list. Ask your lab manager to add new organisms.',
   'common.version_conflict': 'Someone else changed this. Reload and try again.',
   'common.precondition_required': 'Someone else changed this. Reload and try again.',
   'common.validation_failed': 'Check the values and try again.',
@@ -39,7 +44,7 @@ export const failText = (f: Fail) => COPY[f.code] ?? GENERIC;
 export function FailNotice({ fail }: { fail: Fail | undefined }) {
   const router = useRouter();
   if (!fail || fail.code === 'auth.mfa_required') return null;
-  const conflict = fail.code === 'common.version_conflict' || fail.code === 'common.precondition_required';
+  const conflict = fail.code === 'common.version_conflict' || fail.code === 'common.precondition_required' || fail.code === 'micro.culture_invalid_transition';
   return (
     <div role="alert">
       <Banner tone={fail.code === 'micro.breakpoint_four_eyes_required' ? 'warning' : 'danger'} title={failText(fail)} {...(conflict ? { action: { label: 'Reload', onPress: () => router.refresh() } } : {})} />

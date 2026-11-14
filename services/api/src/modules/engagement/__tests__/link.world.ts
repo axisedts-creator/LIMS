@@ -68,6 +68,7 @@ const defs = (now: () => string): Record<string, Def> => ({
       : r['entity_type'] != null && !['order', 'report', 'booking', 'enquiry', 'reminder', 'profile'].includes(r['entity_type']) ? 'notifications__entity__ck' : r['route_id'] != null && !['patient_app.report', 'patient_app.order', 'patient_app.booking'].includes(r['route_id']) ? 'notifications__route__ck'
       : ['id', 'account_id', 'created_by', 'expires_at'].some((c) => r[c] == null) ? 'notifications__not_null' : !t['accounts']!.some((a) => a['tenant_id'] === r['tenant_id'] && a['id'] === r['account_id']) ? 'notifications__account__fk' : undefined,
   },
+  booking_centres: { unique: [['id'], ['tenant_id', 'centre_id']] }, // T-P2: source of centre_display_name (02-TRD §4.4 / 08 A19 D-119)
   smart_summaries: { unique: [['id'], ['tenant_id', 'report_id', 'report_version_no']], defaults: () => ({ created_at: now() }) },
   number_counters: {
     unique: [['tenant_id', 'counter_key']],
@@ -107,7 +108,7 @@ export function makeLinkWorld(opts: WorldOpts = {}) {
   const clock = { t: Date.parse(T0) };
   const now = () => new Date(clock.t).toISOString();
   const D = defs(now);
-  const t: Record<string, Row[]> = { settings: [], accounts: [], link_codes: [], account_patient_links: [], number_counters: [], patient_orders: [], patient_order_specimens: [], patient_reports: [], notifications: [], smart_summaries: [], jobs: [], orders: [], timeline: [], balances: [] };
+  const t: Record<string, Row[]> = { settings: [], accounts: [], link_codes: [], account_patient_links: [], number_counters: [], patient_orders: [], patient_order_specimens: [], patient_reports: [], notifications: [], smart_summaries: [], booking_centres: [], jobs: [], orders: [], timeline: [], balances: [] };
   const stmts: Stmt[] = [];
   const viewQueries: Array<{ view: string; text: string; values: unknown[]; limit?: number; offset?: number }> = [];
   const definerCalls: Array<{ fn: string; values: unknown[] }> = [];

@@ -35,24 +35,32 @@ async function checkLiterals(c: pg.PoolClient, schema: string, name: string): Pr
   for (const { d } of defs) for (const m of d.matchAll(/\(?(\w+)\)?(?:::text)? = ANY \(\(?ARRAY\['([^']+)'/g)) out[m[1]!] = m[2]!;
   return out;
 }
-async function seedRow(table: string, given: Row): Promise<void> {
+/** complete row for `table`: `given` + every NOT NULL column without a default auto-filled (first literal of a text CHECK IN list) */
+async function buildRow(c: pg.PoolClient, table: string, given: Row): Promise<Row> {
   const [schema, name] = table.split('.') as [string, string];
+  const cols = (await c.query(`SELECT column_name, udt_name FROM information_schema.columns WHERE table_schema = $1 AND table_name = $2
+    AND is_nullable = 'NO' AND column_default IS NULL AND is_generated = 'NEVER' AND is_identity = 'NO'`, [schema, name])).rows as { column_name: string; udt_name: string }[];
+  const lit = await checkLiterals(c, schema, name);
+  const row: Row = { ...given };
+  for (const { column_name, udt_name } of cols) {
+    if (column_name in row) continue;
+    row[column_name] = lit[column_name] ?? (udt_name === 'uuid' ? uid() : /^(int|numeric|float)/.test(udt_name) ? 1 : udt_name === 'bool' ? false : /^timestamp/.test(udt_name) ? new Date('2026-11-01T04:00:00Z')
+      : udt_name === 'date' ? '2026-11-01' : /^jsonb?$/.test(udt_name) ? '[]' : `syn_${++seqN}`);
+  }
+  return row;
+}
+const insertSql = (table: string, row: Row, tail = '') => {
+  const keys = Object.keys(row);
+  return { text: `INSERT INTO ${table} (${keys.map((k) => `"${k}"`).join(',')}) VALUES (${keys.map((_, i) => `$${i + 1}`).join(',')})${tail}`,
+    values: keys.map((k) => (row[k] !== null && typeof row[k] === 'object' && !(row[k] instanceof Date) ? JSON.stringify(row[k]) : row[k])) };
+};
+async function seedRow(table: string, given: Row): Promise<void> {
   const c = await admin.connect();
   try {
     await c.query('BEGIN');
     await c.query("SET LOCAL session_replication_role = 'replica'");
-    const cols = (await c.query(`SELECT column_name, udt_name FROM information_schema.columns WHERE table_schema = $1 AND table_name = $2
-      AND is_nullable = 'NO' AND column_default IS NULL AND is_generated = 'NEVER' AND is_identity = 'NO'`, [schema, name])).rows as { column_name: string; udt_name: string }[];
-    const lit = await checkLiterals(c, schema, name);
-    const row: Row = { ...given };
-    for (const { column_name, udt_name } of cols) {
-      if (column_name in row) continue;
-      row[column_name] = lit[column_name] ?? (udt_name === 'uuid' ? uid() : /^(int|numeric|float)/.test(udt_name) ? 1 : udt_name === 'bool' ? false : /^timestamp/.test(udt_name) ? new Date('2026-11-01T04:00:00Z')
-        : udt_name === 'date' ? '2026-11-01' : /^jsonb?$/.test(udt_name) ? '[]' : `syn_${++seqN}`);
-    }
-    const keys = Object.keys(row);
-    await c.query(`INSERT INTO ${table} (${keys.map((k) => `"${k}"`).join(',')}) VALUES (${keys.map((_, i) => `$${i + 1}`).join(',')}) ON CONFLICT DO NOTHING`,
-      keys.map((k) => (row[k] !== null && typeof row[k] === 'object' && !(row[k] instanceof Date) ? JSON.stringify(row[k]) : row[k])));
+    const { text, values } = insertSql(table, await buildRow(c, table, given), ' ON CONFLICT DO NOTHING');
+    await c.query(text, values);
     await c.query('COMMIT');
   } catch (e) { await c.query('ROLLBACK'); throw e; } finally { c.release(); }
 }
@@ -82,6 +90,15 @@ const FIXED: Record<string, Row> = {
   'micro.cultures': {}, 'micro.instrument_records': { match_status: 'pending_match', record_kind: 'ast' },
 };
 
+/** known columns of a tenant's probe row for `t`: that tenant's centre and culture where the table has them */
+async function probeGiven(t: string, tenant: string): Promise<Row> {
+  const given: Row = { tenant_id: tenant, ...FIXED[t] };
+  if (centreTables.includes(t)) given['centre_id'] = centreOf(tenant);
+  const cols = (await q('SELECT column_name FROM information_schema.columns WHERE table_schema = $1 AND table_name = $2', ['micro', t.split('.')[1]])).map((r) => r.column_name);
+  if (cols.includes('culture_id')) given['culture_id'] = tenant === A ? W.cultureA : W.cultureB;
+  return given;
+}
+
 beforeAll(async () => {
   if (!live) { if (REQUIRE) throw new Error('database is provided: set LIMS_TEST_DATABASE_URL (lims_api) and LIMS_TEST_ADMIN_DATABASE_URL (superuser)'); return; }
   api = new pg.Pool({ connectionString: API_URL, max: 4 }); admin = new pg.Pool({ connectionString: ADMIN_URL, max: 4 });
@@ -110,11 +127,7 @@ beforeAll(async () => {
   for (const t of tenantTables) {
     if (t === 'micro.cultures') continue;
     for (const tenant of [A, B]) {
-      const given: Row = { tenant_id: tenant, ...FIXED[t] };
-      if (centreTables.includes(t)) given['centre_id'] = centreOf(tenant);
-      const cols = (await q('SELECT column_name FROM information_schema.columns WHERE table_schema = $1 AND table_name = $2', ['micro', t.split('.')[1]])).map((r) => r.column_name);
-      if (cols.includes('culture_id')) given['culture_id'] = tenant === A ? W.cultureA : W.cultureB;
-      try { await seedRow(t, given); } catch { if (tenant === B) unseeded.push(t); }
+      try { await seedRow(t, await probeGiven(t, tenant)); } catch { unseeded.push(`${t}:${tenant === A ? 'A' : 'B'}`); }
     }
   }
 });
@@ -134,6 +147,8 @@ describe.skipIf(!live && !REQUIRE)('T-25 live DB probes', () => {
     const problems: string[] = [];
     for (const t of tenantTables) {
       const adminSeesB = Number((await q(`SELECT count(*) AS n FROM ${t} WHERE tenant_id = $1`, [B]))[0].n);
+      // complete tenant-B row, so only the RLS WITH CHECK can reject it (not NOT NULL / CHECK constraints)
+      const rowB = await (async () => { const c = await admin.connect(); try { return await buildRow(c, t, await probeGiven(t, B)); } finally { c.release(); } })();
       await asClaims(userA(), async (c) => {
         const sel = await attempt(c, `SELECT count(*)::int AS n FROM ${t} WHERE tenant_id = $1`, [B]);
         if (sel.error || sel.rows[0].n !== 0) problems.push(`${t}: SELECT of B rows -> ${sel.error?.code ?? sel.rows[0].n}`);
@@ -141,8 +156,9 @@ describe.skipIf(!live && !REQUIRE)('T-25 live DB probes', () => {
         if (adminSeesB > 0 && !own.error && own.rows[0].n === 0 && !t.endsWith('event_inbox')) problems.push(`${t}: user A cannot see its own rows (positive control)`);
         const upd = await attempt(c, `UPDATE ${t} SET tenant_id = tenant_id WHERE tenant_id = $1`, [B]);
         if (upd.rowCount !== 0) problems.push(`${t}: UPDATE of B rows affected ${upd.rowCount}`);
-        const ins = await attempt(c, `INSERT INTO ${t} (tenant_id) VALUES ($1)`, [B]);
-        if (!ins.error) problems.push(`${t}: INSERT with B tenant_id succeeded`);
+        const ins = await attempt(c, insertSql(t, rowB).text, insertSql(t, rowB).values);
+        // 42501 = RLS WITH CHECK violation; also require the RLS message so a missing INSERT grant (also 42501) cannot pass
+        if (ins.error?.code !== '42501' || !/row-level security/i.test(ins.error?.message ?? '')) problems.push(`${t}: INSERT with B tenant_id -> ${ins.error?.code ?? 'succeeded'}`);
       });
     }
     expect(problems).toEqual([]);

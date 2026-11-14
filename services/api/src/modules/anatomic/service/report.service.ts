@@ -37,18 +37,18 @@ const MAX_DIAGNOSIS_PAGE = 500;
 const BODY_KEYS = ['gross_text', 'microscopy_text', 'impression_text', 'comment_text', 'flag', 'is_critical', 'synoptic', 'image_ids', 'ancillary', 'diagnosis_codes'] as const;
 const TEXT_LIMITS = { gross_text: 20000, microscopy_text: 20000, impression_text: 8000, comment_text: 8000 } as const;
 
-const fieldError = (path: string, code = 'common.field_invalid', message = 'Field invalid'): FieldError => ({ path, code, message });
+export const fieldError = (path: string, code = 'common.field_invalid', message = 'Field invalid'): FieldError => ({ path, code, message });
 const denied = (code: string): LimsError => new LimsError(code);
 
 /** Closed object: unknown keys are collected (never echoed); false = not an object. */
-function closed(v: unknown, allowed: readonly string[], path: string, errs: FieldError[]): v is Obj {
+export function closed(v: unknown, allowed: readonly string[], path: string, errs: FieldError[]): v is Obj {
   if (!isObj(v)) { errs.push(fieldError(path)); return false; }
   for (const k of Object.keys(v)) if (!allowed.includes(k)) errs.push(fieldError(`${path}/${k}`, 'common.unknown_field', 'Unknown field'));
   return true;
 }
 
 /** Plain text field (02-TRD §4.6): string without NUL, normalised, then length-checked on the stored form. */
-function plain(v: unknown, path: string, max: number, errs: FieldError[], min = 0): string {
+export function plain(v: unknown, path: string, max: number, errs: FieldError[], min = 0): string {
   if (v === undefined) return '';
   if (typeof v !== 'string' || v.includes('\u0000')) { errs.push(fieldError(path)); return ''; }
   const n = normalizePlainText(v);
@@ -67,7 +67,7 @@ export function composeGrossFromParts(i: { parts: ReadonlyArray<Row>; gross: Rea
 }
 
 /** Tenant diagnoses by code (all pages). activeOnly = validation of new input (AC-07.6); false = display lookup of stored codes. */
-async function diagnosisByCode(c: AnatomicCtx, activeOnly: boolean): Promise<Map<string, Row>> {
+export async function diagnosisByCode(c: AnatomicCtx, activeOnly: boolean): Promise<Map<string, Row>> {
   const out = new Map<string, Row>();
   for (let offset = 0; ; offset += MAX_DIAGNOSIS_PAGE) {
     const rows = await listCodedDiagnoses(c.tx, { tenantId: c.tenantId, activeOnly, limit: MAX_DIAGNOSIS_PAGE, offset });
@@ -76,7 +76,7 @@ async function diagnosisByCode(c: AnatomicCtx, activeOnly: boolean): Promise<Map
   }
 }
 
-async function draftDto(c: AnatomicCtx, d: Row, diagnoses: Map<string, Row>): Promise<Obj> {
+export async function draftDto(c: AnatomicCtx, d: Row, diagnoses: Map<string, Row>): Promise<Obj> {
   let by = '';
   try { by = String((await (c.core as unknown as { user(ctx: unknown, i: { userId: string }): Promise<{ displayName: string }> }).user(c, { userId: d['updated_by'] })).displayName); } catch (e) { if (!(e instanceof LimsError)) throw e; }
   const synoptic: Obj[] = [];
@@ -253,7 +253,7 @@ export async function saveReportDraft(hctx: unknown, params: unknown, headers: u
 }
 
 // ---- R3 signOutAnatomicCase (02-TRD §4.4 steps 1–10) ----
-interface SignCtx extends AnatomicCtx {
+export interface SignCtx extends AnatomicCtx {
   readonly actor: { readonly id: string; readonly membershipId?: string; readonly type?: string };
   readonly audit: { access(entry: Record<string, unknown>): Promise<void> };
   readonly ports: AnatomicCtx['ports'] & {
@@ -262,10 +262,10 @@ interface SignCtx extends AnatomicCtx {
   };
 }
 
-const dup = (e: unknown): boolean => (e as { code?: unknown } | null)?.code === '23505';
+export const dup = (e: unknown): boolean => (e as { code?: unknown } | null)?.code === '23505';
 /** [CONV] AC-09.4 / 08 A17 P-23: the port's code passes through unchanged. A port built on contracts/ports/common.ts throws that file's LimsError class, which the core
  *  problem renderer would turn into 500 common.internal; it is re-raised as the core LimsError with the SAME code (no detail: never echo port text). Anything else is rethrown as is. */
-function portError(e: unknown): unknown {
+export function portError(e: unknown): unknown {
   if (e instanceof LimsError) return e;
   const x = e as { name?: unknown; code?: unknown } | null;
   if (e instanceof Error && x?.constructor?.name === 'LimsError' && typeof x.code === 'string') return new LimsError(x.code);
@@ -273,10 +273,10 @@ function portError(e: unknown): unknown {
 }
 const blank = (v: unknown): boolean => typeof v !== 'string' || v.trim() === '';
 
-async function displayName(c: AnatomicCtx, userId: string): Promise<string> {
+export async function displayName(c: AnatomicCtx, userId: string): Promise<string> {
   try { return String((await (c.core as unknown as { user(ctx: unknown, i: { userId: string }): Promise<{ displayName: string }> }).user(c, { userId })).displayName ?? ''); } catch (e) { if (!(e instanceof LimsError)) throw e; return ''; }
 }
-async function stainDisplays(c: AnatomicCtx): Promise<Map<string, string>> {
+export async function stainDisplays(c: AnatomicCtx): Promise<Map<string, string>> {
   const out = new Map<string, string>();
   for (let offset = 0; ; offset += 500) {
     const rows = await listStains(c.tx, { tenantId: c.tenantId, limit: 500, offset });

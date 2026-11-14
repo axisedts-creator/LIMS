@@ -8,6 +8,7 @@
 // Open (C6/C0 ruling, see C13.T14-impl.md): a retry after a successful render whose DB update then fails mints a new link, and RenderPort refuses the same idempotencyKey with different data.
 import { createHash } from 'node:crypto';
 import type { TaskHandler } from '../../../core/manifest.js';
+import { M, observe, slip as slipMetric } from '../../../../../api/src/modules/partners/service/observability.js';
 import { formatBs, instantToBs, type IsoUtc } from '../../../../../../packages/shared-ts/src/bsdate/index.js';
 
 const BUCKET = 'partners-slips';
@@ -37,14 +38,17 @@ export const issueAccessSlip: TaskHandler = async (payload, ctx) => {
   if (typeof slipId !== 'string' || !UUID.test(slipId)) throw new Error('partners.issue_access_slip: access_slip_id must be a UUID');
   const tx = ctx.tx;
 
-  const slip: Row | undefined = (await tx.query('SELECT id, partner_id, report_id, version_no, order_id, state, version FROM partners.access_slips WHERE tenant_id = $1 AND id = $2 FOR UPDATE', [tenantId, slipId])).rows[0];
+  const slip: Row | undefined = (await tx.query('SELECT id, partner_id, report_id, version_no, order_id, state, version, created_at FROM partners.access_slips WHERE tenant_id = $1 AND id = $2 FOR UPDATE', [tenantId, slipId])).rows[0];
   if (!slip || slip.state !== 'requested') return; // replay after issued / failed / expired, or not visible for this tenant: nothing to do
   const now = ctx.now();
   const nowDate = new Date(now);
   const next = Number(slip.version) + 1;
 
-  const fail = (code: string) => tx.query("UPDATE partners.access_slips SET state = 'failed', failure_code = $3, updated_at = $4, updated_by = $5, version = $6 WHERE tenant_id = $1 AND id = $2 AND state = 'requested'",
-    [tenantId, slipId, code, nowDate, ctx.actor.id, next]);
+  const fail = async (code: string): Promise<void> => {
+    await tx.query("UPDATE partners.access_slips SET state = 'failed', failure_code = $3, updated_at = $4, updated_by = $5, version = $6 WHERE tenant_id = $1 AND id = $2 AND state = 'requested'",
+      [tenantId, slipId, code, nowDate, ctx.actor.id, next]);
+    slipMetric(ctx, 'failed'); // T23: business end only; a throw for the queue retry is not a failure yet
+  };
 
   let link: Row;
   try { link = await c.ports.ReportingPort.issuePortalLink(ctx, { reportId: slip.report_id, versionNo: Number(slip.version_no), channel: 'print_qr', recipientKind: 'patient' }); } catch (e) {
@@ -80,4 +84,8 @@ export const issueAccessSlip: TaskHandler = async (payload, ctx) => {
   await c.storage.put(BUCKET, path, bytes, { contentType: 'application/pdf' });
   await tx.query("UPDATE partners.access_slips SET state = 'issued', link_id = $3, link_expires_at = $4, file_path = $5, file_sha256 = $6, file_byte_size = $7, issued_at = $8, updated_at = $8, updated_by = $9, version = $10 WHERE tenant_id = $1 AND id = $2 AND state = 'requested'",
     [tenantId, slipId, link.linkId, new Date(link.expiresAt), path, sha, bytes.length, nowDate, ctx.actor.id, next]);
+  // T23: issued once + request -> issued seconds (row created_at -> the job's now); labels carry no id / URL / token
+  slipMetric(ctx, 'issued');
+  const created = new Date(slip.created_at).getTime();
+  if (Number.isFinite(created)) observe(ctx, M.slipIssueSeconds, Math.max(0, (nowDate.getTime() - created) / 1000));
 };

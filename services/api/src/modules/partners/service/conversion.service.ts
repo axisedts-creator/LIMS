@@ -4,6 +4,7 @@
 // before the line is marked conversion_failed (08 A19 P-44, 07-SECURITY ST18). Business failure (by error CODE) -> conversion_failed, resolve (no retry);
 // anything else -> rethrow the original error (the queue retries; nothing is committed, the line stays converting). No patient data is logged.
 import type { BookingOrderInput } from '../../../../../../contracts/ports/FrontdeskPort.js';
+import { lineConversion, M, observe } from './observability.js';
 
 type Row = Record<string, any>;
 type Q = { query(text: string, values?: unknown[]): Promise<{ rows: Row[] }> };
@@ -15,7 +16,14 @@ export interface ConversionCtx {
   readonly db: { tx<T>(fn: (c: any) => Promise<T>): Promise<T> };
   readonly ports: Record<string, unknown>;
   now(): string;
+  readonly metrics?: unknown; // T23 (same seam as report.service.ts); emitted through service/observability.ts, which never throws
 }
+
+/** errors.yaml code shape only (bounded label); anything else (plain Error, message, host) is dropped. */
+const boundedCode = (e: unknown): string | undefined => {
+  const c = (e as { code?: unknown } | null)?.code;
+  return typeof c === 'string' && /^[a-z_]+\.[a-z_]+$/.test(c) ? c : undefined;
+};
 
 const pad = (n: number): string => String(n).padStart(2, '0');
 /** pg `date` arrives as local midnight (as mappers/manifest.dto.ts); strings pass through. */
@@ -72,20 +80,24 @@ export async function convertLine(payload: Record<string, unknown>, ctx: Convers
     doctorId = ref?.['mapping_state'] === 'mapped' && has(ref['catalog_doctor_id']) ? ref['catalog_doctor_id'] : null;
     if (!doctorId) {
       const s = (await tx.query('SELECT require_mapped_referrer FROM partners.settings WHERE tenant_id = $1', [t])).rows[0];
-      if (s?.['require_mapped_referrer'] === true) return fail(ctx, t, lineId, 'partners.referrer_not_mapped'); // LS6, no port call
+      if (s?.['require_mapped_referrer'] === true) { lineConversion(ctx, 'failed_business', 'partners.referrer_not_mapped'); return fail(ctx, t, lineId, 'partners.referrer_not_mapped'); } // LS6, no port call
     }
   }
 
   // 3. port call inside a savepoint (P-44)
   const input = buildBookingOrderInput(line, partner, manifest, doctorId);
   const port = ctx.ports['FrontdeskPort'] as FrontdeskLike;
-  let order: { orderId: string; registrationNo: string };
+  let order: { orderId: string; registrationNo: string; replayed?: boolean };
+  const t0 = performance.now(); // T23: real clock (ctx.now() is the job's logical time); one duration per attempt that reached the port and finished
   try {
     order = await ctx.db.tx((c) => port.createOrderFromBooking(c, input));
   } catch (e) {
-    if (isBusinessFailure(e)) return fail(ctx, t, lineId, e.code); // LS6: savepoint already rolled back by the throw
+    if (isBusinessFailure(e)) { observe(ctx, M.conversionDuration, (performance.now() - t0) / 1000); lineConversion(ctx, 'failed_business', e.code); return fail(ctx, t, lineId, e.code); } // LS6: savepoint already rolled back by the throw
+    lineConversion(ctx, 'failed_infra', boundedCode(e)); // T23: no message / host in a label
     throw e; // LS: stays converting; the queue retries with backoff (US-06.8)
   }
+  observe(ctx, M.conversionDuration, (performance.now() - t0) / 1000);
+  lineConversion(ctx, order.replayed === true ? 'replayed' : 'converted'); // T23: the port answered replayed:true = an earlier committed call
 
   // 4. LS5 + one tracking row (replay of the same key returns the same order: ON CONFLICT keeps one row)
   const now = ctx.now();

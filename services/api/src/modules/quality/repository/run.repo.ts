@@ -28,12 +28,12 @@ export interface RunRepo {
 }
 
 const ISO = `'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"'`;
-const ts = (expr: string, as: string) => `to_char(${expr} AT TIME ZONE 'UTC', ${ISO}) AS ${as}`;
+export const ts = (expr: string, as: string) => `to_char(${expr} AT TIME ZONE 'UTC', ${ISO}) AS ${as}`;
 
 const TS_COLS = ['run_at', 'last_member_received_at', 'last_assembled_at', 'evaluated_at', 'last_in_control_run_at', 'hold_since', 'closed_at', 'created_at', 'updated_at'];
 const PLAIN_COLS = ['id', 'tenant_id', 'plan_id', 'plan_version_no', 'instrument_id', 'analyte_id', 'controls_per_run', 'rule_mode', 'mean_rule', 'observation_count', 'status', 'outcome', 'is_complete',
   'rules_violated', 'warning_rules', 'rule_detail', 'evaluated_by', 'rejection_event_id', 'closed_by', 'version', 'created_by', 'updated_by'];
-const runCols = (p = '') => [...PLAIN_COLS.map((c) => `${p}${c}`), ...TS_COLS.map((c) => ts(`${p}${c}`, c))].join(', ');
+export const runCols = (p = '') => [...PLAIN_COLS.map((c) => `${p}${c}`), ...TS_COLS.map((c) => ts(`${p}${c}`, c))].join(', ');
 
 /** column -> bind cast. The allowlist for insert and update is this map (tenant_id, id, created_*, plan_id, version are never patched). */
 const TYPE: Record<string, string> = {
@@ -43,7 +43,9 @@ const TYPE: Record<string, string> = {
   rejection_event_id: 'uuid', closed_at: 'timestamptz', closed_by: 'uuid', version: 'integer', created_at: 'timestamptz', created_by: 'uuid', updated_at: 'timestamptz', updated_by: 'uuid',
 };
 const PATCHABLE = new Set(['status', 'outcome', 'is_complete', 'rules_violated', 'warning_rules', 'rule_detail', 'evaluated_at', 'evaluated_by', 'last_in_control_run_at', 'hold_since', 'rejection_event_id',
-  'observation_count', 'last_member_received_at', 'last_assembled_at', 'updated_by']);
+  'observation_count', 'last_member_received_at', 'last_assembled_at', 'updated_by',
+  'closed_at', 'closed_by']);   // T-12: QR7 close sets status + closed_at/closed_by only; the frozen columns stay out of reach (quality.enforce_run_frozen)
+const CLOSE_COLS = new Set(['status', 'closed_at', 'closed_by', 'updated_by']);
 const bind = (col: string, v: unknown): unknown => (v === undefined ? null : v === null ? null : col === 'rule_detail' ? JSON.stringify(v) : v);
 
 const MEMBER_COLS = `o.id, o.level_id, o.value::text AS value, o.mean::text AS mean, o.sd::text AS sd, ${ts('o.observed_at', 'observed_at')}, ${ts('o.received_at', 'received_at')}`;
@@ -89,6 +91,7 @@ export function createRunRepo(): RunRepo {
     async updateRun(tx, tenantId, runId, patch) {
       const cols = Object.keys(patch).filter((c) => patch[c] !== undefined);
       if (cols.length === 0 || cols.some((c) => !PATCHABLE.has(c))) throw new LimsError('common.internal');
+      if (patch['status'] === 'closed' && cols.some((c) => !CLOSE_COLS.has(c))) throw new LimsError('common.internal');   // QR7 never rewrites outcome / rules / hold (S-09)
       const set = cols.map((c, i) => `${c} = $${i + 1}::${TYPE[c]}`).join(', ');
       const n = cols.length;
       const { rows } = await tx.query(

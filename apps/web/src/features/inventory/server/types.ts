@@ -69,3 +69,53 @@ export interface Binding { id: string; instrument_id: string; store_id: string; 
 export interface CodedValue { code: string; display: string }
 export interface Branch { branch_id: string; code: string; name: string }
 export interface Instrument { id: string; instrument_code: string; display_name: string }
+
+// ---- T-23 stock operations (S8-S12). Shapes mirror contracts/openapi/inventory.yaml (BalanceRow, FefoSuggestion, Container, Transfer, Count, Fact).
+export type LotStatus = 'available' | 'quarantined' | 'blocked';
+export interface BalanceRow {
+  store_id: string; item_id: string; item_code: string; item_name: string; lot_id?: string; lot_no?: string; expiry_on?: string; lot_status?: LotStatus;
+  qty_base: string; available_qty_base: string; has_open_container: boolean; reorder_level_base?: string;
+}
+export interface Lot { id: string; item_id: string; lot_no: string; expiry_on?: string; status: LotStatus; version: number }
+export interface FefoLine { lot_id: string; lot_no: string; expiry_on?: string; has_open_container: boolean; take_qty_base: string; available_qty_base: string }
+export interface FefoSuggestion { store_id: string; item_id: string; qty_base: string; lines: FefoLine[]; shortfall_qty_base: string }
+export interface StockMovement {
+  id: string; occurred_at: string; store_id: string; item_id: string; lot_id?: string; lot_no?: string; movement_kind: string; qty_base: string; balance_qty_after?: string;
+}
+export interface StockDocument { id: string; doc_no: string; doc_kind: string; store_id: string; movements: StockMovement[]; version: number }
+export interface TransferTarget { id: string; store_code: string; name: string; branch_id: string; branch_name: string }
+export interface TransferLine { id: string; line_no: number; item_id: string; lot_id?: string; qty_base: string; received_qty_base?: string; discrepancy_reason_code?: string }
+export type TransferStatus = 'draft' | 'dispatched' | 'received' | 'cancelled';
+export interface TransferSummary { id: string; transfer_no: string; from_store_id: string; to_store_id: string; status: TransferStatus; dispatched_at?: string; received_at?: string; version: number }
+export interface Transfer extends TransferSummary { notes?: string; lines: TransferLine[] }
+export type CountStatus = 'open' | 'posted' | 'cancelled';
+export interface CountSummary { id: string; count_no: string; store_id: string; status: CountStatus; scope_category?: Category; snapshot_at: string; posted_at?: string; version: number }
+export interface CountLine {
+  // book_/variance fields are removed by the server component for users without inventory.stock.adjust (blind count: the snapshot never reaches them)
+  id: string; item_id: string; lot_id?: string; book_qty_snapshot?: string; counted_qty_base?: string; counted_at?: string;
+  book_qty_at_count?: string; variance_qty_base?: string; variance_value_paisa?: number; version: number;
+}
+export interface Count extends CountSummary { lines: CountLine[] }
+export interface Container {
+  id: string; store_id: string; item_id: string; lot_id: string; lot_no?: string; instrument_id?: string; opened_at: string; open_expiry_at?: string;
+  status: 'open' | 'finished' | 'discarded'; version: number;
+}
+export interface Fact { id: string; fact_kind: string; status: string; multiplier?: number; rules_applied?: number; movements: StockMovement[] }
+export interface Department { id: string; code: string; name: string }
+export interface TestRef { id: string; code: string; name: string }
+export interface Analyte { id: string; code: string; name: string }
+export type Direction = 'in' | 'out';
+export type UncountedPolicy = 'skip' | 'zero';
+
+export interface StockFilters { storeId?: string; category?: string; q?: string; belowReorder?: string; expiringWithinDays?: string; includeZero?: string; expiredOnly?: boolean; itemId?: string }
+export interface IssueCreate { store_id: string; issued_to_kind: 'department' | 'instrument' | 'general'; department_id?: string; instrument_id?: string; lines: { item_id: string; lot_id?: string; qty: string }[] }
+export interface WastageCreate { store_id: string; reason_code: string; reason_text?: string; lines: { item_id: string; lot_id?: string; qty: string }[] }
+export interface AdjustmentCreate { store_id: string; reason_code: string; reason_text?: string; lines: { item_id: string; lot_id?: string; direction: Direction; qty: string }[] }
+export interface ExpiryWriteoffCreate { store_id: string; lot_ids: string[] }
+export interface TransferCreate { from_store_id: string; to_store_id: string; notes?: string; lines: { item_id: string; lot_id?: string; qty: string }[] }
+export interface TransferReceive { lines: { line_id: string; received_qty_base: string; discrepancy_reason_code?: string }[] }
+export interface CountCreate { store_id: string; scope_category?: Category; notes?: string }
+export interface CountLinePut { line_id: string; item_id: string; lot_id?: string; counted_qty_base: string }
+export interface ContainerOpen { store_id: string; item_id: string; lot_id?: string; instrument_id?: string }
+export interface ContainerDiscard { qty_base: string; reason_code: string }
+export interface ConsumptionEventCreate { fact_kind: 'calibration' | 'qc'; instrument_id?: string; test_id: string; analyte_id?: string; occurred_at: string; observations?: number; reason_code?: string; note?: string }

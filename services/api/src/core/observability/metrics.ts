@@ -126,6 +126,17 @@ const DEFS = {
   lims_homecollection_devices_stale_total: ['gauge', ['tenant_id'], 'Stale phlebotomy devices (pending sync, last seen over 2 h ago) by tenant'],
   lims_homecollection_handover_overdue_open: ['gauge', ['tenant_id'], 'Open overdue sample handovers by tenant'],
   lims_homecollection_events_published_total: ['counter', [], 'Home-collection domain events published'],
+  // C13 b2b partner portal (CR-C13-T23; 02-TRD §13 lines 530-539; names, types, labels verbatim; lead T23-01)
+  lims_partners_manifests_total: ['counter', ['transition'], 'Partner manifest transitions by transition'],
+  lims_partners_line_conversions_total: ['counter', ['outcome', 'failure_code'], 'Partner manifest line conversions by outcome and failure code'],
+  lims_partners_conversion_duration_seconds: ['histogram', [], 'Partner manifest line conversion duration in seconds'],
+  lims_partners_events_consumed_total: ['counter', ['event_type', 'outcome'], 'Partner events consumed by event type and outcome'],
+  lims_partners_projection_lag_seconds: ['gauge', ['projection'], 'Partner projection lag in seconds by projection'],
+  lims_partners_report_downloads_total: ['counter', ['outcome'], 'Partner report downloads by outcome'],
+  lims_partners_access_slips_total: ['counter', ['outcome'], 'Partner access slips by outcome'],
+  lims_partners_access_slip_issue_seconds: ['histogram', [], 'Partner access slip issue duration in seconds'],
+  lims_partners_pickups_total: ['counter', ['transition'], 'Partner pickup transitions by transition'],
+  lims_partners_partner_inactive_rejections_total: ['counter', [], 'Requests rejected because the partner is inactive'],
 } as const satisfies Record<string, readonly [Kind, readonly string[], string]>;
 
 export type MetricName = keyof typeof DEFS;

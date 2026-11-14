@@ -3,7 +3,8 @@
 // AC-03.* / AC-04.* / AC-05.* UI side. LD-140 (2026-11-13): kit components only (no hex colours, pixel radii or inline style objects); one primary button per page;
 // every status shows tone, icon and word. The screen never decides culture state: it opens dialogs, the dialogs post, the server moves the culture and the page refreshes.
 // Buttons that the state or the permission does not allow are not rendered (03-APP-FLOW §4.2). Page shortcuts are registered once under 'micro.culture' (04-UI-UX §3).
-// Preliminary / Final report, Cancel and Reopen are wired by T-22 (their buttons exist here, disabled). T-21: the AST grid and "Choose AST panel" live in the Isolates & AST tab;
+// T-22: Preliminary / Final report open the report drawer (Alt+P / Alt+F), "Reopen for amendment" its dialog, and the Reports tab lists the versions (components/reports).
+// Cancel stays disabled here (its own task). T-21: the AST grid and "Choose AST panel" live in the Isolates & AST tab;
 // leaving that tab with unsaved AST values asks "Discard unsaved AST changes?" (03-APP-FLOW §6); Alt+A focuses the grid of the selected isolate.
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
@@ -28,6 +29,9 @@ import { AssignPanelDialog } from '../ast/AssignPanelDialog';
 import { AstPane, showsGrid } from '../ast/AstPane';
 import { focusFirstAstInput } from '../ast/AstGrid';
 import { useTenantStandard } from '../ast/useTenantStandard';
+import { ReopenDialog } from '../reports/ReopenDialog';
+import { ReportDrawer } from '../reports/ReportDrawer';
+import { ReportsTab } from '../reports/ReportsTab';
 import { CultureStatusChip } from '../worklist/CultureStatusChip';
 import { IdentityCard } from './IdentityCard';
 import { IsolatesTab, type IsolateAction } from './IsolatesTab';
@@ -45,6 +49,8 @@ type Dlg =
   | { k: 'discard'; plate: PlateDto }
   | { k: 'withdraw'; isolate: IsolateDto }
   | { k: 'panel'; isolate: IsolateDto }
+  | { k: 'report'; phase: 'preliminary' | 'final' }
+  | { k: 'reopen' }
   | { k: 'scan' };
 
 /** What each button needs (03-APP-FLOW §4.2). */
@@ -97,7 +103,8 @@ export function CultureScreen({ culture, patient, specimen, permissions }: Cultu
     gram: () => can('stain') && setDlg({ k: 'obs', kind: 'gram_stain' }),
     isolate: () => can('isolate') && setDlg({ k: 'isolate', mode: { kind: 'add' } }),
     ast: () => { focusAst.current = true; setTab('isolates'); setFocusTick((n) => n + 1); },
-    reports: () => goTab('reports'),
+    prelim: () => can('prelim') && setDlg({ k: 'report', phase: 'preliminary' }),
+    final: () => can('final') && setDlg({ k: 'report', phase: 'final' }),
     scan: () => setDlg({ k: 'scan' }),
   };
   useEffect(
@@ -109,8 +116,8 @@ export function CultureScreen({ culture, patient, specimen, permissions }: Cultu
         { key: 'Alt+G', description: 'Record Gram stain', run: () => act.current['gram']!() },
         { key: 'Alt+I', description: 'Add isolate', run: () => act.current['isolate']!() },
         { key: 'Alt+A', description: 'Focus the AST grid of the selected isolate', run: () => act.current['ast']!() },
-        { key: 'Alt+P', description: 'Preliminary report', run: () => act.current['reports']!() },
-        { key: 'Alt+F', description: 'Final report', run: () => act.current['reports']!() },
+        { key: 'Alt+P', description: 'Preliminary report', run: () => act.current['prelim']!() },
+        { key: 'Alt+F', description: 'Final report', run: () => act.current['final']!() },
         { key: 'Alt+B', description: 'Scan a specimen barcode', run: () => act.current['scan']!() },
       ),
     [],
@@ -132,10 +139,10 @@ export function CultureScreen({ culture, patient, specimen, permissions }: Cultu
       {action('stain', 'Record stain / microscopy', () => setDlg({ k: 'obs', kind: 'gram_stain' }))}
       {action('plate', 'Add plate', () => setDlg({ k: 'plate' }))}
       {action('isolate', 'Add isolate', () => setDlg({ k: 'isolate', mode: { kind: 'add' } }))}
-      {action('prelim', 'Preliminary report')}
-      {action('final', 'Final report')}
+      {action('prelim', 'Preliminary report', () => setDlg({ k: 'report', phase: 'preliminary' }))}
+      {action('final', 'Final report', () => setDlg({ k: 'report', phase: 'final' }))}
       {action('cancel', 'Cancel culture')}
-      {action('reopen', 'Reopen for amendment')}
+      {action('reopen', 'Reopen for amendment', () => setDlg({ k: 'reopen' }))}
     </Inline>
   );
 
@@ -183,7 +190,7 @@ export function CultureScreen({ culture, patient, specimen, permissions }: Cultu
               pane={<AstPane isolate={selectedIsolate} canWork={can('isolate')} tenant={tenant} focusRequest={focusAst} onChoosePanel={(i) => setDlg({ k: 'panel', isolate: i })} onSaved={() => router.refresh()} onDirtyChange={setAstDirty} />}
             />
           ) : null}
-          {tab === 'reports' ? <EmptyState title="No reports to show here yet." /> : null}
+          {tab === 'reports' ? <ReportsTab culture={culture} /> : null}
           {tab === 'instrument' ? <EmptyState title="No instrument data to show here yet." /> : null}
         </Tabs>
       </Stack>
@@ -194,6 +201,8 @@ export function CultureScreen({ culture, patient, specimen, permissions }: Cultu
       {dlg?.k === 'discard' ? <DiscardPlateDialog cultureId={culture.id} plate={dlg.plate} onClose={close} /> : null}
       {dlg?.k === 'withdraw' ? <WithdrawIsolateDialog isolate={dlg.isolate} onClose={close} /> : null}
       {dlg?.k === 'panel' ? <AssignPanelDialog isolate={dlg.isolate} onClose={close} /> : null}
+      {dlg?.k === 'report' ? <ReportDrawer culture={culture} phase={dlg.phase} onClose={close} onSent={() => setTab('reports')} /> : null}
+      {dlg?.k === 'reopen' ? <ReopenDialog culture={culture} onClose={close} /> : null}
       {dlg?.k === 'scan' ? <ScanDialog currentCultureId={culture.id} onClose={close} /> : null}
       {leaving ? (
         <ConfirmDialog

@@ -15,7 +15,9 @@ export default {
     { keys: 'Alt+I', action: 'Images tab' },
     { keys: 'Alt+R', action: 'Report tab' },
     { keys: 'Alt+A', action: 'Open the Accession dialog (when allowed)' },
+    { keys: 'Alt+L', action: 'Open the labels page for blocks' },
     { keys: 'Alt+S', action: 'Save the form you are working in' },
+    { keys: 'Alt+U', action: 'Open the Sign out dialog (when allowed)' },
   ],
   links: [{ routeId: 'staff.anatomic.worklist', label: 'Pathology cases' }],
 };

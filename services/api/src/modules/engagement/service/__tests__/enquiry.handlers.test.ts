@@ -162,7 +162,8 @@ describe('E49 createMyEnquiry (US-EN-18.1)', () => {
   for (const [name, body] of bad) {
     it(`bad input is common.validation_failed and writes nothing: ${name}`, async () => {
       const w = makeWorld();
-      expect(await code(myCreate(w, body))).toBe('common.validation_failed');
+      const call = name === 'body missing' ? run(w, 'createMyEnquiry', 'patient', {}) : myCreate(w, body);
+      expect(await code(call)).toBe('common.validation_failed');
       expect(w.writes()).toEqual([]);
     });
   }
@@ -601,8 +602,8 @@ describe('P3 free text is never logged, never audited, never a metric label, nev
   it('a failing statement does not leak the text through the error either (409 / 404 / 400 carry only the code)', async () => {
     const w = makeWorld();
     const M = 'MSG-private-9931';
-    for (const p of [myReply(w, EQ(3), M, 5), myReply(w, EQ(1), M, 1), myReply(w, EQ(1), M, undefined), myReply(w, ID(0xbeef), M, 1)]) {
-      const e: any = await p.catch((x: unknown) => x);
+    for (const mk of [() => myReply(w, EQ(3), M, 5), () => myReply(w, EQ(1), M, 1), () => myReply(w, EQ(1), M, undefined), () => myReply(w, ID(0xbeef), M, 1)]) {
+      const e: any = await mk().catch((x: unknown) => x);
       expect(JSON.stringify({ code: e.code, message: e.message, detail: e.detail, details: e.details, title: e.title })).not.toContain(M);
     }
   });

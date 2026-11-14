@@ -60,25 +60,33 @@ const H80E_CHECKLIST = [ // §9, wording kept close to the addendum
   'Sign off. Promotion to verified is a reviewed migration plus a code change, not a switch in this form.',
 ] as const;
 
-interface OptionField { key: string; title: string; maxLength?: number; options?: string[]; def: string }
+interface OptionField { key: string; title: string; maxLength?: number; options?: string[]; numeric?: boolean; def: string }
 const UNSAFE_KEYS = new Set(['__proto__', 'constructor', 'prototype']);
-/** One field per string / enum property of the driver's JSON Schema (own keys only; anything else is ignored, never rendered as HTML). */
+/** One field per string / enum property of the driver's JSON Schema (own keys only; anything else is ignored, never rendered as HTML).
+ *  A numeric enum (with or without `type`, e.g. truth_h80e host_query_detection_mode) is a Select whose value is sent back as a number. */
 function optionFields(schema: Record<string, unknown> | undefined): OptionField[] {
   const props = schema && Object.hasOwn(schema, 'properties') ? schema['properties'] : undefined;
   if (typeof props !== 'object' || props === null || Array.isArray(props)) return [];
   const out: OptionField[] = [];
   for (const k of Object.keys(props)) {
     const p = (props as Record<string, unknown>)[k];
-    if (UNSAFE_KEYS.has(k) || typeof p !== 'object' || p === null || (p as Obj)['type'] !== 'string') continue;
-    const { title, maxLength, enum: en, default: def } = p as Obj;
+    if (UNSAFE_KEYS.has(k) || typeof p !== 'object' || p === null) continue;
+    const { type, title, maxLength, enum: en, default: def } = p as Obj;
+    const numEnum = Array.isArray(en) && en.length > 0 && en.every((x) => typeof x === 'number' && Number.isFinite(x))
+      && (type === undefined || type === 'integer' || type === 'number');
+    if (type !== 'string' && !numEnum) continue;
     out.push({
-      key: k, title: typeof title === 'string' && title ? title : k, def: typeof def === 'string' ? def : '',
-      ...(typeof maxLength === 'number' && maxLength > 0 ? { maxLength } : {}),
-      ...(Array.isArray(en) && en.every((x) => typeof x === 'string') && en.length ? { options: en as string[] } : {}),
+      key: k, title: typeof title === 'string' && title ? title : k,
+      def: numEnum ? (typeof def === 'number' ? String(def) : '') : typeof def === 'string' ? def : '',
+      ...(typeof maxLength === 'number' && maxLength > 0 && !numEnum ? { maxLength } : {}),
+      ...(numEnum ? { options: (en as number[]).map(String), numeric: true }
+        : Array.isArray(en) && en.every((x) => typeof x === 'string') && en.length ? { options: en as string[] } : {}),
     });
   }
   return out;
 }
+/** Driver JSON Schema of parser options. Field name pending .orchestra/cr/H80-T06.md (E22 Driver has no optionsSchema yet); read only here. */
+const driverOptionsSchema = (d: Driver | undefined) => (d as (Driver & { options_schema?: Record<string, unknown> }) | undefined)?.options_schema;
 
 interface State {
   instrument_code: string; display_name: string; vendor: string; model: string; serial_no: string; software_version: string;
@@ -160,7 +168,7 @@ export function InstrumentForm({ mode, agents, drivers, instrument, permissions 
   const driver = drivers.find((d) => d.code === s.driver_code);
   const declaresHostQuery = !!driver?.capabilities.host_query;
   const supportsHostQuery = declaresHostQuery && driver?.status === 'verified'; // 02-TRD §6.6 step 2: host query is inert until verified (LD-139)
-  const optFields = useMemo(() => (edit ? [] : optionFields(driver?.options_schema)), [edit, driver]);
+  const optFields = useMemo(() => (edit ? [] : optionFields(driverOptionsSchema(driver))), [edit, driver]);
   const presetId = useId();
   const patch = (p: Partial<State>, ...ptrs: string[]) => {
     setS((x) => ({ ...x, ...p }));
@@ -190,7 +198,7 @@ export function InstrumentForm({ mode, agents, drivers, instrument, permissions 
     const astm = s.protocol === 'astm' ? opts(s.astm, orig?.astm, ASTM_DEFAULTS) : {};
     const hl7 = s.protocol === 'hl7v2' ? opts(s.hl7, orig?.hl7v2, {}) : {};
     if (Object.keys(astm).length || Object.keys(hl7).length) b['protocol_options'] = { ...(Object.keys(astm).length ? { astm } : {}), ...(Object.keys(hl7).length ? { hl7v2: hl7 } : {}) };
-    const po = Object.fromEntries(optFields.filter((f) => Object.hasOwn(s.popts, f.key) && s.popts[f.key] !== f.def && s.popts[f.key] !== '').map((f) => [f.key, s.popts[f.key]]));
+    const po = Object.fromEntries(optFields.filter((f) => Object.hasOwn(s.popts, f.key) && s.popts[f.key] !== f.def && s.popts[f.key] !== '').map((f) => [f.key, f.numeric ? Number(s.popts[f.key]) : s.popts[f.key]]));
     if (Object.keys(po).length) b['parser_options'] = po;
     if (s.file_drop && s.protocol !== 'file_drop') b['file_drop'] = clean(s.file_drop);
     b['capabilities'] = { host_query: s.host_query && supportsHostQuery, worklist_download: false }; // worklist download: never true (AC-03.4)
@@ -420,7 +428,7 @@ export function InstrumentForm({ mode, agents, drivers, instrument, permissions 
           const set = (v: string) => patch({ popts: { ...s.popts, [f.key]: v } });
           return f.options
             ? <Select<string> key={f.key} label={`Analyser option: ${f.title}`} name={`parser_options.${f.key}`} options={f.options.map((o) => ({ value: o, label: o }))} {...on(val, { value: val })} onChange={set} />
-            : <TextField key={f.key} label={`Analyser option: ${f.title}`} name={`parser_options.${f.key}`} {...on(f.maxLength, { maxLength: f.maxLength! })} value={val} onChange={set} />;
+            : <TextField key={f.key} label={`Analyser option: ${f.title}`} name={`parser_options.${f.key}`} maxLength={f.maxLength ?? 64} value={val} onChange={set} />;
         })}
         <TimezoneSelect value={s.timezone} error={zoneErr} disabled={ro} onChange={onZone} />
         <TextArea label="QC sample ID patterns" name="qc_sample_id_patterns" maxLength={1010} rows={3} description="One pattern per line, up to 10." value={s.qc} onChange={(v) => patch({ qc: v }, '/qc_sample_id_patterns')} {...ROF} {...E('/qc_sample_id_patterns', s.qc)} />

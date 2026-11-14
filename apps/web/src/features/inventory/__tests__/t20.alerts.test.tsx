@@ -57,7 +57,7 @@ describe('S16 list (04-UI-UX §3 S16)', () => {
     const grid = await screen.findByRole('grid');
     const reorder = within(grid).getAllByRole('row').filter((r) => /below reorder level/i.test(r.textContent ?? ''));
     expect(reorder.length).toBe(1);
-    expect(reorder[0]!.textContent).toMatch(/\b3\b/);
+    expect(within(reorder[0]!).getAllByRole('gridcell').map((c) => c.textContent?.trim())).toContain('3');
   });
 
   it('status shows tone, icon and word (LD-140): word Open / Acknowledged and an svg icon in the status cell', async () => {
@@ -121,7 +121,8 @@ describe('Acknowledge (TRD #91) and AC-22.2 UI hides', () => {
     const banner = await screen.findByText(/req-syn-0001/);
     expect(banner).toBeTruthy();
     expect(router.refresh).not.toHaveBeenCalled();
-    expect(screen.queryByText(/acknowledged\.?$/i)).toBeNull();
+    expect(within(rowOf(grid, /below reorder level/i)).queryByText(/^acknowledged$/i)).toBeNull();
+    expect(screen.queryByText(/alert acknowledged/i)).toBeNull();
   });
 
   it('409 version_conflict is reported with request_id (stale row), row stays', async () => {

@@ -119,3 +119,48 @@ export interface CountLinePut { line_id: string; item_id: string; lot_id?: strin
 export interface ContainerOpen { store_id: string; item_id: string; lot_id?: string; instrument_id?: string }
 export interface ContainerDiscard { qty_base: string; reason_code: string }
 export interface ConsumptionEventCreate { fact_kind: 'calibration' | 'qc'; instrument_id?: string; test_id: string; analyte_id?: string; occurred_at: string; observations?: number; reason_code?: string; note?: string }
+
+// ---- T-22 purchasing + receiving (S6, S7). Shapes mirror contracts/openapi/inventory.yaml (Po, PoSummary, PoPrintView, Grn, GrnSummary, GrnDraft).
+// Money is integer paisa. Totals and line amounts are computed by the SERVER only (CV §4.7); the create/replace bodies carry no amounts besides unit price and discount.
+export type PoStatus = 'draft' | 'approved' | 'sent' | 'partially_received' | 'received' | 'closed' | 'cancelled';
+export type SentChannel = 'email' | 'phone' | 'in_person' | 'portal' | 'other';
+export type GrnKind = 'purchase' | 'opening_balance';
+export type GrnStatus = 'draft' | 'posted' | 'cancelled';
+export interface PoSummary { id: string; po_no: string; branch_id: string; store_id: string; supplier_id: string; status: PoStatus; source: 'manual' | 'reorder'; expected_on?: string; total_paisa?: number; created_at: string; version: number }
+export interface PoLine {
+  id: string; line_no: number; item_id: string; pack_id: string; qty_packs: string; qty_base: string; unit_price_paisa?: number; discount_paisa?: number; tax_code?: string; is_exempt: boolean;
+  tax_rate_bp?: number; net_paisa?: number; vat_paisa?: number; line_total_paisa?: number; received_qty_base: string; open_qty_base: string; is_closed_short: boolean;
+}
+export interface GrnSummary { id: string; grn_no: string; kind: GrnKind; store_id: string; supplier_id?: string; po_id?: string; status: GrnStatus; received_at: string; posted_at?: string; total_paisa?: number; version: number }
+export interface Po extends PoSummary {
+  notes?: string; subtotal_paisa?: number; discount_paisa?: number; net_paisa?: number; vat_paisa?: number;
+  approved_at?: string; sent_at?: string; sent_channel?: SentChannel; sent_reference?: string; cancelled_at?: string; cancel_reason_code?: string; closed_at?: string; close_reason_code?: string;
+  lines: PoLine[]; receipts?: GrnSummary[];
+}
+export interface PoLineIn { item_id: string; pack_id: string; qty_packs: string; unit_price_paisa?: number; discount_paisa?: number; tax_code?: string; is_exempt?: boolean }
+export interface PoCreate { supplier_id: string; store_id: string; expected_on?: string; notes?: string; lines: PoLineIn[] }
+export interface ReasonAction { reason_code: string; reason_text?: string }
+export interface PoPrintLine { line_no: number; item_code: string; item_name: string; pack_label: string; qty_packs: string; unit_price_paisa: number; discount_paisa: number; tax_code?: string; is_exempt: boolean; line_total_paisa: number }
+export interface PoPrintView {
+  is_draft: boolean; tenant_display_name: string; branch_name: string; po_no: string; status: PoStatus; created_at: string; expected_on?: string;
+  supplier: { supplier_code: string; name: string; pan_text?: string; address_text?: string }; lines: PoPrintLine[];
+  subtotal_paisa: number; discount_paisa: number; net_paisa: number; vat_paisa: number; total_paisa: number;
+}
+export interface GrnLine {
+  id: string; line_no: number; item_id: string; pack_id: string; qty_packs: string; qty_base: string; po_line_id?: string; lot_no?: string; expiry_on?: string; manufactured_on?: string;
+  unit_price_paisa?: number; discount_paisa?: number; tax_code?: string; is_exempt: boolean; tax_rate_bp?: number; net_paisa?: number; vat_paisa?: number; line_total_paisa?: number;
+}
+export interface Grn extends GrnSummary {
+  supplier_invoice_no?: string; supplier_invoice_on?: string; supplier_invoice_total_paisa?: number; invoice_total_mismatch_paisa?: number;
+  subtotal_paisa?: number; discount_paisa?: number; net_paisa?: number; vat_paisa?: number; notes?: string; lines: GrnLine[];
+}
+export interface GrnLineIn { po_line_id?: string; item_id: string; pack_id: string; qty_packs: string; lot_no?: string; expiry_on?: string; manufactured_on?: string; unit_price_paisa?: number; discount_paisa?: number; tax_code?: string; is_exempt?: boolean }
+export interface GrnDraft {
+  kind: GrnKind; store_id: string; supplier_id?: string; po_id?: string; received_at?: string; supplier_invoice_no?: string; supplier_invoice_on?: string; supplier_invoice_total_paisa?: number; notes?: string; lines: GrnLineIn[];
+}
+/** PUT /goods-receipts/{grn_id} body: GrnDraft minus kind, store_id (TRD §5 #52; additionalProperties: false). */
+export type GrnReplace = Omit<GrnDraft, 'kind' | 'store_id'>;
+/** reason_group values of GET /coded-sets/reasons for the two PO reason dialogs (cancel, close). */
+export const PO_REASON_GROUPS = { cancel: 'po_cancel', close: 'po_close' } as const;
+export interface PoFilters { status?: string | undefined; supplier?: string | undefined; branch?: string | undefined; createdFrom?: string | undefined; createdTo?: string | undefined }
+export interface GrnFilters { status?: string | undefined; store?: string | undefined; supplier?: string | undefined; poId?: string | undefined }

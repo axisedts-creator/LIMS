@@ -20,9 +20,9 @@ Open Profiles, choose the profile and Remove. The reports stay with the lab, but
 
 ## If your phone is lost or stolen
 
-Ask the lab to turn off your app access, then sign out on the new phone. Your old sign-in stops working. Use a screen lock on your phone as well.
+Ask the lab to revoke the app link of each of your profiles. The lost phone can then no longer open those reports. On your new phone, sign in with your number and ask the lab for a new code. Use a screen lock on your phone as well.
 
-## Payments, reports and links open in the system browser
+## Payments and legal pages open in the system browser
 
 Online payment and the legal pages open in your system browser, not inside the app, so you can check the address and the lock sign before you enter anything. The app does not send push messages. It does not use analytics, tracking or advertising.
 

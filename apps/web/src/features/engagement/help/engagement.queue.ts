@@ -6,7 +6,7 @@ export default {
     { heading: 'Issuing tokens', body: 'Issue a token for a walk-in and print the slip. The slip shows only the lab name, queue, token and time. With nobody waiting, Call next tells you that no one is waiting.' },
   ],
   shortcuts: [
-    { keys: 'Alt+N', action: 'Call next' },
+    { keys: 'Alt+C', action: 'Call next' }, // CR-C16-T-Q4-a: Alt+N is a C0 global key; console registers Alt+C
     { keys: 'Alt+R', action: 'Recall' },
     { keys: 'Alt+S', action: 'Mark as serving' },
     { keys: 'Alt+D', action: 'Mark as done' },

@@ -8,7 +8,7 @@ Help key `engagement.queue`. Choose your counter, then call the next token. The 
 
 | Key | Action |
 |---|---|
-| `Alt+N` | Call next |
+| `Alt+C` | Call next |
 | `Alt+R` | Recall |
 | `Alt+S` | Serving |
 | `Alt+D` | Done |

@@ -115,6 +115,18 @@ const EXPECTED: Record<string, 'counter' | 'gauge' | 'histogram'> = {
   lims_identity_stuffing_distinct_accounts_15m: 'gauge',
   lims_identity_stuffing_distinct_ips_15m: 'gauge',
   lims_identity_audit_exports_tenant_day: 'gauge',
+
+  // C13 additions — CR-C13-T23 / lead T23-01, names and types from C13 02-TRD section 13 (lines 530-539).
+  lims_partners_manifests_total: 'counter',
+  lims_partners_line_conversions_total: 'counter',
+  lims_partners_conversion_duration_seconds: 'histogram',
+  lims_partners_events_consumed_total: 'counter',
+  lims_partners_projection_lag_seconds: 'gauge',
+  lims_partners_report_downloads_total: 'counter',
+  lims_partners_access_slips_total: 'counter',
+  lims_partners_access_slip_issue_seconds: 'histogram',
+  lims_partners_pickups_total: 'counter',
+  lims_partners_partner_inactive_rejections_total: 'counter',
 };
 
 // LD-88: TRD §13 fixes this C8 histogram as a row count, so it cannot end in _seconds.

@@ -21,4 +21,5 @@ function bind(permission: string, run: (svc: ReportService, ctx: ReportsCtx, req
 export const reportHandlers: Readonly<Record<string, Handler>> = Object.freeze({
   listMyReports: bind('reporting.portal.view', (svc, ctx, req) => svc.list(ctx, { query: req.query })),
   downloadMyReport: bind('reporting.portal.download', (svc, ctx, req) => svc.download(ctx, { reportId: obj(req.params)['report_id'], versionNo: obj(req.params)['version_no'] })),
+  getMySmartSummary: bind('reporting.portal.view', (svc, ctx, req) => svc.smart(ctx, { reportId: obj(req.params)['report_id'], versionNo: obj(req.params)['version_no'] })), // T-P4: E24
 });

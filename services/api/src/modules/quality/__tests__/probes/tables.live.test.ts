@@ -5,8 +5,8 @@
 // ASSUMED: claims JSON { tenant_id, sub, actor_type, [centre_id] } as lab/micro probes; centre-restricted actors = `device` + centre_id (app.current_centre_ids()); the view column is `tenant_id`.
 // Fails now (with a database): the `quality` schema has no tables until C0 merges the DDL — the catalog test names the difference.
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { A_TABLES, CENTRE_A1, CENTRE_A2, CENTRE_B1, CENTRE_TABLES, G_CS_TABLES, T, TENANT_A, TENANT_B, TENANT_TABLES, admin, api, buildRow, claimsOf, closePools, insertSql, live, owner, requireDb,
-  uid, withClaims, type Row } from './kit.js';
+import { A_TABLES, CENTRE_A1, CENTRE_A2, CENTRE_B1, CENTRE_TABLES, G_CS_TABLES, SYS, T, TENANT_A, TENANT_B, TENANT_TABLES, admin, api, buildRow, claimsOf, closePools, insertSql, live, owner, requireDb,
+  snapshot, uid, withClaims, type Row } from './kit.js';
 import type pg from 'pg';
 
 afterAll(async () => { await closePools(); });
@@ -32,7 +32,6 @@ async function attempt(c: pg.PoolClient, text: string, values: unknown[] = []): 
   try { const r = await c.query(text, values); await c.query('RELEASE SAVEPOINT p'); return { rowCount: r.rowCount ?? 0, rows: r.rows }; }
   catch (e: any) { await c.query('ROLLBACK TO SAVEPOINT p'); return { code: e.code }; }
 }
-const snapshot = async (table: string, tenant: string) => (await owner(`SELECT count(*)::int AS n, coalesce(md5(string_agg(t::text, '|' ORDER BY t::text)), '') AS h FROM ${table} t WHERE t.tenant_id = $1`, [tenant]))[0];
 const DENIED = new Set(['42501']);            // insufficient_privilege (RLS WITH CHECK violation and missing grant share it)
 const asA = <R>(fn: (c: pg.PoolClient) => Promise<R>, extra: Row = {}) => withClaims(api(), claimsOf(TENANT_A, extra), fn, false);
 
@@ -167,5 +166,71 @@ describe.skipIf(!live)('S-21 purge probe on quality.tat_items (08 A17 P-18(c))',
     await withClaims(api(), claimsOf(TENANT_A), async (c) => { await c.query('DELETE FROM quality.tat_items'); });
     const left = (await owner('SELECT id FROM quality.tat_items WHERE id = ANY($1::uuid[])', [[past, future]])).map((r) => r.id);
     expect(left).toEqual([future]);
+  });
+});
+
+describe.skipIf(!live)('S-21 keep-rule: the task quality.purge_tat_items (not a raw DELETE) keeps expired rows that have tat_alert_events / tat_alert_acks (05-SCHEMA §7; 08 A17 P-18(c))', () => {
+  it('plain expired row goes; expired rows with an event / with an ack stay; a not-yet-expired row stays; another tenant is untouched', async () => {
+    const { handle } = await import('../../../../../../../services/worker/src/jobs/quality/tasks/purge_tat_items.js');
+    // 'total' + 'registered_at' satisfy tat_items__start_basis__ck (the generic default would pair within_lab with registered_at)
+    const item = (id: string, tenant: string, expires: Date) => seed('quality.tat_items', { id, tenant_id: tenant, centre_id: tenant === TENANT_A ? CENTRE_A1 : CENTRE_B1, segment: 'total', start_basis: 'registered_at', priority: 'routine', state: 'not_started', expires_at: expires });
+    const [plain, withEvent, withAck, fresh, otherTenant] = [uid(), uid(), uid(), uid(), uid()];
+    const old = new Date('2020-01-01T00:00:00Z');
+    await item(plain, TENANT_A, old); await item(withEvent, TENANT_A, old); await item(withAck, TENANT_A, old); await item(fresh, TENANT_A, new Date('2099-01-01T00:00:00Z')); await item(otherTenant, TENANT_B, old);
+    const [event, ack] = [uid(), uid()];
+    await seed('quality.tat_alert_events', { id: event, tenant_id: TENANT_A, centre_id: CENTRE_A1, tat_item_id: withEvent });
+    await seed('quality.tat_alert_acks', { id: ack, tenant_id: TENANT_A, centre_id: CENTRE_A1, tat_item_id: withAck });
+    const ids = [plain, withEvent, withAck, fresh, otherTenant];
+    try {
+      await withClaims(api(), claimsOf(TENANT_A), async (c) => {
+        await handle({ tenant_id: TENANT_A } as never, { tenantId: TENANT_A, actor: { type: 'system', id: SYS }, tx: c, requestId: uid(), now: () => '2026-11-14T02:40:00.000Z', attempt: 1, maxAttempts: 3, jobId: '1',
+          log: { info() {}, warn() {}, error() {}, child() { return this; } } } as never);
+      });
+      const left = (await owner('SELECT id FROM quality.tat_items WHERE id = ANY($1::uuid[])', [ids])).map((r) => r.id as string).sort();
+      expect(left).toEqual([withEvent, withAck, fresh, otherTenant].sort());
+      expect((await owner('SELECT count(*)::int AS n FROM quality.tat_alert_events WHERE id = $1', [event]))[0].n, 'event row kept').toBe(1);
+      expect((await owner('SELECT count(*)::int AS n FROM quality.tat_alert_acks WHERE id = $1', [ack]))[0].n, 'ack row kept').toBe(1);
+    } finally {   // leave nothing that would make the raw-DELETE probe above (re-run on a shared database) hit an FK
+      await owner('DELETE FROM quality.tat_alert_events WHERE id = $1', [event]); await owner('DELETE FROM quality.tat_alert_acks WHERE id = $1', [ack]);
+      await owner('DELETE FROM quality.tat_items WHERE id = ANY($1::uuid[])', [ids]);
+    }
+  });
+});
+
+// S-04 / AB-11 (07-SECURITY §5): composite FKs (tenant_id, x) make a cross-tenant reference impossible. Per probe: the FK's columns/parent are read from pg_constraint; a parent row for every OTHER FK of the
+// child is seeded in tenant A, so the ONLY violated constraint is the probed one; the referenced row for the probed FK exists in tenant B only. Insert under A claims -> 23503 naming that constraint.
+const FK_PROBES: ReadonlyArray<readonly [table: string, constraint: string, column: string]> = [
+  ['quality.control_id_maps', 'control_id_maps__instrument__fk', 'instrument_id'], ['quality.control_id_maps', 'control_id_maps__lot__fk', 'lot_id'],
+  ['quality.qc_plans', 'qc_plans__instrument__fk', 'instrument_id'], ['quality.qc_plans', 'qc_plans__analyte__fk', 'analyte_id'],
+  ['quality.tat_items', 'tat_items__order__fk', 'order_id'], ['quality.tat_items', 'tat_items__order_item__fk', 'order_item_id'],
+  ['quality.autoverify_decisions', 'autoverify_decisions__result__fk', 'result_id'], ['quality.autoverify_decisions', 'autoverify_decisions__version__fk', 'version_id'],
+];
+describe.skipIf(!live)('S-04 FK probes: a row of tenant A that references tenant B\'s instrument / analyte / lot / order / result / version is rejected (23503 on the named composite FK)', () => {
+  it.each(FK_PROBES.map((p) => [`${p[0]} ${p[1]}`, p] as const))('%s', { timeout: T }, async (_n, [table, conName, column]) => {
+    const fks = await owner(`SELECT con.conname, con.confrelid::regclass::text AS parent,
+        (SELECT array_agg(a.attname::text ORDER BY k.ord) FROM unnest(con.conkey) WITH ORDINALITY k(attnum, ord) JOIN pg_attribute a ON a.attrelid = con.conrelid AND a.attnum = k.attnum) AS cols,
+        (SELECT array_agg(a.attname::text ORDER BY k.ord) FROM unnest(con.confkey) WITH ORDINALITY k(attnum, ord) JOIN pg_attribute a ON a.attrelid = con.confrelid AND a.attnum = k.attnum) AS pcols
+      FROM pg_constraint con WHERE con.contype = 'f' AND con.conrelid = $1::regclass`, [table]);
+    const target = fks.find((f) => f.conname === conName);
+    expect(target, `${conName} exists on ${table} (composite FK of 05-SCHEMA)`).toBeTruthy();
+    expect(target.cols, `${conName} is composite on (tenant_id, ...)`).toEqual(['tenant_id', column]);
+    const b = await admin().connect();
+    let child: Row;
+    try {
+      await b.query('BEGIN'); await b.query("SET LOCAL session_replication_role = 'replica'");
+      child = await buildRow(b, table, { id: uid(), tenant_id: TENANT_A, ...(table === 'quality.tat_items' ? { centre_id: CENTRE_A1, segment: 'total', start_basis: 'registered_at', priority: 'routine', state: 'not_started' } : {}) });
+      await b.query('ROLLBACK');
+    } finally { b.release(); }
+    child[column] = uid();
+    for (const f of fks) {
+      const isTarget = f.conname === conName, vals = (f.cols as string[]).map((c) => child[c]);
+      if (vals.some((v) => v === undefined || v === null)) continue;            // nullable FK column left unset: no reference to satisfy
+      await seed(f.parent, Object.fromEntries((f.cols as string[]).map((c, i) => [(f.pcols as string[])[i]!, c === 'tenant_id' ? (isTarget ? TENANT_B : TENANT_A) : child[c]])));
+    }
+    const ins = insertSql(table, child);
+    const r = await withClaims(api(), claimsOf(TENANT_A), async (c) => {
+      try { await c.query(ins.text, ins.values); return { ok: true } as const; } catch (e: any) { return { code: e.code as string, constraint: e.constraint as string }; }
+    }, false);
+    expect(r, `${table}: reference to tenant B's ${column} must violate ${conName}`).toEqual({ code: '23503', constraint: conName });
   });
 });

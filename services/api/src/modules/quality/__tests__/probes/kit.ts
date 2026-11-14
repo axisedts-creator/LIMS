@@ -61,6 +61,8 @@ export interface Who {
   status?: 'active' | 'deactivated'; // membership state at call time (revoked after token issue = 'deactivated')
   lockedAt?: string | null;
   noMembership?: boolean;            // membership row gone / belongs to somebody else
+  allCentres?: boolean;              // default true; false + centreIds = a user scoped to some centres (S-02)
+  centreIds?: string[];
   claims?: Row;
   rows?: (text: string, values: unknown[]) => Row[] | undefined;   // scripted SELECT results (default: every statement returns no rows = "RLS hides it")
 }
@@ -78,7 +80,7 @@ export function makeHarness(who: Who = {}, operationId = 'probe') {
     async membership(_c: unknown, i: { membershipId: string }) {
       if (who.noMembership) return undefined;
       return { membershipId: i.membershipId, userId: USER, tenantId: tenant, actorId: USER, actorType: 'user', status: who.status ?? 'active', lockedAt: who.lockedAt ?? null, displayName: 'Synthetic Tester',
-        email: null, roleCodes: [], permissions: who.permissions ?? [], allCentres: true, centreIds: [], branchIds: [], mfaEnrolled: true, version: 1 };
+        email: null, roleCodes: [], permissions: who.permissions ?? [], allCentres: who.allCentres ?? true, centreIds: who.centreIds ?? [], branchIds: [], mfaEnrolled: true, version: 1 };
     },
     async supportSession() { return undefined; },
     async tenantStatus() { return 'active'; },
@@ -175,6 +177,10 @@ export const admin = (): pg.Pool => (adminPool ??= new pg.Pool({ connectionStrin
 export const closePools = async (): Promise<void> => { await Promise.all([apiPool?.end(), adminPool?.end()]); apiPool = adminPool = undefined; };
 export const claimsOf = (tenant: string, extra: Row = {}): string => JSON.stringify({ tenant_id: tenant, sub: SYS, actor_type: 'system', ...extra });
 export const owner = async (text: string, values: unknown[] = []): Promise<any[]> => (await admin().query(text, values)).rows;
+
+/** row count + md5 of every row of `table` that belongs to `tenant` (owner-side "no side effect" check). */
+export const snapshot = async (table: string, tenant: string): Promise<{ n: number; h: string }> =>
+  (await owner(`SELECT count(*)::int AS n, coalesce(md5(string_agg(t::text, '|' ORDER BY t::text)), '') AS h FROM ${table} t WHERE t.tenant_id = $1`, [tenant]))[0];
 
 /** one tx on `pool` with the claims set (RLS applies on the api pool). A throw rolls back; `commit: false` always rolls back (probes that must leave no trace). */
 export async function withClaims<R>(pool: pg.Pool, claims: string, fn: (c: pg.PoolClient) => Promise<R>, commit = true): Promise<R> {

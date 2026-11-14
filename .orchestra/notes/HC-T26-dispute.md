@@ -1,0 +1,3 @@
+# HC-T26 dispute (writer)
+`apps/phlebo_app/__tests__/visit_collect_test.dart:168` does not compile: the test name `'manual field: max 20 chars, pattern ^[A-Z0-9]{1,20}$'` ends in `$'`, which Dart reads as the start of an interpolation ("A '$' has special meaning inside a string", compile error). Fix needed in the test: escape it (`\$`) or reword the name. Test logic itself is not disputed.
+Effect: the whole file fails to load, so M6 (collect) is untested until the tester fixes it. Writer checked M6 against a scratch copy with only that `$` escaped (scratch deleted afterwards); result below in HC-T26-impl.md.

@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Rules say how much of which item one event uses. Kinds: per test, per analyte result, per rerun, per QC observation, per calibration, per analyser-day. Reached from the Inventory menu. Screen: reached from the Inventory menu.
+Rules say how much of which item one event uses. Kinds: per test, per analyte result, per rerun, per QC observation, per calibration, per analyser-day. Screen: /inventory/rules.
 
 ## Steps
 

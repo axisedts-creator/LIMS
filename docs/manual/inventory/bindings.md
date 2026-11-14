@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Links each analyser to the store its reagent is taken from. Shown as the Analysers tab on a store. Screen: reached from the Inventory menu.
+Links each analyser to the store its reagent is taken from. Shown as the Analysers tab on a store. Screen: /inventory/stores, Analysers tab.
 
 ## Steps
 

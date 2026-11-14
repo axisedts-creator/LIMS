@@ -1,6 +1,6 @@
 # Consumption rules
 
-Rules say how much of which item one event uses. Kinds: per test, per analyte result, per rerun, per QC observation, per calibration, per analyser-day. Reached from the Inventory menu.
+Rules say how much of which item one event uses. Kinds: per test, per analyte result, per rerun, per QC observation, per calibration, per analyser-day. Screen: /inventory/rules.
 
 - Choose "New rule", pick kind, test, analyte, analyser (or "Any analyser"), item and quantity.
 - Read the inline guidance for the kind you chose, then press Preview to see what would be deducted.

@@ -128,7 +128,8 @@ export async function createStore(ctx: HandlerContext, input: Record<string, any
   const v = await listVisibleBranchIds(sc(ctx));
   if (!v.all && !v.branchIds.includes(branchId)) throw notFound(); // P-B2: a branch the actor cannot see is "no such branch"
   const b = (await branches(ctx)).find((x) => x.id === branchId);
-  if (b === undefined || !b.isActive) throw invalid(fieldError('/branch_id')); // unknown, other-tenant and inactive branches look alike (P-1)
+  if (b === undefined) throw notFound(); // T-26 ruling (02-CV §11.3.1, 07 P-T1): unknown and other-tenant branch are the same 404
+  if (!b.isActive) throw invalid(fieldError('/branch_id')); // inactive branch of this tenant stays a 400 (P-1)
   await ctx.ports.IdentityPort.assertRole(ctx, { permission: MANAGE, branchId });
   if (input['is_default_consumption'] === true) await clearDefault(rc, branchId, null);
   return storeDto(await mapped(insertStore(rc, { id: uuidv7(), ...input })), b.name);

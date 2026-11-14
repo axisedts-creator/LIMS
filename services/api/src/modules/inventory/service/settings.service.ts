@@ -73,8 +73,8 @@ export async function putSettings(c: SvcCtx, i: { expectedVersion: number | unde
   const cur = await ensureSettings(r);
   // done_when: unset -> value must be >= now - 3600 s (no retroactive deduction); an unchanged value or a later change is not re-checked.
   if (typeof at === 'string' && cur.consumption_enabled_at == null && Date.parse(at) < nowMs(c) - 3_600_000) return fail(field('/consumption_enabled_at'));
-  // same answer for another tenant's store and an unknown id: no existence oracle (getRow filters by tenant)
-  if (typeof store === 'string' && !(await getStore(r, store))) return fail(field('/default_consumption_store_id'));
+  // T-26 ruling (02-CV §11.3.1, 07 P-T1): another tenant's store and an unknown id are the same 404 (getRow filters by tenant)
+  if (typeof store === 'string' && !(await getStore(r, store))) throw new LimsError('common.not_found');
 
   const patch: Row = { consumption_enabled_at: at ?? null, default_consumption_store_id: store ?? null };
   for (const k of [...BOOLS, ...INTS.map((x) => x[0]), ...PATTERNS]) patch[k] = b[k];

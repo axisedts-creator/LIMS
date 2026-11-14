@@ -148,6 +148,9 @@ describe('scan flow (US-12-2, kit BarcodeInput)', () => {
   });
 });
 
+// review HC-T20: toast assertions are scoped to status/alert regions, not document.body
+const liveText = () => [...screen.queryAllByRole('status'), ...screen.queryAllByRole('alert')].map((e) => e.textContent).join(' ');
+
 describe('confirm — all received (US-12-2 → status confirmed)', () => {
   const scanAll = async (d: HTMLElement) => { for (const i of HV_ITEMS) await scan(d, i.barcode); };
   it('Confirm handover posts H15 once: exactly the 3 items, all received:true; If-Match = version, Idempotency-Key, Bearer; no "missing" question; toast, refresh, close', async () => {
@@ -165,7 +168,7 @@ describe('confirm — all received (US-12-2 → status confirmed)', () => {
     expect(screen.queryByText(/as missing/i)).toBeNull();
     await waitFor(() => expect(onClose).toHaveBeenCalled());
     expect(refresh).toHaveBeenCalled();
-    expect(document.body.textContent).toContain('Handover confirmed.');
+    expect(liveText()).toContain('Handover confirmed.');
   });
   it('Ctrl+Enter confirms (04-UI-UX §2.3 keyboard)', async () => {
     const d = await drawer();
@@ -208,7 +211,7 @@ describe('confirm — some tubes missing (US-12-2 → status discrepancy)', () =
     ]);
     expect(c.headers.get('idempotency-key')).toBeTruthy();
     await waitFor(() => expect(onClose).toHaveBeenCalled());
-    expect(document.body.textContent).toContain('Handover confirmed.');
+    expect(liveText()).toContain('Handover confirmed.');
   });
   it('Cancel on the question posts nothing and keeps the drawer (and the scanned ticks) as they were', async () => {
     const d = await drawer();
@@ -253,7 +256,7 @@ describe('failures on confirm (07-SECURITY AB: replay, stale state)', () => {
     await waitFor(() => expect(document.body.textContent).toMatch(/already|changed|reload|refresh/i));
     noRawCodes();
     expect(onClose).not.toHaveBeenCalled();
-    expect(document.body.textContent).not.toContain('Handover confirmed.');
+    expect(liveText()).not.toContain('Handover confirmed.');
   });
   it('403 / validation errors are plain sentences too', async () => {
     confirm = () => problem('auth.forbidden', 403);

@@ -40,7 +40,7 @@ afterEach(() => { vi.useRealTimers(); cleanup(); api.resetHandlers(); calls.leng
 afterAll(() => api.close());
 
 const posts = () => calls.filter((c) => c.method === 'POST' && c.url.pathname.endsWith('/wipe'));
-const view = async (o: { devices?: unknown[]; min?: string; permissions?: string[] } = {}) => {
+const view = async (o: { devices?: unknown[]; min?: string | undefined; permissions?: string[] } = {}) => {
   const path = '../components/DevicesView';
   const { DevicesView } = (await import(/* @vite-ignore */ path)) as { DevicesView: (p: any) => any };
   return wrap(<DevicesView devices={(o.devices ?? DEVICES) as never} codes={{ wipe_reasons: WIPE_REASONS }} minAppVersion={'min' in o ? o.min : '1.10.0'} permissions={o.permissions ?? P_DEVICE} />);
@@ -129,7 +129,7 @@ describe('wipe on next connection (H17, US-13-5)', () => {
     expect(dlg.textContent).toContain('The phone uploads any pending changes, then erases all home-collection data.');
     expect(dlg.textContent).toContain("To block the phone immediately, also revoke the user's sessions in Admin → Users.");
     const link = within(dlg).getByRole('link', { name: /admin|users/i }) as HTMLAnchorElement;
-    expect(link.getAttribute('href')).toMatch(/^\/admin\/users/); // routes.yaml staff.admin.user
+    expect(link.getAttribute('href')).toBe(`/admin/users/${D1.membership_id}`); // routes.yaml staff.admin.user = /admin/users/{membership_id} (review HC-T20)
     await userEvent.click(within(dlg).getByRole('button', { name: /reason/i }));
     for (const r of WIPE_REASONS) expect(await screen.findByRole('option', { name: r.display })).toBeTruthy();
     expect(dlg.innerHTML).toMatch(/danger/);

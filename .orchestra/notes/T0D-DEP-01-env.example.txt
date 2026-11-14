@@ -99,6 +99,14 @@ LIMS_IDENTITY_GOTRUE_SERVICE_KEY=
 # optional, all; upload scanner URL (core/uploads/scan.ts).
 LIMS_CORE_SCANNER_URL=
 
+# optional at boot; required in staging, production for portal links / payment return URLs (reporting, engagement,
+# payments config; RenderPort fails closed when unset). Portal origin.
+LIMS_ORIGIN_PORTAL=
+
+# optional at boot; required in staging, production for staff links / payment return URLs (payments config,
+# analytics schedule.service throws when unset). Staff-web origin.
+LIMS_ORIGIN_STAFF_WEB=
+
 # ===== worker =====
 # required, all (dev|ci|staging|production). Direct Postgres URL of lims_worker; boot fails if missing.
 LIMS_CORE_WORKER_DATABASE_URL=
@@ -120,6 +128,9 @@ LIMS_CORE_WORKER_CONCURRENCY=
 
 # optional, all; SIGTERM drain seconds, default 55.
 LIMS_CORE_SHUTDOWN_GRACE_S=
+
+# required in staging, production; optional in dev, ci. Portal origin used for report/payment links (fails closed when unset).
+LIMS_ORIGIN_PORTAL=
 
 # ===== web =====
 # required in staging, production (selects the C2 session resolver); optional in dev, ci.

@@ -7,6 +7,7 @@ import '../../../core/platform/boot_id.dart';
 import '../../../core/platform/monotonic_clock.dart';
 import '../../../core/sync/clock_anchor.dart';
 import '../../visit/data/mutation_sink.dart' show MutationSink;
+import '../domain/outbox_row.dart';
 import 'outbox_lock.dart';
 import 'sha256.dart';
 import 'time_format.dart';
@@ -313,6 +314,26 @@ class OutboxRepository implements MutationSink {
     final r = await db.select("SELECT count(*) AS n FROM mutation_log WHERE state IN ('pending','sending')");
     return r.single['n'] == 0;
   }
+
+  /// HC-T27 M12: changes the server has not confirmed yet (pending + sending): the same set as [canLogout].
+  Future<int> pendingCount() async {
+    final r = await db.select("SELECT count(*) AS n FROM mutation_log WHERE state IN ('pending','sending')");
+    return r.single['n']! as int;
+  }
+
+  /// HC-T27 M11: every stored mutation, newest first. No payload, no patient data: type, visit label, time, state, outcome code.
+  Future<List<OutboxRow>> listRows() async => [
+        for (final r in await db.select(
+            'SELECT client_mutation_id, type, visit_label, captured_wall_time, state, outcome_code FROM mutation_log ORDER BY device_seq DESC'))
+          OutboxRow(
+            clientMutationId: r['client_mutation_id']! as String,
+            type: r['type']! as String,
+            visitLabel: r['visit_label'] as String?,
+            capturedAt: DateTime.parse(r['captured_wall_time']! as String).toLocal(),
+            state: r['state']! as String,
+            outcomeCode: r['outcome_code'] as String?,
+          ),
+      ];
 
   /// client_mutation_ids whose payload_json no longer matches the payload_sha256 stored at capture.
   Future<List<String>> integrityViolations() async {

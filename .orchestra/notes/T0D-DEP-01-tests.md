@@ -1,9 +1,8 @@
-# T0D-DEP-01 tests (tester)
-- File: `infra/tests/static/test_t0d_dep01_images.py` (stdlib only; needs `python` and `git` on PATH; no docker, no PyYAML).
-- Run: `.orchestra\notes\T0D-DEP-01-verify.cmd` (= `python -B -m unittest discover -s infra/tests/static -p "test_t0d_dep01_images.py" -v` from repo root).
-- Real-file tests (9 fail now, files missing): 3 Dockerfiles, .dockerignore, .env.example, .gitignore negation + `git check-ignore`, render.yaml, T0D-DEP-01-answers.md (>=10 resolvable `path:line` cites + required tokens).
-- Validator self-tests + planted failures (tag-only FROM, ARG default, root/non-numeric USER, docker.sock, COPY .env/.pem/.git/spec, no --frozen-lockfile, wrong pnpm, dev deps in final, `NAME=value`, literal secret in render.yaml, ...): 66 pass now.
-- Writer contracts (section header `# ===== api =====`, comment per name, render.yaml block style, ...) are in the test module docstring.
-- Current result: Ran 75, failures=9, all because the files do not exist yet.
-- LD-176 round: added check_pg (pg in dependencies of services/api/package.json at 8.23.1, @types/pg stays dev, pnpm-lock.yaml importer services/api likewise) + region: singapore and no healthCheckPath in check_render; planted failures for each.
-- Now: Ran 83, failures=2 (RealPgDependency: pg still in devDependencies; RealRender: region missing). All other tests pass.
+# T0D-DEP-01 tests (tester, LD-176 + LD-179 round)
+- Run all: `.orchestra\notes\T0D-DEP-01-verify.cmd` (python static test, then API vitest, then worker vitest; needs python, git, pnpm, real node with module.registerHooks; local node is 25.8.0, .nvmrc 26.13.0).
+- `infra/tests/static/test_t0d_dep01_images.py` (stdlib only): earlier checks kept; LD-179 added: CMD exactly `node --import /app/tools/node-ts/register.mjs src/main.ts`, final WORKDIR /app/services/<svc>, COPY tools/node-ts, no tsx/esbuild/ts-node/swc in Dockerfile instructions, .dockerignore keeps tools/node-ts, package.json scripts (start, identity:bootstrap-platform-admin, worker:replay) with --import resolving to tools/node-ts/register.mjs, no transpiler in package.json or lock importer, erasableSyntaxOnly in both tsconfigs, register.mjs static rules (registerHooks+existsSync, node:module/fs/url only, no eval/fetch/env/file reads, comments), erasable-syntax scan of the 10 files and all runtime src (api, worker, shared-ts), planted failures + scanner self-tests.
+- `services/api/src/__tests__/boot-smoke.test.ts` (+ fixtures/boot-smoke-child.ts, cli-graph-child.ts): real child, same --import as `start`; bootstrap, ready, inject health, close; CLI graph load. No port, no DB.
+- `services/api/src/__tests__/node-ts-hook.test.ts`: hook rule in scratch dir (resolves .ts, .js wins, missing stays ERR_MODULE_NOT_FOUND, .mjs/extensionless/file: URL not remapped). Checked green against a throw-away hook (deleted).
+- `services/worker/src/core/__tests__/boot-smoke.test.ts` (+ boot-smoke-child.ts): main.ts/replay.ts graph loads; `replay.ts` as entry rejects missing args with exit 1.
+- Now: python Ran 112, 9 fail (register.mjs, scripts, tsconfigs, 10 files/runtime scan, Dockerfile CMD/tools, boot-smoke files); api/worker smoke fail on missing hook/scripts and the 10 files (ERR_UNSUPPORTED_TYPESCRIPT_SYNTAX). Hook test needs tools/node-ts/register.mjs.
+- Note: no image built; one source file has non-UTF-8 bytes (read with errors=replace).

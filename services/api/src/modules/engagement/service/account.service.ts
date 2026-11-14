@@ -68,9 +68,11 @@ export function createAccountService(repo: AccountRepo = defaultRepo) {
       if (cur['version'] !== expected) throw new LimsError('common.version_conflict');
       const k = { tenantId: s.tenantId, accountId: cur['id'], updatedBy: s.membershipId };
       try {
-        await repo.revokeLinks(s.tx, { ...k, now: s.now });
+        // [CONV] Links last: addresses UPDATE is PAT_ACC_PID (05-SCHEMA §4 policy table), which only sees ACTIVE links - after revokeLinks it would match 0 rows.
+        // payment_requests UPDATE is PAT_ACC (link-independent), so it can go first.
         await repo.expirePayments(s.tx, k);
         await repo.deactivateAddresses(s.tx, k);
+        await repo.revokeLinks(s.tx, { ...k, now: s.now });
         if (!(await repo.markDeleted(s.tx, { tenantId: s.tenantId, id: cur['id'], version: expected, now: s.now, updatedBy: s.membershipId }))) throw new LimsError('common.version_conflict');
       } catch (e) { mapDbError(e); }
       // C2 revokes the sessions under its own system actor (08 A28.2); a failure propagates and rolls the whole deletion back.

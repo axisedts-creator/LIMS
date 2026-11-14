@@ -186,7 +186,7 @@ class FakeHcServer {
               'server_time': nextServerTime(),
               'cursor': snap['cursor'],
               'unchanged': true,
-              'device_command': 'none',
+              'device_command': snap['device_command'] ?? 'none', // HC-T28: wipe also arrives on an unchanged pull
               'balances': unchangedBalances,
             };
           } else {

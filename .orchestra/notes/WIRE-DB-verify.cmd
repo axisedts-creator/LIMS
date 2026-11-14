@@ -1,0 +1,1 @@
+pnpm --dir services/api exec vitest run src/core/pipeline/__tests__/identity-db-handoff.test.ts src/modules/identity/__tests__/claims-db-binding.test.ts src/core/db/__tests__/identity-auth.test.ts src/core/db/__tests__/tx.test.ts src/core/pipeline/__tests__ src/modules/identity/claims/__tests__ src/__tests__/staging-boot.test.ts

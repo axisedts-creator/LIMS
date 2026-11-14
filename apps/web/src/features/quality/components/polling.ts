@@ -6,8 +6,8 @@ import type { ActionResult } from '../types';
 const PERIOD_MS = 15_000;
 const BACKOFF_MS = [5_000, 15_000, 30_000] as const;
 
-/** `poll` resolves true on success, false on failure. Restarts only when `restartKey` changes; unmount stops it. */
-export function usePolling(poll: () => Promise<boolean>, restartKey: string) {
+/** `poll` resolves true on success, false on failure. Restarts only when `restartKey` or `periodMs` changes; unmount stops it. T-24 (TAT alerts) polls every 30 s. */
+export function usePolling(poll: () => Promise<boolean>, restartKey: string, periodMs: number = PERIOD_MS) {
   const latest = useRef(poll);
   latest.current = poll;
   useEffect(() => {
@@ -15,7 +15,7 @@ export function usePolling(poll: () => Promise<boolean>, restartKey: string) {
     let fails = 0;
     let timer: ReturnType<typeof setTimeout> | undefined;
     const schedule = () => {
-      timer = setTimeout(() => void run(), fails === 0 ? PERIOD_MS : BACKOFF_MS[Math.min(fails, BACKOFF_MS.length) - 1]);
+      timer = setTimeout(() => void run(), fails === 0 ? periodMs : BACKOFF_MS[Math.min(fails, BACKOFF_MS.length) - 1]);
     };
     const run = async () => {
       if (stopped) return;
@@ -35,13 +35,13 @@ export function usePolling(poll: () => Promise<boolean>, restartKey: string) {
       stopped = true;
       clearTimeout(timer);
     };
-  }, [restartKey]);
+  }, [restartKey, periodMs]);
 }
 
 export interface Polled<T> { data: T; updatedAt: Date; lost: boolean }
 
 /** Server-rendered data first; polled data replaces it. A fresh server render (router.refresh) wins over older polled data. */
-export function usePolled<T>(initial: T, generatedAt: string, fetcher: () => Promise<ActionResult<T>>, restartKey: string): Polled<T> {
+export function usePolled<T>(initial: T, generatedAt: string, fetcher: () => Promise<ActionResult<T>>, restartKey: string, periodMs: number = PERIOD_MS): Polled<T> {
   const [state, setState] = useState<Polled<T>>({ data: initial, updatedAt: new Date(generatedAt), lost: false });
   useEffect(() => setState({ data: initial, updatedAt: new Date(generatedAt), lost: false }), [initial, generatedAt]);
   usePolling(async () => {
@@ -49,6 +49,6 @@ export function usePolled<T>(initial: T, generatedAt: string, fetcher: () => Pro
     if (r.ok) setState({ data: r.data, updatedAt: new Date(), lost: false });
     else setState((s) => ({ ...s, lost: true }));
     return r.ok;
-  }, restartKey);
+  }, restartKey, periodMs);
   return state;
 }

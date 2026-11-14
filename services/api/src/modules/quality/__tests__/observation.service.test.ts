@@ -29,7 +29,8 @@ describe('AC-02.1-02.3 control-ID map: exact vs wildcard, unmapped', () => {
     expect(obs).toMatchObject({ status: 'assigned', lot_id: LOT(2), level_id: idN2(2), plan_id: PLN(1) });
   });
   it('AC-02.2 exact map wins over the wildcard map when both exist', async () => {
-    const { obs } = await one(viewRow(1, { ...L2, control_lot_raw: 'LOT-SYN-02' }), MAPS);
+    // ruling C9.T-09-ruling.md: §6.3 row 7 needs an active target for (PLN1, LOT4), else 'no_target'.
+    const { obs } = await one(viewRow(1, { ...L2, control_lot_raw: 'LOT-SYN-02' }), (s) => { MAPS(s); s.targets!.push(targetRow(3, 4)); });
     expect(obs).toMatchObject({ status: 'assigned', lot_id: LOT(4) });
   });
   it('AC-02.2 a lot raw with no exact map falls back to the wildcard map', async () => {

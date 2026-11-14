@@ -3,3 +3,4 @@
 - Fix needed: append those 7 lines as `NAME=` (nothing after `=`) to `.env.example`. Not applied: Read/Bash on `.env.example` denied by permission settings for this session, same as writer. No workaround attempted.
 - Test is consistent with LD-188 rule (3); no dispute.
 - Round 2: re-checked. Still blocked, `.env.example` Read denied by permission settings. Verify log unchanged: 10/11 pass, only the 7 missing `NAME=` lines fail. Needs permission grant for `.env.example` (Read+Edit) or the lead/founder appending the 7 lines.
+- Round 3: same. Read of `.env.example` still denied ("directory denied by permission settings"); render.yaml has all 7 names. Fix unchanged: append the 7 `NAME=` lines. No bypass attempted.

@@ -71,6 +71,8 @@ export interface HandoverDetail extends HandoverSummary { items: HandoverItem[];
 export interface DeviceRow {
   id: string;
   version: number;
+  /** DeviceDto (02-TRD:220); links the wipe dialog to staff.admin.user. '' when absent/invalid. */
+  membership_id: string;
   display_name: string;
   platform: string;
   model: string;

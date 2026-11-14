@@ -94,7 +94,7 @@ export function cancelVisit(id: string, version: number, reasonCode: string, rea
 
 /** H15 confirmHandover: exactly the handover's items, each received true/false. Idempotency-Key from the caller (a retry re-sends it) + If-Match = handover version. */
 export function confirmHandover(id: string, version: number, items: readonly { specimen_id: string; received: boolean }[], key: string) {
-  if (!UUID.test(id) || items.length < 1 || items.length > 500) throw bad();
+  if (!UUID.test(id) || items.length < 1 || items.length > 50) throw bad();
   if (!items.every((i) => UUID.test(i.specimen_id) && typeof i.received === 'boolean')) throw bad();
   return serverFetch<Out>(`/v1/homecollection/handovers/${id}/confirm`, {
     method: 'POST', headers: { ...json, ...idem(key), ...ver(version) },

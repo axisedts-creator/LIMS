@@ -96,7 +96,9 @@ export async function getHandover(id: string): Promise<HandoverDetail> {
 }
 
 const toDevice = (d: Record<string, unknown>): DeviceRow => ({
-  id: String(d['id']), version: int(d['version']), display_name: str(d['display_name']) ?? '', platform: str(d['platform']) ?? '', model: str(d['model']) ?? '',
+  id: String(d['id']), version: int(d['version']),
+  membership_id: UUID.test(String(d['membership_id'])) ? String(d['membership_id']) : '',
+  display_name: str(d['display_name']) ?? '', platform: str(d['platform']) ?? '', model: str(d['model']) ?? '',
   app_version: str(d['app_version']) ?? '', status: String(d['status']),
   ...opt('last_seen_at', str(d['last_seen_at'])), ...opt('last_push_at', str(d['last_push_at'])), ...opt('last_snapshot_at', str(d['last_snapshot_at'])),
 });

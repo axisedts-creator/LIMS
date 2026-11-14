@@ -46,9 +46,11 @@ export function HandoverDrawer({ handover, isOpen, onClose }: HandoverDrawerProp
   const [error, setError] = useState('');
   const [asking, setAsking] = useState(false);
   const [saving, setSaving] = useState(false);
+  // After a confirm the drawer hides itself at once (the parent's onClose may lag), so the modal no longer hides the success toast.
+  const [closed, setClosed] = useState(false);
 
   useEffect(() => {
-    if (!isOpen) return;
+    if (!isOpen) { setClosed(false); done.current = false; return; }
     let live = true;
     void handoverAction(handover.id).then((r) => {
       if (!live) return;
@@ -70,7 +72,7 @@ export function HandoverDrawer({ handover, isOpen, onClose }: HandoverDrawerProp
     setScanError('');
     setGot((s) => new Set(s).add(hit.specimen_id)); // a tube already received stays received: a repeat scan is ignored
   };
-  useScanCapture({ onScan, enabled: isOpen && !!pending && !asking });
+  useScanCapture({ onScan, enabled: isOpen && !closed && !!pending && !asking });
 
   const toggle = (id: string, on: boolean) => setGot((s) => { const n = new Set(s); if (on) n.add(id); else n.delete(id); return n; });
 
@@ -84,6 +86,8 @@ export function HandoverDrawer({ handover, isOpen, onClose }: HandoverDrawerProp
       const res = await confirmHandoverAction(data.id, data.version, body, keyFor(body.map((b) => `${b.specimen_id}:${b.received ? 1 : 0}`).join('|')));
       if (!res.ok) { setError(failText(res, 'Check the tubes and try again.', HANDOVER_CHANGED)); return false; }
       done.current = true; // the drawer is closing: a further click must not send a second request
+      setAsking(false);
+      setClosed(true);
       toast.show({ tone: 'success', title: 'Handover confirmed.' });
       router.refresh();
       onClose();
@@ -118,7 +122,7 @@ export function HandoverDrawer({ handover, isOpen, onClose }: HandoverDrawerProp
 
   const n = data ? total : handover.item_count;
   return (
-    <Drawer title={`Handover from ${handover.from.display_name} · ${n} ${noun(n)}`} isOpen={isOpen} onClose={onClose} width="lg">
+    <Drawer title={`Handover from ${handover.from.display_name} · ${n} ${noun(n)}`} isOpen={isOpen && !closed} onClose={onClose} width="lg">
       {load.state === 'loading' ? <p role="status">Loading…</p> : null}
       {load.state === 'error' ? <div role="alert"><Banner tone="danger" title={load.text} /></div> : null}
       {data ? (

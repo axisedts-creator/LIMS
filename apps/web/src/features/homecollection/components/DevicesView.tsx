@@ -84,7 +84,7 @@ function WipeDialog({ device, reasons, onClose }: { device: DeviceRow; reasons: 
       body={
         <>
           <p>The phone uploads any pending changes, then erases all home-collection data.</p>
-          <p>To block the phone immediately, also revoke the user&apos;s sessions in <a href="/admin/users">Admin → Users</a>.</p>
+          <p>To block the phone immediately, also revoke the user&apos;s sessions in <a href={device.membership_id ? `/admin/users/${device.membership_id}` : '/admin/users'}>Admin → Users</a>.</p>
           {needText ? <p role="alert" className="lims-error">Enter details for this reason.</p> : null}
           {error ? <div role="alert"><Banner tone="danger" title={error} /></div> : null}
         </>

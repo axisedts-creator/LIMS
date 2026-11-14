@@ -32,7 +32,9 @@ export interface IngestDeps {
   repo?: IngestRepo; getDriver?: (code: string) => InstrumentDriver | undefined; monotonicMs?: () => number; budgetMs?: number; maxMessageBytes?: number;
 }
 interface Mapping { status: 'mapped' | 'unmapped'; analyteId?: string; testId?: string }
-interface Batch { ctx: IngestCtx; tx: any; tenantId: string; agentId: string; events: InstrumentEvents; mappings: Map<string, Mapping>; maxBytes: number }
+interface Batch { ctx: IngestCtx; tx: any; tenantId: string; agentId: string; events: InstrumentEvents; mappings: Map<string, Mapping>; maxBytes: number;
+  /** CR-C7-015 / review H80-T04 #1: objects accept() stored for THIS message; deleted when its savepoint rolls back (no orphan). */
+  stored: { bucket: string; path: string }[] }
 
 const MAX_MESSAGES = 100;
 const B64 = /^[A-Za-z0-9+/]*={0,2}$/;
@@ -270,10 +272,8 @@ export function createIngestService(deps: IngestDeps = {}) {
           try {
             const up = await ctx.uploads.accept({ filename: `${id}.${ATT_EXT[inline.mimeType] ?? 'bin'}`, mimeType: inline.mimeType, bytes: Buffer.from(inlineB64!, 'base64') },
               { allow: ATT_ALLOW, maxBytes: Math.min(B.maxBytes, ATT_MAX_BYTES), bucket: ATT_BUCKET, objectPath, images: { reencode: true, stripMetadata: true }, scan: 'required' });
-            if (up.scanState !== 'clean') {                                                          // scanner down: fail closed, retry the message
-              await ctx.storage?.delete(ATT_BUCKET, up.objectPath).catch(() => undefined);
-              throw new LimsError('common.internal');
-            }
+            B.stored.push({ bucket: up.bucket, path: up.objectPath });                              // the caller drops it if a later step rolls the savepoint back
+            if (up.scanState !== 'clean') throw new LimsError('common.internal');                   // scanner down: fail closed, retry the message (caller deletes the object)
             attachment = { bucket: up.bucket, object_path: up.objectPath, sha256: up.sha256, mime_type: up.mime };
           } catch (e) {
             const code = e instanceof LimsError ? e.code : undefined;
@@ -299,7 +299,11 @@ export function createIngestService(deps: IngestDeps = {}) {
             const out = cls === 'patient' ? await B.events.resultReceived(ctx, payload) : await B.events.qcReceived(ctx, payload, { rawSha256: sha });
             eventId = out.eventId; status = out.duplicate ? 'duplicate_event' : 'emitted';
             if (status === 'emitted') counters.emitted_events++;
-            else if (attachment) await ctx.storage?.delete(ATT_BUCKET, attachment['object_path']).catch(() => undefined);   // the first event keeps its own object
+            else if (attachment) {                                                                   // the first event keeps its own object
+              const p = String(attachment['object_path']);
+              await ctx.storage?.delete(String(attachment['bucket']), p).catch(() => undefined);
+              const i = B.stored.findIndex((o) => o.path === p); if (i >= 0) B.stored.splice(i, 1);   // in place: the caller holds the same array
+            }
           }
         }
         if (status === 'skipped_invalid' || status === 'quarantined_attachment') counters.skipped_records++;
@@ -336,7 +340,7 @@ export function createIngestService(deps: IngestDeps = {}) {
       if (!Array.isArray(messages) || messages.length < 1) throw new LimsError('common.validation_failed');
       if (messages.length > MAX_MESSAGES) throw new LimsError('instruments.batch_too_large');
       const budget = deps.budgetMs ?? conf().batchTimeBudgetMs;
-      const B: Batch = { ctx, tx: ctx.tx, tenantId: sc.tenantId, agentId: sc.agentId, events: createInstrumentEvents(ctx.events), mappings: new Map(), maxBytes: deps.maxMessageBytes ?? conf().maxMessageBytes };
+      const B: Batch = { ctx, tx: ctx.tx, tenantId: sc.tenantId, agentId: sc.agentId, events: createInstrumentEvents(ctx.events), mappings: new Map(), maxBytes: deps.maxMessageBytes ?? conf().maxMessageBytes, stored: [] };
       eventValidators();                                   // first-call schema compile is slow: keep it out of the 8 s message budget
       const started = monotonicMs();
       const results: Row[] = [];
@@ -344,9 +348,12 @@ export function createIngestService(deps: IngestDeps = {}) {
         const m = obj(raw);
         const amid = String(m['agent_message_id']);
         if (monotonicMs() - started >= budget) { results.push({ agent_message_id: amid, outcome: 'retry' }); continue; }
+        const MB: Batch = { ...B, stored: [] };             // fresh per message
         try {
-          results.push(await (ctx.tx as { savepoint<T>(fn: (t: unknown) => Promise<T>): Promise<T> }).savepoint((t) => processOne({ ...B, tx: t }, m)));
+          results.push(await (ctx.tx as { savepoint<T>(fn: (t: unknown) => Promise<T>): Promise<T> }).savepoint((t) => processOne({ ...MB, tx: t }, m)));
         } catch (e) {
+          // review H80-T04 #1: the savepoint rolled back this message's rows + events, so nothing references its stored objects: delete them (best effort)
+          for (const o of MB.stored) await ctx.storage?.delete(o.bucket, o.path).catch(() => undefined);
           // request id + message id + error code only: the error text may carry PHI (a driver, a DB constraint)
           ctx.log?.error({ event: 'ingest_message_failed', request_id: ctx.requestId, agent_message_id: amid, error_code: e instanceof LimsError ? e.code : 'unexpected' }, 'ingest_message_failed');
           results.push({ agent_message_id: amid, outcome: 'retry', error_code: 'common.internal' });

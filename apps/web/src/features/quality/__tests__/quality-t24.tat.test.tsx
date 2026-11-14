@@ -95,11 +95,11 @@ describe('query (#48) — defaults and whitelist', () => {
     expect(callsTo('GET', TAT)[0]!.url.searchParams.get('department_id')).toBe(DEPT_1);
   });
   it.each([
-    ['Department', /^department/i, /Biochemistry/, 'department_id', DEPT_1],
-    ['Centre', /^centre/i, /Synthetic Centre Two/, 'centre_id', CENTRE_2],
+    ['Department', /department/i, /Biochemistry/, 'department_id', DEPT_1],
+    ['Centre', /centre/i, /Synthetic Centre Two/, 'centre_id', CENTRE_2],
   ])('the %s filter is offered and choosing an option puts %s on the URL that feeds #48', async (_n, label, option, param, value) => {
     await show(PAGE);
-    await choose(label, option);
+    await choose(label, option, screen.getByRole('search'));
     await waitFor(() => expect(new URL(lastNav() ?? '', 'http://x').searchParams.get(param)).toBe(value));
   });
   it('a failing picker only empties that filter; the table still renders', async () => {

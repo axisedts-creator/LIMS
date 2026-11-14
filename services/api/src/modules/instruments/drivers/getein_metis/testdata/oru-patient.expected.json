@@ -1,0 +1,24 @@
+{
+  "ok": true,
+  "messageKind": "results",
+  "messageControlId": "57",
+  "messageTimeLocal": "2026-11-14T09:30:15",
+  "records": [
+    {
+      "recordSeq": 1, "recordClass": "patient", "sampleBarcode": "MT2600000042", "recordKind": "quantitative",
+      "instrumentAnalyteCode": "0", "valueRaw": "31.2", "unitRaw": "U/L",
+      "instrumentFlags": ["METIS_FLAG:N"], "instrumentResultTimeLocal": "2026-11-14T09:30:01", "warnings": []
+    },
+    {
+      "recordSeq": 2, "recordClass": "patient", "sampleBarcode": "MT2600000042", "recordKind": "quantitative",
+      "instrumentAnalyteCode": "1", "valueRaw": "44.8", "unitRaw": "U/L",
+      "instrumentFlags": ["METIS_FLAG:H", "METIS_FLAG:A"], "instrumentResultTimeLocal": "2026-11-14T09:29:40", "warnings": []
+    },
+    {
+      "recordSeq": 3, "recordClass": "patient", "sampleBarcode": "MT2600000042", "recordKind": "qualitative",
+      "instrumentAnalyteCode": "1112", "valueRaw": "Negative",
+      "instrumentFlags": ["METIS_RETEST"], "instrumentResultTimeLocal": "2026-11-14T09:30:10", "warnings": []
+    }
+  ],
+  "warnings": []
+}

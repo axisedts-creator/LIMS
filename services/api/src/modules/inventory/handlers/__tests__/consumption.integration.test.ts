@@ -655,7 +655,7 @@ describe.skipIf(!live)('T-15 #79 reverseConsumptionFact (AC-15.4, A4, A10, PE-1)
     const dis = (await s.call(A, 'dismissConsumptionFact', { params: { fact_id: un.id }, headers: ifm(un.version), body: reasonBody('other') })).body;
     const un2 = (await logCal(s, TA, mins(4), { instrument_id: I2 })).body;
     for (const f of [un2, nr, dis]) await untouched(s, () => rev(s, f), (e) => expect(e.code).toBe('inventory.document_invalid_transition'));
-    await bind(s, I1, S1); const p = (await logCal(s, TA, mins(5), { instrument_id: I1 })).body; const r1 = (await rev(s, p)).body; // ruling (C): the rule from line 1 of this test is current already (no second mk => no rule_conflict) const mv = await cnt(s, 'stock_movements');
+    await bind(s, I1, S1); const p = (await logCal(s, TA, mins(5), { instrument_id: I1 })).body; const r1 = (await rev(s, p)).body; const mv = await cnt(s, 'stock_movements'); // ruling (C): the rule from line 1 of this test is current already (no second mk => no rule_conflict)
     await untouched(s, () => rev(s, r1), (e) => { expect(e.code).toBe('inventory.document_invalid_transition'); expect(e.statusCode).toBe(409); }); expect(await cnt(s, 'stock_movements')).toBe(mv);
   });
   run('PE-1 / P-B8: without stock.adjust => 403 (asserted at the fact store\'s branch); at aal1 => 403 auth.mfa_required; a caller who cannot see the store\'s branch => 404; reason outside fact_reverse (fact_dismiss `other`? shared code; `not_consumed`) => 422 inventory.reason_required; stale If-Match => 409', async (s) => {

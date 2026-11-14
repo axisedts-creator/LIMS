@@ -1,0 +1,1 @@
+cd /d "%~dp0..\..\apps\phlebo_app" && call flutter test __tests__/visit_identity_consent_test.dart __tests__/visit_collect_test.dart __tests__/visit_payment_outcome_test.dart __tests__/visit_guard_test.dart __tests__/visit_flow_offline_test.dart __tests__/visit_ci_guards_test.dart

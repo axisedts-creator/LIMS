@@ -11,6 +11,8 @@ import { DateText } from '@lims/ui/components/DateText';
 import { DescriptionList } from '@lims/ui/components/DescriptionList';
 import { Dialog } from '@lims/ui/components/Dialog';
 import { PageHeader } from '@lims/ui/components/PageHeader';
+import { Stack } from '@lims/ui/components/Stack';
+import { StatusStepper } from '@lims/ui/components/StatusStepper';
 import { Tabs } from '@lims/ui/components/Tabs';
 import { TextArea } from '@lims/ui/components/TextArea';
 import { useToast } from '@lims/ui/components/Toast';
@@ -26,6 +28,9 @@ const CHECK_LABELS: Record<keyof GoLiveChecklist, string> = {
   qc_comparison_done: 'QC values compared',
   mappings_reviewed: 'Code mappings reviewed',
 };
+// RS-C7 / LD-140: the four existing checks are the steps. [CONV] a fifth step is Current once all four are done (the kit stepper shows nothing Complete without a current step).
+const CHECKS_DONE = { id: 'all_done', label: 'All checks done' };
+const checkSteps = [...GO_LIVE_CHECKLIST_KEYS.map((k) => ({ id: k as string, label: CHECK_LABELS[k] })), CHECKS_DONE];
 const EMPTY_CHECKLIST: GoLiveChecklist = { manual_reference_confirmed: false, sample_comparison_done: false, qc_comparison_done: false, mappings_reviewed: false };
 const MFA = 'Confirm with your authenticator to continue';
 const NOTE_MIN = 10;
@@ -118,6 +123,10 @@ export function InstrumentDetail({ instrument, agents, drivers, permissions }: {
       ) : null}
       <Tabs items={TABS} selectedId={tab} onChange={setTab} aria-label="Instrument sections">
         {tab === 'overview' ? (
+          <Stack gap={4}>
+          <section aria-label="Commissioning checklist">
+            <StatusStepper steps={checkSteps} currentId={checkSteps.find((c) => !(i.go_live_checklist?.[c.id as keyof GoLiveChecklist]))?.id ?? CHECKS_DONE.id} />
+          </section>
           <DescriptionList
             columns={3}
             items={[
@@ -132,9 +141,9 @@ export function InstrumentDetail({ instrument, agents, drivers, permissions }: {
               { term: 'Driver version', value: txt(i.driver_version) },
               { term: 'Manual reference', value: driver?.manual ? `${driver.manual.title}${driver.manual.document_id ? ` (${driver.manual.document_id})` : ''}` : '—' },
               { term: 'Went live', value: i.live_at ? <>{when(i.live_at)} · {txt(i.live_by_display)}</> : '—' },
-              { term: 'Go-live checklist', value: i.go_live_checklist ? GO_LIVE_CHECKLIST_KEYS.map((k) => `${CHECK_LABELS[k]}: ${i.go_live_checklist![k] ? 'yes' : 'no'}`).join('; ') : '—' },
             ]}
           />
+          </Stack>
         ) : tab === 'configuration' ? (
           <InstrumentForm mode="edit" instrument={i} agents={agents} drivers={drivers} permissions={permissions} />
         ) : (

@@ -6,6 +6,7 @@ import '../../../core/db/outbox_db.dart';
 import '../../../core/platform/boot_id.dart';
 import '../../../core/platform/monotonic_clock.dart';
 import '../../../core/sync/clock_anchor.dart';
+import '../../visit/data/mutation_sink.dart' show MutationSink;
 import 'outbox_lock.dart';
 import 'sha256.dart';
 import 'time_format.dart';
@@ -99,7 +100,7 @@ String? _phiKeyIn(Object? v) {
 String _j(Object? v) => jsonEncode(v);
 int _bytes(String s) => utf8.encode(s).length;
 
-class OutboxRepository {
+class OutboxRepository implements MutationSink {
   OutboxRepository({
     required this.db,
     required this.anchors,
@@ -122,6 +123,7 @@ class OutboxRepository {
 
   /// Stores one mutation. Completes only after COMMIT (the UI shows "Saved on phone" on completion); the row and the
   /// next_device_seq bump are one transaction (invariant 2). Throws, writing nothing, on any invalid input.
+  @override
   Future<SavedMutation> enqueue({
     required String type,
     String? visitId,

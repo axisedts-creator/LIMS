@@ -1,0 +1,61 @@
+# Render blueprint: host-specific (Render only) and throwaway; it may be deleted at any time (LD-173).
+# It sits at the repo root only because Render looks there. One service: the API image, built from the repo root.
+# LD-173 rule 2: no secret value here. Every secret, URL and key-file path is sync: false (set it in the Render dashboard).
+# Literals: LIMS_CORE_ENV, LIMS_CORE_DB_POOL_MAX and PORT only (the API binds a fixed 8080; Render's PORT default is 10000).
+services:
+  - type: web
+    name: lims-api
+    runtime: docker
+    dockerfilePath: ./services/api/Dockerfile
+    dockerContext: .
+    plan: free
+    region: singapore
+    envVars:
+      - key: NODE_BASE_IMAGE
+        sync: false
+      - key: LIMS_CORE_ENV
+        value: staging
+      - key: LIMS_CORE_DB_POOL_MAX
+        value: "5"
+      - key: PORT
+        value: "8080"
+      - key: LIMS_CORE_DATABASE_URL
+        sync: false
+      - key: LIMS_CORE_RATELIMIT_KEY_FILE
+        sync: false
+      - key: LIMS_CORE_JWT_ALG
+        sync: false
+      - key: LIMS_CORE_JWT_ISSUER
+        sync: false
+      - key: LIMS_CORE_JWT_AUDIENCE
+        sync: false
+      - key: LIMS_CORE_JWT_KEY_FILE
+        sync: false
+      - key: LIMS_WEB_BFF_KEY_FILE
+        sync: false
+      - key: LIMS_CORE_TRUSTED_PROXY_CIDRS
+        sync: false
+      - key: LIMS_CORE_STORAGE_URL
+        sync: false
+      - key: LIMS_CORE_STORAGE_KEY_FILE
+        sync: false
+      - key: LIMS_IDENTITY_GOTRUE_URL
+        sync: false
+      - key: LIMS_IDENTITY_GOTRUE_SERVICE_KEY
+        sync: false
+      - key: LIMS_IDENTITY_EMAIL_HMAC_KEY
+        sync: false
+      - key: LIMS_IDENTITY_TOKEN_ENC_KEYS
+        sync: false
+      - key: LIMS_REPORTING_OTP_HMAC_KEY_FILE
+        sync: false
+      - key: LIMS_INSTRUMENTS_CONFIG_SIGNING_KEY_FILE
+        sync: false
+      - key: LIMS_INSTRUMENTS_CONFIG_SIGNING_KEY_ID
+        sync: false
+      - key: LIMS_INSTRUMENTS_RELEASES_DIR
+        sync: false
+      - key: LIMS_ORIGIN_PORTAL
+        sync: false
+      - key: LIMS_ORIGIN_STAFF_WEB
+        sync: false

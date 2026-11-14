@@ -108,19 +108,20 @@ describe('SCR-05 InstrumentsList', () => {
   ];
   const props = (o: Record<string, unknown> = {}) => ({ instruments: rows, permissions: READ, centres, agents, drivers: DRIVERS, ...o }) as never;
 
-  it('renders the 04-UI-UX columns; instrument code is a row header linking to SCR-07', async () => {
+  // RS-C7 ruling (A5): the done_when "instrument list as link cards" and LD-140 override the 04-UI-UX column layout; contract is rs-c7.behaviour A1.
+  it('renders one link card per instrument (no columns); the instrument code links to SCR-07 and the card carries the old column data', async () => {
     const InstrumentsList = await load();
     wrap(<InstrumentsList {...props()} />);
-    // anchored: "State chip" and "Link state" are both headers (04-UI-UX.md:122), see WEB-T02-ruling item 2.
-    // Ruling r2: spec col is "Vendor/Model" and "Unmapped codes" (04-UI-UX.md:122); other headers stay anchored.
-    const cols: RegExp[] = [...['Code', 'Name', 'Protocol', 'Agent', 'Driver', 'State', 'Link state', 'Last message'].map((h) => new RegExp(`^${h}$`, 'i')), /^Vendor\s*\/\s*Model$/i, /^Unmapped( codes)?$/i];
-    for (const re of cols) expect(screen.getByRole('columnheader', { name: re }), String(re)).toBeTruthy();
-    const link = screen.getByRole('link', { name: 'SIM-CHEM-1' });
+    expect(screen.queryAllByRole('columnheader')).toHaveLength(0);
+    const link = screen.getByRole('link', { name: /^SIM-CHEM-1/ });
     expect(link.getAttribute('href')).toBe(`/instruments/instruments/${INST}`);
-    expect(link.closest('[role="rowheader"], th')).toBeTruthy();
-    expect(bodyHas('Synthetic Vendor')).toBe(true);
-    expect(bodyHas('SV-100')).toBe(true);
-    expect(bodyHas('SYN-AGENT-1')).toBe(true);
+    const card = link.closest('li, article');
+    expect(card).toBeTruthy();
+    const t = card!.textContent ?? '';
+    for (const s of ['Sim chem', 'Synthetic Vendor', 'SV-100', 'SYN-AGENT-1', 'Generic', 'Link state']) expect(t, s).toContain(s);
+    expect(t).toMatch(/ASTM/);
+    expect(t).toMatch(/Last message/i);
+    expect(t).toMatch(/draft/i);
   });
 
   it('driver status badges always carry text: Generic / Verified / "Sketch — not for live use"; state chips carry text', async () => {

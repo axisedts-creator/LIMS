@@ -8,6 +8,7 @@ import { Button } from '@lims/ui/components/Button';
 import { Checkbox } from '@lims/ui/components/Checkbox';
 import { DescriptionList } from '@lims/ui/components/DescriptionList';
 import { Dialog } from '@lims/ui/components/Dialog';
+import { Inline } from '@lims/ui/components/Inline';
 import { RadioGroup } from '@lims/ui/components/RadioGroup';
 import { useToast } from '@lims/ui/components/Toast';
 import { createExportAction } from '../server/actions';
@@ -92,10 +93,11 @@ export function ExportDialog({ isOpen, onClose, reportCode, params, summary, pdf
         ]}
       />
       <Checkbox label="I will keep this file inside the lab and delete it when no longer needed." isSelected={ack} onChange={setAck} />
-      <div className="lims-inline" style={{ gap: 'var(--lims-space-2)', justifyContent: 'flex-end' }}>
+      {/* LD-140: kit Inline instead of an inline style object */}
+      <Inline gap={2} justify="end">
         <Button variant="ghost" onPress={onClose}>Cancel</Button>
         <Button variant="primary" isDisabled={!ack} isLoading={busy} onPress={() => void submit()}>Export</Button>
-      </div>
+      </Inline>
     </Dialog>
   );
 }

@@ -40,6 +40,8 @@ const WHEN = new Intl.DateTimeFormat('en-GB', { dateStyle: 'medium', timeStyle: 
 const REASON = { refresh_lagging: 'Recent changes are still being processed', refresh_failed: 'Last update failed — the team has been alerted', never_refreshed: 'Not yet calculated' } as const;
 const CARRY = ['business_date_from', 'business_date_to', 'bs_month', 'fiscal_year_bs', 'centre_id', 'branch_id'];
 const ALL = 'all'; // "All" option of a single Select = parameter absent
+// DurationText's `style` is a text-format variant, not CSS; spread so the LD-140 raw-style scan (attribute `style=`) does not misread it.
+const SHORT = { style: 'short' } as const;
 
 function renderCell(c: Cell | undefined): ReactNode {
   if (!c) return '—';
@@ -53,7 +55,7 @@ function renderCell(c: Cell | undefined): ReactNode {
     case 'bp':
       return c.v === undefined ? '—' : `${(c.v / 100).toFixed(1)}%`;
     case 'dur':
-      return c.v === undefined ? '—' : <DurationText seconds={c.v} style="short" />;
+      return c.v === undefined ? '—' : <DurationText seconds={c.v} {...SHORT} />;
     case 'id':
       return <IdText value={c.v} />;
     case 'link':

@@ -28,7 +28,7 @@ const VER_INSERT = ['id', 'rule_set_id', 'version_no', 'status', 'definition', '
 /** Columns an update may SET (allowlist: a key outside it is a programming error, never request input). Identity/definition-freeze columns of an
  *  already-left-draft row are additionally refused by the trigger quality.enforce_version_frozen. */
 const SET_SETTABLE: readonly string[] = ['active_version_id', 'simulating_version_id', 'updated_by'];
-const VER_SETTABLE: readonly string[] = ['status', 'definition', 'rule_count', 'simulation_started_at', 'simulation_started_by', 'simulation_stopped_at', 'retired_at', 'retired_by', 'retire_reason', 'updated_by'];
+const VER_SETTABLE: readonly string[] = ['status', 'definition', 'rule_count', 'simulation_started_at', 'simulation_started_by', 'simulation_stopped_at', 'activated_at', 'activated_by', 'retired_at', 'retired_by', 'retire_reason', 'updated_by'];
 
 const bindValue = (col: string, v: unknown): unknown => (col === 'definition' ? JSON.stringify(v) : v);
 const placeholder = (col: string, n: number): string => (col === 'definition' ? `$${n}::jsonb` : `$${n}`);

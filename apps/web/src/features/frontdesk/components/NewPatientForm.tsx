@@ -10,6 +10,7 @@ import { RadioGroup } from '@lims/ui/components/RadioGroup';
 import { TextArea } from '@lims/ui/components/TextArea';
 import { TextField } from '@lims/ui/components/TextField';
 import type { NewPatientDraft } from '../server/types';
+import './frontdesk.css';
 
 const SEXES = [{ value: 'male', label: 'Male' }, { value: 'female', label: 'Female' }, { value: 'other', label: 'Other' }, { value: 'unknown', label: 'Unknown' }] as const;
 const PHONE_LOCAL = /^\d{10}$/, PHONE_E164 = /^\+[1-9][0-9]{7,14}$/, EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -51,19 +52,23 @@ export function NewPatientForm({ consentTextVersion, onUse, onCancel }: { consen
   const onKeyDown = (ev: KeyboardEvent<HTMLElement>) => { if (ev.key === 'Escape') { ev.stopPropagation(); onCancel(); } };
 
   return (
-    <div role="group" aria-label="New patient" onKeyDown={onKeyDown} style={{ display: 'grid', gap: 8 }}>
+    <div role="group" aria-label="New patient" onKeyDown={onKeyDown} className="lims-reg-section">
       <TextField label="Full name" name="full_name" maxLength={200} isRequired value={name} onChange={setName} {...(err['name'] ? { error: err['name'] } : {})} />
       <RadioGroup label="Sex" name="sex" isRequired orientation="horizontal" options={SEXES} {...(sex ? { value: sex } : {})} onChange={setSex} {...(err['sex'] ? { error: err['sex'] } : {})} />
-      <DatePicker label="Date of birth" name="birth_on" value={dob} onChange={setDob} {...(err['dob'] ? { error: err['dob'] } : {})} />
-      <div style={{ display: 'flex', gap: 8 }}>
-        <IntegerField label="Age years" name="age_years" min={0} max={150} {...(age.years !== undefined ? { value: age.years } : {})} onChange={(v) => setAgePart('years', v)} />
-        <IntegerField label="Age months" name="age_months" min={0} max={11} {...(age.months !== undefined ? { value: age.months } : {})} onChange={(v) => setAgePart('months', v)} />
-        <IntegerField label="Age days" name="age_days" min={0} max={31} {...(age.days !== undefined ? { value: age.days } : {})} onChange={(v) => setAgePart('days', v)} />
-      </div>
+      {/* RS-C4 / LD-140: both fields stay (the rule is "either, not both", so one control would change validation); they are grouped as one. */}
+      <fieldset className="lims-reg-fieldset">
+        <legend>Age or date of birth</legend>
+        <DatePicker label="Date of birth" name="birth_on" value={dob} onChange={setDob} {...(err['dob'] ? { error: err['dob'] } : {})} />
+        <div className="lims-reg-pair">
+          <IntegerField label="Age years" name="age_years" min={0} max={150} {...(age.years !== undefined ? { value: age.years } : {})} onChange={(v) => setAgePart('years', v)} />
+          <IntegerField label="Age months" name="age_months" min={0} max={11} {...(age.months !== undefined ? { value: age.months } : {})} onChange={(v) => setAgePart('months', v)} />
+          <IntegerField label="Age days" name="age_days" min={0} max={31} {...(age.days !== undefined ? { value: age.days } : {})} onChange={(v) => setAgePart('days', v)} />
+        </div>
+      </fieldset>
       <TextField label="Mobile" name="mobile" maxLength={16} inputMode="tel" value={mobile} onChange={setMobile} {...(err['mobile'] ? { error: err['mobile'] } : {})} />
       <TextField label="Email" name="email" maxLength={254} inputMode="email" value={email} onChange={setEmail} {...(err['email'] ? { error: err['email'] } : {})} />
       <TextArea label="Address" name="address" maxLength={300} rows={2} value={address} onChange={setAddress} />
-      <fieldset style={{ border: 0, padding: 0 }}>
+      <fieldset className="lims-reg-fieldset">
         <legend>Consents</legend>
         <Checkbox label="Processing of my data for testing (required)" isSelected={c.processing} onChange={(v) => setC((x) => ({ ...x, processing: v }))} {...(err['consent'] ? { description: err['consent'] } : {})} />
         <Checkbox label="SMS" isSelected={c.sms} onChange={(v) => setC((x) => ({ ...x, sms: v }))} />
@@ -71,8 +76,8 @@ export function NewPatientForm({ consentTextVersion, onUse, onCancel }: { consen
         <Checkbox label="Email messages" isSelected={c.email} onChange={(v) => setC((x) => ({ ...x, email: v }))} />
         <Checkbox label="Share report with referring doctor" isSelected={c.share_with_referrer} onChange={(v) => setC((x) => ({ ...x, share_with_referrer: v }))} />
       </fieldset>
-      <div style={{ display: 'flex', gap: 8 }}>
-        <Button variant="primary" onPress={submit}>Use this new patient</Button>
+      <div className="lims-reg-pair">
+        <Button variant="secondary" onPress={submit}>Use this new patient</Button>
         <Button variant="ghost" onPress={onCancel} shortcut="Esc">Back to search</Button>
       </div>
     </div>

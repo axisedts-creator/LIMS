@@ -1,0 +1,1304 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`RS-C4 key-screen snapshots > Credit party: statement tab 1`] = `
+"<section aria-label="Credit party Synthetic Corp">
+<div class="lims-page-header">
+<nav aria-label="Breadcrumb" class="lims-breadcrumbs">
+<ol>
+<li>
+<a href="/billing/credit-parties">Credit parties</a>
+</li>
+<li>
+<span aria-current="page">SYNCORP</span>
+</li>
+</ol>
+</nav>
+<div class="lims-page-header-row">
+<h1 class="lims-page-title">Synthetic Corp</h1>
+<div class="lims-page-actions">
+<span data-help-key="billing.credit_party">
+<button class="lims-btn lims-btn-ghost lims-btn-md" data-rac="" type="button" tabindex="0" data-aria-id="true" id="ID">
+<svg aria-hidden="true" focusable="false" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lims-icon">
+<path d="M12 3a9 9 0 100 18 9 9 0 000-18zM9.5 9.5a2.5 2.5 0 115 0c0 2-2.5 2-2.5 4M12 17h.01">
+</path>
+</svg>
+<span class="lims-btn-label">Help</span>
+</button>
+</span>
+</div>
+</div>
+</div>
+<template>
+</template>
+<div class="lims-tabs" data-rac="" data-orientation="horizontal" data-focused="true">
+<div class="lims-tablist" data-rac="" data-collection="aria-id" id="ID" aria-label="Credit party" role="tablist" aria-orientation="horizontal" data-orientation="horizontal">
+<div class="lims-tab" data-rac="" tabindex="-1" data-collection="aria-id" data-key="terms" data-aria-id="true" id="ID" aria-selected="false" role="tab">Terms</div>
+<div class="lims-tab" data-rac="" tabindex="-1" data-collection="aria-id" data-key="charges" data-aria-id="true" id="ID" aria-selected="false" role="tab">Charges</div>
+<div class="lims-tab" data-rac="" tabindex="0" data-collection="aria-id" data-key="statement" data-aria-id="true" id="ID" aria-selected="true" role="tab" data-hovered="true" aria-controls="ID" data-selected="true" data-focused="true">Statement</div>
+</div>
+<div id="ID" aria-labelledby="ID" role="tabpanel" class="lims-tabpanel" data-rac="">
+<div class="lims-data-table">
+<template>
+</template>
+<span data-focus-scope-start="true" hidden="">
+</span>
+<table class="lims-table lims-table-regular lims-table-sticky" data-rac="" aria-label="Statement" id="ID" role="grid" tabindex="0" aria-describedby="" data-collection="aria-id">
+<thead role="rowgroup" class="aria-id" data-rac="">
+<tr role="row">
+<th tabindex="-1" data-collection="aria-id" data-key="month" id="ID" role="columnheader" aria-colindex="1" data-aria-id="true" class="lims-col lims-align-start" data-rac="">Month</th>
+<th tabindex="-1" data-collection="aria-id" data-key="fy" id="ID" role="columnheader" aria-colindex="2" data-aria-id="true" class="lims-col lims-align-start" data-rac="">Fiscal year</th>
+<th tabindex="-1" data-collection="aria-id" data-key="opening" id="ID" role="columnheader" aria-colindex="3" data-aria-id="true" class="lims-col lims-align-end" data-rac="">Opening</th>
+<th tabindex="-1" data-collection="aria-id" data-key="invoiced" id="ID" role="columnheader" aria-colindex="4" data-aria-id="true" class="lims-col lims-align-end" data-rac="">Invoiced</th>
+<th tabindex="-1" data-collection="aria-id" data-key="paid" id="ID" role="columnheader" aria-colindex="5" data-aria-id="true" class="lims-col lims-align-end" data-rac="">Paid</th>
+<th tabindex="-1" data-collection="aria-id" data-key="credited" id="ID" role="columnheader" aria-colindex="6" data-aria-id="true" class="lims-col lims-align-end" data-rac="">Credited</th>
+<th tabindex="-1" data-collection="aria-id" data-key="closing" id="ID" role="columnheader" aria-colindex="7" data-aria-id="true" class="lims-col lims-align-end" data-rac="">Closing</th>
+</tr>
+</thead>
+<tbody class="aria-id" data-rac="" role="rowgroup">
+<tr data-row-id="2083-06" data-row-index="0" class="lims-row" style="--table-row-level: 1;" data-rac="" role="row" tabindex="-1" data-collection="aria-id" data-key="2083-06" id="ID" aria-labelledby="ID" data-level="1">
+<td class="lims-cell lims-align-start" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="rowheader" data-column-index="0" data-level="1">2083-06</td>
+<td class="lims-cell lims-align-start" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="gridcell" data-column-index="1" data-level="1">2083/84</td>
+<td class="lims-cell lims-align-end" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="gridcell" data-column-index="2" data-level="1">NPR 0.00</td>
+<td class="lims-cell lims-align-end" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="gridcell" data-column-index="3" data-level="1">NPR 1,000.00</td>
+<td class="lims-cell lims-align-end" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="gridcell" data-column-index="4" data-level="1">NPR 300.00</td>
+<td class="lims-cell lims-align-end" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="gridcell" data-column-index="5" data-level="1">NPR 0.00</td>
+<td class="lims-cell lims-align-end" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="gridcell" data-column-index="6" data-level="1">NPR 700.00</td>
+</tr>
+<tr data-row-id="2083-07" data-row-index="1" class="lims-row" style="--table-row-level: 1;" data-rac="" role="row" tabindex="-1" data-collection="aria-id" data-key="2083-07" id="ID" aria-labelledby="ID" data-level="1">
+<td class="lims-cell lims-align-start" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="rowheader" data-column-index="0" data-level="1">2083-07</td>
+<td class="lims-cell lims-align-start" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="gridcell" data-column-index="1" data-level="1">2083/84</td>
+<td class="lims-cell lims-align-end" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="gridcell" data-column-index="2" data-level="1">NPR 700.00</td>
+<td class="lims-cell lims-align-end" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="gridcell" data-column-index="3" data-level="1">NPR 500.00</td>
+<td class="lims-cell lims-align-end" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="gridcell" data-column-index="4" data-level="1">NPR 200.00</td>
+<td class="lims-cell lims-align-end" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="gridcell" data-column-index="5" data-level="1">NPR 50.00</td>
+<td class="lims-cell lims-align-end" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="gridcell" data-column-index="6" data-level="1">NPR 950.00</td>
+</tr>
+</tbody>
+</table>
+<span data-focus-scope-end="true" hidden="">
+</span>
+<div role="status" class="lims-visually-hidden">
+</div>
+</div>
+</div>
+</div>
+</section>
+<div class="lims-toast-region">
+</div>"
+`;
+
+exports[`RS-C4 key-screen snapshots > Daily cash (open shift) 1`] = `
+"<section aria-label="Daily cash">
+<div class="lims-page-header">
+<div class="lims-page-header-row">
+<h1 class="lims-page-title">Daily cash</h1>
+<div class="lims-page-actions">
+<div class="lims-export-buttons">
+<button class="lims-btn lims-btn-secondary lims-btn-md" data-rac="" type="button" tabindex="0" data-aria-id="true" id="ID">
+<span class="lims-btn-label">Export</span>
+</button>
+</div>
+<span data-help-key="billing.daily_cash">
+<button class="lims-btn lims-btn-ghost lims-btn-md" data-rac="" type="button" tabindex="0" data-aria-id="true" id="ID">
+<svg aria-hidden="true" focusable="false" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lims-icon">
+<path d="M12 3a9 9 0 100 18 9 9 0 000-18zM9.5 9.5a2.5 2.5 0 115 0c0 2-2.5 2-2.5 4M12 17h.01">
+</path>
+</svg>
+<span class="lims-btn-label">Help</span>
+</button>
+</span>
+</div>
+</div>
+</div>
+<div class="lims-field lims-date-field">
+<label class="lims-label" for="_r_de_">Business date</label>
+<div class="lims-input-group">
+<input id="_r_de_" class="lims-input" placeholder="DD/MM/YYYY" autocomplete="off" aria-describedby="_r_de_-h" type="text" value="07/11/2026" name="date">
+<button type="button" class="lims-btn lims-btn-ghost lims-icon-btn" aria-label="Open calendar for Business date" aria-expanded="false">
+<svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+<rect x="4" y="5" width="16" height="15">
+</rect>
+<line x1="4" y1="10" x2="20" y2="10">
+</line>
+</svg>
+</button>
+</div>
+<p id="_r_de_-h" class="lims-description lims-date-hint">2083-07-21 B.S.</p>
+</div>
+<p>Business date: <span class="lims-bs-ad">2083-07-21 B.S. / <time class="lims-date-text" datetime="2026-11-07">07/11/2026</time>
+</span>
+</p>
+<section aria-label="My shift">
+<h2>My shift</h2>
+<ul>
+<li>Cash: NPR 100.00</li>
+</ul>
+<button class="lims-btn lims-btn-primary lims-btn-md" data-rac="" type="button" tabindex="0" data-aria-id="true" id="ID">
+<span class="lims-btn-label">Close shift</span>
+</button>
+</section>
+<div class="lims-data-table">
+<template>
+</template>
+<span data-focus-scope-start="true" hidden="">
+</span>
+<table class="lims-table lims-table-regular lims-table-sticky" data-rac="" aria-label="Collections by staff and method" id="ID" role="grid" tabindex="0" aria-describedby="" data-collection="aria-id">
+<thead role="rowgroup" class="aria-id" data-rac="">
+<tr role="row">
+<th tabindex="-1" data-collection="aria-id" data-key="staff" id="ID" role="columnheader" aria-colindex="1" data-aria-id="true" class="lims-col lims-align-start" data-rac="">Staff</th>
+<th tabindex="-1" data-collection="aria-id" data-key="method" id="ID" role="columnheader" aria-colindex="2" data-aria-id="true" class="lims-col lims-align-start" data-rac="">Method</th>
+<th tabindex="-1" data-collection="aria-id" data-key="entries" id="ID" role="columnheader" aria-colindex="3" data-aria-id="true" class="lims-col lims-align-end" data-rac="">Entries</th>
+<th tabindex="-1" data-collection="aria-id" data-key="reversals" id="ID" role="columnheader" aria-colindex="4" data-aria-id="true" class="lims-col lims-align-end" data-rac="">Reversals</th>
+<th tabindex="-1" data-collection="aria-id" data-key="gross" id="ID" role="columnheader" aria-colindex="5" data-aria-id="true" class="lims-col lims-align-end" data-rac="">Gross</th>
+<th tabindex="-1" data-collection="aria-id" data-key="reversed" id="ID" role="columnheader" aria-colindex="6" data-aria-id="true" class="lims-col lims-align-end" data-rac="">Reversed</th>
+<th tabindex="-1" data-collection="aria-id" data-key="net" id="ID" role="columnheader" aria-colindex="7" data-aria-id="true" class="lims-col lims-align-end" data-rac="">Net</th>
+</tr>
+</thead>
+<tbody class="aria-id" data-rac="" role="rowgroup">
+<tr data-row-id="01a1a98a-ac40-7000-8000-000000000090-cash" data-row-index="0" class="lims-row" style="--table-row-level: 1;" data-rac="" role="row" tabindex="-1" data-collection="aria-id" data-key="01a1a98a-ac40-7000-8000-000000000090-cash" id="ID" aria-labelledby="ID" data-level="1">
+<td class="lims-cell lims-align-start" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="rowheader" data-column-index="0" data-level="1">Synthetic Cashier</td>
+<td class="lims-cell lims-align-start" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="gridcell" data-column-index="1" data-level="1">Cash</td>
+<td class="lims-cell lims-align-end" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="gridcell" data-column-index="2" data-level="1">3</td>
+<td class="lims-cell lims-align-end" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="gridcell" data-column-index="3" data-level="1">1</td>
+<td class="lims-cell lims-align-end" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="gridcell" data-column-index="4" data-level="1">NPR 3,390.00</td>
+<td class="lims-cell lims-align-end" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="gridcell" data-column-index="5" data-level="1">NPR 113.00</td>
+<td class="lims-cell lims-align-end" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="gridcell" data-column-index="6" data-level="1">NPR 3,277.00</td>
+</tr>
+<tr data-row-id="total" data-row-index="1" class="lims-row" style="--table-row-level: 1;" data-rac="" role="row" tabindex="-1" data-collection="aria-id" data-key="total" id="ID" aria-labelledby="ID" data-level="1">
+<td class="lims-cell lims-align-start" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="rowheader" data-column-index="0" data-level="1">
+<strong>Total</strong>
+</td>
+<td class="lims-cell lims-align-start" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="gridcell" data-column-index="1" data-level="1">
+</td>
+<td class="lims-cell lims-align-end" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="gridcell" data-column-index="2" data-level="1">
+</td>
+<td class="lims-cell lims-align-end" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="gridcell" data-column-index="3" data-level="1">
+</td>
+<td class="lims-cell lims-align-end" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="gridcell" data-column-index="4" data-level="1">NPR 3,390.00</td>
+<td class="lims-cell lims-align-end" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="gridcell" data-column-index="5" data-level="1">NPR 113.00</td>
+<td class="lims-cell lims-align-end" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="gridcell" data-column-index="6" data-level="1">NPR 3,277.00</td>
+</tr>
+</tbody>
+</table>
+<span data-focus-scope-end="true" hidden="">
+</span>
+<div role="status" class="lims-visually-hidden">
+</div>
+</div>
+<h2>Sessions</h2>
+<div class="lims-data-table">
+<template>
+</template>
+<span data-focus-scope-start="true" hidden="">
+</span>
+<table class="lims-table lims-table-regular lims-table-sticky" data-rac="" aria-label="Cash sessions" id="ID" role="grid" tabindex="0" aria-describedby="" data-collection="aria-id">
+<thead role="rowgroup" class="aria-id" data-rac="">
+<tr role="row">
+<th tabindex="-1" data-collection="aria-id" data-key="staff" id="ID" role="columnheader" aria-colindex="1" data-aria-id="true" class="lims-col lims-align-start" data-rac="">Staff</th>
+<th tabindex="-1" data-collection="aria-id" data-key="opened" id="ID" role="columnheader" aria-colindex="2" data-aria-id="true" class="lims-col lims-align-start" data-rac="">Opened</th>
+<th tabindex="-1" data-collection="aria-id" data-key="closed" id="ID" role="columnheader" aria-colindex="3" data-aria-id="true" class="lims-col lims-align-start" data-rac="">Closed</th>
+<th tabindex="-1" data-collection="aria-id" data-key="expected" id="ID" role="columnheader" aria-colindex="4" data-aria-id="true" class="lims-col lims-align-end" data-rac="">Expected cash</th>
+<th tabindex="-1" data-collection="aria-id" data-key="counted" id="ID" role="columnheader" aria-colindex="5" data-aria-id="true" class="lims-col lims-align-end" data-rac="">Counted cash</th>
+<th tabindex="-1" data-collection="aria-id" data-key="variance" id="ID" role="columnheader" aria-colindex="6" data-aria-id="true" class="lims-col lims-align-start" data-rac="">Variance</th>
+</tr>
+</thead>
+<tbody class="aria-id" data-rac="" role="rowgroup">
+<tr data-row-id="01a1a98a-ac40-7000-8000-000000000071" data-row-index="0" class="lims-row" style="--table-row-level: 1;" data-rac="" role="row" tabindex="-1" data-collection="aria-id" data-key="01a1a98a-ac40-7000-8000-000000000071" id="ID" aria-labelledby="ID" data-level="1">
+<td class="lims-cell lims-align-start" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="rowheader" data-column-index="0" data-level="1">Synthetic Other</td>
+<td class="lims-cell lims-align-start" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="gridcell" data-column-index="1" data-level="1">
+<time class="lims-date-text" datetime="2026-11-07T04:00:00.000Z">07/11/2026 09:45 AM</time>
+</td>
+<td class="lims-cell lims-align-start" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="gridcell" data-column-index="2" data-level="1">Open</td>
+<td class="lims-cell lims-align-end" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="gridcell" data-column-index="3" data-level="1">NPR 100.00</td>
+<td class="lims-cell lims-align-end" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="gridcell" data-column-index="4" data-level="1">—</td>
+<td class="lims-cell lims-align-start" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="gridcell" data-column-index="5" data-level="1">No variance</td>
+</tr>
+</tbody>
+</table>
+<span data-focus-scope-end="true" hidden="">
+</span>
+<div role="status" class="lims-visually-hidden">
+</div>
+</div>
+</section>
+<div class="lims-toast-region">
+</div>"
+`;
+
+exports[`RS-C4 key-screen snapshots > Register: blank 1`] = `
+"<section aria-label="New registration">
+<div class="lims-page-header">
+<div class="lims-page-header-row">
+<h1 class="lims-page-title">New registration</h1>
+<div class="lims-page-actions">
+<template>
+</template>
+<div class="lims-field" data-rac="">
+<span class="lims-label" id="ID">Centre</span>
+<button id="ID" class="lims-input lims-select-trigger" data-rac="" type="button" tabindex="0" data-aria-id="true" aria-labelledby="ID" aria-haspopup="listbox" aria-expanded="false">
+<span id="ID" class="aria-id" data-rac="">Synthetic Centre A1</span>
+<svg aria-hidden="true" focusable="false" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lims-icon">
+<path d="M6 9l6 6 6-6">
+</path>
+</svg>
+</button>
+<div style="border: 0px; clip: rect(0px 0px 0px 0px); clip-path: inset(50%); height: 1px; margin: -1px; overflow: hidden; padding: 0px; position: fixed; width: 1px; white-space: nowrap; top: 0px; left: 0px;" aria-hidden="true" data-aria-id="true" data-a11y-ignore="aria-hidden-focus" data-testid="hidden-select-container">
+<label>
+<select tabindex="-1" name="centre">
+<option value="" label="&nbsp;">&nbsp;</option>
+<option value="01a1a98a-ac40-7000-8000-000000000001">Synthetic Centre A1</option>
+<option value="01a1a98a-ac40-7000-8000-000000000007">Synthetic Centre B2</option>
+</select>
+</label>
+</div>
+</div>
+<button class="lims-btn lims-btn-ghost lims-btn-md" data-rac="" type="button" tabindex="0" data-aria-id="true" id="ID">
+<span class="lims-btn-label">Shortcuts</span>
+<kbd class="lims-kbd" aria-hidden="true">?</kbd>
+</button>
+<span data-help-key="frontdesk.registration">
+<button class="lims-btn lims-btn-ghost lims-btn-md" data-rac="" type="button" tabindex="0" data-aria-id="true" id="ID">
+<svg aria-hidden="true" focusable="false" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lims-icon">
+<path d="M12 3a9 9 0 100 18 9 9 0 000-18zM9.5 9.5a2.5 2.5 0 115 0c0 2-2.5 2-2.5 4M12 17h.01">
+</path>
+</svg>
+<span class="lims-btn-label">Help</span>
+</button>
+</span>
+</div>
+</div>
+</div>
+<div role="alert">
+</div>
+<div class="lims-reg-layout">
+<div class="lims-reg-main">
+<div class="lims-card">
+<h2 class="lims-card-title">Patient</h2>
+<div class="lims-reg-section">
+<div data-field="patient">
+<template>
+</template>
+<div class="lims-field" data-rac="" data-focused="true">
+<label class="lims-label" id="ID" for="ID">Search patient name, mobile or code</label>
+<input aria-autocomplete="list" autocomplete="off" autocorrect="off" spellcheck="false" tabindex="0" id="ID" aria-labelledby="ID" role="combobox" aria-expanded="false" class="lims-input" data-rac="" type="text" value="" name="patient_search" data-focused="true" data-focus-visible="true">
+</div>
+</div>
+<button class="lims-btn lims-btn-ghost lims-btn-md" data-rac="" type="button" tabindex="0" data-aria-id="true" id="ID">
+<span class="lims-btn-label">New patient</span>
+</button>
+<div class="lims-field lims-radio-group" data-rac="" role="radiogroup" aria-orientation="horizontal" id="ID" aria-labelledby="ID" data-orientation="horizontal">
+<span class="lims-label" id="ID">Visit type</span>
+<div class="lims-radio-options lims-horizontal">
+<label data-aria-id="true" class="lims-radio" data-rac="" data-selected="true">
+<span style="border: 0px; clip: rect(0px 0px 0px 0px); clip-path: inset(50%); height: 1px; margin: -1px; overflow: hidden; padding: 0px; position: absolute; width: 1px; white-space: nowrap;">
+<input data-aria-id="true" tabindex="0" type="radio" value="opd" checked="" name="visit_type">
+</span>
+<span class="lims-radio-dot" aria-hidden="true">
+</span>OPD</label>
+<label data-aria-id="true" class="lims-radio" data-rac="">
+<span style="border: 0px; clip: rect(0px 0px 0px 0px); clip-path: inset(50%); height: 1px; margin: -1px; overflow: hidden; padding: 0px; position: absolute; width: 1px; white-space: nowrap;">
+<input data-aria-id="true" tabindex="-1" type="radio" value="ipd" name="visit_type">
+</span>
+<span class="lims-radio-dot" aria-hidden="true">
+</span>IPD</label>
+</div>
+</div>
+<div data-field="referrer">
+<template>
+</template>
+<div class="lims-field" data-rac="">
+<label class="lims-label" id="ID" for="ID">Referrer</label>
+<input aria-autocomplete="list" autocomplete="off" autocorrect="off" spellcheck="false" tabindex="0" id="ID" aria-labelledby="ID" role="combobox" aria-expanded="false" class="lims-input" data-rac="" type="text" value="" name="referrer">
+</div>
+</div>
+<span class="lims-chip lims-chip-sm lims-tone-neutral" data-tone="neutral">Self</span>
+<template>
+</template>
+<div class="lims-field" data-rac="">
+<span class="lims-label" id="ID">Collection mode</span>
+<button id="ID" class="lims-input lims-select-trigger" data-rac="" type="button" tabindex="0" data-aria-id="true" aria-labelledby="ID" aria-haspopup="listbox" aria-expanded="false">
+<span id="ID" class="aria-id" data-rac="">Walk-in</span>
+<svg aria-hidden="true" focusable="false" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lims-icon">
+<path d="M6 9l6 6 6-6">
+</path>
+</svg>
+</button>
+<div style="border: 0px; clip: rect(0px 0px 0px 0px); clip-path: inset(50%); height: 1px; margin: -1px; overflow: hidden; padding: 0px; position: fixed; width: 1px; white-space: nowrap; top: 0px; left: 0px;" aria-hidden="true" data-aria-id="true" data-a11y-ignore="aria-hidden-focus" data-testid="hidden-select-container">
+<label>
+<select tabindex="-1" name="collection_mode">
+<option value="" label="&nbsp;">&nbsp;</option>
+<option value="walk_in">Walk-in</option>
+<option value="centre">Centre</option>
+<option value="home">Home</option>
+<option value="partner">Partner</option>
+</select>
+</label>
+</div>
+</div>
+<label data-aria-id="true" class="lims-switch" data-rac="">
+<span style="border: 0px; clip: rect(0px 0px 0px 0px); clip-path: inset(50%); height: 1px; margin: -1px; overflow: hidden; padding: 0px; position: absolute; width: 1px; white-space: nowrap;">
+<input data-aria-id="true" tabindex="0" role="switch" type="checkbox">
+</span>
+<span class="lims-switch-track" aria-hidden="true">
+<span class="lims-switch-thumb">
+</span>
+</span>Urgent order (Alt+R)</label>
+<label data-aria-id="true" class="lims-switch" data-rac="">
+<span style="border: 0px; clip: rect(0px 0px 0px 0px); clip-path: inset(50%); height: 1px; margin: -1px; overflow: hidden; padding: 0px; position: absolute; width: 1px; white-space: nowrap;">
+<input data-aria-id="true" tabindex="0" role="switch" type="checkbox">
+</span>
+<span class="lims-switch-track" aria-hidden="true">
+<span class="lims-switch-thumb">
+</span>
+</span>Downtime back-entry</label>
+</div>
+</div>
+<div class="lims-card">
+<h2 class="lims-card-title">Tests</h2>
+<div data-field="tests">
+<template>
+</template>
+<div class="lims-field" data-rac="">
+<label class="lims-label" id="ID" for="ID">Search tests or packages</label>
+<input aria-autocomplete="list" autocomplete="off" autocorrect="off" spellcheck="false" tabindex="0" id="ID" aria-labelledby="ID" role="combobox" aria-expanded="false" class="lims-input" data-rac="" type="text" value="" name="test_search">
+</div>
+</div>
+<p>No tests selected yet. Press F4 to search.</p>
+<p>
+<small>TRF upload (Alt+U) is added with the order page.</small>
+</p>
+</div>
+<div class="lims-card">
+<h2 class="lims-card-title">Billing</h2>
+<div class="lims-reg-section">
+<div class="lims-field lims-radio-group" data-rac="" role="radiogroup" aria-orientation="horizontal" id="ID" aria-labelledby="ID" data-orientation="horizontal">
+<span class="lims-label" id="ID">Billing mode</span>
+<div class="lims-radio-options lims-horizontal">
+<label data-aria-id="true" class="lims-radio" data-rac="" data-selected="true">
+<span style="border: 0px; clip: rect(0px 0px 0px 0px); clip-path: inset(50%); height: 1px; margin: -1px; overflow: hidden; padding: 0px; position: absolute; width: 1px; white-space: nowrap;">
+<input data-aria-id="true" tabindex="0" type="radio" value="cash" checked="" name="billing_mode">
+</span>
+<span class="lims-radio-dot" aria-hidden="true">
+</span>Cash</label>
+<label data-aria-id="true" class="lims-radio" data-rac="">
+<span style="border: 0px; clip: rect(0px 0px 0px 0px); clip-path: inset(50%); height: 1px; margin: -1px; overflow: hidden; padding: 0px; position: absolute; width: 1px; white-space: nowrap;">
+<input data-aria-id="true" tabindex="-1" type="radio" value="credit" name="billing_mode">
+</span>
+<span class="lims-radio-dot" aria-hidden="true">
+</span>Credit</label>
+</div>
+</div>
+<div role="status" aria-live="polite">
+</div>
+<button class="lims-btn lims-btn-ghost lims-btn-md" data-rac="" type="button" disabled="" data-aria-id="true" id="ID" data-disabled="true">
+<span class="lims-btn-label">Discount</span>
+<kbd class="lims-kbd" aria-hidden="true">F6</kbd>
+</button>
+<div role="group" aria-label="Payment rows">
+<div class="lims-reg-pay-row">
+<template>
+</template>
+<div class="lims-field" data-rac="">
+<span class="lims-label" id="ID">Method</span>
+<button id="ID" class="lims-input lims-select-trigger" data-rac="" type="button" tabindex="0" data-aria-id="true" aria-labelledby="ID" aria-haspopup="listbox" aria-expanded="false">
+<span id="ID" class="aria-id" data-rac="">Cash</span>
+<svg aria-hidden="true" focusable="false" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lims-icon">
+<path d="M6 9l6 6 6-6">
+</path>
+</svg>
+</button>
+<div style="border: 0px; clip: rect(0px 0px 0px 0px); clip-path: inset(50%); height: 1px; margin: -1px; overflow: hidden; padding: 0px; position: fixed; width: 1px; white-space: nowrap; top: 0px; left: 0px;" aria-hidden="true" data-aria-id="true" data-a11y-ignore="aria-hidden-focus" data-testid="hidden-select-container">
+<label>
+<select tabindex="-1" name="method_0">
+<option value="" label="&nbsp;">&nbsp;</option>
+<option value="cash">Cash</option>
+</select>
+</label>
+</div>
+</div>
+<div data-field="amount-0">
+<div class="lims-field" data-rac="">
+<label class="lims-label" id="ID" for="ID">Amount</label>
+<div class="lims-input-group">
+<span class="lims-affix">Rs.</span>
+<input inputmode="decimal" tabindex="0" id="ID" aria-labelledby="ID" class="lims-input" data-rac="" type="text" value="0.00" name="amount_0">
+</div>
+</div>
+</div>
+<div class="lims-field" data-rac="">
+<label class="lims-label" id="ID" for="ID">Reference</label>
+<div class="lims-input-group">
+<input maxlength="100" tabindex="0" id="ID" aria-labelledby="ID" class="lims-input" data-rac="" type="text" value="" name="reference_0">
+</div>
+</div>
+<div class="lims-field" data-rac="">
+<label class="lims-label" id="ID" for="ID">Tendered</label>
+<div class="lims-input-group">
+<span class="lims-affix">Rs.</span>
+<input inputmode="decimal" tabindex="0" id="ID" aria-labelledby="ID" class="lims-input" data-rac="" type="text" value="" name="tendered_0">
+</div>
+</div>
+</div>
+<button class="lims-btn lims-btn-ghost lims-btn-md" data-rac="" type="button" tabindex="0" data-aria-id="true" id="ID">
+<svg aria-hidden="true" focusable="false" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lims-icon">
+<path d="M12 5v14M5 12h14">
+</path>
+</svg>
+<span class="lims-btn-label">Add method</span>
+<kbd class="lims-kbd" aria-hidden="true">Alt+P</kbd>
+</button>
+<div role="status">
+<span>Balance after payment</span> <span class="lims-money">Rs. 0.00</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+<aside class="lims-reg-summary" aria-label="Registration summary">
+<h2 class="lims-reg-summary-title">Summary</h2>
+<dl class="lims-reg-summary-list">
+<div class="lims-reg-summary-row">
+<dt>Tests</dt>
+<dd>None yet</dd>
+</div>
+<div class="lims-reg-summary-row">
+<dt>Total</dt>
+<dd>
+<span class="lims-money">
+<span>Rs.</span> <span>0.00</span>
+</span>
+</dd>
+</div>
+<div class="lims-reg-summary-row">
+<dt>Paid</dt>
+<dd>
+<span class="lims-money">
+<span>Rs.</span> <span>0.00</span>
+</span>
+</dd>
+</div>
+<div class="lims-reg-summary-row lims-reg-summary-balance">
+<dt>Balance</dt>
+<dd>
+<span class="lims-money">
+<span>Rs.</span> <span>0.00</span>
+</span>
+</dd>
+</div>
+<div class="lims-reg-summary-row">
+<dt>Discount authority</dt>
+<dd>—</dd>
+</div>
+</dl>
+<button class="lims-btn lims-btn-primary lims-btn-md" data-rac="" type="submit" disabled="" data-aria-id="true" id="ID" data-disabled="true">
+<span class="lims-btn-label">Register &amp; print</span>
+<kbd class="lims-kbd" aria-hidden="true">Ctrl+Enter</kbd>
+</button>
+</aside>
+</div>
+<div>
+</div>
+</section>
+<div class="lims-toast-region">
+</div>"
+`;
+
+exports[`RS-C4 key-screen snapshots > Register: new-patient form open 1`] = `
+"<section aria-label="New registration">
+<div class="lims-page-header">
+<div class="lims-page-header-row">
+<h1 class="lims-page-title">New registration</h1>
+<div class="lims-page-actions">
+<template>
+</template>
+<div class="lims-field" data-rac="">
+<span class="lims-label" id="ID">Centre</span>
+<button id="ID" class="lims-input lims-select-trigger" data-rac="" type="button" tabindex="0" data-aria-id="true" aria-labelledby="ID" aria-haspopup="listbox" aria-expanded="false">
+<span id="ID" class="aria-id" data-rac="">Synthetic Centre A1</span>
+<svg aria-hidden="true" focusable="false" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lims-icon">
+<path d="M6 9l6 6 6-6">
+</path>
+</svg>
+</button>
+<div style="border: 0px; clip: rect(0px 0px 0px 0px); clip-path: inset(50%); height: 1px; margin: -1px; overflow: hidden; padding: 0px; position: fixed; width: 1px; white-space: nowrap; top: 0px; left: 0px;" aria-hidden="true" data-aria-id="true" data-a11y-ignore="aria-hidden-focus" data-testid="hidden-select-container">
+<label>
+<select tabindex="-1" name="centre">
+<option value="" label="&nbsp;">&nbsp;</option>
+<option value="01a1a98a-ac40-7000-8000-000000000001">Synthetic Centre A1</option>
+<option value="01a1a98a-ac40-7000-8000-000000000007">Synthetic Centre B2</option>
+</select>
+</label>
+</div>
+</div>
+<button class="lims-btn lims-btn-ghost lims-btn-md" data-rac="" type="button" tabindex="0" data-aria-id="true" id="ID">
+<span class="lims-btn-label">Shortcuts</span>
+<kbd class="lims-kbd" aria-hidden="true">?</kbd>
+</button>
+<span data-help-key="frontdesk.registration">
+<button class="lims-btn lims-btn-ghost lims-btn-md" data-rac="" type="button" tabindex="0" data-aria-id="true" id="ID">
+<svg aria-hidden="true" focusable="false" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lims-icon">
+<path d="M12 3a9 9 0 100 18 9 9 0 000-18zM9.5 9.5a2.5 2.5 0 115 0c0 2-2.5 2-2.5 4M12 17h.01">
+</path>
+</svg>
+<span class="lims-btn-label">Help</span>
+</button>
+</span>
+</div>
+</div>
+</div>
+<div role="alert">
+</div>
+<div class="lims-reg-layout">
+<div class="lims-reg-main">
+<div class="lims-card">
+<h2 class="lims-card-title">Patient</h2>
+<div class="lims-reg-section">
+<div role="group" aria-label="New patient" class="lims-reg-section">
+<div class="lims-field" data-rac="" data-required="true">
+<label class="lims-label" id="ID" for="ID">Full name<span aria-hidden="true"> *</span>
+</label>
+<div class="lims-input-group">
+<input aria-required="true" maxlength="200" tabindex="0" id="ID" aria-labelledby="ID" class="lims-input" data-rac="" type="text" value="" name="full_name" data-focused="true" data-focus-visible="true">
+</div>
+</div>
+<div class="lims-field lims-radio-group" data-rac="" role="radiogroup" aria-required="true" aria-orientation="horizontal" id="ID" aria-labelledby="ID" data-orientation="horizontal" data-required="true">
+<span class="lims-label" id="ID">Sex<span aria-hidden="true"> *</span>
+</span>
+<div class="lims-radio-options lims-horizontal">
+<label data-aria-id="true" class="lims-radio" data-rac="" data-required="true">
+<span style="border: 0px; clip: rect(0px 0px 0px 0px); clip-path: inset(50%); height: 1px; margin: -1px; overflow: hidden; padding: 0px; position: absolute; width: 1px; white-space: nowrap;">
+<input data-aria-id="true" tabindex="0" type="radio" value="male" name="sex">
+</span>
+<span class="lims-radio-dot" aria-hidden="true">
+</span>Male</label>
+<label data-aria-id="true" class="lims-radio" data-rac="" data-required="true">
+<span style="border: 0px; clip: rect(0px 0px 0px 0px); clip-path: inset(50%); height: 1px; margin: -1px; overflow: hidden; padding: 0px; position: absolute; width: 1px; white-space: nowrap;">
+<input data-aria-id="true" tabindex="0" type="radio" value="female" name="sex">
+</span>
+<span class="lims-radio-dot" aria-hidden="true">
+</span>Female</label>
+<label data-aria-id="true" class="lims-radio" data-rac="" data-required="true">
+<span style="border: 0px; clip: rect(0px 0px 0px 0px); clip-path: inset(50%); height: 1px; margin: -1px; overflow: hidden; padding: 0px; position: absolute; width: 1px; white-space: nowrap;">
+<input data-aria-id="true" tabindex="0" type="radio" value="other" name="sex">
+</span>
+<span class="lims-radio-dot" aria-hidden="true">
+</span>Other</label>
+<label data-aria-id="true" class="lims-radio" data-rac="" data-required="true">
+<span style="border: 0px; clip: rect(0px 0px 0px 0px); clip-path: inset(50%); height: 1px; margin: -1px; overflow: hidden; padding: 0px; position: absolute; width: 1px; white-space: nowrap;">
+<input data-aria-id="true" tabindex="0" type="radio" value="unknown" name="sex">
+</span>
+<span class="lims-radio-dot" aria-hidden="true">
+</span>Unknown</label>
+</div>
+</div>
+<fieldset class="lims-reg-fieldset">
+<legend>Age or date of birth</legend>
+<div class="lims-field lims-date-field">
+<label class="lims-label" for="_r_bo_">Date of birth</label>
+<div class="lims-input-group">
+<input id="_r_bo_" class="lims-input" placeholder="DD/MM/YYYY" autocomplete="off" type="text" value="" name="birth_on">
+<button type="button" class="lims-btn lims-btn-ghost lims-icon-btn" aria-label="Open calendar for Date of birth" aria-expanded="false">
+<svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+<rect x="4" y="5" width="16" height="15">
+</rect>
+<line x1="4" y1="10" x2="20" y2="10">
+</line>
+</svg>
+</button>
+</div>
+</div>
+<div class="lims-reg-pair">
+<div class="lims-field" data-rac="">
+<label class="lims-label" id="ID" for="ID">Age years</label>
+<div class="lims-input-group">
+<input inputmode="numeric" tabindex="0" id="ID" aria-labelledby="ID" class="lims-input" role="spinbutton" aria-valuemin="0" aria-valuemax="150" data-rac="" type="text" value="" name="age_years">
+</div>
+</div>
+<div class="lims-field" data-rac="">
+<label class="lims-label" id="ID" for="ID">Age months</label>
+<div class="lims-input-group">
+<input inputmode="numeric" tabindex="0" id="ID" aria-labelledby="ID" class="lims-input" role="spinbutton" aria-valuemin="0" aria-valuemax="11" data-rac="" type="text" value="" name="age_months">
+</div>
+</div>
+<div class="lims-field" data-rac="">
+<label class="lims-label" id="ID" for="ID">Age days</label>
+<div class="lims-input-group">
+<input inputmode="numeric" tabindex="0" id="ID" aria-labelledby="ID" class="lims-input" role="spinbutton" aria-valuemin="0" aria-valuemax="31" data-rac="" type="text" value="" name="age_days">
+</div>
+</div>
+</div>
+</fieldset>
+<div class="lims-field" data-rac="">
+<label class="lims-label" id="ID" for="ID">Mobile</label>
+<div class="lims-input-group">
+<input maxlength="16" inputmode="tel" tabindex="0" id="ID" aria-labelledby="ID" class="lims-input" data-rac="" type="text" value="" name="mobile">
+</div>
+</div>
+<div class="lims-field" data-rac="">
+<label class="lims-label" id="ID" for="ID">Email</label>
+<div class="lims-input-group">
+<input maxlength="254" inputmode="email" tabindex="0" id="ID" aria-labelledby="ID" class="lims-input" data-rac="" type="text" value="" name="email">
+</div>
+</div>
+<div class="lims-field" data-rac="">
+<label class="lims-label" id="ID" for="ID">Address</label>
+<div class="lims-input-group">
+<textarea maxlength="300" name="address" tabindex="0" id="ID" aria-labelledby="ID" rows="2" class="lims-input" data-rac="">
+</textarea>
+</div>
+<span class="lims-count" aria-hidden="true">0 / 300</span>
+</div>
+<fieldset class="lims-reg-fieldset">
+<legend>Consents</legend>
+<div class="lims-check-wrap">
+<label data-aria-id="true" class="lims-check" data-rac="">
+<span style="border: 0px; clip: rect(0px 0px 0px 0px); clip-path: inset(50%); height: 1px; margin: -1px; overflow: hidden; padding: 0px; position: absolute; width: 1px; white-space: nowrap;">
+<input data-aria-id="true" tabindex="0" type="checkbox" title="">
+</span>
+<span class="lims-check-box" aria-hidden="true">
+</span>Processing of my data for testing (required)</label>
+</div>
+<div class="lims-check-wrap">
+<label data-aria-id="true" class="lims-check" data-rac="">
+<span style="border: 0px; clip: rect(0px 0px 0px 0px); clip-path: inset(50%); height: 1px; margin: -1px; overflow: hidden; padding: 0px; position: absolute; width: 1px; white-space: nowrap;">
+<input data-aria-id="true" tabindex="0" type="checkbox" title="">
+</span>
+<span class="lims-check-box" aria-hidden="true">
+</span>SMS</label>
+</div>
+<div class="lims-check-wrap">
+<label data-aria-id="true" class="lims-check" data-rac="">
+<span style="border: 0px; clip: rect(0px 0px 0px 0px); clip-path: inset(50%); height: 1px; margin: -1px; overflow: hidden; padding: 0px; position: absolute; width: 1px; white-space: nowrap;">
+<input data-aria-id="true" tabindex="0" type="checkbox" title="">
+</span>
+<span class="lims-check-box" aria-hidden="true">
+</span>WhatsApp</label>
+</div>
+<div class="lims-check-wrap">
+<label data-aria-id="true" class="lims-check" data-rac="">
+<span style="border: 0px; clip: rect(0px 0px 0px 0px); clip-path: inset(50%); height: 1px; margin: -1px; overflow: hidden; padding: 0px; position: absolute; width: 1px; white-space: nowrap;">
+<input data-aria-id="true" tabindex="0" type="checkbox" title="">
+</span>
+<span class="lims-check-box" aria-hidden="true">
+</span>Email messages</label>
+</div>
+<div class="lims-check-wrap">
+<label data-aria-id="true" class="lims-check" data-rac="">
+<span style="border: 0px; clip: rect(0px 0px 0px 0px); clip-path: inset(50%); height: 1px; margin: -1px; overflow: hidden; padding: 0px; position: absolute; width: 1px; white-space: nowrap;">
+<input data-aria-id="true" tabindex="0" type="checkbox" title="">
+</span>
+<span class="lims-check-box" aria-hidden="true">
+</span>Share report with referring doctor</label>
+</div>
+</fieldset>
+<div class="lims-reg-pair">
+<button class="lims-btn lims-btn-secondary lims-btn-md" data-rac="" type="button" tabindex="0" data-aria-id="true" id="ID">
+<span class="lims-btn-label">Use this new patient</span>
+</button>
+<button class="lims-btn lims-btn-ghost lims-btn-md" data-rac="" type="button" tabindex="0" data-aria-id="true" id="ID">
+<span class="lims-btn-label">Back to search</span>
+<kbd class="lims-kbd" aria-hidden="true">Esc</kbd>
+</button>
+</div>
+</div>
+<div class="lims-field lims-radio-group" data-rac="" role="radiogroup" aria-orientation="horizontal" id="ID" aria-labelledby="ID" data-orientation="horizontal">
+<span class="lims-label" id="ID">Visit type</span>
+<div class="lims-radio-options lims-horizontal">
+<label data-aria-id="true" class="lims-radio" data-rac="" data-selected="true">
+<span style="border: 0px; clip: rect(0px 0px 0px 0px); clip-path: inset(50%); height: 1px; margin: -1px; overflow: hidden; padding: 0px; position: absolute; width: 1px; white-space: nowrap;">
+<input data-aria-id="true" tabindex="0" type="radio" value="opd" checked="" name="visit_type">
+</span>
+<span class="lims-radio-dot" aria-hidden="true">
+</span>OPD</label>
+<label data-aria-id="true" class="lims-radio" data-rac="">
+<span style="border: 0px; clip: rect(0px 0px 0px 0px); clip-path: inset(50%); height: 1px; margin: -1px; overflow: hidden; padding: 0px; position: absolute; width: 1px; white-space: nowrap;">
+<input data-aria-id="true" tabindex="-1" type="radio" value="ipd" name="visit_type">
+</span>
+<span class="lims-radio-dot" aria-hidden="true">
+</span>IPD</label>
+</div>
+</div>
+<div data-field="referrer">
+<template>
+</template>
+<div class="lims-field" data-rac="">
+<label class="lims-label" id="ID" for="ID">Referrer</label>
+<input aria-autocomplete="list" autocomplete="off" autocorrect="off" spellcheck="false" tabindex="0" id="ID" aria-labelledby="ID" role="combobox" aria-expanded="false" class="lims-input" data-rac="" type="text" value="" name="referrer">
+</div>
+</div>
+<span class="lims-chip lims-chip-sm lims-tone-neutral" data-tone="neutral">Self</span>
+<template>
+</template>
+<div class="lims-field" data-rac="">
+<span class="lims-label" id="ID">Collection mode</span>
+<button id="ID" class="lims-input lims-select-trigger" data-rac="" type="button" tabindex="0" data-aria-id="true" aria-labelledby="ID" aria-haspopup="listbox" aria-expanded="false">
+<span id="ID" class="aria-id" data-rac="">Walk-in</span>
+<svg aria-hidden="true" focusable="false" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lims-icon">
+<path d="M6 9l6 6 6-6">
+</path>
+</svg>
+</button>
+<div style="border: 0px; clip: rect(0px 0px 0px 0px); clip-path: inset(50%); height: 1px; margin: -1px; overflow: hidden; padding: 0px; position: fixed; width: 1px; white-space: nowrap; top: 0px; left: 0px;" aria-hidden="true" data-aria-id="true" data-a11y-ignore="aria-hidden-focus" data-testid="hidden-select-container">
+<label>
+<select tabindex="-1" name="collection_mode">
+<option value="" label="&nbsp;">&nbsp;</option>
+<option value="walk_in">Walk-in</option>
+<option value="centre">Centre</option>
+<option value="home">Home</option>
+<option value="partner">Partner</option>
+</select>
+</label>
+</div>
+</div>
+<label data-aria-id="true" class="lims-switch" data-rac="">
+<span style="border: 0px; clip: rect(0px 0px 0px 0px); clip-path: inset(50%); height: 1px; margin: -1px; overflow: hidden; padding: 0px; position: absolute; width: 1px; white-space: nowrap;">
+<input data-aria-id="true" tabindex="0" role="switch" type="checkbox">
+</span>
+<span class="lims-switch-track" aria-hidden="true">
+<span class="lims-switch-thumb">
+</span>
+</span>Urgent order (Alt+R)</label>
+<label data-aria-id="true" class="lims-switch" data-rac="">
+<span style="border: 0px; clip: rect(0px 0px 0px 0px); clip-path: inset(50%); height: 1px; margin: -1px; overflow: hidden; padding: 0px; position: absolute; width: 1px; white-space: nowrap;">
+<input data-aria-id="true" tabindex="0" role="switch" type="checkbox">
+</span>
+<span class="lims-switch-track" aria-hidden="true">
+<span class="lims-switch-thumb">
+</span>
+</span>Downtime back-entry</label>
+</div>
+</div>
+<div class="lims-card">
+<h2 class="lims-card-title">Tests</h2>
+<div data-field="tests">
+<template>
+</template>
+<div class="lims-field" data-rac="">
+<label class="lims-label" id="ID" for="ID">Search tests or packages</label>
+<input aria-autocomplete="list" autocomplete="off" autocorrect="off" spellcheck="false" tabindex="0" id="ID" aria-labelledby="ID" role="combobox" aria-expanded="false" class="lims-input" data-rac="" type="text" value="" name="test_search">
+</div>
+</div>
+<p>No tests selected yet. Press F4 to search.</p>
+<p>
+<small>TRF upload (Alt+U) is added with the order page.</small>
+</p>
+</div>
+<div class="lims-card">
+<h2 class="lims-card-title">Billing</h2>
+<div class="lims-reg-section">
+<div class="lims-field lims-radio-group" data-rac="" role="radiogroup" aria-orientation="horizontal" id="ID" aria-labelledby="ID" data-orientation="horizontal">
+<span class="lims-label" id="ID">Billing mode</span>
+<div class="lims-radio-options lims-horizontal">
+<label data-aria-id="true" class="lims-radio" data-rac="" data-selected="true">
+<span style="border: 0px; clip: rect(0px 0px 0px 0px); clip-path: inset(50%); height: 1px; margin: -1px; overflow: hidden; padding: 0px; position: absolute; width: 1px; white-space: nowrap;">
+<input data-aria-id="true" tabindex="0" type="radio" value="cash" checked="" name="billing_mode">
+</span>
+<span class="lims-radio-dot" aria-hidden="true">
+</span>Cash</label>
+<label data-aria-id="true" class="lims-radio" data-rac="">
+<span style="border: 0px; clip: rect(0px 0px 0px 0px); clip-path: inset(50%); height: 1px; margin: -1px; overflow: hidden; padding: 0px; position: absolute; width: 1px; white-space: nowrap;">
+<input data-aria-id="true" tabindex="-1" type="radio" value="credit" name="billing_mode">
+</span>
+<span class="lims-radio-dot" aria-hidden="true">
+</span>Credit</label>
+</div>
+</div>
+<div role="status" aria-live="polite">
+</div>
+<button class="lims-btn lims-btn-ghost lims-btn-md" data-rac="" type="button" disabled="" data-aria-id="true" id="ID" data-disabled="true">
+<span class="lims-btn-label">Discount</span>
+<kbd class="lims-kbd" aria-hidden="true">F6</kbd>
+</button>
+<div role="group" aria-label="Payment rows">
+<div class="lims-reg-pay-row">
+<template>
+</template>
+<div class="lims-field" data-rac="">
+<span class="lims-label" id="ID">Method</span>
+<button id="ID" class="lims-input lims-select-trigger" data-rac="" type="button" tabindex="0" data-aria-id="true" aria-labelledby="ID" aria-haspopup="listbox" aria-expanded="false">
+<span id="ID" class="aria-id" data-rac="">Cash</span>
+<svg aria-hidden="true" focusable="false" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lims-icon">
+<path d="M6 9l6 6 6-6">
+</path>
+</svg>
+</button>
+<div style="border: 0px; clip: rect(0px 0px 0px 0px); clip-path: inset(50%); height: 1px; margin: -1px; overflow: hidden; padding: 0px; position: fixed; width: 1px; white-space: nowrap; top: 0px; left: 0px;" aria-hidden="true" data-aria-id="true" data-a11y-ignore="aria-hidden-focus" data-testid="hidden-select-container">
+<label>
+<select tabindex="-1" name="method_0">
+<option value="" label="&nbsp;">&nbsp;</option>
+<option value="cash">Cash</option>
+<option value="card">Card</option>
+<option value="esewa">eSewa</option>
+</select>
+</label>
+</div>
+</div>
+<div data-field="amount-0">
+<div class="lims-field" data-rac="">
+<label class="lims-label" id="ID" for="ID">Amount</label>
+<div class="lims-input-group">
+<span class="lims-affix">Rs.</span>
+<input inputmode="decimal" tabindex="0" id="ID" aria-labelledby="ID" class="lims-input" data-rac="" type="text" value="0.00" name="amount_0">
+</div>
+</div>
+</div>
+<div class="lims-field" data-rac="">
+<label class="lims-label" id="ID" for="ID">Reference</label>
+<div class="lims-input-group">
+<input maxlength="100" tabindex="0" id="ID" aria-labelledby="ID" class="lims-input" data-rac="" type="text" value="" name="reference_0">
+</div>
+</div>
+<div class="lims-field" data-rac="">
+<label class="lims-label" id="ID" for="ID">Tendered</label>
+<div class="lims-input-group">
+<span class="lims-affix">Rs.</span>
+<input inputmode="decimal" tabindex="0" id="ID" aria-labelledby="ID" class="lims-input" data-rac="" type="text" value="" name="tendered_0">
+</div>
+</div>
+</div>
+<button class="lims-btn lims-btn-ghost lims-btn-md" data-rac="" type="button" tabindex="0" data-aria-id="true" id="ID">
+<svg aria-hidden="true" focusable="false" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lims-icon">
+<path d="M12 5v14M5 12h14">
+</path>
+</svg>
+<span class="lims-btn-label">Add method</span>
+<kbd class="lims-kbd" aria-hidden="true">Alt+P</kbd>
+</button>
+<div role="status">
+<span>Balance after payment</span> <span class="lims-money">Rs. 0.00</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+<aside class="lims-reg-summary" aria-label="Registration summary">
+<h2 class="lims-reg-summary-title">Summary</h2>
+<dl class="lims-reg-summary-list">
+<div class="lims-reg-summary-row">
+<dt>Tests</dt>
+<dd>None yet</dd>
+</div>
+<div class="lims-reg-summary-row">
+<dt>Total</dt>
+<dd>
+<span class="lims-money">
+<span>Rs.</span> <span>0.00</span>
+</span>
+</dd>
+</div>
+<div class="lims-reg-summary-row">
+<dt>Paid</dt>
+<dd>
+<span class="lims-money">
+<span>Rs.</span> <span>0.00</span>
+</span>
+</dd>
+</div>
+<div class="lims-reg-summary-row lims-reg-summary-balance">
+<dt>Balance</dt>
+<dd>
+<span class="lims-money">
+<span>Rs.</span> <span>0.00</span>
+</span>
+</dd>
+</div>
+<div class="lims-reg-summary-row">
+<dt>Discount authority</dt>
+<dd>—</dd>
+</div>
+</dl>
+<button class="lims-btn lims-btn-primary lims-btn-md" data-rac="" type="submit" disabled="" data-aria-id="true" id="ID" data-disabled="true">
+<span class="lims-btn-label">Register &amp; print</span>
+<kbd class="lims-kbd" aria-hidden="true">Ctrl+Enter</kbd>
+</button>
+</aside>
+</div>
+<div>
+</div>
+</section>
+<div class="lims-toast-region">
+</div>"
+`;
+
+exports[`RS-C4 key-screen snapshots > Register: returning patient, one test, quote and summary filled 1`] = `
+"<section aria-label="New registration">
+<div class="lims-page-header">
+<div class="lims-page-header-row">
+<h1 class="lims-page-title">New registration</h1>
+<div class="lims-page-actions">
+<template>
+</template>
+<div class="lims-field" data-rac="">
+<span class="lims-label" id="ID">Centre</span>
+<button id="ID" class="lims-input lims-select-trigger" data-rac="" type="button" tabindex="0" data-aria-id="true" aria-labelledby="ID" aria-haspopup="listbox" aria-expanded="false">
+<span id="ID" class="aria-id" data-rac="">Synthetic Centre A1</span>
+<svg aria-hidden="true" focusable="false" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lims-icon">
+<path d="M6 9l6 6 6-6">
+</path>
+</svg>
+</button>
+<div style="border: 0px; clip: rect(0px 0px 0px 0px); clip-path: inset(50%); height: 1px; margin: -1px; overflow: hidden; padding: 0px; position: fixed; width: 1px; white-space: nowrap; top: 0px; left: 0px;" aria-hidden="true" data-aria-id="true" data-a11y-ignore="aria-hidden-focus" data-testid="hidden-select-container">
+<label>
+<select tabindex="-1" name="centre">
+<option value="" label="&nbsp;">&nbsp;</option>
+<option value="01a1a98a-ac40-7000-8000-000000000001">Synthetic Centre A1</option>
+<option value="01a1a98a-ac40-7000-8000-000000000007">Synthetic Centre B2</option>
+</select>
+</label>
+</div>
+</div>
+<button class="lims-btn lims-btn-ghost lims-btn-md" data-rac="" type="button" tabindex="0" data-aria-id="true" id="ID">
+<span class="lims-btn-label">Shortcuts</span>
+<kbd class="lims-kbd" aria-hidden="true">?</kbd>
+</button>
+<span data-help-key="frontdesk.registration">
+<button class="lims-btn lims-btn-ghost lims-btn-md" data-rac="" type="button" tabindex="0" data-aria-id="true" id="ID">
+<svg aria-hidden="true" focusable="false" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lims-icon">
+<path d="M12 3a9 9 0 100 18 9 9 0 000-18zM9.5 9.5a2.5 2.5 0 115 0c0 2-2.5 2-2.5 4M12 17h.01">
+</path>
+</svg>
+<span class="lims-btn-label">Help</span>
+</button>
+</span>
+</div>
+</div>
+</div>
+<div role="alert">
+</div>
+<div class="lims-reg-layout">
+<div class="lims-reg-main">
+<div class="lims-card">
+<h2 class="lims-card-title">Patient</h2>
+<div class="lims-reg-section">
+<div data-field="patient">
+<template>
+</template>
+<div class="lims-field" data-rac="">
+<label class="lims-label" id="ID" for="ID">Search patient name, mobile or code</label>
+<input aria-autocomplete="list" autocomplete="off" autocorrect="off" spellcheck="false" tabindex="0" id="ID" aria-labelledby="ID" role="combobox" aria-expanded="false" class="lims-input" data-rac="" type="text" value="Synthetic Patient One" name="patient_search">
+</div>
+</div>
+<p>
+<strong>P-000123</strong> <span>Synthetic Patient One</span> · female · 43 Years · 98xxxxxx42</p>
+<button class="lims-btn lims-btn-ghost lims-btn-md" data-rac="" type="button" tabindex="0" data-aria-id="true" id="ID">
+<span class="lims-btn-label">New patient</span>
+</button>
+<div class="lims-field lims-radio-group" data-rac="" role="radiogroup" aria-orientation="horizontal" id="ID" aria-labelledby="ID" data-orientation="horizontal">
+<span class="lims-label" id="ID">Visit type</span>
+<div class="lims-radio-options lims-horizontal">
+<label data-aria-id="true" class="lims-radio" data-rac="" data-selected="true">
+<span style="border: 0px; clip: rect(0px 0px 0px 0px); clip-path: inset(50%); height: 1px; margin: -1px; overflow: hidden; padding: 0px; position: absolute; width: 1px; white-space: nowrap;">
+<input data-aria-id="true" tabindex="0" type="radio" value="opd" checked="" name="visit_type">
+</span>
+<span class="lims-radio-dot" aria-hidden="true">
+</span>OPD</label>
+<label data-aria-id="true" class="lims-radio" data-rac="">
+<span style="border: 0px; clip: rect(0px 0px 0px 0px); clip-path: inset(50%); height: 1px; margin: -1px; overflow: hidden; padding: 0px; position: absolute; width: 1px; white-space: nowrap;">
+<input data-aria-id="true" tabindex="-1" type="radio" value="ipd" name="visit_type">
+</span>
+<span class="lims-radio-dot" aria-hidden="true">
+</span>IPD</label>
+</div>
+</div>
+<div data-field="referrer">
+<template>
+</template>
+<div class="lims-field" data-rac="">
+<label class="lims-label" id="ID" for="ID">Referrer</label>
+<input aria-autocomplete="list" autocomplete="off" autocorrect="off" spellcheck="false" tabindex="0" id="ID" aria-labelledby="ID" role="combobox" aria-expanded="false" class="lims-input" data-rac="" type="text" value="" name="referrer">
+</div>
+</div>
+<span class="lims-chip lims-chip-sm lims-tone-neutral" data-tone="neutral">Self</span>
+<template>
+</template>
+<div class="lims-field" data-rac="">
+<span class="lims-label" id="ID">Collection mode</span>
+<button id="ID" class="lims-input lims-select-trigger" data-rac="" type="button" tabindex="0" data-aria-id="true" aria-labelledby="ID" aria-haspopup="listbox" aria-expanded="false">
+<span id="ID" class="aria-id" data-rac="">Walk-in</span>
+<svg aria-hidden="true" focusable="false" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lims-icon">
+<path d="M6 9l6 6 6-6">
+</path>
+</svg>
+</button>
+<div style="border: 0px; clip: rect(0px 0px 0px 0px); clip-path: inset(50%); height: 1px; margin: -1px; overflow: hidden; padding: 0px; position: fixed; width: 1px; white-space: nowrap; top: 0px; left: 0px;" aria-hidden="true" data-aria-id="true" data-a11y-ignore="aria-hidden-focus" data-testid="hidden-select-container">
+<label>
+<select tabindex="-1" name="collection_mode">
+<option value="" label="&nbsp;">&nbsp;</option>
+<option value="walk_in">Walk-in</option>
+<option value="centre">Centre</option>
+<option value="home">Home</option>
+<option value="partner">Partner</option>
+</select>
+</label>
+</div>
+</div>
+<label data-aria-id="true" class="lims-switch" data-rac="">
+<span style="border: 0px; clip: rect(0px 0px 0px 0px); clip-path: inset(50%); height: 1px; margin: -1px; overflow: hidden; padding: 0px; position: absolute; width: 1px; white-space: nowrap;">
+<input data-aria-id="true" tabindex="0" role="switch" type="checkbox">
+</span>
+<span class="lims-switch-track" aria-hidden="true">
+<span class="lims-switch-thumb">
+</span>
+</span>Urgent order (Alt+R)</label>
+<label data-aria-id="true" class="lims-switch" data-rac="">
+<span style="border: 0px; clip: rect(0px 0px 0px 0px); clip-path: inset(50%); height: 1px; margin: -1px; overflow: hidden; padding: 0px; position: absolute; width: 1px; white-space: nowrap;">
+<input data-aria-id="true" tabindex="0" role="switch" type="checkbox">
+</span>
+<span class="lims-switch-track" aria-hidden="true">
+<span class="lims-switch-thumb">
+</span>
+</span>Downtime back-entry</label>
+</div>
+</div>
+<div class="lims-card">
+<h2 class="lims-card-title">Tests</h2>
+<div data-field="tests">
+<template>
+</template>
+<div class="lims-field" data-rac="" data-focused="true">
+<label class="lims-label" id="ID" for="ID">Search tests or packages</label>
+<input aria-autocomplete="list" autocomplete="off" autocorrect="off" spellcheck="false" tabindex="0" id="ID" aria-labelledby="ID" role="combobox" aria-expanded="false" class="lims-input" data-rac="" type="text" value="" name="test_search" data-focused="true" data-focus-visible="true">
+</div>
+</div>
+<table aria-label="Selected tests">
+<thead>
+<tr>
+<th scope="col">Code</th>
+<th scope="col">Name</th>
+<th scope="col">Kind</th>
+<th scope="col">Priority</th>
+<th scope="col">Price</th>
+<th scope="col">Surcharge</th>
+<th scope="col">
+<span style="position: absolute; width: 1px; height: 1px; padding: 0px; margin: -1px; overflow: hidden; clip: rect(0px 0px 0px 0px); clip-path: inset(50%); white-space: nowrap; border: 0px;">Remove</span>
+</th>
+</tr>
+</thead>
+<tbody>
+<tr tabindex="0">
+<td>CBC</td>
+<td>Complete blood count</td>
+<td>Test</td>
+<td>Routine</td>
+<td>100.00</td>
+<td>—</td>
+<td>
+<button class="lims-btn lims-btn-ghost lims-icon-btn" data-rac="" type="button" tabindex="0" data-aria-id="true" aria-label="Remove CBC" id="ID">
+<svg aria-hidden="true" focusable="false" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lims-icon">
+<path d="M6 6l12 12M18 6L6 18">
+</path>
+</svg>
+</button>
+</td>
+</tr>
+</tbody>
+</table>
+<p>
+<small>TRF upload (Alt+U) is added with the order page.</small>
+</p>
+</div>
+<div class="lims-card">
+<h2 class="lims-card-title">Billing</h2>
+<div class="lims-reg-section">
+<div class="lims-field lims-radio-group" data-rac="" role="radiogroup" aria-orientation="horizontal" id="ID" aria-labelledby="ID" data-orientation="horizontal">
+<span class="lims-label" id="ID">Billing mode</span>
+<div class="lims-radio-options lims-horizontal">
+<label data-aria-id="true" class="lims-radio" data-rac="" data-selected="true">
+<span style="border: 0px; clip: rect(0px 0px 0px 0px); clip-path: inset(50%); height: 1px; margin: -1px; overflow: hidden; padding: 0px; position: absolute; width: 1px; white-space: nowrap;">
+<input data-aria-id="true" tabindex="0" type="radio" value="cash" checked="" name="billing_mode">
+</span>
+<span class="lims-radio-dot" aria-hidden="true">
+</span>Cash</label>
+<label data-aria-id="true" class="lims-radio" data-rac="">
+<span style="border: 0px; clip: rect(0px 0px 0px 0px); clip-path: inset(50%); height: 1px; margin: -1px; overflow: hidden; padding: 0px; position: absolute; width: 1px; white-space: nowrap;">
+<input data-aria-id="true" tabindex="-1" type="radio" value="credit" name="billing_mode">
+</span>
+<span class="lims-radio-dot" aria-hidden="true">
+</span>Credit</label>
+</div>
+</div>
+<div role="status" aria-live="polite">
+<table aria-label="Bill lines">
+<thead>
+<tr>
+<th scope="col">Code</th>
+<th scope="col">Name</th>
+<th scope="col">Unit price</th>
+<th scope="col">Discount</th>
+<th scope="col">Tax</th>
+<th scope="col">Net</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>CBC</td>
+<td>Complete blood count</td>
+<td>100.00</td>
+<td>0.00</td>
+<td>13.00</td>
+<td>113.00</td>
+</tr>
+</tbody>
+</table>
+<dl>
+<div class="lims-total-row">
+<dt>Gross</dt>
+<dd>
+<span class="lims-money">Rs. 100.00</span>
+</dd>
+</div>
+<div class="lims-total-row">
+<dt>Discount</dt>
+<dd>
+<span class="lims-money">Rs. 0.00</span>
+</dd>
+</div>
+<div class="lims-total-row">
+<dt>Exempt</dt>
+<dd>
+<span class="lims-money">Rs. 0.00</span>
+</dd>
+</div>
+<div class="lims-total-row">
+<dt>Taxable</dt>
+<dd>
+<span class="lims-money">Rs. 100.00</span>
+</dd>
+</div>
+<div class="lims-total-row">
+<dt>VAT</dt>
+<dd>
+<span class="lims-money">Rs. 13.00</span>
+</dd>
+</div>
+<div class="lims-total-row">
+<dt>Other tax</dt>
+<dd>
+<span class="lims-money">Rs. 0.00</span>
+</dd>
+</div>
+<div class="lims-total-row lims-total-net">
+<dt>Net</dt>
+<dd>
+<span class="lims-money">Rs. 113.00</span>
+</dd>
+</div>
+</dl>
+</div>
+<button class="lims-btn lims-btn-ghost lims-btn-md" data-rac="" type="button" data-aria-id="true" id="ID" tabindex="0">
+<span class="lims-btn-label">Discount</span>
+<kbd class="lims-kbd" aria-hidden="true">F6</kbd>
+</button>
+<div role="group" aria-label="Payment rows">
+<div class="lims-reg-pay-row">
+<template>
+</template>
+<div class="lims-field" data-rac="">
+<span class="lims-label" id="ID">Method</span>
+<button id="ID" class="lims-input lims-select-trigger" data-rac="" type="button" tabindex="0" data-aria-id="true" aria-labelledby="ID" aria-haspopup="listbox" aria-expanded="false">
+<span id="ID" class="aria-id" data-rac="">Cash</span>
+<svg aria-hidden="true" focusable="false" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lims-icon">
+<path d="M6 9l6 6 6-6">
+</path>
+</svg>
+</button>
+<div style="border: 0px; clip: rect(0px 0px 0px 0px); clip-path: inset(50%); height: 1px; margin: -1px; overflow: hidden; padding: 0px; position: fixed; width: 1px; white-space: nowrap; top: 0px; left: 0px;" aria-hidden="true" data-aria-id="true" data-a11y-ignore="aria-hidden-focus" data-testid="hidden-select-container">
+<label>
+<select tabindex="-1" name="method_0">
+<option value="" label="&nbsp;">&nbsp;</option>
+<option value="cash">Cash</option>
+<option value="card">Card</option>
+<option value="esewa">eSewa</option>
+</select>
+</label>
+</div>
+</div>
+<div data-field="amount-0">
+<div class="lims-field" data-rac="">
+<label class="lims-label" id="ID" for="ID">Amount</label>
+<div class="lims-input-group">
+<span class="lims-affix">Rs.</span>
+<input inputmode="decimal" tabindex="0" id="ID" aria-labelledby="ID" class="lims-input" data-rac="" type="text" value="113.00" name="amount_0">
+</div>
+</div>
+</div>
+<div class="lims-field" data-rac="">
+<label class="lims-label" id="ID" for="ID">Reference</label>
+<div class="lims-input-group">
+<input maxlength="100" tabindex="0" id="ID" aria-labelledby="ID" class="lims-input" data-rac="" type="text" value="" name="reference_0">
+</div>
+</div>
+<div class="lims-field" data-rac="">
+<label class="lims-label" id="ID" for="ID">Tendered</label>
+<div class="lims-input-group">
+<span class="lims-affix">Rs.</span>
+<input inputmode="decimal" tabindex="0" id="ID" aria-labelledby="ID" class="lims-input" data-rac="" type="text" value="" name="tendered_0">
+</div>
+</div>
+</div>
+<button class="lims-btn lims-btn-ghost lims-btn-md" data-rac="" type="button" tabindex="0" data-aria-id="true" id="ID">
+<svg aria-hidden="true" focusable="false" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lims-icon">
+<path d="M12 5v14M5 12h14">
+</path>
+</svg>
+<span class="lims-btn-label">Add method</span>
+<kbd class="lims-kbd" aria-hidden="true">Alt+P</kbd>
+</button>
+<div role="status">
+<span>Balance after payment</span> <span class="lims-money">Rs. 0.00</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+<aside class="lims-reg-summary" aria-label="Registration summary">
+<h2 class="lims-reg-summary-title">Summary</h2>
+<dl class="lims-reg-summary-list">
+<div class="lims-reg-summary-row">
+<dt>Tests</dt>
+<dd>1 selected<ul class="lims-reg-summary-tests">
+<li>Complete blood count</li>
+</ul>
+</dd>
+</div>
+<div class="lims-reg-summary-row">
+<dt>Total</dt>
+<dd>
+<span class="lims-money">
+<span>Rs.</span> <span>113.00</span>
+</span>
+</dd>
+</div>
+<div class="lims-reg-summary-row">
+<dt>Paid</dt>
+<dd>
+<span class="lims-money">
+<span>Rs.</span> <span>113.00</span>
+</span>
+</dd>
+</div>
+<div class="lims-reg-summary-row lims-reg-summary-balance">
+<dt>Balance</dt>
+<dd>
+<span class="lims-money">
+<span>Rs.</span> <span>0.00</span>
+</span>
+</dd>
+</div>
+<div class="lims-reg-summary-row">
+<dt>Discount authority</dt>
+<dd>Limit 5%</dd>
+</div>
+</dl>
+<button class="lims-btn lims-btn-primary lims-btn-md" data-rac="" type="submit" data-aria-id="true" id="ID" tabindex="0">
+<span class="lims-btn-label">Register &amp; print</span>
+<kbd class="lims-kbd" aria-hidden="true">Ctrl+Enter</kbd>
+</button>
+</aside>
+</div>
+<div>
+</div>
+</section>
+<div class="lims-toast-region">
+</div>"
+`;

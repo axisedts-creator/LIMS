@@ -1,0 +1,595 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`RS-C8 schedule and export screens: snapshots + axe > My exports 1`] = `
+"<div class="lims-page-header">
+<div class="lims-page-header-row">
+<h1 class="lims-page-title">My exports</h1>
+<div class="lims-page-actions">
+<span data-help-key="analytics.exports">
+<button class="lims-btn lims-btn-ghost lims-btn-md" data-rac="" type="button" tabindex="0" data-aria-id="true" id="ID">
+<svg aria-hidden="true" focusable="false" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lims-icon">
+<path d="M12 3a9 9 0 100 18 9 9 0 000-18zM9.5 9.5a2.5 2.5 0 115 0c0 2-2.5 2-2.5 4M12 17h.01">
+</path>
+</svg>
+<span class="lims-btn-label">Help</span>
+</button>
+</span>
+</div>
+</div>
+</div>
+<template>
+</template>
+<div class="lims-field" data-rac="">
+<span class="lims-label" id="ID">Status</span>
+<button id="ID" class="lims-input lims-select-trigger" data-rac="" type="button" tabindex="0" data-aria-id="true" aria-labelledby="ID" aria-haspopup="listbox" aria-expanded="false">
+<span id="ID" class="aria-id" data-rac="">All</span>
+<svg aria-hidden="true" focusable="false" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lims-icon">
+<path d="M6 9l6 6 6-6">
+</path>
+</svg>
+</button>
+<div style="border: 0px; clip: rect(0px 0px 0px 0px); clip-path: inset(50%); height: 1px; margin: -1px; overflow: hidden; padding: 0px; position: fixed; width: 1px; white-space: nowrap; top: 0px; left: 0px;" aria-hidden="true" data-aria-id="true" data-a11y-ignore="aria-hidden-focus" data-testid="hidden-select-container">
+<label>
+<select tabindex="-1" name="status">
+<option value="" label="&nbsp;">&nbsp;</option>
+<option value="all">All</option>
+<option value="queued">Queued</option>
+<option value="building">Building</option>
+<option value="ready">Ready</option>
+<option value="failed">Failed</option>
+<option value="expired">Expired</option>
+</select>
+</label>
+</div>
+</div>
+<div class="lims-data-table">
+<template>
+</template>
+<span data-focus-scope-start="true" hidden="">
+</span>
+<table class="lims-table lims-table-compact lims-table-sticky" data-rac="" aria-label="My exports" id="ID" role="grid" tabindex="0" aria-describedby="" data-collection="aria-id">
+<thead role="rowgroup" class="aria-id" data-rac="">
+<tr role="row">
+<th tabindex="-1" data-collection="aria-id" data-key="requested" id="ID" role="columnheader" aria-colindex="1" data-aria-id="true" class="lims-col lims-align-start" data-rac="">Requested</th>
+<th tabindex="-1" data-collection="aria-id" data-key="report" id="ID" role="columnheader" aria-colindex="2" data-aria-id="true" class="lims-col lims-align-start" data-rac="">Report</th>
+<th tabindex="-1" data-collection="aria-id" data-key="period" id="ID" role="columnheader" aria-colindex="3" data-aria-id="true" class="lims-col lims-align-start" data-rac="">Period</th>
+<th tabindex="-1" data-collection="aria-id" data-key="format" id="ID" role="columnheader" aria-colindex="4" data-aria-id="true" class="lims-col lims-align-start" data-rac="">Format</th>
+<th tabindex="-1" data-collection="aria-id" data-key="status" id="ID" role="columnheader" aria-colindex="5" data-aria-id="true" class="lims-col lims-align-start" data-rac="">Status</th>
+<th tabindex="-1" data-collection="aria-id" data-key="rows" id="ID" role="columnheader" aria-colindex="6" data-aria-id="true" class="lims-col lims-align-end" data-rac="">Rows</th>
+<th tabindex="-1" data-collection="aria-id" data-key="size" id="ID" role="columnheader" aria-colindex="7" data-aria-id="true" class="lims-col lims-align-end" data-rac="">Size</th>
+<th tabindex="-1" data-collection="aria-id" data-key="downloads" id="ID" role="columnheader" aria-colindex="8" data-aria-id="true" class="lims-col lims-align-end" data-rac="">Downloads</th>
+<th tabindex="-1" data-collection="aria-id" data-key="expires" id="ID" role="columnheader" aria-colindex="9" data-aria-id="true" class="lims-col lims-align-start" data-rac="">Expires</th>
+<th tabindex="-1" data-collection="aria-id" data-key="action" id="ID" role="columnheader" aria-colindex="10" data-aria-id="true" class="lims-col lims-align-start" data-rac="">Download</th>
+</tr>
+</thead>
+<tbody class="aria-id" data-rac="" role="rowgroup">
+<tr data-row-id="01a1a98a-ac40-7000-8000-000000000101" data-row-index="0" class="lims-row" style="--table-row-level: 1;" data-rac="" role="row" tabindex="-1" data-collection="aria-id" data-key="01a1a98a-ac40-7000-8000-000000000101" id="ID" aria-labelledby="ID" data-level="1">
+<td class="lims-cell lims-align-start" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="rowheader" data-column-index="0" data-level="1">
+<time class="lims-date-text" datetime="2026-11-09T04:30:00.000Z">09/11/2026 10:15 AM</time>
+</td>
+<td class="lims-cell lims-align-start" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="gridcell" data-column-index="1" data-level="1">Income</td>
+<td class="lims-cell lims-align-start" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="gridcell" data-column-index="2" data-level="1">2083-07</td>
+<td class="lims-cell lims-align-start" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="gridcell" data-column-index="3" data-level="1">Excel (.xlsx)</td>
+<td class="lims-cell lims-align-start" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="gridcell" data-column-index="4" data-level="1">
+<span class="lims-chip lims-chip-md lims-tone-success" data-tone="success">
+<svg aria-hidden="true" focusable="false" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lims-icon">
+<path d="M12 3a9 9 0 100 18 9 9 0 000-18zM8 12l3 3 5-6">
+</path>
+</svg>Ready</span>
+</td>
+<td class="lims-cell lims-align-end" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="gridcell" data-column-index="5" data-level="1">1,234</td>
+<td class="lims-cell lims-align-end" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="gridcell" data-column-index="6" data-level="1">2 KB</td>
+<td class="lims-cell lims-align-end" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="gridcell" data-column-index="7" data-level="1">1 of 3</td>
+<td class="lims-cell lims-align-start" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="gridcell" data-column-index="8" data-level="1">
+<time class="lims-date-text" datetime="2099-01-01T00:00:00.000Z">01/01/2099 05:45 AM</time>
+</td>
+<td class="lims-cell lims-align-start" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="gridcell" data-column-index="9" data-level="1">
+<a class="lims-btn lims-btn-primary lims-btn-sm" href="/analytics/exports/01a1a98a-ac40-7000-8000-000000000101/file">Download</a>
+</td>
+</tr>
+<tr data-row-id="01a1a98a-ac40-7000-8000-000000000102" data-row-index="1" class="lims-row" style="--table-row-level: 1;" data-rac="" role="row" tabindex="-1" data-collection="aria-id" data-key="01a1a98a-ac40-7000-8000-000000000102" id="ID" aria-labelledby="ID" data-level="1">
+<td class="lims-cell lims-align-start" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="rowheader" data-column-index="0" data-level="1">
+<time class="lims-date-text" datetime="2026-11-09T04:30:00.000Z">09/11/2026 10:15 AM</time>
+</td>
+<td class="lims-cell lims-align-start" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="gridcell" data-column-index="1" data-level="1">Income</td>
+<td class="lims-cell lims-align-start" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="gridcell" data-column-index="2" data-level="1">2083-07</td>
+<td class="lims-cell lims-align-start" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="gridcell" data-column-index="3" data-level="1">Excel (.xlsx)</td>
+<td class="lims-cell lims-align-start" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="gridcell" data-column-index="4" data-level="1">
+<span class="lims-chip lims-chip-md lims-tone-neutral" data-tone="neutral">
+<svg aria-hidden="true" focusable="false" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lims-icon">
+<path d="M12 3a9 9 0 100 18 9 9 0 000-18z">
+</path>
+</svg>Building</span>
+</td>
+<td class="lims-cell lims-align-end" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="gridcell" data-column-index="5" data-level="1">1,234</td>
+<td class="lims-cell lims-align-end" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="gridcell" data-column-index="6" data-level="1">2 KB</td>
+<td class="lims-cell lims-align-end" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="gridcell" data-column-index="7" data-level="1">1 of 3</td>
+<td class="lims-cell lims-align-start" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="gridcell" data-column-index="8" data-level="1">
+<time class="lims-date-text" datetime="2099-01-01T00:00:00.000Z">01/01/2099 05:45 AM</time>
+</td>
+<td class="lims-cell lims-align-start" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="gridcell" data-column-index="9" data-level="1">
+</td>
+</tr>
+<tr data-row-id="01a1a98a-ac40-7000-8000-000000000103" data-row-index="2" class="lims-row" style="--table-row-level: 1;" data-rac="" role="row" tabindex="-1" data-collection="aria-id" data-key="01a1a98a-ac40-7000-8000-000000000103" id="ID" aria-labelledby="ID" data-level="1">
+<td class="lims-cell lims-align-start" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="rowheader" data-column-index="0" data-level="1">
+<time class="lims-date-text" datetime="2026-11-09T04:30:00.000Z">09/11/2026 10:15 AM</time>
+</td>
+<td class="lims-cell lims-align-start" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="gridcell" data-column-index="1" data-level="1">Income</td>
+<td class="lims-cell lims-align-start" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="gridcell" data-column-index="2" data-level="1">2083-07</td>
+<td class="lims-cell lims-align-start" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="gridcell" data-column-index="3" data-level="1">Excel (.xlsx)</td>
+<td class="lims-cell lims-align-start" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="gridcell" data-column-index="4" data-level="1">
+<span class="lims-chip lims-chip-md lims-tone-danger" data-tone="danger">
+<svg aria-hidden="true" focusable="false" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lims-icon">
+<path d="M12 3a9 9 0 100 18 9 9 0 000-18zM9 9l6 6M15 9l-6 6">
+</path>
+</svg>Failed</span>
+<p class="lims-description">Export failed. Reference: 01a1a98a</p>
+</td>
+<td class="lims-cell lims-align-end" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="gridcell" data-column-index="5" data-level="1">1,234</td>
+<td class="lims-cell lims-align-end" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="gridcell" data-column-index="6" data-level="1">2 KB</td>
+<td class="lims-cell lims-align-end" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="gridcell" data-column-index="7" data-level="1">1 of 3</td>
+<td class="lims-cell lims-align-start" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="gridcell" data-column-index="8" data-level="1">
+<time class="lims-date-text" datetime="2026-11-10T04:30:20.000Z">10/11/2026 10:15 AM</time>
+</td>
+<td class="lims-cell lims-align-start" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="gridcell" data-column-index="9" data-level="1">
+</td>
+</tr>
+</tbody>
+</table>
+<span data-focus-scope-end="true" hidden="">
+</span>
+<div role="status" class="lims-visually-hidden">
+</div>
+</div>
+<div class="lims-toast-region">
+</div>"
+`;
+
+exports[`RS-C8 schedule and export screens: snapshots + axe > New schedule form 1`] = `
+"<div class="lims-page-header">
+<nav aria-label="Breadcrumb" class="lims-breadcrumbs">
+<ol>
+<li>
+<a href="/analytics/schedules">Scheduled reports</a>
+</li>
+<li>
+<span aria-current="page">New</span>
+</li>
+</ol>
+</nav>
+<div class="lims-page-header-row">
+<h1 class="lims-page-title">New scheduled report</h1>
+<div class="lims-page-actions">
+<span data-help-key="analytics.schedules">
+<button class="lims-btn lims-btn-ghost lims-btn-md" data-rac="" type="button" tabindex="0" data-aria-id="true" id="ID">
+<svg aria-hidden="true" focusable="false" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lims-icon">
+<path d="M12 3a9 9 0 100 18 9 9 0 000-18zM9.5 9.5a2.5 2.5 0 115 0c0 2-2.5 2-2.5 4M12 17h.01">
+</path>
+</svg>
+<span class="lims-btn-label">Help</span>
+</button>
+</span>
+</div>
+</div>
+</div>
+<div>
+<form novalidate="" class="lims-form">
+<div class="lims-field" data-rac="" data-required="true">
+<label class="lims-label" id="ID" for="ID">Name<span aria-hidden="true"> *</span>
+</label>
+<div class="lims-input-group">
+<input aria-required="true" maxlength="80" tabindex="0" id="ID" aria-labelledby="ID" class="lims-input" data-rac="" type="text" value="" name="name">
+</div>
+</div>
+<fieldset class="lims-field">
+<legend class="lims-label">Reports</legend>
+<div class="lims-check-wrap">
+<label data-aria-id="true" class="lims-check" data-rac="" data-selected="true">
+<span style="border: 0px; clip: rect(0px 0px 0px 0px); clip-path: inset(50%); height: 1px; margin: -1px; overflow: hidden; padding: 0px; position: absolute; width: 1px; white-space: nowrap;">
+<input data-aria-id="true" tabindex="0" type="checkbox" checked="" title="">
+</span>
+<span class="lims-check-box" aria-hidden="true">
+<svg aria-hidden="true" focusable="false" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lims-icon">
+<path d="M5 12l5 5L20 7">
+</path>
+</svg>
+</span>Dashboard</label>
+</div>
+<div class="lims-check-wrap">
+<label data-aria-id="true" class="lims-check" data-rac="" data-selected="true">
+<span style="border: 0px; clip: rect(0px 0px 0px 0px); clip-path: inset(50%); height: 1px; margin: -1px; overflow: hidden; padding: 0px; position: absolute; width: 1px; white-space: nowrap;">
+<input data-aria-id="true" tabindex="0" type="checkbox" checked="" title="">
+</span>
+<span class="lims-check-box" aria-hidden="true">
+<svg aria-hidden="true" focusable="false" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lims-icon">
+<path d="M5 12l5 5L20 7">
+</path>
+</svg>
+</span>Income</label>
+</div>
+<div class="lims-check-wrap">
+<label data-aria-id="true" class="lims-check" data-rac="">
+<span style="border: 0px; clip: rect(0px 0px 0px 0px); clip-path: inset(50%); height: 1px; margin: -1px; overflow: hidden; padding: 0px; position: absolute; width: 1px; white-space: nowrap;">
+<input data-aria-id="true" tabindex="0" type="checkbox" title="">
+</span>
+<span class="lims-check-box" aria-hidden="true">
+</span>Department income</label>
+</div>
+<div class="lims-check-wrap">
+<label data-aria-id="true" class="lims-check" data-rac="">
+<span style="border: 0px; clip: rect(0px 0px 0px 0px); clip-path: inset(50%); height: 1px; margin: -1px; overflow: hidden; padding: 0px; position: absolute; width: 1px; white-space: nowrap;">
+<input data-aria-id="true" tabindex="0" type="checkbox" title="">
+</span>
+<span class="lims-check-box" aria-hidden="true">
+</span>Volume</label>
+</div>
+<div class="lims-check-wrap">
+<label data-aria-id="true" class="lims-check" data-rac="">
+<span style="border: 0px; clip: rect(0px 0px 0px 0px); clip-path: inset(50%); height: 1px; margin: -1px; overflow: hidden; padding: 0px; position: absolute; width: 1px; white-space: nowrap;">
+<input data-aria-id="true" tabindex="0" type="checkbox" title="">
+</span>
+<span class="lims-check-box" aria-hidden="true">
+</span>Top referrers</label>
+</div>
+<div class="lims-check-wrap">
+<label data-aria-id="true" class="lims-check" data-rac="">
+<span style="border: 0px; clip: rect(0px 0px 0px 0px); clip-path: inset(50%); height: 1px; margin: -1px; overflow: hidden; padding: 0px; position: absolute; width: 1px; white-space: nowrap;">
+<input data-aria-id="true" tabindex="0" type="checkbox" title="">
+</span>
+<span class="lims-check-box" aria-hidden="true">
+</span>Top centres</label>
+</div>
+<div class="lims-check-wrap">
+<label data-aria-id="true" class="lims-check" data-rac="">
+<span style="border: 0px; clip: rect(0px 0px 0px 0px); clip-path: inset(50%); height: 1px; margin: -1px; overflow: hidden; padding: 0px; position: absolute; width: 1px; white-space: nowrap;">
+<input data-aria-id="true" tabindex="0" type="checkbox" title="">
+</span>
+<span class="lims-check-box" aria-hidden="true">
+</span>Tests done</label>
+</div>
+<div class="lims-check-wrap">
+<label data-aria-id="true" class="lims-check" data-rac="">
+<span style="border: 0px; clip: rect(0px 0px 0px 0px); clip-path: inset(50%); height: 1px; margin: -1px; overflow: hidden; padding: 0px; position: absolute; width: 1px; white-space: nowrap;">
+<input data-aria-id="true" tabindex="0" type="checkbox" title="">
+</span>
+<span class="lims-check-box" aria-hidden="true">
+</span>Turnaround time (TAT)</label>
+</div>
+<div class="lims-check-wrap">
+<label data-aria-id="true" class="lims-check" data-rac="">
+<span style="border: 0px; clip: rect(0px 0px 0px 0px); clip-path: inset(50%); height: 1px; margin: -1px; overflow: hidden; padding: 0px; position: absolute; width: 1px; white-space: nowrap;">
+<input data-aria-id="true" tabindex="0" type="checkbox" title="">
+</span>
+<span class="lims-check-box" aria-hidden="true">
+</span>Pending tests</label>
+</div>
+<div class="lims-check-wrap">
+<label data-aria-id="true" class="lims-check" data-rac="">
+<span style="border: 0px; clip: rect(0px 0px 0px 0px); clip-path: inset(50%); height: 1px; margin: -1px; overflow: hidden; padding: 0px; position: absolute; width: 1px; white-space: nowrap;">
+<input data-aria-id="true" tabindex="0" type="checkbox" title="">
+</span>
+<span class="lims-check-box" aria-hidden="true">
+</span>Quality indicators</label>
+</div>
+<div class="lims-check-wrap">
+<label data-aria-id="true" class="lims-check" data-rac="">
+<span style="border: 0px; clip: rect(0px 0px 0px 0px); clip-path: inset(50%); height: 1px; margin: -1px; overflow: hidden; padding: 0px; position: absolute; width: 1px; white-space: nowrap;">
+<input data-aria-id="true" tabindex="0" type="checkbox" title="">
+</span>
+<span class="lims-check-box" aria-hidden="true">
+</span>Delivery</label>
+</div>
+</fieldset>
+<div class="lims-field lims-radio-group" data-rac="" role="radiogroup" aria-orientation="horizontal" id="ID" aria-labelledby="ID" data-orientation="horizontal">
+<span class="lims-label" id="ID">Frequency</span>
+<div class="lims-radio-options lims-horizontal">
+<label data-aria-id="true" class="lims-radio" data-rac="" data-selected="true">
+<span style="border: 0px; clip: rect(0px 0px 0px 0px); clip-path: inset(50%); height: 1px; margin: -1px; overflow: hidden; padding: 0px; position: absolute; width: 1px; white-space: nowrap;">
+<input data-aria-id="true" tabindex="0" type="radio" value="daily" checked="" name="frequency">
+</span>
+<span class="lims-radio-dot" aria-hidden="true">
+</span>Daily</label>
+<label data-aria-id="true" class="lims-radio" data-rac="">
+<span style="border: 0px; clip: rect(0px 0px 0px 0px); clip-path: inset(50%); height: 1px; margin: -1px; overflow: hidden; padding: 0px; position: absolute; width: 1px; white-space: nowrap;">
+<input data-aria-id="true" tabindex="-1" type="radio" value="weekly" name="frequency">
+</span>
+<span class="lims-radio-dot" aria-hidden="true">
+</span>Weekly</label>
+<label data-aria-id="true" class="lims-radio" data-rac="">
+<span style="border: 0px; clip: rect(0px 0px 0px 0px); clip-path: inset(50%); height: 1px; margin: -1px; overflow: hidden; padding: 0px; position: absolute; width: 1px; white-space: nowrap;">
+<input data-aria-id="true" tabindex="-1" type="radio" value="monthly_ad" name="frequency">
+</span>
+<span class="lims-radio-dot" aria-hidden="true">
+</span>Monthly (A.D.)</label>
+<label data-aria-id="true" class="lims-radio" data-rac="">
+<span style="border: 0px; clip: rect(0px 0px 0px 0px); clip-path: inset(50%); height: 1px; margin: -1px; overflow: hidden; padding: 0px; position: absolute; width: 1px; white-space: nowrap;">
+<input data-aria-id="true" tabindex="-1" type="radio" value="monthly_bs" name="frequency">
+</span>
+<span class="lims-radio-dot" aria-hidden="true">
+</span>Monthly (B.S.)</label>
+</div>
+</div>
+<template>
+</template>
+<div class="lims-field" data-rac="">
+<span class="lims-label" id="ID">Send time (Nepal time)</span>
+<button id="ID" class="lims-input lims-select-trigger" data-rac="" type="button" tabindex="0" data-aria-id="true" aria-labelledby="ID" aria-haspopup="listbox" aria-expanded="false">
+<span id="ID" class="aria-id" data-rac="">07:00</span>
+<svg aria-hidden="true" focusable="false" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lims-icon">
+<path d="M6 9l6 6 6-6">
+</path>
+</svg>
+</button>
+<div style="border: 0px; clip: rect(0px 0px 0px 0px); clip-path: inset(50%); height: 1px; margin: -1px; overflow: hidden; padding: 0px; position: fixed; width: 1px; white-space: nowrap; top: 0px; left: 0px;" aria-hidden="true" data-aria-id="true" data-a11y-ignore="aria-hidden-focus" data-testid="hidden-select-container">
+<label>
+<select tabindex="-1" name="send_time_local">
+<option value="" label="&nbsp;">&nbsp;</option>
+<option value="00:00">00:00</option>
+<option value="00:15">00:15</option>
+<option value="00:30">00:30</option>
+<option value="00:45">00:45</option>
+<option value="01:00">01:00</option>
+<option value="01:15">01:15</option>
+<option value="01:30">01:30</option>
+<option value="01:45">01:45</option>
+<option value="02:00">02:00</option>
+<option value="02:15">02:15</option>
+<option value="02:30">02:30</option>
+<option value="02:45">02:45</option>
+<option value="03:00">03:00</option>
+<option value="03:15">03:15</option>
+<option value="03:30">03:30</option>
+<option value="03:45">03:45</option>
+<option value="04:00">04:00</option>
+<option value="04:15">04:15</option>
+<option value="04:30">04:30</option>
+<option value="04:45">04:45</option>
+<option value="05:00">05:00</option>
+<option value="05:15">05:15</option>
+<option value="05:30">05:30</option>
+<option value="05:45">05:45</option>
+<option value="06:00">06:00</option>
+<option value="06:15">06:15</option>
+<option value="06:30">06:30</option>
+<option value="06:45">06:45</option>
+<option value="07:00">07:00</option>
+<option value="07:15">07:15</option>
+<option value="07:30">07:30</option>
+<option value="07:45">07:45</option>
+<option value="08:00">08:00</option>
+<option value="08:15">08:15</option>
+<option value="08:30">08:30</option>
+<option value="08:45">08:45</option>
+<option value="09:00">09:00</option>
+<option value="09:15">09:15</option>
+<option value="09:30">09:30</option>
+<option value="09:45">09:45</option>
+<option value="10:00">10:00</option>
+<option value="10:15">10:15</option>
+<option value="10:30">10:30</option>
+<option value="10:45">10:45</option>
+<option value="11:00">11:00</option>
+<option value="11:15">11:15</option>
+<option value="11:30">11:30</option>
+<option value="11:45">11:45</option>
+<option value="12:00">12:00</option>
+<option value="12:15">12:15</option>
+<option value="12:30">12:30</option>
+<option value="12:45">12:45</option>
+<option value="13:00">13:00</option>
+<option value="13:15">13:15</option>
+<option value="13:30">13:30</option>
+<option value="13:45">13:45</option>
+<option value="14:00">14:00</option>
+<option value="14:15">14:15</option>
+<option value="14:30">14:30</option>
+<option value="14:45">14:45</option>
+<option value="15:00">15:00</option>
+<option value="15:15">15:15</option>
+<option value="15:30">15:30</option>
+<option value="15:45">15:45</option>
+<option value="16:00">16:00</option>
+<option value="16:15">16:15</option>
+<option value="16:30">16:30</option>
+<option value="16:45">16:45</option>
+<option value="17:00">17:00</option>
+<option value="17:15">17:15</option>
+<option value="17:30">17:30</option>
+<option value="17:45">17:45</option>
+<option value="18:00">18:00</option>
+<option value="18:15">18:15</option>
+<option value="18:30">18:30</option>
+<option value="18:45">18:45</option>
+<option value="19:00">19:00</option>
+<option value="19:15">19:15</option>
+<option value="19:30">19:30</option>
+<option value="19:45">19:45</option>
+<option value="20:00">20:00</option>
+<option value="20:15">20:15</option>
+<option value="20:30">20:30</option>
+<option value="20:45">20:45</option>
+<option value="21:00">21:00</option>
+<option value="21:15">21:15</option>
+<option value="21:30">21:30</option>
+<option value="21:45">21:45</option>
+<option value="22:00">22:00</option>
+<option value="22:15">22:15</option>
+<option value="22:30">22:30</option>
+<option value="22:45">22:45</option>
+<option value="23:00">23:00</option>
+<option value="23:15">23:15</option>
+<option value="23:30">23:30</option>
+<option value="23:45">23:45</option>
+</select>
+</label>
+</div>
+</div>
+<template>
+</template>
+<div class="lims-field" data-rac="">
+<span class="lims-label" id="ID">Period</span>
+<button id="ID" class="lims-input lims-select-trigger" data-rac="" type="button" tabindex="0" data-aria-id="true" aria-labelledby="ID" aria-haspopup="listbox" aria-expanded="false">
+<span id="ID" class="aria-id" data-rac="">Previous day</span>
+<svg aria-hidden="true" focusable="false" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lims-icon">
+<path d="M6 9l6 6 6-6">
+</path>
+</svg>
+</button>
+<div style="border: 0px; clip: rect(0px 0px 0px 0px); clip-path: inset(50%); height: 1px; margin: -1px; overflow: hidden; padding: 0px; position: fixed; width: 1px; white-space: nowrap; top: 0px; left: 0px;" aria-hidden="true" data-aria-id="true" data-a11y-ignore="aria-hidden-focus" data-testid="hidden-select-container">
+<label>
+<select tabindex="-1" name="period_rule">
+<option value="" label="&nbsp;">&nbsp;</option>
+<option value="previous_business_day">Previous day</option>
+<option value="previous_7_days">Previous 7 days</option>
+<option value="month_to_date_ad">A.D. month to date</option>
+<option value="previous_ad_month">Previous A.D. month</option>
+<option value="month_to_date_bs">B.S. month to date</option>
+<option value="previous_bs_month">Previous B.S. month</option>
+<option value="fiscal_year_to_date">Fiscal year to date</option>
+</select>
+</label>
+</div>
+</div>
+<div class="lims-field lims-radio-group" data-rac="" role="radiogroup" aria-orientation="horizontal" id="ID" aria-labelledby="ID" data-orientation="horizontal">
+<span class="lims-label" id="ID">Centres</span>
+<div class="lims-radio-options lims-horizontal">
+<label data-aria-id="true" class="lims-radio" data-rac="" data-selected="true">
+<span style="border: 0px; clip: rect(0px 0px 0px 0px); clip-path: inset(50%); height: 1px; margin: -1px; overflow: hidden; padding: 0px; position: absolute; width: 1px; white-space: nowrap;">
+<input data-aria-id="true" tabindex="0" type="radio" value="all" checked="" name="centres">
+</span>
+<span class="lims-radio-dot" aria-hidden="true">
+</span>All centres</label>
+<label data-aria-id="true" class="lims-radio" data-rac="">
+<span style="border: 0px; clip: rect(0px 0px 0px 0px); clip-path: inset(50%); height: 1px; margin: -1px; overflow: hidden; padding: 0px; position: absolute; width: 1px; white-space: nowrap;">
+<input data-aria-id="true" tabindex="-1" type="radio" value="selected" name="centres">
+</span>
+<span class="lims-radio-dot" aria-hidden="true">
+</span>Selected centres</label>
+</div>
+</div>
+<div class="lims-field">
+<template>
+</template>
+<div class="lims-field" data-rac="">
+<label class="lims-label" id="ID" for="ID">Recipients</label>
+<input aria-autocomplete="list" autocomplete="off" autocorrect="off" spellcheck="false" tabindex="0" id="ID" aria-labelledby="ID" role="combobox" aria-expanded="false" class="lims-input" data-rac="" type="text" value="" name="recipients">
+</div>
+<ul class="lims-inline" aria-label="Chosen recipients">
+<li>
+<span>Synthetic Owner</span>
+<button class="lims-btn lims-btn-ghost lims-btn-sm" data-rac="" type="button" tabindex="0" data-aria-id="true" id="ID">
+<span class="lims-btn-label">Remove Synthetic Owner</span>
+</button>
+</li>
+</ul>
+</div>
+<p class="lims-description">Recipients get an email with a link only. They must sign in to see the figures.</p>
+<div class="lims-inline">
+<button class="lims-btn lims-btn-primary lims-btn-md" data-rac="" type="submit" tabindex="0" data-aria-id="true" id="ID">
+<span class="lims-btn-label">Create schedule</span>
+<kbd class="lims-kbd" aria-hidden="true">Ctrl+Enter</kbd>
+</button>
+<button class="lims-btn lims-btn-ghost lims-btn-md" data-rac="" type="button" tabindex="0" data-aria-id="true" id="ID">
+<span class="lims-btn-label">Cancel</span>
+</button>
+</div>
+</form>
+</div>
+<div class="lims-toast-region">
+</div>"
+`;
+
+exports[`RS-C8 schedule and export screens: snapshots + axe > Schedules list 1`] = `
+"<div class="lims-page-header">
+<div class="lims-page-header-row">
+<h1 class="lims-page-title">Scheduled reports</h1>
+<div class="lims-page-actions">
+<a class="lims-btn lims-btn-primary" href="/analytics/schedules/new">New schedule</a>
+<span data-help-key="analytics.schedules">
+<button class="lims-btn lims-btn-ghost lims-btn-md" data-rac="" type="button" tabindex="0" data-aria-id="true" id="ID">
+<svg aria-hidden="true" focusable="false" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lims-icon">
+<path d="M12 3a9 9 0 100 18 9 9 0 000-18zM9.5 9.5a2.5 2.5 0 115 0c0 2-2.5 2-2.5 4M12 17h.01">
+</path>
+</svg>
+<span class="lims-btn-label">Help</span>
+</button>
+</span>
+</div>
+</div>
+</div>
+<div class="lims-data-table">
+<template>
+</template>
+<span data-focus-scope-start="true" hidden="">
+</span>
+<table class="lims-table lims-table-compact lims-table-sticky" data-rac="" aria-label="Scheduled reports" id="ID" role="grid" tabindex="0" aria-describedby="" data-collection="aria-id">
+<thead role="rowgroup" class="aria-id" data-rac="">
+<tr role="row">
+<th tabindex="-1" data-collection="aria-id" data-key="name" id="ID" role="columnheader" aria-colindex="1" data-aria-id="true" class="lims-col lims-align-start" data-rac="">Name</th>
+<th tabindex="-1" data-collection="aria-id" data-key="reports" id="ID" role="columnheader" aria-colindex="2" data-aria-id="true" class="lims-col lims-align-start" data-rac="">Reports</th>
+<th tabindex="-1" data-collection="aria-id" data-key="frequency" id="ID" role="columnheader" aria-colindex="3" data-aria-id="true" class="lims-col lims-align-start" data-rac="">Frequency</th>
+<th tabindex="-1" data-collection="aria-id" data-key="period" id="ID" role="columnheader" aria-colindex="4" data-aria-id="true" class="lims-col lims-align-start" data-rac="">Period</th>
+<th tabindex="-1" data-collection="aria-id" data-key="recipients" id="ID" role="columnheader" aria-colindex="5" data-aria-id="true" class="lims-col lims-align-end" data-rac="">Recipients</th>
+<th tabindex="-1" data-collection="aria-id" data-key="next" id="ID" role="columnheader" aria-colindex="6" data-aria-id="true" class="lims-col lims-align-start" data-rac="">Next send</th>
+<th tabindex="-1" data-collection="aria-id" data-key="status" id="ID" role="columnheader" aria-colindex="7" data-aria-id="true" class="lims-col lims-align-start" data-rac="">Status</th>
+<th tabindex="-1" data-collection="aria-id" data-key="actions" id="ID" role="columnheader" aria-colindex="8" data-aria-id="true" class="lims-col lims-align-start" data-rac="">Actions</th>
+</tr>
+</thead>
+<tbody class="aria-id" data-rac="" role="rowgroup">
+<tr data-row-id="01a1a98a-ac40-7000-8000-000000000040" data-row-index="0" class="lims-row" style="--table-row-level: 1;" data-rac="" role="row" tabindex="-1" data-collection="aria-id" data-key="01a1a98a-ac40-7000-8000-000000000040" id="ID" aria-labelledby="ID" data-level="1">
+<td class="lims-cell lims-align-start" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="rowheader" data-column-index="0" data-level="1">Daily MIS</td>
+<td class="lims-cell lims-align-start" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="gridcell" data-column-index="1" data-level="1">3 (Dashboard, Income, …)</td>
+<td class="lims-cell lims-align-start" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="gridcell" data-column-index="2" data-level="1">Daily at 07:00</td>
+<td class="lims-cell lims-align-start" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="gridcell" data-column-index="3" data-level="1">Previous day</td>
+<td class="lims-cell lims-align-end" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="gridcell" data-column-index="4" data-level="1">2</td>
+<td class="lims-cell lims-align-start" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="gridcell" data-column-index="5" data-level="1">
+<time class="lims-date-text" datetime="2026-11-11T01:15:00.000Z">11/11/2026 07:00 AM</time>
+</td>
+<td class="lims-cell lims-align-start" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="gridcell" data-column-index="6" data-level="1">
+<span class="lims-chip lims-chip-md lims-tone-success" data-tone="success">
+<svg aria-hidden="true" focusable="false" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lims-icon">
+<path d="M12 3a9 9 0 100 18 9 9 0 000-18zM8 12l3 3 5-6">
+</path>
+</svg>Active</span>
+</td>
+<td class="lims-cell lims-align-start" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="gridcell" data-column-index="7" data-level="1">
+<span class="lims-inline">
+<a href="/analytics/schedules/01a1a98a-ac40-7000-8000-000000000040">Edit</a>
+<button class="lims-btn lims-btn-ghost lims-btn-sm" data-rac="" type="button" tabindex="0" data-aria-id="true" id="ID">
+<span class="lims-btn-label">Deactivate</span>
+</button>
+</span>
+</td>
+</tr>
+<tr data-row-id="01a1a98a-ac40-7000-8000-000000000041" data-row-index="1" class="lims-row" style="--table-row-level: 1;" data-rac="" role="row" tabindex="-1" data-collection="aria-id" data-key="01a1a98a-ac40-7000-8000-000000000041" id="ID" aria-labelledby="ID" data-level="1">
+<td class="lims-cell lims-align-start" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="rowheader" data-column-index="0" data-level="1">Weekly volume</td>
+<td class="lims-cell lims-align-start" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="gridcell" data-column-index="1" data-level="1">3 (Dashboard, Income, …)</td>
+<td class="lims-cell lims-align-start" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="gridcell" data-column-index="2" data-level="1">Weekly on — at 07:00</td>
+<td class="lims-cell lims-align-start" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="gridcell" data-column-index="3" data-level="1">Previous day</td>
+<td class="lims-cell lims-align-end" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="gridcell" data-column-index="4" data-level="1">2</td>
+<td class="lims-cell lims-align-start" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="gridcell" data-column-index="5" data-level="1">
+<time class="lims-date-text" datetime="2026-11-11T01:15:00.000Z">11/11/2026 07:00 AM</time>
+</td>
+<td class="lims-cell lims-align-start" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="gridcell" data-column-index="6" data-level="1">
+<span class="lims-chip lims-chip-md lims-tone-neutral" data-tone="neutral">
+<svg aria-hidden="true" focusable="false" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lims-icon">
+<path d="M12 3a9 9 0 100 18 9 9 0 000-18z">
+</path>
+</svg>Inactive</span>
+</td>
+<td class="lims-cell lims-align-start" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="gridcell" data-column-index="7" data-level="1">
+<span class="lims-inline">
+<a href="/analytics/schedules/01a1a98a-ac40-7000-8000-000000000041">Edit</a>
+</span>
+</td>
+</tr>
+</tbody>
+</table>
+<span data-focus-scope-end="true" hidden="">
+</span>
+<div role="status" class="lims-visually-hidden">
+</div>
+</div>
+<div class="lims-toast-region">
+</div>"
+`;

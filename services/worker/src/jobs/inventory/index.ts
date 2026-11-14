@@ -1,6 +1,8 @@
 // inventory worker manifest (02-TRD §9). T-01: tasks and consumers are stubs that throw common.internal until T-0x implement them.
 // ponytail: WorkerManifest is declared here because services/worker has no core yet; import it from the worker core when it lands.
-export type JobHandler = (payload: unknown) => Promise<void>;
+import { resolveUnresolved } from './tasks/inventory.resolve_unresolved.js';
+
+export type JobHandler = (payload: any, ctx: any) => Promise<void>;
 export interface CronEntry {
   readonly identifier: string;
   readonly schedule: string;
@@ -23,7 +25,7 @@ const cron = (identifier: string, schedule: string): CronEntry => ({ identifier,
 export const manifest: WorkerManifest = {
   module: 'inventory',
   tasks: {
-    'inventory.resolve_unresolved': notImplemented('resolve_unresolved'),
+    'inventory.resolve_unresolved': resolveUnresolved, // T-15
     'inventory.daily_fixed_consumption': notImplemented('daily_fixed_consumption'),
     'inventory.daily_alert_scan': notImplemented('daily_alert_scan'),
     'inventory.balance_integrity_check': notImplemented('balance_integrity_check'),

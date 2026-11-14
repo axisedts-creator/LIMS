@@ -1,0 +1,1 @@
+pnpm --dir services/api exec vitest run src/modules/quality/__tests__/settings.service.test.ts src/modules/quality/__tests__/settings.handlers.test.ts src/modules/quality/__tests__/settings.repo.sql.test.ts src/modules/quality/__tests__/settings.view.test.ts src/modules/quality/__tests__/boot.test.ts

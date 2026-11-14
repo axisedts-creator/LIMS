@@ -15,11 +15,13 @@ import '../../support/rig.dart';
 const saveWarning = "This saves the report outside the app. Anyone with access to your phone's files may see it.";
 
 /// The Share/Save control of the app bar: an icon button whose tooltip says share/save, or a text action of that name.
-Finder shareControl() => find.byWidgetPredicate((w) {
+Finder shareControlAny() => find.byWidgetPredicate((w) {
       if (w is IconButton) return RegExp('share|save', caseSensitive: false).hasMatch(w.tooltip ?? '');
       if (w is Text) return RegExp(r'^(share|save)\b', caseSensitive: false).hasMatch(w.data ?? '');
       return false;
-    }, description: 'share / save control').first;
+    }, description: 'share / save control');
+
+Finder shareControl() => shareControlAny().first;
 
 Finder inDialog(String text) => find.descendant(of: find.byType(AlertDialog), matching: find.text(text));
 
@@ -101,6 +103,7 @@ void main() {
       final gate = Completer<void>();
       h.api.holdDownload = (_) => gate.future;
       await openViewer(tester, h, waitForIt: false);
+      await tester.pump(const Duration(milliseconds: 400)); // ruling: finish route transition, no real IO, download stays pending
       await tester.pageBack();
       await settle(tester);
       gate.complete();
@@ -198,7 +201,7 @@ void main() {
       h.api.onDownload = (_, _, _) => throw LimsException(LimsErrorCodes.commonInternal);
       await openViewer(tester, h);
       expect(find.text('PDF VIEWER STUB'), findsNothing);
-      expect(shareControl(), findsNothing);
+      expect(shareControlAny(), findsNothing);
     });
   });
 

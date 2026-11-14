@@ -154,6 +154,9 @@ Future<void> settle(WidgetTester tester) async {
     await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 30)));
     await tester.pump(const Duration(milliseconds: 20));
   }
+  // T-P3 ruling: let the ~300 ms route transition finish so controls are hit-testable.
+  await tester.pump(const Duration(milliseconds: 400));
+  await tester.pump(const Duration(milliseconds: 400));
 }
 
 /// Mounts a page with an "Open report" button; tapping it pushes A13 (so close / back have somewhere to pop to).

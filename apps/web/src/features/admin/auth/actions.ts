@@ -3,7 +3,7 @@
 // __Host-lims_sid cookie; every call goes server-to-server to /v1/identity/auth/* with X-Lims-Bff-Key (REQ-SEC-068).
 // CSRF (Origin / Sec-Fetch-Site) is enforced by core middleware on the server-action POST itself.
 import 'server-only';
-import { readFileSync } from 'node:fs';
+import { readBffKey } from '@/core/session/bff-key';
 import { cookies, headers } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { SESSION_COOKIE, sessionCookieOptions } from '@/core/session/cookie';
@@ -29,11 +29,7 @@ const str = (fd: FormData, k: string) => {
 let cachedKey: string | undefined;
 function bffKey(): string {
   if (cachedKey) return cachedKey;
-  const file = process.env.LIMS_WEB_BFF_KEY_FILE;
-  if (!file) throw new Error('LIMS_WEB_BFF_KEY_FILE is not set');
-  const key = readFileSync(file, 'utf8').trim();
-  if (!key) throw new Error('LIMS_WEB_BFF_KEY_FILE is empty');
-  return (cachedKey = key);
+  return (cachedKey = readBffKey()); // LD-174
 }
 
 async function clientIp(): Promise<string | undefined> {

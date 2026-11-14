@@ -18,6 +18,7 @@ import { CANCEL_REASONS, PAYMENT_METHODS, REFUND_REASONS, REPRINT_REASONS, type 
 import { Ad, BsAd, InvoiceStatus, cbmsLabel, errorText, formatNpr, hasPerm, humanize, npr } from './format';
 import { InvoiceDocument } from './InvoiceDocument';
 import { InvoicePrintFrame } from './print/InvoicePrintView';
+import './billing.css';
 
 type Open = 'none' | 'cancel' | 'reprint' | 'credit' | 'refund';
 const newKey = () => crypto.randomUUID();
@@ -74,15 +75,15 @@ export function InvoiceDetailView({ invoice, prints, creditNotes, permissions }:
         }
       />
       {cancelled && invoice.cancellation ? (
-        <p role="status" className="lims-cancelled-banner" style={{ border: '2px solid var(--lims-danger, #b00020)', padding: 8 }}>
+        <p role="status" className="lims-cancelled-banner">
           CANCELLED on <BsAd utc={invoice.cancellation.cancelled_at} /> — {invoice.cancellation.reason_text ?? humanize(invoice.cancellation.reason_code)} — Credit note {invoice.cancellation.credit_note_no}
         </p>
       ) : null}
-      <div className="lims-invoice-detail" style={{ display: 'flex', gap: 24, flexWrap: 'wrap' }}>
-        <div style={{ flex: '1 1 480px' }}>
+      <div className="lims-invoice-detail">
+        <div className="lims-invoice-detail-doc">
           <InvoiceDocument document={invoice} />
         </div>
-        <aside aria-label="Invoice history" style={{ flex: '0 1 320px' }}>
+        <aside aria-label="Invoice history" className="lims-invoice-detail-side">
           <h2>Print history</h2>
           {prints.length === 0 ? <p>Not printed yet.</p> : (
             <table>

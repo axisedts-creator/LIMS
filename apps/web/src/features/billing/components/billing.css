@@ -1,0 +1,5 @@
+/* RS-C4 (LD-140; 10-DESIGN-SYSTEM s6): tokens only. Replaces inline styles on the invoice detail screen. */
+.lims-cancelled-banner { padding: var(--lims-space-2); border: 2px solid var(--lims-tone-danger-fg); border-radius: var(--lims-radius-md); background: var(--lims-tone-danger-bg); color: var(--lims-tone-danger-fg); }
+.lims-invoice-detail { display: flex; flex-wrap: wrap; gap: var(--lims-space-6); }
+.lims-invoice-detail-doc { flex: 1 1 30rem; min-width: 0; }
+.lims-invoice-detail-side { flex: 0 1 20rem; }

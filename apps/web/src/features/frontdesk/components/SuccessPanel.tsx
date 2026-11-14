@@ -10,6 +10,7 @@ import type { InvoicePrintDocument } from '@/features/billing/server/types';
 import { newKey } from '../forms/draft';
 import { printInvoiceAction, requestLabelPrintsAction } from '../server/actions';
 import type { RegistrationResult } from '../server/types';
+import './frontdesk.css';
 
 const LABEL_RETRY_MS = 1000; // 08 A13 D-4: retried every 1 s ...
 const LABEL_GIVE_UP_MS = 10_000; // ... up to 10 s
@@ -84,7 +85,7 @@ export function SuccessPanel({ result, onNew, onOpenOrder, retryLabelsRef }: { r
   return (
     <Card title="Registered">
       <div role="status">
-        <p className="lims-reg-no" style={{ fontSize: '2rem', fontWeight: 700, userSelect: 'all' }}>{result.order.registration_no}</p>
+        <p className="lims-reg-no">{result.order.registration_no}</p>
         {invoice ? (
           <p>
             <span>{invoice.invoice_no}</span>{' '}
@@ -92,7 +93,7 @@ export function SuccessPanel({ result, onNew, onOpenOrder, retryLabelsRef }: { r
           </p>
         ) : null}
         {paid && due ? (
-          <dl style={{ display: 'flex', gap: 24 }}>
+          <dl className="lims-reg-paid-due">
             <div><dt>Paid</dt><dd><MoneyText value={{ amountPaisa: paid.amount_paisa, currency: 'NPR' }} /></dd></div>
             <div><dt>Due</dt><dd><MoneyText value={{ amountPaisa: due.amount_paisa, currency: 'NPR' }} /></dd></div>
           </dl>
@@ -114,7 +115,7 @@ export function SuccessPanel({ result, onNew, onOpenOrder, retryLabelsRef }: { r
           onLoad={(e) => { try { e.currentTarget.contentWindow?.focus(); e.currentTarget.contentWindow?.print(); } catch { /* a print failure must not block the desk */ } }}
         />
       ) : null}
-      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 16 }}>
+      <div className="lims-reg-actions">
         {invoice ? <Button onPress={() => void print('customer_copy', false)} isDisabled={printed === 'printing'}>Print copy</Button> : null}
         <Button onPress={onOpenOrder} shortcut="Alt+G">Open order</Button>
         <Button variant="primary" onPress={onNew} shortcut="Ctrl+Shift+N">New registration</Button>

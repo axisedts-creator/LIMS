@@ -99,7 +99,7 @@ describe('T01 worker manifest (partners)', () => {
   });
 
   /** ids whose stub a later task has replaced; that task moves its ids here (tester-owned list). */
-  const IMPLEMENTED: readonly string[] = ['partners.expire_drafts', 'partners.redact_expired_lines']; // T21
+  const IMPLEMENTED: readonly string[] = ['partners.expire_drafts', 'partners.redact_expired_lines', 'partners.issue_access_slip', 'partners.purge_access_slips']; // T21, T14
   it('T01 stubs fail closed: a not-yet-implemented task/consumer rejects (retry / dead-letter), never silently acks', async () => {
     const ctx = { tenantId: '01940e00-0000-7000-8000-c13000000001', actor: { type: 'system', id: 'partners' }, requestId: 'r', tx: {}, db: { tx: async (f: any) => f(ctx) } } as any;
     for (const [id, h] of Object.entries(manifest.tasks ?? {}).filter(([k]) => !IMPLEMENTED.includes(k))) await expect(h({ tenant_id: ctx.tenantId }, ctx), id).rejects.toThrow();

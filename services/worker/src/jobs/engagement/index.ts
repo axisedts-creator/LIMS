@@ -15,6 +15,7 @@ import { createDispatchDueReminders } from './tasks/dispatch_due_reminders.js';
 import { createFetchSmartSummary } from './tasks/fetch_smart_summary.js';
 import { PURGE_EPHEMERAL, PURGE_QUEUE, purgeEphemeral, purgeQueue } from './tasks/purge.js';
 import { SYNC_BOOKING_CENTRES, SYNC_BOOKING_CENTRES_NIGHTLY, syncBookingCentres, syncBookingCentresNightly } from './tasks/sync_booking_centres.js';
+import { EXPIRE_PAYMENT_REQUESTS, createCreatePaymentIntent, createRefreshPaymentRequest, expirePaymentRequests } from './tasks/payment_tasks.js';
 import { createSendLoginOtp } from './tasks/send_login_otp.js';
 import { createSendBookingMessage } from './tasks/send_booking_message.js';
 import { createSendReminder } from './tasks/send_reminder.js';
@@ -45,6 +46,9 @@ export const manifest: WorkerManifest = Object.freeze({
     'engagement.send_login_otp': createSendLoginOtp(), // T-A2
     'engagement.backfill_link': createBackfillLink(), // T-L2
     'engagement.fetch_smart_summary': createFetchSmartSummary(), // T-P4
+    'engagement.create_payment_intent': createCreatePaymentIntent(), // T-PAY1
+    'engagement.refresh_payment_request': createRefreshPaymentRequest(), // T-PAY1
+    [EXPIRE_PAYMENT_REQUESTS]: expirePaymentRequests, // T-PAY1 (cron-only)
     'engagement.send_booking_message': createSendBookingMessage(), // T-B5
     'engagement.send_reminder': createSendReminder(), // T-R1
     'engagement.dispatch_due_reminders': createDispatchDueReminders(), // T-R1 (cron-only task: no §8.1 row)

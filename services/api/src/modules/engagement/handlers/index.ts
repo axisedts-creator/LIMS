@@ -9,6 +9,7 @@ import { displayHandlers } from './display.handlers.js';
 import { linkHandlers } from './link.handlers.js';
 import { myBookingHandlers } from './mybooking.handlers.js';
 import { ordersHandlers } from './orders.handlers.js';
+import { paymentHandlers } from './payment.handlers.js';
 import { queueHandlers } from './queue.handlers.js';
 import { reportHandlers } from './report.handlers.js';
 import { reminderHandlers } from './reminder.handlers.js';
@@ -53,4 +54,5 @@ export const handlers: Readonly<Record<(typeof OPERATION_IDS)[number], Handler>>
   ...ordersHandlers, // T-P2: E20, E21
   ...reportHandlers, // T-P3: E22, E23
   ...myBookingHandlers, // T-BK1: E30-E40
+  ...paymentHandlers, // T-PAY1: E41, E42
 });

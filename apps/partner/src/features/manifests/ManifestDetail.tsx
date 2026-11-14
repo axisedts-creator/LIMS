@@ -27,15 +27,16 @@ const WITHDRAW_REASONS = [ // 05-SCHEMA §7 manifest_withdraw_reasons
 ];
 const BTN = 'lims-btn lims-btn-secondary lims-btn-md';
 
-export interface ManifestDetailProps { manifest: Manifest; conversionMode: 'on_receipt' | 'on_submit'; canSubmit: boolean }
+export interface ManifestDetailProps { manifest: Manifest; conversionMode: 'on_receipt' | 'on_submit'; canSubmit: boolean; canPickup: boolean }
 
-export function ManifestDetail({ manifest: m, conversionMode, canSubmit }: ManifestDetailProps) {
+// canSubmit = partners.manifest.submit (M9 withdraw); canPickup = partners.pickup.request (K1 createPickupRequest).
+export function ManifestDetail({ manifest: m, conversionMode, canSubmit, canPickup: mayPickup }: ManifestDetailProps) {
   const router = useRouter();
   const [ask, setAsk] = useState(false);
   const [failed, setFailed] = useState<string | null>(null);
   const id = encodeURIComponent(m.id);
   const registered = (m.lines_converted ?? 0) > 0 || m.lines.some((l) => l.state === 'converted' || !!l.order);
-  const canPickup = canSubmit && (m.state === 'submitted' || m.state === 'partially_received') && !m.pickup_request_id;
+  const canPickup = mayPickup && (m.state === 'submitted' || m.state === 'partially_received') && !m.pickup_request_id;
   const canWithdraw = canSubmit && m.state === 'submitted' && conversionMode === 'on_receipt' && !registered;
 
   const withdraw = async (r: { reasonCode?: string; reasonText?: string }) => {
@@ -51,7 +52,8 @@ export function ManifestDetail({ manifest: m, conversionMode, canSubmit }: Manif
     { id: 'tests', header: 'Tests', hideBelow: 'md', cell: (l) => codesText(l.orderables.map((o) => o.code)) },
     { id: 'status', header: 'Status', cell: (l) => <Chip table={LINE_STATE} code={l.state} /> },
     { id: 'registration', header: 'Registration no.', cell: (l) => (l.order ? <RowLink href={`/orders/${encodeURIComponent(l.order.order_id)}`}>{l.order.registration_no}</RowLink> : '—') },
-    { id: 'updated', header: 'Updated', hideBelow: 'lg', cell: (l) => <Dt value={l.updated_at} withTime /> },
+    // PM-3 "Updated" (04-UI-UX.md:111): contract ManifestLine has no updated_at, so no value is read -> "—" until .orchestra/cr/C13.T19-line-updated-at.md lands.
+    { id: 'updated', header: 'Updated', hideBelow: 'lg', cell: () => '—' },
   ];
 
   return (

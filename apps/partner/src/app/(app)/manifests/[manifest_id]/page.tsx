@@ -12,5 +12,5 @@ export default async function ManifestPage({ params }: { params: Promise<{ manif
   const [m, me] = await Promise.all([get<Manifest>(`/v1/partners/manifests/${id}`), getMe()]);
   if (!Array.isArray(m.lines)) throw new Error('partner_api_failed');
   if (m.state === 'draft') return <ManifestEditor manifest={m} labName={me.tenant.display_name} />;
-  return <ManifestDetail manifest={m} conversionMode={me.features.conversion_mode} canSubmit={can(me, 'partners.manifest.submit')} />;
+  return <ManifestDetail manifest={m} conversionMode={me.features.conversion_mode} canSubmit={can(me, 'partners.manifest.submit')} canPickup={can(me, 'partners.pickup.request')} />;
 }

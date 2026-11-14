@@ -6,7 +6,7 @@ import { ErrorState } from '@lims/ui/components/ErrorState';
 import { partnerApi } from '@/core/api';
 import { PartnerShell } from '@/features/shell/PartnerShell';
 import type { Me } from '@/features/common/types';
-import '../partner.css';
+import './partner.css';
 
 export default async function AppLayout({ children }: { children: ReactNode }) {
   const r = await partnerApi<Me>('/v1/partners/me'); // session problems redirect inside partnerApi

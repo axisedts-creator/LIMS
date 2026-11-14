@@ -1,6 +1,6 @@
 'use client';
 // C13.T19 PM-4 Print view (04-UI-UX PM-4; US-05.1). Real table with <th scope>, a tick column for lab staff and the hand-over footer; the "Print" button calls window.print().
-// Print stylesheet (A4 portrait, 12 mm margins, black on white, no nav) lives in app/partner.css. LD-140: @lims/ui components only.
+// Print stylesheet (A4 portrait, 12 mm margins, black on white, no nav) lives in app/(app)/partner.css. LD-140: @lims/ui components only.
 import { Button } from '@lims/ui/components/Button';
 import { PageHeader } from '@lims/ui/components/PageHeader';
 import { Dt } from '../common/ui';

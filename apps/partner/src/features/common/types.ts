@@ -17,7 +17,7 @@ export interface ManifestLine {
   id: string; line_no: number; state: string; partner_sample_ref?: string; patient: Patient;
   consents?: { sms: boolean; whatsapp: boolean; email: boolean; share_with_referrer: boolean };
   orderables: OrderableRef[]; priority: string; referrer?: { id: string; display_name: string } | null; collected_at?: string; clinical_note?: string;
-  order?: { order_id: string; registration_no: string } | null; version?: number; updated_at?: string;
+  order?: { order_id: string; registration_no: string } | null; version?: number;
 }
 export interface Manifest extends ManifestSummary { notes?: string; collected_on?: string; lines: ManifestLine[] }
 export interface PartnerOrder {

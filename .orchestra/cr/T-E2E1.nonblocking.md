@@ -5,8 +5,8 @@ Blocking? no — tests/e2e/engagement-journey.e2e.ts is written against this pro
 Problem: T-E2E1 (02-TRD §14 E2E nightly; 06-PLAN §3 "Events from C5/C6/C4", "Consumers of booking events") must inject C5/C6 events, run the fake C4 consumer of engagement.booking.confirmed.v1, run engagement.reconcile_bookings, read the OTP the recording NotificationPort "sent", and scan logs. No spec defines such a surface, and the harness must not invent routes silently.
 Proposed change (exact): mounted ONLY when TARGET_ENV/APP_ENV in {compose, ci, staging}; absent (404) in production; staff bearer + tenant RLS like every /v1/engagement route; synthetic data only. Prefix /v1/engagement/test-support:
   POST /scenarios {scenario: report-journey|booking-journey, distinct_from?, same_slot_as?}
-       -> 201 {patient_id, patient_display_name, patient_phone, order_id, specimen_id, report_id, report_sha256, centre_id, slot_start, orderable_ids[]}  (registers a synthetic patient/order/released-report bytes via the fakes; slot capacity 1 for booking-journey)
-  POST /events {event_type: lab.specimen.status_changed.v1|lab.specimen.rejected.v1|reporting.report.released.v1|billing.balance.changed.v1, payload} -> 202  (publishes onto the bus as C5/C6/C4 would)
+       -> 201 {patient_id, patient_display_name, patient_phone, order_id, specimen_id, specimen_type_code, report_id, report_sha256, centre_id, slot_start, orderable_ids[]}  (registers a synthetic patient/order/released-report bytes via the fakes; slot capacity 1 for booking-journey)
+  POST /events {event_type: lab.specimen.status_changed.v1|lab.specimen.rejected.v1|reporting.report.released.v1|billing.balance.changed.v1, aggregate_seq: integer, payload} -> 202  (route builds envelope.aggregate {type, id, seq=aggregate_seq} per 03 envelope; publishes onto the bus as C5/C6/C4 would)
   GET  /recorded-messages?kind=sms&purpose=otp&phone_e164= -> 200 {data:[{kind, purpose, otp_code}]}
   POST /consumers/c4/run {booking_id} -> 200 {order_id}  (fake C4 consumer: pre-registers the order visible in frontdesk.v_pub_order_status)
   POST /jobs/run {job: engagement.reconcile_bookings|engagement.mark_no_shows} -> 200

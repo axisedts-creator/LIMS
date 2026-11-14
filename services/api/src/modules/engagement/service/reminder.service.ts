@@ -134,6 +134,26 @@ export function createReminderService(deps: { repo?: ReminderRepo; listCodedSet?
       }
     },
 
+    /** R4 (TRD §5, ruling T-SEC1): one suggestion per follow-up of an approved summary; due_on = released_at + interval_days (UTC date) [CONV].
+     *  No test codes / names / texts leave (P1): only ids, dates, interval and has_reminder. Unknown / other-tenant patient -> empty list (nothing revealed). */
+    async listFollowUpSuggestions(ctx: ReminderCtx, input: { patientId: unknown }) {
+      const { tx, tenantId } = scope(ctx);
+      if (!isUuid(input.patientId)) return invalid('/patient_id');
+      const rows = await repo.followUpSources(tx, { tenantId, patientId: input.patientId });
+      const data: Record<string, unknown>[] = [];
+      for (const r of rows) {
+        const reminded = new Set((r['reminded'] as unknown[] | null) ?? []);
+        const released = iso(r['released_at']);
+        (Array.isArray(r['follow_ups']) ? r['follow_ups'] : []).forEach((f: unknown, i: number) => {
+          const days = isObj(f) ? f['intervalDays'] : undefined;
+          if (!Number.isInteger(days) || (days as number) < 1 || data.length >= 200) return;
+          data.push({ report_id: r['report_id'], version_no: r['report_version_no'], released_at: released, interval_days: days,
+            due_on: new Date(Date.parse(released) + (days as number) * 86_400_000).toISOString().slice(0, 10), has_reminder: reminded.has(i) });
+        });
+      }
+      return { data };
+    },
+
     async cancel(ctx: ReminderCtx, input: { id: unknown; headers: unknown }) {
       const { tx, tenantId, userId } = scope(ctx);
       const expectedVersion = parseIfMatch(input.headers);

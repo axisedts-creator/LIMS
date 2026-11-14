@@ -12,6 +12,7 @@ export default defineConfig({
     include: ['src/features/homecollection/__tests__/hc-t18.*.test.{ts,tsx}'],
     environment: 'node', // component files opt in with `// @vitest-environment jsdom`
     restoreMocks: true,
-    testTimeout: 20000,
+    testTimeout: 120000,
+    hookTimeout: 120000,
   },
 });

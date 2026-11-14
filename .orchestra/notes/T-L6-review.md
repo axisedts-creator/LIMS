@@ -1,16 +1,13 @@
-CHANGES
-LEAD RULING LD-164 (T-L6, 2026-11-14, founder approved at 08:51 NPT). Read LD-164 in lead-decisions.md first. The CR .orchestra/cr/T-L6.md is decided: CR item 1 option A (Profile.version) APPROVED, CR item 3 (disabled option on LimsSegmentedControl) APPROVED, CR item 2 (E16 earlier-visits flag) DEFERRED. The lead names the writer as executor of the two cross-lane edits (same pattern as LD-64 and LD-143). The only failing test today is A9 "Myself segment is RENDERED disabled"; it is right and stays as it is.
+APPROVE
+T-L6 re-review (LD-164), diff 5b41ed75..8666eb72.
 
-For the TESTER (tests only; change nothing under lib/):
-1. test/support/profiles_fakes.dart: give every fake E13 profile an integer `version` (1 or more), as the Profile schema will have after the writer's edit.
-2. test/features/profiles/profiles_api_wire_test.dart (the E18 and E19 tests near lines 91-106): replace "any If-Match is a quoted positive integer" with an exact check: the If-Match header on E18 and on E19 equals the quoted version of the profile being changed or removed (for version 3 the header is "3" including the quotes). Keep the other wire assertions (path, method, body, 204 handling).
-3. test/features/profiles/a6_profiles_screen_test.dart (comment at line 11) and the header comment of profiles_api_wire_test.dart: drop the "spec gap" wording; the gap is closed by LD-164. Add one widget-level assertion in the A6 test that Change relationship and Remove send the version of the profile row that was tapped.
-4. Do NOT touch the A9 test "Myself segment is RENDERED disabled", the copy tests, or integration_test/profiles_prism_test.dart. Do not add any test for US-EN-05.2 (deferred).
+Checked against LD-164 items 1-10:
+- engagement.yaml: Profile.version added via _common.yaml#/components/schemas/Version (integer, minimum 1) and in `required`; every Profile example carries `version: 1`; nothing else changed. Regenerated outputs committed (api-client-ts/src/engagement.ts, fakes/src/msw/handlers.generated.ts); no other generated file carries Profile examples.
+- ui-flutter LimsSegmentedControl: only `Set<T> disabled = const {}` mapped to ButtonSegment(enabled: !disabled.contains(value)); default keeps existing call sites unchanged; no new token/colour/radius.
+- profiles_api.dart: E18/E19 send `If-Match: "<version>"`; ponytail gap comments removed (api:4, screen:4). parseProfile rejects a missing/non-int/<1 version with common.internal, like other required fields.
+- profiles_screen.dart passes the tapped row's version; register_screen.dart disables `self` when a self profile exists, tap guard kept.
+- Tests: wire test pins exact `"3"` / `"12"`; A6 tests pin the row's version for E18 and E19 (multi-row, not the default); A9 "Myself segment is RENDERED disabled" and integration_test/profiles_prism_test.dart untouched; no US-EN-05.2 work or E16 flag.
+- No PHI in logs, no secrets, synthetic names only. Paths: owned + LD-164 cross-lane exception only.
 
-For the WRITER (after the tester):
-5. contracts/openapi/engagement.yaml: add `version` {type: integer, minimum: 1} to the Profile schema and to its `required` list; add `version: 1` (or any positive integer) to every Profile example in the file so the examples stay valid. Change nothing else in the contract. Then regenerate the contract-derived outputs with the repo codegen script if one exists, and commit them (as LD-64 says).
-6. packages/ui-flutter/lib/src/cr16_widgets.dart: LimsSegmentedControl gets one optional parameter `Set<T> disabled = const {}`; each ButtonSegment<T> gets `enabled: !disabled.contains(value)`. The default keeps today's behaviour for every existing call site. No other kit change, no new colour, radius or inline style (LD-140).
-7. apps/patient_app/lib/features/profiles/profiles_api.dart (header comment line 4 and lines about 60-67): read `version` from the E13 JSON into the profile item; send `If-Match: "<version>"` on E18 (updateMyProfile) and E19 (removeMyProfile). A response without an integer version is handled the way the file already handles any other missing required field. Remove the "ponytail" gap comments in profiles_api.dart:4 and profiles_screen.dart:4. Error copy stays as it is (errors map from the code only; version_conflict and precondition_required use the sentences that already exist in profile_copy.dart; invent no new copy).
-8. apps/patient_app/lib/features/profiles/register_screen.dart (around lines 304-329): pass the `self` option as disabled to the relationship LimsSegmentedControl when a self profile exists. Keep the existing tap guard as a second line of defence.
-9. Do not build US-EN-05.2 and do not add any flag to E16.
-10. Run notes/T-L6-verify.cmd: expect all profiles tests green including A9 "Myself segment is RENDERED disabled", then `flutter analyze` on apps/patient_app/lib/features/profiles, the changed test files and packages/ui-flutter with no issues. Update notes/T-L6-impl.md (list the three edited areas, state that item 2 is deferred by the founder).
+Ran: notes/T-L6-verify.cmd equivalent (`flutter test test/features/profiles`): 139 passed, 0 failed.
+`flutter analyze lib/features/profiles test/features/profiles test/support ../../packages/ui-flutter`: 2 info (unnecessary_import) in packages/ui-flutter/test/restyle_r05_test.dart:8 and widgets_cr16_test.dart:6 — both files untouched by this diff, pre-existing, not a T-L6 defect.

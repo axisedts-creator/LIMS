@@ -29,7 +29,7 @@ function idOf(n: number): string { return `0190c60b-0000-7000-8000-${n.toString(
 
 export const IN_WINDOW = '2026-11-13T17:59:00.000Z';    // 1 h before NOW (2026-11-13T19:00Z)
 export const OLD = '2026-09-01T08:00:00.000Z';          // far older than the default 7-day window
-export const PATCH_KEYS = ['classified_at', 'lot_id', 'level_id', 'mean', 'plan_id', 'qc_run_id', 'sd', 'status', 'target_id', 'updated_by', 'z'];
+export const PATCH_KEYS = ['classified_at', 'level_id', 'lot_id', 'mean', 'plan_id', 'qc_run_id', 'sd', 'status', 'target_id', 'updated_by', 'z'];
 export const PENDING = ['level_not_in_plan', 'no_plan', 'no_target', 'unit_mismatch', 'unmapped_control'];
 
 /** A stored qc_observations row (what listPendingObservations returns). Defaults: pending `unmapped_control`, QC-L1, 104 mmol_l, observed 1 h ago, no plan snapshot yet. */

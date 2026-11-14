@@ -120,6 +120,28 @@ void main() {
       expect(await fx.base.pendingRows(), 1);
     });
 
+    test('recovery: after an offline-hours purge the next engine over a fresh empty cache syncs (pending row applied, new route_date), not purged again', () async {
+      expect((await fx.sync()).status, SyncStatus.ok);
+      await enqueueType(fx.ofx, 'visit.arrived');
+      fx.ofx.tick(const Duration(hours: 17));
+      expect((await fx.sync()).status, SyncStatus.purged);
+
+      // login again (same user): fresh empty cache.db; device_state.last_successful_pull_at (outbox.db) is still 17 h old
+      final cache2 = await CacheDb.open(dir: fx.ofx.dir, keys: fx.ofx.keys);
+      for (final s in cacheDdl) {
+        await cache2.execute(s);
+      }
+      fx.base.cache = cache2;
+      final purge2 = PurgeTriggers(
+          wipe: fx.base.wipe, cache: cache2, outboxDb: fx.ofx.db, wallNow: fx.ofx.wall.call, localNow: () => fx.base.localNow());
+      final engine2 = fx.buildEngine(cache: cache2, purge: purge2);
+      final r = await engine2.syncNow();
+      expect(r.status, SyncStatus.ok, reason: 'a cache never filled by a pull is never purged; the pull must be allowed to reset the clock');
+      expect(await states(), ['applied']);
+      final meta = await cache2.select("SELECT value FROM meta WHERE key = 'route_date'");
+      expect(meta.single['value'], isNotNull);
+    });
+
     test('exactly under the limit: 15 h 59 m after the pull the cycle runs normally', () async {
       expect((await fx.sync()).status, SyncStatus.ok);
       fx.ofx.tick(const Duration(hours: 15, minutes: 59));

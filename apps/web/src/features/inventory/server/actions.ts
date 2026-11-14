@@ -7,7 +7,7 @@ import { ApiError } from '@/core/api/server-fetch';
 import { getShellSession } from '@/core/session/server';
 import { blindLines, getFefo, getItem, listAnalytes, listItems, listMovements, listStock, listSupplierItems } from './read.server';
 import { approvePo, cancelPo, closePo, createGrn, createPo, markPoSent, postGrn, replaceGrn, replacePo, lookupBarcode, cancelTransfer, createAdjustment, createCount, createExpiryWriteoff, createIssue, createTransfer, createWastage, discardContainer, dispatchTransfer, finishContainer, logConsumptionEvent, openContainer, postCount, putCountLines, receiveTransfer, addBarcode, createItem, createPack, createStore, createSupplier, deactivateBarcode, deactivateBinding, putBinding, putStoreItemSetting, putSupplierItem, setItemActive, updateItem, updateStore, updateSupplier } from './write.server';
-import type { ActionResult, Grn, GrnDraft, Item, Po, PoCreate, ReasonAction, SentChannel, AdjustmentCreate, Analyte, BalanceRow, ConsumptionEventCreate, ContainerDiscard, ContainerOpen, CountCreate, CountLinePut, ExpiryWriteoffCreate, FefoSuggestion, IssueCreate, StockMovement, TransferCreate, TransferReceive, UncountedPolicy, WastageCreate, BarcodeCreate, ItemCreate, ItemPatch, ItemSummary, Pack, PackCreate, StoreCreate, StoreItemSetting, StoreItemSettingPut, StorePatch, SupplierCreate, SupplierItem, SupplierItemPut, SupplierPatch, Binding, FieldProblem } from './types';
+import type { ActionResult, Grn, GrnDraft, GrnReplace, Item, Po, PoCreate, ReasonAction, SentChannel, AdjustmentCreate, Analyte, BalanceRow, ConsumptionEventCreate, ContainerDiscard, ContainerOpen, CountCreate, CountLinePut, ExpiryWriteoffCreate, FefoSuggestion, IssueCreate, StockMovement, TransferCreate, TransferReceive, UncountedPolicy, WastageCreate, BarcodeCreate, ItemCreate, ItemPatch, ItemSummary, Pack, PackCreate, StoreCreate, StoreItemSetting, StoreItemSettingPut, StorePatch, SupplierCreate, SupplierItem, SupplierItemPut, SupplierPatch, Binding, FieldProblem } from './types';
 
 async function run<T>(f: () => Promise<T>): Promise<ActionResult<T>> {
   try {
@@ -97,5 +97,5 @@ export async function cancelPoAction(id: string, version: number, key: string, b
 export async function closePoAction(id: string, version: number, key: string, b: ReasonAction): Promise<ActionResult<Po>> { return run(() => closePo(id, version, key, b)); }
 
 export async function createGrnAction(b: GrnDraft, key: string): Promise<ActionResult<Grn>> { return run(() => createGrn(b, key)); }
-export async function replaceGrnAction(id: string, version: number, b: GrnDraft): Promise<ActionResult<Grn>> { return run(() => replaceGrn(id, version, b)); }
+export async function replaceGrnAction(id: string, version: number, b: GrnReplace): Promise<ActionResult<Grn>> { return run(() => replaceGrn(id, version, b)); }
 export async function postGrnAction(id: string, version: number, key: string): Promise<ActionResult<Grn>> { return run(() => postGrn(id, version, key)); }

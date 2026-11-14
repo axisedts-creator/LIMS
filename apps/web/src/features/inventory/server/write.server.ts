@@ -3,7 +3,7 @@ import 'server-only';
 // Path ids and keys are checked here because this is the trust boundary between the browser and the API.
 import { ApiError, serverFetch } from '@/core/api/server-fetch';
 import { problem } from '@/core/session/types';
-import { KEY_RE, UUID_RE, type Grn, type GrnDraft, type Po, type PoCreate, type ReasonAction, type SentChannel, type AdjustmentCreate, type Barcode, type BarcodeCreate, type Binding, type ConsumptionEventCreate, type Container, type ContainerDiscard, type ContainerOpen, type Count, type CountCreate, type CountLine, type CountLinePut, type ExpiryWriteoffCreate, type Fact, type IssueCreate, type ItemSummary, type StockDocument, type Transfer, type TransferCreate, type TransferReceive, type UncountedPolicy, type WastageCreate, type Item, type ItemCreate, type ItemPatch, type Pack, type PackCreate, type Store, type StoreCreate, type StoreItemSetting, type StoreItemSettingPut, type StorePatch, type Supplier, type SupplierCreate, type SupplierItem, type SupplierItemPut, type SupplierPatch } from './types';
+import { KEY_RE, UUID_RE, type Grn, type GrnDraft, type GrnReplace, type Po, type PoCreate, type ReasonAction, type SentChannel, type AdjustmentCreate, type Barcode, type BarcodeCreate, type Binding, type ConsumptionEventCreate, type Container, type ContainerDiscard, type ContainerOpen, type Count, type CountCreate, type CountLine, type CountLinePut, type ExpiryWriteoffCreate, type Fact, type IssueCreate, type ItemSummary, type StockDocument, type Transfer, type TransferCreate, type TransferReceive, type UncountedPolicy, type WastageCreate, type Item, type ItemCreate, type ItemPatch, type Pack, type PackCreate, type Store, type StoreCreate, type StoreItemSetting, type StoreItemSettingPut, type StorePatch, type Supplier, type SupplierCreate, type SupplierItem, type SupplierItemPut, type SupplierPatch } from './types';
 
 const bad = () => new ApiError(400, problem('common.validation_failed', 'Validation failed', 400));
 const uuid = (v: string) => {
@@ -84,5 +84,9 @@ export const cancelPo = (id: string, version: number, key: string, b: ReasonActi
 export const closePo = (id: string, version: number, key: string, b: ReasonAction) => send<Po>('POST', `${base}/purchase-orders/${uuid(id)}/close`, b, { key, version });
 
 export const createGrn = (b: GrnDraft, key: string) => send<Grn>('POST', `${base}/goods-receipts`, b, { key });
-export const replaceGrn = (id: string, version: number, b: GrnDraft) => send<Grn>('PUT', `${base}/goods-receipts/${uuid(id)}`, b, { version });
+// kind and store_id are fixed once a draft exists; the PUT schema rejects them (additionalProperties: false), so strip them here too.
+export const replaceGrn = (id: string, version: number, b: GrnReplace) => {
+  const { kind: _k, store_id: _s, ...rest } = b as GrnReplace & Partial<Pick<GrnDraft, 'kind' | 'store_id'>>;
+  return send<Grn>('PUT', `${base}/goods-receipts/${uuid(id)}`, rest, { version });
+};
 export const postGrn = (id: string, version: number, key: string) => send<Grn>('POST', `${base}/goods-receipts/${uuid(id)}/post`, {}, { key, version });

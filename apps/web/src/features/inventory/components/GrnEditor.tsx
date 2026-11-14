@@ -223,7 +223,9 @@ export function GrnEditor(p: GrnEditorProps) {
     if (e.supplier || e.store || Object.keys(e.lines).length) return;
     setProblem(undefined);
     setSaving(true);
-    const r = saved ? await replaceGrnAction(saved.id, saved.version, body) : await createGrnAction(body, saveKey.get(sig));
+    // PUT body = GrnDraft minus kind, store_id (TRD §5 #52); the full body is only for the create.
+    const { kind: _k, store_id: _s, ...replace } = body;
+    const r = saved ? await replaceGrnAction(saved.id, saved.version, replace) : await createGrnAction(body, saveKey.get(sig));
     setSaving(false);
     if (!r.ok) return setProblem(r);
     saveKey.reset();
@@ -272,7 +274,7 @@ export function GrnEditor(p: GrnEditorProps) {
           {mismatch !== undefined && saved && saved.supplier_invoice_total_paisa !== undefined ? (
             <Banner tone="warning" title={`Invoice total ${rs(saved.supplier_invoice_total_paisa)} differs from the calculated total ${rs(saved.total_paisa ?? 0)} by ${rs(Math.abs(mismatch))}.`} />
           ) : null}
-          {canAdjust && !p.grn ? (
+          {canAdjust && !saved ? (
             <RadioGroup<GrnKind>
               label="Kind"
               name="kind"
@@ -282,7 +284,12 @@ export function GrnEditor(p: GrnEditorProps) {
               onChange={(v) => setS((c) => ({ ...c, kind: v }))}
             />
           ) : null}
-          <Choice label="Store" name="store_id" options={storeOptions} value={s.storeId} error={errors.store ?? fieldMessage(problem, '/store_id')} onChange={(v) => setS((c) => ({ ...c, storeId: v }))} />
+          {saved ? (
+            // kind and store_id are fixed once a draft exists (PUT has neither), so Store is read-only text.
+            <DescriptionList items={[{ term: 'Store', value: storeOptions.find((o) => o.value === s.storeId)?.label ?? '—' }]} />
+          ) : (
+            <Choice label="Store" name="store_id" options={storeOptions} value={s.storeId} error={errors.store ?? fieldMessage(problem, '/store_id')} onChange={(v) => setS((c) => ({ ...c, storeId: v }))} />
+          )}
           {purchase ? (
             <Combobox<SupplierSummary>
               label="Supplier"

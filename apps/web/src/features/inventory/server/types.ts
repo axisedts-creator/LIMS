@@ -158,6 +158,8 @@ export interface GrnLineIn { po_line_id?: string; item_id: string; pack_id: stri
 export interface GrnDraft {
   kind: GrnKind; store_id: string; supplier_id?: string; po_id?: string; received_at?: string; supplier_invoice_no?: string; supplier_invoice_on?: string; supplier_invoice_total_paisa?: number; notes?: string; lines: GrnLineIn[];
 }
+/** PUT /goods-receipts/{grn_id} body: GrnDraft minus kind, store_id (TRD §5 #52; additionalProperties: false). */
+export type GrnReplace = Omit<GrnDraft, 'kind' | 'store_id'>;
 /** reason_group values of GET /coded-sets/reasons for the two PO reason dialogs (cancel, close). */
 export const PO_REASON_GROUPS = { cancel: 'po_cancel', close: 'po_close' } as const;
 export interface PoFilters { status?: string | undefined; supplier?: string | undefined; branch?: string | undefined; createdFrom?: string | undefined; createdTo?: string | undefined }

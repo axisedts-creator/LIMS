@@ -1,3 +1,4 @@
+'use client';
 import { useState, type ComponentProps, type ReactNode } from 'react';
 import { Dialog, DialogTrigger, Heading, Popover as RacPopover, Pressable } from 'react-aria-components';
 import { useRestoreFocus } from '../_shared/useRestoreFocus';

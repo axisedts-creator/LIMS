@@ -64,7 +64,7 @@ export function PriceListDetail({ priceList, ownerLabels, permissions }: { price
 
   const fields = (
     <>
-      <TextField label="Code" name="code" isReadOnly value={priceList.code} />
+      <TextField label="Code" name="code" maxLength={32} isReadOnly value={priceList.code} />
       <TextField label="Name" name="name" maxLength={120} isRequired isReadOnly={!manage} value={name} onChange={setName} />
       <p>{`Applies to: ${OWNER_LABEL[priceList.owner_kind]}`}</p>
       <Switch label="Falls through" isSelected={falls} isDisabled={!manage} onChange={setFalls} />

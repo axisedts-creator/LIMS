@@ -1,3 +1,4 @@
+'use client';
 // 04-UI-UX §2.5 DataTable on react-aria Table (role=grid): sort, selection, keyboard, row actions, cursor paging, virtualisation.
 // Rows are rendered through column.cell() only; the kit never serialises rows (REQ-SEC-081).
 import { useLayoutEffect, useRef, useState, type KeyboardEvent, type MouseEvent, type ReactNode } from 'react';

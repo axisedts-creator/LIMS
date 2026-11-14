@@ -26,7 +26,7 @@ export const lower = (code: string | undefined): string => humanize(code).toLowe
 
 /** "Under review", "Paid", … (C0 StatusChip mapping, so toasts and chips always agree). */
 export const statusLabel = (status: string): string => statusOf('payment_intent', status)[1];
-export const statusTone = (status: string) => statusOf('payment_intent', status)[0];
+export const statusTone = (status: string): ReturnType<typeof statusOf>[0] => statusOf('payment_intent', status)[0];
 
 export const GATEWAY_LABEL: Record<string, string> = { esewa: 'eSewa', khalti: 'Khalti', fonepay: 'Fonepay' };
 export const gatewayLabel = (g: string): string => GATEWAY_LABEL[g] ?? humanize(g);

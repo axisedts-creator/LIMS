@@ -1,3 +1,4 @@
+'use client';
 import { useState, type ReactNode } from 'react';
 import { useRestoreFocus } from '../_shared/useRestoreFocus';
 import { Menu as RacMenu, MenuItem, MenuTrigger, Popover } from 'react-aria-components';

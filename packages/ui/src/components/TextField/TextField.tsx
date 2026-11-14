@@ -5,7 +5,7 @@ export interface TextFieldProps extends FieldBase {
   onChange?: (v: string) => void;
   /** REQUIRED: mirror the spec maxLength. */
   maxLength: number;
-  inputMode?: 'text' | 'numeric' | 'tel' | 'email';
+  inputMode?: 'text' | 'numeric' | 'decimal' | 'tel' | 'email';
   autoComplete?: string;
   prefix?: string;
   suffix?: string;

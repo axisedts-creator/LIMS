@@ -1,6 +1,7 @@
-// inventory worker manifest (02-TRD §9). Consumers are stubs that throw common.internal until T-16 / T-17 implement them; the six tasks are real (T-15, T-18).
+// inventory worker manifest (02-TRD §9). Remaining consumers are stubs that throw common.internal until T-17 implements them; onResultVerified is real (T-16); the six tasks are real (T-15, T-18).
 import type { ConsumerHandler, WorkerManifest } from '../../core/manifest.js';
 import { crontab } from './cron.js';
+import { onResultVerified } from './consumers/lab.result.verified.v1.js';
 import { resolveUnresolved } from './tasks/inventory.resolve_unresolved.js';
 import { balanceIntegrityCheck } from './tasks/inventory.balance_integrity_check.js';
 import { dailyAlertScan } from './tasks/inventory.daily_alert_scan.js';
@@ -23,7 +24,7 @@ export const manifest: WorkerManifest = {
     'inventory.purge_alerts': purgeAlerts,
   },
   subscriptions: {
-    'lab.result.verified.v1': notImplemented('onResultVerified'),
+    'lab.result.verified.v1': onResultVerified, // T-16
     'instruments.qc.received.v1': notImplemented('onQcReceived'),
     'instruments.result.received.v1': notImplemented('onResultReceived'),
     'instruments.calibration.received.v1': notImplemented('onCalibrationReceived'),

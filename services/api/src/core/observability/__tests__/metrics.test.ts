@@ -136,6 +136,15 @@ const EXPECTED: Record<string, 'counter' | 'gauge' | 'histogram'> = {
   lims_partners_access_slip_issue_seconds: 'histogram',
   lims_partners_pickups_total: 'counter',
   lims_partners_partner_inactive_rejections_total: 'counter',
+
+  // C11 additions — LD-181 / CR-C11-T24, names and types from C11 02-TRD section 12.
+  lims_anatomic_cases_created_total: 'counter',
+  lims_anatomic_consumer_ignored_total: 'counter',
+  lims_anatomic_signouts_total: 'counter',
+  lims_anatomic_submit_failures_total: 'counter',
+  lims_anatomic_image_processing_total: 'counter',
+  lims_anatomic_image_processing_seconds: 'histogram',
+  lims_anatomic_lookup_total: 'counter',
 };
 
 // LD-88: TRD §13 fixes this C8 histogram as a row count, so it cannot end in _seconds.

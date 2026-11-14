@@ -94,10 +94,8 @@ export async function closeRow(tx: Q, a: { tenantId: string; id: string; expecte
   return rows[0];
 }
 
-/** In-app notification for the staff reply: kind / entity / ids only, never the text (07-SECURITY §3). entity_seq = the new version keeps the (account, kind, entity, seq) dedupe key unique per reply. */
-export async function insertReplyNotification(tx: Q, a: { id: string; tenantId: string; accountId: string; patientId: string | null; enquiryId: string; seq: number; now: string; expiresAt: string; createdBy: string }): Promise<void> {
-  await tx.query(
-    `INSERT INTO engagement.notifications (id, tenant_id, account_id, patient_id, kind, entity_type, entity_id, entity_seq, created_at, created_by, expires_at)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
-    [a.id, a.tenantId, a.accountId, a.patientId, 'enquiry_reply', 'enquiry', a.enquiryId, a.seq, a.now, a.createdBy, a.expiresAt]);
+/** LD-180: enqueue the staff-reply notification on the request tx (existing app.enqueue_job). Payload = ids / kind only, never the text (07-SECURITY §3); key notif:enquiry_reply:<enquiry_id>:<version>, entity_seq = the new version. */
+export async function enqueueReplyNotification(tx: Q, a: { tenantId: string; accountId: string; patientId: string | null; enquiryId: string; seq: number }): Promise<void> {
+  const payload = { tenant_id: a.tenantId, account_id: a.accountId, patient_id: a.patientId, kind: 'enquiry_reply', entity_type: 'enquiry', entity_id: a.enquiryId, entity_seq: a.seq };
+  await tx.query('SELECT app.enqueue_job($1, $2::jsonb, $3)', ['engagement.create_notification', JSON.stringify(payload), `notif:enquiry_reply:${a.enquiryId}:${a.seq}`]);
 }

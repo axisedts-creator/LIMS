@@ -395,6 +395,7 @@ export async function signOut(hctx: unknown, params: unknown, headers: unknown, 
   const prior = await listItemSubmissions(c.tx, { tenantId: c.tenantId, caseId: cs['id'] });
   const summaryText = summarise(content.impression_text);
   const outs: { it: Row; v: number; key: string; out: Awaited<ReturnType<SignCtx['ports']['LabPort']['submitModuleResult']>> }[] = [];
+  const metrics = (hctx as { metrics?: { inc?(n: string, l?: object): void } }).metrics;
   for (const it of targets) {
     const v = 1 + prior.filter((s) => s['case_item_id'] === it['id']).reduce((m, s) => Math.max(m, Number(s['item_version_no'])), 0);
     const key = `anatomic:${String(it['id'])}:${v}`;
@@ -408,7 +409,9 @@ export async function signOut(hctx: unknown, params: unknown, headers: unknown, 
     try {
       outs.push({ it, v, key, out: await c.ports.LabPort.submitModuleResult(c, input) });
     } catch (e) {
-      throw portError(e);
+      const pe = portError(e);
+      if (pe instanceof LimsError) metrics?.inc?.('lims_anatomic_submit_failures_total', { error_code: pe.code }); // code only, never a message
+      throw pe;
     }
   }
 
@@ -445,6 +448,7 @@ export async function signOut(hctx: unknown, params: unknown, headers: unknown, 
   if (!consumed) throw new LimsError('common.version_conflict');
 
   await c.audit.access({ action: 'anatomic_report.sign_out', entityType: 'anatomic_case', entityId: cs['id'], centreId: cs['centre_id'], outcome: 'allowed', detail: { version_no: n } }); // REQ-SEC-096/097
+  metrics?.inc?.('lims_anatomic_signouts_total', { version_kind: versionKind }); // 02-TRD §12
 
   // 10. SignOutResult { case: CaseDetail, report_version: ReportVersionSummary }
   const caseBody = caseDto(updated, parts);

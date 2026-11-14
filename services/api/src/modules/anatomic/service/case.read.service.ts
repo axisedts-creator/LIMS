@@ -172,8 +172,13 @@ export async function lookupObject(hctx: unknown, body: unknown): Promise<Result
   const label = b['label'];
   if (typeof label !== 'string' || !LABEL.test(label)) throw bad('/label'); // label travels in the body, never in a URL or a log (REQ-SEC-098)
   const hit = await lookupObjectByLabel(c.tx, { tenantId: c.tenantId, label });
-  if (!hit) throw new LimsError('common.not_found'); // unknown, other tenant, other centre (RLS): all identical
+  const metrics = (hctx as { metrics?: { inc?(n: string, l?: object): void } }).metrics;
+  if (!hit) {
+    metrics?.inc?.('lims_anatomic_lookup_total', { result: 'not_found' }); // 02-TRD §12; C1 enumeration alert (REQ-SEC-045); the label itself is never a metric label
+    throw new LimsError('common.not_found'); // unknown, other tenant, other centre (RLS): all identical
+  }
   await c.ports.IdentityPort.assertRole(c, { permission: 'anatomic.case.read', centreId: hit['centre_id'] });
+  metrics?.inc?.('lims_anatomic_lookup_total', { result: hit['object_kind'] }); // case | block | slide
   const out: Obj = { object_kind: hit['object_kind'], case_id: hit['case_id'] };
   if (hit['object_kind'] !== 'case' && hit['block_id']) out['block_id'] = hit['block_id'];
   if (hit['object_kind'] === 'slide' && hit['slide_id']) out['slide_id'] = hit['slide_id'];

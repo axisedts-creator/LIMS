@@ -126,7 +126,7 @@ void main() {
 
   testWidgets('pull to refresh calls onRefresh once', (t) async {
     await open(t, [routeVisit(1), routeVisit(2)]);
-    await t.fling(find.byType(ListView).first, const Offset(0, 400), 1000);
+    await t.fling(find.byType(ListView).first, const Offset(0, 800), 1000);
     await t.pumpAndSettle();
     expect(refreshes, 1);
   });

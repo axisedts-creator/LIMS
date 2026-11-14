@@ -124,6 +124,11 @@ export function makeWorld(o: { now?: string; enabled?: boolean; seed?: (w: { tab
     get: (t, k) => (typeof k !== 'string' || k in t ? (t as any)[k] : new Proxy({}, { get: (_x, m) => (...args: unknown[]) => { portCalls.push({ port: k, method: String(m), args }); return Promise.resolve(undefined); } })),
   });
   const advisory = new Map<string, Row>();
+  // LD-180 (2026-11-14): the staff reply does NOT insert the notification (INSERT is SYS only, 05-SCHEMA line 1347); it enqueues a generic worker task through the existing mechanism
+  // `SELECT app.enqueue_job($1 identifier, $2::jsonb payload, $3 job_key[, run_at, max_attempts])` on the REQUEST transaction. Recorded here (de-duplicated on identifier + job_key like the real queue);
+  // `jobFault.on` makes the call fail like a missing grant would (42501) so a test can prove the reply does not swallow it.
+  const jobs: Array<{ identifier: string; payload: Record<string, unknown>; jobKey: string | null; tenant: string; actor: string }> = [];
+  const jobFault = { on: false };
   const ctxFor = makeCtxFor();
 
   /** actor 'patient' (PAT_ACC of `account`) | 'staff' (tenant-wide); tenant A unless `tenant` is B. `release()` frees row / advisory locks (call when the request is done). */
@@ -145,8 +150,17 @@ export function makeWorld(o: { now?: string; enabled?: boolean; seed?: (w: { tab
           await wait(advisory.get(key)!);
           return { rows: [{}], rowCount: 1 } as any;
         }
+        if (/app\.enqueue_job/i.test(text)) {
+          db.calls.push({ text, values });
+          if (jobFault.on) throw Object.assign(new Error('permission denied for function enqueue_job'), { code: '42501' });
+          let payload: unknown = values[1]; if (typeof payload === 'string') payload = JSON.parse(payload);
+          if (typeof values[0] !== 'string' || typeof payload !== 'object' || payload === null) unsupported(`enqueue_job call shape (identifier, payload, job_key are positional binds): ${text}`);
+          const jobKey = typeof values[2] === 'string' ? values[2] : null;
+          if (jobKey === null || !jobs.some((j) => j.identifier === values[0] && j.jobKey === jobKey)) jobs.push({ identifier: values[0] as string, payload: payload as Record<string, unknown>, jobKey, tenant, actor: actorId });
+          return { rows: [{ enqueue_job: 1 }], rowCount: 1 } as any;
+        }
         const verb = /^\s*(select|insert|update|delete)\b/i.exec(text)?.[1]?.toLowerCase();
-        const tbl = /\b(?:from|update|into)\s+(?:engagement\.)?(\w+)/i.exec(text)?.[1];
+        const tbl =/\b(?:from|update|into)\s+(?:engagement\.)?(\w+)/i.exec(text)?.[1];
         if (verb === 'select' && (tbl === 'enquiries' || tbl === 'enquiry_messages' || tbl === 'notifications')) {
           db.calls.push({ text, values });
           await new Promise<void>((r) => setImmediate(r));
@@ -191,7 +205,7 @@ export function makeWorld(o: { now?: string; enabled?: boolean; seed?: (w: { tab
     return { ctx, release: s.release, actorId };
   };
   return {
-    db, tables, clock, identity, audit, grants, logs, metrics, portCalls, session,
+    db, tables, clock, identity, audit, grants, logs, metrics, portCalls, session, jobs, jobFault,
     get stmts() { return db.calls; },
     writes: () => db.calls.filter((c) => /^\s*(insert|update|delete)\b/i.test(c.text)),
     enquiry: (id: string) => tables['enquiries']!.find((e) => e['id'] === id),

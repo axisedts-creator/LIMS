@@ -14,8 +14,14 @@
 //   - "open enquiries" for the per-account cap (5, TRD E49) = status 'open'; closed ones never count, another account's never count; whether `answered` counts is NOT asserted.
 //   - profile_id on a DTO = account_patient_links.id of the enquiry's patient for the caller's account (patients never see patient_id, 07-SECURITY §7.1); staff DTOs carry patient_id (N2) when set.
 //   - E49 with a profile_id that is not an ACTIVE link of the caller's account -> common.not_found (nothing written).
-//   - the message row: author_id = the account id or the actor id; created_by = ctx.actor.id. The staff reply writes ONE notifications row {kind 'enquiry_reply', entity_type 'enquiry', entity_id,
-//     account_id, patient_id of the enquiry, created_by = staff actor} and nothing else outside enquiries / enquiry_messages / notifications (no SMS, no outbox, no port call) carries the text.
+//   - the message row: author_id = the account id or the actor id; created_by = ctx.actor.id.
+//   - LD-180 (2026-11-14, founder go 19:12, CR-C16-T-N1 option A): the staff reply does NOT insert into notifications (INSERT is SYS only, 05-SCHEMA line 1347; no grant / policy / DB function / migration).
+//     It enqueues ONE generic worker job on the request transaction, through the existing mechanism `SELECT app.enqueue_job($1 identifier, $2::jsonb payload, $3 job_key, ..)`, AFTER the message insert and the
+//     status update: job_key `notif:enquiry_reply:<enquiry_id>:<version>` (<version> = the NEW version = payload entity_seq: ASSUMED, the brief says only "<version>"), payload EXACTLY
+//     {tenant_id, account_id, patient_id (null when the enquiry has none), kind:'enquiry_reply', entity_type:'enquiry', entity_id, entity_seq} (no text, no PHI). The task name is the writer's choice
+//     (only /^engagement\.[a-z][a-z0-9_]*$/ is asserted here; the worker test resolves it from this very enqueue and checks it is registered). A failed / rolled-back reply enqueues nothing; a failing
+//     enqueue fails the reply (never a 404, never swallowed). The row itself is created by the worker as the system actor (services/worker/src/jobs/engagement/__tests__/enquiry_notification.test.ts).
+//     Nothing else outside enquiries / enquiry_messages carries the text (no SMS, no outbox, no port call).
 //   - category_code membership of the coded set enquiry_categories and the 'enquiries_enabled' gate are the only E49 checks besides schema; the gate reads engagement.settings.enquiries_enabled
 //     (DDL default false; a missing row is not tested) and fails with 403 common.feature_disabled before anything is written. Pipeline checks (schema min/max, Idempotency-Key replay, x-permission floor)
 //     are not re-tested except where a handler must refuse bad input itself (handlers are driven directly).
@@ -44,6 +50,8 @@ const ifm = (v: number | string) => ({ 'if-match': `"${v}"` });
 const hdr = (out: any, name: string) => out.headers?.[name] ?? out.headers?.[name.toLowerCase()];
 const iso = (v: unknown) => (v instanceof Date ? v.toISOString() : v);
 const idsOf = (out: any): string[] => out.body.data.map((e: any) => e.id);
+const JOB_KEY = (id: string, version: number) => `notif:enquiry_reply:${id}:${version}`;
+const replyJobs = (w: World) => w.jobs.filter((j) => (j.jobKey ?? '').startsWith('notif:enquiry_reply:'));
 
 // patient
 const myList = (w: World, query: Record<string, unknown> = {}, o: Opt = {}) => run(w, 'listMyEnquiries', 'patient', { query }, o);
@@ -131,6 +139,7 @@ describe('E49 createMyEnquiry (US-EN-18.1)', () => {
     expect(msgs[0]).toMatchObject({ account_id: ACC1, author_kind: 'patient', body: 'Synthetic: when will it be ready?', created_by: MEMBERSHIP[ACC1] });
     expect([ACC1, MEMBERSHIP[ACC1]]).toContain(msgs[0]!['author_id']);
     expect(w.tables['notifications']).toEqual([]); // nobody is notified of a patient's own message
+    expect(w.jobs).toEqual([]);
   });
 
   it('is visible to staff with engagement.enquiry.read as open (N1, N2) — and to nobody else', async () => {
@@ -330,6 +339,7 @@ describe('E51 replyMyEnquiry (US-EN-18.4): transitions', () => {
     const added = w.messages(EQ(2)).find((m) => m['body'] === 'Synthetic follow-up')!;
     expect(added).toMatchObject({ author_kind: 'patient', account_id: ACC1, created_by: MEMBERSHIP[ACC1] });
     expect(w.tables['notifications']).toEqual([]);
+    expect(w.jobs).toEqual([]); // a patient reply notifies nobody (US-EN-18.4)
   });
 
   it('open -> open: a second message on an open enquiry is appended; status stays open', async () => {
@@ -445,7 +455,7 @@ describe('N1 listEnquiries / N2 getEnquiry — staff, tenant-wide (02-TRD §4.13
   });
 });
 
-describe('N3 replyEnquiry (US-EN-18.2): transitions, in-app notification, no text outside the thread', () => {
+describe('N3 replyEnquiry (US-EN-18.2): transitions, in-app notification via ONE enqueued job (LD-180), no text outside the thread', () => {
   it('open -> answered: staff message appended, version + 1, last_message_at = now; StaffEnquiry; no-store', async () => {
     const w = makeWorld();
     const out: any = await stReply(w, EQ(1), 'Synthetic lab reply', 3);
@@ -465,18 +475,25 @@ describe('N3 replyEnquiry (US-EN-18.2): transitions, in-app notification, no tex
     const out: any = await stReply(w, EQ(2), 'Synthetic second lab reply', 4);
     expect(out.body).toMatchObject({ status: 'answered', version: 5 });
     expect(out.body.messages).toHaveLength(3);
-    expect(w.tables['notifications']).toHaveLength(1);
+    expect(replyJobs(w)).toHaveLength(1);
+    expect(replyJobs(w)[0]!.jobKey).toBe(JOB_KEY(EQ(2), 5));
   });
 
-  it('the patient gets exactly one in-app notification {kind enquiry_reply, entity enquiry:<id>, own account, the enquiry\'s patient}; it holds no text and no SMS / port / other table is written', async () => {
+  it('LD-180: the reply enqueues exactly ONE job on the request transaction — key notif:enquiry_reply:<enquiry_id>:<new version>, payload exactly {tenant_id, account_id, patient_id, kind, entity_type, entity_id, entity_seq}, no text — and inserts NO notifications row itself', async () => {
     const w = makeWorld();
     const SECRET = 'Synthetic-reply-text-4711';
     await stReply(w, EQ(1), SECRET, 3);
-    const n = w.tables['notifications']!;
-    expect(n).toHaveLength(1);
-    expect(n[0]).toMatchObject({ tenant_id: w.enquiry(EQ(1))!['tenant_id'], account_id: ACC1, patient_id: PAT1, kind: 'enquiry_reply', entity_type: 'enquiry', entity_id: EQ(1), created_by: STAFF, read_at: null });
-    expect(JSON.stringify(n)).not.toContain(SECRET);
-    const writes = w.writes().filter((c) => !/^\s*(update\s+engagement\.enquiries|insert\s+into\s+engagement\.(enquiry_messages|notifications))\b/i.test(c.text.replace(/\s+/g, ' ')));
+    expect(w.tables['notifications']).toEqual([]); // the worker creates the row as the system actor; the request cannot (INSERT is SYS only)
+    expect(w.jobs).toHaveLength(1);
+    const [job] = replyJobs(w);
+    expect(job).toBeDefined();
+    expect(job!.identifier).toMatch(/^engagement\.[a-z][a-z0-9_]*$/);
+    expect(job!.jobKey).toBe(JOB_KEY(EQ(1), 4));
+    expect(job!.payload).toEqual({ tenant_id: TA, account_id: ACC1, patient_id: PAT1, kind: 'enquiry_reply', entity_type: 'enquiry', entity_id: EQ(1), entity_seq: 4 });
+    expect(job!.tenant).toBe(TA);
+    expect(JSON.stringify(w.jobs)).not.toContain(SECRET);
+    // only the thread tables are written by the request; the enqueue is a SELECT app.enqueue_job(..) call, not a write to any other table
+    const writes = w.writes().filter((c) => !/^\s*(update\s+engagement\.enquiries|insert\s+into\s+engagement\.enquiry_messages)\b/i.test(c.text.replace(/\s+/g, ' ')));
     expect(writes.map((c) => c.text)).toEqual([]);
     for (const c of w.stmts) {
       const holdsText = JSON.stringify(c.values).includes(SECRET) || c.text.includes(SECRET);
@@ -484,20 +501,46 @@ describe('N3 replyEnquiry (US-EN-18.2): transitions, in-app notification, no tex
       expect(c.text).not.toContain(SECRET);
     }
     expect(w.portCalls).toEqual([]); // no SMS / messaging / outbox port call at all
-    // the enquiry's patient link is the profile the patient sees: the notification points at the enquiry of the account
-    expect(n[0]!['patient_id']).toBe(PAT1);
+    // inside the reply transaction, after the message insert and the status update (the reply and the notification intent commit together)
+    const at = (re: RegExp) => w.stmts.findIndex((c) => re.test(c.text.replace(/\s+/g, ' ')));
+    const enq = at(/app\.enqueue_job/i);
+    expect(enq).toBeGreaterThan(at(/^\s*insert\s+into\s+(engagement\.)?enquiry_messages\b/i));
+    expect(enq).toBeGreaterThan(at(/^\s*update\s+(engagement\.)?enquiries\b/i));
+    expect(w.stmts.filter((c) => /app\.enqueue_job/i.test(c.text))).toHaveLength(1);
   });
 
-  it('a reply to an enquiry without a profile still notifies the account (patient_id null)', async () => {
+  it('successive staff replies enqueue distinct jobs (one key per version): v3 -> :4, then v4 -> :5', async () => {
+    const w = makeWorld();
+    await stReply(w, EQ(1), 'Synthetic first', 3);
+    await stReply(w, EQ(1), 'Synthetic second', 4);
+    expect(replyJobs(w).map((j) => [j.jobKey, j.payload['entity_seq']])).toEqual([[JOB_KEY(EQ(1), 4), 4], [JOB_KEY(EQ(1), 5), 5]]);
+  });
+
+  it('a reply to an enquiry without a profile still enqueues the notification for the account (patient_id null)', async () => {
     const w = makeWorld();
     await stReply(w, EQ(2), 'Synthetic', 4);
-    expect(w.tables['notifications']![0]).toMatchObject({ account_id: ACC1, patient_id: null, kind: 'enquiry_reply', entity_type: 'enquiry', entity_id: EQ(2) });
+    expect(replyJobs(w)).toHaveLength(1);
+    expect(replyJobs(w)[0]!.payload).toEqual({ tenant_id: TA, account_id: ACC1, patient_id: null, kind: 'enquiry_reply', entity_type: 'enquiry', entity_id: EQ(2), entity_seq: 5 });
   });
 
-  it('PROBE closed: staff reply -> 409 engagement.enquiry_invalid_transition; nothing written, nobody notified', async () => {
+  it('PROBE closed: staff reply -> 409 engagement.enquiry_invalid_transition; nothing written, nothing enqueued, nobody notified', async () => {
     const w = makeWorld();
     expect(await code(stReply(w, EQ(3), 'Synthetic', 5))).toBe('engagement.enquiry_invalid_transition');
     expect(w.writes()).toEqual([]);
+    expect(w.tables['notifications']).toEqual([]);
+    expect(w.jobs).toEqual([]);
+    expect(w.stmts.some((c) => /app\.enqueue_job/i.test(c.text))).toBe(false);
+  });
+
+  it('a failing enqueue fails the reply (reply and notification intent commit together): not swallowed, not "not found", no text in the error', async () => {
+    const w = makeWorld();
+    const SECRET = 'Synthetic-reply-text-5512';
+    w.jobFault.on = true; // like a missing grant on app.enqueue_job (42501): must not look like a missing enquiry (the old interim bug)
+    const e: any = await stReply(w, EQ(1), SECRET, 3).catch((x: unknown) => x);
+    expect(e?.code, 'a reply whose notification job cannot be enqueued must reject').toBeTruthy();
+    expect(e.code).not.toBe('common.not_found');
+    expect(JSON.stringify({ code: e.code, message: e.message, detail: e.detail, details: e.details })).not.toContain(SECRET);
+    expect(w.jobs).toEqual([]);
     expect(w.tables['notifications']).toEqual([]);
   });
 
@@ -509,6 +552,8 @@ describe('N3 replyEnquiry (US-EN-18.2): transitions, in-app notification, no tex
     for (const m of ['', 'a'.repeat(2001), 7, undefined]) expect(await code(stReply(w, EQ(1), m, 3)), String(m)).toBe('common.validation_failed');
     expect(w.writes()).toEqual([]);
     expect(w.tables['notifications']).toEqual([]);
+    expect(w.jobs).toEqual([]); // a failed reply enqueues nothing
+    expect(w.stmts.some((c) => /app\.enqueue_job/i.test(c.text))).toBe(false);
   });
 
   it('PROBE: another tenant\'s staff cannot reply into this tenant\'s enquiry (404, nothing written); a tenant-B reply to tenant-B\'s own works', async () => {
@@ -516,8 +561,11 @@ describe('N3 replyEnquiry (US-EN-18.2): transitions, in-app notification, no tex
     expect(await code(stReply(w, EQ(1), 'x', 3, { tenant: TB }))).toBe('common.not_found');
     expect(await code(stReply(w, EQ(5), 'x', 1))).toBe('common.not_found');
     expect(w.writes()).toEqual([]);
+    expect(w.jobs).toEqual([]); // the probes enqueued nothing
     expect((await stReply(w, EQ(5), 'Synthetic', 1, { tenant: TB }) as any).body.status).toBe('answered');
-    expect(w.tables['notifications']![0]).toMatchObject({ tenant_id: TB, account_id: ACC_B });
+    expect(w.jobs).toHaveLength(1);
+    expect(w.jobs[0]).toMatchObject({ tenant: TB, jobKey: JOB_KEY(EQ(5), 2) });
+    expect(w.jobs[0]!.payload).toMatchObject({ tenant_id: TB, account_id: ACC_B, entity_id: EQ(5) }); // tenant from the request context, never from input
   });
 
   it('staff reply and patient reply race on the same version: exactly one wins, the other gets common.version_conflict', async () => {
@@ -527,7 +575,8 @@ describe('N3 replyEnquiry (US-EN-18.2): transitions, in-app notification, no tex
     expect((results.find((r) => r.status === 'rejected') as PromiseRejectedResult).reason.code).toBe('common.version_conflict');
     expect(w.enquiry(EQ(1))!['version']).toBe(4);
     expect(w.messages(EQ(1))).toHaveLength(2);
-    expect(w.tables['notifications']!.length).toBe(w.enquiry(EQ(1))!['status'] === 'answered' ? 1 : 0); // a notification only for a staff reply that was stored
+    expect(w.tables['notifications']).toEqual([]);
+    expect(replyJobs(w).length).toBe(w.enquiry(EQ(1))!['status'] === 'answered' ? 1 : 0); // a job only for a staff reply that was stored; the loser enqueued nothing
   });
 });
 
@@ -545,6 +594,7 @@ describe('N4 closeEnquiry (transitions)', () => {
       expect(w.messages(id)).toHaveLength(n);
     }
     expect(w.tables['notifications']).toEqual([]);
+    expect(w.jobs).toEqual([]); // close notifies nobody
   });
 
   it('closed -> closed is 409 engagement.enquiry_invalid_transition and changes nothing (the same code as a closed reply)', async () => {
@@ -594,7 +644,8 @@ describe('P3 free text is never logged, never audited, never a metric label, nev
     await stClose(w, made.body.id, 3);
     await code(myReply(w, made.body.id, F, 4)); // 409 path
     await code(myGet(w, made.body.id, { account: ACC2 })); // 404 path
-    const seen = JSON.stringify([w.logs, w.audit, w.metrics, w.portCalls, w.tables['notifications']]);
+    expect(replyJobs(w)).toHaveLength(1); // the staff reply above enqueued its job (no text in it: checked below)
+    const seen = JSON.stringify([w.logs, w.audit, w.metrics, w.portCalls, w.tables['notifications'], w.jobs]);
     for (const secret of [S, M, R, F]) expect(seen, secret).not.toContain(secret);
     for (const c of w.stmts) for (const secret of [S, M, R, F]) expect(c.text, secret).not.toContain(secret);
   });

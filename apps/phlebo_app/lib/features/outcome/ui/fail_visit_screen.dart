@@ -74,6 +74,7 @@ class _FailVisitScreenState extends State<FailVisitScreen> with SaveOnce<FailVis
             key: const ValueKey('fail.reason_text'),
             label: _picked?.requiresText == true ? 'Details (required)' : 'Details (optional)',
             maxLength: 200,
+            sensitive: true,
             controller: _text,
             onChanged: (_) => setState(() {}),
           ),

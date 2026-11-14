@@ -116,7 +116,8 @@ export function SupplierItems({ supplierId, rows, info, canManage, canCost, tax 
     ...(canCost ? [{ id: 'price', header: 'Last price', align: 'end' as const, cell: (r: SupplierItem) => (r.last_unit_price_paisa === undefined ? '—' : <MoneyText value={{ amountPaisa: r.last_unit_price_paisa, currency: 'NPR' }} />) }] : []),
     { id: 'lead', header: 'Lead time', align: 'end', cell: (r) => (r.lead_time_days === undefined ? '—' : `${r.lead_time_days} days`) },
     { id: 'active', header: 'Active', cell: (r) => <ActiveChip active={r.is_active} /> },
-    ...(canManage ? [{ id: 'actions', header: 'Actions', cell: (r: SupplierItem) => <Button size="sm" variant="ghost" onPress={() => setEditor({ row: r })}>Edit</Button> }] : []),
+    // PUT #22 is a full replacement (omitted price -> null); without inventory.cost.read the price can't be preserved, so no Edit on existing rows.
+    ...(canManage && canCost ? [{ id: 'actions', header: 'Actions', cell: (r: SupplierItem) => <Button size="sm" variant="ghost" onPress={() => setEditor({ row: r })}>Edit</Button> }] : []),
   ];
   return (
     <Stack>

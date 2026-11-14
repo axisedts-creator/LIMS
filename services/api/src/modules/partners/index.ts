@@ -16,6 +16,9 @@ import { getManifestPrintView } from './handlers/getManifestPrintView.js';
 import { getPartner } from './handlers/getPartner.js';
 import { getInboundManifest } from './handlers/getInboundManifest.js';
 import { getPartnerContext } from './handlers/getPartnerContext.js';
+import { getPartnerStatement } from './handlers/getPartnerStatement.js';
+import { listPartnerPriceList } from './handlers/listPartnerPriceList.js';
+import { listPartnerStatements } from './handlers/listPartnerStatements.js';
 import { listInboundManifests } from './handlers/listInboundManifests.js';
 import { markManifestLineNotReceived } from './handlers/markManifestLineNotReceived.js';
 import { receiveManifest } from './handlers/receiveManifest.js';
@@ -23,6 +26,10 @@ import { retryManifestLineConversion } from './handlers/retryManifestLineConvers
 import { listManifests } from './handlers/listManifests.js';
 import { listPartners } from './handlers/listPartners.js';
 import * as partnerUserHandlers from './handlers/partnerUsers.js';
+import * as orderHandlers from './handlers/orders.js';
+import * as pickupHandlers from './handlers/pickups.js';
+import * as reportHandlers from './handlers/reports.js';
+import * as referrerHandlers from './handlers/referrers.js';
 import { reactivatePartner } from './handlers/reactivatePartner.js';
 import { replaceManifestLine } from './handlers/replaceManifestLine.js';
 import { resyncPartnerProjections } from './handlers/resyncPartnerProjections.js';
@@ -48,6 +55,10 @@ const implemented: Readonly<Record<string, Handler>> = {
   getPartnerContext, // T03
   ...partnerUserHandlers, // T06 U1-U6, SA8-SA10
   listPartners, createPartner, getPartner, updatePartner, suspendPartner, reactivatePartner, resyncPartnerProjections, // T07 SA1–SA7
+  listPartnerPriceList, listPartnerStatements, getPartnerStatement, // T17 P1, S1, S2
+  ...referrerHandlers, // T11 F1–F5, SR1–SR3
+  ...pickupHandlers, // T15 K1–K4, SP1–SP4
+  ...orderHandlers, ...reportHandlers, // T13 O1–O3, R1–R3
   createManifest, listManifests, getManifest, updateManifest, addManifestLine, replaceManifestLine, deleteManifestLine, discardManifest, searchPartnerOrderables, // T08 M1–M7, M10, P2
   submitManifest, withdrawManifest, getManifestPrintView, // T09 M8, M9, M11
   listInboundManifests, getInboundManifest, receiveManifest, retryManifestLineConversion, markManifestLineNotReceived, // T10 SI1-SI5

@@ -63,11 +63,11 @@ describe('summarise (02-TRD §4.7.3, AC-09.10)', () => {
     const t = 'x'.repeat(4000);
     expect(summarise(t)).toBe(t);
   });
-  it('AC-09.10: 4001 characters → the first 3,990 characters followed by " […]" (3,995 characters in all, within the 4,000-character A1 limit)', () => {
+  it('AC-09.10: 4001 characters → the first 3,990 characters followed by " […]" (3,994 characters in all, within the 4,000-character A1 limit)', () => {
     const t = Array.from({ length: 4001 }, (_, i) => String.fromCharCode(97 + (i % 26))).join('');
     const s = summarise(t);
     expect(s).toBe(`${t.slice(0, 3990)} […]`);
-    expect(s).toHaveLength(3995);
+    expect(s).toHaveLength(3994);
     expect(s.endsWith(' […]')).toBe(true);
   });
   it('a very long impression (30,000 characters) is cut the same way; the cut never exceeds 4,000', () => {

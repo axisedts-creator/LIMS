@@ -32,3 +32,7 @@ Fix: none; per LD-165 no code edits to work around the host. STOPPED. Needs host
 ## Round 8 (after LD-165 reset)
 Cause: unchanged, host. verify log (start 09:31:30, 60.9s): "Failed to start forks worker ... Timeout waiting for worker to respond" for stories-axe and ui-r03-kit-pass, 0 tests run. Tree clean, no code/test defect.
 Fix: none; per LD-165 no code edits to work around the host. STOPPED: vitest cannot start workers. Needs host RAM/stale node processes cleared, then re-run verify.cmd.
+
+## Round 9 (after LD-165 reset)
+Cause: unchanged, host. verify log (start 09:35:10, 61.4s): "Failed to start forks worker ... Timeout waiting for worker to respond" for ui-r03-kit-pass, 0 tests run. No code/test defect.
+Fix: none; per LD-165 no code edits to work around the host. STOPPED: vitest cannot start workers. Needs host RAM/stale node processes cleared, then re-run verify.cmd.

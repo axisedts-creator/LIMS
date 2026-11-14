@@ -14,6 +14,14 @@ export async function orderPage(tx: Q, a: { tenantId: string; patientId: string;
   return rows;
 }
 
+/** One order (first sight of an order by an event consumer). */
+export async function orderOf(tx: Q, a: { tenantId: string; orderId: string }): Promise<Row | undefined> {
+  const { rows } = await tx.query(
+    `SELECT order_id, patient_id, centre_id, branch_id, source, source_ref_id, partner_id, status, registered_at, updated_at
+     FROM frontdesk.v_pub_order_status WHERE tenant_id = $1 AND order_id = $2`, [a.tenantId, a.orderId]);
+  return rows[0];
+}
+
 /** Specimens of the given orders; `specimen_version` is the aggregate seq (CR-C16-022 / 08 A19 D-106). */
 export async function timelineOf(tx: Q, a: { tenantId: string; orderIds: readonly string[] }): Promise<Row[]> {
   if (a.orderIds.length === 0) return [];

@@ -16,7 +16,7 @@ SELECT is((SELECT manual_revision FROM instruments.g_drivers WHERE code = 'truth
 SELECT is((SELECT is_active FROM instruments.g_drivers WHERE code = 'truth_h80e'), true, 'H80-T05: active');
 SELECT ok((SELECT char_length(display_name) BETWEEN 1 AND 80 FROM instruments.g_drivers WHERE code = 'truth_h80e'), 'H80-T05: display_name present and within the CHECK');
 -- the row is added, not substituted: the five existing drivers keep their rows and status
-SELECT is((SELECT count(*)::int FROM instruments.g_drivers WHERE code <> 'truth_h80e'), 5, 'H80-T05: the five earlier drivers are untouched');
+SELECT is((SELECT count(*)::int FROM instruments.g_drivers WHERE code NOT IN ('truth_h80e', 'getein_metis')), 5, 'H80-T05: the five earlier drivers are untouched (getein_metis arrives later, MET-T04)');
 SELECT is((SELECT count(*)::int FROM instruments.g_drivers WHERE status = 'verified' OR cap_calibration OR cap_worklist_download), 0, 'H80-T05: still no verified driver / calibration / worklist capability (B2)');
 
 SELECT * FROM finish();

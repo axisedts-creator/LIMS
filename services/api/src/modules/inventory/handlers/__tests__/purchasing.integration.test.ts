@@ -184,7 +184,9 @@ const oracle = (qtyPacks: string, price: number, disc: number, bp: number) => {
   const net = gross - disc; const vat = Number(rhu(BigInt(net) * BigInt(bp), 10000n));
   return { gross, net, vat, total: net + vat };
 };
-const keysOk = (po: any) => { expect(onlyKeys(po, PO_KEYS)).toEqual([]); expect(JSON.stringify(po)).not.toMatch(LEAK); for (const l of po.lines) expect(onlyKeys(l, LINE_KEYS)).toEqual([]); };
+// Ruling C12.T-11: Po requires created_at (inventory.yaml Po / PoSummary), so shared LEAK (contains created_at) must not apply here.
+const PO_LEAK = /tenant|created_by|updated_by/i;
+const keysOk = (po: any) => { expect(onlyKeys(po, PO_KEYS)).toEqual([]); expect(JSON.stringify(po)).not.toMatch(PO_LEAK); for (const l of po.lines) expect(onlyKeys(l, LINE_KEYS)).toEqual([]); };
 
 // =============================================================================================================== AC-05.1 create: server totals, tax, exempt
 describe.skipIf(!live)('T-11 #81createPurchaseOrder: AC-05.1 server-computed money (CatalogPort.getTaxRate, half-up), P-23, D-70', () => {
@@ -502,7 +504,8 @@ describe.skipIf(!live)('T-11 #86cancel (AC-05.5, PE-1)', () => {
     expect(s.roleCalls.some((x) => x.permission === PO_APPROVE)).toBe(false);
   });
   run('a PO with a posted receipt (partially_received / received) cannot be cancelled => 409 inventory.po_invalid_transition; closed / cancelled too (AC-05.7)', async (s) => {
-    for (const id of [PP, PR, PC, PX]) { await invalid(cancel(s, id)); expect((await dbPo(s, id)).status).not.toBe('cancelled'); }
+    for (const id of [PP, PR, PC]) { await invalid(cancel(s, id)); expect((await dbPo(s, id)).status).not.toBe('cancelled'); }
+    await invalid(cancel(s, PX));
     expect((await dbPo(s, PX)).status).toBe('cancelled');
   });
   run('reason code must belong to reason group po_cancel: unknown, other group (spillage = wastage) and a po_close code => 422 inventory.reason_required; nothing changes', async (s) => {
@@ -576,7 +579,8 @@ describe.skipIf(!live)('T-11 #88createPurchaseOrdersFromReorder (AC-20.4)', () =
     expect(onlyKeys(r.body, ['created', 'skipped'])).toEqual([]);
     for (const c of r.body.created) { expect(onlyKeys(c, SUMMARY_KEYS)).toEqual([]); expect(c).toMatchObject({ status: 'draft', source: 'reorder', store_id: R1, branch_id: BR1 }); }
     expect(r.body.created.map((c: any) => c.supplier_id).sort()).toEqual([SA, SB].sort());
-    const pos = await Promise.all(r.body.created.map(async (c: any) => (await get(s, c.id)).body));
+    const pos: any[] = [];
+    for (const c of r.body.created) pos.push((await get(s, c.id)).body); // sequential: one session/client, SAVEPOINTs must not interleave (ruling)
     const poA = pos.find((p: any) => p.supplier_id === SA), poB = pos.find((p: any) => p.supplier_id === SB);
     expect(poA.lines.length).toBe(2); expect(poB.lines.length).toBe(1);
     const l1 = lineOf(poA, Q1), l2 = lineOf(poA, Q2), l3 = lineOf(poB, Q3);

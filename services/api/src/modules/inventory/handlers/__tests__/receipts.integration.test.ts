@@ -763,8 +763,9 @@ describe.skipIf(!live)('T-12 #49 listGoodsReceipts / #51 getGoodsReceipt: filter
   });
   run('#49 visibility (P-B8): without store_id the permission is asserted first with no branchId and only visible branches are listed; an invisible store_id => 404; tenant B sees only its own', async (s) => {
     const a = await mk(s, [E1()]); const b = await mk(s, [E1()], {}, undefined, G2);
+    s.roleCalls.length = 0;
     const ids = (r: any) => r.body.data.map((x: any) => x.id);
-    const one = await s.call(A, 'listGoodsReceipts', { query: { limit: 200 } }, BR1_ONLY);
+    const one =await s.call(A, 'listGoodsReceipts', { query: { limit: 200 } }, BR1_ONLY);
     expect(s.roleCalls[0]).toEqual({ permission: READ });
     expect(ids(one)).toContain(a.id); expect(ids(one)).not.toContain(b.id);
     const two = await s.call(A, 'listGoodsReceipts', { query: { limit: 200 } }, BR2_ONLY);

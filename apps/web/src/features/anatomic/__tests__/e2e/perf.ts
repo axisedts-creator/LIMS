@@ -8,6 +8,9 @@ export const TARGETS_MS = {
   saveAnatomicGross: 150, // "draft/gross saves"
   saveAnatomicReportDraft: 150,
   signOutAnatomicCase: 600, // ≤ 5 items
+  consumerPerEvent: 300, // "consumer per event"; handling ms returned by the receive_specimen hook
+  imageUploadAccept: 2000, // "image upload accept (15 MB)" ≤ 2 s excluding network (I1 uploadAnatomicImage)
+  imageProcessing: 30_000, // "processing p95 ≤ 30 s": upload accepted → image no longer `processing`
 } as const;
 export type Op = keyof typeof TARGETS_MS;
 

@@ -36,6 +36,20 @@ describe('T-26 perf targets = 02-TRD §11', () => {
     expect(TARGETS_MS.saveAnatomicGross).toBe(150);
     expect(TARGETS_MS.saveAnatomicReportDraft).toBe(150);
   });
+  it('consumer per event row (≤ 300 ms) is gated', () => {
+    expect(section11).toMatch(/\| consumer per event \| ≤ 300 ms/);
+    expect(TARGETS_MS.consumerPerEvent).toBe(300);
+  });
+  it('image upload accept (≤ 2 s) and processing p95 (≤ 30 s) rows are gated', () => {
+    expect(section11).toMatch(/\| image upload accept \(15 MB\) \| ≤ 2 s excluding network; processing p95 ≤ 30 s/);
+    expect(TARGETS_MS.imageUploadAccept).toBe(2000);
+    expect(TARGETS_MS.imageProcessing).toBe(30_000);
+  });
+  it('every §11 row maps to a TARGETS_MS entry (6 table rows + draft/gross split = 9 ops)', () => {
+    const rows = section11.split('\n').filter((l) => /^\| (`|draft|consumer|image)/.test(l));
+    expect(rows).toHaveLength(7);
+    expect(Object.keys(TARGETS_MS)).toHaveLength(9);
+  });
   it('every op in TARGETS_MS is measured by the scenario (op: name appears in flow/scenario)', () => {
     for (const op of Object.keys(TARGETS_MS)) expect(flow + scenario, op).toContain(`'${op}'`);
   });
@@ -130,6 +144,38 @@ describe('T-26 scenario = 02-TRD §14 E2E row, in order, on real 02-TRD §5 rout
     expect(scenario).toContain('test.describe.serial');
     expect(flow).toContain('NEEDS: LIMS_E2E_HOOKS_URL');
     expect(code).not.toMatch(/test\.skip|\.skip\(/);
+  });
+});
+
+describe('T-26 review fixes (C11.T-26-review items 1–4)', () => {
+  it('I1 route exists in the TRD and the scenario uploads through it with the planted caption', () => {
+    expect(trd).toContain('`/cases/{case_id}/images`');
+    expect(flow).toContain('/images`');
+    expect(flow).toContain('caption: PLANTED.caption');
+    expect(flow).toContain("'imageUploadAccept'");
+    expect(flow).toContain("'imageProcessing'");
+    expect(flow.indexOf('/images`')).toBeLessThan(flow.indexOf('/mark-ready`')); // uploaded before mark-ready
+  });
+  it('consumer handling time comes from the receive_specimen hook (handling_ms)', () => {
+    expect(flow).toContain('handling_ms');
+    expect(flow).toContain("'consumerPerEvent'");
+  });
+  it('planted accession is asserted on the case, not just sent as a hint', () => {
+    expect(scenario).toContain('expect(accession).toBe(PLANTED.accession)');
+  });
+  it('R10 addendum sign is not timed as signOutAnatomicCase', () => {
+    const line = scenario.split('\n').find((l) => l.includes('/addenda/${a.id}/sign'))!;
+    expect(line).toBeDefined();
+    expect(line).not.toContain('signOutAnatomicCase');
+  });
+  it('synthetic PNG is valid: signature, IHDR first, IEND last, padding stays ≤ 15 MB', async () => {
+    const { syntheticPng } = await import('./e2e/flow');
+    const p = syntheticPng(14 * 1024 * 1024);
+    expect(p.subarray(0, 8).toString('hex')).toBe('89504e470d0a1a0a');
+    expect(p.subarray(12, 16).toString('latin1')).toBe('IHDR');
+    expect(p.subarray(-8, -4).toString('latin1')).toBe('IEND');
+    expect(p.length).toBeLessThan(15 * 1024 * 1024);
+    expect(p.length).toBeGreaterThan(14 * 1024 * 1024);
   });
 });
 

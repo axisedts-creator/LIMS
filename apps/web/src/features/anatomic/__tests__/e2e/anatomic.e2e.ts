@@ -25,6 +25,7 @@ test.describe.serial('anatomic nightly scenario', () => {
     const r = await runToSignOut(api, { planted: true });
     caseId = r.caseId;
     accession = r.accession;
+    expect(accession).toBe(PLANTED.accession); // receive_specimen must honour accession_hint, else the §5.6 accession scan proves nothing
     expect(r.signed.report_version).toMatchObject({ version_no: 1, version_kind: 'original', scope: 'full' });
     expect(r.signed.case.status).toBe('signed_out');
     expect(r.signed.report_version.submissions.length).toBeGreaterThan(0);
@@ -71,7 +72,7 @@ test.describe.serial('anatomic nightly scenario', () => {
 
   test('5. addendum: create → sign → version 3 addendum_only; versions newest first', async () => {
     const a = (await api.call('POST', `/cases/${caseId}/addenda`, { body: { kind: 'other', text: 'Supplementary note.' }, expect: 201 })).json;
-    const out = (await api.call('POST', `/addenda/${a.id}/sign`, { ifMatch: a.version, body: { attest: true }, op: 'signOutAnatomicCase', expect: 200 })).json;
+    const out = (await api.call('POST', `/addenda/${a.id}/sign`, { ifMatch: a.version, body: { attest: true }, expect: 200 })).json; // R10 signAnatomicAddendum: no §11 row, not timed as R3
     expect(out.report_version).toMatchObject({ version_no: 3, version_kind: 'addendum', scope: 'addendum_only' });
     const list = (await api.call('GET', `/cases/${caseId}/versions`, { expect: 200 })).json.data as Json[];
     expect(list.map((v) => v.version_no)).toEqual([3, 2, 1]);
@@ -88,7 +89,8 @@ test.describe.serial('anatomic nightly scenario', () => {
   });
 
   test(`7. perf: lifecycle x${lifecycleRuns(scale)} (seed ${scale}×) meets 02-TRD §11 p95 targets`, async () => {
-    for (let i = 0; i < lifecycleRuns(scale); i++) await runToSignOut(api);
+    // first 20 runs upload a ~14 MB image (timed: imageUploadAccept / imageProcessing); the rest stay small to bound storage at 10×
+    for (let i = 0; i < lifecycleRuns(scale); i++) await runToSignOut(api, { bigImage: i < 20 });
     for (let i = 0; i < 20 * scale; i++) await api.call('GET', '/cases?limit=50', { op: 'listAnatomicCases', expect: 200 });
     console.log(api.t.report());
     for (const op of Object.keys(TARGETS_MS) as Op[]) {

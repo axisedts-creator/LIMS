@@ -1,7 +1,7 @@
 // HC-T17 (02-TRD §14 "Metric" table): the 8 lims_homecollection_* metrics behind one best-effort emitter. Names, types and labels are copied from the TRD.
 // Labels are codes only: never a visit / device / patient id, barcode, name, phone or GPS (02-CV §9.2, 07-SECURITY §6). A missing sink or a rejected name/label never fails a request.
-// [CONV] registering the 8 names in core/observability/metrics.ts DEFS (+ its EXPECTED test) is a C0 path: see .orchestra/cr/HC-T17-registry.md. Until then a real registry rejects the
-//   names and the emitters swallow it (same seam as engagement/metrics.ts and lab/service/metrics.ts).
+// The 8 names are registered in core/observability/metrics.ts DEFS (LD-162, CR-C17-HC-T17-REG). Emitters stay best-effort: a rejected name/label is swallowed
+//   (same seam as engagement/metrics.ts and lab/service/metrics.ts).
 type L = Record<string, string | number>;
 type Sink = { inc?: (n: string, l?: L, by?: number) => void; set?: (n: string, v: number, l?: L) => void; observe?: (n: string, v: number, l?: L) => void };
 const sinkOf = (ctx: unknown): Sink | undefined => (ctx as { metrics?: Sink } | undefined)?.metrics;

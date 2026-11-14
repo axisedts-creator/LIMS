@@ -13,3 +13,4 @@ Backward compatible? yes (additive).
 Tenant/security impact: none; labels are codes only (02-CV §9.2), tenant_id only on the three gauges, no visit / device / patient / barcode / name / phone / GPS label.
 Alternatives considered: a private registry in the module (rejected by observability.test.ts: one /metrics, one registry).
 Tests that will prove it: observability.test.ts (registry group, 8 types/labels, PHI-label rejection), logscan.live.test.ts (push pipeline metrics), and the C0 EXPECTED map test.
+Resolution: APPROVED by LD-162 (2026-11-14). Eight DEFS rows added to core/observability/metrics.ts and eight EXPECTED rows to its metrics.test.ts; nothing else changed.

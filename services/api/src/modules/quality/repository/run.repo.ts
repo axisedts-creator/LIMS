@@ -25,6 +25,8 @@ export interface RunRepo {
   latestInControlRunAt(tx: Tx, tenantId: string, planId: string, beforeRunAt: string): Promise<string | undefined>;
   resetQcActivity(tx: Tx, tenantId: string, planId: string, runAt: string): Promise<void>;
   oldestRejectedWithoutActionAt(tx: Tx, tenantId: string): Promise<string | undefined>;
+  /** §14 gauge lims_quality_qc_open_rejected_runs: same predicate as oldestRejectedWithoutActionAt. */
+  countOpenRejectedRuns?(tx: Tx, tenantId: string): Promise<number>;
 }
 
 const ISO = `'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"'`;
@@ -125,6 +127,12 @@ export function createRunRepo(): RunRepo {
         `INSERT INTO quality.qc_activity (id, tenant_id, plan_id, last_qc_run_at, patient_results_since_last_qc) VALUES ($1, $2, $3, $4::timestamptz, 0)
          ON CONFLICT (tenant_id, plan_id) DO UPDATE SET last_qc_run_at = EXCLUDED.last_qc_run_at, patient_results_since_last_qc = 0, updated_at = now()
          WHERE quality.qc_activity.tenant_id = $2`, [uuidv7(), tenantId, planId, runAt]);
+    },
+    async countOpenRejectedRuns(tx, tenantId) {
+      const { rows } = await tx.query(
+        `SELECT count(*)::int AS n FROM quality.qc_runs r WHERE r.tenant_id = $1 AND r.status = 'evaluated' AND r.outcome = 'rejected'
+            AND NOT EXISTS (SELECT 1 FROM quality.qc_corrective_actions c WHERE c.tenant_id = r.tenant_id AND c.qc_run_id = r.id)`, [tenantId]);
+      return rows[0]?.n ?? 0;
     },
     async oldestRejectedWithoutActionAt(tx, tenantId) {
       const { rows } = await tx.query(

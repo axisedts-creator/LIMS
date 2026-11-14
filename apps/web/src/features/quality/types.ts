@@ -105,5 +105,18 @@ export interface LjChart {
 
 export interface CodeOption { code: string; display: string; isActive: boolean }
 export type ListPage<T> = { rows: T[]; next?: string };
+
+// C9 T-24 (contracts/openapi/quality.yaml: TatAlertDto, QualitySettingsDto, QualityCode). Plain JSON only; no patient identifiers.
+export type TatLevel = 'none' | 'warning' | 'breached' | 'escalated';
+export interface TatAlert {
+  tat_item_id: string; version: number; order_id: string; order_item_id: string; test_id: string; test_code: string; department_id: string; specimen_id?: string; centre_id: string;
+  priority: 'routine' | 'urgent'; segment: 'within_lab' | 'total'; segment_label: string; start_basis: string; target_seconds: number; started_at?: string; elapsed_seconds: number; pct_of_target: number;
+  alert_level: TatLevel; acknowledged_level?: Exclude<TatLevel, 'none'>; acknowledged_at?: string; acknowledged_by_display?: string; state: string;
+}
+export interface QualitySettings {
+  version: number; tat_alerts_enabled: boolean; tat_warn_pct: number; tat_escalate_pct: number; tat_orphan_close_hours: number; target_min_points: number; sim_min_days: number; sim_min_decisions: number;
+  reprocess_window_days: number; default_plan_params: Record<string, unknown>; activated_at: string; updated_at?: string; updated_by_display?: string; westgard_mode: 'classic' | 'modern'; auto_verification_enabled: boolean;
+}
+export interface QualityCode { code: string; display: string; sort_order: number; is_active: boolean; source: 'global' | 'tenant' | string }
 /** Outcome of a client poll / mutation through a server action; never carries a problem body or token. */
 export type ActionResult<T> = { ok: true; data: T } | { ok: false; status: number; code: string };

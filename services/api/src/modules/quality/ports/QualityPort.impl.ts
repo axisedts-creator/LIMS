@@ -9,9 +9,14 @@ type DecisionService = Pick<ReturnType<typeof createDecisionService>, 'canAutoVe
 export function createQualityPort(deps: { status?: StatusService; decision?: DecisionService } = {}) {
   const status = deps.status ?? createStatusService();
   const decision = deps.decision ?? createDecisionService({ status });   // the SAME status service serves the QC lookups of the decision
+  // §14 lims_quality_port_duration_seconds{method}: observed on success and failure; metrics never break a port call.
+  const timed = async <T>(method: string, ctx: any, f: () => Promise<T>): Promise<T> => {
+    const t0 = performance.now();
+    try { return await f(); } finally { try { ctx?.metrics?.observe('lims_quality_port_duration_seconds', (performance.now() - t0) / 1000, { method }); } catch { /* ignore */ } }
+  };
   return {
-    canAutoVerify: (ctx: any, input: unknown) => decision.canAutoVerify(ctx, input),
-    qcStatusFor: (ctx: any, input: any) => status.qcStatusFor(ctx, input),
+    canAutoVerify: (ctx: any, input: unknown) => timed('canAutoVerify', ctx, () => decision.canAutoVerify(ctx, input)),
+    qcStatusFor: (ctx: any, input: any) => timed('qcStatusFor', ctx, () => status.qcStatusFor(ctx, input)),
   };
 }
 

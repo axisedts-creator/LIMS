@@ -1,0 +1,55 @@
+# C9 alert rules (02-TRD §14 "Alert rules for C1", CR-C9-008, 08 A13 P-14). expr and for are verbatim from the TRD table.
+# C1 wires this file into infra/ and adds team + runbook_url on import. Thresholds are [CONV].
+# Single-quoted scalars keep the regex backslashes literal. No rule filters or groups by a barcode / patient / specimen label (02-CV §9.2).
+groups:
+  - name: quality
+    rules:
+      - alert: QualityRejectedRunWithoutAction
+        expr: 'max by (tenant_id) (lims_quality_qc_rejected_without_action_oldest_age_seconds) > 14400'
+        for: 5m
+        labels:
+          severity: warn
+        annotations:
+          summary: A rejected QC run has had no corrective action for more than 4 hours.
+      - alert: QualityConsumerDeadLetter
+        expr: 'increase(lims_core_dead_letters_total{task=~"(evt\\.)?quality\\..*"}[5m]) > 0'
+        for: 0m
+        labels:
+          severity: page
+        annotations:
+          summary: A quality event consumer or job created a dead letter.
+      - alert: QualityQcSyncStalled
+        expr: 'time() - max by (tenant_id) (lims_quality_qc_sync_last_success_timestamp_seconds) > 300'
+        for: 5m
+        labels:
+          severity: page
+        annotations:
+          summary: The QC sync from C5 has not succeeded for more than 5 minutes.
+      - alert: QualityQcImportError
+        expr: 'increase(lims_quality_qc_observations_total{status="import_error"}[15m]) > 0'
+        for: 0m
+        labels:
+          severity: warn
+        annotations:
+          summary: A QC result row could not be imported and was skipped.
+      - alert: QualityPortSlow
+        expr: 'histogram_quantile(0.95, sum by (le, method) (rate(lims_quality_port_duration_seconds_bucket[5m]))) > 0.01'
+        for: 15m
+        labels:
+          severity: warn
+        annotations:
+          summary: The p95 of a QualityPort call exceeds the 10 ms budget.
+      - alert: QualityTatSweepSlow
+        expr: 'histogram_quantile(0.95, sum by (le) (rate(lims_quality_tat_sweep_duration_seconds_bucket[5m]))) > 10'
+        for: 15m
+        labels:
+          severity: warn
+        annotations:
+          summary: The p95 of the TAT sweep exceeds 10 seconds.
+      - alert: QualityAutoverifyAllowWithReasons
+        expr: 'increase(lims_quality_autoverify_decisions_total{decision="allow", reason!="none"}[5m]) > 0'
+        for: 0m
+        labels:
+          severity: page
+        annotations:
+          summary: An auto-verify allow decision carried deny reasons; this invariant must never break.

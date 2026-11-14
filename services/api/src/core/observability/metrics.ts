@@ -145,6 +145,23 @@ const DEFS = {
   lims_anatomic_image_processing_total: ['counter', ['outcome'], 'Anatomic image processing by outcome'],
   lims_anatomic_image_processing_seconds: ['histogram', [], 'Anatomic image processing duration in seconds'],
   lims_anatomic_lookup_total: ['counter', ['result'], 'Anatomic lookups by result'],
+  // C9 quality (02-TRD §14; CR-C9-T26-001, lead ruling 2026-11-14). tenant_id on the 7 gauges only (REQ-SEC-098).
+  lims_quality_qc_observations_total: ['counter', ['status'], 'QC observations by status'],
+  lims_quality_qc_sync_last_success_timestamp_seconds: ['gauge', ['tenant_id'], 'Unix time of the last successful QC sync'],
+  lims_quality_qc_rejected_without_action_oldest_age_seconds: ['gauge', ['tenant_id'], 'Age of the oldest rejected QC run without corrective action in seconds'],
+  lims_quality_qc_runs_total: ['counter', ['outcome', 'rule_mode', 'n'], 'Evaluated QC runs by outcome, rule mode and n'],
+  lims_quality_qc_rule_hits_total: ['counter', ['rule'], 'QC rule hits by rule'],
+  lims_quality_qc_eval_lag_seconds: ['histogram', [], 'Lag from observation creation to QC evaluation in seconds'],
+  lims_quality_qc_open_rejected_runs: ['gauge', ['tenant_id'], 'Open rejected QC runs'],
+  lims_quality_qc_overdue_pairs: ['gauge', ['tenant_id'], 'Overdue QC test and instrument pairs'],
+  lims_quality_unassigned_observations: ['gauge', ['status', 'tenant_id'], 'Unassigned QC observations by status'],
+  lims_quality_port_duration_seconds: ['histogram', ['method'], 'Quality port call duration in seconds by method'],
+  lims_quality_autoverify_decisions_total: ['counter', ['mode', 'decision', 'reason'], 'Auto-verification decisions by mode, decision and reason'],
+  lims_quality_autoverify_short_circuit_total: ['counter', ['reason'], 'Auto-verification short circuits by reason'],
+  lims_quality_tat_sweep_duration_seconds: ['histogram', [], 'TAT sweep duration in seconds'],
+  lims_quality_tat_alerts_total: ['counter', ['level', 'segment'], 'TAT alerts raised by level and segment'],
+  lims_quality_tat_open_alerts: ['gauge', ['level', 'tenant_id'], 'Open TAT alerts by level'],
+  lims_quality_tat_alert_lag_seconds: ['histogram', [], 'Lag from TAT threshold crossing to alert row in seconds'],
 } as const satisfies Record<string, readonly [Kind, readonly string[], string]>;
 
 export type MetricName = keyof typeof DEFS;

@@ -99,6 +99,7 @@ void main() {
       await openSummary(tester, h);
       expect(find.textContaining('82'), findsWidgets);
       expect(find.text('Good'), findsOneWidget);
+      await tester.pumpWidget(const SizedBox());
       for (final (band, label) in [('fair', 'Fair'), ('needs_attention', 'Needs attention')]) {
         final host = SmartHost(rig)..api.onGet = (_) => summaryBody(healthScore: {'value': 41, 'band': band});
         await openSummary(tester, host);
@@ -199,6 +200,7 @@ void main() {
       await openSummary(tester, h);
       expect(find.text(disclaimer), findsOneWidget);
       expect(find.text(defaultDisclaimer), findsNothing);
+      await tester.pumpWidget(const SizedBox());
       final host = SmartHost(rig)..api.onGet = (_) => summaryBody(disclaimerText: null);
       await openSummary(tester, host);
       expect(find.text(defaultDisclaimer), findsOneWidget);
@@ -225,6 +227,7 @@ void main() {
       await openSummary(tester, h, superseded: true);
       expect(find.text('Replaced by a newer version'), findsOneWidget);
       expect(find.text(lipidText), findsOneWidget);
+      await tester.pumpWidget(const SizedBox());
       final host = SmartHost(rig);
       await openSummary(tester, host);
       expect(find.text('Replaced by a newer version'), findsNothing);

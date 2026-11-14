@@ -6,7 +6,7 @@ export const IDEMPOTENCY_KEY_RE = /^[A-Za-z0-9_-]{16,64}$/;
 
 export interface FieldError { path?: string; code?: string; message: string }
 /** ApiError cannot cross the server-action boundary, so the problem code travels as data. */
-export type ActionResult<T> = { ok: true; data: T } | { ok: false; status: number; code: string; requestId?: string; errors?: FieldError[] };
+export type ActionResult<T> = { ok: true; data: T } | { ok: false; status: number; code: string; requestId?: string; detail?: string; errors?: FieldError[] };
 export interface Page<T> { data: T[]; page: { next_cursor?: string; limit: number } }
 
 export const QUEUES = ['to_accession', 'grossing', 'bench', 'reporting', 'awaiting_lab', 'signed_out', 'cancelled', 'all'] as const;

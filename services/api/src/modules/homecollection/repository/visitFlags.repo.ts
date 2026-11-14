@@ -15,7 +15,7 @@ export const updateVisitFlag = (tx: Tx, tenantId: string, flagId: string, expect
  * created_by / updated_by = the given actor (the module's system actor in the task).
  */
 export async function insertOpenVisitFlagIfAbsent(tx: Tx, tenantId: string, actorId: string,
-  row: { id: string; centre_id: string; visit_id: string; kind: string; related_id: string }): Promise<any | null> {
+  row: { id: string; centre_id: string; visit_id: string; kind: string; related_id: string | null }): Promise<any | null> {
   const { rows } = await tx.query(
     `INSERT INTO homecollection.visit_flags (id, tenant_id, centre_id, visit_id, kind, status, related_id, created_by, updated_by)
      VALUES ($1, $2, $3, $4, $5, 'open', $6, $7, $7)

@@ -33,7 +33,7 @@ const bare = (c: string) => c.trim().replace(/^\w+\./, '').replace(/"/g, '');
 export const linkCodeHmac = (tenantId: string, code: string): Buffer => createHmac('sha256', readFileSync(process.env['LIMS_ENGAGEMENT_LINK_HMAC_KEY_FILE']!)).update(`${tenantId}:${normalizeLinkCode(code)}`).digest();
 
 // ---- table definitions (05-SCHEMA) -----------------------------------------------------------------------------------------------------------------------------
-interface Def { unique: string[][]; check?: (r: Row, t: Record<string, Row[]>) => string | undefined; defaults?: () => Row; partial?: Array<{ cols: string[]; where: (r: Row) => boolean; name: string }> }
+interface Def { unique: string[][]; conflictPartial?: boolean; check?: (r: Row, t: Record<string, Row[]>) => string | undefined; defaults?: () => Row; partial?: Array<{ cols: string[]; where: (r: Row) => boolean; name: string }> }
 const LIVE = (r: Row) => ['active', 'suspended'].includes(r['status']);
 const RELS = ['self', 'child', 'parent', 'spouse', 'sibling', 'other'];
 const H32 = (v: unknown) => v == null || (bytes(v) && v.length === 32);
@@ -68,7 +68,15 @@ const defs = (now: () => string): Record<string, Def> => ({
       : r['entity_type'] != null && !['order', 'report', 'booking', 'enquiry', 'reminder', 'profile'].includes(r['entity_type']) ? 'notifications__entity__ck' : r['route_id'] != null && !['patient_app.report', 'patient_app.order', 'patient_app.booking'].includes(r['route_id']) ? 'notifications__route__ck'
       : ['id', 'account_id', 'created_by', 'expires_at'].some((c) => r[c] == null) ? 'notifications__not_null' : !t['accounts']!.some((a) => a['tenant_id'] === r['tenant_id'] && a['id'] === r['account_id']) ? 'notifications__account__fk' : undefined,
   },
+  booking_centres: { unique: [['id'], ['tenant_id', 'centre_id']] }, // T-P2: source of centre_display_name (02-TRD §4.4 / 08 A19 D-119)
   smart_summaries: { unique: [['id'], ['tenant_id', 'report_id', 'report_version_no']], defaults: () => ({ created_at: now() }) },
+  reminders: { // T-P4 (05-SCHEMA reminders): follow_up rows scheduled from an approved summary; the partial unique (tenant_id, kind, source_ref_id, source_ref_seq) is honoured by a bare `ON CONFLICT DO NOTHING` too (no index-predicate target in this fake)
+    unique: [['id']], conflictPartial: true,
+    partial: [{ cols: ['tenant_id', 'kind', 'source_ref_id', 'source_ref_seq'], where: (r) => r['source_ref_id'] != null, name: 'reminders__tenant_id_source_ref__p_uq' }],
+    defaults: () => ({ reason_code: null, source_ref_id: null, source_ref_seq: 0, status: 'scheduled', sent_at: null, delivery_id: null, failure_code: null, version: 1, is_active: true, created_at: now(), updated_at: now() }),
+    check: (r) => !['custom', 'follow_up', 'booking'].includes(r['kind']) ? 'reminders__kind__ck' : !['staff', 'smart_report', 'booking'].includes(r['source']) ? 'reminders__source__ck' : !['scheduled', 'sent', 'suppressed', 'failed', 'cancelled'].includes(r['status']) ? 'reminders__status__ck'
+      : (r['status'] === 'sent') !== (r['sent_at'] != null) ? 'reminders__sent__ck' : r['kind'] !== 'booking' && r['reason_code'] == null ? 'reminders__reason__ck' : ['patient_id', 'due_at', 'created_by', 'updated_by'].some((c) => r[c] == null) ? 'reminders__not_null' : undefined,
+  },
   number_counters: {
     unique: [['tenant_id', 'counter_key']],
     check: (r) => !COUNTER_KEY_CK.test(String(r['counter_key'])) ? `number_counters__key__ck (${String(r['counter_key'])})` : !(r['last_value'] >= 0) ? 'number_counters__value__ck' : undefined,
@@ -107,7 +115,7 @@ export function makeLinkWorld(opts: WorldOpts = {}) {
   const clock = { t: Date.parse(T0) };
   const now = () => new Date(clock.t).toISOString();
   const D = defs(now);
-  const t: Record<string, Row[]> = { settings: [], accounts: [], link_codes: [], account_patient_links: [], number_counters: [], patient_orders: [], patient_order_specimens: [], patient_reports: [], notifications: [], smart_summaries: [], jobs: [], orders: [], timeline: [], balances: [] };
+  const t: Record<string, Row[]> = { settings: [], accounts: [], link_codes: [], account_patient_links: [], number_counters: [], patient_orders: [], patient_order_specimens: [], patient_reports: [], notifications: [], smart_summaries: [], reminders: [], booking_centres: [], jobs: [], orders: [], timeline: [], balances: [] };
   const stmts: Stmt[] = [];
   const viewQueries: Array<{ view: string; text: string; values: unknown[]; limit?: number; offset?: number }> = [];
   const definerCalls: Array<{ fn: string; values: unknown[] }> = [];
@@ -265,7 +273,7 @@ export function makeLinkWorld(opts: WorldOpts = {}) {
           if (name !== 'account_patient_links' && name !== 'number_counters') throw pgErr('42501', `RLS: patient actors cannot insert into ${name}`);
         }
         const d = D[name]!;
-        const dup = rows.find((o) => d.unique.some((u) => u.every((c) => eq(o[c], row[c]))));
+        const dup = rows.find((o) => d.unique.some((u) => u.every((c) => eq(o[c], row[c]))) || (d.conflictPartial && (d.partial ?? []).some((p) => p.where(row) && p.where(o) && p.cols.every((c) => eq(o[c], row[c])))));
         if (dup) {
           if (!im[4]) throw pgErr('23505', `duplicate key ${name}__pk`);
           if (/^do\s+nothing/i.test(im[4])) continue;

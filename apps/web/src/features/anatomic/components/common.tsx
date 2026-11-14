@@ -105,13 +105,13 @@ export const failText = (f: Fail, status?: CaseStatus) =>
   f.code === 'anatomic.case_invalid_transition' ? `That step isn't possible for a case in status ${status ?? 'unknown'}.` : (COPY[f.code] ?? GENERIC);
 
 /** role="alert" wrapper (the kit Banner has no live-region role). Version conflicts offer Reload (04-UI-UX §2). */
-export function FailNotice({ fail, status }: { fail: Fail | undefined; status?: CaseStatus }) {
+export function FailNotice({ fail, status, describe }: { fail: Fail | undefined; status?: CaseStatus; /** T-23: own copy for a failure (configuration screens); undefined = the shared copy. */ describe?: (f: Fail) => string | undefined }) {
   const router = useRouter();
   if (!fail || fail.code === 'auth.mfa_required') return null;
   const conflict = isConflict(fail);
   return (
     <div role="alert">
-      <Banner tone={conflict ? 'warning' : 'danger'} title={failText(fail, status)} {...(conflict ? { action: { label: 'Reload', onPress: () => router.refresh() } } : {})} />
+      <Banner tone={conflict ? 'warning' : 'danger'} title={describe?.(fail) ?? failText(fail, status)} {...(conflict ? { action: { label: 'Reload', onPress: () => router.refresh() } } : {})} />
     </div>
   );
 }

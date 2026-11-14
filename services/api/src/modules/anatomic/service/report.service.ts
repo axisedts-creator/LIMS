@@ -4,17 +4,29 @@
 import { LimsError, type FieldError } from '../../../core/errors.js';
 import { uuidv7 } from '../../../../../../packages/shared-ts/src/uuidv7/index.js';
 import type { CaseStatus } from '../domain/case.state.js';
+import { validateMolecularResult } from '../domain/molecular.js';
 import { normalizePlainText } from '../domain/plaintext.js';
-import { validateSynopticValues } from '../domain/synoptic.js';
-import { listCodedDiagnoses } from '../repository/codedValues.repo.js';
-import { getSettings } from '../repository/config.repo.js';
+import { buildContent, summarise } from '../domain/report-content.js';
+import { missingRequiredFields, validateSynopticValues } from '../domain/synoptic.js';
+import { listAddenda } from '../repository/addenda.repo.js';
+import { getBatch } from '../repository/batches.repo.js';
+import { getBlock } from '../repository/blocks.repo.js';
+import { insertCaseTransition, listCaseItems, updateCase } from '../repository/cases.repo.js';
+import { listCodedCytologyAdequacies, listCodedDiagnoses } from '../repository/codedValues.repo.js';
+import { getSettings, listStains } from '../repository/config.repo.js';
 import { getOpenDraft, insertReportDraft, updateReportDraft } from '../repository/drafts.repo.js';
 import { getImage } from '../repository/images.repo.js';
+import { listMolecularResults } from '../repository/molecular.repo.js';
+import { listParts } from '../repository/parts.repo.js';
+import { listSlides } from '../repository/slides.repo.js';
 import { getStainOrder } from '../repository/stainOrders.repo.js';
+import { insertItemSubmission, listItemSubmissions } from '../repository/submissions.repo.js';
 import { getSynopticTemplate } from '../repository/templates.repo.js';
+import { insertReportVersion } from '../repository/versions.repo.js';
 import type { Row } from '../repository/_sql.js';
-import { anatomicCtx, assertAt, isObj, iso, loadCase, put, strict, UUID } from './case.service.js';
+import { anatomicCtx, assertAt, caseDto, isObj, iso, loadCase, put, strict, UUID } from './case.service.js';
 import { ifMatch } from './gross.service.js';
+import { loadAssay } from './molecular.service.js';
 import type { AnatomicCtx } from './numbering.service.js';
 
 type Obj = Record<string, unknown>;
@@ -25,18 +37,18 @@ const MAX_DIAGNOSIS_PAGE = 500;
 const BODY_KEYS = ['gross_text', 'microscopy_text', 'impression_text', 'comment_text', 'flag', 'is_critical', 'synoptic', 'image_ids', 'ancillary', 'diagnosis_codes'] as const;
 const TEXT_LIMITS = { gross_text: 20000, microscopy_text: 20000, impression_text: 8000, comment_text: 8000 } as const;
 
-const fieldError = (path: string, code = 'common.field_invalid', message = 'Field invalid'): FieldError => ({ path, code, message });
+export const fieldError = (path: string, code = 'common.field_invalid', message = 'Field invalid'): FieldError => ({ path, code, message });
 const denied = (code: string): LimsError => new LimsError(code);
 
 /** Closed object: unknown keys are collected (never echoed); false = not an object. */
-function closed(v: unknown, allowed: readonly string[], path: string, errs: FieldError[]): v is Obj {
+export function closed(v: unknown, allowed: readonly string[], path: string, errs: FieldError[]): v is Obj {
   if (!isObj(v)) { errs.push(fieldError(path)); return false; }
   for (const k of Object.keys(v)) if (!allowed.includes(k)) errs.push(fieldError(`${path}/${k}`, 'common.unknown_field', 'Unknown field'));
   return true;
 }
 
 /** Plain text field (02-TRD §4.6): string without NUL, normalised, then length-checked on the stored form. */
-function plain(v: unknown, path: string, max: number, errs: FieldError[], min = 0): string {
+export function plain(v: unknown, path: string, max: number, errs: FieldError[], min = 0): string {
   if (v === undefined) return '';
   if (typeof v !== 'string' || v.includes('\u0000')) { errs.push(fieldError(path)); return ''; }
   const n = normalizePlainText(v);
@@ -55,7 +67,7 @@ export function composeGrossFromParts(i: { parts: ReadonlyArray<Row>; gross: Rea
 }
 
 /** Tenant diagnoses by code (all pages). activeOnly = validation of new input (AC-07.6); false = display lookup of stored codes. */
-async function diagnosisByCode(c: AnatomicCtx, activeOnly: boolean): Promise<Map<string, Row>> {
+export async function diagnosisByCode(c: AnatomicCtx, activeOnly: boolean): Promise<Map<string, Row>> {
   const out = new Map<string, Row>();
   for (let offset = 0; ; offset += MAX_DIAGNOSIS_PAGE) {
     const rows = await listCodedDiagnoses(c.tx, { tenantId: c.tenantId, activeOnly, limit: MAX_DIAGNOSIS_PAGE, offset });
@@ -64,7 +76,7 @@ async function diagnosisByCode(c: AnatomicCtx, activeOnly: boolean): Promise<Map
   }
 }
 
-async function draftDto(c: AnatomicCtx, d: Row, diagnoses: Map<string, Row>): Promise<Obj> {
+export async function draftDto(c: AnatomicCtx, d: Row, diagnoses: Map<string, Row>): Promise<Obj> {
   let by = '';
   try { by = String((await (c.core as unknown as { user(ctx: unknown, i: { userId: string }): Promise<{ displayName: string }> }).user(c, { userId: d['updated_by'] })).displayName); } catch (e) { if (!(e instanceof LimsError)) throw e; }
   const synoptic: Obj[] = [];
@@ -238,4 +250,207 @@ export async function saveReportDraft(hctx: unknown, params: unknown, headers: u
   }
   if (!saved) throw new LimsError('common.version_conflict');
   return { status: 200, body: await draftDto(c, saved, active) };
+}
+
+// ---- R3 signOutAnatomicCase (02-TRD §4.4 steps 1–10) ----
+export interface SignCtx extends AnatomicCtx {
+  readonly actor: { readonly id: string; readonly membershipId?: string; readonly type?: string };
+  readonly audit: { access(entry: Record<string, unknown>): Promise<void> };
+  readonly ports: AnatomicCtx['ports'] & {
+    readonly LabPort: { submitModuleResult(ctx: unknown, i: Obj): Promise<{ resultId: string; versionNo: number; status: string; replayed: boolean }> };
+    readonly FrontdeskPort: { getOrderSummary(ctx: unknown, i: { orderId: string }): Promise<{ items: ReadonlyArray<{ orderItemId: string; status: string }> }> };
+  };
+}
+
+export const dup = (e: unknown): boolean => (e as { code?: unknown } | null)?.code === '23505';
+/** [CONV] AC-09.4 / 08 A17 P-23: the port's code passes through unchanged. A port built on contracts/ports/common.ts throws that file's LimsError class, which the core
+ *  problem renderer would turn into 500 common.internal; it is re-raised as the core LimsError with the SAME code (no detail: never echo port text). Anything else is rethrown as is. */
+export function portError(e: unknown): unknown {
+  if (e instanceof LimsError) return e;
+  const x = e as { name?: unknown; code?: unknown } | null;
+  if (e instanceof Error && x?.constructor?.name === 'LimsError' && typeof x.code === 'string') return new LimsError(x.code);
+  return e;
+}
+const blank = (v: unknown): boolean => typeof v !== 'string' || v.trim() === '';
+
+export async function displayName(c: AnatomicCtx, userId: string): Promise<string> {
+  try { return String((await (c.core as unknown as { user(ctx: unknown, i: { userId: string }): Promise<{ displayName: string }> }).user(c, { userId })).displayName ?? ''); } catch (e) { if (!(e instanceof LimsError)) throw e; return ''; }
+}
+export async function stainDisplays(c: AnatomicCtx): Promise<Map<string, string>> {
+  const out = new Map<string, string>();
+  for (let offset = 0; ; offset += 500) {
+    const rows = await listStains(c.tx, { tenantId: c.tenantId, limit: 500, offset });
+    for (const r of rows) out.set(r['code'], r['display']);
+    if (rows.length < 500) return out;
+  }
+}
+async function adequacyDisplays(c: AnatomicCtx): Promise<Map<string, string>> {
+  const out = new Map<string, string>();
+  for (let offset = 0; ; offset += 500) {
+    const rows = await listCodedCytologyAdequacies(c.tx, { tenantId: c.tenantId, limit: 500, offset });
+    for (const r of rows) out.set(r['code'], r['display']);
+    if (rows.length < 500) return out;
+  }
+}
+
+export async function signOut(hctx: unknown, params: unknown, headers: unknown, body: unknown): Promise<Result> {
+  const c = anatomicCtx(hctx) as SignCtx;
+  // 1. load + lock (the row lock serialises a double click until the request transaction ends)
+  const cs = await loadCase(c, isObj(params) ? params['case_id'] : undefined, true);
+  await c.ports.IdentityPort.assertRole(c, { permission: 'anatomic.case.signout', centreId: cs['centre_id'] }); // REQ-SEC-062/067 (aal2 enforced by IdentityPort)
+  if (c.actor.type !== 'user') throw new LimsError('auth.forbidden'); // 02-TRD §3.2 DECISION: a system actor never signs
+  const b = strict(body, ['attest']);
+  if (b['attest'] !== true) throw new LimsError('common.validation_failed', undefined, [fieldError('/attest')]);
+
+  // 2. open draft + If-Match (draft version)
+  const draft = await getOpenDraft(c.tx, { tenantId: c.tenantId, caseId: cs['id'] });
+  if (!draft) throw new LimsError('anatomic.case_invalid_transition');
+  const version = ifMatch(headers, false);
+  if (Number(draft['version']) !== version) throw new LimsError('common.version_conflict');
+
+  // 3. state guard (§7)
+  const initial = draft['kind'] === 'initial';
+  if (cs['status'] !== (initial ? 'ready_for_reporting' : 'signed_out')) throw new LimsError('anatomic.case_invalid_transition');
+
+  // 4. completeness (§4.5.3) — every error together
+  const errs: FieldError[] = [];
+  if (cs['case_kind'] === 'histology' && blank(draft['gross_text'])) errs.push(fieldError('/gross_text'));
+  if (blank(draft['impression_text'])) errs.push(fieldError('/impression_text'));
+  const synoptic: { template_key: string; template_version: number; definition: unknown; values: unknown }[] = [];
+  for (const [k, s] of ((draft['synoptic'] ?? []) as Obj[]).entries()) {
+    const t = await getSynopticTemplate(c.tx, { tenantId: c.tenantId, id: String(s['template_id']) });
+    if (!t) { errs.push(fieldError(`/synoptic/${k}/template_id`)); continue; }
+    for (const p of missingRequiredFields(t['definition'], s['values'])) errs.push(fieldError(`/synoptic/${k}${p}`));
+    synoptic.push({ template_key: String(s['template_key'] ?? t['template_key']), template_version: Number(s['template_version'] ?? t['version_no']), definition: t['definition'], values: s['values'] ?? {} });
+  }
+  const images: Row[] = [];
+  for (const [k, id] of ((draft['image_ids'] ?? []) as string[]).entries()) {
+    const img = await getImage(c.tx, { tenantId: c.tenantId, id });
+    if (!img || img['case_id'] !== cs['id'] || img['is_active'] === false || img['state'] !== 'ready') errs.push(fieldError(`/image_ids/${k}`));
+    else images.push(img);
+  }
+  const ancillaryIn: { so: Row; result_text: unknown }[] = [];
+  for (const [k, a] of ((draft['ancillary'] ?? []) as Obj[]).entries()) {
+    const so = await getStainOrder(c.tx, { tenantId: c.tenantId, id: String(a['stain_order_id']) });
+    if (!so || so['case_id'] !== cs['id'] || so['status'] !== 'completed') errs.push(fieldError(`/ancillary/${k}/stain_order_id`));
+    else ancillaryIn.push({ so, result_text: a['result_text'] });
+  }
+  const molecular: Obj[] = [];
+  if (cs['case_kind'] === 'molecular') {
+    const rows = (await listMolecularResults(c.tx, { tenantId: c.tenantId, caseId: cs['id'], activeOnly: true })).filter((r) => r['is_active'] !== false);
+    if (rows.length === 0) errs.push(fieldError('/molecular'));
+    const assays = new Map<string, Awaited<ReturnType<typeof loadAssay>>>();
+    for (const [k, r] of rows.entries()) {
+      const code = String(r['assay_code']);
+      if (!assays.has(code)) assays.set(code, await loadAssay(c, code));
+      const a = assays.get(code);
+      if (!a) { errs.push(fieldError(`/molecular/${k}/assay_code`)); continue; }
+      const input = { assay_code: code, target_code: String(r['target_code']), result_code: String(r['result_code']),
+        ...(r['value_decimal'] != null ? { value_decimal: String(r['value_decimal']) } : {}), ...(r['unit_code'] != null ? { unit_code: String(r['unit_code']) } : {}) };
+      const checked = validateMolecularResult(a.def, input);
+      if (!checked.ok) { for (const e of checked.errors) errs.push(fieldError(`/molecular/${k}${e.path}`)); continue; }
+      const t = a.targets.get(input.target_code)!, v = t.values.get(input.result_code)!;
+      const batch = r['batch_id'] ? await getBatch(c.tx, { tenantId: c.tenantId, id: String(r['batch_id']) }) : undefined;
+      molecular.push({ ...r, assay_display: a.row['display'], target_display: t.row['display'], result_display: v['display'], is_abnormal: !!v['is_abnormal'],
+        kit_expiry_on: r['kit_expiry_on'] instanceof Date ? iso(r['kit_expiry_on'])!.slice(0, 10) : r['kit_expiry_on'], batch_no: batch?.['batch_no'] });
+    }
+  }
+  if (errs.length > 0) throw new LimsError('anatomic.report_incomplete', undefined, errs);
+
+  // 5. targets = active primary items (case_item id order); each must still be active at the front desk (AC-09.9)
+  const targets = (await listCaseItems(c.tx, { tenantId: c.tenantId, caseId: cs['id'], activeOnly: true }))
+    .filter((it) => it['role'] === 'primary' && it['is_active'] !== false).sort((x, y) => (x['id'] < y['id'] ? -1 : x['id'] > y['id'] ? 1 : 0));
+  if (targets.length === 0) throw new LimsError('anatomic.case_invalid_transition'); // [CONV] nothing to hand to C5
+  const order = await c.ports.FrontdeskPort.getOrderSummary(c, { orderId: cs['order_id'] });
+  for (const it of targets) {
+    const fd = order.items.find((x) => x.orderItemId === it['order_item_id']);
+    if (fd?.status !== 'active') throw new LimsError('anatomic.order_item_inactive', `order item ${String(it['order_item_id'])} is not active`);
+  }
+
+  // 6. content (in memory) + amendment
+  const n = Number(cs['current_version_no'] ?? 0) + 1;
+  const now = c.now();
+  const parts = await listParts(c.tx, { tenantId: c.tenantId, caseId: cs['id'] });
+  const slides = (await listSlides(c.tx, { tenantId: c.tenantId, caseId: cs['id'] })).filter((s) => s['include_in_report'] === true);
+  const stains = slides.length || ancillaryIn.length ? await stainDisplays(c) : new Map<string, string>();
+  const adequacy = slides.some((s) => s['adequacy_code']) ? await adequacyDisplays(c) : new Map<string, string>();
+  const ancillary: Obj[] = [];
+  for (const { so, result_text } of ancillaryIn) {
+    const block = so['block_id'] ? await getBlock(c.tx, { tenantId: c.tenantId, id: String(so['block_id']) }) : undefined;
+    ancillary.push({ stain_kind: so['stain_kind'], stain_code: so['stain_code'], stain_display: stains.get(so['stain_code']) ?? so['stain_code'], block_label: block?.['label'], result_text });
+  }
+  const codes = (draft['diagnosis_codes'] ?? []) as string[];
+  const diagnoses = codes.length ? await diagnosisByCode(c, false) : new Map<string, Row>();
+  const addenda = initial ? [] : (await listAddenda(c.tx, { tenantId: c.tenantId, caseId: cs['id'] })).filter((a) => a['status'] === 'signed' && a['addon_case_item_id'] == null); // §4.4: full versions carry the case addenda
+  const content = buildContent({
+    scope: 'full', clinical_history_text: cs['clinical_history_text'],
+    draft: { gross_text: draft['gross_text'], microscopy_text: draft['microscopy_text'], impression_text: draft['impression_text'], comment_text: draft['comment_text'], flag: draft['flag'], is_critical: draft['is_critical'] === true },
+    parts, synoptic, images, molecular, addenda, ancillary,
+    slides: slides.map((s) => ({ label: s['label'], stain_display: stains.get(s['stain_code']) ?? s['stain_code'], adequacy_display: s['adequacy_code'] ? adequacy.get(s['adequacy_code']) ?? s['adequacy_code'] : undefined, finding_text: s['finding_text'], include_in_report: true })),
+    diagnosis_codes: codes.map((code) => { const r = diagnoses.get(code); return { code, display: r?.['display'] ?? code, system: r?.['system'] ?? 'local', system_version: r?.['system_version'] }; }),
+  });
+  const amendment = initial ? undefined : { reasonCode: draft['change_reason_code'], ...(draft['change_reason_text'] ? { reasonText: draft['change_reason_text'] } : {}) };
+
+  // 7. port calls FIRST, every target; a port error is rethrown unchanged (08 A17 P-23) and the request transaction rolls back
+  const prior = await listItemSubmissions(c.tx, { tenantId: c.tenantId, caseId: cs['id'] });
+  const summaryText = summarise(content.impression_text);
+  const outs: { it: Row; v: number; key: string; out: Awaited<ReturnType<SignCtx['ports']['LabPort']['submitModuleResult']>> }[] = [];
+  for (const it of targets) {
+    const v = 1 + prior.filter((s) => s['case_item_id'] === it['id']).reduce((m, s) => Math.max(m, Number(s['item_version_no'])), 0);
+    const key = `anatomic:${String(it['id'])}:${v}`;
+    const input: Obj = {
+      orderItemId: it['order_item_id'], kind: cs['case_kind'] === 'molecular' ? 'structured' : 'narrative', reportPhase: 'final',
+      payloadRef: { module: 'anatomic', entityId: it['id'], versionNo: v }, summaryText, submittedAt: now.toISOString(), idempotencyKey: key,
+    };
+    put(input, 'flag', draft['flag']);
+    if (draft['is_critical'] === true) input['isCritical'] = true;
+    if (amendment) input['amendment'] = amendment;
+    try {
+      outs.push({ it, v, key, out: await c.ports.LabPort.submitModuleResult(c, input) });
+    } catch (e) {
+      throw portError(e);
+    }
+  }
+
+  // 8. version_kind decided once, after every port call; then report_versions, then item_submissions
+  const versionKind = initial ? 'original' : outs.some((o) => o.out.status === 'approved') ? 'amendment' : String(draft['kind']);
+  const signedAt = now.toISOString();
+  let ver: Row;
+  try {
+    ver = await insertReportVersion(c.tx, {
+      id: uuidv7(), tenant_id: c.tenantId, centre_id: cs['centre_id'], case_id: cs['id'], version_no: n, version_kind: versionKind, scope: 'full',
+      change_reason_code: initial ? null : draft['change_reason_code'], change_reason_text: initial ? null : draft['change_reason_text'], ...content,
+      signed_by_membership_id: c.actor.membershipId, signed_at: signedAt, created_by: c.actor.id,
+    });
+    for (const o of outs) {
+      await insertItemSubmission(c.tx, {
+        id: uuidv7(), tenant_id: c.tenantId, centre_id: cs['centre_id'], case_id: cs['id'], case_item_id: o.it['id'], item_version_no: o.v, report_version_id: ver['id'], idempotency_key: o.key,
+        lab_result_id: o.out.resultId, lab_version_no: o.out.versionNo, lab_status: o.out.status, replayed: o.out.replayed === true, submitted_at: signedAt, created_by: c.actor.id,
+      });
+    }
+  } catch (e) {
+    if (dup(e)) throw new LimsError('common.version_conflict'); // a parallel sign-out won
+    throw e;
+  }
+
+  // 9. case + draft
+  const updated = await updateCase(c.tx, { tenantId: c.tenantId, id: cs['id'], expectedVersion: Number(cs['version']), actorId: c.actor.id,
+    patch: { status: 'signed_out', current_version_no: n, signed_out_at: cs['signed_out_at'] ? undefined : signedAt } }); // signed_out_at: first time only
+  if (!updated) throw new LimsError('common.version_conflict');
+  if (cs['status'] !== 'signed_out') {
+    await insertCaseTransition(c.tx, { id: uuidv7(), tenant_id: c.tenantId, centre_id: cs['centre_id'], case_id: cs['id'], from_status: cs['status'], to_status: 'signed_out', created_by: c.actor.id });
+  }
+  const consumed = await updateReportDraft(c.tx, { tenantId: c.tenantId, id: draft['id'], expectedVersion: version, actorId: c.actor.id,
+    patch: { status: 'consumed', consumed_version_no: n, consumed_at: signedAt } });
+  if (!consumed) throw new LimsError('common.version_conflict');
+
+  await c.audit.access({ action: 'anatomic_report.sign_out', entityType: 'anatomic_case', entityId: cs['id'], centreId: cs['centre_id'], outcome: 'allowed', detail: { version_no: n } }); // REQ-SEC-096/097
+
+  // 10. SignOutResult { case: CaseDetail, report_version: ReportVersionSummary }
+  const caseBody = caseDto(updated, parts);
+  caseBody['current_version_no'] = n;
+  const rv: Obj = { version_no: n, version_kind: versionKind, scope: 'full', signed_at: signedAt, signed_by_display_name: await displayName(c, c.actor.id) };
+  put(rv, 'change_reason_code', initial ? undefined : draft['change_reason_code']);
+  rv['submissions'] = outs.map((o) => ({ case_item_id: o.it['id'], order_item_id: o.it['order_item_id'], item_version_no: o.v, lab_status_at_submit: o.out.status }));
+  return { status: 200, body: { case: caseBody, report_version: rv } };
 }

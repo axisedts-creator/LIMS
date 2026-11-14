@@ -46,6 +46,7 @@ const view = async (o: { devices?: unknown[]; min?: string; permissions?: string
   return wrap(<DevicesView devices={(o.devices ?? DEVICES) as never} codes={{ wipe_reasons: WIPE_REASONS }} minAppVersion={'min' in o ? o.min : '1.10.0'} permissions={o.permissions ?? P_DEVICE} />);
 };
 const grid = () => screen.getByRole('grid');
+const liveText = () => [...screen.queryAllByRole('status'), ...screen.queryAllByRole('alert')].map((e) => e.textContent).join(' ');
 const openWipe = async (who: string) => {
   await userEvent.click(within(rowOf(grid(), who)).getByRole('button', { name: /row actions/i }));
   await userEvent.click(await screen.findByRole('menuitem', { name: /wipe on next connection/i }));
@@ -156,7 +157,8 @@ describe('wipe on next connection (H17, US-13-5)', () => {
     expect(Object.keys(c.body).every((k) => ['reason_code', 'reason_text'].includes(k))).toBe(true);
     await waitFor(() => expect(refresh).toHaveBeenCalled());
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
-    expect(document.body.textContent).toMatch(/wipe (is )?(requested|scheduled)|will be wiped|wipe requested/i);
+    // ruling HC-T20: scoped to the toast region; the table legitimately renders "Wipe requested" (D3)
+    expect(liveText()).toMatch(/wipe (is )?(requested|scheduled)|will be wiped|wipe requested/i);
   });
   it('"Other" needs a typed detail (≤ 500 chars) which is sent as reason_text', async () => {
     await view();
@@ -190,14 +192,17 @@ describe('wipe on next connection (H17, US-13-5)', () => {
   });
   it('409 (already wiped / stale) -> a plain sentence, no raw code, no success toast', async () => {
     wipe = () => problem('common.version_conflict', 409);
-    await view();
+    await view({ devices: [D1] }); // ruling HC-T20: no row shows the "Wipe requested" status word
     const dlg = await openWipe('Test Phlebo 01');
     await userEvent.click(within(dlg).getByRole('button', { name: /reason/i }));
     await userEvent.click(await screen.findByRole('option', { name: 'Lost' }));
     await userEvent.click(within(dlg).getByRole('button', { name: /wipe/i }));
     await waitFor(() => expect(document.body.textContent).toMatch(/already|changed|reload|refresh/i));
     noRawCodes();
-    expect(document.body.textContent).not.toMatch(/wipe (is )?(requested|scheduled)|will be wiped/i);
+    // scoped to toast/alert regions + dialog; also no optimistic status flip on the row
+    const msg = liveText() + ' ' + (screen.queryByRole('dialog')?.textContent ?? '');
+    expect(msg).not.toMatch(/wipe (is )?(requested|scheduled)|will be wiped/i);
+    expect(within(rowOf(grid(), 'Test Phlebo 01')).getByText('Active')).toBeTruthy();
   });
   it('a double click on the confirm button is single-flight: one POST', async () => {
     await view();

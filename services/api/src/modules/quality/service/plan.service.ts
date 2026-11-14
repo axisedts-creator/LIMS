@@ -32,17 +32,17 @@ function needVersion(v: number | undefined): number {
 }
 
 /** Top-level body shape: records unknown keys; root errors at '/'. */
-function shape(e: Errs, body: unknown, allowed: readonly string[]): Obj | undefined {
+export function shape(e: Errs, body: unknown, allowed: readonly string[]): Obj | undefined {
   if (!isObj(body)) { e.add('/'); return undefined; }
   for (const k of Object.keys(body)) if (!allowed.includes(k)) e.add(`/${k.replaceAll('~', '~0').replaceAll('/', '~1')}`, 'common.unknown_field');
   return body;
 }
-const reqUuid = (e: Errs, o: Obj, k: string, at = ''): string | undefined => {
+export const reqUuid = (e: Errs, o: Obj, k: string, at = ''): string | undefined => {
   if (o[k] === undefined) { e.add(`${at}/${k}`, 'common.field_required'); return undefined; }
   if (!isUuid(o[k])) { e.add(`${at}/${k}`); return undefined; }
   return o[k];
 };
-const reason = (e: Errs, o: Obj, k: string): string | undefined => {
+export const reason = (e: Errs, o: Obj, k: string): string | undefined => {
   const v = o[k];
   if (v === undefined) { e.add(`/${k}`, 'common.field_required'); return undefined; }
   if (typeof v !== 'string' || [...v].length < 1 || [...v].length > 500) { e.add(`/${k}`); return undefined; }

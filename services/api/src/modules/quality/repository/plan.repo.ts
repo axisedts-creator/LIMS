@@ -16,8 +16,8 @@ const PLAN_SETTABLE = ['status', 'current_version_no', 'updated_by'];
 
 // Keyset cursor over id (UUIDv7, time-ordered) [CONV] 02-CV §4.3.
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-const encode = (id: string) => Buffer.from(JSON.stringify(['id', id]), 'utf8').toString('base64url');
-function decode(raw: string): string {
+export const encode = (id: string) => Buffer.from(JSON.stringify(['id', id]), 'utf8').toString('base64url');
+export function decode(raw: string): string {
   const bad = () => new LimsError('common.invalid_cursor');
   if (typeof raw !== 'string' || raw.length > 512 || !/^[A-Za-z0-9_-]+$/.test(raw)) throw bad();
   let v: unknown;

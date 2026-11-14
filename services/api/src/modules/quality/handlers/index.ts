@@ -9,6 +9,7 @@ import { loadQualityConfig } from '../config.js';
 import { setupHandlers } from './setup.handlers.js';
 import { autoverifyHandlers } from './autoverify.handlers.js';
 import { planHandlers } from './plan.handlers.js';
+import { targetHandlers } from './target.handlers.js';
 
 const OPERATION_IDS = [
   'listControlMaterials', 'createControlMaterial', 'getControlMaterial', 'updateControlMaterial', 'deactivateControlMaterial', 'createControlLevel',
@@ -39,7 +40,7 @@ const gated = (h: Handler): Handler => async (req, ctx) => {
 };
 
 const implemented: Partial<Record<QualityOperationId, Handler>> = Object.fromEntries(
-  Object.entries({ ...setupHandlers, ...planHandlers, ...autoverifyHandlers }).map(([op, h]) => [op, gated(h as Handler)]), // T-06: #1-#13; T-07: #14-#19; T-15: #36-#41, #44, #45
+  Object.entries({ ...setupHandlers, ...planHandlers, ...targetHandlers, ...autoverifyHandlers }).map(([op, h]) => [op, gated(h as Handler)]), // T-06: #1-#13; T-07: #14-#19; T-08: #20-#25; T-15: #36-#41, #44, #45
 );
 
 export const handlers: Readonly<Record<QualityOperationId, Handler>> = Object.freeze(

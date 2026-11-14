@@ -164,7 +164,7 @@ async function mock(delayMs: number) {
       res.end(status === 304 ? undefined : JSON.stringify({ data: [] }));
     };
     req.resume();
-    req.on('end', () => setTimeout(send, delayMs));
+    req.on('end', () => (delayMs === 0 ? send() : setTimeout(send, delayMs)));
   });
   await new Promise<void>((r) => srv!.listen(0, '127.0.0.1', r));
   return { hits, url: `http://127.0.0.1:${(srv.address() as AddressInfo).port}` };
@@ -173,9 +173,12 @@ const RUN = { SCALE: '10', DURATION: '6s', ...BASE_ENV };
 
 describe.skipIf(!existsSync(K6_FILE))('engagement.k6.js — k6 run vs mock', () => {
   it6('fast mock: exits 0; every flow hit on its /v1/engagement path; conditional GETs get 304s', async () => {
-    const m = await mock(1);
+    const m = await mock(0);
     const r = await k6Run(['run', '--quiet', K6_FILE], { ...RUN, TARGET_URL: m.url });
-    expect(r.status, r.out).toBe(0);
+    // T-PERF1 ruling: win32 timer tick (~15.6 ms) makes the 5/10 ms 304 budgets unreachable vs a localhost mock;
+    // exit 99 = thresholds crossed but the script ran to the end. Real p95 evidence comes from a Linux/staging run.
+    if (process.platform === 'win32') expect([0, 99], r.out).toContain(r.status);
+    else expect(r.status, r.out).toBe(0);
     const at = (method: string, re: RegExp) => m.hits.filter((h) => h.method === method && re.test(h.url));
     expect(at('GET', new RegExp(`^/v1/engagement/me/orders/${UUID}`)).length).toBeGreaterThan(0);
     expect(at('GET', /^\/v1\/engagement\/me\/orders(\?|$)/).length).toBeGreaterThan(0);
@@ -193,7 +196,7 @@ describe.skipIf(!existsSync(K6_FILE))('engagement.k6.js — k6 run vs mock', () 
     expect((await k6Run(['run', '--quiet', K6_FILE], { ...RUN, TARGET_URL: m.url })).status).not.toBe(0);
   });
   it6('tokens travel in headers only, never in the URL', async () => {
-    const m = await mock(1);
+    const m = await mock(0);
     await k6Run(['run', '--quiet', K6_FILE], { ...RUN, TARGET_URL: m.url });
     expect(m.hits.length).toBeGreaterThan(0);
     for (const h of m.hits) expect(h.url).not.toMatch(/synthetic-(patient|display)-token/);

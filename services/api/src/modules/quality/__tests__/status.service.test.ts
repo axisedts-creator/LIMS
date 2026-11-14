@@ -7,7 +7,7 @@ import { ANA, BOARD_KEYS, BOARD_REQUIRED, HOUR, INS, PLANTED, PLN, RUN, T, TENAN
   type StatusSeed } from './status.helpers.js';
 
 const setup = (seed?: StatusSeed, ctxOver: Parameters<typeof makeStatusCtx>[0] = {}) => {
-  const fake = makeStatusRepo(seed); const c = makeStatusCtx(ctxOver);
+  const fake = makeStatusRepo(seed); const c = makeStatusCtx({ ...ctxOver, plans: (seed ?? timelineSeed()).plans });
   return { fake, ...c, svc: createStatusService({ repo: fake.repo }) };
 };
 const q = (at: string, o: object = {}) => ({ instrumentId: INS(1), analyteId: ANA(1), at, ...o });

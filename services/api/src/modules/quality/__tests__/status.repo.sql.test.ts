@@ -87,10 +87,10 @@ describe('status.repo.listRunsForStatus (§7.8 steps 2-3 query note)', () => {
 });
 
 describe('status.repo board reads', () => {
-  it('listBoardPlans: ACTIVE plans of the tenant with the analyte code and the current version\'s validity; deterministic order (instrument_id, analyte_code, plan_id)', async () => {
+  it('listBoardPlans: ACTIVE plans of the tenant with test_id and the current version\'s validity; deterministic order (instrument_id, analyte_id, plan_id); no analyte code in SQL (CatalogPort.getTest is its source, T-13 ruling)', async () => {
     const a = rec(); await repo.listBoardPlans(a.tx, TN); const s = norm(a.q[0]!.text);
-    expect(s).toMatch(/FROM quality\.qc_plans\b/); expect(s).toMatch(/status\s*=\s*'active'/); expect(s).toMatch(/qc_validity_hours/); expect(s).toMatch(/analyte_code/);
-    expect(s).toMatch(/ORDER BY[^;]*instrument_id[^;]*analyte_code[^;]*(\.|\s)id\b/i);
+    expect(s).toMatch(/FROM quality\.qc_plans\b/); expect(s).toMatch(/status\s*=\s*'active'/); expect(s).toMatch(/qc_validity_hours/); expect(s).toMatch(/test_id/);
+    expect(s).toMatch(/ORDER BY[^;]*instrument_id[^;]*analyte_id[^;]*(\.|\s)id\b/i);
   });
   it('listActivity: quality.qc_activity of the given plan ids (one array value), timestamps as ISO text; empty list -> [] without a query', async () => {
     const a = rec(); await repo.listActivity(a.tx, TN, [PLN(1)]); const s = norm(a.q[0]!.text);

@@ -10,7 +10,8 @@
 //                                      Steps: repo.findPlanForPair (undefined -> no_qc_data, runs not read) -> repo.listRunsForStatus(tx, t, [planId], at) -> domain `qcStatus` (T-05). At most TWO repo calls.
 //                                      Bad input (not uuid / `at` not an ISO-UTC instant) -> LimsError 'common.validation_failed' BEFORE any repo call. Any non-Lims repo failure -> LimsError 'common.internal' (message without SQL).
 //                                    getQcStatusBoard(ctx, { instrumentId?, status? (csv string as on the wire), overdueOnly?, cursor?, limit? }): Promise<{ status: 200, body }>.
-//                                      assertRole('quality.qc_run.read') FIRST (before any repo call), then validate. at = ctx.now(). The board covers ACTIVE plans of the tenant, ordered by (instrument_id, analyte_code, plan_id);
+//                                      assertRole('quality.qc_run.read') FIRST (before any repo call), then validate. at = ctx.now(). The board covers ACTIVE plans of the tenant, ordered by (instrument_id, analyte_code, plan_id): the repo orders by SQL (instrument_id, analyte_id, plan_id); the service applies the final order AFTER enrichment —
+//                                      analyte_code comes from ctx.ports.CatalogPort.getTest (one call per DISTINCT test_id; code of the analyte whose id = analyte_id; 02-TRD:277,778). T-13 ruling.
 //                                      filters and pagination are applied in memory after status is computed. Repo calls: listBoardPlans, listRunsForStatus (ALL plan ids in ONE call), listActivity (one call), listInstrumentLabels (one call).
 //                                      Sets the gauge `ctx.metrics.set('lims_quality_qc_overdue_pairs', n, { tenant_id })` (missing ctx.metrics is fine) where n = overdue rows of the WHOLE tenant (not filtered, not paged).
 //                                      Invalid cursor -> 'common.invalid_cursor'. Default limit 50, max 200 (_common.yaml Limit).
@@ -21,8 +22,10 @@
 //   Clock: ctx.now() for the board; `at` for the port. No `new Date()` in decisions.
 import { LimsError } from '../../../core/errors.js';
 import { makeCtx, type Row } from './setup.helpers.js';
+import { createFakeCatalogPort } from '../../../../../../packages/fakes/src/CatalogPort.fake.js';
 import { ANA, PLN } from './plan.helpers.js';
 import { INS, RUN, TENANT_A, TENANT_B, at, idN } from './run.helpers.js';
+export const TST = (n: number) => idN(0x8300 + n);
 export { ANA, PLN, INS, RUN, TENANT_A, TENANT_B, at, idN, type Row };
 export { rejection, code, forbidden, readOnly, noRights, UUID7 } from './setup.helpers.js';
 
@@ -38,17 +41,17 @@ export interface StatusRepo {
   findPlanForPair(tx: any, t: string, instrumentId: string, analyteId: string): Promise<{ plan_id: string; qc_validity_hours: number } | undefined>;   // any plan status; qc_validity_hours of the plan's CURRENT version
   /** Per plan id: the latest 20 runs with status evaluated|closed and run_at <= at (run_at DESC), UNION every open rejected run (outcome rejected, status evaluated|closed, run_at <= at, closed_at is null OR > at) even when older than the 20th. */
   listRunsForStatus(tx: any, t: string, planIds: string[], at: string): Promise<Array<{ plan_id: string; id: string; status: string; outcome: string | null; run_at: string; closed_at: string | null; rules_violated: string[] }>>;
-  listBoardPlans(tx: any, t: string): Promise<Array<{ plan_id: string; instrument_id: string; analyte_id: string; analyte_code: string; qc_validity_hours: number }>>;   // status 'active' only
+  listBoardPlans(tx: any, t: string): Promise<Array<{ plan_id: string; instrument_id: string; analyte_id: string; test_id: string; qc_validity_hours: number }>>;   // status 'active' only; SQL order (instrument_id, analyte_id, plan_id); NO analyte code in SQL (T-13 ruling)
   listActivity(tx: any, t: string, planIds: string[]): Promise<Array<{ plan_id: string; last_patient_result_at: string | null; patient_results_since_last_qc: number; last_qc_run_at: string | null }>>;
   listInstrumentLabels(tx: any, t: string, instrumentIds: string[]): Promise<Array<{ instrument_id: string; instrument_code: string; display_name: string }>>;
 }
 
-export interface PlanSeed { id: string; tenant_id: string; instrument_id: string; analyte_id: string; analyte_code?: string; status?: 'active' | 'inactive'; qc_validity_hours?: number }
+export interface PlanSeed { id: string; tenant_id: string; instrument_id: string; analyte_id: string; test_id?: string; analyte_code?: string; status?: 'active' | 'inactive'; qc_validity_hours?: number }
 export interface RunSeed { id: string; tenant_id: string; plan_id: string; status?: string; outcome: string | null; run_at: string; closed_at?: string | null; rules_violated?: string[] }
 export interface ActivitySeed { tenant_id: string; plan_id: string; last_patient_result_at?: string | null; patient_results_since_last_qc?: number; last_qc_run_at?: string | null }
 export interface StatusSeed { plans?: PlanSeed[]; runs?: RunSeed[]; activity?: ActivitySeed[]; instruments?: Array<{ tenant_id: string; instrument_id: string; instrument_code: string; display_name: string }> }
 
-export const plan = (n: number, o: Partial<PlanSeed> = {}): PlanSeed => ({ id: PLN(n), tenant_id: TENANT_A, instrument_id: INS(n), analyte_id: ANA(n), analyte_code: `AN${n}`, status: 'active', qc_validity_hours: 24, ...o });
+export const plan = (n: number, o: Partial<PlanSeed> = {}): PlanSeed => ({ id: PLN(n), tenant_id: TENANT_A, instrument_id: INS(n), analyte_id: ANA(n), test_id: TST(n), analyte_code: `AN${n}`, status: 'active', qc_validity_hours: 24, ...o });
 export const run = (n: number, planId: string, outcome: string | null, runAt: string, o: Partial<RunSeed> = {}): RunSeed =>
   ({ id: RUN(n), tenant_id: TENANT_A, plan_id: planId, status: 'evaluated', outcome, run_at: runAt, closed_at: null, rules_violated: [], ...o });
 
@@ -97,7 +100,7 @@ export function makeStatusRepo(seed: StatusSeed = timelineSeed()) {
     },
     async listBoardPlans(tx, t) {
       return rec('listBoardPlans', tx, t, [], () => s.plans.filter((x) => x.tenant_id === t && (x.status ?? 'active') === 'active')
-        .map((x) => ({ plan_id: x.id, instrument_id: x.instrument_id, analyte_id: x.analyte_id, analyte_code: x.analyte_code ?? 'AN', qc_validity_hours: x.qc_validity_hours ?? 24 })));
+        .map((x) => ({ plan_id: x.id, instrument_id: x.instrument_id, analyte_id: x.analyte_id, test_id: x.test_id ?? TST(0), qc_validity_hours: x.qc_validity_hours ?? 24 })));
     },
     async listActivity(tx, t, planIds) {
       return rec('listActivity', tx, t, [planIds], () => s.activity.filter((a) => a.tenant_id === t && planIds.includes(a.plan_id)).map((a) => ({
@@ -112,10 +115,22 @@ export function makeStatusRepo(seed: StatusSeed = timelineSeed()) {
 export type FakeStatusRepo = ReturnType<typeof makeStatusRepo>;
 
 /** Service ctx (setup.helpers makeCtx) + a gauge recorder on `ctx.metrics.set`. `now` = the board clock. */
-export function makeStatusCtx(over: { tenantId?: string; roles?: (c: { permission: string }) => void; now?: string; metrics?: boolean } = {}) {
+/** Real @lims/fakes CatalogPort seeded from the plan seeds: test `test_id` (plan's tenant) carries the analyte {id: analyte_id, code: analyte_code}. */
+export function makeCatalogFake(plans: PlanSeed[] = []) {
+  const tests = new Map<string, any>();
+  for (const p of plans) {
+    const id = p.test_id ?? TST(0);
+    const t = tests.get(id) ?? { id, tenantId: p.tenant_id, code: `T${id.slice(-4)}`, name: 'Synthetic test', departmentId: idN(1), departmentCode: 'BIO', specimenTypeCodes: ['blood'], containerCode: 'edta', workflowType: 'standard', analytes: [], isActive: true, revision: 1 };
+    t.analytes.push({ id: p.analyte_id, code: p.analyte_code ?? 'AN', name: 'Synthetic analyte', resultType: 'numeric', reportable: true, sortOrder: t.analytes.length + 1 });
+    tests.set(id, t);
+  }
+  return createFakeCatalogPort({ seed: 7, fixtures: { tests: [...tests.values()] } as any });
+}
+export function makeStatusCtx(over: { tenantId?: string; roles?: (c: { permission: string }) => void; now?: string; metrics?: boolean; plans?: PlanSeed[] } = {}) {
   const base = makeCtx({ ...(over.tenantId ? { tenantId: over.tenantId } : {}), ...(over.roles ? { roles: over.roles } : {}), ...(over.now ? { now: over.now } : {}) });
+  const catalog = makeCatalogFake(over.plans); base.ctx.ports.CatalogPort = catalog;
   const sets: Array<{ name: string; value: number; labels?: Record<string, string> }> = [];
   if (over.metrics !== false) base.ctx.metrics = { set: (name: string, value: number, labels?: Record<string, string>) => { sets.push({ name, value, ...(labels ? { labels } : {}) }); }, inc() {}, observe() {} };
-  return { ...base, sets };
+  return { ...base, sets, catalog };
 }
 export const lims = (c: string) => new LimsError(c as any);

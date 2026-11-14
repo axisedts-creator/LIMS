@@ -6,3 +6,6 @@ Already filed as item 3 of `.orchestra/cr/T-L6.md` (owner C0-0D, blocking). No c
 
 ## Round 2
 Re-checked: verify log still shows the same single failure (a9 test line 129, 135 others pass). `cr16_widgets.dart` still has no per-option disabled, so cause and conclusion are unchanged. No code edited; blocked on CR item 3 (C0-0D) being applied to the kit.
+
+## Round 3
+Re-checked: kit still has no per-option disabled (`cr16_widgets.dart` no match), CR `.orchestra/cr/T-L6.md` item 3 still unapplied. Same single failure (a9 Myself disabled). No code edited; blocked on C0-0D CR.

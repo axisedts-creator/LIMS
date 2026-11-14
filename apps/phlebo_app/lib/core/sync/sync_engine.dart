@@ -16,6 +16,7 @@ import '../db/cache_db.dart';
 import '../db/outbox_db.dart';
 import '../net/api_factory.dart';
 import 'clock_anchor.dart';
+import 'purge_triggers.dart';
 
 /// Token handling owned by the auth layer (TRD §7.4).
 abstract interface class SyncSession {
@@ -26,7 +27,9 @@ abstract interface class SyncSession {
   Future<void> refreshNow();
 }
 
-enum SyncStatus { ok, retryLater, sessionExpired, tlsFailure, blocked, busy }
+/// [purged]: cycle-start stale purge (US-13-3), nothing was sent; build a new engine over a new cache.db.
+/// [wiped]: the server's wipe command was carried out after the outbox drained (US-13-5).
+enum SyncStatus { ok, retryLater, sessionExpired, tlsFailure, blocked, busy, purged, wiped }
 
 class SyncCycleResult {
   const SyncCycleResult({
@@ -87,7 +90,15 @@ class SyncEngine {
     required this.anchors,
     required this.session,
     required this.wallNow,
+    this.purge,
+    this.onWiped,
   });
+
+  /// HC-T28: the only way the engine reaches the stores for destruction. Null = no purge/wipe behaviour (HC-T25 callers).
+  final PurgeTriggers? purge;
+
+  /// Sign-out after a wipe (US-13-5), called after the wipe ack was attempted.
+  final Future<void> Function()? onWiped;
 
   final ApiClient api;
   final String deviceId;
@@ -122,6 +133,9 @@ class SyncEngine {
     SyncCycleResult retry([String? code]) => result(SyncStatus.retryLater, after: _nextBackoff(), code: code);
 
     try {
+      // ---- US-13-3: offline hours / local date change destroy cache.db before anything is sent (outbox stays)
+      if (await purge?.purgeIfStale() != null) return result(SyncStatus.purged);
+
       // ---- push: oldest outstanding (sending) batch first, then newly formed batches, one in flight at a time
       var reforms = 0;
       while (true) {
@@ -168,6 +182,14 @@ class SyncEngine {
             if (storedCursor != null) 'cursor': storedCursor,
           }));
       await _anchor(snap);
+
+      // ---- US-13-5: wipe command (full or unchanged pull) is carried out only when nothing is pending/sending
+      final wipeCursor = snap['cursor'];
+      if (purge != null && snap['device_command'] == 'wipe' && wipeCursor is String && await _drained()) {
+        pulled = true;
+        return await _wipe(wipeCursor, () => acked = true, result);
+      }
+
       final String ackCursor;
       try {
         ackCursor = snap['cursor']! as String;
@@ -202,12 +224,47 @@ class SyncEngine {
     } on LimsException catch (e) {
       final code = e.code;
       if (code == LimsErrorCodes.authSessionExpired || code == LimsErrorCodes.authTokenExpired) {
+        await purge?.purgeOnSessionEnd(); // US-13-4: cache destroyed at once; outbox + pending rows stay for the next login
         return result(SyncStatus.sessionExpired, code: code);
       }
       final http = limsErrorHttpStatus[code] ?? 500;
       if (http >= 500 || http == 429 || code == LimsErrorCodes.commonIdempotencyInProgress) return retry(code);
       return result(SyncStatus.blocked, code: code); // 426 app_version_unsupported, 409 device_not_registered, 4xx
     }
+  }
+
+  /// Nothing left to upload: no pending and no sending rows (held/duplicate/rejected rows are answered, so they do not block).
+  Future<bool> _drained() async {
+    final r = await outboxDb.select("SELECT count(*) AS n FROM mutation_log WHERE state IN ('pending','sending')");
+    return (r.single['n']! as int) == 0;
+  }
+
+  /// Destroy both DBs (cache first), then tell the server (wipe_completed) and sign out. The wipe never depends on the network:
+  /// a failed ack is not retried here because outbox.db (and its device_state) no longer exist [CONV: spec silent].
+  Future<SyncCycleResult> _wipe(
+    String cursor,
+    void Function() markAcked,
+    SyncCycleResult Function(SyncStatus s, {Duration? after, String? code}) result,
+  ) async {
+    final seq = await outboxDb.select(
+        "SELECT max(device_seq) AS m FROM mutation_log WHERE state IN ('applied','duplicate','held','rejected')"); // read before destruction
+    await purge!.wipeAll();
+    try {
+      await _authed(() => api.postJson('/sync/ack', {
+            'device_id': deviceId,
+            'cursor': cursor,
+            'applied_at_device': isoUtcMs(wallNow()),
+            'max_device_seq_acked': (seq.single['m'] as int?) ?? 0,
+            'wipe_completed': true,
+          }));
+      markAcked();
+    } on ApiTransportException {
+      // device is already wiped; sign-out below
+    } on LimsException {
+      // same
+    }
+    await onWiped?.call();
+    return result(SyncStatus.wiped);
   }
 
   Duration _nextBackoff() {

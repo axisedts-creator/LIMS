@@ -445,7 +445,13 @@ describe('keyboard-only walk-through (06-PLAN HC-T18 "keyboard-only walk-through
     const row = rowOf(unassignedGrid(), P(V1));
     row.focus();
     await userEvent.keyboard('{Enter}');
-    await screen.findByRole('dialog', { name: /schedule/i });
+    const dlg = await screen.findByRole('dialog', { name: /schedule/i });
+    // keyboard coverage kept (HC-T18-ruling.md c): one field typed character by character, no mouse
+    const address = within(dlg).getByRole('textbox', { name: /^address/i }) as HTMLInputElement;
+    address.focus();
+    await userEvent.clear(address);
+    await userEvent.keyboard('Ward 5');
+    expect(address.value).toBe('Ward 5');
     await userEvent.keyboard('{Escape}');
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
     expect(unassignedGrid().contains(document.activeElement)).toBe(true);

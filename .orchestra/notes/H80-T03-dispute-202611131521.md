@@ -1,0 +1,3 @@
+# H80-T03 dispute (debugger)
+Test reads `drivers/truth_h80e/testdata/{qry-found,qry-not-found,qry-no-hba1c-order,ack-q03-mismatched-id}*.hl7` (spec/chunks/C7-instrument-integration/08-ADDENDUM-TRUTH-H80E.md:210). Path is right; the 8 files are missing there (testdata/ has only oru-*/malformed-* + SOURCE.md). 25/34 fail ENOENT at hostQuery.truth_h80e.test.ts:23. No implementation change can fix this.
+Tester: restore from cd49d38e~1 (`__tests__/fixtures/truth_h80e/*.hl7`) into `drivers/truth_h80e/testdata/`, add the 4 query cases to SOURCE.md, re-run. See also H80-T03-dispute-202611131516.md and H80-T03-ruling.md.

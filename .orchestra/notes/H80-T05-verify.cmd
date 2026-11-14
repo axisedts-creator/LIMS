@@ -1,0 +1,1 @@
+cd /d "%~dp0..\.." && pnpm --dir services/api exec vitest run src/modules/instruments/__tests__/unit/drivers-truth-h80e-registry.test.ts src/modules/instruments/__tests__/e2e/simulator-agent-api-h80e.e2e.test.ts

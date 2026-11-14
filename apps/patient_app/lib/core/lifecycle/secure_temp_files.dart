@@ -8,10 +8,10 @@ class SecureTempFiles {
 
   /// Deletes everything inside [dir]. Never throws: a file that vanished or is locked must not block a logout wipe.
   Future<void> deleteAll() async {
-    if (!await dir.exists()) return;
-    await for (final e in dir.list(followLinks: false)) {
+    if (!dir.existsSync()) return;
+    for (final e in dir.listSync(followLinks: false)) {
       try {
-        await e.delete(recursive: true);
+        e.deleteSync(recursive: true);
       } on FileSystemException {
         // best effort; the OS clears the cache directory on uninstall
       }

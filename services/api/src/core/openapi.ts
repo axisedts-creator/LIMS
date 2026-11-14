@@ -74,6 +74,7 @@ export const AJV_OPTIONS = {
   // [CONV] `discriminator` (02-CONVENTIONS §479: oneOf + discriminator with explicit mapping) is annotation-only:
   // ajv's `discriminator: true` throws "mapping is not supported", so validation is the `oneOf` itself (LD-53 (2)).
   // CR-C16-024 (lead-accepted): `x-extensible` is annotation-only (02-CONVENTIONS §459); `enum` still rejects unknown values.
+  // [LEAD C13.T01-01] same keyword, same rule (no validation behaviour; removeAdditional stays false).
   keywords: ['x-coded-set', 'discriminator', 'x-extensible'],
 } as const;
 /**

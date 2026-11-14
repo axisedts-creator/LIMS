@@ -1,7 +1,12 @@
 // Handler map: one entry per operationId of 02-TRD §5 (core validateManifest checks it against contracts/openapi/inventory.yaml).
 // T-01 stubs: every operation rejects common.internal until its owning task (T-06+) replaces the entry.
 import type { Handler } from '../../../core/module.js';
+import { countHandlers } from './counts.js';
+import { itemHandlers } from './items.js';
+import { lotHandlers } from './lots.js';
+import { masterHandlers } from './masters.js';
 import { settingsHandlers } from './settings.handlers.js';
+import { transferHandlers } from './transfers.js';
 
 /** Error carrying a contract error code (contracts/errors.yaml). */
 export class InventoryError extends Error {
@@ -18,42 +23,10 @@ const stub: Handler = async (_req, ctx) => {
 };
 
 export const handlers: Readonly<Record<string, Handler>> = {
-  listInventoryItems: stub,
-  createInventoryItem: stub,
-  getInventoryItem: stub,
-  updateInventoryItem: stub,
-  setInventoryItemActive: stub,
-  createInventoryItemPack: stub,
-  updateInventoryItemPack: stub,
-  addInventoryItemBarcode: stub,
-  deactivateInventoryItemBarcode: stub,
-  lookupInventoryBarcode: stub,
-  listInventoryStores: stub,
-  createInventoryStore: stub,
-  getInventoryStore: stub,
-  updateInventoryStore: stub,
-  listStoreItemSettings: stub,
-  putStoreItemSetting: stub,
-  listInventorySuppliers: stub,
-  createInventorySupplier: stub,
-  getInventorySupplier: stub,
-  updateInventorySupplier: stub,
-  listSupplierItems: stub,
-  putSupplierItem: stub,
-  listInstrumentBindings: stub,
-  putInstrumentBinding: stub,
-  deactivateInstrumentBinding: stub,
-  ...settingsHandlers, // T-06: #26-#29
-  listInventoryLots: stub,
-  getInventoryLot: stub,
-  setInventoryLotStatus: stub,
-  correctInventoryLotExpiry: stub,
-  listStockBalances: stub,
-  listStockMovements: stub,
-  getFefoSuggestion: stub,
-  listOpenedContainers: stub,
-  openContainer: stub,
-  finishContainer: stub,
+  ...itemHandlers, // #1-#10 (T-07)
+  ...masterHandlers, // #11-#25 (T-08)
+  ...settingsHandlers, // #26-#29 (T-06)
+  ...lotHandlers, // #30-#39 (T-09)
   discardContainer: stub,
   listStockDocuments: stub,
   getStockDocument: stub,
@@ -70,19 +43,8 @@ export const handlers: Readonly<Record<string, Handler>> = {
   postGoodsReceipt: stub,
   cancelGoodsReceipt: stub,
   exportGoodsReceiptsCsv: stub,
-  listTransfers: stub,
-  createTransfer: stub,
-  getTransfer: stub,
-  replaceTransferDraft: stub,
-  dispatchTransfer: stub,
-  receiveTransfer: stub,
-  cancelTransfer: stub,
-  listStockCounts: stub,
-  openStockCount: stub,
-  getStockCount: stub,
-  recordStockCountLines: stub,
-  postStockCount: stub,
-  cancelStockCount: stub,
+  ...transferHandlers, // #56-#62 (T-13)
+  ...countHandlers, // #63-#68 (T-14)
   listConsumptionRules: stub,
   createConsumptionRule: stub,
   getConsumptionRule: stub,

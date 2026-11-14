@@ -174,7 +174,7 @@ SELECT is(has_function_privilege('public', p.oid, 'EXECUTE'), false, 'C7 check 1
 SELECT is(has_schema_privilege('lims_owner', 'app', 'CREATE') AND NOT has_schema_privilege('lims_app', 'app', 'CREATE'), true, 'C7 check 10 / AC-0B-6.3: no standing CREATE on app for lims_app');
 SELECT is((SELECT count(*)::int FROM instruments.g_cs_revoke_reasons), 6, 'C7 check 10: 6 revoke reasons seeded');
 SELECT is((SELECT count(*)::int FROM instruments.g_cs_reprocess_reasons), 7, 'C7 check 10: 7 reprocess reasons seeded');
-SELECT is((SELECT array_agg(code::text ORDER BY code::text) FROM instruments.g_drivers), ARRAY['astm_generic_e1394','file_drop_generic','hl7v2_generic_oru','mindray_bc5380_sketch','mindray_bs200_sketch'], 'C7 check 10: 5 drivers seeded');
+SELECT is((SELECT array_agg(code::text ORDER BY code::text) FROM instruments.g_drivers), ARRAY['astm_generic_e1394','file_drop_generic','hl7v2_generic_oru','mindray_bc5380_sketch','mindray_bs200_sketch','truth_h80e'], 'C7 check 10: 6 drivers seeded (5 + truth_h80e, H80-T05 / LD-139)');
 SELECT is((SELECT count(*)::int FROM instruments.g_drivers WHERE status = 'verified' OR cap_calibration OR cap_worklist_download), 0, 'C7 check 10: no verified driver / calibration / worklist capability seeded (B2)');
 SELECT is((SELECT count(*)::int FROM instruments.g_drivers WHERE code LIKE '%sketch' AND status = 'sketch_blocked'), 2, 'C7 check 10: both Mindray sketches are sketch_blocked');
 

@@ -1,5 +1,6 @@
 # RS-C7 impl (writer; LD-140, LD-170)
-Files: features/instruments/components/InstrumentsList.tsx (table -> Card/Grid link cards; Sort-by RadioGroup keeps `sort=-last_message_at`), InstrumentDetail.tsx (go-live sentence -> kit StatusStepper in region "Commissioning checklist").
-[CONV] 5th stepper step "All checks done" so four Complete reads right (kit stepper needs a current step). Cards show last message, not heartbeat/queue (A2: needs CR).
-Result: 28/35 pass. Fail: 3 A3 behaviour + 2 messages screens (tests assume role=table; kit is role=grid, see RS-C7-dispute.md), 2 screens snapshots unrecorded (cards, stepper).
-Open: tests dispute; web-t03 columns test conflicts with cards (A5); snapshots to record last with `-u rs-c7.screens`; web-t0x and axe on other suites not run by me.
+Files: components/InstrumentsList.tsx (table -> link cards; Sort-by keeps `sort=-last_message_at`), InstrumentDetail.tsx (go-live sentence -> kit StatusStepper, region "Commissioning checklist"), MessagesList.tsx (Kind column `isRowHeader` too, so grid rows are named "<instrument> <kind>"; a11y markup only).
+[CONV] 5th stepper step "All checks done" so four Complete reads right. Cards show last message, not heartbeat/queue (A2: needs CR).
+Snapshots recorded once per LD-170: `__snapshots__/rs-c7.screens.test.tsx.snap` (4 written).
+Result (CI=true): rs-c7 35/35; web-t02 73/73, t03 98/98, t04 188/188, t05 171/171, t06 85/85. tsc: 0 errors in non-test files under task paths.
+Open: tsc reports type errors inside rs-c7.behaviour.test.tsx (tester-owned; vitest runs fine). eslint not installed in apps/web, so not run. Lead must OK the web-t03 SCR-05 test edit (A5). Heartbeat/queue on cards needs CR.

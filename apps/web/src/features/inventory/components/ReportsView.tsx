@@ -5,7 +5,8 @@
 // the "Reconciliation" tab is shown only when GET /v1/identity/me reports centre_scope.all (the page resolves it server-side and fails closed).
 // A tab or filter change asks the API again through a server action (the token stays on the server) and updates the URL without a page reload.
 import { useRef, useState, type ComponentProps } from 'react';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
+import { Combobox } from '@lims/ui/components/Combobox';
 import type { IsoDate } from '@lims/ui/components/DatePicker';
 import { DateRangePicker } from '@lims/ui/components/DateRangePicker';
 import { DateTimePicker } from '@lims/ui/components/DateTimePicker';
@@ -15,12 +16,12 @@ import { Inline } from '@lims/ui/components/Inline';
 import { PageHeader } from '@lims/ui/components/PageHeader';
 import { Stack } from '@lims/ui/components/Stack';
 import { Tabs } from '@lims/ui/components/Tabs';
-import { getReportAction } from '../server/actions';
-import { DATED, MAX_DAYS, toPageQuery, toReportQuery, type ReportFilters } from '../reportQuery';
-import type { ActionResult, Instrument, ReportCode, ReportResult, Store, TestRef } from '../server/types';
+import { getReportAction, searchItemsAction } from '../server/actions';
+import { DATED, EXPORT_ERROR_TITLE, MAX_DAYS, toPageQuery, toReportQuery, type ReportFilters } from '../reportQuery';
+import type { ActionResult, Instrument, ItemSummary, ReportCode, ReportResult, Store, TestRef } from '../server/types';
 import { ReportBody } from './ReportBody';
 import { CONSUMPTION_HELP } from './RulesView';
-import { Pick } from './shared';
+import { Pick, ProblemBanner, type Failure } from './shared';
 
 type IsoUtc = NonNullable<ComponentProps<typeof DateTimePicker>['value']>;
 const ALL = '__all';
@@ -48,6 +49,8 @@ export interface ReportsViewProps {
   tests: readonly TestRef[];
   canCost: boolean;
   canExport: boolean;
+  /** Contract error code (#93) the export route redirected back with; the page has already dropped anything that is not one. */
+  exportError?: string;
 }
 
 export function ReportsView(p: ReportsViewProps) {
@@ -57,9 +60,15 @@ export function ReportsView(p: ReportsViewProps) {
   const [f, setF] = useState(p.filters);
   const [res, setRes] = useState(p.result);
   const [loading, setLoading] = useState(false);
+  const router = useRouter();
+  const [item, setItem] = useState<ItemSummary>();
+  const [exportProblem, setExportProblem] = useState<Failure | undefined>(
+    p.exportError ? { ok: false, status: 0, code: p.exportError, title: EXPORT_ERROR_TITLE[p.exportError] ?? 'The export could not be created' } : undefined,
+  );
 
   const load = async (c: ReportCode, nf: ReportFilters) => {
     const n = ++seq.current;
+    setExportProblem(undefined);
     setCode(c);
     setF(nf);
     setLoading(true);
@@ -84,6 +93,7 @@ export function ReportsView(p: ReportsViewProps) {
       />
       <Stack>
         <a className="lims-link" href={CONSUMPTION_HELP}>Help: how automatic deduction works</a>
+        <ProblemBanner problem={exportProblem} />
         <Tabs aria-label="Reports" items={p.tabs.map((t) => ({ id: t, label: TAB_LABEL[t] }))} selectedId={code} onChange={(id) => void load(id as ReportCode, f)}>
           <Stack>
             <Inline gap={2}>
@@ -121,6 +131,23 @@ export function ReportsView(p: ReportsViewProps) {
               {code !== 'consumption_reconciliation' ? <Pick label="Store" name="store_id" options={[{ value: ALL, label: 'All stores' }, ...p.stores.map((s) => ({ value: s.id, label: `${s.store_code} · ${s.name}` }))]} value={f.store ?? ALL} onChange={set('store')} /> : null}
               {BY_ANALYSER_AND_TEST.has(code) ? <Pick label="Analyser" name="instrument_id" options={[{ value: ALL, label: 'All analysers' }, ...p.instruments.map((i) => ({ value: i.id, label: `${i.instrument_code} · ${i.display_name}` }))]} value={f.analyser ?? ALL} onChange={set('analyser')} /> : null}
               {BY_ANALYSER_AND_TEST.has(code) ? <Pick label="Test" name="test_id" options={[{ value: ALL, label: 'All tests' }, ...p.tests.map((t) => ({ value: t.id, label: `${t.code} · ${t.name}` }))]} value={f.test ?? ALL} onChange={set('test')} /> : null}
+              {/* Item filter (04-UI-UX S17 "Common filters: … item"): clearing the text = all items. Navigates (server render) because the item list is searched, not preloaded. */}
+              <Combobox<ItemSummary>
+                label="Item"
+                name="item_id"
+                loadOptions={async (q) => {
+                  const r = await searchItemsAction(q);
+                  return r.ok ? r.data : [];
+                }}
+                getKey={(i) => i.id}
+                renderOption={(i) => `${i.item_code} · ${i.name}`}
+                renderValue={(i) => `${i.item_code} · ${i.name}`}
+                value={item}
+                onChange={(v) => {
+                  setItem(v);
+                  router.replace(`${path}?${toPageQuery(code, { ...f, item: v?.id })}`);
+                }}
+              />
             </Inline>
             {loading ? <p role="status">Loading report…</p> : res.ok ? <ReportBody code={code} result={res.data} canCost={p.canCost} /> : rangeTooLarge ? null : (
               <div role="alert">

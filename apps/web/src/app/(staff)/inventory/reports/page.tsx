@@ -5,7 +5,7 @@
 import { PermissionDenied } from '@/core/errors/PermissionDenied';
 import { getShellSession } from '@/core/session/server';
 import { ReportsView } from '@/features/inventory/components/ReportsView';
-import { defaultPeriod, toReportQuery, type ReportFilters } from '@/features/inventory/reportQuery';
+import { defaultPeriod, EXPORT_ERROR_CODES, toPageQuery, toReportQuery, type ReportFilters } from '@/features/inventory/reportQuery';
 import { listInstruments, listStores, listTests, soft } from '@/features/inventory/server/read.server';
 import { getReport, hasAllCentres, isReportCode, settle } from '@/features/inventory/server/reports.server';
 import { REPORT_CODES, type ReportCode } from '@/features/inventory/server/types';
@@ -47,8 +47,12 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
     soft(listTests, []),
   ]);
 
+  // ?export_error is set by the export route on failure; only contract codes for #93 are shown, anything else is dropped (never echoed).
+  const exportError = one(sp['export_error']);
   return (
     <ReportsView
+      key={toPageQuery(code, filters)} // a server navigation (Item filter) remounts the view with the new filters
+      {...(exportError && EXPORT_ERROR_CODES.has(exportError) ? { exportError } : {})}
       tabs={tabs}
       code={code}
       filters={filters}

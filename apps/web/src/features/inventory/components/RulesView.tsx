@@ -6,6 +6,7 @@ import { useRef, useState } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { Button } from '@lims/ui/components/Button';
 import { Checkbox } from '@lims/ui/components/Checkbox';
+import { Combobox } from '@lims/ui/components/Combobox';
 import { ConfirmDialog } from '@lims/ui/components/ConfirmDialog';
 import { DataTable, type ColumnDef } from '@lims/ui/components/DataTable';
 import { DecimalField } from '@lims/ui/components/DecimalField';
@@ -15,7 +16,7 @@ import { Inline } from '@lims/ui/components/Inline';
 import { PageHeader } from '@lims/ui/components/PageHeader';
 import { Stack } from '@lims/ui/components/Stack';
 import { useToast } from '@lims/ui/components/Toast';
-import { deactivateRuleAction, supersedeRuleAction } from '../server/actions';
+import { deactivateRuleAction, searchItemsAction, supersedeRuleAction } from '../server/actions';
 import { RULE_KINDS, type Analyte, type Instrument, type ItemSummary, type Rule, type RuleKind, type Store, type TestRef } from '../server/types';
 import { KIND_LABEL, RuleForm } from './RuleForm';
 import { Chip, isoDate, newKey, Pick, ProblemBanner, qtyError, useAttemptKey, type Failure } from './shared';
@@ -104,6 +105,20 @@ export function RulesView(p: RulesViewProps) {
           <Pick label="Kind filter" name="kind" options={[{ value: ALL, label: 'All kinds' }, ...RULE_KINDS.map((k) => ({ value: k, label: KIND_LABEL[k] }))]} value={p.filters.kind ?? ALL} onChange={pickFilter('kind')} />
           <Pick label="Test filter" name="test" options={[{ value: ALL, label: 'All tests' }, ...p.tests.map((t) => ({ value: t.id, label: `${t.code} · ${t.name}` }))]} value={p.filters.test ?? ALL} onChange={pickFilter('test')} />
           <Pick label="Analyser filter" name="analyser" options={[{ value: ALL, label: 'All analysers' }, ...p.instruments.map((i) => ({ value: i.id, label: `${i.instrument_code} · ${i.display_name}` }))]} value={p.filters.analyser ?? ALL} onChange={pickFilter('analyser')} />
+          {/* Item filter (04-UI-UX S13 "Filters: kind, test, analyser, item, show history"); clearing the text = all items. */}
+          <Combobox<ItemSummary>
+            label="Item filter"
+            name="item"
+            loadOptions={async (q) => {
+              const r = await searchItemsAction(q);
+              return r.ok ? r.data : [];
+            }}
+            getKey={(i) => i.id}
+            renderOption={(i) => `${i.item_code} · ${i.name}`}
+            renderValue={(i) => `${i.item_code} · ${i.name}`}
+            value={p.filters.item ? itemOf(p.filters.item) : undefined}
+            onChange={(v) => go({ item: v?.id })}
+          />
           <Checkbox label="Show history" isSelected={p.filters.history} onChange={(v) => go({ history: v ? '1' : undefined })} />
         </Inline>
         <DataTable caption="Consumption rules" columns={columns} rows={p.rules} getRowId={(r) => r.id} emptyState={{ title: 'No consumption rules. Automatic deduction does nothing until you add rules.' }} />

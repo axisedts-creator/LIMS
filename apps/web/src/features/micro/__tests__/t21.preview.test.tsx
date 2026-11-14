@@ -151,6 +151,15 @@ describe('"Use" sets the fields (done_when; AC-07.5)', () => {
     await userEvent.click(await screen.findByRole('button', { name: /use suggested category S for Synthetic genB/i }, { timeout: 3000 }));
     expect(verBox().value).toBe('my-own-version');
   });
+  it('AC-07.5: Use over a differing header version still saves accept_suggestion:true with the suggestion\'s version and band (per-row override)', async () => {
+    await mount();
+    await userEvent.type(verBox(), 'my-own-version');
+    await type('Synthetic genB', '18');
+    await userEvent.click(await screen.findByRole('button', { name: /use suggested category S for Synthetic genB/i }, { timeout: 3000 }));
+    await userEvent.click(saveBtn()!);
+    const e = (await lastHit('POST', /bulk-record$/)).json.entries[0];
+    expect(e).toMatchObject({ category_code: 'S', standard: 'CLSI', standard_version: 'M100-Ed36', accept_suggestion: true, breakpoint_band_id: BAND_ID });
+  });
   it('AC-07.5: Save after Use sends accept_suggestion:true with the same breakpoint_band_id, category, standard and version', async () => {
     await mount();
     await type('Synthetic genB', '18');

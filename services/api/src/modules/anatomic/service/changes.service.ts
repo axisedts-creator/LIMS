@@ -40,7 +40,7 @@ const signoutRole = (c: AnatomicCtx, cs: Row) => c.ports.IdentityPort.assertRole
 
 /** newest FULL version (an addendum_only one never counts as the sections of the report) */
 async function latestFull(c: AnatomicCtx, caseId: unknown): Promise<Row | undefined> {
-  return (await listReportVersions(c.tx, { tenantId: c.tenantId, caseId })).find((v) => v['scope'] === 'full');
+  return (await listReportVersions(c.tx, { tenantId: c.tenantId, caseId: String(caseId) })).find((v) => v['scope'] === 'full');
 }
 
 // ---- R4 startAnatomicCaseChange ----
@@ -112,8 +112,8 @@ async function signerName(c: AnatomicCtx, v: Row, cache: Map<string, string>): P
   return cache.get(id)!;
 }
 async function submissionsOf(c: AnatomicCtx, caseId: unknown): Promise<(v: Row) => Obj[]> {
-  const subs = await listItemSubmissions(c.tx, { tenantId: c.tenantId, caseId });
-  const orderItem = new Map((await listCaseItems(c.tx, { tenantId: c.tenantId, caseId })).map((it) => [String(it['id']), it['order_item_id']]));
+  const subs = await listItemSubmissions(c.tx, { tenantId: c.tenantId, caseId: String(caseId) });
+  const orderItem = new Map((await listCaseItems(c.tx, { tenantId: c.tenantId, caseId: String(caseId) })).map((it) => [String(it['id']), it['order_item_id']]));
   return (v) => subs.filter((s) => s['report_version_id'] === v['id']).sort((x, y) => (x['case_item_id'] < y['case_item_id'] ? -1 : x['case_item_id'] > y['case_item_id'] ? 1 : 0))
     .map((s) => ({ case_item_id: s['case_item_id'], order_item_id: orderItem.get(String(s['case_item_id'])), item_version_no: Number(s['item_version_no']), lab_status_at_submit: s['lab_status'] }));
 }
@@ -149,7 +149,7 @@ export async function getVersion(hctx: unknown, params: unknown): Promise<Result
   for (const k of ['clinical_history_text', 'gross_text', 'microscopy_text', 'impression_text', 'comment_text']) o[k] = v[k] ?? '';
   put(o, 'flag', v['flag']); o['is_critical'] = v['is_critical'] === true; // [CONV] stored content columns; contract ReportVersion lists neither (open point)
   for (const k of ['synoptic', 'images', 'specimen_parts', 'slides', 'ancillary', 'molecular', 'addenda', 'diagnosis_codes']) o[k] = v[k] ?? [];
-  await c.audit.access({ action: 'anatomic_report.view', entityType: 'anatomic_case', entityId: cs['id'], centreId: cs['centre_id'], outcome: 'allowed', detail: { version_no: Number(v['version_no']) } }); // REQ-SEC-096/097
+  await (c as AnatomicCtx & { audit: { access(entry: Obj): Promise<void> } }).audit.access({ action: 'anatomic_report.view', entityType: 'anatomic_case', entityId: cs['id'], centreId: cs['centre_id'], outcome: 'allowed', detail: { version_no: Number(v['version_no']) } }); // REQ-SEC-096/097
   return { status: 200, body: o };
 }
 

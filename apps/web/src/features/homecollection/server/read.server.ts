@@ -3,11 +3,11 @@ import 'server-only';
 // Every row is rebuilt from an allow-list so nothing else the API sends (phone, coordinates, notes, device ids) can reach a client component.
 import { ApiError, serverFetch } from '@/core/api/server-fetch';
 import { problem } from '@/core/session/types';
-import type { Centre, CodedValue, PersonRef, PhlebotomistOption, RouteDto, SpecimensSummary, VisitAddress, VisitDto } from '../types';
+import type { Centre, CodedValue, DeviceRow, HandoverDetail, HandoverItem, HandoverSummary, PersonRef, PhlebotomistOption, RouteDto, SettingsDto, SpecimensSummary, VisitAddress, VisitDto } from '../types';
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const DAY = /^\d{4}-\d{2}-\d{2}$/;
-export const SETS = ['visit_cancel_reasons', 'unassign_reasons'] as const;
+export const SETS = ['visit_cancel_reasons', 'unassign_reasons', 'wipe_reasons'] as const;
 export type CodedSetName = (typeof SETS)[number];
 export interface Page<T> { data?: T[]; page?: { limit?: number; next_cursor?: string } }
 
@@ -66,6 +66,63 @@ export async function listReasons(set: CodedSetName): Promise<CodedValue[]> {
     .filter((c) => c && typeof c.code === 'string' && c.is_active !== false)
     .map((c) => ({ code: c.code, display: str(c.display) ?? c.code, requires_text: c.requires_text === true, is_active: true }));
 }
+
+// ---- HC-T20 ----
+const unexpected = () => new ApiError(500, problem('common.internal', 'Unexpected response', 500));
+const bool = (v: unknown): boolean => { if (typeof v !== 'boolean') throw unexpected(); return v; };
+const num = (v: unknown): number => { if (typeof v !== 'number' || !Number.isSafeInteger(v)) throw unexpected(); return v; };
+const text = (v: unknown): string => { if (typeof v !== 'string') throw unexpected(); return v; };
+
+const toHandover = (h: Record<string, unknown>): HandoverSummary => ({
+  id: String(h['id']), version: int(h['version']), status: String(h['status']),
+  from: { display_name: str((h['from'] as { display_name?: unknown } | undefined)?.display_name) ?? '' },
+  to_centre_id: String(h['to_centre_id']), handed_over_at: String(h['handed_over_at']), item_count: int(h['item_count']),
+  ...(typeof h['received_count'] === 'number' && Number.isSafeInteger(h['received_count']) ? { received_count: h['received_count'] } : {}),
+});
+/** H13: `q` is already reduced to a whitelist by query.ts. */
+export async function listHandovers(q: URLSearchParams): Promise<{ rows: HandoverSummary[]; next?: string }> {
+  const r = await serverFetch<Page<Record<string, unknown>>>(`/v1/homecollection/handovers?${q.toString()}`);
+  const next = str(r?.page?.next_cursor);
+  return { rows: arr(r).map(toHandover), ...(next ? { next } : {}) };
+}
+/** H14: items carry barcode + specimen type only (D-125); a visit id never leaves this function. */
+export async function getHandover(id: string): Promise<HandoverDetail> {
+  if (!UUID.test(id)) throw bad();
+  const h = await serverFetch<Record<string, unknown>>(`/v1/homecollection/handovers/${id}`);
+  const items = (Array.isArray(h?.['items']) ? (h['items'] as Record<string, unknown>[]) : [])
+    .filter((i) => i && typeof i['specimen_id'] === 'string' && typeof i['barcode'] === 'string')
+    .map((i): HandoverItem => ({ specimen_id: String(i['specimen_id']), barcode: String(i['barcode']), specimen_type_code: str(i['specimen_type_code']) ?? '', ...opt('outcome', str(i['outcome'])) }));
+  return { ...toHandover(h), items, ...opt('received_by_display', str(h['received_by_display'])), ...opt('received_at', str(h['received_at'])) };
+}
+
+const toDevice = (d: Record<string, unknown>): DeviceRow => ({
+  id: String(d['id']), version: int(d['version']), display_name: str(d['display_name']) ?? '', platform: str(d['platform']) ?? '', model: str(d['model']) ?? '',
+  app_version: str(d['app_version']) ?? '', status: String(d['status']),
+  ...opt('last_seen_at', str(d['last_seen_at'])), ...opt('last_push_at', str(d['last_push_at'])), ...opt('last_snapshot_at', str(d['last_snapshot_at'])),
+});
+/** H16. */
+export async function listDevices(q: URLSearchParams): Promise<{ rows: DeviceRow[]; next?: string }> {
+  const r = await serverFetch<Page<Record<string, unknown>>>(`/v1/homecollection/devices?${q.toString()}`);
+  const next = str(r?.page?.next_cursor);
+  return { rows: arr(r).map(toDevice), ...(next ? { next } : {}) };
+}
+
+/** H18: every key is rebuilt; a response that does not have them all is an error, not a guess. */
+export async function getSettings(): Promise<SettingsDto> {
+  const s = await serverFetch<Record<string, unknown>>('/v1/homecollection/settings');
+  if (!s || typeof s !== 'object' || !Array.isArray(s['payment_methods'])) throw unexpected();
+  return {
+    version: int(s['version']), min_app_version: text(s['min_app_version']), sync_interval_seconds: num(s['sync_interval_seconds']), offline_purge_hours: num(s['offline_purge_hours']),
+    capture_gps: bool(s['capture_gps']), gps_retention_days: num(s['gps_retention_days']), map_handoff_enabled: bool(s['map_handoff_enabled']),
+    manual_barcode_entry_allowed: bool(s['manual_barcode_entry_allowed']), second_identifier: text(s['second_identifier']),
+    collection_consent_text_version: text(s['collection_consent_text_version']), collection_consent_text: text(s['collection_consent_text']),
+    payment_methods: (s['payment_methods'] as Record<string, unknown>[]).map((p) => ({ code: text(p['code']), display: text(p['display']), requires_reference: p['requires_reference'] === true })),
+    handover_confirmation_required: bool(s['handover_confirmation_required']), handover_overdue_hours: num(s['handover_overdue_hours']),
+    max_visits_per_route: num(s['max_visits_per_route']), notify_phlebotomist_on_assign: bool(s['notify_phlebotomist_on_assign']),
+    notify_patient_on_assign: bool(s['notify_patient_on_assign']), clock_tolerance_seconds: num(s['clock_tolerance_seconds']),
+  };
+}
+
 /** Centres the actor may use. A failure is the caller's to tolerate. */
 export async function listCentres(): Promise<Centre[]> {
   return arr(await serverFetch<{ data?: Centre[] }>('/v1/identity/centres'))

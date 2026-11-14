@@ -1,0 +1,8 @@
+# HC-T20 impl (writer)
+Files: components/{HandoversView,HandoverDrawer,DevicesView,SettingsForm}.tsx; app/(staff)/homecollection/{handovers,devices,settings}/{page,loading,error}.tsx; help/{handovers,devices,settings}.md; server/{read.server,write.server,actions}.ts, query.ts, labels.ts, types.ts extended (H13/H14/H16/H18/H20 reads, H15/H17/H19 writes).
+[CONV] LD-140: kit components only, status = tone + icon + word, one primary button per page; Drawer has no footer prop so Confirm sits in the content.
+[CONV] Single-flight: a `done`/`saved` ref after success (drawer, wipe dialog, settings until next edit) stops a repeated click or Ctrl+Enter sending a second request.
+[CONV] Disabled switches (capture_gps, notify_patient_on_assign) are always sent false; stored `birth_date` is kept as is, DOB radio disabled.
+[CONV] Allow-lists rebuilt in read.server.ts: no membership id, items' visit data, device seq/tokens; settings response missing a key is a 500, not a guess.
+Open: `.orchestra/notes/HC-T20-tests.md` does not exist (worked from test files). Dispute in HC-T20-dispute.md: devices 409 test cannot pass (body always has the "Wipe requested" status chip).
+Tests (run per file, --maxWorkers=1; parallel runs hit worker-start timeouts here): source+pages+settings 101 of 101 pass, handover 29 of 29 pass; devices 17 of 18 (only the disputed 409 test fails). HC-T18: board passes; other files 91 of 92, the one failure (hc-t18.nav, duplicate chord "g t": anatomic.tracking vs homecollection.handovers) is a manifest clash I did not touch (HC-T20 source test requires `g t` for handovers); needs a lead call. Lint and tsc not run.

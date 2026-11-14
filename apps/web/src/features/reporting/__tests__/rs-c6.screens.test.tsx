@@ -118,7 +118,9 @@ describe('RS-C6 report preview and release (s4)', () => {
     const D = await loadDetail();
     const u = userEvent.setup();
     wrap(<D report={detail() as never} permissions={ADMIN} />);
-    const isRelease = () => document.activeElement instanceof HTMLButtonElement && /^release\b/i.test(document.activeElement.textContent?.trim() ?? '');
+    // accessible label only: the kit adds a decorative <kbd aria-hidden> shortcut (Alt+R, 04-UI-UX:23) after .lims-btn-label
+    const label = (el: Element) => (el.querySelector('.lims-btn-label')?.textContent ?? el.textContent ?? '').trim();
+    const isRelease = () => document.activeElement instanceof HTMLButtonElement && /^release\b/i.test(label(document.activeElement));
     for (let i = 0; i < 60 && !isRelease(); i++) await u.tab();
     expect(isRelease(), 'Release must be reachable with Tab alone').toBe(true);
     await u.keyboard('{Enter}');

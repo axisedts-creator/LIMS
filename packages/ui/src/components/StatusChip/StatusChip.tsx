@@ -1,3 +1,4 @@
+import { Icon } from '../Icon/Icon';
 import type { Tone } from '../_shared/messages';
 
 export type StatusKind = 'specimen' | 'result' | 'report_version' | 'order' | 'invoice' | 'payment_intent' | 'dead_letter' | 'generic';
@@ -89,10 +90,12 @@ export function statusOf(kind: string, status: string, tone?: Tone, label?: stri
   return row ?? ['neutral', status];
 }
 
+/** Tone + icon + word, never colour alone (10-DESIGN-SYSTEM §6, LD-140). */
 export function StatusChip({ kind, status, tone, label, size = 'md', ...rest }: StatusChipProps) {
   const [t, text] = statusOf(kind, String(status ?? ''), tone, label);
   return (
     <span className={`lims-chip lims-chip-${size} lims-tone-${t}`} data-tone={t} {...rest}>
+      <Icon name={t} size={size === 'sm' ? 12 : 14} />
       {text}
     </span>
   );

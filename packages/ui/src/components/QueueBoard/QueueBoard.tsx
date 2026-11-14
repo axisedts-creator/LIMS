@@ -30,7 +30,7 @@ const CSS = `
 .lims-queueboard__clock { font-family: var(--lims-font-family-mono); font-variant-numeric: tabular-nums; }
 .lims-queueboard__section-title { font-size: max(var(--lims-font-size-2xl-size), 4vh); font-weight: var(--lims-font-weight-semibold); margin-bottom: var(--lims-space-2); }
 .lims-queueboard__row { display: flex; align-items: baseline; gap: var(--lims-space-4); padding: var(--lims-space-2) var(--lims-space-3);
-  border: 1px solid var(--lims-neutral-300); border-radius: var(--lims-radius-md); margin-bottom: var(--lims-space-2); }
+  border: 1px solid var(--lims-neutral-300); margin-bottom: var(--lims-space-2); }
 .lims-queueboard__token { font-family: var(--lims-font-family-mono); font-weight: var(--lims-font-weight-bold);
   font-size: max(calc(var(--lims-font-size-2xl-size) * 4), 12vh); line-height: 1; }
 .lims-queueboard__counter { font-size: max(var(--lims-font-size-3xl-size), 6vh); font-weight: var(--lims-font-weight-semibold); }
@@ -41,7 +41,7 @@ const CSS = `
 .lims-queueboard__count { font-weight: var(--lims-font-weight-bold); font-variant-numeric: tabular-nums; }
 .lims-queueboard__footer { grid-column: 1 / -1; text-align: center; font-size: max(var(--lims-font-size-2xl-size), 4vh); }
 .lims-queueboard__banner { grid-column: 1 / -1; padding: var(--lims-space-2) var(--lims-space-3); border: 2px solid var(--lims-tone-warning-border);
-  border-radius: var(--lims-radius-md); background: var(--lims-tone-warning-bg); color: var(--lims-tone-warning-fg); font-size: max(var(--lims-font-size-xl-size), 3vh); }
+  background: var(--lims-tone-warning-bg); color: var(--lims-tone-warning-fg); font-size: max(var(--lims-font-size-xl-size), 3vh); }
 .lims-queueboard__unpaired { grid-column: 1 / -1; align-self: center; text-align: center; }
 @media (prefers-reduced-motion: reduce) { .lims-queueboard__row--flash { animation: none; } }`;
 

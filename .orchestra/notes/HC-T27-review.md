@@ -1,6 +1,6 @@
-CHANGES
-Reviewer ran: `flutter test` on the six HC-T27 files = 75/75 pass. Handover payload matches TRD §6.3 (`handover_id`, `to_centre_id`, `specimen_ids` 1..50, no visit_id); no PHI in outbox/handover models; LD-140 guards hold; only owned paths changed (+ outbox_repository listRows/pendingCount, same chunk). Defects are spec copy/state gaps in 03-APP-FLOW §3:
-
-1. apps/phlebo_app/lib/features/route/ui/route_screen.dart:94 — offline banner uses the lims_ui default text. 03-APP-FLOW:117 requires `LimsOfflineBanner` "Offline — showing data from hh:mm". Fix: add a `DateTime? dataAsOf` (last successful pull) param and pass `LimsOfflineBanner(message: 'Offline — showing data from ${formatHm(dataAsOf)}')` (fall back to the default when null). Test: route_screen_test.dart offline test asserts that text.
-2. apps/phlebo_app/lib/features/route/ui/route_screen.dart:120 — no loading state. 03-APP-FLOW:117 "first pull: `LimsLoading`". Fix: add `bool loading = false` param; when `loading && visits.isEmpty && !purged` render `LimsLoading` in place of the empty state. Test: one widget test that `LimsLoading` shows and the empty copy does not.
-3. apps/phlebo_app/lib/features/outbox/ui/outbox_screen.dart:98 — empty copy is "Nothing is waiting" / "Everything on this phone has been uploaded." 03-APP-FLOW:121 says "Everything is uploaded." Fix: `LimsEmptyState(title: 'Everything is uploaded.')`. Test: outbox_screen_test.dart:27 asserts that exact string.
+APPROVE
+Scope: `git diff c4238880..HEAD` = test harness change in apps/phlebo_app/__tests__/route_screen_test.dart (owned path) + orchestra note renames/updates. No lib/ change.
+- Matches arbiter ruling (HC-T27-ruling.md): `settle` option added; loading path sets the same 800x1800 view, theme and textScaler builder as pumpScreen, pumpWidget + one pump; visit_fixture.dart pumpScreen untouched; expects at route_screen_test.dart:180-183 unchanged; refresh fling at :145 is 800 px per the earlier ruling.
+- No feature code freezes/replaces LimsLoading (LD-140 respected).
+- No names invented, no PHI (synthetic "Test Patient" only), no secrets. Backend items (RLS, rate tier, error codes) not touched by this diff.
+- Verified: `flutter test __tests__/route_screen_test.dart` -> 16/16 pass (2026-11-14).

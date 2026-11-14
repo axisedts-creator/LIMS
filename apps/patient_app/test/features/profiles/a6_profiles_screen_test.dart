@@ -8,7 +8,7 @@
 //   - Paused banner follows 04-UI-UX A6: "Access to {n} profile(s) is paused. Ask the lab for a new code." with (s) resolved: 1 -> "profile is", n>1 -> "profiles are".
 //     (03-APP-FLOW §10.1 and PRD US-EN-06.1 word it differently; 04-UI-UX is the screen spec.)
 //   - Exactly one FilledButton on the page (LD-140 one primary); the three add-actions are LimsButton labels from 04-UI-UX A6.
-//   - If-Match for E18/E19: Profile has no version field on the wire (spec gap, see T-L6-tests.md); tests do not pin the header.
+//   - If-Match for E18/E19 (LD-164): the screen passes Profile.version of the tapped row to the API (seam in test/support/profiles_fakes.dart); the header itself is pinned in profiles_api_wire_test.dart.
 import 'dart:async';
 
 import 'package:flutter/material.dart';
@@ -278,6 +278,19 @@ void main() {
       expect(subs.last, contains('Parent'));
     });
 
+    testWidgets('Change relationship sends the version of the tapped row, not another row\'s (LD-164)', (t) async {
+      api.onList = (_) async => listBody(data: [profile(version: 2), profile(id: pidChild, name: 'Binod Test (synthetic)', rel: 'other', method: 'report_link', version: 5)]);
+      await open(t);
+      await t.tap(moreMenu().last);
+      await t.pumpAndSettle();
+      await t.tap(find.text('Change relationship'));
+      await t.pumpAndSettle();
+      await chooseRelationship(t, 'Parent');
+      await t.pumpAndSettle();
+      expect(api.updates, [(id: pidChild, rel: 'parent')]);
+      expect(api.updateVersions, [5]);
+    });
+
     testWidgets('the relationship choices are the labels Me / Child / Parent / Spouse / Sibling / Other', (t) async {
       await open(t);
       await t.tap(moreMenu().last);
@@ -355,6 +368,18 @@ void main() {
       expect(api.listCalls, 2);
       expect(find.text('Binod Test (synthetic)'), findsNothing);
       expect(find.text('Asha Test (synthetic)'), findsOneWidget);
+    });
+
+    testWidgets('Confirm sends the version of the removed row, not another row\'s (LD-164)', (t) async {
+      api.onList = (n) async => n == 1
+          ? listBody(data: [profile(version: 2), profile(id: pidChild, name: 'Binod Test (synthetic)', rel: 'child', method: 'self_registered', version: 7)])
+          : listBody(data: [profile(version: 2)]);
+      await open(t);
+      await openRemove(t);
+      await t.tap(find.widgetWithText(FilledButton, 'Remove'));
+      await t.pumpAndSettle();
+      expect(api.removed, [pidChild]);
+      expect(api.removeVersions, [7]);
     });
 
     testWidgets('a failed remove keeps the profile visible and shows words', (t) async {

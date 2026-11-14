@@ -1,6 +1,6 @@
 // T-L6 — TransportProfilesApi wire (E13-E19): method, path, body and headers exactly as contracts/openapi/engagement.yaml, answers passed through untouched, errors not swallowed.
 // Idempotency-Key is REQUIRED on E14/E15/E16 (x-idempotency: required; pattern ^[A-Za-z0-9_-]{1,64}$) and fresh per call; E13/E17/E18/E19 send none (E18 optional, E19 none).
-// SPEC GAP (see T-L6-tests.md): E18/E19 require `If-Match: "<version>"` but Profile has no version on the wire. If the writer sends If-Match it must match ^"[1-9][0-9]*"$; not pinned further.
+// E18/E19 require `If-Match: "<version>"` (LD-164: Profile.version from E13); the header is the quoted version of the profile changed/removed, e.g. version 3 -> `"3"`.
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lims_shared/lims_shared.dart';
 import 'package:patient_app/core/api/api_client_factory.dart';
@@ -88,23 +88,21 @@ void main() {
     expect((out as Map)['profile_id'], newProfileId);
   });
 
-  test('E18 PATCH /v1/engagement/me/profiles/{id} {relationship}; any If-Match is a quoted positive integer', () async {
-    await api.updateMyProfile(profileId: pidChild, relationship: 'parent');
+  test('E18 PATCH /v1/engagement/me/profiles/{id} {relationship}; If-Match is the quoted version of the profile (version 3 -> "3")', () async {
+    await api.updateMyProfile(profileId: pidChild, relationship: 'parent', version: 3);
     final c = calls.single;
     expect([c.method, c.path], ['PATCH', '/v1/engagement/me/profiles/$pidChild']);
     expect(c.body, {'relationship': 'parent'});
-    final im = header(c, 'If-Match');
-    if (im != null) expect(im, matches(RegExp(r'^"[1-9][0-9]*"$')));
+    expect(header(c, 'If-Match'), '"3"');
   });
 
-  test('E19 POST /v1/engagement/me/profiles/{id}/remove, no body; 204 (null answer) is fine; any If-Match is a quoted positive integer', () async {
+  test('E19 POST /v1/engagement/me/profiles/{id}/remove, no body; 204 (null answer) is fine; If-Match is the quoted version (version 12 -> "12")', () async {
     answer = null;
-    await api.removeMyProfile(profileId: pidChild);
+    await api.removeMyProfile(profileId: pidChild, version: 12);
     final c = calls.single;
     expect([c.method, c.path], ['POST', '/v1/engagement/me/profiles/$pidChild/remove']);
     expect(c.body, isNull);
-    final im = header(c, 'If-Match');
-    if (im != null) expect(im, matches(RegExp(r'^"[1-9][0-9]*"$')));
+    expect(header(c, 'If-Match'), '"12"');
   });
 
   test('errors are not swallowed: LimsException keeps its code on every call', () async {
@@ -123,8 +121,8 @@ void main() {
     await code(api.redeemReportLink(linkUrl: 'https://portal.invalid/r/x'));
     await code(api.createSelfRegistration({}));
     await code(api.getSelfRegistration(regId));
-    await code(api.updateMyProfile(profileId: pidChild, relationship: 'other'));
-    await code(api.removeMyProfile(profileId: pidChild).then((_) => null));
+    await code(api.updateMyProfile(profileId: pidChild, relationship: 'other', version: 1));
+    await code(api.removeMyProfile(profileId: pidChild, version: 1).then((_) => null));
   });
 
   test('the secret inputs (code, report link) travel only in the body — never in the path or query', () async {

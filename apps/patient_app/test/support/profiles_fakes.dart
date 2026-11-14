@@ -8,8 +8,8 @@
 //                              Future<Object?> redeemReportLink({required String linkUrl});             // E15 -> Profile (201/200)
 //                              Future<Object?> createSelfRegistration(Map<String, Object?> body);       // E16 -> SelfRegistration (202)
 //                              Future<Object?> getSelfRegistration(String id);                          // E17
-//                              Future<Object?> updateMyProfile({required String profileId, required String relationship}); // E18 -> Profile
-//                              Future<void> removeMyProfile({required String profileId});               // E19 -> 204
+//                              Future<Object?> updateMyProfile({required String profileId, required String relationship, required int version}); // E18 -> Profile; If-Match: "<version>" (LD-164)
+//                              Future<void> removeMyProfile({required String profileId, required int version});               // E19 -> 204; If-Match: "<version>" (LD-164)
 //                            }  Each returns the decoded wire JSON of contracts/openapi/engagement.yaml and throws LimsException.
 //                            TransportProfilesApi({required PatientTransport transport}) sends the Idempotency-Key header (E14/E15/E16, fresh per call).
 //   profiles_providers.dart  profilesApiProvider (Provider<ProfilesApi>). A6/A9 read the app config (consent.text_version / consent.text)
@@ -39,12 +39,13 @@ const pidReport = '01950c16-0000-7000-8000-0000000000a3';
 const regId = '01950c16-0000-7000-8000-0000000000b1';
 const newProfileId = '01950c16-0000-7000-8000-0000000000c1';
 
-Map<String, Object?> profile({String id = pidSelf, String name = 'Asha Test (synthetic)', String rel = 'self', String method = 'link_code', String status = 'active', String? historyFrom}) => {
+Map<String, Object?> profile({String id = pidSelf, String name = 'Asha Test (synthetic)', String rel = 'self', String method = 'link_code', String status = 'active', String? historyFrom, int version = 1}) => {
       'profile_id': id,
       'display_name': name,
       'relationship': rel,
       'method': method,
       'status': status,
+      'version': version, // LD-164: Profile.version (integer, minimum 1, required) is the E18/E19 If-Match value
       if (historyFrom != null) 'history_from': historyFrom,
     };
 
@@ -80,6 +81,8 @@ class FakeProfilesApi implements ProfilesApi {
   final created = <Map<String, Object?>>[];
   final updates = <({String id, String rel})>[];
   final removed = <String>[];
+  final updateVersions = <int>[]; // version sent with each E18, parallel to `updates`
+  final removeVersions = <int>[]; // version sent with each E19, parallel to `removed`
 
   @override
   Future<Object?> listMyProfiles() => onList(++listCalls);
@@ -106,14 +109,16 @@ class FakeProfilesApi implements ProfilesApi {
   Future<Object?> getSelfRegistration(String id) => (onGetReg ?? (_, __) async => selfReg(status: 'created', profileId: newProfileId))(id, ++getRegCalls);
 
   @override
-  Future<Object?> updateMyProfile({required String profileId, required String relationship}) {
+  Future<Object?> updateMyProfile({required String profileId, required String relationship, required int version}) {
     updates.add((id: profileId, rel: relationship));
+    updateVersions.add(version);
     return (onUpdate ?? (id, rel) async => profile(id: id, rel: rel))(profileId, relationship);
   }
 
   @override
-  Future<void> removeMyProfile({required String profileId}) async {
+  Future<void> removeMyProfile({required String profileId, required int version}) async {
     removed.add(profileId);
+    removeVersions.add(version);
     await onRemove?.call(profileId);
   }
 }

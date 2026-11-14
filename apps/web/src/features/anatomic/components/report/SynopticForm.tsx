@@ -63,7 +63,8 @@ function FieldView({ f, name, value, onChange, readOnly }: FieldProps) {
     case 'boolean':
       return <Switch label={label} name={name} isSelected={value === true} onChange={onChange} {...(readOnly ? { isDisabled: true } : {})} />;
     case 'single_select':
-      return <Select {...base} options={(f.options ?? []).map((o) => ({ value: o.code, label: o.display }))} {...(str ? { value: str } : {})} onChange={onChange} />;
+      // placeholder names the field so an empty focused trigger (e.g. reached from the error summary) still says which field it is
+      return <Select {...base} placeholder={`Select ${f.label.toLowerCase()}`} options={(f.options ?? []).map((o) => ({ value: o.code, label: o.display }))} {...(str ? { value: str } : {})} onChange={onChange} />;
     case 'multi_select': {
       const on = Array.isArray(value) ? value : [];
       return (
@@ -76,7 +77,12 @@ function FieldView({ f, name, value, onChange, readOnly }: FieldProps) {
       );
     }
     case 'date':
-      return <DatePicker {...base} {...(str ? { value: str as IsoDate } : {})} onChange={(d) => onChange(d)} />;
+      // one named group for the date input + calendar button
+      return (
+        <div role="group" aria-label={label}>
+          <DatePicker {...base} {...(str ? { value: str as IsoDate } : {})} onChange={(d) => onChange(d)} />
+        </div>
+      );
     default:
       return null;
   }

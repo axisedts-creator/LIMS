@@ -146,7 +146,6 @@ export interface Opts {
 }
 export interface Metric { name: string; labels: Row; by: number }
 
-const FOREIGN = [rkey(RPT.y, 1), rkey(RPT.bb, 1)];
 /** One request context + its recorders. `run(op, req)` calls the handler and emulates the pipeline's rollback on error. */
 export function makeCtx(w: World, who: Who, handlers: Record<string, (req: any, ctx: any) => Promise<any>>, o: Opts = {}) {
   const u = w.t['partners.partner_users']!.find((x) => x.id === U[who])!;
@@ -173,7 +172,9 @@ export function makeCtx(w: World, who: Who, handlers: Record<string, (req: any, 
         portCalls.push({ ctx: c, input });
         if (o.portError) throw o.portError;
         const k = rkey(input.reportId, input.versionNo);
-        if (FOREIGN.includes(k) && !o.portKnowsForeign) throw new LimsError('common.not_found');
+        // not_found = unknown / unreleased / FOREIGN for THIS caller (02-TRD.md:238, 03 §4.7): decide by the caller's tenant + partner
+        const owner = w.t['partners.order_reports']!.find((x) => x.report_id === input.reportId);
+        if (owner && (owner.tenant_id !== c.tenantId || owner.partner_id !== u.partner_id) && !o.portKnowsForeign) throw new LimsError('common.not_found');
         const f = FILES[k]; if (!f) throw new LimsError('common.not_found');
         return f;
       } },

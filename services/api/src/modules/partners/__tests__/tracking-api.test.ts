@@ -177,7 +177,7 @@ describe('T13 O1 listPartnerOrders (US-07.6)', () => {
 
   it.each([
     ['tracking_status csv', { tracking_status: 'in_lab,reported' }, [ORD.lab, ORD.rep]], ['tracking_status single', { tracking_status: 'cancelled' }, [ORD.canc]],
-    ['manifest_id', { manifest_id: MAN.m1 }, [ORD.new, ORD.lab]], ['referrer_id', { referrer_id: REF.r1 }, [ORD.new, ORD.rep]],
+    ['manifest_id', { manifest_id: MAN.m1 }, [ORD.new, ORD.lab, ORD.canc]], ['referrer_id', { referrer_id: REF.r1 }, [ORD.new, ORD.rep]],
     ['registered_at window', { registered_at_from: '2026-11-07T12:00:00.000Z', registered_at_to: '2026-11-09T12:00:00.000Z' }, [ORD.lab, ORD.rep]],
     ['registered_at_from only', { registered_at_from: '2026-11-09T12:00:00.000Z' }, [ORD.new]], ['has_new_report true', { has_new_report: true }, [ORD.new, ORD.rep]],
     ['has_new_report false', { has_new_report: false }, [ORD.lab, ORD.act, ORD.canc]], ['filters combine (AND)', { tracking_status: 'registered,reported', has_new_report: true, manifest_id: MAN.m2 }, [ORD.rep]],
@@ -441,7 +441,9 @@ describe('T13 R3 downloadPartnerReport (US-08.2 – US-08.7)', () => {
     expect(w.audit).toHaveLength(1);
     expect(w.audit[0]).toMatchObject({ action: 'report.download', entityType: 'report_version', outcome: 'allowed', entityId: FILES[k(RPT.a, 2)].reportVersionId });
     expect(counter(w, U.adminX)).toMatchObject({ tenant_id: T_A, partner_id: P.x, count: 1 });
-    expect(leaks([r.headers, w.audit, c.logs, c.metrics], [...MARKERS, 'SYN-0003', 'Chandra', 'Synthetic Lipid'])).toEqual([]);
+    // headers carry filename="report-SYN-0003-v2.pdf" by spec (02-TRD.md:238): scan them for markers / patient / panel names only
+    expect(leaks([r.headers], [...MARKERS, 'Chandra', 'Synthetic Lipid'])).toEqual([]);
+    expect(leaks([w.audit, c.logs, c.metrics], [...MARKERS, 'SYN-0003', 'Chandra', 'Synthetic Lipid'])).toEqual([]);
   });
   it('a member downloads too; the daily counter is per user and per day (2 downloads = 2)', async () => {
     stubStorage(); const w = world(); const c = ctxFor(w, 'memberX');

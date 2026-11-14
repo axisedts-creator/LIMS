@@ -59,6 +59,12 @@ describe('cross-schema reads: only the published views (02-CV §5.13; 08 P-21)',
     const t = tx(); await repo.listPending(t.tx, TENANT_A, {}); const s = flat(sql(t)); expect(s).toMatch(/\blab\.v_pub_pending_items\b/); expect(s).toMatch(/tat_target_seconds IS NOT NULL/i);
     expect(s).not.toMatch(/\b(lab\.(specimens|results|orders)|frontdesk\.|reporting\.reports)\b/i); const w = tx(); await repo.listPending(w.tx, TENANT_A, { orderId: ORD(1) }); expect(w.q[0]!.values).toContain(ORD(1)); expect(flat(w.q[0]!.text)).toMatch(/order_id\s*=\s*\$\d+/i);
   });
+  it('review T-19 #1 (02-TRD §9.3 step 1): listPending LEFT JOINs lab.v_pub_specimen_timeline on tenant_id AND specimen_id and returns ordered_at per item', async () => {
+    const t = tx(); await repo.listPending(t.tx, TENANT_A, {}); const s = flat(sql(t));
+    expect(s).toMatch(/\bLEFT JOIN\s+lab\.v_pub_specimen_timeline\s+(?:AS\s+)?(\w+)\s+ON\b/i);
+    expect(s).toMatch(/\b(\w+)\.tenant_id\s*=\s*(\w+)\.tenant_id\b/i); expect(s).toMatch(/\b(\w+)\.specimen_id\s*=\s*(\w+)\.specimen_id\b/i);
+    expect(s).toMatch(/\bordered_at\b[^,]*\bAS ordered_at\b|\b\w+\.ordered_at\b/i);
+  });
   it('listTotalStarts reads reporting.v_pub_order_report_tat.registered_at (D-59), listEarliestOrdered reads lab.v_pub_specimen_timeline min(ordered_at) grouped by order', async () => {
     const a = tx(); await repo.listTotalStarts(a.tx, TENANT_A, [ORD(1)]); expect(flat(sql(a))).toMatch(/\breporting\.v_pub_order_report_tat\b/); expect(flat(sql(a))).toMatch(/\bregistered_at\b/); expect(flat(sql(a))).toMatch(/order_id\s*=\s*ANY\(\$\d+/i);
     const b = tx(); await repo.listEarliestOrdered(b.tx, TENANT_A, [ORD(1)]); expect(flat(sql(b))).toMatch(/\blab\.v_pub_specimen_timeline\b/); expect(flat(sql(b))).toMatch(/\bmin\(\s*ordered_at\s*\)/i); expect(flat(sql(b))).toMatch(/GROUP BY\s+order_id/i);

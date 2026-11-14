@@ -103,6 +103,13 @@ describe('sweep: tenant switch, targets and the catalog', () => {
     expect(c.catalog.getTestCalls.map((x) => x.testId).sort()).toEqual([TST(1), TST(2), TST(3)].sort());
     for (const x of c.catalog.getTestCalls) expect(Number.isNaN(Date.parse(String(x.asOf)))).toBe(false);
   });
+  it('review T-19 #1 (02-TRD §9.1 l.655, §9.3 step 1): getTest asOf = the specimen ordered_at of the item (not "now"); one call per distinct (test_id, ordered_at); no ordered_at -> now', async () => {
+    const s = setup({ pending: [pend(1, { ordered_at: T('07:00:00') }), pend(2, { ordered_at: T('07:00:00') }), pend(3, { ordered_at: T('07:30:00') }), pend(4, { ordered_at: null }), pend(5, { test_id: TST(2), ordered_at: T('07:00:00') })],
+      ordered: [{ order_id: ORD(5), ordered_at: T('07:00:00') }] });
+    const c = s.ctxAt('09:00:00'); await s.service.sweep(c.ctx);
+    const seen = c.catalog.getTestCalls.map((x) => `${x.testId}@${new Date(String(x.asOf)).toISOString()}`).sort();
+    expect(seen).toEqual([`${TST(1)}@${T('07:00:00')}`, `${TST(1)}@${T('07:30:00')}`, `${TST(1)}@${T('09:00:00')}`, `${TST(2)}@${T('07:00:00')}`].sort());
+  });
   it('items of another tenant never reach the sweep: every repo call carries the job tenant and the job tx', async () => {
     const s = setup({ pending: [pend(1), { ...pend(2), tenant_id: TENANT_B }], items: [{ ...item(2), tenant_id: TENANT_B }] }); const c = s.ctxAt('12:00:00'); await s.service.sweep(c.ctx);
     for (const call of s.fake.calls) { expect(call.tenantId, call.op).toBe(TENANT_A); expect(call.tx, call.op).toBe(c.ctx.tx); }

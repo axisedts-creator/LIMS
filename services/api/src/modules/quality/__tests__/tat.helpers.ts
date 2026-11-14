@@ -51,7 +51,9 @@ export const DTO_KEYS = ['acknowledged_at', 'acknowledged_by_display', 'acknowle
   'specimen_id', 'start_basis', 'started_at', 'state', 'target_seconds', 'tat_item_id', 'test_code', 'test_id', 'version'];
 export const DETAIL_EXTRA = ['acknowledgements', 'first_verified_at', 'level_events', 'restart_count', 'stop_source', 'stopped_at'];
 
-export interface PendingRow { order_item_id: string; test_id: string; specimen_id: string; order_id: string; centre_id: string; department_id: string | null; priority: 'routine' | 'urgent'; item_status: string; received_at: string | null; tat_target_seconds: number | null }
+export interface PendingRow { order_item_id: string; test_id: string; specimen_id: string; order_id: string; centre_id: string; department_id: string | null; priority: 'routine' | 'urgent'; item_status: string; received_at: string | null; tat_target_seconds: number | null;
+  /** lab.v_pub_specimen_timeline.ordered_at of the item's specimen (02-TRD §9.3 step 1 LEFT JOIN); absent/null = no timeline row -> the service falls back to "now" as asOf. */
+  ordered_at?: string | null }
 export interface TatItemRow {
   id: string; version: number; centre_id: string; order_id: string; order_item_id: string; test_id: string; specimen_id: string; department_id: string | null; priority: 'routine' | 'urgent'; segment: 'within_lab' | 'total'; target_seconds: number;
   start_basis: string; state: string; started_at: string | null; stopped_at: string | null; stop_source: string | null; restart_count: number; first_verified_at: string | null; in_pending_view: boolean; left_pending_view_at: string | null;

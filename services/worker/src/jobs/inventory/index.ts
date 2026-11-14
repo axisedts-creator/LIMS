@@ -1,5 +1,6 @@
 // inventory worker manifest (02-TRD §9). T-01: tasks and consumers are stubs that throw common.internal until T-0x implement them.
 // ponytail: WorkerManifest is declared here because services/worker has no core yet; import it from the worker core when it lands.
+import { onResultVerified } from './consumers/lab.result.verified.v1.js';
 import { resolveUnresolved } from './tasks/inventory.resolve_unresolved.js';
 
 export type JobHandler = (payload: any, ctx: any) => Promise<void>;
@@ -33,7 +34,7 @@ export const manifest: WorkerManifest = {
     'inventory.purge_alerts': notImplemented('purge_alerts'),
   },
   subscriptions: {
-    'lab.result.verified.v1': notImplemented('onResultVerified'),
+    'lab.result.verified.v1': onResultVerified, // T-16
     'instruments.qc.received.v1': notImplemented('onQcReceived'),
     'instruments.result.received.v1': notImplemented('onResultReceived'),
     'instruments.calibration.received.v1': notImplemented('onCalibrationReceived'),

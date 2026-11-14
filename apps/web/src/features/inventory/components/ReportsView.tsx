@@ -51,6 +51,8 @@ export interface ReportsViewProps {
   canExport: boolean;
   /** Contract error code (#93) the export route redirected back with; the page has already dropped anything that is not one. */
   exportError?: string;
+  /** The item behind ?item=, resolved by the page so the Item combobox shows (and can clear) the active filter after a remount. */
+  selectedItem?: ItemSummary;
 }
 
 export function ReportsView(p: ReportsViewProps) {
@@ -61,7 +63,7 @@ export function ReportsView(p: ReportsViewProps) {
   const [res, setRes] = useState(p.result);
   const [loading, setLoading] = useState(false);
   const router = useRouter();
-  const [item, setItem] = useState<ItemSummary>();
+  const [item, setItem] = useState<ItemSummary | undefined>(p.selectedItem);
   const [exportProblem, setExportProblem] = useState<Failure | undefined>(
     p.exportError ? { ok: false, status: 0, code: p.exportError, title: EXPORT_ERROR_TITLE[p.exportError] ?? 'The export could not be created' } : undefined,
   );

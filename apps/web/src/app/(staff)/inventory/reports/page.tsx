@@ -6,9 +6,9 @@ import { PermissionDenied } from '@/core/errors/PermissionDenied';
 import { getShellSession } from '@/core/session/server';
 import { ReportsView } from '@/features/inventory/components/ReportsView';
 import { defaultPeriod, EXPORT_ERROR_CODES, toPageQuery, toReportQuery, type ReportFilters } from '@/features/inventory/reportQuery';
-import { listInstruments, listStores, listTests, soft } from '@/features/inventory/server/read.server';
+import { getItem, listInstruments, listStores, listTests, soft } from '@/features/inventory/server/read.server';
 import { getReport, hasAllCentres, isReportCode, settle } from '@/features/inventory/server/reports.server';
-import { REPORT_CODES, type ReportCode } from '@/features/inventory/server/types';
+import { REPORT_CODES, UUID_RE, type ItemSummary, type ReportCode } from '@/features/inventory/server/types';
 
 type SP = Record<string, string | string[] | undefined>;
 const one = (v: string | string[] | undefined) => {
@@ -40,11 +40,14 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
     ...(one(sp['as_of']) ? { as_of: one(sp['as_of']) as string } : {}),
   };
 
-  const [result, stores, instruments, tests] = await Promise.all([
+  // ?item=<id> (Item filter or a shared URL): resolve it so the Item combobox shows the active filter and can clear it.
+  // Checked against UUID_RE first, because getItem's uuid() guard would 404 the whole page on a bad id.
+  const [result, stores, instruments, tests, selectedItem] = await Promise.all([
     settle(() => getReport(code, toReportQuery(code, filters))),
     soft(() => listStores().then((r) => r.data), []),
     soft(listInstruments, []),
     soft(listTests, []),
+    filters.item && UUID_RE.test(filters.item) ? soft<ItemSummary | undefined>(() => getItem(filters.item as string), undefined) : undefined,
   ]);
 
   // ?export_error is set by the export route on failure; only contract codes for #93 are shown, anything else is dropped (never echoed).
@@ -53,6 +56,7 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
     <ReportsView
       key={toPageQuery(code, filters)} // a server navigation (Item filter) remounts the view with the new filters
       {...(exportError && EXPORT_ERROR_CODES.has(exportError) ? { exportError } : {})}
+      {...(selectedItem ? { selectedItem } : {})}
       tabs={tabs}
       code={code}
       filters={filters}

@@ -4,3 +4,6 @@
 ## round 2 (11:28 verify)
 - Cause unchanged: 38/54 ENOENT, `getein_metis/testdata/qry-*.hl7`, `*.qck.hl7`, `qry-found.dsr.hl7`, `ack-q03-mismatched-id.hl7` still absent from the tree and from git history. Not an implementation defect.
 - Fix: none in implementation code; goldens are test fixtures I may not author. Tester side must commit them (see MET-T03-ruling.md, MET-T03-dispute-202611141123.md).
+## round 3 (11:30 verify)
+- Cause unchanged: 38/54 ENOENT, `getein_metis/testdata/qry-*.hl7`, `*.qck.hl7`, `qry-found.dsr.hl7`, `ack-q03-mismatched-id.hl7` absent from tree (git status clean). Not an implementation defect.
+- Fix: none in implementation code; goldens are test fixtures I may not author. Tester must commit them; dispute already filed in MET-T03-dispute-202611141123.md. Stopping.

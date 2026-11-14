@@ -137,7 +137,9 @@ export function createEnquiryService(deps: { repo?: EnquiryRepo } = {}) {
       const row = await repo.updateStatus(tx, { tenantId, id: cur['id'], expectedVersion: expected, status: to, now, updatedBy: actorId });
       if (!row) throw new LimsError('common.version_conflict'); // cannot happen under the row lock
       if (who === 'staff') {
-        await repo.insertReplyNotification(tx, { id: uuidv7(), tenantId, accountId: cur['account_id'], patientId: cur['patient_id'] ?? null, enquiryId: cur['id'], seq: row['version'], now, expiresAt: new Date(Date.parse(now) + NOTIFICATION_TTL_MS).toISOString(), createdBy: actorId });
+        // notifications INSERT is SYS only (05-SCHEMA §5.2, 02-TRD §4.9): a refusal here is not "enquiry not found" — fail closed as 500 until CR-C16-T-N1 names the system-actor path.
+        await repo.insertReplyNotification(tx, { id: uuidv7(), tenantId, accountId: cur['account_id'], patientId: cur['patient_id'] ?? null, enquiryId: cur['id'], seq: row['version'], now, expiresAt: new Date(Date.parse(now) + NOTIFICATION_TTL_MS).toISOString(), createdBy: actorId })
+          .catch(() => { throw new LimsError('common.internal'); });
       }
       return { status: 200, body: await thread(tx, tenantId, row, who === 'patient' ? await linkIds(tx, tenantId, accountId!) : undefined) };
     } catch (e) { return mapDbError(e); }

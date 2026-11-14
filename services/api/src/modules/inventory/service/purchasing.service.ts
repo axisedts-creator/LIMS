@@ -288,6 +288,9 @@ export async function cancelPurchaseOrder(ctx: HandlerContext, id: string, ifMat
   const po = await lockPo(ctx, rc, id, MANAGE);
   if (po['status'] === 'approved' || po['status'] === 'sent') await assertBranch(ctx, po['branch_id'], APPROVE); // privileged (PE-1); read under the row lock, so a racing approve cannot skip it
   assertTransition(po['status'], 'cancelled');
+  // 03-APP-FLOW §3.1 P7 / AC-05.5: approved/sent -> cancelled only while no posted GRN references the PO
+  if ((po['status'] === 'approved' || po['status'] === 'sent')
+    && (await first(rc, "SELECT 1 AS x FROM inventory.goods_receipts WHERE tenant_id = $1 AND po_id = $2 AND status = 'posted'", [id])) !== null) throw new LimsError('inventory.po_invalid_transition');
   checkVersion(po, ifMatch);
   if (!(await reasonOk(rc, 'po_cancel', input.reason_code))) throw new LimsError('inventory.reason_required');
   await updatePo(rc, id, ifMatch, { status: 'cancelled', cancelled_at: (await clock(ctx)).nowIso, cancelled_by: rc.actorId, cancel_reason_code: input.reason_code, cancel_reason_text: input.reason_text });

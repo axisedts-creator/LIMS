@@ -112,22 +112,27 @@ export function makeTatRepo(seed: TatSeed = {}, opts: FakeOpts = {}) {
   const s = { pending: tagged(seed.pending), items: tagged(seed.items), events: tagged(seed.events), acks: tagged(seed.acks), registered: tagged(seed.registered), ordered: tagged(seed.ordered), labels: tagged(seed.labels), nextId: 100 };
   const calls: Array<{ op: string; tenantId?: string; tx: unknown; args: unknown[] }> = [];
   const rec = <R>(op: string, tx: unknown, t: string | undefined, args: unknown[], fn: () => R): R => { calls.push({ op, tenantId: t, tx, args }); if (opts.failOn?.[op]) throw opts.failOn[op]; return fn(); };
+  // O(1) lookups so the fake never dominates the perf test (ruling C9.T-19 #4); rebuilt when s.items is replaced or resized (deleteExpired, insertItems).
+  type Tagged = (typeof s.items)[number];
+  let idx: { arr: unknown; len: number; byKey: Map<string, Tagged>; byId: Map<string, Tagged> } | undefined;
+  const keyOf = (t: string, oi: string, te: string) => `${t}|${oi}|${te}`;
+  const index = () => { if (!idx || idx.arr !== s.items || idx.len !== s.items.length) idx = { arr: s.items, len: s.items.length, byKey: new Map(s.items.map((i) => [keyOf(i.tenant_id, i.order_item_id, i.test_id), i])), byId: new Map(s.items.map((i) => [`${i.tenant_id}|${i.id}`, i])) }; return idx; };
   const vis = (r: { tenant_id: string; centre_id: string }, t: string) => r.tenant_id === t && (!opts.visibleCentres || opts.visibleCentres.includes(r.centre_id));
   const strip = <X extends { tenant_id?: string }>(r: X): Omit<X, 'tenant_id'> => { const { tenant_id: _t, ...rest } = r; return { ...rest } as Omit<X, 'tenant_id'>; };
   const repo: TatRepo = {
     async listPending(tx, t, o) { return rec('listPending', tx, t, [o], () => s.pending.filter((p) => p.tenant_id === t && p.tat_target_seconds !== null && (!o.orderId || p.order_id === o.orderId)).map(strip) as PendingRow[]); },
-    async listTotalStarts(tx, t, ids) { return rec('listTotalStarts', tx, t, [ids], () => s.registered.filter((r) => r.tenant_id === t && ids.includes(r.order_id)).map(strip)); },
-    async listEarliestOrdered(tx, t, ids) { return rec('listEarliestOrdered', tx, t, [ids], () => s.ordered.filter((r) => r.tenant_id === t && ids.includes(r.order_id)).map(strip)); },
-    async findItems(tx, t, keys) { return rec('findItems', tx, t, [keys], () => s.items.filter((i) => vis(i, t) && keys.some((k) => k.order_item_id === i.order_item_id && k.test_id === i.test_id)).map(strip) as TatItemRow[]); },
+    async listTotalStarts(tx, t, ids) { return rec('listTotalStarts', tx, t, [ids], () => { const w = new Set(ids); return s.registered.filter((r) => r.tenant_id === t && w.has(r.order_id)).map(strip); }); },
+    async listEarliestOrdered(tx, t, ids) { return rec('listEarliestOrdered', tx, t, [ids], () => { const w = new Set(ids); return s.ordered.filter((r) => r.tenant_id === t && w.has(r.order_id)).map(strip); }); },
+    async findItems(tx, t, keys) { return rec('findItems', tx, t, [keys], () => { const { byKey } = index(); const out = new Set<Tagged>(); for (const k of keys) { const i = byKey.get(keyOf(t, k.order_item_id, k.test_id)); if (i && vis(i, t)) out.add(i); } return [...out].map(strip) as TatItemRow[]; }); },
     async listOpenItems(tx, t, o) { return rec('listOpenItems', tx, t, [o], () => s.items.filter((i) => vis(i, t) && ['not_started', 'running'].includes(i.state) && (!o.orderId || i.order_id === o.orderId)).map(strip) as TatItemRow[]); },
     async listItemsByOrder(tx, t, orderId) { return rec('listItemsByOrder', tx, t, [orderId], () => s.items.filter((i) => vis(i, t) && i.order_id === orderId).map(strip) as TatItemRow[]); },
     async insertItems(tx, t, actorId, rows) {
       return rec('insertItems', tx, t, [actorId, rows], () => {
         const out: TatItemRow[] = [];
         for (const r of rows) {
-          if (opts.raceInsert?.(r) || s.items.some((i) => i.tenant_id === t && i.order_item_id === r.order_item_id && i.test_id === r.test_id)) continue;
+          if (opts.raceInsert?.(r) || index().byKey.has(keyOf(t, r.order_item_id, r.test_id))) continue;
           const row = { tenant_id: t, id: TAT(s.nextId++), version: 1, ...r } as TatItemRow & { tenant_id: string };
-          s.items.push(row); out.push(strip(row) as TatItemRow);
+          const ix = index(); s.items.push(row); ix.len = s.items.length; ix.byKey.set(keyOf(t, row.order_item_id, row.test_id), row); ix.byId.set(`${t}|${row.id}`, row); out.push(strip(row) as TatItemRow);
         }
         return out;
       });
@@ -135,15 +140,15 @@ export function makeTatRepo(seed: TatSeed = {}, opts: FakeOpts = {}) {
     async updateItems(tx, t, actorId, patches) {
       return rec('updateItems', tx, t, [actorId, patches], () => {
         let n = 0;
-        for (const p of patches) { const i = s.items.find((x) => x.tenant_id === t && x.id === p.id); if (i) { Object.assign(i, p.set); i.version += 1; n += 1; } }
+        for (const p of patches) { const i = index().byId.get(`${t}|${p.id}`); if (i) { Object.assign(i, p.set); i.version += 1; n += 1; } }
         return n;
       });
     },
-    async touchSeen(tx, t, ids, atIso) { return rec('touchSeen', tx, t, [ids, atIso], () => { let n = 0; for (const i of s.items) if (i.tenant_id === t && ids.includes(i.id)) { i.last_seen_sweep_at = atIso; n += 1; } return n; }); },
+    async touchSeen(tx, t, ids, atIso) { return rec('touchSeen', tx, t, [ids, atIso], () => { let n = 0; for (const id of ids) { const i = index().byId.get(`${t}|${id}`); if (i) { i.last_seen_sweep_at = atIso; n += 1; } } return n; }); },
     async insertAlertEvents(tx, t, actorId, rows) {
       return rec('insertAlertEvents', tx, t, [actorId, rows], () => {
-        let n = 0;
-        for (const r of rows) if (!s.events.some((e) => e.tenant_id === t && e.tat_item_id === r.tat_item_id && e.restart_no === r.restart_no && e.level === r.level)) { s.events.push({ tenant_id: t, ...r }); n += 1; }
+        let n = 0; const ek = (x: { tenant_id: string; tat_item_id: string; restart_no: number; level: string }) => `${x.tenant_id}|${x.tat_item_id}|${x.restart_no}|${x.level}`; const seen = new Set(s.events.map(ek));
+        for (const r of rows) if (!seen.has(ek({ tenant_id: t, ...r }))) { seen.add(ek({ tenant_id: t, ...r })); s.events.push({ tenant_id: t, ...r }); n += 1; }
         return n;
       });
     },

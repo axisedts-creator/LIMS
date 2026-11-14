@@ -74,7 +74,7 @@ describe('writes', () => {
   it('insertItems with no rows issues no statement and returns []', async () => { const t = tx(); expect(await repo.insertItems(t.tx, TENANT_A, ACTOR, [])).toEqual([]); expect(t.q).toEqual([]); });
   it('updateItems: ONE UPDATE of quality.tat_items for all patches, version = version + 1, updated_by = actor, tenant + id predicate; only the named columns are set (no tenant_id / id / created_by)', async () => {
     const t = tx(); await repo.updateItems(t.tx, TENANT_A, ACTOR, [{ id: TAT(1), set: { state: 'stopped', stopped_at: T('11:30:00') } }, { id: TAT(2), set: { state: 'cancelled' } }]); const s = flat(sql(t));
-    expect(t.q).toHaveLength(1); expect(s).toMatch(/^UPDATE quality\.tat_items\b/i); expect(s).toMatch(/\bversion\s*=\s*(\w+\.)?version\s*\+\s*1\b/i); expect(s).toMatch(/\bupdated_by\b/); expect(s).toMatch(/\bid\b/); expect(s).not.toMatch(/\bSET\b[^;]*\b(tenant_id|created_by)\s*=/i);
+    expect(t.q).toHaveLength(1); expect(s).toMatch(/^UPDATE quality\.tat_items\b/i); expect(s).toMatch(/\bversion\s*=\s*(\w+\.)?version\s*\+\s*1\b/i); expect(s).toMatch(/\bupdated_by\b/); expect(s).toMatch(/\bid\b/); expect(s).not.toMatch(/\bSET\b(?:(?!\bWHERE\b)[\s\S])*\b(tenant_id|created_by)\s*=/i);
   });
   it('updateItems rejects a column outside the allowlist (tenant_id, id, created_by, version, a hostile name) before any statement', async () => {
     for (const col of ['tenant_id', 'id', 'created_by', 'version', "state; DROP TABLE quality.tat_items", 'order_id']) { const t = tx(); const e = await repo.updateItems(t.tx, TENANT_A, ACTOR, [{ id: TAT(1), set: { [col]: 'x' } }]).then(() => undefined, (x) => x); expect(e, col).toBeInstanceOf(Error); expect(t.q, col).toEqual([]); }

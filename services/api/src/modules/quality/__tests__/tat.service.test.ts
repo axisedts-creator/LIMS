@@ -3,7 +3,7 @@
 import { describe, expect, it } from 'vitest';
 import { createTatService } from '../service/tat.service.js';
 import { MEM } from './setup.helpers.js';
-import { CEN, DAY_MS, DETAIL_EXTRA, DTO_KEYS, FULL, MEMB, OIT, ORD, SPC, TAT, TENANT_A, TENANT_B, TST, T, code, forbidden, item, makeSettings, makeTatCtx, makeTatRepo, noRights, pend, readOnlyTat, rejection, totalItem,
+import { CEN, DAY_MS, DEP, DETAIL_EXTRA, DTO_KEYS, FULL, MEMB, OIT, ORD, SPC, TAT, TENANT_A, TENANT_B, TST, T, code, forbidden, item, makeSettings, makeTatCtx, makeTatRepo, noRights, pend, readOnlyTat, rejection, totalItem,
   type FakeOpts, type TatSeed } from './tat.helpers.js';
 
 const iso = (ms: number) => new Date(ms).toISOString();
@@ -338,7 +338,7 @@ describe('purgeExpired (P-18(c))', () => {
 
 // ---- endpoints --------------------------------------------------------------------------------------------------------------------------------------
 const alerts = () => ({ items: [
-  item(1, { alert_level: 'warning', started_at: T('08:00:00') }), item(2, { alert_level: 'escalated', started_at: T('05:00:00') }), item(3, { alert_level: 'breached', started_at: T('07:00:00'), centre_id: CEN(2), priority: 'urgent' }),
+  item(1, { alert_level: 'warning', started_at: T('08:00:00') }), item(2, { alert_level: 'escalated', started_at: T('05:00:00') }), item(3, { alert_level: 'breached', started_at: T('07:00:00'), centre_id: CEN(2), priority: 'urgent', department_id: DEP(2) }),
   totalItem(4, { alert_level: 'warning', started_at: T('07:30:00'), department_id: null }), item(5, { alert_level: 'none' }), item(6, { alert_level: 'breached', state: 'stopped', stopped_at: T('11:00:00'), stop_source: 'verified_event' }),
   { ...item(7, { alert_level: 'escalated' }), tenant_id: TENANT_B }] as TatSeed['items'] });
 const codes = (r: any) => r.body.data.map((d: any) => d.tat_item_id);

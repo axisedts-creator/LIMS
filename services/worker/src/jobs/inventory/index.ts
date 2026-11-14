@@ -1,48 +1,33 @@
-// inventory worker manifest (02-TRD §9). T-01: tasks and consumers are stubs that throw common.internal until T-0x implement them.
-// ponytail: WorkerManifest is declared here because services/worker has no core yet; import it from the worker core when it lands.
+// inventory worker manifest (02-TRD §9). Remaining consumers are stubs that throw common.internal until T-17 implements them; onResultVerified is real (T-16); the six tasks are real (T-15, T-18).
+import type { ConsumerHandler, WorkerManifest } from '../../core/manifest.js';
+import { crontab } from './cron.js';
+import { onResultVerified } from './consumers/lab.result.verified.v1.js';
 import { resolveUnresolved } from './tasks/inventory.resolve_unresolved.js';
+import { balanceIntegrityCheck } from './tasks/inventory.balance_integrity_check.js';
+import { dailyAlertScan } from './tasks/inventory.daily_alert_scan.js';
+import { dailyFixedConsumption } from './tasks/inventory.daily_fixed_consumption.js';
+import { purgeAlerts } from './tasks/inventory.purge_alerts.js';
+import { reconciliationScan } from './tasks/inventory.reconciliation_scan.js';
 
-export type JobHandler = (payload: any, ctx: any) => Promise<void>;
-export interface CronEntry {
-  readonly identifier: string;
-  readonly schedule: string;
-  readonly tenantScope: 'per_tenant' | 'platform';
-}
-export interface WorkerManifest {
-  readonly module: string;
-  readonly tasks: Readonly<Record<string, JobHandler>>;
-  readonly subscriptions: Readonly<Record<string, JobHandler>>;
-  readonly crontab: readonly CronEntry[];
-}
-
-const notImplemented = (name: string): JobHandler => async () => {
+const notImplemented = (name: string): ConsumerHandler => async () => {
   throw Object.assign(new Error(`inventory job ${name} is not implemented`), { code: 'common.internal' });
 };
-
-// Crons run on UTC (02-TRD §9; 15 19 * * * UTC = 01:00 Asia/Kathmandu) [CONV]; all per_tenant (08 A13 P-6).
-const cron = (identifier: string, schedule: string): CronEntry => ({ identifier, schedule, tenantScope: 'per_tenant' });
 
 export const manifest: WorkerManifest = {
   module: 'inventory',
   tasks: {
     'inventory.resolve_unresolved': resolveUnresolved, // T-15
-    'inventory.daily_fixed_consumption': notImplemented('daily_fixed_consumption'),
-    'inventory.daily_alert_scan': notImplemented('daily_alert_scan'),
-    'inventory.balance_integrity_check': notImplemented('balance_integrity_check'),
-    'inventory.reconciliation_scan': notImplemented('reconciliation_scan'),
-    'inventory.purge_alerts': notImplemented('purge_alerts'),
+    'inventory.daily_fixed_consumption': dailyFixedConsumption,
+    'inventory.daily_alert_scan': dailyAlertScan,
+    'inventory.balance_integrity_check': balanceIntegrityCheck,
+    'inventory.reconciliation_scan': reconciliationScan,
+    'inventory.purge_alerts': purgeAlerts,
   },
   subscriptions: {
-    'lab.result.verified.v1': notImplemented('onResultVerified'),
+    'lab.result.verified.v1': onResultVerified, // T-16
     'instruments.qc.received.v1': notImplemented('onQcReceived'),
     'instruments.result.received.v1': notImplemented('onResultReceived'),
     'instruments.calibration.received.v1': notImplemented('onCalibrationReceived'),
   },
-  crontab: [
-    cron('inventory.daily_fixed_consumption', '15 19 * * *'),
-    cron('inventory.daily_alert_scan', '30 19 * * *'),
-    cron('inventory.balance_integrity_check', '45 19 * * *'),
-    cron('inventory.reconciliation_scan', '0 20 * * *'),
-    cron('inventory.purge_alerts', '0 21 * * 0'),
-  ],
+  crontab, // cron.ts: five entries, all per_tenant (08 A13 P-6, A17 D-72)
 };

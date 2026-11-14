@@ -9,6 +9,7 @@ services:
     dockerfilePath: ./services/api/Dockerfile
     dockerContext: .
     plan: free
+    region: singapore
     envVars:
       - key: NODE_BASE_IMAGE
         sync: false

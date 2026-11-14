@@ -450,6 +450,10 @@ def check_render(text, env_example_names):
     for k, v in (("type", "web"), ("name", "lims-api"), ("runtime", "docker"), ("plan", "free")):
         if s.get(k) != v:
             e.append(f"service {k} must be {v}, got {s.get(k)!r}")
+    if s.get("region") != "singapore":
+        e.append(f"region must be singapore (LD-175 pt 2), got {s.get('region')!r}")
+    if "healthCheckPath" in s:
+        e.append("healthCheckPath must not be set: /health/live is on LIMS_CORE_METRICS_PORT, not 8080 (LD-175 pt 2)")
     if s.get("dockerfilePath", "").lstrip("./") != "services/api/Dockerfile":
         e.append(f"dockerfilePath must be services/api/Dockerfile, got {s.get('dockerfilePath')!r}")
     if s.get("dockerContext") not in (".", "./"):
@@ -478,6 +482,32 @@ def check_render(text, env_example_names):
     for k in ("NODE_BASE_IMAGE", "LIMS_CORE_DATABASE_URL"):
         if k not in keys:
             e.append(f"missing env var {k} (sync: false)")
+    return e
+
+
+# ---------------------------------------------------------------- pg runtime dependency (LD-175 pt 1)
+def check_pg(pkg_text, lock_text):
+    e = []
+    pkg = json.loads(pkg_text)
+    deps, dev = pkg.get("dependencies", {}), pkg.get("devDependencies", {})
+    if deps.get("pg") != "8.23.1":
+        e.append(f"pg must be in dependencies of services/api at exactly 8.23.1, got {deps.get('pg')!r}")
+    if "pg" in dev:
+        e.append("pg must not stay in devDependencies of services/api")
+    if dev.get("@types/pg") != "8.23.1":
+        e.append("@types/pg must stay in devDependencies at 8.23.1")
+    m = re.search(r"^  services/api:\n(.*?)(?=^  \S|\Z)", lock_text, re.S | re.M)
+    if not m:
+        return e + ["pnpm-lock.yaml has no services/api importer"]
+    sect = re.split(r"^    devDependencies:\n", m.group(1), flags=re.M)
+    prod = sect[0]
+    devsec = sect[1] if len(sect) > 1 else ""
+    if not re.search(r"^      pg:\n        specifier: 8\.23\.1\n", prod, re.M):
+        e.append("pnpm-lock.yaml services/api importer: pg not under dependencies at 8.23.1")
+    if re.search(r"^      pg:\n", devsec, re.M):
+        e.append("pnpm-lock.yaml services/api importer: pg still under devDependencies")
+    if not re.search(r"^      '@types/pg':\n", devsec, re.M):
+        e.append("pnpm-lock.yaml services/api importer: @types/pg must stay under devDependencies")
     return e
 
 
@@ -566,6 +596,7 @@ services:
     dockerfilePath: ./services/api/Dockerfile
     dockerContext: .
     plan: free
+    region: singapore
     envVars:
       - key: NODE_BASE_IMAGE
         sync: false
@@ -648,6 +679,12 @@ class RealRender(unittest.TestCase):
         self.assertTrue(RENDER.is_file(), "render.yaml does not exist")
         names = set(parse_env_example(read(ENV_EXAMPLE))[2]) if ENV_EXAMPLE.is_file() else set()
         errs = check_render(read(RENDER), names)
+        self.assertEqual(errs, [], "\n".join(errs))
+
+
+class RealPgDependency(unittest.TestCase):
+    def test_pg_runtime_dependency(self):
+        errs = check_pg(read(ROOT / "services" / "api" / "package.json"), read(ROOT / "pnpm-lock.yaml"))
         self.assertEqual(errs, [], "\n".join(errs))
 
 
@@ -898,9 +935,64 @@ class PlantedRenderFailures(unittest.TestCase):
     def test_missing_header_comment(self):
         self.rej(lambda t: t.split("\n", 1)[1], "host-specific")
 
+    def test_region_missing_or_wrong(self):
+        self.rej(lambda t: t.replace("    region: singapore\n", ""), "region must be singapore")
+        self.rej(lambda t: t.replace("region: singapore", "region: oregon"), "region must be singapore")
+
+    def test_health_check_path_rejected(self):
+        self.rej(lambda t: t.replace("    plan: free\n", "    plan: free\n    healthCheckPath: /health/live\n"),
+                 "healthCheckPath must not be set")
+
     def test_env_key_not_in_env_example(self):
         errs = check_render(GOOD_RENDER.replace("LIMS_CORE_JWT_KEY_FILE", "LIMS_CORE_MADE_UP"), GOOD_RENDER_NAMES)
         self.assertTrue(_has(errs, "not listed in .env.example"), errs)
+
+
+GOOD_PKG = json.dumps({"dependencies": {"pg": "8.23.1"}, "devDependencies": {"@types/pg": "8.23.1"}})
+GOOD_LOCK = """importers:
+
+  services/api:
+    dependencies:
+      pg:
+        specifier: 8.23.1
+        version: 8.23.1
+    devDependencies:
+      '@types/pg':
+        specifier: 8.23.1
+        version: 8.23.1
+      vitest:
+        specifier: 5.1.0
+        version: 5.1.0
+
+  services/worker:
+    dependencies: {}
+"""
+
+
+class PlantedPgFailures(unittest.TestCase):
+    def test_good_passes(self):
+        self.assertEqual(check_pg(GOOD_PKG, GOOD_LOCK), [])
+
+    def test_pg_in_devdependencies_package_json(self):
+        pkg = json.dumps({"devDependencies": {"@types/pg": "8.23.1", "pg": "8.23.1"}})
+        self.assertTrue(_has(check_pg(pkg, GOOD_LOCK), "must be in dependencies"))
+        self.assertTrue(_has(check_pg(pkg, GOOD_LOCK), "devDependencies"))
+
+    def test_pg_version_changed(self):
+        pkg = json.dumps({"dependencies": {"pg": "8.20.0"}, "devDependencies": {"@types/pg": "8.23.1"}})
+        self.assertTrue(_has(check_pg(pkg, GOOD_LOCK), "exactly 8.23.1"))
+
+    def test_types_pg_moved(self):
+        pkg = json.dumps({"dependencies": {"pg": "8.23.1", "@types/pg": "8.23.1"}})
+        self.assertTrue(_has(check_pg(pkg, GOOD_LOCK), "@types/pg must stay"))
+
+    def test_lock_unchanged(self):
+        moved = "      pg:\n        specifier: 8.23.1\n        version: 8.23.1\n"
+        bad = GOOD_LOCK.replace("    dependencies:\n" + moved, "    dependencies: {}\n").replace(
+            "      vitest:", moved + "      vitest:")
+        errs = check_pg(GOOD_PKG, bad)
+        self.assertTrue(_has(errs, "not under dependencies"), errs)
+        self.assertTrue(_has(errs, "still under devDependencies"), errs)
 
 
 class PlantedAnswersFailures(unittest.TestCase):

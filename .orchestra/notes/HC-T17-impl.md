@@ -1,0 +1,7 @@
+# HC-T17 impl
+- Files: api `homecollection/{metrics,gauges.service}.ts`, `repository/metrics.repo.ts`, handlers `pushSyncMutations` (push_duration) + `getSyncSnapshot` (snapshot_duration{changed}), `sync.service.ts` (mutations_total, clock_skew, events_published); worker `jobs/homecollection/{alerts.yaml,tasks/refresh_metric_gauges.ts}`; `apps/phlebo_app/tool/ci/{grep_forbidden,scan_apk}.sh`; CRs `.orchestra/cr/HC-T17-{c1-alerts,c0-0a-ci,registry}.md`.
+- [CONV] emitters are best-effort (swallow unknown name/label), like engagement/lab; log calls unchanged (code-only, static PHI scan green).
+- [CONV] devices_stale proxy = active, last_seen_at > 2 h ago, last_push_at older than last_seen_at (server cannot see the device's pending seq).
+- Pure suite: 18 fail / 64 pass / 1 skip (promtool absent). All 18 = the 8 `lims_homecollection_*` names missing from core `DEFS` (+ the gauge test). C0 path, not editable here: CR `HC-T17-registry.md`; needs a lead decision (LD-88/120/142 precedent) to add 8 DEFS rows + 8 EXPECTED rows in `core/observability/__tests__/metrics.test.ts`.
+- Live suite (`logscan.live.test.ts`) NOT run: needs docker/PG17 and the HC-T13 bootstrap CR; its metric assertions also need the DEFS rows.
+- Open: `refresh_metric_gauges` (every 60 s, per_tenant) is not scheduled: no `jobs/homecollection` worker manifest exists yet. `scan_apk.sh` not run against a real APK (apktool absent here); `tsc` shows no homecollection errors.

@@ -51,7 +51,7 @@ describe('isolate list (04-UI-UX §3.3)', () => {
     expect(rows).toHaveLength(2);
     const col = within(t).getAllByRole('columnheader').findIndex((h) => /^isolate no\.?$/i.test(h.textContent?.trim() ?? ''));
     expect(col).toBeGreaterThanOrEqual(0);
-    expect(rows.map((r) => within(r).getAllByRole('gridcell')[col]!.textContent?.trim())).toEqual(expect.arrayContaining(['3', '7']));
+    expect(rows.map((r) => Array.from(r.querySelectorAll('[role="gridcell"],[role="rowheader"]'))[col]!.textContent?.trim())).toEqual(expect.arrayContaining(['3', '7']));
   });
   it('a pending isolate reads "Not identified"; statuses show word + tone + icon (§9)', async () => {
     await mount(incubating({ isolates: [isolate(1, { id: ID(301), status: 'pending_id', organism_code: undefined, organism_display: undefined, organism_source: undefined }), isolate(2, { id: ID(302) }), isolate(3, { id: ID(303), status: 'withdrawn', is_reportable: false, withdraw_reason_code: 'synthetic_contaminant' })] }));

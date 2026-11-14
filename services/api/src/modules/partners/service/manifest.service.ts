@@ -13,6 +13,7 @@ import { toLineDto, toManifestDto, toManifestSummaryDto, toPriceListItemDto, typ
 import * as counters from '../repository/counters.repo.js';
 import * as lines from '../repository/manifest-lines.repo.js';
 import * as manifests from '../repository/manifests.repo.js';
+import { manifestTransition } from './observability.js';
 import { partnerContext } from './partner-context.service.js';
 
 type Row = Record<string, any>;
@@ -84,7 +85,9 @@ export async function create(req: Req, ctx: HandlerContext): Promise<HandlerResu
   const yy = manifestYy(new Date(ctx.now()), tz); // A.D. year in the TENANT timezone
   const seq = await counters.nextSeq(s, Number(yy)); // ONE atomic upsert; gaps are allowed (a rolled-back request burns nothing: same tx)
   const row = await manifests.insert(s, { id: uuidv7(), manifestNo: formatManifestNo(yy, seq), branchId: snap['receiving_branch_id'], centreId: snap['receiving_centre_id'], mode: snap['conversion_mode'], notes, collectedOn }); // ponytail: seq > 999999 in a year throws RangeError -> 500
-  return { status: 201, body: await fullDto(ctx, s, row) };
+  const out = { status: 201, body: await fullDto(ctx, s, row) };
+  manifestTransition(ctx, 'created'); // T23
+  return out;
 }
 
 // ---- M2 ----
@@ -263,7 +266,9 @@ export async function discard(req: Req, ctx: HandlerContext): Promise<HandlerRes
   assertTransition(m['state'] as ManifestState, 'discarded'); // only draft -> discarded (MS4); anything else 409 partners.manifest_invalid_transition
   const row = (await manifests.change(s, m['id'], expected, ["state = 'discarded'", 'discarded_at = now()'])) ?? conflict();
   await lines.discardDrafts(s, m['id']); // ponytail: patient fields are redacted later by the retention owner function (T21), not here
-  return { status: 200, body: await fullDto(ctx, s, row) };
+  const out = { status: 200, body: await fullDto(ctx, s, row) };
+  manifestTransition(ctx, 'discarded'); // T23
+  return out;
 }
 
 // ---- P2 ----
@@ -319,7 +324,9 @@ export async function submit(req: Req, ctx: HandlerContext): Promise<HandlerResu
   const converting = row['conversion_mode'] === 'on_submit';
   await lines.submitDrafts(s, m['id'], row['receiving_centre_id'], converting);
   if (converting) for (const l of ls.filter((x) => x['state'] === 'draft')) await lines.enqueueConversion(s, l['id'], 1); // job_key convert:<line_id>:1
-  return { status: 200, body: await fullDto(ctx, s, row) };
+  const out = { status: 200, body: await fullDto(ctx, s, row) };
+  manifestTransition(ctx, 'submitted'); // T23: once per manifest, however many lines
+  return out;
 }
 
 // ---- M9 (T09) ----
@@ -339,7 +346,9 @@ export async function withdraw(req: Req, ctx: HandlerContext): Promise<HandlerRe
   const row = (await manifests.withdraw(s, m['id'], expected, b['reason_code'], text)) ?? conflict();
   await lines.withdrawSubmitted(s, m['id']);
   // ponytail: MS5 pickup cascade (open pickups -> cancelled) belongs with the pickup tables (T15); not done here
-  return { status: 200, body: await fullDto(ctx, s, row) };
+  const out = { status: 200, body: await fullDto(ctx, s, row) };
+  manifestTransition(ctx, 'withdrawn'); // T23
+  return out;
 }
 
 // ---- M11 (T09) ----

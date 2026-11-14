@@ -165,7 +165,7 @@ void main() {
       expect(sink.calls, isEmpty);
     });
 
-    testWidgets('manual field: max 20 chars, pattern ^[A-Z0-9]{1,20}$', (t) async {
+    testWidgets('manual field: max 20 chars, pattern ^[A-Z0-9]{1,20}\$', (t) async {
       await open(t);
       await t.tap(find.byKey(const ValueKey('collect.tube_menu.$tube1')));
       await t.pumpAndSettle();

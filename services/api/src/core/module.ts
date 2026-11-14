@@ -62,6 +62,12 @@ export interface HandlerContext {
   readonly storage: unknown;
   readonly log: { info(o: object, m?: string): void; warn(o: object, m?: string): void; error(o: object, m?: string): void };
   readonly services: unknown;
+  /** LD-190 / CR-C9-T26-002: CoreMetrics { inc, set, observe } (label values validated by createMetrics DEFS). Optional in the TYPE only. */
+  readonly metrics?: {
+    inc(name: any, labels?: Record<string, string | number>, by?: number): void;
+    set(name: any, value: number, labels?: Record<string, string | number>): void;
+    observe(name: any, value: number, labels?: Record<string, string | number>): void;
+  } | undefined;
   readonly operationId: string;
   /** 08 A25 P-61 (02-TRD §6.4); modules never parse a header. */
   readonly clientIp: string;

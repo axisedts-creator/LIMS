@@ -14,7 +14,7 @@ import { createSettingsService } from './settings.service.js';
 export type ObservationDraft = Row;
 export type Classification = ObservationDraft;
 export interface RunAssembler { assign(ctx: ObsCtx, draft: ObservationDraft): Promise<{ qc_run_id: string }> }
-export interface ObsCtx { readonly tenantId: string; readonly actor: { readonly id: string }; readonly tx: any; readonly now: () => string; readonly ports?: any; readonly log?: any }
+export interface ObsCtx { readonly tenantId: string; readonly actor: { readonly id: string }; readonly tx: any; readonly now: () => string; readonly ports?: any; readonly log?: any; readonly metrics?: any }
 export interface SyncResult {
   imported: number; duplicates: number; importErrors: number; pages: number; budgetExhausted: boolean;
   counts: Record<string, number>; cursor: { at: string; id: string } | null;
@@ -24,8 +24,11 @@ export interface ReprocessResult { reclassified: number; adopted: number; unchan
 
 const DAY_MS = 86_400_000;
 const SAVEPOINT = 'qc_row';
+const UNASSIGNED = ['unmapped_analyte', 'non_numeric', 'no_plan', 'unmapped_control', 'level_not_in_plan', 'lot_expired', 'no_target', 'unit_mismatch', 'late_unassigned'];   // §6.3 non-assigned statuses: zeroed so a cleared status leaves the gauge
 const ms = (iso: string): number => Date.parse(iso.replace(/(\.\d{3})\d*Z$/, '$1Z'));   // µs text -> ms (Date.parse is not specified beyond 3 digits)
 const keyCmp = (a: { at: string; id: string }, b: { at: string; id: string }): number => (a.at < b.at ? -1 : a.at > b.at ? 1 : a.id < b.id ? -1 : a.id > b.id ? 1 : 0);
+// §14 metrics never break an import (labels are enums / codes; tenant_id only on gauges, REQ-SEC-098).
+const emit = (f: () => void): void => { try { f(); } catch { /* ignore */ } };
 const isDataError = (e: any): boolean => /^(22|23)/.test(String(e?.code ?? ''));
 
 /** Half-up to exactly 6 places, plain decimal string (numeric(20,6) / numeric(14,6)). */
@@ -128,6 +131,7 @@ export function createObservationService(deps: {
         } catch (e: any) {
           if (!isDataError(e)) throw e;   // not a poison row: abort the run (the job tx rolls back, the cursor stays)
           await ctx.tx.query(`ROLLBACK TO SAVEPOINT ${SAVEPOINT}`);
+          emit(() => ctx.metrics?.inc('lims_quality_qc_observations_total', { status: 'import_error' }));
           res.importErrors++; res.counts['import_error'] = (res.counts['import_error'] ?? 0) + 1;
           ctx.log?.warn?.({ event: 'quality_qc_import_error', qc_result_id: r['qc_result_id'], sqlstate: String(e.code) });   // no values, no raw ids
           continue;
@@ -135,6 +139,11 @@ export function createObservationService(deps: {
         if (!inserted) { await ctx.tx.query(`ROLLBACK TO SAVEPOINT ${SAVEPOINT}`); res.duplicates++; continue; }   // lost a race with an overlapping job
         await ctx.tx.query(`RELEASE SAVEPOINT ${SAVEPOINT}`);
         res.imported++; res.counts[draft['status']] = (res.counts[draft['status']] ?? 0) + 1;
+        emit(() => {
+          ctx.metrics?.inc('lims_quality_qc_observations_total', { status: draft['status'] });
+          // [CONV] eval lag = C5 created_at (view row) -> evaluation; an `assigned` row is evaluated by the assembler in this call.
+          if (draft['status'] === 'assigned') ctx.metrics?.observe('lims_quality_qc_eval_lag_seconds', Math.max(0, (nowMs() - ms(r['created_at'])) / 1000));
+        });
       }
     }
   }
@@ -239,6 +248,11 @@ export function createObservationService(deps: {
         if (nowMs() - started >= budget! * 1000) { res.budgetExhausted = true; break; }
         prev = key;
         page = await repo.readPageAfter(ctx.tx, t, { afterAt: key.at, afterId: key.id, limit: batch! });
+      }
+      emit(() => ctx.metrics?.set('lims_quality_qc_sync_last_success_timestamp_seconds', nowMs() / 1000, { tenant_id: t }));   // end of a successful run only
+      if (repo.countUnassignedByStatus) {
+        const counts = await repo.countUnassignedByStatus(ctx.tx, t);
+        emit(() => { for (const status of [...new Set([...UNASSIGNED, ...Object.keys(counts)])]) ctx.metrics?.set('lims_quality_unassigned_observations', counts[status] ?? 0, { status, tenant_id: t }); });
       }
       return res;
     },

@@ -19,6 +19,8 @@ export interface SyncRepo {
   latestEvaluatedRunAt(tx: Tx, tenantId: string, planId: string): Promise<string | undefined>;
   insertObservation(tx: Tx, tenantId: string, row: Row): Promise<{ id: string } | undefined>;
   advanceCursor(tx: Tx, tenantId: string, k: { at: string; id: string }): Promise<boolean>;
+  /** §14 gauge lims_quality_unassigned_observations: observations that are not `assigned`, by status. */
+  countUnassignedByStatus?(tx: Tx, tenantId: string): Promise<Record<string, number>>;
 }
 
 /** T-11 re-processing (02-TRD §6.4). Reads/updates stored quality.qc_observations only; the classification inputs still come from SyncRepo. */
@@ -85,6 +87,10 @@ export function createQcViewRepo(): SyncRepo & ReprocessRepo {
       return (await tx.query(
         pageRead('tenant_id = $1 AND (created_at, qc_result_id) > ($2::timestamptz, $3::uuid)'),
         [tenantId, q.afterAt, q.afterId, q.limit])).rows;
+    },
+    async countUnassignedByStatus(tx, tenantId) {
+      const { rows } = await tx.query(`SELECT status, count(*)::int AS n FROM quality.qc_observations WHERE tenant_id = $1 AND status <> 'assigned' GROUP BY status`, [tenantId]);
+      return Object.fromEntries(rows.map((r) => [r.status, r.n]));
     },
     async findExistingSourceIds(tx, tenantId, sourceIds) {
       if (!sourceIds.length) return [];

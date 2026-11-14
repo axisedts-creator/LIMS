@@ -57,6 +57,7 @@ function jobContext(deps: WorkerDeps, module: string, tenantId: string | undefin
     tenantId, actor: { type: 'system', id: actorId }, requestId: uuidv7(), tx,
     db: { tx: (fn) => fn(ctx) },                                         // [CONV] the job already runs in one transaction: reuse it
     events: deps.events, core: deps.core, storage: deps.storage, files: deps.files, audit: deps.audit,
+    metrics: deps.metrics,                                               // LD-190 / CR-C9-T26-002
     log: deps.log.child({ task, module, ...(tenantId ? { tenant_id: tenantId } : {}) }),
     attempt: job.attempts, maxAttempts: job.max_attempts, jobId: String(job.id),
     now: () => deps.now().toISOString(),

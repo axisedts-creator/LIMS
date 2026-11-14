@@ -15,7 +15,7 @@ import { createQualityEvents, type QualityEvents } from '../events/publish.js';
 import { createRunRepo, type PlanParams, type Row, type RunRepo } from '../repository/run.repo.js';
 
 export interface RunCtx {
-  readonly tenantId: string; readonly actor: { readonly id: string }; readonly tx: any; readonly now: () => string; readonly ports?: any; readonly log?: any;
+  readonly tenantId: string; readonly actor: { readonly id: string }; readonly tx: any; readonly now: () => string; readonly ports?: any; readonly log?: any; readonly metrics?: any;
 }
 export interface CloseStaleResult { closed: number; rejected: number; oldestRejectedWithoutActionAgeSeconds: number }
 
@@ -88,6 +88,10 @@ export function createRunService(deps: { repo?: RunRepo; events?: QualityEvents 
       Object.assign(patch, { last_in_control_run_at: last ?? null, hold_since: holdSince, rejection_event_id: published.eventId });
     }
     const updated = await repo.updateRun(ctx.tx, t, run['id'], patch);
+    try {   // §14 counters, labels are enums / counts only
+      if (tr.state.outcome) ctx.metrics?.inc('lims_quality_qc_runs_total', { outcome: tr.state.outcome, rule_mode: run['rule_mode'], n: String(run['controls_per_run']) });
+      for (const h of res.hits) ctx.metrics?.inc('lims_quality_qc_rule_hits_total', { rule: h.rule });
+    } catch { /* metrics never break a run */ }
     if (tr.transition === 'QR4' && (tr.state.outcome === 'accepted' || tr.state.outcome === 'accepted_warning')) await repo.resetQcActivity(ctx.tx, t, plan.plan_id, run['run_at']);
     return updated;
   }
@@ -163,6 +167,10 @@ export function createRunService(deps: { repo?: RunRepo; events?: QualityEvents 
     }
     const oldest = await repo.oldestRejectedWithoutActionAt(ctx.tx, t);
     out.oldestRejectedWithoutActionAgeSeconds = oldest === undefined ? 0 : Math.max(0, Math.floor((nowMs - ms(oldest)) / 1000));
+    if (repo.countOpenRejectedRuns) {
+      const open = await repo.countOpenRejectedRuns(ctx.tx, t);
+      try { ctx.metrics?.set('lims_quality_qc_open_rejected_runs', open, { tenant_id: t }); } catch { /* metrics never break a sweep */ }
+    }
     if (out.closed > 0) ctx.log?.info?.({ event: 'quality_close_stale_runs', closed: out.closed, rejected: out.rejected });
     return out;
   }

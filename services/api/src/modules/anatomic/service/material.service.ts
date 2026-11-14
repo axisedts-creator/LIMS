@@ -238,7 +238,6 @@ export async function saveSlideAssessment(hctx: unknown, params: unknown, header
   if (!s || !cs) throw notFound();
   await assertAt(c, 'anatomic.case.work', cs);
   const status = cs['status'];
-  if (status === 'received' || status === 'cancelled') throw invalid();
   if (status === 'signed_out' && !(await getOpenDraft(c.tx, { tenantId: c.tenantId, caseId: cs['id'] }))) throw new LimsError('anatomic.signout_locked'); // D-66 (b), AC-03.4
 
   const version = ifMatch(headers, false);

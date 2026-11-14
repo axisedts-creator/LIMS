@@ -15,7 +15,8 @@ const bad = async (p: Promise<unknown>, path?: string, errCode?: string) => {
   if (path) expect(e.errors).toEqual(expect.arrayContaining([expect.objectContaining({ path, ...(errCode ? { code: errCode } : {}) })]));
   return e;
 };
-const put = (t: ReturnType<typeof makeSettingsCtx>, b: unknown, v: number | undefined = 1) => svc.updateQualitySettings(t.ctx, { expectedVersion: v, body: b });
+// No default parameter: an explicit `undefined` must reach the service (missing If-Match); omitting the arg means version 1.
+const put = (t: ReturnType<typeof makeSettingsCtx>, b: unknown, ...rest: [number?]) => svc.updateQualitySettings(t.ctx, { expectedVersion: rest.length ? rest[0] : 1, body: b });
 
 describe('#51 getQualitySettings', () => {
   it('first use ensures the row (defaults, activated_at = now, sync_state) and answers the allowlisted DTO; version 1; C2 values appended read-only', async () => {

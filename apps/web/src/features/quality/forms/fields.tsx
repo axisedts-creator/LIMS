@@ -79,7 +79,8 @@ export function useSetupAction() {
   const [general, setGeneral] = useState<string>();
   const [targetMissing, setTargetMissing] = useState(false);
   const reset = () => { setErrors({}); setGeneral(undefined); setTargetMissing(false); };
-  const run = async <T,>(sig: string, call: (key: string) => Promise<SetupResult<T>>, o: { ok: string; hints?: Hints; onOk?: (d: T) => void }): Promise<boolean> => {
+  // T-24: `refreshOnImmutable: false` keeps the list as it is when the record can no longer be changed (the dialog shows the error; polling brings the fresh list).
+  const run = async <T,>(sig: string, call: (key: string) => Promise<SetupResult<T>>, o: { ok: string; hints?: Hints; onOk?: (d: T) => void; refreshOnImmutable?: boolean }): Promise<boolean> => {
     if (busy.current) return false;
     busy.current = true;
     try {
@@ -96,7 +97,7 @@ export function useSetupAction() {
       setErrors(x.fields);
       setGeneral(x.general);
       setTargetMissing(!!x.targetMissing);
-      if (x.refresh) router.refresh();
+      if (x.refresh && o.refreshOnImmutable !== false) router.refresh();
       return false;
     } finally {
       busy.current = false;

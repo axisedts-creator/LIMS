@@ -55,7 +55,7 @@ function realUploads() {
 }
 
 async function send(w: World, messages: Row[], o: { uploads?: unknown; driver?: InstrumentDriver; records?: ParsedRecord[]; maxMessageBytes?: number } = {}) {
-  const c = makeIngestCtx(w); (c.ctx as any).uploads = o.uploads;
+  const c = makeIngestCtx(w); (c.ctx as any).uploads = o.uploads; (c.ctx as any).storage = (o.uploads as any)?.storage?.adapter;   // core/pipeline wires ctx.storage next to ctx.uploads
   const getDriver = o.driver ? () => o.driver : fakeDriver(o.records ?? []).getDriver;
   const svc = createIngestService({ repo: w.repo, getDriver, maxMessageBytes: o.maxMessageBytes ?? MiB } as any);
   const r = await svc.submitMessageBatch(c.ctx, { body: batch(messages) });
@@ -205,5 +205,13 @@ describe('rejections use the existing core error codes (S4) — real core upload
     const w = world(); const u = spyUploads({ throws: new Error('storage down') });
     const { res } = await sendRecord(w, att(), u);
     expect(res[0]).toMatchObject({ outcome: 'retry', error_code: 'common.internal' }); expect(w.events).toEqual([]); expect(w.messages).toEqual([]);
+  });
+  // H80-T04 review item 1 (Open 3): a later failure rolls the savepoint back; objects already stored by earlier accept() calls of the SAME message must not be left orphaned (PHI, grows on every retry).
+  it('2nd attachment record hits scanner unavailable after the 1st was stored: retry, savepoint rolled back, NO orphan object left in storage', async () => {
+    const w = world(); const u = realUploads();
+    const uploads = { ...u, accept: async (file: any, opts: any) => { const r = await u.accept(file, opts); u.scanner.mode = 'unavailable'; return r; } };   // 1st clean+stored, every later scan unavailable
+    const { res } = await send(w, [message({ n: 1, instrument: LIVE, protocol: 'hl7v2' })], { uploads, records: [att(), att({ recordSeq: 2, instrumentAnalyteCode: 'Chromatogram2' })] });
+    expect(res[0]).toMatchObject({ outcome: 'retry', error_code: 'common.internal' }); expect(w.events).toEqual([]); expect(w.messages).toEqual([]);
+    expect(u.calls).toHaveLength(2); expect(u.storage.paths()).toEqual([]);
   });
 });

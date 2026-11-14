@@ -332,6 +332,36 @@ describe.skipIf(!live)('T-18 inventory.daily_fixed_consumption (AC-16.1, AC-16.2
     expect(new Set(dates).size).toBe(dates.length);
   });
 
+  run('catch-up is capped at 7 days even when LIMS_INVENTORY_FIXED_CATCHUP_DAYS is set higher (TRD §8.5 "up to 7 missing days"; review item 2)', async (s) => {
+    const prev = process.env['LIMS_INVENTORY_FIXED_CATCHUP_DAYS'];
+    process.env['LIMS_INVENTORY_FIXED_CATCHUP_DAYS'] = '30';
+    try { await runTask(s, 'daily_fixed_consumption'); } finally { if (prev === undefined) delete process.env['LIMS_INVENTORY_FIXED_CATCHUP_DAYS']; else process.env['LIMS_INVENTORY_FIXED_CATCHUP_DAYS'] = prev; }
+    const dates = (await fixedFacts(s, [R1])).map((x) => x.bd);
+    expect(dates).toContain(Y);
+    for (const d of dates) expect(d >= addDays(Y, -7), `${d} is older than the 7-day catch-up window`).toBe(true);
+    expect(dates).not.toContain(addDays(Y, -8)); expect(dates).not.toContain(addDays(Y, -10));
+  });
+
+  run('PRODUCTION ctx shape (ctx.db.tx = fn => fn(ctx), no savepoint of its own): one failing fact leaves every other fact committed; the job logs the failure and does not throw (review item 1)', async (s) => {
+    const POISON = uid(18590); // sorts before R1: the failure comes first on every day, so every later fact would hit "current transaction is aborted" without a savepoint inside the task
+    await withRule(s, POISON, { instrument: XI1, item: FI2, qty: 1 });
+    const ctx = await jobCtx(s);
+    const errors: unknown[][] = [];
+    ctx.log = { info() {}, warn() {}, error: (...a: unknown[]) => { errors.push(a); } };
+    ctx.db = { tx: async (fn: (c: unknown) => Promise<unknown>) => fn(ctx) };            // exactly services/worker/src/core/consumer.ts: no savepoint
+    ctx.tx = { query: async (t: string, v?: unknown[]) => {                                // a real Postgres error (aborts the transaction) on the poison rule's fact insert
+      if (/INSERT INTO inventory\.consumption_facts/.test(t) && JSON.stringify(v ?? []).includes(`fixed:${POISON}:`)) await s.client.query('SELECT 1/0');
+      return s.tx.query(t, v);
+    } };
+    const h = await loadTask('daily_fixed_consumption');
+    await expect(h({ tenant_id: A }, ctx)).resolves.toBeUndefined();
+    expect(errors.length, 'the failed facts are logged at error level').toBeGreaterThan(0);
+    expect(await fixedFacts(s, [POISON])).toEqual([]);
+    const ok = (await fixedFacts(s, [R1])).filter((f) => f.status === 'posted' && f.movements === 1).map((f) => f.bd);
+    expect(ok).toContain(Y); expect(ok).toContain(addDays(Y, -1));
+    expect(new Set(ok).size).toBe(ok.length);
+  });
+
   run('rules are evaluated at D: an inactive rule and a rule that starts after D (or ended before it) produce no fact', async (s) => {
     await withRule(s, uid(18621), { instrument: XI1, item: FI2, qty: 1, active: false });
     await withRule(s, uid(18622), { instrument: XI1, item: FI2, qty: 1, from: mins(60) });

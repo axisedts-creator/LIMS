@@ -184,7 +184,7 @@ const counts = async (s: Sess, test: string, instrument: string | null, bd = V1_
 const count = async (s: Sess, table: string, where = 'true', v: unknown[] = []) => n((await s.sql(`SELECT count(*) AS n FROM inventory.${table} WHERE tenant_id = $1 AND ${where}`, [A, ...v]))[0].n);
 const snapshot = async (s: Sess) => JSON.stringify([await count(s, 'consumption_facts'), await count(s, 'stock_movements'), await count(s, 'test_counts_daily'), await count(s, 'alerts'),
   await s.sql('SELECT id, qty_base, value_paisa, version FROM inventory.stock_balances WHERE tenant_id = $1 ORDER BY id', [A]), await s.sql('SELECT test_id, tests_counted, verified_result_events FROM inventory.test_counts_daily WHERE tenant_id = $1 ORDER BY id', [A])]);
-const startedAt = (s: Sess) => s.sql('SELECT clock_timestamp()::text AS t').then((r) => r[0].t as string);
+const startedAt = (s: Sess) => s.sql('SELECT now()::text AS t').then((r) => r[0].t as string);
 const rejected = async (p: Promise<unknown>) => { p.catch(() => undefined); await load(); /* a missing module must FAIL the test, not count as a rejection */ try { await p; } catch (e) { return e as any; } return undefined; };
 
 // ========================================================================================================== wiring + data minimisation (no DB needed)
@@ -277,14 +277,16 @@ describe.skipIf(!live)('T-16 AC-12.2 facts (a) test and (b) analyte are independ
   run('fact (b) is attempted although fact (a) already exists: second analyte event of the same order item inserts ONLY the analyte fact (+1 consume_analyte, no second consume_test)', async (s) => {
     await enable(s, ENABLED); const oi = uid(29003); const p1 = payload({ test_id: TI, analyte_id: ANX, order_item_id: oi }), p2 = payload({ test_id: TI, analyte_id: ANI, order_item_id: oi });
     await deliver(s, envelope(p1)); const t0 = await startedAt(s); await deliver(s, envelope(p2));
-    const ms = await movesForTest(s, TI, t0); expect(ms).toHaveLength(1); expect(ms[0]).toMatchObject({ kind: 'consume_analyte', item_id: IA }); expect(n(ms[0].q)).toBe(-2);
+    // now() is the transaction start, so t0 also covers p1's consume_test: assert on the movements of both events (1 consume_test from p1 only, +1 consume_analyte from p2)
+    const all = await movesForTest(s, TI, t0); expect(all.filter((m) => m.kind === 'consume_test')).toHaveLength(1); const ms = all.filter((m) => m.kind === 'consume_analyte'); expect(all).toHaveLength(2);
+    expect(ms).toHaveLength(1); expect(ms[0]).toMatchObject({ kind: 'consume_analyte', item_id: IA }); expect(n(ms[0].q)).toBe(-2);
     expect(await factsOf(s, `test:${oi}:%`)).toHaveLength(1); expect(await factsOf(s, `analyte:${p2['result_id']}`)).toHaveLength(1); expect(await factsOf(s, `analyte:${p1['result_id']}`)).toHaveLength(0);
     expect(await counts(s, TI, I1)).toMatchObject({ tests_counted: 1, verified_result_events: 2 });
   });
   run('analyte event with no per_analyte rule for (test, analyte): no analyte fact; the event counter still counts it', async (s) => {
     await enable(s, ENABLED); const oi = uid(29004);
     await deliver(s, envelope(payload({ test_id: TI, analyte_id: ANX, order_item_id: oi }))); await deliver(s, envelope(payload({ test_id: TI, analyte_id: ANX, order_item_id: oi })));
-    expect(await count(s, 'consumption_facts', "fact_kind = 'analyte' AND test_id = $1 AND occurred_at = $2::timestamptz AND analyte_id = $3", [TI, V1, ANX])).toBe(0);
+    expect(await count(s, 'consumption_facts', "fact_kind = 'analyte' AND test_id = $2 AND occurred_at = $3::timestamptz AND analyte_id = $4", [TI, V1, ANX])).toBe(0);
     expect(await counts(s, TI, I1)).toMatchObject({ tests_counted: 1, verified_result_events: 2 });
   });
 });
@@ -299,6 +301,8 @@ describe.skipIf(!live)('T-16 AC-12.3 in-use lot, else FEFO', () => {
   });
   run('no open container for the instrument (I2): the FEFO lot (LL1, earliest expiry) is used', async (s) => {
     await enable(s, ENABLED); const l1 = await balance(s, S1, IL, LL1);
+    // ruling: FEFO key 1 = has_open_container of the lot in the store (any instrument, TRD 4.4); close the fixture's open LL2 container so LL1 is the FEFO lot
+    await s.sql("UPDATE inventory.opened_containers SET status = 'finished', finished_at = now(), finished_by = $2 WHERE tenant_id = $1 AND id = $3", [A, SYS, uid(17903)]);
     const p = payload({ test_id: TL, instrument_id: I2 }); await deliver(s, envelope(p));
     const [f] = await factsOf(s, `%${p['order_item_id']}%`); const ms = await movesOf(s, f.id); expect(ms).toHaveLength(1); expect(ms[0]).toMatchObject({ lot_id: LL1 }); expect(await balance(s, S1, IL, LL1)).toBe(l1 - 1);
   });
@@ -352,7 +356,7 @@ describe.skipIf(!live)('T-16 AC-12.4 duplicate delivery and re-verification', ()
 // ========================================================================================================== AC-12.5 switch + event counter (D-73)
 describe.skipIf(!live)('T-16 AC-12.5 consumption switch; event counter while off (D-73)', () => {
   const nothingButCounter = async (s: Sess, p: Record<string, unknown>, expectedEvents: number, test = TG, instrument: string | null = I1) => {
-    expect(await factsOf(s, `%${p['order_item_id']}%`)).toEqual([]); expect(await count(s, 'stock_movements', 'attributed_test_id = $1 AND occurred_at = $2::timestamptz', [test, p['verified_at']])).toBe(0);
+    expect(await factsOf(s, `%${p['order_item_id']}%`)).toEqual([]); expect(await count(s, 'stock_movements', 'attributed_test_id = $2 AND occurred_at = $3::timestamptz', [test, p['verified_at']])).toBe(0);
     expect(await count(s, 'alerts', "alert_kind = 'unresolved_consumption'")).toBe(0);
     expect(await counts(s, test, instrument, V1_BD)).toMatchObject({ tests_counted: 0, verified_result_events: expectedEvents });
   };
@@ -363,7 +367,7 @@ describe.skipIf(!live)('T-16 AC-12.5 consumption switch; event counter while off
   });
   run('verified_at < consumption_enabled_at: ignored (counter only); verified_at == consumption_enabled_at: processed (the enable instant is exact)', async (s) => {
     await enable(s, V1); const before = payload({ verified_at: '2026-11-13T18:59:59.999Z' }); await deliver(s, envelope(before));
-    expect(await factsOf(s, `%${before['order_item_id']}%`)).toEqual([]); expect(await counts(s, TG, I1, '2026-11-13')).toMatchObject({ tests_counted: 0, verified_result_events: 1 });
+    expect(await factsOf(s, `%${before['order_item_id']}%`)).toEqual([]); expect(await counts(s, TG, I1, V1_BD)).toMatchObject({ tests_counted: 0, verified_result_events: 1 });
     const at = payload({ verified_at: V1 }); await deliver(s, envelope(at)); const [f] = await factsOf(s, `%${at['order_item_id']}%`); expect(f).toMatchObject({ status: 'posted' }); expect(await movesOf(s, f.id)).toHaveLength(1);
   });
   run('enabling takes effect instantly for the NEXT event; events skipped earlier are never back-filled', async (s) => {
@@ -427,7 +431,7 @@ describe.skipIf(!live)('T-16 AC-12.9 no store: an unresolved fact + an unresolve
     await s.sql('UPDATE inventory.instrument_bindings SET is_active = false WHERE tenant_id = $1 AND instrument_id = $2', [A, I2]);
     const p = payload({ test_id: TU, instrument_id: I2, processing_branch_id: null }); await deliver(s, envelope(p));
     expect((await factsOf(s, `%${p['order_item_id']}%`))[0]).toMatchObject({ status: 'unresolved', store_id: null });
-    expect(await count(s, 'alerts', "alert_kind = 'unresolved_consumption' AND dedupe_key = $1", [`unresolved:${I2}`])).toBe(1);
+    expect(await count(s, 'alerts', "alert_kind = 'unresolved_consumption' AND dedupe_key = $2", [`unresolved:${I2}`])).toBe(1);
   });
 });
 

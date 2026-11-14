@@ -1,0 +1,8 @@
+# RS-C5 tests (tester)
+Files (apps/web/src/features/lab/__tests__/): vitest.rs-c5.config.ts, rs-c5.static.test.ts, rs-c5.behaviour.test.tsx, rs-c5.screens.test.tsx (+ rs-c5.fixtures.ts, rs-c5.baseline.json, rs-c5.make-baseline.cjs).
+Run: `.orchestra\notes\RS-C5-verify.cmd` = `set CI=true` + `pnpm --dir apps/web exec vitest run --config src/features/lab/__tests__/vitest.rs-c5.config.ts` (CI=true: a missing snapshot fails).
+static: no raw colour / px radius / inline style under features/lab + (staff)/lab (today: WorksheetPrintPage `#000` etc.); server/** hashes + page routes + permission strings unchanged (baseline json = pre-restyle).
+behaviour: receive tabs All/Received/Rejected/Errors with counts + scan focus + keyboard; collect tab counts; worklist `aside` "Result entry" + row button "Enter results <barcode> <test>" (no new API call); grid `section` "Progress of <TEST>" with kit StatusStepper (Entered/Senior technician/Pathologist, "Next: ..."), info-tone "Instrument" chip, delta text, critical prompt unchanged; axe serious/critical on each screen.
+screens: DOM snapshots; per LD-170 the WRITER records `__snapshots__/rs-c5.screens.test.tsx.snap` once, last, with `-u rs-c5.screens`. Until then that file fails (no snapshot) = right reason.
+ASSUMED contracts are listed at the top of rs-c5.behaviour.test.tsx. Not tested: dark mode (out of scope), real contrast (jsdom; token contrast gate covers it), exceptions list status select (existing c5-t23 tests pin it, left as is).
+Lead action (not a test): remove "apps/web/src/features/lab" from packages/ui/scripts/raw-style-pending.json when this task is done.

@@ -13,6 +13,7 @@ import { PageHeader } from '@lims/ui/components/PageHeader';
 import { RadioGroup } from '@lims/ui/components/RadioGroup';
 import { Select } from '@lims/ui/components/Select';
 import { Switch } from '@lims/ui/components/Switch';
+import { Tabs } from '@lims/ui/components/Tabs';
 import { TextArea } from '@lims/ui/components/TextArea';
 import { useToast } from '@lims/ui/components/Toast';
 import { lookupSpecimenAction, receiveSpecimenAction, rejectSpecimenAction } from '../server/actions';
@@ -23,6 +24,8 @@ const LOCATION_KEY = 'lims.lab.receive.location'; // value = centre id only
 const LOG_MAX = 50; // [CONV] 03-APP-FLOW §3.3
 const COMMENT_MAX = 500;
 type Entry = { n: number; barcode: string; text: string };
+type LogTab = 'all' | 'received' | 'rejected' | 'errors';
+const tabOf = (e: Entry): LogTab => (e.text === 'Received' ? 'received' : e.text === 'Rejected' ? 'rejected' : 'errors'); // RS-C5 (LD-140): counts come from the in-memory session log only
 type Errs = { reason?: string; comment?: string; form?: string };
 
 export interface ReceiveScreenProps {
@@ -47,6 +50,7 @@ function Screen({ centres, rejectionReasons, recollectionDefault, permissions }:
   const [auto, setAuto] = useState(false);
   const [current, setCurrent] = useState<Specimen | null>(null);
   const [log, setLog] = useState<Entry[]>([]);
+  const [logTab, setLogTab] = useState<LogTab>('all');
   const [msg, setMsg] = useState('');
   const [busy, setBusy] = useState(false);
   const busyRef = useRef(false);
@@ -156,6 +160,7 @@ function Screen({ centres, rejectionReasons, recollectionDefault, permissions }:
     setTimeout(focusBox, 0);
   }
 
+  const shown = logTab === 'all' ? log : log.filter((e) => tabOf(e) === logTab);
   const reasonText = (code?: string) => rejectionReasons.find((r) => r.code === code)?.display ?? code ?? '';
   return (
     <section aria-label="Receive specimens">
@@ -199,22 +204,29 @@ function Screen({ centres, rejectionReasons, recollectionDefault, permissions }:
         </section>
       ) : null}
 
-      {log.length ? (
-        <table>
-          <caption>Session log</caption>
-          <thead>
-            <tr><th scope="col">Barcode</th><th scope="col">Outcome</th></tr>
-          </thead>
-          <tbody>
-            {log.map((e) => (
-              <tr key={e.n}>
-                <td>{e.barcode}</td>
-                <td>{e.text}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      ) : null}
+      <Tabs
+        aria-label="Session log"
+        items={(['all', 'received', 'rejected', 'errors'] as const).map((t) => ({ id: t, label: t[0]!.toUpperCase() + t.slice(1), count: t === 'all' ? log.length : log.filter((e) => tabOf(e) === t).length }))}
+        selectedId={logTab}
+        onChange={(id) => setLogTab(id as LogTab)}
+      >
+        {shown.length ? (
+          <table className="lims-table">
+            <caption className="lims-visually-hidden">Session log</caption>
+            <thead>
+              <tr><th scope="col">Barcode</th><th scope="col">Outcome</th></tr>
+            </thead>
+            <tbody>
+              {shown.map((e) => (
+                <tr key={e.n}>
+                  <td>{e.barcode}</td>
+                  <td>{e.text}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        ) : null}
+      </Tabs>
 
       {dialog && current ? (
         <Dialog

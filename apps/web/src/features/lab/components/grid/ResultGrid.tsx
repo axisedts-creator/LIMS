@@ -16,6 +16,8 @@ import { ConfirmDialog } from '@lims/ui/components/ConfirmDialog';
 import { EditableGrid, type EditableGridColumn, type EditableGridRow } from '@lims/ui/components/EditableGrid';
 import { KeyboardShortcutsDialog } from '@lims/ui/components/KeyboardShortcutsDialog';
 import { PageHeader } from '@lims/ui/components/PageHeader';
+import { StatusChip } from '@lims/ui/components/StatusChip';
+import { StatusStepper } from '@lims/ui/components/StatusStepper';
 import { Switch } from '@lims/ui/components/Switch';
 import { TextField } from '@lims/ui/components/TextField';
 import { Tooltip } from '@lims/ui/components/Tooltip';
@@ -67,6 +69,15 @@ const COLS: EditableGridColumn[] = [
   { id: 'test', header: 'Test', isReadOnly: true },
 ];
 const VALUE_COL = 1; // index in COLS
+const ORIGIN_COL = 7; // index in COLS
+const ORIGIN_PREFIX = 'origin:';
+// RS-C5 (LD-140, 10-DESIGN-SYSTEM s4): three-step track. Rank of a result = the step it has reached; the item sits at its least advanced result.
+const TRACK = [{ id: 'entered', label: 'Entered' }, { id: 'senior', label: 'Senior technician' }, { id: 'pathologist', label: 'Pathologist' }] as const;
+const RANK: Record<string, number> = { resulted: 0, verified: 1, approved: 2 };
+const stepOf = (statuses: readonly string[]) => {
+  const live = statuses.filter((s) => s !== 'cancelled');
+  return live.length && live.every((s) => s in RANK) ? Math.min(...live.map((s) => RANK[s]!)) : -1; // any pending result: nothing entered yet for the item
+};
 const MFA = 'Approval needs a second check. Verify your identity, then the approval is sent again.';
 const MAX_BATCH = 200; // OpenAPI maxItems
 const SHORTCUTS = [
@@ -135,7 +146,7 @@ export function ResultGrid({ data, analytes = {}, permissions, patientId, return
       id: r.id,
       values: {
         analyte: `${nameOf(r, analytes)} ${r.analyte_code}`, value: shown, unit: r.unit_code ?? '', flag: flagText(r.flag), range: rangeText(r), delta: deltaText(r), calc: calcText(r),
-        origin: r.origin[0]!.toUpperCase() + r.origin.slice(1), downtime: down, test: item.test.test_code,
+        origin: r.origin === 'instrument' ? '' : r.origin[0]!.toUpperCase() + r.origin.slice(1), downtime: down, test: item.test.test_code, // instrument: the chip is portalled into the cell (RS-C5, LD-140)
       },
       status: errors[r.id] ? 'error' : e ? 'unsaved' : 'saved',
       statusText: text,
@@ -160,6 +171,8 @@ export function ResultGrid({ data, analytes = {}, permissions, patientId, return
         tr.appendChild(td);
       }
       next[row.r.id] = td;
+      const oc = tr.children[ORIGIN_COL];
+      if (row.r.origin === 'instrument' && oc instanceof HTMLElement) next[`${ORIGIN_PREFIX}${row.r.id}`] = oc;
       const vc = tr.children[VALUE_COL];
       if (editable(row.r)) vc?.removeAttribute('aria-readonly'); else vc?.setAttribute('aria-readonly', 'true');
     });
@@ -470,14 +483,26 @@ export function ResultGrid({ data, analytes = {}, permissions, patientId, return
         const slot = slots[r.id];
         if (!slot) return null;
         const prov = provenanceText(r);
+        const originSlot = slots[`${ORIGIN_PREFIX}${r.id}`];
         return createPortal(
           <>
+            {originSlot ? createPortal(<StatusChip kind="generic" status="instrument" tone="info" label="Instrument" size="sm" />, originSlot, `${ORIGIN_PREFIX}${r.id}`) : null}
             {prov ? <Tooltip content={prov}><span role="note" tabIndex={0} aria-label={`Calculation: ${prov}`} className="lims-chip lims-chip-sm">ƒ</span></Tooltip> : null}
             {editable(r)
               ? <CommentCell key={r.id} defaultValue={r.comment_text ?? ''} defaultCodes={r.comment_codes ?? []} lookupCode={lookup} onChange={(c) => onComment(r.id, c)} />
               : r.comment_text ? <span>{r.comment_text}</span> : null}
           </>,
           slot, r.id,
+        );
+      })}
+      {data.items.map((item) => {
+        const at = stepOf(item.results.map((x) => (results[x.id] ?? x).status));
+        const next = at >= 0 ? TRACK[at + 1] : undefined;
+        return (
+          <section key={item.order_item_id} aria-label={`Progress of ${item.test.test_code}`}>
+            <StatusStepper steps={TRACK} currentId={TRACK[at]?.id ?? ''} />
+            {next ? <p className="lims-description">Next: {next.label}</p> : null}
+          </section>
         );
       })}
       <div role="toolbar" aria-label="Result actions">

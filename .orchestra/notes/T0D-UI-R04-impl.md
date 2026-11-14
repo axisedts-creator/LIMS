@@ -1,4 +1,4 @@
-# T0D-UI-R04 impl (writer) — verify: 86/87 pass; 1 fail = test-isolation defect, see T0D-UI-R04-dispute.md
+# T0D-UI-R04 impl (writer) — verify: 87/87 pass (rerun 11:14 after tester fixed the isolation defect per ruling; no code change)
 Files: core/shell/{AppShell.tsx, Rail.tsx, GlobalSearch.tsx, CentreSwitcher.tsx, search-action.ts, shell.css}; core/nav/rail-groups.ts; core/shortcuts/registry.ts (Ctrl+K global, Meta/Cmd = Ctrl, modifier-name normalising); core/i18n/messages.ts (core.nav.group.*, core.shell.search_*/centre keys); app/layout.tsx (imports shell.css). (staff)/layout.tsx unchanged.
 [CONV] railGroupFor: home_collection+engagement->Front desk, quality->Lab, analytics->Reports, partners->Accounts, inventory->Instruments, platform->Settings.
 [CONV] data-collapsed is set on the PageShell <nav> from Rail via layout effect (PageShell is packages/ui, not owned); collapsed labels visually hidden, initial badge via CSS attr() so link text = label.

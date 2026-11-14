@@ -65,8 +65,7 @@ describe('opening (04-UI-UX §3.4 drawer table)', () => {
   });
   it('is a right Drawer, not a Dialog (kit Drawer: width lg)', async () => {
     const d = await open('preliminary');
-    expect(d.className).toMatch(/lims-drawer/);
-    expect(d.className).toMatch(/lims-drawer-lg/);
+    expect(d.closest('.lims-drawer.lims-drawer-lg')).not.toBeNull();
   });
   it('the header buttons: enabled per T-20 table; "Preliminary report" not offered for awaiting_setup, "Final report" not for awaiting_setup', async () => {
     await mount(incubating({ status: 'awaiting_setup' }));
@@ -111,15 +110,15 @@ describe('included isolates and AST (client-side preview of what the server snap
   it('a reportable row without a category is highlighted with the text "Category missing" (once); complete rows are not', async () => {
     const d = await open('final', rich());
     expect((d.textContent?.match(/category missing/gi) ?? []).length).toBe(1);
-    const row = within(d).getAllByRole('row').find((r) => /synthetic genB/.test(r.textContent ?? ''))!;
+    const row = within(d).getAllByRole('row').find((r) => /synthetic genB/i.test(r.textContent ?? ''))!;
     expect(row.textContent).toMatch(/category missing/i);
-    const ok = within(d).getAllByRole('row').find((r) => /synthetic cefA/.test(r.textContent ?? ''))!;
+    const ok = within(d).getAllByRole('row').find((r) => /synthetic cefA/i.test(r.textContent ?? ''))!;
     expect(ok.textContent).not.toMatch(/category missing/i);
     expect(ok.textContent).toMatch(/S/);
   });
   it('the AST table shows the raw value with the method unit and the standard + version', async () => {
     const d = await open('preliminary', rich());
-    const row = within(d).getAllByRole('row').find((r) => /synthetic cefA/.test(r.textContent ?? ''))!;
+    const row = within(d).getAllByRole('row').find((r) => /synthetic cefA/i.test(r.textContent ?? ''))!;
     expect(row.textContent).toMatch(/0\.25/);
     expect(row.textContent).toMatch(/CLSI/);
     expect(row.textContent).toMatch(/M100-Ed36/);
@@ -275,7 +274,8 @@ describe('submitting a final (AC-10.1, AC-10.4)', () => {
     const d = await open('final');
     await send(d);
     expect(posts()).toHaveLength(0);
-    expect(d.querySelector('[aria-invalid="true"]')).not.toBeNull();
+    expect(d.querySelector('[data-invalid]')).not.toBeNull();
+    expect(d.querySelector('.lims-error')?.textContent ?? '').toMatch(/outcome/i);
   });
   it('POST sends outcome_code with report_phase "final", is_critical and the summary', async () => {
     const d = await finalReady();

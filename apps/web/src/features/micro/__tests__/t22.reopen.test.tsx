@@ -89,7 +89,8 @@ describe('the dialog (AC-11.1; D-62; S-30)', () => {
     await confirm(d);
     expect(posts()).toHaveLength(0);
     expect(screen.getByRole('dialog', { name: /reopen for amendment/i })).toBeTruthy();
-    expect(d.querySelector('[aria-invalid="true"]')).not.toBeNull();
+    expect(d.querySelector('[data-invalid]')).not.toBeNull();
+    expect(d.querySelector('.lims-error')?.textContent ?? '').toMatch(/reason/i);
   });
   it('the reason list failing to load leaves an empty select; Reopen then sends nothing', async () => {
     api.use(http.get(`${ORIGIN}/v1/lab/coded-sets/amendment_reasons`, () => problem('common.internal', 500)));

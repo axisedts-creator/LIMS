@@ -19,7 +19,7 @@
 //   consumer.pgbench.sql    pgbench custom script: the specimen-status consumer upsert (2.5/s at 10x, p95 <= 30 ms), against
 //                           engagement.patient_order_specimens guarded by status_seq (TRD §12 row 6, §7 consumer algorithm).
 //   seed.mjs                exports generateSeed({scale, rngSeed}) -> {scale, counts, tenants, probe}; deterministic, synthetic only.
-import { spawnSync } from 'node:child_process';
+import { spawn, spawnSync } from 'node:child_process';
 import { existsSync, readFileSync } from 'node:fs';
 import { createServer, type IncomingMessage, type Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
@@ -53,8 +53,20 @@ function k6(args: string[], env: Record<string, string>) {
   const r = spawnSync('k6', args, { env: { ...process.env, ...env }, encoding: 'utf8', timeout: 120000 });
   return { status: r.status, out: `${r.stdout}${r.stderr}` };
 }
+// Async variant for `k6 run`: spawnSync would block the event loop and the in-process mock could never answer (T-PERF1 ruling, defect B).
+function k6Run(args: string[], env: Record<string, string>): Promise<{ status: number | null; out: string }> {
+  return new Promise((resolve) => {
+    const p = spawn('k6', args, { env: { ...process.env, ...env } });
+    let out = '';
+    p.stdout.on('data', (d) => { out += d; });
+    p.stderr.on('data', (d) => { out += d; });
+    const t = setTimeout(() => p.kill(), 120000);
+    p.on('close', (status) => { clearTimeout(t); resolve({ status, out }); });
+  });
+}
 function inspect(scale: string) {
-  const r = k6(['inspect', K6_FILE], { SCALE: scale });
+  // `k6 inspect` does not expose system env to __ENV; pass SCALE with -e (T-PERF1 ruling, defect A).
+  const r = k6(['inspect', '-e', `SCALE=${scale}`, K6_FILE], {});
   expect(r.status, r.out).toBe(0);
   const j = JSON.parse(r.out.slice(r.out.indexOf('{')));
   return j as { scenarios: Record<string, { rate: number; timeUnit?: unknown; executor: string }>; thresholds: Record<string, string[]> };
@@ -127,7 +139,7 @@ describe.skipIf(!existsSync(K6_FILE))('engagement.k6.js — options via k6 inspe
     expect(p95(th, 'createMyBooking')).toBe(150);
   });
   it6('rejects a SCALE other than 1 or 10 at init', () => {
-    expect(k6(['inspect', K6_FILE], { SCALE: '3' }).status).not.toBe(0);
+    expect(k6(['inspect', '-e', 'SCALE=3', K6_FILE], {}).status).not.toBe(0);
   });
 });
 
@@ -162,7 +174,7 @@ const RUN = { SCALE: '10', DURATION: '6s', ...BASE_ENV };
 describe.skipIf(!existsSync(K6_FILE))('engagement.k6.js — k6 run vs mock', () => {
   it6('fast mock: exits 0; every flow hit on its /v1/engagement path; conditional GETs get 304s', async () => {
     const m = await mock(1);
-    const r = k6(['run', '--quiet', K6_FILE], { ...RUN, TARGET_URL: m.url });
+    const r = await k6Run(['run', '--quiet', K6_FILE], { ...RUN, TARGET_URL: m.url });
     expect(r.status, r.out).toBe(0);
     const at = (method: string, re: RegExp) => m.hits.filter((h) => h.method === method && re.test(h.url));
     expect(at('GET', new RegExp(`^/v1/engagement/me/orders/${UUID}`)).length).toBeGreaterThan(0);
@@ -178,11 +190,11 @@ describe.skipIf(!existsSync(K6_FILE))('engagement.k6.js — k6 run vs mock', () 
   });
   it6('slow mock (300 ms): p95 budgets are breached so k6 exits non-zero', async () => {
     const m = await mock(300);
-    expect(k6(['run', '--quiet', K6_FILE], { ...RUN, TARGET_URL: m.url }).status).not.toBe(0);
+    expect((await k6Run(['run', '--quiet', K6_FILE], { ...RUN, TARGET_URL: m.url })).status).not.toBe(0);
   });
   it6('tokens travel in headers only, never in the URL', async () => {
     const m = await mock(1);
-    k6(['run', '--quiet', K6_FILE], { ...RUN, TARGET_URL: m.url });
+    await k6Run(['run', '--quiet', K6_FILE], { ...RUN, TARGET_URL: m.url });
     expect(m.hits.length).toBeGreaterThan(0);
     for (const h of m.hits) expect(h.url).not.toMatch(/synthetic-(patient|display)-token/);
     const sent = m.hits.map((h) => JSON.stringify(h.headers)).join('');
@@ -191,13 +203,13 @@ describe.skipIf(!existsSync(K6_FILE))('engagement.k6.js — k6 run vs mock', () 
   });
   it6.each([['production'], ['prod'], ['']])('TARGET_ENV=%j is refused before any request', async (env) => {
     const m = await mock(1);
-    const r = k6(['run', '--quiet', K6_FILE], { ...RUN, TARGET_URL: m.url, TARGET_ENV: env });
+    const r = await k6Run(['run', '--quiet', K6_FILE], { ...RUN, TARGET_URL: m.url, TARGET_ENV: env });
     expect(r.status).not.toBe(0);
     expect(m.hits).toHaveLength(0);
   });
   it6('missing TARGET_URL fails fast, no request', async () => {
     const m = await mock(1);
-    expect(k6(['run', '--quiet', K6_FILE], { ...RUN, TARGET_URL: '' }).status).not.toBe(0);
+    expect((await k6Run(['run', '--quiet', K6_FILE], { ...RUN, TARGET_URL: '' })).status).not.toBe(0);
     expect(m.hits).toHaveLength(0);
   });
 });

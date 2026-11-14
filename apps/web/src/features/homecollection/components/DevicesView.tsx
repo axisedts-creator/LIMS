@@ -62,6 +62,14 @@ function WipeDialog({ device, reasons, onClose }: { device: DeviceRow; reasons: 
     if (!reasonCode || (picked?.requires_text && !reasonText?.trim())) { setNeedText(true); return; }
     setNeedText(false);
     const res = await wipeDeviceAction(device.id, device.version, reasonCode, reasonText, keyFor(`${reasonCode}|${reasonText ?? ''}`));
+    if (!res.ok && res.code === 'common.version_conflict') {
+      // H17 409 (already wiped / stale): nothing to retry here, so close and show the plain sentence; the row is not flipped.
+      done.current = true;
+      toast.show({ tone: 'danger', title: DEVICE_CHANGED });
+      router.refresh();
+      onClose();
+      return;
+    }
     if (!res.ok) { setError(failText(res, 'Check the reason and try again.', DEVICE_CHANGED)); return; }
     done.current = true;
     toast.show({ tone: 'success', title: 'Wipe requested. The phone will be wiped the next time it connects.' });

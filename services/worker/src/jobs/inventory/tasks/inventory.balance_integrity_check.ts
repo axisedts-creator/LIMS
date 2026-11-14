@@ -1,6 +1,6 @@
 // inventory.balance_integrity_check (02-TRD §9, §10 invariant 1; 08 A13 P-6 per_tenant): compares stock_balances with the sum of stock_movements per (store, item, lot) (qty AND value; a balance
 // without movements and movements without a balance row count); every difference raises ONE open `balance_drift` alert. NEVER auto-corrects: it reads the ledger and writes alerts only.
-// ponytail: the lims_inventory_balance_drift_rows gauge needs a metrics seam JobContext does not have yet; the count is logged (event balance_integrity_done) until C0 adds it.
+// ponytail: the lims_inventory_balance_drift_rows gauge needs a metrics seam JobContext does not have yet; the count is logged (event balance_integrity_done) until C0-0D adds deps.metrics per .orchestra/cr/C12.T-18.md (CR-C12-018).
 import type { TaskHandler } from '../../../core/manifest.js';
 import { query } from '../../../../../api/src/modules/inventory/repository/_base.js';
 import { jobScope, raiseAlerts } from './_shared.js';

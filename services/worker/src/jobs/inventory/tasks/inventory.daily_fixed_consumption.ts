@@ -48,7 +48,7 @@ export const dailyFixedConsumption: TaskHandler = async (payload, jobCtx) => {
   if (rc === null) return;
   const clock = await tenantClock(jobCtx);
   const yesterday = addDaysYmd(ymdIn(clock.nowMs, clock.tz), -1);
-  const catchup = (await loadInventoryConfig()).fixedCatchupDays;
+  const catchup = Math.min((await loadInventoryConfig()).fixedCatchupDays, 7); // 02-TRD §8.5: catch-up is at most 7 missing days, whatever the env says
   const requires = ((await getSettings(rc))?.['per_day_requires_activity'] ?? true) === true;
   let created = 0;
   let failed = 0;
@@ -56,14 +56,18 @@ export const dailyFixedConsumption: TaskHandler = async (payload, jobCtx) => {
     const bd = addDaysYmd(yesterday, -back);
     const occurredAt = new Date(endOfDay(bd, clock.tz)).toISOString();
     for (const rule of await query(rc, RULES_AT, [occurredAt, requires, bd])) {
+      // explicit savepoint on the job tx: the core ctx.db.tx is (fn) => fn(ctx) with no savepoint, so one poison fact would abort the whole transaction
+      await rc.tx.query('SAVEPOINT inv_fixed_fact');
       try {
-        if (await ctx.db.tx(() => postRuleDay(rc, rule as { id: string; instrument_id: string }, bd, occurredAt, clock))) created += 1;
+        if (await postRuleDay(rc, rule as { id: string; instrument_id: string }, bd, occurredAt, clock)) created += 1;
+        await rc.tx.query('RELEASE SAVEPOINT inv_fixed_fact');
       } catch (e) {
+        await rc.tx.query('ROLLBACK TO SAVEPOINT inv_fixed_fact');
         failed += 1;
         ctx.log?.error?.({ event: 'daily_fixed_consumption_fact_failed', rule_id: rule['id'], business_date: bd, code: (e as { code?: string })?.code }, 'daily_fixed_consumption fact failed');
       }
     }
   }
-  ctx.log?.info?.({ event: 'daily_fixed_consumption_done', created, failed });
-  if (failed > 0) throw Object.assign(new Error(`daily_fixed_consumption: ${failed} fact(s) failed`), { code: 'common.internal' }); // the worker retries; done facts are skipped
+  // no throw on failed facts: the good facts commit; the next run's catch-up retries the missing (rule, D)
+  ctx.log?.[failed > 0 ? 'error' : 'info']?.({ event: 'daily_fixed_consumption_done', created, failed });
 };

@@ -64,3 +64,16 @@ export async function listReminders(tx: Q, a: { tenantId: string; from: string; 
   const { rows } = await tx.query(`SELECT ${COLS} FROM engagement.reminders WHERE ${where} ORDER BY due_at, id LIMIT $${v.length}`, v);
   return rows;
 }
+
+/** R4 (TRD §5): the patient's approved smart summaries of still-valid report versions, with the follow-up reminders already made from them (not cancelled). */
+export async function followUpSources(tx: Q, a: { tenantId: string; patientId: string }): Promise<Row[]> {
+  const { rows } = await tx.query(
+    `SELECT s.id, s.report_id, s.report_version_no, r.released_at, s.summary -> 'followUps' AS follow_ups,
+            COALESCE((SELECT array_agg(m.source_ref_seq) FROM engagement.reminders m
+                      WHERE m.tenant_id = s.tenant_id AND m.kind = 'follow_up' AND m.source_ref_id = s.id AND m.status <> 'cancelled'), '{}') AS reminded
+     FROM engagement.smart_summaries s
+     JOIN engagement.patient_reports r ON r.tenant_id = s.tenant_id AND r.report_id = s.report_id AND r.version_no = s.report_version_no AND r.status = 'valid'
+     WHERE s.tenant_id = $1 AND s.patient_id = $2 ORDER BY r.released_at DESC, s.report_id LIMIT 50`,
+    [a.tenantId, a.patientId]);
+  return rows;
+}

@@ -17,10 +17,8 @@ trap 'rm -rf "$WORK"' EXIT
 apktool d --no-src -f -o "$WORK/unpacked" "$APK" >/dev/null || { echo "scan_apk: apktool failed" >&2; exit 1; }
 
 # 1) raw strings of the packed binary: private keys and cloud keys must not ship (REQ-SEC-107)
-if strings -a "$APK" "$WORK"/unpacked/lib/*/*.so 2>/dev/null | grep -E -m1 -- '-----BEGIN [A-Z ]*PRIVATE KEY-----|AKIA[0-9A-Z]{16}'; then
-  echo "scan_apk: secret-looking string in the release binary" >&2
-  exit 1
-fi
+strings -a "$APK" "$WORK"/unpacked/lib/*/*.so > "$WORK/strings.txt" 2>/dev/null || true
+if grep -E -q -- '-----BEGIN [A-Z ]*PRIVATE KEY-----|AKIA[0-9A-Z]{16}' "$WORK/strings.txt"; then echo "scan_apk: secret-looking string in the release binary" >&2; exit 1; fi
 # 2) gitleaks default rules over the unpacked resources (exit 1 on any leak)
 gitleaks detect --no-git --redact --source "$WORK/unpacked" || { echo "scan_apk: gitleaks reported a leak" >&2; exit 1; }
 echo "scan_apk: clean ($APK)"

@@ -1,7 +1,7 @@
 // E20 listMyOrders, E21 getMyOrder (patient actor) over the read model engagement.patient_orders / _order_specimens / _reports (02-TRD §4.4 read-time filters, §4.6 ETag, §5 E20/E21, §9.1;
 // 01-PRD US-EN-07.5-7; 07-SECURITY P-L1, REQ-SEC-024). Read-only; plain SQL (no JOIN); every statement binds tenant_id besides RLS.
 // Visibility (done here as well as by PAT_VIS RLS): only the caller's ACTIVE links (suspended / revoked hide the patient), visible_at >= link.visible_from, reports released_at >= visible_from,
-// cancelled orders for 30 days after the cancellation was projected (updated_at). A foreign / hidden / unknown order is the same 404 (no existence oracle; a 304 is never sent for it).
+// and (E20 list only, TRD §4.4) cancelled orders for 30 days after the cancellation was projected (updated_at); E21 shows them (deep links keep working). A foreign / hidden / unknown order is the same 404 (no existence oracle; a 304 is never sent for it).
 // [CONV] profile_id = the link id, patient_id never leaves the service. [CONV] ETag = "<status_version>.<max specimen status_seq>.<report count>" (quoted); the body etag is the same value.
 // [CONV] Specimens whose stage is ignored (discarded, domain/stage.ts) are neither listed nor counted; the rejection reason never leaves the service (PRD US-EN-07.4).
 import { LimsError } from '../../../core/errors.js';
@@ -103,7 +103,7 @@ export function createOrdersService() {
       if (p.after) { const { t, id } = p.after; rows = rows.filter((o) => key(o) < t || (key(o) === t && o['order_id'] > id)); }
       const more = rows.length > p.limit; const page = rows.slice(0, p.limit); const ids = page.map((o) => o['order_id'] as string);
       const specimens = await specimenRows(tx, tenantId, ids);
-      const reports = ids.length === 0 ? [] : (await tx.query('SELECT order_id, released_at FROM engagement.patient_reports WHERE tenant_id = $1 AND order_id = ANY($2::uuid[])', [tenantId, ids])).rows;
+      const reports: Row[] = ids.length === 0 ? [] : (await tx.query('SELECT order_id, released_at FROM engagement.patient_reports WHERE tenant_id = $1 AND order_id = ANY($2::uuid[])', [tenantId, ids])).rows;
       const centres = await centreNames(tx, tenantId, [...new Set(page.map((o) => o['centre_id'] as string))]);
       const data = page.map((o) => {
         const link = byPatient.get(o['patient_id'])!;
@@ -117,12 +117,12 @@ export function createOrdersService() {
 
     /** E21: 200 + ETag, or 304 when If-None-Match equals the current ETag (a hidden order is 404 before any ETag comparison). */
     async get(ctx: OrdersCtx, req: { orderId: unknown; headers: unknown }): Promise<Out> {
-      const { tx, tenantId, nowMs, membershipId } = scope(ctx);
+      const { tx, tenantId, membershipId } = scope(ctx);
       if (!isUuid(req.orderId)) return invalid('/order_id');
       const links = await myLinks(tx, tenantId, membershipId);
       const o = (await tx.query(`SELECT ${centreCols} FROM engagement.patient_orders WHERE tenant_id = $1 AND order_id = $2`, [tenantId, req.orderId])).rows[0];
       const link = o ? links.find((l) => l.patientId === o['patient_id']) : undefined;
-      if (!o || !link || (link.visibleFrom && ms(o['visible_at']) < ms(link.visibleFrom)) || hiddenCancelled(o, nowMs)) return notFound();
+      if (!o || !link || (link.visibleFrom && ms(o['visible_at']) < ms(link.visibleFrom))) return notFound(); // no 30-day cancelled hide here: TRD §4.4 scopes it to E20 (review T-P2 #1)
       const specimens = await specimenRows(tx, tenantId, [o['order_id']]);
       const vals: unknown[] = [tenantId, o['order_id']]; let from = '';
       if (link.visibleFrom) { vals.push(link.visibleFrom); from = ' AND released_at >= $3'; }

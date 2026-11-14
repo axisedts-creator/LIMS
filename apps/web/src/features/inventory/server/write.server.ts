@@ -3,7 +3,7 @@ import 'server-only';
 // Path ids and keys are checked here because this is the trust boundary between the browser and the API.
 import { ApiError, serverFetch } from '@/core/api/server-fetch';
 import { problem } from '@/core/session/types';
-import { KEY_RE, UUID_RE, type AdjustmentCreate, type Barcode, type BarcodeCreate, type Binding, type ConsumptionEventCreate, type Container, type ContainerDiscard, type ContainerOpen, type Count, type CountCreate, type CountLine, type CountLinePut, type ExpiryWriteoffCreate, type Fact, type IssueCreate, type ItemSummary, type StockDocument, type Transfer, type TransferCreate, type TransferReceive, type UncountedPolicy, type WastageCreate, type Item, type ItemCreate, type ItemPatch, type Pack, type PackCreate, type Store, type StoreCreate, type StoreItemSetting, type StoreItemSettingPut, type StorePatch, type Supplier, type SupplierCreate, type SupplierItem, type SupplierItemPut, type SupplierPatch } from './types';
+import { KEY_RE, UUID_RE, type Grn, type GrnDraft, type Po, type PoCreate, type ReasonAction, type SentChannel, type AdjustmentCreate, type Barcode, type BarcodeCreate, type Binding, type ConsumptionEventCreate, type Container, type ContainerDiscard, type ContainerOpen, type Count, type CountCreate, type CountLine, type CountLinePut, type ExpiryWriteoffCreate, type Fact, type IssueCreate, type ItemSummary, type StockDocument, type Transfer, type TransferCreate, type TransferReceive, type UncountedPolicy, type WastageCreate, type Item, type ItemCreate, type ItemPatch, type Pack, type PackCreate, type Store, type StoreCreate, type StoreItemSetting, type StoreItemSettingPut, type StorePatch, type Supplier, type SupplierCreate, type SupplierItem, type SupplierItemPut, type SupplierPatch } from './types';
 
 const bad = () => new ApiError(400, problem('common.validation_failed', 'Validation failed', 400));
 const uuid = (v: string) => {
@@ -74,3 +74,15 @@ export const putBinding =(instrumentId: string, version: number | undefined, sto
   send<Binding>('PUT', `${base}/instrument-bindings/${uuid(instrumentId)}`, { store_id: uuid(storeId) }, version === undefined ? {} : { version });
 export const deactivateBinding = (instrumentId: string, version: number) =>
   send<Binding>('POST', `${base}/instrument-bindings/${uuid(instrumentId)}/deactivate`, {}, { version });
+
+// ---- T-22 purchasing + receiving. Create needs an Idempotency-Key; replace (PUT) sends If-Match; lifecycle transitions send both.
+export const createPo = (b: PoCreate, key: string) => send<Po>('POST', `${base}/purchase-orders`, b, { key });
+export const replacePo = (id: string, version: number, b: PoCreate) => send<Po>('PUT', `${base}/purchase-orders/${uuid(id)}`, b, { version });
+export const approvePo = (id: string, version: number, key: string) => send<Po>('POST', `${base}/purchase-orders/${uuid(id)}/approve`, {}, { key, version });
+export const markPoSent = (id: string, version: number, key: string, b: { sent_channel: SentChannel; sent_reference?: string }) => send<Po>('POST', `${base}/purchase-orders/${uuid(id)}/mark-sent`, b, { key, version });
+export const cancelPo = (id: string, version: number, key: string, b: ReasonAction) => send<Po>('POST', `${base}/purchase-orders/${uuid(id)}/cancel`, b, { key, version });
+export const closePo = (id: string, version: number, key: string, b: ReasonAction) => send<Po>('POST', `${base}/purchase-orders/${uuid(id)}/close`, b, { key, version });
+
+export const createGrn = (b: GrnDraft, key: string) => send<Grn>('POST', `${base}/goods-receipts`, b, { key });
+export const replaceGrn = (id: string, version: number, b: GrnDraft) => send<Grn>('PUT', `${base}/goods-receipts/${uuid(id)}`, b, { version });
+export const postGrn = (id: string, version: number, key: string) => send<Grn>('POST', `${base}/goods-receipts/${uuid(id)}/post`, {}, { key, version });

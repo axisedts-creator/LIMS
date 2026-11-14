@@ -151,10 +151,13 @@ describe('Activate dialog (#43; AC-12.1, AC-12.2, AC-11.2 server side)', () => {
     const tf = within(d).getByRole('textbox') as HTMLInputElement;
     expect(tf.maxLength).toBe(8);
     expect(confirm(d).disabled).toBe(true);
-    for (const wrong of ['activate', 'ACTIVAT', 'ACTIVATE ']) {
+    for (const wrong of ['activate', 'ACTIVAT']) {
       await u.clear(tf); await u.type(tf, wrong);
       expect(confirm(d).disabled, wrong).toBe(true);
     }
+    // maxLength 8 truncates a 9th char (04-UI-UX.md:151); ruling C9.T-23: not a wrong-text case.
+    await u.clear(tf); await u.type(tf, 'ACTIVATE ');
+    expect(tf.value).toBe('ACTIVATE');
     await u.clear(tf); await u.type(tf, 'ACTIVATE');
     expect(confirm(d).disabled).toBe(false);
   });

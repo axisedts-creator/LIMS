@@ -1,6 +1,6 @@
-CHANGES
+APPROVE
 
-Verified: `pnpm --dir packages/ui exec vitest run scripts/__tests__/no-raw-style-literals.test.ts` = 42/42 pass. Paths owned, names verbatim, no secrets/PHI, planted-literal case present. One real defect:
-
-1. packages/ui/scripts/__tests__/no-raw-style-literals.test.ts:208 and packages/ui/scripts/raw-style-pending.json:3 — the directory regex `^[\w.@-]+(?:\/[\w.@-]+)*$` rejects Next.js route-group / dynamic segment names (`(staff)`, `[test_id]`, `[...slug]`), so the writer had to exempt all of `apps/web/src/app`. The only hits there are `apps/web/src/app/(staff)/catalog/tests/page.tsx` and `apps/web/src/app/(staff)/catalog/tests/[test_id]/page.tsx`, but the entry also exempts every route of chunks still building (`(staff)/anatomic`, `micro`, `inventory`, `instruments`, `engagement`, `homecollection`, ...) and the root layout. That defeats 10-DESIGN-SYSTEM s7 item 3 (the lint must catch raw literals in chunks still building) and s8, and no single RS-Cx task can ever remove the line.
-   Fix: (a) test line 208: change the segment class to allow route-group and dynamic-segment characters, e.g. `/^[\w.@()\[\]-]+(?:\/[\w.@()\[\]-]+)*$/` (keep the `..` and ROOTS checks); (b) raw-style-pending.json: replace `"apps/web/src/app"` with `"apps/web/src/app/(staff)/catalog"` (keep sorted, one per line). Re-run the verify command; real-tree test must still pass.
+Round 2. Re-ran `pnpm --dir packages/ui exec vitest run scripts/__tests__/no-raw-style-literals.test.ts`: 42/42 pass (real tree clean outside pending list).
+- Round-1 defect fixed: test:211 regex now allows `(group)`/`[param]` segments; `..`, ROOTS and is-directory checks kept. Pending entry narrowed to `apps/web/src/app/(staff)/catalog`, so other web routes are now linted.
+- Paths owned (packages/ui/scripts + own notes), no secrets/PHI, nothing invented, planted-literal scratch-tree case fails as required, generated token files excluded. done_when and 10-DESIGN-SYSTEM s7/s8 covered.
+- Note (not a defect): `apps/portal/src/app` stays whole because its only hit is `portal.css` at the app root and entries must be directories. This also exempts `phlebo/`, `r/`, `v/`; the lead should drop the line once the portal restyle fixes portal.css.

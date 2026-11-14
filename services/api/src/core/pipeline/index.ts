@@ -10,6 +10,7 @@ import type { IdemHandle, IdemOperation, Idempotency } from '../idempotency.js';
 import type { Handler, HandlerContext, HandlerRequest, HandlerResult } from '../module.js';
 import type { createAuthzGuard, RequestAuthz } from '../ports/authz-guard.js';
 import type { PortLog, PortMetrics, PortRegistry } from '../ports/registry.js';
+import type { CoreMetrics } from '../observability/metrics.js';
 import type { RateLimiter, RateLimitTier } from '../ratelimit/index.js';
 
 export interface PipelineOp extends IdemOperation {
@@ -40,6 +41,8 @@ export interface PipelineDeps {
   readonly shared: SharedCore;
   readonly log: PortLog;
   readonly metrics: PortMetrics;
+  /** LD-190 / CR-C9-T26-002: the CoreMetrics { inc, set, observe } boot.ts passes; exposed as ctx.metrics. Optional so existing callers/tests keep working. */
+  readonly coreMetrics?: Pick<CoreMetrics, 'inc' | 'set' | 'observe'> | undefined;
 }
 
 export interface PipelineCall {
@@ -130,6 +133,7 @@ export function createPipeline(d: PipelineDeps) {
       files: d.shared.files,
       storage: d.shared.storage,
       log: c.log,
+      metrics: d.coreMetrics,                                            // LD-190: undefined only when a caller (test) wires none
       services: d.services?.[c.op.module],
       operationId: c.op.operationId,
       clientIp: c.clientIp,

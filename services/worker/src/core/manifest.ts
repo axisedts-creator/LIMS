@@ -2,6 +2,7 @@
 // ponytail: no src/jobs/*/index.ts autoloader yet (no module ships worker jobs in C0); add it with bootstrap/main.
 import { EVENT_CONSUMERS } from '../../../../contracts/ports/generated/events.js';
 import { MODULE_NAMES, type ModuleName } from '../../../api/src/core/module.js';
+import type { WorkerDeps } from './tasklist.js';
 
 export type TenantScope = 'per_tenant' | 'platform';
 export interface CronEntry { readonly identifier: string; readonly schedule: string; readonly tenantScope: TenantScope; readonly maxAttempts?: number }
@@ -25,6 +26,8 @@ export interface JobContext {
   readonly db: { tx<T>(fn: (ctx: JobContext) => Promise<T>): Promise<T> };
   readonly events: unknown; readonly core: unknown; readonly log: any;
   readonly storage: unknown; readonly files: unknown; readonly audit: unknown;
+  /** LD-190 / CR-C9-T26-002: same shape as WorkerDeps['metrics'] (inc/set/observe). */
+  readonly metrics: WorkerDeps['metrics'];
   readonly attempt: number; readonly maxAttempts: number; readonly jobId: string;
   now(): string;
   isNewer(lastAppliedSeq: number | undefined, seq: number): boolean;

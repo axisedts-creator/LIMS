@@ -127,7 +127,7 @@ describe('change dialog (R4, 08 A17 D-62)', () => {
     const d = await start('pending');
     expect(d.textContent).toMatch(/revise report/i);
     expect(hit('GET', /\/v1\/lab\/coded-sets\/amendment_reasons$/).length).toBeGreaterThan(0);
-    await userEvent.click(within(d).getByRole('button', { name: /^reason/i }));
+    await userEvent.click(within(d).getByRole('button', { name: /reason/i }));
     const opts = (await screen.findAllByRole('option')).map((o) => o.textContent);
     expect(opts).toEqual(['Transcription error', 'New clinical information']);
   });
@@ -147,7 +147,7 @@ describe('change dialog (R4, 08 A17 D-62)', () => {
 
   it('confirm -> POST /cases/{id}/changes {reason_code, reason_text?} with If-Match = the CASE version and an Idempotency-Key (AC-10.1)', async () => {
     const d = await start();
-    await choose(d, /^reason/i, /^transcription error$/i);
+    await choose(d, /reason/i, /^transcription error$/i);
     await userEvent.type(within(d).getByLabelText(/^details/i), 'Synthetic detail');
     await userEvent.click(within(d).getAllByRole('button').find((b) => /^(revise|amend)$/i.test(b.textContent ?? ''))!);
     await waitFor(() => expect(posts(/\/changes$/)).toHaveLength(1));
@@ -161,7 +161,7 @@ describe('change dialog (R4, 08 A17 D-62)', () => {
 
   it('no Details typed -> reason_text is omitted from the body', async () => {
     const d = await start('approved');
-    await choose(d, /^reason/i, /^new clinical information$/i);
+    await choose(d, /reason/i, /^new clinical information$/i);
     await userEvent.click(within(d).getAllByRole('button').find((b) => /^(revise|amend)$/i.test(b.textContent ?? ''))!);
     await waitFor(() => expect(posts(/\/changes$/)).toHaveLength(1));
     expect(posts(/\/changes$/)[0]!.json).toEqual({ reason_code: 'new_information' });
@@ -170,7 +170,7 @@ describe('change dialog (R4, 08 A17 D-62)', () => {
   it('AC-10.7: 409 anatomic.case_invalid_transition (another open change draft) -> "That step isn\'t possible for a case in status signed_out."', async () => {
     api.use(http.post(`${ORIGIN}/v1/anatomic/cases/:id/changes`, () => problem('anatomic.case_invalid_transition', 409, { detail: 'internal-trace-xyz' })));
     const d = await start();
-    await choose(d, /^reason/i, /^transcription error$/i);
+    await choose(d, /reason/i, /^transcription error$/i);
     await userEvent.click(within(d).getAllByRole('button').find((b) => /^(revise|amend)$/i.test(b.textContent ?? ''))!);
     expect(await screen.findByText("That step isn't possible for a case in status signed_out.")).toBeTruthy();
     expect(text()).not.toContain('internal-trace-xyz');
@@ -179,7 +179,7 @@ describe('change dialog (R4, 08 A17 D-62)', () => {
   it('403 auth.mfa_required -> the two-factor dialog (privileged action, aal2)', async () => {
     api.use(http.post(`${ORIGIN}/v1/anatomic/cases/:id/changes`, () => problem('auth.mfa_required', 403)));
     const d = await start();
-    await choose(d, /^reason/i, /^transcription error$/i);
+    await choose(d, /reason/i, /^transcription error$/i);
     await userEvent.click(within(d).getAllByRole('button').find((b) => /^(revise|amend)$/i.test(b.textContent ?? ''))!);
     expect(await screen.findByText(/two-factor verification/i)).toBeTruthy();
   });
@@ -225,7 +225,7 @@ describe('open change draft (AC-10.7/10.8 UI)', () => {
     await userEvent.click(btn(/^sign out$/i));
     const d = await screen.findByRole('dialog');
     expect(d.textContent).toContain('Version 2 will be created');
-    expect(within(d).queryByRole('button', { name: /^reason/i })).toBeNull();
+    expect(within(d).queryByRole('button', { name: /reason/i })).toBeNull();
     await userEvent.click(within(d).getByRole('checkbox', { name: /i have reviewed/i }));
     await userEvent.click(within(d).getByRole('button', { name: /^sign out$/i }));
     await waitFor(() => expect(posts(/\/sign-out$/)).toHaveLength(1));
@@ -253,7 +253,7 @@ describe('addenda (AC-10.4, 10.5, 10.6; R8-R10)', () => {
 
   it('[Add addendum] opens a Drawer: Kind (IHC / Special stain / Molecular / Other), Text (required, <=8000), completed stain orders as Checkboxes, add-on link Select; [Save] and [Sign addendum]', async () => {
     const d = await openDrawer();
-    await userEvent.click(within(d).getByRole('button', { name: /^kind/i }));
+    await userEvent.click(within(d).getByRole('button', { name: /kind/i }));
     expect((await screen.findAllByRole('option')).map((o) => o.textContent)).toEqual(['IHC', 'Special stain', 'Molecular', 'Other']);
     await userEvent.keyboard('{Escape}');
     expect(within(d).getByLabelText(/^text/i).getAttribute('maxlength')).toBe('8000');
@@ -267,7 +267,7 @@ describe('addenda (AC-10.4, 10.5, 10.6; R8-R10)', () => {
 
   it('AC-10.4: [Save] -> POST /cases/{id}/addenda {kind:"ihc", text, stain_order_ids} with an Idempotency-Key, no add-on link; refreshes', async () => {
     const d = await openDrawer();
-    await choose(d, /^kind/i, /^ihc$/i);
+    await choose(d, /kind/i, /^ihc$/i);
     await userEvent.type(within(d).getByLabelText(/^text/i), 'Synthetic addendum text');
     await userEvent.click(within(d).getByRole('checkbox', { name: /periodic acid-schiff/i }));
     await userEvent.click(within(d).getByRole('button', { name: /^save$/i }));
@@ -286,7 +286,7 @@ describe('addenda (AC-10.4, 10.5, 10.6; R8-R10)', () => {
     expect(opts.some((o) => /synthetic add-on ihc panel/i.test(o))).toBe(true);
     expect(opts.some((o) => /synthetic done add-on/i.test(o))).toBe(false);
     await userEvent.click(screen.getByRole('option', { name: /synthetic add-on ihc panel/i }));
-    await choose(d, /^kind/i, /^ihc$/i);
+    await choose(d, /kind/i, /^ihc$/i);
     await userEvent.type(within(d).getByLabelText(/^text/i), 'Synthetic addon text');
     await userEvent.click(within(d).getByRole('button', { name: /^save$/i }));
     await waitFor(() => expect(posts(/\/addenda$/)).toHaveLength(1));
@@ -295,7 +295,7 @@ describe('addenda (AC-10.4, 10.5, 10.6; R8-R10)', () => {
 
   it('empty text -> no request, an error in words (Text is required)', async () => {
     const d = await openDrawer();
-    await choose(d, /^kind/i, /^other$/i);
+    await choose(d, /kind/i, /^other$/i);
     await userEvent.click(within(d).getByRole('button', { name: /^save$/i }));
     expect(posts(/\/addenda$/)).toHaveLength(0);
     expect(d.textContent).toMatch(/required/i);
@@ -304,7 +304,7 @@ describe('addenda (AC-10.4, 10.5, 10.6; R8-R10)', () => {
   it('AC-10.6: 409 anatomic.case_invalid_transition on create -> §8 message with the status', async () => {
     api.use(http.post(`${ORIGIN}/v1/anatomic/cases/:id/addenda`, () => problem('anatomic.case_invalid_transition', 409)));
     const d = await openDrawer();
-    await choose(d, /^kind/i, /^other$/i);
+    await choose(d, /kind/i, /^other$/i);
     await userEvent.type(within(d).getByLabelText(/^text/i), 'Synthetic');
     await userEvent.click(within(d).getByRole('button', { name: /^save$/i }));
     expect(await screen.findByText("That step isn't possible for a case in status signed_out.")).toBeTruthy();

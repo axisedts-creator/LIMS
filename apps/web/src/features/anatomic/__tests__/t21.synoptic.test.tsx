@@ -88,7 +88,7 @@ describe('field components by type (§4.2.7)', () => {
     expect(within(c).getByLabelText(/^weight/i)).toBeTruthy();
     expect(c.textContent).toMatch(/\bg\b/); // unit_text as suffix
     expect(within(c).getByRole('switch', { name: /multifocal/i })).toBeTruthy();
-    expect(within(c).getByRole('button', { name: /^grade/i })).toBeTruthy();
+    expect(within(c).getByRole('button', { name: /grade/i })).toBeTruthy();
     const group = within(c).getByRole('group', { name: /margins involved/i });
     expect(within(group).getByRole('checkbox', { name: /superficial/i })).toBeTruthy();
     expect(within(group).getByRole('checkbox', { name: /deep/i })).toBeTruthy();
@@ -157,7 +157,7 @@ describe('save and reload', () => {
     await userEvent.type(within(c).getByLabelText(/^weight/i), '1.25');
     await userEvent.click(within(c).getByRole('switch', { name: /multifocal/i }));
     await userEvent.type(await within(c).findByLabelText(/necrosis extent/i), 'Synthetic extent');
-    await choose(c, /^grade/i, /^grade 2$/i);
+    await choose(c, /grade/i, /^grade 2$/i);
     await userEvent.click(within(within(c).getByRole('group', { name: /margins involved/i })).getByRole('checkbox', { name: /deep/i }));
     await userEvent.click(btn(/save draft/i));
     await waitFor(() => expect(puts()).toHaveLength(1));
@@ -176,7 +176,7 @@ describe('save and reload', () => {
     await open();
     const c = instance();
     expect((within(c).getByLabelText(/tumour site/i) as HTMLInputElement).value).toBe('Synthetic saved site');
-    expect(within(c).getByRole('button', { name: /^grade.*grade 3/i })).toBeTruthy();
+    expect(within(c).getByRole('button', { name: /grade 3/i })).toBeTruthy();
     expect(hit('GET', new RegExp(`/synoptic-templates/${ID(1001)}$`))).toHaveLength(1);
   });
 

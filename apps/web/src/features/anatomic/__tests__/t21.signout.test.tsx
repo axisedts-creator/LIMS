@@ -8,7 +8,7 @@ import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-li
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
 import { ToastProvider } from '@lims/ui/components/Toast';
-import { IDEM_RE, ORIGIN, PERM_SIGN, PERM_WORK, api, draft, hit, problem, reportCase, resetHits, router, synInstance, t21Defaults } from './t21.harness';
+import { IDEM_RE, ORIGIN, PERM_SIGN, PERM_WORK, api, draft, hit, problem, reportCase, resetHits, router, signResult, synInstance, t21Defaults } from './t21.harness';
 
 vi.mock('next/navigation', async () => (await import('./t21.harness')).navigationMock);
 vi.mock('server-only', () => ({}));
@@ -32,7 +32,8 @@ const attest = (d: HTMLElement) => within(d).getByRole('checkbox', { name: /i ha
 const signs = () => hit('POST', /\/cases\/[^/]+\/sign-out$/);
 const puts = () => hit('PUT', /\/cases\/[^/]+\/report-draft$/);
 const failWith = (code: string, status: number, extra: Record<string, unknown> = {}) => api.use(http.post(`${ORIGIN}/v1/anatomic/cases/:id/sign-out`, () => problem(code, status, extra)));
-const confirmSign = async () => { const d = await dialog(); await userEvent.click(attest(d)); await userEvent.click(confirmIn(d)); return d; };
+const dialog_open = async () => { await userEvent.click(signBtn()); return dialog(); };
+const confirmSign = async () => { const d = await dialog_open(); await userEvent.click(attest(d)); await userEvent.click(confirmIn(d)); return d; };
 
 describe('visibility (privileged action)', () => {
   it('hidden without anatomic.case.signout even when the case is ready; hidden when signOutAnatomicCase is not allowed (e.g. status signed_out)', async () => {
@@ -170,7 +171,6 @@ describe('submit (R3)', () => {
     expect(signs()).toHaveLength(1);
   });
 });
-const dialog_open = async () => { await userEvent.click(signBtn()); return dialog(); };
 
 describe('step-up (AC-09.2 UI, 04-UI-UX §2, 03-APP-FLOW §4.2 step 4)', () => {
   it('403 auth.mfa_required -> two-factor dialog with [Verify now] and [Cancel]; nothing changes: no success toast, no refresh, the draft text is still in the editor', async () => {

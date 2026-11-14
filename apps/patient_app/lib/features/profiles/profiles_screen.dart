@@ -1,7 +1,7 @@
 // A6 Profiles (04-UI-UX A6; 03-APP-FLOW §10.1 A6; US-EN-03.2, US-EN-04.1, US-EN-05.1, US-EN-06.1/.4/.5). E13 list, E18 change relationship, E19 remove.
 // Paused links are only counted (banner), never listed. PHI screen: LimsSecureScreen (REQ-SEC-109). LD-140: lims_ui widgets and tokens only; one primary
 // button (the first add action). Names stay in widget state: nothing here logs or stores them.
-// ponytail: E18/E19 send no If-Match (the Profile wire has no version yet), so a stale edit is the server's call.
+// E18/E19 send the row's Profile.version as If-Match (LD-164); a stale edit gets the existing version_conflict copy.
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lims_shared/lims_shared.dart';
@@ -98,7 +98,7 @@ class _ProfilesScreenState extends ConsumerState<ProfilesScreen> {
       actions: [TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Cancel'))],
     );
     if (picked == null || picked == p.relationship) return;
-    await _act(() => ref.read(profilesApiProvider).updateMyProfile(profileId: p.id, relationship: picked));
+    await _act(() => ref.read(profilesApiProvider).updateMyProfile(profileId: p.id, relationship: picked, version: p.version));
   }
 
   Future<void> _remove(ProfileItem p) async {
@@ -109,7 +109,7 @@ class _ProfilesScreenState extends ConsumerState<ProfilesScreen> {
       confirmLabel: 'Remove',
     );
     if (ok == null) return;
-    await _act(() => ref.read(profilesApiProvider).removeMyProfile(profileId: p.id));
+    await _act(() => ref.read(profilesApiProvider).removeMyProfile(profileId: p.id, version: p.version));
   }
 
   /// One change at a time; afterwards the list is read again. A refusal shows words and leaves the list as it was,

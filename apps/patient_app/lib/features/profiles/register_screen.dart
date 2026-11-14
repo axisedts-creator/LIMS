@@ -304,6 +304,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
         LimsSegmentedControl<String>(
           options: const [(value: 'self', label: 'Myself'), (value: 'child', label: 'My child')],
           value: _relationship,
+          disabled: _hasSelf ? const {'self'} : const {}, // LD-164: render "Myself" disabled; the tap guard below stays as a second line
           onChanged: (v) {
             if (v == 'self' && _hasSelf) return; // one "me" profile per account
             setState(() => _relationship = v);

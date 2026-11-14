@@ -13,12 +13,13 @@ LimsException _bad() => LimsException(LimsErrorCodes.commonInternal);
 
 /// One Profile of E13 (display name and relationship only: the profile id is the handle, never shown; patient_code is not read).
 class ProfileItem {
-  const ProfileItem({required this.id, required this.name, required this.relationship, required this.method});
+  const ProfileItem({required this.id, required this.name, required this.relationship, required this.method, required this.version});
 
   final String id;
   final String name;
   final String relationship; // self | child | parent | spouse | sibling | other
   final String method; // link_code | report_link | self_registered
+  final int version; // LD-164: the E18/E19 If-Match value
 }
 
 class ProfileList {
@@ -32,8 +33,8 @@ class ProfileList {
 }
 
 ProfileItem parseProfile(Object? json) {
-  if (json case {'profile_id': String id, 'display_name': String name, 'relationship': String rel, 'method': String method}) {
-    return ProfileItem(id: id, name: name, relationship: rel, method: method);
+  if (json case {'profile_id': String id, 'display_name': String name, 'relationship': String rel, 'method': String method, 'version': int version} when version >= 1) {
+    return ProfileItem(id: id, name: name, relationship: rel, method: method, version: version);
   }
   throw _bad();
 }

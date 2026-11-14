@@ -1,7 +1,7 @@
 // E13-E19 (TRD §5; US-EN-03 to US-EN-06). Each call returns the decoded wire JSON exactly as contracts/openapi/engagement.yaml defines it
 // and throws LimsException. This file owns the paths. Nothing here logs or stores the lab code, the report link or the registration details.
 // E14/E15/E16 need an Idempotency-Key (x-idempotency: required), fresh per call, so a retry after `failed` is a new request.
-// ponytail: E18/E19 spec an `If-Match` version, but the Profile wire has no version/ETag; no header is sent until the spec adds one (T-L6-impl.md open point).
+// E18/E19 send `If-Match: "<version>"` with Profile.version from E13 (LD-164, CR-C16-T-L6 item 1 option A).
 import 'package:lims_shared/lims_shared.dart';
 
 import '../../core/api/api_client_factory.dart';
@@ -23,10 +23,10 @@ abstract interface class ProfilesApi {
   Future<Object?> getSelfRegistration(String id);
 
   /// E18: change the relationship.
-  Future<Object?> updateMyProfile({required String profileId, required String relationship});
+  Future<Object?> updateMyProfile({required String profileId, required String relationship, required int version});
 
   /// E19: 204.
-  Future<void> removeMyProfile({required String profileId});
+  Future<void> removeMyProfile({required String profileId, required int version});
 }
 
 /// [ProfilesApi] over the app transport (version headers, request id and 426 handling are added there).
@@ -38,6 +38,8 @@ class TransportProfilesApi implements ProfilesApi {
   final PatientTransport _t;
 
   Map<String, String> _idempotent() => {'Idempotency-Key': uuidv7()};
+
+  Map<String, String> _ifMatch(int version) => {'If-Match': '"$version"'}; // LD-164
 
   String _one(String id) => '$_base/${Uri.encodeComponent(id)}';
 
@@ -58,11 +60,11 @@ class TransportProfilesApi implements ProfilesApi {
   Future<Object?> getSelfRegistration(String id) => _t('GET', '$_base/self-registrations/${Uri.encodeComponent(id)}');
 
   @override
-  Future<Object?> updateMyProfile({required String profileId, required String relationship}) =>
-      _t('PATCH', _one(profileId), body: {'relationship': relationship});
+  Future<Object?> updateMyProfile({required String profileId, required String relationship, required int version}) =>
+      _t('PATCH', _one(profileId), headers: _ifMatch(version), body: {'relationship': relationship});
 
   @override
-  Future<void> removeMyProfile({required String profileId}) async {
-    await _t('POST', '${_one(profileId)}/remove');
+  Future<void> removeMyProfile({required String profileId, required int version}) async {
+    await _t('POST', '${_one(profileId)}/remove', headers: _ifMatch(version));
   }
 }

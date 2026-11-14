@@ -16,6 +16,7 @@ import { getManifestPrintView } from './handlers/getManifestPrintView.js';
 import { getPartner } from './handlers/getPartner.js';
 import { getInboundManifest } from './handlers/getInboundManifest.js';
 import { getPartnerContext } from './handlers/getPartnerContext.js';
+import { getPartnerDashboard } from './handlers/getPartnerDashboard.js';
 import { getPartnerStatement } from './handlers/getPartnerStatement.js';
 import { listPartnerPriceList } from './handlers/listPartnerPriceList.js';
 import { listPartnerStatements } from './handlers/listPartnerStatements.js';
@@ -53,6 +54,7 @@ const stub = (operationId: string): Handler => async () => {
 
 const implemented: Readonly<Record<string, Handler>> = {
   getPartnerContext, // T03
+  getPartnerDashboard, // T18 A2
   ...partnerUserHandlers, // T06 U1-U6, SA8-SA10
   listPartners, createPartner, getPartner, updatePartner, suspendPartner, reactivatePartner, resyncPartnerProjections, // T07 SA1–SA7
   listPartnerPriceList, listPartnerStatements, getPartnerStatement, // T17 P1, S1, S2

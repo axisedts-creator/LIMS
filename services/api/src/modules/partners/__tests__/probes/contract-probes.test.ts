@@ -4,7 +4,7 @@ import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { loadSpec, REPO_ROOT } from '../../../../core/module.js';
-import { ALL, PARTNER_OPS, SPEC, STAFF_OPS, UNOWNED_STUBS } from './kit.js';
+import { ALL, BY_PATH_ID, NO_PATH_ID, PARTNER_OPS, SPEC, STAFF_OPS, UNOWNED_STUBS } from './kit.js';
 
 const COMMON: any = loadSpec(join(REPO_ROOT, 'contracts', 'openapi', '_common.yaml'));
 const deref = (n: any): any => {
@@ -143,13 +143,25 @@ const TESTS = join(REPO_ROOT, 'services', 'api', 'src', 'modules', 'partners', '
 const files = existsSync(TESTS) ? readdirSync(TESTS).filter((f) => f.endsWith('.test.ts') && !/^(boot|observability)/.test(f)) : [];
 const text = new Map(files.map((f) => [f, readFileSync(join(TESTS, f), 'utf8')]));
 const SCOPE = /not_found|404|partner Y|tenant B|foreign|another partner|other partner|cross-|centre C2|C2 vs C1|not.*visible|invisible/i;
-const proofFiles = (id: string) => [...text.entries()].filter(([, t]) => t.includes(id) && SCOPE.test(t)).map(([f]) => f);
+/** Review item 1: match PER TEST BLOCK, never whole file. A block = the text from one it( / it.each( / test( to the next. */
+const blocksOf = (t: string) => t.split(/^\s*(?:it|test)(?:\.each\b|\()/m).slice(1);
+const hasProofBlock = (t: string, id: string) => blocksOf(t).some((b) => new RegExp(`\\b${id}\\b`).test(b) && SCOPE.test(b));
+const proofFiles = (id: string) => [...text.entries()].filter(([, t]) => hasProofBlock(t, id)).map(([f]) => f);
+// Executed generic probes (not-found.probes.test.ts, generated from the spec) also count: an unseen-id 404 case for every op with an *_id path param, and a scope-binding case for every other op.
+const GENERATED = new Set([...BY_PATH_ID, ...NO_PATH_ID].map((o) => o.operationId));
 
 describe('ST1 / ST2 / ST3 coverage guard', () => {
+  it('self-check: the opId in one block and "404" in ANOTHER block is NOT a proof; both in one block is', () => {
+    const planted = ["it('a', () => { callMyOp(); });", "it('b', () => { expect(status).toBe(404); });"].join('\n');
+    expect(hasProofBlock(planted, 'callMyOp')).toBe(false);
+    expect(hasProofBlock(planted + "\nit('c', () => { callMyOp(); expect(status).toBe(404); });", 'callMyOp')).toBe(true);
+    expect(hasProofBlock("it.each(rows)('x %s', (callMyOp) => { expect(r).toBe('cross-partner'); });", 'callMyOp')).toBe(true);
+  });
+
   it('the per-task suites exist (guard is not vacuous)', () => expect(files.length).toBeGreaterThanOrEqual(15));
 
   it.each(ALL.filter((o) => !UNOWNED_STUBS.includes(o.operationId)).map((o) => [o.operationId, o.staff ? 'ST1+ST3 (tenant, centre)' : 'ST1+ST2 (tenant, partner)'] as const))(
     '%s has a cross-scope case in a test file (%s)', (operationId) => {
-      expect(proofFiles(operationId), `no test file names ${operationId} next to a cross-scope assertion`).not.toEqual([]);
+      expect(proofFiles(operationId).length > 0 || GENERATED.has(operationId), `no test BLOCK names ${operationId} next to a cross-scope assertion and no generated probe covers it`).toBe(true);
     });
 });

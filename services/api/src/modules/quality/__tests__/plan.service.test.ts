@@ -29,34 +29,34 @@ describe('createQcPlan: rule set by N (AC-03.1–03.3; 04 L23)', () => {
   ];
   it.each(cases)('%s -> 201, inactive, version 1, rule_set_preview %j', async (_n, p, _given, meanRule, rejection_) => {
     const { svc, ctx } = setup();
-    const r = await svc.createQcPlan(ctx, { body: body({ analyte_id: ANA(1) }, p) });
+    const r = await svc.createQcPlan(ctx, { body: body({ instrument_id: INS(2), analyte_id: ANA(1) }, p) });
     expect(r.status).toBe(201); expect(r.version).toBe(1);
-    expect(r.body).toMatchObject({ status: 'inactive', current_version_no: 1, version: 1, instrument_id: INS(1), test_id: TST(1), analyte_id: ANA(1) });
+    expect(r.body).toMatchObject({ status: 'inactive', current_version_no: 1, version: 1, instrument_id: INS(2), test_id: TST(1), analyte_id: ANA(1) });
     expect(r.body.rule_set_preview).toEqual({ warning: ['1-2s'], rejection: rejection_ });
     expect(r.body.params.mean_rule).toBe(meanRule); expect(r.body.params.controls_per_run).toBe(p['controls_per_run']);
   });
   it('N=4 with three levels {L1:2, L2:1, L3:1} is a valid composition (counts sum to N, levels of one material)', async () => {
     const { svc, ctx } = setup();
-    const r = await svc.createQcPlan(ctx, { body: body({}, { controls_per_run: 4, composition: [{ level_id: LVL(1), count: 2 }, { level_id: LVL(2), count: 1 }, { level_id: LVL(3), count: 1 }] }) });
+    const r = await svc.createQcPlan(ctx, { body: body({ instrument_id: INS(2) }, { controls_per_run: 4, composition: [{ level_id: LVL(1), count: 2 }, { level_id: LVL(2), count: 1 }, { level_id: LVL(3), count: 1 }] }) });
     expect(r.status).toBe(201); expect(r.body.rule_set_preview.rejection).toContain('4-1s');
   });
   it('levels of SEVERAL materials may be composed (02-TRD §5.3: "levels of one material or several")', async () => {
     const { svc, ctx } = setup();
-    const r = await svc.createQcPlan(ctx, { body: body({}, params2({ composition: [{ level_id: LVL(1), count: 1 }, { level_id: LVL(4), count: 1 }] })) });
+    const r = await svc.createQcPlan(ctx, { body: body({ instrument_id: INS(2) }, params2({ composition: [{ level_id: LVL(1), count: 1 }, { level_id: LVL(4), count: 1 }] })) });
     expect(r.status).toBe(201);
   });
   it('defaults are filled in and echoed: the DTO params carry all 9 QcPlanParams keys', async () => {
-    const { svc, ctx } = setup(); const r = await svc.createQcPlan(ctx, { body: body() });
+    const { svc, ctx } = setup(); const r = await svc.createQcPlan(ctx, { body: body({ instrument_id: INS(2) }) });
     expect(Object.keys(r.body.params).sort()).toEqual(PARAM_KEYS); expect(r.body.params).toEqual(FULL2);
   });
   it('explicit params are stored, not defaulted over', async () => {
     const { svc, ctx, } = setup(); const p = params2({ mean_rule: '12x', two_two_s_across_runs: false, count_rules_across_materials: false, exclude_rejected_runs_from_history: false, run_window_minutes: 5, qc_validity_hours: 168, hold_lookback_hours: 1 });
-    const r = await svc.createQcPlan(ctx, { body: body({}, p) });
+    const r = await svc.createQcPlan(ctx, { body: body({ instrument_id: INS(2) }, p) });
     expect(r.body.params).toEqual({ ...p }); expect(PARAM_KEYS.every((k) => k in r.body.params)).toBe(true);
   });
   it('boundary values 5/240, 1/168, 1/168 are accepted', async () => {
     for (const [i, p] of [{ run_window_minutes: 5, qc_validity_hours: 1, hold_lookback_hours: 1 }, { run_window_minutes: 240, qc_validity_hours: 168, hold_lookback_hours: 168 }].entries()) {
-      const { svc, ctx } = setup(); const r = await svc.createQcPlan(ctx, { body: body({ analyte_id: ANA(1) }, params2(p)) }); expect(r.status, String(i)).toBe(201);
+      const { svc, ctx } = setup(); const r = await svc.createQcPlan(ctx, { body: body({ instrument_id: INS(2), analyte_id: ANA(1) }, params2(p)) }); expect(r.status, String(i)).toBe(201);
     }
   });
 });
@@ -64,12 +64,12 @@ describe('createQcPlan: rule set by N (AC-03.1–03.3; 04 L23)', () => {
 describe('createQcPlan: what is written (version 1, tenant, actor, ids)', () => {
   it('inserts one plan row (inactive, current_version_no 1) and one version row (version_no 1, effective_from = now, no change_reason); ids are UUIDv7', async () => {
     const { svc, ctx, fake } = setup();
-    const r = await svc.createQcPlan(ctx, { body: body({}, params2({ mean_rule: '8x' })) });
+    const r = await svc.createQcPlan(ctx, { body: body({ instrument_id: INS(2) }, params2({ mean_rule: '8x' })) });
     const [p] = fake.callsOf('insertPlan'), [v] = fake.callsOf('insertVersion');
     expect(fake.callsOf('insertPlan')).toHaveLength(1); expect(fake.callsOf('insertVersion')).toHaveLength(1);
     expect(p!.tenantId).toBe(TENANT_A); expect(v!.tenantId).toBe(TENANT_A);
     const plan = p!.args[0] as Row, ver = v!.args[0] as Row;
-    expect(plan).toMatchObject({ instrument_id: INS(1), test_id: TST(1), analyte_id: ANA(1), created_by: USER, updated_by: USER });
+    expect(plan).toMatchObject({ instrument_id: INS(2), test_id: TST(1), analyte_id: ANA(1), created_by: USER, updated_by: USER });
     expect(plan['id']).toMatch(UUID7); expect(ver['id']).toMatch(UUID7); expect(r.body.id).toBe(plan['id']);
     expect(ver).toMatchObject({ plan_id: plan['id'], version_no: 1, controls_per_run: 2, mean_rule: '8x', effective_from: NOW, created_by: USER, updated_by: USER });
     expect(ver['composition']).toEqual(params2()['composition']); expect(ver['change_reason'] ?? null).toBeNull(); expect(r.body.effective_from).toBe(NOW);
@@ -81,7 +81,7 @@ describe('createQcPlan: what is written (version 1, tenant, actor, ids)', () => 
     expect(fake.callsOf('insertVersion')).toHaveLength(0); expect(fake.versions).toHaveLength(4);
   });
   it('a created plan can be read back (#16) with exactly its version 1', async () => {
-    const { svc, ctx } = setup(); const c = await svc.createQcPlan(ctx, { body: body({}, params3()) });
+    const { svc, ctx } = setup(); const c = await svc.createQcPlan(ctx, { body: body({ instrument_id: INS(2) }, params3()) });
     const g = await svc.getQcPlan(ctx, { planId: c.body.id });
     expect(g.body.versions).toHaveLength(1); expect(g.body.versions[0]).toMatchObject({ version_no: 1, params: { controls_per_run: 3, mean_rule: '6x' } });
   });
@@ -165,11 +165,11 @@ describe('createQcPlan: mass assignment (S-03, REQ-SEC-013/067) -> common.unknow
 // ================================================================================================================ catalog (CatalogPort fake) + instrument_code_unmapped
 describe('createQcPlan: CatalogPort — test/analyte validation and the instrument_code_unmapped warning', () => {
   it('a mapped instrument code -> warnings: [] (always present); mapInstrumentCode got the outbound query', async () => {
-    const { svc, ctx, catalog } = setup(); const r = await svc.createQcPlan(ctx, { body: body() });
-    expect(r.body.warnings).toEqual([]); expect(catalog.mapCalls).toEqual([{ instrumentId: INS(1), direction: 'outbound', testId: TST(1), analyteId: ANA(1) }]);
+    const { svc, ctx, catalog } = setup(); const r = await svc.createQcPlan(ctx, { body: body({ instrument_id: INS(2) }) });
+    expect(r.body.warnings).toEqual([]); expect(catalog.mapCalls).toEqual([{ instrumentId: INS(2), direction: 'outbound', testId: TST(1), analyteId: ANA(1) }]);
   });
   it('catalog.instrument_code_unmapped -> 201 with warnings: ["instrument_code_unmapped"]; the plan IS created', async () => {
-    const { svc, ctx, fake } = setup({ catalog: makeCatalog({ unmapped: true }) }); const r = await svc.createQcPlan(ctx, { body: body() });
+    const { svc, ctx, fake } = setup({ catalog: makeCatalog({ unmapped: true }) }); const r = await svc.createQcPlan(ctx, { body: body({ instrument_id: INS(2) }) });
     expect(r.status).toBe(201); expect(r.body.warnings).toEqual(['instrument_code_unmapped']); expect(r.body.status).toBe('inactive'); expect(fake.callsOf('insertPlan')).toHaveLength(1);
   });
   it('any OTHER mapInstrumentCode failure propagates (fail closed) and nothing is written', async () => {
@@ -198,8 +198,8 @@ describe('createQcPlan: CatalogPort — test/analyte validation and the instrume
     for (const ins of [INS_B, INS(7)]) { const { svc, ctx, fake } = setup(); await invalid(svc.createQcPlan(ctx, { body: body({ instrument_id: ins }) }), '/instrument_id'); expect(fake.callsOf('insertVersion')).toHaveLength(0); }
   });
   it('DTO analyte fields come from the catalog: analyte_code/name, unit_code, decimals; instrument_label = "display_name (instrument_code)"', async () => {
-    const { svc, ctx } = setup(); const r = await svc.createQcPlan(ctx, { body: body({ analyte_id: ANA(3) }) });
-    expect(r.body).toMatchObject({ analyte_code: 'GLU', analyte_name: 'Glucose', unit_code: 'mmol/L', decimals: 2, instrument_label: 'Synthetic chemistry analyser (SIM-CHEM-1)' });
+    const { svc, ctx } = setup(); const r = await svc.createQcPlan(ctx, { body: body({ instrument_id: INS(2), analyte_id: ANA(3) }) });
+    expect(r.body).toMatchObject({ analyte_code: 'GLU', analyte_name: 'Glucose', unit_code: 'mmol/L', decimals: 2, instrument_label: 'Second analyser (SIM-CHEM-2)' });
   });
 });
 

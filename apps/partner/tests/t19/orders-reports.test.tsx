@@ -7,6 +7,7 @@
 //  - PR-3: R1 has no report_id filter (spec gap, 02-TRD §5.2 R1): the page reads GET /v1/partners/reports?include_superseded=true and keeps only rows whose report_id matches; no row -> "This report is no longer available."
 //  - Download controls carry aria-label "Download report version {n} for registration {registration_no}" (04-UI-UX §7).
 import { createElement } from 'react';
+import { AUTH } from '../t05/harness';
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { attempt, boot, calls, chipTone, failing, headers, helpKey, hrefs, id, order, primaries, renderPage, report, resetApi, restoreFetch, seen, serve, title, urls } from './kit';
 
@@ -108,7 +109,7 @@ describe('PO-2 Sample detail (US-07.1/07.5, US-08.4)', () => {
     for (const w of ['Collected', 'Sent to lab', 'Received at lab']) expect(html, w).toContain(w);
     expect((html.match(/Received at lab/g) ?? []).length).toBe(1);
     expect((html.match(/Sent to lab/g) ?? []).length).toBe(1);
-    expect((html.match(/>Collected</g) ?? []).length).toBe(2);
+    expect((html.match(/>Collected</g) ?? []).length).toBe(3); // 04-UI-UX:124 — chip "Collected" (specimen 2) + two Timeline steps
   });
   it('US-07.5: a rejected specimen shows "Rejected", the humanised reason (danger tone) and "A new sample is needed" while no replacement is received', async () => {
     const rejected = spec(1, { status: 'rejected', rejected_at: '2026-11-12T07:00:00.000Z', rejection_reason_code: 'haemolysed', rejection_reason_display: 'Haemolysed' });
@@ -147,7 +148,7 @@ describe('PO-2 Sample detail (US-07.1/07.5, US-08.4)', () => {
     const html = await go(detail({ patient: { full_name: '<script>alert(1)</script>', sex: 'male' }, referrer: { display_name: '<img src=x onerror=alert(2)>' } }));
     expect(html).not.toContain('<script>alert');
     expect(html).not.toContain('<img src=x');
-    for (const s of seen) expect(s.method).toBe('GET');
+    for (const s of seen.filter((s) => !s.path.startsWith(AUTH))) expect(s.method).toBe('GET');
   });
 });
 

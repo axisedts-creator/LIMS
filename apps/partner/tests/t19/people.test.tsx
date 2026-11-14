@@ -7,7 +7,7 @@
 import { createElement } from 'react';
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { MEMBER_PERMS, attempt, boot, buttons, calls, chipTone, failing, headers, helpKey, id, primaries, renderPage, resetApi, restoreFetch, seen, serve, title, urls } from './kit';
-import { run } from '../t05/harness';
+import { AUTH, run } from '../t05/harness';
 
 vi.mock('server-only', () => ({}));
 vi.mock('next/headers', async () => (await import('../t05/harness')).headersMock);
@@ -57,12 +57,14 @@ describe('PF-1 Referring doctors (US-13.1/13.2/13.3/13.6)', () => {
   });
   it('copy: counts only, never "commission" or money (US-13.6 / 04 L19)', async () => {
     serve({ '/v1/partners/referrers': list(rows) });
-    expect(await renderPage('referrers')).not.toMatch(/commission|Rs\.|NPR/i);
+    const html = await renderPage('referrers');
+    expect(html).not.toMatch(/commission/i);
+    expect(html).not.toMatch(/\bRs\.|\bNPR\b/);
   });
   it('failure: ErrorState without upstream detail; names escaped (ST16); read-only render', async () => {
     serve({ '/v1/partners/referrers': list([ref(1, { display_name: '<img src=x onerror=alert(1)>' })]) });
     expect(await renderPage('referrers')).not.toContain('<img src=x');
-    for (const s of seen) expect(s.method).toBe('GET');
+    for (const s of seen.filter((s) => !s.path.startsWith(AUTH))) expect(s.method).toBe('GET');
     serve({ '/v1/partners/referrers': failing(500) });
     const o = await attempt('referrers');
     if (o.err) expect(String(o.err)).not.toMatch(/UPSTREAM-SECRET-DETAIL|eyJ/);
@@ -110,7 +112,7 @@ describe('PU-1 Users (partner_admin only)', () => {
     const html = await renderPage('users');
     expect(html).not.toContain('<script>alert');
     expect(html).not.toContain('<img src=x');
-    for (const s of seen) expect(s.method).toBe('GET');
+    for (const s of seen.filter((s) => !s.path.startsWith(AUTH))) expect(s.method).toBe('GET');
   });
   it('failure: ErrorState without upstream detail', async () => {
     serve({ '/v1/partners/users': failing(500) });

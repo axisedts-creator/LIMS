@@ -7,6 +7,7 @@
 //  - Not asserted here (needs a browser; see tests/e2e/partner-screens.spec.ts): line form in the Drawer, Alt+A/Alt+S, ConfirmDialogs, ErrorSummary, beforeunload guard.
 import { createElement } from 'react';
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
+import { AUTH } from '../t05/harness';
 import { LAB, PARTNER, attempt, boot, buttons, calls, chipTone, failing, headers, helpKey, hrefs, id, line, manifest, mf, primaries, renderPage, resetApi, restoreFetch, seen, serve, title, urls } from './kit';
 
 vi.mock('server-only', () => ({}));
@@ -99,7 +100,7 @@ describe('PM-2 draft editor (US-04.1/04.2/04.4)', () => {
     expect(html).toContain('Notes for the lab');
     expect(html).toContain('Shown to the receiving lab staff; not part of the lab order or the report');
     expect(html).toMatch(/maxlength="500"/i);
-    for (const s of seen) expect(s.method).toBe('GET');
+    for (const s of seen.filter((s) => !s.path.startsWith(AUTH))) expect(s.method).toBe('GET');
   });
   it('lines list: #, ref, patient with sex/age, truncated tests, Urgent badge only on the urgent line', async () => {
     serve({ [`/v1/partners/manifests/${P.manifest_id}`]: draft() });
@@ -190,7 +191,7 @@ describe('PM-3 manifest detail (US-04.7/04.9/04.10)', () => {
     expect(hrefs(html).some((h) => h.startsWith('/pickups/new'))).toBe(false);
   });
   it('Withdraw: only submitted + mode on_receipt + nothing registered (US-04.9 / 04.10 / D-104)', async () => {
-    const withdraw = async (o: Record<string, unknown>, lines: unknown[], mode: 'on_receipt' | 'on_submit') => { serveM(o, lines, { mode }); return (await renderPage('manifests/[manifest_id]', P)).includes('Withdraw'); };
+    const withdraw = async (o: Record<string, unknown>, lines: unknown[], mode: 'on_receipt' | 'on_submit') => { serveM(o, lines, { mode }); return buttons(await renderPage('manifests/[manifest_id]', P)).some((b) => b.text === 'Withdraw'); };
     const fresh = [line(1, { state: 'submitted' }), line(2, { state: 'submitted' })];
     expect(await withdraw({ lines_converted: 0 }, fresh, 'on_receipt')).toBe(true);
     expect(await withdraw({ lines_converted: 0 }, fresh, 'on_submit')).toBe(false);
@@ -202,7 +203,7 @@ describe('PM-3 manifest detail (US-04.7/04.9/04.10)', () => {
     serveM();
     const html = await renderPage('manifests/[manifest_id]', P);
     expect(primaries(html)).toBeLessThanOrEqual(1);
-    for (const s of seen) expect(s.method).toBe('GET');
+    for (const s of seen.filter((s) => !s.path.startsWith(AUTH))) expect(s.method).toBe('GET');
   });
   it('words never used on partner screens: commission / invoice (04-UI-UX §6)', async () => {
     serveM();

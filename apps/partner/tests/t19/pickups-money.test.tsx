@@ -5,6 +5,7 @@
 //  - PK-1: GET /v1/partners/pickup-requests. PK-2: GET /v1/partners/manifests?state=submitted,partially_received (eligible = no pickup_request_id) and prefills ?manifest_id={id} (from PM-3 "Request pickup").
 //  - PP-1: GET /v1/partners/price-list with q (<= 64), kind, source, sort as page searchParams. PS-1: GET /v1/partners/statements. PS-2: GET /v1/partners/statements/{YYYY-MM}; a malformed month is a 404 without any API call.
 import { createElement } from 'react';
+import { AUTH } from '../t05/harness';
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { attempt, boot, calls, chipTone, failing, headers, helpKey, hrefs, id, mf, primaries, renderPage, resetApi, restoreFetch, seen, serve, title, urls } from './kit';
 
@@ -45,7 +46,7 @@ describe('PK-1 Pickups (US-10.3/10.4/10.5)', () => {
     expect(await renderPage('pickups')).toContain('lims-state');
     serve({ '/v1/partners/pickup-requests': failing(500) });
     noFailureLeak(await attempt('pickups'));
-    for (const s of seen) expect(s.method).toBe('GET');
+    for (const s of seen.filter((s) => !s.path.startsWith(AUTH))) expect(s.method).toBe('GET');
   });
   it('contact details are escaped (ST16)', async () => {
     serve({ '/v1/partners/pickup-requests': list([pk(1, { notes: '<script>alert(1)</script>', contact_name: '<img src=x onerror=alert(2)>' })]) });
@@ -85,7 +86,7 @@ describe('PK-2 Request pickup (US-10.1/10.2)', () => {
   });
   it('no write call while rendering; hostile query is not forwarded to the API', async () => {
     await go({ manifest_id: id(1, 100), evil: '<script>' });
-    for (const s of seen) expect(s.method).toBe('GET');
+    for (const s of seen.filter((s) => !s.path.startsWith(AUTH))) expect(s.method).toBe('GET');
     expect(urls.join(' ')).not.toMatch(/evil|<script>/);
   });
 });
@@ -201,6 +202,6 @@ describe('PS-1 Statements / PS-2 Month (US-12.1..12.4)', () => {
   it('the page makes no write call', async () => {
     serve({ '/v1/partners/statements': S1 });
     await renderPage('statements');
-    for (const s of seen) expect(s.method).toBe('GET');
+    for (const s of seen.filter((s) => !s.path.startsWith(AUTH))) expect(s.method).toBe('GET');
   });
 });

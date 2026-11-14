@@ -130,6 +130,38 @@ describe('S11 count screen — BLIND count', () => {
     await waitFor(() => expect(document.activeElement).toBe(screen.getAllByRole('textbox', { name: /counted/i })[1]));
   });
 
+  // Review item 1-3 (07-SECURITY.md:57 blind count by default): the API returns book fields to every caller, so the BFF must strip them for users without inventory.stock.adjust.
+  const leaky = () => countLine(1, { counted_qty_base: '35', counted_at: new Date().toISOString(), book_qty_snapshot: '424242', book_qty_at_count: '424242', variance_qty_base: '-777', variance_value_paisa: -987654, version: 2 });
+  const BOOK = /424242|777|987654/;
+
+  it('stock.manage without stock.adjust: the PUT /lines response book/variance fields never reach the DOM', async () => {
+    useCount();
+    api.use(http.put(`${ORIGIN}/v1/inventory/stock-counts/:id/lines`, () => HttpResponse.json({ updated: 1, lines: [leaky()] })));
+    await mountCount(); // stock.manage only
+    const inputs = await screen.findAllByRole('textbox', { name: /counted/i });
+    await userEvent.type(inputs[0]!, '35{Enter}');
+    await waitFor(() => expect(putLines()).toHaveLength(1));
+    await waitFor(() => expect(document.activeElement).toBe(screen.getAllByRole('textbox', { name: /counted/i })[1]));
+    expect(document.body.textContent).not.toMatch(BOOK);
+  });
+
+  it('putCountLinesAction result carries no book/variance fields without stock.adjust, and keeps them with it', async () => {
+    api.use(http.put(`${ORIGIN}/v1/inventory/stock-counts/:id/lines`, () => HttpResponse.json({ updated: 1, lines: [leaky()] })));
+    const { putCountLinesAction } = await import('../server/actions');
+    const put = [{ line_id: ID(1001), item_id: ID(11), lot_id: ID(21), counted_qty_base: '35' }];
+    state.permissions = PERM_MANAGE;
+    expect(JSON.stringify(await putCountLinesAction(C1, put))).not.toMatch(BOOK);
+    state.permissions = PERM_ADJUST;
+    expect(JSON.stringify(await putCountLinesAction(C1, put))).toMatch(/424242/);
+  });
+
+  it('createCountAction result does not expose line book quantities to a stock.manage user', async () => {
+    api.use(http.post(`${ORIGIN}/v1/inventory/stock-counts`, () => HttpResponse.json(count({ id: ID(909), lines: [leaky()] }), { status: 201 })));
+    const { createCountAction } = await import('../server/actions');
+    const r = await createCountAction({ store_id: ID(301) } as never, 'k'.repeat(20));
+    expect(JSON.stringify(r)).not.toMatch(BOOK);
+  });
+
   it.each(['-1', '1.2345', 'abc', ''])('counted qty "%s" is rejected client-side: no PUT', async (bad) => {
     useCount();
     await mountCount();

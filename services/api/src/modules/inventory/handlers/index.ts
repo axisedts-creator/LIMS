@@ -7,6 +7,7 @@ import { itemHandlers } from './items.js';
 import { lotHandlers } from './lots.js';
 import { masterHandlers } from './masters.js';
 import { purchasingHandlers } from './purchasing.js';
+import { receiptHandlers } from './receipts.js';
 import { settingsHandlers } from './settings.handlers.js';
 import { transferHandlers } from './transfers.js';
 
@@ -30,13 +31,7 @@ export const handlers: Readonly<Record<string, Handler>> = {
   ...settingsHandlers, // #26-#29 (T-06)
   ...lotHandlers, // #30-#39 (T-09)
   ...documentHandlers, // #40-#48 (T-10)
-  listGoodsReceipts: stub,
-  createGoodsReceipt: stub,
-  getGoodsReceipt: stub,
-  replaceGoodsReceiptDraft: stub,
-  postGoodsReceipt: stub,
-  cancelGoodsReceipt: stub,
-  exportGoodsReceiptsCsv: stub,
+  ...receiptHandlers, // #49-#55 (T-12)
   ...transferHandlers, // #56-#62 (T-13)
   ...countHandlers, // #63-#68 (T-14)
   listConsumptionRules: stub,

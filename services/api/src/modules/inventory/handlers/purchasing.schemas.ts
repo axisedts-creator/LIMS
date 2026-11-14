@@ -9,11 +9,11 @@ import type { PageQuery } from './masters.schemas.js';
 const MAX_LINES = 200;
 const MAX_SAFE = Number.MAX_SAFE_INTEGER;
 const cursor = pat(/^[A-Za-z0-9_-]+$/, 512);
-const isoUtc: Rule = (v) => typeof v === 'string' && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{1,6})?Z$/.test(v) && !Number.isNaN(Date.parse(v));
+export const isoUtc: Rule = (v) => typeof v === 'string' && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{1,6})?Z$/.test(v) && !Number.isNaN(Date.parse(v));
 /** DecimalStringPacks: numeric(12,3) as a string, > 0. */
-const packsQty: Rule = (v) => typeof v === 'string' && /^[0-9]{1,9}(\.[0-9]{1,3})?$/.test(v) && /[1-9]/.test(v);
-const paisa = int(0, MAX_SAFE);
-const taxCode = pat(/^[A-Z0-9_]{1,16}$/, 16);
+export const packsQty: Rule = (v) => typeof v === 'string' && /^[0-9]{1,9}(\.[0-9]{1,3})?$/.test(v) && /[1-9]/.test(v);
+export const paisa = int(0, MAX_SAFE);
+export const taxCode = pat(/^[A-Z0-9_]{1,16}$/, 16);
 const reasonCode = pat(/^[a-z][a-z0-9_]{0,31}$/, 32);
 export const PO_STATUSES = ['draft', 'approved', 'sent', 'partially_received', 'received', 'closed', 'cancelled'] as const;
 

@@ -334,7 +334,7 @@ describe.skipIf(!live && !REQUIRE)('T-17 micro.v_pub_report_content (live DB)', 
 
     it('report_versions__json__ck: the table refuses a non-array isolates/ast and more than 20 isolates / 600 AST rows (the DB half of the contract)', async () => {
       const c = await newCulture();
-      for (const over of [{ isolates: {} }, { ast: 'x' }, { isolates: Array.from({ length: 21 }, (_, i) => ({ ...ISO, seq: i + 1 })) }, { ast: Array.from({ length: 601 }, () => AST) }]) {
+      for (const over of [{ isolates: {} }, { ast: { not_an_array: true } },{ isolates: Array.from({ length: 21 }, (_, i) => ({ ...ISO, seq: i + 1 })) }, { ast: Array.from({ length: 601 }, () => AST) }]) {
         await expect(putVersion(A, W.centreA1, c, 1, over), JSON.stringify(Object.keys(over))).rejects.toMatchObject({ code: '23514' });
       }
     });

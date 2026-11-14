@@ -34,7 +34,7 @@ const storePatches = () => hit('PATCH', /^\/v1\/inventory\/stores\/[^/]+$/);
 describe('S4 list (04-UI-UX §3 S4)', () => {
   it('columns Code, Name, Branch, Kind, Default consumption, Active; the default store carries a Badge with a word', async () => {
     await mount();
-    const table = await screen.findByRole('table', { name: /stores/i }).catch(() => screen.findByRole('table'));
+    const table = await screen.findByRole('grid', { name: /stores/i }).catch(() => screen.findByRole('grid'));
     const heads = within(table).getAllByRole('columnheader').map((h) => h.textContent?.trim());
     for (const h of ['Code', 'Name', 'Branch', 'Kind', 'Default consumption', 'Active']) expect(heads, h).toContain(h);
     const row1 = within(table).getByText('BR1-ST1').closest('tr')!;
@@ -59,7 +59,7 @@ describe('S4 list (04-UI-UX §3 S4)', () => {
     expect((await screen.findAllByRole('button', { name: /^new store$/i })).length).toBe(1);
     cleanup(); state.permissions = PERM_READ;
     await mount();
-    await screen.findByRole('table');
+    await screen.findByRole('grid');
     expect(screen.queryByRole('button', { name: /new store/i })).toBeNull();
   });
 
@@ -207,7 +207,7 @@ describe('S4 Reorder settings tab (04-UI-UX §3 S4: per-row save on blur with If
 
   it('one row per item with Reorder level, Reorder qty, Max level, Preferred supplier, Stocked', async () => {
     await open();
-    const table = await screen.findByRole('table');
+    const table = await screen.findByRole('grid');
     const heads = within(table).getAllByRole('columnheader').map((h) => h.textContent?.trim());
     for (const h of ['Item', 'Reorder level', 'Reorder qty', 'Max level', 'Preferred supplier', 'Stocked']) expect(heads, h).toContain(h);
     const r = rowOf('GLU-R1');
@@ -271,12 +271,12 @@ describe('S4 Reorder settings tab (04-UI-UX §3 S4: per-row save on blur with If
 });
 
 describe('S14 Analyser bindings (tab "Analysers")', () => {
-  const open = async () => { await mount({ tab: 'analysers' }); await screen.findByRole('table'); };
+  const open = async () => { await mount({ tab: 'analysers' }); await screen.findByRole('grid'); };
   const puts = () => hit('PUT', /\/instrument-bindings\/[^/]+$/);
 
   it('Table Analyser, Store, Since; analyser label comes from the instrument directory (display name), not the raw id', async () => {
     await open();
-    const table = screen.getByRole('table');
+    const table = screen.getByRole('grid');
     const heads = within(table).getAllByRole('columnheader').map((h) => h.textContent?.trim());
     for (const h of ['Analyser', 'Store', 'Since']) expect(heads, h).toContain(h);
     expect(within(table).getByText(/Synthetic chemistry analyser 1/)).toBeTruthy();
@@ -286,7 +286,7 @@ describe('S14 Analyser bindings (tab "Analysers")', () => {
   it('falls back to the id text when the instrument lookup fails (page still renders)', async () => {
     api.use(http.get(`${ORIGIN}/v1/instruments/instruments`, () => problem('auth.forbidden', 403)));
     await open();
-    expect(within(screen.getByRole('table')).getByText(new RegExp(ID(901)))).toBeTruthy();
+    expect(within(screen.getByRole('grid')).getByText(new RegExp(ID(901)))).toBeTruthy();
   });
 
   it('Bind: choose Analyser (Combobox) + Store (Select) -> PUT /instrument-bindings/{instrument_id} {store_id} (no If-Match for a new binding) -> success Toast', async () => {

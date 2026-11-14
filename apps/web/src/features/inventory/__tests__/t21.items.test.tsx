@@ -44,7 +44,7 @@ const fillMin = async (code = 'glu-r9', name = 'Synthetic glucose reagent 9') =>
 describe('S2 list (04-UI-UX §3 S2)', () => {
   it('columns Code, Name, Category, Base unit, Lot-tracked, Active, Updated; rows from GET /items', async () => {
     await mountList();
-    const table = await screen.findByRole('table');
+    const table = await screen.findByRole('grid');
     const heads = within(table).getAllByRole('columnheader').map((h) => h.textContent?.trim());
     for (const h of ['Code', 'Name', 'Category', 'Base unit', 'Lot-tracked', 'Active', 'Updated']) expect(heads, h).toContain(h);
     expect(within(table).getByText('GLU-R1')).toBeTruthy();
@@ -60,7 +60,7 @@ describe('S2 list (04-UI-UX §3 S2)', () => {
 
   it('forwards filters from the URL: category, is_active, q (code/name prefix)', async () => {
     await mountList({ category: 'kit', is_active: 'true', q: 'GLU' });
-    await screen.findByRole('table');
+    await screen.findByRole('grid');
     const [g] = hit('GET', /^\/v1\/inventory\/items$/);
     const sp = new URLSearchParams(g!.search);
     expect(sp.get('category')).toBe('kit');
@@ -85,7 +85,7 @@ describe('S2 list (04-UI-UX §3 S2)', () => {
     expect((await screen.findAllByRole('button', { name: /^new item$/i })).length).toBe(1);
     cleanup(); state.permissions = PERM_READ;
     await mountList();
-    await screen.findByRole('table');
+    await screen.findByRole('grid');
     expect(screen.queryByRole('button', { name: /new item/i })).toBeNull();
   });
 
@@ -100,7 +100,7 @@ describe('S2 list (04-UI-UX §3 S2)', () => {
     api.use(http.get(`${ORIGIN}/v1/inventory/items`, () => problem('auth.forbidden', 403)));
     await mountList();
     expect(await screen.findByTestId('permission-denied')).toBeTruthy();
-    expect(screen.queryByRole('table')).toBeNull();
+    expect(screen.queryByRole('grid')).toBeNull();
   });
 });
 
@@ -373,7 +373,7 @@ describe('S3 Packs tab', () => {
 
   it('lists Code, Label, Unit, Qty in base, Default, Active; Qty in base is plain text with the immutability note', async () => {
     await packsTab();
-    const table = await screen.findByRole('table');
+    const table = await screen.findByRole('grid');
     const heads = within(table).getAllByRole('columnheader').map((h) => h.textContent?.trim());
     for (const h of ['Code', 'Label', 'Unit', 'Qty in base', 'Default', 'Active']) expect(heads, h).toContain(h);
     expect(within(table).getByText('BOX')).toBeTruthy();

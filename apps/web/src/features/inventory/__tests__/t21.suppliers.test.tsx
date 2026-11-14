@@ -31,8 +31,8 @@ const openCreate = async () => { await mount(); await userEvent.click(await scre
 describe('S5 list', () => {
   it('columns Code, Name, PAN, Phone, Active; inactive rows show tone + icon + word', async () => {
     await mount();
-    const table = await screen.findByRole('table');
-    const heads = within(table).getAllByRole('columnheader').map((h) => h.textContent?.trim());
+    const table = await screen.findByRole('grid');
+const heads = within(table).getAllByRole('columnheader').map((h) => h.textContent?.trim());
     for (const h of ['Code', 'Name', 'PAN', 'Phone', 'Active']) expect(heads, h).toContain(h);
     const row = within(table).getByText('SUP-02').closest('tr')!;
     expect(within(row).getByText(/inactive/i)).toBeTruthy();
@@ -44,7 +44,7 @@ describe('S5 list', () => {
     expect((await screen.findAllByRole('button', { name: /^new supplier$/i })).length).toBe(1);
     cleanup(); state.permissions = PERM_READ;
     await mount();
-    await screen.findByRole('table');
+    await screen.findByRole('grid');
     expect(screen.queryByRole('button', { name: /new supplier/i })).toBeNull();
   });
 
@@ -185,8 +185,8 @@ describe('AC-04.2 supplier items (item + pack + supplier code + last price + lea
   it('lists the supplier items; the last price renders as money (lakh grouping) only with inventory.cost.read', async () => {
     state.permissions = PERM_COST;
     await itemsTab();
-    const table = await screen.findByRole('table');
-    const heads = within(table).getAllByRole('columnheader').map((h) => h.textContent?.trim());
+    const table = await screen.findByRole('grid');
+const heads = within(table).getAllByRole('columnheader').map((h) => h.textContent?.trim());
     for (const h of ['Item', 'Pack', 'Supplier code', 'Last price', 'Lead time']) expect(heads, h).toContain(h);
     expect(within(table).getByText(/4,500/)).toBeTruthy(); // 450000 paisa
     expect(within(table).getByText(/7/)).toBeTruthy();
@@ -195,8 +195,8 @@ describe('AC-04.2 supplier items (item + pack + supplier code + last price + lea
   it('without inventory.cost.read: no price column, price text absent from the DOM, no price field (REQ-SEC-081)', async () => {
     state.permissions = PERM_MANAGE;
     await itemsTab();
-    const table = await screen.findByRole('table');
-    expect(within(table).queryByRole('columnheader', { name: /price/i })).toBeNull();
+    const table = await screen.findByRole('grid');
+expect(within(table).queryByRole('columnheader', { name: /price/i })).toBeNull();
     expect(document.body.textContent).not.toMatch(/4,500|450000/);
     await userEvent.click(screen.getByRole('button', { name: /add item|set item|link item/i }));
     expect(screen.queryByRole('textbox', { name: /last price/i })).toBeNull();

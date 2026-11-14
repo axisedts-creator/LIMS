@@ -417,14 +417,39 @@ def check_env_example(text, config_names, source_names):
     return e
 
 
+SOURCE_PATHSPEC = ["--", "*.ts", "*.tsx", "*.mjs", "*.js", "*.cjs", "*.mts",
+                   ":!spec", ":!docs", ":!tests", ":!*__tests__*", ":!*.test.*", ":!*.spec.*", ":!*/tests/*", ":!*/test/*"]
+
+
+def composed_reads(names, texts):
+    """Ruling WIRE-BOOT (b): a name counts as read when one source text holds its module prefix literal
+    (`LIMS_<MODULE>_`, e.g. in `LIMS_PAYMENTS_${` or 'LIMS_ENGAGEMENT_') AND the remaining suffix as a quoted string
+    literal (e.g. 'KEK_FILE'). Returns the subset of names so read."""
+    out = set()
+    for n in names:
+        m = re.fullmatch(r"(LIMS_[A-Z0-9]+_)([A-Z0-9_]+)", n)
+        if not m:
+            continue
+        prefix, suffix = m.groups()
+        quoted = re.compile(r"""['"`]""" + re.escape(suffix) + r"""['"`]""")
+        if any(prefix in t and quoted.search(t) for t in texts):
+            out.add(n)
+    return out
+
+
 def tracked_source_names(names):
-    """Subset of names that appear (whole word) in tracked non-test source files."""
+    """Subset of names read by tracked non-test source files: (a) whole-word full name, or (b) prefix + quoted suffix
+    composed at runtime (see composed_reads)."""
     if not names:
         return set()
     pat = r"\b(" + "|".join(sorted(re.escape(n) for n in names)) + r")\b"
-    r = git("grep", "-ohE", pat, "--", "*.ts", "*.tsx", "*.mjs", "*.js", "*.cjs", "*.mts",
-            ":!spec", ":!docs", ":!tests", ":!*__tests__*", ":!*.test.*", ":!*.spec.*", ":!*/tests/*", ":!*/test/*")
-    return set(r.stdout.split())
+    found = set(git("grep", "-ohE", pat, *SOURCE_PATHSPEC).stdout.split())
+    rest = set(names) - found
+    if rest:
+        files = git("ls-files", *SOURCE_PATHSPEC).stdout.splitlines()
+        texts = [read(ROOT / f) for f in files if (ROOT / f).is_file()]
+        found |= composed_reads(rest, texts)
+    return found
 
 
 def check_gitignore_via_git(repo):
@@ -1149,6 +1174,26 @@ class PlantedEnvExampleFailures(unittest.TestCase):
     def test_name_not_read_by_source(self):
         errs = check_env_example(GOOD_ENV, self.cfg, self.src - {"LIMS_ORIGIN_API"})
         self.assertTrue(_has(errs, "not read by any tracked source"), errs)
+
+    def test_composed_name_counts_as_read(self):
+        ts = "const K = (s: string) => `LIMS_PAYMENTS_${s}`;\nconst key = K('KEK_FILE');\n"
+        ts2 = "const P = 'LIMS_ENGAGEMENT_';\nrawKey(env, 'OTP_HMAC_KEY_FILE');\n"
+        names = {"LIMS_PAYMENTS_KEK_FILE", "LIMS_ENGAGEMENT_OTP_HMAC_KEY_FILE"}
+        self.assertEqual(composed_reads(names, [ts, ts2]), names)
+
+    def test_composed_prefix_without_suffix_is_unread(self):
+        # prefix literal present, suffix quoted nowhere -> still reported unread
+        ts = "const K = (s: string) => `LIMS_PAYMENTS_${s}`;\nconst key = K('KEK_FILE');\n"
+        got = composed_reads({"LIMS_PAYMENTS_NOPE_FILE"}, [ts])
+        self.assertEqual(got, set())
+        errs = check_env_example(GOOD_ENV.replace("LIMS_CORE_LOG_LEVEL=", "LIMS_PAYMENTS_NOPE_FILE="),
+                                 self.cfg, self.src | got)
+        self.assertTrue(_has(errs, "not read by any tracked source"), errs)
+
+    def test_composed_suffix_in_other_file_is_unread(self):
+        # prefix in one file, quoted suffix only in a different file -> must not count
+        self.assertEqual(composed_reads({"LIMS_PAYMENTS_KEK_FILE"},
+                                        ["const K = `LIMS_PAYMENTS_${s}`;", "x('KEK_FILE')"]), set())
 
     def test_missing_comment(self):
         errs = check_env_example(GOOD_ENV.replace("# optional, all environments.\n", ""), self.cfg, self.src)

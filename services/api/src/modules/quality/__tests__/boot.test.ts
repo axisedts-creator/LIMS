@@ -43,6 +43,10 @@ const IMPLEMENTED: readonly string[] = [
   // T-15 real handlers (#36-#41, #44, #45) — arbiter ruling .orchestra/notes/C9.T-06-ruling.md
   'getAutoverifyRuleSet', 'createAutoverifyVersion', 'getAutoverifyVersion', 'replaceAutoverifyDraft', 'startAutoverifySimulation',
   'stopAutoverifySimulation', 'retireAutoverifyVersion', 'discardAutoverifyDraft',
+  // T-17 real handlers (#42, #43, #46, #47: simulation report, activation, decisions)
+  'getAutoverifySimulationReport', 'activateAutoverifyVersion', 'listAutoverifyDecisions', 'getAutoverifyDecision',
+  // T-20 real handlers (#51-#54: settings + coded sets)
+  'getQualitySettings', 'updateQualitySettings', 'listQualityCodedSet', 'upsertQualityCode',
 ];
 
 const FAKE_REQ = { params: {}, query: {}, headers: {}, body: {} };

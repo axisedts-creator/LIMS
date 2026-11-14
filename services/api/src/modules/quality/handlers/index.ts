@@ -14,6 +14,7 @@ import { reviewHandlers } from './review.handlers.js';
 import { statusHandlers } from './status.handlers.js';
 import { chartHandlers } from './chart.handlers.js';
 import { activationHandlers } from './activation.handlers.js';
+import { settingsHandlers } from './settings.handlers.js';
 
 const OPERATION_IDS = [
   'listControlMaterials', 'createControlMaterial', 'getControlMaterial', 'updateControlMaterial', 'deactivateControlMaterial', 'createControlLevel',
@@ -44,7 +45,7 @@ const gated = (h: Handler): Handler => async (req, ctx) => {
 };
 
 const implemented: Partial<Record<QualityOperationId, Handler>> = Object.fromEntries(
-  Object.entries({ ...setupHandlers, ...planHandlers, ...targetHandlers, ...reviewHandlers, ...statusHandlers, ...chartHandlers, ...autoverifyHandlers, ...activationHandlers }).map(([op, h]) => [op, gated(h as Handler)]), // T-06: #1-#13; T-07: #14-#19; T-08: #20-#25; T-12: #26-#33; T-13: #34; T-14: #35; T-15: #36-#41, #44, #45; T-17: #42, #43, #46, #47
+  Object.entries({ ...setupHandlers, ...planHandlers, ...targetHandlers, ...reviewHandlers, ...statusHandlers, ...chartHandlers, ...autoverifyHandlers, ...activationHandlers, ...settingsHandlers }).map(([op, h]) => [op, gated(h as Handler)]), // T-06: #1-#13; T-07: #14-#19; T-08: #20-#25; T-12: #26-#33; T-13: #34; T-14: #35; T-15: #36-#41, #44, #45; T-17: #42, #43, #46, #47; T-20: #51-#54
 );
 
 export const handlers: Readonly<Record<QualityOperationId, Handler>> = Object.freeze(

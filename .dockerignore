@@ -1,0 +1,21 @@
+# Build context = repo root for services/api, services/worker and apps/web images (T0D-DEP-01, LD-173).
+# Never in a build context: VCS, spec, orchestration notes, secrets, host installs and build output.
+.git
+.orchestra
+spec
+**/node_modules
+**/.next
+test-results
+.tmp
+.env*
+**/.env*
+*.pem
+**/*.pem
+*.key
+**/*.key
+*.age
+**/*.age
+**/.turbo
+**/coverage
+**/*.tsbuildinfo
+Claude outputs

@@ -21,6 +21,16 @@ export interface SyncRepo {
   advanceCursor(tx: Tx, tenantId: string, k: { at: string; id: string }): Promise<boolean>;
 }
 
+/** T-11 re-processing (02-TRD §6.4). Reads/updates stored quality.qc_observations only; the classification inputs still come from SyncRepo. */
+export interface ReprocessRepo {
+  getReprocessWindowDays(tx: Tx, tenantId: string): Promise<number>;
+  findPlan(tx: Tx, tenantId: string, planId: string): Promise<{ id: string; instrument_id: string; analyte_id: string; status: string } | undefined>;
+  listPendingObservations(tx: Tx, tenantId: string, q: { instrumentId: string; analyteId?: string; statuses: string[]; observedFrom?: string; observedBefore?: string }): Promise<Row[]>;
+  updateObservation(tx: Tx, tenantId: string, id: string, expectedStatus: string, patch: Row): Promise<boolean>;
+}
+/** The ONLY columns a re-classification may write (05-SCHEMA enforce_mutable_columns; source columns stay frozen). */
+const PATCH_COLS = ['status', 'plan_id', 'level_id', 'lot_id', 'target_id', 'mean', 'sd', 'z', 'qc_run_id', 'classified_at', 'updated_by'] as const;
+
 const ISO = `'YYYY-MM-DD"T"HH24:MI:SS.US"Z"'`;
 const ts = (col: string, as = col) => `to_char(${col} AT TIME ZONE 'UTC', ${ISO}) AS ${as}`;
 const VIEW_COLS = `q.tenant_id, q.qc_result_id, q.instrument_id, q.analyte_id, q.control_id_raw, q.control_lot_raw, q.control_level, q.value_numeric::text AS value_numeric, q.unit_code,
@@ -31,8 +41,34 @@ const pageRead = (where: string) =>
 const OBS_COLS = ['id', 'tenant_id', 'source_qc_result_id', 'source', 'instrument_id', 'analyte_id', 'control_id_raw', 'control_lot_raw', 'control_level_raw', 'value', 'unit_code',
   'instrument_result_time', 'received_at', 'observed_at', 'observed_at_basis', 'status', 'plan_id', 'level_id', 'lot_id', 'target_id', 'mean', 'sd', 'z', 'qc_run_id', 'classified_at', 'created_by', 'updated_by'];
 
-export function createQcViewRepo(): SyncRepo {
+export function createQcViewRepo(): SyncRepo & ReprocessRepo {
   return {
+    async getReprocessWindowDays(tx, tenantId) {
+      const { rows } = await tx.query('SELECT reprocess_window_days FROM quality.settings WHERE tenant_id = $1', [tenantId]);
+      return rows[0]?.reprocess_window_days ?? 7;   // DDL default
+    },
+    async findPlan(tx, tenantId, planId) {
+      const { rows } = await tx.query('SELECT id, instrument_id, analyte_id, status FROM quality.qc_plans WHERE tenant_id = $1 AND id = $2', [tenantId, planId]);
+      return rows[0];
+    },
+    async listPendingObservations(tx, tenantId, q) {
+      const { rows } = await tx.query(
+        `SELECT id, tenant_id, source_qc_result_id, source, instrument_id, analyte_id, control_id_raw, control_lot_raw, control_level_raw, value::text AS value, unit_code,
+                ${ts('instrument_result_time')}, ${ts('received_at')}, ${ts('observed_at')}, observed_at_basis, status, plan_id, level_id, lot_id, target_id, created_by
+           FROM quality.qc_observations
+          WHERE tenant_id = $1 AND instrument_id = $2 AND analyte_id IS NOT NULL AND ($3::uuid IS NULL OR analyte_id = $3::uuid) AND status = ANY($4::text[])
+            AND ($5::timestamptz IS NULL OR observed_at >= $5::timestamptz) AND ($6::timestamptz IS NULL OR observed_at < $6::timestamptz)
+          ORDER BY observed_at, received_at, source_qc_result_id`,
+        [tenantId, q.instrumentId, q.analyteId ?? null, q.statuses, q.observedFrom ?? null, q.observedBefore ?? null]);
+      return rows;
+    },
+    async updateObservation(tx, tenantId, id, expectedStatus, patch) {
+      const values = PATCH_COLS.map((c) => patch[c] ?? null);
+      const { rows } = await tx.query(
+        `UPDATE quality.qc_observations SET ${PATCH_COLS.map((c, i) => `${c} = $${i + 4}`).join(', ')}, updated_at = now()
+          WHERE tenant_id = $1 AND id = $2 AND status = $3 RETURNING id`, [tenantId, id, expectedStatus, ...values]);
+      return rows.length > 0;
+    },
     async getSyncState(tx, tenantId) {
       const { rows } = await tx.query(`SELECT ${ts('qc_cursor_at')}, qc_cursor_id FROM quality.sync_state WHERE tenant_id = $1`, [tenantId]);
       return rows[0];

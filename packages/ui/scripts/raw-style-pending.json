@@ -1,6 +1,6 @@
 [
   "apps/portal/src/app",
-  "apps/web/src/app",
+  "apps/web/src/app/(staff)/catalog",
   "apps/web/src/features/admin",
   "apps/web/src/features/analytics",
   "apps/web/src/features/billing",

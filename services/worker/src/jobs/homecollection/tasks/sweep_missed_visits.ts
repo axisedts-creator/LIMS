@@ -22,7 +22,7 @@ export const sweepMissedVisits: TaskHandler = async (payload, ctx: any) => {
       const row = await updateVisit(ctx.tx, ctx.tenantId, v['id'], Number(v['version']), { status: 'unassigned', route_id: null, route_date: null, route_sequence: null,
         assigned_membership_id: null, assigned_at: null });                              // order_id / booking_id stay; row is locked, so the version matches
       if (!row) continue;
-      await insertVisitAssignment(ctx.tx, ctx.tenantId, { id: uuidv7(), centre_id: v['centre_id'], visit_id: v['id'], route_id: v['route_id'], membership_id: v['assigned_membership_id'],
+      await insertVisitAssignment(ctx.tx, ctx.tenantId, { id: uuidv7(), centre_id: v['centre_id'], visit_id: v['id'], route_id: v['route_id'], membership_id: null,   // 05-SCHEMA visit_assignments: membership_id NULL for unassign/missed (visit_assignments__shape__ck)
         route_date: v['route_date_text'], action: 'missed' });
       await insertVisitTransition(ctx.tx, ctx.tenantId, { id: uuidv7(), centre_id: v['centre_id'], visit_id: v['id'], from_status: 'assigned', to_status: 'unassigned', cause: 'cron', at: now });
       routeIds.add(v['route_id']);

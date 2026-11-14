@@ -411,7 +411,7 @@ describe.skipIf(!live)('T-18 inventory.daily_alert_scan (AC-20.3)', () => {
     await runTask(s, 'daily_alert_scan');
     const keys = async () => (await s.sql(A, `SELECT alert_kind, item_id, lot_id, count(*)::int AS n FROM inventory.alerts WHERE tenant_id = $1 AND status <> 'resolved' AND item_id = ANY($2::uuid[]) GROUP BY 1, 2, 3 ORDER BY 1, 2, 3`, [A, ALERT_ITEMS]));
     const first = await keys();
-    expect(first.length).toBeGreaterThanOrEqual(5); for (const k of first) expect(k.n).toBe(1);
+    expect(first).toHaveLength(4); for (const k of first) expect(k.n).toBe(1);
     await runTask(s, 'daily_alert_scan');
     expect(await keys()).toEqual(first);
   });

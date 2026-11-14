@@ -27,24 +27,25 @@ function parseLines(v: unknown, rules: Record<string, Rule>, required: readonly 
   });
 }
 const LINE: Record<string, Rule> = { item_id: isUuid, lot_id: isUuid, qty: posDec, pack_id: isUuid };
+// occurred_at is NOT in the shared head: #45 supplier return has none in the contract (additionalProperties: false; 02-TRD §5.3) - T-10 review item 2.
 const build = (body: unknown, head: Record<string, Rule>, required: readonly string[], line: Record<string, Rule>, lineRequired: readonly string[]): DocInput => {
-  const o = parse(body, { store_id: isUuid, occurred_at: instant, reason_text: text(0, 500), ...head, lines: linesRule }, ['store_id', 'lines', ...required]);
+  const o = parse(body, { store_id: isUuid, reason_text: text(0, 500), ...head, lines: linesRule }, ['store_id', 'lines', ...required]);
   return { ...o, lines: parseLines(o['lines'], line, lineRequired) } as DocInput;
 };
 const needs = (cond: boolean, path: string): void => { if (cond) throw invalid(fieldError(path, 'common.field_required')); };
 
 /** #43: the target kind decides which id is needed (the DB CHECK is not the first line of defence). */
 export function parseIssue(body: unknown): DocInput {
-  const d = build(body, { issued_to_kind: oneOf('department', 'instrument', 'general'), department_id: isUuid, instrument_id: isUuid }, ['issued_to_kind'], LINE, ['item_id', 'qty']);
+  const d = build(body, { occurred_at: instant, issued_to_kind: oneOf('department', 'instrument', 'general'), department_id: isUuid, instrument_id: isUuid }, ['issued_to_kind'], LINE, ['item_id', 'qty']);
   needs(d.issued_to_kind === 'department' && d.department_id === undefined, '/department_id');
   needs(d.issued_to_kind === 'instrument' && d.instrument_id === undefined, '/instrument_id');
   return d;
 }
-export const parseStoreReturn = (body: unknown): DocInput => build(body, {}, [], LINE, ['item_id', 'qty']);
+export const parseStoreReturn = (body: unknown): DocInput => build(body, { occurred_at: instant }, [], LINE, ['item_id', 'qty']);
 export const parseSupplierReturn = (body: unknown): DocInput => build(body, { supplier_id: isUuid, grn_id: isUuid, reason_code: reasonCode }, ['supplier_id'], LINE, ['item_id', 'lot_id', 'qty']);
-export const parseWastage = (body: unknown): DocInput => build(body, { reason_code: reasonCode }, [], { ...LINE, reason_code: reasonCode }, ['item_id', 'qty']);
+export const parseWastage = (body: unknown): DocInput => build(body, { occurred_at: instant, reason_code: reasonCode }, [], { ...LINE, reason_code: reasonCode }, ['item_id', 'qty']);
 export const parseAdjustment = (body: unknown): DocInput =>
-  build(body, { reason_code: reasonCode }, [], { ...LINE, direction: oneOf('in', 'out') }, ['item_id', 'direction', 'qty']);
+  build(body, { occurred_at: instant, reason_code: reasonCode }, [], { ...LINE, direction: oneOf('in', 'out') }, ['item_id', 'direction', 'qty']);
 
 export interface WriteOffInput { store_id: string; lot_ids: string[] }
 /** #47: the server reads the full balance; the same lot twice would write it off twice -> 400. */

@@ -168,6 +168,10 @@ async function nextDocNo(rc: RepoCtx, today: string): Promise<string> {
 async function commit(rc: RepoCtx, ck: Clock, head: Head, planned: readonly Planned[]): Promise<string> {
   const occurredMs = head.occurred_at === undefined ? ck.now : Date.parse(head.occurred_at);
   if (occurredMs > ck.now + FUTURE_SLACK_MS) throw invalid(fieldError('/occurred_at'));
+  if (head.occurred_at !== undefined) { // 02-TRD §4.7: occurred_at in [now - backdate_max_days, now + 300 s], else 400 (T-10 review item 1)
+    const days = Number((await ensureSettings(rc))['backdate_max_days'] ?? 7);
+    if (occurredMs < ck.now - days * 86_400_000) throw invalid(fieldError('/occurred_at'));
+  }
   const occurredIso = new Date(occurredMs).toISOString();
   const business = ymdIn(occurredMs, ck.tz); // TENANT-time date of occurred_at (not the UTC date)
   const id = uuidv7();

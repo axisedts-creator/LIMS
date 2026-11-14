@@ -408,7 +408,7 @@ describe('builder: the drawer refuses what the validator refuses (AC-08.2 preven
   it('AC-08.2 a single_select / multi_select without options is rejected', async () => {
     await open();
     await trySave({ key: 'zz_sel', label: 'Zz select', type: 'single_select' });
-    expect(within(dialog()).getByText(/option/i)).toBeTruthy();
+    expect(within(dialog()).getByText(/at least one/i)).toBeTruthy();
     expect(fieldRows().some((r) => r.textContent?.includes('zz_sel'))).toBe(false);
     expect(hits.filter((h) => h.method !== 'GET')).toHaveLength(0);
   });
@@ -423,7 +423,7 @@ describe('builder: the drawer refuses what the validator refuses (AC-08.2 preven
   it('min greater than max is rejected for numeric fields', async () => {
     await open();
     await trySave({ key: 'zz_num', label: 'Zz number', type: 'integer', min: '10', max: '2' });
-    expect(within(dialog()).getByText(/max|min/i)).toBeTruthy();
+    expect(within(dialog()).getByText(/lower than min|greater than max|min.*≤.*max/i)).toBeTruthy();
     expect(fieldRows().some((r) => r.textContent?.includes('zz_num'))).toBe(false);
   });
 

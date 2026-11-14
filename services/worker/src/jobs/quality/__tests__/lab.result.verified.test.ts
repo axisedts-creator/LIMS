@@ -99,8 +99,13 @@ describe('lab.result.verified.v1 consumer: tenancy and hostile input (REQ-SEC-02
   });
   it('a payload that is not an object rejects before any query', async () => {
     for (const payload of [null, undefined, 'x', 7, []] as const) {
-      const { ctx, queries } = jobCtx(A); expect(await failure(Promise.resolve(resultVerified(envelope(A, payload as never), ctx)))).toBeInstanceOf(Error); expect(queries).toEqual([]);
+      // ruling C9.T-16: explicit payload key in `over` (a default param would turn `undefined` into a valid manual() payload)
+      const { ctx, queries } = jobCtx(A); expect(await failure(Promise.resolve(resultVerified(envelope(A, payload as never, { payload }) as never, ctx)))).toBeInstanceOf(Error); expect(queries).toEqual([]);
     }
+  });
+  it('an event whose payload key is deleted outright rejects before any query', async () => {
+    const ev: any = envelope(A); delete ev.payload;
+    const { ctx, queries } = jobCtx(A); expect(await failure(Promise.resolve(resultVerified(ev, ctx)))).toBeInstanceOf(Error); expect(queries).toEqual([]);
   });
 });
 

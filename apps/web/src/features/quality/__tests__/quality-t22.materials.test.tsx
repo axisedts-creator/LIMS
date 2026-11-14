@@ -175,7 +175,12 @@ describe('create material (#2, AC-01.1)', () => {
   it.each(['A', 'bad code', 'ÄÖ-1', 'X'.repeat(33), 'a/b'])('invalid Code %j is refused in the form (^[A-Z0-9_-]{2,32}$): field flagged, NO request', async (bad) => {
     await openNew();
     await fillMaterial('MCS-SYN');
-    await fill(/^code/i, bad.slice(0, 32));
+    // LD-183: no .slice — code input has maxLength 32 (04-UI-UX.md:98), so the 33-char case is entered by paste
+    const code = field(/^code/i);
+    const u = user();
+    await u.clear(code);
+    await u.click(code);
+    await u.paste(bad);
     await user().click(within(dlg()).getByRole('button', { name: /^create/i }));
     expect(fieldError(field(/^code/i))).toBe(true);
     expect(callsTo('POST', POST_MAT)).toHaveLength(0);
@@ -289,7 +294,7 @@ describe('drawer: levels and lots, add lot (#8, AC-01.2), deactivate (#5, AC-01.
     routes[`POST ${LOTS}`] = json({ id: 'x', version: 1, level_id: LEVEL_1, material_id: MAT_1, lot_no: 'LOT-SYN-03', expires_on: '2027-03-31', is_expired: false, is_active: true }, 201);
     const d = await openLot();
     await fill(/lot number/i, 'LOT-SYN-03', d);
-    await fill(/expires on/i, '31/03/2027', d);
+    await fillExpires('31/03/2027', d);
     await user().click(within(d).getByRole('button', { name: /^save/i }));
     await waitFor(() => expect(callsTo('POST', LOTS)).toHaveLength(1));
     const c = callsTo('POST', LOTS)[0]!;
@@ -300,7 +305,7 @@ describe('drawer: levels and lots, add lot (#8, AC-01.2), deactivate (#5, AC-01.
   it.each([[' LOT-1'], ['LOT-1 '], ['LOTé'], ['LOT\t1']])('lot number %j is refused with the spec message; NO request (printable ASCII, no leading/trailing space)', async (bad) => {
     const d = await openLot();
     await fill(/lot number/i, bad, d);
-    await fill(/expires on/i, '31/03/2027', d);
+    await fillExpires('31/03/2027', d);
     await user().click(within(d).getByRole('button', { name: /^save/i }));
     expect(within(d).getByText('Use printable characters without spaces at the start or end.')).toBeTruthy();
     expect(callsTo('POST', LOTS)).toHaveLength(0);
@@ -310,7 +315,7 @@ describe('drawer: levels and lots, add lot (#8, AC-01.2), deactivate (#5, AC-01.
     const d = await openLot();
     expect(field(/lot number/i, d).maxLength).toBe(64);
     await fill(/lot number/i, 'LOT A 1', d);
-    await fill(/expires on/i, '31/03/2027', d);
+    await fillExpires('31/03/2027', d);
     await user().click(within(d).getByRole('button', { name: /^save/i }));
     await waitFor(() => expect(callsTo('POST', LOTS)).toHaveLength(1));
     expect(bodyOf(callsTo('POST', LOTS)[0]).lot_no).toBe('LOT A 1');
@@ -318,7 +323,7 @@ describe('drawer: levels and lots, add lot (#8, AC-01.2), deactivate (#5, AC-01.
   it('an expiry date in the past is refused in the form (min today); NO request (AC-01.2)', async () => {
     const d = await openLot();
     await fill(/lot number/i, 'LOT-SYN-03', d);
-    await fill(/expires on/i, '01/01/2020', d);
+    await fillExpires('01/01/2020', d);
     await user().click(within(d).getByRole('button', { name: /^save/i }));
     expect(callsTo('POST', LOTS)).toHaveLength(0);
     expect(within(d).getByText(/expiry date is in the past|on or after today/i)).toBeTruthy();
@@ -333,7 +338,7 @@ describe('drawer: levels and lots, add lot (#8, AC-01.2), deactivate (#5, AC-01.
     routes[`POST ${LOTS}`] = () => problem('quality.lot_expired', 422);
     const d = await openLot();
     await fill(/lot number/i, 'LOT-SYN-03', d);
-    await fill(/expires on/i, '31/03/2027', d);
+    await fillExpires('31/03/2027', d);
     await user().click(within(d).getByRole('button', { name: /^save/i }));
     await waitFor(() => expect(within(d).getByText('Expiry date is in the past.')).toBeTruthy());
   });
@@ -341,7 +346,7 @@ describe('drawer: levels and lots, add lot (#8, AC-01.2), deactivate (#5, AC-01.
     routes[`POST ${LOTS}`] = () => problem('quality.code_duplicate', 409);
     const d = await openLot();
     await fill(/lot number/i, 'LOT-SYN-01', d);
-    await fill(/expires on/i, '31/03/2027', d);
+    await fillExpires('31/03/2027', d);
     await user().click(within(d).getByRole('button', { name: /^save/i }));
     await waitFor(() => expect(within(d).getByText('This code is already used.')).toBeTruthy());
   });
@@ -350,7 +355,7 @@ describe('drawer: levels and lots, add lot (#8, AC-01.2), deactivate (#5, AC-01.
     await openDrawer();
     const u = user();
     await u.click(within(dlg()).getByRole('button', { name: /deactivate material/i }));
-    const confirm = screen.getAllByRole('alertdialog').at(-1) ?? dlg();
+    const confirm = screen.getAllByRole('dialog').at(-1) ?? dlg(); // LD-183: kit ConfirmDialog is role=dialog, opened last (04-UI-UX.md:71,:73)
     await u.click(within(confirm).getByRole('button', { name: /deactivate/i }));
     await waitFor(() => expect(callsTo('POST', `${POST_MAT}/${MAT_1}/deactivate`)).toHaveLength(1));
     const c = callsTo('POST', `${POST_MAT}/${MAT_1}/deactivate`)[0]!;
@@ -364,9 +369,17 @@ describe('drawer: levels and lots, add lot (#8, AC-01.2), deactivate (#5, AC-01.
     await openDrawer();
     const u = user();
     await u.click(within(dlg()).getByRole('button', { name: /deactivate material/i }));
-    await u.click(within(screen.getAllByRole('alertdialog').at(-1) ?? dlg()).getByRole('button', { name: /deactivate/i }));
+    await u.click(within(screen.getAllByRole('dialog').at(-1) ?? dlg()).getByRole('button', { name: /deactivate/i }));
     await waitFor(() => expect(pageText()).toMatch(/changed by someone else|reload|out of date|newer version/i));
   });
 });
+
+// LD-183: kit DatePicker adds a calendar button "Open calendar for Expires on" (DateFieldBase.tsx:120), so pick the textbox by role+name.
+async function fillExpires(text: string, root: HTMLElement) {
+  const el = within(root).getByRole('textbox', { name: /^expires on/i });
+  const u = user();
+  await u.clear(el);
+  await u.type(el, text);
+}
 
 function lotOk() { return { id: 'x', version: 1, level_id: LEVEL_1, material_id: MAT_1, lot_no: 'LOT A 1', expires_on: '2027-03-31', is_expired: false, is_active: true }; }

@@ -22,7 +22,8 @@ vi.mock('@/core/session/server', async () => (await import('./quality-t22.harnes
 const PAGE = 'setup/targets/page';
 const TARGETS = `${BASE}/qc-targets`;
 const OBSERVATIONS = `${BASE}/qc-observations`;
-const props = (plan: string | undefined = PLAN_1) => ({ searchParams: plan === undefined ? {} : { plan_id: plan } });
+// LD-183: null = no plan_id (an explicit value; undefined would trigger the PLAN_1 default)
+const props = (plan: string | null = PLAN_1) => ({ searchParams: plan === null ? {} : { plan_id: plan } });
 beforeAll(() => api.listen({ onUnhandledRequest: 'error' }));
 beforeEach(() => {
   resetApi(PERM_SETUP_WRITE);
@@ -54,7 +55,7 @@ describe('plan selection and access', () => {
     expect(calls).toHaveLength(0);
   });
   it('no plan_id: asks for a plan; NO targets request', async () => {
-    await show(PAGE, props(undefined));
+    await show(PAGE, props(null));
     expect(pageText()).toContain('Choose a plan to see its targets.');
     expect(callsTo('GET', TARGETS)).toHaveLength(0);
   });
@@ -64,7 +65,7 @@ describe('plan selection and access', () => {
     expect(callsTo('GET', TARGETS)).toHaveLength(0);
   });
   it('choosing a plan in the picker navigates to ?plan_id=<id>', async () => {
-    await show(PAGE, props(undefined));
+    await show(PAGE, props(null));
     const u = user();
     await u.click(screen.getByRole('combobox', { name: /plan/i }));
     await u.keyboard('GLU');
@@ -333,8 +334,8 @@ describe('activate (#23), retire (#24), discard (#25)', () => {
     await show(PAGE, props());
     const u = user();
     await u.click(within(row(1)).getByRole('button', { name: /^activate/i }));
-    expect(screen.getByRole('alertdialog').textContent).toContain('Activate this target from now? The current target for this lot will be superseded.');
-    await u.click(within(screen.getByRole('alertdialog')).getByRole('button', { name: /activate/i }));
+    expect(dlg().textContent).toContain('Activate this target from now? The current target for this lot will be superseded.');
+    await u.click(within(dlg()).getByRole('button', { name: /activate/i }));
     await waitFor(() => expect(callsTo('POST', `${TARGETS}/${TGT_2}/activate`)).toHaveLength(1));
     const c = callsTo('POST', `${TARGETS}/${TGT_2}/activate`)[0]!;
     expect(bodyOf(c)).toEqual({});
@@ -346,7 +347,7 @@ describe('activate (#23), retire (#24), discard (#25)', () => {
     await show(PAGE, props());
     const u = user();
     await u.click(within(row(1)).getByRole('button', { name: /^activate/i }));
-    await u.click(within(screen.getByRole('alertdialog')).getByRole('button', { name: /cancel/i }));
+    await u.click(within(dlg()).getByRole('button', { name: /cancel/i }));
     expect(calls.filter((c) => c.method === 'POST')).toHaveLength(0);
   });
   it('AC-04.6 409 common.immutable_record on activate/retire/discard is explained ("can no longer be changed"-style) and the table is refreshed', async () => {
@@ -354,7 +355,7 @@ describe('activate (#23), retire (#24), discard (#25)', () => {
     await show(PAGE, props());
     const u = user();
     await u.click(within(row(1)).getByRole('button', { name: /^activate/i }));
-    await u.click(within(screen.getByRole('alertdialog')).getByRole('button', { name: /activate/i }));
+    await u.click(within(dlg()).getByRole('button', { name: /activate/i }));
     await waitFor(() => expect(pageText()).toMatch(/no longer|already|cannot be changed|can't be changed|immutable/i));
   });
   it('Retire needs a reason (1–500): empty refused; then POST …/retire {reason} with If-Match "<version>"', async () => {
@@ -377,7 +378,7 @@ describe('activate (#23), retire (#24), discard (#25)', () => {
     await show(PAGE, props());
     const u = user();
     await u.click(within(row(1)).getByRole('button', { name: /^discard/i }));
-    await u.click(within(screen.getByRole('alertdialog')).getByRole('button', { name: /discard/i }));
+    await u.click(within(dlg()).getByRole('button', { name: /discard/i }));
     await waitFor(() => expect(callsTo('POST', `${TARGETS}/${TGT_2}/discard`)).toHaveLength(1));
     const c = callsTo('POST', `${TARGETS}/${TGT_2}/discard`)[0]!;
     expect(bodyOf(c)).toEqual({});
@@ -388,7 +389,7 @@ describe('activate (#23), retire (#24), discard (#25)', () => {
     await show(PAGE, props());
     const u = user();
     await u.click(within(row(1)).getByRole('button', { name: /^activate/i }));
-    await u.click(within(screen.getByRole('alertdialog')).getByRole('button', { name: /activate/i }));
+    await u.click(within(dlg()).getByRole('button', { name: /activate/i }));
     await waitFor(() => expect(pageText()).toMatch(/changed by someone else|reload|out of date|newer version/i));
   });
 });

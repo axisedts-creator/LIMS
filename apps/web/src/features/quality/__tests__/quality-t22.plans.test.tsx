@@ -232,7 +232,11 @@ describe('create plan: POST and validation (#15, AC-03.1, AC-03.4)', () => {
       await pickTarget();
       await composeRow(0, /Level 1/, 1);
       await composeRow(1, /Level 2/, 1);
-      await fill(/^count/i, bad);
+      // LD-183: one Count IntegerField per row (04-UI-UX.md:116); fill only the first row's
+      const count = within(anyDlg() ?? document.body).getAllByLabelText(/^count/i)[0] as HTMLInputElement;
+      const u = user();
+      await u.clear(count);
+      await u.type(count, bad);
       await save();
       expect(callsTo('POST', PLANS)).toHaveLength(0);
     }
@@ -371,7 +375,7 @@ describe('edit = new version (#17), activate (#18), deactivate (#19)', () => {
     await show(PAGE);
     const u = user();
     await u.click(within(row(1)).getByRole('button', { name: /^activate/i }));
-    const confirm = screen.queryByRole('alertdialog');
+    const confirm = anyDlg(); // LD-183: kit ConfirmDialog is role=dialog
     if (confirm) await u.click(within(confirm).getByRole('button', { name: /activate/i }));
     await waitFor(() => expect(callsTo('POST', `${PLANS}/${PLAN_2}/activate`)).toHaveLength(1));
     const c = callsTo('POST', `${PLANS}/${PLAN_2}/activate`)[0]!;
@@ -384,7 +388,7 @@ describe('edit = new version (#17), activate (#18), deactivate (#19)', () => {
     await show(PAGE);
     const u = user();
     await u.click(within(row(1)).getByRole('button', { name: /^activate/i }));
-    const confirm = screen.queryByRole('alertdialog');
+    const confirm = anyDlg();
     if (confirm) await u.click(within(confirm).getByRole('button', { name: /activate/i }));
     await waitFor(() => expect(pageText()).toContain('Add an active target for every level in the plan first.'));
     const link = screen.getAllByRole('link').find((a) => (a.getAttribute('href') ?? '').includes(`/quality/setup/targets?plan_id=${PLAN_2}`));

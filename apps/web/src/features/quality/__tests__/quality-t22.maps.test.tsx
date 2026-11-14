@@ -134,7 +134,12 @@ describe('create map (#12, AC-02.1)', () => {
   ])('%s is refused in the form, NO request', async (_n, v) => {
     await openNew();
     await fillMap('QC-L2');
-    await fill(/^control id/i, v);
+    // LD-183: Control id is native maxLength 64 (04-UI-UX.md:106), so the 65-char value is entered by paste
+    const el = field(/^control id/i);
+    expect(el.maxLength).toBe(64);
+    const u = user();
+    await u.clear(el);
+    if (v) { await u.click(el); await u.paste(v); }
     await save();
     expect(callsTo('POST', MAPS)).toHaveLength(0);
     if (v === '') expect(fieldError(field(/^control id/i))).toBe(true);
@@ -234,7 +239,7 @@ describe('deactivate (#13)', () => {
     await show(PAGE);
     const u = user();
     await u.click(within(within(gridNamed(/maps/i)).getAllByRole('row')[1]!).getByRole('button', { name: /deactivate/i }));
-    await u.click(within(screen.getByRole('alertdialog')).getByRole('button', { name: /deactivate/i }));
+    await u.click(within(dlg()).getByRole('button', { name: /deactivate/i }));
     await waitFor(() => expect(callsTo('POST', `${MAPS}/${MAP_1}/deactivate`)).toHaveLength(1));
     const c = callsTo('POST', `${MAPS}/${MAP_1}/deactivate`)[0]!;
     expect(bodyOf(c)).toEqual({});
@@ -246,7 +251,7 @@ describe('deactivate (#13)', () => {
     await show(PAGE);
     const u = user();
     await u.click(within(within(gridNamed(/maps/i)).getAllByRole('row')[1]!).getByRole('button', { name: /deactivate/i }));
-    await u.click(within(screen.getByRole('alertdialog')).getByRole('button', { name: /cancel/i }));
+    await u.click(within(dlg()).getByRole('button', { name: /cancel/i }));
     expect(calls.filter((c) => c.method === 'POST')).toHaveLength(0);
   });
   it('an inactive map shows the word "Inactive" and offers no Deactivate', async () => {

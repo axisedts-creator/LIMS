@@ -177,7 +177,7 @@ describe('ranges are enforced before anything is sent (TRD §11.2)', () => {
     for (const bad of [lo, hi]) {
       await fill(f(label), bad);
       await submit(f(label));
-      await waitFor(() => expect(document.body.textContent).toMatch(/between|at least|at most|must be|invalid|required|too/i));
+      await waitFor(() => expect(document.body.textContent).toMatch(/between|at least|at most|must be|invalid|required|too/i), { timeout: 10000 });
       expect(puts(), `${label} = ${bad}`).toHaveLength(0);
     }
   });
@@ -246,8 +246,11 @@ describe('payment methods (D-128: only C4\'s six seed codes; 1..10; each code at
     await view();
     await userEvent.click(within(rows()[2]!).getByRole('button', { name: /code|method/i })); // esewa -> cash
     await userEvent.click(await screen.findByRole('option', { name: 'Cash' }));
+    // LD-171: wait for the popover to close and row 3 to show Cash before submitting (slow jsdom renders).
+    await waitFor(() => expect(screen.queryByRole('listbox')).toBeNull(), { timeout: 10000 });
+    await waitFor(() => expect(within(rows()[2]!).getByRole('button', { name: /code|method/i }).textContent).toMatch(/cash/i), { timeout: 10000 });
     await submit(f(/^sync interval/i));
-    await waitFor(() => expect(document.body.textContent).toMatch(/once|duplicate|already|unique/i));
+    await waitFor(() => expect(document.body.textContent).toMatch(/once|duplicate|already|unique/i), { timeout: 10000 });
     expect(puts()).toHaveLength(0);
   });
   it('an unknown code in stored data is not silently submitted as another code (no PUT until fixed)', async () => {

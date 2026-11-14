@@ -3,5 +3,5 @@
 - [CONV] one new opt-in bool `HL7AckFullForm` (§7 literal has none; zero value = today's ACK, so H80E and all other profiles are unchanged). Tester assumed this; no CR raised.
 - [CONV] full ACK: MSH-3/4 default LIS/LIMS (U3, overridable via Config.AckSendingApp/Facility), MSH-5/6 blank, MSH-10 = original's id, MSH-16 echoed, MSH-18 always UTF8; failed commit = `AR`, "Application internal error", 207. In e2e_main the LIMS-BRIDGE app name is dropped for this form.
 - U7 `ReplyTimeout` 10 s is a profile default; U3 names, U8 (no MSH-10 de-dup in the agent) stay configurable/unassumed. Nothing else from U1-U15 is hard-coded.
-- OPEN: `TestH80E_OtherProfilesKeepTodaysBehaviour` fails by design (asserts ExpectAckOnReply=false for every non-H80E profile); see MET-T01-dispute.md, lead must allow a one-line skip in that test.
+- Resolved: H80E skip-list test fixed per MET-T01-ruling.md (tester, 242d3e6b). drivers/mllp/simulator/hl7 all green (go test -count=1 ./..., 2026-11-14). Unrelated reds outside owned paths: config canonical fixture byte-compare (CRLF checkout?), svc ACL test (local Windows env); filedrop/status/update timing flakes pass on rerun.
 - Not done here: server driver, g_drivers row (CR-C7-020), web preset (MET-T02..T05).

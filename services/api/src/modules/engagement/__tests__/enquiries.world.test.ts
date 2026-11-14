@@ -39,6 +39,19 @@ describe('enquiries world', () => {
     expect(await fails(q(w, 'patient', 'INSERT INTO engagement.notifications (id, tenant_id, account_id, kind, created_by, expires_at) VALUES ($1,$2,$3,$4,$5,$6)', [EQ(41), w.tables['enquiries']![0]!['tenant_id'], ACC1, 'enquiry_reply', MEMBERSHIP[ACC1], NOW]))).toBe('42501');
   });
 
+  it('LD-180: a direct staff INSERT into notifications is STILL refused (42501, 05-SCHEMA line 1347); app.enqueue_job is recorded and de-duplicated on identifier + job_key, and can be made to fail', async () => {
+    const w = makeWorld();
+    const tenant = w.tables['enquiries']![0]!['tenant_id'];
+    expect(await fails(q(w, 'staff', 'INSERT INTO engagement.notifications (id, tenant_id, account_id, kind, created_by, expires_at) VALUES ($1,$2,$3,$4,$5,$6)', [EQ(42), tenant, ACC1, 'enquiry_reply', MEMBERSHIP[ACC1], NOW]))).toBe('42501');
+    expect(w.tables['notifications']).toEqual([]);
+    const enq = (key: string) => q(w, 'staff', 'SELECT app.enqueue_job($1, $2::jsonb, $3)', ['engagement.x', JSON.stringify({ a: 1 }), key]);
+    await enq('k1'); await enq('k1'); await enq('k2');
+    expect(w.jobs.map((j) => [j.identifier, j.jobKey, j.payload, j.tenant])).toEqual([['engagement.x', 'k1', { a: 1 }, tenant], ['engagement.x', 'k2', { a: 1 }, tenant]]);
+    w.jobFault.on = true;
+    expect(await fails(enq('k3'))).toBe('42501');
+    expect(w.jobs).toHaveLength(2);
+  });
+
   it('UPDATE: PAT_ACC cannot touch another account\'s row; messages are append-only; version + 1 works', async () => {
     const w = makeWorld();
     expect((await q(w, 'patient', 'UPDATE engagement.enquiries SET version = version + 1 WHERE id = $1', [EQ(4)])).rowCount).toBe(0);

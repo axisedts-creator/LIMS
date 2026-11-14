@@ -324,6 +324,7 @@ export async function signAddendum(hctx: unknown, params: unknown, headers: unkn
   const priorSubs = await listItemSubmissions(c.tx, { tenantId: c.tenantId, caseId: cs['id'] });
   const summaryText = summarise(prior ? `${String(prior['impression_text'])}\n\n${String(a['text'])}`.trim() : String(a['text'])); // [CONV] C5 summary = impression + addendum (add-on: addendum)
   const outs: { it: Row; v: number; key: string; out: Awaited<ReturnType<SignCtx['ports']['LabPort']['submitModuleResult']>> }[] = [];
+  const metrics = (hctx as { metrics?: { inc?(n: string, l?: object): void } }).metrics;
   for (const it of targets) {
     const v = 1 + priorSubs.filter((s) => s['case_item_id'] === it['id']).reduce((m, s) => Math.max(m, Number(s['item_version_no'])), 0);
     const key = `anatomic:${String(it['id'])}:${v}`;
@@ -337,7 +338,9 @@ export async function signAddendum(hctx: unknown, params: unknown, headers: unkn
     try {
       outs.push({ it, v, key, out: await c.ports.LabPort.submitModuleResult(c, input) });
     } catch (e) {
-      throw portError(e);
+      const pe = portError(e);
+      if (pe instanceof LimsError) metrics?.inc?.('lims_anatomic_submit_failures_total', { error_code: pe.code }); // code only, never a message
+      throw pe;
     }
   }
 
@@ -365,6 +368,7 @@ export async function signAddendum(hctx: unknown, params: unknown, headers: unkn
   if (!updated) throw new LimsError('common.version_conflict');
 
   await c.audit.access({ action: 'anatomic_report.sign_out', entityType: 'anatomic_case', entityId: cs['id'], centreId: cs['centre_id'], outcome: 'allowed', detail: { version_no: n } }); // REQ-SEC-096/097
+  metrics?.inc?.('lims_anatomic_signouts_total', { version_kind: 'addendum' }); // 02-TRD §12
 
   const caseBody = caseDto(updated, parts);
   caseBody['current_version_no'] = n;

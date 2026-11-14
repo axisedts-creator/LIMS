@@ -137,6 +137,14 @@ const DEFS = {
   lims_partners_access_slip_issue_seconds: ['histogram', [], 'Partner access slip issue duration in seconds'],
   lims_partners_pickups_total: ['counter', ['transition'], 'Partner pickup transitions by transition'],
   lims_partners_partner_inactive_rejections_total: ['counter', [], 'Requests rejected because the partner is inactive'],
+  // C11 anatomic (02-TRD §12; LD-181 / CR-C11-T24). No tenant_id label: REQ-SEC-098 keeps ids out of labels.
+  lims_anatomic_cases_created_total: ['counter', ['case_kind'], 'Anatomic cases created by case kind'],
+  lims_anatomic_consumer_ignored_total: ['counter', ['reason'], 'Anatomic event-consumer messages ignored by reason'],
+  lims_anatomic_signouts_total: ['counter', ['version_kind'], 'Anatomic sign-outs by report version kind'],
+  lims_anatomic_submit_failures_total: ['counter', ['error_code'], 'Anatomic submit failures by error code'],
+  lims_anatomic_image_processing_total: ['counter', ['outcome'], 'Anatomic image processing by outcome'],
+  lims_anatomic_image_processing_seconds: ['histogram', [], 'Anatomic image processing duration in seconds'],
+  lims_anatomic_lookup_total: ['counter', ['result'], 'Anatomic lookups by result'],
 } as const satisfies Record<string, readonly [Kind, readonly string[], string]>;
 
 export type MetricName = keyof typeof DEFS;

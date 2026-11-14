@@ -14,6 +14,7 @@ import { myBookingHandlers } from './mybooking.handlers.js';
 import { notificationHandlers } from './notification.handlers.js';
 import { ordersHandlers } from './orders.handlers.js';
 import { paymentHandlers } from './payment.handlers.js';
+import { profileHandlers } from './profile.handlers.js';
 import { queueHandlers } from './queue.handlers.js';
 import { reportHandlers } from './report.handlers.js';
 import { reminderHandlers } from './reminder.handlers.js';
@@ -65,4 +66,5 @@ export const handlers: Readonly<Record<(typeof OPERATION_IDS)[number], Handler>>
   ...reportHandlers, // T-P3: E22, E23
   ...myBookingHandlers, // T-BK1: E30-E40
   ...paymentHandlers, // T-PAY1: E41, E42
+  ...profileHandlers, // T-SEC1 ruling: E13, E18, E19 (R4 is in reminderHandlers)
 });

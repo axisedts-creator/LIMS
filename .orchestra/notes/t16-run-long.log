@@ -1,0 +1,307 @@
+[core] WARNING: Executable file detection not yet supported on 'win32'.
+Schema updated
+psql:/repo/db/migrations/20261105001300_identity__create_identity_schema.sql:7: NOTICE:  schema "identity" already exists, skipping
+psql:/repo/db/migrations/20261105001500_catalog__create_catalog_schema.sql:10: NOTICE:  schema "catalog" already exists, skipping
+psql:/repo/db/migrations/20261105001600_frontdesk__create_frontdesk_schema.sql:7: NOTICE:  schema "frontdesk" already exists, skipping
+psql:/repo/db/migrations/20261105001700_billing__create_billing_schema.sql:7: NOTICE:  schema "billing" already exists, skipping
+psql:/repo/db/migrations/20261105001800_lab__create_lab_schema.sql:10: NOTICE:  schema "lab" already exists, skipping
+psql:/repo/db/migrations/20261105001900_reporting__create_reporting_schema.sql:145: NOTICE:  identifier "message_template_texts__tenant_id_template_code_channel_language__uq" will be truncated to "message_template_texts__tenant_id_template_code_channel_languag"
+psql:/repo/db/migrations/20261105001900_reporting__create_reporting_schema.sql:177: NOTICE:  identifier "report_template_versions__tenant_id_template_id__published__p_uq" will be truncated to "report_template_versions__tenant_id_template_id__published__p_u"
+psql:/repo/db/migrations/20261105001900_reporting__create_reporting_schema.sql:443: NOTICE:  identifier "deliveries__tenant_id_channel_account_id_provider_message_id__p_uq" will be truncated to "deliveries__tenant_id_channel_account_id_provider_message_id__p"
+psql:/repo/db/migrations/20261105001900_reporting__create_reporting_schema.sql:682: NOTICE:  identifier "narrative_versions__tenant_id_narrative_report_id_version_no__uq" will be truncated to "narrative_versions__tenant_id_narrative_report_id_version_no__u"
+inventory DDL: extracted from spec 05-SCHEMA §8 (+ §4 RLS/grants)
+                                                       set_config                                                        
+-------------------------------------------------------------------------------------------------------------------------
+ {"tenant_id":"01a1a98a-ac40-7000-8000-00000000a001","sub":"01a1b34e-1000-7eee-9d29-d7ca59a102b5","actor_type":"system"}
+(1 row)
+
+                                                       set_config                                                        
+-------------------------------------------------------------------------------------------------------------------------
+ {"tenant_id":"01a1a98a-ac40-7000-8000-00000000b001","sub":"01a1b34e-1000-7eee-9d29-d7ca59a102b5","actor_type":"system"}
+(1 row)
+
+ set_config 
+------------
+ 
+(1 row)
+
+
+ RUN  v5.1.0 C:/LIMS-lanes/C12/services/worker
+
+ ✓ src/jobs/inventory/consumers/__tests__/lab.result.verified.v1.test.ts > T-16 harness > the migrated database is provided (fails, never skips, under LIMS_C12T03_REQUIRE_DB=1) 6ms
+ ✓ src/jobs/inventory/consumers/__tests__/lab.result.verified.v1.test.ts > T-16 wiring and data minimisation > the consumer file exports onResultVerified and the manifest subscribes THAT function (not the T-01 stub) 2995ms
+ ✓ src/jobs/inventory/consumers/__tests__/lab.result.verified.v1.test.ts > T-16 wiring and data minimisation > D-EVT: the source never names P2/P3 fields or fields C12 does not use (specimen_id, verified_by_membership_id) and never touches event_inbox (the C0 wrapper owns it) 3ms
+ × src/jobs/inventory/consumers/__tests__/lab.result.verified.v1.test.ts > T-16 AC-12.1 per-test consumption (IC §3.9 example payload) > rule (per_test, GLU, I1, item, 1) + I1 bound to S1 + switch on: ONE consume_test movement of -1 in S1, attributed to the test and instrument; the fact carries the event facts; counters written 1120ms
+   → expected [] to have a length of 1 but got +0
+ ✓ src/jobs/inventory/consumers/__tests__/lab.result.verified.v1.test.ts > T-16 AC-12.1 per-test consumption (IC §3.9 example payload) > business date = the occurrence time in the TENANT timezone (UTC 17:59:59 -> 23:44:59 same day, UTC 18:15:00 -> next day) 276ms
+ ✓ src/jobs/inventory/consumers/__tests__/lab.result.verified.v1.test.ts > T-16 AC-12.1 per-test consumption (IC §3.9 example payload) > the fact is INSERTed with its FINAL status (no UPDATE of status), ON CONFLICT DO NOTHING on (tenant, basis_key); only a same-status value_paisa_total UPDATE follows; counters are upserts 146ms
+ ✓ src/jobs/inventory/consumers/__tests__/lab.result.verified.v1.test.ts > T-16 AC-12.1 per-test consumption (IC §3.9 example payload) > extra fields (sample_barcode, value_numeric, specimen_id, unknown) are tolerated, never stored and never logged (LT-1) 163ms
+ ✓ src/jobs/inventory/consumers/__tests__/lab.result.verified.v1.test.ts > T-16 AC-12.1 per-test consumption (IC §3.9 example payload) > absent optional fields (no instrument_id, no processing_branch_id, no specimen_id, mode auto without verified_by) are tolerated: only store resolution changes (default store step 5) 226ms
+ ✓ src/jobs/inventory/consumers/__tests__/lab.result.verified.v1.test.ts > T-16 AC-12.1 per-test consumption (IC §3.9 example payload) > a missing required field (test_id) rejects BEFORE any write (the job retries / dead-letters) 115ms
+ ✓ src/jobs/inventory/consumers/__tests__/lab.result.verified.v1.test.ts > T-16 AC-12.1 per-test consumption (IC §3.9 example payload) > a missing required field (order_item_id) rejects BEFORE any write (the job retries / dead-letters) 98ms
+ ✓ src/jobs/inventory/consumers/__tests__/lab.result.verified.v1.test.ts > T-16 AC-12.1 per-test consumption (IC §3.9 example payload) > a missing required field (result_id) rejects BEFORE any write (the job retries / dead-letters) 94ms
+ ✓ src/jobs/inventory/consumers/__tests__/lab.result.verified.v1.test.ts > T-16 AC-12.1 per-test consumption (IC §3.9 example payload) > a missing required field (verified_at) rejects BEFORE any write (the job retries / dead-letters) 156ms
+ ✓ src/jobs/inventory/consumers/__tests__/lab.result.verified.v1.test.ts > T-16 AC-12.1 per-test consumption (IC §3.9 example payload) > a malformed verified_at rejects before any write 473ms
+ ✓ src/jobs/inventory/consumers/__tests__/lab.result.verified.v1.test.ts > T-16 AC-12.1 per-test consumption (IC §3.9 example payload) > P-T6: an envelope of tenant B delivered to tenant A's context writes nothing in tenant A 206ms
+ × src/jobs/inventory/consumers/__tests__/lab.result.verified.v1.test.ts > T-16 AC-12.2 facts (a) test and (b) analyte are independent > CBC, 20 analyte events, a per_analyte rule on every analyte: 20 consume_analyte + 1 consume_test; per-test rules deduct ONCE per (order item, test) 4700ms
+   → expected [] to have a length of 1 but got +0
+ × src/jobs/inventory/consumers/__tests__/lab.result.verified.v1.test.ts > T-16 AC-12.2 facts (a) test and (b) analyte are independent > the arrival order does not matter: the analyte events in REVERSE order give the same 20 + 1 3130ms
+   → expected [] to have a length of 1 but got +0
+ × src/jobs/inventory/consumers/__tests__/lab.result.verified.v1.test.ts > T-16 AC-12.2 facts (a) test and (b) analyte are independent > fact (b) is attempted although fact (a) already exists: second analyte event of the same order item inserts ONLY the analyte fact (+1 consume_analyte, no second consume_test) 275ms
+   → expected [] to have a length of 1 but got +0
+ × src/jobs/inventory/consumers/__tests__/lab.result.verified.v1.test.ts > T-16 AC-12.2 facts (a) test and (b) analyte are independent > analyte event with no per_analyte rule for (test, analyte): no analyte fact; the event counter still counts it 231ms
+   → bind message supplies 4 parameters, but prepared statement "" requires 3
+ ✓ src/jobs/inventory/consumers/__tests__/lab.result.verified.v1.test.ts > T-16 AC-12.3 in-use lot, else FEFO > open container of LL2 on I1 for the item: consumption is taken from LL2 although LL1 expires earlier 156ms
+ × src/jobs/inventory/consumers/__tests__/lab.result.verified.v1.test.ts > T-16 AC-12.3 in-use lot, else FEFO > no open container for the instrument (I2): the FEFO lot (LL1, earliest expiry) is used 173ms
+   → expected { kind: 'consume_test', …(12) } to match object { Object (lot_id) }
+(12 matching properties omitted from actual)
+ × src/jobs/inventory/consumers/__tests__/lab.result.verified.v1.test.ts > T-16 AC-12.4 duplicate delivery and re-verification > a LATER re-verification of the same result (new event id, result_version_no 2) never deducts twice; the event counter counts both verifications (D-73) 323ms
+   → expected [] to have a length of 1 but got +0
+ ✓ src/jobs/inventory/consumers/__tests__/lab.result.verified.v1.test.ts > T-16 AC-12.4 duplicate delivery and re-verification > through the REAL C0 wrapper core/consumer.ts consumerRun (inbox + core.event_log + envelope validation) > the same event delivered twice, and twice at once: one fact, one movement, one inbox row, the event counter once 1730ms
+ ✓ src/jobs/inventory/consumers/__tests__/lab.result.verified.v1.test.ts > T-16 AC-12.4 duplicate delivery and re-verification > through the REAL C0 wrapper core/consumer.ts consumerRun (inbox + core.event_log + envelope validation) > a handler failure rolls the inbox row back with it (the retry re-processes); an envelope that violates its schema is rejected 25ms
+ × src/jobs/inventory/consumers/__tests__/lab.result.verified.v1.test.ts > T-16 AC-12.5 consumption switch; event counter while off (D-73) > consumption_enabled_at NULL: no fact, no movement, no fact-level counter - but the event counter row is created on first use and counts every event (re-verifications too) 37ms
+   → bind message supplies 3 parameters, but prepared statement "" requires 2
+ × src/jobs/inventory/consumers/__tests__/lab.result.verified.v1.test.ts > T-16 AC-12.5 consumption switch; event counter while off (D-73) > verified_at < consumption_enabled_at: ignored (counter only); verified_at == consumption_enabled_at: processed (the enable instant is exact) 35ms
+   → expected undefined to match object { tests_counted: +0, …(1) }
+ ✓ src/jobs/inventory/consumers/__tests__/lab.result.verified.v1.test.ts > T-16 AC-12.5 consumption switch; event counter while off (D-73) > enabling takes effect instantly for the NEXT event; events skipped earlier are never back-filled 484ms
+ × src/jobs/inventory/consumers/__tests__/lab.result.verified.v1.test.ts > T-16 AC-12.5 consumption switch; event counter while off (D-73) > a skipped event in the future of the enable instant for a test with NO rule is still just a counter write while off (no no_rule fact) 83ms
+   → bind message supplies 3 parameters, but prepared statement "" requires 2
+ × src/jobs/inventory/consumers/__tests__/lab.result.verified.v1.test.ts > T-16 AC-12.6 instrument-specific rule overrides the generic rule > event from I1 (specific rule qty 3): only the specific rule; event from I2 (other instrument): the generic rule (qty 1); no instrument: generic only 603ms
+   → expected +0 to be 3 // Object.is equality
+ ✓ src/jobs/inventory/consumers/__tests__/lab.result.verified.v1.test.ts > T-16 AC-12.7 no rule: a no_rule test fact is still recorded > no rule for the test: fact test/no_rule, no store, no movement, no alert; tests_counted and verified_result_events both 1; the analyte fact is not attempted 57ms
+ ✓ src/jobs/inventory/consumers/__tests__/lab.result.verified.v1.test.ts > T-16 AC-12.7 no rule: a no_rule test fact is still recorded > a rule that starts AFTER the occurrence time (rules are not retroactive, §8.3) gives no_rule; no store is needed so no unresolved alert 47ms
+ ✓ src/jobs/inventory/consumers/__tests__/lab.result.verified.v1.test.ts > T-16 AC-12.7 no rule: a no_rule test fact is still recorded > re-verification of a no_rule result adds no second fact but counts as an event 87ms
+ ✓ src/jobs/inventory/consumers/__tests__/lab.result.verified.v1.test.ts > T-16 AC-12.9 no store: an unresolved fact + an unresolved_consumption alert; the job never fails > rules matched, no instrument binding / no default store: fact unresolved (inserted as unresolved), no movement, one open alert unresolved:none (dedupe counts occurrences); balances untouched 208ms
+ × src/jobs/inventory/consumers/__tests__/lab.result.verified.v1.test.ts > T-16 AC-12.9 no store: an unresolved fact + an unresolved_consumption alert; the job never fails > an instrument WITH a binding is never unresolved; the alert key names the instrument when it is known (unresolved:<instrument_id>) 136ms
+   → operator does not exist: text = uuid
+ ✓ src/jobs/inventory/consumers/__tests__/lab.result.verified.v1.test.ts > T-16 concurrency: analyte events of one order item in parallel > 20 concurrent analyte events (CBC-like, committed): exactly 1 consume_test + 20 consume_analyte, exact balances, tests_counted 1, verified_result_events 20; every event succeeds within the retry budget 5412ms
+ ✓ src/jobs/inventory/consumers/__tests__/lab.result.verified.v1.test.ts > T-16 concurrency: analyte events of one order item in parallel > two events for the SAME (order item, test) racing, plus the same analyte event twice by different event ids: one test fact, one analyte fact, one deduction each 510ms
+
+⎯⎯⎯⎯⎯⎯ Failed Tests 12 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/jobs/inventory/consumers/__tests__/lab.result.verified.v1.test.ts > T-16 AC-12.1 per-test consumption (IC §3.9 example payload) > rule (per_test, GLU, I1, item, 1) + I1 bound to S1 + switch on: ONE consume_test movement of -1 in S1, attributed to the test and instrument; the fact carries the event facts; counters written
+AssertionError: expected [] to have a length of 1 but got +0
+
+- Expected
++ Received
+
+- 1
++ 0
+
+ ❯ src/jobs/inventory/consumers/__tests__/lab.result.verified.v1.test.ts:216:43
+    214|     expect(n(ms[0].q)).toBe(-1); expect(new Date(ms[0].occurred_at).to…
+    215|     expect(n(f.value_paisa_total)).toBe(n(ms[0].v)); expect(await bala…
+    216|     expect(await movesForTest(s, TG, t0)).toHaveLength(1);
+       |                                           ^
+    217|     expect(await counts(s, TG, I1)).toMatchObject({ tests_counted: 1, …
+    218|   });
+ ❯ session src/jobs/inventory/consumers/__tests__/lab.result.verified.v1.test.ts:154:131
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/12]⎯
+
+ FAIL  src/jobs/inventory/consumers/__tests__/lab.result.verified.v1.test.ts > T-16 AC-12.2 facts (a) test and (b) analyte are independent > CBC, 20 analyte events, a per_analyte rule on every analyte: 20 consume_analyte + 1 consume_test; per-test rules deduct ONCE per (order item, test)
+AssertionError: expected [] to have a length of 1 but got +0
+
+- Expected
++ Received
+
+- 1
++ 0
+
+ ❯ src/jobs/inventory/consumers/__tests__/lab.result.verified.v1.test.ts:267:101
+
+ ❯ session src/jobs/inventory/consumers/__tests__/lab.result.verified.v1.test.ts:154:131
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/12]⎯
+
+ FAIL  src/jobs/inventory/consumers/__tests__/lab.result.verified.v1.test.ts > T-16 AC-12.2 facts (a) test and (b) analyte are independent > the arrival order does not matter: the analyte events in REVERSE order give the same 20 + 1
+AssertionError: expected [] to have a length of 1 but got +0
+
+- Expected
++ Received
+
+- 1
++ 0
+
+ ❯ src/jobs/inventory/consumers/__tests__/lab.result.verified.v1.test.ts:275:101
+    273|     await enable(s, ENABLED); const t0 = await startedAt(s); const oi …
+    274|     for (const e of cbcEvents(oi).reverse()) await deliver(s, e);
+    275|     const ms = await movesForTest(s, TCBC, t0); expect(ms.filter((m) =…
+       |                                                                                                     ^
+    276|   });
+    277|   run('fact (b) is attempted although fact (a) already exists: second …
+ ❯ session src/jobs/inventory/consumers/__tests__/lab.result.verified.v1.test.ts:154:131
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/12]⎯
+
+ FAIL  src/jobs/inventory/consumers/__tests__/lab.result.verified.v1.test.ts > T-16 AC-12.2 facts (a) test and (b) analyte are independent > fact (b) is attempted although fact (a) already exists: second analyte event of the same order item inserts ONLY the analyte fact (+1 consume_analyte, no second consume_test)
+AssertionError: expected [] to have a length of 1 but got +0
+
+- Expected
++ Received
+
+- 1
++ 0
+
+ ❯ src/jobs/inventory/consumers/__tests__/lab.result.verified.v1.test.ts:280:58
+
+ ❯ session src/jobs/inventory/consumers/__tests__/lab.result.verified.v1.test.ts:154:131
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/12]⎯
+
+ FAIL  src/jobs/inventory/consumers/__tests__/lab.result.verified.v1.test.ts > T-16 AC-12.2 facts (a) test and (b) analyte are independent > analyte event with no per_analyte rule for (test, analyte): no analyte fact; the event counter still counts it
+error: bind message supplies 4 parameters, but prepared statement "" requires 3
+ ❯ ../../node_modules/.pnpm/pg@8.23.1/node_modules/pg/lib/client.js:694:17
+ ❯ Object.sql src/jobs/inventory/consumers/__tests__/lab.result.verified.v1.test.ts:138:120
+    136|   const s: Sess = {
+    137|     client, log, logs,
+    138|     async sql(text, v) { await client.query("SELECT set_config('reques…
+       |                                                                                                                        ^
+    139|     async ctx(tenant = A) {
+    140|       const { createCoreRepo } = await import('../../../../../../api/s…
+ ❯ count src/jobs/inventory/consumers/__tests__/lab.result.verified.v1.test.ts:184:87
+ ❯ src/jobs/inventory/consumers/__tests__/lab.result.verified.v1.test.ts:287:12
+ ❯ session src/jobs/inventory/consumers/__tests__/lab.result.verified.v1.test.ts:154:131
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯
+Serialized Error: { length: 137, severity: 'ERROR', code: '08P01', detail: undefined, hint: undefined, position: undefined, internalPosition: undefined, internalQuery: undefined, where: undefined, schema: undefined, table: undefined, dataType: undefined, constraint: undefined, file: 'postgres.c', routine: 'exec_bind_message' }
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/12]⎯
+
+ FAIL  src/jobs/inventory/consumers/__tests__/lab.result.verified.v1.test.ts > T-16 AC-12.3 in-use lot, else FEFO > no open container for the instrument (I2): the FEFO lot (LL1, earliest expiry) is used
+AssertionError: expected { kind: 'consume_test', …(12) } to match object { Object (lot_id) }
+(12 matching properties omitted from actual)
+
+- Expected
++ Received
+
+  {
+-   "lot_id": "0190c514-0000-7000-8000-000000017501",
++   "lot_id": "0190c514-0000-7000-8000-000000017502",
+  }
+
+ ❯ src/jobs/inventory/consumers/__tests__/lab.result.verified.v1.test.ts:303:139
+
+ ❯ session src/jobs/inventory/consumers/__tests__/lab.result.verified.v1.test.ts:154:131
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/12]⎯
+
+ FAIL  src/jobs/inventory/consumers/__tests__/lab.result.verified.v1.test.ts > T-16 AC-12.4 duplicate delivery and re-verification > a LATER re-verification of the same result (new event id, result_version_no 2) never deducts twice; the event counter counts both verifications (D-73)
+AssertionError: expected [] to have a length of 1 but got +0
+
+- Expected
++ Received
+
+- 1
++ 0
+
+ ❯ src/jobs/inventory/consumers/__tests__/lab.result.verified.v1.test.ts:312:99
+    310|     await enable(s, ENABLED); const t0 = await startedAt(s); const p =…
+    311|     await deliver(s, envelope(p)); await deliver(s, envelope({ ...p, r…
+    312|     const ms = await movesForTest(s, TI, t0); expect(ms.filter((m) => …
+       |                                                                                                   ^
+    313|     expect(await factsOf(s, `test:${p['order_item_id']}:%`)).toHaveLen…
+    314|     expect(await counts(s, TI, I1)).toMatchObject({ tests_counted: 1, …
+ ❯ session src/jobs/inventory/consumers/__tests__/lab.result.verified.v1.test.ts:154:131
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/12]⎯
+
+ FAIL  src/jobs/inventory/consumers/__tests__/lab.result.verified.v1.test.ts > T-16 AC-12.5 consumption switch; event counter while off (D-73) > consumption_enabled_at NULL: no fact, no movement, no fact-level counter - but the event counter row is created on first use and counts every event (re-verifications too)
+error: bind message supplies 3 parameters, but prepared statement "" requires 2
+ ❯ ../../node_modules/.pnpm/pg@8.23.1/node_modules/pg/lib/client.js:694:17
+ ❯ Object.sql src/jobs/inventory/consumers/__tests__/lab.result.verified.v1.test.ts:138:120
+    136|   const s: Sess = {
+    137|     client, log, logs,
+    138|     async sql(text, v) { await client.query("SELECT set_config('reques…
+       |                                                                                                                        ^
+    139|     async ctx(tenant = A) {
+    140|       const { createCoreRepo } = await import('../../../../../../api/s…
+ ❯ count src/jobs/inventory/consumers/__tests__/lab.result.verified.v1.test.ts:184:87
+ ❯ nothingButCounter src/jobs/inventory/consumers/__tests__/lab.result.verified.v1.test.ts:355:77
+ ❯ src/jobs/inventory/consumers/__tests__/lab.result.verified.v1.test.ts:360:80
+ ❯ session src/jobs/inventory/consumers/__tests__/lab.result.verified.v1.test.ts:154:131
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯
+Serialized Error: { length: 137, severity: 'ERROR', code: '08P01', detail: undefined, hint: undefined, position: undefined, internalPosition: undefined, internalQuery: undefined, where: undefined, schema: undefined, table: undefined, dataType: undefined, constraint: undefined, file: 'postgres.c', routine: 'exec_bind_message' }
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[8/12]⎯
+
+ FAIL  src/jobs/inventory/consumers/__tests__/lab.result.verified.v1.test.ts > T-16 AC-12.5 consumption switch; event counter while off (D-73) > verified_at < consumption_enabled_at: ignored (counter only); verified_at == consumption_enabled_at: processed (the enable instant is exact)
+AssertionError: expected undefined to match object { tests_counted: +0, …(1) }
+
+- Expected:
+{
+  "tests_counted": 0,
+  "verified_result_events": 1,
+}
+
++ Received:
+undefined
+
+ ❯ src/jobs/inventory/consumers/__tests__/lab.result.verified.v1.test.ts:366:121
+
+ ❯ session src/jobs/inventory/consumers/__tests__/lab.result.verified.v1.test.ts:154:131
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[9/12]⎯
+
+ FAIL  src/jobs/inventory/consumers/__tests__/lab.result.verified.v1.test.ts > T-16 AC-12.5 consumption switch; event counter while off (D-73) > a skipped event in the future of the enable instant for a test with NO rule is still just a counter write while off (no no_rule fact)
+error: bind message supplies 3 parameters, but prepared statement "" requires 2
+ ❯ ../../node_modules/.pnpm/pg@8.23.1/node_modules/pg/lib/client.js:694:17
+ ❯ Object.sql src/jobs/inventory/consumers/__tests__/lab.result.verified.v1.test.ts:138:120
+    136|   const s: Sess = {
+    137|     client, log, logs,
+    138|     async sql(text, v) { await client.query("SELECT set_config('reques…
+       |                                                                                                                        ^
+    139|     async ctx(tenant = A) {
+    140|       const { createCoreRepo } = await import('../../../../../../api/s…
+ ❯ count src/jobs/inventory/consumers/__tests__/lab.result.verified.v1.test.ts:184:87
+ ❯ nothingButCounter src/jobs/inventory/consumers/__tests__/lab.result.verified.v1.test.ts:355:77
+ ❯ src/jobs/inventory/consumers/__tests__/lab.result.verified.v1.test.ts:376:116
+ ❯ session src/jobs/inventory/consumers/__tests__/lab.result.verified.v1.test.ts:154:131
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯
+Serialized Error: { length: 137, severity: 'ERROR', code: '08P01', detail: undefined, hint: undefined, position: undefined, internalPosition: undefined, internalQuery: undefined, where: undefined, schema: undefined, table: undefined, dataType: undefined, constraint: undefined, file: 'postgres.c', routine: 'exec_bind_message' }
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[10/12]⎯
+
+ FAIL  src/jobs/inventory/consumers/__tests__/lab.result.verified.v1.test.ts > T-16 AC-12.6 instrument-specific rule overrides the generic rule > event from I1 (specific rule qty 3): only the specific rule; event from I2 (other instrument): the generic rule (qty 1); no instrument: generic only
+AssertionError: expected +0 to be 3 // Object.is equality
+
+- Expected
++ Received
+
+- 3
++ 0
+
+ ❯ src/jobs/inventory/consumers/__tests__/lab.result.verified.v1.test.ts:390:52
+    388|     expect(r1.rules).toBe(1); expect(r1.ms).toHaveLength(1); expect(n(…
+    389|     for (const r of [r2, r3]) { expect(r.rules).toBe(1); expect(r.ms).…
+    390|     expect((await movesForTest(s, TS, t0)).length).toBe(3);
+       |                                                    ^
+    391|   });
+    392| });
+ ❯ session src/jobs/inventory/consumers/__tests__/lab.result.verified.v1.test.ts:154:131
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[11/12]⎯
+
+ FAIL  src/jobs/inventory/consumers/__tests__/lab.result.verified.v1.test.ts > T-16 AC-12.9 no store: an unresolved fact + an unresolved_consumption alert; the job never fails > an instrument WITH a binding is never unresolved; the alert key names the instrument when it is known (unresolved:<instrument_id>)
+error: operator does not exist: text = uuid
+ ❯ ../../node_modules/.pnpm/pg@8.23.1/node_modules/pg/lib/client.js:694:17
+ ❯ Object.sql src/jobs/inventory/consumers/__tests__/lab.result.verified.v1.test.ts:138:120
+    136|   const s: Sess = {
+    137|     client, log, logs,
+    138|     async sql(text, v) { await client.query("SELECT set_config('reques…
+       |                                                                                                                        ^
+    139|     async ctx(tenant = A) {
+    140|       const { createCoreRepo } = await import('../../../../../../api/s…
+ ❯ count src/jobs/inventory/consumers/__tests__/lab.result.verified.v1.test.ts:184:87
+ ❯ src/jobs/inventory/consumers/__tests__/lab.result.verified.v1.test.ts:430:12
+ ❯ session src/jobs/inventory/consumers/__tests__/lab.result.verified.v1.test.ts:154:131
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯
+Serialized Error: { length: 197, severity: 'ERROR', code: '42883', detail: undefined, hint: 'No operator matches the given name and argument types. You might need to add explicit type casts.', position: '122', internalPosition: undefined, internalQuery: undefined, where: undefined, schema: undefined, table: undefined, dataType: undefined, constraint: undefined, file: 'parse_oper.c', routine: 'op_error' }
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[12/12]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  12 failed | 23 passed (35)
+   Start at  18:50:24
+   Duration  29.16s (tests 94%, import 5%, transform 1%)
+

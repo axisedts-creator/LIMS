@@ -3,6 +3,7 @@
 import { useId, useState, type FormEvent } from 'react';
 import { Banner } from '@lims/ui/components/Banner';
 import { Button } from '@lims/ui/components/Button';
+import { RequiredNote } from '../ui';
 import { PasswordField } from './PasswordField';
 import { EMAIL_RE, errorCopy, type ActionResult } from './messages';
 
@@ -61,6 +62,7 @@ export function LoginForm({ action, loggedOut, mfaFailed, next }: LoginFormProps
           <label className="lims-label" htmlFor={`${id}-email`}>
             Email
           </label>
+          <RequiredNote />
           <input
             id={`${id}-email`}
             className="lims-input"

@@ -61,7 +61,7 @@ NEXT_CONFIG = ROOT / "apps" / "web" / "next.config.mjs"
 
 
 def read(path):
-    return Path(path).read_text(encoding="utf-8")
+    return Path(path).read_text(encoding="utf-8", errors="replace")
 
 
 def pnpm_version():
@@ -73,6 +73,32 @@ def pnpm_version():
 
 def git(*args, cwd=ROOT):
     return subprocess.run(["git", *args], cwd=cwd, capture_output=True, text=True, check=False)
+
+
+REGISTER_REL = "tools/node-ts/register.mjs"                      # repo-relative (LD-179 (1))
+REGISTER_IN_IMAGE = "/app/tools/node-ts/register.mjs"             # LD-179 (2): same repo-relative path under /app
+
+
+def final_copies_register_dir(items):
+    """True if the final stage puts tools/node-ts (or tools) at /app/tools/node-ts (or /app/tools). Tracks WORKDIR."""
+    wd = "/"
+    for _, kw, rest in items:
+        if kw == "WORKDIR":
+            wd = rest if rest.startswith("/") else wd.rstrip("/") + "/" + rest
+        if kw != "COPY":
+            continue
+        _, srcs, dst = copy_parts(rest)
+        if not dst:
+            continue
+        d = dst[0].strip("\"'")
+        d = (d if d.startswith("/") else wd.rstrip("/") + "/" + (d[2:] if d.startswith("./") else d)).rstrip("/")
+        for src in srcs:
+            s = src.strip("\"'")
+            s = s[len("/app/"):] if s.startswith("/app/") else (s[2:] if s.startswith("./") else s)
+            s = s.rstrip("/")
+            if (s == "tools/node-ts" and d == "/app/tools/node-ts") or (s == "tools" and d == "/app/tools"):
+                return True
+    return False
 
 
 # ---------------------------------------------------------------- Dockerfile validator
@@ -219,10 +245,22 @@ def check_dockerfile(text, kind, pm_version):
     # kind specific
     final_text = " ".join(cmd_text(r) for _, kw, r in fin["items"] if kw in ("CMD", "ENTRYPOINT"))
     if kind in ("api", "worker"):
-        if not re.search(r"\bnode\b.*\bsrc/main\.ts\b", final_text):
-            e.append(f"CMD/ENTRYPOINT must run node src/main.ts, got {final_text!r}")
-        if re.search(r"\b(tsx|ts-node|nodemon)\b", final_text):
-            e.append("API/worker have no build step: no tsx/ts-node")
+        # LD-179 (4): node's built-in type stripping + the in-repo resolver hook; exec-form CMD, service folder as cwd.
+        if final_text != f"node --import {REGISTER_IN_IMAGE} src/main.ts":
+            e.append(f"CMD must be exactly: node --import {REGISTER_IN_IMAGE} src/main.ts (exec form), got {final_text!r}")
+        if not re.search(r"(?m)^\s*CMD\s*\[", text):
+            e.append("CMD must be in exec form (JSON array)")
+        wd = "/"
+        for _, kw, rest in fin["items"]:
+            if kw == "WORKDIR":
+                wd = rest if rest.startswith("/") else wd.rstrip("/") + "/" + rest
+        if wd.rstrip("/") != f"/app/services/{kind}":
+            e.append(f"final WORKDIR must be /app/services/{kind} (the service folder is the cwd of CMD), got {wd!r}")
+        if not final_copies_register_dir(fin["items"]):
+            e.append("final stage must copy tools/node-ts to /app/tools/node-ts (LD-179 (2))")
+    for no, kw, rest in instr:
+        if re.search(r"(?<![\w@/.-])(tsx|esbuild|ts-node|swc)(?![\w-])|@swc[/-]", rest):
+            e.append(f"line {no}: {kw} names a transpiler/loader package (tsx, esbuild, ts-node, swc are forbidden by LD-179)")
     exposes = [r for _, kw, r in fin["items"] if kw == "EXPOSE"]
     if kind == "api" and not any(re.search(r"(^|\s)8080(/tcp)?(\s|$)", x) for x in exposes):
         e.append("API image must EXPOSE 8080")
@@ -263,7 +301,49 @@ def check_dockerignore(text):
     for need in NEEDED_BY_BUILD:
         if need in norm or "/" + need in norm:
             e.append(f"ignores a path the build needs: {need}")
+    if dockerignore_ignores(text, REGISTER_REL):
+        e.append(f"ignores a path the build needs: {REGISTER_REL} (tools/node-ts is copied into the image, LD-179)")
     return e
+
+
+def _ignore_regex(pat):
+    """Docker .dockerignore pattern (Go filepath.Match + ** + leading/trailing slash rules) -> compiled regex."""
+    pat = pat.strip().lstrip("/").rstrip("/")
+    out, i = "", 0
+    while i < len(pat):
+        if pat.startswith("**/", i):
+            out += "(?:.*/)?"
+            i += 3
+        elif pat.startswith("**", i):
+            out += ".*"
+            i += 2
+        elif pat[i] == "*":
+            out += "[^/]*"
+            i += 1
+        elif pat[i] == "?":
+            out += "[^/]"
+            i += 1
+        else:
+            out += re.escape(pat[i])
+            i += 1
+    return re.compile("^" + out + "$")
+
+
+def dockerignore_ignores(text, path):
+    """True if `path` (repo-relative, forward slashes) is excluded from the build context by the .dockerignore text.
+    A path is excluded when it or any parent directory matches an exclusion not later re-included."""
+    parts = path.split("/")
+    prefixes = ["/".join(parts[: i + 1]) for i in range(len(parts))]
+    ignored = False
+    for ln in text.splitlines():
+        ln = ln.strip()
+        if not ln or ln.startswith("#"):
+            continue
+        neg = ln.startswith("!")
+        rx = _ignore_regex(ln[1:] if neg else ln)
+        if any(rx.match(p) for p in prefixes):
+            ignored = not neg
+    return ignored
 
 
 # ---------------------------------------------------------------- .env.example validator
@@ -564,12 +644,14 @@ FROM ${{NODE_BASE_IMAGE}} AS final
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY services/api/src ./src
-USER 10001:10001
 """
+    run = "COPY tools/node-ts ./tools/node-ts\nWORKDIR /app/services/%s\nUSER 10001:10001\n"
+    cmd = 'CMD ["node", "--import", "/app/tools/node-ts/register.mjs", "src/main.ts"]\n'
     if kind == "api":
-        return base + 'EXPOSE 8080\nCMD ["node", "src/main.ts"]\n'
+        return base + run % "api" + "EXPOSE 8080\n" + cmd
     if kind == "worker":
-        return base + 'CMD ["node", "src/main.ts"]\n'
+        return base + run % "worker" + cmd
+    base += "USER 10001:10001\n"
     return base + '# Web listens on port 3000.\nEXPOSE 3000\nCMD ["pnpm", "--dir", "apps/web", "exec", "next", "start", "-p", "3000"]\n'
 
 
@@ -615,6 +697,193 @@ GOOD_RENDER_NAMES = {"LIMS_CORE_ENV", "LIMS_CORE_DB_POOL_MAX", "LIMS_CORE_DATABA
 
 GOOD_IGNORE = "\n".join([".git", ".orchestra", "spec", "**/node_modules", "**/.next", "test-results", ".tmp", ".env*",
                          "*.pem", "*.key", "*.age", ""])
+
+
+# ================================================================ LD-179 validators (run TS source with node + hook)
+FORBIDDEN_PKGS = {"tsx", "esbuild", "ts-node", "swc", "sucrase", "@swc/core", "@swc-node/register", "@esbuild-kit/cjs-loader",
+                  "@esbuild-kit/esm-loader", "ts-node-dev", "tsm", "jiti"}
+PKG_SECTIONS = ("dependencies", "devDependencies", "optionalDependencies", "peerDependencies")
+REGISTER = ROOT / "tools" / "node-ts" / "register.mjs"
+SERVICES = ROOT / "services"
+
+
+def check_package_ld179(pkg_text, svc, lock_text=None):
+    """svc: api | worker. Scripts carry --import <rel path to register.mjs>; no transpiler package anywhere in package.json
+    or in the services/<svc> importer of pnpm-lock.yaml (LD-179 (2), (4))."""
+    e = []
+    pkg = json.loads(pkg_text)
+    scripts = pkg.get("scripts", {})
+    entry = {"api": "src/modules/identity/cli/bootstrap-platform-admin.ts", "worker": "src/core/replay.ts"}[svc]
+    cli = {"api": "identity:bootstrap-platform-admin", "worker": "worker:replay"}[svc]
+    want = {"start": "src/main.ts", cli: entry}
+    svc_dir = SERVICES / svc
+    for name, target in want.items():
+        s = scripts.get(name)
+        m = re.fullmatch(r"node --import (\S+) (\S+)", s or "")
+        if not m:
+            e.append(f"script {name!r} must be 'node --import <path to register.mjs> {target}', got {s!r}")
+            continue
+        if m.group(2) != target:
+            e.append(f"script {name!r} must run {target}, got {m.group(2)!r}")
+        rel = m.group(1)
+        if rel.startswith("/") or re.match(r"[A-Za-z]:", rel) or rel.startswith("file:"):
+            e.append(f"script {name!r}: --import path must be repo-relative, got {rel!r}")
+        elif (svc_dir / rel).resolve() != REGISTER.resolve():
+            e.append(f"script {name!r}: --import {rel} from services/{svc} does not resolve to {REGISTER_REL}")
+    for sec in PKG_SECTIONS:
+        for name in pkg.get(sec, {}):
+            if name in FORBIDDEN_PKGS:
+                e.append(f"{sec} of services/{svc} lists {name} (transpiler/loader packages forbidden, LD-179)")
+    if lock_text is not None:
+        m = re.search(rf"^  services/{svc}:\n(.*?)(?=^  \S|\Z)", lock_text, re.S | re.M)
+        if not m:
+            e.append(f"pnpm-lock.yaml has no services/{svc} importer")
+        else:
+            for name in FORBIDDEN_PKGS:
+                if re.search(rf"^      '?{re.escape(name)}'?:\n", m.group(1), re.M):
+                    e.append(f"pnpm-lock.yaml importer services/{svc} lists {name}")
+    return e
+
+
+def check_tsconfig_erasable(text):
+    m = re.search(r'"compilerOptions"\s*:\s*\{(.*?)\n  \}', text, re.S)
+    body = m.group(1) if m else ""
+    if not re.search(r'"erasableSyntaxOnly"\s*:\s*true\b', body):
+        return ['compilerOptions must set "erasableSyntaxOnly": true']
+    return []
+
+
+# register.mjs: ONE dependency-free resolver hook, no eval / network / file reads / env (LD-179 (1)).
+HOOK_BANNED = [
+    (r"\beval\s*\(", "eval"), (r"\bnew\s+Function\b", "new Function"), (r"\bFunction\s*\(", "Function()"),
+    (r"\bfetch\s*\(", "fetch"), (r"\bXMLHttpRequest\b|\bWebSocket\b", "network"),
+    (r"\bprocess\.env\b", "process.env"), (r"\bchild_process\b|\bspawn\b|\bexecSync\b|\bexecFile\b", "child_process"),
+    (r"\breadFile(Sync)?\b|\bwriteFile(Sync)?\b|\bcreateReadStream\b|\bopenSync\b|\breaddirSync\b|\bfs\.promises\b|\bappendFile",
+     "file read/write"),
+    (r"\bvm\b|\bnode:vm\b|\bWebAssembly\b", "vm/wasm"), (r"\bimport\s*\(", "dynamic import"),
+]
+
+
+def check_hook_source(text):
+    e = []
+    code = re.sub(r"//[^\n]*|/\*.*?\*/", "", text, flags=re.S)
+    if not re.search(r"\bregisterHooks\s*\(", code):
+        e.append("register.mjs must call module.registerHooks")
+    if not re.search(r"\bexistsSync\b", code):
+        e.append("register.mjs must use fs.existsSync")
+    for rx, what in HOOK_BANNED:
+        if re.search(rx, code):
+            e.append(f"register.mjs uses {what}")
+    for spec in re.findall(r"""(?m)^\s*import\b[^'"\n;]*?from\s*['"]([^'"]+)['"]|^\s*import\s*['"]([^'"]+)['"]""", code):
+        mod = spec[0] or spec[1]
+        if not mod.startswith("node:") or mod not in ("node:module", "node:fs", "node:url"):
+            e.append(f"register.mjs imports {mod!r}; only node:module, node:fs, node:url allowed (dependency-free)")
+    if re.search(r"\brequire\s*\(", code):
+        e.append("register.mjs must not require()")
+    if not re.search(r"not a (transpiler|compiler)", text, re.I):
+        e.append("a comment must say this hook is not a transpiler")
+    if not re.search(r"(?i)\bmaps? no\b[^\n]*\.js[^\n]*\.ts", "\n".join(re.findall(r"//[^\n]*|/\*.*?\*/", text, re.S))):
+        e.append("a comment must say why: Node maps no .js specifier to .ts")
+    if len(text.splitlines()) > 80:
+        e.append("hook must stay small (<= 80 lines)")
+    return e
+
+
+# ---- erasable syntax scan: parameter properties, enum, namespace, import x = require, export = (LD-179 (3))
+def _strip_ts(src):
+    """Blank out comments and string/template contents (keeps offsets and newlines)."""
+    out, i, n = [], 0, len(src)
+    while i < n:
+        c = src[i]
+        two = src[i:i + 2]
+        if two == "//":
+            j = src.find("\n", i)
+            j = n if j < 0 else j
+            out.append(" " * (j - i)); i = j
+        elif two == "/*":
+            j = src.find("*/", i + 2)
+            j = n if j < 0 else j + 2
+            out.append(re.sub(r"[^\n]", " ", src[i:j])); i = j
+        elif c in "'\"`":
+            j = i + 1
+            while j < n and src[j] != c:
+                j += 2 if src[j] == "\\" else 1
+                if c != "`" and j < n and src[j] == "\n":
+                    break
+            j = min(j + 1, n)
+            out.append(c + re.sub(r"[^\n]", " ", src[i + 1:j - 1]) + (c if j - 1 > i else ""))
+            i = j
+        else:
+            out.append(c); i += 1
+    return "".join(out)
+
+
+def _split_top(params):
+    parts, depth, cur = [], 0, ""
+    for ch in params:
+        if ch in "([{<":
+            depth += 1
+        elif ch in ")]}>":
+            depth -= 1 if not (ch == ">" and cur.endswith("=")) else 0
+        if ch == "," and depth == 0:
+            parts.append(cur); cur = ""
+        else:
+            cur += ch
+    if cur.strip():
+        parts.append(cur)
+    return parts
+
+
+PARAM_PROP_RE = re.compile(r"^\s*(?:@\w+\s+)*(?:(?:public|private|protected|readonly|override)\s+)+[\w$\[{]")
+
+
+def erasable_violations(src):
+    """-> list of (line, what). Syntax Node's type stripping cannot run (and tsc erasableSyntaxOnly rejects)."""
+    if not re.search(r"constructor|\benum\b|\bnamespace\b|\bmodule\s+[\w$.]+\s*\{|^\s*(export\s+)?import\s+(type\s+)?[\w$]+\s*=|^\s*export\s*=", src, re.M):
+        return []                 # cheap prefilter: nothing that could match
+    code = _strip_ts(src)
+    hits = []
+    line = lambda pos: code.count("\n", 0, pos) + 1
+    for m in re.finditer(r"(?<![\w$.])constructor\s*\(", code):
+        i, depth = m.end(), 1
+        while i < len(code) and depth:
+            depth += {"(": 1, ")": -1}.get(code[i], 0)
+            i += 1
+        for p in _split_top(code[m.end():i - 1]):
+            if PARAM_PROP_RE.match(p):
+                hits.append((line(m.start()), "parameter property"))
+                break
+    for m in re.finditer(r"(?m)^[ \t]*(?:export\s+)?(?:declare\s+)?(?:const\s+)?enum\s+[\w$]+", code):
+        hits.append((line(m.start()), "enum"))
+    for m in re.finditer(r"(?m)^[ \t]*(?:export\s+)?(declare\s+)?(?:namespace|module)\s+[\w$.]+\s*\{", code):
+        if not m.group(1):      # `declare namespace` is erased; a runtime namespace is not
+            hits.append((line(m.start()), "namespace"))
+    for m in re.finditer(r"(?m)^[ \t]*(?:export\s+)?import\s+(?:type\s+)?[\w$]+\s*=", code):
+        hits.append((line(m.start()), "import x = ..."))
+    for m in re.finditer(r"(?m)^[ \t]*export\s*=", code):
+        hits.append((line(m.start()), "export ="))
+    return sorted(set(hits))
+
+
+def runtime_ts_files(src_dir):
+    """Every .ts under src_dir that node would load: all but __tests__ trees, *.test.ts / *.spec.ts."""
+    out = []
+    for p in sorted(Path(src_dir).rglob("*.ts")):
+        rel = p.relative_to(src_dir).parts
+        if "__tests__" in rel or "node_modules" in rel or re.search(r"\.(test|spec)\.ts$", p.name):
+            continue
+        out.append(p)
+    return out
+
+
+LD179_TEN_FILES = [
+    "services/api/src/core/errors.ts", "services/api/src/core/pipeline/index.ts",
+    "services/api/src/modules/identity/gotrue/gateway.ts", "services/api/src/modules/inventory/handlers/index.ts",
+    "services/api/src/modules/quality/domain/tat-clock.ts",
+    "services/api/src/modules/reporting/delivery/adapters/email.smtp-relay.ts",
+    "services/worker/src/jobs/analytics/tasks/build_export.ts", "services/worker/src/jobs/billing/tasks/export_render.ts",
+    "services/worker/src/jobs/catalog/xlsx/XlsxReader.ts", "services/worker/src/jobs/reporting/tasks/render_report_version.ts",
+]
 
 
 # ================================================================ REAL FILE TESTS
@@ -771,11 +1040,35 @@ class PlantedDockerfileFailures(unittest.TestCase):
     def test_api_expose_wrong_port(self):
         self.rej("api", lambda t: t.replace("EXPOSE 8080", "EXPOSE 3000"), "EXPOSE 8080")
 
-    def test_api_cmd_not_main_ts(self):
-        self.rej("api", lambda t: t.replace('"node", "src/main.ts"', '"npm", "start"'), "src/main.ts")
+    REG = '"node", "--import", "/app/tools/node-ts/register.mjs", "src/main.ts"'
 
-    def test_worker_cmd_uses_tsx(self):
-        self.rej("worker", lambda t: t.replace('"node", "src/main.ts"', '"node", "src/main.ts", "tsx"'), "tsx")
+    def test_api_cmd_not_main_ts(self):
+        self.rej("api", lambda t: t.replace(self.REG, '"npm", "start"'), "CMD must be exactly")
+
+    def test_cmd_without_import_flag_old_form(self):
+        self.rej("api", lambda t: t.replace(self.REG, '"node", "src/main.ts"'), "CMD must be exactly")
+        self.rej("worker", lambda t: t.replace(self.REG, '"node", "src/main.ts"'), "CMD must be exactly")
+
+    def test_cmd_wrong_register_path(self):
+        self.rej("api", lambda t: t.replace("/app/tools/node-ts/register.mjs", "/app/register.mjs"), "CMD must be exactly")
+
+    def test_cmd_shell_form(self):
+        self.rej("api", lambda t: t.replace("CMD [" + self.REG + "]", "CMD node --import /app/tools/node-ts/register.mjs src/main.ts"), "exec form")
+
+    def test_cmd_uses_tsx(self):
+        self.rej("worker", lambda t: t.replace(self.REG, '"tsx", "src/main.ts"'), "CMD must be exactly")
+
+    def test_transpiler_install_in_any_stage(self):
+        for pkg in ("tsx", "esbuild", "ts-node", "swc", "@swc/core"):
+            self.rej("api", lambda t, pkg=pkg: t + f"RUN npm install -g {pkg}\n", "transpiler")
+
+    def test_final_workdir_not_service_folder(self):
+        self.rej("api", lambda t: t.replace("WORKDIR /app/services/api", "WORKDIR /app"), "final WORKDIR")
+        self.rej("worker", lambda t: t.replace("WORKDIR /app/services/worker", "WORKDIR /app/services/api"), "final WORKDIR")
+
+    def test_tools_not_copied_into_image(self):
+        self.rej("api", lambda t: t.replace("COPY tools/node-ts ./tools/node-ts\n", ""), "tools/node-ts")
+        self.rej("worker", lambda t: t.replace("./tools/node-ts", "./elsewhere"), "tools/node-ts")
 
     def test_no_tmp_comment(self):
         self.rej("api", lambda t: t.replace("# Read-only root filesystem (REQ-SEC-130). The only writable paths are /tmp (scratch) and /tmp/next-cache.\n", ""), "/tmp")
@@ -819,6 +1112,18 @@ class PlantedDockerignoreFailures(unittest.TestCase):
 
     def test_ignores_build_input(self):
         self.assertTrue(_has(check_dockerignore(GOOD_IGNORE + "pnpm-lock.yaml\n"), "build needs"))
+
+    def test_ignores_tools_node_ts_in_any_spelling(self):
+        for pat in ("tools", "tools/", "/tools", "tools/node-ts", "tools/*", "tools/**", "**/node-ts",
+                    "**/*.mjs", "tools/node-ts/register.mjs", "tools/node-ts/*.mjs"):
+            self.assertTrue(_has(check_dockerignore(GOOD_IGNORE + pat + "\n"), "node-ts"), pat)
+
+    def test_tools_re_included_is_fine(self):
+        self.assertEqual(check_dockerignore(GOOD_IGNORE + "tools\n!tools/node-ts\n"), [])
+        self.assertEqual(check_dockerignore(GOOD_IGNORE + "tools/*\n!tools/node-ts\n"), [])
+
+    def test_unrelated_tools_subdirs_may_be_ignored(self):
+        self.assertEqual(check_dockerignore(GOOD_IGNORE + "tools/codegen\ntools/devstack\n"), [])
 
 
 class PlantedEnvExampleFailures(unittest.TestCase):
@@ -1006,6 +1311,180 @@ class PlantedAnswersFailures(unittest.TestCase):
 
     def test_guessed_answers_without_citations(self):
         self.assertTrue(_has(check_answers("Supabase supplies the JWT. " + " ".join(ANSWER_TOKENS)), "citations"))
+
+
+# ================================================================ LD-179 REAL FILE TESTS
+class RealLd179(unittest.TestCase):
+    def test_register_hook_file(self):
+        self.assertTrue(REGISTER.is_file(), f"{REGISTER_REL} does not exist")
+        errs = check_hook_source(read(REGISTER))
+        self.assertEqual(errs, [], "\n".join(errs))
+
+    def test_api_package_scripts_and_no_transpiler(self):
+        errs = check_package_ld179(read(SERVICES / "api" / "package.json"), "api", read(ROOT / "pnpm-lock.yaml"))
+        self.assertEqual(errs, [], "\n".join(errs))
+
+    def test_worker_package_scripts_and_no_transpiler(self):
+        errs = check_package_ld179(read(SERVICES / "worker" / "package.json"), "worker", read(ROOT / "pnpm-lock.yaml"))
+        self.assertEqual(errs, [], "\n".join(errs))
+
+    def test_tsconfigs_erasable_syntax_only(self):
+        for svc in ("api", "worker"):
+            errs = check_tsconfig_erasable(read(SERVICES / svc / "tsconfig.json"))
+            self.assertEqual(errs, [], f"services/{svc}/tsconfig.json: {errs}")
+
+    def test_the_ten_named_files_are_erasable(self):
+        bad = []
+        for rel in LD179_TEN_FILES:
+            self.assertTrue((ROOT / rel).is_file(), rel)
+            bad += [f"{rel}:{ln} {what}" for ln, what in erasable_violations(read(ROOT / rel))]
+        self.assertEqual(bad, [], "\n".join(bad))
+
+    def test_no_runtime_source_uses_non_erasable_syntax(self):
+        bad = []
+        for d in (SERVICES / "api" / "src", SERVICES / "worker" / "src", ROOT / "packages" / "shared-ts" / "src"):
+            for p in runtime_ts_files(d):
+                bad += [f"{p.relative_to(ROOT).as_posix()}:{ln} {what}" for ln, what in erasable_violations(read(p))]
+        self.assertEqual(bad, [], "\n".join(bad))
+
+    def test_boot_smoke_tests_exist(self):
+        for rel in ("services/api/src/__tests__/boot-smoke.test.ts", "services/worker/src/core/__tests__/boot-smoke.test.ts"):
+            self.assertTrue((ROOT / rel).is_file(), rel)
+
+
+# ================================================================ LD-179 SELF-TESTS + PLANTED FAILURES
+GOOD_HOOK = """// Node maps no `.js` specifier to a `.ts` file, so `import './x.js'` from a .ts module fails when only x.ts exists.
+// This hook retries such a specifier as `.ts`. It is not a transpiler: Node strips the types itself.
+import { registerHooks } from 'node:module';
+import { existsSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+
+registerHooks({
+  resolve(specifier, context, nextResolve) {
+    if (/^\\.\\.?\\//.test(specifier) && specifier.endsWith('.js') && context.parentURL?.startsWith('file:') && context.parentURL.endsWith('.ts')) {
+      const js = new URL(specifier, context.parentURL);
+      const ts = new URL(specifier.slice(0, -3) + '.ts', context.parentURL);
+      if (!existsSync(fileURLToPath(js)) && existsSync(fileURLToPath(ts))) return nextResolve(ts.href, context);
+    }
+    return nextResolve(specifier, context);
+  },
+});
+"""
+GOOD_API_PKG = json.dumps({"scripts": {
+    "start": "node --import ../../tools/node-ts/register.mjs src/main.ts",
+    "identity:bootstrap-platform-admin": "node --import ../../tools/node-ts/register.mjs src/modules/identity/cli/bootstrap-platform-admin.ts"},
+    "dependencies": {"fastify": "5.12.8", "pg": "8.23.1"}, "devDependencies": {"typescript": "7.0.2"}})
+GOOD_WORKER_PKG = json.dumps({"scripts": {
+    "start": "node --import ../../tools/node-ts/register.mjs src/main.ts",
+    "worker:replay": "node --import ../../tools/node-ts/register.mjs src/core/replay.ts"},
+    "dependencies": {"ajv": "8.17.1"}, "devDependencies": {"vitest": "5.1.0"}})
+GOOD_LOCK_LD179 = "importers:\n\n  services/api:\n    dependencies:\n      fastify:\n        specifier: 5.12.8\n\n  services/worker:\n    dependencies:\n      ajv:\n        specifier: 8.17.1\n"
+
+
+class LD179Planted(unittest.TestCase):
+    def test_good_samples_pass(self):
+        self.assertEqual(check_hook_source(GOOD_HOOK), [])
+        self.assertEqual(check_package_ld179(GOOD_API_PKG, "api", GOOD_LOCK_LD179), [])
+        self.assertEqual(check_package_ld179(GOOD_WORKER_PKG, "worker", GOOD_LOCK_LD179), [])
+
+    def test_scripts_old_form_rejected(self):
+        for svc, pkg, name in (("api", GOOD_API_PKG, "start"), ("worker", GOOD_WORKER_PKG, "start"),
+                               ("api", GOOD_API_PKG, "identity:bootstrap-platform-admin"), ("worker", GOOD_WORKER_PKG, "worker:replay")):
+            d = json.loads(pkg)
+            d["scripts"][name] = d["scripts"][name].replace("--import ../../tools/node-ts/register.mjs ", "")
+            self.assertTrue(_has(check_package_ld179(json.dumps(d), svc), "must be 'node --import"), (svc, name))
+
+    def test_scripts_wrong_or_absolute_import_path(self):
+        d = json.loads(GOOD_API_PKG)
+        d["scripts"]["start"] = "node --import ../tools/node-ts/register.mjs src/main.ts"
+        self.assertTrue(_has(check_package_ld179(json.dumps(d), "api"), "does not resolve"))
+        d["scripts"]["start"] = "node --import /app/tools/node-ts/register.mjs src/main.ts"
+        self.assertTrue(_has(check_package_ld179(json.dumps(d), "api"), "repo-relative"))
+
+    def test_scripts_wrong_entry(self):
+        d = json.loads(GOOD_WORKER_PKG)
+        d["scripts"]["worker:replay"] = "node --import ../../tools/node-ts/register.mjs src/main.ts"
+        self.assertTrue(_has(check_package_ld179(json.dumps(d), "worker"), "must run src/core/replay.ts"))
+
+    def test_transpiler_dependency_rejected(self):
+        for pkgname in sorted(FORBIDDEN_PKGS):
+            for sec in ("dependencies", "devDependencies"):
+                d = json.loads(GOOD_API_PKG)
+                d[sec][pkgname] = "1.0.0"
+                self.assertTrue(_has(check_package_ld179(json.dumps(d), "api"), pkgname), (pkgname, sec))
+
+    def test_transpiler_in_lock_importer_rejected(self):
+        bad = GOOD_LOCK_LD179.replace("      fastify:", "      tsx:\n        specifier: 4.0.0\n      fastify:")
+        self.assertTrue(_has(check_package_ld179(GOOD_API_PKG, "api", bad), "lists tsx"))
+        bad = GOOD_LOCK_LD179.replace("      ajv:", "      '@swc/core':\n        specifier: 1.0.0\n      ajv:")
+        self.assertTrue(_has(check_package_ld179(GOOD_WORKER_PKG, "worker", bad), "@swc/core"))
+
+    def test_tsconfig_erasable(self):
+        good = '{\n  "extends": "../../tsconfig.base.json",\n  "compilerOptions": {\n    "noEmit": true,\n    "erasableSyntaxOnly": true\n  },\n  "include": ["src"]\n}'
+        self.assertEqual(check_tsconfig_erasable(good), [])
+        self.assertTrue(check_tsconfig_erasable(good.replace("true\n  }", "false\n  }").replace('"erasableSyntaxOnly": true', '"erasableSyntaxOnly": false')))
+        self.assertTrue(check_tsconfig_erasable(good.replace(',\n    "erasableSyntaxOnly": true', "")))
+
+    def test_hook_must_stay_dependency_free_and_simple(self):
+        bad = {
+            "eval": GOOD_HOOK + "eval('1');\n",
+            "file read": GOOD_HOOK + "import { readFileSync } from 'node:fs';\nreadFileSync('x');\n",
+            "fetch": GOOD_HOOK + "await fetch('http://x');\n",
+            "process.env": GOOD_HOOK + "const x = process.env.A;\n",
+            "child_process": GOOD_HOOK + "import { spawn } from 'node:child_process';\n",
+            "dynamic import": GOOD_HOOK + "await import('x');\n",
+            "only node:module, node:fs": GOOD_HOOK.replace("import { fileURLToPath } from 'node:url';", "import ts from 'typescript';"),
+            "registerHooks": GOOD_HOOK.replace("registerHooks(", "register("),
+            "existsSync": GOOD_HOOK.replace("existsSync", "statSync"),
+            "not a transpiler": GOOD_HOOK.replace("It is not a transpiler: ", ""),
+            "Node maps no .js": GOOD_HOOK.replace("Node maps no `.js` specifier to a `.ts` file", "Hook"),
+            "<= 80 lines": GOOD_HOOK + "\n" * 90,
+        }
+        for needle, text in bad.items():
+            self.assertTrue(_has(check_hook_source(text), needle), (needle, check_hook_source(text)))
+
+
+class ErasableScannerSelfTest(unittest.TestCase):
+    def hits(self, src):
+        return [w for _, w in erasable_violations(src)]
+
+    def test_parameter_properties_found(self):
+        for src in ("class A { constructor(public x: string) {} }",
+                    "class A { constructor(private readonly x: number, y: number) {} }",
+                    "class A { constructor(y: number,\n    protected z = (1 + 2)) { super(); } }",
+                    "class A { constructor(readonly x: Map<string, number>) {} }",
+                    "class A { constructor(override x: string) {} }"):
+            self.assertEqual(self.hits(src), ["parameter property"], src)
+
+    def test_plain_constructors_not_flagged(self):
+        for src in ("class A { constructor(x: string, readonly: boolean) {} }",
+                    "class A { readonly x: string; constructor(x: string) { this.x = x; } }",
+                    "class A { constructor(opts: { readonly a: string; private?: number }) {} }",
+                    "class A { constructor(cb: (public_: string) => void) {} }",
+                    "// constructor(public x: string)\nconst s = 'constructor(private y: number)';",
+                    "class A { constructor() { this.constructor(1); } }"):
+            self.assertEqual(self.hits(src), [], src)
+
+    def test_enum_namespace_import_equals_found(self):
+        self.assertEqual(self.hits("enum Color { Red }"), ["enum"])
+        self.assertEqual(self.hits("export const enum K { A = 1 }"), ["enum"])
+        self.assertEqual(self.hits("export enum K { A = 1 }"), ["enum"])
+        self.assertEqual(self.hits("namespace N { export const a = 1; }"), ["namespace"])
+        self.assertEqual(self.hits("export namespace N.M { export const a = 1; }"), ["namespace"])
+        self.assertEqual(self.hits("import fs = require('node:fs');"), ["import x = ..."])
+        self.assertEqual(self.hits("export = foo;"), ["export ="])
+
+    def test_erasable_constructs_not_flagged(self):
+        for src in ("declare namespace N { const a: number; }",
+                    "const E = { Red: 'red' } as const;\ntype E = typeof E[keyof typeof E];",
+                    "const x = { enum: 1, namespace: 2 };",
+                    "// enum Foo { A }\n/* namespace N { } */\nconst s = 'enum Foo { A }';",
+                    "import type { A } from './a.js';\nexport type { A };",
+                    "interface I { readonly a: string }\nabstract class B { abstract m(): void }"):
+            self.assertEqual(self.hits(src), [], src)
+
+    def test_line_numbers(self):
+        self.assertEqual(erasable_violations("a\n\nenum E { A }\n"), [(3, "enum")])
 
 
 if __name__ == "__main__":

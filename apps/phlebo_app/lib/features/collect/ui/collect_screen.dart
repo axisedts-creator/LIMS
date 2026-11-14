@@ -390,6 +390,7 @@ class _ReasonPickerState extends State<_ReasonPicker> {
           key: const ValueKey('collect.reason_text'),
           label: 'Details (optional)',
           maxLength: 200,
+          sensitive: true,
           controller: _text,
           onChanged: (_) => setState(() {}),
         ),

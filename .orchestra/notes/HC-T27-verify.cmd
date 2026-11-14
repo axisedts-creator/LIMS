@@ -1,0 +1,1 @@
+cd /d "%~dp0..\..\apps\phlebo_app" && call flutter test __tests__/route_screen_test.dart __tests__/handover_screen_test.dart __tests__/outbox_screen_test.dart __tests__/settings_screen_test.dart __tests__/route_handover_outbox_integration_test.dart __tests__/hc27_ci_guards_test.dart

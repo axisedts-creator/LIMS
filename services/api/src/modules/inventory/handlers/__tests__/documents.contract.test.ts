@@ -80,6 +80,9 @@ describe('T-10 #43-#48 shared body rules (strict; validation runs before any rea
   it.each(['createStockIssue', 'createStoreReturn', 'recordWastage', 'createStockAdjustment'])('%s: occurred_at must be an ISO UTC instant', async (op) => {
     for (const v of ['2026-11-02', 'yesterday', 5, null]) await badBody(op, bodyOf(op, (b) => ({ ...b, occurred_at: v })))();
   });
+  it.each(['createSupplierReturn', 'writeOffExpiredStock'])('%s: occurred_at is NOT in the contract body (additionalProperties: false) -> 400', async (op) => {
+    await badBody(op, bodyOf(op, (b) => ({ ...b, occurred_at: new Date().toISOString() })))();
+  });
   it.each(['createStockIssue', 'createStoreReturn', ...REASON_OPS])('%s: reason_text longer than 500 chars / not a string', async (op) => {
     await badBody(op, bodyOf(op, (b) => ({ ...b, reason_text: 'x'.repeat(501) })))(); await badBody(op, bodyOf(op, (b) => ({ ...b, reason_text: 5 })))();
   });

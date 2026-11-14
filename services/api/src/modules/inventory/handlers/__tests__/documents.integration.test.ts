@@ -536,6 +536,19 @@ describe.skipIf(!live)('T-10 #46 recordWastage (AC-11.1)', () => {
     expect(r.body.movements[0].value_paisa).toBe(-400);
     await untouched(s, () => waste(s, wastageBody(S1, [dLine(IT, '1', LA, { pack_id: BOX })])), (e) => expect(e.code).toBe('inventory.uom_mismatch'));
   });
+  run('occurred_at window [now - backdate_max_days, now + 300 s] (02-TRD §4.7): outside either bound => 400 /occurred_at, nothing written; inside => 201', async (s) => {
+    const days = Number((await s.sql(A, 'SELECT backdate_max_days AS d FROM inventory.settings WHERE tenant_id = $1', [A]))[0]?.d ?? 7);
+    const at = (ms: number) => new Date(Date.now() + ms).toISOString();
+    const D = 86_400_000;
+    const bad = (iso: string) => untouched(s, () => waste(s, wastageBody(S1, [dLine(IT, '1', LA)], { occurred_at: iso })), (e) => {
+      expect(e.code).toBe('common.validation_failed'); expect(e.statusCode).toBe(400);
+      expect((e.errors ?? []).map((f: any) => f.path)).toContain('/occurred_at');
+    });
+    await bad(at(-(days + 1) * D));
+    await bad(at(400_000));
+    expect((await waste(s, wastageBody(S1, [dLine(IT, '1', LA)], { occurred_at: at(-(days - 1) * D) }))).status).toBe(201);
+    expect((await waste(s, wastageBody(S1, [dLine(IT, '1', LA)], { occurred_at: at(60_000) }))).status).toBe(201);
+  });
   run('probe: a lot of tenant B / another item / unknown is refused (not created)', async (s) => {
     await untouched(s, () => waste(s, wastageBody(S1, [dLine(IT, '1', LOT_B)])), (e) => expect([400, 404, 422]).toContain(e.statusCode));
     await untouched(s, () => waste(s, wastageBody(S1, [dLine(IF_, '1', LA)])), (e) => expect([400, 404, 422]).toContain(e.statusCode));

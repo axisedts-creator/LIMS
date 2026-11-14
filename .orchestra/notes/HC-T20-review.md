@@ -1,13 +1,9 @@
-LEAD RULING LD-171
+APPROVE
 
-Verdict: TESTS_WRONG (timing only). The implementation is correct (SettingsForm.tsx:71, :157-158). The rule stays: spec/chunks/C17-home-collection/02-TRD.md:549 (payment_methods 1..10, codes from the C4 seed set, D-128) and :195 (H19 400 common.validation_failed).
-
-TESTER (apps/web/src/features/homecollection/__tests__/hc-t20.settings.test.tsx):
-1. After line 248 (picking the 'Cash' option), add: `await waitFor(() => expect(screen.queryByRole('listbox')).toBeNull(), { timeout: 10000 });` and `await waitFor(() => expect(within(rows()[2]!).getByRole('button', { name: /code|method/i }).textContent).toMatch(/cash/i), { timeout: 10000 });`. Submit only after these pass.
-2. Line 250: pass `{ timeout: 10000 }` to the `waitFor`. Keep the regex `/once|duplicate|already|unique/i` and line 251 `expect(puts()).toHaveLength(0)` exactly as they are.
-3. Line 180 (range test): pass `{ timeout: 10000 }` to its `waitFor`. Instead of items 2 and 3 you may set `configure({ asyncUtilTimeout: 10000 })` once in the HC-T20 vitest setup.
-4. Do not delete, skip or loosen any assertion.
-5. Re-run HC-T20-verify.cmd (`--maxWorkers=1 --testTimeout=60000 --hookTimeout=120000 --teardownTimeout=120000`). It must show 5/5 files and 148/148 tests.
-
-WRITER:
-6. No implementation change. Only if the verify run shows a real failure in the implementation, fix that failure and cite it.
+Review of dfc98762..HEAD (HC-T20 round 3, LD-171).
+- Diff touches only owned paths: apps/web/src/features/homecollection/__tests__/hc-t20.settings.test.tsx (tester) and .orchestra/notes/HC-T20-impl.md (writer note). No implementation change, as LD-171 requires.
+- Test changes match LD-171 items 1-3 exactly: listbox-closed wait and row 3 = Cash wait before submit; { timeout: 10000 } on the waitFor calls at :180 and :250. Regex /once|duplicate|already|unique/i and expect(puts()).toHaveLength(0) unchanged; no assertion deleted, skipped or loosened (item 4).
+- No new names, PHI, secrets or invented items in the diff.
+- Verify re-run by reviewer 2026-11-14 with HC-T20-verify.cmd flags (--maxWorkers=1 --testTimeout=60000 --hookTimeout=120000 --teardownTimeout=120000): Test Files 5 passed (5), Tests 148 passed (148).
+- Previously approved scope (RLS/permissions/error codes, US-12-2, US-13-5) unchanged by this diff.
+Open (not blocking, needs lead): hc-t18.nav duplicate chord "g t" noted in HC-T20-impl.md.

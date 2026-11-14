@@ -1,9 +1,8 @@
-CHANGES
+APPROVE
 
-Checked: owned paths only (docs/manual/engagement/**, apps/web/src/features/engagement/help/** per 01-CHUNK-MAP §3 + C0 04-UI-UX HelpPanel `help/<helpKey>.ts` shape); all 12 helpKeys of 04-UI-UX §8 present, no orphan/missing helpKey in engagement pages; routeIds and permissions match contracts/routes.yaml; LD-28 and LD-140 respected; no URLs, secrets or real data. Tests run: `vitest --config tests/c16-t-doc1/vitest.config.ts` 34/34 pass. Backend items (RLS, idempotency, rate tier, error codes) N/A for a docs task.
-
-1. apps/web/src/features/engagement/help/engagement.queue.ts:9 and docs/manual/engagement/queue.md:11 — document `Alt+N` for Call next, but the shipped console registers `Alt+C` (apps/web/src/features/engagement/components/QueueConsole.tsx:135, CR-C16-T-Q4-a: `Alt+N` is a C0 global key and the registry throws on it). Help that names a key that cannot work is wrong for users. Fix: change `'Alt+N'` to `'Alt+C'` in engagement.queue.ts:9 and `` `Alt+N` `` to `` `Alt+C` `` in queue.md:11.
-
-2. docs/manual/engagement/how-the-app-protects-your-reports.md:23 — "Ask the lab to turn off your app access ... Your old sign-in stops working." is a false security promise: a staff link revoke does not end the session (01-PRD:159 "the session continues and reads of that profile return 404"; staff revoke-all-sessions "not exposed v1", 02-TRD:611). Fix: replace line 23 with "Ask the lab to revoke the app link of each of your profiles. The lost phone can then no longer open those reports. On your new phone, sign in with your number and ask the lab for a new code. Use a screen lock on your phone as well."
-
-3. docs/manual/engagement/how-the-app-protects-your-reports.md:25 — heading "Payments, reports and links open in the system browser" says reports open in the browser; they open in the in-app PDF viewer (07-SECURITY:67 "WebViews none for payments or reports"; line 7 of the same page). Fix: rename heading to "## Payments and legal pages open in the system browser".
+Re-review after ed3d1fd9 (writer review fixes). All three earlier CHANGES items are fixed:
+1. Call next key is now `Alt+C` in engagement.queue.ts:9 and queue.md:11. This matches QueueConsole.tsx:135 (CR-C16-T-Q4-a). The other queue keys (R/S/D/K/T/I) and the bookings keys (B/C/X, BookingsList.tsx:77-79) also match the shipped code.
+2. The lost-phone section (how-the-app-protects-your-reports.md:23) now says to revoke each profile link. It no longer promises that the session ends, which matches 01-PRD:159 and 02-TRD:611.
+3. The heading is now "Payments and legal pages open in the system browser", which matches 07-SECURITY:67.
+Tests re-run: `vitest --config tests/c16-t-doc1/vitest.config.ts` passed 34/34. Owned paths only, no secrets or real data, LD-28 and LD-140 respected. RLS, idempotency, rate tier and error codes do not apply to a docs task.
+Not verified: the production-build help check (C0-UI 7) has not been run; the implementer notes say the same.

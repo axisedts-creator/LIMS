@@ -35,7 +35,7 @@ const K1 = uid(16201), K2 = uid(16202), K3 = uid(16203), K4 = uid(16204), K5 = u
 const Q = [1, 2, 3, 4, 5, 6, 7].map((n) => uid(16110 + n)); // Q1..Q7
 const [Q1, Q2, Q3, Q4, Q5, Q6, Q7] = Q as [string, string, string, string, string, string, string];
 const QD = uid(16211), QB = uid(16212), QX = uid(16213), Q2A = uid(16214), Q2B = uid(16215), Q3P = uid(16216), Q4P = uid(16217), Q5P = uid(16218), Q6P = uid(16219), Q7P = uid(16220);
-const PD = uid(16410), PE = uid(16417), PA = uid(16419), PS = uid(16418), PP = uid(16411), PP2 = uid(16412), PR = uid(16413), PC = uid(16414), PX = uid(16415), PB2 = uid(16416), POPEN = uid(16421);
+const PD = uid(16410), PE = uid(16417), PA = uid(16419), PS = uid(16418), PP = uid(16411), PP2 = uid(16412), PR = uid(16413), PC = uid(16414), PX = uid(16415), PB2 = uid(16416), POPEN = uid(16421), PG = uid(16422), GG = uid(16720);
 const L_PD1 = uid(16509), L_PD2 = uid(16510), L_PP = uid(16511), L_PP2a = uid(16512), L_PP2b = uid(16513), L_PA = uid(16519);
 const APPROVER = uid(16900), OTHER = uid(16901);
 const KT = 'Asia/Kathmandu';
@@ -91,11 +91,12 @@ ${[sis(1, R1, Q1, 500, 900, SA), sis(2, R1, Q2, 500, 600, SA), sis(3, R1, Q3, 10
 ${[bal(1, R1, Q1, 100), bal(3, R1, Q3, 20), bal(6, R1, Q6, 1000), bal(7, R1, Q7, 10)].join('\n')}
 ${[poRow(PD, 'T11-PD', P1, BR1, 'draft'), poRow(PE, 'T11-PE', P1, BR1, 'draft'), poRow(PA, 'T11-PA', P1, BR1, 'approved'), poRow(PS, 'T11-PS', P1, BR1, 'sent'), poRow(PP, 'T11-PP', P1, BR1, 'partially_received'),
    poRow(PP2, 'T11-PP2', P1, BR1, 'partially_received'), poRow(PR, 'T11-PR', P1, BR1, 'received'), poRow(PC, 'T11-PC', P1, BR1, 'closed'), poRow(PX, 'T11-PX', P1, BR1, 'cancelled'),
-   poRow(PB2, 'T11-PB2', P2, BR2, 'draft'), poRow(POPEN, 'T11-POPEN', R1, BR1, 'draft')].join('\n')}
+   poRow(PB2, 'T11-PB2', P2, BR2, 'draft'), poRow(POPEN, 'T11-POPEN', R1, BR1, 'draft'), poRow(PG, 'T11-PG', P1, BR1, 'approved')].join('\n')}
+${ins('goods_receipts', { id: GG, grn_no: 'GR260016001', kind: 'purchase', store_id: P1, supplier_id: SA, po_id: PG, status: 'posted', received_at: { sql: 'now()' }, posted_at: { sql: 'now()' }, posted_by: SYS })}
 ${[poLineRow(L_PD1, PD, 1, I1, K1, 400), poLineRow(L_PD2, PD, 2, I1, K2, 100), poLineRow(uid(16517), PE, 1, I1, K1, 400, 0, { removed_at: { sql: 'now()' }, removed_by: SYS }), poLineRow(L_PA, PA, 1, I1, K1, 400),
    poLineRow(uid(16518), PS, 1, I1, K1, 400), poLineRow(L_PP, PP, 1, I1, K1, 400, 100), poLineRow(L_PP2a, PP2, 1, I1, K1, 400, 400), poLineRow(L_PP2b, PP2, 2, I1, K2, 100, 0),
    poLineRow(uid(16514), PR, 1, I1, K1, 400, 400), poLineRow(uid(16515), PC, 1, I1, K1, 400, 400), poLineRow(uid(16520), PX, 1, I1, K1, 400), poLineRow(uid(16516), PB2, 1, I1, K1, 400),
-   poLineRow(uid(16521), POPEN, 1, Q7, Q7P, 10)].join('\n')}
+   poLineRow(uid(16521), POPEN, 1, Q7, Q7P, 10), poLineRow(uid(16522), PG, 1, I1, K1, 400)].join('\n')}
 COMMIT;`;
 
 const hasTrigger = live && await (async () => {
@@ -507,6 +508,10 @@ describe.skipIf(!live)('T-11 #86cancel (AC-05.5, PE-1)', () => {
     for (const id of [PP, PR, PC]) { await invalid(cancel(s, id)); expect((await dbPo(s, id)).status).not.toBe('cancelled'); }
     await invalid(cancel(s, PX));
     expect((await dbPo(s, PX)).status).toBe('cancelled');
+  });
+  run('an approved PO with a posted receipt (03-APP-FLOW §3.1 P7: no posted GRN references the PO) cannot be cancelled even though Σ received_qty_base is 0 => 409 inventory.po_invalid_transition; stays approved (AC-05.5)', async (s) => {
+    await invalid(cancel(s, PG));
+    expect((await dbPo(s, PG)).status).toBe('approved');
   });
   run('reason code must belong to reason group po_cancel: unknown, other group (spillage = wastage) and a po_close code => 422 inventory.reason_required; nothing changes', async (s) => {
     for (const code of ['not_a_reason', 'spillage', 'short_supply']) await expectLims(cancel(s, PD, undefined, cancelBody({ reason_code: code })), 'inventory.reason_required', 422);

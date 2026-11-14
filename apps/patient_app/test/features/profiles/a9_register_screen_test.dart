@@ -121,6 +121,21 @@ void main() {
       expect(sent()['relationship'], 'child');
     });
 
+    testWidgets('04-UI-UX A9 "Myself (disabled if a self profile exists)": the Myself segment is RENDERED disabled, My child stays enabled', (t) async {
+      await open(t, existing: [profile()]);
+      final segs = (t.widget(find.byWidgetPredicate((w) => w is SegmentedButton)) as dynamic).segments as List;
+      final myself = segs.firstWhere((s) => (((s as dynamic).label) as Text).data == 'Myself') as dynamic;
+      final child = segs.firstWhere((s) => (((s as dynamic).label) as Text).data == 'My child') as dynamic;
+      expect(myself.enabled, isFalse, reason: 'not just ignored on tap: shown disabled');
+      expect(child.enabled, isTrue);
+    });
+
+    testWidgets('no self profile: both segments are enabled', (t) async {
+      await open(t);
+      final segs = (t.widget(find.byWidgetPredicate((w) => w is SegmentedButton)) as dynamic).segments as List;
+      expect(segs.every((s) => (s as dynamic).enabled == true), isTrue);
+    });
+
     testWidgets('self choice stays available when the account has only a child profile', (t) async {
       await open(t, existing: [profile(id: pidChild, rel: 'child', method: 'self_registered')]);
       await fill(t);

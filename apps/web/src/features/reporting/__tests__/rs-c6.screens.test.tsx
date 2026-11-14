@@ -3,12 +3,11 @@
 // keyboard-only path + recorded outline snapshots. Behaviour must not change, so the keyboard path asserts the SAME server-action call as before.
 // Server actions are mocked at module level (their HTTP behaviour is covered by the chunk's c6-t31 tests, which must stay green).
 // ASSUMED contract (the spec fixes the kit and the layout rule, not the markup; the writer may dispute a name via the ruling flow):
-//   - ReportDetailView shows a "Report preview" region (`section`/role=region, accessible name matches /report preview/i) holding an embedded
-//     PDF view of the latest rendered/released version: one `iframe|object|embed` with a title/label and src|data = `/reporting/report-versions/<id>/pdf`
-//     (the existing download route; no new endpoint). The paper sits on neutral.100 with neutral.0 paper (token classes, no literals).
-//     No downloadable version yet: no embedded view of a report version.
+//   - ReportDetailView shows a "Report preview" region (`section`/role=region, accessible name matches /report preview/i) holding ONLY the existing
+//     download link `/reporting/report-versions/<id>/pdf` of the latest downloadable version: no iframe/object/embed (review RS-C6 item 1; an
+//     inline preview needs a CR). Paper on neutral.100 (token classes, no literals). No downloadable version yet: no preview region.
 //   - Delivery status words in the Deliveries card and in the delivery attempt list are kit status chips (`.lims-chip`: tone + word, s6),
-//     not a sentence of "Queued 0 · Sent 1 …"; zero counts need no chip.
+//     not a sentence of "Queued 0 · Sent 1 …"; all six counts stay visible, zero included (review item 2).
 //   - Release stays the single primary button of the page; Held for dues stays a warning banner; the Send-to audiences stay checkboxes.
 // Synthetic data only.
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -55,26 +54,30 @@ const embedOf = (root: ParentNode) => root.querySelector<HTMLElement>('iframe,ob
 const pdfOf = (e: HTMLElement | null) => e?.getAttribute('src') ?? e?.getAttribute('data') ?? '';
 
 describe('RS-C6 report preview and release (s4)', () => {
-  it('a "Report preview" region embeds the latest rendered version PDF through the existing route', async () => {
+  // Review RS-C6 item 1: an embedded PDF makes the browser call the download route on every render (false report.download audit rows, report_download
+  // rate budget) and the route answers content-disposition: attachment. So the region holds ONLY the existing download link.
+  const embeds = () => document.querySelectorAll('iframe, object, embed');
+  it('a "Report preview" region holds the existing download link and no embedded PDF', async () => {
     const D = await loadDetail();
     wrap(<D report={detail() as never} permissions={ADMIN} />);
     const region = screen.getByRole('region', { name: /report preview/i });
-    const e = embedOf(region);
-    expect(e, 'preview must hold an iframe/object/embed').toBeTruthy();
-    expect(pdfOf(e)).toMatch(new RegExp(`/reporting/report-versions/${V2}/pdf(?:[?#].*)?$`));
-    expect((e!.getAttribute('title') ?? e!.getAttribute('aria-label') ?? '').length, 'embedded view needs an accessible name').toBeGreaterThan(0);
+    expect(embeds().length, 'no iframe/object/embed: viewing must not call the download route').toBe(0);
+    const link = within(region).getByRole('link', { name: /download/i });
+    expect(link.getAttribute('href')).toMatch(new RegExp(`^/reporting/report-versions/${V2}/pdf$`));
   });
-  it('the preview follows the NEWEST non-discarded downloadable version', async () => {
+  it('the preview link follows the NEWEST non-discarded downloadable version', async () => {
     const D = await loadDetail();
     wrap(<D report={detail({ versions: [vsum({ id: V2, version_no: 2 }), vsum({ id: '01a1a98a-ac40-7000-8000-0000000000aa', version_no: 3, status: 'discarded' })] }) as never} permissions={ADMIN} />);
-    expect(pdfOf(embedOf(screen.getByRole('region', { name: /report preview/i })))).toContain(V2);
+    expect(within(screen.getByRole('region', { name: /report preview/i })).getByRole('link', { name: /download/i }).getAttribute('href')).toContain(V2);
+    expect(embeds().length).toBe(0);
   });
-  it('no downloadable version: nothing is embedded', async () => {
+  it('no downloadable version: no preview region, nothing embedded', async () => {
     const D = await loadDetail();
     wrap(<D report={detail({ display_status: 'awaiting_content', versions: [vsum({ status: 'rendering' })] }) as never} permissions={ADMIN} />);
-    expect(document.querySelector('iframe[src*="report-versions"], object[data*="report-versions"], embed[src*="report-versions"]')).toBeNull();
+    expect(embeds().length).toBe(0);
+    expect(screen.queryByRole('region', { name: /report preview/i })).toBeNull();
   });
-  it('Deliveries card: sent / delivered / failed counts are status chips (tone + word), zero counts need none', async () => {
+  it('Deliveries card: counts are status chips (tone + word)', async () => {
     const D = await loadDetail();
     wrap(<D report={detail() as never} permissions={ADMIN} />);
     const card = screen.getAllByRole('heading', { name: /^deliveries$/i })[0]!.closest('.lims-card, section, article, div')! as HTMLElement;
@@ -82,6 +85,13 @@ describe('RS-C6 report preview and release (s4)', () => {
     expect(chips.length).toBeGreaterThanOrEqual(3);
     for (const re of [/sent/i, /delivered/i, /failed/i]) expect(chips.some((c) => re.test(c) && /\d/.test(c)), `chip for ${re}`).toBe(true);
     expect(screen.getByRole('link', { name: /open delivery log filtered to this report/i }).getAttribute('href')).toContain(`report_id=${REPORT}`);
+  });
+  it('Deliveries card keeps all six counts visible when every count is 0 (review item 2: nothing displayed may disappear)', async () => {
+    const D = await loadDetail();
+    wrap(<D report={detail({ deliveries_summary: { queued: 0, sent: 0, delivered: 0, read: 0, failed: 0, suppressed: 0 } }) as never} permissions={ADMIN} />);
+    const card = screen.getAllByRole('heading', { name: /^deliveries$/i })[0]!.closest('.lims-card, section, article, div')! as HTMLElement;
+    const chips = [...card.querySelectorAll('.lims-chip')].map((c) => (c.textContent ?? '').replace(/\s+/g, ' ').trim());
+    for (const w of [/queued/i, /sent/i, /delivered/i, /read/i, /failed/i, /suppressed/i]) expect(chips.some((c) => w.test(c) && /0/.test(c)), `chip ${w}`).toBe(true);
   });
   it('release stays the only primary button; Download is secondary (s3: one primary per page)', async () => {
     const D = await loadDetail();
